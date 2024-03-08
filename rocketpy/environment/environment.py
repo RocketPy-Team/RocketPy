@@ -652,7 +652,7 @@ class Environment:
 
         Returns
         -------
-        elevation : float
+        elevation : float | int
             Elevation provided by the topographic data, in meters.
         """
         if self.topographic_profile_activated == False:

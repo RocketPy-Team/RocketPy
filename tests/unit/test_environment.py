@@ -3,6 +3,7 @@ import os
 import numpy as np
 import pytest
 import pytz
+import json
 
 from rocketpy import Environment
 
@@ -10,7 +11,7 @@ from rocketpy import Environment
 def test_date_naive_set_date_saves_utc_timezone_by_default(
     example_plain_env, example_date_naive
 ):
-    """Tests time zone is set to UTC by default in environment obj given a date_naive input
+    """Tests environment.set_date sets timezone to UTC by default
 
     Parameters
     ----------
@@ -68,7 +69,8 @@ def test_elevation_set_elevation_saves_elevation(elevation, example_plain_env):
 
 
 @pytest.mark.parametrize(
-    "latitude, longitude, theoretical_elevation", [(46.90479, 8.07575, 1565)]
+    "latitude, longitude, theoretical_elevation",
+    [(46.90479, 8.07575, 1565), (46.00001, 8.00001, 2562), (46.99999, 8.99999, 2832)],
 )
 def test_location_set_topographic_profile_computes_elevation(
     latitude, longitude, theoretical_elevation, example_plain_env
@@ -94,15 +96,68 @@ def test_location_set_topographic_profile_computes_elevation(
     assert computed_elevation == theoretical_elevation
 
 
-def test_environment_export_environment_exports_environment_json(example_spaceport_env):
+def test_environment_export_environment_exports_valid_environment_json(
+    example_spaceport_env,
+):
     """Tests the export_environment() method of the Environment class.
 
     Parameters
     ----------
     example_spaceport_env : rocketpy.Environment
     """
+    # Check file creation
     assert example_spaceport_env.export_environment(filename="environment") == None
+    with open("environment.json", "r") as json_file:
+        exported_env = json.load(json_file)
     assert os.path.isfile("environment.json")
+
+    # Check file content
+    assert exported_env["gravity"] == example_spaceport_env.gravity(
+        example_spaceport_env.elevation
+    )
+    assert exported_env["date"] == [
+        example_spaceport_env.datetime_date.year,
+        example_spaceport_env.datetime_date.month,
+        example_spaceport_env.datetime_date.day,
+        example_spaceport_env.datetime_date.hour,
+    ]
+    assert exported_env["latitude"] == example_spaceport_env.latitude
+    assert exported_env["longitude"] == example_spaceport_env.longitude
+    assert exported_env["elevation"] == example_spaceport_env.elevation
+    assert exported_env["datum"] == example_spaceport_env.datum
+    assert exported_env["timezone"] == example_spaceport_env.timezone
+    assert exported_env["max_expected_height"] == float(
+        example_spaceport_env.max_expected_height
+    )
+    assert (
+        exported_env["atmospheric_model_type"]
+        == example_spaceport_env.atmospheric_model_type
+    )
+    assert (
+        exported_env["atmospheric_model_file"]
+        == example_spaceport_env.atmospheric_model_file
+    )
+    assert (
+        exported_env["atmospheric_model_dict"]
+        == example_spaceport_env.atmospheric_model_dict
+    )
+    assert (
+        exported_env["atmospheric_model_pressure_profile"]
+        == ma.getdata(example_spaceport_env.pressure.get_source()).tolist()
+    )
+    assert (
+        exported_env["atmospheric_model_temperature_profile"]
+        == ma.getdata(example_spaceport_env.temperature.get_source()).tolist()
+    )
+    assert (
+        exported_env["atmospheric_model_wind_velocity_x_profile"]
+        == ma.getdata(example_spaceport_env.wind_velocity_x.get_source()).tolist()
+    )
+    assert (
+        exported_env["atmospheric_model_wind_velocity_y_profile"]
+        == ma.getdata(example_spaceport_env.wind_velocity_y.get_source()).tolist()
+    )
+
     os.remove("environment.json")
 
 
@@ -170,7 +225,7 @@ def test_latitude_calculate_earth_radius_computes_radius(latitude, theoretical_r
 def test_decimal_degrees_to_arc_seconds_computes_correct_values(
     angle, theoretical_degree, theoretical_arc_minutes, theoretical_arc_seconds
 ):
-    """Tests the conversion from decimal degrees to degrees, arc minutes, and arc seconds.
+    """Tests the conversion from decimal degrees to arc minutes and arc seconds.
 
     Parameters
     ----------
