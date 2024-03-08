@@ -41,6 +41,7 @@ def example_spaceport_env(example_date_naive):
         datum="WGS84",
     )
     spaceport_env.set_date(example_date_naive)
+    spaceport_env.height = 1425
     return spaceport_env
 
 

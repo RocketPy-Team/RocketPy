@@ -3335,6 +3335,29 @@ class Environment:
             atmospheric_model_file = ""
             atmospheric_model_dict = ""
 
+        try:
+            height = self.height
+            atmospheric_model_pressure_profile = ma.getdata(
+                self.pressure.get_source()(height)
+            ).tolist()
+            atmospheric_model_wind_velocity_x_profile = ma.getdata(
+                self.wind_velocity_x.get_source()(height)
+            ).tolist()
+            atmospheric_model_wind_velocity_y_profile = ma.getdata(
+                self.wind_velocity_y.get_source()(height)
+            ).tolist()
+
+        except AttributeError:
+            atmospheric_model_pressure_profile = (
+                "Height Above Sea Level (m) was not provided"
+            )
+            atmospheric_model_wind_velocity_x_profile = (
+                "Height Above Sea Level (m) was not provided"
+            )
+            atmospheric_model_wind_velocity_y_profile = (
+                "Height Above Sea Level (m) was not provided"
+            )
+
         self.export_env_dictionary = {
             "gravity": self.gravity(self.elevation),
             "date": [
@@ -3352,18 +3375,12 @@ class Environment:
             "atmospheric_model_type": self.atmospheric_model_type,
             "atmospheric_model_file": atmospheric_model_file,
             "atmospheric_model_dict": atmospheric_model_dict,
-            "atmospheric_model_pressure_profile": ma.getdata(
-                self.pressure.get_source()
-            ).tolist(),
+            "atmospheric_model_pressure_profile": atmospheric_model_pressure_profile,
             "atmospheric_model_temperature_profile": ma.getdata(
                 self.temperature.get_source()
             ).tolist(),
-            "atmospheric_model_wind_velocity_x_profile": ma.getdata(
-                self.wind_velocity_x.get_source()
-            ).tolist(),
-            "atmospheric_model_wind_velocity_y_profile": ma.getdata(
-                self.wind_velocity_y.get_source()
-            ).tolist(),
+            "atmospheric_model_wind_velocity_x_profile": atmospheric_model_wind_velocity_x_profile,
+            "atmospheric_model_wind_velocity_y_profile": atmospheric_model_wind_velocity_y_profile,
         }
 
         f = open(filename + ".json", "w")

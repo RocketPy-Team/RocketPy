@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+import numpy.ma as ma
 import pytest
 import pytz
 import json
@@ -133,17 +134,13 @@ def test_environment_export_environment_exports_valid_environment_json(
         exported_env["atmospheric_model_type"]
         == example_spaceport_env.atmospheric_model_type
     )
-    assert (
-        exported_env["atmospheric_model_file"]
-        == example_spaceport_env.atmospheric_model_file
-    )
-    assert (
-        exported_env["atmospheric_model_dict"]
-        == example_spaceport_env.atmospheric_model_dict
-    )
+    assert exported_env["atmospheric_model_file"] == ""
+    assert exported_env["atmospheric_model_dict"] == ""
     assert (
         exported_env["atmospheric_model_pressure_profile"]
-        == ma.getdata(example_spaceport_env.pressure.get_source()).tolist()
+        == ma.getdata(
+            example_spaceport_env.pressure.get_source()(example_spaceport_env.height)
+        ).tolist()
     )
     assert (
         exported_env["atmospheric_model_temperature_profile"]
@@ -151,11 +148,19 @@ def test_environment_export_environment_exports_valid_environment_json(
     )
     assert (
         exported_env["atmospheric_model_wind_velocity_x_profile"]
-        == ma.getdata(example_spaceport_env.wind_velocity_x.get_source()).tolist()
+        == ma.getdata(
+            example_spaceport_env.wind_velocity_x.get_source()(
+                example_spaceport_env.height
+            )
+        ).tolist()
     )
     assert (
         exported_env["atmospheric_model_wind_velocity_y_profile"]
-        == ma.getdata(example_spaceport_env.wind_velocity_y.get_source()).tolist()
+        == ma.getdata(
+            example_spaceport_env.wind_velocity_y.get_source()(
+                example_spaceport_env.height
+            )
+        ).tolist()
     )
 
     os.remove("environment.json")
