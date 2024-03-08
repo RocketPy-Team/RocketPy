@@ -382,6 +382,27 @@ def check_requirement_version(module_name, version):
     return True
 
 
+def parallel_axis_theorem(initial_inertia_moment, mass, distance):
+    """Converts the moment of inertia from one axis to another using the
+    parallel axis theorem. The axes must be parallel to each other.
+
+    Parameters
+    ----------
+    initial_inertia_moment : float
+        Initial moment of inertia.
+    mass : float
+        Mass of the object.
+    distance : float
+        Distance between the two points.
+
+    Returns
+    -------
+    float
+        New moment of inertia.
+    """
+    return initial_inertia_moment + mass * distance**2
+
+
 # Flight
 
 
