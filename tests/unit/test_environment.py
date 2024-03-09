@@ -107,7 +107,7 @@ def test_environment_export_environment_exports_valid_environment_json(
     example_spaceport_env : rocketpy.Environment
     """
     # Check file creation
-    assert example_spaceport_env.export_environment(filename="environment") == None
+    assert example_spaceport_env.export_environment(filename="environment") is None
     with open("environment.json", "r") as json_file:
         exported_env = json.load(json_file)
     assert os.path.isfile("environment.json")
