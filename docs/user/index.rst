@@ -22,7 +22,7 @@ RocketPy's User Guide
    :caption: Special Case Simulations
 
    Compare Flights Class<compare_flights.rst>
-   ../notebooks/deployable_payload_example.ipynb
+   Deployable Payload <deployable.rst>
    Air Brakes Example <airbrakes.rst>
    ../matlab/matlab.rst
 
