@@ -106,15 +106,7 @@ class StochasticNoseCone(StochasticModel):
             NoseCone object with the randomly generated input arguments.
         """
         generated_dict = next(self.dict_generator())
-        nosecone = NoseCone(
-            length=generated_dict["length"],
-            kind=generated_dict["kind"],
-            base_radius=generated_dict["base_radius"],
-            bluffness=generated_dict["bluffness"],
-            rocket_radius=generated_dict["rocket_radius"],
-            name=generated_dict["name"],
-        )
-        return nosecone
+        return NoseCone(**generated_dict)
 
 
 class StochasticTrapezoidalFins(StochasticModel):
@@ -237,18 +229,7 @@ class StochasticTrapezoidalFins(StochasticModel):
             TrapezoidalFins object with the randomly generated input arguments.
         """
         generated_dict = next(self.dict_generator())
-        fins = TrapezoidalFins(
-            n=generated_dict["n"],
-            root_chord=generated_dict["root_chord"],
-            tip_chord=generated_dict["tip_chord"],
-            span=generated_dict["span"],
-            rocket_radius=generated_dict["rocket_radius"],
-            cant_angle=generated_dict["cant_angle"],
-            sweep_length=generated_dict["sweep_length"],
-            airfoil=generated_dict["airfoil"],
-            name=generated_dict["name"],
-        )
-        return fins
+        return TrapezoidalFins(**generated_dict)
 
 
 class StochasticEllipticalFins(StochasticModel):
@@ -347,16 +328,7 @@ class StochasticEllipticalFins(StochasticModel):
             EllipticalFins object with the randomly generated input arguments.
         """
         generated_dict = next(self.dict_generator())
-        fins = EllipticalFins(
-            n=generated_dict["n"],
-            root_chord=generated_dict["root_chord"],
-            span=generated_dict["span"],
-            rocket_radius=generated_dict["rocket_radius"],
-            cant_angle=generated_dict["cant_angle"],
-            airfoil=generated_dict["airfoil"],
-            name=generated_dict["name"],
-        )
-        return fins
+        return EllipticalFins(**generated_dict)
 
 
 class StochasticTail(StochasticModel):
@@ -439,14 +411,7 @@ class StochasticTail(StochasticModel):
             Tail object with the randomly generated input arguments.
         """
         generated_dict = next(self.dict_generator())
-        tail = Tail(
-            top_radius=generated_dict["top_radius"],
-            bottom_radius=generated_dict["bottom_radius"],
-            length=generated_dict["length"],
-            rocket_radius=generated_dict["rocket_radius"],
-            name=generated_dict["name"],
-        )
-        return tail
+        return Tail(**generated_dict)
 
 
 class StochasticRailButtons(StochasticModel):
@@ -516,9 +481,4 @@ class StochasticRailButtons(StochasticModel):
             RailButtons object with the randomly generated input arguments.
         """
         generated_dict = next(self.dict_generator())
-        rail_buttons = RailButtons(
-            buttons_distance=generated_dict["buttons_distance"],
-            angular_position=generated_dict["angular_position"],
-            name=generated_dict["name"],
-        )
-        return rail_buttons
+        return RailButtons(**generated_dict)

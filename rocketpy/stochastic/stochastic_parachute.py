@@ -138,12 +138,4 @@ class StochasticParachute(StochasticModel):
             Parachute object with the randomly generated input arguments.
         """
         generated_dict = next(self.dict_generator())
-        parachute = Parachute(
-            name=generated_dict["name"],
-            cd_s=generated_dict["cd_s"],
-            trigger=generated_dict["trigger"],
-            sampling_rate=generated_dict["sampling_rate"],
-            lag=generated_dict["lag"],
-            noise=generated_dict["noise"],
-        )
-        return parachute
+        return Parachute(**generated_dict)
