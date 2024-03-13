@@ -9,6 +9,10 @@ class StochasticFlight(StochasticModel):
     dispersion of its parameters and generate a random flight object based on
     the provided information.
 
+    See Also
+    --------
+    :ref:`stochastic_model`
+
     Attributes
     ----------
     flight : Flight
@@ -44,8 +48,7 @@ class StochasticFlight(StochasticModel):
 
         See Also
         --------
-        This should link to somewhere that explains how inputs works in
-        Stochastic models.
+        :ref:`stochastic_model`
 
         Parameters
         ----------

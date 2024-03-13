@@ -17,6 +17,7 @@ This reference manual details functions, modules, methods and attributes include
    classes/Flight
    Utilities <classes/utils/index>
    classes/EnvironmentAnalysis
+   Monte Carlo Analysis <classes/monte_carlo/index> 
 
 .. toctree::
    :maxdepth: 2

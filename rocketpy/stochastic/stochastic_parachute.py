@@ -9,6 +9,10 @@ class StochasticParachute(StochasticModel):
     dispersion of its parameters and generate a random parachute object based
     on the provided information.
 
+    See Also
+    --------
+    :ref:`stochastic_model`
+
     Attributes
     ----------
     object : Parachute
@@ -46,8 +50,7 @@ class StochasticParachute(StochasticModel):
 
         See Also
         --------
-        This should link to somewhere that explains how inputs works in
-        Stochastic Models.
+        :ref:`stochastic_model`
 
         Parameters
         ----------

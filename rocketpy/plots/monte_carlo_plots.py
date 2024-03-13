@@ -39,8 +39,9 @@ class _MonteCarloPlots:
             The limits of the y axis. The default is (-3000, 3000).
         save : bool
             Whether save the output into a file or not. The default is False.
-            If True, the .show() method won't be called, and the image will be
-            saved with the same name as filename attribute, using a .png format.
+            If True, the image will not be displayed, and the .savefig() method
+            will be called. If False, the image will be displayed, and the
+            .show() method will be called.
 
         Returns
         -------

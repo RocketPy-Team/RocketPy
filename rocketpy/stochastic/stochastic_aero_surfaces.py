@@ -15,6 +15,10 @@ class StochasticNoseCone(StochasticModel):
     dispersion of its parameters and generate a random nose cone object based
     on the provided information.
 
+    See Also
+    --------
+    :ref:`stochastic_model`
+
     Attributes
     ----------
     object : NoseCone
@@ -51,8 +55,7 @@ class StochasticNoseCone(StochasticModel):
 
         See Also
         --------
-        This should link to somewhere that explains how inputs works in
-        stochastic models.
+        :ref:`stochastic_model`
 
         Parameters
         ----------
@@ -120,6 +123,10 @@ class StochasticTrapezoidalFins(StochasticModel):
     the dispersion of its parameters and generate a random trapezoidal fins
     object based on the provided information.
 
+    See Also
+    --------
+    :ref:`stochastic_model`
+
     Attributes
     ----------
     object : TrapezoidalFins
@@ -171,8 +178,7 @@ class StochasticTrapezoidalFins(StochasticModel):
 
         See Also
         --------
-        This should link to somewhere that explains how inputs works in
-        stochastic models.
+        :ref:`stochastic_model`
 
         Parameters
         ----------
@@ -251,6 +257,10 @@ class StochasticEllipticalFins(StochasticModel):
     the dispersion of its parameters and generate a random elliptical fins
     object based on the provided information.
 
+    See Also
+    --------
+    :ref:`stochastic_model`
+
     Attributes
     ----------
     object : EllipticalFins
@@ -290,8 +300,7 @@ class StochasticEllipticalFins(StochasticModel):
 
         See Also
         --------
-        This should link to somewhere that explains how inputs works in
-        stochastic models.
+        :ref:`stochastic_model`
 
         Parameters
         ----------
@@ -356,6 +365,10 @@ class StochasticTail(StochasticModel):
     parameters and generate a random tail object based on the provided
     information.
 
+    See Also
+    --------
+    :ref:`stochastic_model`
+
     Attributes
     ----------
     object : Tail
@@ -388,8 +401,7 @@ class StochasticTail(StochasticModel):
 
         See Also
         --------
-        TODO: This should link to somewhere that explains how inputs works in
-        stochastic models.
+        :ref:`stochastic_model`
 
         Parameters
         ----------
@@ -443,6 +455,10 @@ class StochasticRailButtons(StochasticModel):
     dispersion of its parameters and generate a random rail buttons object based
     on the provided information.
 
+    See Also
+    --------
+    :ref:`stochastic_model`
+
     Attributes
     ----------
     object : RailButtons
@@ -470,8 +486,7 @@ class StochasticRailButtons(StochasticModel):
 
         See Also
         --------
-        This should link to somewhere that explains how inputs works in
-        stochastic models.
+        :ref:`stochastic_model`
 
         Parameters
         ----------

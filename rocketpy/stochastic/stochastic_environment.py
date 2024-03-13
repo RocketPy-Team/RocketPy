@@ -7,6 +7,10 @@ class StochasticEnvironment(StochasticModel):
     dispersion of its parameters and generate a random environment object based
     on the provided information.
 
+    See Also
+    --------
+    :ref:`stochastic_model`
+
     Attributes
     ----------
     object : Environment
@@ -53,8 +57,7 @@ class StochasticEnvironment(StochasticModel):
 
         See Also
         --------
-        This should link to somewhere that explains how inputs works in
-        Stochastic models.
+        :ref:`stochastic_model`
 
         Parameters
         ----------

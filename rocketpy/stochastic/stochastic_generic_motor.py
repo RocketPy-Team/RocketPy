@@ -9,6 +9,10 @@ class StochasticGenericMotor(StochasticMotorModel):
     the dispersion of its parameters and generate a random generic motor object
     based on the provided information.
 
+    See Also
+    --------
+    :ref:`stochastic_model`
+
     Attributes
     ----------
     object : GenericMotor
@@ -96,8 +100,7 @@ class StochasticGenericMotor(StochasticMotorModel):
 
         See Also
         --------
-        This should link to somewhere that explains how inputs works in
-        Stochastic Models.
+        :ref:`stochastic_model`
 
         Parameters
         ----------
