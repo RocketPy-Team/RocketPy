@@ -1,3 +1,5 @@
+"""Defines the StochasticRocket class."""
+
 import warnings
 from random import choice
 
@@ -50,8 +52,8 @@ class StochasticRocket(StochasticModel):
     rail_buttons : Components
         A Components instance containing all the rail buttons of the rocket.
     parachutes : list of StochasticParachute
-        A list of StochasticParachute instances containing all the parachutes of the
-        rocket.
+        A list of StochasticParachute instances containing all the parachutes of
+        the rocket.
     radius : tuple, list, int, float
         The radius of the rocket. Follows the standard input format of
         Stochastic Models.
@@ -195,10 +197,13 @@ class StochasticRocket(StochasticModel):
                 continue  # Skip attributes starting with underscore
             if isinstance(value, tuple):
                 # Format the tuple as a string with the mean and standard deviation.
-                value_str = f"{value[0]:.5f} ± {value[1]:.5f} (numpy.random.{value[2].__name__})"
+                value_str = (
+                    f"{value[0]:.5f} ± {value[1]:.5f} "
+                    f"(numpy.random.{value[2].__name__})"
+                )
                 s += f"{key}: {value_str}\n"
             elif isinstance(value, Components):
-                # Format the components as a string with the mean and standard deviation.
+                # Format Components as string with the mean and std deviation
                 s += f"{key}:\n"
                 if len(value) == 0:
                     s += "\tNone\n"
@@ -248,7 +253,7 @@ class StochasticRocket(StochasticModel):
             raise TypeError("`motor` must be a StochasticMotor or Motor type")
         if isinstance(motor, Motor):
             # create StochasticMotor
-            # TODO check motor type when hybrids and liquids are implemented
+            # TODO implement HybridMotor and LiquidMotor stochastic models
             if isinstance(motor, SolidMotor):
                 motor = StochasticSolidMotor(solid_motor=motor)
             elif isinstance(motor, GenericMotor):

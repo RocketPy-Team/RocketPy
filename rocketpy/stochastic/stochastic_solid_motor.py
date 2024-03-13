@@ -1,3 +1,5 @@
+"""Defines the StochasticSolidMotor class."""
+
 from rocketpy.motors import SolidMotor
 
 from .stochastic_motor_model import StochasticMotorModel

@@ -1,3 +1,5 @@
+"""Defines the StochasticMotorModel class."""
+
 from .stochastic_model import StochasticModel
 
 

@@ -1,3 +1,6 @@
+"""Defines the StochasticModel class, which will be used as a base class for all
+other Stochastic classes."""
+
 from random import choice
 
 import numpy as np
@@ -80,7 +83,10 @@ class StochasticModel:
                 continue  # Skip attributes starting with underscore
             if isinstance(value, tuple):
                 # Format the tuple as a string with the mean and standard deviation.
-                value_str = f"{value[0]:.5f} ± {value[1]:.5f} (numpy.random.{value[2].__name__})"
+                value_str = (
+                    f"{value[0]:.5f} ± {value[1]:.5f} "
+                    f"(numpy.random.{value[2].__name__})"
+                )
             else:
                 # Otherwise, just use the default string representation of the value.
                 value_str = str(value)
@@ -359,16 +365,17 @@ class StochasticModel:
             2,
             3,
         ], f"'{input_name}`: Factors tuple must have length 2 or 3"
-        assert all(
-            isinstance(item, (int, float)) for item in factor_tuple[:2]
-        ), f"'{input_name}`: First and second items of Factors tuple must be either an int or float"
+        assert all(isinstance(item, (int, float)) for item in factor_tuple[:2]), (
+            f"'{input_name}`: First and second items of Factors tuple must be "
+            "either an int or float"
+        )
 
         if len(factor_tuple) == 2:
             return (factor_tuple[0], factor_tuple[1], get_distribution("normal"))
         elif len(factor_tuple) == 3:
             assert isinstance(factor_tuple[2], str), (
-                f"'{input_name}`: Third item of tuple must be a string containing the name "
-                "of a valid numpy.random distribution function"
+                f"'{input_name}`: Third item of tuple must be a string containing "
+                "the name of a valid numpy.random distribution function"
             )
             dist_func = get_distribution(factor_tuple[2])
             return (factor_tuple[0], factor_tuple[1], dist_func)

@@ -1,3 +1,5 @@
+"""Defines the StochasticEnvironment class."""
+
 from .stochastic_model import StochasticModel
 
 
@@ -112,7 +114,10 @@ class StochasticEnvironment(StochasticModel):
             if isinstance(value, tuple):
                 try:
                     # Format the tuple as a string with the mean and standard deviation.
-                    value_str = f"{value[0]:.5f} ± {value[1]:.5f} (numpy.random.{value[2].__name__})"
+                    value_str = (
+                        f"{value[0]:.5f} ± {value[1]:.5f} "
+                        f"(numpy.random.{value[2].__name__})"
+                    )
                 except AttributeError:
                     # treats date attribute
                     value_str = str(value)
@@ -167,7 +172,10 @@ class StochasticEnvironment(StochasticModel):
                 <= min(ensemble_member)
                 <= max(ensemble_member)
                 < environment.num_ensemble_members
-            ), f"`ensemble_member` must be in the range from 0 to {environment.num_ensemble_members - 1}"
+            ), (
+                "`ensemble_member` must be in the range from 0 to "
+                + f"{environment.num_ensemble_members - 1}"
+            )
             setattr(self, "ensemble_member", ensemble_member)
         else:
             # if no ensemble member is provided, get it from the environment
@@ -191,8 +199,7 @@ class StochasticEnvironment(StochasticModel):
         generated_dict = next(self.dict_generator())
         for key, value in generated_dict.items():
             # special case for ensemble member
-            # TODO if env.ensemble_member had a setter this create_object method
-            # could be generalized
+            # TODO: Generalize create_object() with a env.ensemble_member setter
             if key == "ensemble_member":
                 self.object.select_ensemble_member(value)
             else:

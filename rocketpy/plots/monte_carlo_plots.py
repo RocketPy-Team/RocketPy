@@ -13,7 +13,7 @@ class _MonteCarloPlots:
         self,
         image=None,
         actual_landing_point=None,
-        perimeterSize=3000,
+        perimeter_size=3000,
         xlim=(-3000, 3000),
         ylim=(-3000, 3000),
         save=False,
@@ -31,7 +31,7 @@ class _MonteCarloPlots:
             Useful when comparing the Monte Carlo results with the actual landing.
             Must be given in tuple format, such as (x, y) in meters.
             By default None.
-        perimeterSize : int, optional
+        perimeter_size : int, optional
             The size of the perimeter to be plotted. The default is 3000.
         xlim : tuple, optional
             The limits of the x axis. The default is (-3000, 3000).
@@ -127,10 +127,10 @@ class _MonteCarloPlots:
                 img,
                 zorder=0,
                 extent=[
-                    -perimeterSize - dx,
-                    perimeterSize - dx,
-                    -perimeterSize - dy,
-                    perimeterSize - dy,
+                    -perimeter_size - dx,
+                    perimeter_size - dx,
+                    -perimeter_size - dy,
+                    perimeter_size - dy,
                 ],
             )
         plt.axhline(0, color="black", linewidth=0.5)

@@ -1,3 +1,5 @@
+"""Defines the StochasticFlight class."""
+
 from rocketpy.simulation import Flight
 
 from .stochastic_model import StochasticModel
@@ -95,7 +97,7 @@ class StochasticFlight(StochasticModel):
                     "e3_init, w1Init, w2Init, w3Init"
                 )
                 assert all(
-                    [isinstance(i, (int, float)) for i in initial_solution]
+                    isinstance(i, (int, float)) for i in initial_solution
                 ), "`initial_solution` must be a tuple of numbers"
             else:
                 raise TypeError("`initial_solution` must be a tuple of numbers")

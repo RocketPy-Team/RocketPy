@@ -1,3 +1,5 @@
+"""Defines the StochasticParachute class."""
+
 from rocketpy.rocket import Parachute
 
 from .stochastic_model import StochasticModel

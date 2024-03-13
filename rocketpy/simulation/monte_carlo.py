@@ -1,3 +1,5 @@
+"""Defines the MonteCarlo class."""
+
 import json
 from time import process_time, time
 
@@ -12,11 +14,7 @@ from rocketpy.tools import (
     generate_monte_carlo_ellipses_coordinates,
 )
 
-# TODO: How to save Functions? With pickle? Save just the source?
-
-# TODO: create a method that recreates each flight from inputs_log
-# and saves it in an attribute that is a list
-
+# TODO: Let Functions and Flights be json serializable
 # TODO: Create evolution plots to analyze convergence
 
 
@@ -669,10 +667,7 @@ class MonteCarlo:
         (
             impact_ellipses,
             apogee_ellipses,
-            _,
-            _,
-            _,
-            _,
+            *_,
         ) = generate_monte_carlo_ellipses(self.results)
         outputs = []
 

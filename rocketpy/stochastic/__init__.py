@@ -1,3 +1,7 @@
+"""The rocketpy.stochastic module contains classes that are used to generate
+randomized objects based on the provided information. Each of the classes
+defined here represent one different rocketpy class."""
+
 from .stochastic_aero_surfaces import (
     StochasticEllipticalFins,
     StochasticNoseCone,
