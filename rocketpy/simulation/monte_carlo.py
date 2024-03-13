@@ -1,4 +1,4 @@
-import ast
+import json
 from time import process_time, time
 
 import numpy as np
@@ -447,9 +447,12 @@ class MonteCarlo:
                 if line[0] != "{":
                     continue
                 # Try to convert the line to a dictionary
-                d = ast.literal_eval(line)
-                # If successful, append the dictionary to the list
-                self.inputs_log.append(d)
+                try:
+                    d = json.loads(line)
+                    # If successful, append the dictionary to the list
+                    self.inputs_log.append(d)
+                except json.JSONDecodeError:
+                    continue
 
     def set_outputs_log(self):
         """Sets outputs_log from a file into an attribute for easy access"""
@@ -461,9 +464,11 @@ class MonteCarlo:
                 if line[0] != "{":
                     continue
                 # Try to convert the line to a dictionary
-                d = ast.literal_eval(line)
-                # If successful, append the dictionary to the list
-                self.outputs_log.append(d)
+                try:
+                    # If successful, append the dictionary to the list
+                    self.outputs_log.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
 
     def set_errors_log(self):
         """Sets errors_log log from a file into an attribute for easy access"""
@@ -475,9 +480,11 @@ class MonteCarlo:
                 if line[0] != "{":
                     continue
                 # Try to convert the line to a dictionary
-                d = ast.literal_eval(line)
-                # If successful, append the dictionary to the list
-                self.errors_log.append(d)
+                try:
+                    # If successful, append the dictionary to the list
+                    self.errors_log.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
 
     def set_num_of_loaded_sims(self):
         """Number of simulations loaded from output_file being currently used."""
