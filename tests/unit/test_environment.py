@@ -59,12 +59,14 @@ def test_location_set_location_saves_location(latitude, longitude, example_plain
 
 @pytest.mark.parametrize("elevation", [(-200), (0), (200)])
 def test_elevation_set_elevation_saves_elevation(elevation, example_plain_env):
-    """Tests elevation is set correctly in the environment obj.
+    """Tests the wether the 'set_elevation' method within the Environment class
+    sets the elevation correctly.
 
     Parameters
     ----------
     example_plain_env : rocketpy.Environment
     """
+
     example_plain_env.set_elevation(elevation=elevation)
     assert example_plain_env.elevation == elevation
 
@@ -182,8 +184,11 @@ def test_geodesic_coordinate_geodesic_to_utm_converts_coordinate():
     assert EW == "W"
 
 
-def test_utm_coordinate_utm_to_geodesic_converts_coordinate():
-    """Tests the conversion from UTM to geodesic coordinates."""
+def test_utm_to_geodesic_converts_coordinates():
+    """Tests the utm_to_geodesic method within the Environment
+    class and checks the conversion results from UTM to geodesic
+    coordinates.
+    """
 
     lat, lon = Environment.utm_to_geodesic(
         x=315468.64,
