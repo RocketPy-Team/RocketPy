@@ -17,13 +17,13 @@ from rocketpy.stochastic import (
 
 
 @pytest.fixture
-def stochastic_environment(example_env_robust):
+def stochastic_environment(example_spaceport_env):
     """This fixture is used to create a stochastic environment object for the
     Calisto flight.
 
     Parameters
     ----------
-    example_env_robust : Environment
+    example_spaceport_env : Environment
         This is another fixture.
 
     Returns
@@ -32,7 +32,7 @@ def stochastic_environment(example_env_robust):
         The stochastic environment object
     """
     return StochasticEnvironment(
-        environment=example_env_robust,
+        environment=example_spaceport_env,
         elevation=(1400, 10, "normal"),
         gravity=None,
         latitude=None,
