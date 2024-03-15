@@ -97,6 +97,48 @@ def test_monte_carlo_simulate(monte_carlo_calisto):
     os.remove("monte_carlo_test.inputs.txt")
 
 
+def test_monte_carlo_set_inputs_log(monte_carlo_calisto):
+    """Tests the set_inputs_log method of the MonteCarlo class.
+
+    Parameters
+    ----------
+    monte_carlo_calisto : MonteCarlo
+        The MonteCarlo object, this is a pytest fixture.
+    """
+    monte_carlo_calisto.input_file = "tests/fixtures/monte_carlo/example.inputs.txt"
+    monte_carlo_calisto.set_inputs_log()
+    assert len(monte_carlo_calisto.inputs_log) == 10
+    assert all(isinstance(item, dict) for item in monte_carlo_calisto.inputs_log)
+    assert all(
+        "gravity" in item and "elevation" in item
+        for item in monte_carlo_calisto.inputs_log
+    )
+
+
+def test_monte_carlo_set_outputs_log(monte_carlo_calisto):
+    """Tests the set_outputs_log method of the MonteCarlo class.
+
+    Parameters
+    ----------
+    monte_carlo_calisto : MonteCarlo
+        The MonteCarlo object, this is a pytest fixture.
+    """
+    monte_carlo_calisto.output_file = "tests/fixtures/monte_carlo/example.outputs.txt"
+    monte_carlo_calisto.set_outputs_log()
+    assert len(monte_carlo_calisto.outputs_log) == 10
+    assert all(isinstance(item, dict) for item in monte_carlo_calisto.outputs_log)
+    assert all(
+        "apogee" in item and "impact_velocity" in item
+        for item in monte_carlo_calisto.outputs_log
+    )
+
+
+# def test_monte_carlo_set_errors_log(monte_carlo_calisto):
+#     monte_carlo_calisto.error_file = "tests/fixtures/monte_carlo/example.errors.txt"
+#     monte_carlo_calisto.set_errors_log()
+#     assert
+
+
 def test_monte_carlo_prints(monte_carlo_calisto):
     """Tests the prints methods of the MonteCarlo class."""
     monte_carlo_calisto.info()
