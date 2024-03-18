@@ -22,6 +22,7 @@ Create Environment, Motor and Rocket
 ------------------------------------
 
 First, let's create the environment, motor and rocket objects.
+This is done following the same steps as in the :ref:`firstsimulation` example.
 
 .. jupyter-execute::
 
@@ -139,7 +140,9 @@ It is easy to initialize the ``CompareFlights`` object:
 
       comparison = CompareFlights(flights)
 
+
 After the initialization, we can use different methods to plot the results in a comparative way.
+To see a full description of the available methods, you can check the :ref:`compareflights` documentation.
 
 Plotting results one by one
 ----------------------------

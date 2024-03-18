@@ -83,6 +83,10 @@ We will assume that the payload is ejected at apogee, however, this can be modif
 
 We start by defining the value of each relevant mass, ensuring they are correct before continuing.
 
+.. seealso::
+
+   See :ref:`First Simulation <firstsimulation>` example for more details on how to simulate a rocket flight.
+
 .. jupyter-execute::
 
       # 14.426 is the mass of the rocket including the payload but without the motor
