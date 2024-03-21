@@ -2438,7 +2438,7 @@ class Flight:
         -------
         float
         """
-        return self.stability_margin(0)
+        return self.stability_margin(self.time[0])
 
     @property
     def out_of_rail_stability_margin(self):
