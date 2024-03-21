@@ -35,6 +35,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - ENH: adds `Function.remove_outliers` method [#554](https://github.com/RocketPy-Team/RocketPy/pull/554)
 
 ### Changed
+
+- DOC: Convert CompareFlights example notebooks to .rst files [#576](https://github.com/RocketPy-Team/RocketPy/pull/576)
 - MNT: Refactor inertia calculations using parallel axis theorem [#573] (https://github.com/RocketPy-Team/RocketPy/pull/573)
 - ENH: Optional argument to show the plot in Function.compare_plots [#563](https://github.com/RocketPy-Team/RocketPy/pull/563)
 
