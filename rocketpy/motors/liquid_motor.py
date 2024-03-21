@@ -7,7 +7,7 @@ from rocketpy.mathutils.function import (
     funcify_method,
     reset_funcified_methods,
 )
-from rocketpy.tools import parallel_axis_theorem
+from rocketpy.tools import parallel_axis_theorem_from_com
 
 from ..plots.liquid_motor_plots import _LiquidMotorPlots
 from ..prints.liquid_motor_prints import _LiquidMotorPrints
@@ -390,7 +390,9 @@ class LiquidMotor(Motor):
             tank = positioned_tank.get("tank")
             tank_position = positioned_tank.get("position")
             distance = tank_position + tank.center_of_mass - center_of_mass
-            I_11 += parallel_axis_theorem(tank.inertia, tank.fluid_mass, distance)
+            I_11 += parallel_axis_theorem_from_com(
+                tank.inertia, tank.fluid_mass, distance
+            )
 
         return I_11
 

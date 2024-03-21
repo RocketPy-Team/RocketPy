@@ -1,4 +1,4 @@
-from rocketpy.tools import parallel_axis_theorem
+from rocketpy.tools import parallel_axis_theorem_from_com
 
 from ..mathutils.function import Function, funcify_method, reset_funcified_methods
 from ..plots.hybrid_motor_plots import _HybridMotorPlots
@@ -468,9 +468,11 @@ class HybridMotor(Motor):
         solid_prop_inertia = self.solid.propellant_I_11
         liquid_prop_inertia = self.liquid.propellant_I_11
 
-        I_11 = parallel_axis_theorem(
+        I_11 = parallel_axis_theorem_from_com(
             solid_prop_inertia, solid_mass, solid_cm_to_cm
-        ) + parallel_axis_theorem(liquid_prop_inertia, liquid_mass, liquid_cm_to_cm)
+        ) + parallel_axis_theorem_from_com(
+            liquid_prop_inertia, liquid_mass, liquid_cm_to_cm
+        )
 
         return I_11
 

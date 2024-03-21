@@ -7,7 +7,7 @@ import numpy as np
 from ..mathutils.function import Function, funcify_method
 from ..plots.motor_plots import _MotorPlots
 from ..prints.motor_prints import _MotorPrints
-from ..tools import parallel_axis_theorem, tuple_handler
+from ..tools import parallel_axis_theorem_from_com, tuple_handler
 
 try:
     from functools import cached_property
@@ -520,8 +520,10 @@ class Motor(ABC):
         prop_to_cm = self.center_of_propellant_mass - self.center_of_mass
         dry_to_cm = self.center_of_dry_mass_position - self.center_of_mass
 
-        prop_I_11 = parallel_axis_theorem(prop_I_11, self.propellant_mass, prop_to_cm)
-        dry_I_11 = parallel_axis_theorem(dry_I_11, self.dry_mass, dry_to_cm)
+        prop_I_11 = parallel_axis_theorem_from_com(
+            prop_I_11, self.propellant_mass, prop_to_cm
+        )
+        dry_I_11 = parallel_axis_theorem_from_com(dry_I_11, self.dry_mass, dry_to_cm)
 
         return prop_I_11 + dry_I_11
 

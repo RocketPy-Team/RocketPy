@@ -18,7 +18,7 @@ from rocketpy.rocket.aero_surface import (
 )
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
-from rocketpy.tools import parallel_axis_theorem
+from rocketpy.tools import parallel_axis_theorem_from_com
 
 
 class Rocket:
@@ -634,13 +634,17 @@ class Rocket:
         )
 
         # Compute dry inertias
-        self.dry_I_11 = parallel_axis_theorem(
+        self.dry_I_11 = parallel_axis_theorem_from_com(
             self.I_11_without_motor, mass, noMCM_to_CDM
-        ) + parallel_axis_theorem(self.motor.dry_I_11, motor_dry_mass, motorCDM_to_CDM)
+        ) + parallel_axis_theorem_from_com(
+            self.motor.dry_I_11, motor_dry_mass, motorCDM_to_CDM
+        )
 
-        self.dry_I_22 = parallel_axis_theorem(
+        self.dry_I_22 = parallel_axis_theorem_from_com(
             self.I_22_without_motor, mass, noMCM_to_CDM
-        ) + parallel_axis_theorem(self.motor.dry_I_22, motor_dry_mass, motorCDM_to_CDM)
+        ) + parallel_axis_theorem_from_com(
+            self.motor.dry_I_22, motor_dry_mass, motorCDM_to_CDM
+        )
 
         self.dry_I_33 = self.I_33_without_motor + self.motor.dry_I_33
         self.dry_I_12 = self.I_12_without_motor + self.motor.dry_I_12
@@ -698,13 +702,13 @@ class Rocket:
         CM_to_CPM = self.center_of_mass - self.center_of_propellant_position
 
         # Compute inertias
-        self.I_11 = parallel_axis_theorem(
+        self.I_11 = parallel_axis_theorem_from_com(
             self.dry_I_11, dry_mass, CM_to_CDM
-        ) + parallel_axis_theorem(self.motor.I_11, prop_mass, CM_to_CPM)
+        ) + parallel_axis_theorem_from_com(self.motor.I_11, prop_mass, CM_to_CPM)
 
-        self.I_22 = parallel_axis_theorem(
+        self.I_22 = parallel_axis_theorem_from_com(
             self.dry_I_22, dry_mass, CM_to_CDM
-        ) + parallel_axis_theorem(self.motor.I_22, prop_mass, CM_to_CPM)
+        ) + parallel_axis_theorem_from_com(self.motor.I_22, prop_mass, CM_to_CPM)
 
         self.I_33 = self.dry_I_33 + self.motor.I_33
         self.I_12 = self.dry_I_12 + self.motor.I_12
