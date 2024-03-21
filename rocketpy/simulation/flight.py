@@ -1756,8 +1756,12 @@ class Flight:
                 position - self.rocket.center_of_dry_mass_position
             ) * self.rocket._csys - aero_surface.cpz
             comp_cp = Vector([0, 0, comp_cpz])
-            surface_radius = aero_surface.rocket_radius
-            reference_area = np.pi * surface_radius**2
+            if hasattr(aero_surface, "reference_area"):
+                reference_area = aero_surface.reference_area
+                reference_length = aero_surface.reference_length
+            else:
+                reference_length = 2 * aero_surface.rocket_radius
+                reference_area = np.pi * aero_surface.rocket_radius**2
             # Component absolute velocity in body frame
             comp_vb = vB + (w ^ comp_cp)
             # Wind velocity at component altitude
@@ -1772,7 +1776,8 @@ class Flight:
             comp_stream_mach = (
                 comp_stream_speed / self.env.speed_of_sound.get_value_opt(z)
             )
-            # Component attack angle and lift force
+            comp_dynamic_pressure = 0.5 * rho * (comp_stream_speed**2)
+            # Component attack angle, lift force and drag force
             comp_attack_angle = 0
             comp_lift, comp_lift_xb, comp_lift_yb = 0, 0, 0
             if comp_stream_vx_b**2 + comp_stream_vy_b**2 != 0:
@@ -1780,7 +1785,10 @@ class Flight:
                 comp_stream_vz_bn = comp_stream_vz_b / comp_stream_speed
                 if -1 * comp_stream_vz_bn < 1:
                     comp_attack_angle = np.arccos(-comp_stream_vz_bn)
-                    c_lift = aero_surface.cl(comp_attack_angle, comp_stream_mach)
+                    if hasattr(aero_surface, "cl"):
+                        c_lift = aero_surface.cl(comp_attack_angle, comp_stream_mach)
+                    else:
+                        c_lift = aero_surface.c_N(comp_attack_angle, comp_stream_mach)
                     # Component lift force magnitude
                     comp_lift = (
                         0.5 * rho * (comp_stream_speed**2) * reference_area * c_lift
@@ -1795,28 +1803,75 @@ class Flight:
                     # Add to total moment
                     M1 -= (comp_cpz + r_CM_z.get_value_opt(t)) * comp_lift_yb
                     M2 += (comp_cpz + r_CM_z.get_value_opt(t)) * comp_lift_xb
+                    # Add to total drag force
+                    R3 += (
+                        -0.5
+                        * rho
+                        * (comp_stream_speed**2)
+                        * reference_area
+                        * (aero_surface.c_A(comp_attack_angle, comp_stream_mach))
+                    )
             # Calculates Roll Moment
-            try:
+            if hasattr(aero_surface, "roll_parameters"):
                 clf_delta, cld_omega, cant_angle_rad = aero_surface.roll_parameters
                 M3f = (
-                    (1 / 2 * rho * comp_stream_speed**2)
+                    comp_dynamic_pressure
                     * reference_area
-                    * 2
-                    * surface_radius
+                    * reference_length
                     * clf_delta(comp_stream_mach)
                     * cant_angle_rad
                 )
                 M3d = (
-                    (1 / 2 * rho * comp_stream_speed)
+                    (comp_dynamic_pressure / comp_stream_speed)
                     * reference_area
-                    * (2 * surface_radius) ** 2
+                    * (reference_length) ** 2
                     * cld_omega(comp_stream_mach)
                     * omega3
                     / 2
                 )
                 M3 += M3f - M3d
-            except AttributeError:
-                pass
+            elif hasattr(aero_surface, "c_m"):
+                # Pitching moment direction
+                pitching_moment_dir = comp_stream_velocity ^ Vector([0, 0, 1])
+                pitching_moment_dir = pitching_moment_dir.unit_vector
+                # Pitching moment magnitude
+                c_m = aero_surface.c_m(comp_attack_angle, comp_stream_mach)
+                comp_pitching_moment = (
+                    comp_dynamic_pressure * reference_area * reference_length * c_m
+                )
+                # Pitch damping moment magnitude
+                c_m_d = aero_surface.c_m_d(comp_attack_angle, comp_stream_mach)
+                pitching_rate = Vector([omega1, omega2, omega3]) @ pitching_moment_dir
+                comp_pitching_moment -= (
+                    (comp_dynamic_pressure / comp_stream_speed)
+                    * reference_area
+                    * reference_length**2
+                    * c_m_d
+                    * pitching_rate
+                    / 2
+                )
+                # Add to total pitching moment
+                comp_pitching_moment *= pitching_moment_dir
+                M1 += comp_pitching_moment.x
+                M2 += comp_pitching_moment.y
+                # Roll moment magnitude
+                c_l = aero_surface.c_l(comp_attack_angle, comp_stream_mach)
+                comp_roll_moment = (
+                    comp_dynamic_pressure * reference_area * reference_length * c_l
+                )
+                # Roll damping moment magnitude
+                c_l_d = aero_surface.c_l_d(comp_attack_angle, comp_stream_mach)
+                comp_roll_moment = -(
+                    (comp_dynamic_pressure / comp_stream_speed)
+                    * reference_area
+                    * reference_length**2
+                    * c_l_d
+                    * omega3
+                    / 2
+                )
+                # Add to total roll moment
+                M3 += comp_roll_moment
+
         weightB = Kt @ Vector([0, 0, -total_mass * self.env.gravity(z)])
         T00 = total_mass * r_CM
         T03 = (
