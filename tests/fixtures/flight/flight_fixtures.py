@@ -4,7 +4,7 @@ from rocketpy import Flight
 
 
 @pytest.fixture
-def flight_calisto(calisto, example_env):  # old name: flight
+def flight_calisto(calisto, example_plain_env):  # old name: flight
     """A rocketpy.Flight object of the Calisto rocket. This uses the calisto
     without the aerodynamic surfaces and parachutes. The environment is the
     simplest possible, with no parameters set.
@@ -13,7 +13,7 @@ def flight_calisto(calisto, example_env):  # old name: flight
     ----------
     calisto : rocketpy.Rocket
         An object of the Rocket class. This is a pytest fixture too.
-    example_env : rocketpy.Environment
+    example_plain_env : rocketpy.Environment
         An object of the Environment class. This is a pytest fixture too.
 
     Returns
@@ -23,7 +23,7 @@ def flight_calisto(calisto, example_env):  # old name: flight
         conditions.
     """
     return Flight(
-        environment=example_env,
+        environment=example_plain_env,
         rocket=calisto,
         rail_length=5.2,
         inclination=85,
@@ -33,7 +33,7 @@ def flight_calisto(calisto, example_env):  # old name: flight
 
 
 @pytest.fixture
-def flight_calisto_nose_to_tail(calisto_nose_to_tail, example_env):
+def flight_calisto_nose_to_tail(calisto_nose_to_tail, example_plain_env):
     """A rocketpy.Flight object of the Calisto rocket. This uses the calisto
     with "nose_to_tail" coordinate system orientation, just as described in the
     calisto_nose_to_tail fixture.
@@ -42,7 +42,7 @@ def flight_calisto_nose_to_tail(calisto_nose_to_tail, example_env):
     ----------
     calisto_nose_to_tail : rocketpy.Rocket
         An object of the Rocket class. This is a pytest fixture too.
-    example_env : rocketpy.Environment
+    example_plain_env : rocketpy.Environment
         An object of the Environment class. This is a pytest fixture too.
 
     Returns
@@ -52,7 +52,7 @@ def flight_calisto_nose_to_tail(calisto_nose_to_tail, example_env):
         "nose_to_tail".
     """
     return Flight(
-        environment=example_env,
+        environment=example_plain_env,
         rocket=calisto_nose_to_tail,
         rail_length=5.2,
         inclination=85,
@@ -62,7 +62,7 @@ def flight_calisto_nose_to_tail(calisto_nose_to_tail, example_env):
 
 
 @pytest.fixture
-def flight_calisto_robust(calisto_robust, example_env_robust):
+def flight_calisto_robust(calisto_robust, example_spaceport_env):
     """A rocketpy.Flight object of the Calisto rocket. This uses the calisto
     with the aerodynamic surfaces and parachutes. The environment is a bit more
     complex than the one in the flight_calisto fixture. This time the latitude,
@@ -74,7 +74,7 @@ def flight_calisto_robust(calisto_robust, example_env_robust):
     ----------
     calisto_robust : rocketpy.Rocket
         An object of the Rocket class. This is a pytest fixture too.
-    example_env_robust : rocketpy.Environment
+    example_spaceport_env : rocketpy.Environment
         An object of the Environment class. This is a pytest fixture too.
 
     Returns
@@ -84,7 +84,7 @@ def flight_calisto_robust(calisto_robust, example_env_robust):
         condition.
     """
     return Flight(
-        environment=example_env_robust,
+        environment=example_spaceport_env,
         rocket=calisto_robust,
         rail_length=5.2,
         inclination=85,
@@ -94,7 +94,7 @@ def flight_calisto_robust(calisto_robust, example_env_robust):
 
 
 @pytest.fixture
-def flight_calisto_custom_wind(calisto_robust, example_env_robust):
+def flight_calisto_custom_wind(calisto_robust, example_spaceport_env):
     """A rocketpy.Flight object of the Calisto rocket. This uses the calisto
     with the aerodynamic surfaces and parachutes. The environment is a bit more
     complex than the one in the flight_calisto_robust fixture. Now the wind is
@@ -104,7 +104,7 @@ def flight_calisto_custom_wind(calisto_robust, example_env_robust):
     ----------
     calisto_robust : rocketpy.Rocket
         An object of the Rocket class. This is a pytest fixture too.
-    example_env_robust : rocketpy.Environment
+    example_spaceport_env : rocketpy.Environment
         An object of the Environment class. This is a pytest fixture too.
 
     Returns
@@ -112,7 +112,7 @@ def flight_calisto_custom_wind(calisto_robust, example_env_robust):
     rocketpy.Flight
 
     """
-    env = example_env_robust
+    env = example_spaceport_env
     env.set_atmospheric_model(
         type="custom_atmosphere",
         temperature=300,
@@ -130,7 +130,7 @@ def flight_calisto_custom_wind(calisto_robust, example_env_robust):
 
 
 @pytest.fixture
-def flight_calisto_air_brakes(calisto_air_brakes_clamp_on, example_env):
+def flight_calisto_air_brakes(calisto_air_brakes_clamp_on, example_plain_env):
     """A rocketpy.Flight object of the Calisto rocket. This uses the calisto
     with the aerodynamic surfaces and air brakes. The environment is the
     simplest possible, with no parameters set. The air brakes are set to clamp
@@ -140,7 +140,7 @@ def flight_calisto_air_brakes(calisto_air_brakes_clamp_on, example_env):
     ----------
     calisto_air_brakes_clamp_on : rocketpy.Rocket
         An object of the Rocket class.
-    example_env : rocketpy.Environment
+    example_plain_env : rocketpy.Environment
         An object of the Environment class.
 
     Returns
@@ -151,7 +151,7 @@ def flight_calisto_air_brakes(calisto_air_brakes_clamp_on, example_env):
     """
     return Flight(
         rocket=calisto_air_brakes_clamp_on,
-        environment=example_env,
+        environment=example_plain_env,
         rail_length=5.2,
         inclination=85,
         heading=0,

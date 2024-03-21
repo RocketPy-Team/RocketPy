@@ -43,7 +43,7 @@ def test_compare(mock_show, flight_calisto):
 
 
 @patch("matplotlib.pyplot.show")
-def test_compare_flights(mock_show, calisto, example_env):
+def test_compare_flights(mock_show, calisto, example_plain_env):
     """Tests the CompareFlights class. It simply ensures that all the methods
     are being called without errors. It does not test the actual plots, which
     would be very difficult to do.
@@ -54,14 +54,14 @@ def test_compare_flights(mock_show, calisto, example_env):
         Mocks the matplotlib.pyplot.show() function to avoid showing the plots.
     calisto : rocketpy.Rocket
         Rocket object to be used in the tests. See conftest.py for more details.
-    example_env : rocketpy.Environment
+    example_plain_env : rocketpy.Environment
         Environment object to be used in the tests. See conftest.py for more details.
 
     Returns
     -------
     None
     """
-    example_env.set_atmospheric_model(
+    example_plain_env.set_atmospheric_model(
         type="custom_atmosphere",
         pressure=None,
         temperature=300,
@@ -77,7 +77,7 @@ def test_compare_flights(mock_show, calisto, example_env):
     for heading in headings:
         for inclination in inclinations:
             flight = Flight(
-                environment=example_env,
+                environment=example_plain_env,
                 rocket=calisto,
                 rail_length=5,
                 inclination=inclination,
