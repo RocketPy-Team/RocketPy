@@ -40,7 +40,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - ENH: Optional argument to show the plot in Function.compare_plots [#563](https://github.com/RocketPy-Team/RocketPy/pull/563)
 
 ### Fixed
+
 - BUG: export_eng 'Motor' method would not work for liquid motors. [#559](https://github.com/RocketPy-Team/RocketPy/pull/559) 
+
+## [v1.2.2] - 2024-03-22
+
+You can install this version by running `pip install rocketpy==1.2.2`
+
+- BUG: wrong rocket mass in parachute u dot method [#569](https://github.com/RocketPy-Team/RocketPy/pull/569)
 
 ## [v1.2.1] - 2024-02-22
 

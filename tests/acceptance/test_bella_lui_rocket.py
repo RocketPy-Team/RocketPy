@@ -242,3 +242,10 @@ def test_bella_lui_rocket_data_asserts_acceptance():
     assert (
         abs(apogee_time_measured - apogee_time_simulated) / apogee_time_simulated < 0.02
     )
+    # Guarantee the impact velocity is within 30% of the real data.
+    # Use the last 5 real points to avoid outliers
+    assert (
+        abs(test_flight.impact_velocity - np.mean(vert_vel_kalt[-5:]))
+        / abs(test_flight.impact_velocity)
+        < 0.30
+    )

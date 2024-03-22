@@ -1911,7 +1911,7 @@ class Flight:
         rho = self.env.density.get_value_opt(u[2])
         to = 1.2
         ma = ka * rho * (4 / 3) * np.pi * R**3
-        mp = self.rocket.mass
+        mp = self.rocket.dry_mass
         eta = 1
         Rdot = (6 * R * (1 - eta) / (1.2**6)) * (
             (1 - eta) * t**5 + eta * (to**3) * (t**2)
