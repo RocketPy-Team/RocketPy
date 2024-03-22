@@ -426,6 +426,10 @@ class Flight:
         Rocket's static margin during flight in calibers.
     Flight.stability_margin : Function
             Rocket's stability margin during flight, in calibers.
+    Flight.initial_stability_margin : float
+        Rocket's initial stability margin in calibers.
+    Flight.out_of_rail_stability_margin : float
+        Rocket's stability margin in calibers when it leaves the rail.
     Flight.stream_velocity_x : Function
         Freestream velocity x (East) component, in m/s, as a function of
         time. Can be called or accessed as array.
@@ -2425,6 +2429,26 @@ class Flight:
     def min_stability_margin(self):
         """Minimum stability margin."""
         return self.stability_margin(self.min_stability_margin_time)
+
+    @property
+    def initial_stability_margin(self):
+        """Stability margin at time 0.
+
+        Returns
+        -------
+        float
+        """
+        return self.stability_margin(self.time[0])
+
+    @property
+    def out_of_rail_stability_margin(self):
+        """Stability margin at the time the rocket leaves the rail.
+
+        Returns
+        -------
+        float
+        """
+        return self.stability_margin(self.out_of_rail_time)
 
     # Reynolds Number
     @funcify_method("Time (s)", "Reynolds Number", "spline", "zero")

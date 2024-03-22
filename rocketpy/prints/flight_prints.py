@@ -33,42 +33,38 @@ class _FlightPrints:
         -------
         None
         """
-
         print("\nInitial Conditions\n")
 
-        # Post-process results
-        if self.flight.post_processed is False:
-            self.flight.post_process()
-        print(
-            "Position - x: {:.2f} m | y: {:.2f} m | z: {:.2f} m".format(
-                self.flight.x(0), self.flight.y(0), self.flight.z(0)
-            )
-        )
-        print(
-            "Velocity - Vx: {:.2f} m/s | Vy: {:.2f} m/s | Vz: {:.2f} m/s".format(
-                self.flight.vx(0), self.flight.vy(0), self.flight.vz(0)
-            )
-        )
-        print(
-            "Attitude - e0: {:.3f} | e1: {:.3f} | e2: {:.3f} | e3: {:.3f}".format(
-                self.flight.e0(0),
-                self.flight.e1(0),
-                self.flight.e2(0),
-                self.flight.e3(0),
-            )
-        )
-        print(
-            "Euler Angles - Spin φ : {:.2f}° | Nutation θ: {:.2f}° | Precession ψ: {:.2f}°".format(
-                self.flight.phi(0), self.flight.theta(0), self.flight.psi(0)
-            )
-        )
-        print(
-            "Angular Velocity - ω1: {:.2f} rad/s | ω2: {:.2f} rad/s| ω3: {:.2f} rad/s".format(
-                self.flight.w1(0), self.flight.w2(0), self.flight.w3(0)
-            )
-        )
+        t_init = self.flight.time[0]
 
-        return None
+        print(f"Initial time: {t_init:.3f} s")
+        print(
+            f"Position - x: {self.flight.x(t_init):.2f} m | "
+            f"y: {self.flight.y(t_init):.2f} m | "
+            f"z: {self.flight.z(t_init):.2f} m"
+        )
+        print(
+            f"Velocity - Vx: {self.flight.vx(t_init):.2f} m/s | "
+            f"Vy: {self.flight.vy(t_init):.2f} m/s | "
+            f"Vz: {self.flight.vz(t_init):.2f} m/s"
+        )
+        print(
+            f"Attitude (quaternions) - e0: {self.flight.e0(t_init):.3f} | "
+            f"e1: {self.flight.e1(t_init):.3f} | "
+            f"e2: {self.flight.e2(t_init):.3f} | "
+            f"e3: {self.flight.e3(t_init):.3f}"
+        )
+        print(
+            f"Euler Angles - Spin φ : {self.flight.phi(t_init):.2f}° | "
+            f"Nutation θ: {self.flight.theta(t_init):.2f}° | "
+            f"Precession ψ: {self.flight.psi(t_init):.2f}°"
+        )
+        print(
+            f"Angular Velocity - ω1: {self.flight.w1(t_init):.2f} rad/s | "
+            f"ω2: {self.flight.w2(t_init):.2f} rad/s | "
+            f"ω3: {self.flight.w3(t_init):.2f} rad/s"
+        )
+        print(f"Initial Stability Margin: {self.flight.initial_stability_margin:.3f} c")
 
     def numerical_integration_settings(self):
         """Prints out the Numerical Integration settings available about the
@@ -150,9 +146,8 @@ class _FlightPrints:
         print("\nRail Departure State\n")
         print("Rail Departure Time: {:.3f} s".format(self.flight.out_of_rail_time))
         print(
-            "Rail Departure Velocity: {:.3f} m/s".format(
-                self.flight.out_of_rail_velocity
-            )
+            "Rail Departure Stability Margin: "
+            f"{self.flight.out_of_rail_stability_margin:.3f} c"
         )
         print(
             "Rail Departure Stability Margin: {:.3f} c".format(
@@ -408,9 +403,13 @@ class _FlightPrints:
         about the flight."""
         print("\nStability Margin\n")
         print(
-            "Maximum Stability Margin: {:.3f} c at {:.2f} s".format(
-                self.flight.max_stability_margin, self.flight.max_stability_margin_time
-            )
+            f"Initial Stability Margin: {self.flight.initial_stability_margin:.3f} c "
+            f"at {self.flight.time[0]:.2f} s"
+        )
+        print(
+            "Out of Rail Stability Margin: "
+            f"{self.flight.out_of_rail_stability_margin:.3f} c "
+            f"at {self.flight.out_of_rail_time:.2f} s"
         )
         print(
             "Minimum Stability Margin: {:.3f} c at {:.2f} s".format(
