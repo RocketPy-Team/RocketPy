@@ -67,8 +67,7 @@ class _FlightPrints:
                 self.flight.w1(0), self.flight.w2(0), self.flight.w3(0)
             )
         )
-
-        return None
+        print(f"Initial Stability Margin: {self.flight.initial_stability_margin:.3f} c")
 
     def numerical_integration_settings(self):
         """Prints out the Numerical Integration settings available about the
@@ -150,9 +149,8 @@ class _FlightPrints:
         print("\nRail Departure State\n")
         print("Rail Departure Time: {:.3f} s".format(self.flight.out_of_rail_time))
         print(
-            "Rail Departure Velocity: {:.3f} m/s".format(
-                self.flight.out_of_rail_velocity
-            )
+            "Rail Departure Stability Margin: "
+            f"{self.flight.out_of_rail_stability_margin:.3f} c"
         )
         print(
             "Rail Departure Stability Margin: {:.3f} c".format(
@@ -408,9 +406,13 @@ class _FlightPrints:
         about the flight."""
         print("\nStability Margin\n")
         print(
-            "Maximum Stability Margin: {:.3f} c at {:.2f} s".format(
-                self.flight.max_stability_margin, self.flight.max_stability_margin_time
-            )
+            f"Initial Stability Margin: {self.flight.initial_stability_margin:.3f} c "
+            f"at {self.flight.time[0]:.2f} s"
+        )
+        print(
+            "Out of Rail Stability Margin: "
+            f"{self.flight.out_of_rail_stability_margin:.3f} c "
+            f"at {self.flight.out_of_rail_time:.2f} s"
         )
         print(
             "Minimum Stability Margin: {:.3f} c at {:.2f} s".format(
