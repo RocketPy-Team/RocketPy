@@ -33,39 +33,36 @@ class _FlightPrints:
         -------
         None
         """
-
         print("\nInitial Conditions\n")
 
-        # Post-process results
-        if self.flight.post_processed is False:
-            self.flight.post_process()
+        t_init = self.flight.time[0]
+
+        print(f"Initial time: {t_init:.3f} s")
         print(
-            "Position - x: {:.2f} m | y: {:.2f} m | z: {:.2f} m".format(
-                self.flight.x(0), self.flight.y(0), self.flight.z(0)
-            )
+            f"Position - x: {self.flight.x(t_init):.2f} m | "
+            f"y: {self.flight.y(t_init):.2f} m | "
+            f"z: {self.flight.z(t_init):.2f} m"
         )
         print(
-            "Velocity - Vx: {:.2f} m/s | Vy: {:.2f} m/s | Vz: {:.2f} m/s".format(
-                self.flight.vx(0), self.flight.vy(0), self.flight.vz(0)
-            )
+            f"Velocity - Vx: {self.flight.vx(t_init):.2f} m/s | "
+            f"Vy: {self.flight.vy(t_init):.2f} m/s | "
+            f"Vz: {self.flight.vz(t_init):.2f} m/s"
         )
         print(
-            "Attitude - e0: {:.3f} | e1: {:.3f} | e2: {:.3f} | e3: {:.3f}".format(
-                self.flight.e0(0),
-                self.flight.e1(0),
-                self.flight.e2(0),
-                self.flight.e3(0),
-            )
+            f"Attitude (quaternions) - e0: {self.flight.e0(t_init):.3f} | "
+            f"e1: {self.flight.e1(t_init):.3f} | "
+            f"e2: {self.flight.e2(t_init):.3f} | "
+            f"e3: {self.flight.e3(t_init):.3f}"
         )
         print(
-            "Euler Angles - Spin φ : {:.2f}° | Nutation θ: {:.2f}° | Precession ψ: {:.2f}°".format(
-                self.flight.phi(0), self.flight.theta(0), self.flight.psi(0)
-            )
+            f"Euler Angles - Spin φ : {self.flight.phi(t_init):.2f}° | "
+            f"Nutation θ: {self.flight.theta(t_init):.2f}° | "
+            f"Precession ψ: {self.flight.psi(t_init):.2f}°"
         )
         print(
-            "Angular Velocity - ω1: {:.2f} rad/s | ω2: {:.2f} rad/s| ω3: {:.2f} rad/s".format(
-                self.flight.w1(0), self.flight.w2(0), self.flight.w3(0)
-            )
+            f"Angular Velocity - ω1: {self.flight.w1(t_init):.2f} rad/s | "
+            f"ω2: {self.flight.w2(t_init):.2f} rad/s | "
+            f"ω3: {self.flight.w3(t_init):.2f} rad/s"
         )
         print(f"Initial Stability Margin: {self.flight.initial_stability_margin:.3f} c")
 
