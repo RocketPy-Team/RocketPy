@@ -464,23 +464,66 @@ class Environment:
                 self.atmospheric_model_file, self.atmospheric_model_dict
             )
 
-        # Return None
-
-    def set_gravity_model(self, gravity):
-        """Sets the gravity model to be used in the simulation based on the
-        given user input to the gravity parameter.
+    def set_gravity_model(self, gravity=None):
+        """Defines the gravity model based on the given user input to the
+        gravity parameter. The gravity model is responsible for computing the
+        gravity acceleration at a given height above sea level in meters.
 
         Parameters
         ----------
-        gravity : None or Function source
-            If None, the Somigliana formula is used to compute the gravity
-            acceleration. Otherwise, the user can provide a Function source
-            object representing the gravity model.
+        gravity : int, float, callable, string, array, optional
+            The gravitational acceleration in m/s² to be used in the
+            simulation, this value is positive when pointing downwards.
+            The input type can be one of the following:
+
+                - ``int`` or ``float``: The gravity acceleration is set as a
+                constant function with respect to height;
+
+                - ``callable``: This callable should receive the height above
+                sea level in meters and return the gravity acceleration;
+
+                - ``array``: The datapoints should be structured as
+                ``[(h_i,g_i), ...]`` where ``h_i`` is the height above sea
+                level in meters and ``g_i`` is the gravity acceleration in m/s²;
+
+                - ``string``: The string should correspond to a path to a CSV file
+                containing the gravity acceleration data;
+
+                - ``None``: The Somigliana formula is used to compute the gravity
+                acceleration.
+
+            This parameter is used as a :class:`Function` object source, check
+            out the available input types for a more detailed explanation.
 
         Returns
         -------
         Function
             Function object representing the gravity model.
+
+        Notes
+        -----
+        This method **does not** set the gravity acceleration, it only returns
+        a :class:`Function` object representing the gravity model.
+
+        Examples
+        --------
+        Let's prepare a `Environment` object with a constant gravity
+        acceleration:
+
+        >>> g_0 = 9.80665
+        >>> env_cte_g = Environment(gravity=g_0)
+        >>> env_cte_g.gravity([0, 100, 1000])
+        [9.80665, 9.80665, 9.80665]
+
+        It's also possible to variate the gravity acceleration by defining
+        its function of height:
+
+        >>> R_t = 6371000
+        >>> g_func = lambda h : g_0 * (R_t / (R_t + h))**2
+        >>> env_var_g = Environment(gravity=g_func)
+        >>> g = env_var_g.gravity(1000)
+        >>> print(f"{g:.6f}")
+        9.803572
         """
         if gravity is None:
             return self.somigliana_gravity.set_discrete(
