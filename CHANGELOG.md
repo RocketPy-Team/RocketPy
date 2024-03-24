@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - MNT: Refactor flight prints module [#579](https://github.com/RocketPy-Team/RocketPy/pull/579)
 - DOC: Convert CompareFlights example notebooks to .rst files [#576](https://github.com/RocketPy-Team/RocketPy/pull/576)
 - ENH: Optional argument to show the plot in Function.compare_plots [#563](https://github.com/RocketPy-Team/RocketPy/pull/563)
+- MNT: Modularize Rocket Draw [#580](https://github.com/RocketPy-Team/RocketPy/pull/580)
 
 ### Fixed
 
