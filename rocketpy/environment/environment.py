@@ -57,8 +57,7 @@ class Environment:
     Environment.datum : string
         The desired reference ellipsoid model, the following options are
         available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
-        is "SIRGAS2000", then this model will be used if the user make some
-        typing mistake
+        is "SIRGAS2000".
     Environment.initial_east : float
         Launch site East UTM coordinate
     Environment.initial_north :  float
@@ -276,15 +275,21 @@ class Environment:
         timezone="UTC",
         max_expected_height=80000.0,
     ):
-        """Initialize Environment class, saving launch rail length,
-        launch date, location coordinates and elevation. Note that
-        by default the standard atmosphere is loaded until another
+        """Initialize Environment class, saving parameters of the launch location,
+        such as launch date, coordinates and elevation. This class also computes
+        relevant quantities for the Flight simulation, such as air pressure, density
+        and gravitational acceleration.
+
+        Note that the default atmospheric model is the International Standard Atmosphere
+        as defined by ISO 2533 unless specified otherwise in
+        :meth:`Environment.set_atmospheric_model`.
 
         Parameters
         ----------
         gravity : int, float, callable, string, array, optional
             Surface gravitational acceleration. Positive values point the
-            acceleration down. If None, the Somigliana formula is used to
+            acceleration down. If None, the Somigliana formula is used.
+            See :meth:`Environment.set_gravity_model` for more information.
         date : array, optional
             Array of length 4, stating (year, month, day, hour (UTC))
             of rocket launch. Must be given if a Forecast, Reanalysis
@@ -305,11 +310,10 @@ class Environment:
             'Open-Elevation' which uses the Open-Elevation API to
             find elevation data. For this option, latitude and
             longitude must also be specified. Default value is 0.
-        datum : string
+        datum : string, optional
             The desired reference ellipsoidal model, the following options are
             available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
-            is "SIRGAS2000", then this model will be used if the user make some
-            typing mistake.
+            is "SIRGAS2000".
         timezone : string, optional
             Name of the time zone. To see all time zones, import pytz and run
             print(pytz.all_timezones). Default time zone is "UTC".
@@ -318,7 +322,7 @@ class Environment:
             be above sea level (ASL). Especially useful for visualization.
             Can be altered as desired by doing `max_expected_height = number`.
             Depending on the atmospheric model, this value may be automatically
-            mofified.
+            modified.
 
         Returns
         -------
@@ -458,23 +462,66 @@ class Environment:
                 self.atmospheric_model_file, self.atmospheric_model_dict
             )
 
-        # Return None
-
-    def set_gravity_model(self, gravity):
-        """Sets the gravity model to be used in the simulation based on the
-        given user input to the gravity parameter.
+    def set_gravity_model(self, gravity=None):
+        """Defines the gravity model based on the given user input to the
+        gravity parameter. The gravity model is responsible for computing the
+        gravity acceleration at a given height above sea level in meters.
 
         Parameters
         ----------
-        gravity : None or Function source
-            If None, the Somigliana formula is used to compute the gravity
-            acceleration. Otherwise, the user can provide a Function object
-            representing the gravity model.
+        gravity : int, float, callable, string, array, optional
+            The gravitational acceleration in m/s² to be used in the
+            simulation, this value is positive when pointing downwards.
+            The input type can be one of the following:
+
+                - ``int`` or ``float``: The gravity acceleration is set as a
+                constant function with respect to height;
+
+                - ``callable``: This callable should receive the height above
+                sea level in meters and return the gravity acceleration;
+
+                - ``array``: The datapoints should be structured as
+                ``[(h_i,g_i), ...]`` where ``h_i`` is the height above sea
+                level in meters and ``g_i`` is the gravity acceleration in m/s²;
+
+                - ``string``: The string should correspond to a path to a CSV file
+                containing the gravity acceleration data;
+
+                - ``None``: The Somigliana formula is used to compute the gravity
+                acceleration.
+
+            This parameter is used as a :class:`Function` object source, check
+            out the available input types for a more detailed explanation.
 
         Returns
         -------
         Function
             Function object representing the gravity model.
+
+        Notes
+        -----
+        This method **does not** set the gravity acceleration, it only returns
+        a :class:`Function` object representing the gravity model.
+
+        Examples
+        --------
+        Let's prepare a `Environment` object with a constant gravity
+        acceleration:
+
+        >>> g_0 = 9.80665
+        >>> env_cte_g = Environment(gravity=g_0)
+        >>> env_cte_g.gravity([0, 100, 1000])
+        [9.80665, 9.80665, 9.80665]
+
+        It's also possible to variate the gravity acceleration by defining
+        its function of height:
+
+        >>> R_t = 6371000
+        >>> g_func = lambda h : g_0 * (R_t / (R_t + h))**2
+        >>> env_var_g = Environment(gravity=g_func)
+        >>> g = env_var_g.gravity(1000)
+        >>> print(f"{g:.6f}")
+        9.803572
         """
         if gravity is None:
             return self.somigliana_gravity.set_discrete(
@@ -514,6 +561,10 @@ class Environment:
         -------
         Function
             Function object representing the gravity model.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Theoretical_gravity#Somigliana_equation
         """
         a = 6378137.0  # semi_major_axis
         f = 1 / 298.257223563  # flattening_factor
