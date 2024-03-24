@@ -382,6 +382,33 @@ def check_requirement_version(module_name, version):
     return True
 
 
+def parallel_axis_theorem_from_com(com_inertia_moment, mass, distance):
+    """Calculates the moment of inertia of a object relative to a new axis using
+    the parallel axis theorem. The new axis is parallel to and at a distance
+    'distance' from the original axis, which *must* passes through the object's
+    center of mass.
+
+    Parameters
+    ----------
+    com_inertia_moment : float
+        Moment of inertia relative to the center of mass of the object.
+    mass : float
+        Mass of the object.
+    distance : float
+        Perpendicular distance between the original and new axis.
+
+    Returns
+    -------
+    float
+        Moment of inertia relative to the new axis.
+
+    Reference
+    ---------
+    https://en.wikipedia.org/wiki/Parallel_axis_theorem
+    """
+    return com_inertia_moment + mass * distance**2
+
+
 # Flight
 
 
