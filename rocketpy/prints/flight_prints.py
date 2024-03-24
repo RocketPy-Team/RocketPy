@@ -175,6 +175,7 @@ class _FlightPrints:
         print(f"Burn out time: {self.flight.rocket.motor.burn_out_time:.3f} s")
         print(
             "Altitude at burn out: "
+            f"{self.flight.z(self.flight.rocket.motor.burn_out_time):.3f} m (ASL) | "
             f"{self.flight.altitude(self.flight.rocket.motor.burn_out_time):.3f} "
             "m (AGL)"
         )
