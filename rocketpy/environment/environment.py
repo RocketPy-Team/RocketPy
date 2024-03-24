@@ -57,8 +57,7 @@ class Environment:
     Environment.datum : string
         The desired reference ellipsoid model, the following options are
         available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
-        is "SIRGAS2000", then this model will be used if the user make some
-        typing mistake
+        is "SIRGAS2000".
     Environment.initial_east : float
         Launch site East UTM coordinate
     Environment.initial_north :  float
@@ -311,11 +310,10 @@ class Environment:
             'Open-Elevation' which uses the Open-Elevation API to
             find elevation data. For this option, latitude and
             longitude must also be specified. Default value is 0.
-        datum : string
+        datum : string, optional
             The desired reference ellipsoidal model, the following options are
             available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
-            is "SIRGAS2000", then this model will be used if the user make some
-            typing mistake.
+            is "SIRGAS2000".
         timezone : string, optional
             Name of the time zone. To see all time zones, import pytz and run
             print(pytz.all_timezones). Default time zone is "UTC".
@@ -324,7 +322,7 @@ class Environment:
             be above sea level (ASL). Especially useful for visualization.
             Can be altered as desired by doing `max_expected_height = number`.
             Depending on the atmospheric model, this value may be automatically
-            mofified.
+            modified.
 
         Returns
         -------
