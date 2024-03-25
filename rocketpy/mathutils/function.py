@@ -369,7 +369,7 @@ class Function:
                 # Interval found... interpolate... or extrapolate
                 if x_min <= x <= x_max:
                     # Interpolate
-                    x_interval = x_interval if x_interval != 0 else 1
+                    x_interval = max(x_interval, 1)
                     a = coeffs[:, x_interval - 1]
                     x = x - x_data[x_interval - 1]
                     y = a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
@@ -378,8 +378,12 @@ class Function:
                     if extrapolation == 0:  # Extrapolation == zero
                         y = 0
                     elif extrapolation == 1:  # Extrapolation == natural
-                        a = coeffs[:, 0] if x < x_min else coeffs[:, -1]
-                        x = x - x_data[0] if x < x_min else x - x_data[-2]
+                        if x < x_min:
+                            a = coeffs[:, 0]
+                            x = x - x_data[0]
+                        else:
+                            a = coeffs[:, -1]
+                            x = x - x_data[-2]
                         y = a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
                     else:  # Extrapolation is set to constant
                         y = y_data[0] if x < x_min else y_data[-1]
@@ -392,22 +396,22 @@ class Function:
                 # Interval found... interpolate... or extrapolate
                 if x_min <= x <= x_max:
                     # Interpolate
-                    dx = float(x_data[x_interval] - x_data[x_interval - 1])
-                    dy = float(y_data[x_interval] - y_data[x_interval - 1])
-                    y = (x - x_data[x_interval - 1]) * (dy / dx) + y_data[
-                        x_interval - 1
-                    ]
+                    x_left = x_data[x_interval - 1]
+                    y_left = y_data[x_interval - 1]
+                    dx = float(x_data[x_interval] - x_left)
+                    dy = float(y_data[x_interval] - y_left)
+                    y = (x - x_left) * (dy / dx) + y_left
                 else:
                     # Extrapolate
                     if extrapolation == 0:  # Extrapolation == zero
                         y = 0
                     elif extrapolation == 1:  # Extrapolation == natural
                         x_interval = 1 if x < x_min else -1
-                        dx = float(x_data[x_interval] - x_data[x_interval - 1])
-                        dy = float(y_data[x_interval] - y_data[x_interval - 1])
-                        y = (x - x_data[x_interval - 1]) * (dy / dx) + y_data[
-                            x_interval - 1
-                        ]
+                        x_left = x_data[x_interval - 1]
+                        y_left = y_data[x_interval - 1]
+                        dx = float(x_data[x_interval] - x_left)
+                        dy = float(y_data[x_interval] - y_left)
+                        y = (x - x_left) * (dy / dx) + y_left
                     else:  # Extrapolation is set to constant
                         y = y_data[0] if x < x_min else y_data[-1]
                 return y
