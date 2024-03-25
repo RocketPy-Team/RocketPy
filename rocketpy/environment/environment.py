@@ -275,9 +275,10 @@ class Environment:
         timezone="UTC",
         max_expected_height=80000.0,
     ):
-        """Initialize Environment class, saving parameters of the launch location,
-        such as launch date, coordinates and elevation. This class also computes
-        relevant quantities for the Flight simulation, such as air pressure, density
+        """Initializes the Environment class, capturing essential parameters of
+        the launch site, including the launch date, geographical coordinates,
+        and elevation. This class is designed to calculate crucial variables
+        for the Flight simulation, such as atmospheric air pressure, density,
         and gravitational acceleration.
 
         Note that the default atmospheric model is the International Standard Atmosphere
