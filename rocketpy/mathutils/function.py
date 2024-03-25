@@ -1988,7 +1988,7 @@ class Function:
                 # Create new Function object
                 return Function(source, inputs, outputs, interpolation, extrapolation)
             else:
-                return Function(lambda x: (self.get_value(x) + other(x)))
+                return Function(lambda x: (self.get_value_opt(x) + other(x)))
         # If other is Float except...
         except AttributeError:
             if isinstance(other, NUMERICAL_TYPES):
@@ -2009,10 +2009,10 @@ class Function:
                         source, inputs, outputs, interpolation, extrapolation
                     )
                 else:
-                    return Function(lambda x: (self.get_value(x) + other))
+                    return Function(lambda x: (self.get_value_opt(x) + other))
             # Or if it is just a callable
             elif callable(other):
-                return Function(lambda x: (self.get_value(x) + other(x)))
+                return Function(lambda x: (self.get_value_opt(x) + other(x)))
 
     def __radd__(self, other):
         """Sums 'other' and a Function object and returns a new Function
@@ -2055,7 +2055,7 @@ class Function:
         try:
             return self + (-other)
         except TypeError:
-            return Function(lambda x: (self.get_value(x) - other(x)))
+            return Function(lambda x: (self.get_value_opt(x) - other(x)))
 
     def __rsub__(self, other):
         """Subtracts a Function object from 'other' and returns a new Function
@@ -2335,10 +2335,10 @@ class Function:
                         source, inputs, outputs, interpolation, extrapolation
                     )
                 else:
-                    return Function(lambda x: (self.get_value(x) ** other))
+                    return Function(lambda x: (self.get_value_opt(x) ** other))
             # Or if it is just a callable
             elif callable(other):
-                return Function(lambda x: (self.get_value(x) ** other(x)))
+                return Function(lambda x: (self.get_value_opt(x) ** other(x)))
 
     def __rpow__(self, other):
         """Raises 'other' to the power of a Function object and returns
@@ -2371,10 +2371,10 @@ class Function:
                 # Create new Function object
                 return Function(source, inputs, outputs, interpolation, extrapolation)
             else:
-                return Function(lambda x: (other ** self.get_value(x)))
+                return Function(lambda x: (other ** self.get_value_opt(x)))
         # Or if it is just a callable
         elif callable(other):
-            return Function(lambda x: (other(x) ** self.get_value(x)))
+            return Function(lambda x: (other(x) ** self.get_value_opt(x)))
 
     def __matmul__(self, other):
         """Operator @ as an alias for composition. Therefore, this
@@ -2549,10 +2549,12 @@ class Function:
             Evaluated derivative.
         """
         if order == 1:
-            return (self.get_value(x + dx) - self.get_value(x - dx)) / (2 * dx)
+            return (self.get_value_opt(x + dx) - self.get_value_opt(x - dx)) / (2 * dx)
         elif order == 2:
             return (
-                self.get_value(x + dx) - 2 * self.get_value(x) + self.get_value(x - dx)
+                self.get_value_opt(x + dx)
+                - 2 * self.get_value_opt(x)
+                + self.get_value_opt(x - dx)
             ) / dx**2
 
     def identity_function(self):
@@ -3262,7 +3264,7 @@ class PiecewiseFunction(Function):
             """
             output = np.zeros(len(inputs))
             for j, value in enumerate(inputs):
-                output[j] = func.get_value(value)
+                output[j] = func.get_value_opt(value)
             return output
 
         input_data = []

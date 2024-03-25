@@ -714,11 +714,13 @@ class Flight:
                     parachute.noise_signal.append([node.t, noise])
                     parachute.noisy_pressure_signal.append([node.t, pressure + noise])
                     # Gets height above ground level considering noise
-                    hAGL = (
-                        self.env.barometric_height(pressure + noise)
+                    height_above_ground_level = (
+                        self.env.barometric_height.get_value_opt(pressure + noise)
                         - self.env.elevation
                     )
-                    if parachute.triggerfunc(pressure + noise, hAGL, self.y_sol):
+                    if parachute.triggerfunc(
+                        pressure + noise, height_above_ground_level, self.y_sol
+                    ):
                         # print('\nEVENT DETECTED')
                         # print('Parachute Triggered')
                         # print('Name: ', parachute.name, ' | Lag: ', parachute.lag)
@@ -1020,13 +1022,17 @@ class Flight:
                                         [overshootable_node.t, pressure + noise]
                                     )
                                     # Gets height above ground level considering noise
-                                    hAGL = (
-                                        self.env.barometric_height(pressure + noise)
+                                    height_above_ground_level = (
+                                        self.env.barometric_height.get_value_opt(
+                                            pressure + noise
+                                        )
                                         - self.env.elevation
                                     )
 
                                     if parachute.triggerfunc(
-                                        pressure + noise, hAGL, overshootable_node.y
+                                        pressure + noise,
+                                        height_above_ground_level,
+                                        overshootable_node.y,
                                     ):
                                         # print('\nEVENT DETECTED')
                                         # print('Parachute Triggered')
@@ -1219,25 +1225,34 @@ class Flight:
 
     @cached_property
     def frontal_surface_wind(self):
-        # Surface wind magnitude in the frontal direction at the rail's elevation
-        wind_u = self.env.wind_velocity_x(self.env.elevation)
-        wind_v = self.env.wind_velocity_y(self.env.elevation)
+        """Frontal wind velocity at the surface level. The frontal wind is
+        defined as the wind blowing in the direction of the rocket's heading.
+
+        Returns
+        -------
+        float
+            Wind velocity in the frontal direction at the surface level.
+        """
+        wind_u = self.env.wind_velocity_x.get_value_opt(self.env.elevation)
+        wind_v = self.env.wind_velocity_y.get_value_opt(self.env.elevation)
         heading_rad = self.heading * np.pi / 180
-        frontal_surface_wind = wind_u * np.sin(heading_rad) + wind_v * np.cos(
-            heading_rad
-        )
-        return frontal_surface_wind
+        return wind_u * np.sin(heading_rad) + wind_v * np.cos(heading_rad)
 
     @cached_property
     def lateral_surface_wind(self):
-        # Surface wind magnitude in the lateral direction at the rail's elevation
-        wind_u = self.env.wind_velocity_x(self.env.elevation)
-        wind_v = self.env.wind_velocity_y(self.env.elevation)
+        """Lateral wind velocity at the surface level. The lateral wind is
+        defined as the wind blowing perpendicular to the rocket's heading.
+
+        Returns
+        -------
+        float
+            Wind velocity in the lateral direction at the surface level.
+        """
+        wind_u = self.env.wind_velocity_x.get_value_opt(self.env.elevation)
+        wind_v = self.env.wind_velocity_y.get_value_opt(self.env.elevation)
         heading_rad = self.heading * np.pi / 180
-        lateral_surface_wind = -wind_u * np.cos(heading_rad) + wind_v * np.sin(
-            heading_rad
-        )
-        return lateral_surface_wind
+
+        return -wind_u * np.cos(heading_rad) + wind_v * np.sin(heading_rad)
 
     def udot_rail1(self, t, u, post_processing=False):
         """Calculates derivative of u state vector with respect to time
@@ -1288,7 +1303,9 @@ class Flight:
         R3 = -0.5 * rho * (free_stream_speed**2) * self.rocket.area * (drag_coeff)
 
         # Calculate Linear acceleration
-        a3 = (R3 + thrust) / M - (e0**2 - e1**2 - e2**2 + e3**2) * self.env.gravity(z)
+        a3 = (R3 + thrust) / M - (
+            e0**2 - e1**2 - e2**2 + e3**2
+        ) * self.env.gravity.get_value_opt(z)
         if a3 > 0:
             ax = 2 * (e1 * e3 + e0 * e2) * a3
             ay = 2 * (e2 * e3 - e0 * e1) * a3
@@ -1389,7 +1406,7 @@ class Flight:
         # b = -self.rocket.distance_rocket_propellant
         b = (
             -(
-                self.rocket.center_of_propellant_position(0)
+                self.rocket.center_of_propellant_position.get_value_opt(0)
                 - self.rocket.center_of_dry_mass_position
             )
             * self.rocket._csys
@@ -1435,7 +1452,7 @@ class Flight:
         R3 = -0.5 * rho * (free_stream_speed**2) * self.rocket.area * drag_coeff
         for air_brakes in self.rocket.air_brakes:
             if air_brakes.deployment_level > 0:
-                air_brakes_cd = air_brakes.drag_coefficient(
+                air_brakes_cd = air_brakes.drag_coefficient.get_value_opt(
                     air_brakes.deployment_level, free_stream_mach
                 )
                 air_brakes_force = (
@@ -1490,7 +1507,9 @@ class Flight:
                 comp_stream_vz_bn = comp_stream_vz_b / comp_stream_speed
                 if -1 * comp_stream_vz_bn < 1:
                     comp_attack_angle = np.arccos(-comp_stream_vz_bn)
-                    c_lift = aero_surface.cl(comp_attack_angle, free_stream_mach)
+                    c_lift = aero_surface.cl.get_value_opt(
+                        comp_attack_angle, free_stream_mach
+                    )
                     # component lift force magnitude
                     comp_lift = (
                         0.5 * rho * (comp_stream_speed**2) * reference_area * c_lift
@@ -1513,14 +1532,14 @@ class Flight:
                     * reference_area
                     * 2
                     * surface_radius
-                    * clf_delta(free_stream_mach)
+                    * clf_delta.get_value_opt(free_stream_mach)
                     * cant_angle_rad
                 )
                 M3d = (
                     (1 / 2 * rho * free_stream_speed)
                     * reference_area
                     * (2 * surface_radius) ** 2
-                    * cld_omega(free_stream_mach)
+                    * cld_omega.get_value_opt(free_stream_mach)
                     * omega3
                     / 2
                 )
@@ -1565,7 +1584,7 @@ class Flight:
             (R3 - b * Mt * (alpha2 - omega1 * omega3) + thrust) / M,
         ]
         ax, ay, az = np.dot(K, L)
-        az -= self.env.gravity(z)  # Include gravity
+        az -= self.env.gravity.get_value_opt(z)  # Include gravity
 
         # Create u_dot
         u_dot = [
@@ -1734,7 +1753,7 @@ class Flight:
         R3 += -0.5 * rho * (free_stream_speed**2) * self.rocket.area * drag_coeff
         for air_brakes in self.rocket.air_brakes:
             if air_brakes.deployment_level > 0:
-                air_brakes_cd = air_brakes.drag_coefficient(
+                air_brakes_cd = air_brakes.drag_coefficient.get_value_opt(
                     air_brakes.deployment_level, free_stream_mach
                 )
                 air_brakes_force = (
@@ -1784,7 +1803,9 @@ class Flight:
                 comp_stream_vz_bn = comp_stream_vz_b / comp_stream_speed
                 if -1 * comp_stream_vz_bn < 1:
                     comp_attack_angle = np.arccos(-comp_stream_vz_bn)
-                    c_lift = aero_surface.cl(comp_attack_angle, comp_stream_mach)
+                    c_lift = aero_surface.cl.get_value_opt(
+                        comp_attack_angle, comp_stream_mach
+                    )
                     # Component lift force magnitude
                     comp_lift = (
                         0.5 * rho * (comp_stream_speed**2) * reference_area * c_lift
@@ -1807,28 +1828,28 @@ class Flight:
                     * reference_area
                     * 2
                     * surface_radius
-                    * clf_delta(comp_stream_mach)
+                    * clf_delta.get_value_opt(comp_stream_mach)
                     * cant_angle_rad
                 )
                 M3d = (
                     (1 / 2 * rho * comp_stream_speed)
                     * reference_area
                     * (2 * surface_radius) ** 2
-                    * cld_omega(comp_stream_mach)
+                    * cld_omega.get_value_opt(comp_stream_mach)
                     * omega3
                     / 2
                 )
                 M3 += M3f - M3d
             except AttributeError:
                 pass
-        weightB = Kt @ Vector([0, 0, -total_mass * self.env.gravity(z)])
+        weightB = Kt @ Vector([0, 0, -total_mass * self.env.gravity.get_value_opt(z)])
         T00 = total_mass * r_CM
         T03 = (
             2 * total_mass_dot * (Vector([0, 0, r_NOZ]) - r_CM)
             - 2 * total_mass * r_CM_dot
         )
         T04 = (
-            self.rocket.motor.thrust(t) * Vector([0, 0, 1])
+            self.rocket.motor.thrust.get_value_opt(t) * Vector([0, 0, 1])
             - total_mass * r_CM_ddot
             - 2 * total_mass_dot * r_CM_dot
             + total_mass_ddot * (Vector([0, 0, r_NOZ]) - r_CM)
@@ -1952,12 +1973,20 @@ class Flight:
             self.M2_list.append([t, 0])
             self.M3_list.append([t, 0])
             # Atmospheric Conditions
-            self.wind_velocity_x_list.append([t, self.env.wind_velocity_x(z)])
-            self.wind_velocity_y_list.append([t, self.env.wind_velocity_y(z)])
-            self.density_list.append([t, self.env.density(z)])
-            self.dynamic_viscosity_list.append([t, self.env.dynamic_viscosity(z)])
-            self.pressure_list.append([t, self.env.pressure(z)])
-            self.speed_of_sound_list.append([t, self.env.speed_of_sound(z)])
+            self.wind_velocity_x_list.append(
+                [t, self.env.wind_velocity_x.get_value_opt(z)]
+            )
+            self.wind_velocity_y_list.append(
+                [t, self.env.wind_velocity_y.get_value_opt(z)]
+            )
+            self.density_list.append([t, self.env.density.get_value_opt(z)])
+            self.dynamic_viscosity_list.append(
+                [t, self.env.dynamic_viscosity.get_value_opt(z)]
+            )
+            self.pressure_list.append([t, self.env.pressure.get_value_opt(z)])
+            self.speed_of_sound_list.append(
+                [t, self.env.speed_of_sound.get_value_opt(z)]
+            )
 
         return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
 
@@ -2197,7 +2226,7 @@ class Flight:
     @cached_property
     def max_speed(self):
         """Maximum speed reached by the rocket."""
-        return self.speed(self.max_speed_time)
+        return self.speed.get_value_opt(self.max_speed_time)
 
     # Accelerations
     @funcify_method("Time (s)", "acceleration Magnitude (m/s²)")
@@ -2223,7 +2252,7 @@ class Flight:
     @cached_property
     def max_acceleration_power_on(self):
         """Maximum acceleration reached by the rocket during motor burn."""
-        return self.acceleration(self.max_acceleration_power_on_time)
+        return self.acceleration.get_value_opt(self.max_acceleration_power_on_time)
 
     @cached_property
     def max_acceleration_power_off_time(self):
@@ -2240,7 +2269,7 @@ class Flight:
     @cached_property
     def max_acceleration_power_off(self):
         """Maximum acceleration reached by the rocket after motor burn."""
-        return self.acceleration(self.max_acceleration_power_off_time)
+        return self.acceleration.get_value_opt(self.max_acceleration_power_off_time)
 
     @cached_property
     def max_acceleration_time(self):
@@ -2388,7 +2417,7 @@ class Flight:
     @cached_property
     def apogee_freestream_speed(self):
         """Freestream speed at apogee in m/s."""
-        return self.free_stream_speed(self.apogee_time)
+        return self.free_stream_speed.get_value_opt(self.apogee_time)
 
     # Mach Number
     @funcify_method("Time (s)", "Mach Number", "spline", "zero")
@@ -2405,7 +2434,7 @@ class Flight:
     @cached_property
     def max_mach_number(self):
         """Maximum Mach number."""
-        return self.mach_number(self.max_mach_number_time)
+        return self.mach_number.get_value_opt(self.max_mach_number_time)
 
     # Stability Margin
     @cached_property
@@ -2417,7 +2446,7 @@ class Flight:
     @cached_property
     def max_stability_margin(self):
         """Maximum stability margin."""
-        return self.stability_margin(self.max_stability_margin_time)
+        return self.stability_margin.get_value_opt(self.max_stability_margin_time)
 
     @cached_property
     def min_stability_margin_time(self):
@@ -2428,7 +2457,7 @@ class Flight:
     @cached_property
     def min_stability_margin(self):
         """Minimum stability margin."""
-        return self.stability_margin(self.min_stability_margin_time)
+        return self.stability_margin.get_value_opt(self.min_stability_margin_time)
 
     @property
     def initial_stability_margin(self):
@@ -2438,7 +2467,7 @@ class Flight:
         -------
         float
         """
-        return self.stability_margin(self.time[0])
+        return self.stability_margin.get_value_opt(self.time[0])
 
     @property
     def out_of_rail_stability_margin(self):
@@ -2448,7 +2477,7 @@ class Flight:
         -------
         float
         """
-        return self.stability_margin(self.out_of_rail_time)
+        return self.stability_margin.get_value_opt(self.out_of_rail_time)
 
     # Reynolds Number
     @funcify_method("Time (s)", "Reynolds Number", "spline", "zero")
@@ -2467,7 +2496,7 @@ class Flight:
     @cached_property
     def max_reynolds_number(self):
         """Maximum Reynolds number."""
-        return self.reynolds_number(self.max_reynolds_number_time)
+        return self.reynolds_number.get_value_opt(self.max_reynolds_number_time)
 
     # Dynamic Pressure
     @funcify_method("Time (s)", "Dynamic Pressure (Pa)", "spline", "zero")
@@ -2484,7 +2513,7 @@ class Flight:
     @cached_property
     def max_dynamic_pressure(self):
         """Maximum dynamic pressure."""
-        return self.dynamic_pressure(self.max_dynamic_pressure_time)
+        return self.dynamic_pressure.get_value_opt(self.max_dynamic_pressure_time)
 
     # Total Pressure
     @funcify_method("Time (s)", "Total Pressure (Pa)", "spline", "zero")
@@ -2500,7 +2529,7 @@ class Flight:
     @cached_property
     def max_total_pressure(self):
         """Maximum total pressure."""
-        return self.total_pressure(self.max_total_pressure_time)
+        return self.total_pressure.get_value_opt(self.max_total_pressure_time)
 
     # Dynamics functions and variables
 
@@ -2606,7 +2635,7 @@ class Flight:
             for i in self.time
         ]
         # Define freestream speed list
-        free_stream_speed = [self.free_stream_speed(i) for i in self.time]
+        free_stream_speed = [self.free_stream_speed.get_value_opt(i) for i in self.time]
         free_stream_speed = np.nan_to_num(free_stream_speed)
 
         # Normalize dot product
@@ -3150,12 +3179,12 @@ class Flight:
             if len(self.rocket.parachutes) == 0:
                 print("No parachutes in the rocket, saving static pressure.")
                 for t in time_points:
-                    file.write(f"{t:f}, {self.pressure(t):.5f}\n")
+                    file.write(f"{t:f}, {self.pressure.get_value_opt(t):.5f}\n")
             else:
                 for parachute in self.rocket.parachutes:
                     for t in time_points:
-                        p_cl = parachute.clean_pressure_signal_function(t)
-                        p_ns = parachute.noisy_pressure_signal_function(t)
+                        p_cl = parachute.clean_pressure_signal_function.get_value_opt(t)
+                        p_ns = parachute.noisy_pressure_signal_function.get_value_opt(t)
                         file.write(f"{t:f}, {p_cl:.5f}, {p_ns:.5f}\n")
                     # We need to save only 1 parachute data
                     break
@@ -3318,9 +3347,9 @@ class Flight:
             for t in time_points:
                 coords.append(
                     (
-                        self.longitude(t),
-                        self.latitude(t),
-                        self.altitude(t),
+                        self.longitude.get_value_opt(t),
+                        self.latitude.get_value_opt(t),
+                        self.altitude.get_value_opt(t),
                     )
                 )
             trajectory.coords = coords
@@ -3330,7 +3359,13 @@ class Flight:
             # Ensure you use the correct value on self.env.elevation, otherwise
             # the trajectory path can be offset from ground
             for t in time_points:
-                coords.append((self.longitude(t), self.latitude(t), self.z(t)))
+                coords.append(
+                    (
+                        self.longitude.get_value_opt(t),
+                        self.latitude.get_value_opt(t),
+                        self.z.get_value_opt(t),
+                    )
+                )
             trajectory.coords = coords
             trajectory.altitudemode = simplekml.AltitudeMode.absolute
         # Modify style of trajectory linestring
