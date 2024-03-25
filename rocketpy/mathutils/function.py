@@ -110,20 +110,19 @@ class Function:
         (II) Fields in CSV files may be enclosed in double quotes. If fields
         are not quoted, double quotes should not appear inside them.
         """
-        if inputs is None:
-            inputs = ["Scalar"]
-        if outputs is None:
-            outputs = ["Scalar"]
 
-        inputs, outputs, interpolation, extrapolation = self._check_user_input(
-            source, inputs, outputs, interpolation, extrapolation
-        )
+        inputs, outputs = Function._validate_inputs_outputs(inputs, outputs)
 
         # initialize variables to avoid errors when being called by other methods
         self.get_value_opt = None
         self.__polynomial_coefficients__ = None
         self.__akima_coefficients__ = None
         self.__spline_coefficients__ = None
+        self.EXTRAPOLATION_TYPES = {
+            "zero": 0,
+            "natural": 1,
+            "constant": 2,
+        }
 
         # store variables
         self.set_inputs(inputs)
@@ -212,55 +211,30 @@ class Function:
         self : Function
             Returns the Function instance.
         """
-        *_, interpolation, extrapolation = self._check_user_input(
+        source, inputs, outputs, interpolation, extrapolation = self._check_user_input(
             source,
             self.__inputs__,
             self.__outputs__,
             self.__interpolation__,
             self.__extrapolation__,
         )
-        # If the source is a Function
-        if isinstance(source, Function):
-            source = source.get_source()
-        # Import CSV if source is a string or Path and convert values to ndarray
-        if isinstance(source, (str, Path)):
-            with open(source, "r") as file:
-                try:
-                    source = np.loadtxt(file, delimiter=",", dtype=float)
-                except ValueError:
-                    # If an error occurs, headers are present
-                    source = np.loadtxt(source, delimiter=",", dtype=float, skiprows=1)
-                except Exception as e:
-                    raise ValueError(
-                        "The source file is not a valid csv or txt file."
-                    ) from e
-
-        # Convert to ndarray if source is a list
-        if isinstance(source, (list, tuple)):
-            source = np.array(source, dtype=np.float64)
-        # Convert number source into vectorized lambda function
-        if isinstance(source, (int, float)):
-            temp = 1 * source
-
-            def source_function(_):
-                return temp
-
-            source = source_function
+        # updates inputs and outputs (could be modified due to csv headers)
+        self.set_inputs(inputs)
+        self.set_outputs(outputs)
 
         # Handle callable source or number source
         if callable(source):
-            # Set source
             self.source = source
-            # Set get_value_opt
             self.get_value_opt = source
+            self.__interpolation__ = None
+            self.__extrapolation__ = None
+
             # Set arguments name and domain dimensions
             parameters = signature(source).parameters
             self.__dom_dim__ = len(parameters)
             if self.__inputs__ == ["Scalar"]:
                 self.__inputs__ = list(parameters)
-            # Set interpolation and extrapolation
-            self.__interpolation__ = None
-            self.__extrapolation__ = None
+
         # Handle ndarray source
         else:
             # Check to see if dimensions match incoming data set
@@ -273,40 +247,23 @@ class Function:
                 self.__dom_dim__ = new_total_dim - 1
                 self.__inputs__ = self.__dom_dim__ * self.__inputs__
 
-            # Do things if domDim is 1
+            # if Function is 1D, sort source by x. If 2D, set z
             if self.__dom_dim__ == 1:
                 source = source[source[:, 0].argsort()]
-
-                self.x_array = source[:, 0]
-                self.x_initial, self.x_final = self.x_array[0], self.x_array[-1]
-
-                self.y_array = source[:, 1]
-                self.y_initial, self.y_final = self.y_array[0], self.y_array[-1]
-
-                # Finally set data source as source
-                self.source = source
-            # Do things if function is multivariate
-            else:
-                self.x_array = source[:, 0]
-                self.x_initial, self.x_final = self.x_array[0], self.x_array[-1]
-
-                self.y_array = source[:, 1]
-                self.y_initial, self.y_final = self.y_array[0], self.y_array[-1]
-
+            elif self.__dom_dim__ == 2:
                 self.z_array = source[:, 2]
                 self.z_initial, self.z_final = self.z_array[0], self.z_array[-1]
 
-                # Finally set data source as source
-                self.source = source
-            # Update extrapolation method
-            if self.__extrapolation__ is None:
-                self.set_extrapolation(extrapolation)
-            # Set default interpolation for point source if it hasn't
-            if self.__interpolation__ is None:
-                self.set_interpolation(interpolation)
-            else:
-                # Updates interpolation coefficients
-                self.set_interpolation(self.__interpolation__)
+            # Set x and y arrays (common for 1D or multivariate)
+            self.x_array = source[:, 0]
+            self.x_initial, self.x_final = self.x_array[0], self.x_array[-1]
+            self.y_array = source[:, 1]
+            self.y_initial, self.y_final = self.y_array[0], self.y_array[-1]
+
+            # Finally set source, update extrapolation and interpolation
+            self.source = source
+            self.set_extrapolation(extrapolation)
+            self.set_interpolation(interpolation)
         return self
 
     @cached_property
@@ -396,14 +353,12 @@ class Function:
         x_data = self.x_array
         y_data = self.y_array
         x_min, x_max = self.x_initial, self.x_final
-        if self.__extrapolation__ == "zero":
-            extrapolation = 0  # Extrapolation is zero
-        elif self.__extrapolation__ == "natural":
-            extrapolation = 1  # Extrapolation is natural
-        elif self.__extrapolation__ == "constant":
-            extrapolation = 2  # Extrapolation is constant
-        else:
-            raise ValueError(f"Invalid extrapolation type {self.__extrapolation__}")
+        try:
+            extrapolation = self.EXTRAPOLATION_TYPES[self.__extrapolation__]
+        except KeyError as err:
+            raise ValueError(
+                f"Invalid extrapolation type {self.__extrapolation__}"
+            ) from err
 
         # Crete method to interpolate this info for each interpolation type
         if self.__interpolation__ == "spline":
@@ -2998,6 +2953,8 @@ class Function:
             file.write(header_line + newline)
             np.savetxt(file, data_points, fmt=fmt, delimiter=delimiter, newline=newline)
 
+    # Input validators
+
     @staticmethod
     def _check_user_input(
         source,
@@ -3073,114 +3030,138 @@ class Function:
         >>> extrapolation
         'zero'
         """
+        if isinstance(source, Function):
+            source = source.get_source()
+
+        elif isinstance(source, (str, Path)):
+            # Read csv or txt files and create a numpy array
+            try:
+                source = np.loadtxt(source, delimiter=",", dtype=np.float64)
+            except ValueError:
+                with open(source, "r") as file:
+                    header, *data = file.read().splitlines()
+
+                header = [label.strip("'").strip('"') for label in header.split(",")]
+                source = np.loadtxt(data, delimiter=",", dtype=np.float64)
+
+                if len(source[0]) == len(header):
+                    if inputs == ["Scalar"]:
+                        inputs = header[:-1]
+                    if outputs == ["Scalar"]:
+                        outputs = [header[-1]]
+            except Exception as e:
+                raise ValueError(
+                    "Could not read the csv or txt file to create Function source."
+                ) from e
+
+        if isinstance(source, list):
+            # Triggers an error if source is not a list of numbers
+            source = np.array(source, dtype=np.float64)
+
+        if isinstance(source, np.ndarray):
+            inputs, interpolation, extrapolation = (
+                Function._validate_interpolation_and_extrapolation(
+                    inputs, interpolation, extrapolation, source
+                )
+            )
+            Function._validate_source_dimensions(inputs, outputs, source)
+
+        if isinstance(source, (int, float)):
+            # Convert number source into vectorized lambda function
+            temp = 1 * source
+
+            def source_function(_):
+                return temp
+
+            source = source_function
+        return source, inputs, outputs, interpolation, extrapolation
+
+    @staticmethod
+    def _validate_inputs_outputs(inputs, outputs):  # None | st | list[str]
+        if inputs is None:
+            inputs = ["Scalar"]
+        if outputs is None:
+            outputs = ["Scalar"]
         # check output type and dimensions
-        if isinstance(outputs, str):
-            outputs = [outputs]
         if isinstance(inputs, str):
             inputs = [inputs]
-
-        if len(outputs) > 1:
+        if isinstance(outputs, str):
+            outputs = [outputs]
+        elif len(outputs) > 1:
             raise ValueError(
                 "Output must either be a string or have dimension 1, "
                 + f"it currently has dimension ({len(outputs)})."
             )
+        return inputs, outputs
 
-        # check source for data type
-        # if list or ndarray, check for dimensions, interpolation and extrapolation
-        if isinstance(source, Function):
-            source = source.get_source()
-        if isinstance(source, (list, np.ndarray, str, Path)):
-            # Deal with csv or txt
-            if isinstance(source, (str, Path)):
-                # Convert to numpy array
-                try:
-                    source = np.loadtxt(source, delimiter=",", dtype=float)
-                except ValueError:
-                    with open(source, "r") as file:
-                        header, *data = file.read().splitlines()
-
-                    header = [
-                        label.strip("'").strip('"') for label in header.split(",")
-                    ]
-                    source = np.loadtxt(data, delimiter=",", dtype=float)
-
-                    if len(source[0]) == len(header):
-                        if inputs == ["Scalar"]:
-                            inputs = header[:-1]
-                        if outputs == ["Scalar"]:
-                            outputs = [header[-1]]
-                except Exception as e:
-                    raise ValueError(
-                        "The source file is not a valid csv or txt file."
-                    ) from e
-
-            else:
-                # this will also trigger an error if the source is not a list of
-                # numbers or if the array is not homogeneous
-                source = np.array(source, dtype=np.float64)
-
-            # check dimensions
-            source_dim = source.shape[1]
-
-            # check interpolation and extrapolation
-
-            ## single dimension
-            if source_dim == 2:
-                # possible interpolation values: linear, polynomial, akima and spline
-                if interpolation is None:
-                    interpolation = "spline"
-                elif interpolation.lower() not in [
-                    "spline",
-                    "linear",
-                    "polynomial",
-                    "akima",
-                ]:
-                    warnings.warn(
-                        "Interpolation method for single dimensional functions was "
-                        + f"set to 'spline', the {interpolation} method is not supported."
-                    )
-                    interpolation = "spline"
+    @staticmethod
+    def _validate_interpolation_and_extrapolation(
+        inputs: list[str], interpolation: str, extrapolation: str, source: np.ndarray
+    ):
+        source_dim = source.shape[1]
+        # check interpolation and extrapolation
+        ## single dimension (1D Functions)
+        if source_dim == 2:
+            # possible interpolation values: linear, polynomial, akima and spline
+            if interpolation is None:
+                interpolation = "spline"
+            elif interpolation.lower() not in [
+                "spline",
+                "linear",
+                "polynomial",
+                "akima",
+            ]:
+                warnings.warn(
+                    "Interpolation method set to 'spline' because the "
+                    f"{interpolation} method is not supported."
+                )
+                interpolation = "spline"
 
                 # possible extrapolation values: constant, natural, zero
-                if extrapolation is None:
-                    extrapolation = "constant"
-                elif extrapolation.lower() not in ["constant", "natural", "zero"]:
-                    warnings.warn(
-                        "Extrapolation method for single dimensional functions was "
-                        + f"set to 'constant', the {extrapolation} method is not supported."
-                    )
-                    extrapolation = "constant"
-
-            ## multiple dimensions
-            elif source_dim > 2:
-                # check for inputs and outputs
-                if inputs == ["Scalar"]:
-                    inputs = [f"Input {i+1}" for i in range(source_dim - 1)]
-
-                if interpolation not in [None, "shepard"]:
-                    warnings.warn(
-                        (
-                            "Interpolation method for multidimensional functions was"
-                            "set to 'shepard', other methods are not supported yet."
-                        ),
-                    )
-                interpolation = "shepard"
-
-                if extrapolation not in [None, "natural"]:
-                    warnings.warn(
-                        "Extrapolation method for multidimensional functions was set"
-                        "to 'natural', other methods are not supported yet."
-                    )
-                extrapolation = "natural"
-
-            # check input dimensions
-            in_out_dim = len(inputs) + len(outputs)
-            if source_dim != in_out_dim:
-                raise ValueError(
-                    f"Source dimension ({source_dim}) does not match input "
-                    + f"and output dimension ({in_out_dim})."
+            if extrapolation is None:
+                extrapolation = "constant"
+            elif extrapolation.lower() not in ["constant", "natural", "zero"]:
+                warnings.warn(
+                    "Extrapolation method set to 'constant' because the "
+                    f"{extrapolation} method is not supported."
                 )
-        return inputs, outputs, interpolation, extrapolation
+                extrapolation = "constant"
+
+        ## multiple dimensions
+        elif source_dim > 2:
+            # check for inputs and outputs
+            if inputs == ["Scalar"]:
+                inputs = [f"Input {i+1}" for i in range(source_dim - 1)]
+
+            if interpolation not in [None, "shepard"]:
+                warnings.warn(
+                    (
+                        "Interpolation method set to 'shepard'. Other methods "
+                        "are not supported yet."
+                    ),
+                )
+            interpolation = "shepard"
+
+            if extrapolation not in [None, "natural"]:
+                warnings.warn(
+                    "Extrapolation method set to 'natural'. Other methods "
+                    "are not supported yet."
+                )
+            extrapolation = "natural"
+        else:
+            raise ValueError("Source must have at least 2 dimensions.")
+        return inputs, interpolation, extrapolation
+
+    @staticmethod
+    def _validate_source_dimensions(inputs: list, outputs: list, source: np.ndarray):
+        # check input dimensions
+        source_dim = source.shape[1]
+        in_out_dim = len(inputs) + len(outputs)
+        if source_dim != in_out_dim:
+            raise ValueError(
+                f"Source dimension ({source_dim}) does not match input "
+                f"and output dimension ({in_out_dim})."
+            )
 
 
 class PiecewiseFunction(Function):
