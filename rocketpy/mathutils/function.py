@@ -2054,54 +2054,45 @@ class Function:
         result : Function
             A Function object which gives the result of self(x)*other(x).
         """
-        # If other is Function try...
-        try:
-            # Check if Function objects source is array or callable
-            # Check if Function objects have the same domain discretization
-            if (
-                isinstance(other.source, np.ndarray)
-                and isinstance(self.source, np.ndarray)
-                and self.__dom_dim__ == other.__dom_dim__
-                and np.array_equal(self.x_array, other.x_array)
-            ):
-                # Operate on grid values
-                ys = self.y_array * other.y_array
-                xs = self.x_array
-                source = np.concatenate(([xs], [ys])).transpose()
-                # Retrieve inputs, outputs and interpolation
-                inputs = self.__inputs__[:]
-                outputs = self.__outputs__[0] + "*" + other.__outputs__[0]
-                outputs = "(" + outputs + ")"
-                interpolation = self.__interpolation__
-                extrapolation = self.__extrapolation__
-                # Create new Function object
-                return Function(source, inputs, outputs, interpolation, extrapolation)
-            else:
-                return Function(lambda x: (self.get_value(x) * other(x)))
-        # If other is Float except...
-        except AttributeError:
-            if isinstance(other, NUMERICAL_TYPES):
-                # Check if Function object source is array or callable
-                if isinstance(self.source, np.ndarray):
-                    # Operate on grid values
-                    ys = self.y_array * other
-                    xs = self.x_array
-                    source = np.concatenate(([xs], [ys])).transpose()
-                    # Retrieve inputs, outputs and interpolation
-                    inputs = self.__inputs__[:]
-                    outputs = self.__outputs__[0] + "*" + str(other)
-                    outputs = "(" + outputs + ")"
-                    interpolation = self.__interpolation__
-                    extrapolation = self.__extrapolation__
-                    # Create new Function object
-                    return Function(
-                        source, inputs, outputs, interpolation, extrapolation
-                    )
-                else:
-                    return Function(lambda x: (self.get_value(x) * other))
-            # Or if it is just a callable
-            elif callable(other):
-                return Function(lambda x: (self.get_value(x) * other(x)))
+        self_source_is_array = isinstance(self.source, np.ndarray)
+        other_source_is_array = (
+            isinstance(other.source, np.ndarray)
+            if isinstance(other, Function)
+            else False
+        )
+        inputs = self.__inputs__[:]
+        interp = self.__interpolation__
+        extrap = self.__extrapolation__
+
+        if (
+            self_source_is_array
+            and other_source_is_array
+            and self.__dom_dim__ == other.__dom_dim__
+            and np.array_equal(self.x_array, other.x_array)
+        ):
+            ys = self.y_array * other.y_array
+            xs = self.x_array
+            source = np.concatenate(([xs], [ys])).transpose()
+            outputs = f"({self.__outputs__[0]}*{other.__outputs__[0]})"
+            return Function(source, inputs, outputs, interp, extrap)
+        elif isinstance(other, NUMERICAL_TYPES):
+            if not self_source_is_array:
+                return Function(lambda x: (self.get_value_opt(x) * other), inputs)
+            ys = np.multiply(self.y_array, other)
+            xs = self.x_array
+            source = np.concatenate(([xs], [ys])).transpose()
+            outputs = f"({self.__outputs__[0]}*{other})"
+            return Function(
+                source,
+                inputs,
+                outputs,
+                interp,
+                extrap,
+            )
+        elif callable(other):
+            return Function(lambda x: (self.get_value_opt(x) * other(x)), inputs)
+        else:
+            raise TypeError("Unsupported type for multiplication")
 
     def __rmul__(self, other):
         """Multiplies 'other' by a Function object and returns a new Function
