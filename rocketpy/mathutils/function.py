@@ -110,20 +110,19 @@ class Function:
         (II) Fields in CSV files may be enclosed in double quotes. If fields
         are not quoted, double quotes should not appear inside them.
         """
-        if inputs is None:
-            inputs = ["Scalar"]
-        if outputs is None:
-            outputs = ["Scalar"]
 
-        inputs, outputs, interpolation, extrapolation = self._check_user_input(
-            source, inputs, outputs, interpolation, extrapolation
-        )
+        inputs, outputs = Function._validate_inputs_outputs(inputs, outputs)
 
         # initialize variables to avoid errors when being called by other methods
         self.get_value_opt = None
         self.__polynomial_coefficients__ = None
         self.__akima_coefficients__ = None
         self.__spline_coefficients__ = None
+        self.EXTRAPOLATION_TYPES = {
+            "zero": 0,
+            "natural": 1,
+            "constant": 2,
+        }
 
         # store variables
         self.set_inputs(inputs)
@@ -212,55 +211,30 @@ class Function:
         self : Function
             Returns the Function instance.
         """
-        *_, interpolation, extrapolation = self._check_user_input(
+        source, inputs, outputs, interpolation, extrapolation = self._check_user_input(
             source,
             self.__inputs__,
             self.__outputs__,
             self.__interpolation__,
             self.__extrapolation__,
         )
-        # If the source is a Function
-        if isinstance(source, Function):
-            source = source.get_source()
-        # Import CSV if source is a string or Path and convert values to ndarray
-        if isinstance(source, (str, Path)):
-            with open(source, "r") as file:
-                try:
-                    source = np.loadtxt(file, delimiter=",", dtype=float)
-                except ValueError:
-                    # If an error occurs, headers are present
-                    source = np.loadtxt(source, delimiter=",", dtype=float, skiprows=1)
-                except Exception as e:
-                    raise ValueError(
-                        "The source file is not a valid csv or txt file."
-                    ) from e
-
-        # Convert to ndarray if source is a list
-        if isinstance(source, (list, tuple)):
-            source = np.array(source, dtype=np.float64)
-        # Convert number source into vectorized lambda function
-        if isinstance(source, (int, float)):
-            temp = 1 * source
-
-            def source_function(_):
-                return temp
-
-            source = source_function
+        # updates inputs and outputs (could be modified due to csv headers)
+        self.set_inputs(inputs)
+        self.set_outputs(outputs)
 
         # Handle callable source or number source
         if callable(source):
-            # Set source
             self.source = source
-            # Set get_value_opt
             self.get_value_opt = source
+            self.__interpolation__ = None
+            self.__extrapolation__ = None
+
             # Set arguments name and domain dimensions
             parameters = signature(source).parameters
             self.__dom_dim__ = len(parameters)
             if self.__inputs__ == ["Scalar"]:
                 self.__inputs__ = list(parameters)
-            # Set interpolation and extrapolation
-            self.__interpolation__ = None
-            self.__extrapolation__ = None
+
         # Handle ndarray source
         else:
             # Check to see if dimensions match incoming data set
@@ -273,40 +247,23 @@ class Function:
                 self.__dom_dim__ = new_total_dim - 1
                 self.__inputs__ = self.__dom_dim__ * self.__inputs__
 
-            # Do things if domDim is 1
+            # if Function is 1D, sort source by x. If 2D, set z
             if self.__dom_dim__ == 1:
                 source = source[source[:, 0].argsort()]
-
-                self.x_array = source[:, 0]
-                self.x_initial, self.x_final = self.x_array[0], self.x_array[-1]
-
-                self.y_array = source[:, 1]
-                self.y_initial, self.y_final = self.y_array[0], self.y_array[-1]
-
-                # Finally set data source as source
-                self.source = source
-            # Do things if function is multivariate
-            else:
-                self.x_array = source[:, 0]
-                self.x_initial, self.x_final = self.x_array[0], self.x_array[-1]
-
-                self.y_array = source[:, 1]
-                self.y_initial, self.y_final = self.y_array[0], self.y_array[-1]
-
+            elif self.__dom_dim__ == 2:
                 self.z_array = source[:, 2]
                 self.z_initial, self.z_final = self.z_array[0], self.z_array[-1]
 
-                # Finally set data source as source
-                self.source = source
-            # Update extrapolation method
-            if self.__extrapolation__ is None:
-                self.set_extrapolation(extrapolation)
-            # Set default interpolation for point source if it hasn't
-            if self.__interpolation__ is None:
-                self.set_interpolation(interpolation)
-            else:
-                # Updates interpolation coefficients
-                self.set_interpolation(self.__interpolation__)
+            # Set x and y arrays (common for 1D or multivariate)
+            self.x_array = source[:, 0]
+            self.x_initial, self.x_final = self.x_array[0], self.x_array[-1]
+            self.y_array = source[:, 1]
+            self.y_initial, self.y_final = self.y_array[0], self.y_array[-1]
+
+            # Finally set source, update extrapolation and interpolation
+            self.source = source
+            self.__extrapolation__ = extrapolation  # to avoid calling set_get_value_opt
+            self.set_interpolation(interpolation)
         return self
 
     @cached_property
@@ -346,7 +303,6 @@ class Function:
         -------
         self : Function
         """
-        # Set interpolation method
         self.__interpolation__ = method
         # Spline, akima and polynomial need data processing
         # Shepard, and linear do not
@@ -357,9 +313,7 @@ class Function:
         elif method == "akima":
             self.__interpolate_akima__()
 
-        # Set get_value_opt
         self.set_get_value_opt()
-
         return self
 
     def set_extrapolation(self, method="constant"):
@@ -380,6 +334,7 @@ class Function:
             The Function object.
         """
         self.__extrapolation__ = method
+        self.set_get_value_opt()
         return self
 
     def set_get_value_opt(self):
@@ -396,25 +351,22 @@ class Function:
         x_data = self.x_array
         y_data = self.y_array
         x_min, x_max = self.x_initial, self.x_final
-        if self.__extrapolation__ == "zero":
-            extrapolation = 0  # Extrapolation is zero
-        elif self.__extrapolation__ == "natural":
-            extrapolation = 1  # Extrapolation is natural
-        elif self.__extrapolation__ == "constant":
-            extrapolation = 2  # Extrapolation is constant
-        else:
-            raise ValueError(f"Invalid extrapolation type {self.__extrapolation__}")
+        try:
+            extrapolation = self.EXTRAPOLATION_TYPES[self.__extrapolation__]
+        except KeyError as err:
+            raise ValueError(
+                f"Invalid extrapolation type '{self.__extrapolation__}'"
+            ) from err
 
         # Crete method to interpolate this info for each interpolation type
         if self.__interpolation__ == "spline":
             coeffs = self.__spline_coefficients__
 
             def get_value_opt(x):
-                x_interval = np.searchsorted(x_data, x)
-                # Interval found... interpolate... or extrapolate
                 if x_min <= x <= x_max:
                     # Interpolate
-                    x_interval = x_interval if x_interval != 0 else 1
+                    x_interval = np.searchsorted(x_data, x)
+                    x_interval = max(x_interval, 1)
                     a = coeffs[:, x_interval - 1]
                     x = x - x_data[x_interval - 1]
                     y = a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
@@ -423,8 +375,12 @@ class Function:
                     if extrapolation == 0:  # Extrapolation == zero
                         y = 0
                     elif extrapolation == 1:  # Extrapolation == natural
-                        a = coeffs[:, 0] if x < x_min else coeffs[:, -1]
-                        x = x - x_data[0] if x < x_min else x - x_data[-2]
+                        if x < x_min:
+                            a = coeffs[:, 0]
+                            x = x - x_data[0]
+                        else:
+                            a = coeffs[:, -1]
+                            x = x - x_data[-2]
                         y = a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
                     else:  # Extrapolation is set to constant
                         y = y_data[0] if x < x_min else y_data[-1]
@@ -433,26 +389,25 @@ class Function:
         elif self.__interpolation__ == "linear":
 
             def get_value_opt(x):
-                x_interval = np.searchsorted(x_data, x)
-                # Interval found... interpolate... or extrapolate
                 if x_min <= x <= x_max:
                     # Interpolate
-                    dx = float(x_data[x_interval] - x_data[x_interval - 1])
-                    dy = float(y_data[x_interval] - y_data[x_interval - 1])
-                    y = (x - x_data[x_interval - 1]) * (dy / dx) + y_data[
-                        x_interval - 1
-                    ]
+                    x_interval = np.searchsorted(x_data, x)
+                    x_left = x_data[x_interval - 1]
+                    y_left = y_data[x_interval - 1]
+                    dx = float(x_data[x_interval] - x_left)
+                    dy = float(y_data[x_interval] - y_left)
+                    y = (x - x_left) * (dy / dx) + y_left
                 else:
                     # Extrapolate
                     if extrapolation == 0:  # Extrapolation == zero
                         y = 0
                     elif extrapolation == 1:  # Extrapolation == natural
                         x_interval = 1 if x < x_min else -1
-                        dx = float(x_data[x_interval] - x_data[x_interval - 1])
-                        dy = float(y_data[x_interval] - y_data[x_interval - 1])
-                        y = (x - x_data[x_interval - 1]) * (dy / dx) + y_data[
-                            x_interval - 1
-                        ]
+                        x_left = x_data[x_interval - 1]
+                        y_left = y_data[x_interval - 1]
+                        dx = float(x_data[x_interval] - x_left)
+                        dy = float(y_data[x_interval] - y_left)
+                        y = (x - x_left) * (dy / dx) + y_left
                     else:  # Extrapolation is set to constant
                         y = y_data[0] if x < x_min else y_data[-1]
                 return y
@@ -461,10 +416,9 @@ class Function:
             coeffs = np.array(self.__akima_coefficients__)
 
             def get_value_opt(x):
-                x_interval = np.searchsorted(x_data, x)
-                # Interval found... interpolate... or extrapolate
                 if x_min <= x <= x_max:
                     # Interpolate
+                    x_interval = np.searchsorted(x_data, x)
                     x_interval = x_interval if x_interval != 0 else 1
                     a = coeffs[4 * x_interval - 4 : 4 * x_interval]
                     y = a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
@@ -486,9 +440,7 @@ class Function:
                 # Interpolate... or extrapolate
                 if x_min <= x <= x_max:
                     # Interpolate
-                    y = 0
-                    for i, coef in enumerate(coeffs):
-                        y += coef * (x**i)
+                    y = np.sum(coeffs * x ** np.arange(len(coeffs)))
                 else:
                     # Extrapolate
                     if extrapolation == 0:  # Extrapolation == zero
@@ -508,7 +460,13 @@ class Function:
 
             get_value_opt = get_value_opt_multiple
 
-        self.get_value_opt = get_value_opt
+        try:
+            self.get_value_opt = get_value_opt
+        except UnboundLocalError:
+            warnings.warn(
+                "Cannot set the get_value_opt method when interpolation is "
+                f"{self.__interpolation}. Try using the set_interpolation method first."
+            )
         return self
 
     def set_discrete(
@@ -576,7 +534,7 @@ class Function:
             ys = func.get_value(xs.tolist()) if one_by_one else func.get_value(xs)
             func.set_source(np.concatenate(([xs], [ys])).transpose())
             func.set_interpolation(interpolation)
-            func.set_extrapolation(extrapolation)
+            func.__extrapolation__ = extrapolation  # avoid calling set_get_value_opt
         elif func.__dom_dim__ == 2:
             lower = 2 * [lower] if isinstance(lower, (int, float)) else lower
             upper = 2 * [upper] if isinstance(upper, (int, float)) else upper
@@ -715,7 +673,7 @@ class Function:
         )
 
         func.set_interpolation(interp)
-        func.set_extrapolation(extrap)
+        func.__extrapolation__ = extrap  # avoid calling set_get_value_opt
 
         return func
 
@@ -774,7 +732,7 @@ class Function:
         if interpolation is not None and interpolation != self.__interpolation__:
             self.set_interpolation(interpolation)
         if extrapolation is not None and extrapolation != self.__extrapolation__:
-            self.set_extrapolation(extrapolation)
+            self.__extrapolation__ = extrapolation
 
         self.set_title(title)
 
@@ -908,103 +866,17 @@ class Function:
         elif self.__interpolation__ == "shepard":
             return self.__interpolate_shepard__(args)
 
-        # Returns value for polynomial interpolation function type
-        elif self.__interpolation__ == "polynomial":
-            if isinstance(args[0], (int, float)):
-                args = [list(args)]
-            x = np.array(args[0])
-            x_data = self.x_array
-            y_data = self.y_array
-            x_min, x_max = self.x_initial, self.x_final
-            coeffs = self.__polynomial_coefficients__
-            matrix = np.zeros((len(args[0]), coeffs.shape[0]))
-            for i in range(coeffs.shape[0]):
-                matrix[:, i] = x**i
-            ans = matrix.dot(coeffs).tolist()
-            for i, _ in enumerate(x):
-                if not x_min <= x[i] <= x_max:
-                    if self.__extrapolation__ == "constant":
-                        ans[i] = y_data[0] if x[i] < x_min else y_data[-1]
-                    elif self.__extrapolation__ == "zero":
-                        ans[i] = 0
-            return ans if len(ans) > 1 else ans[0]
-        # Returns value for spline, akima or linear interpolation function type
-        elif self.__interpolation__ in ["spline", "akima", "linear"]:
+        # Returns value for other interpolation type
+        else:  # interpolation is "polynomial", "spline", "akima" or "linear"
             if isinstance(args[0], (int, float, complex, np.integer)):
                 args = [list(args)]
-            x = list(args[0])
-            x_data = self.x_array
-            y_data = self.y_array
-            x_intervals = np.searchsorted(x_data, x)
-            x_min, x_max = self.x_initial, self.x_final
-            if self.__interpolation__ == "spline":
-                coeffs = self.__spline_coefficients__
-                for i, _ in enumerate(x):
-                    if x[i] == x_min or x[i] == x_max:
-                        x[i] = y_data[x_intervals[i]]
-                    elif x_min < x[i] < x_max or (self.__extrapolation__ == "natural"):
-                        if not x_min < x[i] < x_max:
-                            a = coeffs[:, 0] if x[i] < x_min else coeffs[:, -1]
-                            x[i] = (
-                                x[i] - x_data[0] if x[i] < x_min else x[i] - x_data[-2]
-                            )
-                        else:
-                            a = coeffs[:, x_intervals[i] - 1]
-                            x[i] = x[i] - x_data[x_intervals[i] - 1]
-                        x[i] = a[3] * x[i] ** 3 + a[2] * x[i] ** 2 + a[1] * x[i] + a[0]
-                    else:
-                        # Extrapolate
-                        if self.__extrapolation__ == "zero":
-                            x[i] = 0
-                        else:  # Extrapolation is set to constant
-                            x[i] = y_data[0] if x[i] < x_min else y_data[-1]
-            elif self.__interpolation__ == "linear":
-                for i, _ in enumerate(x):
-                    # Interval found... interpolate... or extrapolate
-                    inter = x_intervals[i]
-                    if x_min <= x[i] <= x_max:
-                        # Interpolate
-                        dx = float(x_data[inter] - x_data[inter - 1])
-                        dy = float(y_data[inter] - y_data[inter - 1])
-                        x[i] = (x[i] - x_data[inter - 1]) * (dy / dx) + y_data[
-                            inter - 1
-                        ]
-                    else:
-                        # Extrapolate
-                        if self.__extrapolation__ == "zero":  # Extrapolation == zero
-                            x[i] = 0
-                        elif (
-                            self.__extrapolation__ == "natural"
-                        ):  # Extrapolation == natural
-                            inter = 1 if x[i] < x_min else -1
-                            dx = float(x_data[inter] - x_data[inter - 1])
-                            dy = float(y_data[inter] - y_data[inter - 1])
-                            x[i] = (x[i] - x_data[inter - 1]) * (dy / dx) + y_data[
-                                inter - 1
-                            ]
-                        else:  # Extrapolation is set to constant
-                            x[i] = y_data[0] if x[i] < x_min else y_data[-1]
-            else:
-                coeffs = self.__akima_coefficients__
-                for i, _ in enumerate(x):
-                    if x[i] == x_min or x[i] == x_max:
-                        x[i] = y_data[x_intervals[i]]
-                    elif x_min < x[i] < x_max or (self.__extrapolation__ == "natural"):
-                        if not x_min < x[i] < x_max:
-                            a = coeffs[:4] if x[i] < x_min else coeffs[-4:]
-                        else:
-                            a = coeffs[4 * x_intervals[i] - 4 : 4 * x_intervals[i]]
-                        x[i] = a[3] * x[i] ** 3 + a[2] * x[i] ** 2 + a[1] * x[i] + a[0]
-                    else:
-                        # Extrapolate
-                        if self.__extrapolation__ == "zero":
-                            x[i] = 0
-                        else:  # Extrapolation is set to constant
-                            x[i] = y_data[0] if x[i] < x_min else y_data[-1]
-            if isinstance(args[0], np.ndarray):
-                return np.array(x)
-            else:
-                return x if len(x) > 1 else x[0]
+
+        x = list(args[0])
+        x = list(map(self.get_value_opt, x))
+        if isinstance(args[0], np.ndarray):
+            return np.array(x)
+        else:
+            return x if len(x) > 1 else x[0]
 
     def __getitem__(self, args):
         """Returns item of the Function source. If the source is not an array,
@@ -1988,7 +1860,7 @@ class Function:
                 # Create new Function object
                 return Function(source, inputs, outputs, interpolation, extrapolation)
             else:
-                return Function(lambda x: (self.get_value(x) + other(x)))
+                return Function(lambda x: (self.get_value_opt(x) + other(x)))
         # If other is Float except...
         except AttributeError:
             if isinstance(other, NUMERICAL_TYPES):
@@ -2009,10 +1881,10 @@ class Function:
                         source, inputs, outputs, interpolation, extrapolation
                     )
                 else:
-                    return Function(lambda x: (self.get_value(x) + other))
+                    return Function(lambda x: (self.get_value_opt(x) + other))
             # Or if it is just a callable
             elif callable(other):
-                return Function(lambda x: (self.get_value(x) + other(x)))
+                return Function(lambda x: (self.get_value_opt(x) + other(x)))
 
     def __radd__(self, other):
         """Sums 'other' and a Function object and returns a new Function
@@ -2055,7 +1927,7 @@ class Function:
         try:
             return self + (-other)
         except TypeError:
-            return Function(lambda x: (self.get_value(x) - other(x)))
+            return Function(lambda x: (self.get_value_opt(x) - other(x)))
 
     def __rsub__(self, other):
         """Subtracts a Function object from 'other' and returns a new Function
@@ -2095,54 +1967,40 @@ class Function:
         result : Function
             A Function object which gives the result of self(x)*other(x).
         """
-        # If other is Function try...
-        try:
-            # Check if Function objects source is array or callable
-            # Check if Function objects have the same domain discretization
-            if (
-                isinstance(other.source, np.ndarray)
-                and isinstance(self.source, np.ndarray)
-                and self.__dom_dim__ == other.__dom_dim__
-                and np.array_equal(self.x_array, other.x_array)
-            ):
-                # Operate on grid values
-                ys = self.y_array * other.y_array
-                xs = self.x_array
-                source = np.concatenate(([xs], [ys])).transpose()
-                # Retrieve inputs, outputs and interpolation
-                inputs = self.__inputs__[:]
-                outputs = self.__outputs__[0] + "*" + other.__outputs__[0]
-                outputs = "(" + outputs + ")"
-                interpolation = self.__interpolation__
-                extrapolation = self.__extrapolation__
-                # Create new Function object
-                return Function(source, inputs, outputs, interpolation, extrapolation)
-            else:
-                return Function(lambda x: (self.get_value(x) * other(x)))
-        # If other is Float except...
-        except AttributeError:
-            if isinstance(other, NUMERICAL_TYPES):
-                # Check if Function object source is array or callable
-                if isinstance(self.source, np.ndarray):
-                    # Operate on grid values
-                    ys = self.y_array * other
-                    xs = self.x_array
-                    source = np.concatenate(([xs], [ys])).transpose()
-                    # Retrieve inputs, outputs and interpolation
-                    inputs = self.__inputs__[:]
-                    outputs = self.__outputs__[0] + "*" + str(other)
-                    outputs = "(" + outputs + ")"
-                    interpolation = self.__interpolation__
-                    extrapolation = self.__extrapolation__
-                    # Create new Function object
-                    return Function(
-                        source, inputs, outputs, interpolation, extrapolation
-                    )
-                else:
-                    return Function(lambda x: (self.get_value(x) * other))
-            # Or if it is just a callable
-            elif callable(other):
-                return Function(lambda x: (self.get_value(x) * other(x)))
+        self_source_is_array = isinstance(self.source, np.ndarray)
+        other_source_is_array = (
+            isinstance(other.source, np.ndarray)
+            if isinstance(other, Function)
+            else False
+        )
+        inputs = self.__inputs__[:]
+        interp = self.__interpolation__
+        extrap = self.__extrapolation__
+
+        if (
+            self_source_is_array
+            and other_source_is_array
+            and np.array_equal(self.x_array, other.x_array)
+        ):
+            source = np.column_stack((self.x_array, self.y_array * other.y_array))
+            outputs = f"({self.__outputs__[0]}*{other.__outputs__[0]})"
+            return Function(source, inputs, outputs, interp, extrap)
+        elif isinstance(other, NUMERICAL_TYPES):
+            if not self_source_is_array:
+                return Function(lambda x: (self.get_value_opt(x) * other), inputs)
+            source = np.column_stack((self.x_array, np.multiply(self.y_array, other)))
+            outputs = f"({self.__outputs__[0]}*{other})"
+            return Function(
+                source,
+                inputs,
+                outputs,
+                interp,
+                extrap,
+            )
+        elif callable(other):
+            return Function(lambda x: (self.get_value_opt(x) * other(x)), inputs)
+        else:
+            raise TypeError("Unsupported type for multiplication")
 
     def __rmul__(self, other):
         """Multiplies 'other' by a Function object and returns a new Function
@@ -2335,10 +2193,10 @@ class Function:
                         source, inputs, outputs, interpolation, extrapolation
                     )
                 else:
-                    return Function(lambda x: (self.get_value(x) ** other))
+                    return Function(lambda x: (self.get_value_opt(x) ** other))
             # Or if it is just a callable
             elif callable(other):
-                return Function(lambda x: (self.get_value(x) ** other(x)))
+                return Function(lambda x: (self.get_value_opt(x) ** other(x)))
 
     def __rpow__(self, other):
         """Raises 'other' to the power of a Function object and returns
@@ -2371,10 +2229,10 @@ class Function:
                 # Create new Function object
                 return Function(source, inputs, outputs, interpolation, extrapolation)
             else:
-                return Function(lambda x: (other ** self.get_value(x)))
+                return Function(lambda x: (other ** self.get_value_opt(x)))
         # Or if it is just a callable
         elif callable(other):
-            return Function(lambda x: (other(x) ** self.get_value(x)))
+            return Function(lambda x: (other(x) ** self.get_value_opt(x)))
 
     def __matmul__(self, other):
         """Operator @ as an alias for composition. Therefore, this
@@ -2549,10 +2407,12 @@ class Function:
             Evaluated derivative.
         """
         if order == 1:
-            return (self.get_value(x + dx) - self.get_value(x - dx)) / (2 * dx)
+            return (self.get_value_opt(x + dx) - self.get_value_opt(x - dx)) / (2 * dx)
         elif order == 2:
             return (
-                self.get_value(x + dx) - 2 * self.get_value(x) + self.get_value(x - dx)
+                self.get_value_opt(x + dx)
+                - 2 * self.get_value_opt(x)
+                + self.get_value_opt(x - dx)
             ) / dx**2
 
     def identity_function(self):
@@ -2996,6 +2856,8 @@ class Function:
             file.write(header_line + newline)
             np.savetxt(file, data_points, fmt=fmt, delimiter=delimiter, newline=newline)
 
+    # Input validators
+
     @staticmethod
     def _check_user_input(
         source,
@@ -3034,8 +2896,8 @@ class Function:
         Returns
         -------
         tuple
-            A tuple containing the processed inputs, outputs, interpolation, and
-            extrapolation parameters.
+            A tuple containing the processed source, inputs, outputs,
+            interpolation, and extrapolation parameters.
 
         Raises
         ------
@@ -3043,13 +2905,6 @@ class Function:
             If the dimensionality of the source does not match the combined
             dimensions of inputs and outputs. If the outputs list has more than
             one element.
-        TypeError
-            If the source is not a list, np.ndarray, Function object, str or
-            Path.
-        Warning
-            If inputs or outputs do not match for a Function source, or if
-            defaults are used for inputs, interpolation,and extrapolation for a
-            multidimensional source.
 
         Examples
         --------
@@ -3071,114 +2926,205 @@ class Function:
         >>> extrapolation
         'zero'
         """
+        if isinstance(source, Function):
+            source = source.get_source()
+
+        elif isinstance(source, (str, Path)):
+            # Read csv or txt files and create a numpy array
+            try:
+                source = np.loadtxt(source, delimiter=",", dtype=np.float64)
+            except ValueError:
+                with open(source, "r") as file:
+                    header, *data = file.read().splitlines()
+
+                header = [label.strip("'").strip('"') for label in header.split(",")]
+                source = np.loadtxt(data, delimiter=",", dtype=np.float64)
+
+                if len(source[0]) == len(header):
+                    if inputs == ["Scalar"]:
+                        inputs = header[:-1]
+                    if outputs == ["Scalar"]:
+                        outputs = [header[-1]]
+            except Exception as e:
+                raise ValueError(
+                    "Could not read the csv or txt file to create Function source."
+                ) from e
+
+        if isinstance(source, list):
+            # Triggers an error if source is not a list of numbers
+            source = np.array(source, dtype=np.float64)
+
+        if isinstance(source, np.ndarray):
+            inputs, interpolation, extrapolation = (
+                Function._validate_interpolation_and_extrapolation(
+                    inputs, interpolation, extrapolation, source
+                )
+            )
+            Function._validate_source_dimensions(inputs, outputs, source)
+
+        if isinstance(source, (int, float)):
+            # Convert number source into vectorized lambda function
+            temp = 1 * source
+
+            def source_function(_):
+                return temp
+
+            source = source_function
+        return source, inputs, outputs, interpolation, extrapolation
+
+    @staticmethod
+    def _validate_inputs_outputs(inputs, outputs):
+        """Used to validate the inputs and outputs parameters for creating a
+        Function object. It sets default values if they are not provided.
+
+        Parameters
+        ----------
+        inputs : str, list of str, None
+            The name(s) of the input variable(s). If None, defaults to "Scalar".
+        outputs :
+            The name of the output variables. If None, defaults to "Scalar".
+
+        Returns
+        -------
+        tuple
+            A tuple containing the validated inputs and outputs parameters.
+
+        Raises
+        ------
+        ValueError
+            If the output has more than one element.
+        """
+        if inputs is None:
+            inputs = ["Scalar"]
+        if outputs is None:
+            outputs = ["Scalar"]
         # check output type and dimensions
-        if isinstance(outputs, str):
-            outputs = [outputs]
         if isinstance(inputs, str):
             inputs = [inputs]
-
-        if len(outputs) > 1:
+        if isinstance(outputs, str):
+            outputs = [outputs]
+        elif len(outputs) > 1:
             raise ValueError(
                 "Output must either be a string or have dimension 1, "
                 + f"it currently has dimension ({len(outputs)})."
             )
+        return inputs, outputs
 
-        # check source for data type
-        # if list or ndarray, check for dimensions, interpolation and extrapolation
-        if isinstance(source, Function):
-            source = source.get_source()
-        if isinstance(source, (list, np.ndarray, str, Path)):
-            # Deal with csv or txt
-            if isinstance(source, (str, Path)):
-                # Convert to numpy array
-                try:
-                    source = np.loadtxt(source, delimiter=",", dtype=float)
-                except ValueError:
-                    with open(source, "r") as file:
-                        header, *data = file.read().splitlines()
+    @staticmethod
+    def _validate_interpolation_and_extrapolation(
+        inputs, interpolation, extrapolation, source
+    ):
+        """Used to validate the interpolation and extrapolation methods for
+        creating a Function object. It sets default values for interpolation
+        and extrapolation if they are not provided or if they are not supported
+        for the given source. The inputs and outputs may be modified if the
+        source is multidimensional.
 
-                    header = [
-                        label.strip("'").strip('"') for label in header.split(",")
-                    ]
-                    source = np.loadtxt(data, delimiter=",", dtype=float)
+        Parameters
+        ----------
+        inputs : list of strings
+            List of inputs, each input is a string. Example: ['x', 'y']
+        interpolation : str, None
+            The type of interpolation to use. The default method is 'spline'.
+            Currently supported values are 'spline', 'linear', 'polynomial',
+            'akima', and 'shepard'.
+        extrapolation : str, None
+            The type of extrapolation to use. Currently supported values are
+            'constant', 'natural', and 'zero'. The default method is 'constant'.
+        source : np.ndarray
+            The source data of the Function object. This has to be a numpy
+            array.
 
-                    if len(source[0]) == len(header):
-                        if inputs == ["Scalar"]:
-                            inputs = header[:-1]
-                        if outputs == ["Scalar"]:
-                            outputs = [header[-1]]
-                except Exception as e:
-                    raise ValueError(
-                        "The source file is not a valid csv or txt file."
-                    ) from e
+        Returns
+        -------
+        tuple
+            A tuple with the validated inputs, interpolation, and extrapolation
+            parameters (inputs, interpolation, extrapolation).
 
-            else:
-                # this will also trigger an error if the source is not a list of
-                # numbers or if the array is not homogeneous
-                source = np.array(source, dtype=np.float64)
-
-            # check dimensions
-            source_dim = source.shape[1]
-
-            # check interpolation and extrapolation
-
-            ## single dimension
-            if source_dim == 2:
-                # possible interpolation values: linear, polynomial, akima and spline
-                if interpolation is None:
-                    interpolation = "spline"
-                elif interpolation.lower() not in [
-                    "spline",
-                    "linear",
-                    "polynomial",
-                    "akima",
-                ]:
-                    warnings.warn(
-                        "Interpolation method for single dimensional functions was "
-                        + f"set to 'spline', the {interpolation} method is not supported."
-                    )
-                    interpolation = "spline"
+        Raises
+        ------
+        ValueError
+            If the source has less than 2 dimensions.
+        """
+        source_dim = source.shape[1]
+        ## single dimension (1D Functions)
+        if source_dim == 2:
+            # possible interpolation values: linear, polynomial, akima and spline
+            if interpolation is None:
+                interpolation = "spline"
+            elif interpolation.lower() not in [
+                "spline",
+                "linear",
+                "polynomial",
+                "akima",
+            ]:
+                warnings.warn(
+                    "Interpolation method set to 'spline' because the "
+                    f"{interpolation} method is not supported."
+                )
+                interpolation = "spline"
 
                 # possible extrapolation values: constant, natural, zero
-                if extrapolation is None:
-                    extrapolation = "constant"
-                elif extrapolation.lower() not in ["constant", "natural", "zero"]:
-                    warnings.warn(
-                        "Extrapolation method for single dimensional functions was "
-                        + f"set to 'constant', the {extrapolation} method is not supported."
-                    )
-                    extrapolation = "constant"
-
-            ## multiple dimensions
-            elif source_dim > 2:
-                # check for inputs and outputs
-                if inputs == ["Scalar"]:
-                    inputs = [f"Input {i+1}" for i in range(source_dim - 1)]
-
-                if interpolation not in [None, "shepard"]:
-                    warnings.warn(
-                        (
-                            "Interpolation method for multidimensional functions was"
-                            "set to 'shepard', other methods are not supported yet."
-                        ),
-                    )
-                interpolation = "shepard"
-
-                if extrapolation not in [None, "natural"]:
-                    warnings.warn(
-                        "Extrapolation method for multidimensional functions was set"
-                        "to 'natural', other methods are not supported yet."
-                    )
-                extrapolation = "natural"
-
-            # check input dimensions
-            in_out_dim = len(inputs) + len(outputs)
-            if source_dim != in_out_dim:
-                raise ValueError(
-                    f"Source dimension ({source_dim}) does not match input "
-                    + f"and output dimension ({in_out_dim})."
+            if extrapolation is None:
+                extrapolation = "constant"
+            elif extrapolation.lower() not in ["constant", "natural", "zero"]:
+                warnings.warn(
+                    "Extrapolation method set to 'constant' because the "
+                    f"{extrapolation} method is not supported."
                 )
-        return inputs, outputs, interpolation, extrapolation
+                extrapolation = "constant"
+
+        ## multiple dimensions
+        elif source_dim > 2:
+            if inputs == ["Scalar"]:
+                inputs = [f"Input {i+1}" for i in range(source_dim - 1)]
+
+            if interpolation not in [None, "shepard"]:
+                warnings.warn(
+                    (
+                        "Interpolation method set to 'shepard'. Other methods "
+                        "are not supported yet."
+                    ),
+                )
+            interpolation = "shepard"
+
+            if extrapolation not in [None, "natural"]:
+                warnings.warn(
+                    "Extrapolation method set to 'natural'. Other methods "
+                    "are not supported yet."
+                )
+            extrapolation = "natural"
+        else:
+            raise ValueError("Source must have at least 2 dimensions.")
+        return inputs, interpolation, extrapolation
+
+    @staticmethod
+    def _validate_source_dimensions(inputs, outputs, source):
+        """Used to check whether the source dimensions match the inputs and
+        outputs.
+
+        Parameters
+        ----------
+        inputs : list of strings
+            List of inputs, each input is a string. Example: ['x', 'y']
+        outputs : list of strings
+            List of outputs, each output is a string. Example: ['z']
+        source : np.ndarray
+            The source data of the Function object. This has to be a numpy
+            array.
+
+        Raises
+        ------
+        ValueError
+            In case the source dimensions do not match the inputs and outputs.
+        """
+        source_dim = source.shape[1]
+        in_out_dim = len(inputs) + len(outputs)
+        if source_dim != in_out_dim:
+            raise ValueError(
+                f"Source dimension ({source_dim}) does not match input "
+                f"and output dimension ({in_out_dim})."
+            )
 
 
 class PiecewiseFunction(Function):
@@ -3262,7 +3208,7 @@ class PiecewiseFunction(Function):
             """
             output = np.zeros(len(inputs))
             for j, value in enumerate(inputs):
-                output[j] = func.get_value(value)
+                output[j] = func.get_value_opt(value)
             return output
 
         input_data = []
