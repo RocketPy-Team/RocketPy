@@ -866,103 +866,17 @@ class Function:
         elif self.__interpolation__ == "shepard":
             return self.__interpolate_shepard__(args)
 
-        # Returns value for polynomial interpolation function type
-        elif self.__interpolation__ == "polynomial":
-            if isinstance(args[0], (int, float)):
-                args = [list(args)]
-            x = np.array(args[0])
-            x_data = self.x_array
-            y_data = self.y_array
-            x_min, x_max = self.x_initial, self.x_final
-            coeffs = self.__polynomial_coefficients__
-            matrix = np.zeros((len(args[0]), coeffs.shape[0]))
-            for i in range(coeffs.shape[0]):
-                matrix[:, i] = x**i
-            ans = matrix.dot(coeffs).tolist()
-            for i, _ in enumerate(x):
-                if not x_min <= x[i] <= x_max:
-                    if self.__extrapolation__ == "constant":
-                        ans[i] = y_data[0] if x[i] < x_min else y_data[-1]
-                    elif self.__extrapolation__ == "zero":
-                        ans[i] = 0
-            return ans if len(ans) > 1 else ans[0]
-        # Returns value for spline, akima or linear interpolation function type
-        elif self.__interpolation__ in ["spline", "akima", "linear"]:
+        # Returns value for other interpolation type
+        else:  # interpolation is "polynomial", "spline", "akima" or "linear"
             if isinstance(args[0], (int, float, complex, np.integer)):
                 args = [list(args)]
-            x = list(args[0])
-            x_data = self.x_array
-            y_data = self.y_array
-            x_intervals = np.searchsorted(x_data, x)
-            x_min, x_max = self.x_initial, self.x_final
-            if self.__interpolation__ == "spline":
-                coeffs = self.__spline_coefficients__
-                for i, _ in enumerate(x):
-                    if x[i] == x_min or x[i] == x_max:
-                        x[i] = y_data[x_intervals[i]]
-                    elif x_min < x[i] < x_max or (self.__extrapolation__ == "natural"):
-                        if not x_min < x[i] < x_max:
-                            a = coeffs[:, 0] if x[i] < x_min else coeffs[:, -1]
-                            x[i] = (
-                                x[i] - x_data[0] if x[i] < x_min else x[i] - x_data[-2]
-                            )
-                        else:
-                            a = coeffs[:, x_intervals[i] - 1]
-                            x[i] = x[i] - x_data[x_intervals[i] - 1]
-                        x[i] = a[3] * x[i] ** 3 + a[2] * x[i] ** 2 + a[1] * x[i] + a[0]
-                    else:
-                        # Extrapolate
-                        if self.__extrapolation__ == "zero":
-                            x[i] = 0
-                        else:  # Extrapolation is set to constant
-                            x[i] = y_data[0] if x[i] < x_min else y_data[-1]
-            elif self.__interpolation__ == "linear":
-                for i, _ in enumerate(x):
-                    # Interval found... interpolate... or extrapolate
-                    inter = x_intervals[i]
-                    if x_min <= x[i] <= x_max:
-                        # Interpolate
-                        dx = float(x_data[inter] - x_data[inter - 1])
-                        dy = float(y_data[inter] - y_data[inter - 1])
-                        x[i] = (x[i] - x_data[inter - 1]) * (dy / dx) + y_data[
-                            inter - 1
-                        ]
-                    else:
-                        # Extrapolate
-                        if self.__extrapolation__ == "zero":  # Extrapolation == zero
-                            x[i] = 0
-                        elif (
-                            self.__extrapolation__ == "natural"
-                        ):  # Extrapolation == natural
-                            inter = 1 if x[i] < x_min else -1
-                            dx = float(x_data[inter] - x_data[inter - 1])
-                            dy = float(y_data[inter] - y_data[inter - 1])
-                            x[i] = (x[i] - x_data[inter - 1]) * (dy / dx) + y_data[
-                                inter - 1
-                            ]
-                        else:  # Extrapolation is set to constant
-                            x[i] = y_data[0] if x[i] < x_min else y_data[-1]
-            else:
-                coeffs = self.__akima_coefficients__
-                for i, _ in enumerate(x):
-                    if x[i] == x_min or x[i] == x_max:
-                        x[i] = y_data[x_intervals[i]]
-                    elif x_min < x[i] < x_max or (self.__extrapolation__ == "natural"):
-                        if not x_min < x[i] < x_max:
-                            a = coeffs[:4] if x[i] < x_min else coeffs[-4:]
-                        else:
-                            a = coeffs[4 * x_intervals[i] - 4 : 4 * x_intervals[i]]
-                        x[i] = a[3] * x[i] ** 3 + a[2] * x[i] ** 2 + a[1] * x[i] + a[0]
-                    else:
-                        # Extrapolate
-                        if self.__extrapolation__ == "zero":
-                            x[i] = 0
-                        else:  # Extrapolation is set to constant
-                            x[i] = y_data[0] if x[i] < x_min else y_data[-1]
-            if isinstance(args[0], np.ndarray):
-                return np.array(x)
-            else:
-                return x if len(x) > 1 else x[0]
+
+        x = list(args[0])
+        x = list(map(self.get_value_opt, x))
+        if isinstance(args[0], np.ndarray):
+            return np.array(x)
+        else:
+            return x if len(x) > 1 else x[0]
 
     def __getitem__(self, args):
         """Returns item of the Function source. If the source is not an array,
