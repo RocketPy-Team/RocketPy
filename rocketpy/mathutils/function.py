@@ -2067,20 +2067,15 @@ class Function:
         if (
             self_source_is_array
             and other_source_is_array
-            and self.__dom_dim__ == other.__dom_dim__
             and np.array_equal(self.x_array, other.x_array)
         ):
-            ys = self.y_array * other.y_array
-            xs = self.x_array
-            source = np.concatenate(([xs], [ys])).transpose()
+            source = np.column_stack((self.x_array, self.y_array * other.y_array))
             outputs = f"({self.__outputs__[0]}*{other.__outputs__[0]})"
             return Function(source, inputs, outputs, interp, extrap)
         elif isinstance(other, NUMERICAL_TYPES):
             if not self_source_is_array:
                 return Function(lambda x: (self.get_value_opt(x) * other), inputs)
-            ys = np.multiply(self.y_array, other)
-            xs = self.x_array
-            source = np.concatenate(([xs], [ys])).transpose()
+            source = np.column_stack((self.x_array, np.multiply(self.y_array, other)))
             outputs = f"({self.__outputs__[0]}*{other})"
             return Function(
                 source,
