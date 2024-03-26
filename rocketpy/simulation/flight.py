@@ -3074,17 +3074,13 @@ class Flight:
                 "Pressure - Without Noise (Pa)",
                 "linear",
             )
-            parachute.noisy_pressure_signal_function = Function(
-                parachute.noisy_pressure_signal,
-                "Time (s)",
-                "Pressure - With Noise (Pa)",
-                "linear",
-            )
             parachute.noise_signal_function = Function(
                 parachute.noise_signal, "Time (s)", "Pressure Noise (Pa)", "linear"
             )
-
-        return None
+            parachute.noisy_pressure_signal_function = (
+                parachute.clean_pressure_signal_function
+                + parachute.noise_signal_function
+            )
 
     def post_process(self, interpolation="spline", extrapolation="natural"):
         """This method is **deprecated** and is only kept here for backwards
