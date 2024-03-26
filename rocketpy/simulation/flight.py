@@ -3664,19 +3664,18 @@ class Flight:
 
         def merge(self):
             # Initialize temporary list
-            self.tmp_list = [self.list[0]]
-            self.copy_list = self.list[1:]
+            tmp_list = [self.list[0]]
             # Iterate through all other time nodes
-            for node in self.copy_list:
+            for node in self.list[1:]:
                 # If there is already another node with similar time: merge
-                if abs(node.t - self.tmp_list[-1].t) < 1e-7:
-                    self.tmp_list[-1].parachutes += node.parachutes
-                    self.tmp_list[-1].callbacks += node.callbacks
+                if abs(node.t - tmp_list[-1].t) < 1e-7:
+                    tmp_list[-1].parachutes += node.parachutes
+                    tmp_list[-1].callbacks += node.callbacks
                 # Add new node to tmp list if there is none with the same time
                 else:
-                    self.tmp_list.append(node)
+                    tmp_list.append(node)
             # Save tmp list to permanent
-            self.list = self.tmp_list
+            self.list = tmp_list
 
         def flush_after(self, index):
             del self.list[index + 1 :]
