@@ -1507,7 +1507,7 @@ class Environment:
         )
 
         def wind_direction(h):
-            return (wind_heading(h) - 180) % 360
+            return (wind_heading_func(h) - 180) % 360
 
         self.wind_direction = Function(
             wind_direction,
