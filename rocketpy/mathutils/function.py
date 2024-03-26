@@ -262,7 +262,7 @@ class Function:
 
             # Finally set source, update extrapolation and interpolation
             self.source = source
-            self.set_extrapolation(extrapolation)
+            self.__extrapolation__ = extrapolation  # to avoid calling set_get_value_opt
             self.set_interpolation(interpolation)
         return self
 
@@ -303,7 +303,6 @@ class Function:
         -------
         self : Function
         """
-        # Set interpolation method
         self.__interpolation__ = method
         # Spline, akima and polynomial need data processing
         # Shepard, and linear do not
@@ -314,9 +313,7 @@ class Function:
         elif method == "akima":
             self.__interpolate_akima__()
 
-        # Set get_value_opt
         self.set_get_value_opt()
-
         return self
 
     def set_extrapolation(self, method="constant"):
@@ -337,6 +334,7 @@ class Function:
             The Function object.
         """
         self.__extrapolation__ = method
+        self.set_get_value_opt()
         return self
 
     def set_get_value_opt(self):
@@ -357,7 +355,7 @@ class Function:
             extrapolation = self.EXTRAPOLATION_TYPES[self.__extrapolation__]
         except KeyError as err:
             raise ValueError(
-                f"Invalid extrapolation type {self.__extrapolation__}"
+                f"Invalid extrapolation type '{self.__extrapolation__}'"
             ) from err
 
         # Crete method to interpolate this info for each interpolation type
@@ -365,10 +363,9 @@ class Function:
             coeffs = self.__spline_coefficients__
 
             def get_value_opt(x):
-                x_interval = np.searchsorted(x_data, x)
-                # Interval found... interpolate... or extrapolate
                 if x_min <= x <= x_max:
                     # Interpolate
+                    x_interval = np.searchsorted(x_data, x)
                     x_interval = max(x_interval, 1)
                     a = coeffs[:, x_interval - 1]
                     x = x - x_data[x_interval - 1]
@@ -392,10 +389,9 @@ class Function:
         elif self.__interpolation__ == "linear":
 
             def get_value_opt(x):
-                x_interval = np.searchsorted(x_data, x)
-                # Interval found... interpolate... or extrapolate
                 if x_min <= x <= x_max:
                     # Interpolate
+                    x_interval = np.searchsorted(x_data, x)
                     x_left = x_data[x_interval - 1]
                     y_left = y_data[x_interval - 1]
                     dx = float(x_data[x_interval] - x_left)
@@ -420,10 +416,9 @@ class Function:
             coeffs = np.array(self.__akima_coefficients__)
 
             def get_value_opt(x):
-                x_interval = np.searchsorted(x_data, x)
-                # Interval found... interpolate... or extrapolate
                 if x_min <= x <= x_max:
                     # Interpolate
+                    x_interval = np.searchsorted(x_data, x)
                     x_interval = x_interval if x_interval != 0 else 1
                     a = coeffs[4 * x_interval - 4 : 4 * x_interval]
                     y = a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
@@ -445,9 +440,7 @@ class Function:
                 # Interpolate... or extrapolate
                 if x_min <= x <= x_max:
                     # Interpolate
-                    y = 0
-                    for i, coef in enumerate(coeffs):
-                        y += coef * (x**i)
+                    y = np.sum(coeffs * x ** np.arange(len(coeffs)))
                 else:
                     # Extrapolate
                     if extrapolation == 0:  # Extrapolation == zero
@@ -467,7 +460,13 @@ class Function:
 
             get_value_opt = get_value_opt_multiple
 
-        self.get_value_opt = get_value_opt
+        try:
+            self.get_value_opt = get_value_opt
+        except UnboundLocalError:
+            warnings.warn(
+                "Cannot set the get_value_opt method when interpolation is "
+                f"{self.__interpolation}. Try using the set_interpolation method first."
+            )
         return self
 
     def set_discrete(
@@ -535,7 +534,7 @@ class Function:
             ys = func.get_value(xs.tolist()) if one_by_one else func.get_value(xs)
             func.set_source(np.concatenate(([xs], [ys])).transpose())
             func.set_interpolation(interpolation)
-            func.set_extrapolation(extrapolation)
+            func.__extrapolation__ = extrapolation  # avoid calling set_get_value_opt
         elif func.__dom_dim__ == 2:
             lower = 2 * [lower] if isinstance(lower, (int, float)) else lower
             upper = 2 * [upper] if isinstance(upper, (int, float)) else upper
@@ -674,7 +673,7 @@ class Function:
         )
 
         func.set_interpolation(interp)
-        func.set_extrapolation(extrap)
+        func.__extrapolation__ = extrap  # avoid calling set_get_value_opt
 
         return func
 
@@ -733,7 +732,7 @@ class Function:
         if interpolation is not None and interpolation != self.__interpolation__:
             self.set_interpolation(interpolation)
         if extrapolation is not None and extrapolation != self.__extrapolation__:
-            self.set_extrapolation(extrapolation)
+            self.__extrapolation__ = extrapolation
 
         self.set_title(title)
 
