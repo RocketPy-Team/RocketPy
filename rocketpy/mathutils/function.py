@@ -351,7 +351,11 @@ class Function:
         return self
 
     def _set_interpolation_func(self):
-        """Return a function that interpolates the Function."""
+        """Defines interpolation function used by the Function. Each
+        interpolation method has its own function with exception of shepard,
+        which has its interpolation/extrapolation function defined in
+        ``Function.__interpolate_shepard__``. The function is stored in
+        the attribute _interpolation_func."""
         interpolation = INTERPOLATION_TYPES[self.__interpolation__]
         if interpolation == 0:  # linear
 
@@ -401,7 +405,9 @@ class Function:
             self._interpolation_func = None
 
     def _set_extrapolation_func(self):
-        """Return a function that extrapolates the Function."""
+        """Defines extrapolation function used by the Function. Each
+        extrapolation method has its own function. The function is stored in
+        the attribute _extrapolation_func."""
         interpolation = INTERPOLATION_TYPES[self.__interpolation__]
         extrapolation = EXTRAPOLATION_TYPES[self.__extrapolation__]
 
@@ -460,10 +466,7 @@ class Function:
             self._extrapolation_func = constant_extrapolation
 
     def set_get_value_opt(self):
-        """Crates a method that evaluates interpolations rather quickly
-        when compared to other options available, such as just calling
-        the object instance or calling ``Function.get_value`` directly. See
-        ``Function.get_value_opt`` for documentation.
+        """Defines a method that evaluates interpolations.
 
         Returns
         -------
@@ -478,6 +481,19 @@ class Function:
         return self
 
     def _get_value_opt_1d(self, x):
+        """Evaluate the Function at a single point x. This method is used
+        when the Function is 1-D.
+
+        Parameters
+        ----------
+        x : scalar
+            Value where the Function is to be evaluated.
+
+        Returns
+        -------
+        y : scalar
+            Value of the Function at the specified point.
+        """
         # Retrieve general info
         x_data = self.x_array
         y_data = self.y_array
@@ -490,6 +506,8 @@ class Function:
         return y
 
     def _get_value_opt_nd(self, *args):
+        """Evaluate the Function at a single point (x, y, z). This method is
+        used when the Function is N-D."""
         # always use shepard for N-D functions
         y = self.__interpolate_shepard__(list(args))
         return y
