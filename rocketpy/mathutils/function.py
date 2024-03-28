@@ -13,6 +13,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import integrate, linalg, optimize
+from bisect import bisect_left
 
 try:
     from functools import cached_property
@@ -308,7 +309,7 @@ class Function:
         if not callable(self.source):
             self.__interpolation__ = self._validate_interpolation(method)
             self._update_interpolation_coefficients(self.__interpolation__)
-            self._set_interpolation_function()
+            self._set_interpolation_func()
         return self
 
     def _update_interpolation_coefficients(self, method):
@@ -346,16 +347,16 @@ class Function:
         """
         if not callable(self.source):
             self.__extrapolation__ = self._validate_extrapolation(method)
-            self._set_extrapolation_function()
+            self._set_extrapolation_func()
         return self
 
-    def _set_interpolation_function(self):
+    def _set_interpolation_func(self):
         """Return a function that interpolates the Function."""
         interpolation = INTERPOLATION_TYPES[self.__interpolation__]
         if interpolation == 0:  # linear
 
             def linear_interpolation(x, x_min, x_max, x_data, y_data, coeffs):
-                x_interval = np.searchsorted(x_data, x)
+                x_interval = bisect_left(x_data, x)
                 x_left = x_data[x_interval - 1]
                 y_left = y_data[x_interval - 1]
                 dx = float(x_data[x_interval] - x_left)
@@ -363,7 +364,7 @@ class Function:
                 y = (x - x_left) * (dy / dx) + y_left
                 return y
 
-            self._interpolation_function = linear_interpolation
+            self._interpolation_func = linear_interpolation
 
         elif interpolation == 1:  # polynomial
 
@@ -371,48 +372,48 @@ class Function:
                 y = np.sum(coeffs * x ** np.arange(len(coeffs)))
                 return y
 
-            self._interpolation_function = polynomial_interpolation
+            self._interpolation_func = polynomial_interpolation
 
         elif interpolation == 2:  # akima
 
             def akima_interpolation(x, x_min, x_max, x_data, y_data, coeffs):
-                x_interval = np.searchsorted(x_data, x)
+                x_interval = bisect_left(x_data, x)
                 x_interval = x_interval if x_interval != 0 else 1
                 a = coeffs[4 * x_interval - 4 : 4 * x_interval]
                 y = a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
                 return y
 
-            self._interpolation_function = akima_interpolation
+            self._interpolation_func = akima_interpolation
 
         elif interpolation == 3:  # spline
 
             def spline_interpolation(x, x_min, x_max, x_data, y_data, coeffs):
-                x_interval = np.searchsorted(x_data, x)
+                x_interval = bisect_left(x_data, x)
                 x_interval = max(x_interval, 1)
                 a = coeffs[:, x_interval - 1]
                 x = x - x_data[x_interval - 1]
                 y = a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
                 return y
 
-            self._interpolation_function = spline_interpolation
+            self._interpolation_func = spline_interpolation
 
         elif interpolation == 4:  # shepard does not use interpolation function
-            self._interpolation_function = None
+            self._interpolation_func = None
 
-    def _set_extrapolation_function(self):
+    def _set_extrapolation_func(self):
         """Return a function that extrapolates the Function."""
         interpolation = INTERPOLATION_TYPES[self.__interpolation__]
         extrapolation = EXTRAPOLATION_TYPES[self.__extrapolation__]
 
         if interpolation == 4:  # shepard does not use extrapolation function
-            self._extrapolation_function = None
+            self._extrapolation_func = None
 
         elif extrapolation == 0:  # zero
 
             def zero_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):
                 return 0
 
-            self._extrapolation_function = zero_extrapolation
+            self._extrapolation_func = zero_extrapolation
         elif extrapolation == 1:  # natural
             if interpolation == 0:  # linear
 
@@ -450,13 +451,13 @@ class Function:
                     y = a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
                     return y
 
-            self._extrapolation_function = natural_extrapolation
+            self._extrapolation_func = natural_extrapolation
         elif extrapolation == 2:  # constant
 
             def constant_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):
                 return y_data[0] if x < x_min else y_data[-1]
 
-            self._extrapolation_function = constant_extrapolation
+            self._extrapolation_func = constant_extrapolation
 
     def set_get_value_opt(self):
         """Crates a method that evaluates interpolations rather quickly
@@ -476,20 +477,16 @@ class Function:
             self.get_value_opt = self._get_value_opt_nd
         return self
 
-    def _get_value_opt_1d(self, x, *args):
+    def _get_value_opt_1d(self, x):
         # Retrieve general info
         x_data = self.x_array
         y_data = self.y_array
         x_min, x_max = self.x_initial, self.x_final
         coeffs = self._coeffs
         if x_min <= x <= x_max:
-            y = self._interpolation_function(
-                x, x_min, x_max, x_data, y_data, coeffs, *args
-            )
+            y = self._interpolation_func(x, x_min, x_max, x_data, y_data, coeffs)
         else:
-            y = self._extrapolation_function(
-                x, x_min, x_max, x_data, y_data, coeffs, *args
-            )
+            y = self._extrapolation_func(x, x_min, x_max, x_data, y_data, coeffs)
         return y
 
     def _get_value_opt_nd(self, *args):
