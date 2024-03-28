@@ -441,7 +441,7 @@ class EnvironmentAnalysis:
 
     def __find_preferred_timezone(self):
         if self.preferred_timezone is None:
-            # Use local timezone based on lat lon pair
+            # Use local time zone based on lat lon pair
             try:
                 timezonefinder = import_optional_dependency("timezonefinder")
                 tf = timezonefinder.TimezoneFinder()

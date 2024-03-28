@@ -153,7 +153,7 @@ def time_num_to_date_string(time_num, units, timezone, calendar="gregorian"):
     """Convert time number (usually hours before a certain date) into two
     strings: one for the date (example: 2022.04.31) and one for the hour
     (example: 14). See cftime.num2date for details on units and calendar.
-    Automatically converts time number from UTC to local timezone based on
+    Automatically converts time number from UTC to local time zone based on
     lat, lon coordinates. This function was created originally for the
     EnvironmentAnalysis class.
 
