@@ -102,7 +102,8 @@ def test_setters(func_from_csv, func_2d_from_csv):
     func_2d_from_csv.set_interpolation("shepard")
     assert func_2d_from_csv.get_interpolation_method() == "shepard"
     func_2d_from_csv.set_extrapolation("zero")
-    assert func_2d_from_csv.get_extrapolation_method() == "zero"
+    # 2d functions do not support zero extrapolation, must change to natural
+    assert func_2d_from_csv.get_extrapolation_method() == "natural"
 
 
 @patch("matplotlib.pyplot.show")
