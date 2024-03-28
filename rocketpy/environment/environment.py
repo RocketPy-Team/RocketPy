@@ -73,7 +73,7 @@ class Environment:
         Launch site E/W hemisphere
     Environment.elevation : float
         Launch site elevation.
-    Environment.date : datetime
+    Environment.datetime_date : datetime
         Date time of launch in UTC.
     Environment.local_date : datetime
         Date time of launch in the local time zone, defined by
@@ -281,7 +281,7 @@ class Environment:
         for the Flight simulation, such as atmospheric air pressure, density,
         and gravitational acceleration.
 
-        Note that the default atmospheric model is the International Standard 
+        Note that the default atmospheric model is the International Standard
         Atmosphere as defined by ISO 2533 unless specified otherwise in
         :meth:`Environment.set_atmospheric_model`.
 
@@ -292,22 +292,33 @@ class Environment:
             acceleration down. If None, the Somigliana formula is used.
             See :meth:`Environment.set_gravity_model` for more information.
         date : array, optional
-            Array of length 4, stating (year, month, day, hour (UTC))
-            of rocket launch. Must be given if a Forecast, Reanalysis
+            Array of length 4, stating (year, month, day, hour) in the
+            time zone of the parameter ``timezone``.
+            Alternatively, can be a ``Datetime`` object specifying launch
+            date and time. The dates are stored as follows:
+
+            - :attr:`Environment.local_date`: Local time of launch in
+              the time zone specified by the parameter ``timezone``.
+
+            - :attr:`Environment.datetime_date`: UTC time of launch.
+
+            Must be given if a Forecast, Reanalysis
             or Ensemble, will be set as an atmospheric model.
+            Default is None.
+            See :meth:`Environment.set_date` for more information.
         latitude : float, optional
             Latitude in degrees (ranging from -90 to 90) of rocket
             launch location. Must be given if a Forecast, Reanalysis
             or Ensemble will be used as an atmospheric model or if
             Open-Elevation will be used to compute elevation. Positive
-            values correspond to the North. Default value is 0, which 
+            values correspond to the North. Default value is 0, which
             corresponds to the equator.
         longitude : float, optional
             Longitude in degrees (ranging from -180 to 360) of rocket
             launch location. Must be given if a Forecast, Reanalysis
             or Ensemble will be used as an atmospheric model or if
             Open-Elevation will be used to compute elevation. Positive
-            values correspond to the East. Default value is 0, which 
+            values correspond to the East. Default value is 0, which
             corresponds to the Greenwich Meridian.
         elevation : float, optional
             Elevation of launch site measured as height above sea
@@ -321,7 +332,7 @@ class Environment:
             is "SIRGAS2000".
         timezone : string, optional
             Name of the time zone. To see all time zones, import pytz and run
-            print(pytz.all_timezones). Default time zone is "UTC".
+            ``print(pytz.all_timezones)``. Default time zone is "UTC".
         max_expected_height : float, optional
             Maximum altitude in meters to keep weather data. The altitude must
             be above sea level (ASL). Especially useful for visualization.
@@ -405,15 +416,57 @@ class Environment:
 
         Parameters
         ----------
-        date : Datetime
-            Datetime object specifying launch date and time.
+        date : array, Datetime
+            Array of length 4, stating (year, month, day, hour) in the
+            time zone of the parameter ``timezone``. See Notes for more
+            information.
+            Alternatively, can be a Datetime object specifying launch
+            date and time.
         timezone : string, optional
             Name of the time zone. To see all time zones, import pytz and run
-            print(pytz.all_timezones). Default time zone is "UTC".
+            ``print(pytz.all_timezones)``. Default time zone is "UTC".
 
         Returns
         -------
         None
+
+        Notes
+        -----
+        - If the ``date`` is given as an array, it should be in the same
+          time zone as specified by the ``timezone`` parameter. This local
+          time will be available in the attribute :attr:`Environment.local_date`
+          while the UTC time will be available in the attribute
+          :attr:`Environment.datetime_date`.
+
+        - If the ``date`` is given as a ``Datetime`` object without a time zone,
+          it will be assumed to be in the same time zone as specified by the
+          ``timezone`` parameter. However, if the ``Datetime`` object has a time
+          zone specified in its ``tzinfo`` attribute, the ``timezone``
+          parameter will be ignored.
+
+        Examples
+        --------
+
+        Let's set the launch date as an array:
+
+        >>> date = [2000, 1, 1, 13] # January 1st, 2000 at 13:00 UTC+1
+        >>> env = Environment()
+        >>> env.set_date(date, timezone="Europe/Rome")
+        >>> print(env.datetime_date) # Get UTC time
+        2000-01-01 12:00:00+00:00
+        >>> print(env.local_date)
+        2000-01-01 13:00:00+01:00
+
+        Now let's set the launch date as a ``Datetime`` object:
+
+        >>> from datetime import datetime
+        >>> date = datetime(2000, 1, 1, 13, 0, 0)
+        >>> env = Environment()
+        >>> env.set_date(date, timezone="Europe/Rome")
+        >>> print(env.datetime_date) # Get UTC time
+        2000-01-01 12:00:00+00:00
+        >>> print(env.local_date)
+        2000-01-01 13:00:00+01:00
         """
         # Store date and configure time zone
         self.timezone = timezone
@@ -479,23 +532,23 @@ class Environment:
             simulation, this value is positive when pointing downwards.
             The input type can be one of the following:
 
-                - ``int`` or ``float``: The gravity acceleration is set as a
-                constant function with respect to height;
+            - ``int`` or ``float``: The gravity acceleration is set as a\
+              constant function with respect to height;
 
-                - ``callable``: This callable should receive the height above
-                sea level in meters and return the gravity acceleration;
+            - ``callable``: This callable should receive the height above\
+              sea level in meters and return the gravity acceleration;
 
-                - ``array``: The datapoints should be structured as
-                ``[(h_i,g_i), ...]`` where ``h_i`` is the height above sea
-                level in meters and ``g_i`` is the gravity acceleration in m/s²;
+            - ``array``: The datapoints should be structured as\
+              ``[(h_i,g_i), ...]`` where ``h_i`` is the height above sea\
+              level in meters and ``g_i`` is the gravity acceleration in m/s²;
 
-                - ``string``: The string should correspond to a path to a CSV file
-                containing the gravity acceleration data;
+            - ``string``: The string should correspond to a path to a CSV file\
+              containing the gravity acceleration data;
 
-                - ``None``: The Somigliana formula is used to compute the gravity
-                acceleration.
+            - ``None``: The Somigliana formula is used to compute the gravity\
+              acceleration.
 
-            This parameter is used as a :class:`Function` object source, check
+            This parameter is used as a :class:`Function` object source, check\
             out the available input types for a more detailed explanation.
 
         Returns
@@ -552,7 +605,7 @@ class Environment:
 
     @funcify_method("height (m)", "gravity (m/s²)")
     def somigliana_gravity(self, height):
-        """Computes the gravity acceleration with the Somigliana formula.
+        """Computes the gravity acceleration with the Somigliana formula [1]_.
         An height correction is applied to the normal gravity that is
         accurate for heights used in aviation. The formula is based on the
         WGS84 ellipsoid, but is accurate for other reference ellipsoids.
