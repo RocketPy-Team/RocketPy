@@ -32,13 +32,25 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+- ENH: Add new stability margin properties to Flight class [#572](https://github.com/RocketPy-Team/RocketPy/pull/572)
 - ENH: adds `Function.remove_outliers` method [#554](https://github.com/RocketPy-Team/RocketPy/pull/554)
 
 ### Changed
+
+- MNT: Refactor flight prints module [#579](https://github.com/RocketPy-Team/RocketPy/pull/579)
+- DOC: Convert CompareFlights example notebooks to .rst files [#576](https://github.com/RocketPy-Team/RocketPy/pull/576)
+- MNT: Refactor inertia calculations using parallel axis theorem [#573] (https://github.com/RocketPy-Team/RocketPy/pull/573)
 - ENH: Optional argument to show the plot in Function.compare_plots [#563](https://github.com/RocketPy-Team/RocketPy/pull/563)
 
 ### Fixed
+
 - BUG: export_eng 'Motor' method would not work for liquid motors. [#559](https://github.com/RocketPy-Team/RocketPy/pull/559) 
+
+## [v1.2.2] - 2024-03-22
+
+You can install this version by running `pip install rocketpy==1.2.2`
+
+- BUG: wrong rocket mass in parachute u dot method [#569](https://github.com/RocketPy-Team/RocketPy/pull/569)
 
 ## [v1.2.1] - 2024-02-22
 

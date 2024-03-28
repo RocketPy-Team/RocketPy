@@ -18,6 +18,7 @@ from rocketpy.rocket.aero_surface import (
 )
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
+from rocketpy.tools import parallel_axis_theorem_from_com
 
 
 class Rocket:
@@ -61,6 +62,9 @@ class Rocket:
         pointing from the rocket's nose cone to the rocket's tail.
     Rocket.mass : float
         Rocket's mass without motor and propellant, measured in kg.
+    Rocket.dry_mass : float
+        Rocket's mass without propellant, measured in kg. It does include the
+        motor mass.
     Rocket.center_of_mass : Function
         Position of the rocket's center of mass, including propellant, relative
         to the user defined rocket reference system.
@@ -394,22 +398,18 @@ class Rocket:
     def evaluate_dry_mass(self):
         """Calculates and returns the rocket's dry mass. The dry
         mass is defined as the sum of the motor's dry mass and the
-        rocket mass without motor. The function returns an object
-        of the Function class and is defined as a function of time.
+        rocket mass without motor.
 
         Returns
         -------
-        self.total_mass : Function
-            Function of time expressing the total mass of the rocket,
-            defined as the sum of the propellant mass and the rocket
-            mass without propellant.
+        self.dry_mass : float
+            Rocket's dry mass (Rocket + Motor) (kg)
         """
         # Make sure there is a motor associated with the rocket
         if self.motor is None:
             print("Please associate this rocket with a motor!")
             return False
 
-        # Calculate total dry mass: motor (without propellant) + rocket mass
         self.dry_mass = self.mass + self.motor.dry_mass
 
         return self.dry_mass
@@ -620,6 +620,10 @@ class Rocket:
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
+        # Get masses
+        motor_dry_mass = self.motor.dry_mass
+        mass = self.mass
+
         # Compute axes distances
         noMCM_to_CDM = (
             self.center_of_mass_without_motor - self.center_of_dry_mass_position
@@ -629,18 +633,18 @@ class Rocket:
         )
 
         # Compute dry inertias
-        self.dry_I_11 = (
-            self.I_11_without_motor
-            + self.mass * noMCM_to_CDM**2
-            + self.motor.dry_I_11
-            + self.motor.dry_mass * motorCDM_to_CDM**2
+        self.dry_I_11 = parallel_axis_theorem_from_com(
+            self.I_11_without_motor, mass, noMCM_to_CDM
+        ) + parallel_axis_theorem_from_com(
+            self.motor.dry_I_11, motor_dry_mass, motorCDM_to_CDM
         )
-        self.dry_I_22 = (
-            self.I_22_without_motor
-            + self.mass * noMCM_to_CDM**2
-            + self.motor.dry_I_22
-            + self.motor.dry_mass * motorCDM_to_CDM**2
+
+        self.dry_I_22 = parallel_axis_theorem_from_com(
+            self.I_22_without_motor, mass, noMCM_to_CDM
+        ) + parallel_axis_theorem_from_com(
+            self.motor.dry_I_22, motor_dry_mass, motorCDM_to_CDM
         )
+
         self.dry_I_33 = self.I_33_without_motor + self.motor.dry_I_33
         self.dry_I_12 = self.I_12_without_motor + self.motor.dry_I_12
         self.dry_I_13 = self.I_13_without_motor + self.motor.dry_I_13
@@ -697,18 +701,14 @@ class Rocket:
         CM_to_CPM = self.center_of_mass - self.center_of_propellant_position
 
         # Compute inertias
-        self.I_11 = (
-            self.dry_I_11
-            + self.motor.I_11
-            + dry_mass * CM_to_CDM**2
-            + prop_mass * CM_to_CPM**2
-        )
-        self.I_22 = (
-            self.dry_I_22
-            + self.motor.I_22
-            + dry_mass * CM_to_CDM**2
-            + prop_mass * CM_to_CPM**2
-        )
+        self.I_11 = parallel_axis_theorem_from_com(
+            self.dry_I_11, dry_mass, CM_to_CDM
+        ) + parallel_axis_theorem_from_com(self.motor.I_11, prop_mass, CM_to_CPM)
+
+        self.I_22 = parallel_axis_theorem_from_com(
+            self.dry_I_22, dry_mass, CM_to_CDM
+        ) + parallel_axis_theorem_from_com(self.motor.I_22, prop_mass, CM_to_CPM)
+
         self.I_33 = self.dry_I_33 + self.motor.I_33
         self.I_12 = self.dry_I_12 + self.motor.I_12
         self.I_13 = self.dry_I_13 + self.motor.I_13

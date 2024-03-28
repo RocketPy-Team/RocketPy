@@ -7,7 +7,7 @@ import numpy as np
 from ..mathutils.function import Function, funcify_method
 from ..plots.motor_plots import _MotorPlots
 from ..prints.motor_prints import _MotorPrints
-from ..tools import tuple_handler
+from ..tools import parallel_axis_theorem_from_com, tuple_handler
 
 try:
     from functools import cached_property
@@ -513,25 +513,19 @@ class Motor(ABC):
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        # Propellant inertia tensor 11 component wrt propellant center of mass
-        propellant_I_11 = self.propellant_I_11
 
-        # Dry inertia tensor 11 component wrt dry center of mass
+        prop_I_11 = self.propellant_I_11
         dry_I_11 = self.dry_I_11
 
-        # Steiner theorem the get inertia wrt motor center of mass
-        propellant_I_11 += (
-            self.propellant_mass
-            * (self.center_of_propellant_mass - self.center_of_mass) ** 2
-        )
+        prop_to_cm = self.center_of_propellant_mass - self.center_of_mass
+        dry_to_cm = self.center_of_dry_mass_position - self.center_of_mass
 
-        dry_I_11 += (
-            self.dry_mass
-            * (self.center_of_dry_mass_position - self.center_of_mass) ** 2
+        prop_I_11 = parallel_axis_theorem_from_com(
+            prop_I_11, self.propellant_mass, prop_to_cm
         )
+        dry_I_11 = parallel_axis_theorem_from_com(dry_I_11, self.dry_mass, dry_to_cm)
 
-        # Sum of inertia components
-        return propellant_I_11 + dry_I_11
+        return prop_I_11 + dry_I_11
 
     @funcify_method("Time (s)", "Inertia I_22 (kg m²)")
     def I_22(self):
