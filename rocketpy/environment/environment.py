@@ -281,8 +281,8 @@ class Environment:
         for the Flight simulation, such as atmospheric air pressure, density,
         and gravitational acceleration.
 
-        Note that the default atmospheric model is the International Standard Atmosphere
-        as defined by ISO 2533 unless specified otherwise in
+        Note that the default atmospheric model is the International Standard 
+        Atmosphere as defined by ISO 2533 unless specified otherwise in
         :meth:`Environment.set_atmospheric_model`.
 
         Parameters
@@ -299,12 +299,16 @@ class Environment:
             Latitude in degrees (ranging from -90 to 90) of rocket
             launch location. Must be given if a Forecast, Reanalysis
             or Ensemble will be used as an atmospheric model or if
-            Open-Elevation will be used to compute elevation.
+            Open-Elevation will be used to compute elevation. Positive
+            values correspond to the North. Default value is 0, which 
+            corresponds to the equator.
         longitude : float, optional
             Longitude in degrees (ranging from -180 to 360) of rocket
             launch location. Must be given if a Forecast, Reanalysis
             or Ensemble will be used as an atmospheric model or if
-            Open-Elevation will be used to compute elevation.
+            Open-Elevation will be used to compute elevation. Positive
+            values correspond to the East. Default value is 0, which 
+            corresponds to the Greenwich Meridian.
         elevation : float, optional
             Elevation of launch site measured as height above sea
             level in meters. Alternatively, can be set as
