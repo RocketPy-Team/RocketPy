@@ -314,7 +314,7 @@ class Environment:
             values correspond to the North. Default value is 0, which
             corresponds to the equator.
         longitude : float, optional
-            Longitude in degrees (ranging from -180 to 360) of rocket
+            Longitude in degrees (ranging from -180 to 180) of rocket
             launch location. Must be given if a Forecast, Reanalysis
             or Ensemble will be used as an atmospheric model or if
             Open-Elevation will be used to compute elevation. Positive
