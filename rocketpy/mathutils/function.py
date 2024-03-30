@@ -366,8 +366,7 @@ class Function:
         elif interpolation == 1:  # polynomial
 
             def polynomial_interpolation(x, x_min, x_max, x_data, y_data, coeffs):
-                y = np.sum(coeffs * x ** np.arange(len(coeffs)))
-                return y
+                return np.sum(coeffs * x ** np.arange(len(coeffs)))
 
             self._interpolation_func = polynomial_interpolation
 
