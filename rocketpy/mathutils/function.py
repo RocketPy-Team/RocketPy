@@ -14,7 +14,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import integrate, linalg, optimize
-from bisect import bisect_left
 
 try:
     from functools import cached_property
@@ -120,11 +119,6 @@ class Function:
         (II) Fields in CSV files may be enclosed in double quotes. If fields
         are not quoted, double quotes should not appear inside them.
         """
-        # initialize variables to avoid errors when being called by other methods
-        self.__polynomial_coefficients__ = None
-        self.__akima_coefficients__ = None
-        self.__spline_coefficients__ = None
-
         # initialize parameters
         self.source = source
         self.__inputs__ = inputs
