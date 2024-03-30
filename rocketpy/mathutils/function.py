@@ -240,7 +240,7 @@ class Function:
                 self.__dom_dim__ = new_total_dim - 1
                 self.__inputs__ = self.__dom_dim__ * self.__inputs__
 
-            # if Function is 1D, sort source by x. If 2D, set z
+            # set x and y. If Function is 2D, also set z
             if self.__dom_dim__ == 1:
                 source = source[source[:, 0].argsort()]
                 self.x_array = source[:, 0]
@@ -248,15 +248,13 @@ class Function:
                 self.y_array = source[:, 1]
                 self.y_initial, self.y_final = self.y_array[0], self.y_array[-1]
                 self.get_value_opt = self._get_value_opt_1d
-            elif self.__dom_dim__ == 2:
+            elif self.__dom_dim__ > 1:
                 self.x_array = source[:, 0]
                 self.x_initial, self.x_final = self.x_array[0], self.x_array[-1]
                 self.y_array = source[:, 1]
                 self.y_initial, self.y_final = self.y_array[0], self.y_array[-1]
                 self.z_array = source[:, 2]
                 self.z_initial, self.z_final = self.z_array[0], self.z_array[-1]
-                self.get_value_opt = self._get_value_opt_nd
-            else:
                 self.get_value_opt = self._get_value_opt_nd
 
         self.source = source
