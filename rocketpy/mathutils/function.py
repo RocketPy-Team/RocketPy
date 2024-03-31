@@ -147,7 +147,7 @@ class Function:
         -------
         self : Function
         """
-        self.__inputs__ = self._validate_inputs(inputs)
+        self.__inputs__ = self.__validate_inputs(inputs)
         return self
 
     def set_outputs(self, outputs):
@@ -162,7 +162,7 @@ class Function:
         -------
         self : Function
         """
-        self.__outputs__ = self._validate_outputs(outputs)
+        self.__outputs__ = self.__validate_outputs(outputs)
         return self
 
     def set_source(self, source):
@@ -211,7 +211,7 @@ class Function:
         self : Function
             Returns the Function instance.
         """
-        source = self._validate_source(source)
+        source = self.__validate_source(source)
 
         # Handle callable source or number source
         if callable(source):
@@ -247,7 +247,7 @@ class Function:
                 self.x_initial, self.x_final = self.x_array[0], self.x_array[-1]
                 self.y_array = source[:, 1]
                 self.y_initial, self.y_final = self.y_array[0], self.y_array[-1]
-                self.get_value_opt = self._get_value_opt_1d
+                self.get_value_opt = self.__get_value_opt_1d
             elif self.__dom_dim__ > 1:
                 self.x_array = source[:, 0]
                 self.x_initial, self.x_final = self.x_array[0], self.x_array[-1]
@@ -255,7 +255,7 @@ class Function:
                 self.y_initial, self.y_final = self.y_array[0], self.y_array[-1]
                 self.z_array = source[:, 2]
                 self.z_initial, self.z_final = self.z_array[0], self.z_array[-1]
-                self.get_value_opt = self._get_value_opt_nd
+                self.get_value_opt = self.__get_value_opt_nd
 
         self.source = source
         self.set_interpolation(self.__interpolation__)
@@ -300,12 +300,12 @@ class Function:
         self : Function
         """
         if not callable(self.source):
-            self.__interpolation__ = self._validate_interpolation(method)
-            self._update_interpolation_coefficients(self.__interpolation__)
-            self._set_interpolation_func()
+            self.__interpolation__ = self.__validate_interpolation(method)
+            self.__update_interpolation_coefficients(self.__interpolation__)
+            self.__set_interpolation_func()
         return self
 
-    def _update_interpolation_coefficients(self, method):
+    def __update_interpolation_coefficients(self, method):
         """Update interpolation coefficients for the given method."""
         # Spline, akima and polynomial need data processing
         # Shepard, and linear do not
@@ -339,11 +339,11 @@ class Function:
             The Function object.
         """
         if not callable(self.source):
-            self.__extrapolation__ = self._validate_extrapolation(method)
-            self._set_extrapolation_func()
+            self.__extrapolation__ = self.__validate_extrapolation(method)
+            self.__set_extrapolation_func()
         return self
 
-    def _set_interpolation_func(self):
+    def __set_interpolation_func(self):
         """Defines interpolation function used by the Function. Each
         interpolation method has its own function with exception of shepard,
         which has its interpolation/extrapolation function defined in
@@ -393,7 +393,7 @@ class Function:
         elif interpolation == 4:  # shepard does not use interpolation function
             self._interpolation_func = None
 
-    def _set_extrapolation_func(self):
+    def __set_extrapolation_func(self):
         """Defines extrapolation function used by the Function. Each
         extrapolation method has its own function. The function is stored in
         the attribute _extrapolation_func."""
@@ -460,12 +460,12 @@ class Function:
         if callable(self.source):
             self.get_value_opt = self.source
         elif self.__dom_dim__ == 1:
-            self.get_value_opt = self._get_value_opt_1d
+            self.get_value_opt = self.__get_value_opt_1d
         elif self.__dom_dim__ > 1:
-            self.get_value_opt = self._get_value_opt_nd
+            self.get_value_opt = self.__get_value_opt_nd
         return self
 
-    def _get_value_opt_1d(self, x):
+    def __get_value_opt_1d(self, x):
         """Evaluate the Function at a single point x. This method is used
         when the Function is 1-D.
 
@@ -490,7 +490,7 @@ class Function:
             y = self._extrapolation_func(x, x_min, x_max, x_data, y_data, coeffs)
         return y
 
-    def _get_value_opt_nd(self, *args):
+    def __get_value_opt_nd(self, *args):
         """Evaluate the Function at a single point (x, y, z). This method is
         used when the Function is N-D."""
         # always use shepard for N-D functions
@@ -2883,7 +2883,7 @@ class Function:
             np.savetxt(file, data_points, fmt=fmt, delimiter=delimiter, newline=newline)
 
     # Input validators
-    def _validate_source(self, source):
+    def __validate_source(self, source):
         """Used to validate the source parameter for creating a Function object.
 
         Parameters
@@ -2951,7 +2951,7 @@ class Function:
         # If source is a callable function
         return source
 
-    def _validate_inputs(self, inputs):
+    def __validate_inputs(self, inputs):
         """Used to validate the inputs parameter for creating a Function object.
         It sets a default value if it is not provided.
 
@@ -2990,7 +2990,7 @@ class Function:
                 "the length of the domain dimension."
             )
 
-    def _validate_outputs(self, outputs):
+    def __validate_outputs(self, outputs):
         """Used to validate the outputs parameter for creating a Function object.
         It sets a default value if it is not provided.
 
@@ -3016,7 +3016,7 @@ class Function:
                 )
             return outputs
 
-    def _validate_interpolation(self, interpolation):
+    def __validate_interpolation(self, interpolation):
         if self.__dom_dim__ == 1:
             # possible interpolation values: linear, polynomial, akima and spline
             if interpolation is None:
@@ -3044,7 +3044,7 @@ class Function:
             interpolation = "shepard"
         return interpolation
 
-    def _validate_extrapolation(self, extrapolation):
+    def __validate_extrapolation(self, extrapolation):
         if self.__dom_dim__ == 1:
             if extrapolation is None:
                 extrapolation = "constant"
