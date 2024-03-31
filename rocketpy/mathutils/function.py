@@ -501,7 +501,7 @@ class Function:
         """Evaluate the Function at a single point (x, y, z). This method is
         used when the Function is N-D."""
         # always use shepard for N-D functions
-        return self.__interpolate_shepard__(list(args))
+        return self.__interpolate_shepard__(args)
 
     def set_discrete(
         self,
