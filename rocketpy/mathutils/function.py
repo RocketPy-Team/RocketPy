@@ -358,8 +358,7 @@ class Function:
                 y_left = y_data[x_interval - 1]
                 dx = float(x_data[x_interval] - x_left)
                 dy = float(y_data[x_interval] - y_left)
-                y = (x - x_left) * (dy / dx) + y_left
-                return y
+                return (x - x_left) * (dy / dx) + y_left
 
             self._interpolation_func = linear_interpolation
 
@@ -376,8 +375,7 @@ class Function:
                 x_interval = bisect_left(x_data, x)
                 x_interval = x_interval if x_interval != 0 else 1
                 a = coeffs[4 * x_interval - 4 : 4 * x_interval]
-                y = a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
-                return y
+                return a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
 
             self._interpolation_func = akima_interpolation
 
@@ -388,8 +386,7 @@ class Function:
                 x_interval = max(x_interval, 1)
                 a = coeffs[:, x_interval - 1]
                 x = x - x_data[x_interval - 1]
-                y = a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
-                return y
+                return a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
 
             self._interpolation_func = spline_interpolation
 
@@ -421,21 +418,18 @@ class Function:
                     y_left = y_data[x_interval - 1]
                     dx = float(x_data[x_interval] - x_left)
                     dy = float(y_data[x_interval] - y_left)
-                    y = (x - x_left) * (dy / dx) + y_left
-                    return y
+                    return (x - x_left) * (dy / dx) + y_left
 
             elif interpolation == 1:  # polynomial
 
                 def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):
-                    y = np.sum(coeffs * x ** np.arange(len(coeffs)))
-                    return y
+                    return np.sum(coeffs * x ** np.arange(len(coeffs)))
 
             elif interpolation == 2:  # akima
 
                 def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):
                     a = coeffs[:4] if x < x_min else coeffs[-4:]
-                    y = a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
-                    return y
+                    return a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
 
             elif interpolation == 3:  # spline
 
@@ -446,8 +440,7 @@ class Function:
                     else:
                         a = coeffs[:, -1]
                         x = x - x_data[-2]
-                    y = a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
-                    return y
+                    return a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
 
             self._extrapolation_func = natural_extrapolation
         elif extrapolation == 2:  # constant
