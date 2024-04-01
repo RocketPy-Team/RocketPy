@@ -13,6 +13,7 @@ pytest_plugins = [
     "tests.fixtures.rockets.rocket_fixtures",
     "tests.fixtures.surfaces.surface_fixtures",
     "tests.fixtures.units.numerical_fixtures",
+    "tests.fixtures.sensors.sensors_fixtures",
 ]
 
 

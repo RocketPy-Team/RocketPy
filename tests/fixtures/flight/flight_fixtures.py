@@ -158,3 +158,33 @@ def flight_calisto_air_brakes(calisto_air_brakes_clamp_on, example_plain_env):
         time_overshoot=False,
         terminate_on_apogee=True,
     )
+
+
+@pytest.fixture
+def flight_calisto_accel_gyro(calisto_accel_gyro, example_plain_env):
+    """A rocketpy.Flight object of the Calisto rocket. This uses the calisto
+    with an ideal accelerometer and a gyroscope. The environment is the simplest
+    possible, with no parameters set.
+
+    Parameters
+    ----------
+    calisto_accel_gyro : rocketpy.Rocket
+        An object of the Rocket class.
+    example_plain_env : rocketpy.Environment
+        An object of the Environment class.
+
+    Returns
+    -------
+    rocketpy.Flight
+        A rocketpy.Flight object of the Calisto rocket in a more complex
+        condition.
+    """
+    return Flight(
+        rocket=calisto_accel_gyro,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        time_overshoot=False,
+        terminate_on_apogee=True,
+    )
