@@ -1,4 +1,5 @@
 import numpy as np
+from inspect import signature
 
 from ..mathutils.function import Function
 from ..prints.parachute_prints import _ParachutePrints
@@ -30,6 +31,11 @@ class Parachute:
         3. The state vector of the simulation, which is defined as:
 
            `[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]`.
+
+        4. A list of sensors that are attached to the rocket. The most recent
+           measurements of the sensors are provided with the
+           ``sensor.measurement`` attribute. The sensors are listed in the same
+           order as they are added to the rocket.
 
         The function should return True if the parachute ejection system should
         be triggered and False otherwise.
@@ -177,12 +183,22 @@ class Parachute:
         """This is used to set the triggerfunc attribute that will be used to
         interact with the Flight class.
         """
+        # The parachute is deployed by a custom function
         if callable(trigger):
-            self.triggerfunc = trigger
+            # work around for having added sensors to parachute triggers
+            # to avoid breaking changes
+            triggerfunc = trigger
+            sig = signature(triggerfunc)
+            if len(sig.parameters) == 3:
+
+                def triggerfunc(p, h, y, sensors):
+                    return trigger(p, h, y)
+
+            self.triggerfunc = triggerfunc
 
         elif isinstance(trigger, (int, float)):
             # The parachute is deployed at a given height
-            def triggerfunc(p, h, y):
+            def triggerfunc(p, h, y, sensors):
                 # p = pressure considering parachute noise signal
                 # h = height above ground level considering parachute noise signal
                 # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
@@ -192,7 +208,7 @@ class Parachute:
 
         elif trigger.lower() == "apogee":
             # The parachute is deployed at apogee
-            def triggerfunc(p, h, y):
+            def triggerfunc(p, h, y, sensors):
                 # p = pressure considering parachute noise signal
                 # h = height above ground level considering parachute noise signal
                 # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
