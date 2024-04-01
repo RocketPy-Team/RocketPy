@@ -57,6 +57,8 @@ class Flight:
         Name of the flight.
     Flight._controllers : list
         List of controllers to be used during simulation.
+    Flight._component_sensors : list
+        List of sensors to be used during simulation.
     Flight.max_time : int, float
         Maximum simulation time allowed. Refers to physical time
         being simulated, not time taken to run simulation.
@@ -594,6 +596,8 @@ class Flight:
             raise ValueError("Rail length must be a positive value.")
         self.parachutes = self.rocket.parachutes[:]
         self._controllers = self.rocket._controllers[:]
+        self._component_sensors = self.rocket.sensors
+        self._sensors_list = self.rocket.sensors.get_components()
         self.inclination = inclination
         self.heading = heading
         self.max_time = max_time
@@ -662,17 +666,20 @@ class Flight:
             # Initialize phase time nodes
             phase.TimeNodes = TimeNodes()
             # Add first time node to permanent list
-            phase.TimeNodes.add_node(phase.t, [], [])
+            phase.TimeNodes.add_node(phase.t, [], [], [])
             # Add non-overshootable parachute time nodes
             if self.time_overshoot is False:
                 phase.TimeNodes.add_parachutes(
                     self.parachutes, phase.t, phase.time_bound
                 )
+                phase.TimeNodes.add_sensors(
+                    self._component_sensors, phase.t, phase.time_bound
+                )
                 phase.TimeNodes.add_controllers(
                     self._controllers, phase.t, phase.time_bound
                 )
             # Add lst time node to permanent list
-            phase.TimeNodes.add_node(phase.time_bound, [], [])
+            phase.TimeNodes.add_node(phase.time_bound, [], [], [])
             # Sort time nodes
             phase.TimeNodes.sort()
             # Merge equal time nodes
@@ -702,8 +709,28 @@ class Flight:
                 for callback in node.callbacks:
                     callback(self)
 
+                for sensor, position in node._component_sensors:
+                    relative_position = position - self.rocket._csys * Vector(
+                        [0, 0, self.rocket.center_of_dry_mass_position]
+                    )
+                    u_dot = phase.derivative(
+                        self.t, self.y_sol
+                    )  # calling udot for each sensor. Not optimal
+                    sensor.measure(
+                        self.t,
+                        self.y_sol,
+                        u_dot,
+                        relative_position,
+                        self.env.gravity(self.solution[-1][3]),
+                    )
+
                 for controller in node._controllers:
-                    controller(self.t, self.y_sol, self.solution)
+                    controller(
+                        self.t,
+                        self.y_sol,
+                        self.solution,
+                        self._sensors_list,
+                    )
 
                 for parachute in node.parachutes:
                     # Calculate and save pressure signal
@@ -718,7 +745,9 @@ class Flight:
                         self.env.barometric_height(pressure + noise)
                         - self.env.elevation
                     )
-                    if parachute.triggerfunc(pressure + noise, hAGL, self.y_sol):
+                    if parachute.triggerfunc(
+                        pressure + noise, hAGL, self.y_sol, self._sensors_list
+                    ):
                         # print('\nEVENT DETECTED')
                         # print('Parachute Triggered')
                         # print('Name: ', parachute.name, ' | Lag: ', parachute.lag)
@@ -750,7 +779,7 @@ class Flight:
                         )
                         # Prepare to leave loops and start new flight phase
                         phase.TimeNodes.flush_after(node_index)
-                        phase.TimeNodes.add_node(self.t, [], [])
+                        phase.TimeNodes.add_node(self.t, [], [], [])
                         phase.solver.status = "finished"
                         # Save parachute event
                         self.parachute_events.append([self.t, parachute])
@@ -868,7 +897,7 @@ class Flight:
                         )
                         # Prepare to leave loops and start new flight phase
                         phase.TimeNodes.flush_after(node_index)
-                        phase.TimeNodes.add_node(self.t, [], [])
+                        phase.TimeNodes.add_node(self.t, [], [], [])
                         phase.solver.status = "finished"
 
                     # Check for apogee event
@@ -902,7 +931,7 @@ class Flight:
                             self.FlightPhases.add_phase(self.t)
                             # Prepare to leave loops and start new flight phase
                             phase.TimeNodes.flush_after(node_index)
-                            phase.TimeNodes.add_node(self.t, [], [])
+                            phase.TimeNodes.add_node(self.t, [], [], [])
                             phase.solver.status = "finished"
                     # Check for impact event
                     if self.y_sol[2] < self.env.elevation:
@@ -965,7 +994,7 @@ class Flight:
                         self.FlightPhases.add_phase(self.t)
                         # Prepare to leave loops and start new flight phase
                         phase.TimeNodes.flush_after(node_index)
-                        phase.TimeNodes.add_node(self.t, [], [])
+                        phase.TimeNodes.add_node(self.t, [], [], [])
                         phase.solver.status = "finished"
 
                     # List and feed overshootable time nodes
@@ -977,7 +1006,7 @@ class Flight:
                             self.parachutes, self.solution[-2][0], self.t
                         )
                         # Add last time node (always skipped)
-                        overshootable_nodes.add_node(self.t, [], [])
+                        overshootable_nodes.add_node(self.t, [], [], [])
                         if len(overshootable_nodes) > 1:
                             # Sort overshootable time nodes
                             overshootable_nodes.sort()
@@ -1026,7 +1055,10 @@ class Flight:
                                     )
 
                                     if parachute.triggerfunc(
-                                        pressure + noise, hAGL, overshootable_node.y
+                                        pressure + noise,
+                                        hAGL,
+                                        overshootable_node.y,
+                                        self._sensors_list,
                                     ):
                                         # print('\nEVENT DETECTED')
                                         # print('Parachute Triggered')
@@ -1069,7 +1101,7 @@ class Flight:
                                             overshootable_index
                                         )
                                         phase.TimeNodes.flush_after(node_index)
-                                        phase.TimeNodes.add_node(self.t, [], [])
+                                        phase.TimeNodes.add_node(self.t, [], [], [])
                                         phase.solver.status = "finished"
                                         # Save parachute event
                                         self.parachute_events.append(
@@ -1942,6 +1974,8 @@ class Flight:
         ax = Dx / (mp + ma)
         ay = Dy / (mp + ma)
         az = (Dz - 9.8 * mp) / (mp + ma)
+
+        u_dot = [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
 
         if post_processing:
             # Dynamics variables
@@ -3566,6 +3600,8 @@ class Flight:
                 self.derivative = derivative
                 self.callbacks = callbacks[:] if callbacks is not None else []
                 self.clear = clear
+                self.time_bound = None
+                self.TimeNodes = None
 
             def __repr__(self):
                 if self.derivative is None:
@@ -3594,8 +3630,8 @@ class Flight:
         def add(self, time_node):
             self.list.append(time_node)
 
-        def add_node(self, t, parachutes, callbacks):
-            self.list.append(self.TimeNode(t, parachutes, callbacks))
+        def add_node(self, t, parachutes, controllers, sensors):
+            self.list.append(self.TimeNode(t, parachutes, controllers, sensors))
 
         def add_parachutes(self, parachutes, t_init, t_end):
             # Iterate over parachutes
@@ -3603,7 +3639,7 @@ class Flight:
                 # Calculate start of sampling time nodes
                 pcDt = 1 / parachute.sampling_rate
                 parachute_node_list = [
-                    self.TimeNode(i * pcDt, [parachute], [])
+                    self.TimeNode(i * pcDt, [parachute], [], [])
                     for i in range(
                         math.ceil(t_init / pcDt), math.floor(t_end / pcDt) + 1
                     )
@@ -3616,13 +3652,29 @@ class Flight:
                 # Calculate start of sampling time nodes
                 controller_time_step = 1 / controller.sampling_rate
                 controller_node_list = [
-                    self.TimeNode(i * controller_time_step, [], [controller])
+                    self.TimeNode(i * controller_time_step, [], [controller], [])
                     for i in range(
                         math.ceil(t_init / controller_time_step),
                         math.floor(t_end / controller_time_step) + 1,
                     )
                 ]
                 self.list += controller_node_list
+
+        def add_sensors(self, sensors, t_init, t_end):
+            # Iterate over sensors
+            for sensor_component_tuple in sensors:
+                # Calculate start of sampling time nodes
+                sensor_time_step = 1 / sensor_component_tuple.component.sampling_rate
+                sensor_node_list = [
+                    self.TimeNode(
+                        i * sensor_time_step, [], [], [sensor_component_tuple]
+                    )
+                    for i in range(
+                        math.ceil(t_init / sensor_time_step),
+                        math.floor(t_end / sensor_time_step) + 1,
+                    )
+                ]
+                self.list += sensor_node_list
 
         def sort(self):
             self.list.sort(key=(lambda node: node.t))
@@ -3637,6 +3689,8 @@ class Flight:
                 if abs(node.t - self.tmp_list[-1].t) < 1e-7:
                     self.tmp_list[-1].parachutes += node.parachutes
                     self.tmp_list[-1].callbacks += node.callbacks
+                    self.tmp_list[-1]._component_sensors += node._component_sensors
+                    self.tmp_list[-1]._controllers += node._controllers
                 # Add new node to tmp list if there is none with the same time
                 else:
                     self.tmp_list.append(node)
@@ -3647,11 +3701,12 @@ class Flight:
             del self.list[index + 1 :]
 
         class TimeNode:
-            def __init__(self, t, parachutes, controllers):
+            def __init__(self, t, parachutes, controllers, sensors):
                 self.t = t
                 self.parachutes = parachutes
                 self.callbacks = []
                 self._controllers = controllers
+                self._component_sensors = sensors
 
             def __repr__(self):
                 return (
@@ -3659,5 +3714,9 @@ class Flight:
                     + str(self.t)
                     + " | Parachutes: "
                     + str(len(self.parachutes))
+                    + " | Controllers: "
+                    + str(len(self._controllers))
+                    + " | Sensors: "
+                    + str(len(self._sensors_list))
                     + "}"
                 )

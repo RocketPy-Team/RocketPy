@@ -1,3 +1,4 @@
+from inspect import signature
 from ..prints.controller_prints import _ControllerPrints
 
 
@@ -52,6 +53,10 @@ class _Controller:
                the controller function can interact with. The objects are
                listed in the same order as they are provided in the
                `interactive_objects`.
+            7. `sensors` (list): A list of sensors that are attached to the
+                rocket. The most recent measurements of the sensors are provided
+                with the ``sensor.measurement`` attribute. The sensors are
+                listed in the same order as they are added to the rocket
 
             This function will be called during the simulation at the specified
             sampling rate. The function should evaluate and change the interactive
@@ -78,7 +83,7 @@ class _Controller:
         None
         """
         self.interactive_objects = interactive_objects
-        self.controller_function = controller_function
+        self.controller_function = self.__init_controller_function(controller_function)
         self.sampling_rate = sampling_rate
         self.name = name
         self.prints = _ControllerPrints(self)
@@ -88,7 +93,44 @@ class _Controller:
         else:
             self.observed_variables = []
 
-    def __call__(self, time, state_vector, state_history):
+    def __init_controller_function(self, controller_function):
+        """Checks number of arguments of the controller function and initializes
+        it with the correct number of arguments. This is a workaround to allow
+        the controller function to receive sensors without breaking changes"""
+        sig = signature(controller_function)
+        if len(sig.parameters) == 6:
+
+            def new_controller_function(
+                time,
+                sampling_rate,
+                state_vector,
+                state_history,
+                observed_variables,
+                interactive_objects,
+                sensors,
+            ):
+                return controller_function(
+                    time,
+                    sampling_rate,
+                    state_vector,
+                    state_history,
+                    observed_variables,
+                    interactive_objects,
+                )
+
+        elif len(sig.parameters) == 7:
+            new_controller_function = controller_function
+        else:
+            raise ValueError(
+                "The controller function must have 6 or 7 arguments. "
+                "The arguments must be in the following order: "
+                "(time, sampling_rate, state_vector, state_history, "
+                "observed_variables, interactive_objects, sensors)."
+                "Sensors argument is optional."
+            )
+        return new_controller_function
+
+    def __call__(self, time, state_vector, state_history, sensors):
         """Call the controller function. This is used by the simulation class.
 
         Parameters
@@ -104,6 +146,11 @@ class _Controller:
             history is a list of every state vector of every step of the
             simulation. The state history is a list of lists, where each
             sublist is a state vector and is ordered from oldest to newest.
+        sensors : list
+            A list of sensors that are attached to the rocket. The most recent
+            measurements of the sensors are provided with the
+            ``sensor.measurement`` attribute. The sensors are listed in the same
+            order as they are added to the rocket.
 
         Returns
         -------
@@ -116,6 +163,7 @@ class _Controller:
             state_history,
             self.observed_variables,
             self.interactive_objects,
+            sensors,
         )
         if observed_variables is not None:
             self.observed_variables.append(observed_variables)
