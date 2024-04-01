@@ -1,0 +1,63 @@
+import numpy as np
+
+from rocketpy.mathutils.vector_matrix import Vector
+from rocketpy.rocket.components import Components
+from rocketpy.sensors.accelerometer import Accelerometer
+from rocketpy.sensors.gyroscope import Gyroscope
+
+
+def test_sensor_on_rocket(calisto_accel_gyro):
+    """Test the sensor on the rocket.
+
+    Parameters
+    ----------
+    calisto_accel_gyro : Rocket
+        Pytest fixture for the calisto rocket with an accelerometer and a gyroscope.
+    """
+    sensors = calisto_accel_gyro.sensors
+    assert isinstance(sensors, Components)
+    assert isinstance(sensors[0].component, Accelerometer)
+    assert isinstance(sensors[1].position, Vector)
+    assert isinstance(sensors[1].component, Gyroscope)
+    assert isinstance(sensors[1].position, Vector)
+
+
+def test_ideal_accelerometer(flight_calisto_accel_gyro):
+    """Test the ideal accelerometer.
+
+    Parameters
+    ----------
+    flight_calisto_accel_gyro : Flight
+        Pytest fixture for the flight of the calisto rocket with an ideal accelerometer and a gyroscope.
+    """
+    accelerometer = flight_calisto_accel_gyro.rocket.sensors[0].component
+    time, ax, ay, az = zip(*accelerometer.measured_values)
+    ax = np.array(ax)
+    ay = np.array(ay)
+    az = np.array(az)
+    a = np.sqrt(ax**2 + ay**2 + az**2)
+    sim_accel = flight_calisto_accel_gyro.acceleration(time)
+
+    # tolerance is bounded to numerical errors in the transformation matrixes
+    assert np.allclose(a, sim_accel, atol=1e-2)
+
+
+def test_ideal_gyroscope(flight_calisto_accel_gyro):
+    """Test the ideal gyroscope.
+
+    Parameters
+    ----------
+    flight_calisto_accel_gyro : Flight
+        Pytest fixture for the flight of the calisto rocket with an ideal accelerometer and a gyroscope.
+    """
+    gyroscope = flight_calisto_accel_gyro.rocket.sensors[1].component
+    time, wx, wy, wz = zip(*gyroscope.measured_values)
+    wx = np.array(wx)
+    wy = np.array(wy)
+    wz = np.array(wz)
+    w = np.sqrt(wx**2 + wy**2 + wz**2)
+    flight_wx = np.array(flight_calisto_accel_gyro.w1(time))
+    flight_wy = np.array(flight_calisto_accel_gyro.w2(time))
+    flight_wz = np.array(flight_calisto_accel_gyro.w3(time))
+    sim_w = np.sqrt(flight_wx**2 + flight_wy**2 + flight_wz**2)
+    assert np.allclose(w, sim_w, atol=1e-8)
