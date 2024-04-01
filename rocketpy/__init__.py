@@ -37,4 +37,5 @@ from .rocket import (
     Tail,
     TrapezoidalFins,
 )
+from .sensors import Accelerometer, Gyroscope, Sensors
 from .simulation import Flight

@@ -1,0 +1,212 @@
+import numpy as np
+from ..mathutils.vector_matrix import Matrix, Vector
+from ..sensors.sensors import Sensors
+from ..prints.sensors_prints import _GyroscopePrints
+
+
+class Gyroscope(Sensors):
+    """
+    Class for the gyroscope sensor
+    """
+
+    def __init__(
+        self,
+        sampling_rate,
+        orientation=(0, 0, 0),
+        measurement_range=np.inf,
+        resolution=0,
+        noise_density=0,
+        random_walk=0,
+        constant_bias=0,
+        operating_temperature=25,
+        temperature_bias=0,
+        temperature_scale_factor=0,
+        cross_axis_sensitivity=0,
+        acceleration_sensitivity=0,
+        name="Gyroscope",
+    ):
+        """
+        Initialize the gyroscope sensor
+
+        Parameters
+        ----------
+        sampling_rate : float
+            Sample rate of the sensor
+        orientation : tuple, list, optional
+            Orientation of the sensor in the rocket. The orientation can be
+            given as:
+            - A list of length 3, where the elements are the Euler angles for
+              the rotation roll (φ), pitch (θ) and yaw (ψ) in radians. The
+              standard rotation sequence is z-y-x (3-2-1) is used, meaning the
+              sensor is first rotated by ψ around the z axis, then by θ around
+              the new y axis and finally by φ around the new x axis.
+            - A list of lists (matrix) of shape 3x3, representing the rotation
+              matrix from the sensor frame to the rocket frame. The sensor frame
+              of reference is defined as to have z axis along the sensor's normal
+              vector pointing upwards, x and y axes perpendicular to the z axis
+              and each other.
+            The rocket frame of reference is defined as to have z axis
+            along the rocket's axis of symmetry pointing upwards, x and y axes
+            perpendicular to the z axis and each other. Default is (0, 0, 0),
+            meaning the sensor is aligned with the rocket's axis of symmetry.
+        measurement_range : float, tuple, optional
+            The measurement range of the sensor in the rad/s. If a float, the
+            same range is applied both for positive and negative values. If a
+            tuple, the first value is the positive range and the second value is
+            the negative range. Default is np.inf.
+        resolution : float, optional
+            The resolution of the sensor in rad/s/LSB. Default is 0, meaning no
+            quantization is applied.
+        noise_density : float, optional
+            The noise density of the sensor in rad/s/√Hz. Sometimes called
+            "white noise drift", "angular random walk" for gyroscopes, "velocity
+            random walk" for the accelerometers or "(rate) noise density".
+            Default is 0, meaning no noise is applied.
+        random_walk : float, optional
+            The random walk of the sensor in rad/s/√Hz. Sometimes called "bias
+            (in)stability" or "bias drift"". Default is 0, meaning no random
+            walk is applied.
+        constant_bias : float, optional
+            The constant bias of the sensor in rad/s. Default is 0, meaning no
+            constant bias is applied.
+        operating_temperature : float, optional
+            The operating temperature of the sensor in degrees Celsius. At 25°C,
+            the temperature bias and scale factor are 0. Default is 25.
+        temperature_sensitivity : float, optional
+            The temperature bias of the sensor in rad/s/°C. Default is 0,
+            meaning no temperature bias is applied.
+        temperature_scale_factor : float, optional
+            The temperature scale factor of the sensor in %/°C. Default is 0,
+            meaning no temperature scale factor is applied.
+        cross_axis_sensitivity : float, optional
+            Skewness of the sensor's axes in percentage. Default is 0, meaning
+            no cross-axis sensitivity is applied.
+        acceleration_sensitivity : float, optional
+            Sensitivity of the sensor to linear acceleration in rad/s/g. Default
+            is 0, meaning no sensitivity to linear acceleration is applied.
+
+        Returns
+        -------
+        None
+        """
+        self.type = "Gyroscope"
+        self.acceleration_sensitivity = acceleration_sensitivity
+        self.prints = _GyroscopePrints(self)
+        super().__init__(
+            sampling_rate,
+            orientation,
+            measurement_range=measurement_range,
+            resolution=resolution,
+            noise_density=noise_density,
+            random_walk=random_walk,
+            constant_bias=constant_bias,
+            operating_temperature=operating_temperature,
+            temperature_bias=temperature_bias,
+            temperature_scale_factor=temperature_scale_factor,
+            cross_axis_sensitivity=cross_axis_sensitivity,
+            name=name,
+        )
+
+    def measure(self, t, u, u_dot, relative_position, *args):
+        """
+        Measure the angular velocity of the rocket
+        """
+        # Angular velocity of the rocket in the rocket frame
+        omega = Vector(u[10:13])
+
+        # Transform to sensor frame
+        inertial_to_sensor = self._total_rotation_matrix @ Matrix.transformation(
+            u[6:10]
+        )
+        W = inertial_to_sensor @ omega
+
+        # Apply noise + bias
+        # Apply noise + bias and quatize
+        W = self.apply_noise(W)
+        W = self.apply_temperature_drift(W)
+
+        # Apply acceleration sensitivity
+        if self.acceleration_sensitivity != 0 and self.acceleration_sensitivity != None:
+            W += self.apply_acceleration_sensitivity(
+                omega, u_dot, relative_position, inertial_to_sensor
+            )
+
+        W = self.quantize(W)
+
+        self.measurement = tuple([*W])
+        self.measured_values.append((t, *W))
+
+    def apply_acceleration_sensitivity(
+        self, omega, u_dot, relative_position, rotation_matrix
+    ):
+        """
+        Apply acceleration sensitivity to the sensor measurement
+
+        Parameters
+        ----------
+        omega : Vector
+            The angular velocity to apply acceleration sensitivity to
+        cache : tuple
+            The cache of the rocket state
+        relative_position : Vector
+            The vector from the rocket's center of mass to the sensor in the
+            rocket frame
+        rotation_matrix : Matrix
+            The rotation matrix from the inertial frame to the sensor frame
+
+        Returns
+        -------
+        Vector
+            The angular velocity with applied acceleration sensitivity
+        """
+        # Linear acceleration of rocket cdm in inertial frame
+        a_I = Vector(u_dot[3:6])
+
+        # Angular velocity and accel of rocket
+        omega_dot = Vector(u_dot[10:13])
+
+        # Acceleration felt in sensor
+        A = (
+            a_I
+            + Vector.cross(omega_dot, relative_position)
+            + Vector.cross(omega, Vector.cross(omega, relative_position))
+        )
+        # Transform to sensor frame
+        A = rotation_matrix @ A
+
+        return self.acceleration_sensitivity * A
+
+    def export_measured_values(self, filename, format="csv"):
+        """
+        Export the measured values to a file
+
+        Parameters
+        ----------
+        filename : str
+            Name of the file to export the values to
+        format : str
+            Format of the file to export the values to. Options are "csv" and
+            "json". Default is "csv".
+
+        Returns
+        -------
+        None
+        """
+        if format == "csv":
+            with open(filename, "w") as f:
+                f.write("t,wx,wy,wz\n")
+                for t, wx, wy, wz in self.measured_values:
+                    f.write(f"{t},{wx},{wy},{wz}\n")
+        elif format == "json":
+            import json
+
+            data = {"t": [], "wx": [], "wy": [], "wz": []}
+            for t, wx, wy, wz in self.measured_values:
+                data["t"].append(t)
+                data["wx"].append(wx)
+                data["wy"].append(wy)
+                data["wz"].append(wz)
+            with open(filename, "w") as f:
+                json.dump(data, f)
+        else:
+            raise ValueError("Invalid format")
