@@ -1454,7 +1454,7 @@ class Rocket:
         self.thrust_eccentricity_x = y
         return self
 
-    def draw(self, vis_args=None):
+    def draw(self, vis_args=None, plane="xz"):
         """Draws the rocket in a matplotlib figure.
 
         Parameters
@@ -1474,9 +1474,11 @@ class Rocket:
             }
             A full list of color names can be found at:
             https://matplotlib.org/stable/gallery/color/named_colors
+        plane : str, optional
+            Plane in which the rocket will be drawn. Default is 'xz'. Other
+            options is 'yz'. Used only for sensors representation.
         """
-        self.plots.draw(vis_args)
-        return None
+        self.plots.draw(vis_args, plane)
 
     def info(self):
         """Prints out a summary of the data and graphs available about

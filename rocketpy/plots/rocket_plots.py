@@ -3,6 +3,7 @@ import warnings
 import matplotlib.pyplot as plt
 import numpy as np
 
+from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.motors import EmptyMotor, HybridMotor, LiquidMotor, SolidMotor
 from rocketpy.rocket.aero_surface import Fins, NoseCone, Tail
 
@@ -168,7 +169,7 @@ class _RocketPlots:
 
         return None
 
-    def draw(self, vis_args=None):
+    def draw(self, vis_args=None, plane="xz"):
         """Draws the rocket in a matplotlib figure.
 
         Parameters
@@ -188,8 +189,10 @@ class _RocketPlots:
             }
             A full list of color names can be found at:
             https://matplotlib.org/stable/gallery/color/named_colors
+        plane : str, optional
+            Plane in which the rocket will be drawn. Default is 'xz'. Other
+            options is 'yz'. Used only for sensors representation.
         """
-        # TODO: we need to modularize this function, it is too big
         if vis_args is None:
             vis_args = {
                 "background": "#EEEEEE",
@@ -202,20 +205,34 @@ class _RocketPlots:
                 "line_width": 1.0,
             }
 
-        # Create the figure and axis
-        _, ax = plt.subplots(figsize=(8, 6), facecolor="#EEEEEE")
+        fig, ax = plt.subplots(figsize=(8, 6), facecolor=vis_args["background"])
         ax.set_aspect("equal")
-        ax.set_facecolor(vis_args["background"])
         ax.grid(True, linestyle="--", linewidth=0.5)
 
         csys = self.rocket._csys
         reverse = csys == 1
         self.rocket.aerodynamic_surfaces.sort_by_position(reverse=reverse)
 
+        drawn_surfaces = self._draw_aerodynamic_surfaces(ax, vis_args)
+        last_radius, last_x = self._draw_tubes(ax, drawn_surfaces, vis_args)
+        self._draw_motor(last_radius, last_x, ax, vis_args)
+        self._draw_rail_buttons(ax, vis_args)
+        self._draw_center_of_mass_and_pressure(ax)
+        self._draw_sensor(ax, self.rocket.sensors, plane, vis_args)
+
+        plt.title("Rocket Representation")
+        plt.xlim()
+        plt.ylim([-self.rocket.radius * 4, self.rocket.radius * 6])
+        plt.xlabel("Position (m)")
+        plt.ylabel("Radius (m)")
+        plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
+        plt.tight_layout()
+        plt.show()
+
+    def _draw_aerodynamic_surfaces(self, ax, vis_args):
         # List of drawn surfaces with the position of points of interest
         # and the radius of the rocket at that point
         drawn_surfaces = []
-
         # Idea is to get the shape of each aerodynamic surface in their own
         # coordinate system and then plot them in the rocket coordinate system
         # using the position of each surface
@@ -225,113 +242,98 @@ class _RocketPlots:
 
         for surface, position in self.rocket.aerodynamic_surfaces:
             if isinstance(surface, NoseCone):
-                x_nosecone = -csys * surface.shape_vec[0] + position
-                y_nosecone = surface.shape_vec[1]
-
-                ax.plot(
-                    x_nosecone,
-                    y_nosecone,
-                    color=vis_args["nose"],
-                    linewidth=vis_args["line_width"],
-                )
-                ax.plot(
-                    x_nosecone,
-                    -y_nosecone,
-                    color=vis_args["nose"],
-                    linewidth=vis_args["line_width"],
-                )
-                # close the nosecone
-                ax.plot(
-                    [x_nosecone[-1], x_nosecone[-1]],
-                    [y_nosecone[-1], -y_nosecone[-1]],
-                    color=vis_args["nose"],
-                    linewidth=vis_args["line_width"],
-                )
-
-                # Add the nosecone to the list of drawn surfaces
-                drawn_surfaces.append(
-                    (surface, x_nosecone[-1], surface.rocket_radius, x_nosecone[-1])
-                )
-
+                self._draw_nose_cone(ax, surface, position, drawn_surfaces, vis_args)
             elif isinstance(surface, Tail):
-                x_tail = -csys * surface.shape_vec[0] + position
-                y_tail = surface.shape_vec[1]
-
-                ax.plot(
-                    x_tail,
-                    y_tail,
-                    color=vis_args["tail"],
-                    linewidth=vis_args["line_width"],
-                )
-                ax.plot(
-                    x_tail,
-                    -y_tail,
-                    color=vis_args["tail"],
-                    linewidth=vis_args["line_width"],
-                )
-                # close above and below the tail
-                ax.plot(
-                    [x_tail[-1], x_tail[-1]],
-                    [y_tail[-1], -y_tail[-1]],
-                    color=vis_args["tail"],
-                    linewidth=vis_args["line_width"],
-                )
-                ax.plot(
-                    [x_tail[0], x_tail[0]],
-                    [y_tail[0], -y_tail[0]],
-                    color=vis_args["tail"],
-                    linewidth=vis_args["line_width"],
-                )
-
-                # Add the tail to the list of drawn surfaces
-                drawn_surfaces.append(
-                    (surface, position, surface.bottom_radius, x_tail[-1])
-                )
-
-            # Draw fins
+                self._draw_tail(ax, surface, position, drawn_surfaces, vis_args)
             elif isinstance(surface, Fins):
-                num_fins = surface.n
-                x_fin = -csys * surface.shape_vec[0] + position
-                y_fin = surface.shape_vec[1] + surface.rocket_radius
+                self._draw_fins(ax, surface, position, drawn_surfaces, vis_args)
+        return drawn_surfaces
 
-                # Calculate the rotation angles for the other two fins (symmetrically)
-                rotation_angles = [2 * np.pi * i / num_fins for i in range(num_fins)]
+    def _draw_nose_cone(self, ax, surface, position, drawn_surfaces, vis_args):
+        x_nosecone = -self.rocket._csys * surface.shape_vec[0] + position
+        y_nosecone = surface.shape_vec[1]
+        ax.plot(
+            x_nosecone,
+            y_nosecone,
+            color=vis_args["nose"],
+            linewidth=vis_args["line_width"],
+        )
+        ax.plot(
+            x_nosecone,
+            -y_nosecone,
+            color=vis_args["nose"],
+            linewidth=vis_args["line_width"],
+        )
+        # close the nosecone
+        ax.plot(
+            [x_nosecone[-1], x_nosecone[-1]],
+            [y_nosecone[-1], -y_nosecone[-1]],
+            color=vis_args["nose"],
+            linewidth=vis_args["line_width"],
+        )
+        # Add the nosecone to the list of drawn surfaces
+        drawn_surfaces.append(
+            (surface, x_nosecone[-1], surface.rocket_radius, x_nosecone[-1])
+        )
 
-                # Apply rotation transformations to get points for the other fins in 2D space
-                for angle in rotation_angles:
-                    # Create a rotation matrix for the current angle around the x-axis
-                    rotation_matrix = np.array([[1, 0], [0, np.cos(angle)]])
+    def _draw_tail(self, ax, surface, position, drawn_surfaces, vis_args):
+        x_tail = -self.rocket._csys * surface.shape_vec[0] + position
+        y_tail = surface.shape_vec[1]
+        ax.plot(
+            x_tail, y_tail, color=vis_args["tail"], linewidth=vis_args["line_width"]
+        )
+        ax.plot(
+            x_tail, -y_tail, color=vis_args["tail"], linewidth=vis_args["line_width"]
+        )
+        # close above and below the tail
+        ax.plot(
+            [x_tail[-1], x_tail[-1]],
+            [y_tail[-1], -y_tail[-1]],
+            color=vis_args["tail"],
+            linewidth=vis_args["line_width"],
+        )
+        ax.plot(
+            [x_tail[0], x_tail[0]],
+            [y_tail[0], -y_tail[0]],
+            color=vis_args["tail"],
+            linewidth=vis_args["line_width"],
+        )
+        # Add the tail to the list of drawn surfaces
+        drawn_surfaces.append((surface, position, surface.bottom_radius, x_tail[-1]))
 
-                    # Apply the rotation to the original fin points
-                    rotated_points_2d = np.dot(
-                        rotation_matrix, np.vstack((x_fin, y_fin))
-                    )
+    def _draw_fins(self, ax, surface, position, drawn_surfaces, vis_args):
+        num_fins = surface.n
+        x_fin = -self.rocket._csys * surface.shape_vec[0] + position
+        y_fin = surface.shape_vec[1] + surface.rocket_radius
+        rotation_angles = [2 * np.pi * i / num_fins for i in range(num_fins)]
 
-                    # Extract x and y coordinates of the rotated points
-                    x_rotated, y_rotated = rotated_points_2d
+        for angle in rotation_angles:
+            x_rotated, y_rotated = self._rotate_points(x_fin, y_fin, angle)
+            ax.plot(
+                x_rotated,
+                y_rotated,
+                color=vis_args["fins"],
+                linewidth=vis_args["line_width"],
+            )
 
-                    # Project points above the XY plane back into the XY plane (set z-coordinate to 0)
-                    x_rotated = np.where(
-                        rotated_points_2d[1] > 0, rotated_points_2d[0], x_rotated
-                    )
-                    y_rotated = np.where(
-                        rotated_points_2d[1] > 0, rotated_points_2d[1], y_rotated
-                    )
+        drawn_surfaces.append((surface, position, surface.rocket_radius, x_rotated[-1]))
 
-                    # Plot the fins
-                    ax.plot(
-                        x_rotated,
-                        y_rotated,
-                        color=vis_args["fins"],
-                        linewidth=vis_args["line_width"],
-                    )
+    def _rotate_points(self, x_fin, y_fin, angle):
+        # Create a rotation matrix for the current angle around the x-axis
+        rotation_matrix = np.array([[1, 0], [0, np.cos(angle)]])
 
-                # Add the fin to the list of drawn surfaces
-                drawn_surfaces.append(
-                    (surface, position, surface.rocket_radius, x_rotated[-1])
-                )
+        # Apply the rotation to the original fin points
+        rotated_points_2d = np.dot(rotation_matrix, np.vstack((x_fin, y_fin)))
 
-        # Draw tubes
+        # Extract x and y coordinates of the rotated points
+        x_rotated, y_rotated = rotated_points_2d
+
+        # Project points above the XY plane back into the XY plane (set z-coordinate to 0)
+        x_rotated = np.where(rotated_points_2d[1] > 0, rotated_points_2d[0], x_rotated)
+        y_rotated = np.where(rotated_points_2d[1] > 0, rotated_points_2d[1], y_rotated)
+        return x_rotated, y_rotated
+
+    def _draw_tubes(self, ax, drawn_surfaces, vis_args):
         for i, d_surface in enumerate(drawn_surfaces):
             # Draw the tubes, from the end of the first surface to the beginning
             # of the next surface, with the radius of the rocket at that point
@@ -368,18 +370,39 @@ class _RocketPlots:
                 color=vis_args["body"],
                 linewidth=vis_args["line_width"],
             )
+        return radius, last_x
 
-        # Draw motor
+    def _draw_motor(self, last_radius, last_x, ax, vis_args):
         total_csys = self.rocket._csys * self.rocket.motor._csys
         nozzle_position = (
             self.rocket.motor_position + self.rocket.motor.nozzle_position * total_csys
         )
 
-        # List of motor patches
+        # Get motor patches translated to the correct position
+        motor_patches = self._generate_motor_patches(total_csys, ax, vis_args)
+
+        # Draw patches
+        if not isinstance(self.rocket.motor, EmptyMotor):
+            # Add nozzle last so it is in front of the other patches
+            nozzle = self.rocket.motor.plots._generate_nozzle(
+                translate=(nozzle_position, 0), csys=self.rocket._csys
+            )
+            motor_patches += [nozzle]
+
+            outline = self.rocket.motor.plots._generate_motor_region(
+                list_of_patches=motor_patches
+            )
+            # add outline first so it is behind the other patches
+            ax.add_patch(outline)
+            for patch in motor_patches:
+                ax.add_patch(patch)
+
+        self._draw_nozzle_tube(last_radius, last_x, nozzle_position, ax, vis_args)
+
+    def _generate_motor_patches(self, total_csys, ax, vis_args):
         motor_patches = []
 
-        # Get motor patches translated to the correct position
-        if isinstance(self.rocket.motor, (SolidMotor)):
+        if isinstance(self.rocket.motor, SolidMotor):
             grains_cm_position = (
                 self.rocket.motor_position
                 + self.rocket.motor.grains_center_of_mass_position * total_csys
@@ -452,27 +475,16 @@ class _RocketPlots:
                 )
                 motor_patches += [tank]
 
-        # add nozzle last so it is in front of the other patches
-        if not isinstance(self.rocket.motor, EmptyMotor):
-            nozzle = self.rocket.motor.plots._generate_nozzle(
-                translate=(nozzle_position, 0), csys=self.rocket._csys
-            )
-            motor_patches += [nozzle]
-            outline = self.rocket.motor.plots._generate_motor_region(
-                list_of_patches=motor_patches
-            )
-            # add outline first so it is behind the other patches
-            ax.add_patch(outline)
-            for patch in motor_patches:
-                ax.add_patch(patch)
+        return motor_patches
 
+    def _draw_nozzle_tube(self, last_radius, last_x, nozzle_position, ax, vis_args):
         # Check if nozzle is beyond the last surface, if so draw a tube
         # to it, with the radius of the last surface
         if self.rocket._csys == 1:
             if nozzle_position < last_x:
                 x_tube = [last_x, nozzle_position]
-                y_tube = [radius, radius]
-                y_tube_negated = [-radius, -radius]
+                y_tube = [last_radius, last_radius]
+                y_tube_negated = [-last_radius, -last_radius]
 
                 ax.plot(
                     x_tube,
@@ -489,8 +501,8 @@ class _RocketPlots:
         else:  # if self.rocket._csys == -1:
             if nozzle_position > last_x:
                 x_tube = [last_x, nozzle_position]
-                y_tube = [radius, radius]
-                y_tube_negated = [-radius, -radius]
+                y_tube = [last_radius, last_radius]
+                y_tube_negated = [-last_radius, -last_radius]
 
                 ax.plot(
                     x_tube,
@@ -505,11 +517,11 @@ class _RocketPlots:
                     linewidth=vis_args["line_width"],
                 )
 
-        # Draw rail buttons
+    def _draw_rail_buttons(self, ax, vis_args):
         try:
             buttons, pos = self.rocket.rail_buttons[0]
             lower = pos
-            upper = pos + buttons.buttons_distance * csys
+            upper = pos + buttons.buttons_distance * self.rocket._csys
             ax.scatter(
                 lower, -self.rocket.radius, marker="s", color=vis_args["buttons"], s=15
             )
@@ -519,6 +531,7 @@ class _RocketPlots:
         except IndexError:
             pass
 
+    def _draw_center_of_mass_and_pressure(self, ax):
         # Draw center of mass and center of pressure
         cm = self.rocket.center_of_mass(0)
         ax.scatter(cm, 0, color="#1565c0", label="Center of Mass", s=10)
@@ -528,17 +541,55 @@ class _RocketPlots:
             cp, 0, label="Static Center of Pressure", color="red", s=10, zorder=10
         )
 
-        # Set plot attributes
-        plt.title("Rocket Representation")
-        plt.xlim()
-        plt.ylim([-self.rocket.radius * 4, self.rocket.radius * 6])
-        plt.xlabel("Position (m)")
-        plt.ylabel("Radius (m)")
-        plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
-        plt.tight_layout()
-        plt.show()
+    def _draw_sensor(self, ax, sensors, plane, vis_args):
+        """Draw the sensor as a small thick line at the position of the sensor,
+        with a vector pointing in the direction normal of the sensor. Get the
+        normal vector from the sensor orientation matrix."""
+        colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+        for i, sensor_pos in enumerate(sensors):
+            sensor = sensor_pos[0]
+            pos = sensor_pos[1]
+            if plane == "xz":
+                # z position of the sensor is the x position in the plot
+                x_pos = pos[2]
+                normal_x = sensor.normal_vector.z
+                # x position of the sensor is the y position in the plot
+                y_pos = pos[0]
+                normal_y = sensor.normal_vector.x
+            elif plane == "yz":
+                # z position of the sensor is the x position in the plot
+                x_pos = pos[2]
+                normal_x = sensor.normal_vector.z
+                # y position of the sensor is the y position in the plot
+                y_pos = pos[1]
+                normal_y = sensor.normal_vector.y
+            else:
+                raise ValueError("Plane must be 'xz' or 'yz'.")
 
-        return None
+            # line length is 1/10 of the rocket radius
+            line_length = self.rocket.radius / 2.5
+
+            ax.plot(
+                [x_pos, x_pos],
+                [y_pos + line_length, y_pos - line_length],
+                linewidth=2,
+                color=colors[(i + 1) % len(colors)],
+                zorder=10,
+                label=sensor.name,
+            )
+            ax.quiver(
+                x_pos,
+                y_pos,
+                normal_x,
+                normal_y,
+                color=colors[(i + 1) % len(colors)],
+                scale_units="xy",
+                angles="xy",
+                minshaft=2,
+                headwidth=2,
+                headlength=4,
+                zorder=10,
+            )
 
     def all(self):
         """Prints out all graphs available about the Rocket. It simply calls
