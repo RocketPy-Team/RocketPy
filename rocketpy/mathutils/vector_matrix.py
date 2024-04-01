@@ -1,7 +1,7 @@
 from cmath import isclose
 from itertools import product
 
-from rocketpy.tools import cached_property
+from rocketpy.tools import cached_property, euler_to_quaternions
 
 
 class Vector:
@@ -153,7 +153,10 @@ class Vector:
     @cached_property
     def unit_vector(self):
         """R3 vector with the same direction of self, but normalized."""
-        return self / abs(self)
+        try:
+            return self / abs(self)
+        except ZeroDivisionError:
+            return self
 
     @cached_property
     def cross_matrix(self):
@@ -983,6 +986,27 @@ class Matrix:
                 ],
             ]
         )
+
+    @staticmethod
+    def transformation_euler_angles(roll, pitch, yaw):
+        """Returns the transformation Matrix from frame B to frame A, where B
+        is rotated by the Euler angles roll, pitch and yaw with respect to A.
+
+        Parameters
+        ----------
+        roll : float
+            The roll angle in radians.
+        pitch : float
+            The pitch angle in radians.
+        yaw : float
+            The yaw angle in radians.
+
+        Returns
+        -------
+        Matrix
+            The transformation matrix from frame B to frame A.
+        """
+        return Matrix.transformation(euler_to_quaternions(roll, pitch, yaw))
 
 
 if __name__ == "__main__":

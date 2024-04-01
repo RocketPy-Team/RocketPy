@@ -40,7 +40,7 @@ class cached_property:
 
 def tuple_handler(value):
     """Transforms the input value into a tuple that
-    represents a range. If the input is an input or float,
+    represents a range. If the input is an int or float,
     the output is a tuple from zero to the input value. If
     the input is a tuple or list, the output is a tuple with
     the same range.
@@ -470,6 +470,39 @@ def quaternions_to_nutation(e1, e2):
         Euler Nutation angle in degrees
     """
     return (180 / np.pi) * 2 * np.arcsin(-((e1**2 + e2**2) ** 0.5))
+
+
+def euler_to_quaternions(roll, pitch, yaw):
+    """Calculates the quaternions from the Euler angles in 3-2-1 sequence.
+
+    Parameters
+    ----------
+    roll : float
+        Euler angle due to roll (psi) in degrees
+    pitch : float
+        Euler angle due to pitch (theta) in degrees
+    yaw : float
+        Euler angle due to yaw (phi) in degrees
+
+    Returns
+    -------
+    tuple
+        Tuple containing the Euler parameters e0, e1, e2, e3
+    """
+    psi = np.radians(roll)
+    theta = np.radians(pitch)
+    phi = np.radians(yaw)
+    cr = np.cos(phi / 2)
+    sr = np.sin(phi / 2)
+    cp = np.cos(theta / 2)
+    sp = np.sin(theta / 2)
+    cy = np.cos(psi / 2)
+    sy = np.sin(psi / 2)
+    e0 = cr * cp * cy + sr * sp * sy
+    e1 = sr * cp * cy - cr * sp * sy
+    e2 = cr * sp * cy + sr * cp * sy
+    e3 = cr * cp * sy - sr * sp * cy
+    return e0, e1, e2, e3
 
 
 if __name__ == "__main__":
