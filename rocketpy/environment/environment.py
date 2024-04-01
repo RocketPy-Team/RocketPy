@@ -291,10 +291,10 @@ class Environment:
             Surface gravitational acceleration. Positive values point the
             acceleration down. If None, the Somigliana formula is used.
             See :meth:`Environment.set_gravity_model` for more information.
-        date : array, optional
-            Array of length 4, stating (year, month, day, hour) in the
+        date : list or tuple, optional
+            List or tuple of length 4, stating (year, month, day, hour) in the
             time zone of the parameter ``timezone``.
-            Alternatively, can be a ``Datetime`` object specifying launch
+            Alternatively, can be a ``datetime`` object specifying launch
             date and time. The dates are stored as follows:
 
             - :attr:`Environment.local_date`: Local time of launch in
@@ -416,11 +416,11 @@ class Environment:
 
         Parameters
         ----------
-        date : array, Datetime
-            Array of length 4, stating (year, month, day, hour) in the
+        date : list, tuple, datetime
+            List or tuple of length 4, stating (year, month, day, hour) in the
             time zone of the parameter ``timezone``. See Notes for more
             information.
-            Alternatively, can be a Datetime object specifying launch
+            Alternatively, can be a ``datetime`` object specifying launch
             date and time.
         timezone : string, optional
             Name of the time zone. To see all time zones, import pytz and run
@@ -432,22 +432,22 @@ class Environment:
 
         Notes
         -----
-        - If the ``date`` is given as an array, it should be in the same
+        - If the ``date`` is given as a list or tuple, it should be in the same
           time zone as specified by the ``timezone`` parameter. This local
           time will be available in the attribute :attr:`Environment.local_date`
           while the UTC time will be available in the attribute
           :attr:`Environment.datetime_date`.
 
-        - If the ``date`` is given as a ``Datetime`` object without a time zone,
+        - If the ``date`` is given as a ``datetime`` object without a time zone,
           it will be assumed to be in the same time zone as specified by the
-          ``timezone`` parameter. However, if the ``Datetime`` object has a time
+          ``timezone`` parameter. However, if the ``datetime`` object has a time
           zone specified in its ``tzinfo`` attribute, the ``timezone``
           parameter will be ignored.
 
         Examples
         --------
 
-        Let's set the launch date as an array:
+        Let's set the launch date as an list:
 
         >>> date = [2000, 1, 1, 13] # January 1st, 2000 at 13:00 UTC+1
         >>> env = Environment()
@@ -457,7 +457,7 @@ class Environment:
         >>> print(env.local_date)
         2000-01-01 13:00:00+01:00
 
-        Now let's set the launch date as a ``Datetime`` object:
+        Now let's set the launch date as a ``datetime`` object:
 
         >>> from datetime import datetime
         >>> date = datetime(2000, 1, 1, 13, 0, 0)
@@ -527,7 +527,7 @@ class Environment:
 
         Parameters
         ----------
-        gravity : int, float, callable, string, array, optional
+        gravity : int, float, callable, string, list, optional
             The gravitational acceleration in m/s² to be used in the
             simulation, this value is positive when pointing downwards.
             The input type can be one of the following:
@@ -538,7 +538,7 @@ class Environment:
             - ``callable``: This callable should receive the height above\
               sea level in meters and return the gravity acceleration;
 
-            - ``array``: The datapoints should be structured as\
+            - ``list``: The datapoints should be structured as\
               ``[(h_i,g_i), ...]`` where ``h_i`` is the height above sea\
               level in meters and ``g_i`` is the gravity acceleration in m/s²;
 
