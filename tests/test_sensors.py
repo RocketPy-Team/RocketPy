@@ -22,8 +22,9 @@ def test_sensor_on_rocket(calisto_accel_gyro):
     assert isinstance(sensors[1].position, Vector)
 
 
-def test_ideal_accelerometer(flight_calisto_accel_gyro):
-    """Test the ideal accelerometer.
+def test_ideal_sensors(flight_calisto_accel_gyro):
+    """Test the ideal sensors. All types of sensors are here to reduvce
+    testing time.
 
     Parameters
     ----------
@@ -41,15 +42,6 @@ def test_ideal_accelerometer(flight_calisto_accel_gyro):
     # tolerance is bounded to numerical errors in the transformation matrixes
     assert np.allclose(a, sim_accel, atol=1e-2)
 
-
-def test_ideal_gyroscope(flight_calisto_accel_gyro):
-    """Test the ideal gyroscope.
-
-    Parameters
-    ----------
-    flight_calisto_accel_gyro : Flight
-        Pytest fixture for the flight of the calisto rocket with an ideal accelerometer and a gyroscope.
-    """
     gyroscope = flight_calisto_accel_gyro.rocket.sensors[1].component
     time, wx, wy, wz = zip(*gyroscope.measured_data)
     wx = np.array(wx)
