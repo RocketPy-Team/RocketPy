@@ -31,7 +31,7 @@ def test_ideal_accelerometer(flight_calisto_accel_gyro):
         Pytest fixture for the flight of the calisto rocket with an ideal accelerometer and a gyroscope.
     """
     accelerometer = flight_calisto_accel_gyro.rocket.sensors[0].component
-    time, ax, ay, az = zip(*accelerometer.measured_values)
+    time, ax, ay, az = zip(*accelerometer.measured_data)
     ax = np.array(ax)
     ay = np.array(ay)
     az = np.array(az)
@@ -51,7 +51,7 @@ def test_ideal_gyroscope(flight_calisto_accel_gyro):
         Pytest fixture for the flight of the calisto rocket with an ideal accelerometer and a gyroscope.
     """
     gyroscope = flight_calisto_accel_gyro.rocket.sensors[1].component
-    time, wx, wy, wz = zip(*gyroscope.measured_values)
+    time, wx, wy, wz = zip(*gyroscope.measured_data)
     wx = np.array(wx)
     wy = np.array(wy)
     wz = np.array(wz)

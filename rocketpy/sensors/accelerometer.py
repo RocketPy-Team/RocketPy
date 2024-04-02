@@ -158,9 +158,9 @@ class Accelerometer(Sensors):
         A = self.quantize(A)
 
         self.measurement = tuple([*A])
-        self.measured_values.append((t, *A))
+        self.measured_data.append((t, *A))
 
-    def export_measured_values(self, filename, format="csv"):
+    def export_measured_data(self, filename, format="csv"):
         """
         Export the measured values to a file
 
@@ -179,13 +179,13 @@ class Accelerometer(Sensors):
         if format == "csv":
             with open(filename, "w") as f:
                 f.write("t,ax,ay,az\n")
-                for t, ax, ay, az in self.measured_values:
+                for t, ax, ay, az in self.measured_data:
                     f.write(f"{t},{ax},{ay},{az}\n")
         elif format == "json":
             import json
 
             data = {"t": [], "ax": [], "ay": [], "az": []}
-            for t, ax, ay, az in self.measured_values:
+            for t, ax, ay, az in self.measured_data:
                 data["t"].append(t)
                 data["ax"].append(ax)
                 data["ay"].append(ay)

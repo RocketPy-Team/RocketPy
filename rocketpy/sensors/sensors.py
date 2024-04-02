@@ -117,7 +117,7 @@ class Sensors(ABC):
         self.name = name
         self._random_walk_drift = Vector([0, 0, 0])
         self.measurement = None
-        self.measured_values = []  # change to data
+        self.measured_data = []  # change to data
 
         # handle measurement range
         if isinstance(measurement_range, (tuple, list)):
@@ -175,7 +175,7 @@ class Sensors(ABC):
         pass
 
     @abstractmethod
-    def export_measured_values(self):
+    def export_measured_data(self):
         pass
 
     def quantize(self, value):

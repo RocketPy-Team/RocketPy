@@ -76,7 +76,7 @@ def test_rotation_matrix(noisy_rotated_accelerometer):
 
 def test_ideal_accelerometer_measure(ideal_accelerometer):
     """Test the measure method of the Accelerometer class. Checks if saved
-    measurement is (ax,ay,az) and if measured_values is [(t, (ax,ay,az)), ...]
+    measurement is (ax,ay,az) and if measured_data is [(t, (ax,ay,az)), ...]
     """
     t = SOLUTION[0]
     u = SOLUTION[1:]
@@ -100,18 +100,18 @@ def test_ideal_accelerometer_measure(ideal_accelerometer):
     assert ideal_accelerometer.measurement == approx([ax, ay, az], abs=1e-10)
 
     # check measured values
-    assert len(ideal_accelerometer.measured_values) == 1
+    assert len(ideal_accelerometer.measured_data) == 1
     ideal_accelerometer.measure(t, u, UDOT, relative_position, gravity)
-    assert len(ideal_accelerometer.measured_values) == 2
+    assert len(ideal_accelerometer.measured_data) == 2
 
-    assert all(isinstance(i, tuple) for i in ideal_accelerometer.measured_values)
-    assert ideal_accelerometer.measured_values[0][0] == t
-    assert ideal_accelerometer.measured_values[0][1:] == approx([ax, ay, az], abs=1e-10)
+    assert all(isinstance(i, tuple) for i in ideal_accelerometer.measured_data)
+    assert ideal_accelerometer.measured_data[0][0] == t
+    assert ideal_accelerometer.measured_data[0][1:] == approx([ax, ay, az], abs=1e-10)
 
 
 def test_ideal_gyroscope_measure(ideal_gyroscope):
     """Test the measure method of the Gyroscope class. Checks if saved
-    measurement is (wx,wy,wz) and if measured_values is [(t, (wx,wy,wz)), ...]
+    measurement is (wx,wy,wz) and if measured_data is [(t, (wx,wy,wz)), ...]
     """
     t = SOLUTION[0]
     u = SOLUTION[1:]
@@ -130,18 +130,18 @@ def test_ideal_gyroscope_measure(ideal_gyroscope):
     assert ideal_gyroscope.measurement == approx([ax, ay, az], abs=1e-10)
 
     # check measured values
-    assert len(ideal_gyroscope.measured_values) == 1
+    assert len(ideal_gyroscope.measured_data) == 1
     ideal_gyroscope.measure(t, u, UDOT, relative_position)
-    assert len(ideal_gyroscope.measured_values) == 2
+    assert len(ideal_gyroscope.measured_data) == 2
 
-    assert all(isinstance(i, tuple) for i in ideal_gyroscope.measured_values)
-    assert ideal_gyroscope.measured_values[0][0] == t
-    assert ideal_gyroscope.measured_values[0][1:] == approx([ax, ay, az], abs=1e-10)
+    assert all(isinstance(i, tuple) for i in ideal_gyroscope.measured_data)
+    assert ideal_gyroscope.measured_data[0][0] == t
+    assert ideal_gyroscope.measured_data[0][1:] == approx([ax, ay, az], abs=1e-10)
 
 
 def test_noisy_rotated_accelerometer(noisy_rotated_accelerometer):
     """Test the measure method of the Accelerometer class. Checks if saved
-    measurement is (ax,ay,az) and if measured_values is [(t, (ax,ay,az)), ...]
+    measurement is (ax,ay,az) and if measured_data is [(t, (ax,ay,az)), ...]
     """
     t = SOLUTION[0]
     u = SOLUTION[1:]
@@ -183,7 +183,7 @@ def test_noisy_rotated_accelerometer(noisy_rotated_accelerometer):
 
 def test_noisy_rotated_gyroscope(noisy_rotated_gyroscope):
     """Test the measure method of the Gyroscope class. Checks if saved
-    measurement is (wx,wy,wz) and if measured_values is [(t, (wx,wy,wz)), ...]
+    measurement is (wx,wy,wz) and if measured_data is [(t, (wx,wy,wz)), ...]
     """
     t = SOLUTION[0]
     u = SOLUTION[1:]
@@ -216,7 +216,7 @@ def test_noisy_rotated_gyroscope(noisy_rotated_gyroscope):
 
 def test_quatization_accelerometer(quantized_accelerometer):
     """Test the measure method of the Accelerometer class. Checks if saved
-    measurement is (ax,ay,az) and if measured_values is [(t, (ax,ay,az)), ...]
+    measurement is (ax,ay,az) and if measured_data is [(t, (ax,ay,az)), ...]
     """
     t = SOLUTION[0]
     u = SOLUTION[1:]
@@ -249,7 +249,7 @@ def test_quatization_accelerometer(quantized_accelerometer):
 
 def test_quatization_gyroscope(quantized_gyroscope):
     """Test the measure method of the Gyroscope class. Checks if saved
-    measurement is (wx,wy,wz) and if measured_values is [(t, (wx,wy,wz)), ...]
+    measurement is (wx,wy,wz) and if measured_data is [(t, (wx,wy,wz)), ...]
     """
     t = SOLUTION[0]
     u = SOLUTION[1:]
@@ -290,13 +290,13 @@ def test_export_accel_data_csv(ideal_accelerometer):
 
     file_name = "sensors.csv"
 
-    ideal_accelerometer.export_measured_values(file_name, format="csv")
+    ideal_accelerometer.export_measured_data(file_name, format="csv")
 
     with open(file_name, "r") as file:
         contents = file.read()
 
     expected_data = "t,ax,ay,az\n"
-    for t, ax, ay, az in ideal_accelerometer.measured_values:
+    for t, ax, ay, az in ideal_accelerometer.measured_data:
         expected_data += f"{t},{ax},{ay},{az}\n"
 
     assert contents == expected_data
@@ -322,12 +322,12 @@ def test_export_accel_data_json(ideal_accelerometer):
 
     file_name = "sensors.json"
 
-    ideal_accelerometer.export_measured_values(file_name, format="json")
+    ideal_accelerometer.export_measured_data(file_name, format="json")
 
     contents = json.load(open(file_name, "r"))
 
     expected_data = {"t": [], "ax": [], "ay": [], "az": []}
-    for t, ax, ay, az in ideal_accelerometer.measured_values:
+    for t, ax, ay, az in ideal_accelerometer.measured_data:
         expected_data["t"].append(t)
         expected_data["ax"].append(ax)
         expected_data["ay"].append(ay)
@@ -355,13 +355,13 @@ def test_export_gyro_data_csv(ideal_gyroscope):
 
     file_name = "sensors.csv"
 
-    ideal_gyroscope.export_measured_values(file_name, format="csv")
+    ideal_gyroscope.export_measured_data(file_name, format="csv")
 
     with open(file_name, "r") as file:
         contents = file.read()
 
     expected_data = "t,wx,wy,wz\n"
-    for t, wx, wy, wz in ideal_gyroscope.measured_values:
+    for t, wx, wy, wz in ideal_gyroscope.measured_data:
         expected_data += f"{t},{wx},{wy},{wz}\n"
 
     assert contents == expected_data
@@ -385,12 +385,12 @@ def test_export_gyro_data_json(ideal_gyroscope):
 
     file_name = "sensors.json"
 
-    ideal_gyroscope.export_measured_values(file_name, format="json")
+    ideal_gyroscope.export_measured_data(file_name, format="json")
 
     contents = json.load(open(file_name, "r"))
 
     expected_data = {"t": [], "wx": [], "wy": [], "wz": []}
-    for t, wx, wy, wz in ideal_gyroscope.measured_values:
+    for t, wx, wy, wz in ideal_gyroscope.measured_data:
         expected_data["t"].append(t)
         expected_data["wx"].append(wx)
         expected_data["wy"].append(wy)

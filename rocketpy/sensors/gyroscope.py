@@ -152,7 +152,7 @@ class Gyroscope(Sensors):
         W = self.quantize(W)
 
         self.measurement = tuple([*W])
-        self.measured_values.append((t, *W))
+        self.measured_data.append((t, *W))
 
     def apply_acceleration_sensitivity(
         self, omega, u_dot, relative_position, rotation_matrix
@@ -194,7 +194,7 @@ class Gyroscope(Sensors):
 
         return self.acceleration_sensitivity & A
 
-    def export_measured_values(self, filename, format="csv"):
+    def export_measured_data(self, filename, format="csv"):
         """
         Export the measured values to a file
 
@@ -213,13 +213,13 @@ class Gyroscope(Sensors):
         if format == "csv":
             with open(filename, "w") as f:
                 f.write("t,wx,wy,wz\n")
-                for t, wx, wy, wz in self.measured_values:
+                for t, wx, wy, wz in self.measured_data:
                     f.write(f"{t},{wx},{wy},{wz}\n")
         elif format == "json":
             import json
 
             data = {"t": [], "wx": [], "wy": [], "wz": []}
-            for t, wx, wy, wz in self.measured_values:
+            for t, wx, wy, wz in self.measured_data:
                 data["t"].append(t)
                 data["wx"].append(wx)
                 data["wy"].append(wy)
