@@ -242,6 +242,29 @@ class Vector:
             ]
         )
 
+    def __and__(self, other):
+        """Element wise multiplication between two R3 vectors.
+
+        Parameters
+        ----------
+        other : Vector
+            R3 vector to be multiplied with self.
+
+        Returns
+        -------
+        Vector
+            R3 vector resulting from the element wise multiplication between
+            self and other.
+
+        Examples
+        --------
+        >>> v = Vector([1, 7, 3])
+        >>> u = Vector([2, 5, 6])
+        >>> (v & u)
+        Vector(2, 35, 18)
+        """
+        return Vector([self.x * other[0], self.y * other[1], self.z * other[2]])
+
     def __matmul__(self, other):
         """Dot product between two R3 vectors."""
         return self.x * other.x + self.y * other.y + self.z * other.z

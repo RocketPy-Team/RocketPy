@@ -55,27 +55,39 @@ class Sensors(ABC):
         resolution : float, optional
             The resolution of the sensor in sensor units/LSB. Default is 0,
             meaning no quantization is applied.
-        noise_density : float, optional
+        noise_density : float, list, optional
             The noise density of the sensor in sensor units/√Hz. Sometimes
             called "white noise drift", "angular random walk" for gyroscopes,
             "velocity random walk" for the accelerometers or
             "(rate) noise density". Default is 0, meaning no noise is applied.
-        random_walk : float, optional
+            If a float or int is given, the same noise density is applied to all
+            axes. The values of each axis can be set individually by passing a
+            list of length 3.
+        random_walk : float, list, optional
             The random walk of the sensor in sensor units/√Hz. Sometimes called
             "bias (in)stability" or "bias drift"". Default is 0, meaning no
-            random walk is applied.
-        constant_bias : float, optional
+            random walk is applied. If a float or int is given, the same random
+            walk is applied to all axes. The values of each axis can be set
+            individually by passing a list of length 3.
+        constant_bias : float, list, optional
             The constant bias of the sensor in sensor units. Default is 0,
-            meaning no constant bias is applied.
+            meaning no constant bias is applied. If a float or int is given, the
+            same constant bias is applied to all axes. The values of each axis
+            can be set individually by passing a list of length 3.
         operating_temperature : float, optional
             The operating temperature of the sensor in degrees Celsius. At 25°C,
             the temperature bias and scale factor are 0. Default is 25.
-        temperature_bias : float, optional
+        temperature_bias : float, list, optional
             The temperature bias of the sensor in sensor units/°C. Default is 0,
-            meaning no temperature bias is applied.
-        temperature_scale_factor : float, optional
+            meaning no temperature bias is applied. If a float or int is given,
+            the same temperature bias is applied to all axes. The values of each
+            axis can be set individually by passing a list of length 3.
+        temperature_scale_factor : float, list, optional
             The temperature scale factor of the sensor in %/°C. Default is 0,
-            meaning no temperature scale factor is applied.
+            meaning no temperature scale factor is applied. If a float or int is
+            given, the same temperature scale factor is applied to all axes. The
+            values of each axis can be set individually by passing a list of
+            length 3.
         cross_axis_sensitivity : float, optional
             Skewness of the sensor's axes in percentage. Default is 0, meaning
             no cross-axis sensitivity is applied.
@@ -89,12 +101,16 @@ class Sensors(ABC):
         self.sampling_rate = sampling_rate
         self.orientation = orientation
         self.resolution = resolution
-        self.noise_density = noise_density * Vector([1, 1, 1])
-        self.random_walk = random_walk * Vector([1, 1, 1])
-        self.constant_bias = constant_bias * Vector([1, 1, 1])
         self.operating_temperature = operating_temperature
-        self.temperature_bias = temperature_bias * Vector([1, 1, 1])
-        self.temperature_scale_factor = temperature_scale_factor * Vector([1, 1, 1])
+        self.noise_density = self._vectorize_input(noise_density, "noise_density")
+        self.random_walk = self._vectorize_input(random_walk, "random_walk")
+        self.constant_bias = self._vectorize_input(constant_bias, "constant_bias")
+        self.temperature_bias = self._vectorize_input(
+            temperature_bias, "temperature_bias"
+        )
+        self.temperature_scale_factor = self._vectorize_input(
+            temperature_scale_factor, "temperature_scale_factor"
+        )
         self.cross_axis_sensitivity = cross_axis_sensitivity
         self.name = name
         self._random_walk_drift = Vector([0, 0, 0])
@@ -138,11 +154,19 @@ class Sensors(ABC):
         # compute total rotation matrix given cross axis sensitivity
         self._total_rotation_matrix = self.rotation_matrix @ _cross_axis_matrix
 
+    def _vectorize_input(self, value, name):
+        if isinstance(value, (int, float)):
+            return Vector([value, value, value])
+        elif isinstance(value, (tuple, list)):
+            return Vector(value)
+        else:
+            raise ValueError(f"Invalid {name} format")
+
     def __repr__(self):
         return f"{self.type} sensor, orientation: {self.orientation}"
 
-    def __call__(self, *args, **kwds):
-        return self.measure(*args, **kwds)
+    def __call__(self, *args, **kwargs):
+        return self.measure(*args, **kwargs)
 
     @abstractmethod
     def measure(self, *args, **kwargs):
@@ -226,8 +250,6 @@ class Sensors(ABC):
             Vector([1, 1, 1])
             + (self.operating_temperature - 25) / 100 * self.temperature_scale_factor
         )
-        value.x *= scale_factor.x
-        value.y *= scale_factor.y
-        value.z *= scale_factor.z
+        value = value & scale_factor
 
         return value

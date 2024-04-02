@@ -59,27 +59,38 @@ class Accelerometer(Sensors):
         resolution : float, optional
             The resolution of the sensor in m/s^2/LSB. Default is 0, meaning no
             quantization is applied.
-        noise_density : float, optional
+        noise_density : float, list, optional
             The noise density of the sensor in m/s^2/√Hz. Sometimes called
             "white noise drift", "angular random walk" for gyroscopes, "velocity
-            random walk" for the accelerometers or "(rate) noise density".
-            Default is 0, meaning no noise is applied.
-        random_walk : float, optional
+            random walk" for the accelerometers or "(rate) noise density". If a
+            float or int is given, the same noise density is applied to all
+            axes. The values of each axis can be set individually by passing a
+            list of length 3.
+        random_walk : float, list, optional
             The random walk of the sensor in m/s^2/√Hz. Sometimes called "bias
             (in)stability" or "bias drift"". Default is 0, meaning no random
-            walk is applied.
-        constant_bias : float, optional
+            walk is applied. If a float or int is given, the same random walk is
+            applied to all axes. The values of each axis can be set individually
+            by passing a list of length 3.
+        constant_bias : float, list, optional
             The constant bias of the sensor in m/s^2. Default is 0, meaning no
-            constant bias is applied.
+            constant bias is applied. If a float or int is given, the same bias
+            is applied to all axes. The values of each axis can be set
+            individually by passing a list of length 3.
         operating_temperature : float, optional
             The operating temperature of the sensor in degrees Celsius. At 25°C,
             the temperature bias and scale factor are 0. Default is 25.
-        temperature_bias : float, optional
+        temperature_bias : float, list, optional
             The temperature bias of the sensor in m/s^2/°C. Default is 0,
-            meaning no temperature bias is applied.
-        temperature_scale_factor : float, optional
+            meaning no temperature bias is applied. If a float or int is given,
+            the same temperature bias is applied to all axes. The values of each
+            axis can be set individually by passing a list of length 3.
+        temperature_scale_factor : float, list, optional
             The temperature scale factor of the sensor in %/°C. Default is 0,
-            meaning no temperature scale factor is applied.
+            meaning no temperature scale factor is applied. If a float or int is
+            given, the same temperature scale factor is applied to all axes. The
+            values of each axis can be set individually by passing a list of
+            length 3.
         cross_axis_sensitivity : float, optional
             Skewness of the sensor's axes in percentage. Default is 0, meaning
             no cross-axis sensitivity is applied.
@@ -93,9 +104,6 @@ class Accelerometer(Sensors):
         -------
         None
         """
-        self.type = "Accelerometer"
-        self.consider_gravity = consider_gravity
-        self.prints = _AccelerometerPrints(self)
         super().__init__(
             sampling_rate,
             orientation,
@@ -110,6 +118,9 @@ class Accelerometer(Sensors):
             cross_axis_sensitivity=cross_axis_sensitivity,
             name=name,
         )
+        self.type = "Accelerometer"
+        self.consider_gravity = consider_gravity
+        self.prints = _AccelerometerPrints(self)
 
     def measure(self, t, u, u_dot, relative_position, gravity, *args):
         """

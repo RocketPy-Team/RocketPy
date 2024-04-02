@@ -57,41 +57,53 @@ class Gyroscope(Sensors):
         resolution : float, optional
             The resolution of the sensor in rad/s/LSB. Default is 0, meaning no
             quantization is applied.
-        noise_density : float, optional
+        noise_density : float, list, optional
             The noise density of the sensor in rad/s/√Hz. Sometimes called
             "white noise drift", "angular random walk" for gyroscopes, "velocity
             random walk" for the accelerometers or "(rate) noise density".
-            Default is 0, meaning no noise is applied.
-        random_walk : float, optional
+            Default is 0, meaning no noise is applied. If a float or int is
+            given, the same noise density is applied to all axes. The values of
+            each axis can be set individually by passing a list of length 3.
+        random_walk : float, list, optional
             The random walk of the sensor in rad/s/√Hz. Sometimes called "bias
             (in)stability" or "bias drift"". Default is 0, meaning no random
-            walk is applied.
-        constant_bias : float, optional
+            walk is applied. If a float or int is given, the same random walk is
+            applied to all axes. The values of each axis can be set individually
+            by passing a list of length 3.
+        constant_bias : float, list, optional
             The constant bias of the sensor in rad/s. Default is 0, meaning no
-            constant bias is applied.
+            constant bias is applied. If a float or int is given, the same bias
+            is applied to all axes. The values of each axis can be set
+            individually by passing a list of length 3.
         operating_temperature : float, optional
             The operating temperature of the sensor in degrees Celsius. At 25°C,
             the temperature bias and scale factor are 0. Default is 25.
-        temperature_sensitivity : float, optional
+        temperature_sensitivity : float, list, optional
             The temperature bias of the sensor in rad/s/°C. Default is 0,
-            meaning no temperature bias is applied.
-        temperature_scale_factor : float, optional
+            meaning no temperature bias is applied. If a float or int is given,
+            the same temperature bias is applied to all axes. The values of each
+            axis can be set individually by passing a list of length 3.
+        temperature_scale_factor : float, list, optional
             The temperature scale factor of the sensor in %/°C. Default is 0,
-            meaning no temperature scale factor is applied.
+            meaning no temperature scale factor is applied. If a float or int is
+            given, the same temperature scale factor is applied to all axes. The
+            values of each axis can be set individually by passing a list of
+            length 3.
         cross_axis_sensitivity : float, optional
             Skewness of the sensor's axes in percentage. Default is 0, meaning
             no cross-axis sensitivity is applied.
-        acceleration_sensitivity : float, optional
+            of each axis can be set individually by passing a list of length 3.
+        acceleration_sensitivity : float, list, optional
             Sensitivity of the sensor to linear acceleration in rad/s/g. Default
-            is 0, meaning no sensitivity to linear acceleration is applied.
+            is 0, meaning no sensitivity to linear acceleration is applied. If a
+            float or int is given, the same sensitivity is applied to all axes.
+            The values of each axis can be set individually by passing a list of
+            length 3.
 
         Returns
         -------
         None
         """
-        self.type = "Gyroscope"
-        self.acceleration_sensitivity = acceleration_sensitivity
-        self.prints = _GyroscopePrints(self)
         super().__init__(
             sampling_rate,
             orientation,
@@ -106,6 +118,11 @@ class Gyroscope(Sensors):
             cross_axis_sensitivity=cross_axis_sensitivity,
             name=name,
         )
+        self.type = "Gyroscope"
+        self.acceleration_sensitivity = self._vectorize_input(
+            acceleration_sensitivity, "acceleration_sensitivity"
+        )
+        self.prints = _GyroscopePrints(self)
 
     def measure(self, t, u, u_dot, relative_position, *args):
         """
@@ -126,7 +143,7 @@ class Gyroscope(Sensors):
         W = self.apply_temperature_drift(W)
 
         # Apply acceleration sensitivity
-        if self.acceleration_sensitivity != 0 and self.acceleration_sensitivity != None:
+        if self.acceleration_sensitivity != Vector.zeros():
             W += self.apply_acceleration_sensitivity(
                 omega, u_dot, relative_position, inertial_to_sensor
             )
@@ -174,7 +191,7 @@ class Gyroscope(Sensors):
         # Transform to sensor frame
         A = rotation_matrix @ A
 
-        return self.acceleration_sensitivity * A
+        return self.acceleration_sensitivity & A
 
     def export_measured_values(self, filename, format="csv"):
         """

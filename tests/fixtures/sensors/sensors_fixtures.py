@@ -6,16 +6,16 @@ from rocketpy import Accelerometer, Gyroscope
 def noisy_rotated_accelerometer():
     """Returns an accelerometer with all parameters set to non-default values,
     i.e. with noise and rotation."""
-    # mpu6050 values
+    # mpu6050 approx values
     return Accelerometer(
         sampling_rate=100,
         orientation=(60, 60, 60),
-        noise_density=0.05,
-        random_walk=0.02,
-        constant_bias=0.5,
+        noise_density=[0, 0.03, 0.05],
+        random_walk=[0, 0.01, 0.02],
+        constant_bias=[0, 0.3, 0.5],
         operating_temperature=25,
-        temperature_bias=0.02,
-        temperature_scale_factor=0.02,
+        temperature_bias=[0, 0.01, 0.02],
+        temperature_scale_factor=[0, 0.01, 0.02],
         cross_axis_sensitivity=0.5,
         consider_gravity=True,
         name="Accelerometer",
@@ -26,18 +26,18 @@ def noisy_rotated_accelerometer():
 def noisy_rotated_gyroscope():
     """Returns a gyroscope with all parameters set to non-default values,
     i.e. with noise and rotation."""
-    # mpu6050 values
+    # mpu6050 approx values
     return Gyroscope(
         sampling_rate=100,
         orientation=(-60, -60, -60),
-        noise_density=0.05,
-        random_walk=0.02,
-        constant_bias=0.5,
+        noise_density=[0, 0.03, 0.05],
+        random_walk=[0, 0.01, 0.02],
+        constant_bias=[0, 0.3, 0.5],
         operating_temperature=25,
-        temperature_bias=0.02,
-        temperature_scale_factor=0.02,
+        temperature_bias=[0, 0.01, 0.02],
+        temperature_scale_factor=[0, 0.01, 0.02],
         cross_axis_sensitivity=0.5,
-        acceleration_sensitivity=0.0017,
+        acceleration_sensitivity=[0, 0.0008, 0.0017],
         name="Gyroscope",
     )
 
