@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 
-
 UNITS = {
     "Gyroscope": "rad/s",
     "Accelerometer": "m/s^2",

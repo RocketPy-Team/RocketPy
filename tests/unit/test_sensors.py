@@ -1,7 +1,9 @@
 import json
 import os
+
 import numpy as np
 from pytest import approx
+
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
 from rocketpy.tools import euler_to_quaternions
 

@@ -1,5 +1,6 @@
-import numpy as np
 from inspect import signature
+
+import numpy as np
 
 from ..mathutils.function import Function
 from ..prints.parachute_prints import _ParachutePrints

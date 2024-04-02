@@ -1,7 +1,8 @@
 import numpy as np
+
 from ..mathutils.vector_matrix import Matrix, Vector
-from ..sensors.sensors import Sensors
 from ..prints.sensors_prints import _AccelerometerPrints
+from ..sensors.sensors import Sensors
 
 
 class Accelerometer(Sensors):

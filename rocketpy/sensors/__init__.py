@@ -1,3 +1,3 @@
-from .sensors import Sensors
-from .gyroscope import Gyroscope
 from .accelerometer import Accelerometer
+from .gyroscope import Gyroscope
+from .sensors import Sensors

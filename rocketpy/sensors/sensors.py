@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
-from rocketpy.mathutils.vector_matrix import Matrix, Vector
+
 import numpy as np
+
+from rocketpy.mathutils.vector_matrix import Matrix, Vector
 
 
 class Sensors(ABC):
