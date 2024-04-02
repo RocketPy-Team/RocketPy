@@ -709,13 +709,12 @@ class Flight:
                 for callback in node.callbacks:
                     callback(self)
 
+                # calculate u_dot for sensors
+                u_dot = phase.derivative(self.t, self.y_sol)
                 for sensor, position in node._component_sensors:
                     relative_position = position - self.rocket._csys * Vector(
                         [0, 0, self.rocket.center_of_dry_mass_position]
                     )
-                    u_dot = phase.derivative(
-                        self.t, self.y_sol
-                    )  # calling udot for each sensor. Not optimal
                     sensor.measure(
                         self.t,
                         self.y_sol,
