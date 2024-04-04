@@ -153,7 +153,7 @@ def time_num_to_date_string(time_num, units, timezone, calendar="gregorian"):
     """Convert time number (usually hours before a certain date) into two
     strings: one for the date (example: 2022.04.31) and one for the hour
     (example: 14). See cftime.num2date for details on units and calendar.
-    Automatically converts time number from UTC to local timezone based on
+    Automatically converts time number from UTC to local time zone based on
     lat, lon coordinates. This function was created originally for the
     EnvironmentAnalysis class.
 
@@ -380,6 +380,33 @@ def check_requirement_version(module_name, version):
             + f"version by running 'pip install {module_name}{version}'"
         )
     return True
+
+
+def parallel_axis_theorem_from_com(com_inertia_moment, mass, distance):
+    """Calculates the moment of inertia of a object relative to a new axis using
+    the parallel axis theorem. The new axis is parallel to and at a distance
+    'distance' from the original axis, which *must* passes through the object's
+    center of mass.
+
+    Parameters
+    ----------
+    com_inertia_moment : float
+        Moment of inertia relative to the center of mass of the object.
+    mass : float
+        Mass of the object.
+    distance : float
+        Perpendicular distance between the original and new axis.
+
+    Returns
+    -------
+    float
+        Moment of inertia relative to the new axis.
+
+    Reference
+    ---------
+    https://en.wikipedia.org/wiki/Parallel_axis_theorem
+    """
+    return com_inertia_moment + mass * distance**2
 
 
 # Flight
