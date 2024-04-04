@@ -230,16 +230,6 @@ class Function:
             # Evaluate dimension
             self.__dom_dim__ = source.shape[1] - 1
 
-            # Check to see if dimensions match incoming data set
-            new_total_dim = source.shape[1]
-            old_total_dim = self.__dom_dim__ + self.__img_dim__
-
-            # If they don't, update default values or throw error
-            if new_total_dim != old_total_dim:
-                # Update dimensions and inputs
-                self.__dom_dim__ = new_total_dim - 1
-                self.__inputs__ = self.__dom_dim__ * self.__inputs__
-
             # set x and y. If Function is 2D, also set z
             if self.__dom_dim__ == 1:
                 source = source[source[:, 0].argsort()]
@@ -2970,8 +2960,8 @@ class Function:
                 return ["Scalar"]
             if isinstance(inputs, str):
                 return [inputs]
-            if isinstance(inputs, list):
-                if len(inputs) == 1 and isinstance(inputs[0], str):
+            if isinstance(inputs, (list, tuple)):
+                if len(inputs) == 1:
                     return inputs
             raise ValueError(
                 "Inputs must be a string or a list of strings with "
@@ -3008,8 +2998,8 @@ class Function:
             return ["Scalar"]
         if isinstance(outputs, str):
             return [outputs]
-        if isinstance(outputs, list):
-            if len(outputs) > 1 or not isinstance(outputs[0], str):
+        if isinstance(outputs, (list, tuple)):
+            if len(outputs) > 1:
                 raise ValueError(
                     "Output must either be a string or a list of strings with "
                     + f"one item. It currently has dimension ({len(outputs)})."

@@ -182,7 +182,32 @@ def test_extrapolation_methods(linear_func):
     assert linear_func.get_extrapolation_method() == "constant"
     assert np.isclose(linear_func.get_value(-1), 0, atol=1e-6)
 
-    # Test natural
+    # Test natural for linear interpolation
+    linear_func.set_interpolation("linear")
+    assert isinstance(linear_func.set_extrapolation("natural"), Function)
+    linear_func.set_extrapolation("natural")
+    assert isinstance(linear_func.get_extrapolation_method(), str)
+    assert linear_func.get_extrapolation_method() == "natural"
+    assert np.isclose(linear_func.get_value(-1), -1, atol=1e-6)
+
+    # Test natural for spline interpolation
+    linear_func.set_interpolation("spline")
+    assert isinstance(linear_func.set_extrapolation("natural"), Function)
+    linear_func.set_extrapolation("natural")
+    assert isinstance(linear_func.get_extrapolation_method(), str)
+    assert linear_func.get_extrapolation_method() == "natural"
+    assert np.isclose(linear_func.get_value(-1), -1, atol=1e-6)
+
+    # Test natural for akima interpolation
+    linear_func.set_interpolation("akima")
+    assert isinstance(linear_func.set_extrapolation("natural"), Function)
+    linear_func.set_extrapolation("natural")
+    assert isinstance(linear_func.get_extrapolation_method(), str)
+    assert linear_func.get_extrapolation_method() == "natural"
+    assert np.isclose(linear_func.get_value(-1), -1, atol=1e-6)
+
+    # Test natural for polynomial interpolation
+    linear_func.set_interpolation("polynomial")
     assert isinstance(linear_func.set_extrapolation("natural"), Function)
     linear_func.set_extrapolation("natural")
     assert isinstance(linear_func.get_extrapolation_method(), str)
