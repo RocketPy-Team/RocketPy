@@ -38,8 +38,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 
 - MNT: Modularize Rocket Draw [#580](https://github.com/RocketPy-Team/RocketPy/pull/580)
+- DOC: Improvements of Environment docstring phrasing [#565](https://github.com/RocketPy-Team/RocketPy/pull/565)
 - MNT: Refactor flight prints module [#579](https://github.com/RocketPy-Team/RocketPy/pull/579)
 - DOC: Convert CompareFlights example notebooks to .rst files [#576](https://github.com/RocketPy-Team/RocketPy/pull/576)
+- MNT: Refactor inertia calculations using parallel axis theorem [#573] (https://github.com/RocketPy-Team/RocketPy/pull/573)
 - ENH: Optional argument to show the plot in Function.compare_plots [#563](https://github.com/RocketPy-Team/RocketPy/pull/563)
 
 ### Fixed
