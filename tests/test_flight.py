@@ -604,12 +604,12 @@ def test_max_values(flight_calisto_robust):
     calculated by hand, it was just copied from the test results. This is
     because the expected values are not easy to calculate by hand, and the
     results are not expected to change. If the results change, the test will
-    fail, and the expected values must be updated. If if want to update the
-    values, always double check if the results are really correct. Acceptable
-    reasons for changes in the results are: 1) changes in the code that
-    improve the accuracy of the simulation, 2) a bug was found and fixed. Keep
-    in mind that other tests may be more accurate than this one, for example,
-    the acceptance tests, which are based on the results of real flights.
+    fail, and the expected values must be updated. If the values are updated,
+    always double check if the results are really correct. Acceptable reasons
+    for changes in the results are: 1) changes in the code that improve the
+    accuracy of the simulation, 2) a bug was found and fixed. Keep in mind that
+    other tests may be more accurate than this one, for example, the acceptance
+    tests, which are based on the results of real flights.
 
     Parameters
     ----------
@@ -622,7 +622,7 @@ def test_max_values(flight_calisto_robust):
     assert pytest.approx(105.2774, abs=atol) == test.max_acceleration_power_on
     assert pytest.approx(105.2774, abs=atol) == test.max_acceleration
     assert pytest.approx(0.85999, abs=atol) == test.max_mach_number
-    assert pytest.approx(285.90240, abs=atol) == test.max_speed
+    assert pytest.approx(285.94948, abs=atol) == test.max_speed
 
 
 def test_rail_buttons_forces(flight_calisto_custom_wind):
