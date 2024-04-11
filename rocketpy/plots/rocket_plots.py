@@ -566,7 +566,7 @@ class _RocketPlots:
             else:
                 raise ValueError("Plane must be 'xz' or 'yz'.")
 
-            # line length is 1/10 of the rocket radius
+            # line length is 2/5 of the rocket radius
             line_length = self.rocket.radius / 2.5
 
             ax.plot(
