@@ -40,7 +40,7 @@ def test_ideal_sensors(flight_calisto_accel_gyro):
     sim_accel = flight_calisto_accel_gyro.acceleration(time)
 
     # tolerance is bounded to numerical errors in the transformation matrixes
-    assert np.allclose(a, sim_accel, atol=1e-2)
+    assert np.allclose(a, sim_accel, atol=1e-12)
 
     gyroscope = flight_calisto_accel_gyro.rocket.sensors[1].component
     time, wx, wy, wz = zip(*gyroscope.measured_data)
@@ -52,4 +52,4 @@ def test_ideal_sensors(flight_calisto_accel_gyro):
     flight_wy = np.array(flight_calisto_accel_gyro.w2(time))
     flight_wz = np.array(flight_calisto_accel_gyro.w3(time))
     sim_w = np.sqrt(flight_wx**2 + flight_wy**2 + flight_wz**2)
-    assert np.allclose(w, sim_w, atol=1e-8)
+    assert np.allclose(w, sim_w, atol=1e-12)
