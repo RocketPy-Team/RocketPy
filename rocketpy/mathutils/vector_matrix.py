@@ -982,7 +982,6 @@ class Matrix:
             The quaternion representing the rotation from frame A to frame B.
             Example: (cos(phi/2), 0, 0, sin(phi/2)) represents a rotation of
             phi around the z-axis.
-            Note: the quaternion must be normalized.
 
         Returns
         -------
@@ -990,22 +989,41 @@ class Matrix:
             The transformation matrix from frame B to frame A.
         """
         q_w, q_x, q_y, q_z = quaternion
+        # #normalize quaternion
+        q_norm = (q_w**2 + q_x**2 + q_y**2 + q_z**2) ** 0.5
+        try:
+            q_w /= q_norm
+            q_x /= q_norm
+            q_y /= q_norm
+            q_z /= q_norm
+        except ZeroDivisionError:
+            return Matrix.identity()
+        # precompute common terms
+        q_x2 = q_x**2
+        q_y2 = q_y**2
+        q_z2 = q_z**2
+        q_wx = q_w * q_x
+        q_wy = q_w * q_y
+        q_wz = q_w * q_z
+        q_xy = q_x * q_y
+        q_xz = q_x * q_z
+        q_yz = q_y * q_z
         return Matrix(
             [
                 [
-                    1 - 2 * (q_y**2 + q_z**2),
-                    2 * (q_x * q_y - q_w * q_z),
-                    2 * (q_x * q_z + q_w * q_y),
+                    1 - 2 * (q_y2 + q_z2),
+                    2 * (q_xy - q_wz),
+                    2 * (q_xz + q_wy),
                 ],
                 [
-                    2 * (q_x * q_y + q_w * q_z),
-                    1 - 2 * (q_x**2 + q_z**2),
-                    2 * (q_y * q_z - q_w * q_x),
+                    2 * (q_xy + q_wz),
+                    1 - 2 * (q_x2 + q_z2),
+                    2 * (q_yz - q_wx),
                 ],
                 [
-                    2 * (q_x * q_z - q_w * q_y),
-                    2 * (q_y * q_z + q_w * q_x),
-                    1 - 2 * (q_x**2 + q_y**2),
+                    2 * (q_xz - q_wy),
+                    2 * (q_yz + q_wx),
+                    1 - 2 * (q_x2 + q_y2),
                 ],
             ]
         )
