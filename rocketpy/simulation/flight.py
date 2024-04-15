@@ -609,6 +609,13 @@ class Flight:
         # Controller initialization
         self._controllers = self.rocket._controllers[:]
         if self._controllers:
+            if self.time_overshoot == True:
+                warnings.warn(
+                    "time_overshoot is set to True, but controllers are present. "
+                    "Controllers will not work properly. "
+                    "Consider setting time_overshoot=False in the Flight object "
+                    "to use controllers."
+                )
             # reset controllable object to initial state (only airbrakes for now)
             for air_brakes in self.rocket.air_brakes:
                 air_brakes.reset()
