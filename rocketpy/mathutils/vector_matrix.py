@@ -243,7 +243,8 @@ class Vector:
         )
 
     def __and__(self, other):
-        """Element wise multiplication between two R3 vectors.
+        """Element wise multiplication between two R3 vectors. Also known as
+        Hadamard product.
 
         Parameters
         ----------
