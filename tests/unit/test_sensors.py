@@ -214,7 +214,7 @@ def test_noisy_rotated_gyroscope(noisy_rotated_gyroscope):
     assert noisy_rotated_gyroscope.measurement == approx([wx, wy, wz], rel=0.5)
 
 
-def test_quatization_accelerometer(quantized_accelerometer):
+def test_quantization_accelerometer(quantized_accelerometer):
     """Test the measure method of the Accelerometer class. Checks if saved
     measurement is (ax,ay,az) and if measured_data is [(t, (ax,ay,az)), ...]
     """
@@ -247,7 +247,7 @@ def test_quatization_accelerometer(quantized_accelerometer):
     assert quantized_accelerometer.measurement == approx([ax, ay, az], abs=1e-10)
 
 
-def test_quatization_gyroscope(quantized_gyroscope):
+def test_quantization_gyroscope(quantized_gyroscope):
     """Test the measure method of the Gyroscope class. Checks if saved
     measurement is (wx,wy,wz) and if measured_data is [(t, (wx,wy,wz)), ...]
     """
