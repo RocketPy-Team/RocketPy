@@ -6,8 +6,49 @@ from rocketpy.mathutils.vector_matrix import Matrix, Vector
 
 
 class Sensors(ABC):
-    """
-    Abstract class for sensors
+    """Abstract class for sensors
+
+    Attributes
+    ----------
+    type : str
+        Type of the sensor (e.g. Accelerometer, Gyroscope).
+    sampling_rate : float
+        Sample rate of the sensor in Hz.
+    orientation : tuple, list
+        Orientation of the sensor in the rocket.
+    measurement_range : float, tuple
+        The measurement range of the sensor in the sensor units.
+    resolution : float
+        The resolution of the sensor in sensor units/LSB.
+    noise_density : float, list
+        The noise density of the sensor in sensor units/√Hz.
+    random_walk : float, list
+        The random walk of the sensor in sensor units/√Hz.
+    constant_bias : float, list
+        The constant bias of the sensor in sensor units.
+    operating_temperature : float
+        The operating temperature of the sensor in degrees Celsius.
+    temperature_bias : float, list
+        The temperature bias of the sensor in sensor units/°C.
+    temperature_scale_factor : float, list
+        The temperature scale factor of the sensor in %/°C.
+    cross_axis_sensitivity : float
+        The cross axis sensitivity of the sensor in percentage.
+    name : str
+        The name of the sensor.
+    rotation_matrix : Matrix
+        The rotation matrix of the sensor from the sensor frame to the rocket
+        frame of reference.
+    normal_vector : Vector
+        The normal vector of the sensor in the rocket frame of reference.
+    _random_walk_drift : Vector
+        The random walk drift of the sensor in sensor units.
+    measurement : float
+        The measurement of the sensor after quantization, noise and temperature
+        drift.
+    measured_data : list
+        The stored measured data of the sensor after quantization, noise and
+        temperature drift.
     """
 
     def __init__(

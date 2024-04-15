@@ -6,8 +6,53 @@ from ..sensors.sensors import Sensors
 
 
 class Gyroscope(Sensors):
-    """
-    Class for the gyroscope sensor
+    """Class for the gyroscope sensor
+
+    Attributes
+    ----------
+    type : str
+        Type of the sensor, in this case "Gyroscope".
+    acceleration_sensitivity : float, list
+        Sensitivity of the sensor to linear acceleration in rad/s/g.
+    prints : _GyroscopePrints
+        Object that contains the print functions for the sensor.
+    sampling_rate : float
+        Sample rate of the sensor in Hz.
+    orientation : tuple, list
+        Orientation of the sensor in the rocket.
+    measurement_range : float, tuple
+        The measurement range of the sensor in the rad/s.
+    resolution : float
+        The resolution of the sensor in rad/s/LSB.
+    noise_density : float, list
+        The noise density of the sensor in rad/s/√Hz.
+    random_walk : float, list
+        The random walk of the sensor in rad/s/√Hz.
+    constant_bias : float, list
+        The constant bias of the sensor in rad/s.
+    operating_temperature : float
+        The operating temperature of the sensor in degrees Celsius.
+    temperature_bias : float, list
+        The temperature bias of the sensor in rad/s/°C.
+    temperature_scale_factor : float, list
+        The temperature scale factor of the sensor in %/°C.
+    cross_axis_sensitivity : float
+        The cross axis sensitivity of the sensor in percentage.
+    name : str
+        The name of the sensor.
+    rotation_matrix : Matrix
+        The rotation matrix of the sensor from the sensor frame to the rocket
+        frame of reference.
+    normal_vector : Vector
+        The normal vector of the sensor in the rocket frame of reference.
+    _random_walk_drift : Vector
+        The random walk drift of the sensor in rad/s.
+    measurement : float
+        The measurement of the sensor after quantization, noise and temperature
+        drift.
+    measured_data : list
+        The stored measured data of the sensor after quantization, noise and
+        temperature drift.
     """
 
     def __init__(
@@ -32,7 +77,7 @@ class Gyroscope(Sensors):
         Parameters
         ----------
         sampling_rate : float
-            Sample rate of the sensor
+            Sample rate of the sensor in Hz.
         orientation : tuple, list, optional
             Orientation of the sensor in the rocket. The orientation can be
             given as:
@@ -126,8 +171,18 @@ class Gyroscope(Sensors):
         self.prints = _GyroscopePrints(self)
 
     def measure(self, t, u, u_dot, relative_position, *args):
-        """
-        Measure the angular velocity of the rocket
+        """Measure the angular velocity of the rocket
+
+        Parameters
+        ----------
+        t : float
+            Time at which the measurement is taken
+        u : list
+            State vector of the rocket
+        u_dot : list
+            Time derivative of the state vector of the rocket
+        relative_position : Vector
+            Vector from the rocket's center of mass to the sensor
         """
         # Angular velocity of the rocket in the rocket frame
         omega = Vector(u[10:13])
@@ -164,18 +219,17 @@ class Gyroscope(Sensors):
         ----------
         omega : Vector
             The angular velocity to apply acceleration sensitivity to
-        cache : tuple
-            The cache of the rocket state
+        u_dot : list
+            The time derivative of the state vector
         relative_position : Vector
-            The vector from the rocket's center of mass to the sensor in the
-            rocket frame
+            The vector from the rocket's center of mass to the sensor
         rotation_matrix : Matrix
-            The rotation matrix from the inertial frame to the sensor frame
+            The rotation matrix from the rocket frame to the sensor frame
 
         Returns
         -------
         Vector
-            The angular velocity with applied acceleration sensitivity
+            The angular velocity with the acceleration sensitivity applied
         """
         # Linear acceleration of rocket cdm in inertial frame
         a_I = Vector(u_dot[3:6])

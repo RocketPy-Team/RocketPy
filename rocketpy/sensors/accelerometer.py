@@ -6,8 +6,53 @@ from ..sensors.sensors import Sensors
 
 
 class Accelerometer(Sensors):
-    """
-    Class for the accelerometer sensor
+    """Class for the accelerometer sensor
+
+    Attributes
+    ----------
+    type : str
+        Type of the sensor, in this case "Accelerometer".
+    consider_gravity : bool
+        Whether the sensor considers the effect of gravity on the acceleration.
+    prints : _AccelerometerPrints
+        Object that contains the print functions for the sensor.
+    sampling_rate : float
+        Sample rate of the sensor in Hz.
+    orientation : tuple, list
+        Orientation of the sensor in the rocket.
+    measurement_range : float, tuple
+        The measurement range of the sensor in m/s^2.
+    resolution : float
+        The resolution of the sensor in m/s^2/LSB.
+    noise_density : float, list
+        The noise density of the sensor in m/s^2/√Hz.
+    random_walk : float, list
+        The random walk of the sensor in m/s^2/√Hz.
+    constant_bias : float, list
+        The constant bias of the sensor in m/s^2.
+    operating_temperature : float
+        The operating temperature of the sensor in degrees Celsius.
+    temperature_bias : float, list
+        The temperature bias of the sensor in m/s^2/°C.
+    temperature_scale_factor : float, list
+        The temperature scale factor of the sensor in %/°C.
+    cross_axis_sensitivity : float
+        The cross axis sensitivity of the sensor in percentage.
+    name : str
+        The name of the sensor.
+    rotation_matrix : Matrix
+        The rotation matrix of the sensor from the sensor frame to the rocket
+        frame of reference.
+    normal_vector : Vector
+        The normal vector of the sensor in the rocket frame of reference.
+    _random_walk_drift : Vector
+        The random walk drift of the sensor in m/s^2.
+    measurement : float
+        The measurement of the sensor after quantization, noise and temperature
+        drift.
+    measured_data : list
+        The stored measured data of the sensor after quantization, noise and
+        temperature drift.
     """
 
     def __init__(
@@ -32,7 +77,7 @@ class Accelerometer(Sensors):
         Parameters
         ----------
         sampling_rate : float
-            Sample rate of the sensor
+            Sample rate of the sensor in Hz.
         orientation : tuple, list, optional
             Orientation of the sensor in the rocket. The orientation can be
             given as:
@@ -124,8 +169,20 @@ class Accelerometer(Sensors):
         self.prints = _AccelerometerPrints(self)
 
     def measure(self, t, u, u_dot, relative_position, gravity, *args):
-        """
-        Measure the acceleration of the rocket
+        """Measure the acceleration of the rocket
+
+        Parameters
+        ----------
+        t : float
+            Current time
+        u : list
+            State vector of the rocket
+        u_dot : list
+            Derivative of the state vector of the rocket
+        relative_position : Vector
+            Position of the sensor relative to the rocket cdm
+        gravity : float
+            Acceleration due to gravity
         """
         # Linear acceleration of rocket cdm in inertial frame
         gravity = (
