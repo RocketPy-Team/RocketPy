@@ -618,7 +618,7 @@ class Flight:
                 )
             # reset controllable object to initial state (only airbrakes for now)
             for air_brakes in self.rocket.air_brakes:
-                air_brakes.reset()
+                air_brakes._reset()
 
         # Flight initialization
         self.__init_post_process_variables()
@@ -2903,9 +2903,12 @@ class Flight:
             # Call callback functions
             for callback in phase.callbacks:
                 callback(self)
-            # Loop through time steps in flight phase
-            for step in self.solution:  # Can be optimized
-                if init_time < step[0] <= final_time or (
+            # find index of initial and final time of phase in solution array
+            init_time_index = find_closest(self.time, init_time)
+            final_time_index = find_closest(self.time, final_time) + 1
+            # Loop through time steps solution array
+            for step in self.solution[init_time_index:final_time_index]:
+                if init_time != step[0] or (
                     init_time == self.t_initial and step[0] == self.t_initial
                 ):
                     # Call derivatives in post processing mode
