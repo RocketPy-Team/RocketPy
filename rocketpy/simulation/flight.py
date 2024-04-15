@@ -2943,17 +2943,17 @@ class Flight:
 
         Returns
         -------
-        ax: list
+        ax_list: list
             acceleration in x direction
-        ay: list
+        ay_list: list
             acceleration in y direction
-        az: list
+        az_list: list
             acceleration in z direction
-        alpha1: list
+        alpha1_list: list
             angular acceleration in x direction
-        alpha2: list
+        alpha2_list: list
             angular acceleration in y direction
-        alpha3: list
+        alpha3_list: list
             angular acceleration in z direction
         """
         return self.__retrieve_arrays[:6]
