@@ -2872,6 +2872,42 @@ class Function:
             file.write(header_line + newline)
             np.savetxt(file, data_points, fmt=fmt, delimiter=delimiter, newline=newline)
 
+    # Define auxiliary method
+
+    @staticmethod
+    def calculate_cubic_hermite_coefficients(x0, x1, y0, yp0, y1, yp1):
+        """Calculate the coefficients of a cubic Hermite interpolation function.
+        The function is defined as ax**3 + bx**2 + cx + d.
+
+        Parameters
+        ----------
+        x0 : float
+            Position of the first point.
+        x1 : float
+            Position of the second point.
+        y0 : float
+            Value of the function evaluated at the first point.
+        yp0 : float
+            Value of the derivative of the function evaluated at the first
+            point.
+        y1 : float
+            Value of the function evaluated at the second point.
+        yp1 : float
+            Value of the derivative of the function evaluated at the second
+            point.
+
+        Returns
+        -------
+        tuple[float, float, float, float]
+            The coefficients of the cubic Hermite interpolation function.
+        """
+        dx = x1 - x0
+        d = y0
+        c = yp0
+        b = (3 * y1 - yp1 * dx - 2 * c * dx - 3 * d) / (dx**2)
+        a = -(2 * y1 - yp1 * dx - c * dx - 2 * d) / (dx**3)
+        return a, b, c, d
+
     # Input validators
     def __validate_source(self, source):
         """Used to validate the source parameter for creating a Function object.
