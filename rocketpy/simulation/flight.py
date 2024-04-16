@@ -759,29 +759,22 @@ class Flight:
 
                 # Step through simulation
                 while phase.solver.status == "running":
-                    # Step
+                    # Execute solver step, log solution and function evaluations
                     phase.solver.step()
-                    # Save step result
                     self.solution += [[phase.solver.t, *phase.solver.y]]
-                    # Step step metrics
-                    self.function_evaluations_per_time_step.append(
-                        phase.solver.nfev - self.function_evaluations[-1]
-                    )
                     self.function_evaluations.append(phase.solver.nfev)
-                    self.time_steps.append(phase.solver.step_size)
+
                     # Update time and state
                     self.t = phase.solver.t
                     self.y_sol = phase.solver.y
-                    if verbose:
-                        print(
-                            "Current Simulation Time: {:3.4f} s".format(self.t),
-                            end="\r",
-                        )
-                    # print('\n\t\t\tCurrent Step Details')
-                    # print('\t\t\tIState: ', phase.solver._lsoda_solver._integrator.istate)
-                    # print('\t\t\tTime: ', phase.solver.t)
-                    # print('\t\t\tAltitude: ', phase.solver.y[2])
-                    # print('\t\t\tEvals: ', self.function_evaluations_per_time_step[-1])
+                    if verbose:  # TODO: change verbose to a logging.
+                        print(f"Current Simulation Time: {self.t:3.4f} s", end="\r")
+                    # print("\n\t\t\tCurrent Step Details:")
+                    # print(
+                    #     "\t\t\tIState: ", phase.solver._lsoda_solver._integrator.istate
+                    # )
+                    # print("\t\t\tTime: ", phase.solver.t)
+                    # print("\t\t\tAltitude (ASL): ", phase.solver.y[2])
 
                     # Check for first out of rail event
                     if len(self.out_of_rail_state) == 1 and (
@@ -1995,10 +1988,28 @@ class Flight:
         """Returns solution array of the rocket flight."""
         return np.array(self.solution)
 
+    @property
+    def function_evaluations_per_time_step(self):
+        """Get the number of function evaluations per time step. This method
+        calculates the difference between consecutive function evaluations
+        during numerical integration and returns it as a list.
+
+        Returns
+        -------
+        list
+            The list of differences in function evaluations per time step.
+        """
+        return np.diff(self.function_evaluations).tolist()
+
     @cached_property
     def time(self):
         """Returns time array from solution."""
         return self.solution_array[:, 0]
+
+    @cached_property
+    def time_steps(self):
+        """Returns time step array."""
+        return np.diff(self.time)
 
     def get_solution_at_time(self, t, atol=1e-3):
         """Returns the solution state vector at a given time. If the time is
