@@ -612,7 +612,6 @@ class Flight:
         self.__init_equations_of_motion()
         self.__init_solver_monitors()
 
-
         # Initialize prints and plots objects
         self.prints = _FlightPrints(self)
         self.plots = _FlightPlots(self)
