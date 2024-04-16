@@ -3685,7 +3685,26 @@ class Flight:
             del self.list[index + 1 :]
 
         class TimeNode:
+            """TimeNode is a class that represents a time node in the time
+            nodes list. It stores the time, the parachutes and the controllers
+            that are active at that time. This class is supposed to work
+            exclusively within the TimeNodes class.
+            """
+
             def __init__(self, t, parachutes, controllers):
+                """Create a TimeNode object.
+
+                Parameters
+                ----------
+                t : float
+                    Initial time of the time node.
+                parachutes : list[Parachute]
+                    List containing all the parachutes that should be evaluated
+                    at this time node.
+                controllers : list[_Controller]
+                    List containing all the controllers that should be evaluated
+                    at this time node.
+                """
                 self.t = t
                 self.parachutes = parachutes
                 self.callbacks = []
@@ -3693,6 +3712,11 @@ class Flight:
 
             def __repr__(self):
                 return (
+                    f"<TimeNode("
+                    f"t: {self.t}, "
+                    f"parachutes: {len(self.parachutes)}, "
+                    f"controllers: {len(self._controllers)})>"
+                )
 
             def __lt__(self, other):
                 """Allows the comparison of two TimeNode objects based on their
