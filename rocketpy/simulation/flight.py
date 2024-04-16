@@ -2177,36 +2177,33 @@ class Flight:
     @funcify_method("Time (s)", "Pressure (Pa)", "spline", "constant")
     def pressure(self):
         """Air pressure felt by the rocket as a Function of time."""
-        return self.retrieve_temporary_values_arrays[6]
+        return [(t, self.env.pressure.get_value_opt(z)) for t, z in self.z]
 
     @funcify_method("Time (s)", "Density (kg/m³)", "spline", "constant")
     def density(self):
         """Air density felt by the rocket as a Function of time."""
-        return self.retrieve_temporary_values_arrays[7]
+        return [(t, self.env.density.get_value_opt(z)) for t, z in self.z]
 
     @funcify_method("Time (s)", "Dynamic Viscosity (Pa s)", "spline", "constant")
     def dynamic_viscosity(self):
         """Air dynamic viscosity felt by the rocket as a Function of
         time."""
-        return self.retrieve_temporary_values_arrays[8]
+        return [(t, self.env.dynamic_viscosity.get_value_opt(z)) for t, z in self.z]
 
     @funcify_method("Time (s)", "Speed of Sound (m/s)", "spline", "constant")
     def speed_of_sound(self):
-        """Speed of sound in the air felt by the rocket as a Function
-        of time."""
-        return self.retrieve_temporary_values_arrays[9]
+        """Speed of sound in the air felt by the rocket as a Function of time."""
+        return [(t, self.env.speed_of_sound.get_value_opt(z)) for t, z in self.z]
 
     @funcify_method("Time (s)", "Wind Velocity X (East) (m/s)", "spline", "constant")
     def wind_velocity_x(self):
-        """Wind velocity in the X direction (east) as a Function of
-        time."""
-        return self.retrieve_temporary_values_arrays[10]
+        """Wind velocity in the X direction (east) as a Function of time."""
+        return [(t, self.env.wind_velocity_x.get_value_opt(z)) for t, z in self.z]
 
     @funcify_method("Time (s)", "Wind Velocity Y (North) (m/s)", "spline", "constant")
     def wind_velocity_y(self):
-        """Wind velocity in the y direction (north) as a Function of
-        time."""
-        return self.retrieve_temporary_values_arrays[11]
+        """Wind velocity in the y direction (north) as a Function of time."""
+        return [(t, self.env.wind_velocity_y.get_value_opt(z)) for t, z in self.z]
 
     # Process fourth type of output - values calculated from previous outputs
 
