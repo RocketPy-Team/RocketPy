@@ -608,9 +608,10 @@ class Flight:
         self.equations_of_motion = equations_of_motion
 
         # Flight initialization
-        self.__init_post_process_variables()
         self.__init_solution_monitors()
         self.__init_equations_of_motion()
+        self.__init_solver_monitors()
+
 
         # Initialize prints and plots objects
         self.prints = _FlightPrints(self)
@@ -1094,20 +1095,14 @@ class Flight:
         self.out_of_rail_time = 0
         self.out_of_rail_time_index = 0
         self.out_of_rail_state = np.array([0])
-        self.out_of_rail_velocity = 0
         self.apogee_state = np.array([0])
-        self.apogee_time = 0
-        self.apogee_x = 0
-        self.apogee_y = 0
-        self.apogee = 0
+        # self.apogee_time = 0
         self.x_impact = 0
         self.y_impact = 0
         self.impact_velocity = 0
         self.impact_state = np.array([0])
         self.parachute_events = []
         self.post_processed = False
-
-        return None
 
     def __init_flight_state(self):
         """Initialize flight state variables."""
@@ -1164,8 +1159,6 @@ class Flight:
     def __init_solver_monitors(self):
         # Initialize solver monitors
         self.function_evaluations = []
-        self.function_evaluations_per_time_step = []
-        self.time_steps = []
         # Initialize solution state
         self.solution = []
         self.__init_flight_state()
@@ -1174,11 +1167,6 @@ class Flight:
         self.solution.append(self.initial_solution)
         self.t = self.solution[-1][0]
         self.y_sol = self.solution[-1][1:]
-
-    def __init_equations_of_motion(self):
-        """Initialize equations of motion."""
-        if self.equations_of_motion == "solid_propulsion":
-            self.u_dot_generalized = self.u_dot
 
     def __init_equations_of_motion(self):
         """Initialize equations of motion."""
