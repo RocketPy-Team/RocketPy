@@ -3685,9 +3685,22 @@ class Flight:
 
             def __repr__(self):
                 return (
-                    "{Initial Time: "
-                    + str(self.t)
-                    + " | Parachutes: "
-                    + str(len(self.parachutes))
-                    + "}"
-                )
+
+            def __lt__(self, other):
+                """Allows the comparison of two TimeNode objects based on their
+                initial time. This is particularly useful for sorting a list of
+                TimeNode objects.
+
+                Parameters
+                ----------
+                other : TimeNode
+                    Another TimeNode object to compare with.
+
+                Returns
+                -------
+                bool
+                    True if the initial time of the current TimeNode is less
+                    than the initial time of the other TimeNode, False
+                    otherwise.
+                """
+                return self.t < other.t
