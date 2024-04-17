@@ -81,6 +81,9 @@ class Rocket:
         Function of time expressing the total mass of the rocket,
         defined as the sum of the propellant mass and the rocket
         mass without propellant.
+    Rocket.total_mass_flow_rate : Function
+        Time derivative of rocket's total mass in kg/s as a function
+        of time as obtained by the thrust source of the added motor.
     Rocket.thrust_to_weight : Function
         Function of time expressing the motor thrust force divided by rocket
         weight. The gravitational acceleration is assumed as 9.80665 m/s^2.
@@ -764,6 +767,7 @@ class Rocket:
             self.motor.center_of_dry_mass_position * _ + self.motor_position
         )
         self.nozzle_position = self.motor.nozzle_position * _ + self.motor_position
+        self.total_mass_flow_rate = self.motor.total_mass_flow_rate
         self.evaluate_dry_mass()
         self.evaluate_total_mass()
         self.evaluate_center_of_dry_mass()
