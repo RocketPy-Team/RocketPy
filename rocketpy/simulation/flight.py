@@ -3633,19 +3633,22 @@ class Flight:
             self.list.sort(key=(lambda node: node.t))
 
         def merge(self):
-            # Initialize temporary list
-            tmp_list = [self.list[0]]
-            # Iterate through all other time nodes
-            for node in self.list[1:]:
-                # If there is already another node with similar time: merge
-                if abs(node.t - tmp_list[-1].t) < 1e-7:
-                    tmp_list[-1].parachutes += node.parachutes
-                    tmp_list[-1].callbacks += node.callbacks
-                # Add new node to tmp list if there is none with the same time
-                else:
-                    tmp_list.append(node)
-            # Save tmp list to permanent
-            self.list = tmp_list
+            """Merge all the time nodes that have the same time. This is made to
+            avoid multiple evaluations of the same time node. This method does
+            not guarantee the order of the nodes in the list, so it is
+            recommended to sort the list before or after using this method.
+            """
+            tmp_dict = {}
+            for node in self.list:
+                time = round(node.t, 7)
+                try:
+                    # Try to access the node and merge if it exists
+                    tmp_dict[time].parachutes += node.parachutes
+                    tmp_dict[time].callbacks += node.callbacks
+                except KeyError:
+                    # If the node does not exist, add it to the dictionary
+                    tmp_dict[time] = node
+            self.list = list(tmp_dict.values())
 
         def flush_after(self, index):
             del self.list[index + 1 :]
