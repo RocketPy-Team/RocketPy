@@ -360,11 +360,11 @@ def test_calculate_cubic_hermite_coefficients():
 
 
 def test_cardanos_root_finding():
-    """Tests the cardanos_root_finding method of the Function class."""
+    """Tests the find_roots_cubic_function method of the Function class."""
     # Function: f(x) = x**3 + 2x**2 -1
     # roots: (-1 - 5**0.5) / 2; -1; (-1 + 5**0.5) / 2
 
-    roots = list(Function.cardanos_root_finding(a=1, b=2, c=0, d=-1))
+    roots = list(Function.find_roots_cubic_function(a=1, b=2, c=0, d=-1))
     roots.sort(key=lambda x: x.real)
 
     assert np.isclose(roots[0].real, (-1 - 5**0.5) / 2)

@@ -2909,7 +2909,7 @@ class Function:
         return a, b, c, d
 
     @staticmethod
-    def cardanos_root_finding(a, b, c, d):
+    def find_roots_cubic_function(a, b, c, d):
         """Calculate the roots of a cubic function using Cardano's method.
 
         This method applies Cardano's method to find the roots of a cubic
@@ -2944,7 +2944,7 @@ class Function:
 
         First we define the coefficients of the function ax**3 + bx**2 + cx + d
         >>> a, b, c, d = 1, -3, -1, 3
-        >>> x1, x2, x3 = Function.cardanos_root_finding(a, b, c, d)
+        >>> x1, x2, x3 = Function.find_roots_cubic_function(a, b, c, d)
         >>> x1, x2, x3
         ((-1+0j), (3+7.401486830834377e-17j), (1-1.4802973661668753e-16j))
 

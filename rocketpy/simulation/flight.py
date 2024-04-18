@@ -822,7 +822,7 @@ class Flight:
                         )
                         a += 1e-5  # TODO: why??
                         # Find roots
-                        t_roots = Function.cardanos_root_finding(a, b, c, d)
+                        t_roots = Function.find_roots_cubic_function(a, b, c, d)
                         # Find correct root
                         valid_t_root = [
                             t_root.real
@@ -900,7 +900,7 @@ class Flight:
                             yp1=float(self.solution[-1][6]),  # vz1
                         )
                         # Find roots
-                        t_roots = Function.cardanos_root_finding(a, b, c, d)
+                        t_roots = Function.find_roots_cubic_function(a, b, c, d)
                         # Find correct root
                         t1 = self.solution[-1][0] - self.solution[-2][0]
                         valid_t_root = [
