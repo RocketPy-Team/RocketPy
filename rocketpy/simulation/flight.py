@@ -580,10 +580,7 @@ class Flight:
         -------
         None
         """
-        time_iterator = self.time_iterator
-
-        # Save rocket, parachutes, environment, maximum simulation time
-        # and termination events
+        # Save arguments
         self.env = environment
         self.rocket = rocket
         self.rail_length = rail_length
@@ -621,7 +618,10 @@ class Flight:
         self.flight_phases.add_phase(self.max_time)
 
         # Simulate flight
-        for phase_index, phase in time_iterator(self.flight_phases):
+        self.__simulate__(verbose)
+
+    def __simulate__(self, verbose):
+        for phase_index, phase in self.time_iterator(self.flight_phases):
             # print('\nCurrent Flight Phase List')
             # print(self.flight_phases)
             # print('\n\tCurrent Flight Phase')
@@ -680,7 +680,7 @@ class Flight:
             # print('\tTime Nodes Length: ', str(len(phase.time_nodes)), ' | Time Nodes Preview: ', phase.time_nodes[0:3])
 
             # Iterate through time nodes
-            for node_index, node in time_iterator(phase.time_nodes):
+            for node_index, node in self.time_iterator(phase.time_nodes):
                 # print('\n\t\tCurrent Time Node')
                 # print('\t\tIndex: ', node_index, ' | Time Node: ', node)
                 # Determine time bound for this time node
@@ -978,7 +978,7 @@ class Flight:
                             for (
                                 overshootable_index,
                                 overshootable_node,
-                            ) in time_iterator(overshootable_nodes):
+                            ) in self.time_iterator(overshootable_nodes):
                                 # print('\n\t\t\t\tCurrent Overshootable Node')
                                 # print('\t\t\t\tIndex: ', overshootable_index, ' | Overshootable Node: ', overshootable_node)
                                 # Calculate state at node time
