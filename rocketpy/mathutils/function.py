@@ -2902,10 +2902,10 @@ class Function:
             The coefficients of the cubic Hermite interpolation function.
         """
         dx = x1 - x0
-        d = y0
-        c = yp0
-        b = (3 * y1 - yp1 * dx - 2 * c * dx - 3 * d) / (dx**2)
-        a = -(2 * y1 - yp1 * dx - c * dx - 2 * d) / (dx**3)
+        d = float(y0)
+        c = float(yp0)
+        b = float((3 * y1 - yp1 * dx - 2 * c * dx - 3 * d) / (dx**2))
+        a = float(-(2 * y1 - yp1 * dx - c * dx - 2 * d) / (dx**3))
         return a, b, c, d
 
     @staticmethod
@@ -2966,7 +2966,57 @@ class Function:
         c2_2 = c1 * (-1 / 2 + 1j * (3**0.5) / 2) ** 2
         x3 = -(1 / (3 * a)) * (b + c2_2 + delta_0 / c2_2)
 
+        # Alternative method (same results)
+
+        # Q = (3 * a * c - b**2) / (9 * a**2)
+        # R = (9 * a * b * c - 27 * a**2 * d - 2 * b**3) / (54 * a**3)
+        # S = (R + (Q**3 + R**2)**0.5)**(1 / 3)
+        # T = (R - (Q**3 + R**2)**0.5)**(1 / 3)
+
+        # x1 = S + T - b / (3 * a)
+        # x2 = -(S + T) / 2 - b / (3 * a) + 1j * (S - T) * (3**0.5) / 2
+        # x3 = -(S + T) / 2 - b / (3 * a) - 1j * (S - T) * (3**0.5) / 2
+
         return x1, x2, x3
+
+    @staticmethod
+    def find_root_linear_interpolation(x0, x1, y0, y1, y):
+        """Calculate the root of a linear interpolation function.
+
+        This method calculates the root of a linear interpolation function
+        given two points (x0, y0) and (x1, y1) and a value y. The function
+        is defined as y = m*x + c.
+
+        Parameters
+        ----------
+        x0 : float
+            Position of the first point.
+        x1 : float
+            Position of the second point.
+        y0 : float
+            Value of the function evaluated at the first point.
+        y1 : float
+            Value of the function evaluated at the second point.
+        y : float
+            Value of the function at the desired point.
+
+        Returns
+        -------
+        float
+            The root of the linear interpolation function. This represents the
+            value of x at which the function evaluates to y.
+
+        Examples
+        --------
+        >>> from rocketpy import Function
+        >>> x0, x1, y0, y1, y = 0, 1, 0, 1, 0.5
+        >>> x = Function.linear_interpolation_root_finding(x0, x1, y0, y1, y)
+        >>> x
+        0.5
+        """
+        m = (y1 - y0) / (x1 - x0)
+        c = y0 - m * x0
+        return (y - c) / m
 
     # Input validators
     def __validate_source(self, source):
