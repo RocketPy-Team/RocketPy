@@ -1644,8 +1644,8 @@ class Flight:
         # Retrieve necessary quantities
         rho = self.env.density.get_value_opt(z)
         total_mass = self.rocket.total_mass.get_value_opt(t)
-        total_mass_dot = self.rocket.total_mass.differentiate(t)
-        total_mass_ddot = self.rocket.total_mass.differentiate(t, order=2)
+        total_mass_dot = self.rocket.total_mass_flow_rate.get_value_opt(t)
+        total_mass_ddot = self.rocket.total_mass_flow_rate.differentiate(t)
         ## CM position vector and time derivatives relative to CDM in body frame
         r_CM_z = (
             -1
