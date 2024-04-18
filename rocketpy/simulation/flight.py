@@ -580,8 +580,6 @@ class Flight:
         -------
         None
         """
-        # Fetch helper classes and functions
-        TimeNodes = self.TimeNodes
         time_iterator = self.time_iterator
 
         # Save rocket, parachutes, environment, maximum simulation time
@@ -656,37 +654,37 @@ class Flight:
             # print('\tTolerances: ', self.rtol, self.atol)
 
             # Initialize phase time nodes
-            phase.TimeNodes = TimeNodes()
+            phase.time_nodes = self.TimeNodes()
             # Add first time node to permanent list
-            phase.TimeNodes.add_node(phase.t, [], [])
+            phase.time_nodes.add_node(phase.t, [], [])
             # Add non-overshootable parachute time nodes
             if self.time_overshoot is False:
-                phase.TimeNodes.add_parachutes(
+                phase.time_nodes.add_parachutes(
                     self.parachutes, phase.t, phase.time_bound
                 )
-                phase.TimeNodes.add_controllers(
+                phase.time_nodes.add_controllers(
                     self._controllers, phase.t, phase.time_bound
                 )
             # Add lst time node to permanent list
-            phase.TimeNodes.add_node(phase.time_bound, [], [])
+            phase.time_nodes.add_node(phase.time_bound, [], [])
             # Sort time nodes
-            phase.TimeNodes.sort()
+            phase.time_nodes.sort()
             # Merge equal time nodes
-            phase.TimeNodes.merge()
+            phase.time_nodes.merge()
             # Clear triggers from first time node if necessary
             if phase.clear:
-                phase.TimeNodes[0].parachutes = []
-                phase.TimeNodes[0].callbacks = []
+                phase.time_nodes[0].parachutes = []
+                phase.time_nodes[0].callbacks = []
 
             # print('\n\tPhase Time Nodes')
-            # print('\tTime Nodes Length: ', str(len(phase.TimeNodes)), ' | Time Nodes Preview: ', phase.TimeNodes[0:3])
+            # print('\tTime Nodes Length: ', str(len(phase.time_nodes)), ' | Time Nodes Preview: ', phase.time_nodes[0:3])
 
             # Iterate through time nodes
-            for node_index, node in time_iterator(phase.TimeNodes):
+            for node_index, node in time_iterator(phase.time_nodes):
                 # print('\n\t\tCurrent Time Node')
                 # print('\t\tIndex: ', node_index, ' | Time Node: ', node)
                 # Determine time bound for this time node
-                node.time_bound = phase.TimeNodes[node_index + 1].t
+                node.time_bound = phase.time_nodes[node_index + 1].t
                 phase.solver.t_bound = node.time_bound
                 phase.solver._lsoda_solver._integrator.rwork[0] = phase.solver.t_bound
                 phase.solver._lsoda_solver._integrator.call_args[4] = (
@@ -747,8 +745,8 @@ class Flight:
                             index=phase_index + i,
                         )
                         # Prepare to leave loops and start new flight phase
-                        phase.TimeNodes.flush_after(node_index)
-                        phase.TimeNodes.add_node(self.t, [], [])
+                        phase.time_nodes.flush_after(node_index)
+                        phase.time_nodes.add_node(self.t, [], [])
                         phase.solver.status = "finished"
                         # Save parachute event
                         self.parachute_events.append([self.t, parachute])
@@ -855,8 +853,8 @@ class Flight:
                             index=phase_index + 1,
                         )
                         # Prepare to leave loops and start new flight phase
-                        phase.TimeNodes.flush_after(node_index)
-                        phase.TimeNodes.add_node(self.t, [], [])
+                        phase.time_nodes.flush_after(node_index)
+                        phase.time_nodes.add_node(self.t, [], [])
                         phase.solver.status = "finished"
 
                     # Check for apogee event
@@ -886,8 +884,8 @@ class Flight:
                             self.flight_phases.flush_after(phase_index)
                             self.flight_phases.add_phase(self.t)
                             # Prepare to leave loops and start new flight phase
-                            phase.TimeNodes.flush_after(node_index)
-                            phase.TimeNodes.add_node(self.t, [], [])
+                            phase.time_nodes.flush_after(node_index)
+                            phase.time_nodes.add_node(self.t, [], [])
                             phase.solver.status = "finished"
                     # Check for impact event
                     if self.y_sol[2] < self.env.elevation:
@@ -949,14 +947,14 @@ class Flight:
                         self.flight_phases.flush_after(phase_index)
                         self.flight_phases.add_phase(self.t)
                         # Prepare to leave loops and start new flight phase
-                        phase.TimeNodes.flush_after(node_index)
-                        phase.TimeNodes.add_node(self.t, [], [])
+                        phase.time_nodes.flush_after(node_index)
+                        phase.time_nodes.add_node(self.t, [], [])
                         phase.solver.status = "finished"
 
                     # List and feed overshootable time nodes
                     if self.time_overshoot:
                         # Initialize phase overshootable time nodes
-                        overshootable_nodes = TimeNodes()
+                        overshootable_nodes = self.TimeNodes()
                         # Add overshootable parachute time nodes
                         overshootable_nodes.add_parachutes(
                             self.parachutes, self.solution[-2][0], self.t
@@ -1057,8 +1055,8 @@ class Flight:
                                         overshootable_nodes.flush_after(
                                             overshootable_index
                                         )
-                                        phase.TimeNodes.flush_after(node_index)
-                                        phase.TimeNodes.add_node(self.t, [], [])
+                                        phase.time_nodes.flush_after(node_index)
+                                        phase.time_nodes.add_node(self.t, [], [])
                                         phase.solver.status = "finished"
                                         # Save parachute event
                                         self.parachute_events.append(
