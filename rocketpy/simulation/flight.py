@@ -812,11 +812,15 @@ class Flight:
                         self.solution[-2][3] += self.env.elevation
                         self.solution[-1][3] += self.env.elevation
                         # Cubic Hermite interpolation (ax**3 + bx**2 + cx + d)
-                        D = float(phase.solver.step_size)
-                        d = float(y0)
-                        c = float(yp0)
-                        b = float((3 * y1 - yp1 * D - 2 * c * D - 3 * d) / (D**2))
-                        a = float(-(2 * y1 - yp1 * D - c * D - 2 * d) / (D**3)) + 1e-5
+                        a, b, c, d = Function.calculate_cubic_hermite_coefficients(
+                            0,
+                            float(phase.solver.step_size),
+                            y0,
+                            yp0,
+                            y1,
+                            yp1,
+                        )
+                        a += 1e-5  # TODO: why??
                         # Find roots
                         t_roots = Function.cardanos_root_finding(a, b, c, d)
                         # Find correct root
@@ -884,33 +888,21 @@ class Flight:
                             phase.solver.status = "finished"
                     # Check for impact event
                     if self.y_sol[2] < self.env.elevation:
-                        # print('\nPASSIVE EVENT DETECTED')
-                        # print('Rocket Has Reached Ground!')
-                        # Impact reported
-                        # Check exactly when it went out using root finding
-                        # States before and after
-                        # t0 -> 0
-                        # Disconsider elevation
-                        self.solution[-2][3] -= self.env.elevation
-                        self.solution[-1][3] -= self.env.elevation
-                        # Get points
-                        y0 = self.solution[-2][3]
-                        yp0 = self.solution[-2][6]
-                        t1 = self.solution[-1][0] - self.solution[-2][0]
-                        y1 = self.solution[-1][3]
-                        yp1 = self.solution[-1][6]
-                        # Put elevation back
-                        self.solution[-2][3] += self.env.elevation
-                        self.solution[-1][3] += self.env.elevation
+                        # print('\n>>>PASSIVE EVENT DETECTED: Touchdown!')
+                        # Check exactly when it happened using root finding
                         # Cubic Hermite interpolation (ax**3 + bx**2 + cx + d)
-                        D = float(phase.solver.step_size)
-                        d = float(y0)
-                        c = float(yp0)
-                        b = float((3 * y1 - yp1 * D - 2 * c * D - 3 * d) / (D**2))
-                        a = float(-(2 * y1 - yp1 * D - c * D - 2 * d) / (D**3))
+                        a, b, c, d = Function.calculate_cubic_hermite_coefficients(
+                            x0=0,  # t0
+                            x1=float(phase.solver.step_size),  # t1 - t0
+                            y0=float(self.solution[-2][3] - self.env.elevation),  # z0
+                            yp0=float(self.solution[-2][6]),  # vz0
+                            y1=float(self.solution[-1][3] - self.env.elevation),  # z1
+                            yp1=float(self.solution[-1][6]),  # vz1
+                        )
                         # Find roots
                         t_roots = Function.cardanos_root_finding(a, b, c, d)
                         # Find correct root
+                        t1 = self.solution[-1][0] - self.solution[-2][0]
                         valid_t_root = [
                             t_root.real
                             for t_root in t_roots
@@ -921,18 +913,16 @@ class Flight:
                                 "Multiple roots found when solving for impact time."
                             )
                         # Determine impact state at t_root
-                        self.t = valid_t_root[0] + self.solution[-2][0]
+                        self.t = self.t_final = valid_t_root[0] + self.solution[-2][0]
                         interpolator = phase.solver.dense_output()
-                        self.y_sol = interpolator(self.t)
+                        self.y_sol = self.impact_state = interpolator(self.t)
                         # Roll back solution
                         self.solution[-1] = [self.t, *self.y_sol]
                         # Save impact state
-                        self.impact_state = self.y_sol
                         self.x_impact = self.impact_state[0]
                         self.y_impact = self.impact_state[1]
                         self.z_impact = self.impact_state[2]
                         self.impact_velocity = self.impact_state[5]
-                        self.t_final = self.t
                         # Set last flight phase
                         self.flight_phases.flush_after(phase_index)
                         self.flight_phases.add_phase(self.t)
