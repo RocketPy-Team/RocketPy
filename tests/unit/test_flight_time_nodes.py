@@ -53,14 +53,14 @@ def test_time_nodes_add_node(flight_calisto):
 
 def test_time_nodes_sort(flight_calisto):
     time_nodes = flight_calisto.TimeNodes()
-    time_nodes.add(3.0)
-    time_nodes.add(1.0)
-    time_nodes.add(2.0)
+    time_nodes.add_node(3.0, [], [])
+    time_nodes.add_node(1.0, [], [])
+    time_nodes.add_node(2.0, [], [])
     time_nodes.sort()
     assert len(time_nodes) == 3
-    assert time_nodes[0] == 1.0
-    assert time_nodes[1] == 2.0
-    assert time_nodes[2] == 3.0
+    assert time_nodes[0].t == 1.0
+    assert time_nodes[1].t == 2.0
+    assert time_nodes[2].t == 3.0
 
 
 def test_time_nodes_merge(flight_calisto):
@@ -80,13 +80,13 @@ def test_time_nodes_merge(flight_calisto):
 
 def test_time_nodes_flush_after(flight_calisto):
     time_nodes = flight_calisto.TimeNodes()
-    time_nodes.add(1.0)
-    time_nodes.add(2.0)
-    time_nodes.add(3.0)
+    time_nodes.add_node(1.0, [], [])
+    time_nodes.add_node(2.0, [], [])
+    time_nodes.add_node(3.0, [], [])
     time_nodes.flush_after(1)
     assert len(time_nodes) == 2
-    assert time_nodes[0] == 1.0
-    assert time_nodes[1] == 2.0
+    assert time_nodes[0].t == 1.0
+    assert time_nodes[1].t == 2.0
 
 
 def test_time_node_init(flight_calisto):

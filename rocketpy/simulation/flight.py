@@ -616,9 +616,6 @@ class Flight:
         self.prints = _FlightPrints(self)
         self.plots = _FlightPlots(self)
 
-        # Initialize solver monitors
-        self.__init_solver_monitors()
-
         # Create known flight phases
         self.FlightPhases = FlightPhases()
         self.FlightPhases.add_phase(
@@ -767,7 +764,7 @@ class Flight:
                     # Update time and state
                     self.t = phase.solver.t
                     self.y_sol = phase.solver.y
-                    if verbose:  # TODO: change verbose to a logging.
+                    if verbose:
                         print(f"Current Simulation Time: {self.t:3.4f} s", end="\r")
                     # print("\n\t\t\tCurrent Step Details:")
                     # print(
@@ -852,9 +849,6 @@ class Flight:
                         self.out_of_rail_time = self.t
                         self.out_of_rail_time_index = len(self.solution) - 1
                         self.out_of_rail_state = self.y_sol
-                        self.out_of_rail_velocity = (
-                            self.y_sol[3] ** 2 + self.y_sol[4] ** 2 + self.y_sol[5] ** 2
-                        ) ** (0.5)
                         # Create new flight phase
                         self.FlightPhases.add_phase(
                             self.t,
@@ -882,9 +876,6 @@ class Flight:
                         self.apogee_state = interpolator(t_root)
                         # Store apogee data
                         self.apogee_time = t_root
-                        self.apogee_x = self.apogee_state[0]
-                        self.apogee_y = self.apogee_state[1]
-                        self.apogee = self.apogee_state[2]
                         if self.terminate_on_apogee:
                             # print('Terminate on Apogee Activated!')
                             self.t = t_root
@@ -1080,22 +1071,13 @@ class Flight:
         if verbose:
             print("Simulation Completed at Time: {:3.4f} s".format(self.t))
 
-    def __init_post_process_variables(self):
-        """Initialize post-process variables."""
-        # Initialize all variables calculated after initialization.
-        # Important to do so that MATLAB® can access them
-        self._drift = Function(0)
-        self._bearing = Function(0)
-        self._latitude = Function(0)
-        self._longitude = Function(0)
-
     def __init_solution_monitors(self):
         # Initialize solution monitors
         self.out_of_rail_time = 0
         self.out_of_rail_time_index = 0
         self.out_of_rail_state = np.array([0])
         self.apogee_state = np.array([0])
-        # self.apogee_time = 0
+        self.apogee_time = 0
         self.x_impact = 0
         self.y_impact = 0
         self.impact_velocity = 0
@@ -2046,6 +2028,21 @@ class Flight:
         """Rocket z position as a Function of time."""
         return self.solution_array[:, [0, 3]]
 
+    @property
+    def apogee_x(self):
+        """Rocket x position at apogee."""
+        return self.x.get_value_opt(self.apogee_time)
+
+    @property
+    def apogee_y(self):
+        """Rocket y position at apogee."""
+        return self.y.get_value_opt(self.apogee_time)
+
+    @property
+    def apogee(self):
+        """Rocket z position at apogee."""
+        return self.z.get_value_opt(self.apogee_time)
+
     @funcify_method("Time (s)", "Altitude AGL (m)", "spline", "constant")
     def altitude(self):
         """Rocket altitude above ground level as a Function of time."""
@@ -2211,6 +2208,11 @@ class Flight:
     def speed(self):
         """Rocket speed, or velocity magnitude, as a Function of time."""
         return (self.vx**2 + self.vy**2 + self.vz**2) ** 0.5
+
+    @property
+    def out_of_rail_velocity(self):
+        """Velocity at which the rocket leaves the launch rail."""
+        return self.speed.get_value_opt(self.out_of_rail_time)
 
     @cached_property
     def max_speed_time(self):
