@@ -188,7 +188,7 @@ class Flight:
     Flight.time_steps : array
         List of time steps taking during numerical integration in
         seconds.
-    Flight.FlightPhases : Flight.FlightPhases
+    Flight.flight_phases : Flight.FlightPhases
         Stores and manages flight phases.
     Flight.wind_velocity_x : Function
         Wind velocity X (East) experienced by the rocket as a
@@ -581,7 +581,6 @@ class Flight:
         None
         """
         # Fetch helper classes and functions
-        FlightPhases = self.FlightPhases
         TimeNodes = self.TimeNodes
         time_iterator = self.time_iterator
 
@@ -617,20 +616,20 @@ class Flight:
         self.plots = _FlightPlots(self)
 
         # Create known flight phases
-        self.FlightPhases = FlightPhases()
-        self.FlightPhases.add_phase(
+        self.flight_phases = self.FlightPhases()
+        self.flight_phases.add_phase(
             self.t_initial, self.initial_derivative, clear=False
         )
-        self.FlightPhases.add_phase(self.max_time)
+        self.flight_phases.add_phase(self.max_time)
 
         # Simulate flight
-        for phase_index, phase in time_iterator(self.FlightPhases):
+        for phase_index, phase in time_iterator(self.flight_phases):
             # print('\nCurrent Flight Phase List')
-            # print(self.FlightPhases)
+            # print(self.flight_phases)
             # print('\n\tCurrent Flight Phase')
             # print('\tIndex: ', phase_index, ' | Phase: ', phase)
             # Determine maximum time for this flight phase
-            phase.time_bound = self.FlightPhases[phase_index + 1].t
+            phase.time_bound = self.flight_phases[phase_index + 1].t
 
             # Evaluate callbacks
             for callback in phase.callbacks:
@@ -727,7 +726,7 @@ class Flight:
                         # Must only be created if parachute has any lag
                         i = 1
                         if parachute.lag != 0:
-                            self.FlightPhases.add_phase(
+                            self.flight_phases.add_phase(
                                 node.t,
                                 phase.derivative,
                                 clear=True,
@@ -740,7 +739,7 @@ class Flight:
                                 self, "parachute_cd_s", parachute_cd_s
                             )
                         ]
-                        self.FlightPhases.add_phase(
+                        self.flight_phases.add_phase(
                             node.t + parachute.lag,
                             self.u_dot_parachute,
                             callbacks,
@@ -850,7 +849,7 @@ class Flight:
                         self.out_of_rail_time_index = len(self.solution) - 1
                         self.out_of_rail_state = self.y_sol
                         # Create new flight phase
-                        self.FlightPhases.add_phase(
+                        self.flight_phases.add_phase(
                             self.t,
                             self.u_dot_generalized,
                             index=phase_index + 1,
@@ -884,8 +883,8 @@ class Flight:
                             # Roll back solution
                             self.solution[-1] = [self.t, *self.state]
                             # Set last flight phase
-                            self.FlightPhases.flush_after(phase_index)
-                            self.FlightPhases.add_phase(self.t)
+                            self.flight_phases.flush_after(phase_index)
+                            self.flight_phases.add_phase(self.t)
                             # Prepare to leave loops and start new flight phase
                             phase.TimeNodes.flush_after(node_index)
                             phase.TimeNodes.add_node(self.t, [], [])
@@ -947,8 +946,8 @@ class Flight:
                         self.impact_velocity = self.impact_state[5]
                         self.t_final = self.t
                         # Set last flight phase
-                        self.FlightPhases.flush_after(phase_index)
-                        self.FlightPhases.add_phase(self.t)
+                        self.flight_phases.flush_after(phase_index)
+                        self.flight_phases.add_phase(self.t)
                         # Prepare to leave loops and start new flight phase
                         phase.TimeNodes.flush_after(node_index)
                         phase.TimeNodes.add_node(self.t, [], [])
@@ -1027,7 +1026,7 @@ class Flight:
                                         # Must only be created if parachute has any lag
                                         i = 1
                                         if parachute.lag != 0:
-                                            self.FlightPhases.add_phase(
+                                            self.flight_phases.add_phase(
                                                 overshootable_node.t,
                                                 phase.derivative,
                                                 clear=True,
@@ -1040,7 +1039,7 @@ class Flight:
                                                 self, "parachute_cd_s", parachute_cd_s
                                             )
                                         ]
-                                        self.FlightPhases.add_phase(
+                                        self.flight_phases.add_phase(
                                             overshootable_node.t + parachute.lag,
                                             self.u_dot_parachute,
                                             callbacks,
@@ -2843,9 +2842,9 @@ class Flight:
         alpha1, alpha2, alpha3 = [[0, 0]], [[0, 0]], [[0, 0]]
         # Go through each time step and calculate accelerations
         # Get flight phases
-        for phase_index, phase in self.time_iterator(self.FlightPhases):
+        for phase_index, phase in self.time_iterator(self.flight_phases):
             init_time = phase.t
-            final_time = self.FlightPhases[phase_index + 1].t
+            final_time = self.flight_phases[phase_index + 1].t
             current_derivative = phase.derivative
             # Call callback functions
             for callback in phase.callbacks:
@@ -2920,9 +2919,9 @@ class Flight:
 
         # Go through each time step and calculate forces and atmospheric values
         # Get flight phases
-        for phase_index, phase in self.time_iterator(self.FlightPhases):
+        for phase_index, phase in self.time_iterator(self.flight_phases):
             init_time = phase.t
-            final_time = self.FlightPhases[phase_index + 1].t
+            final_time = self.flight_phases[phase_index + 1].t
             current_derivative = phase.derivative
             # Call callback functions
             for callback in phase.callbacks:
