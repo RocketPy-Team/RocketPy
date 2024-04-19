@@ -1333,8 +1333,7 @@ class Flight:
         # Retrieve integration data
         x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
         # Determine lift force and moment
-        R1, R2 = 0, 0
-        M1, M2, M3 = 0, 0, 0
+        R1, R2, M1, M2, M3 = 0, 0, 0, 0, 0
         # Determine current behavior
         if t < self.rocket.motor.burn_out_time:
             # Motor burning
@@ -1397,8 +1396,6 @@ class Flight:
         a33 = 1 - 2 * (e1**2 + e2**2)
         # Transformation matrix: (123) -> (XYZ)
         K = [[a11, a12, a13], [a21, a22, a23], [a31, a32, a33]]
-        # Transformation matrix: (XYZ) -> (123) or K transpose
-        Kt = [[a11, a21, a31], [a12, a22, a32], [a13, a23, a33]]
 
         # Calculate Forces and Moments
         # Get freestream speed
@@ -1633,11 +1630,8 @@ class Flight:
             * self.rocket._csys
         )
         S_noz_33 = 0.5 * self.rocket.motor.nozzle_radius**2
-        S_noz_11 = 0.5 * S_noz_33 + 0.25 * r_NOZ**2
-        S_noz_22 = S_noz_11
-        S_noz_12 = 0
-        S_noz_13 = 0
-        S_noz_23 = 0
+        S_noz_11 = S_noz_22 = 0.5 * S_noz_33 + 0.25 * r_NOZ**2
+        S_noz_12, S_noz_13, S_noz_23 = 0, 0, 0
         S_nozzle = Matrix(
             [
                 [S_noz_11, S_noz_12, S_noz_13],
@@ -1690,7 +1684,9 @@ class Flight:
         wind_velocity_y = self.env.wind_velocity_y.get_value_opt(z)
         wind_velocity = Vector([wind_velocity_x, wind_velocity_y, 0])
         free_stream_speed = abs((wind_velocity - Vector(v)))
-        free_stream_mach = free_stream_speed / self.env.speed_of_sound.get_value_opt(z)
+        speed_of_sound = self.env.speed_of_sound.get_value_opt(z)
+        free_stream_mach = free_stream_speed / speed_of_sound
+
         if t < self.rocket.motor.burn_out_time:
             drag_coeff = self.rocket.power_on_drag.get_value_opt(free_stream_mach)
         else:
@@ -1737,13 +1733,11 @@ class Flight:
             comp_stream_velocity = comp_wind_vb - comp_vb
             comp_stream_vx_b, comp_stream_vy_b, comp_stream_vz_b = comp_stream_velocity
             comp_stream_speed = abs(comp_stream_velocity)
-            comp_stream_mach = (
-                comp_stream_speed / self.env.speed_of_sound.get_value_opt(z)
-            )
+            comp_stream_mach = comp_stream_speed / speed_of_sound
             # Component attack angle and lift force
             comp_attack_angle = 0
             comp_lift, comp_lift_xb, comp_lift_yb = 0, 0, 0
-            if comp_stream_vx_b**2 + comp_stream_vy_b**2 != 0:
+            if comp_stream_vx_b**2 + comp_stream_vy_b**2 != 0:  # TODO: maybe try/except
                 # Normalize component stream velocity in body frame
                 comp_stream_vz_bn = comp_stream_vz_b / comp_stream_speed
                 if -1 * comp_stream_vz_bn < 1:
@@ -1789,15 +1783,13 @@ class Flight:
                 pass
         weightB = Kt @ Vector([0, 0, -total_mass * self.env.gravity.get_value_opt(z)])
         T00 = total_mass * r_CM
-        T03 = (
-            2 * total_mass_dot * (Vector([0, 0, r_NOZ]) - r_CM)
-            - 2 * total_mass * r_CM_dot
-        )
+        r_NOZ_vector = Vector([0, 0, r_NOZ])
+        T03 = 2 * total_mass_dot * (r_NOZ_vector - r_CM) - 2 * total_mass * r_CM_dot
         T04 = (
             self.rocket.motor.thrust.get_value_opt(t) * Vector([0, 0, 1])
             - total_mass * r_CM_ddot
             - 2 * total_mass_dot * r_CM_dot
-            + total_mass_ddot * (Vector([0, 0, r_NOZ]) - r_CM)
+            + total_mass_ddot * (r_NOZ_vector - r_CM)
         )
         T05 = total_mass_dot * S_nozzle - I_dot
 
@@ -2075,19 +2067,19 @@ class Flight:
     def R1(self):
         """Aerodynamic force along the first axis that is perpendicular to the
         rocket's axis of symmetry as a Function of time."""
-        return self.retrieve_temporary_values_arrays[0]
+        return np.column_stack([self.time, self.retrieve_temporary_values_arrays[0]])
 
     @funcify_method("Time (s)", "R2 (N)", "spline", "zero")
     def R2(self):
         """Aerodynamic force along the second axis that is perpendicular to the
         rocket's axis of symmetry as a Function of time."""
-        return self.retrieve_temporary_values_arrays[1]
+        return np.column_stack([self.time, self.retrieve_temporary_values_arrays[1]])
 
     @funcify_method("Time (s)", "R3 (N)", "spline", "zero")
     def R3(self):
         """Aerodynamic force along the rocket's axis of symmetry as a
         Function of time."""
-        return self.retrieve_temporary_values_arrays[2]
+        return np.column_stack([self.time, self.retrieve_temporary_values_arrays[2]])
 
     @funcify_method("Time (s)", "M1 (Nm)", "spline", "zero")
     def M1(self):
@@ -2095,20 +2087,20 @@ class Flight:
         perpendicular to the rocket's axis of symmetry as a Function of
         time.
         """
-        return self.retrieve_temporary_values_arrays[3]
+        return np.column_stack([self.time, self.retrieve_temporary_values_arrays[3]])
 
     @funcify_method("Time (s)", "M2 (Nm)", "spline", "zero")
     def M2(self):
         """Aerodynamic bending moment in the same direction as the axis that is
         perpendicular to the rocket's axis of symmetry as a Function
         of time."""
-        return self.retrieve_temporary_values_arrays[4]
+        return np.column_stack([self.time, self.retrieve_temporary_values_arrays[4]])
 
     @funcify_method("Time (s)", "M3 (Nm)", "spline", "zero")
     def M3(self):
         """Aerodynamic bending moment in the same direction as the rocket's
         axis of symmetry as a Function of time."""
-        return self.retrieve_temporary_values_arrays[5]
+        return np.column_stack([self.time, self.retrieve_temporary_values_arrays[5]])
 
     @funcify_method("Time (s)", "Pressure (Pa)", "spline", "constant")
     def pressure(self):
@@ -2260,8 +2252,7 @@ class Flight:
         attitude_angle = (180 / np.pi) * np.arctan2(
             self.attitude_vector_z[:, 1], horizontal_attitude_proj[:, 1]
         )
-        attitude_angle = np.column_stack([self.time, attitude_angle])
-        return attitude_angle
+        return np.column_stack([self.time, attitude_angle])
 
     # Lateral Attitude Angle
     @funcify_method("Time (s)", "Lateral Attitude Angle (°)")
@@ -2323,24 +2314,17 @@ class Flight:
     @funcify_method("Time (s)", "Freestream Velocity X (m/s)", "spline", "constant")
     def stream_velocity_x(self):
         """Freestream velocity X component as a Function of time."""
-        stream_velocity_x = np.column_stack(
-            (self.time, self.wind_velocity_x[:, 1] - self.vx[:, 1])
-        )
-        return stream_velocity_x
+        return np.column_stack((self.time, self.wind_velocity_x[:, 1] - self.vx[:, 1]))
 
     @funcify_method("Time (s)", "Freestream Velocity Y (m/s)", "spline", "constant")
     def stream_velocity_y(self):
         """Freestream velocity Y component as a Function of time."""
-        stream_velocity_y = np.column_stack(
-            (self.time, self.wind_velocity_y[:, 1] - self.vy[:, 1])
-        )
-        return stream_velocity_y
+        return np.column_stack((self.time, self.wind_velocity_y[:, 1] - self.vy[:, 1]))
 
     @funcify_method("Time (s)", "Freestream Velocity Z (m/s)", "spline", "constant")
     def stream_velocity_z(self):
         """Freestream velocity Z component as a Function of time."""
-        stream_velocity_z = np.column_stack((self.time, -self.vz[:, 1]))
-        return stream_velocity_z
+        return np.column_stack((self.time, -self.vz[:, 1]))
 
     @funcify_method("Time (s)", "Freestream Speed (m/s)", "spline", "constant")
     def free_stream_speed(self):
@@ -2511,7 +2495,7 @@ class Flight:
         # Redefine total_mass time grid to allow for efficient Function algebra
         total_mass = deepcopy(self.rocket.total_mass)
         total_mass.set_discrete_based_on_model(self.vz)
-        translational_energy = 0.5 * total_mass * (self.vx**2 + self.vy**2 + self.vz**2)
+        translational_energy = 0.5 * total_mass * (self.speed**2)
         return translational_energy
 
     @funcify_method("Time (s)", "Kinetic Energy (J)", "spline", "zero")
@@ -2585,9 +2569,8 @@ class Flight:
 
         # Calculate angle of attack and convert to degrees
         angle_of_attack = np.rad2deg(np.arccos(dot_product_normalized))
-        angle_of_attack = np.column_stack([self.time, angle_of_attack])
 
-        return angle_of_attack
+        return np.column_stack([self.time, angle_of_attack])
 
     # Frequency response and stability variables
     @funcify_method("Frequency (Hz)", "ω1 Fourier Amplitude", "spline", "zero")
@@ -3039,9 +3022,8 @@ class Flight:
         """
         v_f = self.out_of_rail_velocity
 
-        # Convert angle to radians
-        theta = self.inclination * 3.14159265359 / 180
-        stall_angle = stall_angle * 3.14159265359 / 180
+        theta = np.radians(self.inclination)
+        stall_angle = np.radians(stall_angle)
 
         c = (math.cos(stall_angle) ** 2 - math.cos(theta) ** 2) / math.sin(
             stall_angle
@@ -3055,16 +3037,13 @@ class Flight:
             ** 0.5
         ) / 2
 
-        # Convert stall_angle to degrees
-        stall_angle = stall_angle * 180 / np.pi
+        stall_angle = np.degrees(stall_angle)
         print(
             "Maximum wind velocity at Rail Departure time before angle"
             + f" of attack exceeds {stall_angle:.3f}°: {w_v:.3f} m/s"
         )
 
-        return None
-
-    def export_pressures(self, file_name, time_step):
+    def export_pressures(self, file_name, time_step):  # TODO: move out
         """Exports the pressure experienced by the rocket during the flight to
         an external file, the '.csv' format is recommended, as the columns will
         be separated by commas. It can handle flights with or without
@@ -3129,6 +3108,7 @@ class Flight:
             will be exported. Otherwise, linear interpolation is carried out to
             calculate values at the desired time steps. Example: 0.001.
         """
+        # TODO: we should move this method to outside of class.
 
         # Fast evaluation for the most basic scenario
         if time_step is None and len(variables) == 0:
@@ -3254,33 +3234,33 @@ class Flight:
         # Open kml file with simplekml library
         kml = simplekml.Kml(open=1)
         trajectory = kml.newlinestring(name="Rocket Trajectory - Powered by RocketPy")
-        coords = []
+
         if altitude_mode == "relativetoground":
             # In this mode the elevation data will be the Above Ground Level
             # elevation. Only works properly if the ground level is similar to
             # a plane, i.e. it might not work well if the terrain has mountains
-            for t in time_points:
-                coords.append(
-                    (
-                        self.longitude.get_value_opt(t),
-                        self.latitude.get_value_opt(t),
-                        self.altitude.get_value_opt(t),
-                    )
+            coords = [
+                (
+                    self.longitude.get_value_opt(t),
+                    self.latitude.get_value_opt(t),
+                    self.altitude.get_value_opt(t),
                 )
+                for t in time_points
+            ]
             trajectory.coords = coords
             trajectory.altitudemode = simplekml.AltitudeMode.relativetoground
         else:  # altitude_mode == 'absolute'
             # In this case the elevation data will be the Above Sea Level elevation
             # Ensure you use the correct value on self.env.elevation, otherwise
             # the trajectory path can be offset from ground
-            for t in time_points:
-                coords.append(
-                    (
-                        self.longitude.get_value_opt(t),
-                        self.latitude.get_value_opt(t),
-                        self.z.get_value_opt(t),
-                    )
+            coords = [
+                (
+                    self.longitude.get_value_opt(t),
+                    self.latitude.get_value_opt(t),
+                    self.z.get_value_opt(t),
                 )
+                for t in time_points
+            ]
             trajectory.coords = coords
             trajectory.altitudemode = simplekml.AltitudeMode.absolute
         # Modify style of trajectory linestring
@@ -3536,14 +3516,14 @@ class Flight:
             self.list.append(self.TimeNode(t, parachutes, callbacks))
 
         def add_parachutes(self, parachutes, t_init, t_end):
-            # Iterate over parachutes
             for parachute in parachutes:
                 # Calculate start of sampling time nodes
-                pcDt = 1 / parachute.sampling_rate
+                sampling_interval = 1 / parachute.sampling_rate
                 parachute_node_list = [
-                    self.TimeNode(i * pcDt, [parachute], [])
+                    self.TimeNode(i * sampling_interval, [parachute], [])
                     for i in range(
-                        math.ceil(t_init / pcDt), math.floor(t_end / pcDt) + 1
+                        math.ceil(t_init / sampling_interval),
+                        math.floor(t_end / sampling_interval) + 1,
                     )
                 ]
                 self.list += parachute_node_list
