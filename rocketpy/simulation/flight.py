@@ -1570,28 +1570,7 @@ class Flight:
         ]
 
         if post_processing:
-            # Dynamics variables
-            self.R1_list.append([t, R1])
-            self.R2_list.append([t, R2])
-            self.R3_list.append([t, R3])
-            self.M1_list.append([t, M1])
-            self.M2_list.append([t, M2])
-            self.M3_list.append([t, M3])
-            # Atmospheric Conditions
-            self.wind_velocity_x_list.append(
-                [t, self.env.wind_velocity_x.get_value_opt(z)]
-            )
-            self.wind_velocity_y_list.append(
-                [t, self.env.wind_velocity_y.get_value_opt(z)]
-            )
-            self.density_list.append([t, self.env.density.get_value_opt(z)])
-            self.dynamic_viscosity_list.append(
-                [t, self.env.dynamic_viscosity.get_value_opt(z)]
-            )
-            self.pressure_list.append([t, self.env.pressure.get_value_opt(z)])
-            self.speed_of_sound_list.append(
-                [t, self.env.speed_of_sound.get_value_opt(z)]
-            )
+            u_dot.extend([R1, R2, R3, M1, M2, M3])
 
         return u_dot
 
@@ -1847,28 +1826,7 @@ class Flight:
         u_dot = [*r_dot, *v_dot, *e_dot, *w_dot]
 
         if post_processing:
-            # Dynamics variables
-            self.R1_list.append([t, R1])
-            self.R2_list.append([t, R2])
-            self.R3_list.append([t, R3])
-            self.M1_list.append([t, M1])
-            self.M2_list.append([t, M2])
-            self.M3_list.append([t, M3])
-            # Atmospheric Conditions
-            self.wind_velocity_x_list.append(
-                [t, self.env.wind_velocity_x.get_value_opt(z)]
-            )
-            self.wind_velocity_y_list.append(
-                [t, self.env.wind_velocity_y.get_value_opt(z)]
-            )
-            self.density_list.append([t, self.env.density.get_value_opt(z)])
-            self.dynamic_viscosity_list.append(
-                [t, self.env.dynamic_viscosity.get_value_opt(z)]
-            )
-            self.pressure_list.append([t, self.env.pressure.get_value_opt(z)])
-            self.speed_of_sound_list.append(
-                [t, self.env.speed_of_sound.get_value_opt(z)]
-            )
+            u_dot.extend([R1, R2, R3, M1, M2, M3])
 
         return u_dot
 
@@ -1931,28 +1889,7 @@ class Flight:
         az = (Dz - 9.8 * mp) / (mp + ma)
 
         if post_processing:
-            # Dynamics variables
-            self.R1_list.append([t, Dx])
-            self.R2_list.append([t, Dy])
-            self.R3_list.append([t, Dz])
-            self.M1_list.append([t, 0])
-            self.M2_list.append([t, 0])
-            self.M3_list.append([t, 0])
-            # Atmospheric Conditions
-            self.wind_velocity_x_list.append(
-                [t, self.env.wind_velocity_x.get_value_opt(z)]
-            )
-            self.wind_velocity_y_list.append(
-                [t, self.env.wind_velocity_y.get_value_opt(z)]
-            )
-            self.density_list.append([t, self.env.density.get_value_opt(z)])
-            self.dynamic_viscosity_list.append(
-                [t, self.env.dynamic_viscosity.get_value_opt(z)]
-            )
-            self.pressure_list.append([t, self.env.pressure.get_value_opt(z)])
-            self.speed_of_sound_list.append(
-                [t, self.env.speed_of_sound.get_value_opt(z)]
-            )
+            return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0, Dx, Dy, Dz, 0, 0, 0]
 
         return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
 
@@ -2910,18 +2847,14 @@ class Flight:
         """
 
         # Initialize force and atmospheric arrays
-        self.R1_list = []
-        self.R2_list = []
-        self.R3_list = []
-        self.M1_list = []
-        self.M2_list = []
-        self.M3_list = []
-        self.pressure_list = []
-        self.density_list = []
-        self.dynamic_viscosity_list = []
-        self.speed_of_sound_list = []
-        self.wind_velocity_x_list = []
-        self.wind_velocity_y_list = []
+        temporary_values = [
+            [],  # R1_list
+            [],  # R2_list
+            [],  # R3_list
+            [],  # M1_list
+            [],  # M2_list
+            [],  # M3_list
+        ]
 
         # Go through each time step and calculate forces and atmospheric values
         # Get flight phases
@@ -2939,21 +2872,8 @@ class Flight:
                 ):
                     # Call derivatives in post processing mode
                     u_dot = current_derivative(step[0], step[1:], post_processing=True)
-
-        temporary_values = [
-            self.R1_list,
-            self.R2_list,
-            self.R3_list,
-            self.M1_list,
-            self.M2_list,
-            self.M3_list,
-            self.pressure_list,
-            self.density_list,
-            self.dynamic_viscosity_list,
-            self.speed_of_sound_list,
-            self.wind_velocity_x_list,
-            self.wind_velocity_y_list,
-        ]
+                    for i, value in enumerate(temporary_values):
+                        value.append(u_dot[i + 13])
 
         return temporary_values
 
