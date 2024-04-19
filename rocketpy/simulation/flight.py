@@ -860,11 +860,11 @@ class Flight:
                     if len(self.apogee_state) == 1 and self.y_sol[5] < 0:
                         # print("\n>>> EVENT DETECTED: Rocket has reached apogee")
                         # Assume linear vz(t) to detect when vz = 0
-                        vz0 = self.solution[-2][6]
-                        t0 = self.solution[-2][0]
-                        vz1 = self.solution[-1][6]
-                        t1 = self.solution[-1][0]
-                        t_root = -(t1 - t0) * vz0 / (vz1 - vz0) + t0
+                        t0, vz0 = self.solution[-2][0], self.solution[-2][6]
+                        t1, vz1 = self.solution[-1][0], self.solution[-1][6]
+                        t_root = Function.find_root_linear_interpolation(
+                            t0, t1, vz0, vz1, 0
+                        )
                         # Fetch state at t_root
                         interpolator = phase.solver.dense_output()
                         self.apogee_state = interpolator(t_root)
@@ -872,8 +872,9 @@ class Flight:
                         self.apogee_time = t_root
                         if self.terminate_on_apogee:
                             # print(">>> Terminate on apogee activated!")
+                            self.t = self.t_final = t_root
                             # Roll back solution
-                            self.solution[-1] = [self.t, *self.state]
+                            self.solution[-1] = [self.t, *self.apogee_state]
                             # Set last flight phase
                             self.flight_phases.flush_after(phase_index)
                             self.flight_phases.add_phase(self.t)
