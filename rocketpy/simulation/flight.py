@@ -712,19 +712,13 @@ class Flight:
 
                 for parachute in node.parachutes:
                     # Calculate and save pressure signal
-                    pressure = self.env.pressure.get_value_opt(self.y_sol[2])
-                    parachute.clean_pressure_signal.append([node.t, pressure])
-                    # Calculate and save noise
-                    noise = parachute.noise_function()
-                    parachute.noise_signal.append([node.t, noise])
-                    parachute.noisy_pressure_signal.append([node.t, pressure + noise])
-                    # Gets height above ground level considering noise
-                    height_above_ground_level = (
-                        self.env.barometric_height.get_value_opt(pressure + noise)
-                        - self.env.elevation
+                    noisy_pressure, height_above_ground_level = (
+                        self.__calculate_and_save_pressure_signals(
+                            parachute, node.t, self.y_sol[2]
+                        )
                     )
                     if parachute.triggerfunc(
-                        pressure + noise, height_above_ground_level, self.y_sol
+                        noisy_pressure, height_above_ground_level, self.y_sol
                     ):
                         # print("\nEVENT DETECTED: Parachute Triggered")
                         # print("Name: ", parachute.name, " | Lag: ", parachute.lag)
@@ -972,38 +966,24 @@ class Flight:
                                 #     overshootable_node,
                                 # )
                                 # Calculate state at node time
-                                overshootable_node.y = interpolator(
+                                overshootable_node.y_sol = interpolator(
                                     overshootable_node.t
                                 )
-                                # Calculate and save pressure signal
-                                pressure = self.env.pressure.get_value_opt(
-                                    overshootable_node.y[2]
-                                )
                                 for parachute in overshootable_node.parachutes:
-                                    # Save pressure signal
-                                    parachute.clean_pressure_signal.append(
-                                        [overshootable_node.t, pressure]
-                                    )
-                                    # Calculate and save noise
-                                    noise = parachute.noise_function()
-                                    parachute.noise_signal.append(
-                                        [overshootable_node.t, noise]
-                                    )
-                                    parachute.noisy_pressure_signal.append(
-                                        [overshootable_node.t, pressure + noise]
-                                    )
-                                    # Gets height above ground level considering noise
-                                    height_above_ground_level = (
-                                        self.env.barometric_height.get_value_opt(
-                                            pressure + noise
+                                    # Calculate and save pressure signal
+                                    noisy_pressure, height_above_ground_level = (
+                                        self.__calculate_and_save_pressure_signals(
+                                            parachute,
+                                            overshootable_node.t,
+                                            overshootable_node.y_sol[2],
                                         )
-                                        - self.env.elevation
                                     )
 
+                                    # Check for parachute trigger
                                     if parachute.triggerfunc(
-                                        pressure + noise,
+                                        noisy_pressure,
                                         height_above_ground_level,
-                                        overshootable_node.y,
+                                        overshootable_node.y_sol,
                                     ):
                                         # print(
                                         #     "\n>>> EVENT DETECTED: Parachute Triggered!"
@@ -1039,10 +1019,10 @@ class Flight:
                                         )
                                         # Rollback history
                                         self.t = overshootable_node.t
-                                        self.y_sol = overshootable_node.y
+                                        self.y_sol = overshootable_node.y_sol
                                         self.solution[-1] = [
                                             overshootable_node.t,
-                                            *overshootable_node.y,
+                                            *overshootable_node.y_sol,
                                         ]
                                         # Prepare to leave loops and start new flight phase
                                         overshootable_nodes.flush_after(
@@ -1059,7 +1039,42 @@ class Flight:
         self.t_final = self.t
         self._calculate_pressure_signal()
         if verbose:
-            print("Simulation Completed at Time: {:3.4f} s".format(self.t))
+            print(f"\n>>> Simulation Completed at Time: {self.t:3.4f} s")
+
+    def __calculate_and_save_pressure_signals(self, parachute, t, z):
+        """Gets noise and pressure signals and saves them in the parachute
+        object given the current time and altitude.
+
+        Parameters
+        ----------
+        parachute : Parachute
+            The parachute object to calculate signals for.
+        t : float
+            The current time in seconds.
+        z : float
+            The altitude above sea level in meters.
+
+        Returns
+        -------
+        tuple[float, float]
+            The noisy pressure and height above ground level.
+        """
+        # Calculate pressure and noise
+        pressure = self.env.pressure.get_value_opt(z)
+        noise = parachute.noise_function()
+        noisy_pressure = pressure + noise
+
+        # Stores in the parachute object
+        parachute.clean_pressure_signal.append([t, pressure])
+        parachute.noise_signal.append([t, noise])
+
+        # Gets height above ground level considering noise
+        height_above_ground_level = (
+            self.env.barometric_height.get_value_opt(noisy_pressure)
+            - self.env.elevation
+        )
+
+        return noisy_pressure, height_above_ground_level
 
     def __init_solution_monitors(self):
         # Initialize solution monitors
