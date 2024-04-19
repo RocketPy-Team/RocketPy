@@ -8,6 +8,7 @@ from scipy import stats
 
 from rocketpy.units import convert_units
 
+from .plot_helpers import show_or_save_plot
 from ..tools import find_two_closest_integers, import_optional_dependency
 
 # TODO: `wind_speed_limit` and `clear_range_limits` and should be numbers, not booleans
@@ -76,11 +77,16 @@ class _EnvironmentAnalysisPlots:
 
     # Surface level plots
 
-    def wind_gust_distribution(self):
+    def wind_gust_distribution(self, filename=None):
         """Get all values of wind gust speed (for every date and hour available)
         and plot a single distribution. Expected result is a Weibull distribution,
         however, the result is not always a perfect fit, and sometimes it may
         look like a normal distribution.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
         Returns
         -------
@@ -116,11 +122,11 @@ class _EnvironmentAnalysisPlots:
         plt.title("Wind Gust Speed Distribution (at surface)")
         plt.xlim(0, max(self.env_analysis.wind_gust_list))
         plt.legend()
-        plt.show()
+        show_or_save_plot(filename)
 
         return None
 
-    def surface10m_wind_speed_distribution(self, wind_speed_limit=False):
+    def surface10m_wind_speed_distribution(self, wind_speed_limit=False, filename=None):
         """Get all values of sustained surface wind speed (for every date and
         hour available) and plot a single distribution. Expected result is a
         Weibull distribution. The wind speed limit is plotted as a vertical line.
@@ -130,6 +136,8 @@ class _EnvironmentAnalysisPlots:
         wind_speed_limit : bool, optional
             If True, plots the wind speed limit as a vertical line. The default
             is False.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
         Returns
         -------
@@ -177,13 +185,18 @@ class _EnvironmentAnalysisPlots:
         plt.title("Sustained Wind Speed Distribution (at surface+10m)")
         plt.xlim(0, max(self.env_analysis.surface_10m_wind_speed_list))
         plt.legend()
-        plt.show()
+        show_or_save_plot(filename)
 
         return None
 
-    def average_surface_temperature_evolution(self):
+    def average_surface_temperature_evolution(self, filename=None):
         """Plots average temperature progression throughout the day, including
         sigma contours.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
         Returns
         -------
@@ -244,10 +257,12 @@ class _EnvironmentAnalysisPlots:
         plt.title("Average Temperature Along Day")
         plt.grid(alpha=0.25)
         plt.legend()
-        plt.show()
+        show_or_save_plot(filename)
         return None
 
-    def average_surface10m_wind_speed_evolution(self, wind_speed_limit=False):
+    def average_surface10m_wind_speed_evolution(
+        self, wind_speed_limit=False, filename=None
+    ):
         """Plots average surface wind speed progression throughout the day,
         including sigma contours.
 
@@ -256,6 +271,8 @@ class _EnvironmentAnalysisPlots:
         wind_speed_limit : bool, optional
             If True, plots the wind speed limit as a horizontal line. The default
             is False.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
         Returns
         -------
@@ -338,13 +355,18 @@ class _EnvironmentAnalysisPlots:
         plt.title("Average Sustained Surface Wind Speed Along Day")
         plt.grid(alpha=0.25)
         plt.legend()
-        plt.show()
+        show_or_save_plot(filename)
 
         return None
 
-    def average_surface100m_wind_speed_evolution(self):
+    def average_surface100m_wind_speed_evolution(self, filename=None):
         """Plots average surface wind speed progression throughout the day, including
         sigma contours.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
         Returns
         -------
@@ -412,12 +434,12 @@ class _EnvironmentAnalysisPlots:
         plt.title("Average 100m Wind Speed Along Day")
         plt.grid(alpha=0.25)
         plt.legend()
-        plt.show()
+        show_or_save_plot(filename)
         return None
 
     # Average profiles plots (pressure level data)
 
-    def average_wind_speed_profile(self, clear_range_limits=False):
+    def average_wind_speed_profile(self, clear_range_limits=False, filename=None):
         """Average wind speed for all datetimes available. The plot also includes
         sigma contours.
 
@@ -425,6 +447,8 @@ class _EnvironmentAnalysisPlots:
         ----------
         clear_range_limits : bool, optional
             If True, clears the range limits. The default is False.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
         Returns
         -------
@@ -515,11 +539,11 @@ class _EnvironmentAnalysisPlots:
                 )
             ),
         )
-        plt.show()
+        show_or_save_plot(filename)
 
         return None
 
-    def average_wind_velocity_xy_profile(self, clear_range_limits=False):
+    def average_wind_velocity_xy_profile(self, clear_range_limits=False, filename=None):
         """Average wind X and wind Y for all datetimes available. The X component
         is the wind speed in the direction of East, and the Y component is the
         wind speed in the direction of North.
@@ -528,6 +552,8 @@ class _EnvironmentAnalysisPlots:
         ----------
         clear_range_limits : bool, optional
             If True, clears the range limits. The default is False.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
         Returns
         -------
@@ -579,17 +605,19 @@ class _EnvironmentAnalysisPlots:
         plt.title("Average Wind X and Y Profile")
         plt.legend()
         plt.grid()
-        plt.show()
+        show_or_save_plot(filename)
 
         return None
 
-    def average_wind_heading_profile(self, clear_range_limits=False):
+    def average_wind_heading_profile(self, clear_range_limits=False, filename=None):
         """Average wind heading for all datetimes available.
 
         Parameters
         ----------
         clear_range_limits : bool, optional
             If True, clears the range limits. The default is False.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
         Returns
         -------
@@ -634,10 +662,10 @@ class _EnvironmentAnalysisPlots:
         plt.xlim(0, 360)
         plt.title("Average Wind heading Profile")
         plt.legend()
-        plt.show()
+        show_or_save_plot(filename)
         return None
 
-    def average_pressure_profile(self, clear_range_limits=False):
+    def average_pressure_profile(self, clear_range_limits=False, filename=None):
         """Average pressure profile for all datetimes available. The plot also
         includes sigma contours.
 
@@ -645,6 +673,8 @@ class _EnvironmentAnalysisPlots:
         ----------
         clear_range_limits : bool, optional
             If True, clears the range limits. The default is False.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
         Returns
         -------
@@ -723,10 +753,10 @@ class _EnvironmentAnalysisPlots:
             0,
             max(np.percentile(self.env_analysis.pressure_profiles_list, 99.85, axis=0)),
         )
-        plt.show()
+        show_or_save_plot(filename)
         return None
 
-    def average_temperature_profile(self, clear_range_limits=False):
+    def average_temperature_profile(self, clear_range_limits=False, filename=None):
         """Average temperature profile for all datetimes available. The plot
         also includes sigma contours.
 
@@ -734,6 +764,8 @@ class _EnvironmentAnalysisPlots:
         ----------
         clear_range_limits : bool, optional
             If True, clears the range limits. The default is False.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
         Returns
         -------
@@ -819,7 +851,7 @@ class _EnvironmentAnalysisPlots:
                 )
             ),
         )
-        plt.show()
+        show_or_save_plot(filename)
 
         return None
 
@@ -869,7 +901,7 @@ class _EnvironmentAnalysisPlots:
         ax.yaxis.set_major_formatter(mtick.PercentFormatter(decimals=0))
         return ax
 
-    def average_wind_rose_specific_hour(self, hour, fig=None):
+    def average_wind_rose_specific_hour(self, hour, fig=None, filename=None):
         """Plot a specific hour of the average windrose
 
         Parameters
@@ -878,6 +910,8 @@ class _EnvironmentAnalysisPlots:
             Hour to be plotted
         fig: matplotlib.pyplot.figure
             Figure to plot the windrose
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
         Returns
         -------
@@ -895,12 +929,17 @@ class _EnvironmentAnalysisPlots:
             ),
             fig=fig,
         )
-        plt.show()
+        show_or_save_plot(filename)
 
         return None
 
-    def average_wind_rose_grid(self):
+    def average_wind_rose_grid(self, filename=None):
         """Plot wind roses for all hours of a day, in a grid like plot.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
         Returns
         -------
@@ -965,7 +1004,7 @@ class _EnvironmentAnalysisPlots:
             y=1,
         )
         plt.bbox_inches = "tight"
-        plt.show()
+        show_or_save_plot(filename)
         return None
 
     def animate_average_wind_rose(self, figsize=(5, 5), filename="wind_rose.gif"):
@@ -1027,9 +1066,14 @@ class _EnvironmentAnalysisPlots:
 
     # More plots and animations
 
-    def wind_gust_distribution_grid(self):
+    def wind_gust_distribution_grid(self, filename=None):
         """Plots shown in the animation of how the wind gust distribution varies
         throughout the day.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
         Returns
         -------
@@ -1096,7 +1140,7 @@ class _EnvironmentAnalysisPlots:
             f"Wind Gust Speed ({self.env_analysis.unit_system['wind_speed']})"
         )
         fig.supylabel("Probability")
-        plt.show()
+        show_or_save_plot(filename)
 
         return None
 
@@ -1195,7 +1239,9 @@ class _EnvironmentAnalysisPlots:
         plt.close(fig)
         return HTML(animation.to_jshtml())
 
-    def surface_wind_speed_distribution_grid(self, wind_speed_limit=False):
+    def surface_wind_speed_distribution_grid(
+        self, wind_speed_limit=False, filename=None
+    ):
         """Plots shown in the animation of how the sustained surface wind speed
         distribution varies throughout the day. The plots are histograms of the
         wind speed distribution for a specific hour. The plots are arranged in a
@@ -1205,6 +1251,8 @@ class _EnvironmentAnalysisPlots:
         ----------
         wind_speed_limit : bool, optional
             Whether to plot the wind speed limit as a vertical line
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
         Returns
         -------
@@ -1292,7 +1340,7 @@ class _EnvironmentAnalysisPlots:
             f"Sustained Surface Wind Speed ({self.env_analysis.unit_system['wind_speed']})"
         )
         fig.supylabel("Probability")
-        plt.show()
+        show_or_save_plot(filename)
 
         return None
 
@@ -1418,7 +1466,7 @@ class _EnvironmentAnalysisPlots:
         plt.close(fig)
         return HTML(animation.to_jshtml())
 
-    def wind_speed_profile_grid(self, clear_range_limits=False):
+    def wind_speed_profile_grid(self, clear_range_limits=False, filename=None):
         """Creates a grid of plots with the wind profile over the average day.
         Each subplot represents a different hour of the day.
 
@@ -1426,6 +1474,8 @@ class _EnvironmentAnalysisPlots:
         ----------
         clear_range_limits : bool, optional
             Whether to clear the sky range limits or not, by default False
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
         Returns
         -------
@@ -1508,11 +1558,11 @@ class _EnvironmentAnalysisPlots:
         fig.suptitle("Average Wind Profile")
         fig.supxlabel(f"Wind speed ({self.env_analysis.unit_system['wind_speed']})")
         fig.supylabel(f"Altitude AGL ({self.env_analysis.unit_system['length']})")
-        plt.show()
+        show_or_save_plot(filename)
 
         return None
 
-    def wind_heading_profile_grid(self, clear_range_limits=False):
+    def wind_heading_profile_grid(self, clear_range_limits=False, filename=None):
         """Creates a grid of plots with the wind heading profile over the
         average day. Each subplot represents a different hour of the day.
 
@@ -1521,6 +1571,8 @@ class _EnvironmentAnalysisPlots:
         clear_range_limits : bool, optional
             Whether to clear the sky range limits or not, by default False. This
             is useful when the launch site is constrained in terms or altitude.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
         Returns
         -------
@@ -1597,7 +1649,7 @@ class _EnvironmentAnalysisPlots:
         fig.suptitle("Average Wind Heading Profile")
         fig.supxlabel(f"Wind heading ({self.env_analysis.unit_system['angle']})")
         fig.supylabel(f"Altitude AGL ({self.env_analysis.unit_system['length']})")
-        plt.show()
+        show_or_save_plot(filename)
 
         return None
 

@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Ellipse
 
+from .plot_helpers import show_or_save_plot
+
 
 class _AeroSurfacePlots(ABC):
     """Abstract class that contains all aero surface plots."""
@@ -24,7 +26,7 @@ class _AeroSurfacePlots(ABC):
         return None
 
     @abstractmethod
-    def draw(self):
+    def draw(self, filename=None):
         pass
 
     def lift(self):
@@ -70,9 +72,14 @@ class _NoseConePlots(_AeroSurfacePlots):
         super().__init__(nosecone)
         return None
 
-    def draw(self):
+    def draw(self, filename=None):
         """Draw the nosecone shape along with some important information,
         including the center line and the center of pressure position.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
         Returns
         -------
@@ -141,7 +148,7 @@ class _NoseConePlots(_AeroSurfacePlots):
         ax.set_title(self.aero_surface.kind + " Nose Cone")
         ax.legend(bbox_to_anchor=(1, -0.2))
         # Show Plot
-        plt.show()
+        show_or_save_plot(filename)
         return None
 
 
@@ -165,7 +172,7 @@ class _FinsPlots(_AeroSurfacePlots):
         return None
 
     @abstractmethod
-    def draw(self):
+    def draw(self, filename=None):
         pass
 
     def airfoil(self):
@@ -233,9 +240,14 @@ class _TrapezoidalFinsPlots(_FinsPlots):
         super().__init__(fin_set)
         return None
 
-    def draw(self):
+    def draw(self, filename=None):
         """Draw the fin shape along with some important information, including
         the center line, the quarter line and the center of pressure position.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
         Returns
         -------
@@ -347,7 +359,7 @@ class _TrapezoidalFinsPlots(_FinsPlots):
         ax.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
 
         plt.tight_layout()
-        plt.show()
+        show_or_save_plot(filename)
         return None
 
 
@@ -358,9 +370,14 @@ class _EllipticalFinsPlots(_FinsPlots):
         super().__init__(fin_set)
         return None
 
-    def draw(self):
+    def draw(self, filename=None):
         """Draw the fin shape along with some important information.
         These being: the center line and the center of pressure position.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
         Returns
         -------
@@ -422,7 +439,7 @@ class _EllipticalFinsPlots(_FinsPlots):
         ax.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
 
         plt.tight_layout()
-        plt.show()
+        show_or_save_plot(filename)
 
         return None
 
@@ -445,7 +462,7 @@ class _TailPlots(_AeroSurfacePlots):
         super().__init__(tail)
         return None
 
-    def draw(self):
+    def draw(self, filename=None):
         # This will de done in the future
         return None
 
@@ -474,7 +491,7 @@ class _AirBrakesPlots(_AeroSurfacePlots):
         else:
             return self.aero_surface.drag_coefficient.plot()
 
-    def draw(self):
+    def draw(self, filename=None):
         raise NotImplementedError
 
     def all(self):

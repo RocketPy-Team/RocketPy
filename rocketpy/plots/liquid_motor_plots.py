@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 
 from .motor_plots import _MotorPlots
+from .plot_helpers import show_or_save_plot
 
 
 class _LiquidMotorPlots(_MotorPlots):
@@ -27,8 +28,13 @@ class _LiquidMotorPlots(_MotorPlots):
         """
         super().__init__(liquid_motor)
 
-    def draw(self):
+    def draw(self, filename=None):
         """Draw a representation of the LiquidMotor.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
         Returns
         -------
@@ -55,7 +61,7 @@ class _LiquidMotorPlots(_MotorPlots):
         ax.set_title("Liquid Motor Representation")
         self._draw_center_of_mass(ax)
         self._set_plot_properties(ax)
-        plt.show()
+        show_or_save_plot(filename)
 
     def all(self):
         """Prints out all graphs available about the LiquidMotor. It simply calls

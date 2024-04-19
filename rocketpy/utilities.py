@@ -8,6 +8,7 @@ from scipy.integrate import solve_ivp
 
 from .environment.environment import Environment
 from .mathutils.function import Function
+from .plots.plot_helpers import show_or_save_plot
 from .rocket.aero_surface import TrapezoidalFins
 from .simulation.flight import Flight
 
@@ -201,7 +202,12 @@ def calculate_equilibrium_altitude(
 
 
 def fin_flutter_analysis(
-    fin_thickness, shear_modulus, flight, see_prints=True, see_graphs=True
+    fin_thickness,
+    shear_modulus,
+    flight,
+    see_prints=True,
+    see_graphs=True,
+    filename=None,
 ):
     """Calculate and plot the Fin Flutter velocity using the pressure profile
     provided by the selected atmospheric model. It considers the Flutter
@@ -224,6 +230,8 @@ def fin_flutter_analysis(
     see_graphs : boolean, optional
         True if you want to see the graphs, False otherwise. If False, the
         function will return the vectors containing the data for the graphs.
+    filename : str | None, optional
+        The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
     Return
     ------
@@ -260,7 +268,7 @@ def fin_flutter_analysis(
             fin_thickness, shear_modulus, s, ar, la, flutter_mach, safety_factor, flight
         )
     if see_graphs:
-        _flutter_plots(flight, flutter_mach, safety_factor)
+        _flutter_plots(flight, flutter_mach, safety_factor, filename)
     else:
         return flutter_mach, safety_factor
 
@@ -297,7 +305,7 @@ def _flutter_safety_factor(flight, flutter_mach):
     return safety_factor
 
 
-def _flutter_plots(flight, flutter_mach, safety_factor):
+def _flutter_plots(flight, flutter_mach, safety_factor, filename=None):
     """Plot the Fin Flutter Mach Number and the Safety Factor for the flutter.
 
     Parameters
@@ -310,6 +318,8 @@ def _flutter_plots(flight, flutter_mach, safety_factor):
     safety_factor : rocketpy.Function
         Function containing the Safety Factor for the fin flutter.
         See fin_flutter_analysis for more details.
+    filename : str | None, optional
+        The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
     Returns
     -------
@@ -345,7 +355,7 @@ def _flutter_plots(flight, flutter_mach, safety_factor):
     ax2.grid()
 
     plt.subplots_adjust(hspace=0.5)
-    plt.show()
+    show_or_save_plot(filename)
 
 
 def _flutter_prints(

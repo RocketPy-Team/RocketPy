@@ -595,15 +595,20 @@ class NoseCone(AeroSurface):
         self.cp = (self.cpx, self.cpy, self.cpz)
         return self.cp
 
-    def draw(self):
+    def draw(self, filename=None):
         """Draw the fin shape along with some important information, including
         the center line, the quarter line and the center of pressure position.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
         Returns
         -------
         None
         """
-        self.plots.draw()
+        self.plots.draw(filename)
 
     def info(self):
         """Prints and plots summarized information of the nose cone.
@@ -982,15 +987,20 @@ class Fins(AeroSurface):
         else:
             return n / 2
 
-    def draw(self):
+    def draw(self, filename=None):
         """Draw the fin shape along with some important information, including
         the center line, the quarter line and the center of pressure position.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
         Returns
         -------
         None
         """
-        self.plots.draw()
+        self.plots.draw(filename)
         return None
 
 

@@ -600,14 +600,34 @@ class HybridMotor(Motor):
         )
         reset_funcified_methods(self)
 
-    def draw(self):
-        """Draws a representation of the HybridMotor."""
-        self.plots.draw()
+    def draw(self, filename=None):
+        """Draws a representation of the HybridMotor.
 
-    def info(self):
-        """Prints out basic data about the Motor."""
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
+
+        Returns
+        -------
+        None
+        """
+        self.plots.draw(filename)
+
+    def info(self, filename=None):
+        """Prints out basic data about the Motor.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
+
+        Returns
+        -------
+        None
+        """
         self.prints.all()
-        self.plots.thrust()
+        self.plots.thrust(filename=filename)
         return None
 
     def all_info(self):

@@ -3252,7 +3252,7 @@ class Environment:
         """Returns a dictionary with all plot information available about the Environment.
 
         Returns
-        ------
+        -------
         plot_info : Dict
             Dict of data relevant to plot externally
 
@@ -3325,7 +3325,7 @@ class Environment:
         """Returns as dicts all data available about the Environment.
 
         Returns
-        ------
+        -------
         info : Dict
             Information relevant about the Environment class.
 

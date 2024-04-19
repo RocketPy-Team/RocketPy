@@ -1,6 +1,7 @@
 from matplotlib import pyplot as plt
 
 from .motor_plots import _MotorPlots
+from .plot_helpers import show_or_save_plot
 
 
 class _HybridMotorPlots(_MotorPlots):
@@ -27,7 +28,7 @@ class _HybridMotorPlots(_MotorPlots):
         """
         super().__init__(hybrid_motor)
 
-    def grain_inner_radius(self, lower_limit=None, upper_limit=None):
+    def grain_inner_radius(self, lower_limit=None, upper_limit=None, filename=None):
         """Plots grain_inner_radius of the hybrid_motor as a function of time.
 
         Parameters
@@ -38,15 +39,19 @@ class _HybridMotorPlots(_MotorPlots):
         upper_limit : float
             Upper limit of the plot. Default is none, which means that the plot
             limits will be automatically calculated.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
-        self.motor.solid.grain_inner_radius.plot(lower=lower_limit, upper=upper_limit)
+        self.motor.solid.grain_inner_radius.plot(
+            lower=lower_limit, upper=upper_limit, filename=filename
+        )
 
-    def grain_height(self, lower_limit=None, upper_limit=None):
+    def grain_height(self, lower_limit=None, upper_limit=None, filename=None):
         """Plots grain_height of the hybrid_motor as a function of time.
 
         Parameters
@@ -57,15 +62,19 @@ class _HybridMotorPlots(_MotorPlots):
         upper_limit : float
             Upper limit of the plot. Default is none, which means that the plot
             limits will be automatically calculated.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
-        self.motor.solid.grain_height.plot(lower=lower_limit, upper=upper_limit)
+        self.motor.solid.grain_height.plot(
+            lower=lower_limit, upper=upper_limit, filename=filename
+        )
 
-    def burn_rate(self, lower_limit=None, upper_limit=None):
+    def burn_rate(self, lower_limit=None, upper_limit=None, filename=None):
         """Plots burn_rate of the hybrid_motor as a function of time.
 
         Parameters
@@ -76,15 +85,19 @@ class _HybridMotorPlots(_MotorPlots):
         upper_limit : float
             Upper limit of the plot. Default is none, which means that the plot
             limits will be automatically calculated.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
-        self.motor.solid.burn_rate.plot(lower=lower_limit, upper=upper_limit)
+        self.motor.solid.burn_rate.plot(
+            lower=lower_limit, upper=upper_limit, filename=filename
+        )
 
-    def burn_area(self, lower_limit=None, upper_limit=None):
+    def burn_area(self, lower_limit=None, upper_limit=None, filename=None):
         """Plots burn_area of the hybrid_motor as a function of time.
 
         Parameters
@@ -95,15 +108,19 @@ class _HybridMotorPlots(_MotorPlots):
         upper_limit : float
             Upper limit of the plot. Default is none, which means that the plot
             limits will be automatically calculated.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
-        self.motor.solid.burn_area.plot(lower=lower_limit, upper=upper_limit)
+        self.motor.solid.burn_area.plot(
+            lower=lower_limit, upper=upper_limit, filename=filename
+        )
 
-    def Kn(self, lower_limit=None, upper_limit=None):
+    def Kn(self, lower_limit=None, upper_limit=None, filename=None):
         """Plots Kn of the hybrid_motor as a function of time.
 
         Parameters
@@ -114,16 +131,25 @@ class _HybridMotorPlots(_MotorPlots):
         upper_limit : float
             Upper limit of the plot. Default is none, which means that the plot
             limits will be automatically calculated.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
-        Return
-        ------
+        Returns
+        -------
         None
         """
 
-        self.motor.solid.Kn.plot(lower=lower_limit, upper=upper_limit)
+        self.motor.solid.Kn.plot(
+            lower=lower_limit, upper=upper_limit, filename=filename
+        )
 
-    def draw(self):
+    def draw(self, filename=None):
         """Draw a representation of the HybridMotor.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
 
         Returns
         -------
@@ -158,7 +184,7 @@ class _HybridMotorPlots(_MotorPlots):
         ax.set_title("Hybrid Motor Representation")
         self._draw_center_of_mass(ax)
         self._set_plot_properties(ax)
-        plt.show()
+        show_or_save_plot(filename)
 
     def all(self):
         """Prints out all graphs available about the HybridMotor. It simply calls
