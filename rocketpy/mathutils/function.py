@@ -3010,7 +3010,7 @@ class Function:
         --------
         >>> from rocketpy import Function
         >>> x0, x1, y0, y1, y = 0, 1, 0, 1, 0.5
-        >>> x = Function.linear_interpolation_root_finding(x0, x1, y0, y1, y)
+        >>> x = Function.find_root_linear_interpolation(x0, x1, y0, y1, y)
         >>> x
         0.5
         """
