@@ -1,6 +1,8 @@
+import functools
 import importlib
 import importlib.metadata
 import re
+import time
 from bisect import bisect_left
 
 import numpy as np
@@ -380,6 +382,25 @@ def check_requirement_version(module_name, version):
             + f"version by running 'pip install {module_name}{version}'"
         )
     return True
+
+
+def exponential_backoff(max_attempts, base_delay=1, max_delay=60):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            delay = base_delay
+            for i in range(max_attempts):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    if i == max_attempts - 1:
+                        raise e from None
+                    delay = min(delay * 2, max_delay)
+                    time.sleep(delay)
+
+        return wrapper
+
+    return decorator
 
 
 def parallel_axis_theorem_from_com(com_inertia_moment, mass, distance):
