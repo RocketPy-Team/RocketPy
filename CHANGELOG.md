@@ -45,6 +45,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+- BUG: Swap rocket.total_mass.differentiate for motor.total_mass_flow rate [#585](https://github.com/RocketPy-Team/RocketPy/pull/585)
 - BUG: export_eng 'Motor' method would not work for liquid motors. [#559](https://github.com/RocketPy-Team/RocketPy/pull/559) 
 
 ## [v1.2.2] - 2024-03-22
