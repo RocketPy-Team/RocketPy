@@ -3626,7 +3626,7 @@ class Flight:
                 self.list += controller_node_list
 
         def sort(self):
-            self.list.sort(key=(lambda node: node.t))
+            self.list.sort()
 
         def merge(self):
             """Merge all the time nodes that have the same time. This is made to
