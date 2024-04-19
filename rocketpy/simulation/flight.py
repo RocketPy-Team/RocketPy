@@ -1038,7 +1038,7 @@ class Flight:
                                         )
 
         self.t_final = self.t
-        self._calculate_pressure_signal()
+        self.__transform_pressure_signals_lists_to_functions()
         if verbose:
             print(f"\n>>> Simulation Completed at Time: {self.t:3.4f} s")
 
@@ -3059,7 +3059,7 @@ class Flight:
             rail_button2_shear_force,
         )
 
-    def _calculate_pressure_signal(self):
+    def __transform_pressure_signals_lists_to_functions(self):
         """Calculate the pressure signal from the pressure sensor.
         It creates a signal_function attribute in the parachute object.
         Parachute works as a subclass of Rocket class.
