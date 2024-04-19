@@ -7,9 +7,6 @@ import numpy as np
 import pytz
 from cftime import num2pydate
 from packaging import version as packaging_version
-from functools import cached_property
-
-_NOT_FOUND = object()
 
 # Mapping of module name and the name of the package that should be installed
 INSTALL_MAPPING = {"IPython": "ipython"}

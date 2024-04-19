@@ -3,15 +3,11 @@ import copy
 import datetime
 import json
 from collections import defaultdict
+from functools import cached_property
 
 import netCDF4
 import numpy as np
 import pytz
-
-try:
-    from functools import cached_property
-except ImportError:
-    from ..tools import cached_property
 
 from ..mathutils.function import Function
 from ..plots.environment_analysis_plots import _EnvironmentAnalysisPlots
