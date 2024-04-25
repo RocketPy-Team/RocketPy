@@ -607,18 +607,7 @@ class Flight:
         self.equations_of_motion = equations_of_motion
 
         # Controller initialization
-        self._controllers = self.rocket._controllers[:]
-        if self._controllers:
-            if self.time_overshoot == True:
-                warnings.warn(
-                    "time_overshoot is set to True, but controllers are present. "
-                    "Controllers will not work properly. "
-                    "Consider setting time_overshoot=False in the Flight object "
-                    "to use controllers."
-                )
-            # reset controllable object to initial state (only airbrakes for now)
-            for air_brakes in self.rocket.air_brakes:
-                air_brakes._reset()
+        self.__init_controllers()
 
         # Flight initialization
         self.__init_post_process_variables()
@@ -1218,6 +1207,21 @@ class Flight:
         """Initialize equations of motion."""
         if self.equations_of_motion == "solid_propulsion":
             self.u_dot_generalized = self.u_dot
+
+    def __init_controllers(self):
+        """Initialize controllers"""
+        self._controllers = self.rocket._controllers[:]
+        if self._controllers:
+            if self.time_overshoot == True:
+                warnings.warn(
+                    "time_overshoot is set to True, but controllers are present. "
+                    "Controllers will not work properly. "
+                    "Consider setting time_overshoot=False in the Flight object "
+                    "to use controllers."
+                )
+            # reset controllable object to initial state (only airbrakes for now)
+            for air_brakes in self.rocket.air_brakes:
+                air_brakes._reset()
 
     def __cache_post_process_variables(self):
         """Cache post-process variables for simulations with controllers."""
