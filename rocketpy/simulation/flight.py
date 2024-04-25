@@ -1188,6 +1188,11 @@ class Flight:
             self.out_of_rail_time = self.initial_solution[0]
             self.out_of_rail_time_index = 0
             self.initial_derivative = self.u_dot_generalized
+        if self._controllers:
+            # Handle post process during simulation, get initial accel/forces
+            self.initial_derivative(
+                self.t_initial, self.initial_solution[1:], post_processing=True
+            )
 
     def __init_solver_monitors(self):
         # Initialize solver monitors
