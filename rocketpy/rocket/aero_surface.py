@@ -1,6 +1,5 @@
 import warnings
 from abc import ABC, abstractmethod
-from functools import cached_property
 
 import numpy as np
 from scipy.optimize import fsolve

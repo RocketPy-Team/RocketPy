@@ -8,17 +8,13 @@ import warnings
 from bisect import bisect_left
 from collections.abc import Iterable
 from copy import deepcopy
+from functools import cached_property
 from inspect import signature
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import integrate, linalg, optimize
-
-try:
-    from functools import cached_property
-except ImportError:
-    from ..tools import cached_property
 
 NUMERICAL_TYPES = (float, int, complex, np.ndarray, np.integer, np.floating)
 INTERPOLATION_TYPES = {

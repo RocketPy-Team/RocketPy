@@ -1,6 +1,7 @@
 import re
 import warnings
 from abc import ABC, abstractmethod
+from functools import cached_property
 
 import numpy as np
 
@@ -8,11 +9,6 @@ from ..mathutils.function import Function, funcify_method
 from ..plots.motor_plots import _MotorPlots
 from ..prints.motor_prints import _MotorPrints
 from ..tools import parallel_axis_theorem_from_com, tuple_handler
-
-try:
-    from functools import cached_property
-except ImportError:
-    from ..tools import cached_property
 
 
 class Motor(ABC):
