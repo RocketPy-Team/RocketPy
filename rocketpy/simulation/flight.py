@@ -636,10 +636,6 @@ class Flight:
     def __simulate(self, verbose):
         """Simulate the flight trajectory."""
         for phase_index, phase in self.time_iterator(self.flight_phases):
-            # print("\nCurrent Flight Phase List:")
-            # print(self.flight_phases)
-            # print("\n\tCurrent Flight Phase:")
-            # print("\t\tIndex: ", phase_index, " | Phase: ", phase)
             # Determine maximum time for this flight phase
             phase.time_bound = self.flight_phases[phase_index + 1].t
 
@@ -659,13 +655,6 @@ class Flight:
                 rtol=self.rtol,
                 atol=self.atol,
             )
-            # print(f"\n\tSolver Initialization Details:")
-            # print(f"\t\tInitial Time (t): {phase.t}")
-            # print(f"\t\tInitial State (y_sol): {self.y_sol}")
-            # print(f"\t\tTime Bound: {phase.time_bound}")
-            # print(f"\t\tMin Step: {self.min_time_step}")
-            # print(f"\t\tMax Step: {self.max_time_step}")
-            # print(f"\t\tTolerances: rtol = {self.rtol}, atol = {self.atol}")
 
             # Initialize phase time nodes
             phase.time_nodes = self.TimeNodes()
@@ -692,8 +681,6 @@ class Flight:
 
             # Iterate through time nodes
             for node_index, node in self.time_iterator(phase.time_nodes):
-                # print("\n\t\tCurrent Time Node")
-                # print("\t\tIndex: ", node_index, " | Time Node: ", node)
                 # Determine time bound for this time node
                 node.time_bound = phase.time_nodes[node_index + 1].t
                 # NOTE: Setting the time bound and status for the phase solver,
@@ -723,8 +710,6 @@ class Flight:
                     if parachute.triggerfunc(
                         noisy_pressure, height_above_ground_level, self.y_sol
                     ):
-                        # print("\nEVENT DETECTED: Parachute Triggered")
-                        # print("Name: ", parachute.name, " | Lag: ", parachute.lag)
                         # Remove parachute from flight parachutes
                         self.parachutes.remove(parachute)
                         # Create flight phase for time after detection and before inflation
@@ -770,12 +755,6 @@ class Flight:
                     self.y_sol = phase.solver.y
                     if verbose:
                         print(f"Current Simulation Time: {self.t:3.4f} s", end="\r")
-                    # print("\n\t\t\tCurrent Step Details:")
-                    # print(
-                    #     "\t\t\tIState: ", phase.solver._lsoda_solver._integrator.istate
-                    # )
-                    # print("\t\t\tTime: ", phase.solver.t)
-                    # print("\t\t\tAltitude (ASL): ", phase.solver.y[2])
 
                     # Check for first out of rail event
                     if len(self.out_of_rail_state) == 1 and (
@@ -784,7 +763,6 @@ class Flight:
                         + (self.y_sol[2] - self.env.elevation) ** 2
                         >= self.effective_1rl**2
                     ):
-                        # print("\n>>> EVENT DETECTED: Rocket is Out of Rail!")
                         # Check exactly when it went out using root finding
                         # Disconsider elevation
                         self.solution[-2][3] -= self.env.elevation
@@ -861,7 +839,6 @@ class Flight:
 
                     # Check for apogee event
                     if len(self.apogee_state) == 1 and self.y_sol[5] < 0:
-                        # print("\n>>> EVENT DETECTED: Rocket has reached apogee")
                         # Assume linear vz(t) to detect when vz = 0
                         t0, vz0 = self.solution[-2][0], self.solution[-2][6]
                         t1, vz1 = self.solution[-1][0], self.solution[-1][6]
@@ -888,7 +865,6 @@ class Flight:
                             phase.solver.status = "finished"
                     # Check for impact event
                     if self.y_sol[2] < self.env.elevation:
-                        # print('\n>>>PASSIVE EVENT DETECTED: Touchdown!')
                         # Check exactly when it happened using root finding
                         # Cubic Hermite interpolation (ax**3 + bx**2 + cx + d)
                         a, b, c, d = calculate_cubic_hermite_coefficients(
@@ -949,27 +925,12 @@ class Flight:
                             if overshootable_nodes[0].t == phase.t and phase.clear:
                                 overshootable_nodes[0].parachutes = []
                                 overshootable_nodes[0].callbacks = []
-                            # print("\n\t\t\t\tOvershootable Time Nodes")
-                            # print("\t\t\t\tInterval: ", self.solution[-2][0], self.t)
-                            # print(
-                            #     "\t\t\t\tOvershootable Nodes Length: ",
-                            #     str(len(overshootable_nodes)),
-                            #     " | Overshootable Nodes: ",
-                            #     overshootable_nodes,
-                            # )
                             # Feed overshootable time nodes trigger
                             interpolator = phase.solver.dense_output()
                             for (
                                 overshootable_index,
                                 overshootable_node,
                             ) in self.time_iterator(overshootable_nodes):
-                                # print("\n\t\t\t\tCurrent Overshootable Node:")
-                                # print(
-                                #     "\t\t\t\tIndex: ",
-                                #     overshootable_index,
-                                #     " | Overshootable Node: ",
-                                #     overshootable_node,
-                                # )
                                 # Calculate state at node time
                                 overshootable_node.y_sol = interpolator(
                                     overshootable_node.t
@@ -990,12 +951,6 @@ class Flight:
                                         height_above_ground_level,
                                         overshootable_node.y_sol,
                                     ):
-                                        # print(
-                                        #     "\n>>> EVENT DETECTED: Parachute Triggered!"
-                                        # )
-                                        # print(
-                                        #     f"\tParachute Name: {parachute.name} | Lag: {parachute.lag}"
-                                        # )
                                         # Remove parachute from flight parachutes
                                         self.parachutes.remove(parachute)
                                         # Create flight phase for time after detection and before inflation
