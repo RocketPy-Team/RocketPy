@@ -871,8 +871,11 @@ class Flight:
                         self.apogee_state = interpolator(t_root)
                         # Store apogee data
                         self.apogee_time = t_root
+                        self.apogee_x = self.apogee_state[0]
+                        self.apogee_y = self.apogee_state[1]
+                        self.apogee = self.apogee_state[2]
+
                         if self.terminate_on_apogee:
-                            # print(">>> Terminate on apogee activated!")
                             self.t = self.t_final = t_root
                             # Roll back solution
                             self.solution[-1] = [self.t, *self.apogee_state]
@@ -1961,21 +1964,6 @@ class Flight:
     def z(self):
         """Rocket z position as a Function of time."""
         return self.solution_array[:, [0, 3]]
-
-    @property
-    def apogee_x(self):
-        """Rocket x position at apogee."""
-        return self.x.get_value_opt(self.apogee_time)
-
-    @property
-    def apogee_y(self):
-        """Rocket y position at apogee."""
-        return self.y.get_value_opt(self.apogee_time)
-
-    @property
-    def apogee(self):
-        """Rocket z position at apogee."""
-        return self.z.get_value_opt(self.apogee_time)
 
     @funcify_method("Time (s)", "Altitude AGL (m)", "spline", "constant")
     def altitude(self):
