@@ -12,7 +12,10 @@ from ..mathutils.vector_matrix import Matrix, Vector
 from ..plots.flight_plots import _FlightPlots
 from ..prints.flight_prints import _FlightPrints
 from ..tools import (
+    calculate_cubic_hermite_coefficients,
     find_closest,
+    find_root_linear_interpolation,
+    find_roots_cubic_function,
     quaternions_to_nutation,
     quaternions_to_precession,
     quaternions_to_spin,
@@ -812,7 +815,7 @@ class Flight:
                         self.solution[-2][3] += self.env.elevation
                         self.solution[-1][3] += self.env.elevation
                         # Cubic Hermite interpolation (ax**3 + bx**2 + cx + d)
-                        a, b, c, d = Function.calculate_cubic_hermite_coefficients(
+                        a, b, c, d = calculate_cubic_hermite_coefficients(
                             0,
                             float(phase.solver.step_size),
                             y0,
@@ -822,7 +825,7 @@ class Flight:
                         )
                         a += 1e-5  # TODO: why??
                         # Find roots
-                        t_roots = Function.find_roots_cubic_function(a, b, c, d)
+                        t_roots = find_roots_cubic_function(a, b, c, d)
                         # Find correct root
                         valid_t_root = [
                             t_root.real
@@ -862,9 +865,7 @@ class Flight:
                         # Assume linear vz(t) to detect when vz = 0
                         t0, vz0 = self.solution[-2][0], self.solution[-2][6]
                         t1, vz1 = self.solution[-1][0], self.solution[-1][6]
-                        t_root = Function.find_root_linear_interpolation(
-                            t0, t1, vz0, vz1, 0
-                        )
+                        t_root = find_root_linear_interpolation(t0, t1, vz0, vz1, 0)
                         # Fetch state at t_root
                         interpolator = phase.solver.dense_output()
                         self.apogee_state = interpolator(t_root)
@@ -887,7 +888,7 @@ class Flight:
                         # print('\n>>>PASSIVE EVENT DETECTED: Touchdown!')
                         # Check exactly when it happened using root finding
                         # Cubic Hermite interpolation (ax**3 + bx**2 + cx + d)
-                        a, b, c, d = Function.calculate_cubic_hermite_coefficients(
+                        a, b, c, d = calculate_cubic_hermite_coefficients(
                             x0=0,  # t0
                             x1=float(phase.solver.step_size),  # t1 - t0
                             y0=float(self.solution[-2][3] - self.env.elevation),  # z0
@@ -896,7 +897,7 @@ class Flight:
                             yp1=float(self.solution[-1][6]),  # vz1
                         )
                         # Find roots
-                        t_roots = Function.find_roots_cubic_function(a, b, c, d)
+                        t_roots = find_roots_cubic_function(a, b, c, d)
                         # Find correct root
                         t1 = self.solution[-1][0] - self.solution[-2][0]
                         valid_t_root = [

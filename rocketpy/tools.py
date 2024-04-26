@@ -1,3 +1,11 @@
+"""The module rocketpy.tools contains a set of functions that are used
+throughout the rocketpy package. These functions are not specific to any
+particular class or module, and are used to perform general tasks that are
+required by multiple classes or modules. These functions can be modified or
+expanded to suit the needs of other modules and may present breaking changes
+between minor versions if necessary, although this will be always avoided.
+"""
+
 import functools
 import importlib
 import importlib.metadata
@@ -40,6 +48,150 @@ def tuple_handler(value):
             return tuple(value)
         else:
             raise ValueError("value must be a list or tuple of length 1 or 2.")
+
+
+def calculate_cubic_hermite_coefficients(x0, x1, y0, yp0, y1, yp1):
+    """Calculate the coefficients of a cubic Hermite interpolation function.
+    The function is defined as ax**3 + bx**2 + cx + d.
+
+    Parameters
+    ----------
+    x0 : float
+        Position of the first point.
+    x1 : float
+        Position of the second point.
+    y0 : float
+        Value of the function evaluated at the first point.
+    yp0 : float
+        Value of the derivative of the function evaluated at the first
+        point.
+    y1 : float
+        Value of the function evaluated at the second point.
+    yp1 : float
+        Value of the derivative of the function evaluated at the second
+        point.
+
+    Returns
+    -------
+    tuple[float, float, float, float]
+        The coefficients of the cubic Hermite interpolation function.
+    """
+    dx = x1 - x0
+    d = float(y0)
+    c = float(yp0)
+    b = float((3 * y1 - yp1 * dx - 2 * c * dx - 3 * d) / (dx**2))
+    a = float(-(2 * y1 - yp1 * dx - c * dx - 2 * d) / (dx**3))
+    return a, b, c, d
+
+
+def find_roots_cubic_function(a, b, c, d):
+    """Calculate the roots of a cubic function using Cardano's method.
+
+    This method applies Cardano's method to find the roots of a cubic
+    function of the form ax^3 + bx^2 + cx + d. The roots may be complex
+    numbers.
+
+    Parameters
+    ----------
+    a : float
+        Coefficient of the cubic term (x^3).
+    b : float
+        Coefficient of the quadratic term (x^2).
+    c : float
+        Coefficient of the linear term (x).
+    d : float
+        Constant term.
+
+    Returns
+    -------
+    tuple[complex, complex, complex]
+        A tuple containing the real and complex roots of the cubic function.
+        Note that the roots may be complex numbers. The roots are ordered
+        in the tuple as x1, x2, x3.
+
+    References
+    ----------
+    - Cardano's method: https://en.wikipedia.org/wiki/Cubic_function#Cardano's_method
+
+    Examples
+    --------
+    >>> from rocketpy import Function
+
+    First we define the coefficients of the function ax**3 + bx**2 + cx + d
+    >>> a, b, c, d = 1, -3, -1, 3
+    >>> x1, x2, x3 = Function.find_roots_cubic_function(a, b, c, d)
+    >>> x1, x2, x3
+    ((-1+0j), (3+7.401486830834377e-17j), (1-1.4802973661668753e-16j))
+
+    To get the real part of the roots, use the real attribute of the complex
+    number.
+    >>> x1.real, x2.real, x3.real
+    (-1.0, 3.0, 1.0)
+    """
+    delta_0 = b**2 - 3 * a * c
+    delta_1 = 2 * b**3 - 9 * a * b * c + 27 * d * a**2
+    c1 = ((delta_1 + (delta_1**2 - 4 * delta_0**3) ** (0.5)) / 2) ** (1 / 3)
+
+    c2_0 = c1 * (-1 / 2 + 1j * (3**0.5) / 2) ** 0
+    x1 = -(1 / (3 * a)) * (b + c2_0 + delta_0 / c2_0)
+
+    c2_1 = c1 * (-1 / 2 + 1j * (3**0.5) / 2) ** 1
+    x2 = -(1 / (3 * a)) * (b + c2_1 + delta_0 / c2_1)
+
+    c2_2 = c1 * (-1 / 2 + 1j * (3**0.5) / 2) ** 2
+    x3 = -(1 / (3 * a)) * (b + c2_2 + delta_0 / c2_2)
+
+    # Alternative method (same results)
+
+    # Q = (3 * a * c - b**2) / (9 * a**2)
+    # R = (9 * a * b * c - 27 * a**2 * d - 2 * b**3) / (54 * a**3)
+    # S = (R + (Q**3 + R**2)**0.5)**(1 / 3)
+    # T = (R - (Q**3 + R**2)**0.5)**(1 / 3)
+
+    # x1 = S + T - b / (3 * a)
+    # x2 = -(S + T) / 2 - b / (3 * a) + 1j * (S - T) * (3**0.5) / 2
+    # x3 = -(S + T) / 2 - b / (3 * a) - 1j * (S - T) * (3**0.5) / 2
+
+    return x1, x2, x3
+
+
+def find_root_linear_interpolation(x0, x1, y0, y1, y):
+    """Calculate the root of a linear interpolation function.
+
+    This method calculates the root of a linear interpolation function
+    given two points (x0, y0) and (x1, y1) and a value y. The function
+    is defined as y = m*x + c.
+
+    Parameters
+    ----------
+    x0 : float
+        Position of the first point.
+    x1 : float
+        Position of the second point.
+    y0 : float
+        Value of the function evaluated at the first point.
+    y1 : float
+        Value of the function evaluated at the second point.
+    y : float
+        Value of the function at the desired point.
+
+    Returns
+    -------
+    float
+        The root of the linear interpolation function. This represents the
+        value of x at which the function evaluates to y.
+
+    Examples
+    --------
+    >>> from rocketpy import Function
+    >>> x0, x1, y0, y1, y = 0, 1, 0, 1, 0.5
+    >>> x = Function.find_root_linear_interpolation(x0, x1, y0, y1, y)
+    >>> x
+    0.5
+    """
+    m = (y1 - y0) / (x1 - x0)
+    c = y0 - m * x0
+    return (y - c) / m
 
 
 def bilinear_interpolation(x, y, x1, x2, y1, y2, z11, z12, z21, z22):
