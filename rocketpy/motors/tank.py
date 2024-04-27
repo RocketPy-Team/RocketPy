@@ -86,7 +86,7 @@ class Tank(ABC):
             Geometry of the tank.
         flux_time : float, tuple of float
             Tank flux time in seconds. Time interval that the fluid flux is
-            being analyzed. If a float is given, the flux time is assumed to
+            being analyzed.  If a float is given, the flux time is assumed to
             be between 0 and the given float, in seconds. If a tuple of float
             is given, the flux time is assumed to be between the first and
             second elements of the tuple.
@@ -107,6 +107,9 @@ class Tank(ABC):
         self.gas = gas
         self.liquid = liquid
         self.discretize = discretize
+
+        if self.discretize:
+            self._discretize_fluids()
 
         # Initialize plots and prints object
         self.prints = _TankPrints(self)
@@ -476,6 +479,13 @@ class Tank(ABC):
                 overfill_height_exception(name, height)
             elif (height < bottom_tolerance).any():
                 underfill_height_exception(name, height)
+
+    def _discretize_fluids(self):
+        """Discretizes the fluid densities according to the flux time and the
+        discretize parameter.
+        """
+        self.liquid.density.set_discrete(*self.flux_time, self.discretize)
+        self.gas.density.set_discrete(*self.flux_time, self.discretize)
 
     def draw(self, *, filename=None):
         """Draws the tank geometry.
