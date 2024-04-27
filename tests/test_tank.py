@@ -177,6 +177,9 @@ def test_mass_based_tank():
     # Generate tank geometry {radius: height, ...}
     example_geometry = TankGeometry({(0, 5): 1})
 
+    lox.density.set_discrete_based_on_model(Function(example_liquid_masses))
+    n2.density.set_discrete_based_on_model(Function(example_gas_masses))
+
     # Generate tanks based on simplified tank geometry
     example_tank_lox = MassBasedTank(
         name="Example Tank",
@@ -339,6 +342,8 @@ def test_mfr_tank_basic():
     """Test MassFlowRateTank subclass of Tank class regarding its properties,
     such as net_mass_flow_rate, fluid_mass, center_of_mass and inertia.
     """
+    n2_density = 51.75
+    lox_density = 1141
 
     def test(t, a, tol=1e-4):
         for i in np.arange(0, 10, 1):
@@ -368,7 +373,7 @@ def test_mfr_tank_basic():
                 initial_liquid_mass
                 + (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) * x
             )
-            / lox.density
+            / lox_density
         )
         alh = lambda x: alv(x) / (np.pi)
         tlh = t.liquid_height
@@ -379,12 +384,12 @@ def test_mfr_tank_basic():
             initial_liquid_mass
             + (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) * x
         )  # liquid mass
-        liquid_volume = lambda x: liquid_mass(x) / lox.density  # liquid volume
+        liquid_volume = lambda x: liquid_mass(x) / lox_density  # liquid volume
         liquid_height = lambda x: liquid_volume(x) / (np.pi)  # liquid height
         gas_mass = lambda x: (
             initial_gas_mass + (gas_mass_flow_rate_in - gas_mass_flow_rate_out) * x
         )  # gas mass
-        gas_volume = lambda x: gas_mass(x) / n2.density
+        gas_volume = lambda x: gas_mass(x) / n2_density
         gas_height = lambda x: gas_volume(x) / np.pi + liquid_height(x)
 
         liquid_com = lambda x: liquid_height(x) / 2  # liquid com
@@ -403,12 +408,12 @@ def test_mfr_tank_basic():
             initial_liquid_mass
             + (liquid_mass_flow_rate_in - liquid_mass_flow_rate_out) * x
         )  # liquid mass
-        liquid_volume = lambda x: liquid_mass(x) / lox.density  # liquid volume
+        liquid_volume = lambda x: liquid_mass(x) / lox_density  # liquid volume
         liquid_height = lambda x: liquid_volume(x) / (np.pi)  # liquid height
         gas_mass = lambda x: (
             initial_gas_mass + (gas_mass_flow_rate_in - gas_mass_flow_rate_out) * x
         )  # gas mass
-        gas_volume = lambda x: gas_mass(x) / n2.density
+        gas_volume = lambda x: gas_mass(x) / n2_density
         gas_height = lambda x: gas_volume(x) / np.pi + liquid_height(x)
 
         liquid_com = lambda x: liquid_height(x) / 2  # liquid com
@@ -438,11 +443,11 @@ def test_mfr_tank_basic():
     tank_radius_function = TankGeometry({(0, 5): 1})
     lox = Fluid(
         name="LOx",
-        density=1141,
+        density=Function(lox_density).set_discrete(0, 10, 1000),
     )
     n2 = Fluid(
         name="Nitrogen Gas",
-        density=51.75,
+        density=Function(n2_density).set_discrete(0, 10, 1000),
     )  # density value may be estimate
     initial_liquid_mass = 5
     initial_gas_mass = 0.1

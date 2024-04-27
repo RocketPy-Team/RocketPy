@@ -1,5 +1,8 @@
+import numpy as np
+
 from dataclasses import dataclass
 
+from ..mathutils.function import Function
 from ..plots.fluid_plots import _FluidPlots
 from ..prints.fluid_prints import _FluidPrints
 
@@ -12,12 +15,12 @@ class Fluid:
     ----------
     name : str
         Name of the fluid.
-    density : float
+    density : float, Function
         Density of the fluid in kg/m³.
     """
 
     name: str
-    density: float
+    density: float | Function
 
     def __post_init__(self):
         """Post initialization method.
@@ -32,8 +35,21 @@ class Fluid:
 
         if not isinstance(self.name, str):
             raise ValueError("The name must be a string.")
-        if self.density < 0:
-            raise ValueError("The density must be a positive number.")
+
+        if isinstance(self.density, (int, float, np.number)):
+            if self.density < 0:
+                raise ValueError("The density must be a positive number.")
+
+            self.density = Function(
+                self.density,
+                interpolation="linear",
+                extrapolation="constant",
+                inputs="Time (s)",
+                outputs="Density (kg/m³)",
+            )
+        elif isinstance(self.density, Function):
+            if (self.density < 0).any():
+                raise ValueError("The density must be a positive number.")
 
         # Initialize plots and prints object
         self.prints = _FluidPrints(self)

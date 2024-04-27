@@ -87,7 +87,7 @@ class Tank(ABC):
         flux_time : float, tuple of float, optional
             Tank flux time in seconds. It is the time range in which the tank
             flux is being analyzed. In general, during this time, the tank is
-            being filled or emptied.If a float is given, the flux time is
+            being filled or emptied. If a float is given, the flux time is
             assumed to be between 0 and the given float, in seconds. If a tuple
             of float is given, the flux time is assumed to be between the first
             and second elements of the tuple.
@@ -106,6 +106,9 @@ class Tank(ABC):
         self.gas = gas
         self.liquid = liquid
         self.discretize = discretize
+
+        if self.discretize:
+            self._discretize_fluids()
 
         # Initialize plots and prints object
         self.prints = _TankPrints(self)
@@ -485,6 +488,13 @@ class Tank(ABC):
             elif (height < bottom_tolerance).any():
                 underfill_height_exception(name, height)
 
+    def _discretize_fluids(self):
+        """Discretizes the fluid densities according to the flux time and the
+        discretize parameter.
+        """
+        self.liquid.density.set_discrete(*self.flux_time, self.discretize)
+        self.gas.density.set_discrete(*self.flux_time, self.discretize)
+
     def draw(self):
         """Draws the tank geometry."""
         self.plots.draw()
@@ -639,7 +649,9 @@ class MassFlowRateBasedTank(Tank):
         Function
             Mass of the liquid as a function of time.
         """
-        liquid_flow = self.net_liquid_flow_rate.integral_function()
+        liquid_flow = self.net_liquid_flow_rate.integral_function(
+            datapoints=len(self.net_liquid_flow_rate.source)
+        )
         liquid_mass = self.initial_liquid_mass + liquid_flow
         if (liquid_mass < 0).any():
             raise ValueError(
@@ -663,7 +675,9 @@ class MassFlowRateBasedTank(Tank):
         Function
             Mass of the gas as a function of time.
         """
-        gas_flow = self.net_gas_flow_rate.integral_function()
+        gas_flow = self.net_gas_flow_rate.integral_function(
+            datapoints=len(self.net_gas_flow_rate.source)
+        )
         gas_mass = self.initial_gas_mass + gas_flow
         if (gas_mass < -1e-6).any():  # -1e-6 is to avoid numerical errors
             raise ValueError(
@@ -890,7 +904,8 @@ class UllageBasedTank(Tank):
         self.ullage = Function(ullage, "Time (s)", "Volume (m³)", "linear")
 
         # Discretize input if needed
-        self.discretize_ullage() if discretize else None
+        if discretize:
+            self.discretize_ullage()
 
         # Check if the tank is overfilled or underfilled
         self._check_volume_bounds()
@@ -1084,7 +1099,8 @@ class LevelBasedTank(Tank):
         self.liquid_level = Function(liquid_height, "Time (s)", "height (m)", "linear")
 
         # Discretize input if needed
-        self.discretize_liquid_height() if discretize else None
+        if discretize:
+            self.discretize_liquid_height()
 
         # Check if the tank is overfilled or underfilled
         self._check_height_bounds()
@@ -1299,7 +1315,8 @@ class MassBasedTank(Tank):
         self.gas_mass = Function(gas_mass, "Time (s)", "Mass (kg)", "linear")
 
         # Discretize input if needed
-        self.discretize_masses() if discretize else None
+        if discretize:
+            self.discretize_masses()
 
         # Check if the tank is overfilled or underfilled
         self._check_volume_bounds()
