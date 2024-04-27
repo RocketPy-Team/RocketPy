@@ -86,7 +86,7 @@ class Tank(ABC):
             Geometry of the tank.
         flux_time : float, tuple of float
             Tank flux time in seconds. Time interval that the fluid flux is
-            being analyzed.  If a float is given, the flux time is assumed to
+            being analyzed. If a float is given, the flux time is assumed to
             be between 0 and the given float, in seconds. If a tuple of float
             is given, the flux time is assumed to be between the first and
             second elements of the tuple.

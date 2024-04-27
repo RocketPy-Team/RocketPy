@@ -1,3 +1,5 @@
+import numpy as np
+
 from dataclasses import dataclass
 from typing import Union
 
@@ -45,6 +47,10 @@ class Fluid:
 
         if isinstance(self.density, (int, float, np.number)):
             if self.density < 0:
+                raise ValueError("The density must be a positive number.")
+
+        elif isinstance(self.density, Function):
+            if (self.density < 0).any():
                 raise ValueError("The density must be a positive number.")
 
         self.density = Function(
