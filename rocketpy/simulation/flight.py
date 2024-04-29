@@ -1526,7 +1526,9 @@ class Flight:
         ]
 
         if post_processing:
-            u_dot.extend([R1, R2, R3, M1, M2, M3])
+            self.__post_processed_variables.append(
+                [t, ax, ay, az, alpha1, alpha2, alpha3, R1, R2, R3, M1, M2, M3]
+            )
 
         return u_dot
 
@@ -1777,7 +1779,9 @@ class Flight:
         u_dot = [*r_dot, *v_dot, *e_dot, *w_dot]
 
         if post_processing:
-            u_dot.extend([R1, R2, R3, M1, M2, M3])
+            self.__post_processed_variables.append(
+                [t, *v_dot, *w_dot, R1, R2, R3, M1, M2, M3]
+            )
 
         return u_dot
 
@@ -1840,7 +1844,9 @@ class Flight:
         az = (Dz - 9.8 * mp) / (mp + ma)
 
         if post_processing:
-            return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0, Dx, Dy, Dz, 0, 0, 0]
+            return self.__post_processed_variables.append(
+                [t, ax, ay, az, 0, 0, 0, Dx, Dy, Dz, 0, 0, 0]
+            )
 
         return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
 
@@ -1979,51 +1985,51 @@ class Flight:
     @funcify_method("Time (s)", "Ax (m/s²)", "spline", "zero")
     def ax(self):
         """Rocket x acceleration as a Function of time."""
-        return self.retrieve_acceleration_arrays[0]
+        return self.__evaluate_post_process[:, [0, 1]]
 
     @funcify_method("Time (s)", "Ay (m/s²)", "spline", "zero")
     def ay(self):
         """Rocket y acceleration as a Function of time."""
-        return self.retrieve_acceleration_arrays[1]
+        return self.__evaluate_post_process[:, [0, 2]]
 
     @funcify_method("Time (s)", "Az (m/s²)", "spline", "zero")
     def az(self):
         """Rocket z acceleration as a Function of time."""
-        return self.retrieve_acceleration_arrays[2]
+        return self.__evaluate_post_process[:, [0, 3]]
 
     @funcify_method("Time (s)", "α1 (rad/s²)", "spline", "zero")
     def alpha1(self):
         """Rocket angular acceleration α1 as a Function of time."""
-        return self.retrieve_acceleration_arrays[3]
+        return self.__evaluate_post_process[:, [0, 4]]
 
     @funcify_method("Time (s)", "α2 (rad/s²)", "spline", "zero")
     def alpha2(self):
         """Rocket angular acceleration α2 as a Function of time."""
-        return self.retrieve_acceleration_arrays[4]
+        return self.__evaluate_post_process[:, [0, 5]]
 
     @funcify_method("Time (s)", "α3 (rad/s²)", "spline", "zero")
     def alpha3(self):
         """Rocket angular acceleration α3 as a Function of time."""
-        return self.retrieve_acceleration_arrays[5]
+        return self.__evaluate_post_process[:, [0, 6]]
 
     # Process third type of outputs - Temporary values
     @funcify_method("Time (s)", "R1 (N)", "spline", "zero")
     def R1(self):
         """Aerodynamic force along the first axis that is perpendicular to the
         rocket's axis of symmetry as a Function of time."""
-        return np.column_stack([self.time, self.retrieve_temporary_values_arrays[0]])
+        return self.__evaluate_post_process[:, [0, 7]]
 
     @funcify_method("Time (s)", "R2 (N)", "spline", "zero")
     def R2(self):
         """Aerodynamic force along the second axis that is perpendicular to the
         rocket's axis of symmetry as a Function of time."""
-        return np.column_stack([self.time, self.retrieve_temporary_values_arrays[1]])
+        return self.__evaluate_post_process[:, [0, 8]]
 
     @funcify_method("Time (s)", "R3 (N)", "spline", "zero")
     def R3(self):
         """Aerodynamic force along the rocket's axis of symmetry as a
         Function of time."""
-        return np.column_stack([self.time, self.retrieve_temporary_values_arrays[2]])
+        return self.__evaluate_post_process[:, [0, 9]]
 
     @funcify_method("Time (s)", "M1 (Nm)", "spline", "zero")
     def M1(self):
@@ -2031,20 +2037,20 @@ class Flight:
         perpendicular to the rocket's axis of symmetry as a Function of
         time.
         """
-        return np.column_stack([self.time, self.retrieve_temporary_values_arrays[3]])
+        return self.__evaluate_post_process[:, [0, 10]]
 
     @funcify_method("Time (s)", "M2 (Nm)", "spline", "zero")
     def M2(self):
         """Aerodynamic bending moment in the same direction as the axis that is
         perpendicular to the rocket's axis of symmetry as a Function
         of time."""
-        return np.column_stack([self.time, self.retrieve_temporary_values_arrays[4]])
+        return self.__evaluate_post_process[:, [0, 11]]
 
     @funcify_method("Time (s)", "M3 (Nm)", "spline", "zero")
     def M3(self):
         """Aerodynamic bending moment in the same direction as the rocket's
         axis of symmetry as a Function of time."""
-        return np.column_stack([self.time, self.retrieve_temporary_values_arrays[5]])
+        return self.__evaluate_post_process[:, [0, 12]]
 
     @funcify_method("Time (s)", "Pressure (Pa)", "spline", "constant")
     def pressure(self):
@@ -2685,125 +2691,6 @@ class Flight:
 
         return np.column_stack((self.time, longitude))
 
-    @cached_property
-    def retrieve_acceleration_arrays(self):
-        """Retrieve acceleration arrays from the integration scheme
-
-        Parameters
-        ----------
-
-        Returns
-        -------
-        ax: list
-            acceleration in x direction
-        ay: list
-            acceleration in y direction
-        az: list
-            acceleration in z direction
-        alpha1: list
-            angular acceleration in x direction
-        alpha2: list
-            angular acceleration in y direction
-        alpha3: list
-            angular acceleration in z direction
-        """
-        # Initialize acceleration arrays
-        ax, ay, az = [[0, 0]], [[0, 0]], [[0, 0]]
-        alpha1, alpha2, alpha3 = [[0, 0]], [[0, 0]], [[0, 0]]
-        # Go through each time step and calculate accelerations
-        # Get flight phases
-        for phase_index, phase in self.time_iterator(self.flight_phases):
-            init_time = phase.t
-            final_time = self.flight_phases[phase_index + 1].t
-            current_derivative = phase.derivative
-            # Call callback functions
-            for callback in phase.callbacks:
-                callback(self)
-            # Loop through time steps in flight phase
-            for step in self.solution:  # Can be optimized
-                if init_time < step[0] <= final_time:
-                    # Get derivatives
-                    u_dot = current_derivative(step[0], step[1:])
-                    # Get accelerations
-                    ax_value, ay_value, az_value = u_dot[3:6]
-                    alpha1_value, alpha2_value, alpha3_value = u_dot[10:]
-                    # Save accelerations
-                    ax.append([step[0], ax_value])
-                    ay.append([step[0], ay_value])
-                    az.append([step[0], az_value])
-                    alpha1.append([step[0], alpha1_value])
-                    alpha2.append([step[0], alpha2_value])
-                    alpha3.append([step[0], alpha3_value])
-
-        return ax, ay, az, alpha1, alpha2, alpha3
-
-    @cached_property
-    def retrieve_temporary_values_arrays(self):
-        """Retrieve temporary values arrays from the integration scheme.
-        Currently, the following temporary values are retrieved: ``R1`` , ``R2``
-        ``R3`` , ``M1`` , ``M2`` , ``M3`` , ``pressure`` , ``density`` ,
-        ``dynamic_viscosity`` , ``speed_of_sound`` .
-
-        Returns
-        -------
-        self.R1_list: list
-            R1 values.
-        self.R2_list: list
-            R2 values.
-        self.R3_list: list
-            R3 values are the aerodynamic force values in the rocket's axis
-            direction.
-        self.M1_list: list
-            M1 values.
-        self.M2_list: list
-            Aerodynamic bending moment in e2 direction at each time step.
-        self.M3_list: list
-            Aerodynamic bending moment in e3 direction at each time step.
-        self.pressure_list: list
-            Air pressure at each time step.
-        self.density_list: list
-            Air density at each time step.
-        self.dynamic_viscosity_list: list
-            Dynamic viscosity at each time step.
-        self.speed_of_sound_list: list
-            Speed of sound at each time step.
-        self.wind_velocity_x_list: list
-            Wind velocity in x direction at each time step.
-        self.wind_velocity_y_list: list
-            Wind velocity in y direction at each time step.
-        """
-
-        # Initialize force and atmospheric arrays
-        temporary_values = [
-            [],  # R1_list
-            [],  # R2_list
-            [],  # R3_list
-            [],  # M1_list
-            [],  # M2_list
-            [],  # M3_list
-        ]
-
-        # Go through each time step and calculate forces and atmospheric values
-        # Get flight phases
-        for phase_index, phase in self.time_iterator(self.flight_phases):
-            init_time = phase.t
-            final_time = self.flight_phases[phase_index + 1].t
-            current_derivative = phase.derivative
-            # Call callback functions
-            for callback in phase.callbacks:
-                callback(self)
-            # Loop through time steps in flight phase
-            for step in self.solution:  # Can be optimized
-                if init_time < step[0] <= final_time or (
-                    init_time == self.t_initial and step[0] == self.t_initial
-                ):
-                    # Call derivatives in post processing mode
-                    u_dot = current_derivative(step[0], step[1:], post_processing=True)
-                    for i, value in enumerate(temporary_values):
-                        value.append(u_dot[i + 13])
-
-        return temporary_values
-
     def get_controller_observed_variables(self):
         """Retrieve the observed variables related to air brakes from the
         controllers. If there is only one set of observed variables, it is
@@ -2930,6 +2817,33 @@ class Flight:
                 parachute.clean_pressure_signal_function
                 + parachute.noise_signal_function
             )
+
+    @cached_property
+    def __evaluate_post_process(self):
+        """Evaluate all post-processing variables by running the simulation
+        again but with the post-processing flag set to True.
+
+        Returns
+        -------
+        np.array
+            An array containing all post-processed variables evaluated at each
+            time step. Each element of the array is a list containing:
+            [t, ax, ay, az, alpha1, alpha2, alpha3, R1, R2, R3, M1, M2, M3]
+        """
+        self.__post_processed_variables = []
+        for phase_index, phase in self.time_iterator(self.flight_phases):
+            init_time = phase.t
+            final_time = self.flight_phases[phase_index + 1].t
+            current_derivative = phase.derivative
+            for callback in phase.callbacks:
+                callback(self)
+            for step in self.solution:
+                if init_time < step[0] <= final_time or (
+                    init_time == self.t_initial and step[0] == self.t_initial
+                ):
+                    current_derivative(step[0], step[1:], post_processing=True)
+
+        return np.array(self.__post_processed_variables)
 
     def post_process(self, interpolation="spline", extrapolation="natural"):
         """This method is **deprecated** and is only kept here for backwards
