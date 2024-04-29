@@ -9,6 +9,7 @@ from scipy import integrate
 
 from ..mathutils.function import Function, funcify_method
 from ..mathutils.vector_matrix import Matrix, Vector
+from ..motors.solid_motor import SolidMotor
 from ..plots.flight_plots import _FlightPlots
 from ..prints.flight_prints import _FlightPrints
 from ..tools import (
@@ -1116,7 +1117,11 @@ class Flight:
 
     def __init_equations_of_motion(self):
         """Initialize equations of motion."""
-        if self.equations_of_motion == "solid_propulsion":
+        if (
+            isinstance(self.rocket.motor, SolidMotor)
+            or self.equations_of_motion == "solid_propulsion"
+        ):
+            # NOTE: The u_dot is faster, but only works for solid propulsion
             self.u_dot_generalized = self.u_dot
 
     @cached_property
