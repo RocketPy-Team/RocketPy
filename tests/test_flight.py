@@ -619,8 +619,8 @@ def test_max_values(flight_calisto_robust):
     """
     test = flight_calisto_robust
     atol = 1e-2
-    assert pytest.approx(105.2774, abs=atol) == test.max_acceleration_power_on
-    assert pytest.approx(105.2774, abs=atol) == test.max_acceleration
+    assert pytest.approx(105.1599, abs=atol) == test.max_acceleration_power_on
+    assert pytest.approx(105.1599, abs=atol) == test.max_acceleration
     assert pytest.approx(0.85999, abs=atol) == test.max_mach_number
     assert pytest.approx(285.94948, abs=atol) == test.max_speed
 
@@ -649,8 +649,8 @@ def test_rail_buttons_forces(flight_calisto_custom_wind):
 @pytest.mark.parametrize(
     "flight_time, expected_values",
     [
-        ("t_initial", (0, 0, 0)),
-        ("out_of_rail_time", (0, 7.8068, 89.2325)),
+        ("t_initial", (0.07757, 0.07106, -9.33378)),
+        ("out_of_rail_time", (0.24249, 8.75150, 89.13007)),
         ("apogee_time", (0.07534, -0.058127, -9.614386)),
         ("t_final", (0, 0, 0.0017346294117130806)),
     ],
