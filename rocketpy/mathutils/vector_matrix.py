@@ -1,7 +1,8 @@
 from cmath import isclose
+from functools import cached_property
 from itertools import product
 
-from rocketpy.tools import cached_property, euler_to_quaternions
+from rocketpy.tools import euler_to_quaternions
 
 
 class Vector:

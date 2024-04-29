@@ -1,4 +1,4 @@
-import warnings
+from functools import cached_property
 
 import numpy as np
 
@@ -12,11 +12,6 @@ from rocketpy.tools import parallel_axis_theorem_from_com
 from ..plots.liquid_motor_plots import _LiquidMotorPlots
 from ..prints.liquid_motor_prints import _LiquidMotorPrints
 from .motor import Motor
-
-try:
-    from functools import cached_property
-except ImportError:
-    from ..tools import cached_property
 
 
 class LiquidMotor(Motor):

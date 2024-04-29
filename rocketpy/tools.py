@@ -1,6 +1,8 @@
+import functools
 import importlib
 import importlib.metadata
 import re
+import time
 from bisect import bisect_left
 
 import numpy as np
@@ -8,34 +10,8 @@ import pytz
 from cftime import num2pydate
 from packaging import version as packaging_version
 
-_NOT_FOUND = object()
-
 # Mapping of module name and the name of the package that should be installed
 INSTALL_MAPPING = {"IPython": "ipython"}
-
-
-class cached_property:
-    def __init__(self, func):
-        self.func = func
-        self.attrname = None
-        self.__doc__ = func.__doc__
-
-    def __set_name__(self, owner, name):
-        self.attrname = name
-
-    def __get__(self, instance, owner=None):
-        if instance is None:
-            return self
-        if self.attrname is None:
-            raise TypeError(
-                "Cannot use cached_property instance without calling __set_name__ on it."
-            )
-        cache = instance.__dict__
-        val = cache.get(self.attrname, _NOT_FOUND)
-        if val is _NOT_FOUND:
-            val = self.func(instance)
-            cache[self.attrname] = val
-        return val
 
 
 def tuple_handler(value):
@@ -153,7 +129,7 @@ def time_num_to_date_string(time_num, units, timezone, calendar="gregorian"):
     """Convert time number (usually hours before a certain date) into two
     strings: one for the date (example: 2022.04.31) and one for the hour
     (example: 14). See cftime.num2date for details on units and calendar.
-    Automatically converts time number from UTC to local timezone based on
+    Automatically converts time number from UTC to local time zone based on
     lat, lon coordinates. This function was created originally for the
     EnvironmentAnalysis class.
 
@@ -380,6 +356,25 @@ def check_requirement_version(module_name, version):
             + f"version by running 'pip install {module_name}{version}'"
         )
     return True
+
+
+def exponential_backoff(max_attempts, base_delay=1, max_delay=60):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            delay = base_delay
+            for i in range(max_attempts):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    if i == max_attempts - 1:
+                        raise e from None
+                    delay = min(delay * 2, max_delay)
+                    time.sleep(delay)
+
+        return wrapper
+
+    return decorator
 
 
 def parallel_axis_theorem_from_com(com_inertia_moment, mass, distance):

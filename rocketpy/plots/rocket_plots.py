@@ -230,6 +230,8 @@ class _RocketPlots:
         plt.show()
 
     def _draw_aerodynamic_surfaces(self, ax, vis_args):
+        """Draws the aerodynamic surfaces and saves the position of the points
+        of interest for the tubes."""
         # List of drawn surfaces with the position of points of interest
         # and the radius of the rocket at that point
         drawn_surfaces = []
@@ -250,6 +252,8 @@ class _RocketPlots:
         return drawn_surfaces
 
     def _draw_nose_cone(self, ax, surface, position, drawn_surfaces, vis_args):
+        """Draws the nosecone and saves the position of the points of interest
+        for the tubes."""
         x_nosecone = -self.rocket._csys * surface.shape_vec[0] + position
         y_nosecone = surface.shape_vec[1]
         ax.plot(
@@ -277,6 +281,8 @@ class _RocketPlots:
         )
 
     def _draw_tail(self, ax, surface, position, drawn_surfaces, vis_args):
+        """Draws the tail and saves the position of the points of interest
+        for the tubes."""
         x_tail = -self.rocket._csys * surface.shape_vec[0] + position
         y_tail = surface.shape_vec[1]
         ax.plot(
@@ -302,13 +308,30 @@ class _RocketPlots:
         drawn_surfaces.append((surface, position, surface.bottom_radius, x_tail[-1]))
 
     def _draw_fins(self, ax, surface, position, drawn_surfaces, vis_args):
+        """Draws the fins and saves the position of the points of interest
+        for the tubes."""
         num_fins = surface.n
         x_fin = -self.rocket._csys * surface.shape_vec[0] + position
         y_fin = surface.shape_vec[1] + surface.rocket_radius
         rotation_angles = [2 * np.pi * i / num_fins for i in range(num_fins)]
 
         for angle in rotation_angles:
-            x_rotated, y_rotated = self._rotate_points(x_fin, y_fin, angle)
+            # Create a rotation matrix for the current angle around the x-axis
+            rotation_matrix = np.array([[1, 0], [0, np.cos(angle)]])
+
+            # Apply the rotation to the original fin points
+            rotated_points_2d = np.dot(rotation_matrix, np.vstack((x_fin, y_fin)))
+
+            # Extract x and y coordinates of the rotated points
+            x_rotated, y_rotated = rotated_points_2d
+
+            # Project points above the XY plane back into the XY plane (set z-coordinate to 0)
+            x_rotated = np.where(
+                rotated_points_2d[1] > 0, rotated_points_2d[0], x_rotated
+            )
+            y_rotated = np.where(
+                rotated_points_2d[1] > 0, rotated_points_2d[1], y_rotated
+            )
             ax.plot(
                 x_rotated,
                 y_rotated,
@@ -318,22 +341,8 @@ class _RocketPlots:
 
         drawn_surfaces.append((surface, position, surface.rocket_radius, x_rotated[-1]))
 
-    def _rotate_points(self, x_fin, y_fin, angle):
-        # Create a rotation matrix for the current angle around the x-axis
-        rotation_matrix = np.array([[1, 0], [0, np.cos(angle)]])
-
-        # Apply the rotation to the original fin points
-        rotated_points_2d = np.dot(rotation_matrix, np.vstack((x_fin, y_fin)))
-
-        # Extract x and y coordinates of the rotated points
-        x_rotated, y_rotated = rotated_points_2d
-
-        # Project points above the XY plane back into the XY plane (set z-coordinate to 0)
-        x_rotated = np.where(rotated_points_2d[1] > 0, rotated_points_2d[0], x_rotated)
-        y_rotated = np.where(rotated_points_2d[1] > 0, rotated_points_2d[1], y_rotated)
-        return x_rotated, y_rotated
-
     def _draw_tubes(self, ax, drawn_surfaces, vis_args):
+        """Draws the tubes between the aerodynamic surfaces."""
         for i, d_surface in enumerate(drawn_surfaces):
             # Draw the tubes, from the end of the first surface to the beginning
             # of the next surface, with the radius of the rocket at that point
@@ -373,6 +382,7 @@ class _RocketPlots:
         return radius, last_x
 
     def _draw_motor(self, last_radius, last_x, ax, vis_args):
+        """Draws the motor from motor patches"""
         total_csys = self.rocket._csys * self.rocket.motor._csys
         nozzle_position = (
             self.rocket.motor_position + self.rocket.motor.nozzle_position * total_csys
@@ -400,6 +410,7 @@ class _RocketPlots:
         self._draw_nozzle_tube(last_radius, last_x, nozzle_position, ax, vis_args)
 
     def _generate_motor_patches(self, total_csys, ax, vis_args):
+        """Generates motor patches for drawing"""
         motor_patches = []
 
         if isinstance(self.rocket.motor, SolidMotor):
@@ -478,6 +489,7 @@ class _RocketPlots:
         return motor_patches
 
     def _draw_nozzle_tube(self, last_radius, last_x, nozzle_position, ax, vis_args):
+        """Draws the tube from the last surface to the nozzle position."""
         # Check if nozzle is beyond the last surface, if so draw a tube
         # to it, with the radius of the last surface
         if self.rocket._csys == 1:
@@ -518,6 +530,7 @@ class _RocketPlots:
                 )
 
     def _draw_rail_buttons(self, ax, vis_args):
+        """Draws the rail buttons of the rocket."""
         try:
             buttons, pos = self.rocket.rail_buttons[0]
             lower = pos
@@ -532,6 +545,7 @@ class _RocketPlots:
             pass
 
     def _draw_center_of_mass_and_pressure(self, ax):
+        """Draws the center of mass and center of pressure of the rocket."""
         # Draw center of mass and center of pressure
         cm = self.rocket.center_of_mass(0)
         ax.scatter(cm, 0, color="#1565c0", label="Center of Mass", s=10)
