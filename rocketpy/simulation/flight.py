@@ -625,8 +625,8 @@ class Flight:
 
     def __repr__(self):
         return (
-            f"<Flight(rocket= {self.rocket.name}, "
-            f"environment= {self.env.name}, "
+            f"<Flight(rocket= {self.rocket}, "
+            f"environment= {self.env}, "
             f"rail_length= {self.rail_length}, "
             f"inclination= {self.inclination}, "
             f"heading = {self.heading},"
