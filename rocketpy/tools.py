@@ -132,7 +132,7 @@ def find_roots_cubic_function(a, b, c, d):
     delta_1 = 2 * b**3 - 9 * a * b * c + 27 * d * a**2
     c1 = ((delta_1 + (delta_1**2 - 4 * delta_0**3) ** (0.5)) / 2) ** (1 / 3)
 
-    c2_0 = c1 * (-1 / 2 + 1j * (3**0.5) / 2) ** 0
+    c2_0 = c1
     x1 = -(1 / (3 * a)) * (b + c2_0 + delta_0 / c2_0)
 
     c2_1 = c1 * (-1 / 2 + 1j * (3**0.5) / 2) ** 1
@@ -140,17 +140,6 @@ def find_roots_cubic_function(a, b, c, d):
 
     c2_2 = c1 * (-1 / 2 + 1j * (3**0.5) / 2) ** 2
     x3 = -(1 / (3 * a)) * (b + c2_2 + delta_0 / c2_2)
-
-    # Alternative method (same results)
-
-    # Q = (3 * a * c - b**2) / (9 * a**2)
-    # R = (9 * a * b * c - 27 * a**2 * d - 2 * b**3) / (54 * a**3)
-    # S = (R + (Q**3 + R**2)**0.5)**(1 / 3)
-    # T = (R - (Q**3 + R**2)**0.5)**(1 / 3)
-
-    # x1 = S + T - b / (3 * a)
-    # x2 = -(S + T) / 2 - b / (3 * a) + 1j * (S - T) * (3**0.5) / 2
-    # x3 = -(S + T) / 2 - b / (3 * a) - 1j * (S - T) * (3**0.5) / 2
 
     return x1, x2, x3
 
