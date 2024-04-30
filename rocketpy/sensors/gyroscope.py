@@ -1,4 +1,5 @@
 import numpy as np
+import json
 
 from ..mathutils.vector_matrix import Matrix, Vector
 from ..prints.sensors_prints import _GyroscopePrints
@@ -265,20 +266,43 @@ class Gyroscope(Sensors):
         None
         """
         if format == "csv":
-            with open(filename, "w") as f:
-                f.write("t,wx,wy,wz\n")
-                for t, wx, wy, wz in self.measured_data:
-                    f.write(f"{t},{wx},{wy},{wz}\n")
+            # if sensor has been added multiple times to the simulated rocket
+            if isinstance(self.measured_data[0], list):
+                print("Data saved to", end=" ")
+                for i, data in enumerate(self.measured_data):
+                    with open(filename + f"_{i+1}", "w") as f:
+                        f.write("t,wx,wy,wz\n")
+                        for t, wx, wy, wz in data:
+                            f.write(f"{t},{wx},{wy},{wz}\n")
+                    print(filename + f"_{i+1},", end=" ")
+            else:
+                with open(filename, "w") as f:
+                    f.write("t,wx,wy,wz\n")
+                    for t, wx, wy, wz in self.measured_data:
+                        f.write(f"{t},{wx},{wy},{wz}\n")
+                print(f"Data saved to {filename}")
         elif format == "json":
-            import json
-
-            data = {"t": [], "wx": [], "wy": [], "wz": []}
-            for t, wx, wy, wz in self.measured_data:
-                data["t"].append(t)
-                data["wx"].append(wx)
-                data["wy"].append(wy)
-                data["wz"].append(wz)
-            with open(filename, "w") as f:
-                json.dump(data, f)
+            if isinstance(self.measured_data[0], list):
+                print("Data saved to", end=" ")
+                for i, data in enumerate(self.measured_data):
+                    dict = {"t": [], "wx": [], "wy": [], "wz": []}
+                    for t, wx, wy, wz in data:
+                        dict["t"].append(t)
+                        dict["wx"].append(wx)
+                        dict["wy"].append(wy)
+                        dict["wz"].append(wz)
+                    with open(filename + f"_{i+1}", "w") as f:
+                        json.dump(dict, f)
+                    print(filename + f"_{i+1},", end=" ")
+            else:
+                dict = {"t": [], "wx": [], "wy": [], "wz": []}
+                for t, wx, wy, wz in self.measured_data:
+                    dict["t"].append(t)
+                    dict["wx"].append(wx)
+                    dict["wy"].append(wy)
+                    dict["wz"].append(wz)
+                with open(filename, "w") as f:
+                    json.dump(dict, f)
+                print(f"Data saved to {filename}")
         else:
             raise ValueError("Invalid format")
