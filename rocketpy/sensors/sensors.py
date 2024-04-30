@@ -236,7 +236,7 @@ class Sensors(ABC):
             self._counter = 0
 
     def __repr__(self):
-        return f"{self.type} sensor, orientation: {self.orientation}"
+        return f"{self.name}"
 
     def __call__(self, *args, **kwargs):
         return self.measure(*args, **kwargs)
