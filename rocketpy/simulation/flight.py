@@ -57,8 +57,6 @@ class Flight:
         Name of the flight.
     Flight._controllers : list
         List of controllers to be used during simulation.
-    Flight._component_sensors : list
-        List of sensors to be used during simulation.
     Flight.max_time : int, float
         Maximum simulation time allowed. Refers to physical time
         being simulated, not time taken to run simulation.
@@ -709,26 +707,27 @@ class Flight:
                 for callback in node.callbacks:
                     callback(self)
 
-                # calculate u_dot for sensors
-                u_dot = phase.derivative(self.t, self.y_sol)
-                for sensor, position in node._component_sensors:
-                    relative_position = position - self.rocket._csys * Vector(
-                        [0, 0, self.rocket.center_of_dry_mass_position]
-                    )
-                    sensor.measure(
-                        self.t,
-                        self.y_sol,
-                        u_dot,
-                        relative_position,
-                        self.env.gravity(self.solution[-1][3]),
-                    )
+                if self.sensors:
+                    # u_dot for all sensors
+                    u_dot = phase.derivative(self.t, self.y_sol)
+                    for sensor, position in node._component_sensors:
+                        relative_position = position - self.rocket._csys * Vector(
+                            [0, 0, self.rocket.center_of_dry_mass_position]
+                        )
+                        sensor.measure(
+                            self.t,
+                            self.y_sol,
+                            u_dot,
+                            relative_position,
+                            self.env.gravity(self.solution[-1][3]),
+                        )
 
                 for controller in node._controllers:
                     controller(
                         self.t,
                         self.y_sol,
                         self.solution,
-                        self._sensors_list,
+                        self.sensors,
                     )
 
                 for parachute in node.parachutes:
@@ -745,7 +744,7 @@ class Flight:
                         - self.env.elevation
                     )
                     if parachute.triggerfunc(
-                        pressure + noise, hAGL, self.y_sol, self._sensors_list
+                        pressure + noise, hAGL, self.y_sol, self.sensors
                     ):
                         # print('\nEVENT DETECTED')
                         # print('Parachute Triggered')
