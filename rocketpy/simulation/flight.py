@@ -1247,6 +1247,7 @@ class Flight:
     def __init_controllers(self):
         """Initialize controllers and sensors"""
         self._controllers = self.rocket._controllers[:]
+        self.sensors = self.rocket.sensors.get_components()
         if self._controllers or self.sensors:
             if self.time_overshoot == True:
                 self.time_overshoot = False
@@ -1258,7 +1259,6 @@ class Flight:
             for air_brakes in self.rocket.air_brakes:
                 air_brakes._reset()
 
-        self.sensors = self.rocket.sensors.get_components()
         self.sensor_data = {}
         for sensor in self.sensors:
             sensor._reset(self.rocket)  # resets noise and measurement list
@@ -3418,7 +3418,7 @@ class Flight:
             data_dict = {}
             data_dict[sensor.name] = self.sensor_data[sensor]
         with open(file_name, "w") as file:
-                json.dump(data_dict, file)
+            json.dump(data_dict, file)
         print("Sensor data exported to", file_name)
 
     def export_kml(

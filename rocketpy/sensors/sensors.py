@@ -160,6 +160,7 @@ class Sensors(ABC):
         self.measurement = None
         self.measured_data = []
         self._counter = 0
+        self._save_data = self._save_data_single
 
         # handle measurement range
         if isinstance(measurement_range, (tuple, list)):
@@ -221,7 +222,7 @@ class Sensors(ABC):
         else:
             self._save_data = self._save_data_single
 
-    def _save_data_single(self, data, index=0):
+    def _save_data_single(self, data):
         """Save the measured data to the sensor data list for a sensor that is
         added only once to the simulated rocket."""
         self.measured_data.append(data)
