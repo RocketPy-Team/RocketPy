@@ -1192,6 +1192,10 @@ class Rocket:
         None
         """
         self.sensors.add(sensor, Vector([x_position, y_position, position]))
+        try:
+            sensor._attached_rockets[self] += 1
+        except:
+            sensor._attached_rockets[self] = 1
 
     def add_air_brakes(
         self,

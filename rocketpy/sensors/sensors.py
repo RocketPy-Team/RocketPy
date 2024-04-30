@@ -197,6 +197,9 @@ class Sensors(ABC):
         # compute total rotation matrix given cross axis sensitivity
         self._total_rotation_matrix = self.rotation_matrix @ _cross_axis_matrix
 
+        # map which rocket(s) the sensor is attached to and how many times
+        self._attached_rockets = {}
+
     def _vectorize_input(self, value, name):
         if isinstance(value, (int, float)):
             return Vector([value, value, value])
