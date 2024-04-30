@@ -1114,6 +1114,8 @@ class Flight:
         self._calculate_pressure_signal()
         if self._controllers:
             self.__cache_post_process_variables()
+        if self.sensors:
+            self.__cache_sensor_data()
         if verbose:
             print("Simulation Completed at Time: {:3.4f} s".format(self.t))
 
@@ -1283,6 +1285,25 @@ class Flight:
             self.wind_velocity_x_list,
             self.wind_velocity_y_list,
         ]
+
+    def __cache_sensor_data(self):
+        sensor_data = {}
+        sensors = []
+        for sensor in self.sensors:
+            # skip sensors that are used more then once in the rocket
+            if sensor not in sensors:
+                sensors.append(sensor)
+                num_instances = sensor._attached_rockets[self.rocket]
+                # sensor added only once
+                if num_instances == 1:
+                    sensor_data[sensor] = sensor.measured_data[:]
+                # sensor added more then once
+                if num_instances > 1:
+                    sensor_data[sensor] = {}
+                    # iterate through each of the same sensor instances
+                    for index in range(num_instances):
+                        sensor_data[sensor][index + 1] = sensor.measured_data[index][:]
+        self.sensor_data = sensor_data
 
     @cached_property
     def effective_1rl(self):
@@ -3796,6 +3817,6 @@ class Flight:
                     + " | Controllers: "
                     + str(len(self._controllers))
                     + " | Sensors: "
-                    + str(len(self._sensors_list))
+                    + str(len(self._component_sensors))
                     + "}"
                 )
