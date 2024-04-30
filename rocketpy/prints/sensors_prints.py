@@ -44,7 +44,12 @@ class _SensorsPrints(ABC):
         )
         self._print_aligned("Resolution:", f"{self.sensor.resolution} {self.units}/LSB")
 
+    @abstractmethod
     def noise(self):
+        """Prints the noise of the sensor."""
+        pass
+
+    def _general_noise(self):
         """Prints the noise of the sensor."""
         print("\nNoise of the Sensor:\n")
         self._print_aligned(
@@ -68,11 +73,6 @@ class _SensorsPrints(ABC):
         self._print_aligned(
             "Cross Axis Sensitivity:", f"{self.sensor.cross_axis_sensitivity} %"
         )
-        if self.sensor.type == "Gyroscope":
-            self._print_aligned(
-                "Acceleration Sensitivity:",
-                f"{self.sensor.acceleration_sensitivity} rad/s/g",
-            )
 
     def all(self):
         """Prints all information of the sensor."""
@@ -89,6 +89,10 @@ class _AccelerometerPrints(_SensorsPrints):
         """Initialize the class."""
         super().__init__(accelerometer)
 
+    def noise(self):
+        """Prints the noise of the sensor."""
+        self._general_noise()
+
 
 class _GyroscopePrints(_SensorsPrints):
     """Class that contains all gyroscope prints."""
@@ -96,3 +100,11 @@ class _GyroscopePrints(_SensorsPrints):
     def __init__(self, gyroscope):
         """Initialize the class."""
         super().__init__(gyroscope)
+
+    def noise(self):
+        """Prints the noise of the sensor."""
+        self._general_noise()
+        self._print_aligned(
+            "Acceleration Sensitivity:",
+            f"{self.sensor.acceleration_sensitivity} rad/s/g",
+        )
