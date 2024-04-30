@@ -1,4 +1,5 @@
 import numpy as np
+import json
 
 from ..mathutils.vector_matrix import Matrix, Vector
 from ..prints.sensors_prints import _AccelerometerPrints
@@ -234,20 +235,43 @@ class Accelerometer(Sensors):
         None
         """
         if format == "csv":
-            with open(filename, "w") as f:
-                f.write("t,ax,ay,az\n")
-                for t, ax, ay, az in self.measured_data:
-                    f.write(f"{t},{ax},{ay},{az}\n")
+            # if sensor has been added multiple times to the simulated rocket
+            if isinstance(self.measured_data[0], list):
+                print("Data saved to", end=" ")
+                for i, data in enumerate(self.measured_data):
+                    with open(filename + f"_{i+1}", "w") as f:
+                        f.write("t,ax,ay,az\n")
+                        for t, ax, ay, az in data:
+                            f.write(f"{t},{ax},{ay},{az}\n")
+                    print(filename + f"_{i+1},", end=" ")
+            else:
+                with open(filename, "w") as f:
+                    f.write("t,ax,ay,az\n")
+                    for t, ax, ay, az in self.measured_data:
+                        f.write(f"{t},{ax},{ay},{az}\n")
+                print(f"Data saved to {filename}")
         elif format == "json":
-            import json
-
-            data = {"t": [], "ax": [], "ay": [], "az": []}
-            for t, ax, ay, az in self.measured_data:
-                data["t"].append(t)
-                data["ax"].append(ax)
-                data["ay"].append(ay)
-                data["az"].append(az)
-            with open(filename, "w") as f:
-                json.dump(data, f)
+            if isinstance(self.measured_data[0], list):
+                print("Data saved to", end=" ")
+                for i, data in enumerate(self.measured_data):
+                    dict = {"t": [], "ax": [], "ay": [], "az": []}
+                    for t, ax, ay, az in data:
+                        dict["t"].append(t)
+                        dict["ax"].append(ax)
+                        dict["ay"].append(ay)
+                        dict["az"].append(az)
+                    with open(filename + f"_{i+1}", "w") as f:
+                        json.dump(dict, f)
+                    print(filename + f"_{i+1},", end=" ")
+            else:
+                dict = {"t": [], "ax": [], "ay": [], "az": []}
+                for t, ax, ay, az in self.measured_data:
+                    dict["t"].append(t)
+                    dict["ax"].append(ax)
+                    dict["ay"].append(ay)
+                    dict["az"].append(az)
+                with open(filename, "w") as f:
+                    json.dump(dict, f)
+                print(f"Data saved to {filename}")
         else:
             raise ValueError("Invalid format")
