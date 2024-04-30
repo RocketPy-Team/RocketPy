@@ -158,7 +158,8 @@ class Sensors(ABC):
         self.name = name
         self._random_walk_drift = Vector([0, 0, 0])
         self.measurement = None
-        self.measured_data = []  # change to data
+        self.measured_data = []
+        self._counter = 0
 
         # handle measurement range
         if isinstance(measurement_range, (tuple, list)):
@@ -207,6 +208,32 @@ class Sensors(ABC):
             return Vector(value)
         else:
             raise ValueError(f"Invalid {name} format")
+
+    def _reset(self, simulated_rocket):
+        """Reset the sensor data for a new simulation."""
+        self._random_walk_drift = Vector([0, 0, 0])
+        self.measured_data = []
+        if self._attached_rockets[simulated_rocket] > 1:
+            self.measured_data = [
+                [] for _ in range(self._attached_rockets[simulated_rocket])
+            ]
+            self._save_data = self._save_data_multiple
+        else:
+            self._save_data = self._save_data_single
+
+    def _save_data_single(self, data, index=0):
+        """Save the measured data to the sensor data list for a sensor that is
+        added only once to the simulated rocket."""
+        self.measured_data.append(data)
+
+    def _save_data_multiple(self, data):
+        """Save the measured data to the sensor data list for a sensor that is
+        added multiple times to the simulated rocket."""
+        self.measured_data[self._counter].append(data)
+        # counter for cases where the sensor is added multiple times in a rocket
+        self._counter += 1
+        if self._counter == len(self.measured_data):
+            self._counter = 0
 
     def __repr__(self):
         return f"{self.type} sensor, orientation: {self.orientation}"
