@@ -274,6 +274,8 @@ def calisto_accel_gyro(
     calisto.add_surfaces(calisto_nose_cone, 1.160)
     calisto.add_surfaces(calisto_tail, -1.313)
     calisto.add_surfaces(calisto_trapezoidal_fins, -1.168)
+    # double sensors to test using same instance twice
+    calisto.add_sensor(ideal_accelerometer, -0.1180124376577797)
     calisto.add_sensor(ideal_accelerometer, -0.1180124376577797)
     calisto.add_sensor(ideal_gyroscope, -0.1180124376577797)
     return calisto

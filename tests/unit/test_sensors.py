@@ -300,7 +300,24 @@ def test_export_accel_data_csv(ideal_accelerometer):
         expected_data += f"{t},{ax},{ay},{az}\n"
 
     assert contents == expected_data
+
+    # check exports for accelerometers added more than once to the rocket
+    ideal_accelerometer.measured_data = [
+        ideal_accelerometer.measured_data[:],
+        ideal_accelerometer.measured_data[:],
+    ]
+    ideal_accelerometer.export_measured_data(file_name, format="csv")
+    with open(file_name + "_1", "r") as file:
+        contents = file.read()
+    assert contents == expected_data
+
+    with open(file_name + "_2", "r") as file:
+        contents = file.read()
+    assert contents == expected_data
+
     os.remove(file_name)
+    os.remove(file_name + "_1")
+    os.remove(file_name + "_2")
 
 
 def test_export_accel_data_json(ideal_accelerometer):
@@ -334,7 +351,22 @@ def test_export_accel_data_json(ideal_accelerometer):
         expected_data["az"].append(az)
 
     assert contents == expected_data
+
+    # check exports for accelerometers added more than once to the rocket
+    ideal_accelerometer.measured_data = [
+        ideal_accelerometer.measured_data[:],
+        ideal_accelerometer.measured_data[:],
+    ]
+    ideal_accelerometer.export_measured_data(file_name, format="json")
+    contents = json.load(open(file_name + "_1", "r"))
+    assert contents == expected_data
+
+    contents = json.load(open(file_name + "_2", "r"))
+    assert contents == expected_data
+
     os.remove(file_name)
+    os.remove(file_name + "_1")
+    os.remove(file_name + "_2")
 
 
 def test_export_gyro_data_csv(ideal_gyroscope):
@@ -365,7 +397,24 @@ def test_export_gyro_data_csv(ideal_gyroscope):
         expected_data += f"{t},{wx},{wy},{wz}\n"
 
     assert contents == expected_data
+
+    # check exports for gyroscopes added more than once to the rocket
+    ideal_gyroscope.measured_data = [
+        ideal_gyroscope.measured_data[:],
+        ideal_gyroscope.measured_data[:],
+    ]
+    ideal_gyroscope.export_measured_data(file_name, format="csv")
+    with open(file_name + "_1", "r") as file:
+        contents = file.read()
+    assert contents == expected_data
+
+    with open(file_name + "_2", "r") as file:
+        contents = file.read()
+    assert contents == expected_data
+
     os.remove(file_name)
+    os.remove(file_name + "_1")
+    os.remove(file_name + "_2")
 
 
 def test_export_gyro_data_json(ideal_gyroscope):
@@ -397,4 +446,19 @@ def test_export_gyro_data_json(ideal_gyroscope):
         expected_data["wz"].append(wz)
 
     assert contents == expected_data
+
+    # check exports for gyroscopes added more than once to the rocket
+    ideal_gyroscope.measured_data = [
+        ideal_gyroscope.measured_data[:],
+        ideal_gyroscope.measured_data[:],
+    ]
+    ideal_gyroscope.export_measured_data(file_name, format="json")
+    contents = json.load(open(file_name + "_1", "r"))
+    assert contents == expected_data
+
+    contents = json.load(open(file_name + "_2", "r"))
+    assert contents == expected_data
+
     os.remove(file_name)
+    os.remove(file_name + "_1")
+    os.remove(file_name + "_2")
