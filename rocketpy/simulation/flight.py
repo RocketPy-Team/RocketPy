@@ -1,3 +1,4 @@
+import json
 import math
 import warnings
 from copy import deepcopy
@@ -3394,7 +3395,31 @@ class Flight:
             encoding="utf-8",
         )
 
-        return
+    def export_sensor_data(self, file_name, sensor=None):
+        """Exports sensors data to a file. The file format can be either .csv or
+        .json.
+
+        Parameters
+        ----------
+        file_name : str
+            The file name or path of the exported file. Example: flight_data.csv
+            Do not use forbidden characters, such as / in Linux/Unix and
+            `<, >, :, ", /, \\, | ?, *` in Windows.
+        sensor : Sensor, optional
+            The sensor to export data. If None, all sensors data will be exported.
+            Default is None.
+        """
+        if sensor is None:
+            data_dict = {}
+            for key, value in self.sensor_data.items():
+                data_dict[key.name] = value
+        else:
+            # export data of only that sensor
+            data_dict = {}
+            data_dict[sensor.name] = self.sensor_data[sensor]
+        with open(file_name, "w") as file:
+                json.dump(data_dict, file)
+        print("Sensor data exported to", file_name)
 
     def export_kml(
         self,
