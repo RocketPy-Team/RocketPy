@@ -595,9 +595,6 @@ class Flight:
         if self.rail_length <= 0:
             raise ValueError("Rail length must be a positive value.")
         self.parachutes = self.rocket.parachutes[:]
-        self._controllers = self.rocket._controllers[:]
-        self._component_sensors = self.rocket.sensors
-        self._sensors_list = self.rocket.sensors.get_components()
         self.inclination = inclination
         self.heading = heading
         self.max_time = max_time
@@ -676,7 +673,7 @@ class Flight:
                     self.parachutes, phase.t, phase.time_bound
                 )
                 phase.TimeNodes.add_sensors(
-                    self._component_sensors, phase.t, phase.time_bound
+                    self.rocket.sensors, phase.t, phase.time_bound
                 )
                 phase.TimeNodes.add_controllers(
                     self._controllers, phase.t, phase.time_bound
@@ -1060,7 +1057,7 @@ class Flight:
                                         pressure + noise,
                                         hAGL,
                                         overshootable_node.y,
-                                        self._sensors_list,
+                                        self.sensors,
                                     ):
                                         # print('\nEVENT DETECTED')
                                         # print('Parachute Triggered')
@@ -1246,17 +1243,24 @@ class Flight:
             self.u_dot_generalized = self.u_dot
 
     def __init_controllers(self):
-        """Initialize controllers"""
+        """Initialize controllers and sensors"""
         self._controllers = self.rocket._controllers[:]
-        if self._controllers:
+        if self._controllers or self.sensors:
             if self.time_overshoot == True:
                 self.time_overshoot = False
                 warnings.warn(
-                    "time_overshoot has been set to False due to the presence of controllers. "
+                    "time_overshoot has been set to False due to the presence "
+                    "of controllers or sensors. "
                 )
             # reset controllable object to initial state (only airbrakes for now)
             for air_brakes in self.rocket.air_brakes:
                 air_brakes._reset()
+
+        self.sensors = self.rocket.sensors.get_components()
+        self.sensor_data = {}
+        for sensor in self.sensors:
+            sensor._reset(self.rocket)  # resets noise and measurement list
+            self.sensor_data[sensor] = []
 
     def __cache_post_process_variables(self):
         """Cache post-process variables for simulations with controllers."""
