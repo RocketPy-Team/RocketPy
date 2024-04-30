@@ -215,7 +215,7 @@ class Accelerometer(Sensors):
         A = self.quantize(A)
 
         self.measurement = tuple([*A])
-        self.measured_data.append((t, *A))
+        self._save_data((t, *A))
 
     def export_measured_data(self, filename, format="csv"):
         """

@@ -207,7 +207,7 @@ class Gyroscope(Sensors):
         W = self.quantize(W)
 
         self.measurement = tuple([*W])
-        self.measured_data.append((t, *W))
+        self._save_data((t, *W))
 
     def apply_acceleration_sensitivity(
         self, omega, u_dot, relative_position, rotation_matrix
