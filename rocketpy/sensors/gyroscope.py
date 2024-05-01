@@ -1,5 +1,6 @@
-import numpy as np
 import json
+
+import numpy as np
 
 from ..mathutils.vector_matrix import Matrix, Vector
 from ..prints.sensors_prints import _GyroscopePrints
