@@ -28,8 +28,12 @@ class Gyroscope(Sensors):
         The resolution of the sensor in rad/s/LSB.
     noise_density : float, list
         The noise density of the sensor in rad/s/√Hz.
-    random_walk : float, list
-        The random walk of the sensor in rad/s/√Hz.
+    noise_variance : float, list
+        The variance of the noise of the sensor in (rad/s)^2.
+    random_walk_density : float, list
+        The random walk density of the sensor in rad/s/√Hz.
+    random_walk_variance : float, list
+        The random walk variance of the sensor in (rad/s)^2.
     constant_bias : float, list
         The constant bias of the sensor in rad/s.
     operating_temperature : float
@@ -64,7 +68,9 @@ class Gyroscope(Sensors):
         measurement_range=np.inf,
         resolution=0,
         noise_density=0,
-        random_walk=0,
+        noise_variance=1,
+        random_walk_density=0,
+        random_walk_variance=1,
         constant_bias=0,
         operating_temperature=25,
         temperature_bias=0,
@@ -106,18 +112,31 @@ class Gyroscope(Sensors):
             The resolution of the sensor in rad/s/LSB. Default is 0, meaning no
             quantization is applied.
         noise_density : float, list, optional
-            The noise density of the sensor in rad/s/√Hz. Sometimes called
-            "white noise drift", "angular random walk" for gyroscopes, "velocity
-            random walk" for the accelerometers or "(rate) noise density".
-            Default is 0, meaning no noise is applied. If a float or int is
-            given, the same noise density is applied to all axes. The values of
+            The noise density of the sensor for a Gaussian white noise in rad/s/√Hz.
+            Sometimes called "white noise drift", "angular random walk" for
+            gyroscopes, "velocity random walk" for the accelerometers or
+            "(rate) noise density". Default is 0, meaning no noise is applied.
+            If a float or int is given, the same noise density is applied to all
+            axes. The values of each axis can be set individually by passing a
+            list of length 3.
+        noise_variance : float, list, optional
+            The noise variance of the sensor for a Gaussian white noise in (rad/s)^2.
+            Default is 1, meaning the noise is normally distributed with a
+            standard deviation of 1 rad/s. If a float or int is given, the same
+            variance is applied to all axes. The values of each axis can be set
+            individually by passing a list of length 3.
+        random_walk_density : float, list, optional
+            The random walk density of the sensor for a Gaussian random walk in
+            rad/s/√Hz. Sometimes called "bias (in)stability" or "bias drift"".
+            Default is 0, meaning no random walk is applied. If a float or int
+            is given, the same random walk is applied to all axes. The values of
             each axis can be set individually by passing a list of length 3.
-        random_walk : float, list, optional
-            The random walk of the sensor in rad/s/√Hz. Sometimes called "bias
-            (in)stability" or "bias drift"". Default is 0, meaning no random
-            walk is applied. If a float or int is given, the same random walk is
-            applied to all axes. The values of each axis can be set individually
-            by passing a list of length 3.
+        random_walk_variance : float, list, optional
+            The random walk variance of the sensor for a Gaussian random walk in
+            (rad/s)^2. Default is 1, meaning the random walk is normally
+            distributed with a standard deviation of 1 rad/s. If a float or int
+            is given, the same variance is applied to all axes. The values of
+            each axis can be set individually by passing a list of length 3.
         constant_bias : float, list, optional
             The constant bias of the sensor in rad/s. Default is 0, meaning no
             constant bias is applied. If a float or int is given, the same bias
@@ -151,6 +170,10 @@ class Gyroscope(Sensors):
         Returns
         -------
         None
+
+        See Also
+        --------
+        TODO link to documentation on noise model
         """
         super().__init__(
             sampling_rate,
@@ -158,7 +181,9 @@ class Gyroscope(Sensors):
             measurement_range=measurement_range,
             resolution=resolution,
             noise_density=noise_density,
-            random_walk=random_walk,
+            noise_variance=noise_variance,
+            random_walk_density=random_walk_density,
+            random_walk_variance=random_walk_variance,
             constant_bias=constant_bias,
             operating_temperature=operating_temperature,
             temperature_bias=temperature_bias,

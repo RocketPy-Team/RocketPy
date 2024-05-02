@@ -22,8 +22,12 @@ class Sensors(ABC):
         The resolution of the sensor in sensor units/LSB.
     noise_density : float, list
         The noise density of the sensor in sensor units/√Hz.
-    random_walk : float, list
-        The random walk of the sensor in sensor units/√Hz.
+    noise_variance : float, list
+        The variance of the noise of the sensor in sensor units^2.
+    random_walk_density : float, list
+        The random walk density of the sensor in sensor units/√Hz.
+    random_walk_variance : float, list
+        The variance of the random walk of the sensor in sensor units^2.
     constant_bias : float, list
         The constant bias of the sensor in sensor units.
     operating_temperature : float
@@ -58,7 +62,9 @@ class Sensors(ABC):
         measurement_range=np.inf,
         resolution=0,
         noise_density=0,
-        random_walk=0,
+        noise_variance=1,
+        random_walk_density=0,
+        random_walk_variance=1,
         constant_bias=0,
         operating_temperature=25,
         temperature_bias=0,
@@ -99,19 +105,33 @@ class Sensors(ABC):
             The resolution of the sensor in sensor units/LSB. Default is 0,
             meaning no quantization is applied.
         noise_density : float, list, optional
-            The noise density of the sensor in sensor units/√Hz. Sometimes
-            called "white noise drift", "angular random walk" for gyroscopes,
-            "velocity random walk" for the accelerometers or
-            "(rate) noise density". Default is 0, meaning no noise is applied.
-            If a float or int is given, the same noise density is applied to all
+            The noise density of the sensor for a Gaussian white noise in sensor
+            units/√Hz. Sometimes called "white noise drift",
+            "angular random walk" for gyroscopes, "velocity random walk" for
+            accelerometers or "(rate) noise density". Default is 0, meaning no
+            noise is applied. If a float or int is given, the same noise density
+            is applied to all axes. The values of each axis can be set
+            individually by passing a list of length 3.
+        noise_variance : float, list, optional
+            The noise variance of the sensor for a Gaussian white noise in
+            sensor units^2. Default is 1, meaning the noise is normally
+            distributed with a standard deviation of 1 unit. If a float or int
+            is given, the same noise variance is applied to all axes. The values
+            of each axis can be set individually by passing a list of length 3.
+        random_walk_density : float, list, optional
+            The random walk density of the sensor for a Gaussian random walk in
+            sensor units/√Hz. Sometimes called "bias (in)stability" or
+            "bias drift". Default is 0, meaning no random walk is applied.
+            If a float or int is given, the same random walk is applied to all
             axes. The values of each axis can be set individually by passing a
             list of length 3.
-        random_walk : float, list, optional
-            The random walk of the sensor in sensor units/√Hz. Sometimes called
-            "bias (in)stability" or "bias drift"". Default is 0, meaning no
-            random walk is applied. If a float or int is given, the same random
-            walk is applied to all axes. The values of each axis can be set
-            individually by passing a list of length 3.
+        random_walk_variance : float, list, optional
+            The random walk variance of the sensor for a Gaussian random walk in
+            sensor units^2. Default is 1, meaning the noise is normally
+            distributed with a standard deviation of 1 unit. If a float or int
+            is given, the same random walk variance is applied to all axes. The
+            values of each axis can be set individually by passing a list of
+            length 3.
         constant_bias : float, list, optional
             The constant bias of the sensor in sensor units. Default is 0,
             meaning no constant bias is applied. If a float or int is given, the
@@ -140,13 +160,23 @@ class Sensors(ABC):
         Returns
         -------
         None
+
+        See Also
+        --------
+        TODO link to documentation on noise model
         """
         self.sampling_rate = sampling_rate
         self.orientation = orientation
         self.resolution = resolution
         self.operating_temperature = operating_temperature
         self.noise_density = self._vectorize_input(noise_density, "noise_density")
-        self.random_walk = self._vectorize_input(random_walk, "random_walk")
+        self.noise_variance = self._vectorize_input(noise_variance, "noise_variance")
+        self.random_walk_density = self._vectorize_input(
+            random_walk_density, "random_walk_density"
+        )
+        self.random_walk_variance = self._vectorize_input(
+            random_walk_variance, "random_walk_variance"
+        )
         self.constant_bias = self._vectorize_input(constant_bias, "constant_bias")
         self.temperature_bias = self._vectorize_input(
             temperature_bias, "temperature_bias"
@@ -202,6 +232,12 @@ class Sensors(ABC):
         # map which rocket(s) the sensor is attached to and how many times
         self._attached_rockets = {}
 
+    def __repr__(self):
+        return f"{self.name}"
+
+    def __call__(self, *args, **kwargs):
+        return self.measure(*args, **kwargs)
+
     def _vectorize_input(self, value, name):
         if isinstance(value, (int, float)):
             return Vector([value, value, value])
@@ -235,12 +271,6 @@ class Sensors(ABC):
         self._counter += 1
         if self._counter == len(self.measured_data):
             self._counter = 0
-
-    def __repr__(self):
-        return f"{self.name}"
-
-    def __call__(self, *args, **kwargs):
-        return self.measure(*args, **kwargs)
 
     @abstractmethod
     def measure(self, *args, **kwargs):
@@ -289,13 +319,25 @@ class Sensors(ABC):
         """
         # white noise
         white_noise = (
-            np.random.normal(0, 1) * self.noise_density * self.sampling_rate**0.5
-        )
+            Vector(
+                [np.random.normal(0, self.noise_variance[i] ** 0.5) for i in range(3)]
+            )
+            & self.noise_density
+        ) * self.sampling_rate**0.5
 
         # random walk
         self._random_walk_drift = (
             self._random_walk_drift
-            + np.random.normal(0, 1) * self.random_walk / self.sampling_rate**0.5
+            + (
+                Vector(
+                    [
+                        np.random.normal(0, self.random_walk_variance[i] ** 0.5)
+                        for i in range(3)
+                    ]
+                )
+                & self.random_walk_density
+            )
+            / self.sampling_rate**0.5
         )
 
         # add noise
