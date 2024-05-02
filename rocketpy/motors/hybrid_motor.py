@@ -1,3 +1,5 @@
+from functools import cached_property
+
 from rocketpy.tools import parallel_axis_theorem_from_com
 
 from ..mathutils.function import Function, funcify_method, reset_funcified_methods
@@ -6,11 +8,6 @@ from ..prints.hybrid_motor_prints import _HybridMotorPrints
 from .liquid_motor import LiquidMotor
 from .motor import Motor
 from .solid_motor import SolidMotor
-
-try:
-    from functools import cached_property
-except ImportError:
-    from ..tools import cached_property
 
 
 class HybridMotor(Motor):
