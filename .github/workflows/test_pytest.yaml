@@ -6,6 +6,8 @@ on:
     paths:
       - "**.py"
       - ".github/**"
+      - "pyproject.toml"
+      - "requirements*"
 
 defaults:
   run:
