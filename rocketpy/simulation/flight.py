@@ -1846,7 +1846,7 @@ class Flight:
         az = (Dz - 9.8 * mp) / (mp + ma)
 
         if post_processing:
-            return self.__post_processed_variables.append(
+            self.__post_processed_variables.append(
                 [t, ax, ay, az, 0, 0, 0, Dx, Dy, Dz, 0, 0, 0]
             )
 
