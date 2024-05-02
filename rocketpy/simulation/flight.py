@@ -1117,10 +1117,7 @@ class Flight:
 
     def __init_equations_of_motion(self):
         """Initialize equations of motion."""
-        if (
-            isinstance(self.rocket.motor, SolidMotor)
-            or self.equations_of_motion == "solid_propulsion"
-        ):
+        if self.equations_of_motion == "solid_propulsion":
             # NOTE: The u_dot is faster, but only works for solid propulsion
             self.u_dot_generalized = self.u_dot
 
