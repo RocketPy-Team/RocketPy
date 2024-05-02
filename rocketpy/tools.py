@@ -115,11 +115,11 @@ def find_roots_cubic_function(a, b, c, d):
 
     Examples
     --------
-    >>> from rocketpy import Function
+    >>> from rocketpy.tools import find_roots_cubic_function
 
     First we define the coefficients of the function ax**3 + bx**2 + cx + d
     >>> a, b, c, d = 1, -3, -1, 3
-    >>> x1, x2, x3 = Function.find_roots_cubic_function(a, b, c, d)
+    >>> x1, x2, x3 = find_roots_cubic_function(a, b, c, d)
     >>> x1, x2, x3
     ((-1+0j), (3+7.401486830834377e-17j), (1-1.4802973661668753e-16j))
 
@@ -172,9 +172,9 @@ def find_root_linear_interpolation(x0, x1, y0, y1, y):
 
     Examples
     --------
-    >>> from rocketpy import Function
+    >>> from rocketpy.tools import find_root_linear_interpolation
     >>> x0, x1, y0, y1, y = 0, 1, 0, 1, 0.5
-    >>> x = Function.find_root_linear_interpolation(x0, x1, y0, y1, y)
+    >>> x = find_root_linear_interpolation(x0, x1, y0, y1, y)
     >>> x
     0.5
     """
