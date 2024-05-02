@@ -43,13 +43,15 @@ tests = [
     "isort"
 ]
 
-env_analysis = [ 
+env-analysis = [ 
     "windrose>=1.6.8", 
     "timezonefinder", 
     "jsonpickle", 
     "ipython", 
     "ipywidgets>=7.6.3" 
 ]
+
+all = ["rocketpy[env-analysis]"]
 
 [tool.black]
 line-length = 88 
