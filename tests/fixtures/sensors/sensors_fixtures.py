@@ -7,12 +7,14 @@ from rocketpy import Accelerometer, Gyroscope
 def noisy_rotated_accelerometer():
     """Returns an accelerometer with all parameters set to non-default values,
     i.e. with noise and rotation."""
-    # mpu6050 approx values
+    # mpu6050 approx values, variances are made up
     return Accelerometer(
         sampling_rate=100,
         orientation=(60, 60, 60),
         noise_density=[0, 0.03, 0.05],
-        random_walk=[0, 0.01, 0.02],
+        noise_variance=1.01,
+        random_walk_density=[0, 0.01, 0.02],
+        random_walk_variance=[1, 1, 1.05],
         constant_bias=[0, 0.3, 0.5],
         operating_temperature=25,
         temperature_bias=[0, 0.01, 0.02],
@@ -27,12 +29,14 @@ def noisy_rotated_accelerometer():
 def noisy_rotated_gyroscope():
     """Returns a gyroscope with all parameters set to non-default values,
     i.e. with noise and rotation."""
-    # mpu6050 approx values
+    # mpu6050 approx values, variances are made up
     return Gyroscope(
         sampling_rate=100,
         orientation=(-60, -60, -60),
         noise_density=[0, 0.03, 0.05],
-        random_walk=[0, 0.01, 0.02],
+        noise_variance=1.01,
+        random_walk_density=[0, 0.01, 0.02],
+        random_walk_variance=[1, 1, 1.05],
         constant_bias=[0, 0.3, 0.5],
         operating_temperature=25,
         temperature_bias=[0, 0.01, 0.02],
