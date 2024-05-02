@@ -56,7 +56,15 @@ class _SensorsPrints(ABC):
             "Noise Density:", f"{self.sensor.noise_density} {self.units}/√Hz"
         )
         self._print_aligned(
-            "Random Walk:", f"{self.sensor.random_walk} {self.units}/√Hz"
+            "Noise Variance:", f"{self.sensor.noise_variance} ({self.units})^2"
+        )
+        self._print_aligned(
+            "Random Walk Density:",
+            f"{self.sensor.random_walk_density} {self.units}/√Hz",
+        )
+        self._print_aligned(
+            "Random Walk Variance:",
+            f"{self.sensor.random_walk_variance} ({self.units})^2",
         )
         self._print_aligned(
             "Constant Bias:", f"{self.sensor.constant_bias} {self.units}"
