@@ -4,10 +4,10 @@ import numpy as np
 
 from ..mathutils.vector_matrix import Matrix, Vector
 from ..prints.sensors_prints import _AccelerometerPrints
-from ..sensors.sensors import Sensors
+from ..sensors.sensors import InertialSensors
 
 
-class Accelerometer(Sensors):
+class Accelerometer(InertialSensors):
     """Class for the accelerometer sensor
 
     Attributes
