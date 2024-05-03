@@ -15,12 +15,18 @@ class Fluid:
     ----------
     name : str
         Name of the fluid.
-    density : float, Function
-        Density of the fluid in kg/m³.
+    density : int, float, callable, string, array, Function
+        Density of the fluid in kg/m³. If a int or float is given,
+        it is considered a constant in time. A callable, csv file
+        or an list of points can be given to express the density
+        as a function of time. The parameter is used as a ``Function``
+        source.
+
+        See more on :class:`rocketpy.Function` source types.
     """
 
     name: str
-    density: float | Function
+    density: int | float | str | list | Function
 
     def __post_init__(self):
         """Post initialization method.
