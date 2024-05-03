@@ -1,7 +1,17 @@
+"""The module rocketpy.tools contains a set of functions that are used
+throughout the rocketpy package. These functions are not specific to any
+particular class or module, and are used to perform general tasks that are
+required by multiple classes or modules. These functions can be modified or
+expanded to suit the needs of other modules and may present breaking changes
+between minor versions if necessary, although this will be always avoided.
+"""
+
+import functools
 import importlib
 import importlib.metadata
 import math
 import re
+import time
 from bisect import bisect_left
 
 import numpy as np
@@ -10,34 +20,8 @@ from cftime import num2pydate
 from matplotlib.patches import Ellipse
 from packaging import version as packaging_version
 
-_NOT_FOUND = object()
-
 # Mapping of module name and the name of the package that should be installed
 INSTALL_MAPPING = {"IPython": "ipython"}
-
-
-class cached_property:
-    def __init__(self, func):
-        self.func = func
-        self.attrname = None
-        self.__doc__ = func.__doc__
-
-    def __set_name__(self, owner, name):
-        self.attrname = name
-
-    def __get__(self, instance, owner=None):
-        if instance is None:
-            return self
-        if self.attrname is None:
-            raise TypeError(
-                "Cannot use cached_property instance without calling __set_name__ on it."
-            )
-        cache = instance.__dict__
-        val = cache.get(self.attrname, _NOT_FOUND)
-        if val is _NOT_FOUND:
-            val = self.func(instance)
-            cache[self.attrname] = val
-        return val
 
 
 def tuple_handler(value):
@@ -66,6 +50,139 @@ def tuple_handler(value):
             return tuple(value)
         else:
             raise ValueError("value must be a list or tuple of length 1 or 2.")
+
+
+def calculate_cubic_hermite_coefficients(x0, x1, y0, yp0, y1, yp1):
+    """Calculate the coefficients of a cubic Hermite interpolation function.
+    The function is defined as ax**3 + bx**2 + cx + d.
+
+    Parameters
+    ----------
+    x0 : float
+        Position of the first point.
+    x1 : float
+        Position of the second point.
+    y0 : float
+        Value of the function evaluated at the first point.
+    yp0 : float
+        Value of the derivative of the function evaluated at the first
+        point.
+    y1 : float
+        Value of the function evaluated at the second point.
+    yp1 : float
+        Value of the derivative of the function evaluated at the second
+        point.
+
+    Returns
+    -------
+    tuple[float, float, float, float]
+        The coefficients of the cubic Hermite interpolation function.
+    """
+    dx = x1 - x0
+    d = float(y0)
+    c = float(yp0)
+    b = float((3 * y1 - yp1 * dx - 2 * c * dx - 3 * d) / (dx**2))
+    a = float(-(2 * y1 - yp1 * dx - c * dx - 2 * d) / (dx**3))
+    return a, b, c, d
+
+
+def find_roots_cubic_function(a, b, c, d):
+    """Calculate the roots of a cubic function using Cardano's method.
+
+    This method applies Cardano's method to find the roots of a cubic
+    function of the form ax^3 + bx^2 + cx + d. The roots may be complex
+    numbers.
+
+    Parameters
+    ----------
+    a : float
+        Coefficient of the cubic term (x^3).
+    b : float
+        Coefficient of the quadratic term (x^2).
+    c : float
+        Coefficient of the linear term (x).
+    d : float
+        Constant term.
+
+    Returns
+    -------
+    tuple[complex, complex, complex]
+        A tuple containing the real and complex roots of the cubic function.
+        Note that the roots may be complex numbers. The roots are ordered
+        in the tuple as x1, x2, x3.
+
+    References
+    ----------
+    - Cardano's method: https://en.wikipedia.org/wiki/Cubic_function#Cardano's_method
+
+    Examples
+    --------
+    >>> from rocketpy.tools import find_roots_cubic_function
+
+    First we define the coefficients of the function ax**3 + bx**2 + cx + d
+    >>> a, b, c, d = 1, -3, -1, 3
+    >>> x1, x2, x3 = find_roots_cubic_function(a, b, c, d)
+    >>> x1, x2, x3
+    ((-1+0j), (3+7.401486830834377e-17j), (1-1.4802973661668753e-16j))
+
+    To get the real part of the roots, use the real attribute of the complex
+    number.
+    >>> x1.real, x2.real, x3.real
+    (-1.0, 3.0, 1.0)
+    """
+    delta_0 = b**2 - 3 * a * c
+    delta_1 = 2 * b**3 - 9 * a * b * c + 27 * d * a**2
+    c1 = ((delta_1 + (delta_1**2 - 4 * delta_0**3) ** (0.5)) / 2) ** (1 / 3)
+
+    c2_0 = c1
+    x1 = -(1 / (3 * a)) * (b + c2_0 + delta_0 / c2_0)
+
+    c2_1 = c1 * (-1 / 2 + 1j * (3**0.5) / 2) ** 1
+    x2 = -(1 / (3 * a)) * (b + c2_1 + delta_0 / c2_1)
+
+    c2_2 = c1 * (-1 / 2 + 1j * (3**0.5) / 2) ** 2
+    x3 = -(1 / (3 * a)) * (b + c2_2 + delta_0 / c2_2)
+
+    return x1, x2, x3
+
+
+def find_root_linear_interpolation(x0, x1, y0, y1, y):
+    """Calculate the root of a linear interpolation function.
+
+    This method calculates the root of a linear interpolation function
+    given two points (x0, y0) and (x1, y1) and a value y. The function
+    is defined as y = m*x + c.
+
+    Parameters
+    ----------
+    x0 : float
+        Position of the first point.
+    x1 : float
+        Position of the second point.
+    y0 : float
+        Value of the function evaluated at the first point.
+    y1 : float
+        Value of the function evaluated at the second point.
+    y : float
+        Value of the function at the desired point.
+
+    Returns
+    -------
+    float
+        The root of the linear interpolation function. This represents the
+        value of x at which the function evaluates to y.
+
+    Examples
+    --------
+    >>> from rocketpy.tools import find_root_linear_interpolation
+    >>> x0, x1, y0, y1, y = 0, 1, 0, 1, 0.5
+    >>> x = find_root_linear_interpolation(x0, x1, y0, y1, y)
+    >>> x
+    0.5
+    """
+    m = (y1 - y0) / (x1 - x0)
+    c = y0 - m * x0
+    return (y - c) / m
 
 
 def bilinear_interpolation(x, y, x1, x2, y1, y2, z11, z12, z21, z22):
@@ -472,7 +589,7 @@ def time_num_to_date_string(time_num, units, timezone, calendar="gregorian"):
     """Convert time number (usually hours before a certain date) into two
     strings: one for the date (example: 2022.04.31) and one for the hour
     (example: 14). See cftime.num2date for details on units and calendar.
-    Automatically converts time number from UTC to local timezone based on
+    Automatically converts time number from UTC to local time zone based on
     lat, lon coordinates. This function was created originally for the
     EnvironmentAnalysis class.
 
@@ -699,6 +816,52 @@ def check_requirement_version(module_name, version):
             + f"version by running 'pip install {module_name}{version}'"
         )
     return True
+
+
+def exponential_backoff(max_attempts, base_delay=1, max_delay=60):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            delay = base_delay
+            for i in range(max_attempts):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    if i == max_attempts - 1:
+                        raise e from None
+                    delay = min(delay * 2, max_delay)
+                    time.sleep(delay)
+
+        return wrapper
+
+    return decorator
+
+
+def parallel_axis_theorem_from_com(com_inertia_moment, mass, distance):
+    """Calculates the moment of inertia of a object relative to a new axis using
+    the parallel axis theorem. The new axis is parallel to and at a distance
+    'distance' from the original axis, which *must* passes through the object's
+    center of mass.
+
+    Parameters
+    ----------
+    com_inertia_moment : float
+        Moment of inertia relative to the center of mass of the object.
+    mass : float
+        Mass of the object.
+    distance : float
+        Perpendicular distance between the original and new axis.
+
+    Returns
+    -------
+    float
+        Moment of inertia relative to the new axis.
+
+    Reference
+    ---------
+    https://en.wikipedia.org/wiki/Parallel_axis_theorem
+    """
+    return com_inertia_moment + mass * distance**2
 
 
 # Flight

@@ -21,8 +21,8 @@ RocketPy's User Guide
    :maxdepth: 2
    :caption: Special Case Simulations
 
-   ../notebooks/deployable_payload_example.ipynb
-   ../notebooks/compare_flights_usage.ipynb
+   Compare Flights Class<compare_flights.rst>
+   Deployable Payload <deployable.rst>
    Air Brakes Example <airbrakes.rst>
    ../matlab/matlab.rst
 
