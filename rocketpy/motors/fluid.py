@@ -3,8 +3,6 @@ from typing import Union
 
 import numpy as np
 
-import numpy as np
-
 from ..mathutils.function import Function
 from ..plots.fluid_plots import _FluidPlots
 from ..prints.fluid_prints import _FluidPrints
