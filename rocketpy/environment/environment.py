@@ -3082,6 +3082,24 @@ class Environment:
         Returns
         -------
         None
+
+        Examples
+        --------
+        Creating an Environment object and calculating the density
+        at Sea Level:
+
+        >>> env = Environment()
+        >>> env.calculate_density_profile()
+        >>> env.density(0)
+        1.225000018124288
+
+        Creating an Environment object and calculating the density
+        at 1000m above Sea Level:
+
+        >>> env = Environment()
+        >>> env.calculate_density_profile()
+        >>> env.density(1000)
+        1.1116193933422585
         """
         # Retrieve pressure P, gas constant R and temperature T
         P = self.pressure

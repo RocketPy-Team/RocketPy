@@ -49,7 +49,7 @@ Once you are done downloading/cloning RocketPy's repository, you can install it 
 
 .. code-block:: shell
 
-    python setup.py install 
+    python -m pip install .
 
 
 Development version
@@ -76,7 +76,7 @@ Alternatively, you can clone RocketPy's repository, check out the branch named `
 
 .. code-block:: shell
 
-    python setup.py install 
+    python -m pip install -e .
 
 
 Requirements
