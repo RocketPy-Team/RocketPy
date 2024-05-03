@@ -164,11 +164,11 @@ class MonteCarlo:
                 self.__run_single_simulation(input_file, output_file)
         except KeyboardInterrupt:
             print("Keyboard Interrupt, files saved.")
-            error_file.write(f"{self._inputs_dict}\n")
+            error_file.write(json.dumps(self._inputs_dict, cls=RocketPyEncoder) + "\n")
             self.__close_files(input_file, output_file, error_file)
         except Exception as error:
             print(f"Error on iteration {self.iteration_count}: {error}")
-            error_file.write(f"{self._inputs_dict}\n")
+            error_file.write(json.dumps(self._inputs_dict, cls=RocketPyEncoder) + "\n")
             self.__close_files(input_file, output_file, error_file)
             raise error
 
@@ -261,9 +261,8 @@ class MonteCarlo:
         }
 
         # Write flight setting and results to file
-        # TODO: use json.dumps (requires custom JSONEncoder child class)
-        input_file.write(f"{json.dumps(inputs_dict, cls=RocketPyEncoder)}\n")
-        output_file.write(f"{json.dumps(results, cls=RocketPyEncoder)}\n")
+        input_file.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
+        output_file.write(json.dumps(results, cls=RocketPyEncoder) + "\n")
 
     def __check_export_list(self, export_list):
         """Checks if the export_list is valid and returns a valid list. If no
@@ -519,7 +518,7 @@ class MonteCarlo:
             with open(filepath, "r+", encoding="utf-8"):
                 self.input_file = filepath
 
-        print(f"The following input file was imported: {self.input_file}\n")
+        print(f"The following input file was imported: {self.input_file}")
 
     def import_errors(self, filename=None):
         """Import monte carlo results from .txt file and save it into a
@@ -543,7 +542,7 @@ class MonteCarlo:
         except FileNotFoundError:
             with open(filepath, "r+", encoding="utf-8"):
                 self.error_file = filepath
-        print(f"The following error file was imported: {self.error_file}\n")
+        print(f"The following error file was imported: {self.error_file}")
 
     def import_results(self, filename=None):
         """Import monte carlo results from .txt file and save it into a
