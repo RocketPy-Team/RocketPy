@@ -4,7 +4,7 @@ UNITS = {
     "Gyroscope": "rad/s",
     "Accelerometer": "m/s^2",
     "Magnetometer": "T",
-    "PressureSensor": "Pa",
+    "Barometer": "Pa",
     "TemperatureSensor": "K",
 }
 
@@ -44,10 +44,9 @@ class _SensorsPrints(ABC):
         )
         self._print_aligned("Resolution:", f"{self.sensor.resolution} {self.units}/LSB")
 
-    @abstractmethod
     def noise(self):
         """Prints the noise of the sensor."""
-        pass
+        self._general_noise()
 
     def _general_noise(self):
         """Prints the noise of the sensor."""
@@ -85,24 +84,42 @@ class _SensorsPrints(ABC):
     def all(self):
         """Prints all information of the sensor."""
         self.identity()
+        self.quantization()
+        self.noise()
+
+
+class _InertialSensorsPrints(_SensorsPrints):
+    def __init__(self, sensor):
+        super().__init__(sensor)
+
+    def orientation(self):
+        """Prints the orientation of the sensor."""
+        print("\nOrientation of the Sensor:\n")
+        self._print_aligned("Orientation:", self.sensor.orientation)
+        self._print_aligned("Normal Vector:", self.sensor.normal_vector)
+        print("Rotation Matrix:")
+        for row in self.sensor.rotation_matrix:
+            value = " ".join(f"{val:.2f}" for val in row)
+            value = [float(val) for val in value.split()]
+            self._print_aligned("", value)
+
+    def all(self):
+        """Prints all information of the sensor."""
+        self.identity()
         self.orientation()
         self.quantization()
         self.noise()
 
 
-class _AccelerometerPrints(_SensorsPrints):
+class _AccelerometerPrints(_InertialSensorsPrints):
     """Class that contains all accelerometer prints."""
 
     def __init__(self, accelerometer):
         """Initialize the class."""
         super().__init__(accelerometer)
 
-    def noise(self):
-        """Prints the noise of the sensor."""
-        self._general_noise()
 
-
-class _GyroscopePrints(_SensorsPrints):
+class _GyroscopePrints(_InertialSensorsPrints):
     """Class that contains all gyroscope prints."""
 
     def __init__(self, gyroscope):
@@ -116,3 +133,11 @@ class _GyroscopePrints(_SensorsPrints):
             "Acceleration Sensitivity:",
             f"{self.sensor.acceleration_sensitivity} rad/s/g",
         )
+
+
+class _BarometerPrints(_SensorsPrints):
+    """Class that contains all barometer prints."""
+
+    def __init__(self, barometer):
+        """Initialize the class."""
+        super().__init__(barometer)
