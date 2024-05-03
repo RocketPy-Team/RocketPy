@@ -9,7 +9,6 @@ from scipy import integrate
 
 from ..mathutils.function import Function, funcify_method
 from ..mathutils.vector_matrix import Matrix, Vector
-from ..motors.solid_motor import SolidMotor
 from ..plots.flight_plots import _FlightPlots
 from ..prints.flight_prints import _FlightPrints
 from ..tools import (
@@ -1205,11 +1204,6 @@ class Flight:
             e0dot, e1dot, e2dot, e3dot, alpha1, alpha2, alpha3].
 
         """
-        # Check if post processing mode is on
-        if post_processing:
-            # Use u_dot post processing code
-            return self.u_dot_generalized(t, u, True)
-
         # Retrieve integration data
         x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
 
@@ -1241,6 +1235,15 @@ class Flight:
             az = (1 - 2 * (e1**2 + e2**2)) * a3
         else:
             ax, ay, az = 0, 0, 0
+
+        if post_processing:
+            self.u_dot_generalized(t, u, post_processing=True)
+            self.__post_processed_variables[-1][1] = ax
+            self.__post_processed_variables[-1][2] = ay
+            self.__post_processed_variables[-1][3] = az
+            self.__post_processed_variables[-1][4] = 0
+            self.__post_processed_variables[-1][5] = 0
+            self.__post_processed_variables[-1][6] = 0
 
         return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
 
