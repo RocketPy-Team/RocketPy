@@ -105,6 +105,45 @@ def test_tank_centroid(params, request):
         assert liquid_com == pytest.approx(expected_centroid(h), abs=1e-3)
 
 
+def test_tank_variable_fluid_density():
+    """Test the tanks with variable fluid density and compare the calculated
+    mass and volume outputs to the expected values.
+    """
+    lox_density = lambda t: 1141.7 - 20 * t
+    n2_density = lambda t: 51.75 - 2 * t
+
+    lox = Fluid(name="LOx", density=lox_density)
+    n2 = Fluid(name="Nitrogen Gas", density=n2_density)
+
+    geometry = TankGeometry({(0, 10): 1})
+
+    # Start at 7.5m end in 2.5m
+    liquid_mass_evolution = lambda t: (7.5 * np.pi - 0.5 * np.pi * t) * lox_density(t)
+    # Start at 9.5m end in 3.5m
+    gas_mass_evolution = lambda t: (2 * np.pi - 0.1 * np.pi * t) * n2_density(t)
+
+    tank = MassBasedTank(
+        name="Test tank",
+        geometry=geometry,
+        flux_time=10,
+        liquid=lox,
+        gas=n2,
+        liquid_mass=liquid_mass_evolution,
+        gas_mass=gas_mass_evolution,
+    )
+
+    calculated_liquid_density = tank.liquid_mass / tank.liquid_volume
+    calculated_gas_density = tank.gas_mass / tank.gas_volume
+    time_steps = np.linspace(0, 10, 100)
+
+    assert tank.liquid_height.y_array[0] == pytest.approx(7.5, abs=1e-6)
+    assert tank.liquid_height.y_array[-1] == pytest.approx(2.5, abs=1e-6)
+    assert tank.gas_height.y_array[0] == pytest.approx(9.5, abs=1e-6)
+    assert tank.gas_height.y_array[-1] == pytest.approx(3.5, abs=1e-6)
+    assert np.allclose(calculated_liquid_density(time_steps), lox_density(time_steps))
+    assert np.allclose(calculated_gas_density(time_steps), n2_density(time_steps))
+
+
 @parametrize_fixtures
 def test_tank_inertia(params, request):
     """Test the inertia of the tanks at different heights comparing to the

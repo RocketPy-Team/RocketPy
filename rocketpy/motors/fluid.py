@@ -40,16 +40,13 @@ class Fluid:
             if self.density < 0:
                 raise ValueError("The density must be a positive number.")
 
-            self.density = Function(
-                self.density,
-                interpolation="linear",
-                extrapolation="constant",
-                inputs="Time (s)",
-                outputs="Density (kg/m³)",
-            )
-        elif isinstance(self.density, Function):
-            if (self.density < 0).any():
-                raise ValueError("The density must be a positive number.")
+        self.density = Function(
+            self.density,
+            interpolation="linear",
+            extrapolation="constant",
+            inputs="Time (s)",
+            outputs="Density (kg/m³)",
+        )
 
         # Initialize plots and prints object
         self.prints = _FluidPrints(self)
