@@ -650,7 +650,7 @@ def test_rail_buttons_forces(flight_calisto_custom_wind):
     "flight_time, expected_values",
     [
         ("t_initial", (0, 0, 0)),
-        ("out_of_rail_time", (0,  7.8068, 89.2325)),
+        ("out_of_rail_time", (0, 7.8068, 89.2325)),
         ("apogee_time", (0.07534, -0.058127, -9.614386)),
         ("t_final", (0, 0, 0.0017346294117130806)),
     ],
