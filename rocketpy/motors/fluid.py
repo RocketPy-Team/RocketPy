@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Union
 
 import numpy as np
 
@@ -26,7 +27,7 @@ class Fluid:
     """
 
     name: str
-    density: int | float | str | list | Function
+    density: Union[int, float, str, list, Function]
 
     def __post_init__(self):
         """Post initialization method.
