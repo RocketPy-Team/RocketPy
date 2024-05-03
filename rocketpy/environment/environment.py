@@ -1551,24 +1551,26 @@ class Environment:
         # Check maximum height of custom wind input
         if not callable(self.wind_velocity_x.source):
             max_expected_height = max(self.wind_velocity_x[-1, 0], max_expected_height)
-        if not callable(self.wind_velocity_y.source):
-            max_expected_height = max(self.wind_velocity_y[-1, 0], max_expected_height)
 
-        # Compute wind profile direction and heading
-        wind_heading = (
-            lambda h: np.arctan2(self.wind_velocity_x(h), self.wind_velocity_y(h))
-            * (180 / np.pi)
-            % 360
-        )
+        def wind_heading_func(h):
+            return (
+                np.arctan2(
+                    self.wind_velocity_x.get_value_opt(h),
+                    self.wind_velocity_y.get_value_opt(h),
+                )
+                * (180 / np.pi)
+                % 360
+            )
+
         self.wind_heading = Function(
-            wind_heading,
+            wind_heading_func,
             inputs="Height Above Sea Level (m)",
             outputs="Wind Heading (Deg True)",
             interpolation="linear",
         )
 
         def wind_direction(h):
-            return (wind_heading(h) - 180) % 360
+            return (wind_heading_func(h) - 180) % 360
 
         self.wind_direction = Function(
             wind_direction,
@@ -1578,7 +1580,10 @@ class Environment:
         )
 
         def wind_speed(h):
-            return np.sqrt(self.wind_velocity_x(h) ** 2 + self.wind_velocity_y(h) ** 2)
+            return np.sqrt(
+                self.wind_velocity_x.get_value_opt(h) ** 2
+                + self.wind_velocity_y.get_value_opt(h) ** 2
+            )
 
         self.wind_speed = Function(
             wind_speed,
@@ -3197,21 +3202,25 @@ class Environment:
         # Reset wind heading and velocity magnitude
         self.wind_heading = Function(
             lambda h: (180 / np.pi)
-            * np.arctan2(self.wind_velocity_x(h), self.wind_velocity_y(h))
+            * np.arctan2(
+                self.wind_velocity_x.get_value_opt(h),
+                self.wind_velocity_y.get_value_opt(h),
+            )
             % 360,
             "Height (m)",
             "Wind Heading (degrees)",
             extrapolation="constant",
         )
         self.wind_speed = Function(
-            lambda h: (self.wind_velocity_x(h) ** 2 + self.wind_velocity_y(h) ** 2)
+            lambda h: (
+                self.wind_velocity_x.get_value_opt(h) ** 2
+                + self.wind_velocity_y.get_value_opt(h) ** 2
+            )
             ** 0.5,
             "Height (m)",
             "Wind Speed (m/s)",
             extrapolation="constant",
         )
-
-        return None
 
     def info(self):
         """Prints most important data and graphs available about the
