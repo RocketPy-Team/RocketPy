@@ -197,20 +197,30 @@ class Gyroscope(Sensors):
         )
         self.prints = _GyroscopePrints(self)
 
-    def measure(self, t, u, u_dot, relative_position, *args):
+    def measure(self, time, **kwargs):
         """Measure the angular velocity of the rocket
 
         Parameters
         ----------
-        t : float
-            Time at which the measurement is taken
-        u : list
-            State vector of the rocket
-        u_dot : list
-            Time derivative of the state vector of the rocket
-        relative_position : Vector
-            Vector from the rocket's center of mass to the sensor
+        time : float
+            Current time in seconds.
+        kwargs : dict
+            Keyword arguments dictionary containing the following keys:
+            - u : np.array
+                State vector of the rocket.
+            - u_dot : np.array
+                Derivative of the state vector of the rocket.
+            - relative_position : np.array
+                Position of the sensor relative to the rocket center of mass.
+            - gravity : float
+                Gravitational acceleration in m/s^2.
+            - pressure : Function
+                Atmospheric pressure profile as a function of altitude in Pa.
         """
+        u = kwargs["u"]
+        u_dot = kwargs["u_dot"]
+        relative_position = kwargs["relative_position"]
+
         # Angular velocity of the rocket in the rocket frame
         omega = Vector(u[10:13])
 
@@ -234,7 +244,7 @@ class Gyroscope(Sensors):
         W = self.quantize(W)
 
         self.measurement = tuple([*W])
-        self._save_data((t, *W))
+        self._save_data((time, *W))
 
     def apply_acceleration_sensitivity(
         self, omega, u_dot, relative_position, rotation_matrix

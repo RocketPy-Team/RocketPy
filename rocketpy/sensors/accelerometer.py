@@ -195,22 +195,31 @@ class Accelerometer(Sensors):
         self.consider_gravity = consider_gravity
         self.prints = _AccelerometerPrints(self)
 
-    def measure(self, t, u, u_dot, relative_position, gravity, *args):
+    def measure(self, time, **kwargs):
         """Measure the acceleration of the rocket
 
         Parameters
         ----------
-        t : float
-            Current time
-        u : list
-            State vector of the rocket
-        u_dot : list
-            Derivative of the state vector of the rocket
-        relative_position : Vector
-            Position of the sensor relative to the rocket cdm
-        gravity : float
-            Acceleration due to gravity
+        time : float
+            Current time in seconds.
+        kwargs : dict
+            Keyword arguments dictionary containing the following keys:
+            - u : np.array
+                State vector of the rocket.
+            - u_dot : np.array
+                Derivative of the state vector of the rocket.
+            - relative_position : np.array
+                Position of the sensor relative to the rocket center of mass.
+            - gravity : float
+                Gravitational acceleration in m/s^2.
+            - pressure : Function
+                Atmospheric pressure profile as a function of altitude in Pa.
         """
+        u = kwargs["u"]
+        u_dot = kwargs["u_dot"]
+        relative_position = kwargs["relative_position"]
+        gravity = kwargs["gravity"]
+
         # Linear acceleration of rocket cdm in inertial frame
         gravity = (
             Vector([0, 0, -gravity]) if self.consider_gravity else Vector([0, 0, 0])
@@ -242,7 +251,7 @@ class Accelerometer(Sensors):
         A = self.quantize(A)
 
         self.measurement = tuple([*A])
-        self._save_data((t, *A))
+        self._save_data((time, *A))
 
     def export_measured_data(self, filename, format="csv"):
         """
