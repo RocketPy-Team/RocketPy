@@ -218,7 +218,7 @@ class _RocketPlots:
         self._draw_motor(last_radius, last_x, ax, vis_args)
         self._draw_rail_buttons(ax, vis_args)
         self._draw_center_of_mass_and_pressure(ax)
-        self._draw_sensor(ax, self.rocket.sensors, plane, vis_args)
+        self._draw_sensors(ax, self.rocket.sensors, plane, vis_args)
 
         plt.title("Rocket Representation")
         plt.xlim()
@@ -555,7 +555,7 @@ class _RocketPlots:
             cp, 0, label="Static Center of Pressure", color="red", s=10, zorder=10
         )
 
-    def _draw_sensor(self, ax, sensors, plane, vis_args):
+    def _draw_sensors(self, ax, sensors, plane, vis_args):
         """Draw the sensor as a small thick line at the position of the sensor,
         with a vector pointing in the direction normal of the sensor. Get the
         normal vector from the sensor orientation matrix."""
@@ -591,19 +591,20 @@ class _RocketPlots:
                 zorder=10,
                 label=sensor.name,
             )
-            ax.quiver(
-                x_pos,
-                y_pos,
-                normal_x,
-                normal_y,
-                color=colors[(i + 1) % len(colors)],
-                scale_units="xy",
-                angles="xy",
-                minshaft=2,
-                headwidth=2,
-                headlength=4,
-                zorder=10,
-            )
+            if abs(sensor.normal_vector) != 0:
+                ax.quiver(
+                    x_pos,
+                    y_pos,
+                    normal_x,
+                    normal_y,
+                    color=colors[(i + 1) % len(colors)],
+                    scale_units="xy",
+                    angles="xy",
+                    minshaft=2,
+                    headwidth=2,
+                    headlength=4,
+                    zorder=10,
+                )
 
     def all(self):
         """Prints out all graphs available about the Rocket. It simply calls
