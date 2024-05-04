@@ -503,6 +503,7 @@ class Flight:
         verbose=False,
         name="Flight",
         equations_of_motion="standard",
+        simulate = True,
     ):
         """Run a trajectory simulation.
 
@@ -616,8 +617,9 @@ class Flight:
         )
         self.flight_phases.add_phase(self.max_time)
 
-        # Simulate flight
-        self.__simulate(verbose)
+        if simulate:
+            # Simulate flight
+            self.__simulate(verbose)
 
         # Initialize prints and plots objects
         self.prints = _FlightPrints(self)

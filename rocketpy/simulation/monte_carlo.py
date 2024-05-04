@@ -1,6 +1,8 @@
 """Defines the MonteCarlo class."""
-
 import json
+import os
+from multiprocessing import JoinableQueue, Process
+from multiprocessing.managers import BaseManager
 from time import process_time, time
 
 import numpy as np
@@ -10,10 +12,11 @@ from rocketpy._encoders import RocketPyEncoder
 from rocketpy.plots.monte_carlo_plots import _MonteCarloPlots
 from rocketpy.prints.monte_carlo_prints import _MonteCarloPrints
 from rocketpy.simulation.flight import Flight
-from rocketpy.tools import (
-    generate_monte_carlo_ellipses,
-    generate_monte_carlo_ellipses_coordinates,
-)
+from rocketpy.simulation.sim_config.flight2serializer import \
+    flightv1_serializer
+from rocketpy.simulation.sim_config.run_sim import run_flight
+from rocketpy.tools import (generate_monte_carlo_ellipses,
+                            generate_monte_carlo_ellipses_coordinates)
 
 # TODO: Let Functions and Flights be json serializable
 # TODO: Create evolution plots to analyze convergence
@@ -64,7 +67,9 @@ class MonteCarlo:
         simulation.
     """
 
-    def __init__(self, filename, environment, rocket, flight, export_list=None):
+    def __init__(
+        self, filename, environment, rocket, flight, export_list=None, batch_path=None
+    ):
         """
         Initialize a MonteCarlo object.
 
@@ -88,6 +93,9 @@ class MonteCarlo:
             The list of variables to export. If None, the default list will
             be used. Default is None. # TODO: improve docs to explain the
             default list, and what can be exported.
+        batch_path : str, optional
+            Path to the batch folder to be used in the simulation. Export file
+            will be saved in this folder. Default is None.
 
         Returns
         -------
@@ -96,6 +104,8 @@ class MonteCarlo:
         # Save and initialize parameters
         self.filename = filename
         self.environment = environment
+        global StoEnv
+        StoEnv = environment
         self.rocket = rocket
         self.flight = flight
         self.export_list = []
@@ -109,6 +119,7 @@ class MonteCarlo:
         self.plots = _MonteCarloPlots(self)
         self._inputs_dict = {}
         self._last_print_len = 0  # used to print on the same line
+        self.batch_path = batch_path
 
         # Checks export_list
         self.export_list = self.__check_export_list(export_list)
@@ -128,7 +139,7 @@ class MonteCarlo:
         except FileNotFoundError:
             self._error_file = f"{filename}.errors.txt"
 
-    def simulate(self, number_of_simulations, append=False):
+    def simulate(self, number_of_simulations, append=False, parallel=False):
         """
         Runs the monte carlo simulation and saves all data.
 
@@ -144,35 +155,146 @@ class MonteCarlo:
         -------
         None
         """
-        # Create data files for inputs, outputs and error logging
-        open_mode = "a" if append else "w"
-        input_file = open(self._input_file, open_mode, encoding="utf-8")
-        output_file = open(self._output_file, open_mode, encoding="utf-8")
-        error_file = open(self._error_file, open_mode, encoding="utf-8")
+        if parallel:
+            self._run_in_parallel(number_of_simulations)
+        else:
+            # Create data files for inputs, outputs and error logging
+            open_mode = "a" if append else "w"
+            input_file = open(self._input_file, open_mode, encoding="utf-8")
+            output_file = open(self._output_file, open_mode, encoding="utf-8")
+            error_file = open(self._error_file, open_mode, encoding="utf-8")
 
-        # initialize counters
-        self.number_of_simulations = number_of_simulations
-        self.iteration_count = self.num_of_loaded_sims if append else 0
-        self.start_time = time()
-        self.start_cpu_time = process_time()
+            # initialize counters
+            self.number_of_simulations = number_of_simulations
+            self.iteration_count = self.num_of_loaded_sims if append else 0
+            self.start_time = time()
+            self.start_cpu_time = process_time()
 
-        # Begin display
-        print("Starting monte carlo analysis", end="\r")
+            # Begin display
+            print("Starting monte carlo analysis", end="\r")
+
+            try:
+                while self.iteration_count < self.number_of_simulations:
+                    self.__run_single_simulation(input_file, output_file)
+            except KeyboardInterrupt:
+                print("Keyboard Interrupt, files saved.")
+                error_file.write(
+                    json.dumps(self._inputs_dict, cls=RocketPyEncoder) + "\n"
+                )
+                self.__close_files(input_file, output_file, error_file)
+            except Exception as error:
+                print(f"Error on iteration {self.iteration_count}: {error}")
+                error_file.write(
+                    json.dumps(self._inputs_dict, cls=RocketPyEncoder) + "\n"
+                )
+                self.__close_files(input_file, output_file, error_file)
+                raise error
+
+            self.__finalize_simulation(input_file, output_file, error_file)
+
+    def _run_in_parallel(self, number_of_simulations, n_workers=None):
+        """Runs the monte carlo simulation in parallel."""
+        processes = []
+
+        if n_workers is None:
+            n_workers = os.cpu_count()
+
+        with MonteCarloManager() as manager:
+            # initialize queue
+            simulation_queue = manager.JoinableQueue()
+
+            start_queue_time = process_time()
+            # build queue
+            self._build_queue(number_of_simulations, simulation_queue)
+            end_queue_time = process_time()
+
+            print(
+                f"Simulation took {end_queue_time - start_queue_time} seconds to build queue."
+            )
+
+            print("Starting monte carlo analysis", end="\r")
+            print(f"Number of simulations: {number_of_simulations}")
+
+            # Creates 10 processes then starts them
+            for i in range(n_workers):
+                p = Process(
+                    target=self._run_simulation_worker,
+                    args=(i, simulation_queue, self.batch_path),
+                )
+                processes.append(p)
+
+            # Joins all the processes
+            for p in processes:
+                p.start()
+            for p in processes:
+                p.join()
+
+            print("-" * 80 + "All workers joined, simulation complete.")
+
+    def _build_queue(self, number_of_simulations, simulation_queue):
+        dummy_env = self.environment.create_object()
+
+        """Builds a queue with the simulations to be run."""
+        for i in range(number_of_simulations):
+            rocket = self.rocket.create_object()
+            rail_length = self.flight._randomize_rail_length()
+            inclination = self.flight._randomize_inclination()
+            heading = self.flight._randomize_heading()
+            initial_solution = self.flight.initial_solution
+            terminate_on_apogee = self.flight.terminate_on_apogee
+
+            flight = Flight(
+                rocket=rocket,
+                environment=dummy_env,
+                rail_length=rail_length,
+                inclination=inclination,
+                heading=heading,
+                initial_solution=initial_solution,
+                terminate_on_apogee=terminate_on_apogee,
+                simulate=False,
+            )
+
+            input_parameters = flightv1_serializer(
+                flight, f"Simulation_{i}", return_dict=True
+            )
+
+            # self._inputs_dict = dict(
+            #     item
+            #     for d in [
+            #         self.environment.last_rnd_dict,
+            #         self.rocket.last_rnd_dict,
+            #         self.flight.last_rnd_dict,
+            #     ]
+            #     for item in d.items()
+            # )
+
+            simulation_queue.put((input_parameters))
+
+    @staticmethod
+    def _run_simulation_worker(i, queue, batch_path):
+        """Runs a simulation from a queue."""
 
         try:
-            while self.iteration_count < self.number_of_simulations:
-                self.__run_single_simulation(input_file, output_file)
-        except KeyboardInterrupt:
-            print("Keyboard Interrupt, files saved.")
-            error_file.write(json.dumps(self._inputs_dict, cls=RocketPyEncoder) + "\n")
-            self.__close_files(input_file, output_file, error_file)
-        except Exception as error:
-            print(f"Error on iteration {self.iteration_count}: {error}")
-            error_file.write(json.dumps(self._inputs_dict, cls=RocketPyEncoder) + "\n")
-            self.__close_files(input_file, output_file, error_file)
-            raise error
+            while True:
+                if queue.empty():
+                    break
+                parameters = queue.get()
 
-        self.__finalize_simulation(input_file, output_file, error_file)
+                sim_start = process_time()
+                env = StoEnv.create_object()
+
+                flight = run_flight(parameters, env)
+                sim_end = process_time()
+
+                print(
+                    "-" * 80
+                    + f"\nSimulation took {sim_end - sim_start} seconds to run."
+                )
+
+        except Exception as error:
+            print(f"Worker {i} failed with the exception:\n{error}")
+        finally:
+            print(f"Simulation worker {i} finished.")
 
     def __run_single_simulation(self, input_file, output_file):
         """Runs a single simulation and saves the inputs and outputs to the
@@ -663,3 +785,9 @@ class MonteCarlo:
         self.info()
         self.plots.ellipses()
         self.plots.all()
+
+
+class MonteCarloManager(BaseManager):
+    def __init__(self):
+        super().__init__()
+        self.register('JoinableQueue', JoinableQueue)
