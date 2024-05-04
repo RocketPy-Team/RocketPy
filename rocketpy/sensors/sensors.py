@@ -79,48 +79,31 @@ class Sensors(ABC):
             units/√Hz. Sometimes called "white noise drift",
             "angular random walk" for gyroscopes, "velocity random walk" for
             accelerometers or "(rate) noise density". Default is 0, meaning no
-            noise is applied. If a float or int is given, the same noise density
-            is applied to all axes. The values of each axis can be set
-            individually by passing a list of length 3.
+            noise is applied.
         noise_variance : float, list, optional
             The noise variance of the sensor for a Gaussian white noise in
             sensor units^2. Default is 1, meaning the noise is normally
-            distributed with a standard deviation of 1 unit. If a float or int
-            is given, the same noise variance is applied to all axes. The values
-            of each axis can be set individually by passing a list of length 3.
+            distributed with a standard deviation of 1 unit.
         random_walk_density : float, list, optional
             The random walk density of the sensor for a Gaussian random walk in
             sensor units/√Hz. Sometimes called "bias (in)stability" or
             "bias drift". Default is 0, meaning no random walk is applied.
-            If a float or int is given, the same random walk is applied to all
-            axes. The values of each axis can be set individually by passing a
-            list of length 3.
         random_walk_variance : float, list, optional
             The random walk variance of the sensor for a Gaussian random walk in
             sensor units^2. Default is 1, meaning the noise is normally
-            distributed with a standard deviation of 1 unit. If a float or int
-            is given, the same random walk variance is applied to all axes. The
-            values of each axis can be set individually by passing a list of
-            length 3.
+            distributed with a standard deviation of 1 unit.
         constant_bias : float, list, optional
             The constant bias of the sensor in sensor units. Default is 0,
-            meaning no constant bias is applied. If a float or int is given, the
-            same constant bias is applied to all axes. The values of each axis
-            can be set individually by passing a list of length 3.
+            meaning no constant bias is applied.
         operating_temperature : float, optional
             The operating temperature of the sensor in degrees Celsius. At 25°C,
             the temperature bias and scale factor are 0. Default is 25.
         temperature_bias : float, list, optional
             The temperature bias of the sensor in sensor units/°C. Default is 0,
-            meaning no temperature bias is applied. If a float or int is given,
-            the same temperature bias is applied to all axes. The values of each
-            axis can be set individually by passing a list of length 3.
+            meaning no temperature bias is applied.
         temperature_scale_factor : float, list, optional
             The temperature scale factor of the sensor in %/°C. Default is 0,
-            meaning no temperature scale factor is applied. If a float or int is
-            given, the same temperature scale factor is applied to all axes. The
-            values of each axis can be set individually by passing a list of
-            length 3.
+            meaning no temperature scale factor is applied.
         name : str, optional
             The name of the sensor. Default is "Sensor".
 
@@ -593,48 +576,31 @@ class ScalarSensors(Sensors):
             units/√Hz. Sometimes called "white noise drift",
             "angular random walk" for gyroscopes, "velocity random walk" for
             accelerometers or "(rate) noise density". Default is 0, meaning no
-            noise is applied. If a float or int is given, the same noise density
-            is applied to all axes. The values of each axis can be set
-            individually by passing a list of length 3.
+            noise is applied.
         noise_variance : float, list, optional
             The noise variance of the sensor for a Gaussian white noise in
             sensor units^2. Default is 1, meaning the noise is normally
-            distributed with a standard deviation of 1 unit. If a float or int
-            is given, the same noise variance is applied to all axes. The values
-            of each axis can be set individually by passing a list of length 3.
+            distributed with a standard deviation of 1 unit.
         random_walk_density : float, list, optional
             The random walk density of the sensor for a Gaussian random walk in
             sensor units/√Hz. Sometimes called "bias (in)stability" or
             "bias drift". Default is 0, meaning no random walk is applied.
-            If a float or int is given, the same random walk is applied to all
-            axes. The values of each axis can be set individually by passing a
-            list of length 3.
         random_walk_variance : float, list, optional
             The random walk variance of the sensor for a Gaussian random walk in
             sensor units^2. Default is 1, meaning the noise is normally
-            distributed with a standard deviation of 1 unit. If a float or int
-            is given, the same random walk variance is applied to all axes. The
-            values of each axis can be set individually by passing a list of
-            length 3.
+            distributed with a standard deviation of 1 unit.
         constant_bias : float, list, optional
             The constant bias of the sensor in sensor units. Default is 0,
-            meaning no constant bias is applied. If a float or int is given, the
-            same constant bias is applied to all axes. The values of each axis
-            can be set individually by passing a list of length 3.
+            meaning no constant bias is applied.
         operating_temperature : float, optional
             The operating temperature of the sensor in degrees Celsius. At 25°C,
             the temperature bias and scale factor are 0. Default is 25.
         temperature_bias : float, list, optional
             The temperature bias of the sensor in sensor units/°C. Default is 0,
-            meaning no temperature bias is applied. If a float or int is given,
-            the same temperature bias is applied to all axes. The values of each
-            axis can be set individually by passing a list of length 3.
+            meaning no temperature bias is applied.
         temperature_scale_factor : float, list, optional
             The temperature scale factor of the sensor in %/°C. Default is 0,
-            meaning no temperature scale factor is applied. If a float or int is
-            given, the same temperature scale factor is applied to all axes. The
-            values of each axis can be set individually by passing a list of
-            length 3.
+            meaning no temperature scale factor is applied.
         name : str, optional
             The name of the sensor. Default is "Sensor".
 

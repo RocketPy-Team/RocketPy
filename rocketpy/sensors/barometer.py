@@ -2,7 +2,7 @@ import json
 
 import numpy as np
 
-from ..mathutils.vector_matrix import Matrix, Vector
+from ..mathutils.vector_matrix import Matrix
 from ..prints.sensors_prints import _BarometerPrints
 from ..sensors.sensors import ScalarSensors
 
@@ -88,9 +88,7 @@ class Barometer(ScalarSensors):
         noise_variance : float, optional
             The noise variance of the sensor for a Gaussian white noise in Pa^2.
             Default is 1, meaning the noise is normally distributed with a
-            standard deviation of 1 Pa. If a float or int is given, the same
-            variance is applied to all axes. The values of each axis can be set
-            individually by passing a list of length 3.
+            standard deviation of 1 Pa.
         random_walk_density : float, optional
             The random walk of the sensor for a Gaussian random walk in Pa/√Hz.
             Sometimes called "bias (in)stability" or "bias drift"". Default is 0,
@@ -98,9 +96,7 @@ class Barometer(ScalarSensors):
         random_walk_variance : float, optional
             The random walk variance of the sensor for a Gaussian random walk in
             Pa^2. Default is 1, meaning the noise is normally distributed with a
-            standard deviation of 1 Pa. If a float or int is given, the same
-            variance is applied to all axes. The values of each axis can be set
-            individually by passing a list of length 3.
+            standard deviation of 1 Pa.
         constant_bias : float, optional
             The constant bias of the sensor in Pa. Default is 0, meaning no
             constant bias is applied.
