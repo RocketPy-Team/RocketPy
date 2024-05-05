@@ -844,6 +844,7 @@ class Rocket:
         self.evaluate_dry_mass()
         self.evaluate_total_mass()
         self.evaluate_center_of_dry_mass()
+        self.evaluate_nozzle_to_center_of_dry_mass_position()
         self.evaluate_center_of_mass()
         self.evaluate_dry_inertias()
         self.evaluate_inertias()
@@ -852,6 +853,8 @@ class Rocket:
         self.evaluate_center_of_pressure()
         self.evaluate_stability_margin()
         self.evaluate_static_margin()
+        self.evaluate_z_coordinate_com_to_cdm()
+        self.evaluate_nozzle_gyration_tensor()
 
     def add_surfaces(self, surfaces, positions):
         """Adds one or more aerodynamic surfaces to the rocket. The aerodynamic
