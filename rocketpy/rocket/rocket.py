@@ -750,7 +750,28 @@ class Rocket:
         return self.nozzle_to_center_of_dry_mass_position
     
     def evaluate_nozzle_gyration_tensor(self):
-        pass
+        """Calculates and returns the nozzle gyration tensor relative to the
+        rocket's center of dry mass. The gyration tensor is saved and returned
+        in units of kg*m².
+
+        Returns
+        -------
+        self.nozzle_gyration_tensor : Matrix
+            Matrix containing the nozzle gyration tensor.
+        """
+        S_noz_33 = 0.5 * self.motor.nozzle_radius**2
+        S_noz_11 = S_noz_22 = (
+            0.5 * S_noz_33 + 0.25 * self.nozzle_to_center_of_dry_mass_position**2
+        )
+        S_noz_12, S_noz_13, S_noz_23 = 0, 0, 0  # Due to axis symmetry
+        self.nozzle_gyration_tensor = Matrix(
+            [
+                [S_noz_11, S_noz_12, S_noz_13],
+                [S_noz_12, S_noz_22, S_noz_23],
+                [S_noz_13, S_noz_23, S_noz_33],
+            ]
+        )
+        return self.nozzle_gyration_tensor
 
     def add_motor(self, motor, position):
         """Adds a motor to the rocket.
