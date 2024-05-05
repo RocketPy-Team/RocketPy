@@ -367,7 +367,7 @@ class NoseCone(AeroSurface):
         return None
 
     def evaluate_nose_shape(self):
-        """Calculates and saves nose cone's shape as lists and reavulates the
+        """Calculates and saves nose cone's shape as lists and re-evaluates the
         nose cone's length for a given bluffness ratio. The shape is saved as
         two vectors, one for the x coordinates and one for the y coordinates.
 
@@ -381,7 +381,9 @@ class NoseCone(AeroSurface):
 
         # Calculate a function to find the tangential intersection point between the circle and nosecone curve.
         def find_x_intercept(x):
-            return x + self.y_nosecone(x) * self.y_nosecone.differentiate(x)
+            return x + self.y_nosecone(x) * self.y_nosecone.differentiate_complex_step(
+                x
+            )
 
         # Calculate a function to find the radius of the nosecone curve
         def find_radius(x):
@@ -770,7 +772,9 @@ class Fins(AeroSurface):
             )
 
             # Differentiating at alpha = 0 to get cl_alpha
-            clalpha2D_incompressible = self.airfoil_cl.differentiate(x=1e-3, dx=1e-3)
+            clalpha2D_incompressible = self.airfoil_cl.differentiate_complex_step(
+                x=1e-3, dx=1e-3
+            )
 
             # Convert to radians if needed
             if self.airfoil[1] == "degrees":
