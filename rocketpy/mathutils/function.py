@@ -860,7 +860,7 @@ class Function:
             # if the function is 1-D:
             if self.__dom_dim__ == 1:
                 # if the args is a simple number (int or float)
-                if isinstance(args[0], (int, float)):
+                if isinstance(args[0], (int, float, complex)):
                     return self.source(args[0])
                 # if the arguments are iterable, we map and return a list
                 if isinstance(args[0], Iterable):
@@ -869,7 +869,7 @@ class Function:
             # if the function is n-D:
             else:
                 # if each arg is a simple number (int or float)
-                if all(isinstance(arg, (int, float)) for arg in args):
+                if all(isinstance(arg, (int, float, complex)) for arg in args):
                     return self.source(*args)
                 # if each arg is iterable, we map and return a list
                 if all(isinstance(arg, Iterable) for arg in args):
