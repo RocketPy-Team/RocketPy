@@ -2427,7 +2427,7 @@ class Function:
                 + self.get_value_opt(x - dx)
             ) / dx**2
 
-    def differentiate_complex_step(self, x, dx=1e-6):
+    def differentiate_complex_step(self, x, dx=1e-12):
         """Differentiate a Function object at a given point using the complex
         step method. This method can be faster than ``Function.differentiate``
         since it requires only one evaluation of the function. However, the
