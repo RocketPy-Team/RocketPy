@@ -734,6 +734,21 @@ class Rocket:
             self.I_23,
         )
 
+    def evaluate_nozzle_to_center_of_dry_mass_position(self):
+        """Evaluates the distance between the nozzle exit and the rocket's
+        center of dry mass position.
+
+        Returns
+        -------
+        self.nozzle_to_center_of_dry_mass_position : float
+            Distance between the nozzle exit and the rocket's center of dry
+            mass position, in meters.
+        """        
+        self.nozzle_to_center_of_dry_mass_position = (
+            -(self.nozzle_position - self.center_of_dry_mass_position) * self._csys
+        )
+        return self.nozzle_to_center_of_dry_mass_position
+    
     def evaluate_nozzle_gyration_tensor(self):
         pass
 
