@@ -803,6 +803,67 @@ class Rocket:
         self.z_coordinate_com_to_cdm.set_outputs("Z Coordinate COM to CDM (m)")
         self.z_coordinate_com_to_cdm.set_title("Z Coordinate COM to CDM")
         return self.z_coordinate_com_to_cdm
+
+    def get_inertia_tensor_at_time(self, t):
+        """Returns a Matrix representing the inertia tensor of the rocket with
+        respect to the rocket's center of mass at a given time. It evaluates
+        each inertia tensor component at the given time and returns a Matrix
+        with the computed values.
+
+        Parameters
+        ----------
+        t : float
+            Time at which the inertia tensor is to be evaluated.
+
+        Returns
+        -------
+        Matrix
+            Inertia tensor of the rocket at time t.
+        """
+        I_11 = self.I_11.get_value_opt(t)
+        I_12 = self.I_12.get_value_opt(t)
+        I_13 = self.I_13.get_value_opt(t)
+        I_22 = self.I_22.get_value_opt(t)
+        I_23 = self.I_23.get_value_opt(t)
+        I_33 = self.I_33.get_value_opt(t)
+        return Matrix(
+            [
+                [I_11, I_12, I_13],
+                [I_12, I_22, I_23],
+                [I_13, I_23, I_33],
+            ]
+        )
+
+    def get_inertia_tensor_derivative_at_time(self, t):
+        """Returns a Matrix representing the time derivative of the inertia
+        tensor of the rocket with respect to the rocket's center of mass at a
+        given time. It evaluates each inertia tensor component's derivative at
+        the given time and returns a Matrix with the computed values.
+
+        Parameters
+        ----------
+        t : float
+            Time at which the inertia tensor derivative is to be evaluated.
+
+        Returns
+        -------
+        Matrix
+            Inertia tensor time derivative of the rocket at time t.
+        """
+        I_11_dot = self.I_11.differentiate_complex_step(t)
+        I_12_dot = self.I_12.differentiate_complex_step(t)
+        I_13_dot = self.I_13.differentiate_complex_step(t)
+        I_22_dot = self.I_22.differentiate_complex_step(t)
+        I_23_dot = self.I_23.differentiate_complex_step(t)
+        I_33_dot = self.I_33.differentiate_complex_step(t)
+        return Matrix(
+            [
+                [I_11_dot, I_12_dot, I_13_dot],
+                [I_12_dot, I_22_dot, I_23_dot],
+                [I_13_dot, I_23_dot, I_33_dot],
+            ]
+        )
+
     def add_motor(self, motor, position):
         """Adds a motor to the rocket.
 
