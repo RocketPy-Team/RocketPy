@@ -79,6 +79,33 @@ def test_differentiate(func_input, derivative_input, expected_derivative):
     assert np.isclose(func.differentiate(derivative_input), expected_derivative)
 
 
+@pytest.mark.parametrize(
+    "func_input, derivative_input, expected_derivative",
+    [
+        (1, 0, 0),  # Test case 1: Function(1)
+        (lambda x: x, 0, 1),  # Test case 2: Function(lambda x: x)
+        (lambda x: x**2, 1, 2),  # Test case 3: Function(lambda x: x**2)
+    ],
+)
+def test_differentiate_complex_step(func_input, derivative_input, expected_derivative):
+    """Test the differentiate_complex_step method of the Function class.
+
+    Parameters
+    ----------
+    func_input : function
+        A function object created from a list of values.
+    derivative_input : int
+        Point at which to differentiate.
+    expected_derivative : float
+        Expected value of the derivative.
+    """
+    func = Function(func_input)
+    assert isinstance(func.differentiate_complex_step(derivative_input), float)
+    assert np.isclose(
+        func.differentiate_complex_step(derivative_input), expected_derivative
+    )
+
+
 def test_get_value():
     """Tests the get_value method of the Function class.
     Both with respect to return instances and expected behaviour.
