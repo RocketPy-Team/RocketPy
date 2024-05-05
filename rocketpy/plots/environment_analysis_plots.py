@@ -1454,7 +1454,7 @@ class _EnvironmentAnalysisPlots:
             if self.env_analysis.forecast:
                 forecast = self.env_analysis.forecast
                 y = self.env_analysis.average_wind_speed_profile_by_hour[hour][1]
-                x = forecast[hour].wind_speed.get_value(y) * convert_units(
+                x = forecast[hour].wind_speed.get_value_opt(y) * convert_units(
                     1, "m/s", self.env_analysis.unit_system["wind_speed"]
                 )
                 ax.plot(x, y, "b--")
