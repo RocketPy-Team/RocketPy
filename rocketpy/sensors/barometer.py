@@ -175,5 +175,55 @@ class Barometer(ScalarSensors):
         self.measurement = P
         self.measured_data.append((time, P))
 
-    def export_measured_data(self):
-        pass
+    def export_measured_data(self, filename, format="csv"):
+        """Export the measured values to a file
+
+        Parameters
+        ----------
+        filename : str
+            Name of the file to export the values to
+        format : str
+            Format of the file to export the values to. Options are "csv" and
+            "json". Default is "csv".
+
+        Returns
+        -------
+        None
+        """
+        if format == "csv":
+            # if sensor has been added multiple times to the simulated rocket
+            if isinstance(self.measured_data[0], list):
+                print("Data saved to", end=" ")
+                for i, data in enumerate(self.measured_data):
+                    with open(filename + f"_{i+1}", "w") as f:
+                        f.write("t,pressure\n")
+                        for t, pressure in data:
+                            f.write(f"{t},{pressure}\n")
+                    print(filename + f"_{i+1},", end=" ")
+            else:
+                with open(filename, "w") as f:
+                    f.write("t,pressure\n")
+                    for t, pressure in self.measured_data:
+                        f.write(f"{t},{pressure}\n")
+                print(f"Data saved to {filename}")
+        elif format == "json":
+            if isinstance(self.measured_data[0], list):
+                print("Data saved to", end=" ")
+                for i, data in enumerate(self.measured_data):
+                    dict = {"t": [], "pressure": []}
+                    for t, pressure in data:
+                        dict["t"].append(t)
+                        dict["pressure"].append(pressure)
+                    with open(filename + f"_{i+1}", "w") as f:
+                        json.dump(dict, f)
+                    print(filename + f"_{i+1},", end=" ")
+            else:
+                dict = {"t": [], "pressure": []}
+                for t, pressure in self.measured_data:
+                    dict["t"].append(t)
+                    dict["pressure"].append(pressure)
+                with open(filename, "w") as f:
+                    json.dump(dict, f)
+                print(f"Data saved to {filename}")
+        else:
+            raise ValueError("Invalid format")

@@ -254,8 +254,7 @@ class Accelerometer(InertialSensors):
         self._save_data((time, *A))
 
     def export_measured_data(self, filename, format="csv"):
-        """
-        Export the measured values to a file
+        """Export the measured values to a file
 
         Parameters
         ----------
