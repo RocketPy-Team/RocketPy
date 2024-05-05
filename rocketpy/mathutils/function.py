@@ -2427,6 +2427,30 @@ class Function:
                 + self.get_value_opt(x - dx)
             ) / dx**2
 
+    def differentiate_complex_step(self, x, dx=1e-6):
+        """Differentiate a Function object at a given point using the complex
+        step method. This method can be faster than ``Function.differentiate``
+        since it requires only one evaluation of the function. However, the
+        evaluated function must accept complex numbers as input.
+
+        Parameters
+        ----------
+        x : float
+            Point at which to differentiate.
+        dx : float, optional
+            Step size to use for numerical differentiation, by default 1e-6.
+
+        Returns
+        -------
+        float
+            The real part of the derivative of the function at the given point.
+
+        References
+        ----------
+        [1] https://mdolab.engin.umich.edu/wiki/guide-complex-step-derivative-approximation
+        """
+        return float(self.get_value_opt(x + dx * 1j).imag / dx)
+
     def identity_function(self):
         """Returns a Function object that correspond to the identity mapping,
         i.e. f(x) = x.
