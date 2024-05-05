@@ -59,6 +59,15 @@ def test_gyroscope_prints(noisy_rotated_gyroscope, quantized_gyroscope):
     assert True
 
 
+def test_barometer_prints(noisy_barometer, quantized_barometer):
+    """Test the print methods of the Barometer class. Checks if all
+    attributes are printed correctly.
+    """
+    noisy_barometer.prints.all()
+    quantized_barometer.prints.all()
+    assert True
+
+
 def test_rotation_matrix(noisy_rotated_accelerometer):
     """Test the rotation_matrix property of the Accelerometer class. Checks if
     the rotation matrix is correctly calculated.
@@ -92,7 +101,9 @@ def test_ideal_accelerometer_measure(ideal_accelerometer):
         + Vector.cross(omega, Vector.cross(omega, relative_position))
     )
     ax, ay, az = Matrix.transformation(u[6:10]) @ accel
-    ideal_accelerometer.measure(t, u, UDOT, relative_position, gravity)
+    ideal_accelerometer.measure(
+        t, u=u, u_dot=UDOT, relative_position=relative_position, gravity=gravity
+    )
 
     # check last measurement
     assert len(ideal_accelerometer.measurement) == 3
@@ -101,7 +112,9 @@ def test_ideal_accelerometer_measure(ideal_accelerometer):
 
     # check measured values
     assert len(ideal_accelerometer.measured_data) == 1
-    ideal_accelerometer.measure(t, u, UDOT, relative_position, gravity)
+    ideal_accelerometer.measure(
+        t, u=u, u_dot=UDOT, relative_position=relative_position, gravity=gravity
+    )
     assert len(ideal_accelerometer.measured_data) == 2
 
     assert all(isinstance(i, tuple) for i in ideal_accelerometer.measured_data)
@@ -122,7 +135,7 @@ def test_ideal_gyroscope_measure(ideal_gyroscope):
     rot = Matrix.transformation(u[6:10])
     ax, ay, az = rot @ Vector(u[10:13])
 
-    ideal_gyroscope.measure(t, u, UDOT, relative_position)
+    ideal_gyroscope.measure(t, u=u, u_dot=UDOT, relative_position=relative_position)
 
     # check last measurement
     assert len(ideal_gyroscope.measurement) == 3
@@ -131,12 +144,51 @@ def test_ideal_gyroscope_measure(ideal_gyroscope):
 
     # check measured values
     assert len(ideal_gyroscope.measured_data) == 1
-    ideal_gyroscope.measure(t, u, UDOT, relative_position)
+    ideal_gyroscope.measure(t, u=u, u_dot=UDOT, relative_position=relative_position)
     assert len(ideal_gyroscope.measured_data) == 2
 
     assert all(isinstance(i, tuple) for i in ideal_gyroscope.measured_data)
     assert ideal_gyroscope.measured_data[0][0] == t
     assert ideal_gyroscope.measured_data[0][1:] == approx([ax, ay, az], abs=1e-10)
+
+
+def test_ideal_barometer_measure(ideal_barometer, example_plain_env):
+    """Test the measure method of the Barometer class. Checks if saved
+    measurement is (P) and if measured_data is [(t, P), ...]
+    """
+    t = SOLUTION[0]
+    u = SOLUTION[1:]
+    relative_position = Vector(
+        [np.random.randint(-1, 1), np.random.randint(-1, 1), np.random.randint(-1, 1)]
+    )
+
+    rot = Matrix.transformation(u[6:10])
+    P = example_plain_env.pressure((rot @ relative_position).z + u[2])
+
+    ideal_barometer.measure(
+        t,
+        u=u,
+        relative_position=relative_position,
+        pressure=example_plain_env.pressure,
+    )
+
+    # check last measurement
+    assert isinstance(ideal_barometer.measurement, (int, float))
+    assert ideal_barometer.measurement == approx(P, abs=1e-10)
+
+    # check measured values
+    assert len(ideal_barometer.measured_data) == 1
+    ideal_barometer.measure(
+        t,
+        u=u,
+        relative_position=relative_position,
+        pressure=example_plain_env.pressure,
+    )
+    assert len(ideal_barometer.measured_data) == 2
+
+    assert all(isinstance(i, tuple) for i in ideal_barometer.measured_data)
+    assert ideal_barometer.measured_data[0][0] == t
+    assert ideal_barometer.measured_data[0][1] == approx(P, abs=1e-10)
 
 
 def test_noisy_rotated_accelerometer(noisy_rotated_accelerometer):
@@ -177,7 +229,9 @@ def test_noisy_rotated_accelerometer(noisy_rotated_accelerometer):
     az += 0.5
 
     # check last measurement considering noise error bounds
-    noisy_rotated_accelerometer.measure(t, u, UDOT, relative_position, gravity)
+    noisy_rotated_accelerometer.measure(
+        t, u=u, u_dot=UDOT, relative_position=relative_position, gravity=gravity
+    )
     assert noisy_rotated_accelerometer.measurement == approx([ax, ay, az], rel=0.5)
 
 
@@ -210,8 +264,35 @@ def test_noisy_rotated_gyroscope(noisy_rotated_gyroscope):
     wz += 0.5
 
     # check last measurement considering noise error bounds
-    noisy_rotated_gyroscope.measure(t, u, UDOT, relative_position, gravity)
+    noisy_rotated_gyroscope.measure(
+        t, u=u, u_dot=UDOT, relative_position=relative_position, gravity=gravity
+    )
     assert noisy_rotated_gyroscope.measurement == approx([wx, wy, wz], rel=0.5)
+
+
+def test_noisy_barometer_measure(noisy_barometer, example_plain_env):
+    """Test the measure method of the Barometer class. Checks if saved
+    measurement is (P) and if measured_data is [(t, P), ...]
+    """
+    t = SOLUTION[0]
+    u = SOLUTION[1:]
+    relative_position = Vector(
+        [np.random.randint(-1, 1), np.random.randint(-1, 1), np.random.randint(-1, 1)]
+    )
+
+    rot = Matrix.transformation(u[6:10])
+    P = example_plain_env.pressure((rot @ relative_position).z + u[2])
+    # expected measurement with constant bias
+    P += 1000
+
+    # check last measurement considering noise error bounds
+    noisy_barometer.measure(
+        t,
+        u=u,
+        relative_position=relative_position,
+        pressure=example_plain_env.pressure,
+    )
+    assert noisy_barometer.measurement == approx(P, rel=0.5)
 
 
 def test_quantization_accelerometer(quantized_accelerometer):
@@ -243,7 +324,9 @@ def test_quantization_accelerometer(quantized_accelerometer):
     az = round(az / 0.4882) * 0.4882
 
     # check last measurement considering noise error bounds
-    quantized_accelerometer.measure(t, u, UDOT, relative_position, gravity)
+    quantized_accelerometer.measure(
+        t, u=u, u_dot=UDOT, relative_position=relative_position, gravity=gravity
+    )
     assert quantized_accelerometer.measurement == approx([ax, ay, az], abs=1e-10)
 
 
@@ -268,25 +351,48 @@ def test_quantization_gyroscope(quantized_gyroscope):
     wz = round(wz / 0.4882) * 0.4882
 
     # check last measurement considering noise error bounds
-    quantized_gyroscope.measure(t, u, UDOT, relative_position, gravity)
+    quantized_gyroscope.measure(
+        t, u=u, u_dot=UDOT, relative_position=relative_position, gravity=gravity
+    )
     assert quantized_gyroscope.measurement == approx([wx, wy, wz], abs=1e-10)
+
+
+def test_quantization_barometer(quantized_barometer, example_plain_env):
+    """Test the measure method of the Barometer class. Checks if saved
+    measurement is (P) and if measured_data is [(t, P), ...]
+    """
+    t = SOLUTION[0]
+    u = SOLUTION[1:]
+    # calculate acceleration at sensor position in inertial frame
+    relative_position = Vector([0.4, 0.4, 1])
+    # expected measurement without noise
+    P = example_plain_env.pressure(
+        (Matrix.transformation(u[6:10]) @ relative_position).z + u[2]
+    )
+    # expected measurement with quantization
+    P = 7e4  # saturated
+    P = round(P / 0.16) * 0.16
+
+    # check last measurement considering noise error bounds
+    quantized_barometer.measure(
+        t, u=u, relative_position=relative_position, pressure=example_plain_env.pressure
+    )
+    assert quantized_barometer.measurement == approx(P, abs=1e-10)
 
 
 def test_export_accel_data_csv(ideal_accelerometer):
     """Test the export_data method of accelerometer. Checks if the data is
-    exported correctly.
-
-    Parameters
-    ----------
-    flight_calisto_accel_gyro : Flight
-        Pytest fixture for the flight of the calisto rocket with an ideal accelerometer and a gyroscope.
-    """
+    exported correctly."""
     t = SOLUTION[0]
     u = SOLUTION[1:]
     relative_position = Vector([0, 0, 0])
     gravity = 9.81
-    ideal_accelerometer.measure(t, u, UDOT, relative_position, gravity)
-    ideal_accelerometer.measure(t, u, UDOT, relative_position, gravity)
+    ideal_accelerometer.measure(
+        t, u=u, u_dot=UDOT, relative_position=relative_position, gravity=gravity
+    )
+    ideal_accelerometer.measure(
+        t, u=u, u_dot=UDOT, relative_position=relative_position, gravity=gravity
+    )
 
     file_name = "sensors.csv"
 
@@ -322,20 +428,17 @@ def test_export_accel_data_csv(ideal_accelerometer):
 
 def test_export_accel_data_json(ideal_accelerometer):
     """Test the export_data method of the accelerometer. Checks if the data is
-    exported correctly.
-
-    Parameters
-    ----------
-    flight_calisto_accel_gyro : Flight
-        Pytest fixture for the flight of the calisto rocket with an ideal
-        accelerometer and a gyroscope.
-    """
+    exported correctly."""
     t = SOLUTION[0]
     u = SOLUTION[1:]
     relative_position = Vector([0, 0, 0])
     gravity = 9.81
-    ideal_accelerometer.measure(t, u, UDOT, relative_position, gravity)
-    ideal_accelerometer.measure(t, u, UDOT, relative_position, gravity)
+    ideal_accelerometer.measure(
+        t, u=u, u_dot=UDOT, relative_position=relative_position, gravity=gravity
+    )
+    ideal_accelerometer.measure(
+        t, u=u, u_dot=UDOT, relative_position=relative_position, gravity=gravity
+    )
 
     file_name = "sensors.json"
 
@@ -371,19 +474,12 @@ def test_export_accel_data_json(ideal_accelerometer):
 
 def test_export_gyro_data_csv(ideal_gyroscope):
     """Test the export_data method of the gyroscope. Checks if the data is
-    exported correctly.
-
-    Parameters
-    ----------
-    flight_calisto_accel_gyro : Flight
-        Pytest fixture for the flight of the calisto rocket with an ideal
-        accelerometer and a gyroscope.
-    """
+    exported correctly."""
     t = SOLUTION[0]
     u = SOLUTION[1:]
     relative_position = Vector([0, 0, 0])
-    ideal_gyroscope.measure(t, u, UDOT, relative_position)
-    ideal_gyroscope.measure(t, u, UDOT, relative_position)
+    ideal_gyroscope.measure(t, u=u, u_dot=UDOT, relative_position=relative_position)
+    ideal_gyroscope.measure(t, u=u, u_dot=UDOT, relative_position=relative_position)
 
     file_name = "sensors.csv"
 
@@ -419,18 +515,12 @@ def test_export_gyro_data_csv(ideal_gyroscope):
 
 def test_export_gyro_data_json(ideal_gyroscope):
     """Test the export_data method of the gyroscope. Checks if the data is
-    exported correctly.
-
-    Parameters
-    ----------
-    flight_calisto_accel_gyro : Flight
-        Pytest fixture for the flight of the calisto rocket with an ideal accelerometer and a gyroscope.
-    """
+    exported correctly."""
     t = SOLUTION[0]
     u = SOLUTION[1:]
     relative_position = Vector([0, 0, 0])
-    ideal_gyroscope.measure(t, u, UDOT, relative_position)
-    ideal_gyroscope.measure(t, u, UDOT, relative_position)
+    ideal_gyroscope.measure(t, u=u, u_dot=UDOT, relative_position=relative_position)
+    ideal_gyroscope.measure(t, u=u, u_dot=UDOT, relative_position=relative_position)
 
     file_name = "sensors.json"
 
@@ -453,6 +543,106 @@ def test_export_gyro_data_json(ideal_gyroscope):
         ideal_gyroscope.measured_data[:],
     ]
     ideal_gyroscope.export_measured_data(file_name, format="json")
+    contents = json.load(open(file_name + "_1", "r"))
+    assert contents == expected_data
+
+    contents = json.load(open(file_name + "_2", "r"))
+    assert contents == expected_data
+
+    os.remove(file_name)
+    os.remove(file_name + "_1")
+    os.remove(file_name + "_2")
+
+
+def test_export_barometer_data_csv(ideal_barometer, example_plain_env):
+    """Test the export_data method of the barometer. Checks if the data is
+    exported correctly."""
+    t = SOLUTION[0]
+    u = SOLUTION[1:]
+    relative_position = Vector([0, 0, 0])
+    ideal_barometer.measure(
+        t,
+        u=u,
+        relative_position=relative_position,
+        pressure=example_plain_env.pressure,
+    )
+    ideal_barometer.measure(
+        t,
+        u=u,
+        relative_position=relative_position,
+        pressure=example_plain_env.pressure,
+    )
+
+    file_name = "sensors.csv"
+
+    ideal_barometer.export_measured_data(file_name, format="csv")
+
+    with open(file_name, "r") as file:
+        contents = file.read()
+
+    expected_data = "t,pressure\n"
+    for t, pressure in ideal_barometer.measured_data:
+        expected_data += f"{t},{pressure}\n"
+
+    assert contents == expected_data
+
+    # check exports for gyroscopes added more than once to the rocket
+    ideal_barometer.measured_data = [
+        ideal_barometer.measured_data[:],
+        ideal_barometer.measured_data[:],
+    ]
+    ideal_barometer.export_measured_data(file_name, format="csv")
+    with open(file_name + "_1", "r") as file:
+        contents = file.read()
+    assert contents == expected_data
+
+    with open(file_name + "_2", "r") as file:
+        contents = file.read()
+    assert contents == expected_data
+
+    os.remove(file_name)
+    os.remove(file_name + "_1")
+    os.remove(file_name + "_2")
+
+
+def test_export_barometer_data_json(ideal_barometer, example_plain_env):
+    """Test the export_data method of the barometer. Checks if the data is
+    exported correctly."""
+    t = SOLUTION[0]
+    u = SOLUTION[1:]
+    relative_position = Vector([0, 0, 0])
+    ideal_barometer.measure(
+        t,
+        u=u,
+        relative_position=relative_position,
+        pressure=example_plain_env.pressure,
+    )
+    ideal_barometer.measure(
+        t,
+        u=u,
+        relative_position=relative_position,
+        pressure=example_plain_env.pressure,
+    )
+
+    file_name = "sensors.json"
+
+    ideal_barometer.export_measured_data(file_name, format="json")
+
+    contents = json.load(open(file_name, "r"))
+
+    expected_data = {"t": [], "pressure": []}
+    for t, pressure in ideal_barometer.measured_data:
+        expected_data["t"].append(t)
+        expected_data["pressure"].append(pressure)
+
+    assert contents == expected_data
+
+    # check exports for gyroscopes added more than once to the rocket
+    ideal_barometer.measured_data = [
+        ideal_barometer.measured_data[:],
+        ideal_barometer.measured_data[:],
+    ]
+    ideal_barometer.export_measured_data(file_name, format="json")
     contents = json.load(open(file_name + "_1", "r"))
     assert contents == expected_data
 

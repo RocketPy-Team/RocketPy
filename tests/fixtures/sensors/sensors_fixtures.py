@@ -1,6 +1,8 @@
+import numpy as np
 import pytest
 
 from rocketpy import Accelerometer, Gyroscope
+from rocketpy.sensors.barometer import Barometer
 
 
 @pytest.fixture
@@ -48,6 +50,22 @@ def noisy_rotated_gyroscope():
 
 
 @pytest.fixture
+def noisy_barometer():
+    """Returns a barometer with all parameters set to non-default values,
+    i.e. with noise and temperature drift."""
+    return Barometer(
+        sampling_rate=50,
+        noise_density=19,
+        noise_variance=19,
+        random_walk_density=0.01,
+        constant_bias=1000,
+        operating_temperature=25,
+        temperature_bias=0.02,
+        temperature_scale_factor=0.02,
+    )
+
+
+@pytest.fixture
 def quantized_accelerometer():
     """Returns an accelerometer with all parameters set to non-default values,
     i.e. with noise and rotation."""
@@ -70,14 +88,32 @@ def quantized_gyroscope():
 
 
 @pytest.fixture
+def quantized_barometer():
+    """Returns a barometer with all parameters set to non-default values,
+    i.e. with noise and temperature drift."""
+    return Barometer(
+        sampling_rate=50,
+        measurement_range=7e4,
+        resolution=0.16,
+    )
+
+
+@pytest.fixture
 def ideal_accelerometer():
     return Accelerometer(
-        sampling_rate=100,
+        sampling_rate=10,
     )
 
 
 @pytest.fixture
 def ideal_gyroscope():
     return Gyroscope(
-        sampling_rate=100,
+        sampling_rate=10,
+    )
+
+
+@pytest.fixture
+def ideal_barometer():
+    return Barometer(
+        sampling_rate=10,
     )

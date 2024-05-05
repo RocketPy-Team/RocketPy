@@ -244,27 +244,19 @@ def calisto_air_brakes_clamp_off(calisto_robust, controller_function):
 
 
 @pytest.fixture
-def calisto_accel_gyro(
+def calisto_sensors(
     calisto,
     calisto_nose_cone,
     calisto_tail,
     calisto_trapezoidal_fins,
     ideal_accelerometer,
     ideal_gyroscope,
+    ideal_barometer,
 ):
     """Create an object class of the Rocket class to be used in the tests. This
     is the same Calisto rocket that was defined in the calisto fixture, but with
-    an ideal accelerometer and a gyroscope added at the center of dry mass.
-    Meaning the readings will be the same as the values saved on a Flight object.
-
-    Parameters
-    ----------
-    calisto : rocketpy.Rocket
-        An object of the Rocket class. This is a pytest fixture.
-    accelerometer : rocketpy.Accelerometer
-        An object of the Accelerometer class. This is a pytest fixture.
-    gyroscope : rocketpy.Gyroscope
-        An object of the Gyroscope class. This is a pytest fixture.
+    a set of ideal sensors added at the center of dry mass, meaning the readings
+    will be the same as the values saved on a Flight object.
 
     Returns
     -------
@@ -278,6 +270,7 @@ def calisto_accel_gyro(
     calisto.add_sensor(ideal_accelerometer, -0.1180124376577797)
     calisto.add_sensor(ideal_accelerometer, -0.1180124376577797)
     calisto.add_sensor(ideal_gyroscope, -0.1180124376577797)
+    calisto.add_sensor(ideal_barometer, -0.1180124376577797)
     return calisto
 
 
