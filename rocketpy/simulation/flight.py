@@ -1057,6 +1057,7 @@ class Flight:
         self.impact_state = np.array([0])
         self.parachute_events = []
         self.post_processed = False
+        self.__post_processed_variables = []
 
     def __init_flight_state(self):
         """Initialize flight state variables."""
@@ -1148,26 +1149,7 @@ class Flight:
 
     def __cache_post_process_variables(self):
         """Cache post-process variables for simulations with controllers."""
-        self.__retrieve_arrays = [
-            self.ax_list,
-            self.ay_list,
-            self.az_list,
-            self.alpha1_list,
-            self.alpha2_list,
-            self.alpha3_list,
-            self.R1_list,
-            self.R2_list,
-            self.R3_list,
-            self.M1_list,
-            self.M2_list,
-            self.M3_list,
-            self.pressure_list,
-            self.density_list,
-            self.dynamic_viscosity_list,
-            self.speed_of_sound_list,
-            self.wind_velocity_x_list,
-            self.wind_velocity_y_list,
-        ]
+        self.__evaluate_post_process = np.array(self.__post_processed_variables)
 
     @cached_property
     def effective_1rl(self):
@@ -1289,12 +1271,7 @@ class Flight:
             # Use u_dot post processing code for forces, moments and env data
             self.u_dot_generalized(t, u, post_processing=True)
             # Save feasible accelerations
-            self.__post_processed_variables[-1][1] = ax
-            self.__post_processed_variables[-1][2] = ay
-            self.__post_processed_variables[-1][3] = az
-            self.__post_processed_variables[-1][4] = 0
-            self.__post_processed_variables[-1][5] = 0
-            self.__post_processed_variables[-1][6] = 0
+            self.__post_processed_variables[-1][1:7] = [ax, ay, az, 0, 0, 0]
 
         return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
 
