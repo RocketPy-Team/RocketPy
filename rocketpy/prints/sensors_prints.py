@@ -77,9 +77,6 @@ class _SensorsPrints(ABC):
         self._print_aligned(
             "Temperature Scale Factor:", f"{self.sensor.temperature_scale_factor} %/°C"
         )
-        self._print_aligned(
-            "Cross Axis Sensitivity:", f"{self.sensor.cross_axis_sensitivity} %"
-        )
 
     def all(self):
         """Prints all information of the sensor."""
@@ -102,6 +99,12 @@ class _InertialSensorsPrints(_SensorsPrints):
             value = " ".join(f"{val:.2f}" for val in row)
             value = [float(val) for val in value.split()]
             self._print_aligned("", value)
+
+    def _general_noise(self):
+        super()._general_noise()
+        self._print_aligned(
+            "Cross Axis Sensitivity:", f"{self.sensor.cross_axis_sensitivity} %"
+        )
 
     def all(self):
         """Prints all information of the sensor."""
