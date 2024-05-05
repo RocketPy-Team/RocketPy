@@ -4,6 +4,7 @@ import numpy as np
 
 from rocketpy.control.controller import _Controller
 from rocketpy.mathutils.function import Function
+from rocketpy.mathutils.vector_matrix import Matrix
 from rocketpy.motors.motor import EmptyMotor
 from rocketpy.plots.rocket_plots import _RocketPlots
 from rocketpy.prints.rocket_prints import _RocketPrints
@@ -72,6 +73,9 @@ class Rocket:
         for more information
         regarding the coordinate system.
         Expressed in meters as a function of time.
+    Rocket.z_coordinate_com_to_cdm : Function
+        Function of time expressing the z-coordinate of the center of mass
+        relative to the center of dry mass.
     Rocket.reduced_mass : Function
         Function of time expressing the reduced mass of the rocket,
         defined as the product of the propellant mass and the mass
@@ -146,6 +150,11 @@ class Rocket:
         defined rocket coordinate system.
         See :doc:`Positions and Coordinate Systems </user/positions>`
         for more information.
+    Rocket.nozzle_to_center_of_dry_mass_position : float
+        Distance between the nozzle exit and the rocket's center of dry mass
+        position, in meters.
+    Rocket.nozzle_gyration_tensor: Matrix
+        Matrix representing the nozzle gyration tensor.
     Rocket.center_of_propellant_position : Function
         Position of the propellant's center of mass relative to the user defined
         rocket reference system. See
