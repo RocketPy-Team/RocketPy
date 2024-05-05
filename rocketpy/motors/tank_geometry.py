@@ -11,10 +11,7 @@ except ImportError:
 
     cache = lru_cache(maxsize=None)
 
-try:
-    from functools import cached_property
-except ImportError:
-    from ..tools import cached_property
+from functools import cached_property
 
 
 class TankGeometry:

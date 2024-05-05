@@ -306,3 +306,31 @@ def test_remove_outliers_iqr(x, y, expected_x, expected_y):
     assert filtered_func.__interpolation__ == func.__interpolation__
     assert filtered_func.__extrapolation__ == func.__extrapolation__
     assert filtered_func.title == func.title
+
+
+def test_set_get_value_opt():
+    """Test the set_value_opt and get_value_opt methods of the Function class."""
+    func = Function(lambda x: x**2)
+    func.source = np.array([[1, 1], [2, 4], [3, 9], [4, 16], [5, 25]])
+    func.x_array = np.array([1, 2, 3, 4, 5])
+    func.y_array = np.array([1, 4, 9, 16, 25])
+    func.x_initial = 1
+    func.x_final = 5
+    func.set_interpolation("linear")
+    func.set_get_value_opt()
+    assert func.get_value_opt(2.5) == 6.5
+
+
+def test_get_image_dim(linear_func):
+    """Test the get_img_dim method of the Function class."""
+    assert linear_func.get_image_dim() == 1
+
+
+def test_get_domain_dim(linear_func):
+    """Test the get_domain_dim method of the Function class."""
+    assert linear_func.get_domain_dim() == 1
+
+
+def test_bool(linear_func):
+    """Test the __bool__ method of the Function class."""
+    assert bool(linear_func) == True

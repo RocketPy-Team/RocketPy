@@ -1,3 +1,5 @@
+from functools import cached_property
+
 import numpy as np
 from scipy import integrate
 
@@ -5,11 +7,6 @@ from ..mathutils.function import Function, funcify_method, reset_funcified_metho
 from ..plots.solid_motor_plots import _SolidMotorPlots
 from ..prints.solid_motor_prints import _SolidMotorPrints
 from .motor import Motor
-
-try:
-    from functools import cached_property
-except ImportError:
-    from ..tools import cached_property
 
 
 class SolidMotor(Motor):

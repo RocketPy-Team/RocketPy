@@ -1,14 +1,13 @@
+from functools import cached_property
+
+from rocketpy.tools import parallel_axis_theorem_from_com
+
 from ..mathutils.function import Function, funcify_method, reset_funcified_methods
 from ..plots.hybrid_motor_plots import _HybridMotorPlots
 from ..prints.hybrid_motor_prints import _HybridMotorPrints
 from .liquid_motor import LiquidMotor
 from .motor import Motor
 from .solid_motor import SolidMotor
-
-try:
-    from functools import cached_property
-except ImportError:
-    from ..tools import cached_property
 
 
 class HybridMotor(Motor):
@@ -455,22 +454,21 @@ class HybridMotor(Motor):
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        solid_correction = (
-            self.solid.propellant_mass
-            * (self.solid.center_of_propellant_mass - self.center_of_propellant_mass)
-            ** 2
-        )
-        liquid_correction = (
-            self.liquid.propellant_mass
-            * (self.liquid.center_of_propellant_mass - self.center_of_propellant_mass)
-            ** 2
-        )
 
-        I_11 = (
-            self.solid.propellant_I_11
-            + solid_correction
-            + self.liquid.propellant_I_11
-            + liquid_correction
+        solid_mass = self.solid.propellant_mass
+        liquid_mass = self.liquid.propellant_mass
+
+        cm = self.center_of_propellant_mass
+        solid_cm_to_cm = self.solid.center_of_propellant_mass - cm
+        liquid_cm_to_cm = self.liquid.center_of_propellant_mass - cm
+
+        solid_prop_inertia = self.solid.propellant_I_11
+        liquid_prop_inertia = self.liquid.propellant_I_11
+
+        I_11 = parallel_axis_theorem_from_com(
+            solid_prop_inertia, solid_mass, solid_cm_to_cm
+        ) + parallel_axis_theorem_from_com(
+            liquid_prop_inertia, liquid_mass, liquid_cm_to_cm
         )
 
         return I_11

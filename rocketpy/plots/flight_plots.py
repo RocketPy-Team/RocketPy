@@ -1,10 +1,7 @@
+from functools import cached_property
+
 import matplotlib.pyplot as plt
 import numpy as np
-
-try:
-    from functools import cached_property
-except ImportError:
-    from ..tools import cached_property
 
 
 class _FlightPlots:

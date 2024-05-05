@@ -228,10 +228,14 @@ def test_bella_lui_rocket_data_asserts_acceptance():
     apogee_time_measured = time_kalt[np.argmax(altitude_kalt)]
     apogee_time_simulated = test_flight.apogee_time
 
-    assert (
-        abs(max(altitude_kalt) - test_flight.apogee + test_flight.env.elevation)
-        / max(altitude_kalt)
-        < 0.015
+    apogee_error_threshold = 0.015
+    apogee_error = abs(
+        max(altitude_kalt) - test_flight.apogee + test_flight.env.elevation
+    ) / max(altitude_kalt)
+    assert apogee_error < apogee_error_threshold, (
+        f"Apogee altitude error exceeded the threshold. "
+        f"Expected the error to be less than {apogee_error_threshold * 100}%, "
+        f"but got an error of {apogee_error * 100:.1f}%."
     )
     assert abs(max(velocity_rcp) - max(vert_vel_kalt)) / max(vert_vel_kalt) < 0.06
     assert (
@@ -241,4 +245,11 @@ def test_bella_lui_rocket_data_asserts_acceptance():
     )
     assert (
         abs(apogee_time_measured - apogee_time_simulated) / apogee_time_simulated < 0.02
+    )
+    # Guarantee the impact velocity is within 30% of the real data.
+    # Use the last 5 real points to avoid outliers
+    assert (
+        abs(test_flight.impact_velocity - np.mean(vert_vel_kalt[-5:]))
+        / abs(test_flight.impact_velocity)
+        < 0.30
     )

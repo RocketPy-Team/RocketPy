@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 
 import pytest
+
 from rocketpy import Environment, EnvironmentAnalysis
 
 
@@ -54,8 +55,8 @@ def env_analysis():
     EnvironmentAnalysis
     """
     env_analysis = EnvironmentAnalysis(
-        start_date=datetime.datetime(2019, 10, 23),
-        end_date=datetime.datetime(2021, 10, 23),
+        start_date=datetime(2019, 10, 23),
+        end_date=datetime(2021, 10, 23),
         latitude=39.3897,
         longitude=-8.28896388889,
         start_hour=6,

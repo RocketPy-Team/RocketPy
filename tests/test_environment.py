@@ -1,5 +1,4 @@
 import datetime
-import time
 from unittest.mock import patch
 
 import pytest
@@ -64,13 +63,8 @@ def test_wyoming_sounding_atmosphere(mock_show, example_plain_env):
     #        "file" option, instead of receiving the URL as a string.
     URL = "http://weather.uwyo.edu/cgi-bin/sounding?region=samer&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=02&FROM=0500&TO=0512&STNM=83779"
     # give it at least 5 times to try to download the file
-    for i in range(5):
-        try:
-            example_plain_env.set_atmospheric_model(type="wyoming_sounding", file=URL)
-            break
-        except:
-            time.sleep(1)  # wait 1 second before trying again
-            pass
+    example_plain_env.set_atmospheric_model(type="wyoming_sounding", file=URL)
+
     assert example_plain_env.all_info() == None
     assert abs(example_plain_env.pressure(0) - 93600.0) < 1e-8
     assert (

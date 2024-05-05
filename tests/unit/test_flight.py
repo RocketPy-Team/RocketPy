@@ -258,3 +258,31 @@ def test_get_controller_observed_variables(flight_calisto_air_brakes):
     obs_vars = flight_calisto_air_brakes.get_controller_observed_variables()
     assert isinstance(obs_vars, list)
     assert len(obs_vars) == 0
+
+
+def test_initial_stability_margin(flight_calisto_custom_wind):
+    """Test the initial_stability_margin method of the Flight class.
+
+    Parameters
+    ----------
+    flight_calisto_custom_wind : rocketpy.Flight
+    """
+    res = flight_calisto_custom_wind.initial_stability_margin
+    assert isinstance(res, float)
+    assert res == flight_calisto_custom_wind.stability_margin(0)
+    assert np.isclose(res, 2.05, atol=0.1)
+
+
+def test_out_of_rail_stability_margin(flight_calisto_custom_wind):
+    """Test the out_of_rail_stability_margin method of the Flight class.
+
+    Parameters
+    ----------
+    flight_calisto_custom_wind : rocketpy.Flight
+    """
+    res = flight_calisto_custom_wind.out_of_rail_stability_margin
+    assert isinstance(res, float)
+    assert res == flight_calisto_custom_wind.stability_margin(
+        flight_calisto_custom_wind.out_of_rail_time
+    )
+    assert np.isclose(res, 2.14, atol=0.1)

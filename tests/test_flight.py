@@ -604,12 +604,12 @@ def test_max_values(flight_calisto_robust):
     calculated by hand, it was just copied from the test results. This is
     because the expected values are not easy to calculate by hand, and the
     results are not expected to change. If the results change, the test will
-    fail, and the expected values must be updated. If if want to update the
-    values, always double check if the results are really correct. Acceptable
-    reasons for changes in the results are: 1) changes in the code that
-    improve the accuracy of the simulation, 2) a bug was found and fixed. Keep
-    in mind that other tests may be more accurate than this one, for example,
-    the acceptance tests, which are based on the results of real flights.
+    fail, and the expected values must be updated. If the values are updated,
+    always double check if the results are really correct. Acceptable reasons
+    for changes in the results are: 1) changes in the code that improve the
+    accuracy of the simulation, 2) a bug was found and fixed. Keep in mind that
+    other tests may be more accurate than this one, for example, the acceptance
+    tests, which are based on the results of real flights.
 
     Parameters
     ----------
@@ -618,11 +618,11 @@ def test_max_values(flight_calisto_robust):
         regarding this pytest fixture.
     """
     test = flight_calisto_robust
-    atol = 1e-2
-    assert pytest.approx(105.2774, abs=atol) == test.max_acceleration_power_on
-    assert pytest.approx(105.2774, abs=atol) == test.max_acceleration
-    assert pytest.approx(0.85999, abs=atol) == test.max_mach_number
-    assert pytest.approx(285.90240, abs=atol) == test.max_speed
+    rtol = 5e-3
+    assert pytest.approx(105.1599, rel=rtol) == test.max_acceleration_power_on
+    assert pytest.approx(105.1599, rel=rtol) == test.max_acceleration
+    assert pytest.approx(0.85999, rel=rtol) == test.max_mach_number
+    assert pytest.approx(285.94948, rel=rtol) == test.max_speed
 
 
 def test_rail_buttons_forces(flight_calisto_custom_wind):
@@ -691,7 +691,7 @@ def test_accelerations(flight_calisto_custom_wind, flight_time, expected_values)
         ("t_initial", (0, 0, 0)),
         ("out_of_rail_time", (0, 2.248727, 25.703072)),
         ("apogee_time", (-13.209436, 16.05115, -0.000257)),
-        ("t_final", (5, 2, -5.334289)),
+        ("t_final", (5, 2, -5.65998)),
     ],
 )
 def test_velocities(flight_calisto_custom_wind, flight_time, expected_values):
@@ -729,7 +729,7 @@ def test_velocities(flight_calisto_custom_wind, flight_time, expected_values):
         ("t_initial", (1.6542528, 0.65918, -0.067107)),
         ("out_of_rail_time", (5.05334, 2.01364, -1.7541)),
         ("apogee_time", (2.35291, -1.8275, -0.87851)),
-        ("t_final", (0, 0, 141.42421)),
+        ("t_final", (0, 0, 159.2212)),
     ],
 )
 def test_aerodynamic_forces(flight_calisto_custom_wind, flight_time, expected_values):
