@@ -12,7 +12,7 @@ UNITS = {
 class _SensorsPrints(ABC):
     def __init__(self, sensor):
         self.sensor = sensor
-        self.units = UNITS[sensor.type]
+        self.units = UNITS[sensor.__class__.__name__]
 
     def _print_aligned(self, label, value):
         """Prints a label and a value aligned vertically."""
@@ -22,7 +22,7 @@ class _SensorsPrints(ABC):
         """Prints the identity of the sensor."""
         print("Identification of the Sensor:\n")
         self._print_aligned("Name:", self.sensor.name)
-        self._print_aligned("Type:", self.sensor.type)
+        self._print_aligned("Type:", self.sensor.__class__.__name__)
 
     def orientation(self):
         """Prints the orientation of the sensor."""

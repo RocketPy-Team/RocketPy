@@ -191,7 +191,6 @@ class Accelerometer(Sensors):
             cross_axis_sensitivity=cross_axis_sensitivity,
             name=name,
         )
-        self.type = "Accelerometer"
         self.consider_gravity = consider_gravity
         self.prints = _AccelerometerPrints(self)
 

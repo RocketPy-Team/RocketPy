@@ -191,7 +191,6 @@ class Gyroscope(Sensors):
             cross_axis_sensitivity=cross_axis_sensitivity,
             name=name,
         )
-        self.type = "Gyroscope"
         self.acceleration_sensitivity = self._vectorize_input(
             acceleration_sensitivity, "acceleration_sensitivity"
         )
