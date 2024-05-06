@@ -1047,6 +1047,20 @@ class Matrix:
         -------
         Matrix
             The transformation matrix from frame B to frame A.
+
+        Examples
+        --------
+        >>> M = Matrix.transformation_euler_angles(0, 0, 0)
+        >>> M
+        Matrix([1.0, 0.0, 0.0],
+               [0.0, 1.0, 0.0],
+               [0.0, 0.0, 1.0])
+
+        >>> M = Matrix.transformation_euler_angles(90, 0, 0)
+        >>> M
+        Matrix([-2.220446049250313e-16, -1.0000000000000002, 0.0],
+               [1.0000000000000002, -2.220446049250313e-16, 0.0],
+               [0.0, 0.0, 1.0])
         """
         return Matrix.transformation(euler_to_quaternions(roll, pitch, yaw))
 
