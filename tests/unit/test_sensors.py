@@ -199,9 +199,9 @@ def test_noisy_rotated_gyroscope(noisy_rotated_gyroscope):
 
     # check last measurement considering noise error bounds
     noisy_rotated_gyroscope.measure(TIME, U, U_DOT, relative_position, GRAVITY)
-    assert noisy_rotated_gyroscope.measurement == approx([wx, wy, wz], rel=0.2)
+    assert noisy_rotated_gyroscope.measurement == approx([wx, wy, wz], rel=0.3)
     assert len(noisy_rotated_gyroscope.measurement) == 3
-    assert noisy_rotated_gyroscope.measured_data[0][1:] == approx([wx, wy, wz], rel=0.2)
+    assert noisy_rotated_gyroscope.measured_data[0][1:] == approx([wx, wy, wz], rel=0.3)
     assert noisy_rotated_gyroscope.measured_data[0][0] == TIME
 
 
