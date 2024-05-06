@@ -366,6 +366,4 @@ class Sensors(ABC):
             Vector([1, 1, 1])
             + (self.operating_temperature - 25) / 100 * self.temperature_scale_factor
         )
-        value = value & scale_factor
-
-        return value
+        return value & scale_factor
