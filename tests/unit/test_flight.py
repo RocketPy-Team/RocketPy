@@ -317,11 +317,11 @@ def test_export_sensor_data(flight_calisto_accel_gyro):
         for measurement in flight_calisto_accel_gyro.sensors[2].measured_data
     ]
     assert (
-        sensor_data["Accelerometer"]["1"]
+        sensor_data["Accelerometer"][0]
         == flight_calisto_accel_gyro.sensors[0].measured_data[0]
     )
     assert (
-        sensor_data["Accelerometer"]["2"]
+        sensor_data["Accelerometer"][1]
         == flight_calisto_accel_gyro.sensors[1].measured_data[1]
     )
     assert (
