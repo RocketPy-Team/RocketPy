@@ -1,3 +1,4 @@
+import json
 import os
 from unittest.mock import patch
 
@@ -286,3 +287,44 @@ def test_out_of_rail_stability_margin(flight_calisto_custom_wind):
         flight_calisto_custom_wind.out_of_rail_time
     )
     assert np.isclose(res, 2.14, atol=0.1)
+
+
+def test_export_sensor_data(flight_calisto_accel_gyro):
+    """Test the export of sensor data.
+
+    Parameters
+    ----------
+    flight_calisto_accel_gyro : Flight
+        Pytest fixture for the flight of the calisto rocket with an ideal accelerometer and a gyroscope.
+    """
+    flight_calisto_accel_gyro.export_sensor_data("test_sensor_data.json")
+    # read the json and parse as dict
+    filename = "test_sensor_data.json"
+    with open(filename, "r") as f:
+        data = f.read()
+        sensor_data = json.loads(data)
+    # convert list of tuples into list of lists to compare with the json
+    flight_calisto_accel_gyro.sensors[0].measured_data[0] = [
+        list(measurement)
+        for measurement in flight_calisto_accel_gyro.sensors[0].measured_data[0]
+    ]
+    flight_calisto_accel_gyro.sensors[1].measured_data[1] = [
+        list(measurement)
+        for measurement in flight_calisto_accel_gyro.sensors[1].measured_data[1]
+    ]
+    flight_calisto_accel_gyro.sensors[2].measured_data = [
+        list(measurement)
+        for measurement in flight_calisto_accel_gyro.sensors[2].measured_data
+    ]
+    assert (
+        sensor_data["Accelerometer"]["1"]
+        == flight_calisto_accel_gyro.sensors[0].measured_data[0]
+    )
+    assert (
+        sensor_data["Accelerometer"]["2"]
+        == flight_calisto_accel_gyro.sensors[1].measured_data[1]
+    )
+    assert (
+        sensor_data["Gyroscope"] == flight_calisto_accel_gyro.sensors[2].measured_data
+    )
+    os.remove(filename)
