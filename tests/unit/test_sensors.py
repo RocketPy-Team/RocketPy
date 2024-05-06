@@ -8,7 +8,7 @@ from rocketpy.mathutils.vector_matrix import Matrix, Vector
 from rocketpy.tools import euler_to_quaternions
 
 # calisto standard simulation no wind solution index 200
-SOLUTION = [
+SOLUTION_INDEX_200 = [
     3.338513236767685,
     0.02856482783411794,
     50.919436628139216,
@@ -24,7 +24,7 @@ SOLUTION = [
     0.00010697759229808481,
     19.72526891699468,
 ]
-UDOT = [
+U_DOT_INDEX_200 = [
     0.021620542063162787,
     30.468683793837055,
     284.19140267225384,
@@ -78,21 +78,21 @@ def test_ideal_accelerometer_measure(ideal_accelerometer):
     """Test the measure method of the Accelerometer class. Checks if saved
     measurement is (ax,ay,az) and if measured_data is [(t, (ax,ay,az)), ...]
     """
-    t = SOLUTION[0]
-    u = SOLUTION[1:]
+    t = SOLUTION_INDEX_200[0]
+    u = SOLUTION_INDEX_200[1:]
 
     relative_position = Vector([0, 0, 0])
     gravity = 9.81
-    a_I = Vector(UDOT[3:6])
+    a_I = Vector(U_DOT_INDEX_200[3:6])
     omega = Vector(u[10:13])
-    omega_dot = Vector(UDOT[10:13])
+    omega_dot = Vector(U_DOT_INDEX_200[10:13])
     accel = (
         a_I
         + Vector.cross(omega_dot, relative_position)
         + Vector.cross(omega, Vector.cross(omega, relative_position))
     )
     ax, ay, az = Matrix.transformation(u[6:10]) @ accel
-    ideal_accelerometer.measure(t, u, UDOT, relative_position, gravity)
+    ideal_accelerometer.measure(t, u, U_DOT_INDEX_200, relative_position, gravity)
 
     # check last measurement
     assert len(ideal_accelerometer.measurement) == 3
@@ -101,7 +101,7 @@ def test_ideal_accelerometer_measure(ideal_accelerometer):
 
     # check measured values
     assert len(ideal_accelerometer.measured_data) == 1
-    ideal_accelerometer.measure(t, u, UDOT, relative_position, gravity)
+    ideal_accelerometer.measure(t, u, U_DOT_INDEX_200, relative_position, gravity)
     assert len(ideal_accelerometer.measured_data) == 2
 
     assert all(isinstance(i, tuple) for i in ideal_accelerometer.measured_data)
@@ -113,8 +113,8 @@ def test_ideal_gyroscope_measure(ideal_gyroscope):
     """Test the measure method of the Gyroscope class. Checks if saved
     measurement is (wx,wy,wz) and if measured_data is [(t, (wx,wy,wz)), ...]
     """
-    t = SOLUTION[0]
-    u = SOLUTION[1:]
+    t = SOLUTION_INDEX_200[0]
+    u = SOLUTION_INDEX_200[1:]
     relative_position = Vector(
         [np.random.randint(-1, 1), np.random.randint(-1, 1), np.random.randint(-1, 1)]
     )
@@ -122,7 +122,7 @@ def test_ideal_gyroscope_measure(ideal_gyroscope):
     rot = Matrix.transformation(u[6:10])
     ax, ay, az = rot @ Vector(u[10:13])
 
-    ideal_gyroscope.measure(t, u, UDOT, relative_position)
+    ideal_gyroscope.measure(t, u, U_DOT_INDEX_200, relative_position)
 
     # check last measurement
     assert len(ideal_gyroscope.measurement) == 3
@@ -131,7 +131,7 @@ def test_ideal_gyroscope_measure(ideal_gyroscope):
 
     # check measured values
     assert len(ideal_gyroscope.measured_data) == 1
-    ideal_gyroscope.measure(t, u, UDOT, relative_position)
+    ideal_gyroscope.measure(t, u, U_DOT_INDEX_200, relative_position)
     assert len(ideal_gyroscope.measured_data) == 2
 
     assert all(isinstance(i, tuple) for i in ideal_gyroscope.measured_data)
@@ -143,15 +143,15 @@ def test_noisy_rotated_accelerometer(noisy_rotated_accelerometer):
     """Test the measure method of the Accelerometer class. Checks if saved
     measurement is (ax,ay,az) and if measured_data is [(t, (ax,ay,az)), ...]
     """
-    t = SOLUTION[0]
-    u = SOLUTION[1:]
+    t = SOLUTION_INDEX_200[0]
+    u = SOLUTION_INDEX_200[1:]
 
     # calculate acceleration at sensor position in inertial frame
     relative_position = Vector([0.4, 0.4, 1])
     gravity = 9.81
-    a_I = Vector(UDOT[3:6]) + Vector([0, 0, -gravity])
+    a_I = Vector(U_DOT_INDEX_200[3:6]) + Vector([0, 0, -gravity])
     omega = Vector(u[10:13])
-    omega_dot = Vector(UDOT[10:13])
+    omega_dot = Vector(U_DOT_INDEX_200[10:13])
     accel = (
         a_I
         + Vector.cross(omega_dot, relative_position)
@@ -177,7 +177,9 @@ def test_noisy_rotated_accelerometer(noisy_rotated_accelerometer):
     az += 0.5
 
     # check last measurement considering noise error bounds
-    noisy_rotated_accelerometer.measure(t, u, UDOT, relative_position, gravity)
+    noisy_rotated_accelerometer.measure(
+        t, u, U_DOT_INDEX_200, relative_position, gravity
+    )
     assert noisy_rotated_accelerometer.measurement == approx([ax, ay, az], rel=0.5)
 
 
@@ -185,8 +187,8 @@ def test_noisy_rotated_gyroscope(noisy_rotated_gyroscope):
     """Test the measure method of the Gyroscope class. Checks if saved
     measurement is (wx,wy,wz) and if measured_data is [(t, (wx,wy,wz)), ...]
     """
-    t = SOLUTION[0]
-    u = SOLUTION[1:]
+    t = SOLUTION_INDEX_200[0]
+    u = SOLUTION_INDEX_200[1:]
     # calculate acceleration at sensor position in inertial frame
     relative_position = Vector([0.4, 0.4, 1])
     gravity = 9.81
@@ -210,7 +212,7 @@ def test_noisy_rotated_gyroscope(noisy_rotated_gyroscope):
     wz += 0.5
 
     # check last measurement considering noise error bounds
-    noisy_rotated_gyroscope.measure(t, u, UDOT, relative_position, gravity)
+    noisy_rotated_gyroscope.measure(t, u, U_DOT_INDEX_200, relative_position, gravity)
     assert noisy_rotated_gyroscope.measurement == approx([wx, wy, wz], rel=0.5)
 
 
@@ -218,14 +220,14 @@ def test_quantization_accelerometer(quantized_accelerometer):
     """Test the measure method of the Accelerometer class. Checks if saved
     measurement is (ax,ay,az) and if measured_data is [(t, (ax,ay,az)), ...]
     """
-    t = SOLUTION[0]
-    u = SOLUTION[1:]
+    t = SOLUTION_INDEX_200[0]
+    u = SOLUTION_INDEX_200[1:]
     # calculate acceleration at sensor position in inertial frame
     relative_position = Vector([0, 0, 0])
     gravity = 9.81
-    a_I = Vector(UDOT[3:6])
+    a_I = Vector(U_DOT_INDEX_200[3:6])
     omega = Vector(u[10:13])
-    omega_dot = Vector(UDOT[10:13])
+    omega_dot = Vector(U_DOT_INDEX_200[10:13])
     accel = (
         a_I
         + Vector.cross(omega_dot, relative_position)
@@ -243,7 +245,7 @@ def test_quantization_accelerometer(quantized_accelerometer):
     az = round(az / 0.4882) * 0.4882
 
     # check last measurement considering noise error bounds
-    quantized_accelerometer.measure(t, u, UDOT, relative_position, gravity)
+    quantized_accelerometer.measure(t, u, U_DOT_INDEX_200, relative_position, gravity)
     assert quantized_accelerometer.measurement == approx([ax, ay, az], abs=1e-10)
 
 
@@ -251,8 +253,8 @@ def test_quantization_gyroscope(quantized_gyroscope):
     """Test the measure method of the Gyroscope class. Checks if saved
     measurement is (wx,wy,wz) and if measured_data is [(t, (wx,wy,wz)), ...]
     """
-    t = SOLUTION[0]
-    u = SOLUTION[1:]
+    t = SOLUTION_INDEX_200[0]
+    u = SOLUTION_INDEX_200[1:]
     # calculate acceleration at sensor position in inertial frame
     relative_position = Vector([0.4, 0.4, 1])
     gravity = 9.81
@@ -268,7 +270,7 @@ def test_quantization_gyroscope(quantized_gyroscope):
     wz = round(wz / 0.4882) * 0.4882
 
     # check last measurement considering noise error bounds
-    quantized_gyroscope.measure(t, u, UDOT, relative_position, gravity)
+    quantized_gyroscope.measure(t, u, U_DOT_INDEX_200, relative_position, gravity)
     assert quantized_gyroscope.measurement == approx([wx, wy, wz], abs=1e-10)
 
 
@@ -281,12 +283,12 @@ def test_export_accel_data_csv(ideal_accelerometer):
     flight_calisto_accel_gyro : Flight
         Pytest fixture for the flight of the calisto rocket with an ideal accelerometer and a gyroscope.
     """
-    t = SOLUTION[0]
-    u = SOLUTION[1:]
+    t = SOLUTION_INDEX_200[0]
+    u = SOLUTION_INDEX_200[1:]
     relative_position = Vector([0, 0, 0])
     gravity = 9.81
-    ideal_accelerometer.measure(t, u, UDOT, relative_position, gravity)
-    ideal_accelerometer.measure(t, u, UDOT, relative_position, gravity)
+    ideal_accelerometer.measure(t, u, U_DOT_INDEX_200, relative_position, gravity)
+    ideal_accelerometer.measure(t, u, U_DOT_INDEX_200, relative_position, gravity)
 
     file_name = "sensors.csv"
 
@@ -330,12 +332,12 @@ def test_export_accel_data_json(ideal_accelerometer):
         Pytest fixture for the flight of the calisto rocket with an ideal
         accelerometer and a gyroscope.
     """
-    t = SOLUTION[0]
-    u = SOLUTION[1:]
+    t = SOLUTION_INDEX_200[0]
+    u = SOLUTION_INDEX_200[1:]
     relative_position = Vector([0, 0, 0])
     gravity = 9.81
-    ideal_accelerometer.measure(t, u, UDOT, relative_position, gravity)
-    ideal_accelerometer.measure(t, u, UDOT, relative_position, gravity)
+    ideal_accelerometer.measure(t, u, U_DOT_INDEX_200, relative_position, gravity)
+    ideal_accelerometer.measure(t, u, U_DOT_INDEX_200, relative_position, gravity)
 
     file_name = "sensors.json"
 
@@ -379,11 +381,11 @@ def test_export_gyro_data_csv(ideal_gyroscope):
         Pytest fixture for the flight of the calisto rocket with an ideal
         accelerometer and a gyroscope.
     """
-    t = SOLUTION[0]
-    u = SOLUTION[1:]
+    t = SOLUTION_INDEX_200[0]
+    u = SOLUTION_INDEX_200[1:]
     relative_position = Vector([0, 0, 0])
-    ideal_gyroscope.measure(t, u, UDOT, relative_position)
-    ideal_gyroscope.measure(t, u, UDOT, relative_position)
+    ideal_gyroscope.measure(t, u, U_DOT_INDEX_200, relative_position)
+    ideal_gyroscope.measure(t, u, U_DOT_INDEX_200, relative_position)
 
     file_name = "sensors.csv"
 
@@ -426,11 +428,11 @@ def test_export_gyro_data_json(ideal_gyroscope):
     flight_calisto_accel_gyro : Flight
         Pytest fixture for the flight of the calisto rocket with an ideal accelerometer and a gyroscope.
     """
-    t = SOLUTION[0]
-    u = SOLUTION[1:]
+    t = SOLUTION_INDEX_200[0]
+    u = SOLUTION_INDEX_200[1:]
     relative_position = Vector([0, 0, 0])
-    ideal_gyroscope.measure(t, u, UDOT, relative_position)
-    ideal_gyroscope.measure(t, u, UDOT, relative_position)
+    ideal_gyroscope.measure(t, u, U_DOT_INDEX_200, relative_position)
+    ideal_gyroscope.measure(t, u, U_DOT_INDEX_200, relative_position)
 
     file_name = "sensors.json"
 
