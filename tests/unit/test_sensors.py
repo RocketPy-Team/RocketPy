@@ -50,7 +50,9 @@ def test_accelerometer_prints(noisy_rotated_accelerometer, quantized_acceleromet
     assert True
 
 
-@pytest.mark.parametrize("gyroscope", ["noisy_rotated_gyroscope", "quantized_gyroscope"])
+@pytest.mark.parametrize(
+    "gyroscope", ["noisy_rotated_gyroscope", "quantized_gyroscope"]
+)
 def test_gyroscope_prints(gyroscope):
     """Test the print methods of the Gyroscope class. Checks if all
     attributes are printed correctly.
