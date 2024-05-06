@@ -468,7 +468,8 @@ def quaternions_to_nutation(e1, e2):
 
 
 def euler_to_quaternions(roll, pitch, yaw):
-    """Calculates the quaternions from the Euler angles in 3-2-1 sequence.
+    """Calculates the quaternions (Euler parameters) from the Euler angles in
+    3-2-1 sequence.
 
     Parameters
     ----------
