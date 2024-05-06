@@ -1181,10 +1181,10 @@ class Rocket:
             Position, in meters, of the sensor's coordinate system origin
             relative to the user defined rocket coordinate system.
         x_position : int, float, optional
-            Distance in meters by which the CM is to be translated in the x
+            Distance in meters by which the sensor is to be translated in the x
             direction relative to geometrical center line. Default is 0.
         y_position : int, float, optional
-            Distance in meters by which the CM is to be translated in the y
+            Distance in meters by which the sensor is to be translated in the y
             direction relative to geometrical center line. Default is 0.
 
         Returns
