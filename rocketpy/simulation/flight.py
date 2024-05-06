@@ -606,11 +606,8 @@ class Flight:
         self.terminate_on_apogee = terminate_on_apogee
         self.name = name
         self.equations_of_motion = equations_of_motion
-
-        # Controller initialization
-        self.__init_controllers()
-
         # Flight initialization
+        self.__init_controllers()
         self.__init_post_process_variables()
         self.__init_solution_monitors()
         self.__init_equations_of_motion()
