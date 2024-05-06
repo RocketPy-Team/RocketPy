@@ -1037,11 +1037,11 @@ class Matrix:
         Parameters
         ----------
         roll : float
-            The roll angle in radians.
+            The roll angle in degrees.
         pitch : float
-            The pitch angle in radians.
+            The pitch angle in degrees.
         yaw : float
-            The yaw angle in radians.
+            The yaw angle in degrees.
 
         Returns
         -------
