@@ -290,7 +290,9 @@ class Gyroscope(Sensors):
         -------
         None
         """
-        if format == "csv":
+        if format.lower() not in ["csv", "json"]:
+            raise ValueError("Invalid format")
+        if format.lower() == "csv":
             # if sensor has been added multiple times to the simulated rocket
             if isinstance(self.measured_data[0], list):
                 print("Data saved to", end=" ")
@@ -306,7 +308,8 @@ class Gyroscope(Sensors):
                     for t, wx, wy, wz in self.measured_data:
                         f.write(f"{t},{wx},{wy},{wz}\n")
                 print(f"Data saved to {filename}")
-        elif format == "json":
+            return
+        if format.lower() == "json":
             if isinstance(self.measured_data[0], list):
                 print("Data saved to", end=" ")
                 for i, data in enumerate(self.measured_data):
@@ -329,5 +332,4 @@ class Gyroscope(Sensors):
                 with open(filename, "w") as f:
                     json.dump(dict, f)
                 print(f"Data saved to {filename}")
-        else:
-            raise ValueError("Invalid format")
+            return

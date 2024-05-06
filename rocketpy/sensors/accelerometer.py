@@ -259,7 +259,9 @@ class Accelerometer(Sensors):
         -------
         None
         """
-        if format == "csv":
+        if format.lower() not in ["json", "csv"]:
+            raise ValueError("Invalid format")
+        if format.lower() == "csv":
             # if sensor has been added multiple times to the simulated rocket
             if isinstance(self.measured_data[0], list):
                 print("Data saved to", end=" ")
@@ -275,7 +277,8 @@ class Accelerometer(Sensors):
                     for t, ax, ay, az in self.measured_data:
                         f.write(f"{t},{ax},{ay},{az}\n")
                 print(f"Data saved to {filename}")
-        elif format == "json":
+            return
+        if format.lower() == "json":
             if isinstance(self.measured_data[0], list):
                 print("Data saved to", end=" ")
                 for i, data in enumerate(self.measured_data):
@@ -298,5 +301,4 @@ class Accelerometer(Sensors):
                 with open(filename, "w") as f:
                     json.dump(dict, f)
                 print(f"Data saved to {filename}")
-        else:
-            raise ValueError("Invalid format")
+            return
