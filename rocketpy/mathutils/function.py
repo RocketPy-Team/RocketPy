@@ -2440,8 +2440,8 @@ class Function:
         dx : float, optional
             Step size to use for numerical differentiation, by default 1e-200.
         order : int, optional
-            Order of differentiation, by default 1. Right now, only first and
-            second order derivatives are supported.
+            Order of differentiation, by default 1. Right now, only first order
+            derivative is supported.
 
         Returns
         -------
@@ -2454,16 +2454,10 @@ class Function:
         """
         if order == 1:
             return float(self.get_value_opt(x + dx * 1j).imag / dx)
-        elif order == 2:
-            return float(
-                2
-                * (self.get_value_opt(x).real - self.get_value_opt(x + dx * 1j).real)
-                / dx**2
-            )
         else:
             raise NotImplementedError(
-                "Only 1st and 2nd order derivatives are supported. "
-                "Set order=1 or order=2."
+                "Only 1st order derivatives are supported yet. "
+                "Set order=1."
             )
 
     def identity_function(self):
