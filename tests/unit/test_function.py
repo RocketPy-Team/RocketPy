@@ -80,11 +80,12 @@ def test_differentiate(func_input, derivative_input, expected_derivative):
 
 
 @pytest.mark.parametrize(
-    "func_input, derivative_input, expected_derivative",
+    "func_input, derivative_input, expected_first_derivative, expected_second_derivative",
     [
-        (1, 0, 0),  # Test case 1: Function(1)
-        (lambda x: x, 0, 1),  # Test case 2: Function(lambda x: x)
-        (lambda x: x**2, 1, 2),  # Test case 3: Function(lambda x: x**2)
+        (1, 0, 0, 0),  # Test case 1: Function(1)
+        (lambda x: x, 0, 1, 0), # Test case 2: Function(lambda x: x)
+        (lambda x: x**2, 1, 2, 2),  # Test case 3: Function(lambda x: x**2)
+        (lambda x: (x**3 - 3*x**2 + 2*x + 10), 2, 22, 6),  # Test case 4
     ],
 )
 def test_differentiate_complex_step(func_input, derivative_input, expected_derivative):
@@ -104,6 +105,10 @@ def test_differentiate_complex_step(func_input, derivative_input, expected_deriv
     assert np.isclose(
         func.differentiate_complex_step(derivative_input), expected_derivative
     )
+    assert np.isclose(
+        func.differentiate_complex_step(derivative_input, order=2), expected_derivative
+    )
+
 
 
 def test_get_value():
