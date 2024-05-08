@@ -85,7 +85,7 @@ def test_differentiate(func_input, derivative_input, expected_derivative):
         (1, 0, 0),  # Test case 1: Function(1)
         (lambda x: x, 0, 1),  # Test case 2: Function(lambda x: x)
         (lambda x: x**2, 1, 2),  # Test case 3: Function(lambda x: x**2)
-        (lambda x: -x**3, 2, -12),  # Test case 4: Function(lambda x: -x**3)
+        (lambda x: -(x**3), 2, -12),  # Test case 4: Function(lambda x: -x**3)
     ],
 )
 def test_differentiate_complex_step(

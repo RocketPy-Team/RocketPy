@@ -2456,8 +2456,7 @@ class Function:
             return float(self.get_value_opt(x + dx * 1j).imag / dx)
         else:
             raise NotImplementedError(
-                "Only 1st order derivatives are supported yet. "
-                "Set order=1."
+                "Only 1st order derivatives are supported yet. " "Set order=1."
             )
 
     def identity_function(self):
