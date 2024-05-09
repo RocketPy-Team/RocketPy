@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 try:
     from statsmodels.api import OLS
@@ -33,6 +34,7 @@ class ImportanceModel:
                 "var": None,
                 "model": None,
                 "importance": {parameter: None for parameter in self.parameters_names},
+                "LAE": None,  # Linear Approximation Error
             }
             for variable in target_variables_names
         }
@@ -42,6 +44,8 @@ class ImportanceModel:
         # Flags for nominal parameters
         self._nominal_parameters_passed = False
         self._nominal_target_passed = False
+
+        self._fitted = False
 
         return
 
@@ -86,8 +90,8 @@ class ImportanceModel:
         """
         for i in range(self.n_target_variables):
             target_variable = self.target_variables_names[i]
-            self.target_variables_info[
-                target_variable
+            self.target_variables_info[target_variable][
+                "nominal_value"
             ] = target_variables_nominal_value[i]
 
         self._nominal_target_passed = True
@@ -134,12 +138,16 @@ class ImportanceModel:
         """
         if target_data.ndim == 1:
             target_variable = self.target_variables_names[0]
-            self.target_variables_info[target_variable] = np.mean(target_data[:])
+            self.target_variables_info[target_variable]["nominal_value"] = np.mean(
+                target_data[:]
+            )
 
         else:
             for i in range(self.n_target_variables):
                 target_variable = self.target_variables_names[i]
-                self.target_variables_info[target_variable] = np.mean(target_data[:, i])
+                self.target_variables_info[target_variable]["nominal_value"] = np.mean(
+                    target_data[:, i]
+                )
 
         return
 
@@ -219,16 +227,74 @@ class ImportanceModel:
                 parameter = self.parameters_names[k]
                 self.target_variables_info[target_variable]["importance"][
                     parameter
-                ] *= (100 / var_Y)
+                ] /= var_Y
+            self.target_variables_info[target_variable]["LAE"] = sd_eps**2
+            self.target_variables_info[target_variable]["LAE"] /= var_Y
 
+        self._fitted = True
         return
 
     def print(self):
         pass
 
-    def plot(self):
-        # plot importance graphic!
-        pass
+    def plot(self, target_variable="all"):
+        if not self._fitted:
+            raise Exception("ImportanceModel must be fitted before plotting!")
+
+        if (target_variable not in self.target_variables_names) and (
+            target_variable != "all"
+        ):
+            raise ValueError(
+                f"Target variable {target_variable} was not listed in initialization!"
+            )
+
+        # Parameters bars are blue colored
+        # LAE bar is red colored
+        bar_colors = self.n_parameters * ["blue"]
+        bar_colors.append("red")
+
+        if target_variable == "all":
+            fig, axs = plt.subplots(self.n_target_variables, 1, sharex=True)
+            fig.supxlabel("Parameters and LAE")
+            fig.supylabel("Importance (%)")
+            x = [parameter for parameter in self.parameters_names]
+            x.append("LAE")
+            for i in range(self.n_target_variables):
+                current_target_variable = self.target_variables_names[i]
+                y = np.empty(self.n_parameters + 1)
+                for j in range(self.n_parameters):
+                    parameter = x[j]
+                    y[j] = (
+                        100
+                        * self.target_variables_info[current_target_variable][
+                            "importance"
+                        ][parameter]
+                    )
+                y[self.n_parameters] = (
+                    100 * self.target_variables_info[current_target_variable]["LAE"]
+                )
+                axs[i].bar(x, y, color=bar_colors)
+                axs[i].set_title(current_target_variable)
+
+            return
+
+        fig, axs = plt.subplots()
+        fig.supxlabel("Parameters and LAE")
+        fig.supylabel("Importance (%)")
+        x = [parameter for parameter in self.parameters_names]
+        x.append("LAE")
+        y = np.empty(self.n_parameters + 1)
+        for j in range(self.n_parameters):
+            parameter = x[j]
+            y[j] = (
+                100
+                * self.target_variables_info[target_variable]["importance"][parameter]
+            )
+        y[self.n_parameters] = 100 * self.target_variables_info[target_variable]["LAE"]
+        axs.bar(x, y, color=bar_colors)
+        axs.set_title(target_variable)
+
+        return
 
     def _check_conformity(
         self,
