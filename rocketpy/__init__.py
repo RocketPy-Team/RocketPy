@@ -49,3 +49,4 @@ from .stochastic import (
     StochasticTail,
     StochasticTrapezoidalFins,
 )
+from .analysis import ImportanceModel
