@@ -1,22 +1,28 @@
 """Defines the MonteCarlo class."""
 import json
 import os
-from multiprocessing import JoinableQueue, Process
-from multiprocessing.managers import BaseManager
+from multiprocess import JoinableQueue, Process, get_context
+from multiprocess.managers import BaseManager, NamespaceProxy
 from time import process_time, time
-import inspect
 import numpy as np
 import simplekml
+import types
 
 from rocketpy._encoders import RocketPyEncoder
 from rocketpy.plots.monte_carlo_plots import _MonteCarloPlots
 from rocketpy.prints.monte_carlo_prints import _MonteCarloPrints
 from rocketpy.simulation.flight import Flight
-from rocketpy.simulation.sim_config.flight2serializer import \
-    flightv1_serializer
+from rocketpy.stochastic import (
+    StochasticEnvironment,
+    StochasticRocket,
+    StochasticFlight,
+)
+from rocketpy.simulation.sim_config.flight2serializer import flightv1_serializer
 from rocketpy.simulation.sim_config.run_sim import run_flight
-from rocketpy.tools import (generate_monte_carlo_ellipses,
-                            generate_monte_carlo_ellipses_coordinates)
+from rocketpy.tools import (
+    generate_monte_carlo_ellipses,
+    generate_monte_carlo_ellipses_coordinates,
+)
 
 # TODO: Let Functions and Flights be json serializable
 # TODO: Create evolution plots to analyze convergence
@@ -68,7 +74,13 @@ class MonteCarlo:
     """
 
     def __init__(
-        self, filename, environment, rocket, flight, export_list=None, batch_path=None
+        self,
+        filename,
+        environment_params,
+        rocket_params,
+        flight_params,
+        export_list=None,
+        batch_path=None,
     ):
         """
         Initialize a MonteCarlo object.
@@ -103,11 +115,9 @@ class MonteCarlo:
         """
         # Save and initialize parameters
         self.filename = filename
-        self.environment = environment
-        global StoEnv
-        StoEnv = environment
-        self.rocket = rocket
-        self.flight = flight
+        self.environment_params = environment_params
+        self.rocket_params = rocket_params
+        self.flight_params = flight_params
         self.export_list = []
         self.inputs_log = []
         self.outputs_log = []
@@ -200,109 +210,140 @@ class MonteCarlo:
             n_workers = os.cpu_count()
 
         with MonteCarloManager() as manager:
+            parallel_start = process_time()
             # initialize queue
-            simulation_queue = manager.JoinableQueue()
+            # simulation_queue = manager.JoinableQueue()
             sim_counter = manager.SimCounter()
 
-            start_queue_time = process_time()
-            # build queue
-            self._build_queue(number_of_simulations, simulation_queue)
-            end_queue_time = process_time()
+            # initialize stochastic objects
+            sto_env = manager.StochasticEnvironment(
+                environment=self.environment_params["environment"],
+                ensemble_member=self.environment_params["ensemble_member"],
+                wind_velocity_x_factor=self.environment_params[
+                    "wind_velocity_x_factor"
+                ],
+                wind_velocity_y_factor=self.environment_params[
+                    "wind_velocity_y_factor"
+                ],
+            )
 
-            print(
-                f"Simulation took {end_queue_time - start_queue_time} seconds to build queue."
+            sto_rocket = StochasticRocket(
+                rocket=self.rocket_params["rocket"],
+                radius=self.rocket_params["radius"],
+                mass=self.rocket_params["mass"],
+                inertia_11=self.rocket_params["inertia_11"],
+                inertia_22=self.rocket_params["inertia_22"],
+                inertia_33=self.rocket_params["inertia_33"],
+                center_of_mass_without_motor=self.rocket_params[
+                    "center_of_mass_without_motor"
+                ],
+            )
+
+            sto_rocket.add_motor(
+                self.rocket_params["motor"][0], position=self.rocket_params["motor"][1]
+            )
+            sto_rocket.add_nose(
+                self.rocket_params["nose"][0], position=self.rocket_params["nose"][1]
+            )
+            sto_rocket.add_trapezoidal_fins(
+                self.rocket_params["trapezoidal_fins"][0],
+                position=self.rocket_params["trapezoidal_fins"][1],
+            )
+            sto_rocket.set_rail_buttons(
+                self.rocket_params["rail_buttons"][0],
+                lower_button_position=self.rocket_params["rail_buttons"][1],
+            )
+            sto_rocket.add_tail(self.rocket_params["tail"])
+            sto_rocket.add_parachute(self.rocket_params["parachute_main"])
+            sto_rocket.add_parachute(self.rocket_params["parachute_drogue"])
+
+            sto_flight = StochasticFlight(
+                flight=self.flight_params["flight"],
+                inclination=self.flight_params["inclination"],
+                heading=self.flight_params["heading"],
             )
 
             print("Starting monte carlo analysis", end="\r")
             print(f"Number of simulations: {number_of_simulations}")
 
-            # Creates 10 processes then starts them
+            # Creates n_workers processes then starts them
             for i in range(n_workers):
                 p = Process(
                     target=self._run_simulation_worker,
-                    args=(i+1, simulation_queue, sim_counter, self.batch_path),
+                    args=(
+                        i,
+                        number_of_simulations,
+                        n_workers,
+                        sto_env,
+                        sto_rocket,
+                        sto_flight,
+                        sim_counter,
+                        self.batch_path,
+                    ),
                 )
                 processes.append(p)
 
-            # Joins all the processes
+            # Starts all the processes
             for p in processes:
                 p.start()
+
+            # Joins all the processes
             for p in processes:
                 p.join()
 
-            print("-" * 80 + "All workers joined, simulation complete.")
+            parallel_end = process_time()
 
-    def _build_queue(self, number_of_simulations, simulation_queue):
-        dummy_env = self.environment.create_object()
+            print("-" * 80 + "\nAll workers joined, simulation complete.")
+            print(f"In total, {sim_counter.get_count()} simulations were performed.")
+            print("Simulation took", parallel_end - parallel_start, "seconds to run.")
 
-        """Builds a queue with the simulations to be run."""
-        for i in range(number_of_simulations):
-            rocket = self.rocket.create_object()
-            rail_length = self.flight._randomize_rail_length()
-            inclination = self.flight._randomize_inclination()
-            heading = self.flight._randomize_heading()
-            initial_solution = self.flight.initial_solution
-            terminate_on_apogee = self.flight.terminate_on_apogee
+    @staticmethod
+    def _run_simulation_worker(
+        worker_no,
+        n_sim,
+        n_workers,
+        sto_env,
+        sto_rocket,
+        sto_flight,
+        sim_counter,
+        batch_path,
+    ):
+        """Runs a simulation from a queue."""
+
+        for i in range(worker_no, n_sim, n_workers):
+            sim_idx = sim_counter.increment()
+            sim_start = process_time()
+
+            env = sto_env.create_object()
+            rocket = sto_rocket.create_object()
+            rail_length = sto_flight._randomize_rail_length()
+            inclination = sto_flight._randomize_inclination()
+            heading = sto_flight._randomize_heading()
+            initial_solution = sto_flight.initial_solution
+            terminate_on_apogee = sto_flight.terminate_on_apogee
 
             flight = Flight(
                 rocket=rocket,
-                environment=dummy_env,
+                environment=env,
                 rail_length=rail_length,
                 inclination=inclination,
                 heading=heading,
                 initial_solution=initial_solution,
                 terminate_on_apogee=terminate_on_apogee,
-                simulate=False,
             )
 
             input_parameters = flightv1_serializer(
                 flight, f"Simulation_{i}", return_dict=True
             )
 
-            # self._inputs_dict = dict(
-            #     item
-            #     for d in [
-            #         self.environment.last_rnd_dict,
-            #         self.rocket.last_rnd_dict,
-            #         self.flight.last_rnd_dict,
-            #     ]
-            #     for item in d.items()
-            # )
+            flight_results = MonteCarlo.inspect_object_attributes(flight)
 
-            simulation_queue.put((input_parameters))
+            sim_end = process_time()
 
-    @staticmethod
-    def _run_simulation_worker(i, queue, sim_counter, batch_path):
-        """Runs a simulation from a queue."""
-
-        try:
-            while True:
-                if queue.empty():
-                    break
-                parameters = queue.get()
-                sim_idx = sim_counter.increment()
-
-                sim_start = process_time()
-                env = StoEnv.create_object()
-
-                flight = run_flight(parameters, env)
-                flight.post_process()
-                sim_end = process_time()
-
-                flight_results = MonteCarlo.attribute_path(flight)
-                
-                print(
-                    "-" * 80
-                    + f"\nSimulation {sim_idx} took {sim_end - sim_start} seconds to run."
-                )
-                
-                print(flight_results.keys())
-                print(flight_results['Flight'].keys())
-
-        except Exception as error:
-            print(f"Worker {i} failed with the exception:\n{error}")
-        finally:
-            print(f"Worker {i} finished.")
+            print(
+                "-" * 80
+                + f"\nSimulation {sim_idx} took {sim_end - sim_start} seconds to run."
+            )
 
     def __run_single_simulation(self, input_file, output_file):
         """Runs a single simulation and saves the inputs and outputs to the
@@ -793,33 +834,16 @@ class MonteCarlo:
         self.info()
         self.plots.ellipses()
         self.plots.all()
-    
-    @staticmethod        
-    def attribute_path(obj, max_depth=1):
-        # This dictionary will hold the attribute paths and their values.
-        result = {}
-        
-        # Helper function to process each object
-        def recurse(obj, parent, depth):
-            # We assume all objects passed into here are class instances
-            # We get the name of the class of the object
-            class_name = obj.__class__.__name__
-            # Create a dictionary for this class if not already created
-            if class_name not in parent:
-                parent[class_name] = {}
-            
-            # Iterate through each attribute of the object
-            for attr_name, attr_value in vars(obj).items():
-                # Check if the attribute is an instance of a class
-                if hasattr(attr_value, '__dict__') and depth < max_depth:
-                    # Recursive case: attribute is a class instance
-                    recurse(attr_value, parent[class_name], depth=depth+1)
-                elif isinstance(attr_value, (np.ndarray, list, int, float)):
-                    # Base case: attribute is a primitive, store it
-                    parent[class_name][attr_name] = attr_value
 
-        # Start the recursion with the initial object
-        recurse(obj, result, depth=1)
+    @staticmethod
+    def inspect_object_attributes(obj):
+        result = {}
+        for attr_name in dir(obj):
+            attr_value = getattr(obj, attr_name)
+            if isinstance(
+                attr_value, (int, float, tuple, list, dict, object)
+            ) and not attr_name.startswith('__'):
+                result[attr_name] = attr_value
         return result
 
 
@@ -828,6 +852,10 @@ class MonteCarloManager(BaseManager):
         super().__init__()
         self.register('JoinableQueue', JoinableQueue)
         self.register('SimCounter', SimCounter)
+        self.register('StochasticEnvironment', StochasticEnvironment, StochasticProxy)
+        self.register('StochasticRocket', StochasticRocket, StochasticProxy)
+        self.register('StochasticFlight', StochasticFlight, StochasticProxy)
+
 
 class SimCounter:
     def __init__(self):
@@ -839,3 +867,17 @@ class SimCounter:
 
     def get_count(self) -> int:
         return self.count
+
+
+class StochasticProxy(NamespaceProxy):
+    _exposed_ = tuple(dir(StochasticEnvironment))
+
+    def __getattr__(self, name):
+        result = super().__getattr__(name)
+        if isinstance(result, types.MethodType):
+
+            def wrapper(*args, **kwargs):
+                return self._callmethod(name, args, kwargs)
+
+            return wrapper
+        return result
