@@ -1,18 +1,10 @@
 from abc import ABC, abstractmethod
 
-UNITS = {
-    "Gyroscope": "rad/s",
-    "Accelerometer": "m/s^2",
-    "Magnetometer": "T",
-    "PressureSensor": "Pa",
-    "TemperatureSensor": "K",
-}
-
 
 class _SensorsPrints(ABC):
     def __init__(self, sensor):
         self.sensor = sensor
-        self.units = UNITS[sensor.__class__.__name__]
+        self.units = sensor.__units__
 
     def _print_aligned(self, label, value):
         """Prints a label and a value aligned vertically."""
