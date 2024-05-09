@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.stats import norm
 
 try:
     from statsmodels.api import OLS
@@ -8,7 +9,9 @@ except ImportError:
 
 
 class ImportanceModel:
-    """ """
+    """Implements the parameter importance model assuming independency
+    between parameters
+    """
 
     def __init__(
         self,
@@ -234,9 +237,6 @@ class ImportanceModel:
         self._fitted = True
         return
 
-    def print(self):
-        pass
-
     def plot(self, target_variable="all"):
         if not self._fitted:
             raise Exception("ImportanceModel must be fitted before plotting!")
@@ -293,6 +293,112 @@ class ImportanceModel:
         y[self.n_parameters] = 100 * self.target_variables_info[target_variable]["LAE"]
         axs.bar(x, y, color=bar_colors)
         axs.set_title(target_variable)
+
+        return
+
+    def summary(self, digits=4, alpha=0.95) -> None:
+        """Formats Parameter Importance information in a prettytable
+        and prints it
+
+        Parameters
+        ----------
+        digits : int, optional
+            Number of decimal digits printed on tables, by default 4
+        alpha: float, optional
+            Significance level used for prediction intervals, by default 0.95
+        """
+        try:
+            from prettytable import PrettyTable
+        except ImportError:
+            raise ImportError(
+                "The summary method of ImportanceModel requires the 'prettytable' package."
+            )
+        if not self._fitted:
+            raise Exception(
+                "ImportanceModel must be fitted before using the summary method!"
+            )
+
+        if self._nominal_parameters_passed:
+            nominal_mean_text = "Nominal mean"
+            nominal_sd_text = "Nominal sd"
+        else:
+            nominal_mean_text = "Estimated mean"
+            nominal_sd_text = "Estimated sd"
+        for target_variable in self.target_variables_names:
+            model = self.target_variables_info[target_variable]["model"]
+            coef = model.params
+            pvalues = model.pvalues
+
+            importance_table = PrettyTable()
+            importance_table.title = f"Summary {target_variable}"
+
+            importance_table.field_names = [
+                "Parameter",
+                "Importance (%)",
+                nominal_mean_text,
+                nominal_sd_text,
+                "Regression Coefficient",
+                "p-value",
+            ]
+
+            for i in range(self.n_parameters):
+                parameter = self.parameters_names[i]
+                beta = coef[i]
+                pval = pvalues[i]
+                importance = self.target_variables_info[target_variable]["importance"][
+                    parameter
+                ]
+                importance_table.add_row(
+                    [
+                        parameter,
+                        round(100 * importance, digits),
+                        round(self.parameters_info[parameter]["nominal_mean"], digits),
+                        round(self.parameters_info[parameter]["nominal_sd"], digits),
+                        round(beta, digits),
+                        round(pval, digits),
+                    ]
+                )
+            importance_table.add_row(
+                [
+                    "Linear Approx. Error (LAE)",
+                    round(
+                        100 * self.target_variables_info[target_variable]["LAE"],
+                        digits,
+                    ),
+                    "",
+                    "",
+                    "",
+                    "",
+                ]
+            )
+            importance_table.sortby = "Importance (%)"
+            importance_table.reversesort = True
+
+            print(importance_table)
+
+            table = PrettyTable()
+            nominal_value = round(
+                self.target_variables_info[target_variable]["nominal_value"], digits
+            )
+            norm_quantile = norm.ppf((1 + alpha) / 2)
+            if self._estimate_target_nominal:
+                table.add_row([f"Nominal value: {nominal_value}"])
+            else:
+                table.add_row([f"Estimated value: {nominal_value}"])
+            target_sd = self.target_variables_info[target_variable]["sd"]
+            total_variance = np.power(target_sd, 2)
+            table.add_row([f"Variance: {round(total_variance, digits)}"])
+            ci_lower = round(nominal_value - norm_quantile * target_sd, digits)
+            ci_upper = round(nominal_value + norm_quantile * target_sd, digits)
+            table.add_row(
+                [
+                    f"{round(100 * alpha, 0)}% Prediction Interval: [{ci_lower}, {ci_upper}]"
+                ]
+            )
+            column_width = len(importance_table._hrule)
+            # Make tables borders match
+            table.field_names = [(column_width - 4) * " "]
+            print(table)
 
         return
 
