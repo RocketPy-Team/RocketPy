@@ -218,4 +218,4 @@ test_dispersion = MonteCarlo(
 )
 
 ##### Running the Monte Carlo Simulations
-test_dispersion.simulate(number_of_simulations=1, append=False, parallel=True)
+test_dispersion.simulate(number_of_simulations=50, append=False, parallel=True)

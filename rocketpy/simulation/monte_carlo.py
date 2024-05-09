@@ -1,24 +1,28 @@
 """Defines the MonteCarlo class."""
 import json
 import os
-from multiprocess import JoinableQueue, Process, get_context
-from multiprocess.managers import BaseManager, NamespaceProxy
+import types
+from pathlib import Path
 from time import process_time, time
+
+import h5py
 import numpy as np
 import simplekml
-import types
+from multiprocess import Lock, Process, Queue
+from multiprocess.managers import BaseManager, NamespaceProxy
 
+from rocketpy import Function
 from rocketpy._encoders import RocketPyEncoder
 from rocketpy.plots.monte_carlo_plots import _MonteCarloPlots
 from rocketpy.prints.monte_carlo_prints import _MonteCarloPrints
 from rocketpy.simulation.flight import Flight
+from rocketpy.simulation.sim_config.flight2serializer import flightv1_serializer
+from rocketpy.simulation.sim_config.serializer import function_serializer
 from rocketpy.stochastic import (
     StochasticEnvironment,
-    StochasticRocket,
     StochasticFlight,
+    StochasticRocket,
 )
-from rocketpy.simulation.sim_config.flight2serializer import flightv1_serializer
-from rocketpy.simulation.sim_config.run_sim import run_flight
 from rocketpy.tools import (
     generate_monte_carlo_ellipses,
     generate_monte_carlo_ellipses_coordinates,
@@ -129,7 +133,14 @@ class MonteCarlo:
         self.plots = _MonteCarloPlots(self)
         self._inputs_dict = {}
         self._last_print_len = 0  # used to print on the same line
-        self.batch_path = batch_path
+
+        if batch_path is None:
+            self.batch_path = Path.cwd() / "mc_simulations"
+        else:
+            self.batch_path = Path(batch_path)
+
+        if not os.path.exists(self.batch_path):
+            os.makedirs(self.batch_path)
 
         # Checks export_list
         self.export_list = self.__check_export_list(export_list)
@@ -210,9 +221,9 @@ class MonteCarlo:
             n_workers = os.cpu_count()
 
         with MonteCarloManager() as manager:
-            parallel_start = process_time()
+            parallel_start = time()
             # initialize queue
-            # simulation_queue = manager.JoinableQueue()
+            write_lock = manager.Lock()
             sim_counter = manager.SimCounter()
 
             # initialize stochastic objects
@@ -278,10 +289,15 @@ class MonteCarlo:
                         sto_rocket,
                         sto_flight,
                         sim_counter,
-                        self.batch_path,
+                        write_lock,
+                        self.batch_path / 'montecarlo_output.h5',
                     ),
                 )
                 processes.append(p)
+
+            # Initialize write file
+            with h5py.File(self.batch_path / 'montecarlo_output.h5', 'w') as _:
+                pass
 
             # Starts all the processes
             for p in processes:
@@ -291,7 +307,7 @@ class MonteCarlo:
             for p in processes:
                 p.join()
 
-            parallel_end = process_time()
+            parallel_end = time()
 
             print("-" * 80 + "\nAll workers joined, simulation complete.")
             print(f"In total, {sim_counter.get_count()} simulations were performed.")
@@ -306,13 +322,14 @@ class MonteCarlo:
         sto_rocket,
         sto_flight,
         sim_counter,
-        batch_path,
+        write_lock,
+        file_path,
     ):
         """Runs a simulation from a queue."""
 
         for i in range(worker_no, n_sim, n_workers):
             sim_idx = sim_counter.increment()
-            sim_start = process_time()
+            sim_start = time()
 
             env = sto_env.create_object()
             rocket = sto_rocket.create_object()
@@ -338,7 +355,22 @@ class MonteCarlo:
 
             flight_results = MonteCarlo.inspect_object_attributes(flight)
 
-            sim_end = process_time()
+            export_dict = {
+                str(i): {
+                    "inputs": input_parameters,
+                    "outputs": flight_results,
+                }
+            }
+
+            # Export to file
+            write_lock.acquire()
+
+            with h5py.File(file_path, 'a') as h5file:
+                MonteCarlo.dict_to_h5(h5file, '/', export_dict)
+
+            write_lock.release()
+
+            sim_end = time()
 
             print(
                 "-" * 80
@@ -843,18 +875,41 @@ class MonteCarlo:
             if isinstance(
                 attr_value, (int, float, tuple, list, dict, object)
             ) and not attr_name.startswith('__'):
-                result[attr_name] = attr_value
+
+                if isinstance(attr_value, Function):
+                    result[attr_name] = function_serializer(attr_value)
+                else:
+                    result[attr_name] = attr_value
         return result
+
+    @staticmethod
+    def dict_to_h5(h5_file, path, dic):
+        """
+        ....
+        """
+        for key, item in dic.items():
+            if isinstance(
+                item, (np.ndarray, np.int64, np.float64, str, bytes, int, float)
+            ):
+                h5_file[path + key] = item
+            elif isinstance(item, Function):
+                raise TypeError(
+                    "Function objects should be preprocessed before saving."
+                )
+            elif isinstance(item, dict):
+                MonteCarlo.dict_to_h5(h5_file, path + key + '/', item)
+            else:
+                pass  # Implement other types as needed
 
 
 class MonteCarloManager(BaseManager):
     def __init__(self):
         super().__init__()
-        self.register('JoinableQueue', JoinableQueue)
+        self.register('Lock', Lock)
         self.register('SimCounter', SimCounter)
-        self.register('StochasticEnvironment', StochasticEnvironment, StochasticProxy)
-        self.register('StochasticRocket', StochasticRocket, StochasticProxy)
-        self.register('StochasticFlight', StochasticFlight, StochasticProxy)
+        self.register('StochasticEnvironment', StochasticEnvironment)
+        self.register('StochasticRocket', StochasticRocket)
+        self.register('StochasticFlight', StochasticFlight)
 
 
 class SimCounter:
@@ -867,17 +922,3 @@ class SimCounter:
 
     def get_count(self) -> int:
         return self.count
-
-
-class StochasticProxy(NamespaceProxy):
-    _exposed_ = tuple(dir(StochasticEnvironment))
-
-    def __getattr__(self, name):
-        result = super().__getattr__(name)
-        if isinstance(result, types.MethodType):
-
-            def wrapper(*args, **kwargs):
-                return self._callmethod(name, args, kwargs)
-
-            return wrapper
-        return result
