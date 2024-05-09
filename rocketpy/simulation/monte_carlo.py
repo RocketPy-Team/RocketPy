@@ -4,7 +4,7 @@ import os
 from multiprocessing import JoinableQueue, Process
 from multiprocessing.managers import BaseManager
 from time import process_time, time
-
+import inspect
 import numpy as np
 import simplekml
 
@@ -202,6 +202,7 @@ class MonteCarlo:
         with MonteCarloManager() as manager:
             # initialize queue
             simulation_queue = manager.JoinableQueue()
+            sim_counter = manager.SimCounter()
 
             start_queue_time = process_time()
             # build queue
@@ -219,7 +220,7 @@ class MonteCarlo:
             for i in range(n_workers):
                 p = Process(
                     target=self._run_simulation_worker,
-                    args=(i, simulation_queue, self.batch_path),
+                    args=(i+1, simulation_queue, sim_counter, self.batch_path),
                 )
                 processes.append(p)
 
@@ -271,7 +272,7 @@ class MonteCarlo:
             simulation_queue.put((input_parameters))
 
     @staticmethod
-    def _run_simulation_worker(i, queue, batch_path):
+    def _run_simulation_worker(i, queue, sim_counter, batch_path):
         """Runs a simulation from a queue."""
 
         try:
@@ -279,22 +280,29 @@ class MonteCarlo:
                 if queue.empty():
                     break
                 parameters = queue.get()
+                sim_idx = sim_counter.increment()
 
                 sim_start = process_time()
                 env = StoEnv.create_object()
 
                 flight = run_flight(parameters, env)
+                flight.post_process()
                 sim_end = process_time()
 
+                flight_results = MonteCarlo.attribute_path(flight)
+                
                 print(
                     "-" * 80
-                    + f"\nSimulation took {sim_end - sim_start} seconds to run."
+                    + f"\nSimulation {sim_idx} took {sim_end - sim_start} seconds to run."
                 )
+                
+                print(flight_results.keys())
+                print(flight_results['Flight'].keys())
 
         except Exception as error:
             print(f"Worker {i} failed with the exception:\n{error}")
         finally:
-            print(f"Simulation worker {i} finished.")
+            print(f"Worker {i} finished.")
 
     def __run_single_simulation(self, input_file, output_file):
         """Runs a single simulation and saves the inputs and outputs to the
@@ -785,9 +793,49 @@ class MonteCarlo:
         self.info()
         self.plots.ellipses()
         self.plots.all()
+    
+    @staticmethod        
+    def attribute_path(obj, max_depth=1):
+        # This dictionary will hold the attribute paths and their values.
+        result = {}
+        
+        # Helper function to process each object
+        def recurse(obj, parent, depth):
+            # We assume all objects passed into here are class instances
+            # We get the name of the class of the object
+            class_name = obj.__class__.__name__
+            # Create a dictionary for this class if not already created
+            if class_name not in parent:
+                parent[class_name] = {}
+            
+            # Iterate through each attribute of the object
+            for attr_name, attr_value in vars(obj).items():
+                # Check if the attribute is an instance of a class
+                if hasattr(attr_value, '__dict__') and depth < max_depth:
+                    # Recursive case: attribute is a class instance
+                    recurse(attr_value, parent[class_name], depth=depth+1)
+                elif isinstance(attr_value, (np.ndarray, list, int, float)):
+                    # Base case: attribute is a primitive, store it
+                    parent[class_name][attr_name] = attr_value
+
+        # Start the recursion with the initial object
+        recurse(obj, result, depth=1)
+        return result
 
 
 class MonteCarloManager(BaseManager):
     def __init__(self):
         super().__init__()
         self.register('JoinableQueue', JoinableQueue)
+        self.register('SimCounter', SimCounter)
+
+class SimCounter:
+    def __init__(self):
+        self.count = 0
+
+    def increment(self) -> int:
+        self.count += 1
+        return self.count
+
+    def get_count(self) -> int:
+        return self.count
