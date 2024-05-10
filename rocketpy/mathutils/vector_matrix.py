@@ -949,6 +949,47 @@ class Matrix:
         """
         return self.__matmul__(other)
 
+    def round(self, decimals=0):
+        """Round the matrix to a given number of decimals.
+
+        Parameters
+        ----------
+        decimals : int, optional
+            Number of decimal places to round to. Defaults to 0.
+
+        Returns
+        -------
+        Matrix
+            The rounded matrix.
+
+        Examples
+        --------
+        >>> M = Matrix([[1.1234, 2.3456, 3.4567], [4.5678, 5.6789, 6.7890], [7.8901, 8.9012, 9.0123]])
+        >>> M.round(2)
+        Matrix([1.12, 2.35, 3.46],
+               [4.57, 5.68, 6.79],
+               [7.89, 8.9, 9.01])
+        """
+        return Matrix(
+            [
+                [
+                    round(self.xx, decimals),
+                    round(self.xy, decimals),
+                    round(self.xz, decimals),
+                ],
+                [
+                    round(self.yx, decimals),
+                    round(self.yy, decimals),
+                    round(self.yz, decimals),
+                ],
+                [
+                    round(self.zx, decimals),
+                    round(self.zy, decimals),
+                    round(self.zz, decimals),
+                ],
+            ]
+        )
+
     def __str__(self):
         return (
             f"[{self.xx}, {self.xy}, {self.xz}]\n"
@@ -1047,20 +1088,6 @@ class Matrix:
         -------
         Matrix
             The transformation matrix from frame B to frame A.
-
-        Examples
-        --------
-        >>> M = Matrix.transformation_euler_angles(0, 0, 0)
-        >>> M
-        Matrix([1.0, 0.0, 0.0],
-               [0.0, 1.0, 0.0],
-               [0.0, 0.0, 1.0])
-
-        >>> M = Matrix.transformation_euler_angles(90, 0, 0)
-        >>> M
-        Matrix([2.220446049250313e-16, -1.0, 0.0],
-               [1.0, 2.220446049250313e-16, 0.0],
-               [0.0, 0.0, 1.0])
         """
         return Matrix.transformation(euler_to_quaternions(roll, pitch, yaw))
 

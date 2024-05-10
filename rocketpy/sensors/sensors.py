@@ -87,6 +87,8 @@ class Sensors(ABC):
               standard rotation sequence is z-y-x (3-2-1) is used, meaning the
               sensor is first rotated by ψ around the z axis, then by θ around
               the new y axis and finally by φ around the new x axis.
+              TODO: x and y are not defined in the rocket class. User has no
+              way to know which axis is which.
             - A list of lists (matrix) of shape 3x3, representing the rotation
               matrix from the sensor frame to the rocket frame. The sensor frame
               of reference is defined as to have z axis along the sensor's normal
@@ -206,7 +208,9 @@ class Sensors(ABC):
         if any(isinstance(row, (tuple, list)) for row in orientation):  # matrix
             self.rotation_matrix = Matrix(orientation)
         elif len(orientation) == 3:  # euler angles
-            self.rotation_matrix = Matrix.transformation_euler_angles(*orientation)
+            self.rotation_matrix = Matrix.transformation_euler_angles(
+                *orientation
+            ).round(12)
         else:
             raise ValueError("Invalid orientation format")
         self.normal_vector = Vector(
