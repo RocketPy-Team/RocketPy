@@ -1,11 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm
-
-try:
-    from statsmodels.api import OLS
-except ImportError:
-    raise ImportError("ImportanceModel requires the 'statsmodels' package.")
+from ..tools import check_requirement_version, import_optional_dependency
 
 
 class ImportanceModel:
@@ -18,6 +14,7 @@ class ImportanceModel:
         parameters_names: list[str],
         target_variables_names: list[str],
     ):
+        self.__check_requirements()
         self.n_parameters = len(parameters_names)
         self.parameters_names = parameters_names
         self.parameters_info = {
@@ -173,6 +170,7 @@ class ImportanceModel:
             initialization
         """
         # Checks if data is in conformity with initialization info
+        sm = import_optional_dependency("statsmodels.api")
         self._check_conformity(parameters_matrix, target_data)
 
         # If nominal parameters are not set previous to fit, then we
@@ -207,7 +205,7 @@ class ImportanceModel:
             target_variable = self.target_variables_names[i]
             nominal_value = self.target_variables_info[target_variable]["nominal_value"]
             Y = np.array(target_data[:, i] - nominal_value)
-            ols_model = OLS(Y, X)
+            ols_model = sm.OLS(Y, X)
             fitted_model = ols_model.fit()
             self.target_variables_info[target_variable]["model"] = fitted_model
 
@@ -307,16 +305,13 @@ class ImportanceModel:
         alpha: float, optional
             Significance level used for prediction intervals, by default 0.95
         """
-        try:
-            from prettytable import PrettyTable
-        except ImportError:
-            raise ImportError(
-                "The summary method of ImportanceModel requires the 'prettytable' package."
-            )
+
         if not self._fitted:
             raise Exception(
                 "ImportanceModel must be fitted before using the summary method!"
             )
+
+        pt = import_optional_dependency("prettytable")
 
         if self._nominal_parameters_passed:
             nominal_mean_text = "Nominal mean"
@@ -329,7 +324,7 @@ class ImportanceModel:
             coef = model.params
             pvalues = model.pvalues
 
-            importance_table = PrettyTable()
+            importance_table = pt.PrettyTable()
             importance_table.title = f"Summary {target_variable}"
 
             importance_table.field_names = [
@@ -376,7 +371,7 @@ class ImportanceModel:
 
             print(importance_table)
 
-            table = PrettyTable()
+            table = pt.PrettyTable()
             nominal_value = round(
                 self.target_variables_info[target_variable]["nominal_value"], digits
             )
@@ -422,3 +417,33 @@ class ImportanceModel:
 
         """
         pass
+
+    def __check_requirements(self):
+        """Check if extra requirements are installed. If not, print a message
+        informing the user that some methods may not work and how to install
+        the extra requirements.
+
+        Returns
+        -------
+        None
+        """
+        sensitivity_require = {  # The same as in the setup.py file
+            "statsmodels": "",
+            "prettytable": "",
+        }
+        has_error = False
+        for module_name, version in sensitivity_require.items():
+            version = ">=0" if not version else version
+            try:
+                check_requirement_version(module_name, version)
+            except (ValueError, ImportError) as e:
+                has_error = True
+                print(
+                    f"The following error occurred while importing {module_name}: {e}"
+                )
+        if has_error:
+            print(
+                "Given the above errors, some methods may not work. Please run "
+                + "'pip install rocketpy[sensitivity]' to install extra requirements."
+            )
+        return None
