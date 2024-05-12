@@ -4,8 +4,8 @@ from scipy.stats import norm
 from ..tools import check_requirement_version, import_optional_dependency
 
 
-class ImportanceModel:
-    """Implements the parameter importance model assuming independency
+class SensitivityModel:
+    """Implements the parameter sensitivity model assuming independency
     between parameters
     """
 
@@ -33,7 +33,7 @@ class ImportanceModel:
                 "sd": None,
                 "var": None,
                 "model": None,
-                "importance": {parameter: None for parameter in self.parameters_names},
+                "sensitivity": {parameter: None for parameter in self.parameters_names},
                 "LAE": None,  # Linear Approximation Error
             }
             for variable in target_variables_names
@@ -156,7 +156,7 @@ class ImportanceModel:
         parameters_matrix: np.matrix,
         target_data: np.matrix,
     ):
-        """Fits importance model
+        """Fits sensitivity model
 
         Parameters
         ----------
@@ -209,24 +209,24 @@ class ImportanceModel:
             fitted_model = ols_model.fit()
             self.target_variables_info[target_variable]["model"] = fitted_model
 
-            # Compute importance
+            # Compute sensitivity
             beta = fitted_model.params
             sd_eps = fitted_model.scale
             var_Y = sd_eps**2
             for k in range(self.n_parameters):
                 parameter = self.parameters_names[k]
-                importance = np.power(beta[k], 2) * np.power(parameters_sd[k], 2)
-                self.target_variables_info[target_variable]["importance"][
+                sensitivity = np.power(beta[k], 2) * np.power(parameters_sd[k], 2)
+                self.target_variables_info[target_variable]["sensitivity"][
                     parameter
-                ] = importance
-                var_Y += importance
+                ] = sensitivity
+                var_Y += sensitivity
 
             self.target_variables_info[target_variable]["var"] = var_Y
             self.target_variables_info[target_variable]["sd"] = np.sqrt(var_Y)
 
             for k in range(self.n_parameters):
                 parameter = self.parameters_names[k]
-                self.target_variables_info[target_variable]["importance"][
+                self.target_variables_info[target_variable]["sensitivity"][
                     parameter
                 ] /= var_Y
             self.target_variables_info[target_variable]["LAE"] = sd_eps**2
@@ -237,7 +237,7 @@ class ImportanceModel:
 
     def plot(self, target_variable="all"):
         if not self._fitted:
-            raise Exception("ImportanceModel must be fitted before plotting!")
+            raise Exception("SensitivityModel must be fitted before plotting!")
 
         if (target_variable not in self.target_variables_names) and (
             target_variable != "all"
@@ -254,7 +254,7 @@ class ImportanceModel:
         if target_variable == "all":
             fig, axs = plt.subplots(self.n_target_variables, 1, sharex=True)
             fig.supxlabel("Parameters and LAE")
-            fig.supylabel("Importance (%)")
+            fig.supylabel("Sensitivity (%)")
             x = [parameter for parameter in self.parameters_names]
             x.append("LAE")
             for i in range(self.n_target_variables):
@@ -265,7 +265,7 @@ class ImportanceModel:
                     y[j] = (
                         100
                         * self.target_variables_info[current_target_variable][
-                            "importance"
+                            "sensitivity"
                         ][parameter]
                     )
                 y[self.n_parameters] = (
@@ -278,7 +278,7 @@ class ImportanceModel:
 
         fig, axs = plt.subplots()
         fig.supxlabel("Parameters and LAE")
-        fig.supylabel("Importance (%)")
+        fig.supylabel("Sensitivity (%)")
         x = [parameter for parameter in self.parameters_names]
         x.append("LAE")
         y = np.empty(self.n_parameters + 1)
@@ -286,7 +286,7 @@ class ImportanceModel:
             parameter = x[j]
             y[j] = (
                 100
-                * self.target_variables_info[target_variable]["importance"][parameter]
+                * self.target_variables_info[target_variable]["sensitivity"][parameter]
             )
         y[self.n_parameters] = 100 * self.target_variables_info[target_variable]["LAE"]
         axs.bar(x, y, color=bar_colors)
@@ -295,7 +295,7 @@ class ImportanceModel:
         return
 
     def summary(self, digits=4, alpha=0.95) -> None:
-        """Formats Parameter Importance information in a prettytable
+        """Formats parameter sensitivity information in a prettytable
         and prints it
 
         Parameters
@@ -308,7 +308,7 @@ class ImportanceModel:
 
         if not self._fitted:
             raise Exception(
-                "ImportanceModel must be fitted before using the summary method!"
+                "SensitivityModel must be fitted before using the summary method!"
             )
 
         pt = import_optional_dependency("prettytable")
@@ -324,12 +324,12 @@ class ImportanceModel:
             coef = model.params
             pvalues = model.pvalues
 
-            importance_table = pt.PrettyTable()
-            importance_table.title = f"Summary {target_variable}"
+            sensitivity_table = pt.PrettyTable()
+            sensitivity_table.title = f"Summary {target_variable}"
 
-            importance_table.field_names = [
+            sensitivity_table.field_names = [
                 "Parameter",
-                "Importance (%)",
+                "Sensitivity (%)",
                 nominal_mean_text,
                 nominal_sd_text,
                 "Regression Coefficient",
@@ -340,20 +340,20 @@ class ImportanceModel:
                 parameter = self.parameters_names[i]
                 beta = coef[i]
                 pval = pvalues[i]
-                importance = self.target_variables_info[target_variable]["importance"][
-                    parameter
-                ]
-                importance_table.add_row(
+                sensitivity = self.target_variables_info[target_variable][
+                    "sensitivity"
+                ][parameter]
+                sensitivity_table.add_row(
                     [
                         parameter,
-                        round(100 * importance, digits),
+                        round(100 * sensitivity, digits),
                         round(self.parameters_info[parameter]["nominal_mean"], digits),
                         round(self.parameters_info[parameter]["nominal_sd"], digits),
                         round(beta, digits),
                         round(pval, digits),
                     ]
                 )
-            importance_table.add_row(
+            sensitivity_table.add_row(
                 [
                     "Linear Approx. Error (LAE)",
                     round(
@@ -366,10 +366,10 @@ class ImportanceModel:
                     "",
                 ]
             )
-            importance_table.sortby = "Importance (%)"
-            importance_table.reversesort = True
+            sensitivity_table.sortby = "Sensitivity (%)"
+            sensitivity_table.reversesort = True
 
-            print(importance_table)
+            print(sensitivity_table)
 
             table = pt.PrettyTable()
             nominal_value = round(
@@ -390,7 +390,7 @@ class ImportanceModel:
                     f"{round(100 * alpha, 0)}% Prediction Interval: [{ci_lower}, {ci_upper}]"
                 ]
             )
-            column_width = len(importance_table._hrule)
+            column_width = len(sensitivity_table._hrule)
             # Make tables borders match
             table.field_names = [(column_width - 4) * " "]
             print(table)
