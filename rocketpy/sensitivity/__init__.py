@@ -1,1 +1,1 @@
-from .importance_model import ImportanceModel
+from .sensivity_model import SensitivityModel
