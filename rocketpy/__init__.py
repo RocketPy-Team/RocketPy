@@ -49,3 +49,4 @@ from .stochastic import (
     StochasticTail,
     StochasticTrapezoidalFins,
 )
+from .sensitivity import SensitivityModel
