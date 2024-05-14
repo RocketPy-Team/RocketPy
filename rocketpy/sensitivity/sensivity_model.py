@@ -116,9 +116,9 @@ class SensitivityModel:
             )
         for i in range(self.n_target_variables):
             target_variable = self.target_variables_names[i]
-            self.target_variables_info[target_variable][
-                "nominal_value"
-            ] = target_variables_nominal_value[i]
+            self.target_variables_info[target_variable]["nominal_value"] = (
+                target_variables_nominal_value[i]
+            )
 
         self._nominal_target_passed = True
 
