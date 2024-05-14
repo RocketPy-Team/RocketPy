@@ -550,6 +550,119 @@ def generate_monte_carlo_ellipses_coordinates(
     return outputs
 
 
+def load_monte_carlo_data(
+    input_filename: str,
+    output_filename: str,
+    parameters_list: list[str],
+    target_variables_list: list[str],
+):
+    """Reads MonteCarlo simulation data file and builds parameters and flight
+    variables matrices from specified
+
+    Parameters
+    ----------
+    input_filename : str
+        Input file exported by MonteCarlo class. Each line is a
+        sample unit described by a dictionary where keys are parameters names
+        and the values are the sampled parameters values.
+
+    output_filename : str
+        Output file exported by MonteCarlo.simulate function. Each line is a
+        sample unit described by a dictionary where keys are target variables
+        names and the values are the obtained values from the flight simulation.
+
+    parameters_list : list[str]
+        List of parameters whose values will be extracted.
+
+    target_variables_list : list[str]
+        List of target variables whose values will be extracted.
+
+    Returns
+    -------
+    parameters_matrix: np.matrix
+        Numpy matrix contaning input parameters values. Each column correspond
+        to a parameter in the same order specified by 'parameters_list' input.
+
+    target_variables_matrix: np.matrix
+        Numpy matrix contaning target variables values. Each column correspond
+        to a target variable in the same order specified by 'target_variables_list'
+        input.
+    """
+    number_of_samples_parameters = 0
+    number_of_samples_variables = 0
+
+    # Auxiliary function that unnests dictionary
+    def unnest_dict(x):
+        new_dict = {}
+        for key, value in x.items():
+            # the nested dictionary is inside a list
+            if isinstance(x[key], list):
+                # sometimes the object inside the list is another list
+                # we must skip these cases
+                if isinstance(value[0], dict):
+                    inner_dict = unnest_dict(value[0])
+                    inner_dict = {
+                        key + "_" + inner_key: inner_value
+                        for inner_key, inner_value in inner_dict.items()
+                    }
+                    new_dict.update(inner_dict)
+            else:
+                new_dict.update({key: value})
+
+        return new_dict
+
+    parameters_samples = {parameter: [] for parameter in parameters_list}
+    with open(input_filename, "r") as parameters_file:
+        for line in parameters_file.readlines():
+            number_of_samples_parameters += 1
+
+            parameters_dict = json.loads(line)
+            parameters_dict = unnest_dict(parameters_dict)
+            for parameter in parameters_list:
+                try:
+                    value = parameters_dict[parameter]
+                except Exception:
+                    raise Exception(
+                        f"Parameter {parameter} was not found in {input_filename}!"
+                    )
+                parameters_samples[parameter].append(value)
+
+    target_variables_samples = {variable: [] for variable in target_variables_list}
+    with open(output_filename, "r") as target_variables_file:
+        for line in target_variables_file.readlines():
+            number_of_samples_variables += 1
+            target_variables_dict = json.loads(line)
+            for variable in target_variables_list:
+                try:
+                    value = target_variables_dict[variable]
+                except Exception:
+                    raise Exception(
+                        f"Variable {variable} was not found in {output_filename}!"
+                    )
+                target_variables_samples[variable].append(value)
+
+    if number_of_samples_parameters != number_of_samples_variables:
+        raise ValueError(
+            "Number of samples for parameters does not match the number of samples for target variables!"
+        )
+
+    n_samples = number_of_samples_variables
+    n_parameters = len(parameters_list)
+    n_variables = len(target_variables_list)
+    parameters_matrix = np.empty((n_samples, n_parameters))
+    target_variables_matrix = np.empty((n_samples, n_variables))
+
+    for i in range(n_parameters):
+        parameter = parameters_list[i]
+        parameters_matrix[:, i] = parameters_samples[parameter]
+
+    for i in range(n_variables):
+        target_variable = target_variables_list[i]
+        target_variables_matrix[:, i] = target_variables_samples[target_variable]
+
+    return parameters_matrix, target_variables_matrix
+
+
 def find_two_closest_integers(number):
     """Find the two closest integer factors of a number.
 
