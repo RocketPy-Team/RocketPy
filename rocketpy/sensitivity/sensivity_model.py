@@ -177,7 +177,7 @@ class SensitivityModel:
             )
 
         else:
-            if len(target_variable.shape[1]) != self.n_target_variables:
+            if target_data.shape[1] != self.n_target_variables:
                 raise ValueError(
                     "Number of columns (variables) does not match number of target variables passed at initilization."
                 )
@@ -291,12 +291,12 @@ class SensitivityModel:
         bar_colors.append("red")
 
         if target_variable == "all":
-            fig, axs = plt.subplots(self.n_target_variables, 1, sharex=True)
-            fig.supxlabel("Parameters and LAE")
-            fig.supylabel("Sensitivity (%)")
-            x = [parameter for parameter in self.parameters_names]
-            x.append("LAE")
             for i in range(self.n_target_variables):
+                fig, axs = plt.subplots()
+                fig.supxlabel("")
+                fig.supylabel("Sensitivity (%)")
+                x = [parameter for parameter in self.parameters_names]
+                x.append("LAE")
                 current_target_variable = self.target_variables_names[i]
                 y = np.empty(self.n_parameters + 1)
                 for j in range(self.n_parameters):
@@ -310,13 +310,15 @@ class SensitivityModel:
                 y[self.n_parameters] = (
                     100 * self.target_variables_info[current_target_variable]["LAE"]
                 )
-                axs[i].bar(x, y, color=bar_colors)
-                axs[i].set_title(current_target_variable)
+                axs.bar(x, y, color=bar_colors)
+                axs.set_title(current_target_variable)
+                axs.tick_params(labelrotation=90)
+            plt.show()
 
             return
 
         fig, axs = plt.subplots()
-        fig.supxlabel("Parameters and LAE")
+        fig.supxlabel("")
         fig.supylabel("Sensitivity (%)")
         x = [parameter for parameter in self.parameters_names]
         x.append("LAE")
@@ -330,6 +332,8 @@ class SensitivityModel:
         y[self.n_parameters] = 100 * self.target_variables_info[target_variable]["LAE"]
         axs.bar(x, y, color=bar_colors)
         axs.set_title(target_variable)
+        axs.tick_params(labelrotation=90)
+        plt.show()
 
         return
 
