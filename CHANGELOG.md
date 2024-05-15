@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+- ENH: Complex step differentiation [#594](https://github.com/RocketPy-Team/RocketPy/pull/594)
 - ENH: Exponential backoff decorator (fix #449) [#588](https://github.com/RocketPy-Team/RocketPy/pull/588)
 - ENH: Function Validation Rework & Swap `np.searchsorted` to `bisect_left` [#582](https://github.com/RocketPy-Team/RocketPy/pull/582)
 - ENH: Add new stability margin properties to Flight class [#572](https://github.com/RocketPy-Team/RocketPy/pull/572)
@@ -51,6 +52,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+- BUG: Fix minor type hinting problems [#598](https://github.com/RocketPy-Team/RocketPy/pull/598)
 - BUG: Optional Dependencies Naming in pyproject.toml. [#592](https://github.com/RocketPy-Team/RocketPy/pull/592)
 - BUG: Swap rocket.total_mass.differentiate for motor.total_mass_flow rate [#585](https://github.com/RocketPy-Team/RocketPy/pull/585)
 - BUG: export_eng 'Motor' method would not work for liquid motors. [#559](https://github.com/RocketPy-Team/RocketPy/pull/559) 
