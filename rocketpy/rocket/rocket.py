@@ -954,7 +954,7 @@ class Rocket:
         tip_chord,
         span,
         position,
-        cant_angle=0,
+        cant_angle=0.0,
         sweep_length=None,
         sweep_angle=None,
         radius=None,
