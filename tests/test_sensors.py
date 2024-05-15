@@ -1,5 +1,6 @@
 import json
 import os
+
 import numpy as np
 
 from rocketpy.mathutils.vector_matrix import Vector
@@ -25,7 +26,7 @@ def test_sensor_on_rocket(calisto_accel_gyro):
 
 
 def test_ideal_sensors(flight_calisto_accel_gyro):
-    """Test the ideal sensors. All types of sensors are here to reduvce
+    """Test the ideal sensors. All types of sensors are here to reduce
     testing time.
 
     Parameters

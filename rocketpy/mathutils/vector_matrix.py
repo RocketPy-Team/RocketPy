@@ -950,7 +950,7 @@ class Matrix:
         return self.__matmul__(other)
 
     def round(self, decimals=0):
-        """Round the matrix to a given number of decimals.
+        """Round all the values matrix to a given number of decimals.
 
         Parameters
         ----------
@@ -1040,7 +1040,7 @@ class Matrix:
         q_x /= q_norm
         q_y /= q_norm
         q_z /= q_norm
-        # precompute common terms
+        # pre-compute common terms
         q_x2 = q_x**2
         q_y2 = q_y**2
         q_z2 = q_z**2

@@ -237,7 +237,7 @@ class Accelerometer(Sensors):
         )
         A = inertial_to_sensor @ A
 
-        # Apply noise + bias and quatize
+        # Apply noise + bias and quantize
         A = self.apply_noise(A)
         A = self.apply_temperature_drift(A)
         A = self.quantize(A)

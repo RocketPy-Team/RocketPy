@@ -1,9 +1,9 @@
 import functools
 import importlib
 import importlib.metadata
+import math
 import re
 import time
-import math
 from bisect import bisect_left
 
 import numpy as np
