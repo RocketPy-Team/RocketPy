@@ -11,6 +11,7 @@ from ..tools import get_distribution
 
 # TODO: Stop using assert in production code. Use exceptions instead.
 
+
 class StochasticModel:
     """Base class for all Stochastic classes. This class is used to validate
     the input arguments of the child classes. The input arguments are validated
