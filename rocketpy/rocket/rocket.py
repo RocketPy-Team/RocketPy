@@ -150,7 +150,7 @@ class Rocket:
         defined rocket coordinate system.
         See :doc:`Positions and Coordinate Systems </user/positions>`
         for more information.
-    Rocket.nozzle_to_center_of_dry_mass_position : float
+    Rocket.nozzle_to_cdm : float
         Distance between the nozzle exit and the rocket's center of dry mass
         position, in meters.
     Rocket.nozzle_gyration_tensor: Matrix
@@ -743,20 +743,20 @@ class Rocket:
             self.I_23,
         )
 
-    def evaluate_nozzle_to_center_of_dry_mass_position(self):
+    def evaluate_nozzle_to_cdm(self):
         """Evaluates the distance between the nozzle exit and the rocket's
-        center of dry mass position.
+        center of dry mass.
 
         Returns
         -------
-        self.nozzle_to_center_of_dry_mass_position : float
+        self.nozzle_to_cdm : float
             Distance between the nozzle exit and the rocket's center of dry
             mass position, in meters.
         """
-        self.nozzle_to_center_of_dry_mass_position = (
+        self.nozzle_to_cdm = (
             -(self.nozzle_position - self.center_of_dry_mass_position) * self._csys
         )
-        return self.nozzle_to_center_of_dry_mass_position
+        return self.nozzle_to_cdm
 
     def evaluate_nozzle_gyration_tensor(self):
         """Calculates and returns the nozzle gyration tensor relative to the
@@ -769,9 +769,7 @@ class Rocket:
             Matrix containing the nozzle gyration tensor.
         """
         S_noz_33 = 0.5 * self.motor.nozzle_radius**2
-        S_noz_11 = S_noz_22 = (
-            0.5 * S_noz_33 + 0.25 * self.nozzle_to_center_of_dry_mass_position**2
-        )
+        S_noz_11 = S_noz_22 = 0.5 * S_noz_33 + 0.25 * self.nozzle_to_cdm**2
         S_noz_12, S_noz_13, S_noz_23 = 0, 0, 0  # Due to axis symmetry
         self.nozzle_gyration_tensor = Matrix(
             [
@@ -914,7 +912,7 @@ class Rocket:
         self.evaluate_dry_mass()
         self.evaluate_total_mass()
         self.evaluate_center_of_dry_mass()
-        self.evaluate_nozzle_to_center_of_dry_mass_position()
+        self.evaluate_nozzle_to_cdm()
         self.evaluate_center_of_mass()
         self.evaluate_dry_inertias()
         self.evaluate_inertias()

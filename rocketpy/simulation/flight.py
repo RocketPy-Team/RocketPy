@@ -1581,7 +1581,7 @@ class Flight:
         r_CM_dot = Vector([0, 0, r_CM_z.differentiate_complex_step(t)])
         r_CM_ddot = Vector([0, 0, r_CM_z.differentiate(t, order=2)])
         ## Nozzle position vector
-        r_NOZ = Vector([0, 0, self.rocket.nozzle_to_center_of_dry_mass_position])
+        r_NOZ = Vector([0, 0, self.rocket.nozzle_to_cdm])
         ## Nozzle gyration tensor
         S_nozzle = self.rocket.nozzle_gyration_tensor
         ## Inertia tensor
