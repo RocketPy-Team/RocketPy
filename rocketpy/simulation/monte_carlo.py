@@ -1,6 +1,7 @@
 """Defines the MonteCarlo class."""
 
 import json
+import warnings
 from time import process_time, time
 
 import numpy as np
@@ -93,6 +94,12 @@ class MonteCarlo:
         -------
         None
         """
+        warnings.warn(
+            "This class is still under testing and some attributes may be "
+            "changed in next versions",
+            UserWarning,
+        )
+
         # Save and initialize parameters
         self.filename = filename
         self.environment = environment
