@@ -134,6 +134,7 @@ class StochasticFlight(StochasticModel):
             Flight object with the randomly generated input arguments.
         """
         generated_dict = next(self.dict_generator())
+        # TODO: maybe we should use generated_dict["rail_length"] instead
         return Flight(
             environment=self.object.env,
             rail_length=self._randomize_rail_length(),
