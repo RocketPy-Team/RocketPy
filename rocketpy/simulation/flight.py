@@ -1341,12 +1341,8 @@ class Flight:
             )
             * self.rocket._csys
         )
-        # c = -self.rocket.distance_rocket_nozzle
-        c = (
-            -(self.rocket.nozzle_position - self.rocket.center_of_dry_mass_position)
-            * self.rocket._csys
-        )
-        a = b * Mt / M
+        c = self.rocket.nozzle_to_cdm
+        a = self.rocket.z_coordinate_com_to_cdm.get_value_opt(t)
         rN = self.rocket.motor.nozzle_radius
         # Prepare transformation matrix
         a11 = 1 - 2 * (e2**2 + e3**2)
