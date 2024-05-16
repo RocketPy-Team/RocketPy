@@ -1005,7 +1005,8 @@ class Flight:
         self.t_final = self.t
         self.__transform_pressure_signals_lists_to_functions()
         if self._controllers:
-            self.__cache_post_process_variables()
+            # cache post process variables
+            self.__evaluate_post_process = np.array(self.__post_processed_variables)
         if verbose:
             print(f"\n>>> Simulation Completed at Time: {self.t:3.4f} s")
 
@@ -1146,10 +1147,6 @@ class Flight:
             # reset controllable object to initial state (only airbrakes for now)
             for air_brakes in self.rocket.air_brakes:
                 air_brakes._reset()
-
-    def __cache_post_process_variables(self):
-        """Cache post-process variables for simulations with controllers."""
-        self.__evaluate_post_process = np.array(self.__post_processed_variables)
 
     @cached_property
     def effective_1rl(self):
