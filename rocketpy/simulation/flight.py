@@ -590,7 +590,6 @@ class Flight:
         if self.rail_length <= 0:
             raise ValueError("Rail length must be a positive value.")
         self.parachutes = self.rocket.parachutes[:]
-        self._controllers = self.rocket._controllers[:]
         self.inclination = inclination
         self.heading = heading
         self.max_time = max_time
@@ -603,6 +602,9 @@ class Flight:
         self.terminate_on_apogee = terminate_on_apogee
         self.name = name
         self.equations_of_motion = equations_of_motion
+
+        # Controller initialization
+        self.__init_controllers()
 
         # Flight initialization
         self.__init_solution_monitors()
@@ -996,8 +998,15 @@ class Flight:
                                             [self.t, parachute]
                                         )
 
+                    # If controlled flight, post process must be done on sim time
+                    if self._controllers:
+                        phase.derivative(self.t, self.y_sol, post_processing=True)
+
         self.t_final = self.t
         self.__transform_pressure_signals_lists_to_functions()
+        if self._controllers:
+            # cache post process variables
+            self.__evaluate_post_process = np.array(self.__post_processed_variables)
         if verbose:
             print(f"\n>>> Simulation Completed at Time: {self.t:3.4f} s")
 
@@ -1049,6 +1058,7 @@ class Flight:
         self.impact_state = np.array([0])
         self.parachute_events = []
         self.post_processed = False
+        self.__post_processed_variables = []
 
     def __init_flight_state(self):
         """Initialize flight state variables."""
@@ -1101,6 +1111,11 @@ class Flight:
             self.out_of_rail_time = self.initial_solution[0]
             self.out_of_rail_time_index = 0
             self.initial_derivative = self.u_dot_generalized
+        if self._controllers:
+            # Handle post process during simulation, get initial accel/forces
+            self.initial_derivative(
+                self.t_initial, self.initial_solution[1:], post_processing=True
+            )
 
     def __init_solver_monitors(self):
         # Initialize solver monitors
@@ -1119,6 +1134,19 @@ class Flight:
         if self.equations_of_motion == "solid_propulsion":
             # NOTE: The u_dot is faster, but only works for solid propulsion
             self.u_dot_generalized = self.u_dot
+
+    def __init_controllers(self):
+        """Initialize controllers"""
+        self._controllers = self.rocket._controllers[:]
+        if self._controllers:
+            if self.time_overshoot:
+                self.time_overshoot = False
+                warnings.warn(
+                    "time_overshoot has been set to False due to the presence of controllers. "
+                )
+            # reset controllable object to initial state (only airbrakes for now)
+            for air_brakes in self.rocket.air_brakes:
+                air_brakes._reset()
 
     @cached_property
     def effective_1rl(self):
@@ -1237,13 +1265,10 @@ class Flight:
             ax, ay, az = 0, 0, 0
 
         if post_processing:
+            # Use u_dot post processing code for forces, moments and env data
             self.u_dot_generalized(t, u, post_processing=True)
-            self.__post_processed_variables[-1][1] = ax
-            self.__post_processed_variables[-1][2] = ay
-            self.__post_processed_variables[-1][3] = az
-            self.__post_processed_variables[-1][4] = 0
-            self.__post_processed_variables[-1][5] = 0
-            self.__post_processed_variables[-1][6] = 0
+            # Save feasible accelerations
+            self.__post_processed_variables[-1][1:7] = [ax, ay, az, 0, 0, 0]
 
         return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
 

@@ -1981,8 +1981,9 @@ class AirBrakes(AeroSurface):
             brakes drag coefficient will be used for the entire rocket instead.
             Default is False.
         deployment_level : float, optional
-            Current deployment level, ranging from 0 to 1. Deployment level is the
-            fraction of the total airbrake area that is Deployment. Default is 0.
+            Initial deployment level, ranging from 0 to 1. Deployment level is
+            the fraction of the total airbrake area that is Deployment. Default
+            is 0.
         name : str, optional
             Name of the air brakes. Default is "AirBrakes".
 
@@ -2000,6 +2001,7 @@ class AirBrakes(AeroSurface):
         self.reference_area = reference_area
         self.clamp = clamp
         self.override_rocket_drag = override_rocket_drag
+        self.initial_deployment_level = deployment_level
         self.deployment_level = deployment_level
         self.prints = _AirBrakesPrints(self)
         self.plots = _AirBrakesPlots(self)
@@ -2025,6 +2027,12 @@ class AirBrakes(AeroSurface):
                     + "curve will be used."
                 )
         self._deployment_level = value
+
+    def _reset(self):
+        """Resets the air brakes to their initial state. This is ran at the
+        beginning of each simulation to ensure the air brakes are in the correct
+        state."""
+        self.deployment_level = self.initial_deployment_level
 
     def evaluate_center_of_pressure(self):
         """Evaluates the center of pressure of the aerodynamic surface in local
