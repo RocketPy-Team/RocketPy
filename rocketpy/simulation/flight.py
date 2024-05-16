@@ -1138,7 +1138,7 @@ class Flight:
         """Initialize controllers"""
         self._controllers = self.rocket._controllers[:]
         if self._controllers:
-            if self.time_overshoot == True:
+            if self.time_overshoot:
                 self.time_overshoot = False
                 warnings.warn(
                     "time_overshoot has been set to False due to the presence of controllers. "
