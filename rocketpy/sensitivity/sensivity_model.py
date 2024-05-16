@@ -24,8 +24,8 @@ class SensitivityModel:
 
     def __init__(
         self,
-        parameters_names: list[str],
-        target_variables_names: list[str],
+        parameters_names,
+        target_variables_names,
     ):
         self.__check_requirements()
         self.n_parameters = len(parameters_names)
@@ -64,8 +64,8 @@ class SensitivityModel:
 
     def set_parameters_nominal(
         self,
-        parameters_nominal_mean: np.array,
-        parameters_nominal_sd: np.array,
+        parameters_nominal_mean,
+        parameters_nominal_sd,
     ):
         """Set parameters nominal mean and standard deviation
 
@@ -99,7 +99,7 @@ class SensitivityModel:
 
     def set_target_variables_nominal(
         self,
-        target_variables_nominal_value: np.array,
+        target_variables_nominal_value,
     ):
         """Set target variables nominal value (mean)
 
@@ -126,7 +126,7 @@ class SensitivityModel:
 
     def _estimate_parameter_nominal(
         self,
-        parameters_matrix: np.matrix,
+        parameters_matrix,
     ):
         """Estimates parameters nominal values
 
@@ -154,7 +154,7 @@ class SensitivityModel:
 
     def _estimate_target_nominal(
         self,
-        target_data: np.matrix,
+        target_data,
     ):
         """Estimates target variables nominal values
 
@@ -191,8 +191,8 @@ class SensitivityModel:
 
     def fit(
         self,
-        parameters_matrix: np.matrix,
-        target_data: np.matrix,
+        parameters_matrix,
+        target_data,
     ):
         """Fits sensitivity model
 
@@ -337,7 +337,7 @@ class SensitivityModel:
 
         return
 
-    def summary(self, digits=4, alpha=0.95) -> None:
+    def summary(self, digits=4, alpha=0.95):
         """Formats parameter sensitivity information in a prettytable
         and prints it
 
@@ -439,8 +439,8 @@ class SensitivityModel:
 
     def __check_conformity(
         self,
-        parameters_matrix: np.matrix,
-        target_data: np.matrix,
+        parameters_matrix,
+        target_data,
     ):
         """Checks if matrices used for fitting conform with the
         information passed at initialization

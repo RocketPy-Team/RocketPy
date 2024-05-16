@@ -552,10 +552,10 @@ def generate_monte_carlo_ellipses_coordinates(
 
 
 def load_monte_carlo_data(
-    input_filename: str,
-    output_filename: str,
-    parameters_list: list[str],
-    target_variables_list: list[str],
+    input_filename,
+    output_filename,
+    parameters_list,
+    target_variables_list,
 ):
     """Reads MonteCarlo simulation data file and builds parameters and flight
     variables matrices from specified
