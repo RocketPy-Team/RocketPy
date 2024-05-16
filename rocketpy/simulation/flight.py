@@ -1793,7 +1793,7 @@ class Flight:
         # Rdot = 0
 
         # Calculate added mass
-        ma = ka * rho * (4 / 3) * 3.141592653589793 * R**3
+        ma = ka * rho * (4 / 3) * np.pi * R**3
 
         # Calculate freestream speed
         freestream_x = vx - wind_velocity_x
