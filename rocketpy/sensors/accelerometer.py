@@ -12,8 +12,6 @@ class Accelerometer(Sensors):
 
     Attributes
     ----------
-    type : str
-        Type of the sensor, in this case "Accelerometer".
     consider_gravity : bool
         Whether the sensor considers the effect of gravity on the acceleration.
     prints : _AccelerometerPrints

@@ -12,8 +12,6 @@ class Gyroscope(Sensors):
 
     Attributes
     ----------
-    type : str
-        Type of the sensor, in this case "Gyroscope".
     acceleration_sensitivity : float, list
         Sensitivity of the sensor to linear acceleration in rad/s/g.
     prints : _GyroscopePrints
