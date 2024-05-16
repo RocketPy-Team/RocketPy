@@ -415,15 +415,12 @@ def test_evaluate_center_of_mass(calisto):
     assert isinstance(calisto.evaluate_center_of_mass(), Function)
 
 
-def test_evaluate_nozzle_to_center_of_dry_mass_position(calisto):
+def test_evaluate_nozzle_to_cdm(calisto):
     expected_distance = 1.255
     atol = 1e-3  # Equivalent to 1mm
-    assert (
-        pytest.approx(expected_distance, atol)
-        == calisto.nozzle_to_center_of_dry_mass_position
-    )
+    assert pytest.approx(expected_distance, atol) == calisto.nozzle_to_cdm
     # Test if calling the function returns the same result
-    res = calisto.evaluate_nozzle_to_center_of_dry_mass_position()
+    res = calisto.evaluate_nozzle_to_cdm()
     assert pytest.approx(expected_distance, atol) == res
 
 
@@ -440,11 +437,11 @@ def test_evaluate_nozzle_gyration_tensor(calisto):
     assert np.allclose(expected_gyration_tensor, np.array(res), atol=atol)
 
 
-def test_evaluate_z_coordinate_com_to_cdm(calisto):
+def test_evaluate_com_to_cdm_function(calisto):
     atol = 1e-3  # Equivalent to 1mm
     assert np.allclose(
         (calisto.center_of_dry_mass_position - calisto.center_of_mass).source,
-        calisto.z_coordinate_com_to_cdm.source,
+        calisto.com_to_cdm_function.source,
         atol=atol,
     )
 

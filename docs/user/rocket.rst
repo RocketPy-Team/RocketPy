@@ -12,6 +12,7 @@ Defining a Rocket in RocketPy is simple and requires a few steps:
 4. Add, if desired, parachutes;
 5. Set, if desired, rail guides;
 6. See results.
+7. Inertia Tensors.
 
 Lets go through each of these steps in detail.
 
