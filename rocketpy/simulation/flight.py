@@ -490,8 +490,8 @@ class Flight:
         rocket,
         environment,
         rail_length,
-        inclination=80,
-        heading=90,
+        inclination=80.0,
+        heading=90.0,
         initial_solution=None,
         terminate_on_apogee=False,
         max_time=600,
@@ -1139,7 +1139,7 @@ class Flight:
         """Initialize controllers"""
         self._controllers = self.rocket._controllers[:]
         if self._controllers:
-            if self.time_overshoot == True:
+            if self.time_overshoot:
                 self.time_overshoot = False
                 warnings.warn(
                     "time_overshoot has been set to False due to the presence of controllers. "

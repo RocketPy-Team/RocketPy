@@ -346,6 +346,7 @@ d. Differentiation and Integration
 One of the most useful ``Function`` features for data analysis is easily differentiating and integrating the data source. These methods are divided as follow:
 
 - :meth:`rocketpy.Function.differentiate`: differentiate the ``Function`` at a given point, returning the derivative value as the result;
+- :meth:`rocketpy.Function.differentiate_complex_step`: differentiate the ``Function`` at a given point using the complex step method, returning the derivative value as the result;
 - :meth:`rocketpy.Function.integral`: performs a definite integral over specified limits, returns the integral value (area under ``Function``);
 - :meth:`rocketpy.Function.derivative_function`: computes the derivative of the given `Function`, returning another `Function` that is the derivative of the original at each point;
 - :meth:`rocketpy.Function.integral_function`: calculates the definite integral of the function from a given point up to a variable, returns a ``Function``.
@@ -362,6 +363,19 @@ Let's make a familiar example of differentiation: the derivative of the function
 
     # Differentiate it at x = 3
     print(f.differentiate(3))
+
+RocketPy also supports the complex step method for differentiation, which is a very accurate method for numerical differentiation. Let's compare the results of the complex step method with the standard method:
+
+.. jupyter-execute::
+
+    # Define the function x^2
+    f = Function(lambda x: x**2)
+
+    # Differentiate it at x = 3 using the complex step method
+    print(f.differentiate_complex_step(3))
+
+The complex step method can be as twice as faster as the standard method,  but
+it requires the function to be differentiable in the complex plane.
 
 Also one may compute the derivative function:
 
