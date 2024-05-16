@@ -1292,7 +1292,6 @@ class Flight:
             # skip sensors that are used more then once in the rocket
             if sensor not in sensors:
                 sensors.append(sensor)
-                num_instances = sensor._attached_rockets[self.rocket]
                 sensor_data[sensor] = sensor.measured_data[:]
         self.sensor_data = sensor_data
 
