@@ -81,10 +81,10 @@ class Sensors(ABC):
             Orientation of the sensor in the rocket. The orientation can be
             given as:
             - A list of length 3, where the elements are the Euler angles for
-              the rotation roll (φ), pitch (θ) and yaw (ψ) in radians. The
+              the rotation yaw (ψ), pitch (θ) and roll (φ) in radians. The
               standard rotation sequence is z-y-x (3-2-1) is used, meaning the
-              sensor is first rotated by ψ around the z axis, then by θ around
-              the new y axis and finally by φ around the new x axis.
+              sensor is first rotated by ψ around the x axis, then by θ around
+              the new y axis and finally by φ around the new z axis.
               TODO: x and y are not defined in the rocket class. User has no
               way to know which axis is which.
             - A list of lists (matrix) of shape 3x3, representing the rotation
