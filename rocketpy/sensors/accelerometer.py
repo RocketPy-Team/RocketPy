@@ -61,7 +61,7 @@ class Accelerometer(Sensors):
         temperature drift.
     """
 
-    __units__ = "m/s^2"
+    __units = "m/s^2"
 
     def __init__(
         self,

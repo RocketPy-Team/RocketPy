@@ -61,7 +61,7 @@ class Gyroscope(Sensors):
         temperature drift.
     """
 
-    __units__ = "rad/s"
+    __units = "rad/s"
 
     def __init__(
         self,
