@@ -11,8 +11,6 @@ import pytz
 from cftime import num2pydate
 from packaging import version as packaging_version
 
-from rocketpy.mathutils.vector_matrix import Matrix
-
 # Mapping of module name and the name of the package that should be installed
 INSTALL_MAPPING = {"IPython": "ipython"}
 
@@ -520,7 +518,7 @@ def normalize_quaternions(quaternions):
     q_w, q_x, q_y, q_z = quaternions
     q_norm = (q_w**2 + q_x**2 + q_y**2 + q_z**2) ** 0.5
     if q_norm == 0:
-        return Matrix.identity()
+        return 1, 0, 0, 0
     return q_w / q_norm, q_x / q_norm, q_y / q_norm, q_z / q_norm
 
 
