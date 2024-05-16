@@ -437,11 +437,11 @@ def test_evaluate_nozzle_gyration_tensor(calisto):
     assert np.allclose(expected_gyration_tensor, np.array(res), atol=atol)
 
 
-def test_evaluate_z_coordinate_com_to_cdm(calisto):
+def test_evaluate_com_to_cdm_function(calisto):
     atol = 1e-3  # Equivalent to 1mm
     assert np.allclose(
         (calisto.center_of_dry_mass_position - calisto.center_of_mass).source,
-        calisto.z_coordinate_com_to_cdm.source,
+        calisto.com_to_cdm_function.source,
         atol=atol,
     )
 

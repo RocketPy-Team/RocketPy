@@ -73,7 +73,7 @@ class Rocket:
         for more information
         regarding the coordinate system.
         Expressed in meters as a function of time.
-    Rocket.z_coordinate_com_to_cdm : Function
+    Rocket.com_to_cdm_function : Function
         Function of time expressing the z-coordinate of the center of mass
         relative to the center of dry mass.
     Rocket.reduced_mass : Function
@@ -780,24 +780,24 @@ class Rocket:
         )
         return self.nozzle_gyration_tensor
 
-    def evaluate_z_coordinate_com_to_cdm(self):
+    def evaluate_com_to_cdm_function(self):
         """Evaluates the z-coordinate of the center of mass (COM) relative to
         the center of dry mass (CDM).
 
         Notes
         -----
-        1. The `z_coordinate_com_to_cdm` plus `center_of_mass` should be equal
+        1. The `com_to_cdm_function` plus `center_of_mass` should be equal
         to `center_of_dry_mass_position` at every time step.
-        2. The `z_coordinate_com_to_cdm` is a function of time and will usually
+        2. The `com_to_cdm_function` is a function of time and will usually
         already be discretized.
 
         Returns
         -------
-        self.z_coordinate_com_to_cdm : Function
+        self.com_to_cdm_function : Function
             Function of time expressing the z-coordinate of the center of mass
             relative to the center of dry mass.
         """
-        self.z_coordinate_com_to_cdm = (
+        self.com_to_cdm_function = (
             -1
             * (
                 (self.center_of_propellant_position - self.center_of_dry_mass_position)
@@ -806,10 +806,10 @@ class Rocket:
             * self.motor.propellant_mass
             / self.total_mass
         )
-        self.z_coordinate_com_to_cdm.set_inputs("Time (s)")
-        self.z_coordinate_com_to_cdm.set_outputs("Z Coordinate COM to CDM (m)")
-        self.z_coordinate_com_to_cdm.set_title("Z Coordinate COM to CDM")
-        return self.z_coordinate_com_to_cdm
+        self.com_to_cdm_function.set_inputs("Time (s)")
+        self.com_to_cdm_function.set_outputs("Z Coordinate COM to CDM (m)")
+        self.com_to_cdm_function.set_title("Z Coordinate COM to CDM")
+        return self.com_to_cdm_function
 
     def get_inertia_tensor_at_time(self, t):
         """Returns a Matrix representing the inertia tensor of the rocket with
@@ -921,7 +921,7 @@ class Rocket:
         self.evaluate_center_of_pressure()
         self.evaluate_stability_margin()
         self.evaluate_static_margin()
-        self.evaluate_z_coordinate_com_to_cdm()
+        self.evaluate_com_to_cdm_function()
         self.evaluate_nozzle_gyration_tensor()
 
     def add_surfaces(self, surfaces, positions):

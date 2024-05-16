@@ -1342,7 +1342,7 @@ class Flight:
             * self.rocket._csys
         )
         c = self.rocket.nozzle_to_cdm
-        a = self.rocket.z_coordinate_com_to_cdm.get_value_opt(t)
+        a = self.rocket.com_to_cdm_function.get_value_opt(t)
         rN = self.rocket.motor.nozzle_radius
         # Prepare transformation matrix
         a11 = 1 - 2 * (e2**2 + e3**2)
@@ -1571,7 +1571,7 @@ class Flight:
         total_mass_dot = self.rocket.total_mass_flow_rate.get_value_opt(t)
         total_mass_ddot = self.rocket.total_mass_flow_rate.differentiate_complex_step(t)
         ## CM position vector and time derivatives relative to CDM in body frame
-        r_CM_z = self.rocket.z_coordinate_com_to_cdm
+        r_CM_z = self.rocket.com_to_cdm_function
         r_CM_t = r_CM_z.get_value_opt(t)
         r_CM = Vector([0, 0, r_CM_t])
         r_CM_dot = Vector([0, 0, r_CM_z.differentiate_complex_step(t)])
