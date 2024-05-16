@@ -590,7 +590,6 @@ class Flight:
         if self.rail_length <= 0:
             raise ValueError("Rail length must be a positive value.")
         self.parachutes = self.rocket.parachutes[:]
-        self._controllers = self.rocket._controllers[:]
         self.inclination = inclination
         self.heading = heading
         self.max_time = max_time
@@ -603,6 +602,9 @@ class Flight:
         self.terminate_on_apogee = terminate_on_apogee
         self.name = name
         self.equations_of_motion = equations_of_motion
+
+        # Controller initialization
+        self.__init_controllers()
 
         # Flight initialization
         self.__init_solution_monitors()
@@ -996,8 +998,15 @@ class Flight:
                                             [self.t, parachute]
                                         )
 
+                    # If controlled flight, post process must be done on sim time
+                    if self._controllers:
+                        phase.derivative(self.t, self.y_sol, post_processing=True)
+
         self.t_final = self.t
         self.__transform_pressure_signals_lists_to_functions()
+        if self._controllers:
+            # cache post process variables
+            self.__evaluate_post_process = np.array(self.__post_processed_variables)
         if verbose:
             print(f"\n>>> Simulation Completed at Time: {self.t:3.4f} s")
 
@@ -1049,6 +1058,7 @@ class Flight:
         self.impact_state = np.array([0])
         self.parachute_events = []
         self.post_processed = False
+        self.__post_processed_variables = []
 
     def __init_flight_state(self):
         """Initialize flight state variables."""
@@ -1101,6 +1111,11 @@ class Flight:
             self.out_of_rail_time = self.initial_solution[0]
             self.out_of_rail_time_index = 0
             self.initial_derivative = self.u_dot_generalized
+        if self._controllers:
+            # Handle post process during simulation, get initial accel/forces
+            self.initial_derivative(
+                self.t_initial, self.initial_solution[1:], post_processing=True
+            )
 
     def __init_solver_monitors(self):
         # Initialize solver monitors
@@ -1119,6 +1134,19 @@ class Flight:
         if self.equations_of_motion == "solid_propulsion":
             # NOTE: The u_dot is faster, but only works for solid propulsion
             self.u_dot_generalized = self.u_dot
+
+    def __init_controllers(self):
+        """Initialize controllers"""
+        self._controllers = self.rocket._controllers[:]
+        if self._controllers:
+            if self.time_overshoot:
+                self.time_overshoot = False
+                warnings.warn(
+                    "time_overshoot has been set to False due to the presence of controllers. "
+                )
+            # reset controllable object to initial state (only airbrakes for now)
+            for air_brakes in self.rocket.air_brakes:
+                air_brakes._reset()
 
     @cached_property
     def effective_1rl(self):
@@ -1237,13 +1265,10 @@ class Flight:
             ax, ay, az = 0, 0, 0
 
         if post_processing:
+            # Use u_dot post processing code for forces, moments and env data
             self.u_dot_generalized(t, u, post_processing=True)
-            self.__post_processed_variables[-1][1] = ax
-            self.__post_processed_variables[-1][2] = ay
-            self.__post_processed_variables[-1][3] = az
-            self.__post_processed_variables[-1][4] = 0
-            self.__post_processed_variables[-1][5] = 0
-            self.__post_processed_variables[-1][6] = 0
+            # Save feasible accelerations
+            self.__post_processed_variables[-1][1:7] = [ax, ay, az, 0, 0, 0]
 
         return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
 
@@ -1341,12 +1366,8 @@ class Flight:
             )
             * self.rocket._csys
         )
-        # c = -self.rocket.distance_rocket_nozzle
-        c = (
-            -(self.rocket.nozzle_position - self.rocket.center_of_dry_mass_position)
-            * self.rocket._csys
-        )
-        a = b * Mt / M
+        c = self.rocket.nozzle_to_cdm
+        a = self.rocket.com_to_cdm_function.get_value_opt(t)
         rN = self.rocket.motor.nozzle_radius
         # Prepare transformation matrix
         a11 = 1 - 2 * (e2**2 + e3**2)
@@ -1570,70 +1591,26 @@ class Flight:
         w = Vector([omega1, omega2, omega3])  # Angular velocity vector
 
         # Retrieve necessary quantities
-        rho = self.env.density.get_value_opt(z)
+        ## Rocket mass
         total_mass = self.rocket.total_mass.get_value_opt(t)
         total_mass_dot = self.rocket.total_mass_flow_rate.get_value_opt(t)
-        total_mass_ddot = self.rocket.total_mass_flow_rate.differentiate(t)
+        total_mass_ddot = self.rocket.total_mass_flow_rate.differentiate_complex_step(t)
         ## CM position vector and time derivatives relative to CDM in body frame
-        r_CM_z = (
-            -1
-            * (
-                (
-                    self.rocket.center_of_propellant_position
-                    - self.rocket.center_of_dry_mass_position
-                )
-                * self.rocket._csys
-            )
-            * self.rocket.motor.propellant_mass
-            / total_mass
-        )
-        r_CM = Vector([0, 0, r_CM_z.get_value_opt(t)])
-        r_CM_dot = Vector([0, 0, r_CM_z.differentiate(t)])
+        r_CM_z = self.rocket.com_to_cdm_function
+        r_CM_t = r_CM_z.get_value_opt(t)
+        r_CM = Vector([0, 0, r_CM_t])
+        r_CM_dot = Vector([0, 0, r_CM_z.differentiate_complex_step(t)])
         r_CM_ddot = Vector([0, 0, r_CM_z.differentiate(t, order=2)])
+        ## Nozzle position vector
+        r_NOZ = Vector([0, 0, self.rocket.nozzle_to_cdm])
         ## Nozzle gyration tensor
-        r_NOZ = (
-            -(self.rocket.nozzle_position - self.rocket.center_of_dry_mass_position)
-            * self.rocket._csys
-        )
-        S_noz_33 = 0.5 * self.rocket.motor.nozzle_radius**2
-        S_noz_11 = S_noz_22 = 0.5 * S_noz_33 + 0.25 * r_NOZ**2
-        S_noz_12, S_noz_13, S_noz_23 = 0, 0, 0
-        S_nozzle = Matrix(
-            [
-                [S_noz_11, S_noz_12, S_noz_13],
-                [S_noz_12, S_noz_22, S_noz_23],
-                [S_noz_13, S_noz_23, S_noz_33],
-            ]
-        )
+        S_nozzle = self.rocket.nozzle_gyration_tensor
         ## Inertia tensor
-        I_11 = self.rocket.I_11.get_value_opt(t)
-        I_12 = self.rocket.I_12.get_value_opt(t)
-        I_13 = self.rocket.I_13.get_value_opt(t)
-        I_22 = self.rocket.I_22.get_value_opt(t)
-        I_23 = self.rocket.I_23.get_value_opt(t)
-        I_33 = self.rocket.I_33.get_value_opt(t)
-        I = Matrix(
-            [
-                [I_11, I_12, I_13],
-                [I_12, I_22, I_23],
-                [I_13, I_23, I_33],
-            ]
-        )
+        I = self.rocket.get_inertia_tensor_at_time(t)
         ## Inertia tensor time derivative in the body frame
-        I_11_dot = self.rocket.I_11.differentiate(t)
-        I_12_dot = self.rocket.I_12.differentiate(t)
-        I_13_dot = self.rocket.I_13.differentiate(t)
-        I_22_dot = self.rocket.I_22.differentiate(t)
-        I_23_dot = self.rocket.I_23.differentiate(t)
-        I_33_dot = self.rocket.I_33.differentiate(t)
-        I_dot = Matrix(
-            [
-                [I_11_dot, I_12_dot, I_13_dot],
-                [I_12_dot, I_22_dot, I_23_dot],
-                [I_13_dot, I_23_dot, I_33_dot],
-            ]
-        )
-        ## Inertia tensor relative to CM
+        I_dot = self.rocket.get_inertia_tensor_derivative_at_time(t)
+
+        # Calculate the Inertia tensor relative to CM
         H = (r_CM.cross_matrix @ -r_CM.cross_matrix) * total_mass
         I_CM = I - H
 
@@ -1723,8 +1700,8 @@ class Flight:
                     R1 += comp_lift_xb
                     R2 += comp_lift_yb
                     # Add to total moment
-                    M1 -= (comp_cpz + r_CM_z.get_value_opt(t)) * comp_lift_yb
-                    M2 += (comp_cpz + r_CM_z.get_value_opt(t)) * comp_lift_xb
+                    M1 -= (comp_cpz + r_CM_t) * comp_lift_yb
+                    M2 += (comp_cpz + r_CM_t) * comp_lift_xb
             # Calculates Roll Moment
             try:
                 clf_delta, cld_omega, cant_angle_rad = aero_surface.roll_parameters
@@ -1749,13 +1726,12 @@ class Flight:
                 pass
         weightB = Kt @ Vector([0, 0, -total_mass * self.env.gravity.get_value_opt(z)])
         T00 = total_mass * r_CM
-        r_NOZ_vector = Vector([0, 0, r_NOZ])
-        T03 = 2 * total_mass_dot * (r_NOZ_vector - r_CM) - 2 * total_mass * r_CM_dot
+        T03 = 2 * total_mass_dot * (r_NOZ - r_CM) - 2 * total_mass * r_CM_dot
         T04 = (
-            self.rocket.motor.thrust.get_value_opt(t) * Vector([0, 0, 1])
+            Vector([0, 0, self.rocket.motor.thrust.get_value_opt(t)])
             - total_mass * r_CM_ddot
             - 2 * total_mass_dot * r_CM_dot
-            + total_mass_ddot * (r_NOZ_vector - r_CM)
+            + total_mass_ddot * (r_NOZ - r_CM)
         )
         T05 = total_mass_dot * S_nozzle - I_dot
 
