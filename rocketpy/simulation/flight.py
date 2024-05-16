@@ -3401,8 +3401,8 @@ class Flight:
         """
         if sensor is None:
             data_dict = {}
-            for key, value in self.sensor_data.items():
-                data_dict[key.name] = value
+            for used_sensor, measured_data in self.sensor_data.items():
+                data_dict[used_sensor.name] = measured_data
         else:
             # export data of only that sensor
             data_dict = {}
