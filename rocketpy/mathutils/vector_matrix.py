@@ -2,7 +2,7 @@ from cmath import isclose
 from functools import cached_property
 from itertools import product
 
-from rocketpy.tools import euler_to_quaternions
+from rocketpy.tools import euler_to_quaternions, normalize_quaternions
 
 
 class Vector:
@@ -1031,15 +1031,9 @@ class Matrix:
         Matrix
             The transformation matrix from frame B to frame A.
         """
-        q_w, q_x, q_y, q_z = quaternion
         # normalize quaternion
-        q_norm = (q_w**2 + q_x**2 + q_y**2 + q_z**2) ** 0.5
-        if q_norm == 0:
-            return Matrix.identity()
-        q_w /= q_norm
-        q_x /= q_norm
-        q_y /= q_norm
-        q_z /= q_norm
+        q_w, q_x, q_y, q_z = normalize_quaternions(quaternion)
+
         # pre-compute common terms
         q_x2 = q_x**2
         q_y2 = q_y**2
