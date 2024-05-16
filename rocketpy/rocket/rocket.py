@@ -1170,7 +1170,7 @@ class Rocket:
         self.parachutes.append(parachute)
         return self.parachutes[-1]
 
-    def add_sensor(self, sensor, position, x_position=0, y_position=0):
+    def add_sensor(self, sensor, position, x_offset=0, y_offset=0):
         """Adds a sensor to the rocket.
 
         Parameters
@@ -1180,18 +1180,20 @@ class Rocket:
         position : int, float, tuple
             Position, in meters, of the sensor's coordinate system origin
             relative to the user defined rocket coordinate system.
-        x_position : int, float, optional
-            Distance in meters by which the sensor is to be translated in the x
-            direction relative to geometrical center line. Default is 0.
-        y_position : int, float, optional
-            Distance in meters by which the sensor is to be translated in the y
-            direction relative to geometrical center line. Default is 0.
+        x_offset : int, float, optional
+            Distance in meters by which the sensor is to be translated in the
+            rocket's x direction relative to geometrical center line.
+            Default is 0.
+        y_offset : int, float, optional
+            Distance in meters by which the sensor is to be translated in the
+            rocket's y direction relative to geometrical center line.
+            Default is 0.
 
         Returns
         -------
         None
         """
-        self.sensors.add(sensor, Vector([x_position, y_position, position]))
+        self.sensors.add(sensor, Vector([x_offset, y_offset, position]))
         try:
             sensor._attached_rockets[self] += 1
         except KeyError:
