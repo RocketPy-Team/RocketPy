@@ -27,7 +27,7 @@ class Components:
         """Return a string representation of the Components instance."""
         components_str = "\n".join(
             [
-                f"\tComponent: {str(c.component):80} Position: {c.position:>6.3f}"
+                f"\tComponent: {str(c.component):80} Position: {c.position}"
                 for c in self._components
             ]
         )
