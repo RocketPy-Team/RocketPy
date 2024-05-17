@@ -6,3 +6,4 @@ sphinx_design>=0.5.0
 ipykernel>=6.25.0
 pandas>=1.4.4
 lxml_html_clean
+docutils<0.21
