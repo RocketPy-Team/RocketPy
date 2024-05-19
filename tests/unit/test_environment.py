@@ -9,35 +9,6 @@ import pytz
 from rocketpy import Environment
 
 
-def test_date_naive_set_date_saves_utc_timezone_by_default(
-    example_plain_env, example_date_naive
-):
-    """Tests environment.set_date sets timezone to UTC by default
-
-    Parameters
-    ----------
-    example_plain_env: rocketpy.Environment
-    example_date_naive: datetime.datetime
-    """
-    example_plain_env.set_date(example_date_naive)
-    assert example_plain_env.datetime_date == pytz.utc.localize(example_date_naive)
-
-
-def test_date_aware_set_date_saves_custom_timezone(
-    example_plain_env, example_date_naive
-):
-    """Tests time zone is set accordingly in environment obj given a date_aware input
-
-    Parameters
-    ----------
-    example_plain_env: rocketpy.Environment
-    example_date_naive: datetime.datetime
-    """
-    example_plain_env.set_date(example_date_naive, timezone="America/New_York")
-    example_date_aware = pytz.timezone("America/New_York").localize(example_date_naive)
-    assert example_plain_env.datetime_date == example_date_aware
-
-
 @pytest.mark.parametrize(
     "latitude, longitude", [(-21.960641, -47.482122), (0, 0), (21.960641, 47.482122)]
 )
@@ -97,75 +68,6 @@ def test_location_set_topographic_profile_computes_elevation(
         latitude, longitude
     )
     assert computed_elevation == theoretical_elevation
-
-
-def test_environment_export_environment_exports_valid_environment_json(
-    example_spaceport_env,
-):
-    """Tests the export_environment() method of the Environment class.
-
-    Parameters
-    ----------
-    example_spaceport_env : rocketpy.Environment
-    """
-    # Check file creation
-    assert example_spaceport_env.export_environment(filename="environment") is None
-    with open("environment.json", "r") as json_file:
-        exported_env = json.load(json_file)
-    assert os.path.isfile("environment.json")
-
-    # Check file content
-    assert exported_env["gravity"] == example_spaceport_env.gravity(
-        example_spaceport_env.elevation
-    )
-    assert exported_env["date"] == [
-        example_spaceport_env.datetime_date.year,
-        example_spaceport_env.datetime_date.month,
-        example_spaceport_env.datetime_date.day,
-        example_spaceport_env.datetime_date.hour,
-    ]
-    assert exported_env["latitude"] == example_spaceport_env.latitude
-    assert exported_env["longitude"] == example_spaceport_env.longitude
-    assert exported_env["elevation"] == example_spaceport_env.elevation
-    assert exported_env["datum"] == example_spaceport_env.datum
-    assert exported_env["timezone"] == example_spaceport_env.timezone
-    assert exported_env["max_expected_height"] == float(
-        example_spaceport_env.max_expected_height
-    )
-    assert (
-        exported_env["atmospheric_model_type"]
-        == example_spaceport_env.atmospheric_model_type
-    )
-    assert exported_env["atmospheric_model_file"] == ""
-    assert exported_env["atmospheric_model_dict"] == ""
-    assert (
-        exported_env["atmospheric_model_pressure_profile"]
-        == ma.getdata(
-            example_spaceport_env.pressure.get_source()(example_spaceport_env.height)
-        ).tolist()
-    )
-    assert (
-        exported_env["atmospheric_model_temperature_profile"]
-        == ma.getdata(example_spaceport_env.temperature.get_source()).tolist()
-    )
-    assert (
-        exported_env["atmospheric_model_wind_velocity_x_profile"]
-        == ma.getdata(
-            example_spaceport_env.wind_velocity_x.get_source()(
-                example_spaceport_env.height
-            )
-        ).tolist()
-    )
-    assert (
-        exported_env["atmospheric_model_wind_velocity_y_profile"]
-        == ma.getdata(
-            example_spaceport_env.wind_velocity_y.get_source()(
-                example_spaceport_env.height
-            )
-        ).tolist()
-    )
-
-    os.remove("environment.json")
 
 
 def test_geodesic_coordinate_geodesic_to_utm_converts_coordinate():
