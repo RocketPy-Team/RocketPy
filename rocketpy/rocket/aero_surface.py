@@ -1223,10 +1223,7 @@ class TrapezoidalFins(Fins):
             * (self.root_chord + 2 * self.tip_chord)
             * self.rocket_radius
             * self.span**2
-            + 6
-            * (self.root_chord + self.tip_chord)
-            * self.span
-            * self.rocket_radius**2
+            + 6 * (self.root_chord + self.tip_chord) * self.span * self.rocket_radius**2
         ) / 12
         roll_damping_interference_factor = 1 + (
             ((tau - λ) / (tau)) - ((1 - λ) / (tau - 1)) * np.log(tau)
@@ -1549,8 +1546,7 @@ class EllipticalFins(Fins):
                     * self.rocket_radius**2
                     * np.sqrt(-self.span**2 + self.rocket_radius**2)
                     * np.arctan(
-                        (self.span)
-                        / (np.sqrt(-self.span**2 + self.rocket_radius**2))
+                        (self.span) / (np.sqrt(-self.span**2 + self.rocket_radius**2))
                     )
                     - np.pi
                     * self.rocket_radius**2
