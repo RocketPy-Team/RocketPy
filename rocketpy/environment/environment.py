@@ -345,25 +345,91 @@ class Environment:
         -------
         None
         """
-        # Initialize constants
-        self.earth_radius = 6.3781 * (10**6)
-        self.air_gas_constant = 287.05287  # in J/K/Kg
-        self.standard_g = 9.80665
-
-        # Initialize launch site details
-        self.elevation = elevation
-        self.set_elevation(elevation)
-        self._max_expected_height = max_expected_height
+        # Initialize constants and atmospheric variables
+        self.__initialize_empty_variables()
+        self.__initialize_constants()
+        self.__initialize_elevation_and_max_height(elevation, max_expected_height)
 
         # Initialize plots and prints objects
         self.prints = _EnvironmentPrints(self)
         self.plots = _EnvironmentPlots(self)
 
-        # Initialize atmosphere
+        # Set the atmosphere model to the standard atmosphere
         self.set_atmospheric_model("standard_atmosphere")
 
-        # Save date
-        if date != None:
+        # Initialize date, latitude, longitude, and Earth geometry
+        self.__initialize_date(date, timezone)
+        self.__initialize_lat_and_lon(latitude, longitude)
+        self.__initialize_earth_geometry(datum)
+        self.__initialize_utm_coordinates()
+
+        # Set the gravity model
+        self.gravity = self.set_gravity_model(gravity)
+
+    def __initialize_constants(self):
+        """Sets some important constants and atmospheric variables."""
+        self.earth_radius = 6.3781 * (10**6)
+        self.air_gas_constant = 287.05287  # in J/K/Kg
+        self.standard_g = 9.80665
+        self.__weather_model_map = WeatherModelMapping()
+        self.__atm_type_file_to_function_map = {
+            ("Forecast", "GFS"): fetch_gfs_file_return_dataset,
+            ("Forecast", "NAM"): fetch_nam_file_return_dataset,
+            ("Forecast", "RAP"): fetch_rap_file_return_dataset,
+            ("Forecast", "HIRESW"): fetch_hiresw_file_return_dataset,
+            ("Ensemble", "GEFS"): fetch_gefs_ensemble,
+            ("Ensemble", "CMC"): fetch_cmc_ensemble,
+        }
+        self.__standard_atmosphere_layers = {
+            "geopotential_height": [  # in geopotential m
+                -2e3,
+                0,
+                11e3,
+                20e3,
+                32e3,
+                47e3,
+                51e3,
+                71e3,
+                80e3,
+            ],
+            "temperature": [  # in K
+                301.15,
+                288.15,
+                216.65,
+                216.65,
+                228.65,
+                270.65,
+                270.65,
+                214.65,
+                196.65,
+            ],
+            "beta": [-6.5e-3, -6.5e-3, 0, 1e-3, 2.8e-3, 0, -2.8e-3, -2e-3, 0],  # in K/m
+            "pressure": [  # in Pa
+                1.27774e5,
+                1.01325e5,
+                2.26320e4,
+                5.47487e3,
+                8.680164e2,
+                1.10906e2,
+                6.69384e1,
+                3.95639e0,
+                8.86272e-2,
+            ],
+        }
+
+    def __initialize_empty_variables(self):
+        self.atmospheric_model_file = str()
+        self.atmospheric_model_dict = {}
+
+    def __initialize_elevation_and_max_height(self, elevation, max_expected_height):
+        """Saves the elevation and the maximum expected height."""
+        self.elevation = elevation
+        self.set_elevation(elevation)
+        self._max_expected_height = max_expected_height
+
+    def __initialize_date(self, date, timezone):
+        """Saves the date and configure timezone."""
+        if date is not None:
             self.set_date(date, timezone)
         else:
             self.date = None
@@ -371,19 +437,25 @@ class Environment:
             self.local_date = None
             self.timezone = None
 
-        # Initialize Earth geometry and save datum
+    def __initialize_earth_geometry(self, datum):
+        """Initialize Earth geometry, save datum and Recalculate Earth Radius"""
         self.datum = datum
         self.ellipsoid = self.set_earth_geometry(datum)
+        self.earth_radius = self.calculate_earth_radius(
+            lat=self.latitude,
+            semi_major_axis=self.ellipsoid.semi_major_axis,
+            flattening=self.ellipsoid.flattening,
+        )
 
-        # Save latitude and longitude
-        self.latitude = latitude
-        self.longitude = longitude
-        if latitude != None and longitude != None:
+    def __initialize_lat_and_lon(self, latitude, longitude):
+        """Saves latitude and longitude coordinates."""
+        if isinstance(latitude, (int, float)) and isinstance(longitude, (int, float)):
             self.set_location(latitude, longitude)
         else:
             self.latitude, self.longitude = None, None
 
-        # Store launch site coordinates referenced to UTM projection system
+    def __initialize_utm_coordinates(self):
+        """Store launch site coordinates referenced to UTM projection system."""
         if self.latitude > -80 and self.latitude < 84:
             convert = self.geodesic_to_utm(
                 lat=self.latitude,
@@ -398,18 +470,17 @@ class Environment:
             self.initial_utm_letter = convert[3]
             self.initial_hemisphere = convert[4]
             self.initial_ew = convert[5]
-
-        # Set gravity model
-        self.gravity = self.set_gravity_model(gravity)
-
-        # Recalculate Earth Radius (meters)
-        self.earth_radius = self.calculate_earth_radius(
-            lat=self.latitude,
-            semi_major_axis=self.ellipsoid.semi_major_axis,
-            flattening=self.ellipsoid.flattening,
-        )
-
-        return None
+        else:
+            print(
+                "UTM coordinates are not available for latitudes "
+                "above 84 or below -80 degrees."
+            )
+            self.initial_north = None
+            self.initial_east = None
+            self.initial_utm_zone = None
+            self.initial_utm_letter = None
+            self.initial_hemisphere = None
+            self.initial_ew = None
 
     def set_date(self, date, timezone="UTC"):
         """Set date and time of launch and update weather conditions if
