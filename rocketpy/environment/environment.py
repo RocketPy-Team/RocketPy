@@ -1254,279 +1254,35 @@ class Environment:
             self.process_standard_atmosphere()
         elif type == "wyoming_sounding":
             self.process_wyoming_sounding(file)
-            # Save file
-            self.atmospheric_model_file = file
         elif type == "NOAARucSounding":
             self.process_noaaruc_sounding(file)
-            # Save file
-            self.atmospheric_model_file = file
-        elif type == "Forecast" or type == "Reanalysis":
-            # Process default forecasts if requested
-            if file == "GFS":
-                # Define dictionary
-                dictionary = {
-                    "time": "time",
-                    "latitude": "lat",
-                    "longitude": "lon",
-                    "level": "lev",
-                    "temperature": "tmpprs",
-                    "surface_geopotential_height": "hgtsfc",
-                    "geopotential_height": "hgtprs",
-                    "geopotential": None,
-                    "u_wind": "ugrdprs",
-                    "v_wind": "vgrdprs",
-                }
-                # Attempt to get latest forecast
-                time_attempt = datetime.utcnow()
-                success = False
-                attempt_count = 0
-                while not success and attempt_count < 10:
-                    time_attempt -= timedelta(hours=6 * attempt_count)
-                    file = "https://nomads.ncep.noaa.gov/dods/gfs_0p25/gfs{:04d}{:02d}{:02d}/gfs_0p25_{:02d}z".format(
-                        time_attempt.year,
-                        time_attempt.month,
-                        time_attempt.day,
-                        6 * (time_attempt.hour // 6),
-                    )
-                    try:
-                        self.process_forecast_reanalysis(file, dictionary)
-                        success = True
-                    except OSError:
-                        attempt_count += 1
-                if not success:
-                    raise RuntimeError(
-                        "Unable to load latest weather data for GFS through " + file
-                    )
-            elif file == "FV3":
-                # Define dictionary
-                dictionary = {
-                    "time": "time",
-                    "latitude": "lat",
-                    "longitude": "lon",
-                    "level": "lev",
-                    "temperature": "tmpprs",
-                    "surface_geopotential_height": "hgtsfc",
-                    "geopotential_height": "hgtprs",
-                    "geopotential": None,
-                    "u_wind": "ugrdprs",
-                    "v_wind": "vgrdprs",
-                }
-                # Attempt to get latest forecast
-                time_attempt = datetime.utcnow()
-                success = False
-                attempt_count = 0
-                while not success and attempt_count < 10:
-                    time_attempt -= timedelta(hours=6 * attempt_count)
-                    file = "https://nomads.ncep.noaa.gov/dods/gfs_0p25_parafv3/gfs{:04d}{:02d}{:02d}/gfs_0p25_parafv3_{:02d}z".format(
-                        time_attempt.year,
-                        time_attempt.month,
-                        time_attempt.day,
-                        6 * (time_attempt.hour // 6),
-                    )
-                    try:
-                        self.process_forecast_reanalysis(file, dictionary)
-                        success = True
-                    except OSError:
-                        attempt_count += 1
-                if not success:
-                    raise RuntimeError(
-                        "Unable to load latest weather data for FV3 through " + file
-                    )
-            elif file == "NAM":
-                # Define dictionary
-                dictionary = {
-                    "time": "time",
-                    "latitude": "lat",
-                    "longitude": "lon",
-                    "level": "lev",
-                    "temperature": "tmpprs",
-                    "surface_geopotential_height": "hgtsfc",
-                    "geopotential_height": "hgtprs",
-                    "geopotential": None,
-                    "u_wind": "ugrdprs",
-                    "v_wind": "vgrdprs",
-                }
-                # Attempt to get latest forecast
-                time_attempt = datetime.utcnow()
-                success = False
-                attempt_count = 0
-                while not success and attempt_count < 10:
-                    time_attempt -= timedelta(hours=6 * attempt_count)
-                    file = "https://nomads.ncep.noaa.gov/dods/nam/nam{:04d}{:02d}{:02d}/nam_conusnest_{:02d}z".format(
-                        time_attempt.year,
-                        time_attempt.month,
-                        time_attempt.day,
-                        6 * (time_attempt.hour // 6),
-                    )
-                    try:
-                        self.process_forecast_reanalysis(file, dictionary)
-                        success = True
-                    except OSError:
-                        attempt_count += 1
-                if not success:
-                    raise RuntimeError(
-                        "Unable to load latest weather data for NAM through " + file
-                    )
-            elif file == "RAP":
-                # Define dictionary
-                dictionary = {
-                    "time": "time",
-                    "latitude": "lat",
-                    "longitude": "lon",
-                    "level": "lev",
-                    "temperature": "tmpprs",
-                    "surface_geopotential_height": "hgtsfc",
-                    "geopotential_height": "hgtprs",
-                    "geopotential": None,
-                    "u_wind": "ugrdprs",
-                    "v_wind": "vgrdprs",
-                }
-                # Attempt to get latest forecast
-                time_attempt = datetime.utcnow()
-                success = False
-                attempt_count = 0
-                while not success and attempt_count < 10:
-                    time_attempt -= timedelta(hours=1 * attempt_count)
-                    file = "https://nomads.ncep.noaa.gov/dods/rap/rap{:04d}{:02d}{:02d}/rap_{:02d}z".format(
-                        time_attempt.year,
-                        time_attempt.month,
-                        time_attempt.day,
-                        time_attempt.hour,
-                    )
-                    try:
-                        self.process_forecast_reanalysis(file, dictionary)
-                        success = True
-                    except OSError:
-                        attempt_count += 1
-                if not success:
-                    raise RuntimeError(
-                        "Unable to load latest weather data for RAP through " + file
-                    )
-            # Process other forecasts or reanalysis
-            else:
-                # Check if default dictionary was requested
-                if dictionary == "ECMWF":
-                    dictionary = {
-                        "time": "time",
-                        "latitude": "latitude",
-                        "longitude": "longitude",
-                        "level": "level",
-                        "temperature": "t",
-                        "surface_geopotential_height": None,
-                        "geopotential_height": None,
-                        "geopotential": "z",
-                        "u_wind": "u",
-                        "v_wind": "v",
-                    }
-                elif dictionary == "NOAA":
-                    dictionary = {
-                        "time": "time",
-                        "latitude": "lat",
-                        "longitude": "lon",
-                        "level": "lev",
-                        "temperature": "tmpprs",
-                        "surface_geopotential_height": "hgtsfc",
-                        "geopotential_height": "hgtprs",
-                        "geopotential": None,
-                        "u_wind": "ugrdprs",
-                        "v_wind": "vgrdprs",
-                    }
-                elif dictionary is None:
-                    raise TypeError(
-                        "Please specify a dictionary or choose a default one such as ECMWF or NOAA."
-                    )
-                # Process forecast or reanalysis
-                self.process_forecast_reanalysis(file, dictionary)
-            # Save dictionary and file
-            self.atmospheric_model_file = file
-            self.atmospheric_model_dict = dictionary
-        elif type == "Ensemble":
-            # Process default forecasts if requested
-            if file == "GEFS":
-                # Define dictionary
-                dictionary = {
-                    "time": "time",
-                    "latitude": "lat",
-                    "longitude": "lon",
-                    "level": "lev",
-                    "ensemble": "ens",
-                    "temperature": "tmpprs",
-                    "surface_geopotential_height": None,
-                    "geopotential_height": "hgtprs",
-                    "geopotential": None,
-                    "u_wind": "ugrdprs",
-                    "v_wind": "vgrdprs",
-                }
-                # Attempt to get latest forecast
-                self.__fetch_gefs_ensemble(dictionary)
-
-            elif file == "CMC":
-                # Define dictionary
-                dictionary = {
-                    "time": "time",
-                    "latitude": "lat",
-                    "longitude": "lon",
-                    "level": "lev",
-                    "ensemble": "ens",
-                    "temperature": "tmpprs",
-                    "surface_geopotential_height": None,
-                    "geopotential_height": "hgtprs",
-                    "geopotential": None,
-                    "u_wind": "ugrdprs",
-                    "v_wind": "vgrdprs",
-                }
-                self.__fetch_cmc_ensemble(dictionary)
-            # Process other forecasts or reanalysis
-            else:
-                # Check if default dictionary was requested
-                if dictionary == "ECMWF":
-                    dictionary = {
-                        "time": "time",
-                        "latitude": "latitude",
-                        "longitude": "longitude",
-                        "level": "level",
-                        "ensemble": "number",
-                        "temperature": "t",
-                        "surface_geopotential_height": None,
-                        "geopotential_height": None,
-                        "geopotential": "z",
-                        "u_wind": "u",
-                        "v_wind": "v",
-                    }
-                elif dictionary == "NOAA":
-                    dictionary = {
-                        "time": "time",
-                        "latitude": "lat",
-                        "longitude": "lon",
-                        "level": "lev",
-                        "ensemble": "ens",
-                        "temperature": "tmpprs",
-                        "surface_geopotential_height": None,
-                        "geopotential_height": "hgtprs",
-                        "geopotential": None,
-                        "u_wind": "ugrdprs",
-                        "v_wind": "vgrdprs",
-                    }
-                # Process forecast or reanalysis
-                self.process_ensemble(file, dictionary)
-            # Save dictionary and file
-            self.atmospheric_model_file = file
-            self.atmospheric_model_dict = dictionary
         elif type == "custom_atmosphere":
             self.process_custom_atmosphere(pressure, temperature, wind_u, wind_v)
         elif type == "Windy":
             self.process_windy_atmosphere(file)
+        elif type in ["Forecast", "Reanalysis", "Ensemble"]:
+            dictionary = self.__validate_dictionary(file, dictionary)
+            fetch_function = self.__atm_type_file_to_function_map.get((type, file))
+
+            # Fetches the dataset using OpenDAP protocol or uses the file path
+            dataset = fetch_function() if fetch_function is not None else file
+
+            if type in ["Forecast", "Reanalysis"]:
+                self.process_forecast_reanalysis(dataset, dictionary)
+            else:
+                self.process_ensemble(dataset, dictionary)
         else:
             raise ValueError("Unknown model type.")
 
-        # Calculate air density
-        self.calculate_density_profile()
+        if type not in ["Ensemble"]:
+            # Ensemble already computed these values
+            self.calculate_density_profile()
+            self.calculate_speed_of_sound_profile()
+            self.calculate_dynamic_viscosity()
 
-        # Calculate speed of sound
-        self.calculate_speed_of_sound_profile()
-
-        # Update dynamic viscosity
-        self.calculate_dynamic_viscosity()
+        # Save dictionary and file
+        self.atmospheric_model_file = file
+        self.atmospheric_model_dict = dictionary
 
     # Atmospheric model processing methods
 
