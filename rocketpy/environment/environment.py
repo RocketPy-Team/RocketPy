@@ -1401,17 +1401,9 @@ class Environment:
             self.barometric_height = self.barometric_height_ISA
         else:
             # Use custom input
-            self.pressure = Function(
-                pressure,
-                inputs="Height Above Sea Level (m)",
-                outputs="Pressure (Pa)",
-                interpolation="linear",
-            )
-            self.barometric_height = self.pressure.inverse_function().set_discrete(
-                0, max_expected_height, 100, extrapolation="constant"
-            )
-            self.barometric_height.set_inputs("Pressure (Pa)")
-            self.barometric_height.set_outputs("Height Above Sea Level (m)")
+            self.__set_pressure_function(pressure)
+            self.__reset_barometric_height_function()
+
             # Check maximum height of custom pressure input
             if not callable(self.pressure.source):
                 max_expected_height = max(self.pressure[-1, 0], max_expected_height)
@@ -1421,74 +1413,29 @@ class Environment:
             # Use standard atmosphere
             self.temperature = self.temperature_ISA
         else:
-            self.temperature = Function(
-                temperature,
-                inputs="Height Above Sea Level (m)",
-                outputs="Temperature (K)",
-                interpolation="linear",
-            )
+            self.__set_temperature_function(temperature)
             # Check maximum height of custom temperature input
             if not callable(self.temperature.source):
                 max_expected_height = max(self.temperature[-1, 0], max_expected_height)
 
         # Save wind profile
-        self.wind_velocity_x = Function(
-            wind_u,
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Velocity X (m/s)",
-            interpolation="linear",
-        )
-        self.wind_velocity_y = Function(
-            wind_v,
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Velocity Y (m/s)",
-            interpolation="linear",
-        )
+        self.__set_wind_velocity_x_function(wind_u)
+        self.__set_wind_velocity_y_function(wind_v)
         # Check maximum height of custom wind input
         if not callable(self.wind_velocity_x.source):
             max_expected_height = max(self.wind_velocity_x[-1, 0], max_expected_height)
 
-        def wind_heading_func(h):
-            return (
-                np.arctan2(
-                    self.wind_velocity_x.get_value_opt(h),
-                    self.wind_velocity_y.get_value_opt(h),
-                )
-                * (180 / np.pi)
-                % 360
+        def wind_heading_func(h):  # TODO: create another custom reset for heading
+            return calculate_wind_heading(
+                self.wind_velocity_x.get_value_opt(h),
+                self.wind_velocity_y.get_value_opt(h),
             )
 
-        self.wind_heading = Function(
-            wind_heading_func,
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Heading (Deg True)",
-            interpolation="linear",
-        )
+        self.__set_wind_heading_function(wind_heading_func)
 
-        def wind_direction(h):
-            return (wind_heading_func(h) - 180) % 360
+        self.__reset_wind_direction_function()
+        self.__reset_wind_speed_function()
 
-        self.wind_direction = Function(
-            wind_direction,
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Direction (Deg True)",
-            interpolation="linear",
-        )
-
-        def wind_speed(h):
-            return np.sqrt(
-                self.wind_velocity_x.get_value_opt(h) ** 2
-                + self.wind_velocity_y.get_value_opt(h) ** 2
-            )
-
-        self.wind_speed = Function(
-            wind_speed,
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Speed (m/s)",
-            interpolation="linear",
-        )
-
-        # Save maximum expected height
         self.max_expected_height = max_expected_height
 
     def process_windy_atmosphere(self, model="ECMWF"):
