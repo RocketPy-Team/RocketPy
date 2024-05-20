@@ -8,12 +8,15 @@ SAVEFIG_DPI = 300
 
 
 def show_or_save_plot(filename=None):
-    """Shows or saves the current matplotlib plot. If a filename is given, the plot will be saved, otherwise it will be shown.
+    """Shows or saves the current matplotlib plot. If a filename is given, the
+    plot will be saved, otherwise it will be shown.
 
     Parameters
     ----------
     filename : str | None, optional
-        The path the plot should be saved to, by default None. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
+        The path the plot should be saved to, by default None. Supported file
+        endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz,
+        tif, tiff and webp (these are the formats supported by matplotlib).
     """
     if filename == None:
         plt.show()
@@ -35,14 +38,17 @@ def show_or_save_plot(filename=None):
 
 
 def show_or_save_fig(fig: Figure, filename=None):
-    """Shows or saves the given matplotlib Figure. If a filename is given, the figure will be saved, otherwise it will be shown.
+    """Shows or saves the given matplotlib Figure. If a filename is given, the
+    figure will be saved, otherwise it will be shown.
 
     Parameters
     ----------
     fig : matplotlib.figure.Figure
         The figure to be saved or shown.
     filename : str | None, optional
-        The path the figure should be saved to, by default None. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
+        The path the figure should be saved to, by default None. Supported file
+        endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz,
+        tif, tiff and webp (these are the formats supported by matplotlib).
     """
     if filename == None:
         fig.show()

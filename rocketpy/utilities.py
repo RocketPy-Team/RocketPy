@@ -231,7 +231,10 @@ def fin_flutter_analysis(
         True if you want to see the graphs, False otherwise. If False, the
         function will return the vectors containing the data for the graphs.
     filename : str | None, optional
-        The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
+        The path the plot should be saved to. By default None, in which case the
+        plot will be shown instead of saved. Supported file endings are: eps,
+        jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp
+        (these are the formats supported by matplotlib).
 
     Return
     ------
@@ -319,7 +322,10 @@ def _flutter_plots(flight, flutter_mach, safety_factor, filename=None):
         Function containing the Safety Factor for the fin flutter.
         See fin_flutter_analysis for more details.
     filename : str | None, optional
-        The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
+        The path the plot should be saved to. By default None, in which case the
+        plot will be shown instead of saved. Supported file endings are: eps,
+        jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp
+        (these are the formats supported by matplotlib).
 
     Returns
     -------

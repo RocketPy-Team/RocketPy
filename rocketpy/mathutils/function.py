@@ -1100,7 +1100,10 @@ class Function:
             returned. If the function is N-D, N arguments must be given, each
             one being an scalar or list.
         filename : str | None, optional
-            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -1232,7 +1235,10 @@ class Function:
             which the Function was evaluated in the dataset. Default value is
             False.
         filename : str | None, optional
-            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -1337,7 +1343,10 @@ class Function:
             Colormap of plotted graph, which can be any of the color maps
             available in matplotlib. Default value is viridis.
         filename : str | None, optional
-            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -1472,7 +1481,10 @@ class Function:
         show : bool, optional
             If True, shows the plot. Default value is True.
         filename : str | None, optional
-            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------

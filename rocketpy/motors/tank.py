@@ -491,7 +491,10 @@ class Tank(ABC):
         Parameters
         ----------
         filename : str | None, optional
-            The path the plot should be saved to. By default None, in which case the plot will be shown instead of saved. Supported file endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp.
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
