@@ -2463,14 +2463,8 @@ class Environment:
         None
         """
         # Recalculate wind_velocity_x and wind_velocity_y
-        self.wind_velocity_x = self.wind_velocity_x + wind_gust_x
-        self.wind_velocity_y = self.wind_velocity_y + wind_gust_y
-
-        # Reset wind_velocity_x and wind_velocity_y details
-        self.wind_velocity_x.set_inputs("Height (m)")
-        self.wind_velocity_x.set_outputs("Wind Velocity X (m/s)")
-        self.wind_velocity_y.set_inputs("Height (m)")
-        self.wind_velocity_y.set_outputs("Wind Velocity Y (m/s)")
+        self.__set_wind_velocity_x_function(self.wind_velocity_x + wind_gust_x)
+        self.__set_wind_velocity_y_function(self.wind_velocity_y + wind_gust_y)
 
         # Reset wind heading and velocity magnitude
         self.wind_heading = Function(
