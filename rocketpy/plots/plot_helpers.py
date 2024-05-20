@@ -28,7 +28,6 @@ def show_or_save_plot(filename=None):
                 f"Warning: Unsupported file ending '{file_ending}'!", UserWarning
             )
 
-
         # Before export, ensure the folder the file should go into exists
         Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
