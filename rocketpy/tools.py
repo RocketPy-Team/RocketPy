@@ -303,6 +303,36 @@ def time_num_to_date_string(time_num, units, timezone, calendar="gregorian"):
     return date_string, hour_string, date_time
 
 
+def geopotential_height_to_geometric_height(geopotential_height, radius=63781370.0):
+    """Converts geopotential height to geometric height.
+
+    Parameters
+    ----------
+    geopotential_height : float
+        Geopotential height in meters. This vertical coordinate, referenced to
+        Earth's mean sea level, accounts for variations in gravity with altitude
+        and latitude.
+    radius : float, optional
+        The Earth's radius in meters, defaulting to 6378137.0.
+
+    Returns
+    -------
+    geometric_height : float
+        Geometric height in meters.
+
+    Examples
+    --------
+    >>> from rocketpy.tools import geopotential_height_to_geometric_height
+    >>> geopotential_height_to_geometric_height(0)
+    10001.568101798659
+    >>> geopotential_height_to_geometric_height(10000)
+    10001.57
+    >>> geopotential_height_to_geometric_height(20000)
+    20006.2733909262
+    """
+    return radius * geopotential_height / (radius - geopotential_height)
+
+
 def geopotential_to_height_asl(geopotential, radius=63781370, g=9.80665):
     """Compute height above sea level from geopotential.
 
@@ -334,7 +364,7 @@ def geopotential_to_height_asl(geopotential, radius=63781370, g=9.80665):
     20400.84750449947
     """
     geopotential_height = geopotential / g
-    return radius * geopotential_height / (radius - geopotential_height)
+    return geopotential_height_to_geometric_height(geopotential_height, radius)
 
 
 def geopotential_to_height_agl(geopotential, elevation, radius=63781370, g=9.80665):
