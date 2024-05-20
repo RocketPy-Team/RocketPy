@@ -1777,7 +1777,6 @@ class Environment:
         # Save maximum expected height
         self.max_expected_height = pressure_array[-1, 0]
 
-    @requires_netCDF4
     def process_forecast_reanalysis(self, file, dictionary):
         """Import and process atmospheric data from weather forecasts
         and reanalysis given as ``netCDF`` or ``OPeNDAP`` files.
@@ -1836,132 +1835,37 @@ class Environment:
         None
         """
         # Check if date, lat and lon are known
-        if self.datetime_date is None:
-            raise TypeError(
-                "Please specify Date (array-like) when "
-                "initializing this Environment. "
-                "Alternatively, use the Environment.set_date"
-                " method."
-            )
-        if self.latitude is None:
-            raise TypeError(
-                "Please specify Location (lat, lon). when "
-                "initializing this Environment. "
-                "Alternatively, use the Environment."
-                "set_location method."
-            )
+        self.__validate_datetime()
+        self.__validate_coordinates()
 
         # Read weather file
-        weather_data = netCDF4.Dataset(file)
+        if isinstance(file, str):
+            data = netCDF4.Dataset(file)
+        else:
+            data = file
 
         # Get time, latitude and longitude data from file
-        time_array = weather_data.variables[dictionary["time"]]
-        lon_array = weather_data.variables[dictionary["longitude"]][:].tolist()
-        lat_array = weather_data.variables[dictionary["latitude"]][:].tolist()
+        time_array = data.variables[dictionary["time"]]
+        lon_list = data.variables[dictionary["longitude"]][:].tolist()
+        lat_list = data.variables[dictionary["latitude"]][:].tolist()
 
-        # Find time index
-        time_index = netCDF4.date2index(
-            self.datetime_date, time_array, calendar="gregorian", select="nearest"
-        )
-        # Convert times do dates and numbers
-        input_time_num = netCDF4.date2num(
-            self.datetime_date, time_array.units, calendar="gregorian"
-        )
-        file_time_num = time_array[time_index]
-        file_time_date = netCDF4.num2date(
-            time_array[time_index], time_array.units, calendar="gregorian"
-        )
-        # Check if time is inside range supplied by file
-        if time_index == 0 and input_time_num < file_time_num:
-            raise ValueError(
-                "Chosen launch time is not available in the provided file, which starts at {:}.".format(
-                    file_time_date
-                )
-            )
-        elif time_index == len(time_array) - 1 and input_time_num > file_time_num:
-            raise ValueError(
-                "Chosen launch time is not available in the provided file, which ends at {:}.".format(
-                    file_time_date
-                )
-            )
-        # Check if time is exactly equal to one in the file
-        if input_time_num != file_time_num:
-            warnings.warn(
-                "Exact chosen launch time is not available in the provided file, using {:} UTC instead.".format(
-                    file_time_date
-                )
-            )
-
-        # Find longitude index
-        # Determine if file uses -180 to 180 or 0 to 360
-        if lon_array[0] < 0 or lon_array[-1] < 0:
-            # Convert input to -180 - 180
-            lon = (
-                self.longitude if self.longitude < 180 else -180 + self.longitude % 180
-            )
-        else:
-            # Convert input to 0 - 360
-            lon = self.longitude % 360
-        # Check if reversed or sorted
-        if lon_array[0] < lon_array[-1]:
-            # Deal with sorted lon_array
-            lon_index = bisect.bisect(lon_array, lon)
-        else:
-            # Deal with reversed lon_array
-            lon_array.reverse()
-            lon_index = len(lon_array) - bisect.bisect_left(lon_array, lon)
-            lon_array.reverse()
-        # Take care of longitude value equal to maximum longitude in the grid
-        if lon_index == len(lon_array) and lon_array[lon_index - 1] == lon:
-            lon_index = lon_index - 1
-        # Check if longitude value is inside the grid
-        if lon_index == 0 or lon_index == len(lon_array):
-            raise ValueError(
-                "Longitude {:f} not inside region covered by file, which is from {:f} to {:f}.".format(
-                    lon, lon_array[0], lon_array[-1]
-                )
-            )
-
-        # Find latitude index
-        # Check if reversed or sorted
-        if lat_array[0] < lat_array[-1]:
-            # Deal with sorted lat_array
-            lat_index = bisect.bisect(lat_array, self.latitude)
-        else:
-            # Deal with reversed lat_array
-            lat_array.reverse()
-            lat_index = len(lat_array) - bisect.bisect_left(lat_array, self.latitude)
-            lat_array.reverse()
-        # Take care of latitude value equal to maximum longitude in the grid
-        if lat_index == len(lat_array) and lat_array[lat_index - 1] == self.latitude:
-            lat_index = lat_index - 1
-        # Check if latitude value is inside the grid
-        if lat_index == 0 or lat_index == len(lat_array):
-            raise ValueError(
-                "Latitude {:f} not inside region covered by file, which is from {:f} to {:f}.".format(
-                    self.latitude, lat_array[0], lat_array[-1]
-                )
-            )
+        # Find time, latitude and longitude indexes
+        time_index = find_time_index(self.datetime_date, time_array)
+        lon, lon_index = find_longitude_index(self.longitude, lon_list)
+        _, lat_index = find_latitude_index(self.latitude, lat_list)
 
         # Get pressure level data from file
-        try:
-            levels = (
-                100 * weather_data.variables[dictionary["level"]][:]
-            )  # Convert mbar to Pa
-        except:
-            raise ValueError(
-                "Unable to read pressure levels from file. Check file and dictionary."
-            )
+        levels = get_pressure_levels_from_file(data, dictionary)
 
         # Get geopotential data from file
         try:
-            geopotentials = weather_data.variables[dictionary["geopotential_height"]][
+            geopotentials = data.variables[dictionary["geopotential_height"]][
                 time_index, :, (lat_index - 1, lat_index), (lon_index - 1, lon_index)
             ]
-        except:
+        except KeyError:
             try:
                 geopotentials = (
-                    weather_data.variables[dictionary["geopotential"]][
+                    data.variables[dictionary["geopotential"]][
                         time_index,
                         :,
                         (lat_index - 1, lat_index),
@@ -1969,7 +1873,7 @@ class Environment:
                     ]
                     / self.standard_g
                 )
-            except:
+            except KeyError:
                 raise ValueError(
                     "Unable to read geopotential height"
                     " nor geopotential from file. At least"
@@ -1979,7 +1883,7 @@ class Environment:
 
         # Get temperature from file
         try:
-            temperatures = weather_data.variables[dictionary["temperature"]][
+            temperatures = data.variables[dictionary["temperature"]][
                 time_index, :, (lat_index - 1, lat_index), (lon_index - 1, lon_index)
             ]
         except:
@@ -1989,192 +1893,83 @@ class Environment:
 
         # Get wind data from file
         try:
-            wind_us = weather_data.variables[dictionary["u_wind"]][
+            wind_us = data.variables[dictionary["u_wind"]][
                 time_index, :, (lat_index - 1, lat_index), (lon_index - 1, lon_index)
             ]
-        except:
+        except KeyError as e:
             raise ValueError(
                 "Unable to read wind-u component. Check file and dictionary."
-            )
+            ) from e
         try:
-            wind_vs = weather_data.variables[dictionary["v_wind"]][
+            wind_vs = data.variables[dictionary["v_wind"]][
                 time_index, :, (lat_index - 1, lat_index), (lon_index - 1, lon_index)
             ]
-        except:
+        except KeyError as e:
             raise ValueError(
                 "Unable to read wind-v component. Check file and dictionary."
-            )
+            ) from e
 
         # Prepare for bilinear interpolation
         x, y = self.latitude, lon
-        x1, y1 = lat_array[lat_index - 1], lon_array[lon_index - 1]
-        x2, y2 = lat_array[lat_index], lon_array[lon_index]
+        x1, y1 = lat_list[lat_index - 1], lon_list[lon_index - 1]
+        x2, y2 = lat_list[lat_index], lon_list[lon_index]
 
-        # Determine geopotential in lat, lon
-        f_x1_y1 = geopotentials[:, 0, 0]
-        f_x1_y2 = geopotentials[:, 0, 1]
-        f_x2_y1 = geopotentials[:, 1, 0]
-        f_x2_y2 = geopotentials[:, 1, 1]
-        f_x_y1 = ((x2 - x) / (x2 - x1)) * f_x1_y1 + ((x - x1) / (x2 - x1)) * f_x2_y1
-        f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + ((x - x1) / (x2 - x1)) * f_x2_y2
-        height = ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
-
-        # Determine temperature in lat, lon
-        f_x1_y1 = temperatures[:, 0, 0]
-        f_x1_y2 = temperatures[:, 0, 1]
-        f_x2_y1 = temperatures[:, 1, 0]
-        f_x2_y2 = temperatures[:, 1, 1]
-        f_x_y1 = ((x2 - x) / (x2 - x1)) * f_x1_y1 + ((x - x1) / (x2 - x1)) * f_x2_y1
-        f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + ((x - x1) / (x2 - x1)) * f_x2_y2
-        temperature = ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
-
-        # Determine wind u in lat, lon
-        f_x1_y1 = wind_us[:, 0, 0]
-        f_x1_y2 = wind_us[:, 0, 1]
-        f_x2_y1 = wind_us[:, 1, 0]
-        f_x2_y2 = wind_us[:, 1, 1]
-        f_x_y1 = ((x2 - x) / (x2 - x1)) * f_x1_y1 + ((x - x1) / (x2 - x1)) * f_x2_y1
-        f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + ((x - x1) / (x2 - x1)) * f_x2_y2
-        wind_u = ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
-
-        # Determine wind v in lat, lon
-        f_x1_y1 = wind_vs[:, 0, 0]
-        f_x1_y2 = wind_vs[:, 0, 1]
-        f_x2_y1 = wind_vs[:, 1, 0]
-        f_x2_y2 = wind_vs[:, 1, 1]
-        f_x_y1 = ((x2 - x) / (x2 - x1)) * f_x1_y1 + ((x - x1) / (x2 - x1)) * f_x2_y1
-        f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + ((x - x1) / (x2 - x1)) * f_x2_y2
-        wind_v = ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
+        # Determine properties in lat, lon
+        height = apply_bilinear_interpolation(x, y, x1, x2, y1, y2, geopotentials)
+        temper = apply_bilinear_interpolation(x, y, x1, x2, y1, y2, temperatures)
+        wind_u = apply_bilinear_interpolation(x, y, x1, x2, y1, y2, wind_us)
+        wind_v = apply_bilinear_interpolation(x, y, x1, x2, y1, y2, wind_vs)
 
         # Determine wind speed, heading and direction
-        wind_speed = np.sqrt(wind_u**2 + wind_v**2)
-        wind_heading = np.arctan2(wind_u, wind_v) * (180 / np.pi) % 360
-        wind_direction = (wind_heading - 180) % 360
+        wind_speed = calculate_wind_speed(wind_u, wind_v)
+        wind_heading = calculate_wind_heading(wind_u, wind_v)
+        wind_direction = convert_wind_heading_to_direction(wind_heading)
 
         # Convert geopotential height to geometric height
-        R = self.earth_radius
-        height = R * height / (R - height)
+        height = geopotential_height_to_geometric_height(height, self.earth_radius)
 
         # Combine all data into big array
-        data_array = np.ma.column_stack(
-            [
-                levels,
-                height,
-                temperature,
-                wind_u,
-                wind_v,
-                wind_heading,
-                wind_direction,
-                wind_speed,
-            ]
+        data_array = mask_and_clean_dataset(
+            levels,
+            height,
+            temper,
+            wind_u,
+            wind_v,
+            wind_speed,
+            wind_heading,
+            wind_direction,
         )
-
-        # Remove lines with masked content
-        if np.any(data_array.mask):
-            data_array = np.ma.compress_rows(data_array)
-            warnings.warn(
-                "Some values were missing from this weather dataset, therefore, certain pressure levels were removed."
-            )
         # Save atmospheric data
-        self.pressure = Function(
-            data_array[:, (1, 0)],
-            inputs="Height Above Sea Level (m)",
-            outputs="Pressure (Pa)",
-            interpolation="linear",
-        )
-        # Linearly extrapolate pressure to ground level
-        bar_height = data_array[:, (0, 1)]
-        self.barometric_height = Function(
-            bar_height,
-            inputs="Pressure (Pa)",
-            outputs="Height Above Sea Level (m)",
-            interpolation="linear",
-            extrapolation="natural",
-        )
-        self.temperature = Function(
-            data_array[:, (1, 2)],
-            inputs="Height Above Sea Level (m)",
-            outputs="Temperature (K)",
-            interpolation="linear",
-        )
-        self.wind_direction = Function(
-            data_array[:, (1, 6)],
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Direction (Deg True)",
-            interpolation="linear",
-        )
-        self.wind_heading = Function(
-            data_array[:, (1, 5)],
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Heading (Deg True)",
-            interpolation="linear",
-        )
-        self.wind_speed = Function(
-            data_array[:, (1, 7)],
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Speed (m/s)",
-            interpolation="linear",
-        )
-        self.wind_velocity_x = Function(
-            data_array[:, (1, 3)],
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Velocity X (m/s)",
-            interpolation="linear",
-        )
-        self.wind_velocity_y = Function(
-            data_array[:, (1, 4)],
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Velocity Y (m/s)",
-            interpolation="linear",
-        )
+        self.__set_pressure_function(data_array[:, (1, 0)])
+        self.__set_barometric_height_function(data_array[:, (0, 1)])
+        self.__set_temperature_function(data_array[:, (1, 2)])
+        self.__set_wind_velocity_x_function(data_array[:, (1, 3)])
+        self.__set_wind_velocity_y_function(data_array[:, (1, 4)])
+        self.__set_wind_heading_function(data_array[:, (1, 5)])
+        self.__set_wind_direction_function(data_array[:, (1, 6)])
+        self.__set_wind_speed_function(data_array[:, (1, 7)])
 
         # Save maximum expected height
         self.max_expected_height = max(height[0], height[-1])
 
         # Get elevation data from file
         if dictionary["surface_geopotential_height"] is not None:
-            try:
-                elevations = weather_data.variables[
-                    dictionary["surface_geopotential_height"]
-                ][time_index, (lat_index - 1, lat_index), (lon_index - 1, lon_index)]
-                f_x1_y1 = elevations[0, 0]
-                f_x1_y2 = elevations[0, 1]
-                f_x2_y1 = elevations[1, 0]
-                f_x2_y2 = elevations[1, 1]
-                f_x_y1 = ((x2 - x) / (x2 - x1)) * f_x1_y1 + (
-                    (x - x1) / (x2 - x1)
-                ) * f_x2_y1
-                f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + (
-                    (x - x1) / (x2 - x1)
-                ) * f_x2_y2
-                self.elevation = ((y2 - y) / (y2 - y1)) * f_x_y1 + (
-                    (y - y1) / (y2 - y1)
-                ) * f_x_y2
-            except:
-                raise ValueError(
-                    "Unable to read surface elevation data. Check file and dictionary."
-                )
+            self.elevation = get_elevation_data_from_dataset(
+                dictionary, data, time_index, lat_index, lon_index, x, y, x1, x2, y1, y2
+            )
 
         # Compute info data
-        self.atmospheric_model_init_date = netCDF4.num2date(
-            time_array[0], time_array.units, calendar="gregorian"
-        )
-        self.atmospheric_model_end_date = netCDF4.num2date(
-            time_array[-1], time_array.units, calendar="gregorian"
-        )
-        self.atmospheric_model_interval = netCDF4.num2date(
-            (time_array[-1] - time_array[0]) / (len(time_array) - 1),
-            time_array.units,
-            calendar="gregorian",
-        ).hour
-        self.atmospheric_model_init_lat = lat_array[0]
-        self.atmospheric_model_end_lat = lat_array[-1]
-        self.atmospheric_model_init_lon = lon_array[0]
-        self.atmospheric_model_end_lon = lon_array[-1]
+        self.atmospheric_model_init_date = get_initial_data_from_time_array(time_array)
+        self.atmospheric_model_end_date = get_final_data_from_time_array(time_array)
+        self.atmospheric_model_interval = get_interval_data_from_time_array(time_array)
+        self.atmospheric_model_init_lat = lat_list[0]
+        self.atmospheric_model_end_lat = lat_list[-1]
+        self.atmospheric_model_init_lon = lon_list[0]
+        self.atmospheric_model_end_lon = lon_list[-1]
 
         # Save debugging data
-        self.lat_array = lat_array
-        self.lon_array = lon_array
+        self.lat_array = lat_list
+        self.lon_array = lon_list
         self.lon_index = lon_index
         self.lat_index = lat_index
         self.geopotentials = geopotentials
@@ -2186,7 +1981,7 @@ class Environment:
         self.height = height
 
         # Close weather data
-        weather_data.close()
+        data.close()
 
     def process_ensemble(self, file, dictionary):
         """Import and process atmospheric data from weather ensembles
