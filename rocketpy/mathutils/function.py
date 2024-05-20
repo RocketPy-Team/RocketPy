@@ -2266,6 +2266,23 @@ class Function:
         """
         return self.compose(other)
 
+    def __mod__(self, other):
+        """Operator % as an alias for modulo operation."""
+        if callable(self.source):
+            return Function(lambda x: self.source(x) % other)
+        elif isinstance(self.source, np.ndarray) and isinstance(other, NUMERICAL_TYPES):
+            return Function(
+                np.column_stack((self.x_array, self.y_array % other)),
+                self.__inputs__,
+                self.__outputs__,
+                self.__interpolation__,
+                self.__extrapolation__,
+            )
+        raise NotImplementedError(
+            "Modulo operation not implemented for operands of type "
+            f"'{type(self)}' and '{type(other)}'."
+        )
+
     def integral(self, a, b, numerical=False):
         """Evaluate a definite integral of a 1-D Function in the interval
         from a to b.
