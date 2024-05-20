@@ -44,7 +44,6 @@ from rocketpy.prints.environment_prints import _EnvironmentPrints
 from rocketpy.tools import geopotential_height_to_geometric_height
 
 
-
 class Environment:
     """Keeps all environment information stored, such as wind and temperature
     conditions, as well as gravity.
