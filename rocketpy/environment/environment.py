@@ -1436,7 +1436,7 @@ class Environment:
         # Update dynamic viscosity
         self.calculate_dynamic_viscosity()
 
-        return None
+    # Atmospheric model processing methods
 
     def process_standard_atmosphere(self):
         """Sets pressure and temperature profiles corresponding to the
@@ -1448,49 +1448,20 @@ class Environment:
         -------
         None
         """
-        # Load international standard atmosphere
-        self.load_international_standard_atmosphere()
-
         # Save temperature, pressure and wind profiles
         self.pressure = self.pressure_ISA
         self.barometric_height = self.barometric_height_ISA
-
         self.temperature = self.temperature_ISA
-        self.wind_direction = Function(
-            0,
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Direction (Deg True)",
-            interpolation="linear",
-        )
-        self.wind_heading = Function(
-            0,
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Heading (Deg True)",
-            interpolation="linear",
-        )
-        self.wind_speed = Function(
-            0,
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Speed (m/s)",
-            interpolation="linear",
-        )
-        self.wind_velocity_x = Function(
-            0,
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Velocity X (m/s)",
-            interpolation="linear",
-        )
-        self.wind_velocity_y = Function(
-            0,
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Velocity Y (m/s)",
-            interpolation="linear",
-        )
 
-        # Set maximum expected height
+        # Set wind profiles to zero
+        self.__set_wind_direction_function(0)
+        self.__set_wind_heading_function(0)
+        self.__set_wind_velocity_x_function(0)
+        self.__set_wind_velocity_y_function(0)
+        self.__set_wind_speed_function(0)
+
+        # 80k meters is the limit of the standard atmosphere
         self.max_expected_height = 80000
-
-        return None
 
     def process_custom_atmosphere(
         self, pressure=None, temperature=None, wind_u=0, wind_v=0
@@ -3028,8 +2999,6 @@ class Environment:
         # Update dynamic viscosity
         self.calculate_dynamic_viscosity()
 
-        return None
-
     def load_international_standard_atmosphere(self):
         """Defines the pressure and temperature profile functions set
         by `ISO 2533` for the International Standard atmosphere and saves
@@ -3038,73 +3007,42 @@ class Environment:
         Returns
         -------
         None
+
+        Notes
+        -----
+        This method is deprecated and will be removed in version 1.4.0. You can
+        access `Environment.pressure_ISA` and `Environment.temperature_ISA`
+        directly without the need to call this method.
         """
-        # Define international standard atmosphere layers
-        geopotential_height = [
-            -2e3,
-            0,
-            11e3,
-            20e3,
-            32e3,
-            47e3,
-            51e3,
-            71e3,
-            80e3,
-        ]  # in geopotential m
-        temperature = [
-            301.15,
-            288.15,
-            216.65,
-            216.65,
-            228.65,
-            270.65,
-            270.65,
-            214.65,
-            196.65,
-        ]  # in K
-        beta = [
-            -6.5e-3,
-            -6.5e-3,
-            0,
-            1e-3,
-            2.8e-3,
-            0,
-            -2.8e-3,
-            -2e-3,
-            0,
-        ]  # Temperature gradient in K/m
-        pressure = [
-            1.27774e5,
-            1.01325e5,
-            2.26320e4,
-            5.47487e3,
-            8.680164e2,
-            1.10906e2,
-            6.69384e1,
-            3.95639e0,
-            8.86272e-2,
-        ]  # in Pa
-
-        # Convert geopotential height to geometric height
-        ER = self.earth_radius
-        height = [ER * H / (ER - H) for H in geopotential_height]
-
-        # Save international standard atmosphere temperature profile
-        self.temperature_ISA = Function(
-            np.column_stack([height, temperature]),
-            inputs="Height Above Sea Level (m)",
-            outputs="Temperature (K)",
-            interpolation="linear",
+        warnings.warn(
+            "load_international_standard_atmosphere() is deprecated in version "
+            "1.2.0 and will be removed in version 1.4.0. This method is no longer "
+            "needed as the International Standard Atmosphere is already calculated "
+            "when the Environment object is created.",
+            DeprecationWarning,
         )
 
-        # Get gravity and R
+    @funcify_method("Height Above Sea Level (m)", "Pressure (Pa)", "spline", "linear")
+    def pressure_ISA(self):
+        """Pressure, in Pa, as a function of height above sea level as defined
+        by the `International Standard Atmosphere ISO 2533`."""
+        # Retrieve lists
+        pressure = self.__standard_atmosphere_layers["pressure"]
+        geopotential_height = self.__standard_atmosphere_layers["geopotential_height"]
+        temperature = self.__standard_atmosphere_layers["temperature"]
+        beta = self.__standard_atmosphere_layers["beta"]
+
+        # Get constants
+        earth_radius = self.earth_radius
         g = self.standard_g
         R = self.air_gas_constant
 
         # Create function to compute pressure at a given geometric height
         def pressure_function(h):
+            """Computes the pressure at a given geometric height h using the
+            International Standard Atmosphere model."""
             # Convert geometric to geopotential height
-            H = ER * h / (ER + h)
+            H = earth_radius * h / (earth_radius + h)
 
             # Check if height is within bounds, return extrapolated value if not
             if H < -2000:
@@ -3127,23 +3065,30 @@ class Environment:
             else:
                 T = Tb + B * (H - Hb)
                 P = Pb * np.exp(-(H - Hb) * (g / (R * T)))
-
-            # Return answer
             return P
 
-        # Save international standard atmosphere pressure profile
-        self.pressure_ISA = Function(
-            pressure_function,
-            inputs="Height Above Sea Level (m)",
-            outputs="Pressure (Pa)",
-        )
+        # Discretize this Function to speed up the trajectory simulation
+        altitudes = np.linspace(0, 80000, 100)  # TODO: should be -2k instead of 0
+        pressures = [pressure_function(h) for h in altitudes]
 
-        # Discretize Function to speed up the trajectory simulation.
-        self.barometric_height_ISA = self.pressure_ISA.inverse_function().set_discrete(
-            pressure[-1], pressure[0], 100, extrapolation="constant"
-        )
-        self.barometric_height_ISA.set_inputs("Pressure (Pa)")
-        self.barometric_height_ISA.set_outputs("Height Above Sea Level (m)")
+        return np.column_stack([altitudes, pressures])
+
+    @funcify_method("Pressure (Pa)", "Height Above Sea Level (m)")
+    def barometric_height_ISA(self):
+        """Returns the inverse function of the pressure_ISA function."""
+        return self.pressure_ISA.inverse_function()
+
+    @funcify_method("Height Above Sea Level (m)", "Temperature (K)", "linear")
+    def temperature_ISA(self):
+        """ "Air temperature, in K, as a function of altitude as defined by the
+        `International Standard Atmosphere ISO 2533`."""
+        temperature = self.__standard_atmosphere_layers["temperature"]
+        geopotential_height = self.__standard_atmosphere_layers["geopotential_height"]
+        altitude_asl = [
+            geopotential_height_to_geometric_height(h, self.earth_radius)
+            for h in geopotential_height
+        ]
+        return np.column_stack([altitude_asl, temperature])
 
     def calculate_density_profile(self):
         """Compute the density of the atmosphere as a function of
