@@ -2,7 +2,6 @@ import json
 import os
 
 import numpy as np
-import numpy.ma as ma
 import pytest
 import pytz
 
@@ -57,7 +56,7 @@ def test_location_set_location_saves_location(latitude, longitude, example_plain
     assert example_plain_env.longitude == longitude
 
 
-@pytest.mark.parametrize("elevation", [(-200), (0), (200)])
+@pytest.mark.parametrize("elevation", [(0), (100), (1000), (100000)])
 def test_elevation_set_elevation_saves_elevation(elevation, example_plain_env):
     """Tests elevation is set correctly in the environment obj.
 
@@ -97,70 +96,53 @@ def test_location_set_topographic_profile_computes_elevation(
     assert computed_elevation == theoretical_elevation
 
 
+@pytest.mark.parametrize("env_name", ["example_spaceport_env", "example_euroc_env"])
 def test_environment_export_environment_exports_valid_environment_json(
-    example_spaceport_env,
+    request, env_name
 ):
     """Tests the export_environment() method of the Environment class.
 
     Parameters
     ----------
-    example_spaceport_env : rocketpy.Environment
+    env_name : str
+        The name of the environment fixture to be tested.
     """
+    # get the fixture with the name in the string
+    env = request.getfixturevalue(env_name)
     # Check file creation
-    assert example_spaceport_env.export_environment(filename="environment") is None
+    assert env.export_environment(filename="environment") is None
     with open("environment.json", "r") as json_file:
         exported_env = json.load(json_file)
     assert os.path.isfile("environment.json")
 
     # Check file content
-    assert exported_env["gravity"] == example_spaceport_env.gravity(
-        example_spaceport_env.elevation
-    )
+    assert exported_env["gravity"] == env.gravity(env.elevation)
     assert exported_env["date"] == [
-        example_spaceport_env.datetime_date.year,
-        example_spaceport_env.datetime_date.month,
-        example_spaceport_env.datetime_date.day,
-        example_spaceport_env.datetime_date.hour,
+        env.datetime_date.year,
+        env.datetime_date.month,
+        env.datetime_date.day,
+        env.datetime_date.hour,
     ]
-    assert exported_env["latitude"] == example_spaceport_env.latitude
-    assert exported_env["longitude"] == example_spaceport_env.longitude
-    assert exported_env["elevation"] == example_spaceport_env.elevation
-    assert exported_env["datum"] == example_spaceport_env.datum
-    assert exported_env["timezone"] == example_spaceport_env.timezone
-    assert exported_env["max_expected_height"] == float(
-        example_spaceport_env.max_expected_height
+    assert exported_env["latitude"] == env.latitude
+    assert exported_env["longitude"] == env.longitude
+    assert exported_env["elevation"] == env.elevation
+    assert exported_env["datum"] == env.datum
+    assert exported_env["timezone"] == env.timezone
+    assert exported_env["max_expected_height"] == float(env.max_expected_height)
+    assert exported_env["atmospheric_model_type"] == env.atmospheric_model_type
+    assert exported_env["atmospheric_model_file"] is None
+    assert exported_env["atmospheric_model_dict"] is None
+    assert exported_env["atmospheric_model_pressure_profile"] == str(
+        env.pressure.get_source()
     )
-    assert (
-        exported_env["atmospheric_model_type"]
-        == example_spaceport_env.atmospheric_model_type
+    assert exported_env["atmospheric_model_temperature_profile"] == str(
+        env.temperature.get_source()
     )
-    assert exported_env["atmospheric_model_file"] == ""
-    assert exported_env["atmospheric_model_dict"] == ""
-    assert (
-        exported_env["atmospheric_model_pressure_profile"]
-        == ma.getdata(
-            example_spaceport_env.pressure.get_source()(example_spaceport_env.height)
-        ).tolist()
+    assert exported_env["atmospheric_model_wind_velocity_x_profile"] == str(
+        env.wind_velocity_x.get_source()
     )
-    assert (
-        exported_env["atmospheric_model_temperature_profile"]
-        == ma.getdata(example_spaceport_env.temperature.get_source()).tolist()
-    )
-    assert (
-        exported_env["atmospheric_model_wind_velocity_x_profile"]
-        == ma.getdata(
-            example_spaceport_env.wind_velocity_x.get_source()(
-                example_spaceport_env.height
-            )
-        ).tolist()
-    )
-    assert (
-        exported_env["atmospheric_model_wind_velocity_y_profile"]
-        == ma.getdata(
-            example_spaceport_env.wind_velocity_y.get_source()(
-                example_spaceport_env.height
-            )
-        ).tolist()
+    assert exported_env["atmospheric_model_wind_velocity_y_profile"] == str(
+        env.wind_velocity_y.get_source()
     )
 
     os.remove("environment.json")
@@ -174,8 +156,8 @@ def test_geodesic_coordinate_geodesic_to_utm_converts_coordinate():
         semi_major_axis=6378137.0,  # WGS84
         flattening=1 / 298.257223563,  # WGS84
     )
-    assert np.isclose(x, 315468.64, atol=1e-5) == True
-    assert np.isclose(y, 3651938.65, atol=1e-5) == True
+    assert np.isclose(x, 315468.64, atol=1e-5) is True
+    assert np.isclose(y, 3651938.65, atol=1e-5) is True
     assert utm_zone == 13
     assert utm_letter == "S"
     assert hemis == "N"
@@ -193,8 +175,8 @@ def test_utm_coordinate_utm_to_geodesic_converts_coordinate():
         semi_major_axis=6378137.0,  # WGS84
         flattening=1 / 298.257223563,  # WGS84
     )
-    assert np.isclose(lat, 32.99025, atol=1e-5) == True
-    assert np.isclose(lon, -106.9750, atol=1e-5) == True
+    assert np.isclose(lat, 32.99025, atol=1e-5) is True
+    assert np.isclose(lon, -106.9750, atol=1e-5) is True
 
 
 @pytest.mark.parametrize(
@@ -248,3 +230,55 @@ def test_decimal_degrees_to_arc_seconds_computes_correct_values(
     assert pytest.approx(computed_data[0], abs=1e-8) == theoretical_degree
     assert pytest.approx(computed_data[1], abs=1e-8) == theoretical_arc_minutes
     assert pytest.approx(computed_data[2], abs=1e-8) == theoretical_arc_seconds
+
+
+@pytest.mark.parametrize("elevation", [(0), (100), (1000), (100000)])
+def test_set_elevation_float(elevation, example_plain_env):
+    example_plain_env.set_elevation(elevation=elevation)
+    assert example_plain_env.elevation == elevation
+
+
+@pytest.mark.parametrize(
+    "lat, lon, theoretical_elevation",
+    [
+        (40.689247, -74.044502, 0),  # The Statue of Liberty
+        (48.858844, 2.294351, 34),  # The Eiffel Tower
+        (32.990254, -106.974998, 1401),  # Spaceport America
+    ],
+)
+def test_set_elevation_open_elevation(
+    lat, lon, theoretical_elevation, example_plain_env
+):
+    example_plain_env.set_location(lat, lon)
+    example_plain_env.set_elevation(elevation="Open-Elevation")
+    assert example_plain_env.elevation == pytest.approx(theoretical_elevation, abs=1)
+
+
+def test_add_wind_gust():
+    # add wind gust as a constant value
+    env = Environment()
+    gust_x = 10
+    gust_y = -1
+    env.add_wind_gust(gust_x, gust_y)
+    assert env.wind_velocity_x(0) == gust_x
+    assert env.wind_velocity_x(10) == gust_x
+    assert env.wind_velocity_y(0) == gust_y
+    assert env.wind_velocity_y(10) == gust_y
+
+    # add wind gust as a python function object
+    env = Environment()
+    gust_x = lambda h: 10 + h / 1000
+    gust_y = lambda h: -1 - h / 1000
+    env.add_wind_gust(gust_x, gust_y)
+    assert env.wind_velocity_x(0) == 10
+    assert env.wind_velocity_y(1000) == -2
+
+    # TODO: add wind gust as a np.ndarray function
+    env = Environment()
+    gust_x = np.array([(0, 0), (10, 10)])
+    gust_y = np.array([(0, 0), (10, -10)])
+    env.add_wind_gust(gust_x, gust_y)
+
+    # TODO: add wind gust as a rocketpy Function object (np.ndarray source)
+
+    # TODO: add wind gust as a rocketpy Function object (python function source)
