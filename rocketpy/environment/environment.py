@@ -1567,7 +1567,7 @@ class Environment:
         None
         """
         # Request Wyoming Sounding from file url
-        response = self.__fetch_wyoming_sounding(file)
+        response = fetch_wyoming_sounding(file)
 
         # Process Wyoming Sounding by finding data table and station info
         response_split_text = re.split("(<.{0,1}PRE>)", response.text)
@@ -1576,86 +1576,42 @@ class Environment:
 
         # Transform data table into np array
         data_array = []
-        for line in data_table.split("\n")[
-            5:-1
-        ]:  # Split data table into lines and remove header and footer
+        for line in data_table.split("\n")[5:-1]:
+            # Split data table into lines and remove header and footer
             columns = re.split(" +", line)  # Split line into columns
-            if (
-                len(columns) == 12
-            ):  # 12 is the number of column entries when all entries are given
+            # 12 is the number of column entries when all entries are given
+            if len(columns) == 12:
                 data_array.append(columns[1:])
         data_array = np.array(data_array, dtype=float)
 
         # Retrieve pressure from data array
         data_array[:, 0] = 100 * data_array[:, 0]  # Converts hPa to Pa
-        self.pressure = Function(
-            data_array[:, (1, 0)],
-            inputs="Height Above Sea Level (m)",
-            outputs="Pressure (Pa)",
-            interpolation="linear",
-        )
-        # Linearly extrapolate pressure to ground level
-        bar_height = data_array[:, (0, 1)]
-        self.barometric_height = Function(
-            bar_height,
-            inputs="Pressure (Pa)",
-            outputs="Height Above Sea Level (m)",
-            interpolation="linear",
-            extrapolation="natural",
-        )
+        self.__set_pressure_function(data_array[:, (1, 0)])
+        self.__set_barometric_height_function(data_array[:, (0, 1)])
 
         # Retrieve temperature from data array
         data_array[:, 2] = data_array[:, 2] + 273.15  # Converts C to K
-        self.temperature = Function(
-            data_array[:, (1, 2)],
-            inputs="Height Above Sea Level (m)",
-            outputs="Temperature (K)",
-            interpolation="linear",
-        )
+        self.__set_temperature_function(data_array[:, (1, 2)])
 
         # Retrieve wind-u and wind-v from data array
-        data_array[:, 7] = data_array[:, 7] * 1.852 / 3.6  # Converts Knots to m/s
-        data_array[:, 5] = (
-            data_array[:, 6] + 180
-        ) % 360  # Convert wind direction to wind heading
+        ## Converts Knots to m/s
+        data_array[:, 7] = data_array[:, 7] * 1.852 / 3.6
+        ## Convert wind direction to wind heading
+        data_array[:, 5] = (data_array[:, 6] + 180) % 360
         data_array[:, 3] = data_array[:, 7] * np.sin(data_array[:, 5] * np.pi / 180)
         data_array[:, 4] = data_array[:, 7] * np.cos(data_array[:, 5] * np.pi / 180)
 
         # Convert geopotential height to geometric height
-        R = self.earth_radius
-        data_array[:, 1] = R * data_array[:, 1] / (R - data_array[:, 1])
+        data_array[:, 1] = geopotential_height_to_geometric_height(
+            data_array[:, 1], self.earth_radius
+        )
 
         # Save atmospheric data
-        self.wind_direction = Function(
-            data_array[:, (1, 6)],
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Direction (Deg True)",
-            interpolation="linear",
-        )
-        self.wind_heading = Function(
-            data_array[:, (1, 5)],
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Heading (Deg True)",
-            interpolation="linear",
-        )
-        self.wind_speed = Function(
-            data_array[:, (1, 7)],
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Speed (m/s)",
-            interpolation="linear",
-        )
-        self.wind_velocity_x = Function(
-            data_array[:, (1, 3)],
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Velocity X (m/s)",
-            interpolation="linear",
-        )
-        self.wind_velocity_y = Function(
-            data_array[:, (1, 4)],
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Velocity Y (m/s)",
-            interpolation="linear",
-        )
+        self.__set_wind_velocity_x_function(data_array[:, (1, 3)])
+        self.__set_wind_velocity_y_function(data_array[:, (1, 4)])
+        self.__set_wind_heading_function(data_array[:, (1, 5)])
+        self.__set_wind_direction_function(data_array[:, (1, 6)])
+        self.__set_wind_speed_function(data_array[:, (1, 7)])
 
         # Retrieve station elevation from station info
         station_elevation_text = station_info.split("\n")[6]
@@ -1667,8 +1623,6 @@ class Environment:
 
         # Save maximum expected height
         self.max_expected_height = data_array[-1, 1]
-
-        return None
 
     def process_noaaruc_sounding(self, file):
         """Import and process the upper air sounding data from `NOAA
