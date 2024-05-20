@@ -1485,8 +1485,6 @@ class Environment:
         # Save maximum expected height
         self.max_expected_height = max_expected_height
 
-        return None
-
     def process_windy_atmosphere(self, model="ECMWF"):
         """Process data from Windy.com to retrieve atmospheric forecast data.
 
@@ -1499,7 +1497,9 @@ class Environment:
             model.
         """
 
-        response = self.__fetch_atmospheric_data_from_windy(model)
+        response = fetch_atmospheric_data_from_windy(
+            self.latitude, self.longitude, model
+        )
 
         # Determine time index from model
         time_array = np.array(response["data"]["hours"])
@@ -1518,8 +1518,9 @@ class Environment:
             [response["data"][f"gh-{pL}h"][time_index] for pL in pressure_levels]
         )
         # Convert geopotential height to geometric altitude (ASL)
-        R = self.earth_radius
-        altitude_array = R * geopotential_height_array / (R - geopotential_height_array)
+        altitude_array = geopotential_height_to_geometric_height(
+            geopotential_height_array, self.earth_radius
+        )
 
         # Process temperature array (in Kelvin)
         temperature_array = np.array(
@@ -1535,78 +1536,31 @@ class Environment:
         )
 
         # Determine wind speed, heading and direction
-        wind_speed_array = np.sqrt(wind_u_array**2 + wind_v_array**2)
-        wind_heading_array = (
-            np.arctan2(wind_u_array, wind_v_array) * (180 / np.pi) % 360
-        )
-        wind_direction_array = (wind_heading_array - 180) % 360
+        wind_speed_array = calculate_wind_speed(wind_u_array, wind_v_array)
+        wind_heading_array = calculate_wind_heading(wind_u_array, wind_v_array)
+        wind_direction_array = convert_wind_heading_to_direction(wind_heading_array)
 
         # Combine all data into big array
-        data_array = np.ma.column_stack(
-            [
-                100 * pressure_levels,  # Convert hPa to Pa
-                altitude_array,
-                temperature_array,
-                wind_u_array,
-                wind_v_array,
-                wind_heading_array,
-                wind_direction_array,
-                wind_speed_array,
-            ]
+        data_array = mask_and_clean_dataset(
+            100 * pressure_levels,  # Convert hPa to Pa
+            altitude_array,
+            temperature_array,
+            wind_u_array,
+            wind_v_array,
+            wind_heading_array,
+            wind_direction_array,
+            wind_speed_array,
         )
 
         # Save atmospheric data
-        self.pressure = Function(
-            data_array[:, (1, 0)],
-            inputs="Height Above Sea Level (m)",
-            outputs="Pressure (Pa)",
-            interpolation="linear",
-        )
-        # Linearly extrapolate pressure to ground level
-        bar_height = data_array[:, (0, 1)]
-        self.barometric_height = Function(
-            bar_height,
-            inputs="Pressure (Pa)",
-            outputs="Height Above Sea Level (m)",
-            interpolation="linear",
-            extrapolation="natural",
-        )
-        self.temperature = Function(
-            data_array[:, (1, 2)],
-            inputs="Height Above Sea Level (m)",
-            outputs="Temperature (K)",
-            interpolation="linear",
-        )
-        self.wind_direction = Function(
-            data_array[:, (1, 6)],
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Direction (Deg True)",
-            interpolation="linear",
-        )
-        self.wind_heading = Function(
-            data_array[:, (1, 5)],
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Heading (Deg True)",
-            interpolation="linear",
-        )
-        self.wind_speed = Function(
-            data_array[:, (1, 7)],
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Speed (m/s)",
-            interpolation="linear",
-        )
-        self.wind_velocity_x = Function(
-            data_array[:, (1, 3)],
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Velocity X (m/s)",
-            interpolation="linear",
-        )
-        self.wind_velocity_y = Function(
-            data_array[:, (1, 4)],
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Velocity Y (m/s)",
-            interpolation="linear",
-        )
+        self.__set_pressure_function(data_array[:, (1, 0)])
+        self.__set_barometric_height_function(data_array[:, (0, 1)])
+        self.__set_temperature_function(data_array[:, (1, 2)])
+        self.__set_wind_velocity_x_function(data_array[:, (1, 3)])
+        self.__set_wind_velocity_y_function(data_array[:, (1, 4)])
+        self.__set_wind_heading_function(data_array[:, (1, 5)])
+        self.__set_wind_direction_function(data_array[:, (1, 6)])
+        self.__set_wind_speed_function(data_array[:, (1, 7)])
 
         # Save maximum expected height
         self.max_expected_height = max(altitude_array[0], altitude_array[-1])
@@ -1615,15 +1569,15 @@ class Environment:
         self.elevation = response["header"]["elevation"]
 
         # Compute info data
-        self.atmospheric_model_init_date = netCDF4.num2date(
-            time_array[0], units=time_units
+        self.atmospheric_model_init_date = get_initial_data_from_time_array(
+            time_array, time_units
         )
-        self.atmospheric_model_end_date = netCDF4.num2date(
-            time_array[-1], units=time_units
+        self.atmospheric_model_end_date = get_final_data_from_time_array(
+            time_array, time_units
         )
-        self.atmospheric_model_interval = netCDF4.num2date(
-            (time_array[-1] - time_array[0]) / (len(time_array) - 1), units=time_units
-        ).hour
+        self.atmospheric_model_interval = get_interval_data_from_time_array(
+            time_array, time_units
+        )
         self.atmospheric_model_init_lat = self.latitude
         self.atmospheric_model_end_lat = self.latitude
         self.atmospheric_model_init_lon = self.longitude
