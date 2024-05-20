@@ -1,8 +1,8 @@
-from pathlib import Path
 import warnings
+from pathlib import Path
 
-from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 
 SAVEFIG_DPI = 300
 

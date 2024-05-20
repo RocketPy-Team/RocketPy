@@ -8,8 +8,8 @@ from scipy import stats
 
 from rocketpy.units import convert_units
 
-from .plot_helpers import show_or_save_plot
 from ..tools import find_two_closest_integers, import_optional_dependency
+from .plot_helpers import show_or_save_plot
 
 # TODO: `wind_speed_limit` and `clear_range_limits` and should be numbers, not booleans
 
