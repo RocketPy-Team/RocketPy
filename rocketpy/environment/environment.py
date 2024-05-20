@@ -894,7 +894,6 @@ class Environment:
                 " Open-Elevation API. See Environment.set_location."
             )
 
-    @requires_netCDF4
     def set_topographic_profile(self, type, file, dictionary="netCDF4", crs=None):
         """[UNDER CONSTRUCTION] Defines the Topographic profile, importing data
         from previous downloaded files. Mainly data from the Shuttle Radar
@@ -932,17 +931,13 @@ class Environment:
 
                 print("Region covered by the Topographical file: ")
                 print(
-                    "Latitude from {:.6f}° to {:.6f}°".format(
-                        self.elev_lat_array[-1], self.elev_lat_array[0]
-                    )
+                    f"Latitude from {self.elev_lat_array[-1]:.6f}° to "
+                    f"{self.elev_lat_array[0]:.6f}°"
                 )
                 print(
-                    "Longitude from {:.6f}° to {:.6f}°".format(
-                        self.elev_lon_array[0], self.elev_lon_array[-1]
-                    )
+                    f"Longitude from {self.elev_lon_array[0]:.6f}° to "
+                    f"{self.elev_lon_array[-1]:.6f}°"
                 )
-
-        return None
 
     def get_elevation_from_topographic_profile(self, lat, lon):
         """Function which receives as inputs the coordinates of a point and
@@ -960,9 +955,10 @@ class Environment:
         elevation : float | int
             Elevation provided by the topographic data, in meters.
         """
-        if self.topographic_profile_activated == False:
+        if self.topographic_profile_activated is False:
             print(
-                "You must define a Topographic profile first, please use the method Environment.set_topographic_profile()"
+                "You must define a Topographic profile first, please use the "
+                "Environment.set_topographic_profile() method first."
             )
             return None
 
@@ -987,9 +983,8 @@ class Environment:
         # Check if latitude value is inside the grid
         if lat_index == 0 or lat_index == len(self.elev_lat_array):
             raise ValueError(
-                "Latitude {:f} not inside region covered by file, which is from {:f} to {:f}.".format(
-                    lat, self.elev_lat_array[0], self.elev_lat_array[-1]
-                )
+                f"Latitude {lat} not inside region covered by file, which is from "
+                f"{self.elev_lat_array[0]} to {self.elev_lat_array[-1]}."
             )
 
         # Find longitude index
@@ -1020,9 +1015,8 @@ class Environment:
         # Check if longitude value is inside the grid
         if lon_index == 0 or lon_index == len(self.elev_lon_array):
             raise ValueError(
-                "Longitude {:f} not inside region covered by file, which is from {:f} to {:f}.".format(
-                    lon, self.elev_lon_array[0], self.elev_lon_array[-1]
-                )
+                f"Longitude {lon} not inside region covered by file, which is from "
+                f"{self.elev_lon_array[0]} to {self.elev_lon_array[-1]}."
             )
 
         # Get the elevation
