@@ -3,40 +3,46 @@ import json
 import re
 import warnings
 from collections import namedtuple
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 
+import netCDF4
 import numpy as np
-import numpy.ma as ma
 import pytz
-import requests
 
-from ..mathutils.function import Function, funcify_method
-from ..plots.environment_plots import _EnvironmentPlots
-from ..prints.environment_prints import _EnvironmentPrints
-from ..tools import exponential_backoff
+from rocketpy.environment.fetchers import (
+    fetch_atmospheric_data_from_windy,
+    fetch_cmc_ensemble,
+    fetch_gefs_ensemble,
+    fetch_gfs_file_return_dataset,
+    fetch_hiresw_file_return_dataset,
+    fetch_nam_file_return_dataset,
+    fetch_noaaruc_sounding,
+    fetch_open_elevation,
+    fetch_rap_file_return_dataset,
+    fetch_wyoming_sounding,
+)
+from rocketpy.environment.tools import (
+    apply_bilinear_interpolation,
+    apply_bilinear_interpolation_ensemble,
+    calculate_wind_heading,
+    calculate_wind_speed,
+    convert_wind_heading_to_direction,
+    find_latitude_index,
+    find_longitude_index,
+    find_time_index,
+    get_elevation_data_from_dataset,
+    get_final_data_from_time_array,
+    get_initial_data_from_time_array,
+    get_interval_data_from_time_array,
+    get_pressure_levels_from_file,
+    mask_and_clean_dataset,
+)
+from rocketpy.environment.weather_model_mapping import WeatherModelMapping
+from rocketpy.mathutils.function import Function, funcify_method
+from rocketpy.plots.environment_plots import _EnvironmentPlots
+from rocketpy.prints.environment_prints import _EnvironmentPrints
+from rocketpy.tools import geopotential_height_to_geometric_height
 
-try:
-    import netCDF4
-except ImportError:
-    has_netCDF4 = False
-    warnings.warn(
-        "Unable to load netCDF4. NetCDF files and ``OPeNDAP`` will not be imported.",
-        ImportWarning,
-    )
-else:
-    has_netCDF4 = True
-
-
-def requires_netCDF4(func):
-    def wrapped_func(*args, **kwargs):
-        if has_netCDF4:
-            func(*args, **kwargs)
-        else:
-            raise ImportError(
-                "This feature requires netCDF4 to be installed. Install it with `pip install netCDF4`"
-            )
-
-    return wrapped_func
 
 
 class Environment:
