@@ -841,23 +841,11 @@ class Environment:
         -------
         None
         """
-        if elevation != "Open-Elevation" and elevation != "SRTM":
+        if elevation not in ["Open-Elevation", "SRTM"]:
+            # NOTE: this is assuming the elevation is a number (i.e. float, int, etc.)
             self.elevation = elevation
-        # elif elevation == "SRTM" and self.latitude != None and self.longitude != None:
-        #     # Trigger the authentication flow.
-        #     #ee.Authenticate()
-        #     # Initialize the library.
-        #     ee.Initialize()
-
-        #     # Calculate elevation
-        #     dem  = ee.Image('USGS/SRTMGL1_003')
-        #     xy   = ee.Geometry.Point([self.longitude, self.latitude])
-        #     elev = dem.sample(xy, 30).first().get('elevation').getInfo()
-
-        #     self.elevation = elev
-
         elif self.latitude is not None and self.longitude is not None:
-            self.elevation = self.__fetch_open_elevation()
+            self.elevation = fetch_open_elevation(self.latitude, self.longitude)
             print("Elevation received: ", self.elevation)
         else:
             raise ValueError(
