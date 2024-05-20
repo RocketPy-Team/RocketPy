@@ -3448,6 +3448,7 @@ class Environment:
             info["selected_ensemble_member"] = self.ensemble_member
         return info
 
+    # TODO: Create a better .json format and allow loading a class from it.
     def export_environment(self, filename="environment"):
         """Export important attributes of Environment class to a ``.json`` file,
         saving all the information needed to recreate the same environment using
@@ -3462,38 +3463,12 @@ class Environment:
         ------
         None
         """
+        pressure = self.pressure.source
+        temperature = self.temperature.source
+        wind_x = self.wind_velocity_x.source
+        wind_y = self.wind_velocity_y.source
 
-        try:
-            atmospheric_model_file = self.atmospheric_model_file
-            atmospheric_model_dict = self.atmospheric_model_dict
-        except AttributeError:
-            atmospheric_model_file = ""
-            atmospheric_model_dict = ""
-
-        try:
-            height = self.height
-            atmospheric_model_pressure_profile = ma.getdata(
-                self.pressure.get_source()(height)
-            ).tolist()
-            atmospheric_model_wind_velocity_x_profile = ma.getdata(
-                self.wind_velocity_x.get_source()(height)
-            ).tolist()
-            atmospheric_model_wind_velocity_y_profile = ma.getdata(
-                self.wind_velocity_y.get_source()(height)
-            ).tolist()
-
-        except AttributeError:
-            atmospheric_model_pressure_profile = (
-                "Height Above Sea Level (m) was not provided"
-            )
-            atmospheric_model_wind_velocity_x_profile = (
-                "Height Above Sea Level (m) was not provided"
-            )
-            atmospheric_model_wind_velocity_y_profile = (
-                "Height Above Sea Level (m) was not provided"
-            )
-
-        self.export_env_dictionary = {
+        export_env_dictionary = {
             "gravity": self.gravity(self.elevation),
             "date": [
                 self.datetime_date.year,
@@ -3508,30 +3483,19 @@ class Environment:
             "timezone": self.timezone,
             "max_expected_height": float(self.max_expected_height),
             "atmospheric_model_type": self.atmospheric_model_type,
-            "atmospheric_model_file": atmospheric_model_file,
-            "atmospheric_model_dict": atmospheric_model_dict,
-            "atmospheric_model_pressure_profile": atmospheric_model_pressure_profile,
-            "atmospheric_model_temperature_profile": ma.getdata(
-                self.temperature.get_source()
-            ).tolist(),
-            "atmospheric_model_wind_velocity_x_profile": atmospheric_model_wind_velocity_x_profile,
-            "atmospheric_model_wind_velocity_y_profile": atmospheric_model_wind_velocity_y_profile,
+            "atmospheric_model_file": self.atmospheric_model_file,
+            "atmospheric_model_dict": self.atmospheric_model_dict,
+            "atmospheric_model_pressure_profile": pressure,
+            "atmospheric_model_temperature_profile": temperature,
+            "atmospheric_model_wind_velocity_x_profile": wind_x,
+            "atmospheric_model_wind_velocity_y_profile": wind_y,
         }
 
-        f = open(filename + ".json", "w")
-
-        # write json object to file
-        f.write(
-            json.dumps(
-                self.export_env_dictionary, sort_keys=False, indent=4, default=str
-            )
-        )
-
-        # close file
-        f.close()
-        print("Your Environment file was saved, check it out: " + filename + ".json")
+        with open(filename + ".json", "w") as f:
+            json.dump(export_env_dictionary, f, sort_keys=False, indent=4, default=str)
         print(
-            "You can use it in the future by using the custom_atmosphere atmospheric model."
+            f"Your Environment file was saved at '{filename}.json'. You can use "
+            "it in the future by using the custom_atmosphere atmospheric model."
         )
 
         return None
