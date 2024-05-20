@@ -82,7 +82,7 @@ def fetch_atmospheric_data_from_windy(lat, lon, model):
 
     try:
         response = requests.get(url).json()
-        if response["statusCode"] != 200:
+        if "data" not in response.keys():
             raise ValueError(
                 f"Could not get a valid response for {model} from Windy. "
                 "Check if the coordinates are set inside the model's domain."
