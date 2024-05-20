@@ -1740,7 +1740,7 @@ class Environment:
         None
         """
         # Request NOAA Ruc Sounding from file url
-        response = self.__fetch_noaaruc_sounding(file)
+        response = fetch_noaaruc_sounding(file)
 
         # Split response into lines
         lines = response.text.split("\n")
@@ -1759,140 +1759,78 @@ class Environment:
                     # No elevation data available
                     pass
 
-        # Extract pressure as a function of height
         pressure_array = []
         barometric_height_array = []
-        for line in lines:
-            # Split line into columns
-            columns = re.split(" +", line)[1:]
-            if len(columns) >= 6:
-                if columns[0] in ["4", "5", "6", "7", "8", "9"]:
-                    # Convert columns to floats
-                    columns = np.array(columns, dtype=float)
-                    # Select relevant columns
-                    columns = columns[[2, 1]]
-                    # Check if values exist
-                    if max(columns) != 99999:
-                        # Save value
-                        pressure_array.append(columns)
-                        barometric_height_array.append([columns[1], columns[0]])
-        pressure_array = np.array(pressure_array)
-        barometric_height_array = np.array(barometric_height_array)
-
-        # Extract temperature as a function of height
         temperature_array = []
-        for line in lines:
-            # Split line into columns
-            columns = re.split(" +", line)[1:]
-            if len(columns) >= 6:
-                if columns[0] in ["4", "5", "6", "7", "8", "9"]:
-                    # Convert columns to floats
-                    columns = np.array(columns, dtype=float)
-                    # Select relevant columns
-                    columns = columns[[2, 3]]
-                    # Check if values exist
-                    if max(columns) != 99999:
-                        # Save value
-                        temperature_array.append(columns)
-        temperature_array = np.array(temperature_array)
-
-        # Extract wind speed and direction as a function of height
         wind_speed_array = []
         wind_direction_array = []
+
         for line in lines:
             # Split line into columns
             columns = re.split(" +", line)[1:]
-            if len(columns) >= 6:
-                if columns[0] in ["4", "5", "6", "7", "8", "9"]:
-                    # Convert columns to floats
-                    columns = np.array(columns, dtype=float)
-                    # Select relevant columns
-                    columns = columns[[2, 5, 6]]
-                    # Check if values exist
-                    if max(columns) != 99999:
-                        # Save value
-                        wind_direction_array.append(columns[[0, 1]])
-                        wind_speed_array.append(columns[[0, 2]])
+            if len(columns) < 6:
+                # skip lines with less than 6 columns
+                continue
+            elif columns[0] in ["4", "5", "6", "7", "8", "9"]:
+                # Convert columns to floats
+                columns = np.array(columns, dtype=float)
+                # Select relevant columns
+                altitude, pressure, temperature, wind_direction, wind_speed = columns[
+                    [2, 1, 3, 5, 6]
+                ]
+                # Check for missing values
+                if altitude == 99999:
+                    continue
+                # Save values only if they are not missing
+                if pressure != 99999:
+                    pressure_array.append([altitude, pressure])
+                    barometric_height_array.append([pressure, altitude])
+                if temperature != 99999:
+                    temperature_array.append([altitude, temperature])
+                if wind_direction != 99999:
+                    wind_direction_array.append([altitude, wind_direction])
+                if wind_speed != 99999:
+                    wind_speed_array.append([altitude, wind_speed])
+
+        # Convert lists to arrays
+        pressure_array = np.array(pressure_array)
+        barometric_height_array = np.array(barometric_height_array)
+        temperature_array = np.array(temperature_array)
         wind_speed_array = np.array(wind_speed_array)
         wind_direction_array = np.array(wind_direction_array)
 
         # Converts 10*hPa to Pa and save values
         pressure_array[:, 1] = 10 * pressure_array[:, 1]
-        self.pressure = Function(
-            pressure_array,
-            inputs="Height Above Sea Level (m)",
-            outputs="Pressure (Pa)",
-            interpolation="linear",
-        )
+        self.__set_pressure_function(pressure_array)
         # Converts 10*hPa to Pa and save values
         barometric_height_array[:, 0] = 10 * barometric_height_array[:, 0]
-        self.barometric_height = Function(
-            barometric_height_array,
-            inputs="Pressure (Pa)",
-            outputs="Height Above Sea Level (m)",
-            interpolation="linear",
-            extrapolation="natural",
-        )
+        self.__set_barometric_height_function(barometric_height_array)
 
-        # Convert 10*C to K and save values
-        temperature_array[:, 1] = (
-            temperature_array[:, 1] / 10 + 273.15
-        )  # Converts C to K
-        self.temperature = Function(
-            temperature_array,
-            inputs="Height Above Sea Level (m)",
-            outputs="Temperature (K)",
-            interpolation="linear",
-        )
+        # Convert C to K and save values
+        temperature_array[:, 1] = temperature_array[:, 1] / 10 + 273.15
+        self.__set_temperature_function(temperature_array)
 
         # Process wind-u and wind-v
-        wind_speed_array[:, 1] = (
-            wind_speed_array[:, 1] * 1.852 / 3.6
-        )  # Converts Knots to m/s
+        # Converts Knots to m/s
+        wind_speed_array[:, 1] = wind_speed_array[:, 1] * 1.852 / 3.6
         wind_heading_array = wind_direction_array[:, :] * 1
-        wind_heading_array[:, 1] = (
-            wind_direction_array[:, 1] + 180
-        ) % 360  # Convert wind direction to wind heading
+        # Convert wind direction to wind heading
+        wind_heading_array[:, 1] = (wind_direction_array[:, 1] + 180) % 360
         wind_u = wind_speed_array[:, :] * 1
         wind_v = wind_speed_array[:, :] * 1
         wind_u[:, 1] = wind_speed_array[:, 1] * np.sin(
-            wind_heading_array[:, 1] * np.pi / 180
+            np.deg2rad(wind_heading_array[:, 1])
         )
         wind_v[:, 1] = wind_speed_array[:, 1] * np.cos(
-            wind_heading_array[:, 1] * np.pi / 180
+            np.deg2rad(wind_heading_array[:, 1])
         )
 
         # Save wind data
-        self.wind_direction = Function(
-            wind_direction_array,
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Direction (Deg True)",
-            interpolation="linear",
-        )
-        self.wind_heading = Function(
-            wind_heading_array,
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Heading (Deg True)",
-            interpolation="linear",
-        )
-        self.wind_speed = Function(
-            wind_speed_array,
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Speed (m/s)",
-            interpolation="linear",
-        )
-        self.wind_velocity_x = Function(
-            wind_u,
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Velocity X (m/s)",
-            interpolation="linear",
-        )
-        self.wind_velocity_y = Function(
-            wind_v,
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Velocity Y (m/s)",
-            interpolation="linear",
-        )
+        self.__set_wind_direction_function(wind_direction_array)
+        self.__set_wind_heading_function(wind_heading_array)
+        self.__set_wind_speed_function(wind_speed_array)
+        self.__set_wind_velocity_x_function(wind_u)
+        self.__set_wind_velocity_y_function(wind_v)
 
         # Save maximum expected height
         self.max_expected_height = pressure_array[-1, 0]
