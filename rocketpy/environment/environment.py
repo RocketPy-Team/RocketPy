@@ -482,6 +482,110 @@ class Environment:
             self.initial_hemisphere = None
             self.initial_ew = None
 
+    # Auxiliary private setters.
+
+    def __set_pressure_function(self, source):
+        self.pressure = Function(
+            source,
+            inputs="Height Above Sea Level (m)",
+            outputs="Pressure (Pa)",
+            interpolation="linear",
+        )
+
+    def __set_barometric_height_function(self, source):
+        self.barometric_height = Function(
+            source,
+            inputs="Pressure (Pa)",
+            outputs="Height Above Sea Level (m)",
+            interpolation="linear",
+            extrapolation="natural",
+        )
+
+    def __set_temperature_function(self, source):
+        self.temperature = Function(
+            source,
+            inputs="Height Above Sea Level (m)",
+            outputs="Temperature (K)",
+            interpolation="linear",
+        )
+
+    def __set_wind_velocity_x_function(self, source):
+        self.wind_velocity_x = Function(
+            source,
+            inputs="Height Above Sea Level (m)",
+            outputs="Wind Velocity X (m/s)",
+            interpolation="linear",
+        )
+
+    def __set_wind_velocity_y_function(self, source):
+        self.wind_velocity_y = Function(
+            source,
+            inputs="Height Above Sea Level (m)",
+            outputs="Wind Velocity Y (m/s)",
+            interpolation="linear",
+        )
+
+    def __set_wind_speed_function(self, source):
+        self.wind_speed = Function(
+            source,
+            inputs="Height Above Sea Level (m)",
+            outputs="Wind Speed (m/s)",
+            interpolation="linear",
+        )
+
+    def __set_wind_direction_function(self, source):
+        self.wind_direction = Function(
+            source,
+            inputs="Height Above Sea Level (m)",
+            outputs="Wind Direction (Deg True)",
+            interpolation="linear",
+        )
+
+    def __set_wind_heading_function(self, source):
+        self.wind_heading = Function(
+            source,
+            inputs="Height Above Sea Level (m)",
+            outputs="Wind Heading (Deg True)",
+            interpolation="linear",
+        )
+
+    def __reset_barometric_height_function(self):
+        # NOTE: this assumes self.pressure and max_expected_height are already set.
+        self.barometric_height = self.pressure.inverse_function()
+        if callable(self.barometric_height.source):
+            # discretize to speed up flight simulation
+            self.barometric_height.set_discrete(
+                0,
+                self.max_expected_height,
+                100,
+                extrapolation="constant",
+                mutate_self=True,
+            )
+        self.barometric_height.set_inputs("Pressure (Pa)")
+        self.barometric_height.set_outputs("Height Above Sea Level (m)")
+
+    def __reset_wind_speed_function(self):
+        # NOTE: assume wind_velocity_x and wind_velocity_y as Function objects
+        self.wind_speed = (self.wind_velocity_x**2 + self.wind_velocity_y**2) ** 0.5
+        self.wind_speed.set_inputs("Height Above Sea Level (m)")
+        self.wind_speed.set_outputs("Wind Speed (m/s)")
+        self.wind_speed.set_title("Wind Speed Profile")
+
+    def __reset_wind_heading_function(self):
+        # NOTE: this assumes wind_u and wind_v as numpy arrays with same length.
+        # TODO: should we implement arctan2 in the Function class?
+        self.wind_heading = calculate_wind_heading(
+            self.wind_velocity_x, self.wind_velocity_y
+        )
+        self.wind_heading.set_inputs("Height Above Sea Level (m)")
+        self.wind_heading.set_outputs("Wind Heading (Deg True)")
+        self.wind_heading.set_title("Wind Heading Profile")
+
+    def __reset_wind_direction_function(self):
+        self.wind_direction = convert_wind_heading_to_direction(self.wind_heading)
+        self.wind_direction.set_inputs("Height Above Sea Level (m)")
+        self.wind_direction.set_outputs("Wind Direction (Deg True)")
+        self.wind_direction.set_title("Wind Direction Profile")
     def set_date(self, date, timezone="UTC"):
         """Set date and time of launch and update weather conditions if
         date dependent atmospheric model is used.
