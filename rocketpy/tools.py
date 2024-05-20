@@ -14,6 +14,7 @@ import re
 import time
 from bisect import bisect_left
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pytz
 from cftime import num2pydate
@@ -925,6 +926,23 @@ def quaternions_to_nutation(e1, e2):
         Euler Nutation angle in degrees
     """
     return (180 / np.pi) * 2 * np.arcsin(-((e1**2 + e2**2) ** 0.5))
+
+
+def get_matplotlib_supported_file_endings():
+    """Gets the file endings supported by matplotlib.
+
+    Returns
+    -------
+    list[str]
+        List of file endings prepended with a dot
+    """
+    # Get matplotlib's supported file ending and return them (without descriptions, hence only keys)
+    filetypes = plt.gcf().canvas.get_supported_filetypes().keys()
+
+    # Ensure the dot is included in the filetype endings
+    filetypes = ["." + filetype for filetype in filetypes]
+
+    return filetypes
 
 
 if __name__ == "__main__":
