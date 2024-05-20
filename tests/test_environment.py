@@ -73,6 +73,7 @@ def test_wyoming_sounding_atmosphere(mock_show, example_plain_env):
     assert abs(example_plain_env.wind_velocity_x(0) - -2.9005178894925043) < 1e-8
     assert abs(example_plain_env.temperature(100) - 291.75) < 1e-8
 
+
 # @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_noaa_ruc_sounding_atmosphere(mock_show, example_plain_env):
@@ -113,6 +114,7 @@ def test_nam_atmosphere(mock_show, example_spaceport_env):
     """
     example_spaceport_env.set_atmospheric_model(type="Forecast", file="NAM")
     assert example_spaceport_env.all_info() is None
+
 
 # @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
