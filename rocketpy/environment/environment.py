@@ -592,6 +592,41 @@ class Environment:
         self.wind_direction.set_inputs("Height Above Sea Level (m)")
         self.wind_direction.set_outputs("Wind Direction (Deg True)")
         self.wind_direction.set_title("Wind Direction Profile")
+
+    # Validators (used to verify an attribute is being set correctly.)
+
+    def __validate_dictionary(self, file, dictionary):
+        if isinstance(dictionary, str):
+            dictionary = self.__weather_model_map.get(dictionary)
+        elif file in ["GFS", "NAM", "RAP", "HIRESW", "GEFS", "CMC", "ERA5"]:
+            dictionary = self.__weather_model_map.get(file)
+        if not isinstance(dictionary, dict):
+            raise TypeError(
+                "Please specify a dictionary or choose a default one such as: "
+                "ECMWF or NOAA."
+            )
+
+        return dictionary
+
+    def __validate_datetime(self):
+        if self.datetime_date is None:
+            raise TypeError(
+                "Please specify Date (array-like) when "
+                "initializing this Environment. "
+                "Alternatively, use the Environment.set_date"
+                " method."
+            )
+
+    def __validate_coordinates(self):
+        if self.latitude is None or self.longitude is None:
+            raise TypeError(
+                "Please specify Location (lat, lon). when "
+                "initializing this Environment. "
+                "Alternatively, use the Environment.set_location() method."
+            )
+
+    # Define setters
+
     def set_date(self, date, timezone="UTC"):
         """Set date and time of launch and update weather conditions if
         date dependent atmospheric model is used.
