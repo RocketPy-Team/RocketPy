@@ -22,8 +22,9 @@ def show_or_save_plot(filename=None):
         file_ending = Path(filename).suffix
         if file_ending not in get_matplotlib_supported_file_endings():
             warnings.warn(
-                "Warning: Unsupported file ending '" + file_ending + "'!", UserWarning
+                f"Warning: Unsupported file ending '{file_ending}'!", UserWarning
             )
+
 
         # Before export, ensure the folder the file should go into exists
         Path(filename).parent.mkdir(parents=True, exist_ok=True)
@@ -50,7 +51,7 @@ def show_or_save_fig(fig: Figure, filename=None):
         file_ending = Path(filename).suffix
         if file_ending not in get_matplotlib_supported_file_endings():
             warnings.warn(
-                "Warning: Unsupported file ending '" + file_ending + "'!", UserWarning
+                f"Warning: Unsupported file ending '{file_ending}'!", UserWarning
             )
 
         # Before export, ensure the folder the file should go into exists
