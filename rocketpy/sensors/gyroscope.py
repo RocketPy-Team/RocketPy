@@ -12,8 +12,6 @@ class Gyroscope(InertialSensors):
 
     Attributes
     ----------
-    type : str
-        Type of the sensor, in this case "Gyroscope".
     acceleration_sensitivity : float, list
         Sensitivity of the sensor to linear acceleration in rad/s/g.
     prints : _GyroscopePrints
@@ -61,6 +59,8 @@ class Gyroscope(InertialSensors):
         temperature drift.
     """
 
+    units = "rad/s"
+
     def __init__(
         self,
         sampling_rate,
@@ -90,10 +90,10 @@ class Gyroscope(InertialSensors):
             Orientation of the sensor in the rocket. The orientation can be
             given as:
             - A list of length 3, where the elements are the Euler angles for
-              the rotation roll (φ), pitch (θ) and yaw (ψ) in radians. The
+              the rotation yaw (ψ), pitch (θ) and roll (φ) in radians. The
               standard rotation sequence is z-y-x (3-2-1) is used, meaning the
-              sensor is first rotated by ψ around the z axis, then by θ around
-              the new y axis and finally by φ around the new x axis.
+              sensor is first rotated by ψ around the x axis, then by θ around
+              the new y axis and finally by φ around the new z axis.
             - A list of lists (matrix) of shape 3x3, representing the rotation
               matrix from the sensor frame to the rocket frame. The sensor frame
               of reference is defined as to have z axis along the sensor's normal
@@ -191,7 +191,6 @@ class Gyroscope(InertialSensors):
             cross_axis_sensitivity=cross_axis_sensitivity,
             name=name,
         )
-        self.type = "Gyroscope"
         self.acceleration_sensitivity = self._vectorize_input(
             acceleration_sensitivity, "acceleration_sensitivity"
         )
@@ -300,7 +299,9 @@ class Gyroscope(InertialSensors):
         -------
         None
         """
-        if format == "csv":
+        if format.lower() not in ["csv", "json"]:
+            raise ValueError("Invalid format")
+        if format.lower() == "csv":
             # if sensor has been added multiple times to the simulated rocket
             if isinstance(self.measured_data[0], list):
                 print("Data saved to", end=" ")
@@ -316,7 +317,8 @@ class Gyroscope(InertialSensors):
                     for t, wx, wy, wz in self.measured_data:
                         f.write(f"{t},{wx},{wy},{wz}\n")
                 print(f"Data saved to {filename}")
-        elif format == "json":
+            return
+        if format.lower() == "json":
             if isinstance(self.measured_data[0], list):
                 print("Data saved to", end=" ")
                 for i, data in enumerate(self.measured_data):
@@ -339,5 +341,4 @@ class Gyroscope(InertialSensors):
                 with open(filename, "w") as f:
                     json.dump(dict, f)
                 print(f"Data saved to {filename}")
-        else:
-            raise ValueError("Invalid format")
+            return

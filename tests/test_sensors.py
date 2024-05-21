@@ -1,5 +1,6 @@
 import json
 import os
+
 import numpy as np
 
 from rocketpy.mathutils.vector_matrix import Vector
@@ -24,8 +25,8 @@ def test_sensor_on_rocket(calisto_sensors):
     assert isinstance(sensors[2].position, Vector)
 
 
-def test_ideal_sensors(flight_calisto_sensors):
-    """Test the ideal sensors. All types of sensors are here to reduvce
+def test_ideal_sensors(flight_calisto_accel_gyro):
+    """Test the ideal sensors. All types of sensors are here to reduce
     testing time.
 
     Parameters

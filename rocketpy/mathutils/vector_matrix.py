@@ -2,7 +2,7 @@ from cmath import isclose
 from functools import cached_property
 from itertools import product
 
-from rocketpy.tools import euler_to_quaternions
+from rocketpy.tools import euler_to_quaternions, normalize_quaternions
 
 
 class Vector:
@@ -949,6 +949,47 @@ class Matrix:
         """
         return self.__matmul__(other)
 
+    def round(self, decimals=0):
+        """Round all the values matrix to a given number of decimals.
+
+        Parameters
+        ----------
+        decimals : int, optional
+            Number of decimal places to round to. Defaults to 0.
+
+        Returns
+        -------
+        Matrix
+            The rounded matrix.
+
+        Examples
+        --------
+        >>> M = Matrix([[1.1234, 2.3456, 3.4567], [4.5678, 5.6789, 6.7890], [7.8901, 8.9012, 9.0123]])
+        >>> M.round(2)
+        Matrix([1.12, 2.35, 3.46],
+               [4.57, 5.68, 6.79],
+               [7.89, 8.9, 9.01])
+        """
+        return Matrix(
+            [
+                [
+                    round(self.xx, decimals),
+                    round(self.xy, decimals),
+                    round(self.xz, decimals),
+                ],
+                [
+                    round(self.yx, decimals),
+                    round(self.yy, decimals),
+                    round(self.yz, decimals),
+                ],
+                [
+                    round(self.zx, decimals),
+                    round(self.zy, decimals),
+                    round(self.zz, decimals),
+                ],
+            ]
+        )
+
     def __str__(self):
         return (
             f"[{self.xx}, {self.xy}, {self.xz}]\n"
@@ -990,16 +1031,10 @@ class Matrix:
         Matrix
             The transformation matrix from frame B to frame A.
         """
-        q_w, q_x, q_y, q_z = quaternion
         # normalize quaternion
-        q_norm = (q_w**2 + q_x**2 + q_y**2 + q_z**2) ** 0.5
-        if q_norm == 0:
-            return Matrix.identity()
-        q_w /= q_norm
-        q_x /= q_norm
-        q_y /= q_norm
-        q_z /= q_norm
-        # precompute common terms
+        q_w, q_x, q_y, q_z = normalize_quaternions(quaternion)
+
+        # pre-compute common terms
         q_x2 = q_x**2
         q_y2 = q_y**2
         q_z2 = q_z**2
@@ -1037,11 +1072,11 @@ class Matrix:
         Parameters
         ----------
         roll : float
-            The roll angle in radians.
+            The roll angle in degrees.
         pitch : float
-            The pitch angle in radians.
+            The pitch angle in degrees.
         yaw : float
-            The yaw angle in radians.
+            The yaw angle in degrees.
 
         Returns
         -------

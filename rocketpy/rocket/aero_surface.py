@@ -1978,7 +1978,7 @@ class AirBrakes(AeroSurface):
             Default is False.
         deployment_level : float, optional
             Initial deployment level, ranging from 0 to 1. Deployment level is
-            the fraction of the total airbrake area that is Deployment. Default
+            the fraction of the total airbrake area that is deployed. Default
             is 0.
         name : str, optional
             Name of the air brakes. Default is "AirBrakes".

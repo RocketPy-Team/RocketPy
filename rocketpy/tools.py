@@ -1,6 +1,7 @@
 import functools
 import importlib
 import importlib.metadata
+import math
 import re
 import time
 from bisect import bisect_left
@@ -467,37 +468,58 @@ def quaternions_to_nutation(e1, e2):
     return (180 / np.pi) * 2 * np.arcsin(-((e1**2 + e2**2) ** 0.5))
 
 
-def euler_to_quaternions(roll, pitch, yaw):
-    """Calculates the quaternions from the Euler angles in 3-2-1 sequence.
+def euler_to_quaternions(yaw, pitch, roll):
+    """Calculates the quaternions (Euler parameters) from the Euler angles in
+    yaw, pitch, and roll sequence (3-2-1).
 
     Parameters
     ----------
-    roll : float
-        Euler angle due to roll (psi) in degrees
-    pitch : float
-        Euler angle due to pitch (theta) in degrees
     yaw : float
         Euler angle due to yaw (phi) in degrees
+    pitch : float
+        Euler angle due to pitch (theta) in degrees
+    roll : float
+        Euler angle due to roll (psi) in degrees
 
     Returns
     -------
     tuple
         Tuple containing the Euler parameters e0, e1, e2, e3
     """
-    psi = np.radians(roll)
-    theta = np.radians(pitch)
-    phi = np.radians(yaw)
-    cr = np.cos(phi / 2)
-    sr = np.sin(phi / 2)
-    cp = np.cos(theta / 2)
-    sp = np.sin(theta / 2)
-    cy = np.cos(psi / 2)
-    sy = np.sin(psi / 2)
+    phi = math.radians(yaw)
+    theta = math.radians(pitch)
+    psi = math.radians(roll)
+    cr = math.cos(phi / 2)
+    sr = math.sin(phi / 2)
+    cp = math.cos(theta / 2)
+    sp = math.sin(theta / 2)
+    cy = math.cos(psi / 2)
+    sy = math.sin(psi / 2)
     e0 = cr * cp * cy + sr * sp * sy
     e1 = sr * cp * cy - cr * sp * sy
     e2 = cr * sp * cy + sr * cp * sy
     e3 = cr * cp * sy - sr * sp * cy
     return e0, e1, e2, e3
+
+
+def normalize_quaternions(quaternions):
+    """Normalizes the quaternions (Euler parameters) to have unit magnitude.
+
+    Parameters
+    ----------
+    quaternions : tuple
+        Tuple containing the Euler parameters e0, e1, e2, e3
+
+    Returns
+    -------
+    tuple
+        Tuple containing the Euler parameters e0, e1, e2, e3
+    """
+    q_w, q_x, q_y, q_z = quaternions
+    q_norm = (q_w**2 + q_x**2 + q_y**2 + q_z**2) ** 0.5
+    if q_norm == 0:
+        return 1, 0, 0, 0
+    return q_w / q_norm, q_x / q_norm, q_y / q_norm, q_z / q_norm
 
 
 if __name__ == "__main__":

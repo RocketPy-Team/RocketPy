@@ -606,11 +606,8 @@ class Flight:
         self.terminate_on_apogee = terminate_on_apogee
         self.name = name
         self.equations_of_motion = equations_of_motion
-
-        # Controller initialization
-        self.__init_controllers()
-
         # Flight initialization
+        self.__init_controllers()
         self.__init_post_process_variables()
         self.__init_solution_monitors()
         self.__init_equations_of_motion()
@@ -1291,22 +1288,14 @@ class Flight:
         ]
 
     def __cache_sensor_data(self):
+        """Cache sensor data for simulations with sensors."""
         sensor_data = {}
         sensors = []
         for sensor in self.sensors:
             # skip sensors that are used more then once in the rocket
             if sensor not in sensors:
                 sensors.append(sensor)
-                num_instances = sensor._attached_rockets[self.rocket]
-                # sensor added only once
-                if num_instances == 1:
-                    sensor_data[sensor] = sensor.measured_data[:]
-                # sensor added more then once
-                if num_instances > 1:
-                    sensor_data[sensor] = {}
-                    # iterate through each of the same sensor instances
-                    for index in range(num_instances):
-                        sensor_data[sensor][index + 1] = sensor.measured_data[index][:]
+                sensor_data[sensor] = sensor.measured_data[:]
         self.sensor_data = sensor_data
 
     @cached_property
@@ -3414,8 +3403,8 @@ class Flight:
         """
         if sensor is None:
             data_dict = {}
-            for key, value in self.sensor_data.items():
-                data_dict[key.name] = value
+            for used_sensor, measured_data in self.sensor_data.items():
+                data_dict[used_sensor.name] = measured_data
         else:
             # export data of only that sensor
             data_dict = {}

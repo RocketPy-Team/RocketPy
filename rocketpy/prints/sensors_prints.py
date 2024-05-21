@@ -1,18 +1,10 @@
 from abc import ABC, abstractmethod
 
-UNITS = {
-    "Gyroscope": "rad/s",
-    "Accelerometer": "m/s^2",
-    "Magnetometer": "T",
-    "Barometer": "Pa",
-    "TemperatureSensor": "K",
-}
-
 
 class _SensorsPrints(ABC):
     def __init__(self, sensor):
         self.sensor = sensor
-        self.units = UNITS[sensor.type]
+        self.units = sensor.units
 
     def _print_aligned(self, label, value):
         """Prints a label and a value aligned vertically."""
@@ -20,13 +12,13 @@ class _SensorsPrints(ABC):
 
     def identity(self):
         """Prints the identity of the sensor."""
-        print("Identification of the Sensor:\n")
+        print("Identification:\n")
         self._print_aligned("Name:", self.sensor.name)
-        self._print_aligned("Type:", self.sensor.type)
+        self._print_aligned("Type:", self.sensor.__class__.__name__)
 
     def orientation(self):
         """Prints the orientation of the sensor."""
-        print("\nOrientation of the Sensor:\n")
+        print("\nOrientation:\n")
         self._print_aligned("Orientation:", self.sensor.orientation)
         self._print_aligned("Normal Vector:", self.sensor.normal_vector)
         print("Rotation Matrix:")
@@ -37,7 +29,7 @@ class _SensorsPrints(ABC):
 
     def quantization(self):
         """Prints the quantization of the sensor."""
-        print("\nQuantization of the Sensor:\n")
+        print("\nQuantization:\n")
         self._print_aligned(
             "Measurement Range:",
             f"{self.sensor.measurement_range[0]} to {self.sensor.measurement_range[1]} ({self.units})",
@@ -50,7 +42,7 @@ class _SensorsPrints(ABC):
 
     def _general_noise(self):
         """Prints the noise of the sensor."""
-        print("\nNoise of the Sensor:\n")
+        print("\nNoise:\n")
         self._print_aligned(
             "Noise Density:", f"{self.sensor.noise_density} {self.units}/√Hz"
         )
