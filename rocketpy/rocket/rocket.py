@@ -4,6 +4,7 @@ import numpy as np
 
 from rocketpy.control.controller import _Controller
 from rocketpy.mathutils.function import Function
+from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.motors.motor import EmptyMotor
 from rocketpy.plots.rocket_plots import _RocketPlots
 from rocketpy.prints.rocket_prints import _RocketPrints
@@ -285,16 +286,11 @@ class Rocket:
         self.thrust_eccentricity_y = 0
         self.thrust_eccentricity_x = 0
 
-        # Parachute, Aerodynamic and Rail buttons data initialization
+        # Parachute, Aerodynamic, Buttons, Controllers, Sensors data initialization
         self.parachutes = []
-
-        # Controllers data initialization
         self._controllers = []
-
-        # AirBrakes data initialization
         self.air_brakes = []
-
-        # Aerodynamic data initialization
+        self.sensors = Components()
         self.aerodynamic_surfaces = Components()
         self.rail_buttons = Components()
 
@@ -1174,6 +1170,35 @@ class Rocket:
         self.parachutes.append(parachute)
         return self.parachutes[-1]
 
+    def add_sensor(self, sensor, position, x_offset=0, y_offset=0):
+        """Adds a sensor to the rocket.
+
+        Parameters
+        ----------
+        sensor : Sensor
+            Sensor to be added to the rocket.
+        position : int, float, tuple
+            Position, in meters, of the sensor's coordinate system origin
+            relative to the user defined rocket coordinate system.
+        x_offset : int, float, optional
+            Distance in meters by which the sensor is to be translated in the
+            rocket's x direction relative to geometrical center line.
+            Default is 0.
+        y_offset : int, float, optional
+            Distance in meters by which the sensor is to be translated in the
+            rocket's y direction relative to geometrical center line.
+            Default is 0.
+
+        Returns
+        -------
+        None
+        """
+        self.sensors.add(sensor, Vector([x_offset, y_offset, position]))
+        try:
+            sensor._attached_rockets[self] += 1
+        except KeyError:
+            sensor._attached_rockets[self] = 1
+
     def add_air_brakes(
         self,
         drag_coefficient_curve,
@@ -1242,6 +1267,10 @@ class Rocket:
                the controller function can interact with. The objects are
                listed in the same order as they are provided in the
                `interactive_objects`
+            7. `sensors` (list): A list of sensors that are attached to the
+                rocket. The most recent measurements of the sensors are provided
+                with the ``sensor.measurement`` attribute. The sensors are
+                listed in the same order as they are added to the rocket
 
             This function will be called during the simulation at the specified
             sampling rate. The function should evaluate and change the observed
@@ -1435,7 +1464,7 @@ class Rocket:
         self.thrust_eccentricity_x = y
         return self
 
-    def draw(self, vis_args=None):
+    def draw(self, vis_args=None, plane="xz"):
         """Draws the rocket in a matplotlib figure.
 
         Parameters
@@ -1455,9 +1484,11 @@ class Rocket:
             }
             A full list of color names can be found at:
             https://matplotlib.org/stable/gallery/color/named_colors
+        plane : str, optional
+            Plane in which the rocket will be drawn. Default is 'xz'. Other
+            options is 'yz'. Used only for sensors representation.
         """
-        self.plots.draw(vis_args)
-        return None
+        self.plots.draw(vis_args, plane)
 
     def info(self):
         """Prints out a summary of the data and graphs available about

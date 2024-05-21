@@ -1,3 +1,4 @@
+import json
 import math
 import warnings
 from copy import deepcopy
@@ -593,7 +594,6 @@ class Flight:
         if self.rail_length <= 0:
             raise ValueError("Rail length must be a positive value.")
         self.parachutes = self.rocket.parachutes[:]
-        self._controllers = self.rocket._controllers[:]
         self.inclination = inclination
         self.heading = heading
         self.max_time = max_time
@@ -606,8 +606,8 @@ class Flight:
         self.terminate_on_apogee = terminate_on_apogee
         self.name = name
         self.equations_of_motion = equations_of_motion
-
         # Flight initialization
+        self.__init_controllers()
         self.__init_post_process_variables()
         self.__init_solution_monitors()
         self.__init_equations_of_motion()
@@ -662,17 +662,20 @@ class Flight:
             # Initialize phase time nodes
             phase.TimeNodes = TimeNodes()
             # Add first time node to permanent list
-            phase.TimeNodes.add_node(phase.t, [], [])
+            phase.TimeNodes.add_node(phase.t, [], [], [])
             # Add non-overshootable parachute time nodes
             if self.time_overshoot is False:
                 phase.TimeNodes.add_parachutes(
                     self.parachutes, phase.t, phase.time_bound
                 )
+                phase.TimeNodes.add_sensors(
+                    self.rocket.sensors, phase.t, phase.time_bound
+                )
                 phase.TimeNodes.add_controllers(
                     self._controllers, phase.t, phase.time_bound
                 )
             # Add lst time node to permanent list
-            phase.TimeNodes.add_node(phase.time_bound, [], [])
+            phase.TimeNodes.add_node(phase.time_bound, [], [], [])
             # Sort time nodes
             phase.TimeNodes.sort()
             # Merge equal time nodes
@@ -702,8 +705,28 @@ class Flight:
                 for callback in node.callbacks:
                     callback(self)
 
+                if self.sensors:
+                    # u_dot for all sensors
+                    u_dot = phase.derivative(self.t, self.y_sol)
+                    for sensor, position in node._component_sensors:
+                        relative_position = position - self.rocket._csys * Vector(
+                            [0, 0, self.rocket.center_of_dry_mass_position]
+                        )
+                        sensor.measure(
+                            self.t,
+                            self.y_sol,
+                            u_dot,
+                            relative_position,
+                            self.env.gravity(self.solution[-1][3]),
+                        )
+
                 for controller in node._controllers:
-                    controller(self.t, self.y_sol, self.solution)
+                    controller(
+                        self.t,
+                        self.y_sol,
+                        self.solution,
+                        self.sensors,
+                    )
 
                 for parachute in node.parachutes:
                     # Calculate and save pressure signal
@@ -718,7 +741,9 @@ class Flight:
                         self.env.barometric_height(pressure + noise)
                         - self.env.elevation
                     )
-                    if parachute.triggerfunc(pressure + noise, hAGL, self.y_sol):
+                    if parachute.triggerfunc(
+                        pressure + noise, hAGL, self.y_sol, self.sensors
+                    ):
                         # print('\nEVENT DETECTED')
                         # print('Parachute Triggered')
                         # print('Name: ', parachute.name, ' | Lag: ', parachute.lag)
@@ -750,7 +775,7 @@ class Flight:
                         )
                         # Prepare to leave loops and start new flight phase
                         phase.TimeNodes.flush_after(node_index)
-                        phase.TimeNodes.add_node(self.t, [], [])
+                        phase.TimeNodes.add_node(self.t, [], [], [])
                         phase.solver.status = "finished"
                         # Save parachute event
                         self.parachute_events.append([self.t, parachute])
@@ -868,7 +893,7 @@ class Flight:
                         )
                         # Prepare to leave loops and start new flight phase
                         phase.TimeNodes.flush_after(node_index)
-                        phase.TimeNodes.add_node(self.t, [], [])
+                        phase.TimeNodes.add_node(self.t, [], [], [])
                         phase.solver.status = "finished"
 
                     # Check for apogee event
@@ -902,7 +927,7 @@ class Flight:
                             self.FlightPhases.add_phase(self.t)
                             # Prepare to leave loops and start new flight phase
                             phase.TimeNodes.flush_after(node_index)
-                            phase.TimeNodes.add_node(self.t, [], [])
+                            phase.TimeNodes.add_node(self.t, [], [], [])
                             phase.solver.status = "finished"
                     # Check for impact event
                     if self.y_sol[2] < self.env.elevation:
@@ -965,7 +990,7 @@ class Flight:
                         self.FlightPhases.add_phase(self.t)
                         # Prepare to leave loops and start new flight phase
                         phase.TimeNodes.flush_after(node_index)
-                        phase.TimeNodes.add_node(self.t, [], [])
+                        phase.TimeNodes.add_node(self.t, [], [], [])
                         phase.solver.status = "finished"
 
                     # List and feed overshootable time nodes
@@ -977,7 +1002,7 @@ class Flight:
                             self.parachutes, self.solution[-2][0], self.t
                         )
                         # Add last time node (always skipped)
-                        overshootable_nodes.add_node(self.t, [], [])
+                        overshootable_nodes.add_node(self.t, [], [], [])
                         if len(overshootable_nodes) > 1:
                             # Sort overshootable time nodes
                             overshootable_nodes.sort()
@@ -1026,7 +1051,10 @@ class Flight:
                                     )
 
                                     if parachute.triggerfunc(
-                                        pressure + noise, hAGL, overshootable_node.y
+                                        pressure + noise,
+                                        hAGL,
+                                        overshootable_node.y,
+                                        self.sensors,
                                     ):
                                         # print('\nEVENT DETECTED')
                                         # print('Parachute Triggered')
@@ -1069,15 +1097,23 @@ class Flight:
                                             overshootable_index
                                         )
                                         phase.TimeNodes.flush_after(node_index)
-                                        phase.TimeNodes.add_node(self.t, [], [])
+                                        phase.TimeNodes.add_node(self.t, [], [], [])
                                         phase.solver.status = "finished"
                                         # Save parachute event
                                         self.parachute_events.append(
                                             [self.t, parachute]
                                         )
 
+                    # If controlled flight, post process must be done on sim time
+                    if self._controllers:
+                        phase.derivative(self.t, self.y_sol, post_processing=True)
+
         self.t_final = self.t
         self._calculate_pressure_signal()
+        if self._controllers:
+            self.__cache_post_process_variables()
+        if self.sensors:
+            self.__cache_sensor_data()
         if verbose:
             print("Simulation Completed at Time: {:3.4f} s".format(self.t))
 
@@ -1089,6 +1125,25 @@ class Flight:
         self._bearing = Function(0)
         self._latitude = Function(0)
         self._longitude = Function(0)
+        # Initialize state derivatives, force and atmospheric arrays
+        self.ax_list = []
+        self.ay_list = []
+        self.az_list = []
+        self.alpha1_list = []
+        self.alpha2_list = []
+        self.alpha3_list = []
+        self.R1_list = []
+        self.R2_list = []
+        self.R3_list = []
+        self.M1_list = []
+        self.M2_list = []
+        self.M3_list = []
+        self.pressure_list = []
+        self.density_list = []
+        self.dynamic_viscosity_list = []
+        self.speed_of_sound_list = []
+        self.wind_velocity_x_list = []
+        self.wind_velocity_y_list = []
 
     def __init_solution_monitors(self):
         # Initialize solution monitors
@@ -1161,6 +1216,11 @@ class Flight:
             self.out_of_rail_time = self.initial_solution[0]
             self.out_of_rail_time_index = 0
             self.initial_derivative = self.u_dot_generalized
+        if self._controllers:
+            # Handle post process during simulation, get initial accel/forces
+            self.initial_derivative(
+                self.t_initial, self.initial_solution[1:], post_processing=True
+            )
 
     def __init_solver_monitors(self):
         # Initialize solver monitors
@@ -1181,10 +1241,59 @@ class Flight:
         if self.equations_of_motion == "solid_propulsion":
             self.u_dot_generalized = self.u_dot
 
-    def __init_equations_of_motion(self):
-        """Initialize equations of motion."""
-        if self.equations_of_motion == "solid_propulsion":
-            self.u_dot_generalized = self.u_dot
+    def __init_controllers(self):
+        """Initialize controllers and sensors"""
+        self._controllers = self.rocket._controllers[:]
+        self.sensors = self.rocket.sensors.get_components()
+        if self._controllers or self.sensors:
+            if self.time_overshoot == True:
+                self.time_overshoot = False
+                warnings.warn(
+                    "time_overshoot has been set to False due to the presence "
+                    "of controllers or sensors. "
+                )
+            # reset controllable object to initial state (only airbrakes for now)
+            for air_brakes in self.rocket.air_brakes:
+                air_brakes._reset()
+
+        self.sensor_data = {}
+        for sensor in self.sensors:
+            sensor._reset(self.rocket)  # resets noise and measurement list
+            self.sensor_data[sensor] = []
+
+    def __cache_post_process_variables(self):
+        """Cache post-process variables for simulations with controllers."""
+        self.__retrieve_arrays = [
+            self.ax_list,
+            self.ay_list,
+            self.az_list,
+            self.alpha1_list,
+            self.alpha2_list,
+            self.alpha3_list,
+            self.R1_list,
+            self.R2_list,
+            self.R3_list,
+            self.M1_list,
+            self.M2_list,
+            self.M3_list,
+            self.pressure_list,
+            self.density_list,
+            self.dynamic_viscosity_list,
+            self.speed_of_sound_list,
+            self.wind_velocity_x_list,
+            self.wind_velocity_y_list,
+        ]
+
+    def __cache_sensor_data(self):
+        """Cache sensor data for simulations with sensors."""
+        sensor_data = {}
+        sensors = []
+        for sensor in self.sensors:
+            # skip sensors that are used more then once in the rocket
+            if sensor not in sensors:
+                sensors.append(sensor)
+                sensor_data[sensor] = sensor.measured_data[:]
+        self.sensor_data = sensor_data
 
     @cached_property
     def effective_1rl(self):
@@ -1261,11 +1370,6 @@ class Flight:
             e0dot, e1dot, e2dot, e3dot, alpha1, alpha2, alpha3].
 
         """
-        # Check if post processing mode is on
-        if post_processing:
-            # Use u_dot post processing code
-            return self.u_dot_generalized(t, u, True)
-
         # Retrieve integration data
         x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
 
@@ -1295,6 +1399,17 @@ class Flight:
             az = (1 - 2 * (e1**2 + e2**2)) * a3
         else:
             ax, ay, az = 0, 0, 0
+
+        if post_processing:
+            # Use u_dot post processing code for forces, moments and env data
+            self.u_dot_generalized(t, u, post_processing=True)
+            # Save feasible accelerations
+            self.ax_list[-1] = [t, ax]
+            self.ay_list[-1] = [t, ay]
+            self.az_list[-1] = [t, az]
+            self.alpha1_list[-1] = [t, 0]
+            self.alpha2_list[-1] = [t, 0]
+            self.alpha3_list[-1] = [t, 0]
 
         return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
 
@@ -1585,6 +1700,13 @@ class Flight:
         ]
 
         if post_processing:
+            # Accelerations
+            self.ax_list.append([t, ax])
+            self.ay_list.append([t, ay])
+            self.az_list.append([t, az])
+            self.alpha1_list.append([t, alpha1])
+            self.alpha2_list.append([t, alpha2])
+            self.alpha3_list.append([t, alpha3])
             # Dynamics variables
             self.R1_list.append([t, R1])
             self.R2_list.append([t, R2])
@@ -1860,6 +1982,13 @@ class Flight:
         u_dot = [*r_dot, *v_dot, *e_dot, *w_dot]
 
         if post_processing:
+            # Accelerations
+            self.ax_list.append([t, v_dot[0]])
+            self.ay_list.append([t, v_dot[1]])
+            self.az_list.append([t, v_dot[2]])
+            self.alpha1_list.append([t, w_dot[0]])
+            self.alpha2_list.append([t, w_dot[1]])
+            self.alpha3_list.append([t, w_dot[2]])
             # Dynamics variables
             self.R1_list.append([t, R1])
             self.R2_list.append([t, R2])
@@ -1943,7 +2072,16 @@ class Flight:
         ay = Dy / (mp + ma)
         az = (Dz - 9.8 * mp) / (mp + ma)
 
+        u_dot = [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
+
         if post_processing:
+            # Accelerations
+            self.ax_list.append([t, ax])
+            self.ay_list.append([t, ay])
+            self.az_list.append([t, az])
+            self.alpha1_list.append([t, 0])
+            self.alpha2_list.append([t, 0])
+            self.alpha3_list.append([t, 0])
             # Dynamics variables
             self.R1_list.append([t, Dx])
             self.R2_list.append([t, Dy])
@@ -1952,13 +2090,20 @@ class Flight:
             self.M2_list.append([t, 0])
             self.M3_list.append([t, 0])
             # Atmospheric Conditions
-            self.wind_velocity_x_list.append([t, self.env.wind_velocity_x(z)])
-            self.wind_velocity_y_list.append([t, self.env.wind_velocity_y(z)])
-            self.density_list.append([t, self.env.density(z)])
-            self.dynamic_viscosity_list.append([t, self.env.dynamic_viscosity(z)])
-            self.pressure_list.append([t, self.env.pressure(z)])
-            self.speed_of_sound_list.append([t, self.env.speed_of_sound(z)])
-
+            self.wind_velocity_x_list.append(
+                [t, self.env.wind_velocity_x.get_value_opt(z)]
+            )
+            self.wind_velocity_y_list.append(
+                [t, self.env.wind_velocity_y.get_value_opt(z)]
+            )
+            self.density_list.append([t, self.env.density.get_value_opt(z)])
+            self.dynamic_viscosity_list.append(
+                [t, self.env.dynamic_viscosity.get_value_opt(z)]
+            )
+            self.pressure_list.append([t, self.env.pressure.get_value_opt(z)])
+            self.speed_of_sound_list.append(
+                [t, self.env.speed_of_sound.get_value_opt(z)]
+            )
         return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
 
     @cached_property
@@ -2791,31 +2936,20 @@ class Flight:
         return np.column_stack((self.time, longitude))
 
     @cached_property
-    def retrieve_acceleration_arrays(self):
-        """Retrieve acceleration arrays from the integration scheme
-
-        Parameters
-        ----------
+    def __retrieve_arrays(self):
+        """post processing function to retrieve arrays from the integration
+        scheme and store them in lists for further analysis.
 
         Returns
         -------
-        ax: list
-            acceleration in x direction
-        ay: list
-            acceleration in y direction
-        az: list
-            acceleration in z direction
-        alpha1: list
-            angular acceleration in x direction
-        alpha2: list
-            angular acceleration in y direction
-        alpha3: list
-            angular acceleration in z direction
+        temp_values: list
+            List containing the following arrays: ``ax`` , ``ay`` , ``az`` ,
+            ``alpha1`` , ``alpha2`` , ``alpha3`` , ``R1`` , ``R2`` , ``R3`` ,
+            ``M1`` , ``M2`` , ``M3`` , ``pressure`` , ``density`` ,
+            ``dynamic_viscosity`` , ``speed_of_sound`` , ``wind_velocity_x`` ,
+            ``wind_velocity_y``.
         """
-        # Initialize acceleration arrays
-        ax, ay, az = [[0, 0]], [[0, 0]], [[0, 0]]
-        alpha1, alpha2, alpha3 = [[0, 0]], [[0, 0]], [[0, 0]]
-        # Go through each time step and calculate accelerations
+        # Go through each time step and calculate forces and atmospheric values
         # Get flight phases
         for phase_index, phase in self.time_iterator(self.FlightPhases):
             init_time = phase.t
@@ -2824,23 +2958,60 @@ class Flight:
             # Call callback functions
             for callback in phase.callbacks:
                 callback(self)
-            # Loop through time steps in flight phase
-            for step in self.solution:  # Can be optimized
-                if init_time < step[0] <= final_time:
-                    # Get derivatives
-                    u_dot = current_derivative(step[0], step[1:])
-                    # Get accelerations
-                    ax_value, ay_value, az_value = u_dot[3:6]
-                    alpha1_value, alpha2_value, alpha3_value = u_dot[10:]
-                    # Save accelerations
-                    ax.append([step[0], ax_value])
-                    ay.append([step[0], ay_value])
-                    az.append([step[0], az_value])
-                    alpha1.append([step[0], alpha1_value])
-                    alpha2.append([step[0], alpha2_value])
-                    alpha3.append([step[0], alpha3_value])
+            # find index of initial and final time of phase in solution array
+            init_time_index = find_closest(self.time, init_time)
+            final_time_index = find_closest(self.time, final_time) + 1
+            # Loop through time steps solution array
+            for step in self.solution[init_time_index:final_time_index]:
+                if init_time != step[0] or (
+                    init_time == self.t_initial and step[0] == self.t_initial
+                ):
+                    # Call derivatives in post processing mode
+                    current_derivative(step[0], step[1:], post_processing=True)
 
-        return ax, ay, az, alpha1, alpha2, alpha3
+        temp_values = [
+            self.ax_list,
+            self.ay_list,
+            self.az_list,
+            self.alpha1_list,
+            self.alpha2_list,
+            self.alpha3_list,
+            self.R1_list,
+            self.R2_list,
+            self.R3_list,
+            self.M1_list,
+            self.M2_list,
+            self.M3_list,
+            self.pressure_list,
+            self.density_list,
+            self.dynamic_viscosity_list,
+            self.speed_of_sound_list,
+            self.wind_velocity_x_list,
+            self.wind_velocity_y_list,
+        ]
+
+        return temp_values
+
+    @cached_property
+    def retrieve_acceleration_arrays(self):
+        """Retrieve acceleration arrays from the integration scheme
+
+        Returns
+        -------
+        ax_list: list
+            acceleration in x direction
+        ay_list: list
+            acceleration in y direction
+        az_list: list
+            acceleration in z direction
+        alpha1_list: list
+            angular acceleration in x direction
+        alpha2_list: list
+            angular acceleration in y direction
+        alpha3_list: list
+            angular acceleration in z direction
+        """
+        return self.__retrieve_arrays[:6]
 
     @cached_property
     def retrieve_temporary_values_arrays(self):
@@ -2877,54 +3048,7 @@ class Flight:
         self.wind_velocity_y_list: list
             Wind velocity in y direction at each time step.
         """
-
-        # Initialize force and atmospheric arrays
-        self.R1_list = []
-        self.R2_list = []
-        self.R3_list = []
-        self.M1_list = []
-        self.M2_list = []
-        self.M3_list = []
-        self.pressure_list = []
-        self.density_list = []
-        self.dynamic_viscosity_list = []
-        self.speed_of_sound_list = []
-        self.wind_velocity_x_list = []
-        self.wind_velocity_y_list = []
-
-        # Go through each time step and calculate forces and atmospheric values
-        # Get flight phases
-        for phase_index, phase in self.time_iterator(self.FlightPhases):
-            init_time = phase.t
-            final_time = self.FlightPhases[phase_index + 1].t
-            current_derivative = phase.derivative
-            # Call callback functions
-            for callback in phase.callbacks:
-                callback(self)
-            # Loop through time steps in flight phase
-            for step in self.solution:  # Can be optimized
-                if init_time < step[0] <= final_time or (
-                    init_time == self.t_initial and step[0] == self.t_initial
-                ):
-                    # Call derivatives in post processing mode
-                    u_dot = current_derivative(step[0], step[1:], post_processing=True)
-
-        temporary_values = [
-            self.R1_list,
-            self.R2_list,
-            self.R3_list,
-            self.M1_list,
-            self.M2_list,
-            self.M3_list,
-            self.pressure_list,
-            self.density_list,
-            self.dynamic_viscosity_list,
-            self.speed_of_sound_list,
-            self.wind_velocity_x_list,
-            self.wind_velocity_y_list,
-        ]
-
-        return temporary_values
+        return self.__retrieve_arrays[6:]
 
     def get_controller_observed_variables(self):
         """Retrieve the observed variables related to air brakes from the
@@ -3260,7 +3384,31 @@ class Flight:
             encoding="utf-8",
         )
 
-        return
+    def export_sensor_data(self, file_name, sensor=None):
+        """Exports sensors data to a file. The file format can be either .csv or
+        .json.
+
+        Parameters
+        ----------
+        file_name : str
+            The file name or path of the exported file. Example: flight_data.csv
+            Do not use forbidden characters, such as / in Linux/Unix and
+            `<, >, :, ", /, \\, | ?, *` in Windows.
+        sensor : Sensor, optional
+            The sensor to export data. If None, all sensors data will be exported.
+            Default is None.
+        """
+        if sensor is None:
+            data_dict = {}
+            for used_sensor, measured_data in self.sensor_data.items():
+                data_dict[used_sensor.name] = measured_data
+        else:
+            # export data of only that sensor
+            data_dict = {}
+            data_dict[sensor.name] = self.sensor_data[sensor]
+        with open(file_name, "w") as file:
+            json.dump(data_dict, file)
+        print("Sensor data exported to", file_name)
 
     def export_kml(
         self,
@@ -3566,6 +3714,8 @@ class Flight:
                 self.derivative = derivative
                 self.callbacks = callbacks[:] if callbacks is not None else []
                 self.clear = clear
+                self.time_bound = None
+                self.TimeNodes = None
 
             def __repr__(self):
                 if self.derivative is None:
@@ -3594,8 +3744,8 @@ class Flight:
         def add(self, time_node):
             self.list.append(time_node)
 
-        def add_node(self, t, parachutes, callbacks):
-            self.list.append(self.TimeNode(t, parachutes, callbacks))
+        def add_node(self, t, parachutes, controllers, sensors):
+            self.list.append(self.TimeNode(t, parachutes, controllers, sensors))
 
         def add_parachutes(self, parachutes, t_init, t_end):
             # Iterate over parachutes
@@ -3603,7 +3753,7 @@ class Flight:
                 # Calculate start of sampling time nodes
                 pcDt = 1 / parachute.sampling_rate
                 parachute_node_list = [
-                    self.TimeNode(i * pcDt, [parachute], [])
+                    self.TimeNode(i * pcDt, [parachute], [], [])
                     for i in range(
                         math.ceil(t_init / pcDt), math.floor(t_end / pcDt) + 1
                     )
@@ -3616,13 +3766,29 @@ class Flight:
                 # Calculate start of sampling time nodes
                 controller_time_step = 1 / controller.sampling_rate
                 controller_node_list = [
-                    self.TimeNode(i * controller_time_step, [], [controller])
+                    self.TimeNode(i * controller_time_step, [], [controller], [])
                     for i in range(
                         math.ceil(t_init / controller_time_step),
                         math.floor(t_end / controller_time_step) + 1,
                     )
                 ]
                 self.list += controller_node_list
+
+        def add_sensors(self, sensors, t_init, t_end):
+            # Iterate over sensors
+            for sensor_component_tuple in sensors:
+                # Calculate start of sampling time nodes
+                sensor_time_step = 1 / sensor_component_tuple.component.sampling_rate
+                sensor_node_list = [
+                    self.TimeNode(
+                        i * sensor_time_step, [], [], [sensor_component_tuple]
+                    )
+                    for i in range(
+                        math.ceil(t_init / sensor_time_step),
+                        math.floor(t_end / sensor_time_step) + 1,
+                    )
+                ]
+                self.list += sensor_node_list
 
         def sort(self):
             self.list.sort(key=(lambda node: node.t))
@@ -3637,6 +3803,8 @@ class Flight:
                 if abs(node.t - self.tmp_list[-1].t) < 1e-7:
                     self.tmp_list[-1].parachutes += node.parachutes
                     self.tmp_list[-1].callbacks += node.callbacks
+                    self.tmp_list[-1]._component_sensors += node._component_sensors
+                    self.tmp_list[-1]._controllers += node._controllers
                 # Add new node to tmp list if there is none with the same time
                 else:
                     self.tmp_list.append(node)
@@ -3647,11 +3815,12 @@ class Flight:
             del self.list[index + 1 :]
 
         class TimeNode:
-            def __init__(self, t, parachutes, controllers):
+            def __init__(self, t, parachutes, controllers, sensors):
                 self.t = t
                 self.parachutes = parachutes
                 self.callbacks = []
                 self._controllers = controllers
+                self._component_sensors = sensors
 
             def __repr__(self):
                 return (
@@ -3659,5 +3828,9 @@ class Flight:
                     + str(self.t)
                     + " | Parachutes: "
                     + str(len(self.parachutes))
+                    + " | Controllers: "
+                    + str(len(self._controllers))
+                    + " | Sensors: "
+                    + str(len(self._component_sensors))
                     + "}"
                 )

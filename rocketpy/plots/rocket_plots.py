@@ -3,6 +3,7 @@ import warnings
 import matplotlib.pyplot as plt
 import numpy as np
 
+from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.motors import EmptyMotor, HybridMotor, LiquidMotor, SolidMotor
 from rocketpy.rocket.aero_surface import Fins, NoseCone, Tail
 
@@ -168,7 +169,7 @@ class _RocketPlots:
 
         return None
 
-    def draw(self, vis_args=None):
+    def draw(self, vis_args=None, plane="xz"):
         """Draws the rocket in a matplotlib figure.
 
         Parameters
@@ -188,6 +189,9 @@ class _RocketPlots:
             }
             A full list of color names can be found at:
             https://matplotlib.org/stable/gallery/color/named_colors
+        plane : str, optional
+            Plane in which the rocket will be drawn. Default is 'xz'. Other
+            options is 'yz'. Used only for sensors representation.
         """
         if vis_args is None:
             vis_args = {
@@ -201,10 +205,8 @@ class _RocketPlots:
                 "line_width": 1.0,
             }
 
-        # Create the figure and axis
-        _, ax = plt.subplots(figsize=(8, 6), facecolor="#EEEEEE")
+        fig, ax = plt.subplots(figsize=(8, 6), facecolor=vis_args["background"])
         ax.set_aspect("equal")
-        ax.set_facecolor(vis_args["background"])
         ax.grid(True, linestyle="--", linewidth=0.5)
 
         csys = self.rocket._csys
@@ -216,6 +218,7 @@ class _RocketPlots:
         self._draw_motor(last_radius, last_x, ax, vis_args)
         self._draw_rail_buttons(ax, vis_args)
         self._draw_center_of_mass_and_pressure(ax)
+        self._draw_sensor(ax, self.rocket.sensors, plane, vis_args)
 
         plt.title("Rocket Representation")
         plt.xlim()
@@ -551,6 +554,56 @@ class _RocketPlots:
         ax.scatter(
             cp, 0, label="Static Center of Pressure", color="red", s=10, zorder=10
         )
+
+    def _draw_sensor(self, ax, sensors, plane, vis_args):
+        """Draw the sensor as a small thick line at the position of the sensor,
+        with a vector pointing in the direction normal of the sensor. Get the
+        normal vector from the sensor orientation matrix."""
+        colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+        for i, sensor_pos in enumerate(sensors):
+            sensor = sensor_pos[0]
+            pos = sensor_pos[1]
+            if plane == "xz":
+                # z position of the sensor is the x position in the plot
+                x_pos = pos[2]
+                normal_x = sensor.normal_vector.z
+                # x position of the sensor is the y position in the plot
+                y_pos = pos[0]
+                normal_y = sensor.normal_vector.x
+            elif plane == "yz":
+                # z position of the sensor is the x position in the plot
+                x_pos = pos[2]
+                normal_x = sensor.normal_vector.z
+                # y position of the sensor is the y position in the plot
+                y_pos = pos[1]
+                normal_y = sensor.normal_vector.y
+            else:
+                raise ValueError("Plane must be 'xz' or 'yz'.")
+
+            # line length is 2/5 of the rocket radius
+            line_length = self.rocket.radius / 2.5
+
+            ax.plot(
+                [x_pos, x_pos],
+                [y_pos + line_length, y_pos - line_length],
+                linewidth=2,
+                color=colors[(i + 1) % len(colors)],
+                zorder=10,
+                label=sensor.name,
+            )
+            ax.quiver(
+                x_pos,
+                y_pos,
+                normal_x,
+                normal_y,
+                color=colors[(i + 1) % len(colors)],
+                scale_units="xy",
+                angles="xy",
+                minshaft=2,
+                headwidth=2,
+                headlength=4,
+                zorder=10,
+            )
 
     def all(self):
         """Prints out all graphs available about the Rocket. It simply calls

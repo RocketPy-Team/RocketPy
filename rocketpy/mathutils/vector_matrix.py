@@ -2,6 +2,8 @@ from cmath import isclose
 from functools import cached_property
 from itertools import product
 
+from rocketpy.tools import euler_to_quaternions, normalize_quaternions
+
 
 class Vector:
     """Pure python basic R3 vector class designed for simple operations.
@@ -152,7 +154,10 @@ class Vector:
     @cached_property
     def unit_vector(self):
         """R3 vector with the same direction of self, but normalized."""
-        return self / abs(self)
+        try:
+            return self / abs(self)
+        except ZeroDivisionError:
+            return self
 
     @cached_property
     def cross_matrix(self):
@@ -237,6 +242,30 @@ class Vector:
                 self.x * other.y - self.y * other.x,
             ]
         )
+
+    def __and__(self, other):
+        """Element wise multiplication between two R3 vectors. Also known as
+        Hadamard product.
+
+        Parameters
+        ----------
+        other : Vector
+            R3 vector to be multiplied with self.
+
+        Returns
+        -------
+        Vector
+            R3 vector resulting from the element wise multiplication between
+            self and other.
+
+        Examples
+        --------
+        >>> v = Vector([1, 7, 3])
+        >>> u = Vector([2, 5, 6])
+        >>> (v & u)
+        Vector(2, 35, 18)
+        """
+        return Vector([self.x * other[0], self.y * other[1], self.z * other[2]])
 
     def __matmul__(self, other):
         """Dot product between two R3 vectors."""
@@ -920,6 +949,47 @@ class Matrix:
         """
         return self.__matmul__(other)
 
+    def round(self, decimals=0):
+        """Round all the values matrix to a given number of decimals.
+
+        Parameters
+        ----------
+        decimals : int, optional
+            Number of decimal places to round to. Defaults to 0.
+
+        Returns
+        -------
+        Matrix
+            The rounded matrix.
+
+        Examples
+        --------
+        >>> M = Matrix([[1.1234, 2.3456, 3.4567], [4.5678, 5.6789, 6.7890], [7.8901, 8.9012, 9.0123]])
+        >>> M.round(2)
+        Matrix([1.12, 2.35, 3.46],
+               [4.57, 5.68, 6.79],
+               [7.89, 8.9, 9.01])
+        """
+        return Matrix(
+            [
+                [
+                    round(self.xx, decimals),
+                    round(self.xy, decimals),
+                    round(self.xz, decimals),
+                ],
+                [
+                    round(self.yx, decimals),
+                    round(self.yy, decimals),
+                    round(self.yz, decimals),
+                ],
+                [
+                    round(self.zx, decimals),
+                    round(self.zy, decimals),
+                    round(self.zz, decimals),
+                ],
+            ]
+        )
+
     def __str__(self):
         return (
             f"[{self.xx}, {self.xy}, {self.xz}]\n"
@@ -955,33 +1025,65 @@ class Matrix:
             The quaternion representing the rotation from frame A to frame B.
             Example: (cos(phi/2), 0, 0, sin(phi/2)) represents a rotation of
             phi around the z-axis.
-            Note: the quaternion must be normalized.
 
         Returns
         -------
         Matrix
             The transformation matrix from frame B to frame A.
         """
-        q_w, q_x, q_y, q_z = quaternion
+        # normalize quaternion
+        q_w, q_x, q_y, q_z = normalize_quaternions(quaternion)
+
+        # pre-compute common terms
+        q_x2 = q_x**2
+        q_y2 = q_y**2
+        q_z2 = q_z**2
+        q_wx = q_w * q_x
+        q_wy = q_w * q_y
+        q_wz = q_w * q_z
+        q_xy = q_x * q_y
+        q_xz = q_x * q_z
+        q_yz = q_y * q_z
         return Matrix(
             [
                 [
-                    1 - 2 * (q_y**2 + q_z**2),
-                    2 * (q_x * q_y - q_w * q_z),
-                    2 * (q_x * q_z + q_w * q_y),
+                    1 - 2 * (q_y2 + q_z2),
+                    2 * (q_xy - q_wz),
+                    2 * (q_xz + q_wy),
                 ],
                 [
-                    2 * (q_x * q_y + q_w * q_z),
-                    1 - 2 * (q_x**2 + q_z**2),
-                    2 * (q_y * q_z - q_w * q_x),
+                    2 * (q_xy + q_wz),
+                    1 - 2 * (q_x2 + q_z2),
+                    2 * (q_yz - q_wx),
                 ],
                 [
-                    2 * (q_x * q_z - q_w * q_y),
-                    2 * (q_y * q_z + q_w * q_x),
-                    1 - 2 * (q_x**2 + q_y**2),
+                    2 * (q_xz - q_wy),
+                    2 * (q_yz + q_wx),
+                    1 - 2 * (q_x2 + q_y2),
                 ],
             ]
         )
+
+    @staticmethod
+    def transformation_euler_angles(roll, pitch, yaw):
+        """Returns the transformation Matrix from frame B to frame A, where B
+        is rotated by the Euler angles roll, pitch and yaw with respect to A.
+
+        Parameters
+        ----------
+        roll : float
+            The roll angle in degrees.
+        pitch : float
+            The pitch angle in degrees.
+        yaw : float
+            The yaw angle in degrees.
+
+        Returns
+        -------
+        Matrix
+            The transformation matrix from frame B to frame A.
+        """
+        return Matrix.transformation(euler_to_quaternions(roll, pitch, yaw))
 
 
 if __name__ == "__main__":
