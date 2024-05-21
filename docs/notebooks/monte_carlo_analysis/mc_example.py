@@ -1,32 +1,25 @@
 import datetime
 
-from rocketpy import Environment, Flight, MonteCarlo, Rocket, SolidMotor, Function
-from rocketpy.stochastic import (StochasticNoseCone, StochasticParachute,
-                                 StochasticRailButtons, StochasticTail,
-                                 StochasticTrapezoidalFins, StochasticSolidMotor)
-
-##### Environment
-tomorrow = datetime.date.today() + datetime.timedelta(days=1)
+from rocketpy import (Environment, Flight, Function, MonteCarlo, Rocket,
+                      SolidMotor)
+from rocketpy.stochastic import (StochasticEnvironment, StochasticFlight,
+                                 StochasticNoseCone, StochasticParachute,
+                                 StochasticRailButtons, StochasticRocket,
+                                 StochasticSolidMotor, StochasticTail,
+                                 StochasticTrapezoidalFins)
 
 env = Environment(latitude=39.389700, longitude=-8.288964, elevation=113)
+tomorrow = datetime.date.today() + datetime.timedelta(days=1)
 env.set_date((tomorrow.year, tomorrow.month, tomorrow.day, 12))
 env.set_atmospheric_model(type="Ensemble", file="GEFS")
 
-# mc_env = StochasticEnvironment(
-#     environment=env,
-#     ensemble_member=list(range(env.num_ensemble_members)),
-#     wind_velocity_x_factor=(1.0, 0.33, "normal"),
-#     wind_velocity_y_factor=(1.0, 0.33, "normal"),
-# )
+mc_env = StochasticEnvironment(
+    environment=env,
+    ensemble_member=list(range(env.num_ensemble_members)),
+    wind_velocity_x_factor=(1.0, 0.33, "normal"),
+    wind_velocity_y_factor=(1.0, 0.33, "normal"),
+)
 
-sto_env_parameters = {
-    "environment": env,
-    "ensemble_member": list(range(env.num_ensemble_members)),
-    "wind_velocity_x_factor": (1.0, 0.33, "normal"),
-    "wind_velocity_y_factor": (1.0, 0.33, "normal"),
-}
-
-##### Motor
 motor = SolidMotor(
     thrust_source="data/motors/Cesaroni_M1670.eng",
     dry_mass=1.815,
@@ -66,27 +59,6 @@ mc_motor = StochasticSolidMotor(
     nozzle_position=0.001,
 )
 
-
-# sto_motor_parameters = {
-#     "solid_motor": motor,
-#     "thrust_source": [
-#         "data/motors/Cesaroni_M1670.eng",
-#         [[0, 6000], [1, 6000], [2, 6000], [3, 6000], [4, 6000]],
-#     ],
-#     "burn_start_time": (0, 0.1),
-#     "grains_center_of_mass_position": 0.001,
-#     "grain_density": 50,
-#     "grain_separation": 1 / 1000,
-#     "grain_initial_height": 1 / 1000,
-#     "grain_initial_inner_radius": 0.375 / 1000,
-#     "grain_outer_radius": 0.375 / 1000,
-#     "total_impulse": (6500, 1000),
-#     "throat_radius": 0.5 / 1000,
-#     "nozzle_radius": 0.5 / 1000,
-#     "nozzle_position": 0.001,
-# }
-
-##### Rocket
 rocket = Rocket(
     radius=127 / 2000,
     mass=14.426,
@@ -139,15 +111,15 @@ Drogue = rocket.add_parachute(
     noise=(0, 8.3, 0.5),
 )
 
-sto_rocket_parameters = {
-    "rocket": rocket,
-    "radius": 0.0127 / 2000,
-    "mass": (15.426, 0.5, "normal"),
-    "inertia_11": (6.321, 0),
-    "inertia_22": 0.01,
-    "inertia_33": 0.01,
-    "center_of_mass_without_motor": 0,
-}
+mc_rocket = StochasticRocket(
+    rocket=rocket,
+    radius=0.0127 / 2000,
+    mass=(15.426, 0.5, "normal"),
+    inertia_11=(6.321, 0),
+    inertia_22=0.01,
+    inertia_33=0.01,
+    center_of_mass_without_motor=0,
+)
 
 mc_nose_cone = StochasticNoseCone(
     nosecone=nose_cone,
@@ -184,16 +156,14 @@ mc_drogue = StochasticParachute(
     lag=0.2,
 )
 
-sto_rocket_parameters["motor"] = (mc_motor, 0.001)
-sto_rocket_parameters["nose"] = (mc_nose_cone, (1.134, 0.001))
-sto_rocket_parameters["trapezoidal_fins"] = (mc_fin_set, (0.001, "normal"))
-sto_rocket_parameters["rail_buttons"] = (mc_rail_buttons, (0.001, "normal")) 
-sto_rocket_parameters["tail"] = mc_tail
-sto_rocket_parameters["parachute_main"] = mc_main
-sto_rocket_parameters["parachute_drogue"] = mc_drogue
+mc_rocket.add_motor(mc_motor, position=0.001)
+mc_rocket.add_nose(mc_nose_cone, position=(1.134, 0.001))
+mc_rocket.add_trapezoidal_fins(mc_fin_set, position=(0.001, "normal"))
+mc_rocket.add_tail(mc_tail)
+mc_rocket.set_rail_buttons(mc_rail_buttons, lower_button_position=(0.001, "normal"))
+mc_rocket.add_parachute(mc_main)
+mc_rocket.add_parachute(mc_drogue)
 
-
-##### Flight
 test_flight = Flight(
     rocket=rocket,
     environment=env,
@@ -202,20 +172,20 @@ test_flight = Flight(
     heading=133,
 )
 
-sto_flight_parameters = {
-    "flight": test_flight,
-    "inclination": (84.7, 1),
-    "heading": (53, 2),
-}
-
-
-##### Step 2: Starting the Monte Carlo Simulations
-test_dispersion = MonteCarlo(
-    filename="monte_carlo_analysis_outputs/monte_carlo_class_example",
-    environment_params=sto_env_parameters,
-    rocket_params=sto_rocket_parameters,
-    flight_params=sto_flight_parameters,
+mc_flight = StochasticFlight(
+    flight=test_flight,
+    inclination=(84.7, 1),
+    heading=(53, 2),
 )
 
-##### Running the Monte Carlo Simulations
-test_dispersion.simulate(number_of_simulations=50, append=False, parallel=True)
+test_dispersion = MonteCarlo(
+    filename="monte_carlo_class_example",
+    environment=mc_env,
+    rocket=mc_rocket,
+    flight=mc_flight,
+    batch_path="/home/sorban/Documents/code/RocketPy/mc_simulations",
+)
+
+test_dispersion.simulate(
+    number_of_simulations=10, append=False, light_mode=False, parallel=True
+)

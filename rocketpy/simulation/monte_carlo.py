@@ -1,15 +1,14 @@
 """Defines the MonteCarlo class."""
 import json
 import os
-import types
 from pathlib import Path
 from time import process_time, time
 
 import h5py
 import numpy as np
 import simplekml
-from multiprocess import Lock, Process, Queue
-from multiprocess.managers import BaseManager, NamespaceProxy
+from multiprocess import Lock, Process
+from multiprocess.managers import BaseManager
 
 from rocketpy import Function
 from rocketpy._encoders import RocketPyEncoder
@@ -80,9 +79,9 @@ class MonteCarlo:
     def __init__(
         self,
         filename,
-        environment_params,
-        rocket_params,
-        flight_params,
+        environment,
+        rocket,
+        flight,
         export_list=None,
         batch_path=None,
     ):
@@ -119,9 +118,9 @@ class MonteCarlo:
         """
         # Save and initialize parameters
         self.filename = filename
-        self.environment_params = environment_params
-        self.rocket_params = rocket_params
-        self.flight_params = flight_params
+        self.environment = environment
+        self.rocket = rocket
+        self.flight = flight
         self.export_list = []
         self.inputs_log = []
         self.outputs_log = []
@@ -135,7 +134,7 @@ class MonteCarlo:
         self._last_print_len = 0  # used to print on the same line
 
         if batch_path is None:
-            self.batch_path = Path.cwd() / "mc_simulations"
+            self.batch_path = Path.cwd()
         else:
             self.batch_path = Path(batch_path)
 
@@ -148,19 +147,21 @@ class MonteCarlo:
         try:
             self.import_inputs()
         except FileNotFoundError:
-            self._input_file = f"{filename}.inputs.txt"
+            self._input_file = self.batch_path / f"{filename}.inputs.txt"
 
         try:
             self.import_outputs()
         except FileNotFoundError:
-            self._output_file = f"{filename}.outputs.txt"
+            self._output_file = self.batch_path / f"{filename}.outputs.txt"
 
         try:
             self.import_errors()
         except FileNotFoundError:
-            self._error_file = f"{filename}.errors.txt"
+            self._error_file = self.batch_path / f"{filename}.errors.txt"
 
-    def simulate(self, number_of_simulations, append=False, parallel=False):
+    def simulate(
+        self, number_of_simulations, append=False, light_mode=False, parallel=False
+    ):
         """
         Runs the monte carlo simulation and saves all data.
 
@@ -171,111 +172,117 @@ class MonteCarlo:
         append : bool, optional
             If True, the results will be appended to the existing files. If
             False, the files will be overwritten. Default is False.
+        light_mode : bool, optional
+            If True, the files will be saved on self and the post simulation
+            attributes will be calculated. If False, all inputs and outputs
+            will be saved to an h5 file. Default is False.
+        parallel : bool, optional
+            If True, the simulations will be run in parallel. Default is False.
 
         Returns
         -------
         None
         """
+        if append and light_mode is False:
+            raise ValueError(
+                "Append mode is not available when light_mode is False."
+            )
+        
+        # initialize counters
+        self.number_of_simulations = number_of_simulations
+        self.iteration_count = self.num_of_loaded_sims if append else 0
+        self.start_time = time()
+        self.start_cpu_time = process_time()
+
+        # Begin display
+        print("Starting monte carlo analysis", end="\r")
+
+        # Run simulations
         if parallel:
-            self._run_in_parallel(number_of_simulations)
+            self._run_in_parallel(append, light_mode=light_mode)
         else:
-            # Create data files for inputs, outputs and error logging
-            open_mode = "a" if append else "w"
+            self._run_in_serial(append, light_mode=light_mode)
+
+    def _run_in_serial(self, append, light_mode):
+        """Runs the monte carlo simulation in serial."""
+
+        # Create data files for inputs, outputs and error logging
+        open_mode = "a" if append else "w"
+
+        # Open files
+        if light_mode:
             input_file = open(self._input_file, open_mode, encoding="utf-8")
             output_file = open(self._output_file, open_mode, encoding="utf-8")
             error_file = open(self._error_file, open_mode, encoding="utf-8")
+        else:
+            input_file = h5py.File(self._input_file.with_suffix(".h5"), open_mode)
+            output_file = h5py.File(self._output_file.with_suffix(".h5"), open_mode)
+            error_file = open(self._error_file, open_mode, encoding="utf-8")
 
-            # initialize counters
-            self.number_of_simulations = number_of_simulations
-            self.iteration_count = self.num_of_loaded_sims if append else 0
-            self.start_time = time()
-            self.start_cpu_time = process_time()
-
-            # Begin display
-            print("Starting monte carlo analysis", end="\r")
-
-            try:
-                while self.iteration_count < self.number_of_simulations:
-                    self.__run_single_simulation(input_file, output_file)
-            except KeyboardInterrupt:
-                print("Keyboard Interrupt, files saved.")
-                error_file.write(
-                    json.dumps(self._inputs_dict, cls=RocketPyEncoder) + "\n"
+        # Run simulations
+        try:
+            while self.iteration_count < self.number_of_simulations:
+                self.__run_single_simulation(
+                    self.iteration_count, input_file, output_file, light_mode=light_mode
                 )
-                self.__close_files(input_file, output_file, error_file)
-            except Exception as error:
-                print(f"Error on iteration {self.iteration_count}: {error}")
-                error_file.write(
-                    json.dumps(self._inputs_dict, cls=RocketPyEncoder) + "\n"
-                )
-                self.__close_files(input_file, output_file, error_file)
-                raise error
 
-            self.__finalize_simulation(input_file, output_file, error_file)
+        except KeyboardInterrupt:
+            print("Keyboard Interrupt, files saved.")
+            error_file.write(json.dumps(self._inputs_dict, cls=RocketPyEncoder) + "\n")
+            self.__close_files(input_file, output_file, error_file)
 
-    def _run_in_parallel(self, number_of_simulations, n_workers=None):
+        except Exception as error:
+            print(f"Error on iteration {self.iteration_count}: {error}")
+            error_file.write(json.dumps(self._inputs_dict, cls=RocketPyEncoder) + "\n")
+            self.__close_files(input_file, output_file, error_file)
+            raise error
+
+        self.__finalize_simulation(input_file, output_file, error_file, light_mode=light_mode)
+
+    def _run_in_parallel(self, append, light_mode, n_workers=None):
         """Runs the monte carlo simulation in parallel."""
         processes = []
 
         if n_workers is None:
             n_workers = os.cpu_count()
 
+        parallel_start = time()
+
         with MonteCarloManager() as manager:
-            parallel_start = time()
             # initialize queue
             write_lock = manager.Lock()
             sim_counter = manager.SimCounter()
 
-            # initialize stochastic objects
-            sto_env = manager.StochasticEnvironment(
-                environment=self.environment_params["environment"],
-                ensemble_member=self.environment_params["ensemble_member"],
-                wind_velocity_x_factor=self.environment_params[
-                    "wind_velocity_x_factor"
-                ],
-                wind_velocity_y_factor=self.environment_params[
-                    "wind_velocity_y_factor"
-                ],
-            )
+            # Initialize write file
+            open_mode = "a" if append else "w"
 
-            sto_rocket = StochasticRocket(
-                rocket=self.rocket_params["rocket"],
-                radius=self.rocket_params["radius"],
-                mass=self.rocket_params["mass"],
-                inertia_11=self.rocket_params["inertia_11"],
-                inertia_22=self.rocket_params["inertia_22"],
-                inertia_33=self.rocket_params["inertia_33"],
-                center_of_mass_without_motor=self.rocket_params[
-                    "center_of_mass_without_motor"
-                ],
-            )
+            file_paths = {
+                "input_file": self._input_file,
+                "output_file": self._output_file,
+                "error_file": self._error_file,
+                "export_list": self.export_list,
+            }
 
-            sto_rocket.add_motor(
-                self.rocket_params["motor"][0], position=self.rocket_params["motor"][1]
-            )
-            sto_rocket.add_nose(
-                self.rocket_params["nose"][0], position=self.rocket_params["nose"][1]
-            )
-            sto_rocket.add_trapezoidal_fins(
-                self.rocket_params["trapezoidal_fins"][0],
-                position=self.rocket_params["trapezoidal_fins"][1],
-            )
-            sto_rocket.set_rail_buttons(
-                self.rocket_params["rail_buttons"][0],
-                lower_button_position=self.rocket_params["rail_buttons"][1],
-            )
-            sto_rocket.add_tail(self.rocket_params["tail"])
-            sto_rocket.add_parachute(self.rocket_params["parachute_main"])
-            sto_rocket.add_parachute(self.rocket_params["parachute_drogue"])
+            if light_mode:
+                with open(self._input_file, mode=open_mode) as _:
+                    pass  # initialize file
+                with open(self._output_file, mode=open_mode) as _:
+                    pass  # initialize file
+                with open(self._error_file, mode=open_mode) as _:
+                    pass  # initialize file
 
-            sto_flight = StochasticFlight(
-                flight=self.flight_params["flight"],
-                inclination=self.flight_params["inclination"],
-                heading=self.flight_params["heading"],
-            )
+            else:
+                with h5py.File(self._input_file.with_suffix(".h5"), 'w') as _:
+                    pass  # initialize file
+                with h5py.File(self._output_file.with_suffix(".h5"), 'w') as _:
+                    pass  # initialize file
+
+                file_paths["input_file"] = file_paths["input_file"].with_suffix(".h5")
+                file_paths["output_file"] = file_paths["output_file"].with_suffix(".h5")
+                file_paths["error_file"] = file_paths["error_file"].with_suffix(".h5")
 
             print("Starting monte carlo analysis", end="\r")
-            print(f"Number of simulations: {number_of_simulations}")
+            print(f"Number of simulations: {self.number_of_simulations}")
 
             # Creates n_workers processes then starts them
             for i in range(n_workers):
@@ -283,21 +290,18 @@ class MonteCarlo:
                     target=self._run_simulation_worker,
                     args=(
                         i,
-                        number_of_simulations,
+                        self.number_of_simulations,
                         n_workers,
-                        sto_env,
-                        sto_rocket,
-                        sto_flight,
+                        self.environment,
+                        self.rocket,
+                        self.flight,
                         sim_counter,
                         write_lock,
-                        self.batch_path / 'montecarlo_output.h5',
+                        light_mode,
+                        file_paths,
                     ),
                 )
                 processes.append(p)
-
-            # Initialize write file
-            with h5py.File(self.batch_path / 'montecarlo_output.h5', 'w') as _:
-                pass
 
             # Starts all the processes
             for p in processes:
@@ -306,6 +310,8 @@ class MonteCarlo:
             # Joins all the processes
             for p in processes:
                 p.join()
+
+            self.number_of_simulations = sim_counter.get_count()
 
             parallel_end = time()
 
@@ -323,7 +329,8 @@ class MonteCarlo:
         sto_flight,
         sim_counter,
         write_lock,
-        file_path,
+        light_mode,
+        file_paths,
     ):
         """Runs a simulation from a queue."""
 
@@ -349,26 +356,56 @@ class MonteCarlo:
                 terminate_on_apogee=terminate_on_apogee,
             )
 
-            input_parameters = flightv1_serializer(
-                flight, f"Simulation_{i}", return_dict=True
-            )
-
-            flight_results = MonteCarlo.inspect_object_attributes(flight)
-
-            export_dict = {
-                str(i): {
-                    "inputs": input_parameters,
-                    "outputs": flight_results,
-                }
-            }
-
             # Export to file
-            write_lock.acquire()
+            if light_mode:
+                inputs_dict = dict(
+                    item
+                    for d in [
+                        sto_env.last_rnd_dict,
+                        sto_rocket.last_rnd_dict,
+                        sto_flight.last_rnd_dict,
+                    ]
+                    for item in d.items()
+                )
 
-            with h5py.File(file_path, 'a') as h5file:
-                MonteCarlo.dict_to_h5(h5file, '/', export_dict)
+                # Construct the dict with the results from the flight
+                results = {
+                    export_item: getattr(flight, export_item)
+                    for export_item in file_paths["export_list"]
+                }
 
-            write_lock.release()
+                # Write flight setting and results to file
+                write_lock.acquire()
+                with open(file_paths["input_file"], mode='a', encoding="utf-8") as f:
+                    f.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
+                with open(file_paths["output_file"], mode='a', encoding="utf-8") as f:
+                    f.write(json.dumps(results, cls=RocketPyEncoder) + "\n")
+
+                write_lock.release()
+
+            else:
+                input_parameters = flightv1_serializer(
+                    flight, f"Simulation_{i}", return_dict=True
+                )
+
+                flight_results = MonteCarlo.inspect_object_attributes(flight)
+
+                export_inputs = {
+                    str(i): input_parameters,
+                }
+
+                export_outputs = {
+                    str(i): flight_results,
+                }
+
+                write_lock.acquire()
+                with h5py.File(file_paths["input_file"], 'a') as h5_file:
+                    MonteCarlo.dict_to_h5(h5_file, '/', export_inputs)
+
+                with h5py.File(file_paths["output_file"], 'a') as h5_file:
+                    MonteCarlo.dict_to_h5(h5_file, '/', export_outputs)
+
+                write_lock.release()
 
             sim_end = time()
 
@@ -377,7 +414,9 @@ class MonteCarlo:
                 + f"\nSimulation {sim_idx} took {sim_end - sim_start} seconds to run."
             )
 
-    def __run_single_simulation(self, input_file, output_file):
+    def __run_single_simulation(
+        self, sim_idx, input_file, output_file, light_mode=False
+    ):
         """Runs a single simulation and saves the inputs and outputs to the
         respective files."""
         # Update iteration count
@@ -404,12 +443,25 @@ class MonteCarlo:
         )
 
         # Export inputs and outputs to file
-        self.__export_flight_data(
-            flight=monte_carlo_flight,
-            inputs_dict=self._inputs_dict,
-            input_file=input_file,
-            output_file=output_file,
-        )
+        if light_mode:
+            self.__export_flight_data(
+                flight=monte_carlo_flight,
+                inputs_dict=self._inputs_dict,
+                input_file=input_file,
+                output_file=output_file,
+            )
+        else:
+            input_parameters = flightv1_serializer(
+                monte_carlo_flight, f"Simulation_{sim_idx}", return_dict=True
+            )
+
+            flight_results = self.inspect_object_attributes(monte_carlo_flight)
+
+            export_inputs = {str(sim_idx): input_parameters}
+            export_outputs = {str(sim_idx): flight_results}
+
+            self.dict_to_h5(input_file, '/', export_inputs)
+            self.dict_to_h5(output_file, '/', export_outputs)
 
         average_time = (process_time() - self.start_cpu_time) / self.iteration_count
         estimated_time = int(
@@ -429,7 +481,7 @@ class MonteCarlo:
         output_file.close()
         error_file.close()
 
-    def __finalize_simulation(self, input_file, output_file, error_file):
+    def __finalize_simulation(self, input_file, output_file, error_file, light_mode):
         """Finalizes the simulation, closes the files and prints the results."""
         final_string = (
             f"Completed {self.iteration_count} iterations. Total CPU time: "
@@ -442,10 +494,11 @@ class MonteCarlo:
         # close files to guarantee saving
         self.__close_files(input_file, output_file, error_file)
 
-        # resave the files on self and calculate post simulation attributes
-        self.input_file = f"{self.filename}.inputs.txt"
-        self.output_file = f"{self.filename}.outputs.txt"
-        self.error_file = f"{self.filename}.errors.txt"
+        if light_mode:
+            # resave the files on self and calculate post simulation attributes
+            self.input_file = self.batch_path / f"{self.filename}.inputs.txt"
+            self.output_file = self.batch_path / f"{self.filename}.outputs.txt"
+            self.error_file = self.batch_path / f"{self.filename}.errors.txt"
 
         print(f"Results saved to {self._output_file}")
 
