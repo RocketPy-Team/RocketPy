@@ -187,5 +187,5 @@ test_dispersion = MonteCarlo(
 )
 
 test_dispersion.simulate(
-    number_of_simulations=10, append=False, light_mode=False, parallel=True
+    number_of_simulations=1000, append=False, light_mode=True, parallel=True
 )

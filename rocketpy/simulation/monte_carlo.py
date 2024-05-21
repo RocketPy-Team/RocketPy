@@ -15,17 +15,13 @@ from rocketpy._encoders import RocketPyEncoder
 from rocketpy.plots.monte_carlo_plots import _MonteCarloPlots
 from rocketpy.prints.monte_carlo_prints import _MonteCarloPrints
 from rocketpy.simulation.flight import Flight
-from rocketpy.simulation.sim_config.flight2serializer import flightv1_serializer
+from rocketpy.simulation.sim_config.flight2serializer import \
+    flightv1_serializer
 from rocketpy.simulation.sim_config.serializer import function_serializer
-from rocketpy.stochastic import (
-    StochasticEnvironment,
-    StochasticFlight,
-    StochasticRocket,
-)
-from rocketpy.tools import (
-    generate_monte_carlo_ellipses,
-    generate_monte_carlo_ellipses_coordinates,
-)
+from rocketpy.stochastic import (StochasticEnvironment, StochasticFlight,
+                                 StochasticRocket)
+from rocketpy.tools import (generate_monte_carlo_ellipses,
+                            generate_monte_carlo_ellipses_coordinates)
 
 # TODO: Let Functions and Flights be json serializable
 # TODO: Create evolution plots to analyze convergence
@@ -184,10 +180,8 @@ class MonteCarlo:
         None
         """
         if append and light_mode is False:
-            raise ValueError(
-                "Append mode is not available when light_mode is False."
-            )
-        
+            raise ValueError("Append mode is not available when light_mode is False.")
+
         # initialize counters
         self.number_of_simulations = number_of_simulations
         self.iteration_count = self.num_of_loaded_sims if append else 0
@@ -237,7 +231,9 @@ class MonteCarlo:
             self.__close_files(input_file, output_file, error_file)
             raise error
 
-        self.__finalize_simulation(input_file, output_file, error_file, light_mode=light_mode)
+        self.__finalize_simulation(
+            input_file, output_file, error_file, light_mode=light_mode
+        )
 
     def _run_in_parallel(self, append, light_mode, n_workers=None):
         """Runs the monte carlo simulation in parallel."""
