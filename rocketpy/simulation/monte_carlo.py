@@ -938,9 +938,16 @@ class MonteCarlo:
         """
         for key, item in dic.items():
             if isinstance(
-                item, (np.ndarray, np.int64, np.float64, str, bytes, int, float)
+                item, (np.int64, np.float64, int, float)
             ):
-                h5_file[path + key] = item
+                data = np.array([[item]])
+                h5_file.create_dataset(path + key, data=data, shape=data.shape, dtype=data.dtype)
+            elif isinstance(item, np.ndarray):
+                if len(item.shape) < 2:
+                    item = item.reshape(-1, 1) # Ensure it is a column vector
+                h5_file.create_dataset(path + key, data=item, shape=item.shape, dtype=item.dtype)
+            elif isinstance(item, (str, bytes)):
+                h5_file.create_dataset(path + key, data=item)
             elif isinstance(item, Function):
                 raise TypeError(
                     "Function objects should be preprocessed before saving."

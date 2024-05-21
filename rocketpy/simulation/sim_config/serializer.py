@@ -25,7 +25,7 @@ def function_serializer(function_object: Function, t_range=None):
         else:
             raise ValueError("t_range must be specified for callable functions")
 
-    return func.source
+    return func.get_source()
 
     # with open(csv_path, "w+", newline="") as f:
     #     writer = csv.writer(f)
