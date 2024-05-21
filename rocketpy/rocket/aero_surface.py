@@ -108,7 +108,8 @@ class NoseCone(AeroSurface):
         drawing. Must be between 0 and 1. Default is None, which means that the
         nose cone will not have a sphere on the tip. If a value is given, the
         nose cone's length will be slightly reduced because of the addition of
-        the sphere.
+        the sphere. Must be None or 0 if a "powerseries" nose cone kind is
+        specified.
     NoseCone.rocket_radius : float
         The reference rocket radius used for lift coefficient normalization,
         in meters.
@@ -120,6 +121,10 @@ class NoseCone(AeroSurface):
         rocket radius is assumed as 1, meaning that the nose cone has the same
         radius as the rocket. If base radius is given, the ratio between base
         radius and rocket radius is calculated and used for lift calculation.
+    NoseCone.power : float
+        Factor that controls the bluntness of the shape for a power series
+        nose cone. Must be between 0 and 1. It is ignored when other nose
+        cone types are used.
     NoseCone.name : string
         Nose cone name. Has no impact in simulation, as it is only used to
         display data in a more organized matter.
@@ -168,7 +173,9 @@ class NoseCone(AeroSurface):
             Nose cone length. Has units of length and must be given in meters.
         kind : string
             Nose cone kind. Can be "conical", "ogive", "elliptical", "tangent",
-            "von karman", "parabolic", "powerseries" or "lvhaack".
+            "von karman", "parabolic", "powerseries" or "lvhaack". If
+            "powerseries" is used, the "power" argument must be assigned to a
+            value between 0 and 1.
         base_radius : float, optional
             Nose cone base radius. Has units of length and must be given in
             meters. If not given, the ratio between ``base_radius`` and
@@ -179,13 +186,14 @@ class NoseCone(AeroSurface):
             nose cone's drawing. Must be between 0 and 1. Default is None, which
             means that the nose cone will not have a sphere on the tip. If a
             value is given, the nose cone's length will be reduced to account
-            for the addition of the sphere at the tip.
+            for the addition of the sphere at the tip. Must be None or 0 if a
+            "powerseries" nose cone kind is specified.
         rocket_radius : int, float, optional
             The reference rocket radius used for lift coefficient normalization.
             If not given, the ratio between ``base_radius`` and
             ``rocket_radius`` will be assumed as 1.
         power : float, optional
-            Factor that controls the bluntness fo the shape for a power series
+            Factor that controls the bluntness of the shape for a power series
             nose cone. Must be between 0 and 1. It is ignored when other nose
             cone types are used.
         name : str, optional
@@ -208,12 +216,18 @@ class NoseCone(AeroSurface):
                 )
         self._bluffness = bluffness
         if kind == "powerseries":
+            # Checks if bluffness is not being used
+            if (self.bluffness is not None) and (self.bluffness != 0):
+                raise ValueError(
+                    "Parameter 'bluffness' must be None or 0 when using a nose cone kind 'powerseries'."
+                )
+
             if power is None:
                 raise ValueError(
                     "Parameter 'power' cannot be None when using a nose cone kind 'powerseries'."
                 )
 
-            if power > 1 or power < 0:
+            if power > 1 or power <= 0:
                 raise ValueError(
                     f"Power value of {power} is out of range. It must be between 0 and 1."
                 )
@@ -266,7 +280,15 @@ class NoseCone(AeroSurface):
 
     @power.setter
     def power(self, value):
+        if value is not None:
+            if value > 1 or value <= 0:
+                raise ValueError(
+                    f"Power value of {value} is out of range. It must be between 0 and 1."
+                )
         self._power = value
+        self.evaluate_k()
+        self.evaluate_center_of_pressure()
+        self.evaluate_nose_shape()
 
     @property
     def kind(self):
@@ -358,6 +380,13 @@ class NoseCone(AeroSurface):
 
     @bluffness.setter
     def bluffness(self, value):
+        # prevents from setting bluffness on "powerseries" nose cones
+        if self.kind == "powerseries":
+            # Checks if bluffness is being used
+            if (value is not None) and (value != 0):
+                raise ValueError(
+                    "Parameter 'bluffness' must be None or 0 when using a nose cone kind 'powerseries'."
+                )
         if value is not None:
             if value > 1 or value < 0:
                 raise ValueError(
@@ -503,6 +532,18 @@ class NoseCone(AeroSurface):
             ["Alpha (rad)", "Mach"],
             "Cl",
         )
+        return None
+
+    def evaluate_k(self):
+        """Updates the self.k attribute used to compute the center of
+        pressure when using "powerseries" nose cones.
+
+        Returns
+        -------
+        None
+        """
+        if self.kind == "powerseries":
+            self.k = (2 * self.power) / ((2 * self.power) + 1)
         return None
 
     def evaluate_center_of_pressure(self):
