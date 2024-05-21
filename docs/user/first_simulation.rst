@@ -663,7 +663,7 @@ analysis. Here we will show some examples, but much more can be done!
 .. seealso::
     *RocketPy* can be used to perform a Monte Carlo Dispersion Analysis.
     See 
-    `Monte Carlo Simulations <https://colab.research.google.com/github/RocketPy-Team/rocketpy/blob/master/docs/notebooks/dispersion_analysis/dispersion_analysis.html>`_ 
+    `Monte Carlo Simulations <https://colab.research.google.com/github/RocketPy-Team/rocketpy/blob/master/docs/notebooks/monte_carlo_analysis/monte_carlo_analysis.html>`_ 
     for more information.
 
 Apogee as a Function of Mass
