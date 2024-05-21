@@ -79,6 +79,8 @@ class StochasticModel:
                 setattr(self, input_name, attr_value)
 
     def __str__(self):
+        # TODO: This method with a StochasticRocket with added motor, aero surfaces,
+        #       and/or parachutes is a mess right now
         s = ""
         for key, value in self.__dict__.items():
             if key.startswith("_"):
@@ -95,8 +97,9 @@ class StochasticModel:
             s += f"{key}: {value_str}\n"
         return s.strip()
 
-    def __repr__(self):
-        return f"{self.__class__.__name__}(object={self.object}, **kwargs)"
+    # TODO: elaborate a short, concise version of the __str__ method
+    # def __repr__(self):
+        # return f"{self.__class__.__name__}(object={self.object}, **kwargs)"
 
     def _validate_tuple(self, input_name, input_value, getattr=getattr):
         """Validator for tuple arguments. Checks if input is in a valid format.
