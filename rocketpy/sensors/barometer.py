@@ -50,6 +50,8 @@ class Barometer(ScalarSensors):
         temperature drift.
     """
 
+    units = "Pa"
+
     def __init__(
         self,
         sampling_rate,
@@ -173,7 +175,7 @@ class Barometer(ScalarSensors):
         P = self.quantize(P)
 
         self.measurement = P
-        self.measured_data.append((time, P))
+        self._save_data((time, P))
 
     def export_measured_data(self, filename, format="csv"):
         """Export the measured values to a file

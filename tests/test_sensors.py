@@ -2,6 +2,7 @@ import json
 import os
 
 import numpy as np
+import pytest
 
 from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.rocket.components import Components
@@ -25,7 +26,24 @@ def test_sensor_on_rocket(calisto_sensors):
     assert isinstance(sensors[2].position, Vector)
 
 
-def test_ideal_sensors(flight_calisto_accel_gyro):
+@pytest.mark.parametrize(
+    "sensor_index, measured_data_key, sim_method, tolerance",
+    [
+        (0, "measured_data[0]", lambda flight, time: flight.acceleration(time), 1e-12),
+        (
+            2,
+            "measured_data",
+            lambda flight, time: np.sqrt(
+                flight.w1(time) ** 2 + flight.w2(time) ** 2 + flight.w3(time) ** 2
+            ),
+            1e-12,
+        ),
+        (3, "measured_data", lambda flight, time: flight.pressure(time), 1e-12),
+    ],
+)
+def test_ideal_sensors(
+    flight_calisto_sensors, sensor_index, measured_data_key, sim_method, tolerance
+):
     """Test the ideal sensors. All types of sensors are here to reduce
     testing time.
 
@@ -34,40 +52,47 @@ def test_ideal_sensors(flight_calisto_accel_gyro):
     flight_calisto_sensors : Flight
         Pytest fixture for the flight of the calisto rocket with a set of ideal
         sensors.
+    sensor_index : int
+        Index of the sensor in the rocket's sensor list.
+    measured_data_key : str
+        Key to access the measured data from the sensor component.
+    sim_method : function
+        Function to compute the simulated data.
+    tolerance : float
+        Tolerance level for the comparison between measured and simulated data.
     """
-    accelerometer = flight_calisto_sensors.rocket.sensors[0].component
-    time, ax, ay, az = zip(*accelerometer.measured_data[0])
-    ax = np.array(ax)
-    ay = np.array(ay)
-    az = np.array(az)
-    a = np.sqrt(ax**2 + ay**2 + az**2)
-    sim_accel = flight_calisto_sensors.acceleration(time)
+    sensor = flight_calisto_sensors.rocket.sensors[sensor_index].component
+    measured_data = eval(f"sensor.{measured_data_key}")
 
-    # tolerance is bounded to numerical errors in the transformation matrixes
-    assert np.allclose(a, sim_accel, atol=1e-12)
-    # check if both added accelerometer instances saved the same data
-    assert (
-        flight_calisto_sensors.sensors[0].measured_data[0]
-        == flight_calisto_sensors.sensors[0].measured_data[1]
-    )
+    if sensor_index == 0:  # Accelerometer
+        time, ax, ay, az = zip(*measured_data)
+        ax = np.array(ax)
+        ay = np.array(ay)
+        az = np.array(az)
+        a = np.sqrt(ax**2 + ay**2 + az**2)
+        sim_data = sim_method(flight_calisto_sensors, time)
+        assert np.allclose(a, sim_data, atol=tolerance)
 
-    gyroscope = flight_calisto_sensors.rocket.sensors[2].component
-    time, wx, wy, wz = zip(*gyroscope.measured_data)
-    wx = np.array(wx)
-    wy = np.array(wy)
-    wz = np.array(wz)
-    w = np.sqrt(wx**2 + wy**2 + wz**2)
-    flight_wx = np.array(flight_calisto_sensors.w1(time))
-    flight_wy = np.array(flight_calisto_sensors.w2(time))
-    flight_wz = np.array(flight_calisto_sensors.w3(time))
-    sim_w = np.sqrt(flight_wx**2 + flight_wy**2 + flight_wz**2)
-    assert np.allclose(w, sim_w, atol=1e-12)
+        # Check if both added accelerometer instances saved the same data
+        assert (
+            flight_calisto_sensors.sensors[0].measured_data[0]
+            == flight_calisto_sensors.sensors[0].measured_data[1]
+        )
 
-    barometer = flight_calisto_sensors.rocket.sensors[3].component
-    time, pressure = zip(*barometer.measured_data)
-    pressure = np.array(pressure)
-    sim_pressure = np.array(flight_calisto_sensors.pressure(time))
-    assert np.allclose(pressure, sim_pressure, atol=1e-12)
+    elif sensor_index == 2:  # Gyroscope
+        time, wx, wy, wz = zip(*measured_data)
+        wx = np.array(wx)
+        wy = np.array(wy)
+        wz = np.array(wz)
+        w = np.sqrt(wx**2 + wy**2 + wz**2)
+        sim_data = sim_method(flight_calisto_sensors, time)
+        assert np.allclose(w, sim_data, atol=tolerance)
+
+    elif sensor_index == 3:  # Barometer
+        time, pressure = zip(*measured_data)
+        pressure = np.array(pressure)
+        sim_data = sim_method(flight_calisto_sensors, time)
+        assert np.allclose(pressure, sim_data, atol=tolerance)
 
 
 def test_export_sensor_data(flight_calisto_sensors):

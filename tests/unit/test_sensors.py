@@ -50,6 +50,8 @@ GRAVITY = 9.81
         "quantized_accelerometer",
         "noisy_rotated_gyroscope",
         "quantized_gyroscope",
+        "noisy_barometer",
+        "quantized_barometer",
     ],
 )
 def test_sensors_prints(sensor, request):
@@ -62,7 +64,7 @@ def test_sensors_prints(sensor, request):
 
 
 def test_rotation_matrix(noisy_rotated_accelerometer):
-    """Test the rotation_matrix property of the Accelerometer class. Checks if
+    """Test the rotation_matrix property of the InertialSensors class. Checks if
     the rotation matrix is correctly calculated.
     """
     # values from external source
@@ -77,8 +79,8 @@ def test_rotation_matrix(noisy_rotated_accelerometer):
     assert np.allclose(expected_matrix, rotation_matrix, atol=1e-8)
 
 
-def test_quantization(quantized_accelerometer):
-    """Test the quantize method of the Sensor class. Checks if returned values
+def test_inertial_quantization(quantized_accelerometer):
+    """Test the quantize method of the InertialSensors class. Checks if returned values
     are as expected.
     """
     # expected values calculated by hand
@@ -93,6 +95,60 @@ def test_quantization(quantized_accelerometer):
     )
 
 
+def test_scalar_quantization(quantized_barometer):
+    """Test the quantize method of the ScalarSensors class. Checks if returned values
+    are as expected.
+    """
+    # expected values calculated by hand
+    assert quantized_barometer.quantize(7e5) == 7e4
+    assert quantized_barometer.quantize(-7e5) == -7e4
+    assert quantized_barometer.quantize(1001) == 1000.96
+
+
+import pytest
+
+
+@pytest.mark.parametrize(
+    "sensor, input_value, expected_output",
+    [
+        (
+            "quantized_accelerometer",
+            Vector([3, 3, 3]),
+            Vector([1.9528, 1.9528, 1.9528]),
+        ),
+        (
+            "quantized_accelerometer",
+            Vector([-3, -3, -3]),
+            Vector([-1.9528, -1.9528, -1.9528]),
+        ),
+        (
+            "quantized_accelerometer",
+            Vector([1, 1, 1]),
+            Vector([0.9764, 0.9764, 0.9764]),
+        ),
+        ("quantized_barometer", 7e5, 7e4),
+        ("quantized_barometer", -7e5, -7e4),
+        ("quantized_barometer", 1001, 1000.96),
+    ],
+)
+def test_quantization(sensor, input_value, expected_output, request):
+    """Test the quantize method of various sensor classes. Checks if returned values
+    are as expected.
+
+    Parameters
+    ----------
+    sensor : str
+        Fixture name of the sensor to be tested.
+    input_value : any
+        Input value to be quantized by the sensor.
+    expected_output : any
+        Expected output value after quantization.
+    """
+    sensor = request.getfixturevalue(sensor)
+    result = sensor.quantize(input_value)
+    assert result == expected_output
+
+
 @pytest.mark.parametrize(
     "sensor",
     [
@@ -100,16 +156,28 @@ def test_quantization(quantized_accelerometer):
         "ideal_gyroscope",
     ],
 )
-def test_measured_data(sensor, request):
+def test_inertial_measured_data(sensor, request):
     """Test the measured_data property of the Sensors class. Checks if
     the measured data is treated properly when the sensor is added once or more
     than once to the rocket.
     """
     sensor = request.getfixturevalue(sensor)
 
-    sensor.measure(TIME, U, U_DOT, Vector([0, 0, 0]), GRAVITY)
+    sensor.measure(
+        time=TIME,
+        u=U,
+        u_dot=U_DOT,
+        relative_position=Vector([0, 0, 0]),
+        gravity=GRAVITY,
+    )
     assert len(sensor.measured_data) == 1
-    sensor.measure(TIME, U, U_DOT, Vector([0, 0, 0]), GRAVITY)
+    sensor.measure(
+        time=TIME,
+        u=U,
+        u_dot=U_DOT,
+        relative_position=Vector([0, 0, 0]),
+        gravity=GRAVITY,
+    )
     assert len(sensor.measured_data) == 2
     assert all(isinstance(i, tuple) for i in sensor.measured_data)
 
@@ -119,52 +187,73 @@ def test_measured_data(sensor, request):
         sensor.measured_data[:],
     ]
     sensor._save_data = sensor._save_data_multiple
-    sensor.measure(TIME, U, U_DOT, Vector([0, 0, 0]), GRAVITY)
+    sensor.measure(
+        time=TIME,
+        u=U,
+        u_dot=U_DOT,
+        relative_position=Vector([0, 0, 0]),
+        gravity=GRAVITY,
+    )
     assert len(sensor.measured_data) == 2
     assert len(sensor.measured_data[0]) == 3
     assert len(sensor.measured_data[1]) == 2
-    sensor.measure(TIME, U, U_DOT, Vector([0, 0, 0]), GRAVITY)
+    sensor.measure(
+        time=TIME,
+        u=U,
+        u_dot=U_DOT,
+        relative_position=Vector([0, 0, 0]),
+        gravity=GRAVITY,
+    )
     assert len(sensor.measured_data[0]) == 3
     assert len(sensor.measured_data[1]) == 3
 
 
-def test_ideal_barometer_measure(ideal_barometer, example_plain_env):
-    """Test the measure method of the Barometer class. Checks if saved
+def test_scalar_measured_data(ideal_barometer, example_plain_env):
+    """Test the measure method of ScalarSensors. Checks if saved
     measurement is (P) and if measured_data is [(t, P), ...]
     """
-    t = SOLUTION[0]
-    u = SOLUTION[1:]
-    relative_position = Vector(
-        [np.random.randint(-1, 1), np.random.randint(-1, 1), np.random.randint(-1, 1)]
-    )
-
-    rot = Matrix.transformation(u[6:10])
-    P = example_plain_env.pressure((rot @ relative_position).z + u[2])
+    t = TIME
+    u = U
 
     ideal_barometer.measure(
         t,
         u=u,
-        relative_position=relative_position,
+        relative_position=Vector([0, 0, 0]),
         pressure=example_plain_env.pressure,
     )
-
-    # check last measurement
-    assert isinstance(ideal_barometer.measurement, (int, float))
-    assert ideal_barometer.measurement == approx(P, abs=1e-10)
-
-    # check measured values
     assert len(ideal_barometer.measured_data) == 1
     ideal_barometer.measure(
         t,
         u=u,
-        relative_position=relative_position,
+        relative_position=Vector([0, 0, 0]),
         pressure=example_plain_env.pressure,
     )
     assert len(ideal_barometer.measured_data) == 2
-
     assert all(isinstance(i, tuple) for i in ideal_barometer.measured_data)
-    assert ideal_barometer.measured_data[0][0] == t
-    assert ideal_barometer.measured_data[0][1] == approx(P, abs=1e-10)
+
+    # check case when sensor is added more than once to the rocket
+    ideal_barometer.measured_data = [
+        ideal_barometer.measured_data[:],
+        ideal_barometer.measured_data[:],
+    ]
+    ideal_barometer._save_data = ideal_barometer._save_data_multiple
+    ideal_barometer.measure(
+        t,
+        u=u,
+        relative_position=Vector([0, 0, 0]),
+        pressure=example_plain_env.pressure,
+    )
+    assert len(ideal_barometer.measured_data) == 2
+    assert len(ideal_barometer.measured_data[0]) == 3
+    assert len(ideal_barometer.measured_data[1]) == 2
+    ideal_barometer.measure(
+        t,
+        u=u,
+        relative_position=Vector([0, 0, 0]),
+        pressure=example_plain_env.pressure,
+    )
+    assert len(ideal_barometer.measured_data[0]) == 3
+    assert len(ideal_barometer.measured_data[1]) == 3
 
 
 def test_noisy_rotated_accelerometer(noisy_rotated_accelerometer):
@@ -202,7 +291,13 @@ def test_noisy_rotated_accelerometer(noisy_rotated_accelerometer):
     az += 0.5
 
     # check last measurement considering noise error bounds
-    noisy_rotated_accelerometer.measure(TIME, U, U_DOT, relative_position, GRAVITY)
+    noisy_rotated_accelerometer.measure(
+        time=TIME,
+        u=U,
+        u_dot=U_DOT,
+        relative_position=relative_position,
+        gravity=GRAVITY,
+    )
     assert noisy_rotated_accelerometer.measurement == approx([ax, ay, az], rel=0.1)
     assert len(noisy_rotated_accelerometer.measurement) == 3
     assert noisy_rotated_accelerometer.measured_data[0][1:] == approx(
@@ -237,11 +332,39 @@ def test_noisy_rotated_gyroscope(noisy_rotated_gyroscope):
     wz += 0.5
 
     # check last measurement considering noise error bounds
-    noisy_rotated_gyroscope.measure(TIME, U, U_DOT, relative_position, GRAVITY)
+    noisy_rotated_gyroscope.measure(
+        time=TIME,
+        u=U,
+        u_dot=U_DOT,
+        relative_position=relative_position,
+        gravity=GRAVITY,
+    )
     assert noisy_rotated_gyroscope.measurement == approx([wx, wy, wz], rel=0.3)
     assert len(noisy_rotated_gyroscope.measurement) == 3
     assert noisy_rotated_gyroscope.measured_data[0][1:] == approx([wx, wy, wz], rel=0.3)
     assert noisy_rotated_gyroscope.measured_data[0][0] == TIME
+
+
+def test_noisy_barometer(noisy_barometer, example_plain_env):
+    """Test the measure method of the Barometer class. Checks if saved
+    measurement is (P) and if measured_data is [(t, P), ...]
+    """
+    # expected measurement without noise
+    relative_position = Vector([0.4, 0.4, 1])
+    relative_altitude = (Matrix.transformation(U[6:10]) @ relative_position).z
+    P = example_plain_env.pressure(relative_altitude + U[2])
+    # expected measurement with constant bias
+    P += 0.5
+
+    noisy_barometer.measure(
+        time=TIME,
+        u=U,
+        relative_position=relative_position,
+        pressure=example_plain_env.pressure,
+    )
+    assert noisy_barometer.measurement == approx(P, rel=0.03)
+    assert noisy_barometer.measured_data[0][1] == approx(P, rel=0.03)
+    assert noisy_barometer.measured_data[0][0] == TIME
 
 
 @pytest.mark.parametrize(
@@ -261,8 +384,20 @@ def test_export_data_csv(sensor, expected_string, request):
         Pytest fixture for the flight of the calisto rocket with an ideal accelerometer and a gyroscope.
     """
     sensor = request.getfixturevalue(sensor)
-    sensor.measure(TIME, U, U_DOT, Vector([0, 0, 0]), GRAVITY)
-    sensor.measure(TIME, U, U_DOT, Vector([0, 0, 0]), GRAVITY)
+    sensor.measure(
+        time=TIME,
+        u=U,
+        u_dot=U_DOT,
+        relative_position=Vector([0, 0, 0]),
+        gravity=GRAVITY,
+    )
+    sensor.measure(
+        time=TIME,
+        u=U,
+        u_dot=U_DOT,
+        relative_position=Vector([0, 0, 0]),
+        gravity=GRAVITY,
+    )
 
     file_name = "sensors.csv"
 
@@ -314,8 +449,20 @@ def test_export_data_json(sensor, expected_string, request):
         accelerometer and a gyroscope.
     """
     sensor = request.getfixturevalue(sensor)
-    sensor.measure(TIME, U, U_DOT, Vector([0, 0, 0]), GRAVITY)
-    sensor.measure(TIME, U, U_DOT, Vector([0, 0, 0]), GRAVITY)
+    sensor.measure(
+        time=TIME,
+        u=U,
+        u_dot=U_DOT,
+        relative_position=Vector([0, 0, 0]),
+        gravity=GRAVITY,
+    )
+    sensor.measure(
+        time=TIME,
+        u=U,
+        u_dot=U_DOT,
+        relative_position=Vector([0, 0, 0]),
+        gravity=GRAVITY,
+    )
 
     file_name = "sensors.json"
 
