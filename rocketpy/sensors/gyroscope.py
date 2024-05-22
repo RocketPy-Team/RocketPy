@@ -299,46 +299,6 @@ class Gyroscope(InertialSensors):
         -------
         None
         """
-        if format.lower() not in ["csv", "json"]:
-            raise ValueError("Invalid format")
-        if format.lower() == "csv":
-            # if sensor has been added multiple times to the simulated rocket
-            if isinstance(self.measured_data[0], list):
-                print("Data saved to", end=" ")
-                for i, data in enumerate(self.measured_data):
-                    with open(filename + f"_{i+1}", "w") as f:
-                        f.write("t,wx,wy,wz\n")
-                        for t, wx, wy, wz in data:
-                            f.write(f"{t},{wx},{wy},{wz}\n")
-                    print(filename + f"_{i+1},", end=" ")
-            else:
-                with open(filename, "w") as f:
-                    f.write("t,wx,wy,wz\n")
-                    for t, wx, wy, wz in self.measured_data:
-                        f.write(f"{t},{wx},{wy},{wz}\n")
-                print(f"Data saved to {filename}")
-            return
-        if format.lower() == "json":
-            if isinstance(self.measured_data[0], list):
-                print("Data saved to", end=" ")
-                for i, data in enumerate(self.measured_data):
-                    dict = {"t": [], "wx": [], "wy": [], "wz": []}
-                    for t, wx, wy, wz in data:
-                        dict["t"].append(t)
-                        dict["wx"].append(wx)
-                        dict["wy"].append(wy)
-                        dict["wz"].append(wz)
-                    with open(filename + f"_{i+1}", "w") as f:
-                        json.dump(dict, f)
-                    print(filename + f"_{i+1},", end=" ")
-            else:
-                dict = {"t": [], "wx": [], "wy": [], "wz": []}
-                for t, wx, wy, wz in self.measured_data:
-                    dict["t"].append(t)
-                    dict["wx"].append(wx)
-                    dict["wy"].append(wy)
-                    dict["wz"].append(wz)
-                with open(filename, "w") as f:
-                    json.dump(dict, f)
-                print(f"Data saved to {filename}")
-            return
+        super().export_measured_data(
+            filename=filename, format=format, data_labels=("t", "wx", "wy", "wz")
+        )
