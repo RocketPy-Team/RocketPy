@@ -368,28 +368,31 @@ def test_noisy_barometer(noisy_barometer, example_plain_env):
 
 
 @pytest.mark.parametrize(
-    "sensor, expected_string",
+    "sensor, format, expected_header, expected_keys",
     [
-        ("ideal_accelerometer", "t,ax,ay,az\n"),
-        ("ideal_gyroscope", "t,wx,wy,wz\n"),
+        ("ideal_accelerometer", "csv", "t,ax,ay,az\n", ("ax", "ay", "az")),
+        ("ideal_gyroscope", "csv", "t,wx,wy,wz\n", ("wx", "wy", "wz")),
+        ("ideal_accelerometer", "json", None, ("ax", "ay", "az")),
+        ("ideal_gyroscope", "json", None, ("wx", "wy", "wz")),
+        ("ideal_barometer", "csv", "t,pressure\n", ("pressure",)),
+        ("ideal_barometer", "json", None, ("pressure",)),
     ],
 )
-def test_export_data_csv(sensor, expected_string, request):
-    """Test the export_data method of accelerometer. Checks if the data is
-    exported correctly.
-
-    Parameters
-    ----------
-    flight_calisto_accel_gyro : Flight
-        Pytest fixture for the flight of the calisto rocket with an ideal accelerometer and a gyroscope.
+def test_export_data(
+    sensor, format, expected_header, expected_keys, request, example_plain_env
+):
+    """Test the export_data method of the sensors. Checks if the data is
+    exported correctly in the specified format.
     """
     sensor = request.getfixturevalue(sensor)
+
     sensor.measure(
         time=TIME,
         u=U,
         u_dot=U_DOT,
         relative_position=Vector([0, 0, 0]),
         gravity=GRAVITY,
+        pressure=example_plain_env.pressure,
     )
     sensor.measure(
         time=TIME,
@@ -397,205 +400,63 @@ def test_export_data_csv(sensor, expected_string, request):
         u_dot=U_DOT,
         relative_position=Vector([0, 0, 0]),
         gravity=GRAVITY,
+        pressure=example_plain_env.pressure,
     )
 
-    file_name = "sensors.csv"
+    file_name = f"sensors.{format}"
 
-    sensor.export_measured_data(file_name, format="csv")
+    sensor.export_measured_data(file_name, format=format)
 
-    with open(file_name, "r") as file:
-        contents = file.read()
+    if format == "csv":
+        with open(file_name, "r") as file:
+            contents = file.read()
 
-    expected_data = expected_string
-    for t, x, y, z in sensor.measured_data:
-        expected_data += f"{t},{x},{y},{z}\n"
+        expected_data = expected_header
+        for data in sensor.measured_data:
+            expected_data += ",".join(map(str, data)) + "\n"
 
-    assert contents == expected_data
+        assert contents == expected_data
 
-    # check exports for accelerometers added more than once to the rocket
+    elif format == "json":
+        with open(file_name, "r") as file:
+            contents = json.load(file)
+
+        expected_data = {"t": []}
+        for key in expected_keys:
+            expected_data[key] = []
+
+        for data in sensor.measured_data:
+            expected_data["t"].append(data[0])
+            for i, key in enumerate(expected_keys):
+                expected_data[key].append(data[i + 1])
+
+        assert contents == expected_data
+
+    # check exports for sensors added more than once to the rocket
     sensor.measured_data = [
         sensor.measured_data[:],
         sensor.measured_data[:],
     ]
-    sensor.export_measured_data(file_name, format="csv")
-    with open(file_name + "_1", "r") as file:
-        contents = file.read()
-    assert contents == expected_data
+    sensor.export_measured_data(file_name, format=format)
 
-    with open(file_name + "_2", "r") as file:
-        contents = file.read()
-    assert contents == expected_data
+    if format == "csv":
+        with open(f"{file_name}_1", "r") as file:
+            contents = file.read()
+        assert contents == expected_data
 
-    os.remove(file_name)
-    os.remove(file_name + "_1")
-    os.remove(file_name + "_2")
+        with open(f"{file_name}_2", "r") as file:
+            contents = file.read()
+        assert contents == expected_data
 
+    elif format == "json":
+        with open(f"{file_name}_1", "r") as file:
+            contents = json.load(file)
+        assert contents == expected_data
 
-@pytest.mark.parametrize(
-    "sensor, expected_string",
-    [
-        ("ideal_accelerometer", ("ax", "ay", "az")),
-        ("ideal_gyroscope", ("wx", "wy", "wz")),
-    ],
-)
-def test_export_data_json(sensor, expected_string, request):
-    """Test the export_data method of the accelerometer. Checks if the data is
-    exported correctly.
-
-    Parameters
-    ----------
-    flight_calisto_accel_gyro : Flight
-        Pytest fixture for the flight of the calisto rocket with an ideal
-        accelerometer and a gyroscope.
-    """
-    sensor = request.getfixturevalue(sensor)
-    sensor.measure(
-        time=TIME,
-        u=U,
-        u_dot=U_DOT,
-        relative_position=Vector([0, 0, 0]),
-        gravity=GRAVITY,
-    )
-    sensor.measure(
-        time=TIME,
-        u=U,
-        u_dot=U_DOT,
-        relative_position=Vector([0, 0, 0]),
-        gravity=GRAVITY,
-    )
-
-    file_name = "sensors.json"
-
-    sensor.export_measured_data(file_name, format="json")
-
-    contents = json.load(open(file_name, "r"))
-
-    expected_data = {
-        "t": [],
-        expected_string[0]: [],
-        expected_string[1]: [],
-        expected_string[2]: [],
-    }
-    for t, x, y, z in sensor.measured_data:
-        expected_data["t"].append(t)
-        expected_data[expected_string[0]].append(x)
-        expected_data[expected_string[1]].append(y)
-        expected_data[expected_string[2]].append(z)
-
-    assert contents == expected_data
-
-    # check exports for accelerometers added more than once to the rocket
-    sensor.measured_data = [
-        sensor.measured_data[:],
-        sensor.measured_data[:],
-    ]
-    sensor.export_measured_data(file_name, format="json")
-    contents = json.load(open(file_name + "_1", "r"))
-    assert contents == expected_data
-
-    contents = json.load(open(file_name + "_2", "r"))
-    assert contents == expected_data
+        with open(f"{file_name}_2", "r") as file:
+            contents = json.load(file)
+        assert contents == expected_data
 
     os.remove(file_name)
-    os.remove(file_name + "_1")
-    os.remove(file_name + "_2")
-
-
-def test_export_barometer_data_csv(ideal_barometer, example_plain_env):
-    """Test the export_data method of the barometer. Checks if the data is
-    exported correctly."""
-    t = SOLUTION[0]
-    u = SOLUTION[1:]
-    relative_position = Vector([0, 0, 0])
-    ideal_barometer.measure(
-        t,
-        u=u,
-        relative_position=relative_position,
-        pressure=example_plain_env.pressure,
-    )
-    ideal_barometer.measure(
-        t,
-        u=u,
-        relative_position=relative_position,
-        pressure=example_plain_env.pressure,
-    )
-
-    file_name = "sensors.csv"
-
-    ideal_barometer.export_measured_data(file_name, format="csv")
-
-    with open(file_name, "r") as file:
-        contents = file.read()
-
-    expected_data = "t,pressure\n"
-    for t, pressure in ideal_barometer.measured_data:
-        expected_data += f"{t},{pressure}\n"
-
-    assert contents == expected_data
-
-    # check exports for gyroscopes added more than once to the rocket
-    ideal_barometer.measured_data = [
-        ideal_barometer.measured_data[:],
-        ideal_barometer.measured_data[:],
-    ]
-    ideal_barometer.export_measured_data(file_name, format="csv")
-    with open(file_name + "_1", "r") as file:
-        contents = file.read()
-    assert contents == expected_data
-
-    with open(file_name + "_2", "r") as file:
-        contents = file.read()
-    assert contents == expected_data
-
-    os.remove(file_name)
-    os.remove(file_name + "_1")
-    os.remove(file_name + "_2")
-
-
-def test_export_barometer_data_json(ideal_barometer, example_plain_env):
-    """Test the export_data method of the barometer. Checks if the data is
-    exported correctly."""
-    t = SOLUTION[0]
-    u = SOLUTION[1:]
-    relative_position = Vector([0, 0, 0])
-    ideal_barometer.measure(
-        t,
-        u=u,
-        relative_position=relative_position,
-        pressure=example_plain_env.pressure,
-    )
-    ideal_barometer.measure(
-        t,
-        u=u,
-        relative_position=relative_position,
-        pressure=example_plain_env.pressure,
-    )
-
-    file_name = "sensors.json"
-
-    ideal_barometer.export_measured_data(file_name, format="json")
-
-    contents = json.load(open(file_name, "r"))
-
-    expected_data = {"t": [], "pressure": []}
-    for t, pressure in ideal_barometer.measured_data:
-        expected_data["t"].append(t)
-        expected_data["pressure"].append(pressure)
-
-    assert contents == expected_data
-
-    # check exports for gyroscopes added more than once to the rocket
-    ideal_barometer.measured_data = [
-        ideal_barometer.measured_data[:],
-        ideal_barometer.measured_data[:],
-    ]
-    ideal_barometer.export_measured_data(file_name, format="json")
-    contents = json.load(open(file_name + "_1", "r"))
-    assert contents == expected_data
-
-    contents = json.load(open(file_name + "_2", "r"))
-    assert contents == expected_data
-
-    os.remove(file_name)
-    os.remove(file_name + "_1")
-    os.remove(file_name + "_2")
+    os.remove(f"{file_name}_1")
+    os.remove(f"{file_name}_2")
