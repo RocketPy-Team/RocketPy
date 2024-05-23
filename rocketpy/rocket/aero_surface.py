@@ -382,7 +382,7 @@ class NoseCone(AeroSurface):
     def bluffness(self, value):
         # prevents from setting bluffness on "powerseries" nose cones
         if self.kind == "powerseries":
-            # Checks if bluffness is being used
+            # Checks if bluffness is not being used
             if (value is not None) and (value != 0):
                 raise ValueError(
                     "Parameter 'bluffness' must be None or 0 when using a nose cone kind 'powerseries'."
