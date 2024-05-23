@@ -15,7 +15,7 @@ def test_sensor_on_rocket(calisto_sensors):
 
     Parameters
     ----------
-    calisto_accel_gyro : Rocket
+    calisto_sensors : Rocket
         Pytest fixture for the calisto rocket with a set of ideal sensors.
     """
     sensors = calisto_sensors.sensors
