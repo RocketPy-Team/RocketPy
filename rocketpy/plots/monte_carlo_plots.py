@@ -1,10 +1,9 @@
 import matplotlib.pyplot as plt
-
 from ..tools import generate_monte_carlo_ellipses
 
 
 class _MonteCarloPlots:
-    """Class to plot the monte carlo analysis results."""
+    """Class to plot the Monte Carlo analysis results."""
 
     def __init__(self, monte_carlo):
         self.monte_carlo = monte_carlo
@@ -18,62 +17,51 @@ class _MonteCarloPlots:
         ylim=(-3000, 3000),
         save=False,
     ):
-        """A function to plot the error ellipses for the apogee and impact
-        points of the rocket. The function also plots the real landing point, if
-        given
+        """
+        Plot the error ellipses for the apogee and impact points of the rocket.
 
         Parameters
         ----------
         image : str, optional
-            The path to the image to be used as the background
+            Path to the background image, usually a map of the launch site.
         actual_landing_point : tuple, optional
-            A tuple containing the actual landing point of the rocket, if known.
-            Useful when comparing the Monte Carlo results with the actual landing.
-            Must be given in tuple format, such as (x, y) in meters.
-            By default None.
+            Actual landing point of the rocket in (x, y) meters.
         perimeter_size : int, optional
-            The size of the perimeter to be plotted. The default is 3000.
+            Size of the perimeter to be plotted. Default is 3000.
         xlim : tuple, optional
-            The limits of the x axis. The default is (-3000, 3000).
+            Limits of the x-axis. Default is (-3000, 3000). Values in meters. 
         ylim : tuple, optional
-            The limits of the y axis. The default is (-3000, 3000).
-        save : bool
-            Whether save the output into a file or not. The default is False.
-            If True, the image will not be displayed, and the .savefig() method
-            will be called. If False, the image will be displayed, and the
-            .show() method will be called.
+            Limits of the y-axis. Default is (-3000, 3000). Values in meters.
+        save : bool, optional
+            Whether to save the plot as a file. Default is False. If True, the
+            plot is saved and not displayed. If False, the plot is displayed.
 
         Returns
         -------
         None
         """
+
         # Import background map
         if image is not None:
-            # TODO: use the optional import function
             try:
                 from imageio import imread
 
                 img = imread(image)
             except ImportError:
                 raise ImportError(
-                    "The 'imageio' package could not be. Please install it to add background images."
+                    "The 'imageio' package is required to add background images. Please install it."
                 )
             except FileNotFoundError:
                 raise FileNotFoundError(
                     "The image file was not found. Please check the path."
                 )
 
-        (
-            impact_ellipses,
-            apogee_ellipses,
-            apogee_x,
-            apogee_y,
-            impact_x,
-            impact_y,
-        ) = generate_monte_carlo_ellipses(self.monte_carlo.results)
+        impact_ellipses, apogee_ellipses, apogee_x, apogee_y, impact_x, impact_y = (
+            generate_monte_carlo_ellipses(self.monte_carlo.results)
+        )
 
         # Create plot figure
-        plt.figure(num=None, figsize=(8, 6), dpi=150, facecolor="w", edgecolor="k")
+        plt.figure(figsize=(8, 6), dpi=150)
         ax = plt.subplot(111)
 
         for ell in impact_ellipses:
@@ -81,13 +69,11 @@ class _MonteCarloPlots:
         for ell in apogee_ellipses:
             ax.add_artist(ell)
 
-        # Draw launch point
+        # Draw points
         plt.scatter(0, 0, s=30, marker="*", color="black", label="Launch Point")
-        # Draw apogee points
         plt.scatter(
             apogee_x, apogee_y, s=5, marker="^", color="green", label="Simulated Apogee"
         )
-        # Draw impact points
         plt.scatter(
             impact_x,
             impact_y,
@@ -96,8 +82,8 @@ class _MonteCarloPlots:
             color="blue",
             label="Simulated Landing Point",
         )
-        # Draw real landing point
-        if actual_landing_point != None:
+
+        if actual_landing_point:
             plt.scatter(
                 actual_landing_point[0],
                 actual_landing_point[1],
@@ -108,11 +94,8 @@ class _MonteCarloPlots:
             )
 
         plt.legend()
-
-        # Add title and labels to plot
         ax.set_title(
-            "1$\\sigma$, 2$\\sigma$ and 3$\\sigma$ "
-            + "Monte Carlo Ellipses: Apogee and Landing Points"
+            "1$\\sigma$, 2$\\sigma$ and 3$\\sigma$ Monte Carlo Ellipses: Apogee and Landing Points"
         )
         ax.set_ylabel("North (m)")
         ax.set_xlabel("East (m)")
@@ -133,35 +116,33 @@ class _MonteCarloPlots:
                     perimeter_size - dy,
                 ],
             )
+
         plt.axhline(0, color="black", linewidth=0.5)
         plt.axvline(0, color="black", linewidth=0.5)
         plt.xlim(*xlim)
         plt.ylim(*ylim)
 
-        # Save plot and show result
         if save:
             plt.savefig(
-                str(self.monte_carlo.filename) + ".png",
-                bbox_inches="tight",
-                pad_inches=0,
+                f"{self.monte_carlo.filename}.png", bbox_inches="tight", pad_inches=0
             )
         else:
             plt.show()
 
     def all(self, keys=None):
-        """Plot the results of the Monte Carlo analysis.
+        """
+        Plot the histograms of the Monte Carlo simulation results.
 
         Parameters
         ----------
         keys : str, list or tuple, optional
             The keys of the results to be plotted. If None, all results will be
-            plotted. The default is None.
+            plotted. Default is None.
 
         Returns
         -------
         None
         """
-
         if keys is None:
             keys = self.monte_carlo.results.keys()
         elif isinstance(keys, str):
@@ -170,19 +151,14 @@ class _MonteCarloPlots:
             keys = list(set(keys).intersection(self.monte_carlo.results.keys()))
             if len(keys) == 0:
                 raise ValueError(
-                    "The selected 'keys' are not available in the results. "
-                    "Please check the documentation."
+                    "The specified 'keys' are not available in the results."
                 )
         else:
-            raise ValueError(
-                "The 'keys' argument must be a string, list or tuple. "
-                "Please check the documentation."
-            )
+            raise ValueError("The 'keys' argument must be a string, list, or tuple.")
+
         for key in keys:
             plt.figure()
-            plt.hist(
-                self.monte_carlo.results[key],
-            )
+            plt.hist(self.monte_carlo.results[key])
             plt.title(f"Histogram of {key}")
             plt.ylabel("Number of Occurrences")
             plt.show()
