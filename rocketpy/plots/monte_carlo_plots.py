@@ -29,7 +29,7 @@ class _MonteCarloPlots:
         perimeter_size : int, optional
             Size of the perimeter to be plotted. Default is 3000.
         xlim : tuple, optional
-            Limits of the x-axis. Default is (-3000, 3000). Values in meters. 
+            Limits of the x-axis. Default is (-3000, 3000). Values in meters.
         ylim : tuple, optional
             Limits of the y-axis. Default is (-3000, 3000). Values in meters.
         save : bool, optional
