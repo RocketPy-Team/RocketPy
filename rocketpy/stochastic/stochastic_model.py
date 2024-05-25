@@ -112,6 +112,9 @@ class StochasticModel:
             s += f"{key}: {value_str}\n"
         return s.strip()
 
+    def __repr__(self):
+        return f"'{self.__class__.__name__}() object'"
+
     def _validate_tuple(self, input_name, input_value, getattr=getattr):
         """
         Validate tuple arguments.
