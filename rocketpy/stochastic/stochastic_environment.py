@@ -43,8 +43,8 @@ class StochasticEnvironment(StochasticModel):
         latitude=None,
         longitude=None,
         ensemble_member=None,
-        wind_velocity_x_factor=(1, 0), # TODO: please remove it
-        wind_velocity_y_factor=(1, 0), # TODO: please remove it
+        wind_velocity_x_factor=(1, 0),  # TODO: please remove it
+        wind_velocity_y_factor=(1, 0),  # TODO: please remove it
     ):
         """Initializes the Stochastic Environment class.
 

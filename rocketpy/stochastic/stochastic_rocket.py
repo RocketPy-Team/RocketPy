@@ -31,6 +31,7 @@ from .stochastic_solid_motor import StochasticSolidMotor
 
 # TODO: Private methods of this class should be double underscored
 
+
 class StochasticRocket(StochasticModel):
     """A Stochastic Rocket class that inherits from StochasticModel.
 

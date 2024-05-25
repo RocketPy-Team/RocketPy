@@ -58,7 +58,7 @@ class StochasticParachute(StochasticModel):
             Sampling rate of the parachute in seconds.
         lag : tuple, list, int, float
             Lag of the parachute in seconds. Pay special attention to ensure
-            the lag will not assume negative values based on its mean and 
+            the lag will not assume negative values based on its mean and
             standard deviation.
         noise : list
             List of tuples in the form of (mean, standard deviation,
