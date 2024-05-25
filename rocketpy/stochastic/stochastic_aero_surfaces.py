@@ -42,13 +42,14 @@ class StochasticNoseCone(StochasticModel):
     name : list[str]
         List with the name of the NoseCone. This attribute can not be randomized.
     """
+
     # TODO: You should NOT vary the kind of the nose cone. What is the purpose of this?
 
     def __init__(
         self,
         nosecone,
         length=None,
-        kind=None, # TODO: Please don't vary the kind of the nose cone. Non-sense!
+        kind=None,  # TODO: Please don't vary the kind of the nose cone. Non-sense!
         base_radius=None,
         bluffness=None,
         rocket_radius=None,
@@ -145,7 +146,7 @@ class StochasticTrapezoidalFins(StochasticModel):
     def __init__(
         self,
         trapezoidal_fins,
-        n=None, # TODO: Please don't vary the number of fins. Non-sense!
+        n=None,  # TODO: Please don't vary the number of fins. Non-sense!
         root_chord=None,
         tip_chord=None,
         span=None,

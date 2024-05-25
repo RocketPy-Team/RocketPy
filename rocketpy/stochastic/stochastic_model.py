@@ -33,6 +33,7 @@ class StochasticModel:
     be called directly by the user. These methods may receive breaking changes
     without notice, so use them at your own risk.
     """
+
     # Arguments that are validated only in child classes
     exception_list = [
         "initial_solution",
