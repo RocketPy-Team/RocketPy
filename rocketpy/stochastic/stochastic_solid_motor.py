@@ -54,7 +54,7 @@ class StochasticSolidMotor(StochasticMotorModel):
         Separation between grains in the motor in meters.
     grains_center_of_mass_position : int, float, tuple, list
         Position of the center of mass of the grains in the motor in
-        meters. 
+        meters.
     center_of_dry_mass_position : int, float, tuple, list
         Position of the center of mass of the dry mass in the motor in
         meters.
@@ -79,7 +79,7 @@ class StochasticSolidMotor(StochasticMotorModel):
         dry_inertia_13=None,
         dry_inertia_23=None,
         nozzle_radius=None,
-        grain_number=None, # TODO: never vary the number of grains!!
+        grain_number=None,  # TODO: never vary the number of grains!!
         grain_density=None,
         grain_outer_radius=None,
         grain_initial_inner_radius=None,
@@ -136,10 +136,10 @@ class StochasticSolidMotor(StochasticMotorModel):
             Separation between grains in the motor in meters.
         grains_center_of_mass_position : int, float, tuple, list, optional
             Position of the center of mass of the grains in the motor in
-            meters. 
+            meters.
         center_of_dry_mass_position : int, float, tuple, list, optional
             Position of the center of mass of the dry mass in the motor in
-            meters. 
+            meters.
         nozzle_position : int, float, tuple, list, optional
             Position of the nozzle in the motor in meters.
         throat_radius : int, float, tuple, list, optional
