@@ -1,5 +1,7 @@
-"""Defines the StochasticNoseCone, StochasticTrapezoidalFins,
-StochasticEllipticalFins, StochasticTail and StochasticRailButtons classes."""
+"""
+Defines the StochasticNoseCone, StochasticTrapezoidalFins,
+StochasticEllipticalFins, StochasticTail and StochasticRailButtons classes.
+"""
 
 from rocketpy.rocket.aero_surface import (
     EllipticalFins,
@@ -13,43 +15,40 @@ from .stochastic_model import StochasticModel
 
 
 class StochasticNoseCone(StochasticModel):
-    """A Stochastic Nose Cone class that inherits from StochasticModel. This
-    class is used to receive a NoseCone object and information about the
-    dispersion of its parameters and generate a random nose cone object based
-    on the provided information.
+    """The ``StochasticNoseCone`` class inherits from the StochasticModel. This
+    class is used to store a ``NoseCone`` object along with the uncertainty
+    of its parameters.
 
     See Also
     --------
-    :ref:`stochastic_model`
+    :ref:`stochastic_model` and
+    :class:`NoseCone <rocketpy.rocket.aero_surface.NoseCone>`
 
     Attributes
     ----------
     object : NoseCone
-        NoseCone object to be used for validation.
+        NoseCone object to be used as a base for the Stochastic nose cone.
     length : tuple, list, int, float
-        Length of the nose cone in meters. Follows the standard input format of
-        Stochastic Models.
-    kind : list
-        List of strings representing the kind of nose cone. Follows the standard
-        input format of Stochastic Models.
+        Length of the nose cone in meters.
+    kind : list[str]
+        List with a string representing the kind of nose cone.
     base_radius : tuple, list, int, float
-        Base radius of the nose cone in meters. Follows the standard input
-        format of Stochastic Models.
+        Nose cone base radius in meters.
     bluffness : tuple, list, int, float
-        Bluffness of the nose cone. Follows the standard input format of
-        Stochastic Models.
+        Bluffness of the nose cone.
     rocket_radius : tuple, list, int, float
-        Rocket radius of the nose cone in meters. Follows the standard input
-        format of Stochastic Models.
-    name : list
-        List of names. This attribute can not be randomized.
+        The reference rocket radius used for lift coefficient normalization, in
+        meters.
+    name : list[str]
+        List with the name of the NoseCone. This attribute can not be randomized.
     """
+    # TODO: You should NOT vary the kind of the nose cone. What is the purpose of this?
 
     def __init__(
         self,
         nosecone,
         length=None,
-        kind=None,
+        kind=None, # TODO: Please don't vary the kind of the nose cone. Non-sense!
         base_radius=None,
         bluffness=None,
         rocket_radius=None,
@@ -58,27 +57,22 @@ class StochasticNoseCone(StochasticModel):
 
         See Also
         --------
-        :ref:`stochastic_model`
+        See the :ref:`stochastic_model` and :ref:`nose_cone_class` for further
+        information.
 
         Parameters
         ----------
         nosecone : NoseCone
-            NoseCone object to be used for validation.
+            NoseCone object to be used as a base for the Stochastic nose cone.
         length : tuple, list, int, float
-            Length of the nose cone in meters. Follows the standard input format
-            of Stochastic Models.
-        kind : list
-            List of strings representing the kind of nose cone. Follows the
-            standard input format of Stochastic Models.
+            Length of the nose cone in meters.
         base_radius : tuple, list, int, float
-            Base radius of the nose cone in meters. Follows the standard input
-            format of Stochastic Models.
+            Nose cone base radius in meters.
         bluffness : tuple, list, int, float
-            Bluffness of the nose cone. Follows the standard input format of
-            Stochastic Models.
+            Bluffness of the nose cone.
         rocket_radius : tuple, list, int, float
-            Rocket radius of the nose cone in meters. Follows the standard input
-            format of Stochastic Models.
+            The reference rocket radius used for lift coefficient normalization,
+            in meters.
         """
         self._validate_kind(kind)
         super().__init__(
@@ -95,6 +89,7 @@ class StochasticNoseCone(StochasticModel):
         """Validates the kind input. If the kind input argument is not None, it
         must be a list of strings."""
         if kind is not None:
+            # TODO: We should NOT vary the kind of the nose cone.
             assert isinstance(kind, list) and all(
                 isinstance(member, str) for member in kind
             ), "`kind` must be a list of strings"
@@ -114,52 +109,43 @@ class StochasticNoseCone(StochasticModel):
 
 class StochasticTrapezoidalFins(StochasticModel):
     """A Stochastic Trapezoidal Fins class that inherits from StochasticModel.
-    This class is used to receive a TrapezoidalFins object and information about
-    the dispersion of its parameters and generate a random trapezoidal fins
-    object based on the provided information.
 
     See Also
     --------
-    :ref:`stochastic_model`
+    :ref:`stochastic_model` and
+    :class:`TrapezoidalFins <rocketpy.TrapezoidalFins>`
 
     Attributes
     ----------
     object : TrapezoidalFins
         TrapezoidalFins object to be used for validation.
-    n : list of ints
-        List of integers representing the number of fins. Follows the standard
-        input format of Stochastic Models.
+    n : list[int]
+        List with an integer representing the number of fins. This attribute
+        can be randomized.
     root_chord : tuple, list, int, float
-        Root chord of the fins in meters. Follows the standard input format of
-        Stochastic Models.
+        Root chord of the fins in meters.
     tip_chord : tuple, list, int, float
-        Tip chord of the fins in meters. Follows the standard input format of
-        Stochastic Models.
+        Tip chord of the fins in meters.
     span : tuple, list, int, float
-        Span of the fins in meters. Follows the standard input format of
-        Stochastic Models.
+        Span of the fins in meters.
     rocket_radius : tuple, list, int, float
-        Rocket radius of the fins in meters. Follows the standard input format
-        of Stochastic Models.
+        Rocket radius of the fins in meters.
     cant_angle : tuple, list, int, float
-        Cant angle of the fins in degrees. Follows the standard input format of
-        Stochastic Models.
+        Cant angle of the fins in degrees.
     sweep_length : tuple, list, int, float
-        Sweep length of the fins in meters. Follows the standard input format of
-        Stochastic Models.
+        Sweep length of the fins in meters.
     sweep_angle : tuple, list, int, float
-        Sweep angle of the fins in degrees. Follows the standard input format of
-        Stochastic Models.
+        Sweep angle of the fins in degrees.
     airfoil : list
         List of tuples in the form of (airfoil file path, airfoil name).
-    name : list
-        List of names. This attribute can not be randomized.
+    name : list[str]
+        List with the object name. This attribute can not be randomized.
     """
 
     def __init__(
         self,
         trapezoidal_fins,
-        n=None,
+        n=None, # TODO: Please don't vary the number of fins. Non-sense!
         root_chord=None,
         tip_chord=None,
         span=None,
@@ -179,33 +165,24 @@ class StochasticTrapezoidalFins(StochasticModel):
         ----------
         trapezoidal_fins : TrapezoidalFins
             TrapezoidalFins object to be used for validation.
-        n : list of ints
-            List of integers representing the number of fins. Follows the
-            standard input format of Stochastic Models.
         root_chord : tuple, list, int, float
-            Root chord of the fins in meters. Follows the standard input format
-            of Stochastic Models.
+            Root chord of the fins in meters.
         tip_chord : tuple, list, int, float
-            Tip chord of the fins in meters. Follows the standard input format
-            of Stochastic Models.
+            Tip chord of the fins in meters.
         span : tuple, list, int, float
-            Span of the fins in meters. Follows the standard input format of
-            Stochastic Models.
+            Span of the fins in meters.
         rocket_radius : tuple, list, int, float
-            Rocket radius of the fins in meters. Follows the standard input
-            format of Stochastic Models.
+            Rocket radius of the fins in meters.
         cant_angle : tuple, list, int, float
-            Cant angle of the fins in degrees. Follows the standard input format
-            of Stochastic Models.
+            Cant angle of the fins in degrees.
         sweep_length : tuple, list, int, float
-            Sweep length of the fins in meters. Follows the standard input
-            format of Stochastic Models.
+            Sweep length of the fins in meters.
         sweep_angle : tuple, list, int, float
-            Sweep angle of the fins in degrees. Follows the standard input
-            format of Stochastic Models.
-        airfoil : list
+            Sweep angle of the fins in degrees.
+        airfoil : list[tuple]
             List of tuples in the form of (airfoil file path, airfoil name).
         """
+        # TODO: never vary the number of fins. It is a fixed parameter.
         self._validate_positive_int_list("n", n)
         self._validate_airfoil(airfoil)
         super().__init__(
@@ -237,37 +214,31 @@ class StochasticTrapezoidalFins(StochasticModel):
 
 class StochasticEllipticalFins(StochasticModel):
     """A Stochastic Elliptical Fins class that inherits from StochasticModel.
-    This class is used to receive a EllipticalFins object and information about
-    the dispersion of its parameters and generate a random elliptical fins
-    object based on the provided information.
 
     See Also
     --------
-    :ref:`stochastic_model`
+    :ref:`stochastic_model` and
+    :class:`EllipticalFins <rocketpy.EllipticalFins>`
 
     Attributes
     ----------
     object : EllipticalFins
         EllipticalFins object to be used for validation.
-    n : list of ints
-        List of integers representing the number of fins. Follows the standard
-        input format of Stochastic Models.
+    n : list[int]
+        List with an integer representing the number of fins. This attribute
+        can be randomized.
     root_chord : tuple, list, int, float
-        Root chord of the fins in meters. Follows the standard input format of
-        Stochastic Models.
+        Root chord of the fins in meters.
     span : tuple, list, int, float
-        Span of the fins in meters. Follows the standard input format of
-        Stochastic Models.
+        Span of the fins in meters.
     rocket_radius : tuple, list, int, float
-        Rocket radius of the fins in meters. Follows the standard input format
-        of Stochastic Models.
+        Rocket radius of the fins in meters.
     cant_angle : tuple, list, int, float
-        Cant angle of the fins in degrees. Follows the standard input format of
-        Stochastic Models.
+        Cant angle of the fins in degrees.
     airfoil : list
         List of tuples in the form of (airfoil file path, airfoil name).
-    name : list
-        List of names. This attribute can not be randomized.
+    name : list[str]
+        List with the fins object name. This attribute can not be randomized.
     """
 
     def __init__(
@@ -290,24 +261,18 @@ class StochasticEllipticalFins(StochasticModel):
         ----------
         elliptical_fins : EllipticalFins
             EllipticalFins object to be used for validation.
-        n : list of ints
-            List of integers representing the number of fins. Follows the
-            standard input format of Stochastic Models.
         root_chord : tuple, list, int, float
-            Root chord of the fins in meters. Follows the standard input format
-            of Stochastic Models.
+            Root chord of the fins in meters.
         span : tuple, list, int, float
-            Span of the fins in meters. Follows the standard input format of
-            Stochastic Models.
+            Span of the fins in meters.
         rocket_radius : tuple, list, int, float
-            Rocket radius of the fins in meters. Follows the standard input
-            format of Stochastic Models.
+            Rocket radius of the fins in meters.
         cant_angle : tuple, list, int, float
-            Cant angle of the fins in degrees. Follows the standard input format
-            of Stochastic Models.
-        airfoil : list
+            Cant angle of the fins in degrees.
+        airfoil : list[tuple]
             List of tuples in the form of (airfoil file path, airfoil name).
         """
+        # TODO: never vary the number of fins. It is a fixed parameter.
         self._validate_positive_int_list("n", n)
         self._validate_airfoil(airfoil)
         super().__init__(
@@ -335,33 +300,26 @@ class StochasticEllipticalFins(StochasticModel):
 
 
 class StochasticTail(StochasticModel):
-    """A Stochastic Tail class that inherits from StochasticModel. This class
-    is used to receive a Tail object and information about the dispersion of its
-    parameters and generate a random tail object based on the provided
-    information.
+    """A Stochastic Tail class that inherits from StochasticModel.
 
     See Also
     --------
-    :ref:`stochastic_model`
+    :ref:`stochastic_model` and :class:`Tail <rocketpy.Tail>`
 
     Attributes
     ----------
     object : Tail
         Tail object to be used for validation.
     top_radius : tuple, list, int, float
-        Top radius of the tail in meters. Follows the standard input format of
-        Stochastic Models.
+        Top radius of the tail in meters.
     bottom_radius : tuple, list, int, float
-        Bottom radius of the tail in meters. Follows the standard input format
-        of Stochastic Models.
+        Bottom radius of the tail in meters.
     length : tuple, list, int, float
-        Length of the tail in meters. Follows the standard input format of
-        Stochastic Models.
+        Length of the tail in meters.
     rocket_radius : tuple, list, int, float
-        Rocket radius of the tail in meters. Follows the standard input format
-        of Stochastic Models.
-    name : list
-        List of names. This attribute can not be randomized.
+        Rocket radius of the tail in meters.
+    name : list[str]
+        List with the name of the tail object. This cannot be randomized.
     """
 
     def __init__(
@@ -376,24 +334,20 @@ class StochasticTail(StochasticModel):
 
         See Also
         --------
-        :ref:`stochastic_model`
+        :ref:`stochastic_model` and :class:`Tail <rocketpy.Tail>`
 
         Parameters
         ----------
         tail : Tail
             Tail object to be used for validation.
         top_radius : tuple, list, int, float
-            Top radius of the tail in meters. Follows the standard input format
-            of Stochastic Models.
+            Top radius of the tail in meters.
         bottom_radius : tuple, list, int, float
-            Bottom radius of the tail in meters. Follows the standard input
-            format of Stochastic Models.
+            Bottom radius of the tail in meters.
         length : tuple, list, int, float
-            Length of the tail in meters. Follows the standard input format of
-            Stochastic Models.
+            Length of the tail in meters.
         rocket_radius : tuple, list, int, float
-            Rocket radius of the tail in meters. Follows the standard input
-            format of Stochastic Models.
+            Rocket radius of the tail in meters.
         """
         super().__init__(
             tail,
@@ -410,7 +364,7 @@ class StochasticTail(StochasticModel):
 
         Returns
         -------
-        tail : Tail
+        Tail
             Tail object with the randomly generated input arguments.
         """
         generated_dict = next(self.dict_generator())
@@ -418,30 +372,24 @@ class StochasticTail(StochasticModel):
 
 
 class StochasticRailButtons(StochasticModel):
-    """A Stochastic RailButtons class that inherits from StochasticModel. This
-    class is used to receive a RailButtons object and information about the
-    dispersion of its parameters and generate a random rail buttons object based
-    on the provided information.
+    """A Stochastic RailButtons class that inherits from StochasticModel.
 
     See Also
     --------
-    :ref:`stochastic_model`
+    :ref:`stochastic_model` and :class:`RailButtons <rocketpy.rocket.RailButtons>`
 
     Attributes
     ----------
     object : RailButtons
         RailButtons object to be used for validation.
     rail_buttons : list
-        List of RailButton objects. Follows the standard input format of
-        Stochastic Models.
+        List of RailButton objects.
     buttons_distance : tuple, list, int, float
-        Distance between the buttons in meters. Follows the standard input
-        format of Stochastic Models.
+        Distance between the buttons in meters.
     angular_position : tuple, list, int, float
-        Angular position of the buttons in degrees. Follows the standard input
-        format of Stochastic Models.
-    name : list
-        List of names. This attribute can not be randomized.
+        Angular position of the buttons in degrees.
+    name : list[str]
+        List with the name of the object. This attribute can not be randomized.
     """
 
     def __init__(
@@ -461,11 +409,9 @@ class StochasticRailButtons(StochasticModel):
         rail_buttons : RailButtons
             RailButtons object to be used for validation.
         buttons_distance : tuple, list, int, float
-            Distance between the buttons in meters. Follows the standard input
-            format of Stochastic Models.
+            Distance between the buttons in meters.
         angular_position : tuple, list, int, float
-            Angular position of the buttons in degrees. Follows the standard
-            input format of Stochastic Models.
+            Angular position of the buttons in degrees.
         """
         super().__init__(
             rail_buttons,
