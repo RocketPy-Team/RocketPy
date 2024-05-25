@@ -10,7 +10,7 @@ class StochasticEnvironment(StochasticModel):
 
     See Also
     --------
-    :ref:`stochastic_model` and :ref:`environment_class`
+    :ref:`stochastic_model` and :class:`Environment <rocketpy.environment.Environment>`
 
     Attributes
     ----------

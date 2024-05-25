@@ -165,11 +165,11 @@ class MonteCarlo:
         the simulation by running the method simulate again with the same
         number of simulations and setting `append=True`.
 
-            Important
-            ---------
-            If you use `append=False` and the files already exist, they will be
-            overwritten. Make sure to save the files with the results before
-            running the simulation again with `append=False`.
+        Important
+        ---------
+        If you use `append=False` and the files already exist, they will be
+        overwritten. Make sure to save the files with the results before
+        running the simulation again with `append=False`.
         """
         # Create data files for inputs, outputs and error logging
         open_mode = "a" if append else "w"
