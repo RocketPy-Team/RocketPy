@@ -1,5 +1,11 @@
+.. _stochastic_reference:
+
 Stochastic Models
 =================
+
+This section provides detailed API references for the Stochastic models in RocketPy.
+These models extend the standard RocketPy objects by introducing uncertainties to
+input parameters, enabling robust Monte Carlo simulations.
 
 .. toctree::
    :maxdepth: 1

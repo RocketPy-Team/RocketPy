@@ -6,37 +6,29 @@ from .stochastic_model import StochasticModel
 
 
 class StochasticParachute(StochasticModel):
-    """A Stochastic Parachute class that inherits from StochasticModel. This
-    class is used to receive a Parachute object and information about the
-    dispersion of its parameters and generate a random parachute object based
-    on the provided information.
+    """A Stochastic Parachute class that inherits from StochasticModel.
 
     See Also
     --------
-    :ref:`stochastic_model`
+    :ref:`stochastic_model` and :class:`Parachute <rocketpy.rocket.Parachute>`
 
     Attributes
     ----------
     object : Parachute
         Parachute object to be used for validation.
     cd_s : tuple, list, int, float
-        Drag coefficient of the parachute. Follows the standard input format of
-        Stochastic Models.
+        Drag coefficient of the parachute.
     trigger : list
-        List of callables, string "apogee" or ints/floats. Follows the standard
-        input format of Stochastic Models.
+        List of callables, string "apogee" or ints/floats.
     sampling_rate : tuple, list, int, float
-        Sampling rate of the parachute in seconds. Follows the standard input
-        format of Stochastic Models.
+        Sampling rate of the parachute in seconds.
     lag : tuple, list, int, float
-        Lag of the parachute in seconds. Follows the standard input format of
-        Stochastic Models.
-    noise : list
+        Lag of the parachute in seconds.
+    noise : list[tuple]
         List of tuples in the form of (mean, standard deviation,
-        time-correlation). Follows the standard input format of Stochastic
-        Models.
-    name : list
-        List of names. This attribute can not be randomized.
+        time-correlation).
+    name : list[str]
+        List with the name of the parachute object. This cannot be randomized.
     """
 
     def __init__(
@@ -59,21 +51,18 @@ class StochasticParachute(StochasticModel):
         parachute : Parachute
             Parachute object to be used for validation.
         cd_s : tuple, list, int, float
-            Drag coefficient of the parachute. Follows the standard input
-            format of Stochastic Models.
+            Drag coefficient of the parachute.
         trigger : list
-            List of callables, string "apogee" or ints/floats. Follows the
-            standard input format of Stochastic Models.
+            List of callables, string "apogee" or ints/floats.
         sampling_rate : tuple, list, int, float
-            Sampling rate of the parachute in seconds. Follows the standard
-            input format of Stochastic Models.
+            Sampling rate of the parachute in seconds.
         lag : tuple, list, int, float
-            Lag of the parachute in seconds. Follows the standard input format
-            of Stochastic Models.
+            Lag of the parachute in seconds. Pay special attention to ensure
+            the lag will not assume negative values based on its mean and 
+            standard deviation.
         noise : list
             List of tuples in the form of (mean, standard deviation,
-            time-correlation). Follows the standard input format of Stochastic
-            Models.
+            time-correlation).
         """
         self.parachute = parachute
         self.cd_s = cd_s
