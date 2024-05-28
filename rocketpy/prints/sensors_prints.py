@@ -136,3 +136,11 @@ class _BarometerPrints(_SensorsPrints):
     def __init__(self, barometer):
         """Initialize the class."""
         super().__init__(barometer)
+
+
+class _GNSSPrints(_SensorsPrints):
+    """Class that contains all GNSS prints."""
+
+    def __init__(self, gnss):
+        """Initialize the class."""
+        super().__init__(gnss)
