@@ -9,7 +9,29 @@ from .sensors import ScalarSensors
 
 
 class GNSS(ScalarSensors):
-    units = "°"
+    """Class for the GNSS sensor
+
+    Attributes
+    ----------
+    prints : _GNSSPrints
+        Object that contains the print functions for the sensor.
+    sampling_rate : float
+        Sample rate of the sensor in Hz.
+    position_accuracy : float
+        Accuracy of the sensor interpreted as the standard deviation of the
+        position in meters.
+    altitude_accuracy : float
+        Accuracy of the sensor interpreted as the standard deviation of the
+        position in meters.
+    name : str
+        The name of the sensor.
+    measurement : tuple
+        The measurement of the sensor.
+    measured_data : list
+        The stored measured data of the sensor.
+    """
+
+    units = "°, m"
 
     def __init__(
         self,
@@ -25,9 +47,11 @@ class GNSS(ScalarSensors):
         sampling_rate : float
             Sample rate of the sensor in Hz.
         position_accuracy : float
-            The position accuracy of the sensor in meters. Default is 0.
+            Accuracy of the sensor interpreted as the standard deviation of the
+            position in meters. Default is 0.
         altitude_accuracy : float
-            The altitude accuracy of the sensor in meters. Default is 0.
+            Accuracy of the sensor interpreted as the standard deviation of the
+            position in meters. Default is 0.
         name : str
             The name of the sensor. Default is "GNSS".
         """
@@ -63,7 +87,10 @@ class GNSS(ScalarSensors):
 
         # Get from state u and add relative position
         x, y, z = (Matrix.transformation(u[6:10]) @ relative_position) + Vector(u[0:3])
-        altitude = z
+        # Apply accuracy to the position
+        x = np.random.normal(x, self.position_accuracy)
+        y = np.random.normal(y, self.position_accuracy)
+        z = np.random.normal(z, self.altitude_accuracy)
 
         # Convert x and y to latitude and longitude
         lat1 = math.radians(lat)  # Launch lat point converted to radians
@@ -95,7 +122,7 @@ class GNSS(ScalarSensors):
 
         latitude = np.random.normal(latitude, self.position_accuracy)
         longitude = np.random.normal(longitude, self.position_accuracy)
-        altitude = np.random.normal(altitude, self.altitude_accuracy)
+        altitude = np.random.normal(z, self.altitude_accuracy)
 
         self.measurement = (latitude, longitude, altitude)
         self._save_data((time, *self.measurement))

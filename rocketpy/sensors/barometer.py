@@ -12,8 +12,6 @@ class Barometer(ScalarSensors):
 
     Attributes
     ----------
-    type : str
-        Type of the sensor, in this case "Barometer".
     prints : _BarometerPrints
         Object that contains the print functions for the sensor.
     sampling_rate : float
