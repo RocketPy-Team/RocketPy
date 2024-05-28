@@ -721,6 +721,8 @@ class Flight:
                                 self.solution[-1][3]
                             ),
                             pressure=self.env.pressure,
+                            earth_radius=self.env.earth_radius,
+                            initial_coordinates=(self.env.latitude, self.env.longitude),
                         )
 
                 for controller in node._controllers:
