@@ -717,6 +717,7 @@ class Flight:
                             u=self.y_sol,
                             u_dot=u_dot,
                             relative_position=relative_position,
+                            environment=self.env,
                             gravity=self.env.gravity.get_value_opt(
                                 self.solution[-1][3]
                             ),

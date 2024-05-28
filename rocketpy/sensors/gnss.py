@@ -18,6 +18,19 @@ class GNSS(ScalarSensors):
         altitude_accuracy=0,
         name="GNSS",
     ):
+        """Initialize the GNSS sensor.
+
+        Parameters
+        ----------
+        sampling_rate : float
+            Sample rate of the sensor in Hz.
+        position_accuracy : float
+            The position accuracy of the sensor in meters. Default is 0.
+        altitude_accuracy : float
+            The altitude accuracy of the sensor in meters. Default is 0.
+        name : str
+            The name of the sensor. Default is "GNSS".
+        """
         super().__init__(sampling_rate=sampling_rate, name=name)
         self.position_accuracy = position_accuracy
         self.altitude_accuracy = altitude_accuracy
@@ -25,10 +38,28 @@ class GNSS(ScalarSensors):
         self.prints = _GNSSPrints(self)
 
     def measure(self, time, **kwargs):
+        """Measure the position of the rocket in latitude, longitude and
+        altitude.
+
+        Parameters
+        ----------
+        time : float
+            Current time in seconds.
+        kwargs : dict
+            Keyword arguments dictionary containing the following keys:
+            - u : np.array
+                State vector of the rocket.
+            - u_dot : np.array
+                Derivative of the state vector of the rocket.
+            - relative_position : np.array
+                Position of the sensor relative to the rocket center of mass.
+            - environment : Environment
+                Environment object containing the atmospheric conditions.
+        """
         u = kwargs["u"]
         relative_position = kwargs["relative_position"]
-        lat, lon = kwargs["initial_coordinates"]
-        earth_radius = kwargs["earth_radius"]
+        lat, lon = kwargs["environment"].latitude, kwargs["environment"].longitude
+        earth_radius = kwargs["environment"].earth_radius
 
         # Get from state u and add relative position
         x, y, z = (Matrix.transformation(u[6:10]) @ relative_position) + Vector(u[0:3])
@@ -61,6 +92,10 @@ class GNSS(ScalarSensors):
                 - math.sin(lat1) * math.sin(math.radians(latitude)),
             )
         )
+
+        latitude = np.random.normal(latitude, self.position_accuracy)
+        longitude = np.random.normal(longitude, self.position_accuracy)
+        altitude = np.random.normal(altitude, self.altitude_accuracy)
 
         self.measurement = (latitude, longitude, altitude)
         self._save_data((time, *self.measurement))

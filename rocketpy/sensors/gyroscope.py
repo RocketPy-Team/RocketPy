@@ -211,10 +211,8 @@ class Gyroscope(InertialSensors):
                 Derivative of the state vector of the rocket.
             - relative_position : np.array
                 Position of the sensor relative to the rocket center of mass.
-            - gravity : float
-                Gravitational acceleration in m/s^2.
-            - pressure : Function
-                Atmospheric pressure profile as a function of altitude in Pa.
+            - environment : Environment
+                Environment object containing the atmospheric conditions.
         """
         u = kwargs["u"]
         u_dot = kwargs["u_dot"]
