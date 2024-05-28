@@ -64,3 +64,24 @@ class GNSS(ScalarSensors):
 
         self.measurement = (latitude, longitude, altitude)
         self._save_data((time, *self.measurement))
+
+    def export_measured_data(self, filename, format):
+        """Export the measured values to a file
+
+        Parameters
+        ----------
+        filename : str
+            Name of the file to export the values to
+        format : str
+            Format of the file to export the values to. Options are "csv" and
+            "json". Default is "csv".
+
+        Returns
+        -------
+        None
+        """
+        super().export_measured_data(
+            filename=filename,
+            format=format,
+            data_labels=("t", "latitude", "longitude", "altitude"),
+        )
