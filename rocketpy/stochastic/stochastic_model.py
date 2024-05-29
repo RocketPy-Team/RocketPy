@@ -89,29 +89,6 @@ class StochasticModel:
                     attr_value = [getattr(self.object, input_name)]
                 setattr(self, input_name, attr_value)
 
-    def __str__(self):
-        """
-        Returns a string representation of the StochasticModel object.
-
-        Returns
-        -------
-        str
-            String containing the class attributes and their values.
-        """
-        s = ""
-        for key, value in self.__dict__.items():
-            if key.startswith("_"):
-                continue
-            if isinstance(value, tuple):
-                value_str = (
-                    f"{value[0]:.5f} ± {value[1]:.5f} "
-                    f"(numpy.random.{value[2].__name__})"
-                )
-            else:
-                value_str = str(value)
-            s += f"{key}: {value_str}\n"
-        return s.strip()
-
     def __repr__(self):
         return f"'{self.__class__.__name__}() object'"
 
