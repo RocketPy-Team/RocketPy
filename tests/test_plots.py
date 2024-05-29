@@ -43,7 +43,8 @@ def test_compare(mock_show, flight_calisto):
 
 
 @patch("matplotlib.pyplot.show")
-def test_compare_flights(mock_show, calisto, example_plain_env):
+@patch("matplotlib.figure.Figure.show")
+def test_compare_flights(mock_show, mock_figure_show, calisto, example_plain_env):
     """Tests the CompareFlights class. It simply ensures that all the methods
     are being called without errors. It does not test the actual plots, which
     would be very difficult to do.
@@ -52,6 +53,8 @@ def test_compare_flights(mock_show, calisto, example_plain_env):
     ----------
     mock_show :
         Mocks the matplotlib.pyplot.show() function to avoid showing the plots.
+    mock_figure_show :
+        Mocks the matplotlib.figure.Figure.show() function to avoid showing the plots.
     calisto : rocketpy.Rocket
         Rocket object to be used in the tests. See conftest.py for more details.
     example_plain_env : rocketpy.Environment

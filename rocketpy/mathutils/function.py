@@ -16,6 +16,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import integrate, linalg, optimize
 
+from ..plots.plot_helpers import show_or_save_plot
+
 NUMERICAL_TYPES = (float, int, complex, np.ndarray, np.integer, np.floating)
 INTERPOLATION_TYPES = {
     "linear": 0,
@@ -1074,7 +1076,7 @@ class Function:
         )
 
     # Define all presentation methods
-    def __call__(self, *args):
+    def __call__(self, *args, filename=None):
         """Plot the Function if no argument is given. If an
         argument is given, return the value of the function at the desired
         point.
@@ -1088,13 +1090,18 @@ class Function:
             evaluated at all points in the list and a list of floats will be
             returned. If the function is N-D, N arguments must be given, each
             one being an scalar or list.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
         ans : None, scalar, list
         """
-        if len(args) == 0:
-            return self.plot()
+        if len(args) == 0 or (len(args) == 1 and filename != None):
+            return self.plot(filename=filename)
         else:
             return self.get_value(*args)
 
@@ -1155,8 +1162,11 @@ class Function:
         Function.plot_2d if Function is 2-Dimensional and forward arguments
         and key-word arguments."""
         if isinstance(self, list):
+            # Extract filename from kwargs
+            filename = kwargs.get("filename", None)
+
             # Compare multiple plots
-            Function.compare_plots(self)
+            Function.compare_plots(self, filename)
         else:
             if self.__dom_dim__ == 1:
                 self.plot_1d(*args, **kwargs)
@@ -1184,6 +1194,7 @@ class Function:
         force_points=False,
         return_object=False,
         equal_axis=False,
+        filename=None,
     ):
         """Plot 1-Dimensional Function, from a lower limit to an upper limit,
         by sampling the Function several times in the interval. The title of
@@ -1214,6 +1225,11 @@ class Function:
             Setting force_points to True will plot all points, as a scatter, in
             which the Function was evaluated in the dataset. Default value is
             False.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -1254,7 +1270,7 @@ class Function:
         plt.title(self.title)
         plt.xlabel(self.__inputs__[0].title())
         plt.ylabel(self.__outputs__[0].title())
-        plt.show()
+        show_or_save_plot(filename)
         if return_object:
             return fig, ax
 
@@ -1277,6 +1293,7 @@ class Function:
         disp_type="surface",
         alpha=0.6,
         cmap="viridis",
+        filename=None,
     ):
         """Plot 2-Dimensional Function, from a lower limit to an upper limit,
         by sampling the Function several times in the interval. The title of
@@ -1316,6 +1333,11 @@ class Function:
         cmap : string, optional
             Colormap of plotted graph, which can be any of the color maps
             available in matplotlib. Default value is viridis.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -1389,7 +1411,7 @@ class Function:
         axes.set_xlabel(self.__inputs__[0].title())
         axes.set_ylabel(self.__inputs__[1].title())
         axes.set_zlabel(self.__outputs__[0].title())
-        plt.show()
+        show_or_save_plot(filename)
 
     @staticmethod
     def compare_plots(
@@ -1404,6 +1426,7 @@ class Function:
         force_points=False,
         return_object=False,
         show=True,
+        filename=None,
     ):
         """Plots N 1-Dimensional Functions in the same plot, from a lower
         limit to an upper limit, by sampling the Functions several times in
@@ -1448,6 +1471,11 @@ class Function:
             False.
         show : bool, optional
             If True, shows the plot. Default value is True.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -1522,7 +1550,7 @@ class Function:
         plt.ylabel(ylabel)
 
         if show:
-            plt.show()
+            show_or_save_plot(filename)
 
         if return_object:
             return fig, ax

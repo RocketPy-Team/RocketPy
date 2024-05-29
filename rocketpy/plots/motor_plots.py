@@ -27,7 +27,7 @@ class _MotorPlots:
         """
         self.motor = motor
 
-    def thrust(self, lower_limit=None, upper_limit=None):
+    def thrust(self, lower_limit=None, upper_limit=None, filename=None):
         """Plots thrust of the motor as a function of time.
 
         Parameters
@@ -38,14 +38,19 @@ class _MotorPlots:
         upper_limit : float
             Upper limit of the plot. Default is none, which means that the plot
             limits will be automatically calculated.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
-        Return
-        ------
+        Returns
+        -------
         None
         """
-        self.motor.thrust.plot(lower=lower_limit, upper=upper_limit)
+        self.motor.thrust.plot(lower=lower_limit, upper=upper_limit, filename=filename)
 
-    def total_mass(self, lower_limit=None, upper_limit=None):
+    def total_mass(self, lower_limit=None, upper_limit=None, filename=None):
         """Plots total_mass of the motor as a function of time.
 
         Parameters
@@ -56,14 +61,21 @@ class _MotorPlots:
         upper_limit : float
             Upper limit of the plot. Default is none, which means that the plot
             limits will be automatically calculated.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
-        Return
-        ------
+        Returns
+        -------
         None
         """
-        self.motor.total_mass.plot(lower=lower_limit, upper=upper_limit)
+        self.motor.total_mass.plot(
+            lower=lower_limit, upper=upper_limit, filename=filename
+        )
 
-    def propellant_mass(self, lower_limit=None, upper_limit=None):
+    def propellant_mass(self, lower_limit=None, upper_limit=None, filename=None):
         """Plots propellant_mass of the motor as a function of time.
 
         Parameters
@@ -74,14 +86,21 @@ class _MotorPlots:
         upper_limit : float
             Upper limit of the plot. Default is None, which means that the plot
             limits will be automatically calculated.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
-        Return
-        ------
+        Returns
+        -------
         None
         """
-        self.motor.propellant_mass.plot(lower=lower_limit, upper=upper_limit)
+        self.motor.propellant_mass.plot(
+            lower=lower_limit, upper=upper_limit, filename=filename
+        )
 
-    def center_of_mass(self, lower_limit=None, upper_limit=None):
+    def center_of_mass(self, lower_limit=None, upper_limit=None, filename=None):
         """Plots center_of_mass of the motor as a function of time.
 
         Parameters
@@ -92,14 +111,21 @@ class _MotorPlots:
         upper_limit : float
             Upper limit of the plot. Default is none, which means that the plot
             limits will be automatically calculated.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
-        Return
-        ------
+        Returns
+        -------
         None
         """
-        self.motor.center_of_mass.plot(lower=lower_limit, upper=upper_limit)
+        self.motor.center_of_mass.plot(
+            lower=lower_limit, upper=upper_limit, filename=filename
+        )
 
-    def mass_flow_rate(self, lower_limit=None, upper_limit=None):
+    def mass_flow_rate(self, lower_limit=None, upper_limit=None, filename=None):
         """Plots mass_flow_rate of the motor as a function of time.
 
         Parameters
@@ -110,14 +136,21 @@ class _MotorPlots:
         upper_limit : float
             Upper limit of the plot. Default is none, which means that the plot
             limits will be automatically calculated.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
-        Return
-        ------
+        Returns
+        -------
         None
         """
-        self.motor.mass_flow_rate.plot(lower=lower_limit, upper=upper_limit)
+        self.motor.mass_flow_rate.plot(
+            lower=lower_limit, upper=upper_limit, filename=filename
+        )
 
-    def exhaust_velocity(self, lower_limit=None, upper_limit=None):
+    def exhaust_velocity(self, lower_limit=None, upper_limit=None, filename=None):
         """Plots exhaust_velocity of the motor as a function of time.
 
         Parameters
@@ -128,14 +161,21 @@ class _MotorPlots:
         upper_limit : float
             Upper limit of the plot. Default is none, which means that the plot
             limits will be automatically calculated.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
-        Return
-        ------
+        Returns
+        -------
         None
         """
-        self.motor.exhaust_velocity.plot(lower=lower_limit, upper=upper_limit)
+        self.motor.exhaust_velocity.plot(
+            lower=lower_limit, upper=upper_limit, filename=filename
+        )
 
-    def I_11(self, lower_limit=None, upper_limit=None):
+    def I_11(self, lower_limit=None, upper_limit=None, filename=None):
         """Plots I_11 of the motor as a function of time.
 
         Parameters
@@ -146,14 +186,19 @@ class _MotorPlots:
         upper_limit : float
             Upper limit of the plot. Default is none, which means that the plot
             limits will be automatically calculated.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
-        Return
-        ------
+        Returns
+        -------
         None
         """
-        self.motor.I_11.plot(lower=lower_limit, upper=upper_limit)
+        self.motor.I_11.plot(lower=lower_limit, upper=upper_limit, filename=filename)
 
-    def I_22(self, lower_limit=None, upper_limit=None):
+    def I_22(self, lower_limit=None, upper_limit=None, filename=None):
         """Plots I_22 of the motor as a function of time.
 
         Parameters
@@ -164,14 +209,19 @@ class _MotorPlots:
         upper_limit : float
             Upper limit of the plot. Default is none, which means that the plot
             limits will be automatically calculated.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
-        Return
-        ------
+        Returns
+        -------
         None
         """
-        self.motor.I_22.plot(lower=lower_limit, upper=upper_limit)
+        self.motor.I_22.plot(lower=lower_limit, upper=upper_limit, filename=filename)
 
-    def I_33(self, lower_limit=None, upper_limit=None):
+    def I_33(self, lower_limit=None, upper_limit=None, filename=None):
         """Plots I_33 of the motor as a function of time.
 
         Parameters
@@ -182,14 +232,19 @@ class _MotorPlots:
         upper_limit : float
             Upper limit of the plot. Default is none, which means that the plot
             limits will be automatically calculated.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
-        Return
-        ------
+        Returns
+        -------
         None
         """
-        self.motor.I_33.plot(lower=lower_limit, upper=upper_limit)
+        self.motor.I_33.plot(lower=lower_limit, upper=upper_limit, filename=filename)
 
-    def I_12(self, lower_limit=None, upper_limit=None):
+    def I_12(self, lower_limit=None, upper_limit=None, filename=None):
         """Plots I_12 of the motor as a function of time.
 
         Parameters
@@ -200,14 +255,19 @@ class _MotorPlots:
         upper_limit : float
             Upper limit of the plot. Default is none, which means that the plot
             limits will be automatically calculated.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
-        Return
-        ------
+        Returns
+        -------
         None
         """
-        self.motor.I_12.plot(lower=lower_limit, upper=upper_limit)
+        self.motor.I_12.plot(lower=lower_limit, upper=upper_limit, filename=filename)
 
-    def I_13(self, lower_limit=None, upper_limit=None):
+    def I_13(self, lower_limit=None, upper_limit=None, filename=None):
         """Plots I_13 of the motor as a function of time.
 
         Parameters
@@ -218,14 +278,19 @@ class _MotorPlots:
         upper_limit : float
             Upper limit of the plot. Default is none, which means that the plot
             limits will be automatically calculated.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
-        Return
-        ------
+        Returns
+        -------
         None
         """
-        self.motor.I_13.plot(lower=lower_limit, upper=upper_limit)
+        self.motor.I_13.plot(lower=lower_limit, upper=upper_limit, filename=filename)
 
-    def I_23(self, lower_limit=None, upper_limit=None):
+    def I_23(self, lower_limit=None, upper_limit=None, filename=None):
         """Plots I_23 of the motor as a function of time.
 
         Parameters
@@ -236,12 +301,17 @@ class _MotorPlots:
         upper_limit : float
             Upper limit of the plot. Default is None, which means that the plot
             limits will be automatically calculated.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
-        Return
-        ------
+        Returns
+        -------
         None
         """
-        self.motor.I_23.plot(lower=lower_limit, upper=upper_limit)
+        self.motor.I_23.plot(lower=lower_limit, upper=upper_limit, filename=filename)
 
     def _generate_nozzle(self, translate=(0, 0), csys=1):
         """Generates a patch that represents the nozzle of the motor. It is
