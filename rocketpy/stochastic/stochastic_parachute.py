@@ -83,7 +83,6 @@ class StochasticParachute(StochasticModel):
             name=None,
         )
 
-
     def _validate_trigger(self, trigger):
         """Validates the trigger input. If the trigger input argument is not
         None, it must be:
