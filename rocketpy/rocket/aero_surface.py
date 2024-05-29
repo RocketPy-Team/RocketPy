@@ -413,11 +413,11 @@ class NoseCone(AeroSurface):
                     r_circle, circle_center, x_init = 0, 0, 0
                 else:
                     # Find the intersection point between circle and nosecone curve
-                    x_init = fsolve(lambda x: find_radius(x) - r_circle, r_circle)[0]
+                    x_init = fsolve(lambda x: find_radius(x[0]) - r_circle, r_circle)[0]
                     circle_center = find_x_intercept(x_init)
             else:
                 # Find the intersection point between circle and nosecone curve
-                x_init = fsolve(lambda x: find_radius(x) - r_circle, r_circle)[0]
+                x_init = fsolve(lambda x: find_radius(x[0]) - r_circle, r_circle)[0]
                 circle_center = find_x_intercept(x_init)
 
         # Calculate a function to create the circle at the correct position
