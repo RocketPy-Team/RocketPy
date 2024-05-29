@@ -509,7 +509,7 @@ class StochasticModel:
                 return (
                     f"\t{attr.ljust(max_str_length)} {value[0]}"
                     if len(value) == 1
-                    else f"{attr} {value}"
+                    else f"\t{attr} {value}"
                 )
             elif isinstance(value, tuple):
                 nominal_value, std_dev, dist_func = value
