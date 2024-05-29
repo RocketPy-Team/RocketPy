@@ -32,15 +32,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+- ENH: Pre-calculate attributes in Rocket class [#595](https://github.com/RocketPy-Team/RocketPy/pull/595)
+- ENH: Complex step differentiation [#594](https://github.com/RocketPy-Team/RocketPy/pull/594)
 - ENH: Exponential backoff decorator (fix #449) [#588](https://github.com/RocketPy-Team/RocketPy/pull/588)
+- ENH: Function Validation Rework & Swap `np.searchsorted` to `bisect_left` [#582](https://github.com/RocketPy-Team/RocketPy/pull/582)
 - ENH: Add new stability margin properties to Flight class [#572](https://github.com/RocketPy-Team/RocketPy/pull/572)
 - ENH: adds `Function.remove_outliers` method [#554](https://github.com/RocketPy-Team/RocketPy/pull/554)
 
 ### Changed
 
+- MNT: refactor u_dot parachute method [#596](https://github.com/RocketPy-Team/RocketPy/pull/596)
 - BLD: Change setup.py to pyproject.toml [#589](https://github.com/RocketPy-Team/RocketPy/pull/589)
-- DEP: delete deprecated rocketpy.tools.cached_property [#587](https://github.com/RocketPy-Team/RocketPy/pull/587) 
+- DEP: delete deprecated rocketpy.tools.cached_property [#587](https://github.com/RocketPy-Team/RocketPy/pull/587)
 - DOC: Change rocketpy Landing Page to Standard Code docs [#584](https://github.com/RocketPy-Team/RocketPy/pull/584)
+- ENH: Flight simulation speed up [#581] (https://github.com/RocketPy-Team/RocketPy/pull/581) 
 - MNT: Modularize Rocket Draw [#580](https://github.com/RocketPy-Team/RocketPy/pull/580)
 - DOC: Improvements of Environment docstring phrasing [#565](https://github.com/RocketPy-Team/RocketPy/pull/565)
 - MNT: Refactor flight prints module [#579](https://github.com/RocketPy-Team/RocketPy/pull/579)
@@ -50,6 +55,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+- DOC: Solve Dependencies Conflicts and pyproject build [#613](https://github.com/RocketPy-Team/RocketPy/pull/613)
+- BUG: Fixes nose cone bluffness issue #610 [#611](https://github.com/RocketPy-Team/RocketPy/pull/611)
+- BUG: plot drag curves when function source is callable [#599](https://github.com/RocketPy-Team/RocketPy/pull/599)
+- BUG: Fix minor type hinting problems [#598](https://github.com/RocketPy-Team/RocketPy/pull/598)
 - BUG: Optional Dependencies Naming in pyproject.toml. [#592](https://github.com/RocketPy-Team/RocketPy/pull/592)
 - BUG: Swap rocket.total_mass.differentiate for motor.total_mass_flow rate [#585](https://github.com/RocketPy-Team/RocketPy/pull/585)
 - BUG: export_eng 'Motor' method would not work for liquid motors. [#559](https://github.com/RocketPy-Team/RocketPy/pull/559) 
