@@ -163,45 +163,6 @@ class StochasticRocket(StochasticModel):
         self.rail_buttons = Components()
         self.parachutes = []
 
-    def __str__(self):
-        # special str for rocket because of the components and parachutes
-        s = ""
-        for key, value in self.__dict__.items():
-            if key.startswith("_"):
-                continue  # Skip attributes starting with underscore
-            if isinstance(value, tuple):
-                # Format the tuple as a string with the mean and standard deviation.
-                value_str = (
-                    f"{value[0]:.5f} ± {value[1]:.5f} "
-                    f"(numpy.random.{value[2].__name__})"
-                )
-                s += f"{key}: {value_str}\n"
-            elif isinstance(value, Components):
-                # Format Components as string with the mean and std deviation
-                s += f"{key}:\n"
-                if len(value) == 0:
-                    s += "\tNone\n"
-                for component in value:
-                    s += f"\t{component.component.__class__.__name__} "
-                    if isinstance(component.position, tuple):
-                        s += f"at position: {component.position[0]:.5f} ± "
-                        s += f"{component.position[1]:.5f} "
-                        s += f"(numpy.random.{component.position[2].__name__})\n"
-                    elif isinstance(component.position, list):
-                        s += f"at position: {component.position}\n"
-                    else:
-                        s += f"at position: {component.position:.5f}\n"
-            else:
-                # Otherwise, just use the default string representation of the value.
-                value_str = str(value)
-                if isinstance(value, list) and len(value) > 0:
-                    if isinstance(value[0], (StochasticParachute)):
-                        value_str = ""
-                        for parachute in value:
-                            value_str += f"\n\t{parachute.name[0]} "
-                s += f"{key}: {value_str}\n"
-        return s.strip()
-
     def add_motor(self, motor, position=None):
         """Adds a stochastic motor to the stochastic rocket. If a motor is
         already present, it will be replaced.
