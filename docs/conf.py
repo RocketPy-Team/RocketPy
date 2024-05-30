@@ -41,7 +41,6 @@ extensions = [
     "sphinx_design",
     "jupyter_sphinx",
     "nbsphinx",
-    "m2r2",
 ]
 
 # source_suffix = '.rst'
