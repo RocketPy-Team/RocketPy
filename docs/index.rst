@@ -21,7 +21,7 @@ RocketPy is the next-generation trajectory simulation solution for High-Power Ro
        ^^^^^^^^^^^^^^^
 
        Simulating your first rocket? Check out the Beginner's Guide. It contains an
-       introduction to RocketPy's main concepts and walks you through the process of
+       introduction to RocketPy main concepts and walks you through the process of
        setting up a simulation.
 
        +++
@@ -39,8 +39,8 @@ RocketPy is the next-generation trajectory simulation solution for High-Power Ro
        User guide
        ^^^^^^^^^^
 
-       The user guide provides in-depth information on the
-       key concepts of RocketPy with useful background information and explanation.
+       The user guide provides in-depth information on
+       RocketPy functionalities with useful background information and explanation.
 
        +++
 
@@ -57,10 +57,7 @@ RocketPy is the next-generation trajectory simulation solution for High-Power Ro
        API reference
        ^^^^^^^^^^^^^
 
-       The reference guide contains a detailed description of the functions,
-       modules, and objects included in RocketPy. The reference describes how the
-       methods work and which parameters can be used. It assumes that you have an
-       understanding of the key concepts.
+       The reference guide contains a detailed description of RocketPy modules. Here it is described how the methods work and which parameters can be used. It assumes that you already have an understanding of key concepts.
 
        +++
 
@@ -77,9 +74,7 @@ RocketPy is the next-generation trajectory simulation solution for High-Power Ro
        Contributor's guide
        ^^^^^^^^^^^^^^^^^^^
 
-       Want to contribute to RocketPy codebase? Check out the contributor's 
-       guide for information on how to set up your development environment 
-       and our coding style.
+       Want to contribute to RocketPy source code? The contributing guidelines will guide you through the process of improving RocketPy.
 
        +++
 
