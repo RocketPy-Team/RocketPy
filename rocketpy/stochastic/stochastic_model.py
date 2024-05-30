@@ -419,7 +419,7 @@ class StochasticModel:
 
         Parameters
         ----------
-        airfoil : list
+        airfoil : list[tuple]
             List of tuples with two items.
 
         Raises

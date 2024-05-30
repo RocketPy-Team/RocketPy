@@ -245,5 +245,5 @@ input parameter, you can perform more realistic and robust Monte Carlo simulatio
 better reflecting the inherent uncertainties in rocketry. 
 
 .. note:: 
-    See the ``MonteCarlo`` class documentation for more information on how to run\
+    See the ``MonteCarlo`` class documentation for more information on how to run \
     Monte Carlo simulations with stochastic objects.
