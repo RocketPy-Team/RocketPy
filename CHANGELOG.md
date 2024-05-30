@@ -32,6 +32,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+- DOC: Adds prometheus data, Spaceport America 2022 [#601](https://github.com/RocketPy-Team/RocketPy/pull/601)
+- ENH: Pre-calculate attributes in Rocket class [#595](https://github.com/RocketPy-Team/RocketPy/pull/595)
 - ENH: Complex step differentiation [#594](https://github.com/RocketPy-Team/RocketPy/pull/594)
 - ENH: Exponential backoff decorator (fix #449) [#588](https://github.com/RocketPy-Team/RocketPy/pull/588)
 - ENH: Function Validation Rework & Swap `np.searchsorted` to `bisect_left` [#582](https://github.com/RocketPy-Team/RocketPy/pull/582)
@@ -40,6 +42,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
+- MNT: refactor u_dot parachute method [#596](https://github.com/RocketPy-Team/RocketPy/pull/596)
 - BLD: Change setup.py to pyproject.toml [#589](https://github.com/RocketPy-Team/RocketPy/pull/589)
 - DEP: delete deprecated rocketpy.tools.cached_property [#587](https://github.com/RocketPy-Team/RocketPy/pull/587)
 - ENH: Flight simulation speed up [#581] (https://github.com/RocketPy-Team/RocketPy/pull/581) 
@@ -52,6 +55,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+- DOC: Solve Dependencies Conflicts and pyproject build [#613](https://github.com/RocketPy-Team/RocketPy/pull/613)
+- BUG: Fixes nose cone bluffness issue #610 [#611](https://github.com/RocketPy-Team/RocketPy/pull/611)
 - BUG: plot drag curves when function source is callable [#599](https://github.com/RocketPy-Team/RocketPy/pull/599)
 - BUG: Fix minor type hinting problems [#598](https://github.com/RocketPy-Team/RocketPy/pull/598)
 - BUG: Optional Dependencies Naming in pyproject.toml. [#592](https://github.com/RocketPy-Team/RocketPy/pull/592)
