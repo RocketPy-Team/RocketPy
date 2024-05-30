@@ -72,6 +72,12 @@ class MonteCarlo:
         Use help(MonteCarlo.plots) for more information.
     number_of_simulations : int
         Number of simulations to be run.
+    total_wall_time : float
+        The total elapsed real-world time from the start to the end of the
+        simulation, including all waiting times and delays.
+    total_cpu_time : float
+        The total CPU time spent running the simulation, excluding the time
+        spent waiting for I/O operations or other processes to complete.
     """
 
     def __init__(self, filename, environment, rocket, flight, export_list=None):
@@ -159,11 +165,11 @@ class MonteCarlo:
 
         Notes
         -----
-        If you start running the simulations but needs to stop it, you can
+        If you need to stop the simulations after starting them, you can
         interrupt the process and the files will be saved with the results
         until the last iteration. You can then load the results and continue
-        the simulation by running the method simulate again with the same
-        number of simulations and setting `append=True`.
+        the simulation by running the ``simulate`` method again with the
+        same number of simulations and setting `append=True`.
 
         Important
         ---------
@@ -179,26 +185,28 @@ class MonteCarlo:
 
         # initialize counters
         self.number_of_simulations = number_of_simulations
-        # TODO: these should be private attributes, double underscore
-        self.iteration_count = self.num_of_loaded_sims if append else 0
-        self.start_time = time()
-        self.start_cpu_time = process_time()
+        self.__iteration_count = self.num_of_loaded_sims if append else 0
+        self.__start_time = time()
+        self.__start_cpu_time = process_time()
 
         # Begin display
         print("Starting Monte Carlo analysis", end="\r")
 
         try:
-            while self.iteration_count < self.number_of_simulations:
+            while self.__iteration_count < self.number_of_simulations:
                 self.__run_single_simulation(input_file, output_file)
         except KeyboardInterrupt:
             print("Keyboard Interrupt, files saved.")
             error_file.write(json.dumps(self._inputs_dict, cls=RocketPyEncoder) + "\n")
             self.__close_files(input_file, output_file, error_file)
         except Exception as error:
-            print(f"Error on iteration {self.iteration_count}: {error}")
+            print(f"Error on iteration {self.__iteration_count}: {error}")
             error_file.write(json.dumps(self._inputs_dict, cls=RocketPyEncoder) + "\n")
             self.__close_files(input_file, output_file, error_file)
             raise error
+        finally:
+            self.total_cpu_time = process_time() - self.__start_cpu_time
+            self.total_wall_time = time() - self.__start_time
 
         self.__terminate_simulation(input_file, output_file, error_file)
 
@@ -220,7 +228,7 @@ class MonteCarlo:
         -------
         None
         """
-        self.iteration_count += 1
+        self.__iteration_count += 1
 
         monte_carlo_flight = Flight(
             rocket=self.rocket.create_object(),
@@ -249,12 +257,12 @@ class MonteCarlo:
             output_file=output_file,
         )
 
-        average_time = (process_time() - self.start_cpu_time) / self.iteration_count
+        average_time = (process_time() - self.__start_cpu_time) / self.__iteration_count
         estimated_time = int(
-            (self.number_of_simulations - self.iteration_count) * average_time
+            (self.number_of_simulations - self.__iteration_count) * average_time
         )
         self.__reprint(
-            f"Current iteration: {self.iteration_count:06d} | "
+            f"Current iteration: {self.__iteration_count:06d} | "
             f"Average Time per Iteration: {average_time:.3f} s | "
             f"Estimated time left: {estimated_time} s",
             end="\r",
@@ -300,9 +308,9 @@ class MonteCarlo:
         None
         """
         final_string = (
-            f"Completed {self.iteration_count} iterations. Total CPU time: "
-            f"{process_time() - self.start_cpu_time:.1f} s. Total wall time: "
-            f"{time() - self.start_time:.1f} s\n"
+            f"Completed {self.__iteration_count} iterations. Total CPU time: "
+            f"{process_time() - self.__start_cpu_time:.1f} s. Total wall time: "
+            f"{time() - self.__start_time:.1f} s\n"
         )
 
         self.__reprint(final_string + "Saving results.", flush=True)
