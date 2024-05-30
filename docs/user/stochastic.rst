@@ -229,12 +229,12 @@ models. Consequently, the uncertainties should decrease, resulting in stochastic
 models with less variance. This iterative process will enhance the accuracy and
 reliability of your simulations over time.
 
-Determining Which Arguments to Vary
------------------------------------
+.. Determining Which Arguments to Vary
+.. -----------------------------------
 
-Choosing which arguments to vary is crucial for effective Monte Carlo simulations.
-RocketPy offers a ``Sensitivity Analysis toolkit``, which can help you to identify
-which parameters most significantly impact your simulation results.
+.. Choosing which arguments to vary is crucial for effective Monte Carlo simulations.
+.. RocketPy offers a ``Sensitivity Analysis toolkit``, which can help you to identify
+.. which parameters most significantly impact your simulation results.
 
 
 Conclusion
