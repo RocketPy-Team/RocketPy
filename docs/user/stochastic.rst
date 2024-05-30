@@ -145,9 +145,8 @@ Consider the ``StochasticSolidMotor`` object:
         nozzle_radius=0.5 / 1000,
         nozzle_position=0.001,
     )
-    stochastic_motor
 
-    print(stochastic_motor)
+    stochastic_motor.visualize_attributes()
 
 Interpreting the Output
 """""""""""""""""""""""
@@ -158,8 +157,8 @@ To illustrate the example above, you can notice that:
 - ``total_impulse`` was given as a tuple of 2 numbers (6500, 100), indicating a nominal value of 6500 and a standard deviation of 1000, with the default distribution being normal, which is the default distribution type.
 
 .. note::
-    Always remember to run ``print(stochastic_object)`` to check if the uncertainties \
-    were correctly set.
+    Always remember to run ``stochastic_object.visualize_attributes()`` to check \
+    if the uncertainties were correctly set.
 
 Sampling a Stochastic Object
 """"""""""""""""""""""""""""
