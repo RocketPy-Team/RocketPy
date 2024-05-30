@@ -38,6 +38,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [v1.2.2] - 2024-03-09
+
+You can install this version by running `pip install rocketpy==1.2.2`
+
+- BUG: wrong rocket mass in parachute u dot method [#569](https://github.com/RocketPy-Team/RocketPy/pull/569)
 
 ## [v1.2.1] - 2024-02-22
 
