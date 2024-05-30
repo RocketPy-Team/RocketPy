@@ -440,10 +440,10 @@ class StochasticModel:
                 if isinstance(member[0], list):
                     if len(np.shape(member[0])) != 2 and np.shape(member[0])[1] != 2:
                         raise AssertionError("`airfoil` tuples must have shape (n,2)")
-                elif not isinstance(member[0], (str, Function)):
-                    # TODO: Is the exception message correct? Please verify it.
+                elif not isinstance(member[0], str) and not callable(member[0]):
                     raise AssertionError(
-                        "`airfoil` tuples must have a string as the first item"
+                        "`airfoil` tuples must have a string or Function as "
+                        "the first item"
                     )
 
     def dict_generator(self):
