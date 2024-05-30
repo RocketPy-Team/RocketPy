@@ -52,7 +52,7 @@ def test_prometheus_rocket_data_asserts_acceptance(
 
     altimeter_data = FlightDataImporter(
         name="Telemetry Mega",
-        paths="data/prometheus/2022-06-24-serial-6583-flight-0003-TeleMega.csv",
+        paths="data/prometheus/2022-06-24-serial-5115-flight-0001-TeleMetrum.csv",
         columns_map=columns_map,
         units=None,
         interpolation="linear",
