@@ -83,17 +83,6 @@ class StochasticParachute(StochasticModel):
             name=None,
         )
 
-    def __repr__(self):
-        return (
-            f"StochasticParachute("
-            f"parachute={self.object}, "
-            f"cd_s={self.cd_s}, "
-            f"trigger={self.trigger}, "
-            f"sampling_rate={self.sampling_rate}, "
-            f"lag={self.lag}, "
-            f"noise={self.noise})"
-        )
-
     def _validate_trigger(self, trigger):
         """Validates the trigger input. If the trigger input argument is not
         None, it must be:

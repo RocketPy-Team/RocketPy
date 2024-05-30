@@ -89,28 +89,8 @@ class StochasticModel:
                     attr_value = [getattr(self.object, input_name)]
                 setattr(self, input_name, attr_value)
 
-    def __str__(self):
-        """
-        Returns a string representation of the StochasticModel object.
-
-        Returns
-        -------
-        str
-            String containing the class attributes and their values.
-        """
-        s = ""
-        for key, value in self.__dict__.items():
-            if key.startswith("_"):
-                continue
-            if isinstance(value, tuple):
-                value_str = (
-                    f"{value[0]:.5f} ± {value[1]:.5f} "
-                    f"(numpy.random.{value[2].__name__})"
-                )
-            else:
-                value_str = str(value)
-            s += f"{key}: {value_str}\n"
-        return s.strip()
+    def __repr__(self):
+        return f"'{self.__class__.__name__}() object'"
 
     def _validate_tuple(self, input_name, input_value, getattr=getattr):
         """
@@ -492,3 +472,69 @@ class StochasticModel:
                 generated_dict[arg] = choice(value) if value else value
         self.last_rnd_dict = generated_dict
         yield generated_dict
+
+    def visualize_attributes(self):
+        """
+        This method prints a report of the attributes stored in the Stochastic
+        Model object. The report includes the variable name, the nominal value,
+        the standard deviation, and the distribution function used to generate
+        the random attributes.
+        """
+
+        def format_attribute(attr, value):
+            if isinstance(value, list):
+                return (
+                    f"\t{attr.ljust(max_str_length)} {value[0]}"
+                    if len(value) == 1
+                    else f"\t{attr} {value}"
+                )
+            elif isinstance(value, tuple):
+                nominal_value, std_dev, dist_func = value
+                return (
+                    f"\t{attr.ljust(max_str_length)} "
+                    f"{nominal_value:.5f} ± "
+                    f"{std_dev:.5f} ({dist_func.__name__})"
+                )
+            return None
+
+        attributes = {k: v for k, v in self.__dict__.items() if not k.startswith("_")}
+        max_str_length = max(len(var) for var in attributes) + 2
+
+        report = [
+            f"Reporting the attributes of the `{self.__class__.__name__}` object:"
+        ]
+
+        # Sorting alphabetically makes the report more readable
+        items = attributes.items()
+        items = sorted(items, key=lambda x: x[0])
+
+        to_exclude = ["object", "last_rnd_dict", "exception_list", "parachutes"]
+        items = [item for item in items if item[0] not in to_exclude]
+
+        constant_attributes = [
+            attr for attr, val in items if isinstance(val, list) and len(val) == 1
+        ]
+        tuple_attributes = [attr for attr, val in items if isinstance(val, tuple)]
+        list_attributes = [
+            attr for attr, val in items if isinstance(val, list) and len(val) > 1
+        ]
+
+        if constant_attributes:
+            report.append("\nConstant Attributes:")
+            report.extend(
+                format_attribute(attr, attributes[attr]) for attr in constant_attributes
+            )
+
+        if tuple_attributes:
+            report.append("\nStochastic Attributes:")
+            report.extend(
+                format_attribute(attr, attributes[attr]) for attr in tuple_attributes
+            )
+
+        if list_attributes:
+            report.append("\nStochastic Attributes with choice of values:")
+            report.extend(
+                format_attribute(attr, attributes[attr]) for attr in list_attributes
+            )
+
+        print("\n".join(filter(None, report)))
