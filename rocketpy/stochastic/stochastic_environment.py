@@ -33,6 +33,12 @@ class StochasticEnvironment(StochasticModel):
         List of datum. This attribute can not be randomized.
     timezone : list[pytz.timezone]
         List with the timezone. This attribute can not be randomized.
+    wind_velocity_x_factor : tuple, list, int, float
+        Factor to multiply the wind velocity in the x direction. This should
+        be used only when the wind velocity is defined as a constant value.
+    wind_velocity_y_factor : tuple, list, int, float
+        Factor to multiply the wind velocity in the y direction. This should
+        be used only when the wind velocity is defined as a constant value.
     """
 
     def __init__(
@@ -43,8 +49,8 @@ class StochasticEnvironment(StochasticModel):
         latitude=None,
         longitude=None,
         ensemble_member=None,
-        wind_velocity_x_factor=(1, 0),  # TODO: please remove it
-        wind_velocity_y_factor=(1, 0),  # TODO: please remove it
+        wind_velocity_x_factor=(1, 0),
+        wind_velocity_y_factor=(1, 0),
     ):
         """Initializes the Stochastic Environment class.
 
@@ -69,8 +75,13 @@ class StochasticEnvironment(StochasticModel):
             Longitude of the launch site in degrees.
         ensemble_member : list, optional
             List of integers representing the ensemble member to be selected.
+        wind_velocity_x_factor : tuple, list, int, float, optional
+            Factor to multiply the wind velocity in the x direction. This should
+            be used only when the wind velocity is defined as a constant value.
+        wind_velocity_y_factor : tuple, list, int, float, optional
+            Factor to multiply the wind velocity in the y direction. This should
+            be used only when the wind velocity is defined as a constant value.
         """
-        # TODO: wind factors are not so accurate. We should focus on Ensembles
 
         super().__init__(
             environment,

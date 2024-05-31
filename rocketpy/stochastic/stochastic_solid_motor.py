@@ -79,7 +79,7 @@ class StochasticSolidMotor(StochasticMotorModel):
         dry_inertia_13=None,
         dry_inertia_23=None,
         nozzle_radius=None,
-        grain_number=None,  # TODO: never vary the number of grains!!
+        grain_number=None,  # TODO: can't vary the number of grains.
         grain_density=None,
         grain_outer_radius=None,
         grain_initial_inner_radius=None,

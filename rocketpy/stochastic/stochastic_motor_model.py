@@ -14,6 +14,6 @@ class StochasticMotorModel(StochasticModel):
 
     def __init__(self, object, **kwargs):
         self._validate_1d_array_like("thrust_source", kwargs.get("thrust_source"))
-        # TODO: this is non-sense, nobody will ever vary grain_number
+        # TODO: never vary the grain_number
         self._validate_positive_int_list("grain_number", kwargs.get("grain_number"))
         super().__init__(object, **kwargs)

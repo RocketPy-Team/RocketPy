@@ -29,7 +29,6 @@ from rocketpy.tools import (
     generate_monte_carlo_ellipses_coordinates,
 )
 
-# TODO: Let Functions and Flights be json serializable
 # TODO: Create evolution plots to analyze convergence
 
 

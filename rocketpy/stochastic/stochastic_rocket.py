@@ -132,9 +132,11 @@ class StochasticRocket(StochasticModel):
         power_on_drag : list, optional
             The power on drag of the rocket.
         power_off_drag_factor : int, float, tuple, list, optional
-            The power off drag factor of the rocket.
+            The power off drag factor of the rocket. This represents a factor
+            that multiplies the power off drag curve.
         power_on_drag_factor : int, float, tuple, list, optional
-            The power on drag factor of the rocket.
+            The power on drag factor of the rocket. This represents a factor
+            that multiplies the power on drag curve.
         center_of_mass_without_motor : int, float, tuple, list, optional
             The center of mass of the rocket without the motor.
         """

@@ -58,10 +58,6 @@ class StochasticGenericMotor(StochasticMotorModel):
         randomized.
     """
 
-    # TODO: it is not so practical to vary the `thrust_source` argument.
-    #       A better plan is to focus on the `total_impulse` and `burn_time`.
-    #       All these thrust curve related parameters must be reviewed soon.
-
     def __init__(
         self,
         generic_motor,

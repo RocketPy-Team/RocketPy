@@ -13,8 +13,6 @@ from ..tools import get_distribution
 
 # TODO: Stop using assert in production code. Use exceptions instead.
 # TODO: Each validation method should have a test case.
-# TODO: elaborate a short, concise version of the __str__ method
-# NOTE: I really think type hints would be quite useful to this class.
 
 
 class StochasticModel:
@@ -153,8 +151,6 @@ class StochasticModel:
         AssertionError
             If the input is not in a valid format.
         """
-        # TODO: The `getattr` parameter is not used. Remove it.
-        #       If it is important, don't use this name! it's a built-in function.
         assert isinstance(
             input_value[1], (int, float, str)
         ), f"'{input_name}': second item of tuple must be an int, float, or string."
@@ -427,7 +423,7 @@ class StochasticModel:
         AssertionError
             If the input is not in a valid format.
         """
-        # TODO: The _validate_airfoil should be defined in a child class. No?
+        # TODO: The _validate_airfoil should be defined in a child class.
         if airfoil is not None:
             assert isinstance(airfoil, list) and all(
                 isinstance(member, tuple) for member in airfoil

@@ -64,8 +64,6 @@ class StochasticFlight(StochasticModel):
             Whether or not the flight should terminate on apogee. This attribute
             can not be randomized.
         """
-        # TODO: Should we really let the user vary the initial solution?
-        #       Think about it. It is probably such a complicated design.
         if terminate_on_apogee is not None:
             assert isinstance(
                 terminate_on_apogee, bool

@@ -43,13 +43,13 @@ class StochasticNoseCone(StochasticModel):
         List with the name of the NoseCone. This attribute can not be randomized.
     """
 
-    # TODO: You should NOT vary the kind of the nose cone. What is the purpose of this?
+    # TODO: Never vary the kind of the nose cone. Fixed parameter.
 
     def __init__(
         self,
         nosecone,
         length=None,
-        kind=None,  # TODO: Please don't vary the kind of the nose cone. Non-sense!
+        kind=None,  # TODO: Never vary the kind of the nose cone. Fixed parameter.
         base_radius=None,
         bluffness=None,
         rocket_radius=None,
@@ -90,7 +90,7 @@ class StochasticNoseCone(StochasticModel):
         """Validates the kind input. If the kind input argument is not None, it
         must be a list of strings."""
         if kind is not None:
-            # TODO: We should NOT vary the kind of the nose cone.
+            # TODO: Never vary the kind of the nose cone. It is a fixed parameter.
             assert isinstance(kind, list) and all(
                 isinstance(member, str) for member in kind
             ), "`kind` must be a list of strings"
@@ -146,7 +146,7 @@ class StochasticTrapezoidalFins(StochasticModel):
     def __init__(
         self,
         trapezoidal_fins,
-        n=None,  # TODO: Please don't vary the number of fins. Non-sense!
+        n=None,  # TODO: Never vary the number of fins. It is a fixed parameter.
         root_chord=None,
         tip_chord=None,
         span=None,
