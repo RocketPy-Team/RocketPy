@@ -25,10 +25,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 -->
 
-## [Unreleased] - yyyy-mm-dd
+## [1.3.0] - 2024-06-01
 
-<!-- These are the changes that were not release yet, please add them correctly.
-  Attention: The newest changes should be on top -->
+You can install this version by running `pip install rocketpy==1.3.0`
 
 ### Added
 
