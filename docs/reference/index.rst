@@ -17,6 +17,7 @@ This reference manual details functions, modules, methods and attributes include
    classes/Flight
    Utilities <classes/utils/index>
    classes/EnvironmentAnalysis
+   Monte Carlo Analysis <classes/monte_carlo/index> 
 
 .. toctree::
    :maxdepth: 2
@@ -28,3 +29,4 @@ This reference manual details functions, modules, methods and attributes include
    Rocket Plots and Prints <plots_prints/Rocket/index>
    Flight Plots and Prints <plots_prints/Flight/index>
    EnvironmentAnalysis Plots and Prints <plots_prints/EnvironmentAnalysis/index>
+   CompareFlights Plots <plots_prints/compare_flights>

@@ -1,4 +1,4 @@
-import warnings
+from functools import cached_property
 
 import numpy as np
 
@@ -7,15 +7,11 @@ from rocketpy.mathutils.function import (
     funcify_method,
     reset_funcified_methods,
 )
+from rocketpy.tools import parallel_axis_theorem_from_com
 
 from ..plots.liquid_motor_plots import _LiquidMotorPlots
 from ..prints.liquid_motor_prints import _LiquidMotorPrints
 from .motor import Motor
-
-try:
-    from functools import cached_property
-except ImportError:
-    from ..tools import cached_property
 
 
 class LiquidMotor(Motor):
@@ -388,10 +384,9 @@ class LiquidMotor(Motor):
         for positioned_tank in self.positioned_tanks:
             tank = positioned_tank.get("tank")
             tank_position = positioned_tank.get("position")
-            I_11 += (
-                tank.inertia
-                + tank.fluid_mass
-                * (tank_position + tank.center_of_mass - center_of_mass) ** 2
+            distance = tank_position + tank.center_of_mass - center_of_mass
+            I_11 += parallel_axis_theorem_from_com(
+                tank.inertia, tank.fluid_mass, distance
             )
 
         return I_11

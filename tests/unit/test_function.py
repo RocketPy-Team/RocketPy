@@ -79,6 +79,37 @@ def test_differentiate(func_input, derivative_input, expected_derivative):
     assert np.isclose(func.differentiate(derivative_input), expected_derivative)
 
 
+@pytest.mark.parametrize(
+    "func_input, derivative_input, expected_first_derivative",
+    [
+        (1, 0, 0),  # Test case 1: Function(1)
+        (lambda x: x, 0, 1),  # Test case 2: Function(lambda x: x)
+        (lambda x: x**2, 1, 2),  # Test case 3: Function(lambda x: x**2)
+        (lambda x: -(x**3), 2, -12),  # Test case 4: Function(lambda x: -x**3)
+    ],
+)
+def test_differentiate_complex_step(
+    func_input, derivative_input, expected_first_derivative
+):
+    """Test the differentiate_complex_step method of the Function class.
+
+    Parameters
+    ----------
+    func_input : function
+        A function object created from a list of values.
+    derivative_input : int
+        Point at which to differentiate.
+    expected_derivative : float
+        Expected value of the derivative.
+    """
+    func = Function(func_input)
+    assert isinstance(func.differentiate_complex_step(x=derivative_input), float)
+    assert np.isclose(
+        func.differentiate_complex_step(x=derivative_input, order=1),
+        expected_first_derivative,
+    )
+
+
 def test_get_value():
     """Tests the get_value method of the Function class.
     Both with respect to return instances and expected behaviour.
@@ -276,3 +307,61 @@ def test_set_discrete_based_on_model_non_mutator(linear_func):
     assert isinstance(func, Function)
     assert discretized_func.source.shape == (4, 2)
     assert callable(func.source)
+
+
+@pytest.mark.parametrize(
+    "x, y, expected_x, expected_y",
+    [
+        (
+            np.array([1, 2, 3, 4, 5, 6]),
+            np.array([10, 20, 30, 40, 50000, 60]),
+            np.array([1, 2, 3, 4, 6]),
+            np.array([10, 20, 30, 40, 60]),
+        ),
+    ],
+)
+def test_remove_outliers_iqr(x, y, expected_x, expected_y):
+    """Test the function remove_outliers_iqr which is expected to remove
+    outliers from the data based on the Interquartile Range (IQR) method.
+    """
+    func = Function(source=np.column_stack((x, y)))
+    filtered_func = func.remove_outliers_iqr(threshold=1.5)
+
+    # Check if the outliers are removed
+    assert np.array_equal(filtered_func.x_array, expected_x)
+    assert np.array_equal(filtered_func.y_array, expected_y)
+
+    # Check if the other attributes are preserved
+    assert filtered_func.__inputs__ == func.__inputs__
+    assert filtered_func.__outputs__ == func.__outputs__
+    assert filtered_func.__interpolation__ == func.__interpolation__
+    assert filtered_func.__extrapolation__ == func.__extrapolation__
+    assert filtered_func.title == func.title
+
+
+def test_set_get_value_opt():
+    """Test the set_value_opt and get_value_opt methods of the Function class."""
+    func = Function(lambda x: x**2)
+    func.source = np.array([[1, 1], [2, 4], [3, 9], [4, 16], [5, 25]])
+    func.x_array = np.array([1, 2, 3, 4, 5])
+    func.y_array = np.array([1, 4, 9, 16, 25])
+    func.x_initial = 1
+    func.x_final = 5
+    func.set_interpolation("linear")
+    func.set_get_value_opt()
+    assert func.get_value_opt(2.5) == 6.5
+
+
+def test_get_image_dim(linear_func):
+    """Test the get_img_dim method of the Function class."""
+    assert linear_func.get_image_dim() == 1
+
+
+def test_get_domain_dim(linear_func):
+    """Test the get_domain_dim method of the Function class."""
+    assert linear_func.get_domain_dim() == 1
+
+
+def test_bool(linear_func):
+    """Test the __bool__ method of the Function class."""
+    assert bool(linear_func) == True

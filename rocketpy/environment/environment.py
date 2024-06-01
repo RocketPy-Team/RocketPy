@@ -3,7 +3,7 @@ import json
 import re
 import warnings
 from collections import namedtuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import numpy as np
 import numpy.ma as ma
@@ -13,6 +13,7 @@ import requests
 from ..mathutils.function import Function, funcify_method
 from ..plots.environment_plots import _EnvironmentPlots
 from ..prints.environment_prints import _EnvironmentPrints
+from ..tools import exponential_backoff
 
 try:
     import netCDF4
@@ -57,8 +58,7 @@ class Environment:
     Environment.datum : string
         The desired reference ellipsoid model, the following options are
         available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
-        is "SIRGAS2000", then this model will be used if the user make some
-        typing mistake
+        is "SIRGAS2000".
     Environment.initial_east : float
         Launch site East UTM coordinate
     Environment.initial_north :  float
@@ -74,7 +74,7 @@ class Environment:
         Launch site E/W hemisphere
     Environment.elevation : float
         Launch site elevation.
-    Environment.date : datetime
+    Environment.datetime_date : datetime
         Date time of launch in UTC.
     Environment.local_date : datetime
         Date time of launch in the local time zone, defined by
@@ -269,56 +269,77 @@ class Environment:
         self,
         gravity=None,
         date=None,
-        latitude=0,
-        longitude=0,
-        elevation=0,
+        latitude=0.0,
+        longitude=0.0,
+        elevation=0.0,
         datum="SIRGAS2000",
         timezone="UTC",
         max_expected_height=80000.0,
     ):
-        """Initialize Environment class, saving launch rail length,
-        launch date, location coordinates and elevation. Note that
-        by default the standard atmosphere is loaded until another
+        """Initializes the Environment class, capturing essential parameters of
+        the launch site, including the launch date, geographical coordinates,
+        and elevation. This class is designed to calculate crucial variables
+        for the Flight simulation, such as atmospheric air pressure, density,
+        and gravitational acceleration.
+
+        Note that the default atmospheric model is the International Standard
+        Atmosphere as defined by ISO 2533 unless specified otherwise in
+        :meth:`Environment.set_atmospheric_model`.
 
         Parameters
         ----------
         gravity : int, float, callable, string, array, optional
             Surface gravitational acceleration. Positive values point the
-            acceleration down. If None, the Somigliana formula is used to
-        date : array, optional
-            Array of length 4, stating (year, month, day, hour (UTC))
-            of rocket launch. Must be given if a Forecast, Reanalysis
+            acceleration down. If None, the Somigliana formula is used.
+            See :meth:`Environment.set_gravity_model` for more information.
+        date : list or tuple, optional
+            List or tuple of length 4, stating (year, month, day, hour) in the
+            time zone of the parameter ``timezone``.
+            Alternatively, can be a ``datetime`` object specifying launch
+            date and time. The dates are stored as follows:
+
+            - :attr:`Environment.local_date`: Local time of launch in
+              the time zone specified by the parameter ``timezone``.
+
+            - :attr:`Environment.datetime_date`: UTC time of launch.
+
+            Must be given if a Forecast, Reanalysis
             or Ensemble, will be set as an atmospheric model.
+            Default is None.
+            See :meth:`Environment.set_date` for more information.
         latitude : float, optional
             Latitude in degrees (ranging from -90 to 90) of rocket
             launch location. Must be given if a Forecast, Reanalysis
             or Ensemble will be used as an atmospheric model or if
-            Open-Elevation will be used to compute elevation.
+            Open-Elevation will be used to compute elevation. Positive
+            values correspond to the North. Default value is 0, which
+            corresponds to the equator.
         longitude : float, optional
-            Longitude in degrees (ranging from -180 to 360) of rocket
+            Longitude in degrees (ranging from -180 to 180) of rocket
             launch location. Must be given if a Forecast, Reanalysis
             or Ensemble will be used as an atmospheric model or if
-            Open-Elevation will be used to compute elevation.
+            Open-Elevation will be used to compute elevation. Positive
+            values correspond to the East. Default value is 0, which
+            corresponds to the Greenwich Meridian.
         elevation : float, optional
             Elevation of launch site measured as height above sea
             level in meters. Alternatively, can be set as
             'Open-Elevation' which uses the Open-Elevation API to
             find elevation data. For this option, latitude and
             longitude must also be specified. Default value is 0.
-        datum : string
+        datum : string, optional
             The desired reference ellipsoidal model, the following options are
             available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
-            is "SIRGAS2000", then this model will be used if the user make some
-            typing mistake.
+            is "SIRGAS2000".
         timezone : string, optional
             Name of the time zone. To see all time zones, import pytz and run
-            print(pytz.all_timezones). Default time zone is "UTC".
+            ``print(pytz.all_timezones)``. Default time zone is "UTC".
         max_expected_height : float, optional
             Maximum altitude in meters to keep weather data. The altitude must
             be above sea level (ASL). Especially useful for visualization.
             Can be altered as desired by doing `max_expected_height = number`.
             Depending on the atmospheric model, this value may be automatically
-            mofified.
+            modified.
 
         Returns
         -------
@@ -396,15 +417,57 @@ class Environment:
 
         Parameters
         ----------
-        date : Datetime
-            Datetime object specifying launch date and time.
+        date : list, tuple, datetime
+            List or tuple of length 4, stating (year, month, day, hour) in the
+            time zone of the parameter ``timezone``. See Notes for more
+            information.
+            Alternatively, can be a ``datetime`` object specifying launch
+            date and time.
         timezone : string, optional
             Name of the time zone. To see all time zones, import pytz and run
-            print(pytz.all_timezones). Default time zone is "UTC".
+            ``print(pytz.all_timezones)``. Default time zone is "UTC".
 
         Returns
         -------
         None
+
+        Notes
+        -----
+        - If the ``date`` is given as a list or tuple, it should be in the same
+          time zone as specified by the ``timezone`` parameter. This local
+          time will be available in the attribute :attr:`Environment.local_date`
+          while the UTC time will be available in the attribute
+          :attr:`Environment.datetime_date`.
+
+        - If the ``date`` is given as a ``datetime`` object without a time zone,
+          it will be assumed to be in the same time zone as specified by the
+          ``timezone`` parameter. However, if the ``datetime`` object has a time
+          zone specified in its ``tzinfo`` attribute, the ``timezone``
+          parameter will be ignored.
+
+        Examples
+        --------
+
+        Let's set the launch date as an list:
+
+        >>> date = [2000, 1, 1, 13] # January 1st, 2000 at 13:00 UTC+1
+        >>> env = Environment()
+        >>> env.set_date(date, timezone="Europe/Rome")
+        >>> print(env.datetime_date) # Get UTC time
+        2000-01-01 12:00:00+00:00
+        >>> print(env.local_date)
+        2000-01-01 13:00:00+01:00
+
+        Now let's set the launch date as a ``datetime`` object:
+
+        >>> from datetime import datetime
+        >>> date = datetime(2000, 1, 1, 13, 0, 0)
+        >>> env = Environment()
+        >>> env.set_date(date, timezone="Europe/Rome")
+        >>> print(env.datetime_date) # Get UTC time
+        2000-01-01 12:00:00+00:00
+        >>> print(env.local_date)
+        2000-01-01 13:00:00+01:00
         """
         # Store date and configure time zone
         self.timezone = timezone
@@ -458,23 +521,66 @@ class Environment:
                 self.atmospheric_model_file, self.atmospheric_model_dict
             )
 
-        # Return None
-
-    def set_gravity_model(self, gravity):
-        """Sets the gravity model to be used in the simulation based on the
-        given user input to the gravity parameter.
+    def set_gravity_model(self, gravity=None):
+        """Defines the gravity model based on the given user input to the
+        gravity parameter. The gravity model is responsible for computing the
+        gravity acceleration at a given height above sea level in meters.
 
         Parameters
         ----------
-        gravity : None or Function source
-            If None, the Somigliana formula is used to compute the gravity
-            acceleration. Otherwise, the user can provide a Function object
-            representing the gravity model.
+        gravity : int, float, callable, string, list, optional
+            The gravitational acceleration in m/s² to be used in the
+            simulation, this value is positive when pointing downwards.
+            The input type can be one of the following:
+
+            - ``int`` or ``float``: The gravity acceleration is set as a\
+              constant function with respect to height;
+
+            - ``callable``: This callable should receive the height above\
+              sea level in meters and return the gravity acceleration;
+
+            - ``list``: The datapoints should be structured as\
+              ``[(h_i,g_i), ...]`` where ``h_i`` is the height above sea\
+              level in meters and ``g_i`` is the gravity acceleration in m/s²;
+
+            - ``string``: The string should correspond to a path to a CSV file\
+              containing the gravity acceleration data;
+
+            - ``None``: The Somigliana formula is used to compute the gravity\
+              acceleration.
+
+            This parameter is used as a :class:`Function` object source, check\
+            out the available input types for a more detailed explanation.
 
         Returns
         -------
         Function
             Function object representing the gravity model.
+
+        Notes
+        -----
+        This method **does not** set the gravity acceleration, it only returns
+        a :class:`Function` object representing the gravity model.
+
+        Examples
+        --------
+        Let's prepare a `Environment` object with a constant gravity
+        acceleration:
+
+        >>> g_0 = 9.80665
+        >>> env_cte_g = Environment(gravity=g_0)
+        >>> env_cte_g.gravity([0, 100, 1000])
+        [9.80665, 9.80665, 9.80665]
+
+        It's also possible to variate the gravity acceleration by defining
+        its function of height:
+
+        >>> R_t = 6371000
+        >>> g_func = lambda h : g_0 * (R_t / (R_t + h))**2
+        >>> env_var_g = Environment(gravity=g_func)
+        >>> g = env_var_g.gravity(1000)
+        >>> print(f"{g:.6f}")
+        9.803572
         """
         if gravity is None:
             return self.somigliana_gravity.set_discrete(
@@ -500,7 +606,7 @@ class Environment:
 
     @funcify_method("height (m)", "gravity (m/s²)")
     def somigliana_gravity(self, height):
-        """Computes the gravity acceleration with the Somigliana formula.
+        """Computes the gravity acceleration with the Somigliana formula [1]_.
         An height correction is applied to the normal gravity that is
         accurate for heights used in aviation. The formula is based on the
         WGS84 ellipsoid, but is accurate for other reference ellipsoids.
@@ -514,6 +620,10 @@ class Environment:
         -------
         Function
             Function object representing the gravity model.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Theoretical_gravity#Somigliana_equation
         """
         a = 6378137.0  # semi_major_axis
         f = 1 / 298.257223563  # flattening_factor
@@ -571,18 +681,9 @@ class Environment:
 
         #     self.elevation = elev
 
-        elif self.latitude != None and self.longitude != None:
-            try:
-                print("Fetching elevation from open-elevation.com...")
-                request_url = "https://api.open-elevation.com/api/v1/lookup?locations={:f},{:f}".format(
-                    self.latitude, self.longitude
-                )
-                response = requests.get(request_url)
-                results = response.json()["results"]
-                self.elevation = results[0]["elevation"]
-                print("Elevation received:", self.elevation)
-            except:
-                raise RuntimeError("Unable to reach Open-Elevation API servers.")
+        elif self.latitude is not None and self.longitude is not None:
+            self.elevation = self.__fetch_open_elevation()
+            print("Elevation received: ", self.elevation)
         else:
             raise ValueError(
                 "Latitude and longitude must be set to use"
@@ -652,7 +753,7 @@ class Environment:
 
         Returns
         -------
-        elevation : float
+        elevation : float | int
             Elevation provided by the topographic data, in meters.
         """
         if self.topographic_profile_activated == False:
@@ -1194,26 +1295,8 @@ class Environment:
                     "v_wind": "vgrdprs",
                 }
                 # Attempt to get latest forecast
-                time_attempt = datetime.utcnow()
-                success = False
-                attempt_count = 0
-                while not success and attempt_count < 10:
-                    time_attempt -= timedelta(hours=6 * attempt_count)
-                    file = "https://nomads.ncep.noaa.gov/dods/gens_bc/gens{:04d}{:02d}{:02d}/gep_all_{:02d}z".format(
-                        time_attempt.year,
-                        time_attempt.month,
-                        time_attempt.day,
-                        6 * (time_attempt.hour // 6),
-                    )
-                    try:
-                        self.process_ensemble(file, dictionary)
-                        success = True
-                    except OSError:
-                        attempt_count += 1
-                if not success:
-                    raise RuntimeError(
-                        "Unable to load latest weather data for GEFS through " + file
-                    )
+                self.__fetch_gefs_ensemble(dictionary)
+
             elif file == "CMC":
                 # Define dictionary
                 dictionary = {
@@ -1229,27 +1312,7 @@ class Environment:
                     "u_wind": "ugrdprs",
                     "v_wind": "vgrdprs",
                 }
-                # Attempt to get latest forecast
-                time_attempt = datetime.utcnow()
-                success = False
-                attempt_count = 0
-                while not success and attempt_count < 10:
-                    time_attempt -= timedelta(hours=12 * attempt_count)
-                    file = "https://nomads.ncep.noaa.gov/dods/cmcens/cmcens{:04d}{:02d}{:02d}/cmcens_all_{:02d}z".format(
-                        time_attempt.year,
-                        time_attempt.month,
-                        time_attempt.day,
-                        12 * (time_attempt.hour // 12),
-                    )
-                    try:
-                        self.process_ensemble(file, dictionary)
-                        success = True
-                    except OSError:
-                        attempt_count += 1
-                if not success:
-                    raise RuntimeError(
-                        "Unable to load latest weather data for CMC through " + file
-                    )
+                self.__fetch_cmc_ensemble(dictionary)
             # Process other forecasts or reanalysis
             else:
                 # Check if default dictionary was requested
@@ -1488,24 +1551,26 @@ class Environment:
         # Check maximum height of custom wind input
         if not callable(self.wind_velocity_x.source):
             max_expected_height = max(self.wind_velocity_x[-1, 0], max_expected_height)
-        if not callable(self.wind_velocity_y.source):
-            max_expected_height = max(self.wind_velocity_y[-1, 0], max_expected_height)
 
-        # Compute wind profile direction and heading
-        wind_heading = (
-            lambda h: np.arctan2(self.wind_velocity_x(h), self.wind_velocity_y(h))
-            * (180 / np.pi)
-            % 360
-        )
+        def wind_heading_func(h):
+            return (
+                np.arctan2(
+                    self.wind_velocity_x.get_value_opt(h),
+                    self.wind_velocity_y.get_value_opt(h),
+                )
+                * (180 / np.pi)
+                % 360
+            )
+
         self.wind_heading = Function(
-            wind_heading,
+            wind_heading_func,
             inputs="Height Above Sea Level (m)",
             outputs="Wind Heading (Deg True)",
             interpolation="linear",
         )
 
         def wind_direction(h):
-            return (wind_heading(h) - 180) % 360
+            return (wind_heading_func(h) - 180) % 360
 
         self.wind_direction = Function(
             wind_direction,
@@ -1515,7 +1580,10 @@ class Environment:
         )
 
         def wind_speed(h):
-            return np.sqrt(self.wind_velocity_x(h) ** 2 + self.wind_velocity_y(h) ** 2)
+            return np.sqrt(
+                self.wind_velocity_x.get_value_opt(h) ** 2
+                + self.wind_velocity_y.get_value_opt(h) ** 2
+            )
 
         self.wind_speed = Function(
             wind_speed,
@@ -1541,20 +1609,7 @@ class Environment:
             model.
         """
 
-        # Process the model string
-        model = model.lower()
-        if model[-1] == "u":  # case iconEu
-            model = "".join([model[:4], model[4].upper(), model[4 + 1 :]])
-        # Load data from Windy.com: json file
-        url = f"https://node.windy.com/forecast/meteogram/{model}/{self.latitude}/{self.longitude}/?step=undefined"
-        try:
-            response = requests.get(url).json()
-        except:
-            if model == "iconEu":
-                raise ValueError(
-                    "Could not get a valid response for Icon-EU from Windy. Check if the latitude and longitude coordinates set are inside Europe.",
-                )
-            raise
+        response = self.__fetch_atmospheric_data_from_windy(model)
 
         # Determine time index from model
         time_array = np.array(response["data"]["hours"])
@@ -1715,18 +1770,7 @@ class Environment:
         None
         """
         # Request Wyoming Sounding from file url
-        response = requests.get(file)
-        if response.status_code != 200:
-            raise ImportError("Unable to load " + file + ".")
-        if len(re.findall("Can't get .+ Observations at", response.text)):
-            raise ValueError(
-                re.findall("Can't get .+ Observations at .+", response.text)[0]
-                + " Check station number and date."
-            )
-        if response.text == "Invalid OUTPUT: specified\n":
-            raise ValueError(
-                "Invalid OUTPUT: specified. Make sure the output is Text: List."
-            )
+        response = self.__fetch_wyoming_sounding(file)
 
         # Process Wyoming Sounding by finding data table and station info
         response_split_text = re.split("(<.{0,1}PRE>)", response.text)
@@ -1852,9 +1896,7 @@ class Environment:
         None
         """
         # Request NOAA Ruc Sounding from file url
-        response = requests.get(file)
-        if response.status_code != 200 or len(response.text) < 10:
-            raise ImportError("Unable to load " + file + ".")
+        response = self.__fetch_noaaruc_sounding(file)
 
         # Split response into lines
         lines = response.text.split("\n")
@@ -3040,6 +3082,24 @@ class Environment:
         Returns
         -------
         None
+
+        Examples
+        --------
+        Creating an Environment object and calculating the density
+        at Sea Level:
+
+        >>> env = Environment()
+        >>> env.calculate_density_profile()
+        >>> env.density(0)
+        1.225000018124288
+
+        Creating an Environment object and calculating the density
+        at 1000m above Sea Level:
+
+        >>> env = Environment()
+        >>> env.calculate_density_profile()
+        >>> env.density(1000)
+        1.1116193933422585
         """
         # Retrieve pressure P, gas constant R and temperature T
         P = self.pressure
@@ -3142,21 +3202,25 @@ class Environment:
         # Reset wind heading and velocity magnitude
         self.wind_heading = Function(
             lambda h: (180 / np.pi)
-            * np.arctan2(self.wind_velocity_x(h), self.wind_velocity_y(h))
+            * np.arctan2(
+                self.wind_velocity_x.get_value_opt(h),
+                self.wind_velocity_y.get_value_opt(h),
+            )
             % 360,
             "Height (m)",
             "Wind Heading (degrees)",
             extrapolation="constant",
         )
         self.wind_speed = Function(
-            lambda h: (self.wind_velocity_x(h) ** 2 + self.wind_velocity_y(h) ** 2)
+            lambda h: (
+                self.wind_velocity_x.get_value_opt(h) ** 2
+                + self.wind_velocity_y.get_value_opt(h) ** 2
+            )
             ** 0.5,
             "Height (m)",
             "Wind Speed (m/s)",
             extrapolation="constant",
         )
-
-        return None
 
     def info(self):
         """Prints most important data and graphs available about the
@@ -3335,6 +3399,29 @@ class Environment:
             atmospheric_model_file = ""
             atmospheric_model_dict = ""
 
+        try:
+            height = self.height
+            atmospheric_model_pressure_profile = ma.getdata(
+                self.pressure.get_source()(height)
+            ).tolist()
+            atmospheric_model_wind_velocity_x_profile = ma.getdata(
+                self.wind_velocity_x.get_source()(height)
+            ).tolist()
+            atmospheric_model_wind_velocity_y_profile = ma.getdata(
+                self.wind_velocity_y.get_source()(height)
+            ).tolist()
+
+        except AttributeError:
+            atmospheric_model_pressure_profile = (
+                "Height Above Sea Level (m) was not provided"
+            )
+            atmospheric_model_wind_velocity_x_profile = (
+                "Height Above Sea Level (m) was not provided"
+            )
+            atmospheric_model_wind_velocity_y_profile = (
+                "Height Above Sea Level (m) was not provided"
+            )
+
         self.export_env_dictionary = {
             "gravity": self.gravity(self.elevation),
             "date": [
@@ -3352,18 +3439,12 @@ class Environment:
             "atmospheric_model_type": self.atmospheric_model_type,
             "atmospheric_model_file": atmospheric_model_file,
             "atmospheric_model_dict": atmospheric_model_dict,
-            "atmospheric_model_pressure_profile": ma.getdata(
-                self.pressure.get_source()
-            ).tolist(),
+            "atmospheric_model_pressure_profile": atmospheric_model_pressure_profile,
             "atmospheric_model_temperature_profile": ma.getdata(
                 self.temperature.get_source()
             ).tolist(),
-            "atmospheric_model_wind_velocity_x_profile": ma.getdata(
-                self.wind_velocity_x.get_source()
-            ).tolist(),
-            "atmospheric_model_wind_velocity_y_profile": ma.getdata(
-                self.wind_velocity_y.get_source()
-            ).tolist(),
+            "atmospheric_model_wind_velocity_x_profile": atmospheric_model_wind_velocity_x_profile,
+            "atmospheric_model_wind_velocity_y_profile": atmospheric_model_wind_velocity_y_profile,
         }
 
         f = open(filename + ".json", "w")
@@ -3410,6 +3491,110 @@ class Environment:
         except KeyError:
             raise AttributeError(
                 f"The reference system {datum} for Earth geometry " "is not recognized."
+            )
+
+    # Auxiliary functions - Fetching Data from 3rd party APIs
+
+    @exponential_backoff(max_attempts=3, base_delay=1, max_delay=60)
+    def __fetch_open_elevation(self):
+        print("Fetching elevation from open-elevation.com...")
+        request_url = (
+            "https://api.open-elevation.com/api/v1/lookup?locations"
+            f"={self.latitude},{self.longitude}"
+        )
+        try:
+            response = requests.get(request_url)
+        except Exception as e:
+            raise RuntimeError("Unable to reach Open-Elevation API servers.")
+        results = response.json()["results"]
+        return results[0]["elevation"]
+
+    @exponential_backoff(max_attempts=5, base_delay=2, max_delay=60)
+    def __fetch_atmospheric_data_from_windy(self, model):
+        model = model.lower()
+        if model[-1] == "u":  # case iconEu
+            model = "".join([model[:4], model[4].upper(), model[4 + 1 :]])
+        url = (
+            f"https://node.windy.com/forecast/meteogram/{model}/"
+            f"{self.latitude}/{self.longitude}/?step=undefined"
+        )
+        try:
+            response = requests.get(url).json()
+        except Exception as e:
+            if model == "iconEu":
+                raise ValueError(
+                    "Could not get a valid response for Icon-EU from Windy. "
+                    "Check if the coordinates are set inside Europe."
+                )
+        return response
+
+    @exponential_backoff(max_attempts=5, base_delay=2, max_delay=60)
+    def __fetch_wyoming_sounding(self, file):
+        response = requests.get(file)
+        if response.status_code != 200:
+            raise ImportError(f"Unable to load {file}.")
+        if len(re.findall("Can't get .+ Observations at", response.text)):
+            raise ValueError(
+                re.findall("Can't get .+ Observations at .+", response.text)[0]
+                + " Check station number and date."
+            )
+        if response.text == "Invalid OUTPUT: specified\n":
+            raise ValueError(
+                "Invalid OUTPUT: specified. Make sure the output is Text: List."
+            )
+        return response
+
+    @exponential_backoff(max_attempts=5, base_delay=2, max_delay=60)
+    def __fetch_noaaruc_sounding(self, file):
+        response = requests.get(file)
+        if response.status_code != 200 or len(response.text) < 10:
+            raise ImportError("Unable to load " + file + ".")
+
+    @exponential_backoff(max_attempts=5, base_delay=2, max_delay=60)
+    def __fetch_gefs_ensemble(self, dictionary):
+        time_attempt = datetime.now(tz=timezone.utc)
+        success = False
+        attempt_count = 0
+        while not success and attempt_count < 10:
+            time_attempt -= timedelta(hours=6 * attempt_count)
+            file = (
+                f"https://nomads.ncep.noaa.gov/dods/gens_bc/gens"
+                f"{time_attempt.year:04d}{time_attempt.month:02d}"
+                f"{time_attempt.day:02d}/"
+                f"gep_all_{6 * (time_attempt.hour // 6):02d}z"
+            )
+            try:
+                self.process_ensemble(file, dictionary)
+                success = True
+            except OSError:
+                attempt_count += 1
+        if not success:
+            raise RuntimeError(
+                "Unable to load latest weather data for GEFS through " + file
+            )
+
+    @exponential_backoff(max_attempts=5, base_delay=2, max_delay=60)
+    def __fetch_cmc_ensemble(self, dictionary):
+        # Attempt to get latest forecast
+        time_attempt = datetime.now(tz=timezone.utc)
+        success = False
+        attempt_count = 0
+        while not success and attempt_count < 10:
+            time_attempt -= timedelta(hours=12 * attempt_count)
+            file = (
+                f"https://nomads.ncep.noaa.gov/dods/cmcens/"
+                f"cmcens{time_attempt.year:04d}{time_attempt.month:02d}"
+                f"{time_attempt.day:02d}/"
+                f"cmcens_all_{12 * (time_attempt.hour // 12):02d}z"
+            )
+            try:
+                self.process_ensemble(file, dictionary)
+                success = True
+            except OSError:
+                attempt_count += 1
+        if not success:
+            raise RuntimeError(
+                "Unable to load latest weather data for CMC through " + file
             )
 
     # Auxiliary functions - Geodesic Coordinates
@@ -3696,7 +3881,7 @@ class Environment:
         -------
         degrees : float
             The degrees.
-        arc_minutes : float
+        arc_minutes : int
             The arc minutes. 1 arc-minute = (1/60)*degree
         arc_seconds : float
             The arc Seconds. 1 arc-second = (1/3600)*degree

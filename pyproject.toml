@@ -1,0 +1,78 @@
+[project]
+name = "rocketpy"
+version = "1.3.0"
+description="Advanced 6-DOF trajectory simulation for High-Power Rocketry."
+dynamic = ["dependencies"]
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+  {name = "Giovani Hidalgo Ceotto", email = "ghceotto@gmail.com"}
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Rocket Flight Simulation :: Libraries :: Python Modules",
+]
+
+[project.urls]
+homepage = "https://rocketpy.org/"
+documentation = "https://docs.rocketpy.org/"
+repository = "https://github.com/RocketPy-Team/RocketPy"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ['rocketpy']
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
+
+[project.optional-dependencies]
+tests = [ 
+    "pytest", 
+    "pytest-coverage",
+    "black[jupyter]",
+    "flake8-black",
+    "flake8-pyproject",
+    "pandas",
+    "numericalunits==1.25",
+    "pylint",
+    "isort"
+]
+
+env-analysis = [ 
+    "windrose>=1.6.8", 
+    "timezonefinder", 
+    "jsonpickle", 
+    "ipython", 
+    "ipywidgets>=7.6.3" 
+]
+
+monte-carlo = [
+    "imageio",
+]
+
+all = ["rocketpy[env-analysis]", "rocketpy[monte-carlo]"]
+
+[tool.black]
+line-length = 88 
+include = '\.py$|\.ipynb$'
+skip-string-normalization = true
+
+[tool.coverage.report]
+# Regexes for lines to exclude from consideration
+exclude_also = [
+    #Don't complain about exceptions or warnings not being covered by tests
+    "warnings.warn*"
+]
+
+[tool.flake8]
+max-line-length = 88
+max-module-lines = 3000
+ignore = ['E203', 'W503']
+exclude = [
+    '.git,__pycache__',
+]

@@ -3,6 +3,7 @@ import copy
 import datetime
 import json
 from collections import defaultdict
+from functools import cached_property
 
 import netCDF4
 import numpy as np
@@ -21,11 +22,6 @@ from ..tools import (
 )
 from ..units import convert_units
 from .environment import Environment
-
-try:
-    from functools import cached_property
-except ImportError:
-    from ..tools import cached_property
 
 # TODO: the average_wind_speed_profile_by_hour and similar methods could be more abstract than currently are
 
@@ -441,7 +437,7 @@ class EnvironmentAnalysis:
 
     def __find_preferred_timezone(self):
         if self.preferred_timezone is None:
-            # Use local timezone based on lat lon pair
+            # Use local time zone based on lat lon pair
             try:
                 timezonefinder = import_optional_dependency("timezonefinder")
                 tf = timezonefinder.TimezoneFinder()

@@ -19,7 +19,7 @@ If you want to choose a specific version to guarantee compatibility, you may ins
 
 .. code-block:: shell
 
-    pip install rocketpy==1.2.2
+    pip install rocketpy==1.3.0
 
 
 Optional Installation Method: ``conda``
@@ -49,7 +49,7 @@ Once you are done downloading/cloning RocketPy's repository, you can install it 
 
 .. code-block:: shell
 
-    python setup.py install 
+    python -m pip install .
 
 
 Development version
@@ -76,7 +76,7 @@ Alternatively, you can clone RocketPy's repository, check out the branch named `
 
 .. code-block:: shell
 
-    python setup.py install 
+    python -m pip install -e .
 
 
 Requirements
