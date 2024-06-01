@@ -25,6 +25,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 -->
 
+## [Unreleased] - yyyy-mm-dd
+
+<!-- These are the changes that were not release yet, please add them correctly.
+Attention: The newest changes should be on top -->
+
 ## [1.3.0] - 2024-06-01
 
 You can install this version by running `pip install rocketpy==1.3.0`
@@ -41,6 +46,7 @@ You can install this version by running `pip install rocketpy==1.3.0`
 
 ### Changed
 
+- REL: Bump versioning to RocketPy v1.3.0 [#614](https://github.com/RocketPy-Team/RocketPy/pull/614)
 - ENH: Adds StochasticModel.visualize_attributes() method [#612](https://github.com/RocketPy-Team/RocketPy/pull/612)
 - DOC: Monte carlo documentation updates [#607](https://github.com/RocketPy-Team/RocketPy/pull/607)
 - MNT: refactor u_dot parachute method [#596](https://github.com/RocketPy-Team/RocketPy/pull/596)
