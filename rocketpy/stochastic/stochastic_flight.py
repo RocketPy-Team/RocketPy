@@ -6,33 +6,27 @@ from .stochastic_model import StochasticModel
 
 
 class StochasticFlight(StochasticModel):
-    """A Stochastic Flight class that inherits from StochasticModel. This
-    class is used to receive a Flight object and information about the
-    dispersion of its parameters and generate a random flight object based on
-    the provided information.
+    """A Stochastic Flight class that inherits from StochasticModel.
 
     See Also
     --------
-    :ref:`stochastic_model`
+    :ref:`stochastic_model` and :class:`Flight <rocketpy.simulation.Flight>`
 
     Attributes
     ----------
     flight : Flight
         The Flight object to be used as a base for the Stochastic flight.
-    rail_length : int, float, tuple, list, optional
-        The rail length of the flight. Follows the standard input format of
-        Stochastic Models.
-    inclination : int, float, tuple, list, optional
-        The inclination of the flight. Follows the standard input format of
-        Stochastic Models.
-    heading : int, float, tuple, list, optional
-        The heading of the flight. Follows the standard input format of
-        Stochastic Models.
-    initial_solution : tuple, list, optional
+    rail_length : int, float, tuple, list
+        The rail length of the flight.
+    inclination : int, float, tuple, list
+        The inclination of the launch rail.
+    heading : int, float, tuple, list
+        The heading of the launch rail.
+    initial_solution : tuple, list
         The initial solution of the flight. This is a tuple of 14 elements that
         represent the initial conditions of the flight. This attribute can not
         be randomized.
-    terminate_on_apogee : bool, optional
+    terminate_on_apogee : bool
         Whether or not the flight should terminate on apogee. This attribute
         can not be randomized.
     """
@@ -50,21 +44,18 @@ class StochasticFlight(StochasticModel):
 
         See Also
         --------
-        :ref:`stochastic_model`
+        :ref:`stochastic_model` and :class:`Flight <rocketpy.simulation.Flight>`
 
         Parameters
         ----------
         flight : Flight
             The Flight object to be used as a base for the Stochastic flight.
         rail_length : int, float, tuple, list, optional
-            The rail length of the flight. Follows the standard input format of
-            Stochastic Models.
+            The rail length of the flight.
         inclination : int, float, tuple, list, optional
-            The inclination of the flight. Follows the standard input format of
-            Stochastic Models.
+            The inclination of the launch rail.
         heading : int, float, tuple, list, optional
-            The heading of the flight. Follows the standard input format of
-            Stochastic Models.
+            The heading of the launch rail.
         initial_solution : tuple, list, optional
             The initial solution of the flight. This is a tuple of 14 elements
             that represent the initial conditions of the flight. This attribute
@@ -102,25 +93,19 @@ class StochasticFlight(StochasticModel):
             else:
                 raise TypeError("`initial_solution` must be a tuple of numbers")
 
-    # TODO: these call dict_generator a lot of times unnecessarily
+    # TODO: these methods call dict_generator a lot of times unnecessarily
     def _randomize_rail_length(self):
-        """Randomizes the rail length of the flight. Follows the standard input
-        format of Stochastic Models.
-        """
+        """Randomizes the rail length of the flight."""
         generated_dict = next(self.dict_generator())
         return generated_dict["rail_length"]
 
     def _randomize_inclination(self):
-        """Randomizes the inclination of the flight. Follows the standard input
-        format of Stochastic Models.
-        """
+        """Randomizes the inclination of the flight."""
         generated_dict = next(self.dict_generator())
         return generated_dict["inclination"]
 
     def _randomize_heading(self):
-        """Randomizes the heading of the flight. Follows the standard input
-        format of Stochastic Models.
-        """
+        """Randomizes the heading of the flight."""
         generated_dict = next(self.dict_generator())
         return generated_dict["heading"]
 
