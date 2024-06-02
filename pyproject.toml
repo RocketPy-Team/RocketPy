@@ -20,11 +20,11 @@ documentation = "https://docs.rocketpy.org/"
 repository = "https://github.com/RocketPy-Team/RocketPy"
 
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-py-modules = ['rocketpy']
+packages = { find = { where = ["."], include = ["rocketpy*"] } }
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }
