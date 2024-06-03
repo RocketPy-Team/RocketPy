@@ -4,7 +4,7 @@ from rocketpy.tools import export_sensors_measured_data
 
 from ..mathutils.vector_matrix import Matrix, Vector
 from ..prints.sensors_prints import _InertialSensorPrints
-from ..sensors.sensors import InertialSensor
+from ..sensors.sensor import InertialSensor
 
 
 class Accelerometer(InertialSensor):

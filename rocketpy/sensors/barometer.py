@@ -4,7 +4,7 @@ from rocketpy.tools import export_sensors_measured_data
 
 from ..mathutils.vector_matrix import Matrix
 from ..prints.sensors_prints import _SensorPrints
-from ..sensors.sensors import ScalarSensor
+from ..sensors.sensor import ScalarSensor
 
 
 class Barometer(ScalarSensor):
@@ -12,8 +12,6 @@ class Barometer(ScalarSensor):
 
     Attributes
     ----------
-    type : str
-        Type of the sensor, in this case "Barometer".
     prints : _SensorPrints
         Object that contains the print functions for the sensor.
     sampling_rate : float
@@ -136,7 +134,6 @@ class Barometer(ScalarSensor):
             temperature_scale_factor=temperature_scale_factor,
             name=name,
         )
-        self.type = "Barometer"
         self.prints = _SensorPrints(self)
 
     def measure(self, time, **kwargs):
