@@ -244,7 +244,7 @@ def calisto_air_brakes_clamp_off(calisto_robust, controller_function):
 
 
 @pytest.fixture
-def calisto_sensors(
+def calisto_with_sensors(
     calisto,
     calisto_nose_cone,
     calisto_tail,

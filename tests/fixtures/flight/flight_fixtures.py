@@ -161,14 +161,14 @@ def flight_calisto_air_brakes(calisto_air_brakes_clamp_on, example_plain_env):
 
 
 @pytest.fixture
-def flight_calisto_sensors(calisto_sensors, example_plain_env):
+def flight_calisto_with_sensors(calisto_with_sensors, example_plain_env):
     """A rocketpy.Flight object of the Calisto rocket. This uses the calisto
     with a set of ideal sensors. The environment is the simplest possible, with
     no parameters set.
 
     Parameters
     ----------
-    calisto_sensors : rocketpy.Rocket
+    calisto_with_sensors : rocketpy.Rocket
         An object of the Rocket class.
     example_plain_env : rocketpy.Environment
         An object of the Environment class.
@@ -180,7 +180,7 @@ def flight_calisto_sensors(calisto_sensors, example_plain_env):
         condition.
     """
     return Flight(
-        rocket=calisto_sensors,
+        rocket=calisto_with_sensors,
         environment=example_plain_env,
         rail_length=5.2,
         inclination=85,
