@@ -11,8 +11,6 @@ class Sensors(ABC):
 
     Attributes
     ----------
-    type : str
-        Type of the sensor (e.g. Accelerometer, Gyroscope).
     sampling_rate : float
         Sample rate of the sensor in Hz.
     measurement_range : float, tuple
