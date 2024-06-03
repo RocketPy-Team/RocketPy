@@ -2,6 +2,8 @@ import json
 
 import numpy as np
 
+from rocketpy.tools import export_sensors_measured_data
+
 from ..mathutils.vector_matrix import Matrix, Vector
 from ..prints.sensors_prints import _AccelerometerPrints
 from ..sensors.sensors import InertialSensors
@@ -267,6 +269,6 @@ class Accelerometer(InertialSensors):
         -------
         None
         """
-        super().export_measured_data(
+        export_sensors_measured_data(
             filename=filename, format=format, data_labels=("t", "ax", "ay", "az")
         )
