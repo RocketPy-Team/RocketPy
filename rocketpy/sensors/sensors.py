@@ -5,7 +5,7 @@ import numpy as np
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
 
 
-class Sensors(ABC):
+class Sensor(ABC):
     """Abstract class for sensors
 
     Attributes
@@ -204,7 +204,7 @@ class Sensors(ABC):
         pass
 
 
-class InertialSensors(Sensors):
+class InertialSensor(Sensor):
     """Abstract class for sensors
 
     Attributes
@@ -502,7 +502,7 @@ class InertialSensors(Sensors):
         return value & scale_factor
 
 
-class ScalarSensors(Sensors):
+class ScalarSensor(Sensor):
     """Abstract class for sensors
 
     Attributes

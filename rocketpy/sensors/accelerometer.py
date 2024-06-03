@@ -3,18 +3,18 @@ import numpy as np
 from rocketpy.tools import export_sensors_measured_data
 
 from ..mathutils.vector_matrix import Matrix, Vector
-from ..prints.sensors_prints import _InertialSensorsPrints
-from ..sensors.sensors import InertialSensors
+from ..prints.sensors_prints import _InertialSensorPrints
+from ..sensors.sensors import InertialSensor
 
 
-class Accelerometer(InertialSensors):
+class Accelerometer(InertialSensor):
     """Class for the accelerometer sensor
 
     Attributes
     ----------
     consider_gravity : bool
         Whether the sensor considers the effect of gravity on the acceleration.
-    prints : _InertialSensorsPrints
+    prints : _InertialSensorPrints
         Object that contains the print functions for the sensor.
     sampling_rate : float
         Sample rate of the sensor in Hz.
@@ -192,7 +192,7 @@ class Accelerometer(InertialSensors):
             name=name,
         )
         self.consider_gravity = consider_gravity
-        self.prints = _InertialSensorsPrints(self)
+        self.prints = _InertialSensorPrints(self)
 
     def measure(self, time, **kwargs):
         """Measure the acceleration of the rocket

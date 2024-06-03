@@ -1,7 +1,7 @@
 from abc import ABC
 
 
-class _SensorsPrints(ABC):
+class _SensorPrints(ABC):
     def __init__(self, sensor):
         self.sensor = sensor
         self.units = sensor.units
@@ -78,7 +78,7 @@ class _SensorsPrints(ABC):
         self.noise()
 
 
-class _InertialSensorsPrints(_SensorsPrints):
+class _InertialSensorPrints(_SensorPrints):
 
     def orientation(self):
         """Prints the orientation of the sensor."""
@@ -105,7 +105,7 @@ class _InertialSensorsPrints(_SensorsPrints):
         self.noise()
 
 
-class _GyroscopePrints(_InertialSensorsPrints):
+class _GyroscopePrints(_InertialSensorPrints):
     """Class that contains all gyroscope prints."""
 
     def noise(self):

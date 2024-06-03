@@ -64,7 +64,7 @@ def test_sensors_prints(sensor, request):
 
 
 def test_rotation_matrix(noisy_rotated_accelerometer):
-    """Test the rotation_matrix property of the InertialSensors class. Checks if
+    """Test the rotation_matrix property of the InertialSensor class. Checks if
     the rotation matrix is correctly calculated.
     """
     # values from external source
@@ -80,7 +80,7 @@ def test_rotation_matrix(noisy_rotated_accelerometer):
 
 
 def test_inertial_quantization(quantized_accelerometer):
-    """Test the quantize method of the InertialSensors class. Checks if returned values
+    """Test the quantize method of the InertialSensor class. Checks if returned values
     are as expected.
     """
     # expected values calculated by hand
@@ -96,7 +96,7 @@ def test_inertial_quantization(quantized_accelerometer):
 
 
 def test_scalar_quantization(quantized_barometer):
-    """Test the quantize method of the ScalarSensors class. Checks if returned values
+    """Test the quantize method of the ScalarSensor class. Checks if returned values
     are as expected.
     """
     # expected values calculated by hand
@@ -157,7 +157,7 @@ def test_quantization(sensor, input_value, expected_output, request):
     ],
 )
 def test_inertial_measured_data(sensor, request):
-    """Test the measured_data property of the Sensors class. Checks if
+    """Test the measured_data property of the Sensor class. Checks if
     the measured data is treated properly when the sensor is added once or more
     than once to the rocket.
     """
@@ -209,7 +209,7 @@ def test_inertial_measured_data(sensor, request):
 
 
 def test_scalar_measured_data(ideal_barometer, example_plain_env):
-    """Test the measure method of ScalarSensors. Checks if saved
+    """Test the measure method of ScalarSensor. Checks if saved
     measurement is (P) and if measured_data is [(t, P), ...]
     """
     t = TIME

@@ -4,10 +4,10 @@ from rocketpy.tools import export_sensors_measured_data
 
 from ..mathutils.vector_matrix import Matrix, Vector
 from ..prints.sensors_prints import _GyroscopePrints
-from ..sensors.sensors import InertialSensors
+from ..sensors.sensors import InertialSensor
 
 
-class Gyroscope(InertialSensors):
+class Gyroscope(InertialSensor):
     """Class for the gyroscope sensor
 
     Attributes
