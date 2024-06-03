@@ -105,10 +105,6 @@ class _InertialSensorsPrints(_SensorsPrints):
         self.noise()
 
 
-class _AccelerometerPrints(_InertialSensorsPrints):
-    """Class that contains all accelerometer prints."""
-
-
 class _GyroscopePrints(_InertialSensorsPrints):
     """Class that contains all gyroscope prints."""
 
@@ -119,8 +115,3 @@ class _GyroscopePrints(_InertialSensorsPrints):
             "Acceleration Sensitivity:",
             f"{self.sensor.acceleration_sensitivity} rad/s/g",
         )
-
-
-# TODO: simplify prints
-class _BarometerPrints(_SensorsPrints):
-    """Class that contains all barometer prints."""

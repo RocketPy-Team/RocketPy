@@ -3,7 +3,7 @@ import numpy as np
 from rocketpy.tools import export_sensors_measured_data
 
 from ..mathutils.vector_matrix import Matrix
-from ..prints.sensors_prints import _BarometerPrints
+from ..prints.sensors_prints import _SensorsPrints
 from ..sensors.sensors import ScalarSensors
 
 
@@ -14,7 +14,7 @@ class Barometer(ScalarSensors):
     ----------
     type : str
         Type of the sensor, in this case "Barometer".
-    prints : _BarometerPrints
+    prints : _SensorsPrints
         Object that contains the print functions for the sensor.
     sampling_rate : float
         Sample rate of the sensor in Hz.
@@ -137,7 +137,7 @@ class Barometer(ScalarSensors):
             name=name,
         )
         self.type = "Barometer"
-        self.prints = _BarometerPrints(self)
+        self.prints = _SensorsPrints(self)
 
     def measure(self, time, **kwargs):
         """Measures the pressure at barometer location
