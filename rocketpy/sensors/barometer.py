@@ -1,5 +1,3 @@
-import json
-
 import numpy as np
 
 from rocketpy.tools import export_sensors_measured_data
@@ -179,15 +177,15 @@ class Barometer(ScalarSensors):
         self.measurement = P
         self._save_data((time, P))
 
-    def export_measured_data(self, filename, format="csv"):
+    def export_measured_data(self, filename, file_format="csv"):
         """Export the measured values to a file
 
         Parameters
         ----------
         filename : str
             Name of the file to export the values to
-        format : str
-            Format of the file to export the values to. Options are "csv" and
+        file_format : str
+            file_format of the file to export the values to. Options are "csv" and
             "json". Default is "csv".
 
         Returns
@@ -195,5 +193,8 @@ class Barometer(ScalarSensors):
         None
         """
         export_sensors_measured_data(
-            filename=filename, format=format, data_labels=("t", "pressure")
+            sensor=self,
+            filename=filename,
+            file_format=file_format,
+            data_labels=("t", "pressure"),
         )

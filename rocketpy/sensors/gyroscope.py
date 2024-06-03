@@ -1,5 +1,3 @@
-import json
-
 import numpy as np
 
 from rocketpy.tools import export_sensors_measured_data
@@ -270,14 +268,14 @@ class Gyroscope(InertialSensors):
             The angular velocity with the acceleration sensitivity applied
         """
         # Linear acceleration of rocket cdm in inertial frame
-        a_I = Vector(u_dot[3:6])
+        inertial_acceleration = Vector(u_dot[3:6])
 
         # Angular velocity and accel of rocket
         omega_dot = Vector(u_dot[10:13])
 
         # Acceleration felt in sensor
         A = (
-            a_I
+            inertial_acceleration
             + Vector.cross(omega_dot, relative_position)
             + Vector.cross(omega, Vector.cross(omega, relative_position))
         )
@@ -286,15 +284,15 @@ class Gyroscope(InertialSensors):
 
         return self.acceleration_sensitivity & A
 
-    def export_measured_data(self, filename, format="csv"):
+    def export_measured_data(self, filename, file_format="csv"):
         """Export the measured values to a file
 
         Parameters
         ----------
         filename : str
             Name of the file to export the values to
-        format : str
-            Format of the file to export the values to. Options are "csv" and
+        file_format : str
+            file_Format of the file to export the values to. Options are "csv" and
             "json". Default is "csv".
 
         Returns
@@ -302,5 +300,8 @@ class Gyroscope(InertialSensors):
         None
         """
         export_sensors_measured_data(
-            filename=filename, format=format, data_labels=("t", "wx", "wy", "wz")
+            sensor=self,
+            filename=filename,
+            file_format=file_format,
+            data_labels=("t", "wx", "wy", "wz"),
         )

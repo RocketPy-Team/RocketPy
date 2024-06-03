@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 
 
 class _SensorsPrints(ABC):
@@ -32,7 +32,8 @@ class _SensorsPrints(ABC):
         print("\nQuantization:\n")
         self._print_aligned(
             "Measurement Range:",
-            f"{self.sensor.measurement_range[0]} to {self.sensor.measurement_range[1]} ({self.units})",
+            f"{self.sensor.measurement_range[0]} "
+            + f"to {self.sensor.measurement_range[1]} ({self.units})",
         )
         self._print_aligned("Resolution:", f"{self.sensor.resolution} {self.units}/LSB")
 
@@ -78,8 +79,6 @@ class _SensorsPrints(ABC):
 
 
 class _InertialSensorsPrints(_SensorsPrints):
-    def __init__(self, sensor):
-        super().__init__(sensor)
 
     def orientation(self):
         """Prints the orientation of the sensor."""
@@ -109,17 +108,9 @@ class _InertialSensorsPrints(_SensorsPrints):
 class _AccelerometerPrints(_InertialSensorsPrints):
     """Class that contains all accelerometer prints."""
 
-    def __init__(self, accelerometer):
-        """Initialize the class."""
-        super().__init__(accelerometer)
-
 
 class _GyroscopePrints(_InertialSensorsPrints):
     """Class that contains all gyroscope prints."""
-
-    def __init__(self, gyroscope):
-        """Initialize the class."""
-        super().__init__(gyroscope)
 
     def noise(self):
         """Prints the noise of the sensor."""
@@ -130,9 +121,6 @@ class _GyroscopePrints(_InertialSensorsPrints):
         )
 
 
+# TODO: simplify prints
 class _BarometerPrints(_SensorsPrints):
     """Class that contains all barometer prints."""
-
-    def __init__(self, barometer):
-        """Initialize the class."""
-        super().__init__(barometer)

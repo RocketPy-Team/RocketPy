@@ -1,4 +1,3 @@
-import json
 from abc import ABC, abstractmethod
 
 import numpy as np
@@ -181,10 +180,7 @@ class Sensors(ABC):
 
     @abstractmethod
     def measure(self, time, **kwargs):
-        pass
-
-    @abstractmethod
-    def export_measured_data(self):
+        """Measure the sensor data at a given time"""
         pass
 
     @abstractmethod
@@ -203,7 +199,8 @@ class Sensors(ABC):
         pass
 
     @abstractmethod
-    def export_measured_data(self, filename, format="csv"):
+    def export_measured_data(self, filename, file_format="csv"):
+        """Export the measured values to a file"""
         pass
 
 

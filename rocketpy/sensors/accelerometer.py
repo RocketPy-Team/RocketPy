@@ -1,5 +1,3 @@
-import json
-
 import numpy as np
 
 from rocketpy.tools import export_sensors_measured_data
@@ -225,7 +223,7 @@ class Accelerometer(InertialSensors):
         gravity = (
             Vector([0, 0, -gravity]) if self.consider_gravity else Vector([0, 0, 0])
         )
-        a_I = Vector(u_dot[3:6]) + gravity
+        inertial_acceleration = Vector(u_dot[3:6]) + gravity
 
         # Vector from rocket cdm to sensor in rocket frame
         r = relative_position
@@ -236,7 +234,7 @@ class Accelerometer(InertialSensors):
 
         # Measured acceleration at sensor position in inertial frame
         A = (
-            a_I
+            inertial_acceleration
             + Vector.cross(omega_dot, r)
             + Vector.cross(omega, Vector.cross(omega, r))
         )
@@ -254,14 +252,14 @@ class Accelerometer(InertialSensors):
         self.measurement = tuple([*A])
         self._save_data((time, *A))
 
-    def export_measured_data(self, filename, format="csv"):
+    def export_measured_data(self, filename, file_format="csv"):
         """Export the measured values to a file
 
         Parameters
         ----------
         filename : str
             Name of the file to export the values to
-        format : str
+        file_format : str
             Format of the file to export the values to. Options are "csv" and
             "json". Default is "csv".
 
@@ -270,5 +268,8 @@ class Accelerometer(InertialSensors):
         None
         """
         export_sensors_measured_data(
-            filename=filename, format=format, data_labels=("t", "ax", "ay", "az")
+            sensor=self,
+            filename=filename,
+            file_format=file_format,
+            data_labels=("t", "ax", "ay", "az"),
         )
