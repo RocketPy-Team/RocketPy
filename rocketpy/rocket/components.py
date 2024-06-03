@@ -27,7 +27,7 @@ class Components:
         """Return a string representation of the Components instance."""
         components_str = "\n".join(
             [
-                f"\tComponent: {str(c.component):80} Position: {c.position:>6.3f}"
+                f"\tComponent: {str(c.component):80} Position: {c.position}"
                 for c in self._components
             ]
         )
@@ -102,6 +102,16 @@ class Components:
             c for c in self._components if isinstance(c.component, component_type)
         ]
         return component_type_list
+
+    def get_components(self):
+        """Return a list of all the components in the list of components.
+
+        Returns
+        -------
+        list
+            A list of all the components in the list of components.
+        """
+        return [c.component for c in self._components]
 
     def get_positions(self):
         """Return a list of all the positions of the components in the list of

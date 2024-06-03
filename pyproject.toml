@@ -51,7 +51,11 @@ env-analysis = [
     "ipywidgets>=7.6.3" 
 ]
 
-all = ["rocketpy[env-analysis]"]
+monte-carlo = [
+    "imageio",
+]
+
+all = ["rocketpy[env-analysis]", "rocketpy[monte-carlo]"]
 
 [tool.black]
 line-length = 88 

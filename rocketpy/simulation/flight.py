@@ -1789,34 +1789,42 @@ class Flight:
             e0dot, e1dot, e2dot, e3dot, alpha1, alpha2, alpha3].
 
         """
-        # Parachute data
-        cd_s = self.parachute_cd_s
-        ka = 1
-        R = 1.5
-        rho = self.env.density.get_value_opt(u[2])
-        to = 1.2
-        ma = ka * rho * (4 / 3) * np.pi * R**3
-        mp = self.rocket.dry_mass
-        eta = 1
-        Rdot = (6 * R * (1 - eta) / (1.2**6)) * (
-            (1 - eta) * t**5 + eta * (to**3) * (t**2)
-        )
-        Rdot = 0
         # Get relevant state data
-        x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
-        # Get wind data
+        z, vx, vy, vz = u[2:6]
+
+        # Get atmospheric data
+        rho = self.env.density.get_value_opt(z)
         wind_velocity_x = self.env.wind_velocity_x.get_value_opt(z)
         wind_velocity_y = self.env.wind_velocity_y.get_value_opt(z)
-        free_stream_speed = (
-            (wind_velocity_x - vx) ** 2 + (wind_velocity_y - vy) ** 2 + (vz) ** 2
-        ) ** 0.5
+
+        # Get Parachute data
+        cd_s = self.parachute_cd_s
+
+        # Get the mass of the rocket
+        mp = self.rocket.dry_mass
+
+        # Define constants
+        ka = 1  # Added mass coefficient (depends on parachute's porosity)
+        R = 1.5  # Parachute radius
+        # to = 1.2
+        # eta = 1
+        # Rdot = (6 * R * (1 - eta) / (1.2**6)) * (
+        #     (1 - eta) * t**5 + eta * (to**3) * (t**2)
+        # )
+        # Rdot = 0
+
+        # Calculate added mass
+        ma = ka * rho * (4 / 3) * np.pi * R**3
+
+        # Calculate freestream speed
         freestream_x = vx - wind_velocity_x
         freestream_y = vy - wind_velocity_y
         freestream_z = vz
+        free_stream_speed = (freestream_x**2 + freestream_y**2 + freestream_z**2) ** 0.5
+
         # Determine drag force
-        pseudoD = (
-            -0.5 * rho * cd_s * free_stream_speed - ka * rho * 4 * np.pi * (R**2) * Rdot
-        )
+        pseudoD = -0.5 * rho * cd_s * free_stream_speed
+        # pseudoD = pseudoD - ka * rho * 4 * np.pi * (R**2) * Rdot
         Dx = pseudoD * freestream_x
         Dy = pseudoD * freestream_y
         Dz = pseudoD * freestream_z
@@ -2785,6 +2793,7 @@ class Flight:
         """
         # Transform parachute sensor feed into functions
         for parachute in self.rocket.parachutes:
+            # TODO: these Functions do not need input validation
             parachute.clean_pressure_signal_function = Function(
                 parachute.clean_pressure_signal,
                 "Time (s)",
