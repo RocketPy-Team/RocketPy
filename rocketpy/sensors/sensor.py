@@ -205,7 +205,9 @@ class Sensor(ABC):
 
 
 class InertialSensor(Sensor):
-    """Abstract class for sensors
+    """Model of an inertial sensor (accelerometer, gyroscope, magnetometer).
+    Inertial sensors measurements are handled as vectors. The measurements are
+    affected by the sensor's orientation in the rocket.
 
     Attributes
     ----------
@@ -503,12 +505,12 @@ class InertialSensor(Sensor):
 
 
 class ScalarSensor(Sensor):
-    """Abstract class for sensors
+    """Model of a scalar sensor (barometer, GPS, etc.). Scalar sensors are used
+    to measure a single scalar value. The measurements are not affected by the
+    sensor's orientation in the rocket.
 
     Attributes
     ----------
-    type : str
-        Type of the sensor (e.g. Barometer, GPS).
     sampling_rate : float
         Sample rate of the sensor in Hz.
     measurement_range : float, tuple
