@@ -7,7 +7,7 @@ from time import process_time, time
 import h5py
 import numpy as np
 import simplekml
-from multiprocess import Lock, Process
+from multiprocess import Lock, Process, JoinableQueue
 from multiprocess.managers import BaseManager
 
 from rocketpy import Function
@@ -169,9 +169,9 @@ class MonteCarlo:
             If True, the results will be appended to the existing files. If
             False, the files will be overwritten. Default is False.
         light_mode : bool, optional
-            If True, the files will be saved on self and the post simulation
-            attributes will be calculated. If False, all inputs and outputs
-            will be saved to an h5 file. Default is False.
+            If True, tonly variables from the export_list will be saved to
+            the output file as a .txt file. If False, all variables will be
+            saved to the output file as a .h5 file. Default is False.
         parallel : bool, optional
             If True, the simulations will be run in parallel. Default is False.
 
@@ -198,7 +198,18 @@ class MonteCarlo:
             self._run_in_serial(append, light_mode=light_mode)
 
     def _run_in_serial(self, append, light_mode):
-        """Runs the monte carlo simulation in serial."""
+        """
+        Runs the monte carlo simulation in serial mode.
+
+        Args:
+            append: bool
+                If True, the results will be appended to the existing files. If
+                False, the files will be overwritten.
+            light_mode: bool
+                If True, only variables from the export_list will be saved to
+                the output file as a .txt file. If False, all variables will be
+                saved to the output file as a .h5 file.
+        """
 
         # Create data files for inputs, outputs and error logging
         open_mode = "a" if append else "w"
@@ -236,7 +247,21 @@ class MonteCarlo:
         )
 
     def _run_in_parallel(self, append, light_mode, n_workers=None):
-        """Runs the monte carlo simulation in parallel."""
+        """
+        Runs the monte carlo simulation in parallel.
+        
+        Args:
+            append: bool
+                If True, the results will be appended to the existing files. If
+                False, the files will be overwritten.
+            light_mode: bool
+                If True, only variables from the export_list will be saved to
+                the output file as a .txt file. If False, all variables will be
+                saved to the output file as a .h5 file.
+            n_workers: int, optional
+                Number of workers to be used. If None, the number of workers
+                will be equal to the number of CPUs available. Default is None.
+        """
         processes = []
 
         if n_workers is None:
@@ -248,6 +273,14 @@ class MonteCarlo:
             # initialize queue
             write_lock = manager.Lock()
             sim_counter = manager.SimCounter()
+            queue = manager.JoinableQueue()
+            
+            # Initialize queue
+            for _ in range(self.number_of_simulations):
+                queue.put("RUN")
+            
+            for _ in range(n_workers):
+                queue.put("STOP")
 
             # Initialize write file
             open_mode = "a" if append else "w"
@@ -259,12 +292,11 @@ class MonteCarlo:
                 "export_list": self.export_list,
             }
 
+            # Initialize files
             if light_mode:
                 with open(self._input_file, mode=open_mode) as _:
                     pass  # initialize file
                 with open(self._output_file, mode=open_mode) as _:
-                    pass  # initialize file
-                with open(self._error_file, mode=open_mode) as _:
                     pass  # initialize file
 
             else:
@@ -272,27 +304,30 @@ class MonteCarlo:
                     pass  # initialize file
                 with h5py.File(self._output_file.with_suffix(".h5"), 'w') as _:
                     pass  # initialize file
-
+                
                 file_paths["input_file"] = file_paths["input_file"].with_suffix(".h5")
                 file_paths["output_file"] = file_paths["output_file"].with_suffix(".h5")
                 file_paths["error_file"] = file_paths["error_file"].with_suffix(".h5")
+                
+            # Initialize error file - always a .txt file
+            with open(self._error_file, mode=open_mode) as _:
+                pass  # initialize file
+
 
             print("Starting monte carlo analysis", end="\r")
             print(f"Number of simulations: {self.number_of_simulations}")
 
             # Creates n_workers processes then starts them
-            for i in range(n_workers):
+            for _ in range(n_workers):
                 p = Process(
                     target=self._run_simulation_worker,
                     args=(
-                        i,
-                        self.number_of_simulations,
-                        n_workers,
                         self.environment,
                         self.rocket,
                         self.flight,
                         sim_counter,
                         write_lock,
+                        queue,
                         light_mode,
                         file_paths,
                     ),
@@ -317,98 +352,137 @@ class MonteCarlo:
 
     @staticmethod
     def _run_simulation_worker(
-        worker_no,
-        n_sim,
-        n_workers,
         sto_env,
         sto_rocket,
         sto_flight,
         sim_counter,
         write_lock,
+        queue,
         light_mode,
         file_paths,
     ):
-        """Runs a simulation from a queue."""
+        """
+        Runs a simulation from a queue.
+        
+        Args:
+            worker_no: int
+                Worker number.
+            n_sim: int
+                Number of simulations to be run.
+            n_workers: int
+                Number of workers.
+            sto_env: StochasticEnvironment
+                Stochastic environment object to be iterated over.
+            sto_rocket: StochasticRocket
+                Stochastic rocket object to be iterated over.
+            sto_flight: StochasticFlight
+                Stochastic flight object to be iterated over.
+            sim_counter: SimCounter
+                Counter for the simulations.
+            write_lock: Lock
+                Lock to write to file.
+            light_mode: bool
+                If True, only variables from the export_list will be saved to
+                the output file as a .txt file. If False, all variables will be
+                saved to the output file as a .h5 file.
+            file_paths: dict
+                Dictionary containing the paths to the input, output, and error
+                files, and the export_list.
+        """
+        try:
+            while True:
+                if queue.get() == "STOP":
+                    break
+            
+                sim_idx = sim_counter.increment()
+                sim_start = time()
 
-        for i in range(worker_no, n_sim, n_workers):
-            sim_idx = sim_counter.increment()
-            sim_start = time()
+                env = sto_env.create_object()
+                rocket = sto_rocket.create_object()
+                rail_length = sto_flight._randomize_rail_length()
+                inclination = sto_flight._randomize_inclination()
+                heading = sto_flight._randomize_heading()
+                initial_solution = sto_flight.initial_solution
+                terminate_on_apogee = sto_flight.terminate_on_apogee
 
-            env = sto_env.create_object()
-            rocket = sto_rocket.create_object()
-            rail_length = sto_flight._randomize_rail_length()
-            inclination = sto_flight._randomize_inclination()
-            heading = sto_flight._randomize_heading()
-            initial_solution = sto_flight.initial_solution
-            terminate_on_apogee = sto_flight.terminate_on_apogee
-
-            flight = Flight(
-                rocket=rocket,
-                environment=env,
-                rail_length=rail_length,
-                inclination=inclination,
-                heading=heading,
-                initial_solution=initial_solution,
-                terminate_on_apogee=terminate_on_apogee,
-            )
-
-            # Export to file
-            if light_mode:
-                inputs_dict = dict(
-                    item
-                    for d in [
-                        sto_env.last_rnd_dict,
-                        sto_rocket.last_rnd_dict,
-                        sto_flight.last_rnd_dict,
-                    ]
-                    for item in d.items()
+                flight = Flight(
+                    rocket=rocket,
+                    environment=env,
+                    rail_length=rail_length,
+                    inclination=inclination,
+                    heading=heading,
+                    initial_solution=initial_solution,
+                    terminate_on_apogee=terminate_on_apogee,
                 )
 
-                # Construct the dict with the results from the flight
-                results = {
-                    export_item: getattr(flight, export_item)
-                    for export_item in file_paths["export_list"]
-                }
+                # Export to file
+                if light_mode:
+                    inputs_dict = dict(
+                        item
+                        for d in [
+                            sto_env.last_rnd_dict,
+                            sto_rocket.last_rnd_dict,
+                            sto_flight.last_rnd_dict,
+                        ]
+                        for item in d.items()
+                    )
 
-                # Write flight setting and results to file
-                write_lock.acquire()
-                with open(file_paths["input_file"], mode='a', encoding="utf-8") as f:
-                    f.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
-                with open(file_paths["output_file"], mode='a', encoding="utf-8") as f:
-                    f.write(json.dumps(results, cls=RocketPyEncoder) + "\n")
+                    # Construct the dict with the results from the flight
+                    results = {
+                        export_item: getattr(flight, export_item)
+                        for export_item in file_paths["export_list"]
+                    }
 
-                write_lock.release()
+                    # Write flight setting and results to file
+                    write_lock.acquire()
+                    with open(file_paths["input_file"], mode='a', encoding="utf-8") as f:
+                        f.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
+                    with open(file_paths["output_file"], mode='a', encoding="utf-8") as f:
+                        f.write(json.dumps(results, cls=RocketPyEncoder) + "\n")
 
-            else:
-                input_parameters = flightv1_serializer(
-                    flight, f"Simulation_{i}", return_dict=True
+                    write_lock.release()
+
+                else:
+                    input_parameters = flightv1_serializer(
+                        flight, f"Simulation_{sim_idx}", return_dict=True
+                    )
+
+                    flight_results = MonteCarlo.inspect_object_attributes(flight)
+
+                    export_inputs = {
+                        str(sim_idx): input_parameters,
+                    }
+
+                    export_outputs = {
+                        str(sim_idx): flight_results,
+                    }
+
+                    write_lock.acquire()
+                    with h5py.File(file_paths["input_file"], 'a') as h5_file:
+                        MonteCarlo.dict_to_h5(h5_file, '/', export_inputs)
+
+                    with h5py.File(file_paths["output_file"], 'a') as h5_file:
+                        MonteCarlo.dict_to_h5(h5_file, '/', export_outputs)
+
+                    write_lock.release()
+
+                sim_end = time()
+
+                print(
+                    "-" * 80
+                    + f"\nSimulation {sim_idx} took {sim_end - sim_start} seconds to run."
                 )
-
-                flight_results = MonteCarlo.inspect_object_attributes(flight)
-
-                export_inputs = {
-                    str(i): input_parameters,
-                }
-
-                export_outputs = {
-                    str(i): flight_results,
-                }
-
-                write_lock.acquire()
-                with h5py.File(file_paths["input_file"], 'a') as h5_file:
-                    MonteCarlo.dict_to_h5(h5_file, '/', export_inputs)
-
-                with h5py.File(file_paths["output_file"], 'a') as h5_file:
-                    MonteCarlo.dict_to_h5(h5_file, '/', export_outputs)
-
-                write_lock.release()
-
-            sim_end = time()
-
-            print(
-                "-" * 80
-                + f"\nSimulation {sim_idx} took {sim_end - sim_start} seconds to run."
-            )
+                
+        except Exception as error:
+            print(f"Error on iteration {sim_idx}: {error}")
+            write_lock.acquire()
+            with open(file_paths["error_file"], mode='a', encoding="utf-8") as f:
+                f.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
+            write_lock.release()
+            raise error
+        
+        finally:
+            print("Worker stopped.")
 
     def __run_single_simulation(
         self, sim_idx, input_file, output_file, light_mode=False
@@ -966,6 +1040,7 @@ class MonteCarloManager(BaseManager):
         self.register('StochasticEnvironment', StochasticEnvironment)
         self.register('StochasticRocket', StochasticRocket)
         self.register('StochasticFlight', StochasticFlight)
+        self.register('JoinableQueue', JoinableQueue)
 
 
 class SimCounter:
