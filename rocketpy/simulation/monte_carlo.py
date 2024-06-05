@@ -5,6 +5,7 @@ from pathlib import Path
 from time import process_time, time
 
 import h5py
+import hdf5plugin
 import numpy as np
 import simplekml
 from multiprocess import Lock, Process, JoinableQueue
@@ -271,7 +272,9 @@ class MonteCarlo:
 
         with MonteCarloManager() as manager:
             # initialize queue
-            write_lock = manager.Lock()
+            inputs_lock = manager.Lock()
+            outputs_lock = manager.Lock()
+            errors_lock = manager.Lock()
             sim_counter = manager.SimCounter()
             queue = manager.JoinableQueue()
             
@@ -326,7 +329,9 @@ class MonteCarlo:
                         self.rocket,
                         self.flight,
                         sim_counter,
-                        write_lock,
+                        inputs_lock,
+                        outputs_lock,
+                        errors_lock,
                         queue,
                         light_mode,
                         file_paths,
@@ -356,7 +361,9 @@ class MonteCarlo:
         sto_rocket,
         sto_flight,
         sim_counter,
-        write_lock,
+        inputs_lock,
+        outputs_lock,
+        errors_lock,
         queue,
         light_mode,
         file_paths,
@@ -434,13 +441,15 @@ class MonteCarlo:
                     }
 
                     # Write flight setting and results to file
-                    write_lock.acquire()
+                    inputs_lock.acquire()
                     with open(file_paths["input_file"], mode='a', encoding="utf-8") as f:
                         f.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
+                    inputs_lock.release()
+                    
+                    outputs_lock.acquire()
                     with open(file_paths["output_file"], mode='a', encoding="utf-8") as f:
                         f.write(json.dumps(results, cls=RocketPyEncoder) + "\n")
-
-                    write_lock.release()
+                    outputs_lock.release()
 
                 else:
                     input_parameters = flightv1_serializer(
@@ -457,14 +466,15 @@ class MonteCarlo:
                         str(sim_idx): flight_results,
                     }
 
-                    write_lock.acquire()
+                    inputs_lock.acquire()
                     with h5py.File(file_paths["input_file"], 'a') as h5_file:
                         MonteCarlo.dict_to_h5(h5_file, '/', export_inputs)
+                    inputs_lock.release()
 
+                    outputs_lock.acquire()
                     with h5py.File(file_paths["output_file"], 'a') as h5_file:
                         MonteCarlo.dict_to_h5(h5_file, '/', export_outputs)
-
-                    write_lock.release()
+                    outputs_lock.release()
 
                 sim_end = time()
 
@@ -475,10 +485,10 @@ class MonteCarlo:
                 
         except Exception as error:
             print(f"Error on iteration {sim_idx}: {error}")
-            write_lock.acquire()
+            errors_lock.acquire()
             with open(file_paths["error_file"], mode='a', encoding="utf-8") as f:
                 f.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
-            write_lock.release()
+            errors_lock.release()
             raise error
         
         finally:
