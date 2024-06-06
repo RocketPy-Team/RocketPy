@@ -1736,7 +1736,7 @@ class Flight:
         )
         M3 += self.rocket.cp_eccentricity_x * R2 - self.rocket.cp_eccentricity_y * R1
 
-        weightB = Kt @ Vector([0, 0, -total_mass * self.env.gravity(z)])
+        weightB = Kt @ Vector([0, 0, -total_mass * self.env.gravity.get_value_opt(z)])
         T00 = total_mass * r_CM
         T03 = 2 * total_mass_dot * (r_NOZ - r_CM) - 2 * total_mass * r_CM_dot
         T04 = (
