@@ -1,3 +1,4 @@
+import json
 from abc import ABC, abstractmethod
 
 import numpy as np
@@ -202,6 +203,68 @@ class Sensor(ABC):
     def export_measured_data(self, filename, file_format="csv"):
         """Export the measured values to a file"""
         pass
+
+    def _generic_export_measured_data(self, filename, file_format, data_labels):
+        """Export the measured values to a file given the data labels of each
+        sensor.
+
+        Parameters
+        ----------
+        sensor : Sensor
+            Sensor object to export the measured values from.
+        filename : str
+            Name of the file to export the values to
+        file_format : str
+            file_format of the file to export the values to. Options are "csv"
+            and "json". Default is "csv".
+        data_labels : tuple
+            Tuple of strings representing the labels for the data columns
+
+        Returns
+        -------
+        None
+        """
+        if file_format.lower() not in ["json", "csv"]:
+            raise ValueError("Invalid file_format")
+
+        if file_format.lower() == "csv":
+            # if sensor has been added multiple times to the simulated rocket
+            if isinstance(self.measured_data[0], list):
+                print("Data saved to", end=" ")
+                for i, data in enumerate(self.measured_data):
+                    with open(filename + f"_{i+1}", "w") as f:
+                        f.write(",".join(data_labels) + "\n")
+                        for entry in data:
+                            f.write(",".join(map(str, entry)) + "\n")
+                    print(filename + f"_{i+1},", end=" ")
+            else:
+                with open(filename, "w") as f:
+                    f.write(",".join(data_labels) + "\n")
+                    for entry in self.measured_data:
+                        f.write(",".join(map(str, entry)) + "\n")
+                print(f"Data saved to {filename}")
+            return
+
+        if file_format.lower() == "json":
+            if isinstance(self.measured_data[0], list):
+                print("Data saved to", end=" ")
+                for i, data in enumerate(self.measured_data):
+                    data_dict = {label: [] for label in data_labels}
+                    for entry in data:
+                        for label, value in zip(data_labels, entry):
+                            data_dict[label].append(value)
+                    with open(filename + f"_{i+1}", "w") as f:
+                        json.dump(data_dict, f)
+                    print(filename + f"_{i+1},", end=" ")
+            else:
+                data_dict = {label: [] for label in data_labels}
+                for entry in self.measured_data:
+                    for label, value in zip(data_labels, entry):
+                        data_dict[label].append(value)
+                with open(filename, "w") as f:
+                    json.dump(data_dict, f)
+                print(f"Data saved to {filename}")
+            return
 
 
 class InertialSensor(Sensor):
