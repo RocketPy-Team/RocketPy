@@ -20,7 +20,7 @@ def show_or_save_plot(filename=None):
         endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz,
         tif, tiff and webp (these are the formats supported by matplotlib).
     """
-    if filename == None:
+    if filename is None:
         plt.show()
     else:
         # Warn if file ending is not supported
@@ -51,7 +51,7 @@ def show_or_save_fig(fig: Figure, filename=None):
         endings are: eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz,
         tif, tiff and webp (these are the formats supported by matplotlib).
     """
-    if filename == None:
+    if filename is None:
         fig.show()
     else:
         # Warn if file ending is not supported
