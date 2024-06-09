@@ -221,12 +221,17 @@ class MonteCarlo:
         -------
         None
         """
-
         # Create data files for inputs, outputs and error logging
         open_mode = "a" if append else "w"
 
         # Open files
         if light_mode:
+            # get initial simulation index
+            idx_i, idx_o = self.__get_light_indexes(
+                self._input_file, self._output_file, append=append
+            )
+
+            # open files in write/append mode
             input_file = open(self._input_file, open_mode, encoding="utf-8")
             output_file = open(self._output_file, open_mode, encoding="utf-8")
             error_file = open(self._error_file, open_mode, encoding="utf-8")
@@ -237,8 +242,8 @@ class MonteCarlo:
             )
             error_file = open(self._error_file, open_mode, encoding="utf-8")
 
-        idx_i = self.__get_initial_sim_idx(input_file)
-        idx_o = self.__get_initial_sim_idx(output_file)
+            idx_i = self.__get_initial_sim_idx(input_file, light_mode=light_mode)
+            idx_o = self.__get_initial_sim_idx(output_file, light_mode=light_mode)
 
         if idx_i != idx_o:
             raise ValueError(
@@ -303,14 +308,6 @@ class MonteCarlo:
             inputs_lock = manager.Lock()
             outputs_lock = manager.Lock()
             errors_lock = manager.Lock()
-            queue = manager.JoinableQueue()
-
-            # Initialize queue
-            for _ in range(self.number_of_simulations):
-                queue.put("RUN")
-
-            for _ in range(n_workers):
-                queue.put("STOP")
 
             # Initialize write file
             open_mode = "a" if append else "w"
@@ -324,10 +321,15 @@ class MonteCarlo:
 
             # Initialize files
             if light_mode:
-                with open(self._input_file, mode=open_mode) as _:
-                    pass  # initialize file
-                with open(self._output_file, mode=open_mode) as _:
-                    pass  # initialize file
+                # get initial simulation index
+                idx_i, idx_o = self.__get_light_indexes(
+                    self._input_file, self._output_file, append=append
+                )
+                # open files in write/append mode
+                with open(self._input_file, mode=open_mode) as f:
+                    pass # initialize file
+                with open(self._output_file, mode=open_mode) as f:
+                    pass # initialize file
 
             else:
                 # Change file extensions to .h5
@@ -337,9 +339,9 @@ class MonteCarlo:
 
                 # Initialize files and get initial simulation index
                 with h5py.File(file_paths["input_file"], open_mode) as f:
-                    idx_i = self.__get_initial_sim_idx(f)
+                    idx_i = self.__get_initial_sim_idx(f, light_mode=light_mode)
                 with h5py.File(file_paths["output_file"], open_mode) as f:
-                    idx_o = self.__get_initial_sim_idx(f)
+                    idx_o = self.__get_initial_sim_idx(f, light_mode=light_mode)
 
             if idx_i != idx_o:
                 raise ValueError(
@@ -352,6 +354,15 @@ class MonteCarlo:
 
             # Initialize simulation counter
             sim_counter = manager.SimCounter(idx_i)
+            
+            queue = manager.JoinableQueue()
+
+            # Initialize queue
+            for _ in range(self.number_of_simulations - sim_counter.get_count()):
+                queue.put("RUN")
+
+            for _ in range(n_workers):
+                queue.put("STOP")
 
             print("\nStarting monte carlo analysis", end="\r")
             print(f"Number of simulations: {self.number_of_simulations}")
@@ -1065,7 +1076,7 @@ class MonteCarlo:
         return result
 
     @staticmethod
-    def __get_initial_sim_idx(file):
+    def __get_initial_sim_idx(file, light_mode):
         """
         Get the initial simulation index from the filename.
 
@@ -1079,11 +1090,50 @@ class MonteCarlo:
         int
             Initial simulation index.
         """
+        if light_mode:
+            lines = file.readlines()
+            return len(lines)
+
         if len(file.keys()) == 0:
-            return 0
+            return 0  # light mode not using the simulation index
 
         keys = [int(key) for key in file.keys()]
         return max(keys) + 1
+
+    @staticmethod
+    def __get_light_indexes(input_file, output_file, append):
+        """
+        Get the initial simulation index from the filename.
+
+        Parameters
+        ----------
+        input_file : str
+            Name of the input file to be analyzed.
+        output_file : str
+            Name of the output file to be analyzed.
+        append : bool
+            If True, the results will be appended to the existing files. If
+            False, the files will be overwritten.
+
+        Returns
+        -------
+        int
+            Initial simulation index.
+        """
+        if append:
+            try:
+                with open(input_file, 'r', encoding="utf-8") as f:
+                    idx_i = MonteCarlo.__get_initial_sim_idx(f, light_mode=True)
+                with open(output_file, 'r', encoding="utf-8") as f:
+                    idx_o = MonteCarlo.__get_initial_sim_idx(f, light_mode=True)
+            except OSError: # File not found, return 0
+                idx_i = 0
+                idx_o = 0
+        else:
+            idx_i = 0
+            idx_o = 0
+
+        return idx_i, idx_o
 
     @staticmethod
     def __dict_to_h5(h5_file, path, dic):
