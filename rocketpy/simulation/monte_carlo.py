@@ -5,10 +5,9 @@ from pathlib import Path
 from time import process_time, time
 
 import h5py
-import hdf5plugin
 import numpy as np
 import simplekml
-from multiprocess import Lock, Process, JoinableQueue
+from multiprocess import JoinableQueue, Lock, Process
 from multiprocess.managers import BaseManager
 
 from rocketpy import Function
@@ -170,7 +169,7 @@ class MonteCarlo:
             If True, the results will be appended to the existing files. If
             False, the files will be overwritten. Default is False.
         light_mode : bool, optional
-            If True, tonly variables from the export_list will be saved to
+            If True, only variables from the export_list will be saved to
             the output file as a .txt file. If False, all variables will be
             saved to the output file as a .h5 file. Default is False.
         parallel : bool, optional
@@ -180,9 +179,6 @@ class MonteCarlo:
         -------
         None
         """
-        if append and light_mode is False:
-            raise ValueError("Append mode is not available when light_mode is False.")
-
         # initialize counters
         self.number_of_simulations = number_of_simulations
         self.iteration_count = self.num_of_loaded_sims if append else 0
@@ -194,15 +190,16 @@ class MonteCarlo:
 
         # Run simulations
         if parallel:
-            self._run_in_parallel(append, light_mode=light_mode)
+            self.__run_in_parallel(append, light_mode=light_mode)
         else:
-            self._run_in_serial(append, light_mode=light_mode)
+            self.__run_in_serial(append, light_mode=light_mode)
 
-    def _run_in_serial(self, append, light_mode):
+    def __run_in_serial(self, append, light_mode):
         """
         Runs the monte carlo simulation in serial mode.
 
-        Args:
+        Parameters
+        ----------
             append: bool
                 If True, the results will be appended to the existing files. If
                 False, the files will be overwritten.
@@ -210,6 +207,10 @@ class MonteCarlo:
                 If True, only variables from the export_list will be saved to
                 the output file as a .txt file. If False, all variables will be
                 saved to the output file as a .h5 file.
+                
+        Returns
+        -------
+        None
         """
 
         # Create data files for inputs, outputs and error logging
@@ -224,12 +225,18 @@ class MonteCarlo:
             input_file = h5py.File(self._input_file.with_suffix(".h5"), open_mode)
             output_file = h5py.File(self._output_file.with_suffix(".h5"), open_mode)
             error_file = open(self._error_file, open_mode, encoding="utf-8")
+            
+        idx_i = self.__get_initial_sim_idx(input_file)
+        idx_o = self.__get_initial_sim_idx(output_file)
+        
+        if idx_i != idx_o:
+            raise ValueError("Input and output files are not synchronized. Append mode is not available.")
 
         # Run simulations
         try:
             while self.iteration_count < self.number_of_simulations:
                 self.__run_single_simulation(
-                    self.iteration_count, input_file, output_file, light_mode=light_mode
+                    self.iteration_count + idx_i, input_file, output_file, light_mode=light_mode
                 )
 
         except KeyboardInterrupt:
@@ -247,11 +254,12 @@ class MonteCarlo:
             input_file, output_file, error_file, light_mode=light_mode
         )
 
-    def _run_in_parallel(self, append, light_mode, n_workers=None):
+    def __run_in_parallel(self, append, light_mode, n_workers=None):
         """
         Runs the monte carlo simulation in parallel.
-        
-        Args:
+
+        Parameters
+        ----------
             append: bool
                 If True, the results will be appended to the existing files. If
                 False, the files will be overwritten.
@@ -275,13 +283,12 @@ class MonteCarlo:
             inputs_lock = manager.Lock()
             outputs_lock = manager.Lock()
             errors_lock = manager.Lock()
-            sim_counter = manager.SimCounter()
             queue = manager.JoinableQueue()
-            
+
             # Initialize queue
             for _ in range(self.number_of_simulations):
                 queue.put("RUN")
-            
+
             for _ in range(n_workers):
                 queue.put("STOP")
 
@@ -303,27 +310,34 @@ class MonteCarlo:
                     pass  # initialize file
 
             else:
-                with h5py.File(self._input_file.with_suffix(".h5"), 'w') as _:
-                    pass  # initialize file
-                with h5py.File(self._output_file.with_suffix(".h5"), 'w') as _:
-                    pass  # initialize file
-                
+                # Change file extensions to .h5
                 file_paths["input_file"] = file_paths["input_file"].with_suffix(".h5")
                 file_paths["output_file"] = file_paths["output_file"].with_suffix(".h5")
                 file_paths["error_file"] = file_paths["error_file"].with_suffix(".h5")
                 
+                # Initialize files and get initial simulation index
+                with h5py.File(file_paths["input_file"], open_mode) as f:
+                    idx_i = self.__get_initial_sim_idx(f)
+                with h5py.File(file_paths["output_file"], open_mode) as f:
+                    idx_o = self.__get_initial_sim_idx(f)                
+            
+            if idx_i != idx_o:
+                raise ValueError("Input and output files are not synchronized. Append mode is not available.")
+
             # Initialize error file - always a .txt file
             with open(self._error_file, mode=open_mode) as _:
                 pass  # initialize file
+            
+            # Initialize simulation counter
+            sim_counter = manager.SimCounter(idx_i)
 
-
-            print("Starting monte carlo analysis", end="\r")
+            print("\nStarting monte carlo analysis", end="\r")
             print(f"Number of simulations: {self.number_of_simulations}")
 
             # Creates n_workers processes then starts them
             for _ in range(n_workers):
                 p = Process(
-                    target=self._run_simulation_worker,
+                    target=self.__run_simulation_worker,
                     args=(
                         self.environment,
                         self.rocket,
@@ -352,11 +366,11 @@ class MonteCarlo:
             parallel_end = time()
 
             print("-" * 80 + "\nAll workers joined, simulation complete.")
-            print(f"In total, {sim_counter.get_count()} simulations were performed.")
+            print(f"In total, {sim_counter.get_count() - idx_i} simulations were performed.")
             print("Simulation took", parallel_end - parallel_start, "seconds to run.")
 
     @staticmethod
-    def _run_simulation_worker(
+    def __run_simulation_worker(
         sto_env,
         sto_rocket,
         sto_flight,
@@ -370,8 +384,9 @@ class MonteCarlo:
     ):
         """
         Runs a simulation from a queue.
-        
-        Args:
+
+        Parameters
+        ----------
             worker_no: int
                 Worker number.
             n_sim: int
@@ -400,7 +415,7 @@ class MonteCarlo:
             while True:
                 if queue.get() == "STOP":
                     break
-            
+
                 sim_idx = sim_counter.increment()
                 sim_start = time()
 
@@ -442,12 +457,16 @@ class MonteCarlo:
 
                     # Write flight setting and results to file
                     inputs_lock.acquire()
-                    with open(file_paths["input_file"], mode='a', encoding="utf-8") as f:
+                    with open(
+                        file_paths["input_file"], mode='a', encoding="utf-8"
+                    ) as f:
                         f.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
                     inputs_lock.release()
-                    
+
                     outputs_lock.acquire()
-                    with open(file_paths["output_file"], mode='a', encoding="utf-8") as f:
+                    with open(
+                        file_paths["output_file"], mode='a', encoding="utf-8"
+                    ) as f:
                         f.write(json.dumps(results, cls=RocketPyEncoder) + "\n")
                     outputs_lock.release()
 
@@ -468,12 +487,12 @@ class MonteCarlo:
 
                     inputs_lock.acquire()
                     with h5py.File(file_paths["input_file"], 'a') as h5_file:
-                        MonteCarlo.dict_to_h5(h5_file, '/', export_inputs)
+                        MonteCarlo.__dict_to_h5(h5_file, '/', export_inputs)
                     inputs_lock.release()
 
                     outputs_lock.acquire()
                     with h5py.File(file_paths["output_file"], 'a') as h5_file:
-                        MonteCarlo.dict_to_h5(h5_file, '/', export_outputs)
+                        MonteCarlo.__dict_to_h5(h5_file, '/', export_outputs)
                     outputs_lock.release()
 
                 sim_end = time()
@@ -482,7 +501,7 @@ class MonteCarlo:
                     "-" * 80
                     + f"\nSimulation {sim_idx} took {sim_end - sim_start} seconds to run."
                 )
-                
+
         except Exception as error:
             print(f"Error on iteration {sim_idx}: {error}")
             errors_lock.acquire()
@@ -490,7 +509,7 @@ class MonteCarlo:
                 f.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
             errors_lock.release()
             raise error
-        
+
         finally:
             print("Worker stopped.")
 
@@ -540,8 +559,8 @@ class MonteCarlo:
             export_inputs = {str(sim_idx): input_parameters}
             export_outputs = {str(sim_idx): flight_results}
 
-            self.dict_to_h5(input_file, '/', export_inputs)
-            self.dict_to_h5(output_file, '/', export_outputs)
+            self.__dict_to_h5(input_file, '/', export_inputs)
+            self.__dict_to_h5(output_file, '/', export_outputs)
 
         average_time = (process_time() - self.start_cpu_time) / self.iteration_count
         estimated_time = int(
@@ -1016,28 +1035,58 @@ class MonteCarlo:
         return result
 
     @staticmethod
-    def dict_to_h5(h5_file, path, dic):
+    def __get_initial_sim_idx(file):
+        """
+        Get the initial simulation index from the filename.
+
+        Parameters
+        ----------
+        filename : str
+            Name of the file to be analyzed.
+
+        Returns
+        -------
+        int
+            Initial simulation index.
+        """
+        if len(file.keys()) == 0:
+            return 0
+        
+        keys = [int(key) for key in file.keys()]
+        return max(keys) + 1
+        
+        
+    @staticmethod
+    def __dict_to_h5(h5_file, path, dic):
         """
         ....
         """
         for key, item in dic.items():
-            if isinstance(
-                item, (np.int64, np.float64, int, float)
-            ):
+            if isinstance(item, (np.int64, np.float64, int, float)):
                 data = np.array([[item]])
-                h5_file.create_dataset(path + key, data=data, shape=data.shape, dtype=data.dtype)
+                h5_file.create_dataset(
+                    path + key, data=data, shape=data.shape, dtype=data.dtype
+                )
             elif isinstance(item, np.ndarray):
                 if len(item.shape) < 2:
-                    item = item.reshape(-1, 1) # Ensure it is a column vector
-                h5_file.create_dataset(path + key, data=item, shape=item.shape, dtype=item.dtype)
+                    item = item.reshape(-1, 1)  # Ensure it is a column vector
+                h5_file.create_dataset(
+                    path + key,
+                    data=item,
+                    shape=item.shape,
+                    dtype=item.dtype,
+                )
             elif isinstance(item, (str, bytes)):
-                h5_file.create_dataset(path + key, data=item)
+                h5_file.create_dataset(
+                    path + key,
+                    data=item,
+                )
             elif isinstance(item, Function):
                 raise TypeError(
                     "Function objects should be preprocessed before saving."
                 )
             elif isinstance(item, dict):
-                MonteCarlo.dict_to_h5(h5_file, path + key + '/', item)
+                MonteCarlo.__dict_to_h5(h5_file, path + key + '/', item)
             else:
                 pass  # Implement other types as needed
 
@@ -1054,12 +1103,12 @@ class MonteCarloManager(BaseManager):
 
 
 class SimCounter:
-    def __init__(self):
-        self.count = 0
+    def __init__(self, initial_count):
+        self.count = initial_count
 
     def increment(self) -> int:
         self.count += 1
-        return self.count
+        return self.count - 1
 
     def get_count(self) -> int:
         return self.count
