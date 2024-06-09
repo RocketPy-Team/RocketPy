@@ -1,17 +1,12 @@
-from pathlib import Path
-
 import matplotlib.pyplot as plt
 import numpy as np
 
-from rocketpy.stochastic.post_processing.stochastic_cache import \
-    SimulationCache
+from rocketpy.stochastic.post_processing.stochastic_cache import SimulationCache
 
 
-def compute_maxQ(file_name, batch_path, save, show):
-    cache = SimulationCache(
-        file_name,
-        batch_path,
-    )
+def compute_maxQ(cache, save, show):
+    batch_path = cache.batch_path
+
     dyn_press = cache.read_outputs('dynamic_pressure') / 1000
     maxQarg = np.nanargmax(dyn_press[:, :, 1], axis=1)
     maxQ = dyn_press[np.arange(len(dyn_press)), maxQarg]
@@ -27,20 +22,21 @@ def compute_maxQ(file_name, batch_path, save, show):
     ax.grid()
 
     if save:
-        plt.savefig(batch_path / 'maxQ_distribution.png')
+        plt.savefig(batch_path / "Figures" / 'maxQ_distribution.png')
 
     if show:
         plt.show()
-    plt.show()
 
 
-def run(file_name, batch_path, save, show):
-    compute_maxQ(file_name, batch_path, save, show)
+def run(cache, save, show):
+    compute_maxQ(cache, save, show)
 
 
 if __name__ == '__main__':
-    # import easygui
+    import easygui
 
-    batch_path = Path("mc_simulations/")
+    # configuration
     file_name = 'monte_carlo_class_example'
-    run(file_name, batch_path, save=True, show=True)
+    batch_path = easygui.diropenbox(title="Select the batch path")
+    cache = SimulationCache(file_name, batch_path)
+    run(cache, save=True, show=True)

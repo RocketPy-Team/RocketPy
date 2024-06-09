@@ -1,17 +1,10 @@
-from pathlib import Path
-
 import matplotlib.pyplot as plt
 import numpy as np
 
-from rocketpy.stochastic.post_processing.stochastic_cache import \
-    SimulationCache
+from rocketpy.stochastic.post_processing.stochastic_cache import SimulationCache
 
 
-def compute_apogee(file_name, batch_path):
-    cache = SimulationCache(
-        file_name,
-        batch_path,
-    )
+def compute_apogee(cache):
     apogee = cache.read_outputs('apogee')
 
     mean_apogee = float(np.nanmean(apogee, axis=0))
@@ -36,17 +29,21 @@ def plot_apogee(batch_path, apogee, mean_apogee, save=False, show=True):
     ax.legend()
 
     if save:
-        plt.savefig(batch_path / 'mean_apogee_distribution.png')
+        plt.savefig(batch_path / "Figures" / 'mean_apogee_distribution.png')
     if show:
         plt.show()
 
 
-def run(file_name, batch_path, save, show):
-    apogee, mean_apogee = compute_apogee(file_name, batch_path)
-    plot_apogee(batch_path, apogee, mean_apogee, save=save, show=show)
+def run(cache, save, show):
+    apogee, mean_apogee = compute_apogee(cache)
+    plot_apogee(cache.batch_path, apogee, mean_apogee, save=save, show=show)
 
 
 if __name__ == '__main__':
-    batch_path = Path("mc_simulations/")
+    import easygui
+
+    # configuration
     file_name = 'monte_carlo_class_example'
-    run(file_name, batch_path, save=True, show=True)
+    batch_path = easygui.diropenbox(title="Select the batch path")
+    cache = SimulationCache(file_name, batch_path)
+    run(cache, save=True, show=True)
