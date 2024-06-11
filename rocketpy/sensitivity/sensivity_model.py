@@ -145,9 +145,9 @@ class SensitivityModel:
                  target variables passed at initialization."
             )
         for i, target_variable in enumerate(self.target_variables_names):
-            self.target_variables_info[target_variable][
-                "nominal_value"
-            ] = target_variables_nominal_value[i]
+            self.target_variables_info[target_variable]["nominal_value"] = (
+                target_variables_nominal_value[i]
+            )
 
         self._nominal_target_passed = True
 
