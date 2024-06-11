@@ -7,7 +7,7 @@ from time import process_time, time
 import h5py
 import numpy as np
 import simplekml
-from multiprocess import JoinableQueue, Lock, Process
+from multiprocess import Lock, Process
 from multiprocess.managers import BaseManager
 
 from rocketpy import Function
@@ -296,12 +296,12 @@ class MonteCarlo:
         -------
         None
         """
+        parallel_start = time()
         processes = []
 
         if n_workers is None:
             n_workers = os.cpu_count()
 
-        parallel_start = time()
 
         with MonteCarloManager() as manager:
             # initialize queue
@@ -353,7 +353,7 @@ class MonteCarlo:
                 pass  # initialize file
 
             # Initialize simulation counter
-            sim_counter = manager.SimCounter(idx_i, self.number_of_simulations)
+            sim_counter = manager.SimCounter(idx_i, self.number_of_simulations, parallel_start)
 
             print("\nStarting monte carlo analysis", end="\r")
             print(f"Number of simulations: {self.number_of_simulations}")
@@ -1168,7 +1168,6 @@ class MonteCarloManager(BaseManager):
     def __init__(self):
         super().__init__()
         self.register('Lock', Lock)
-        self.register('JoinableQueue', JoinableQueue)
         self.register('SimCounter', SimCounter)
         self.register('StochasticEnvironment', StochasticEnvironment)
         self.register('StochasticRocket', StochasticRocket)
@@ -1176,11 +1175,11 @@ class MonteCarloManager(BaseManager):
 
 
 class SimCounter:
-    def __init__(self, initial_count, n_simulations):
+    def __init__(self, initial_count, n_simulations, parallel_start):
         self.count = initial_count
         self.n_simulations = n_simulations
         self._last_print_len = 0  # used to print on the same line
-        self.initial_time = time()
+        self.initial_time = parallel_start
 
     def increment(self):
         if self.count >= self.n_simulations:
