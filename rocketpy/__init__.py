@@ -37,6 +37,7 @@ from .rocket import (
     Tail,
     TrapezoidalFins,
 )
+from .sensitivity import SensitivityModel
 from .simulation import Flight, MonteCarlo
 from .stochastic import (
     StochasticEllipticalFins,
@@ -49,5 +50,4 @@ from .stochastic import (
     StochasticTail,
     StochasticTrapezoidalFins,
 )
-from .sensitivity import SensitivityModel
 from .tools import load_monte_carlo_data
