@@ -1,6 +1,7 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from scipy.stats import norm
+
 from ..tools import check_requirement_version, import_optional_dependency
 
 
@@ -8,7 +9,7 @@ class SensitivityModel:
     """Performs a 'local variance based first-order
     sensitivity analysis' considering independent input parameters.
 
-    The core reference for global variance based sensitivity analysis is
+    The main reference for global variance based sensitivity analysis is
     [1]. Our method implements a local version that only considers first
     order terms, which correspond to linear terms. Albeit the flight
     function is nonlinear, the linear hypothesis might be adequate when
@@ -19,7 +20,9 @@ class SensitivityModel:
 
     References
     ----------
-    [1] Sobol, Ilya M. "Global sensitivity indices for nonlinear mathematical models and their Monte Carlo estimates." Mathematics and computers in simulation 55.1-3 (2001): 271-280.
+    [1] Sobol, Ilya M. "Global sensitivity indices for nonlinear mathematical
+    models and their Monte Carlo estimates." Mathematics and computers
+    in simulation 55.1-3 (2001): 271-280.
     """
 
     def __init__(
@@ -27,6 +30,23 @@ class SensitivityModel:
         parameters_names,
         target_variables_names,
     ):
+        """Initializes sensitivity model
+
+        Parameters
+        ----------
+        parameter_names: list[str]
+            A list containing the names of the parameters used in the
+            analysis. Note that the order is important and must match the
+            order passed in the parameter data matrix.
+        target_variables_names: list[str]
+            A list containing the names of the target variables used in the
+            analysis. Note that the order is important and must match the
+            order passed in the target variables data matrix.
+
+        Returns
+        -------
+        None
+        """
         self.__check_requirements()
         self.n_parameters = len(parameters_names)
         self.parameters_names = parameters_names
@@ -72,24 +92,29 @@ class SensitivityModel:
         Parameters
         ----------
         parameters_nominal_mean : np.array
-            An array contaning the nominal mean for parameters in the
+            An array containing the nominal mean for parameters in the
             order specified in parameters names at initialization
         parameters_nominal_sd : np.array
-            An array contaning the nominal standard deviation for
+            An array containing the nominal standard deviation for
             parameters in the order specified in parameters names at
             initialization
+
+        Returns
+        -------
+        None
         """
         if len(parameters_nominal_mean) != self.n_parameters:
             raise ValueError(
-                "Nominal mean array length does not match number of parameters passed at initilization."
+                "Nominal mean array length does not match number of \
+                 parameters passed at initialization."
             )
         if len(parameters_nominal_sd) != self.n_parameters:
             raise ValueError(
-                "Nominal sd array length does not match number of parameters passed at initilization."
+                "Nominal sd array length does not match number of parameters \
+                 passed at initialization."
             )
 
-        for i in range(self.n_parameters):
-            parameter = self.parameters_names[i]
+        for i, parameter in enumerate(self.parameters_names):
             self.parameters_info[parameter]["nominal_mean"] = parameters_nominal_mean[i]
             self.parameters_info[parameter]["nominal_sd"] = parameters_nominal_sd[i]
 
@@ -106,19 +131,23 @@ class SensitivityModel:
         Parameters
         ----------
         target_variables_nominal_value: np.array
-            An array contaning the nominal mean for target variables in
+            An array containing the nominal mean for target variables in
             the order specified in target variables names at
             initialization
+
+        Returns
+        -------
+        None
         """
         if len(target_variables_nominal_value) != self.n_target_variables:
             raise ValueError(
-                "Target variables array length does not match number of target variables passed at initilization."
+                "Target variables array length does not match number of \
+                 target variables passed at initialization."
             )
-        for i in range(self.n_target_variables):
-            target_variable = self.target_variables_names[i]
-            self.target_variables_info[target_variable]["nominal_value"] = (
-                target_variables_nominal_value[i]
-            )
+        for i, target_variable in enumerate(self.target_variables_names):
+            self.target_variables_info[target_variable][
+                "nominal_value"
+            ] = target_variables_nominal_value[i]
 
         self._nominal_target_passed = True
 
@@ -136,13 +165,12 @@ class SensitivityModel:
             Data matrix whose columns correspond to parameters values
             ordered as passed in initialization
 
+        Returns
+        -------
+        None
         """
-        if parameters_matrix.shape[1] != self.n_parameters:
-            raise ValueError(
-                "Number of columns (parameters) does not match number of parameters passed at initialization."
-            )
-        for i in range(self.n_parameters):
-            parameter = self.parameters_names[i]
+
+        for i, parameter in enumerate(self.parameters_names):
             self.parameters_info[parameter]["nominal_mean"] = np.mean(
                 parameters_matrix[:, i]
             )
@@ -165,24 +193,18 @@ class SensitivityModel:
             correspond to target variable values ordered as passed in
             initialization
 
+        Returns
+        -------
+        None
         """
         if target_data.ndim == 1:
-            if self.n_target_variables > 1:
-                raise ValueError(
-                    "Single target variable passed but more than one target variable was passed at initialization."
-                )
             target_variable = self.target_variables_names[0]
             self.target_variables_info[target_variable]["nominal_value"] = np.mean(
                 target_data[:]
             )
 
         else:
-            if target_data.shape[1] != self.n_target_variables:
-                raise ValueError(
-                    "Number of columns (variables) does not match number of target variables passed at initilization."
-                )
-            for i in range(self.n_target_variables):
-                target_variable = self.target_variables_names[i]
+            for i, target_variable in enumerate(self.target_variables_names):
                 self.target_variables_info[target_variable]["nominal_value"] = np.mean(
                     target_data[:, i]
                 )
@@ -201,11 +223,14 @@ class SensitivityModel:
         parameters_matrix : np.matrix
             Data matrix whose columns correspond to parameters values
             ordered as passed in initialization
-
         target_data : np.array | np.matrix
             Data matrix or array. In the case of a matrix, the columns
             correspond to target variable values ordered as passed in
             initialization
+
+        Returns
+        -------
+        None
         """
         # imports statsmodels for OLS method
         sm = import_optional_dependency("statsmodels.api")
@@ -225,8 +250,7 @@ class SensitivityModel:
         # Estimation setup
         parameters_mean = np.empty(self.n_parameters)
         parameters_sd = np.empty(self.n_parameters)
-        for i in range(self.n_parameters):
-            parameter = self.parameters_names[i]
+        for i, parameter in enumerate(self.parameters_names):
             parameters_mean[i] = self.parameters_info[parameter]["nominal_mean"]
             parameters_sd[i] = self.parameters_info[parameter]["nominal_sd"]
 
@@ -241,8 +265,7 @@ class SensitivityModel:
             target_data = target_data.reshape(self.number_of_samples, 1)
 
         # Estimation
-        for i in range(self.n_target_variables):
-            target_variable = self.target_variables_names[i]
+        for i, target_variable in enumerate(self.target_variables_names):
             nominal_value = self.target_variables_info[target_variable]["nominal_value"]
             Y = np.array(target_data[:, i] - nominal_value)
             ols_model = sm.OLS(Y, X)
@@ -253,8 +276,7 @@ class SensitivityModel:
             beta = fitted_model.params
             sd_eps = fitted_model.scale
             var_Y = sd_eps**2
-            for k in range(self.n_parameters):
-                parameter = self.parameters_names[k]
+            for k, parameter in enumerate(self.parameters_names):
                 sensitivity = np.power(beta[k], 2) * np.power(parameters_sd[k], 2)
                 self.target_variables_info[target_variable]["sensitivity"][
                     parameter
@@ -264,8 +286,7 @@ class SensitivityModel:
             self.target_variables_info[target_variable]["var"] = var_Y
             self.target_variables_info[target_variable]["sd"] = np.sqrt(var_Y)
 
-            for k in range(self.n_parameters):
-                parameter = self.parameters_names[k]
+            for k, parameter in enumerate(self.parameters_names):
                 self.target_variables_info[target_variable]["sensitivity"][
                     parameter
                 ] /= var_Y
@@ -276,13 +297,28 @@ class SensitivityModel:
         return
 
     def plot(self, target_variable="all"):
+        """Creates barplot showing the sensitivity of the target_variable due
+        to parameters
+
+        Parameters
+        ----------
+        target_variable : str, optional
+            Name of the target variable used to show sensitivity. It can also
+            be "all", in which case a plot is created for each target variable
+            in which the model was fitted. The default is "all".
+
+        Returns
+        -------
+        None
+        """
         self.__check_if_fitted()
 
         if (target_variable not in self.target_variables_names) and (
             target_variable != "all"
         ):
             raise ValueError(
-                f"Target variable {target_variable} was not listed in initialization!"
+                f"Target variable {target_variable} was not listed in \
+                  initialization!"
             )
 
         # Parameters bars are blue colored
@@ -347,6 +383,10 @@ class SensitivityModel:
             Number of decimal digits printed on tables, by default 4
         alpha: float, optional
             Significance level used for prediction intervals, by default 0.95
+
+        Returns
+        -------
+        None
         """
 
         self.__check_if_fitted()
@@ -455,31 +495,44 @@ class SensitivityModel:
             correspond to target variable values ordered as passed in
             initialization
 
+        Returns
+        -------
+        None
         """
         if parameters_matrix.shape[1] != self.n_parameters:
             raise ValueError(
-                "Number of columns (parameters) does not match number of parameters passed at initialization."
+                "Number of columns (parameters) does not match number of \
+                 parameters passed at initialization."
             )
         if target_data.ndim == 1:
             n_samples_y = len(target_data)
             if self.n_target_variables > 1:
                 raise ValueError(
-                    "Single target variable passed but more than one target variable was passed at initialization."
+                    "Single target variable passed but more than one target \
+                    variable was passed at initialization."
                 )
         else:
             n_samples_y = target_data.shape[0]
             if target_data.shape[1] != self.n_target_variables:
                 raise ValueError(
-                    "Number of columns (variables) does not match number of target variables passed at initilization."
+                    "Number of columns (variables) does not match number of \
+                     target variables passed at initialization."
                 )
         if n_samples_y != parameters_matrix.shape[0]:
             raise ValueError(
-                "Number of samples does not match between parameter matrix and target data."
+                "Number of samples does not match between parameter matrix \
+                 and target data."
             )
 
         return
 
     def __check_if_fitted(self):
+        """Checks if model is fitted
+
+        Returns
+        -------
+        None
+        """
         if not self._fitted:
             raise Exception("SensitivityModel must be fitted!")
         return
