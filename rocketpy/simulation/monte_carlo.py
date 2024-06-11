@@ -327,9 +327,9 @@ class MonteCarlo:
                 )
                 # open files in write/append mode
                 with open(self._input_file, mode=open_mode) as f:
-                    pass # initialize file
+                    pass  # initialize file
                 with open(self._output_file, mode=open_mode) as f:
-                    pass # initialize file
+                    pass  # initialize file
 
             else:
                 # Change file extensions to .h5
@@ -353,16 +353,7 @@ class MonteCarlo:
                 pass  # initialize file
 
             # Initialize simulation counter
-            sim_counter = manager.SimCounter(idx_i)
-            
-            queue = manager.JoinableQueue()
-
-            # Initialize queue
-            for _ in range(self.number_of_simulations - sim_counter.get_count()):
-                queue.put("RUN")
-
-            for _ in range(n_workers):
-                queue.put("STOP")
+            sim_counter = manager.SimCounter(idx_i, self.number_of_simulations)
 
             print("\nStarting monte carlo analysis", end="\r")
             print(f"Number of simulations: {self.number_of_simulations}")
@@ -379,7 +370,6 @@ class MonteCarlo:
                         inputs_lock,
                         outputs_lock,
                         errors_lock,
-                        queue,
                         light_mode,
                         file_paths,
                     ),
@@ -413,12 +403,11 @@ class MonteCarlo:
         inputs_lock,
         outputs_lock,
         errors_lock,
-        queue,
         light_mode,
         file_paths,
     ):
         """
-        Runs a simulation from a queue.
+        Worker code to execute a simulation in a process.
 
         Parameters
         ----------
@@ -452,11 +441,9 @@ class MonteCarlo:
         """
         try:
             while True:
-                if queue.get() == "STOP":
-                    break
-
                 sim_idx = sim_counter.increment()
-                sim_start = time()
+                if sim_idx == -1:
+                    break
 
                 env = sto_env.create_object()
                 rocket = sto_rocket.create_object()
@@ -534,12 +521,19 @@ class MonteCarlo:
                         MonteCarlo.__dict_to_h5(h5_file, '/', export_outputs)
                     outputs_lock.release()
 
-                sim_end = time()
+                average_time = (
+                    time() - sim_counter.get_intial_time()
+                ) / sim_counter.get_count()
+                estimated_time = int(
+                    (sim_counter.get_n_simulations() - sim_counter.get_count())
+                    * average_time
+                )
 
-                print(
-                    f"Current iteration: {sim_idx} | "
-                    f"Time of Iteration {sim_end - sim_start:.2f} seconds to run.",
-                    end="\n",
+                sim_counter.reprint(
+                    f"Current iteration: {sim_idx:06d} | "
+                    f"Average Time per Iteration: {average_time:.3f} s | "
+                    f"Estimated time left: {estimated_time} s",
+                    end="\r",
                     flush=True,
                 )
 
@@ -1126,7 +1120,7 @@ class MonteCarlo:
                     idx_i = MonteCarlo.__get_initial_sim_idx(f, light_mode=True)
                 with open(output_file, 'r', encoding="utf-8") as f:
                     idx_o = MonteCarlo.__get_initial_sim_idx(f, light_mode=True)
-            except OSError: # File not found, return 0
+            except OSError:  # File not found, return 0
                 idx_i = 0
                 idx_o = 0
         else:
@@ -1182,12 +1176,51 @@ class MonteCarloManager(BaseManager):
 
 
 class SimCounter:
-    def __init__(self, initial_count):
+    def __init__(self, initial_count, n_simulations):
         self.count = initial_count
+        self.n_simulations = n_simulations
+        self._last_print_len = 0  # used to print on the same line
+        self.initial_time = time()
 
-    def increment(self) -> int:
+    def increment(self):
+        if self.count >= self.n_simulations:
+            return -1
+
         self.count += 1
         return self.count - 1
 
-    def get_count(self) -> int:
+    def get_count(self):
         return self.count
+
+    def get_n_simulations(self):
+        return self.n_simulations
+
+    def get_intial_time(self):
+        return self.initial_time
+
+    def reprint(self, msg, end="\n", flush=False):
+        """Prints a message on the same line as the previous one and replaces
+        the previous message with the new one, deleting the extra characters
+        from the previous message.
+
+        Parameters
+        ----------
+        msg : str
+            Message to be printed.
+        end : str, optional
+            String appended after the message. Default is a new line.
+        flush : bool, optional
+            If True, the output is flushed. Default is False.
+
+        Returns
+        -------
+        None
+        """
+
+        len_msg = len(msg)
+        if len_msg < self._last_print_len:
+            msg += " " * (self._last_print_len - len_msg)
+        else:
+            self._last_print_len = len_msg
+
+        print(msg, end=end, flush=flush)
