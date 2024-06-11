@@ -9,6 +9,7 @@ between minor versions if necessary, although this will be always avoided.
 import functools
 import importlib
 import importlib.metadata
+import json
 import math
 import re
 import time
@@ -19,7 +20,6 @@ import pytz
 from cftime import num2pydate
 from matplotlib.patches import Ellipse
 from packaging import version as packaging_version
-import json
 
 # Mapping of module name and the name of the package that should be installed
 INSTALL_MAPPING = {"IPython": "ipython"}
@@ -558,7 +558,7 @@ def load_monte_carlo_data(
     target_variables_list,
 ):
     """Reads MonteCarlo simulation data file and builds parameters and flight
-    variables matrices from specified
+    variables matrices
 
     Parameters
     ----------
@@ -566,34 +566,30 @@ def load_monte_carlo_data(
         Input file exported by MonteCarlo class. Each line is a
         sample unit described by a dictionary where keys are parameters names
         and the values are the sampled parameters values.
-
     output_filename : str
         Output file exported by MonteCarlo.simulate function. Each line is a
         sample unit described by a dictionary where keys are target variables
         names and the values are the obtained values from the flight simulation.
-
     parameters_list : list[str]
         List of parameters whose values will be extracted.
-
     target_variables_list : list[str]
         List of target variables whose values will be extracted.
 
     Returns
     -------
     parameters_matrix: np.matrix
-        Numpy matrix contaning input parameters values. Each column correspond
+        Numpy matrix containing input parameters values. Each column correspond
         to a parameter in the same order specified by 'parameters_list' input.
-
     target_variables_matrix: np.matrix
-        Numpy matrix contaning target variables values. Each column correspond
+        Numpy matrix containing target variables values. Each column correspond
         to a target variable in the same order specified by 'target_variables_list'
         input.
     """
     number_of_samples_parameters = 0
     number_of_samples_variables = 0
 
-    # Auxiliary function that unnests dictionary
-    def unnest_dict(x):
+    # Auxiliary function that flattens dictionary
+    def flatten_dict(x):
         new_dict = {}
         for key, value in x.items():
             # the nested dictionary is inside a list
@@ -601,7 +597,7 @@ def load_monte_carlo_data(
                 # sometimes the object inside the list is another list
                 # we must skip these cases
                 if isinstance(value[0], dict):
-                    inner_dict = unnest_dict(value[0])
+                    inner_dict = flatten_dict(value[0])
                     inner_dict = {
                         key + "_" + inner_key: inner_value
                         for inner_key, inner_value in inner_dict.items()
@@ -618,14 +614,14 @@ def load_monte_carlo_data(
             number_of_samples_parameters += 1
 
             parameters_dict = json.loads(line)
-            parameters_dict = unnest_dict(parameters_dict)
+            parameters_dict = flatten_dict(parameters_dict)
             for parameter in parameters_list:
                 try:
                     value = parameters_dict[parameter]
-                except Exception:
-                    raise Exception(
+                except KeyError as e:
+                    raise KeyError(
                         f"Parameter {parameter} was not found in {input_filename}!"
-                    )
+                    ) from e
                 parameters_samples[parameter].append(value)
 
     target_variables_samples = {variable: [] for variable in target_variables_list}
@@ -636,10 +632,10 @@ def load_monte_carlo_data(
             for variable in target_variables_list:
                 try:
                     value = target_variables_dict[variable]
-                except Exception:
-                    raise Exception(
+                except KeyError as e:
+                    raise KeyError(
                         f"Variable {variable} was not found in {output_filename}!"
-                    )
+                    ) from e
                 target_variables_samples[variable].append(value)
 
     if number_of_samples_parameters != number_of_samples_variables:
@@ -653,12 +649,10 @@ def load_monte_carlo_data(
     parameters_matrix = np.empty((n_samples, n_parameters))
     target_variables_matrix = np.empty((n_samples, n_variables))
 
-    for i in range(n_parameters):
-        parameter = parameters_list[i]
+    for i, parameter in enumerate(parameters_list):
         parameters_matrix[:, i] = parameters_samples[parameter]
 
-    for i in range(n_variables):
-        target_variable = target_variables_list[i]
+    for i, target_variable in enumerate(target_variables_list):
         target_variables_matrix[:, i] = target_variables_samples[target_variable]
 
     return parameters_matrix, target_variables_matrix
