@@ -1,13 +1,15 @@
 """Defines the MonteCarlo class."""
+import ctypes
 import json
 import os
+import pickle
 from pathlib import Path
 from time import process_time, time
 
 import h5py
 import numpy as np
 import simplekml
-from multiprocess import Lock, Process
+from multiprocess import Array, Lock, Process, Semaphore, Event
 from multiprocess.managers import BaseManager
 
 from rocketpy import Function
@@ -27,7 +29,6 @@ from rocketpy.tools import (
     generate_monte_carlo_ellipses_coordinates,
 )
 
-# TODO: Let Functions and Flights be json serializable
 # TODO: Create evolution plots to analyze convergence
 
 
@@ -84,6 +85,7 @@ class MonteCarlo:
         flight,
         export_list=None,
         batch_path=None,
+        export_sample_time=0.1,
     ):
         """
         Initialize a MonteCarlo object.
@@ -111,6 +113,8 @@ class MonteCarlo:
         batch_path : str, optional
             Path to the batch folder to be used in the simulation. Export file
             will be saved in this folder. Default is None.
+        export_sample_time : float, optional
+            Sample time to downsample the arrays in seconds. Default is 0.1.
 
         Returns
         -------
@@ -132,6 +136,7 @@ class MonteCarlo:
         self.plots = _MonteCarloPlots(self)
         self._inputs_dict = {}
         self._last_print_len = 0  # used to print on the same line
+        self.export_sample_time = export_sample_time
 
         if batch_path is None:
             self.batch_path = Path.cwd()
@@ -302,12 +307,35 @@ class MonteCarlo:
         if n_workers is None:
             n_workers = os.cpu_count()
 
+        # get the size of the serialized dictionary
+        inputs_size, results_size = self.__get_export_size(light_mode)
+
+        # add safety margin to the buffer size
+        inputs_size += 1024
+        results_size += 1024
+
+        # initialize shared memory buffer
+        shared_inputs_buffer = Array(ctypes.c_ubyte, inputs_size * n_workers)
+        shared_results_buffer = Array(ctypes.c_ubyte, results_size * n_workers)
 
         with MonteCarloManager() as manager:
             # initialize queue
             inputs_lock = manager.Lock()
             outputs_lock = manager.Lock()
             errors_lock = manager.Lock()
+
+            go_write_inputs = [manager.Semaphore(value=1) for _ in range(n_workers)]
+            go_read_inputs = [manager.Semaphore(value=1) for _ in range(n_workers)]
+            
+            go_write_results = [manager.Semaphore(value=1) for _ in range(n_workers)]
+            go_read_results = [manager.Semaphore(value=1) for _ in range(n_workers)]
+
+            # acquire all read semaphores to make sure the readers will wait for data
+            for sem in go_read_inputs:
+                sem.acquire()
+
+            for sem in go_read_results:
+                sem.acquire()
 
             # Initialize write file
             open_mode = "a" if append else "w"
@@ -353,16 +381,19 @@ class MonteCarlo:
                 pass  # initialize file
 
             # Initialize simulation counter
-            sim_counter = manager.SimCounter(idx_i, self.number_of_simulations, parallel_start)
+            sim_counter = manager.SimCounter(
+                idx_i, self.number_of_simulations, parallel_start
+            )
 
             print("\nStarting monte carlo analysis", end="\r")
             print(f"Number of simulations: {self.number_of_simulations}")
 
             # Creates n_workers processes then starts them
-            for _ in range(n_workers):
+            for i in range(n_workers):
                 p = Process(
                     target=self.__run_simulation_worker,
                     args=(
+                        i,
                         self.environment,
                         self.rocket,
                         self.flight,
@@ -370,8 +401,16 @@ class MonteCarlo:
                         inputs_lock,
                         outputs_lock,
                         errors_lock,
+                        go_write_inputs[i],
+                        go_write_results[i],
+                        go_read_inputs[i],
+                        go_read_results[i],
                         light_mode,
                         file_paths,
+                        shared_inputs_buffer,
+                        shared_results_buffer,
+                        inputs_size,
+                        results_size,
                     ),
                 )
                 processes.append(p)
@@ -379,10 +418,53 @@ class MonteCarlo:
             # Starts all the processes
             for p in processes:
                 p.start()
+                
+            # create writer workers
+            input_writer_stop_event = manager.Event()
+            results_writer_stop_event = manager.Event()
+            
+            input_writer = Process(
+                target=self._write_data_worker,
+                args=(
+                    file_paths["input_file"],
+                    go_write_inputs,
+                    go_read_inputs,
+                    shared_inputs_buffer,
+                    inputs_size,
+                    input_writer_stop_event,
+                ),
+            )
+            
+            results_writer = Process(
+                target=self._write_data_worker,
+                args=(
+                    file_paths["output_file"],
+                    go_write_results,
+                    go_read_results,
+                    shared_results_buffer,
+                    results_size,
+                    results_writer_stop_event,
+                ),
+            )
+            
+            # start the writer workers
+            input_writer.start()
+            results_writer.start()
 
             # Joins all the processes
             for p in processes:
                 p.join()
+            
+            print("All workers joined, simulation complete.")
+            print("Joining writer workers.")
+            # stop the writer workers
+            input_writer_stop_event.set()
+            results_writer_stop_event.set()
+            
+            print("Waiting for writer workers to join.")
+            # join the writer workers
+            input_writer.join()
+            results_writer.join()
 
             self.number_of_simulations = sim_counter.get_count()
 
@@ -396,6 +478,7 @@ class MonteCarlo:
 
     @staticmethod
     def __run_simulation_worker(
+        worker_no,
         sto_env,
         sto_rocket,
         sto_flight,
@@ -403,42 +486,65 @@ class MonteCarlo:
         inputs_lock,
         outputs_lock,
         errors_lock,
+        go_write_inputs,
+        go_write_results,
+        go_read_inputs,
+        go_read_results,
         light_mode,
         file_paths,
+        shared_inputs_buffer,
+        shared_results_buffer,
+        inputs_size,
+        results_size,
     ):
         """
-        Worker code to execute a simulation in a process.
+        Runs a single simulation worker.
 
         Parameters
         ----------
-            worker_no: int
-                Worker number.
-            n_sim: int
-                Number of simulations to be run.
-            n_workers: int
-                Number of workers.
-            sto_env: StochasticEnvironment
-                Stochastic environment object to be iterated over.
-            sto_rocket: StochasticRocket
-                Stochastic rocket object to be iterated over.
-            sto_flight: StochasticFlight
-                Stochastic flight object to be iterated over.
-            sim_counter: SimCounter
-                Counter for the simulations.
-            write_lock: Lock
-                Lock to write to file.
-            light_mode: bool
-                If True, only variables from the export_list will be saved to
-                the output file as a .txt file. If False, all variables will be
-                saved to the output file as a .h5 file.
-            file_paths: dict
-                Dictionary containing the paths to the input, output, and error
-                files, and the export_list.
+        worker_no : int
+            Worker number.
+        sto_env : StochasticEnvironment
+            Stochastic environment object.
+        sto_rocket : StochasticRocket
+            Stochastic rocket object.
+        sto_flight : StochasticFlight
+            Stochastic flight object.
+        sim_counter : SimCounter
+            Simulation counter object.
+        inputs_lock : Lock
+            Lock object for inputs file.
+        outputs_lock : Lock
+            Lock object for outputs file.
+        errors_lock : Lock
+            Lock object for errors file.
+        buffer_lock : Lock
+            Lock object for shared memory buffer.
+        light_mode : bool
+            If True, only variables from the export_list will be saved to
+            the output file as a .txt file. If False, all variables will be
+            saved to the output file as a .h5 file.
+        file_paths : dict
+            Dictionary with the file paths.
+        shared_inputs_buffer : Array
+            Shared memory buffer for inputs.
+        shared_results_buffer : Array
+            Shared memory buffer for results.
+        inputs_size : int
+            Size of the serialized dictionary.
+        results_size : int
+            Size of the serialized dictionary.
 
         Returns
         -------
         None
         """
+        # get the size of the serialized dictionary
+        begin_mem_i = worker_no * inputs_size
+        end_mem_i = (worker_no + 1) * inputs_size
+        begin_mem_r = worker_no * results_size
+        end_mem_r = (worker_no + 1) * results_size
+
         try:
             while True:
                 sim_idx = sim_counter.increment()
@@ -463,63 +569,94 @@ class MonteCarlo:
                     terminate_on_apogee=terminate_on_apogee,
                 )
 
-                # Export to file
-                if light_mode:
-                    inputs_dict = dict(
-                        item
-                        for d in [
-                            sto_env.last_rnd_dict,
-                            sto_rocket.last_rnd_dict,
-                            sto_flight.last_rnd_dict,
-                        ]
-                        for item in d.items()
-                    )
+                # # Export to file
+                # if light_mode:
+                #     inputs_dict = dict(
+                #         item
+                #         for d in [
+                #             sto_env.last_rnd_dict,
+                #             sto_rocket.last_rnd_dict,
+                #             sto_flight.last_rnd_dict,
+                #         ]
+                #         for item in d.items()
+                #     )
 
-                    # Construct the dict with the results from the flight
-                    results = {
-                        export_item: getattr(flight, export_item)
-                        for export_item in file_paths["export_list"]
-                    }
+                #     # Construct the dict with the results from the flight
+                #     results = {
+                #         export_item: getattr(flight, export_item)
+                #         for export_item in file_paths["export_list"]
+                #     }
 
-                    # Write flight setting and results to file
-                    inputs_lock.acquire()
-                    with open(
-                        file_paths["input_file"], mode='a', encoding="utf-8"
-                    ) as f:
-                        f.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
-                    inputs_lock.release()
+                #     # Write flight setting and results to file
+                #     inputs_lock.acquire()
+                #     with open(
+                #         file_paths["input_file"], mode='a', encoding="utf-8"
+                #     ) as f:
+                #         f.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
+                #     inputs_lock.release()
 
-                    outputs_lock.acquire()
-                    with open(
-                        file_paths["output_file"], mode='a', encoding="utf-8"
-                    ) as f:
-                        f.write(json.dumps(results, cls=RocketPyEncoder) + "\n")
-                    outputs_lock.release()
+                #     outputs_lock.acquire()
+                #     with open(
+                #         file_paths["output_file"], mode='a', encoding="utf-8"
+                #     ) as f:
+                #         f.write(json.dumps(results, cls=RocketPyEncoder) + "\n")
+                #     outputs_lock.release()
 
-                else:
-                    input_parameters = flightv1_serializer(
-                        flight, f"Simulation_{sim_idx}", return_dict=True
-                    )
+                # else:
+                input_parameters = flightv1_serializer(
+                    flight, f"Simulation_{sim_idx}", return_dict=True
+                )
 
-                    flight_results = MonteCarlo.inspect_object_attributes(flight)
+                flight_results = MonteCarlo.inspect_object_attributes(flight)
 
-                    export_inputs = {
-                        str(sim_idx): input_parameters,
-                    }
+                export_inputs = {
+                    str(sim_idx): input_parameters,
+                }
 
-                    export_outputs = {
-                        str(sim_idx): flight_results,
-                    }
+                export_outputs = {
+                    str(sim_idx): flight_results,
+                }
 
-                    inputs_lock.acquire()
-                    with h5py.File(file_paths["input_file"], 'a') as h5_file:
-                        MonteCarlo.__dict_to_h5(h5_file, '/', export_inputs)
-                    inputs_lock.release()
+                # placeholder logic, needs to be implemented
+                export_inputs_downsampled = MonteCarlo.__downsample_recursive(
+                    data_dict=export_inputs,
+                    max_time=flight.max_time,
+                    sample_time=0.1,
+                )
+                export_outputs_downsampled = MonteCarlo.__downsample_recursive(
+                    data_dict=export_outputs,
+                    max_time=flight.max_time,
+                    sample_time=0.1,
+                )
 
-                    outputs_lock.acquire()
-                    with h5py.File(file_paths["output_file"], 'a') as h5_file:
-                        MonteCarlo.__dict_to_h5(h5_file, '/', export_outputs)
-                    outputs_lock.release()
+                # convert to bytes
+                export_inputs_bytes = pickle.dumps(export_inputs_downsampled)
+                export_outputs_bytes = pickle.dumps(export_outputs_downsampled)
+
+                # add padding to make sure the byte stream fits in the allocated space
+                export_inputs_bytes = export_inputs_bytes.ljust(inputs_size, b'\0')
+                export_outputs_bytes = export_outputs_bytes.ljust(
+                    results_size, b'\0'
+                )
+
+                # write to shared memory
+                go_write_inputs.acquire()
+                shared_inputs_buffer[begin_mem_i:end_mem_i] = export_inputs_bytes
+                go_read_inputs.release()
+                
+                go_write_results.acquire()
+                shared_results_buffer[begin_mem_r:end_mem_r] = export_outputs_bytes
+                go_read_results.release()
+
+                    # inputs_lock.acquire()
+                    # with h5py.File(file_paths["input_file"], 'a') as h5_file:
+                    #     MonteCarlo.__dict_to_h5(h5_file, '/', export_inputs)
+                    # inputs_lock.release()
+
+                    # outputs_lock.acquire()
+                    # with h5py.File(file_paths["output_file"], 'a') as h5_file:
+                    #     MonteCarlo.__dict_to_h5(h5_file, '/', export_outputs)
+                    # outputs_lock.release()
 
                 average_time = (
                     time() - sim_counter.get_intial_time()
@@ -533,17 +670,17 @@ class MonteCarlo:
                     f"Current iteration: {sim_idx:06d} | "
                     f"Average Time per Iteration: {average_time:.3f} s | "
                     f"Estimated time left: {estimated_time} s",
-                    end="\r",
-                    flush=True,
+                    end="\n",
+                    flush=False,
                 )
 
-        except Exception as error:
-            print(f"Error on iteration {sim_idx}: {error}")
-            errors_lock.acquire()
-            with open(file_paths["error_file"], mode='a', encoding="utf-8") as f:
-                f.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
-            errors_lock.release()
-            raise error
+        # except Exception as error:
+        #     print(f"Error on iteration {sim_idx}: {error}")
+        #     errors_lock.acquire()
+        #     with open(file_paths["error_file"], mode='a', encoding="utf-8") as f:
+        #         f.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
+        #     errors_lock.release()
+        #     raise error
 
         finally:
             print("Worker stopped.")
@@ -608,6 +745,153 @@ class MonteCarlo:
             end="\r",
             flush=True,
         )
+
+    @staticmethod
+    def _write_data_worker(
+        file_path,
+        go_write_semaphores,
+        go_read_semaphores,
+        shared_buffer,
+        data_size,
+        stop_event,
+    ):
+        with h5py.File(file_path, 'a') as h5_file:
+            # loop until the stop event is set
+            while not stop_event.is_set():
+                # loop through all the semaphores
+                for i, sem in enumerate(go_read_semaphores):
+                    # try to acquire the semaphore, skip if it is already acquired
+                    if sem.acquire(timeout=1e-3):
+                        # retrieve the data from the shared buffer
+                        data = shared_buffer[i * data_size : (i + 1) * data_size]
+                        data_dict = pickle.loads(bytes(data))
+
+                        # write data to the file
+                        MonteCarlo.__dict_to_h5(h5_file, '/', data_dict)
+
+                        # release the write semaphore // tell worker it can write again
+                        go_write_semaphores[i].release()
+                        # print(f"Wrote data to file. Buffer pos: {i}")
+                        
+            # loop through all the semaphores to write the remaining data
+            for i, sem in enumerate(go_read_semaphores):
+                # try to acquire the semaphore, skip if it is already acquired
+                if sem.acquire(timeout=1e-3):
+                    # retrieve the data from the shared buffer
+                    data = shared_buffer[i * data_size : (i + 1) * data_size]
+                    data_dict = pickle.loads(bytes(data))
+
+                    # write data to the file
+                    MonteCarlo.__dict_to_h5(h5_file, '/', data_dict)
+
+                    # release the write semaphore // tell worker it can write again
+                    go_write_semaphores[i].release()
+
+    @staticmethod
+    def __downsample_recursive(data_dict, max_time, sample_time):
+        """
+        Given a dictionary, this function will downsample all arrays in the
+        dictionary to the sample_time, filling the arrays up to the max_time.
+        The function is recursive, so it will go through all the nested
+        dictionaries.
+
+        Parameters
+        ----------
+        data_dict : dict
+            Dictionary to be downsampled.
+        max_time : float
+            Maximum time to fill the arrays.
+        sample_time : float
+            Sample time to downsample the arrays.
+
+        Returns
+        -------
+        dict
+            Downsampled dictionary.
+        """
+        # calculate the new size of the arrays
+        new_size = int(max_time / sample_time) + 1
+
+        # downsample the arrays
+        for key, value in data_dict.items():
+            if isinstance(value, dict):
+                data_dict[key] = MonteCarlo.__downsample_recursive(
+                    value, max_time, sample_time
+                )
+            elif isinstance(value, np.ndarray):
+                if len(value.shape) > 1:
+                    new_array = np.zeros((new_size, value.shape[1]), dtype=value.dtype)
+                else:
+                    new_array = np.zeros((new_size, 1), dtype=value.dtype)
+
+                data_dict[key] = new_array
+            else:
+                data_dict[key] = value
+
+        return data_dict
+
+    def __get_export_size(self, light_mode):
+        """
+        This function runs a simulation, fills all exported arrays up to the max
+        time, serializes the dictionary, and returns the size of the serialized
+        dictionary. The purpose is to estimate the size of the exported data.
+        """
+        # Run trajectory simulation
+        monte_carlo_flight = self.flight.create_object()
+
+        if monte_carlo_flight.max_time is None or monte_carlo_flight.max_time <= 0:
+            raise ValueError("The max_time attribute must be greater than zero.")
+
+        # Export inputs and outputs to file
+        if light_mode:
+            export_inputs = dict(
+                item
+                for d in [
+                    self.environment.last_rnd_dict,
+                    self.rocket.last_rnd_dict,
+                    self.flight.last_rnd_dict,
+                ]
+                for item in d.items()
+            )
+            results = {
+                export_item: getattr(monte_carlo_flight, export_item)
+                for export_item in self.export_list
+            }
+        else:
+            input_parameters = flightv1_serializer(
+                monte_carlo_flight, f"probe_simulation", return_dict=True
+            )
+
+            flight_results = self.inspect_object_attributes(monte_carlo_flight)
+
+            export_inputs = {"probe_flight": input_parameters}
+            results = {"probe_flight": flight_results}
+
+            # downsample the arrays, filling them up to the max time
+            export_inputs = self.__downsample_recursive(
+                data_dict=export_inputs,
+                max_time=monte_carlo_flight.max_time,
+                sample_time=self.export_sample_time,
+            )
+            results = self.__downsample_recursive(
+                data_dict=results,
+                max_time=monte_carlo_flight.max_time,
+                sample_time=self.export_sample_time,
+            )
+
+        # serialize the dictionary
+        export_inputs_bytes = pickle.dumps(export_inputs)
+        results_bytes = pickle.dumps(results)
+
+        # load again and check if the downsample worked
+        export_inputs = pickle.loads(export_inputs_bytes)
+        results = pickle.loads(results_bytes)
+
+        # get the size of the serialized dictionary
+        export_inputs_size = len(export_inputs_bytes)
+        results_size = len(results_bytes)
+
+        return export_inputs_size, results_size
 
     def __close_files(self, input_file, output_file, error_file):
         """Closes all the files."""
@@ -1056,17 +1340,47 @@ class MonteCarlo:
 
     @staticmethod
     def inspect_object_attributes(obj):
+        """
+        Inspects the attributes of an object and returns a dictionary of its
+        attributes.
+
+        Parameters
+        ----------
+        obj : object
+            The object whose attributes are to be inspected.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the attributes of the object.
+            If the attribute is a Function object, it is serialized using
+            `function_serializer`. If the attribute is a dictionary, it is recursively
+            inspected using `inspect_object_attributes`. Only includes attributes that
+            are integers, floats, dictionaries or Function objects.
+        """
         result = {}
+        # Iterate through all attributes of the object
         for attr_name in dir(obj):
             attr_value = getattr(obj, attr_name)
-            if isinstance(
-                attr_value, (int, float, tuple, list, dict, object)
-            ) and not attr_name.startswith('__'):
 
+            # Check if the attribute is of a type we are interested in and not a private attribute
+            if isinstance(
+                attr_value, (int, float, dict, Function)
+            ) and not attr_name.startswith('_'):
                 if isinstance(attr_value, Function):
+                    # Serialize the Functions
                     result[attr_name] = function_serializer(attr_value)
-                else:
+
+                elif isinstance(attr_value, dict):
+                    # Recursively inspect the dictionary attributes
+                    result[attr_name] = MonteCarlo.inspect_object_attributes(attr_value)
+
+                elif isinstance(attr_value, (int, float)):
                     result[attr_name] = attr_value
+
+                else:
+                    # Should never reach this point
+                    raise TypeError("Methods should be preprocessed before saving.")
         return result
 
     @staticmethod
@@ -1168,6 +1482,8 @@ class MonteCarloManager(BaseManager):
     def __init__(self):
         super().__init__()
         self.register('Lock', Lock)
+        self.register('Event', Event)
+        self.register('Semaphore', Semaphore)
         self.register('SimCounter', SimCounter)
         self.register('StochasticEnvironment', StochasticEnvironment)
         self.register('StochasticRocket', StochasticRocket)
@@ -1216,10 +1532,10 @@ class SimCounter:
         None
         """
 
-        len_msg = len(msg)
-        if len_msg < self._last_print_len:
-            msg += " " * (self._last_print_len - len_msg)
-        else:
-            self._last_print_len = len_msg
+        # len_msg = len(msg)
+        # if len_msg < self._last_print_len:
+        #     msg += " " * (self._last_print_len - len_msg)
+        # else:
+            # self._last_print_len = len_msg
 
         print(msg, end=end, flush=flush)
