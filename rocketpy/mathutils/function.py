@@ -1012,6 +1012,77 @@ class Function:  # pylint: disable=too-many-public-methods
             extrapolation="zero",
         )
 
+    def to_stft(self, lower, upper, sampling_frequency, window_size, step_size, remove_dc=True):
+        '''
+        Performs the Short-Time Fourier Transform (STFT) of the Function and
+        returns the result. The STFT is computed by applying the Fourier transform
+        to overlapping windows of the Function.
+
+        Parameters
+        ----------
+        lower : float
+            Lower bound of the time range.
+        upper : float
+            Upper bound of the time range.
+        sampling_frequency : float
+            Sampling frequency at which to perform the Fourier transform.
+        window_size : float
+            Size of the window for the STFT, in seconds.
+        step_size : float
+            Step size for the window, in seconds.
+        remove_dc : bool, optional
+            If True, the DC component is removed from each window before computing the Fourier transform.
+
+        Returns
+        -------
+        list of Function
+            A list of Functions, each representing the STFT of a window.
+
+        Examples
+        --------
+        >>> from rocketpy import Function
+        >>> import numpy as np
+        >>> main_frequency = 10 # Hz
+        >>> time = np.linspace(0, 10, 1000)
+        >>> signal = np.sin(2 * np.pi * main_frequency * time)
+        >>> time_domain = Function(np.array([time, signal]).T)
+        >>> stft_result = time_domain.to_stft(
+        ...     lower=0, upper=10, sampling_frequency=100,
+        ...     window_size=1, step_size=0.1
+        ... )
+        >>> for window in stft_result:
+        ...     peak_frequencies_index = np.where(window[:, 1] > 0.001)
+        ...     peak_frequencies = window[peak_frequencies_index, 0]
+        ...     print(peak_frequencies)
+        [[-10.  10.]]
+        '''
+        # Get the time domain data
+        sampling_time_step = 1.0 / sampling_frequency
+        sampling_range = np.arange(lower, upper, sampling_time_step)
+        sampled_points = self(sampling_range)
+        window_samples = int(window_size * sampling_frequency)
+        step_samples = int(step_size * sampling_frequency)
+
+        stft_results = []
+        for start in range(0, len(sampled_points) - window_samples + 1, step_samples):
+            windowed_samples = sampled_points[start:start + window_samples]
+            if remove_dc:
+                windowed_samples -= np.mean(windowed_samples)
+            fourier_amplitude = np.abs(np.fft.fft(windowed_samples) / (window_samples / 2))
+            fourier_frequencies = np.fft.fftfreq(window_samples, sampling_time_step)
+            stft_results.append(
+                Function(
+                    source=np.array([fourier_frequencies, fourier_amplitude]).T,
+                    inputs="Frequency (Hz)",
+                    outputs="Amplitude",
+                    interpolation="linear",
+                    extrapolation="zero",
+                )
+            )
+        return stft_results
+    
+    
+
     def low_pass_filter(self, alpha, file_path=None):
         """Implements a low pass filter with a moving average filter. This does
         not mutate the original Function object, but returns a new one with the
