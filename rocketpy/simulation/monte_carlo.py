@@ -304,8 +304,8 @@ class MonteCarlo:
         parallel_start = time()
         processes = []
 
-        if n_workers is None:
-            n_workers = os.cpu_count()
+        if n_workers is None or n_workers > os.cpu_count() - 2: # leave 2 cores for the writer workers
+            n_workers = os.cpu_count() - 2
 
         # get the size of the serialized dictionary
         inputs_size, results_size = self.__get_export_size(light_mode)
