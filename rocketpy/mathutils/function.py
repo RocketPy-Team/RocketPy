@@ -1034,7 +1034,7 @@ class Function:
         >>> for window in stft_result:
         ...     peak_frequencies_index = np.where(window[:, 1] > 0.001)
         ...     peak_frequencies = window[peak_frequencies_index, 0]
-        ...     print(peak_frequencies)
+        >>> print(peak_frequencies)
         [[-10.  10.]]
         '''
         # Get the time domain data
