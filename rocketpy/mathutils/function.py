@@ -1012,7 +1012,9 @@ class Function:  # pylint: disable=too-many-public-methods
             extrapolation="zero",
         )
 
-    def to_stft(self, lower, upper, sampling_frequency, window_size, step_size, remove_dc=True):
+    def to_stft(
+        self, lower, upper, sampling_frequency, window_size, step_size, remove_dc=True
+    ):
         '''
         Performs the Short-Time Fourier Transform (STFT) of the Function and
         returns the result. The STFT is computed by applying the Fourier transform
@@ -1065,10 +1067,12 @@ class Function:  # pylint: disable=too-many-public-methods
 
         stft_results = []
         for start in range(0, len(sampled_points) - window_samples + 1, step_samples):
-            windowed_samples = sampled_points[start:start + window_samples]
+            windowed_samples = sampled_points[start : start + window_samples]
             if remove_dc:
                 windowed_samples -= np.mean(windowed_samples)
-            fourier_amplitude = np.abs(np.fft.fft(windowed_samples) / (window_samples / 2))
+            fourier_amplitude = np.abs(
+                np.fft.fft(windowed_samples) / (window_samples / 2)
+            )
             fourier_frequencies = np.fft.fftfreq(window_samples, sampling_time_step)
             stft_results.append(
                 Function(
@@ -1080,8 +1084,6 @@ class Function:  # pylint: disable=too-many-public-methods
                 )
             )
         return stft_results
-    
-    
 
     def low_pass_filter(self, alpha, file_path=None):
         """Implements a low pass filter with a moving average filter. This does
