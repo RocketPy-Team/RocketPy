@@ -44,6 +44,7 @@ You can install this version by running `pip install rocketpy==1.3.0`
 
 ### Added
 
+- ENH: Add Prandtl-Gauss transformation to NoseCone and Tail [#609](https://github.com/RocketPy-Team/RocketPy/pull/609)
 - DOC: Adds prometheus data, Spaceport America 2022 [#601](https://github.com/RocketPy-Team/RocketPy/pull/601)
 - ENH: Pre-calculate attributes in Rocket class [#595](https://github.com/RocketPy-Team/RocketPy/pull/595)
 - ENH: Complex step differentiation [#594](https://github.com/RocketPy-Team/RocketPy/pull/594)
