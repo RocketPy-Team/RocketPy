@@ -13,18 +13,19 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath("../"))
-
+package_path = os.path.abspath("../")
+sys.path.insert(0, package_path)
+os.environ["PYTHONPATH"] = ":".join((package_path, os.environ.get("PYTHONPATH", "")))
 
 # -- Project information -----------------------------------------------------
 
 project = "RocketPy"
-copyright = "2023, RocketPy Team"
+copyright = "2024, RocketPy Team"
 
 author = "RocketPy Team"
 
 # The full version, including alpha/beta/rc tags
-release = "1.2.2"
+release = "1.3.0.post1"
 
 
 # -- General configuration ---------------------------------------------------
@@ -40,7 +41,6 @@ extensions = [
     "sphinx_design",
     "jupyter_sphinx",
     "nbsphinx",
-    "m2r2",
 ]
 
 # source_suffix = '.rst'
@@ -95,7 +95,7 @@ html_theme = "pydata_sphinx_theme"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["static"]
-html_css_files = ["notebooks.css"]
+html_css_files = ["rocketpy.css"]
 html_favicon = "static/favicon.ico"
 html_theme_options = {
     "logo_link": "index",
