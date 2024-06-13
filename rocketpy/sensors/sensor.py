@@ -765,10 +765,13 @@ class ScalarSensor(Sensor):
             The value with applied temperature drift
         """
         # temperature drift
-        value += (self.operating_temperature - 25) * self.temperature_bias
+        value += (self.operating_temperature - 298.15) * self.temperature_bias
         # temperature scale factor
         scale_factor = (
-            1 + (self.operating_temperature - 25) / 100 * self.temperature_scale_factor
+            1
+            + (self.operating_temperature - 298.15)
+            / 100
+            * self.temperature_scale_factor
         )
         value = value * scale_factor
 
