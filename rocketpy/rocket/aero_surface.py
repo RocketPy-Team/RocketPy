@@ -40,6 +40,8 @@ class AeroSurface(ABC):
         """Defines a parameter that is often used in aerodynamic
         equations. It is commonly used in the Prandtl factor which
         corrects subsonic force coefficients for compressible flow.
+        This is applied to the lift coefficient of the nose cone,
+        fins and tails/transitions as in [1].
 
         Parameters
         ----------
@@ -50,6 +52,10 @@ class AeroSurface(ABC):
         -------
         beta : int, float
             Value that characterizes flow speed based on the mach number.
+
+        References
+        ----------
+        [1] Barrowman, James S. https://arc.aiaa.org/doi/10.2514/6.1979-504
         """
 
         if mach < 0.8:
