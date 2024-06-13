@@ -35,7 +35,8 @@ class AeroSurface(ABC):
         return None
 
     # Defines beta parameter
-    def _beta(_, mach):
+    @staticmethod
+    def _beta(mach):
         """Defines a parameter that is often used in aerodynamic
         equations. It is commonly used in the Prandtl factor which
         corrects subsonic force coefficients for compressible flow.
