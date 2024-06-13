@@ -1,13 +1,11 @@
-import json
-
 import numpy as np
 
 from ..mathutils.vector_matrix import Matrix, Vector
 from ..prints.sensors_prints import _GyroscopePrints
-from ..sensors.sensors import Sensors
+from ..sensors.sensor import InertialSensor
 
 
-class Gyroscope(Sensors):
+class Gyroscope(InertialSensor):
     """Class for the gyroscope sensor
 
     Attributes
@@ -35,11 +33,11 @@ class Gyroscope(Sensors):
     constant_bias : float, list
         The constant bias of the sensor in rad/s.
     operating_temperature : float
-        The operating temperature of the sensor in degrees Celsius.
+        The operating temperature of the sensor in Kelvin.
     temperature_bias : float, list
-        The temperature bias of the sensor in rad/s/°C.
+        The temperature bias of the sensor in rad/s/K.
     temperature_scale_factor : float, list
-        The temperature scale factor of the sensor in %/°C.
+        The temperature scale factor of the sensor in %/K.
     cross_axis_sensitivity : float
         The cross axis sensitivity of the sensor in percentage.
     name : str
@@ -143,15 +141,16 @@ class Gyroscope(Sensors):
             is applied to all axes. The values of each axis can be set
             individually by passing a list of length 3.
         operating_temperature : float, optional
-            The operating temperature of the sensor in degrees Celsius. At 25°C,
-            the temperature bias and scale factor are 0. Default is 25.
+            The operating temperature of the sensor in Kelvin.
+            At 298.15 K (25 °C), the sensor is assumed to operate ideally, no
+            temperature related noise is applied. Default is 298.15.
         temperature_sensitivity : float, list, optional
-            The temperature bias of the sensor in rad/s/°C. Default is 0,
+            The temperature bias of the sensor in rad/s/K. Default is 0,
             meaning no temperature bias is applied. If a float or int is given,
             the same temperature bias is applied to all axes. The values of each
             axis can be set individually by passing a list of length 3.
         temperature_scale_factor : float, list, optional
-            The temperature scale factor of the sensor in %/°C. Default is 0,
+            The temperature scale factor of the sensor in %/K. Default is 0,
             meaning no temperature scale factor is applied. If a float or int is
             given, the same temperature scale factor is applied to all axes. The
             values of each axis can be set individually by passing a list of
@@ -196,20 +195,30 @@ class Gyroscope(Sensors):
         )
         self.prints = _GyroscopePrints(self)
 
-    def measure(self, t, u, u_dot, relative_position, *args):
+    def measure(self, time, **kwargs):
         """Measure the angular velocity of the rocket
 
         Parameters
         ----------
-        t : float
-            Time at which the measurement is taken
-        u : list
-            State vector of the rocket
-        u_dot : list
-            Time derivative of the state vector of the rocket
-        relative_position : Vector
-            Vector from the rocket's center of mass to the sensor
+        time : float
+            Current time in seconds.
+        kwargs : dict
+            Keyword arguments dictionary containing the following keys:
+            - u : np.array
+                State vector of the rocket.
+            - u_dot : np.array
+                Derivative of the state vector of the rocket.
+            - relative_position : np.array
+                Position of the sensor relative to the rocket center of mass.
+            - gravity : float
+                Gravitational acceleration in m/s^2.
+            - pressure : Function
+                Atmospheric pressure profile as a function of altitude in Pa.
         """
+        u = kwargs["u"]
+        u_dot = kwargs["u_dot"]
+        relative_position = kwargs["relative_position"]
+
         # Angular velocity of the rocket in the rocket frame
         omega = Vector(u[10:13])
 
@@ -233,7 +242,7 @@ class Gyroscope(Sensors):
         W = self.quantize(W)
 
         self.measurement = tuple([*W])
-        self._save_data((t, *W))
+        self._save_data((time, *W))
 
     def apply_acceleration_sensitivity(
         self, omega, u_dot, relative_position, rotation_matrix
@@ -258,14 +267,14 @@ class Gyroscope(Sensors):
             The angular velocity with the acceleration sensitivity applied
         """
         # Linear acceleration of rocket cdm in inertial frame
-        a_I = Vector(u_dot[3:6])
+        inertial_acceleration = Vector(u_dot[3:6])
 
         # Angular velocity and accel of rocket
         omega_dot = Vector(u_dot[10:13])
 
         # Acceleration felt in sensor
         A = (
-            a_I
+            inertial_acceleration
             + Vector.cross(omega_dot, relative_position)
             + Vector.cross(omega, Vector.cross(omega, relative_position))
         )
@@ -274,62 +283,23 @@ class Gyroscope(Sensors):
 
         return self.acceleration_sensitivity & A
 
-    def export_measured_data(self, filename, format="csv"):
-        """
-        Export the measured values to a file
+    def export_measured_data(self, filename, file_format="csv"):
+        """Export the measured values to a file
 
         Parameters
         ----------
         filename : str
             Name of the file to export the values to
-        format : str
-            Format of the file to export the values to. Options are "csv" and
+        file_format : str
+            file_Format of the file to export the values to. Options are "csv" and
             "json". Default is "csv".
 
         Returns
         -------
         None
         """
-        if format.lower() not in ["csv", "json"]:
-            raise ValueError("Invalid format")
-        if format.lower() == "csv":
-            # if sensor has been added multiple times to the simulated rocket
-            if isinstance(self.measured_data[0], list):
-                print("Data saved to", end=" ")
-                for i, data in enumerate(self.measured_data):
-                    with open(filename + f"_{i+1}", "w") as f:
-                        f.write("t,wx,wy,wz\n")
-                        for t, wx, wy, wz in data:
-                            f.write(f"{t},{wx},{wy},{wz}\n")
-                    print(filename + f"_{i+1},", end=" ")
-            else:
-                with open(filename, "w") as f:
-                    f.write("t,wx,wy,wz\n")
-                    for t, wx, wy, wz in self.measured_data:
-                        f.write(f"{t},{wx},{wy},{wz}\n")
-                print(f"Data saved to {filename}")
-            return
-        if format.lower() == "json":
-            if isinstance(self.measured_data[0], list):
-                print("Data saved to", end=" ")
-                for i, data in enumerate(self.measured_data):
-                    dict = {"t": [], "wx": [], "wy": [], "wz": []}
-                    for t, wx, wy, wz in data:
-                        dict["t"].append(t)
-                        dict["wx"].append(wx)
-                        dict["wy"].append(wy)
-                        dict["wz"].append(wz)
-                    with open(filename + f"_{i+1}", "w") as f:
-                        json.dump(dict, f)
-                    print(filename + f"_{i+1},", end=" ")
-            else:
-                dict = {"t": [], "wx": [], "wy": [], "wz": []}
-                for t, wx, wy, wz in self.measured_data:
-                    dict["t"].append(t)
-                    dict["wx"].append(wx)
-                    dict["wy"].append(wy)
-                    dict["wz"].append(wz)
-                with open(filename, "w") as f:
-                    json.dump(dict, f)
-                print(f"Data saved to {filename}")
-            return
+        self._generic_export_measured_data(
+            filename=filename,
+            file_format=file_format,
+            data_labels=("t", "wx", "wy", "wz"),
+        )

@@ -286,7 +286,7 @@ class Rocket:
         self.thrust_eccentricity_y = 0
         self.thrust_eccentricity_x = 0
 
-        # Parachute, Aerodynamic, Buttons, Controllers, Sensors data initialization
+        # Parachute, Aerodynamic, Buttons, Controllers, Sensor data initialization
         self.parachutes = []
         self._controllers = []
         self.air_brakes = []

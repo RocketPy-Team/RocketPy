@@ -1,0 +1,462 @@
+import json
+import os
+
+import numpy as np
+import pytest
+from pytest import approx
+
+from rocketpy.mathutils.vector_matrix import Matrix, Vector
+from rocketpy.tools import euler_to_quaternions
+
+# calisto standard simulation no wind solution index 200
+TIME = 3.338513236767685
+U = [
+    0.02856482783411794,
+    50.919436628139216,
+    1898.9056294848442,
+    0.021620542063162787,
+    30.468683793837055,
+    284.19140267225384,
+    -0.0076008223256743114,
+    0.0004430927976100488,
+    0.05330950836930627,
+    0.9985245671704497,
+    0.0026388673982115224,
+    0.00010697759229808481,
+    19.72526891699468,
+]
+U_DOT = [
+    0.021620542063162787,
+    30.468683793837055,
+    284.19140267225384,
+    0.0009380154986373648,
+    1.4853035773069556,
+    4.377014845613867,
+    -9.848086239924413,
+    0.5257087555505318,
+    -0.0030529818895471124,
+    -0.07503444684343626,
+    0.028008532884449017,
+    -0.052789015849051935,
+    2.276425320359305,
+]
+GRAVITY = 9.81
+
+
+@pytest.mark.parametrize(
+    "sensor",
+    [
+        "noisy_rotated_accelerometer",
+        "quantized_accelerometer",
+        "noisy_rotated_gyroscope",
+        "quantized_gyroscope",
+        "noisy_barometer",
+        "quantized_barometer",
+    ],
+)
+def test_sensors_prints(sensor, request):
+    """Test the print methods of the Sensor class. Checks if all attributes are
+    printed correctly.
+    """
+    sensor = request.getfixturevalue(sensor)
+    sensor.prints.all()
+    assert True
+
+
+def test_rotation_matrix(noisy_rotated_accelerometer):
+    """Test the rotation_matrix property of the InertialSensor class. Checks if
+    the rotation matrix is correctly calculated.
+    """
+    # values from external source
+    expected_matrix = np.array(
+        [
+            [0.2500000, -0.0580127, 0.9665064],
+            [0.4330127, 0.8995190, -0.0580127],
+            [-0.8660254, 0.4330127, 0.2500000],
+        ]
+    )
+    rotation_matrix = np.array(noisy_rotated_accelerometer.rotation_matrix.components)
+    assert np.allclose(expected_matrix, rotation_matrix, atol=1e-8)
+
+
+def test_inertial_quantization(quantized_accelerometer):
+    """Test the quantize method of the InertialSensor class. Checks if returned values
+    are as expected.
+    """
+    # expected values calculated by hand
+    assert quantized_accelerometer.quantize(Vector([3, 3, 3])) == Vector(
+        [1.9528, 1.9528, 1.9528]
+    )
+    assert quantized_accelerometer.quantize(Vector([-3, -3, -3])) == Vector(
+        [-1.9528, -1.9528, -1.9528]
+    )
+    assert quantized_accelerometer.quantize(Vector([1, 1, 1])) == Vector(
+        [0.9764, 0.9764, 0.9764]
+    )
+
+
+def test_scalar_quantization(quantized_barometer):
+    """Test the quantize method of the ScalarSensor class. Checks if returned values
+    are as expected.
+    """
+    # expected values calculated by hand
+    assert quantized_barometer.quantize(7e5) == 7e4
+    assert quantized_barometer.quantize(-7e5) == -7e4
+    assert quantized_barometer.quantize(1001) == 1000.96
+
+
+import pytest
+
+
+@pytest.mark.parametrize(
+    "sensor, input_value, expected_output",
+    [
+        (
+            "quantized_accelerometer",
+            Vector([3, 3, 3]),
+            Vector([1.9528, 1.9528, 1.9528]),
+        ),
+        (
+            "quantized_accelerometer",
+            Vector([-3, -3, -3]),
+            Vector([-1.9528, -1.9528, -1.9528]),
+        ),
+        (
+            "quantized_accelerometer",
+            Vector([1, 1, 1]),
+            Vector([0.9764, 0.9764, 0.9764]),
+        ),
+        ("quantized_barometer", 7e5, 7e4),
+        ("quantized_barometer", -7e5, -7e4),
+        ("quantized_barometer", 1001, 1000.96),
+    ],
+)
+def test_quantization(sensor, input_value, expected_output, request):
+    """Test the quantize method of various sensor classes. Checks if returned values
+    are as expected.
+
+    Parameters
+    ----------
+    sensor : str
+        Fixture name of the sensor to be tested.
+    input_value : any
+        Input value to be quantized by the sensor.
+    expected_output : any
+        Expected output value after quantization.
+    """
+    sensor = request.getfixturevalue(sensor)
+    result = sensor.quantize(input_value)
+    assert result == expected_output
+
+
+@pytest.mark.parametrize(
+    "sensor",
+    [
+        "ideal_accelerometer",
+        "ideal_gyroscope",
+    ],
+)
+def test_inertial_measured_data(sensor, request):
+    """Test the measured_data property of the Sensor class. Checks if
+    the measured data is treated properly when the sensor is added once or more
+    than once to the rocket.
+    """
+    sensor = request.getfixturevalue(sensor)
+
+    sensor.measure(
+        time=TIME,
+        u=U,
+        u_dot=U_DOT,
+        relative_position=Vector([0, 0, 0]),
+        gravity=GRAVITY,
+    )
+    assert len(sensor.measured_data) == 1
+    sensor.measure(
+        time=TIME,
+        u=U,
+        u_dot=U_DOT,
+        relative_position=Vector([0, 0, 0]),
+        gravity=GRAVITY,
+    )
+    assert len(sensor.measured_data) == 2
+    assert all(isinstance(i, tuple) for i in sensor.measured_data)
+
+    # check case when sensor is added more than once to the rocket
+    sensor.measured_data = [
+        sensor.measured_data[:],
+        sensor.measured_data[:],
+    ]
+    sensor._save_data = sensor._save_data_multiple
+    sensor.measure(
+        time=TIME,
+        u=U,
+        u_dot=U_DOT,
+        relative_position=Vector([0, 0, 0]),
+        gravity=GRAVITY,
+    )
+    assert len(sensor.measured_data) == 2
+    assert len(sensor.measured_data[0]) == 3
+    assert len(sensor.measured_data[1]) == 2
+    sensor.measure(
+        time=TIME,
+        u=U,
+        u_dot=U_DOT,
+        relative_position=Vector([0, 0, 0]),
+        gravity=GRAVITY,
+    )
+    assert len(sensor.measured_data[0]) == 3
+    assert len(sensor.measured_data[1]) == 3
+
+
+def test_scalar_measured_data(ideal_barometer, example_plain_env):
+    """Test the measure method of ScalarSensor. Checks if saved
+    measurement is (P) and if measured_data is [(t, P), ...]
+    """
+    t = TIME
+    u = U
+
+    ideal_barometer.measure(
+        t,
+        u=u,
+        relative_position=Vector([0, 0, 0]),
+        pressure=example_plain_env.pressure,
+    )
+    assert len(ideal_barometer.measured_data) == 1
+    ideal_barometer.measure(
+        t,
+        u=u,
+        relative_position=Vector([0, 0, 0]),
+        pressure=example_plain_env.pressure,
+    )
+    assert len(ideal_barometer.measured_data) == 2
+    assert all(isinstance(i, tuple) for i in ideal_barometer.measured_data)
+
+    # check case when sensor is added more than once to the rocket
+    ideal_barometer.measured_data = [
+        ideal_barometer.measured_data[:],
+        ideal_barometer.measured_data[:],
+    ]
+    ideal_barometer._save_data = ideal_barometer._save_data_multiple
+    ideal_barometer.measure(
+        t,
+        u=u,
+        relative_position=Vector([0, 0, 0]),
+        pressure=example_plain_env.pressure,
+    )
+    assert len(ideal_barometer.measured_data) == 2
+    assert len(ideal_barometer.measured_data[0]) == 3
+    assert len(ideal_barometer.measured_data[1]) == 2
+    ideal_barometer.measure(
+        t,
+        u=u,
+        relative_position=Vector([0, 0, 0]),
+        pressure=example_plain_env.pressure,
+    )
+    assert len(ideal_barometer.measured_data[0]) == 3
+    assert len(ideal_barometer.measured_data[1]) == 3
+
+
+def test_noisy_rotated_accelerometer(noisy_rotated_accelerometer):
+    """Test the measure method of the Accelerometer class. Checks if saved
+    measurement is (ax,ay,az) and if measured_data is [(t, (ax,ay,az)), ...]
+    """
+
+    # calculate acceleration at sensor position in inertial frame
+    relative_position = Vector([0.4, 0.4, 1])
+    a_I = Vector(U_DOT[3:6]) + Vector([0, 0, -GRAVITY])
+    omega = Vector(U[10:13])
+    omega_dot = Vector(U_DOT[10:13])
+    accel = (
+        a_I
+        + Vector.cross(omega_dot, relative_position)
+        + Vector.cross(omega, Vector.cross(omega, relative_position))
+    )
+
+    # calculate total rotation matrix
+    cross_axis_sensitivity = Matrix(
+        [
+            [1, 0.005, 0.005],
+            [0.005, 1, 0.005],
+            [0.005, 0.005, 1],
+        ]
+    )
+    sensor_rotation = Matrix.transformation(euler_to_quaternions(60, 60, 60))
+    total_rotation = sensor_rotation @ cross_axis_sensitivity
+    rocket_rotation = Matrix.transformation(U[6:10])
+    # expected measurement without noise
+    ax, ay, az = total_rotation @ (rocket_rotation @ accel)
+    # expected measurement with constant bias
+    ax += 0.5
+    ay += 0.5
+    az += 0.5
+
+    # check last measurement considering noise error bounds
+    noisy_rotated_accelerometer.measure(
+        time=TIME,
+        u=U,
+        u_dot=U_DOT,
+        relative_position=relative_position,
+        gravity=GRAVITY,
+    )
+    assert noisy_rotated_accelerometer.measurement == approx([ax, ay, az], rel=0.1)
+    assert len(noisy_rotated_accelerometer.measurement) == 3
+    assert noisy_rotated_accelerometer.measured_data[0][1:] == approx(
+        [ax, ay, az], rel=0.1
+    )
+    assert noisy_rotated_accelerometer.measured_data[0][0] == TIME
+
+
+def test_noisy_rotated_gyroscope(noisy_rotated_gyroscope):
+    """Test the measure method of the Gyroscope class. Checks if saved
+    measurement is (wx,wy,wz) and if measured_data is [(t, (wx,wy,wz)), ...]
+    """
+    # calculate acceleration at sensor position in inertial frame
+    relative_position = Vector([0.4, 0.4, 1])
+    omega = Vector(U[10:13])
+    # calculate total rotation matrix
+    cross_axis_sensitivity = Matrix(
+        [
+            [1, 0.005, 0.005],
+            [0.005, 1, 0.005],
+            [0.005, 0.005, 1],
+        ]
+    )
+    sensor_rotation = Matrix.transformation(euler_to_quaternions(-60, -60, -60))
+    total_rotation = sensor_rotation @ cross_axis_sensitivity
+    rocket_rotation = Matrix.transformation(U[6:10])
+    # expected measurement without noise
+    wx, wy, wz = total_rotation @ (rocket_rotation @ omega)
+    # expected measurement with constant bias
+    wx += 0.5
+    wy += 0.5
+    wz += 0.5
+
+    # check last measurement considering noise error bounds
+    noisy_rotated_gyroscope.measure(
+        time=TIME,
+        u=U,
+        u_dot=U_DOT,
+        relative_position=relative_position,
+        gravity=GRAVITY,
+    )
+    assert noisy_rotated_gyroscope.measurement == approx([wx, wy, wz], rel=0.3)
+    assert len(noisy_rotated_gyroscope.measurement) == 3
+    assert noisy_rotated_gyroscope.measured_data[0][1:] == approx([wx, wy, wz], rel=0.3)
+    assert noisy_rotated_gyroscope.measured_data[0][0] == TIME
+
+
+def test_noisy_barometer(noisy_barometer, example_plain_env):
+    """Test the measure method of the Barometer class. Checks if saved
+    measurement is (P) and if measured_data is [(t, P), ...]
+    """
+    # expected measurement without noise
+    relative_position = Vector([0.4, 0.4, 1])
+    relative_altitude = (Matrix.transformation(U[6:10]) @ relative_position).z
+    P = example_plain_env.pressure(relative_altitude + U[2])
+    # expected measurement with constant bias
+    P += 0.5
+
+    noisy_barometer.measure(
+        time=TIME,
+        u=U,
+        relative_position=relative_position,
+        pressure=example_plain_env.pressure,
+    )
+    assert noisy_barometer.measurement == approx(P, rel=0.03)
+    assert noisy_barometer.measured_data[0][1] == approx(P, rel=0.03)
+    assert noisy_barometer.measured_data[0][0] == TIME
+
+
+@pytest.mark.parametrize(
+    "sensor, file_format, expected_header, expected_keys",
+    [
+        ("ideal_accelerometer", "csv", "t,ax,ay,az\n", ("ax", "ay", "az")),
+        ("ideal_gyroscope", "csv", "t,wx,wy,wz\n", ("wx", "wy", "wz")),
+        ("ideal_accelerometer", "json", None, ("ax", "ay", "az")),
+        ("ideal_gyroscope", "json", None, ("wx", "wy", "wz")),
+        ("ideal_barometer", "csv", "t,pressure\n", ("pressure",)),
+        ("ideal_barometer", "json", None, ("pressure",)),
+    ],
+)
+def test_export_data(
+    sensor, file_format, expected_header, expected_keys, request, example_plain_env
+):
+    """Test the export_data method of the sensors. Checks if the data is
+    exported correctly in the specified file_format.
+    """
+    sensor = request.getfixturevalue(sensor)
+
+    sensor.measure(
+        time=TIME,
+        u=U,
+        u_dot=U_DOT,
+        relative_position=Vector([0, 0, 0]),
+        gravity=GRAVITY,
+        pressure=example_plain_env.pressure,
+    )
+    sensor.measure(
+        time=TIME,
+        u=U,
+        u_dot=U_DOT,
+        relative_position=Vector([0, 0, 0]),
+        gravity=GRAVITY,
+        pressure=example_plain_env.pressure,
+    )
+
+    file_name = f"sensors.{file_format}"
+
+    sensor.export_measured_data(file_name, file_format=file_format)
+
+    if file_format == "csv":
+        with open(file_name, "r") as file:
+            contents = file.read()
+
+        expected_data = expected_header
+        for data in sensor.measured_data:
+            expected_data += ",".join(map(str, data)) + "\n"
+
+        assert contents == expected_data
+
+    elif file_format == "json":
+        with open(file_name, "r") as file:
+            contents = json.load(file)
+
+        expected_data = {"t": []}
+        for key in expected_keys:
+            expected_data[key] = []
+
+        for data in sensor.measured_data:
+            expected_data["t"].append(data[0])
+            for i, key in enumerate(expected_keys):
+                expected_data[key].append(data[i + 1])
+
+        assert contents == expected_data
+
+    # check exports for sensors added more than once to the rocket
+    sensor.measured_data = [
+        sensor.measured_data[:],
+        sensor.measured_data[:],
+    ]
+    sensor.export_measured_data(file_name, file_format=file_format)
+
+    if file_format == "csv":
+        with open(f"{file_name}_1", "r") as file:
+            contents = file.read()
+        assert contents == expected_data
+
+        with open(f"{file_name}_2", "r") as file:
+            contents = file.read()
+        assert contents == expected_data
+
+    elif file_format == "json":
+        with open(f"{file_name}_1", "r") as file:
+            contents = json.load(file)
+        assert contents == expected_data
+
+        with open(f"{file_name}_2", "r") as file:
+            contents = json.load(file)
+        assert contents == expected_data
+
+    os.remove(file_name)
+    os.remove(f"{file_name}_1")
+    os.remove(f"{file_name}_2")

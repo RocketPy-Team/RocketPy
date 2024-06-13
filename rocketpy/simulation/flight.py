@@ -706,7 +706,7 @@ class Flight:
                     callback(self)
 
                 if self.sensors:
-                    # u_dot for all sensors
+                    # udot for all sensors
                     u_dot = phase.derivative(self.t, self.y_sol)
                     for sensor, position in node._component_sensors:
                         relative_position = position - self.rocket._csys * Vector(
@@ -714,10 +714,13 @@ class Flight:
                         )
                         sensor.measure(
                             self.t,
-                            self.y_sol,
-                            u_dot,
-                            relative_position,
-                            self.env.gravity(self.solution[-1][3]),
+                            u=self.y_sol,
+                            u_dot=u_dot,
+                            relative_position=relative_position,
+                            gravity=self.env.gravity.get_value_opt(
+                                self.solution[-1][3]
+                            ),
+                            pressure=self.env.pressure,
                         )
 
                 for controller in node._controllers:

@@ -1,20 +1,18 @@
-import json
-
 import numpy as np
 
 from ..mathutils.vector_matrix import Matrix, Vector
-from ..prints.sensors_prints import _AccelerometerPrints
-from ..sensors.sensors import Sensors
+from ..prints.sensors_prints import _InertialSensorPrints
+from ..sensors.sensor import InertialSensor
 
 
-class Accelerometer(Sensors):
+class Accelerometer(InertialSensor):
     """Class for the accelerometer sensor
 
     Attributes
     ----------
     consider_gravity : bool
         Whether the sensor considers the effect of gravity on the acceleration.
-    prints : _AccelerometerPrints
+    prints : _InertialSensorPrints
         Object that contains the print functions for the sensor.
     sampling_rate : float
         Sample rate of the sensor in Hz.
@@ -35,11 +33,11 @@ class Accelerometer(Sensors):
     constant_bias : float, list
         The constant bias of the sensor in m/s^2.
     operating_temperature : float
-        The operating temperature of the sensor in degrees Celsius.
+        The operating temperature of the sensor in Kelvin.
     temperature_bias : float, list
-        The temperature bias of the sensor in m/s^2/°C.
+        The temperature bias of the sensor in m/s^2/K.
     temperature_scale_factor : float, list
-        The temperature scale factor of the sensor in %/°C.
+        The temperature scale factor of the sensor in %/K.
     cross_axis_sensitivity : float
         The cross axis sensitivity of the sensor in percentage.
     name : str
@@ -145,15 +143,16 @@ class Accelerometer(Sensors):
             is applied to all axes. The values of each axis can be set
             individually by passing a list of length 3.
         operating_temperature : float, optional
-            The operating temperature of the sensor in degrees Celsius. At 25°C,
-            the temperature bias and scale factor are 0. Default is 25.
+            The operating temperature of the sensor in Kelvin.
+            At 298.15 K (25 °C), the sensor is assumed to operate ideally, no
+            temperature related noise is applied. Default is 298.15.
         temperature_bias : float, list, optional
-            The temperature bias of the sensor in m/s^2/°C. Default is 0,
+            The temperature bias of the sensor in m/s^2/K. Default is 0,
             meaning no temperature bias is applied. If a float or int is given,
             the same temperature bias is applied to all axes. The values of each
             axis can be set individually by passing a list of length 3.
         temperature_scale_factor : float, list, optional
-            The temperature scale factor of the sensor in %/°C. Default is 0,
+            The temperature scale factor of the sensor in %/K. Default is 0,
             meaning no temperature scale factor is applied. If a float or int is
             given, the same temperature scale factor is applied to all axes. The
             values of each axis can be set individually by passing a list of
@@ -192,29 +191,38 @@ class Accelerometer(Sensors):
             name=name,
         )
         self.consider_gravity = consider_gravity
-        self.prints = _AccelerometerPrints(self)
+        self.prints = _InertialSensorPrints(self)
 
-    def measure(self, t, u, u_dot, relative_position, gravity, *args):
+    def measure(self, time, **kwargs):
         """Measure the acceleration of the rocket
 
         Parameters
         ----------
-        t : float
-            Current time
-        u : list
-            State vector of the rocket
-        u_dot : list
-            Derivative of the state vector of the rocket
-        relative_position : Vector
-            Position of the sensor relative to the rocket cdm
-        gravity : float
-            Acceleration due to gravity
+        time : float
+            Current time in seconds.
+        kwargs : dict
+            Keyword arguments dictionary containing the following keys:
+            - u : np.array
+                State vector of the rocket.
+            - u_dot : np.array
+                Derivative of the state vector of the rocket.
+            - relative_position : np.array
+                Position of the sensor relative to the rocket center of mass.
+            - gravity : float
+                Gravitational acceleration in m/s^2.
+            - pressure : Function
+                Atmospheric pressure profile as a function of altitude in Pa.
         """
+        u = kwargs["u"]
+        u_dot = kwargs["u_dot"]
+        relative_position = kwargs["relative_position"]
+        gravity = kwargs["gravity"]
+
         # Linear acceleration of rocket cdm in inertial frame
         gravity = (
             Vector([0, 0, -gravity]) if self.consider_gravity else Vector([0, 0, 0])
         )
-        a_I = Vector(u_dot[3:6]) + gravity
+        inertial_acceleration = Vector(u_dot[3:6]) + gravity
 
         # Vector from rocket cdm to sensor in rocket frame
         r = relative_position
@@ -225,7 +233,7 @@ class Accelerometer(Sensors):
 
         # Measured acceleration at sensor position in inertial frame
         A = (
-            a_I
+            inertial_acceleration
             + Vector.cross(omega_dot, r)
             + Vector.cross(omega, Vector.cross(omega, r))
         )
@@ -241,17 +249,16 @@ class Accelerometer(Sensors):
         A = self.quantize(A)
 
         self.measurement = tuple([*A])
-        self._save_data((t, *A))
+        self._save_data((time, *A))
 
-    def export_measured_data(self, filename, format="csv"):
-        """
-        Export the measured values to a file
+    def export_measured_data(self, filename, file_format="csv"):
+        """Export the measured values to a file
 
         Parameters
         ----------
         filename : str
             Name of the file to export the values to
-        format : str
+        file_format : str
             Format of the file to export the values to. Options are "csv" and
             "json". Default is "csv".
 
@@ -259,46 +266,8 @@ class Accelerometer(Sensors):
         -------
         None
         """
-        if format.lower() not in ["json", "csv"]:
-            raise ValueError("Invalid format")
-        if format.lower() == "csv":
-            # if sensor has been added multiple times to the simulated rocket
-            if isinstance(self.measured_data[0], list):
-                print("Data saved to", end=" ")
-                for i, data in enumerate(self.measured_data):
-                    with open(filename + f"_{i+1}", "w") as f:
-                        f.write("t,ax,ay,az\n")
-                        for t, ax, ay, az in data:
-                            f.write(f"{t},{ax},{ay},{az}\n")
-                    print(filename + f"_{i+1},", end=" ")
-            else:
-                with open(filename, "w") as f:
-                    f.write("t,ax,ay,az\n")
-                    for t, ax, ay, az in self.measured_data:
-                        f.write(f"{t},{ax},{ay},{az}\n")
-                print(f"Data saved to {filename}")
-            return
-        if format.lower() == "json":
-            if isinstance(self.measured_data[0], list):
-                print("Data saved to", end=" ")
-                for i, data in enumerate(self.measured_data):
-                    dict = {"t": [], "ax": [], "ay": [], "az": []}
-                    for t, ax, ay, az in data:
-                        dict["t"].append(t)
-                        dict["ax"].append(ax)
-                        dict["ay"].append(ay)
-                        dict["az"].append(az)
-                    with open(filename + f"_{i+1}", "w") as f:
-                        json.dump(dict, f)
-                    print(filename + f"_{i+1},", end=" ")
-            else:
-                dict = {"t": [], "ax": [], "ay": [], "az": []}
-                for t, ax, ay, az in self.measured_data:
-                    dict["t"].append(t)
-                    dict["ax"].append(ax)
-                    dict["ay"].append(ay)
-                    dict["az"].append(az)
-                with open(filename, "w") as f:
-                    json.dump(dict, f)
-                print(f"Data saved to {filename}")
-            return
+        self._generic_export_measured_data(
+            filename=filename,
+            file_format=file_format,
+            data_labels=("t", "ax", "ay", "az"),
+        )
