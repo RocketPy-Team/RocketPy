@@ -62,13 +62,13 @@ class _SensorPrints(ABC):
             "Constant Bias:", f"{self.sensor.constant_bias} {self.units}"
         )
         self._print_aligned(
-            "Operating Temperature:", f"{self.sensor.operating_temperature} °C"
+            "Operating Temperature:", f"{self.sensor.operating_temperature} K"
         )
         self._print_aligned(
-            "Temperature Bias:", f"{self.sensor.temperature_bias} {self.units}/°C"
+            "Temperature Bias:", f"{self.sensor.temperature_bias} {self.units}/K"
         )
         self._print_aligned(
-            "Temperature Scale Factor:", f"{self.sensor.temperature_scale_factor} %/°C"
+            "Temperature Scale Factor:", f"{self.sensor.temperature_scale_factor} %/K"
         )
 
     def all(self):

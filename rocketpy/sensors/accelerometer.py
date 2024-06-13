@@ -33,11 +33,11 @@ class Accelerometer(InertialSensor):
     constant_bias : float, list
         The constant bias of the sensor in m/s^2.
     operating_temperature : float
-        The operating temperature of the sensor in degrees Celsius.
+        The operating temperature of the sensor in Kelvin.
     temperature_bias : float, list
-        The temperature bias of the sensor in m/s^2/°C.
+        The temperature bias of the sensor in m/s^2/K.
     temperature_scale_factor : float, list
-        The temperature scale factor of the sensor in %/°C.
+        The temperature scale factor of the sensor in %/K.
     cross_axis_sensitivity : float
         The cross axis sensitivity of the sensor in percentage.
     name : str
@@ -143,15 +143,16 @@ class Accelerometer(InertialSensor):
             is applied to all axes. The values of each axis can be set
             individually by passing a list of length 3.
         operating_temperature : float, optional
-            The operating temperature of the sensor in degrees Celsius. At 25°C,
-            the temperature bias and scale factor are 0. Default is 25.
+            The operating temperature of the sensor in Kelvin.
+            At 298.15 K (25 °C), the sensor is assumed to operate ideally, no
+            temperature related noise is applied. Default is 298.15.
         temperature_bias : float, list, optional
-            The temperature bias of the sensor in m/s^2/°C. Default is 0,
+            The temperature bias of the sensor in m/s^2/K. Default is 0,
             meaning no temperature bias is applied. If a float or int is given,
             the same temperature bias is applied to all axes. The values of each
             axis can be set individually by passing a list of length 3.
         temperature_scale_factor : float, list, optional
-            The temperature scale factor of the sensor in %/°C. Default is 0,
+            The temperature scale factor of the sensor in %/K. Default is 0,
             meaning no temperature scale factor is applied. If a float or int is
             given, the same temperature scale factor is applied to all axes. The
             values of each axis can be set individually by passing a list of

@@ -31,11 +31,11 @@ class Barometer(ScalarSensor):
     constant_bias : float
         The constant bias of the sensor in Pa.
     operating_temperature : float
-        The operating temperature of the sensor in degrees Celsius.
+        The operating temperature of the sensor in Kelvin.
     temperature_bias : float
-        The temperature bias of the sensor in Pa/°C.
+        The temperature bias of the sensor in Pa/K.
     temperature_scale_factor : float
-        The temperature scale factor of the sensor in %/°C.
+        The temperature scale factor of the sensor in %/K.
     name : str
         The name of the sensor.
     measurement : float
@@ -99,13 +99,14 @@ class Barometer(ScalarSensor):
             The constant bias of the sensor in Pa. Default is 0, meaning no
             constant bias is applied.
         operating_temperature : float, optional
-            The operating temperature of the sensor in degrees Celsius. At 25°C,
-            the temperature bias and scale factor are 0. Default is 25.
+            The operating temperature of the sensor in Kelvin.
+            At 298.15 K (25 °C), the sensor is assumed to operate ideally, no
+            temperature related noise is applied. Default is 298.15.
         temperature_bias : float, optional
-            The temperature bias of the sensor in Pa/°C. Default is 0, meaning no
+            The temperature bias of the sensor in Pa/K. Default is 0, meaning no
             temperature bias is applied.
         temperature_scale_factor : float, optional
-            The temperature scale factor of the sensor in %/°C. Default is 0,
+            The temperature scale factor of the sensor in %/K. Default is 0,
             meaning no temperature scale factor is applied.
         name : str, optional
             The name of the sensor. Default is "Barometer".
