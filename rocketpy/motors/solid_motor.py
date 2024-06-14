@@ -195,7 +195,7 @@ class SolidMotor(Motor):
         grain_separation,
         grains_center_of_mass_position,
         center_of_dry_mass_position,
-        nozzle_position=0,
+        nozzle_position=0.0,
         burn_time=None,
         throat_radius=0.01,
         reshape_thrust_curve=False,

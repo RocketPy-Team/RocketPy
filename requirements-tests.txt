@@ -2,6 +2,7 @@ pytest
 pytest-coverage
 black[jupyter]
 flake8-black
+flake8-pyproject
 pandas
 numericalunits==1.25
 pylint
