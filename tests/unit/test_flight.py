@@ -180,31 +180,31 @@ def test_export_data(flight_calisto):
     os.remove("test_export_data_2.csv")
 
     # Check if basic exported content matches data
-    assert np.allclose(test_flight.x[:, 0], test_1[:, 0], atol=1e-5) == True
-    assert np.allclose(test_flight.x[:, 1], test_1[:, 1], atol=1e-5) == True
-    assert np.allclose(test_flight.y[:, 1], test_1[:, 2], atol=1e-5) == True
-    assert np.allclose(test_flight.z[:, 1], test_1[:, 3], atol=1e-5) == True
-    assert np.allclose(test_flight.vx[:, 1], test_1[:, 4], atol=1e-5) == True
-    assert np.allclose(test_flight.vy[:, 1], test_1[:, 5], atol=1e-5) == True
-    assert np.allclose(test_flight.vz[:, 1], test_1[:, 6], atol=1e-5) == True
-    assert np.allclose(test_flight.e0[:, 1], test_1[:, 7], atol=1e-5) == True
-    assert np.allclose(test_flight.e1[:, 1], test_1[:, 8], atol=1e-5) == True
-    assert np.allclose(test_flight.e2[:, 1], test_1[:, 9], atol=1e-5) == True
-    assert np.allclose(test_flight.e3[:, 1], test_1[:, 10], atol=1e-5) == True
-    assert np.allclose(test_flight.w1[:, 1], test_1[:, 11], atol=1e-5) == True
-    assert np.allclose(test_flight.w2[:, 1], test_1[:, 12], atol=1e-5) == True
-    assert np.allclose(test_flight.w3[:, 1], test_1[:, 13], atol=1e-5) == True
+    assert np.allclose(test_flight.x[:, 0], test_1[:, 0], atol=1e-5) is True
+    assert np.allclose(test_flight.x[:, 1], test_1[:, 1], atol=1e-5) is True
+    assert np.allclose(test_flight.y[:, 1], test_1[:, 2], atol=1e-5) is True
+    assert np.allclose(test_flight.z[:, 1], test_1[:, 3], atol=1e-5) is True
+    assert np.allclose(test_flight.vx[:, 1], test_1[:, 4], atol=1e-5) is True
+    assert np.allclose(test_flight.vy[:, 1], test_1[:, 5], atol=1e-5) is True
+    assert np.allclose(test_flight.vz[:, 1], test_1[:, 6], atol=1e-5) is True
+    assert np.allclose(test_flight.e0[:, 1], test_1[:, 7], atol=1e-5) is True
+    assert np.allclose(test_flight.e1[:, 1], test_1[:, 8], atol=1e-5) is True
+    assert np.allclose(test_flight.e2[:, 1], test_1[:, 9], atol=1e-5) is True
+    assert np.allclose(test_flight.e3[:, 1], test_1[:, 10], atol=1e-5) is True
+    assert np.allclose(test_flight.w1[:, 1], test_1[:, 11], atol=1e-5) is True
+    assert np.allclose(test_flight.w2[:, 1], test_1[:, 12], atol=1e-5) is True
+    assert np.allclose(test_flight.w3[:, 1], test_1[:, 13], atol=1e-5) is True
 
     # Check if custom exported content matches data
     timePoints = np.arange(test_flight.t_initial, test_flight.t_final, 0.1)
-    assert np.allclose(timePoints, test_2[:, 0], atol=1e-5) == True
-    assert np.allclose(test_flight.z(timePoints), test_2[:, 1], atol=1e-5) == True
-    assert np.allclose(test_flight.vz(timePoints), test_2[:, 2], atol=1e-5) == True
-    assert np.allclose(test_flight.e1(timePoints), test_2[:, 3], atol=1e-5) == True
-    assert np.allclose(test_flight.w3(timePoints), test_2[:, 4], atol=1e-5) == True
+    assert np.allclose(timePoints, test_2[:, 0], atol=1e-5) is True
+    assert np.allclose(test_flight.z(timePoints), test_2[:, 1], atol=1e-5) is True
+    assert np.allclose(test_flight.vz(timePoints), test_2[:, 2], atol=1e-5) is True
+    assert np.allclose(test_flight.e1(timePoints), test_2[:, 3], atol=1e-5) is True
+    assert np.allclose(test_flight.w3(timePoints), test_2[:, 4], atol=1e-5) is True
     assert (
         np.allclose(test_flight.angle_of_attack(timePoints), test_2[:, 5], atol=1e-5)
-        == True
+        is True
     )
 
 
@@ -247,9 +247,9 @@ def test_export_kml(flight_calisto_robust):
     test_1.close()
     os.remove("test_export_data_1.kml")
 
-    assert np.allclose(test_flight.latitude[:, 1], lat, atol=1e-3) == True
-    assert np.allclose(test_flight.longitude[:, 1], lon, atol=1e-3) == True
-    assert np.allclose(test_flight.z[:, 1], z, atol=1e-3) == True
+    assert np.allclose(test_flight.latitude[:, 1], lat, atol=1e-3) is True
+    assert np.allclose(test_flight.longitude[:, 1], lon, atol=1e-3) is True
+    assert np.allclose(test_flight.z[:, 1], z, atol=1e-3) is True
 
 
 def test_get_controller_observed_variables(flight_calisto_air_brakes):

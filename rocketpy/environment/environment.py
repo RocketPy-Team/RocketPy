@@ -750,7 +750,7 @@ class Environment:
         elevation : float | int
             Elevation provided by the topographic data, in meters.
         """
-        if self.topographic_profile_activated == False:
+        if self.topographic_profile_activated is False:
             print(
                 "You must define a Topographic profile first, please use the method Environment.set_topographic_profile()"
             )
