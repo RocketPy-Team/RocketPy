@@ -1883,8 +1883,6 @@ class Flight:
         ay = Dy / (mp + ma)
         az = (Dz - 9.8 * mp) / (mp + ma)
 
-        u_dot = [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
-
         if post_processing:
             self.__post_processed_variables.append(
                 [t, ax, ay, az, 0, 0, 0, Dx, Dy, Dz, 0, 0, 0]
