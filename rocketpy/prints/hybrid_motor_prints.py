@@ -27,7 +27,6 @@ class _HybridMotorPrints:
         None
         """
         self.hybrid_motor = hybrid_motor
-        return None
 
     def nozzle_details(self):
         """Prints out all data available about the Nozzle.
@@ -43,7 +42,6 @@ class _HybridMotorPrints:
         print(f"Outlet Area: {np.pi*self.hybrid_motor.nozzle_radius**2:.6f} m²")
         print(f"Throat Area: {np.pi*self.hybrid_motor.solid.throat_radius**2:.6f} m²")
         print(f"Position: {self.hybrid_motor.nozzle_position} m\n")
-        return None
 
     def grain_details(self):
         """Prints out all data available about the Grain.
@@ -80,7 +78,6 @@ class _HybridMotorPrints:
             + "{:.3f}".format(self.hybrid_motor.solid.grain_initial_mass)
             + " kg\n"
         )
-        return None
 
     def motor_details(self):
         """Prints out all data available about the HybridMotor.
@@ -121,7 +118,6 @@ class _HybridMotorPrints:
             + "{:.3f}".format(self.hybrid_motor.total_impulse)
             + " Ns\n"
         )
-        return None
 
     def all(self):
         """Prints out all data available about the HybridMotor.
@@ -134,5 +130,3 @@ class _HybridMotorPrints:
         self.nozzle_details()
         self.grain_details()
         self.motor_details()
-
-        return None

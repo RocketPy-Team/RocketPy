@@ -1727,7 +1727,6 @@ class Function:
                         "Comparison not supported between two instances of "
                         "the Function class with callable sources."
                     ) from exc
-        return None
 
     def __le__(self, other):
         """Less than or equal to comparison operator. It can be used to
@@ -1781,7 +1780,6 @@ class Function:
                         "Comparison not supported between two instances of "
                         "the Function class with callable sources."
                     ) from exc
-        return None
 
     def __gt__(self, other):
         """Greater than comparison operator. It can be used to compare a

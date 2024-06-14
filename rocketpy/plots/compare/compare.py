@@ -40,8 +40,6 @@ class Compare:
 
         self.object_list = object_list
 
-        return None
-
     def create_comparison_figure(
         self,
         y_attributes,

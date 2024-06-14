@@ -339,7 +339,6 @@ class SolidMotor(Motor):
         # Initialize plots and prints object
         self.prints = _SolidMotorPrints(self)
         self.plots = _SolidMotorPlots(self)
-        return None
 
     @funcify_method("Time (s)", "Mass (kg)")
     def propellant_mass(self):
@@ -536,8 +535,6 @@ class SolidMotor(Motor):
 
         reset_funcified_methods(self)
 
-        return None
-
     @funcify_method("Time (s)", "burn area (m²)")
     def burn_area(self):
         """Calculates the BurnArea of the grain for each time. Assuming that
@@ -707,11 +704,8 @@ class SolidMotor(Motor):
         """Prints out basic data about the SolidMotor."""
         self.prints.all()
         self.plots.thrust()
-        return None
 
     def all_info(self):
         """Prints out all data and graphs available about the SolidMotor."""
         self.prints.all()
         self.plots.all()
-
-        return None

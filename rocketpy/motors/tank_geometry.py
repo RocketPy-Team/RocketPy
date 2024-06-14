@@ -76,7 +76,6 @@ class TankGeometry:
         # Initialize plots and prints object
         self.prints = _TankGeometryPrints(self)
         self.plots = _TankGeometryPlots(self)
-        return None
 
     @property
     def geometry(self):

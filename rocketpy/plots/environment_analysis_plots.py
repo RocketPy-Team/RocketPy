@@ -45,8 +45,6 @@ class _EnvironmentAnalysisPlots:
         self.surface_level_dict = self.env_analysis.converted_surface_data
         self.pressure_level_dict = self.env_analysis.converted_pressure_level_data
 
-        return None
-
     def __beaufort_wind_scale(self, units, max_wind_speed=None):
         """Returns a list of bins equivalent to the Beaufort wind scale in the
         desired unit system.
@@ -118,8 +116,6 @@ class _EnvironmentAnalysisPlots:
         plt.legend()
         plt.show()
 
-        return None
-
     def surface10m_wind_speed_distribution(self, wind_speed_limit=False):
         """Get all values of sustained surface wind speed (for every date and
         hour available) and plot a single distribution. Expected result is a
@@ -178,8 +174,6 @@ class _EnvironmentAnalysisPlots:
         plt.xlim(0, max(self.env_analysis.surface_10m_wind_speed_list))
         plt.legend()
         plt.show()
-
-        return None
 
     def average_surface_temperature_evolution(self):
         """Plots average temperature progression throughout the day, including
@@ -245,7 +239,6 @@ class _EnvironmentAnalysisPlots:
         plt.grid(alpha=0.25)
         plt.legend()
         plt.show()
-        return None
 
     def average_surface10m_wind_speed_evolution(self, wind_speed_limit=False):
         """Plots average surface wind speed progression throughout the day,
@@ -340,8 +333,6 @@ class _EnvironmentAnalysisPlots:
         plt.legend()
         plt.show()
 
-        return None
-
     def average_surface100m_wind_speed_evolution(self):
         """Plots average surface wind speed progression throughout the day, including
         sigma contours.
@@ -413,7 +404,6 @@ class _EnvironmentAnalysisPlots:
         plt.grid(alpha=0.25)
         plt.legend()
         plt.show()
-        return None
 
     # Average profiles plots (pressure level data)
 
@@ -517,8 +507,6 @@ class _EnvironmentAnalysisPlots:
         )
         plt.show()
 
-        return None
-
     def average_wind_velocity_xy_profile(self, clear_range_limits=False):
         """Average wind X and wind Y for all datetimes available. The X component
         is the wind speed in the direction of East, and the Y component is the
@@ -581,8 +569,6 @@ class _EnvironmentAnalysisPlots:
         plt.grid()
         plt.show()
 
-        return None
-
     def average_wind_heading_profile(self, clear_range_limits=False):
         """Average wind heading for all datetimes available.
 
@@ -635,7 +621,6 @@ class _EnvironmentAnalysisPlots:
         plt.title("Average Wind heading Profile")
         plt.legend()
         plt.show()
-        return None
 
     def average_pressure_profile(self, clear_range_limits=False):
         """Average pressure profile for all datetimes available. The plot also
@@ -724,7 +709,6 @@ class _EnvironmentAnalysisPlots:
             max(np.percentile(self.env_analysis.pressure_profiles_list, 99.85, axis=0)),
         )
         plt.show()
-        return None
 
     def average_temperature_profile(self, clear_range_limits=False):
         """Average temperature profile for all datetimes available. The plot
@@ -821,8 +805,6 @@ class _EnvironmentAnalysisPlots:
         )
         plt.show()
 
-        return None
-
     # Wind roses (surface level data)
 
     @staticmethod
@@ -897,8 +879,6 @@ class _EnvironmentAnalysisPlots:
         )
         plt.show()
 
-        return None
-
     def average_wind_rose_grid(self):
         """Plot wind roses for all hours of a day, in a grid like plot.
 
@@ -966,7 +946,6 @@ class _EnvironmentAnalysisPlots:
         )
         plt.bbox_inches = "tight"
         plt.show()
-        return None
 
     def animate_average_wind_rose(self, figsize=(5, 5), filename="wind_rose.gif"):
         """Animates the wind_rose of an average day. The inputs of a wind_rose
@@ -1097,8 +1076,6 @@ class _EnvironmentAnalysisPlots:
         )
         fig.supylabel("Probability")
         plt.show()
-
-        return None
 
     def animate_wind_gust_distribution(self):
         """Animation of how the wind gust distribution varies throughout the day.
@@ -1293,8 +1270,6 @@ class _EnvironmentAnalysisPlots:
         )
         fig.supylabel("Probability")
         plt.show()
-
-        return None
 
     def animate_surface_wind_speed_distribution(self, wind_speed_limit=False):
         """Animation of how the sustained surface wind speed distribution varies
@@ -1510,8 +1485,6 @@ class _EnvironmentAnalysisPlots:
         fig.supylabel(f"Altitude AGL ({self.env_analysis.unit_system['length']})")
         plt.show()
 
-        return None
-
     def wind_heading_profile_grid(self, clear_range_limits=False):
         """Creates a grid of plots with the wind heading profile over the
         average day. Each subplot represents a different hour of the day.
@@ -1598,8 +1571,6 @@ class _EnvironmentAnalysisPlots:
         fig.supxlabel(f"Wind heading ({self.env_analysis.unit_system['angle']})")
         fig.supylabel(f"Altitude AGL ({self.env_analysis.unit_system['length']})")
         plt.show()
-
-        return None
 
     def animate_wind_speed_profile(self, clear_range_limits=False):
         """Animation of how wind profile evolves throughout an average day.
@@ -1775,8 +1746,6 @@ class _EnvironmentAnalysisPlots:
         self.animate_wind_heading_profile(clear_range_limits=True)
         self.animate_wind_speed_profile()
 
-        return None
-
     def all_plots(self):
         """Plots all the available plots together, this avoids having animations
 
@@ -1798,8 +1767,6 @@ class _EnvironmentAnalysisPlots:
         self.wind_speed_profile_grid()
         self.wind_heading_profile_grid()
 
-        return None
-
     def info(self):
         """Plots only the most important plots together. This method simply
         invokes the `wind_gust_distribution`, `average_wind_speed_profile`,
@@ -1815,8 +1782,6 @@ class _EnvironmentAnalysisPlots:
         self.wind_speed_profile_grid()
         self.wind_heading_profile_grid()
 
-        return None
-
     def all(self):
         """Plots all the available plots and animations together. This method
         simply invokes the `all_plots` and `all_animations` methods.
@@ -1827,5 +1792,3 @@ class _EnvironmentAnalysisPlots:
         """
         self.all_plots()
         self.all_animations()
-
-        return None

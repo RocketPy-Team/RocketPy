@@ -24,7 +24,6 @@ class _EnvironmentPrints:
         None
         """
         self.environment = environment
-        return None
 
     def gravity_details(self):
         """Prints gravity details.
@@ -42,7 +41,6 @@ class _EnvironmentPrints:
         print(
             f"Acceleration of gravity at {max_expected_height/1000:7.3f} km (ASL): {ceiling_gravity:.4f} m/s²"
         )
-        return None
 
     def launch_site_details(self):
         """Prints launch site details.
@@ -89,8 +87,6 @@ class _EnvironmentPrints:
             "Launch Site Surface Elevation: {:.1f} m".format(self.environment.elevation)
         )
 
-        return None
-
     def atmospheric_model_details(self):
         """Prints atmospheric model details.
 
@@ -128,8 +124,6 @@ class _EnvironmentPrints:
                 self.environment.ensemble_member,
                 " (Starts from 0)",
             )
-
-        return None
 
     def atmospheric_conditions(self):
         """Prints atmospheric conditions.
@@ -175,8 +169,6 @@ class _EnvironmentPrints:
             )
         )
 
-        return None
-
     def print_earth_details(self):
         """
         Function to print information about the Earth Model used in the
@@ -192,8 +184,6 @@ class _EnvironmentPrints:
         print(f"Semi-major Axis: {semi_major_axis/1000:.2f} km")
         print(f"Semi-minor Axis: {semi_minor_axis/1000:.2f} km")
         print(f"Flattening: {flattening:.4f}\n")
-
-        return None
 
     def all(self):
         """Prints all print methods about the Environment.
@@ -220,5 +210,3 @@ class _EnvironmentPrints:
         print()
 
         self.print_earth_details()
-
-        return None

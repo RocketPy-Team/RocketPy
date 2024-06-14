@@ -32,7 +32,6 @@ class AeroSurface(ABC):
         self.cpy = 0
         self.cpz = 0
         self.name = name
-        return None
 
     # Defines beta parameter
     @staticmethod
@@ -241,8 +240,6 @@ class NoseCone(AeroSurface):
         self.plots = _NoseConePlots(self)
         self.prints = _NoseConePrints(self)
 
-        return None
-
     @property
     def rocket_radius(self):
         return self._rocket_radius
@@ -395,7 +392,6 @@ class NoseCone(AeroSurface):
             )
 
         self.fineness_ratio = self.length / (2 * self.base_radius)
-        return None
 
     def evaluate_nose_shape(self):
         """Calculates and saves nose cone's shape as lists and re-evaluates the
@@ -479,8 +475,6 @@ class NoseCone(AeroSurface):
             )
         self.fineness_ratio = self.length / (2 * self.base_radius)
 
-        return None
-
     def evaluate_lift_coefficient(self):
         """Calculates and returns nose cone's lift coefficient.
         The lift coefficient is saved and returned. This function
@@ -505,7 +499,6 @@ class NoseCone(AeroSurface):
             ["Alpha (rad)", "Mach"],
             "Cl",
         )
-        return None
 
     def evaluate_center_of_pressure(self):
         """Calculates and returns the center of pressure of the nose cone in
@@ -544,7 +537,6 @@ class NoseCone(AeroSurface):
         """
         self.prints.geometry()
         self.prints.lift()
-        return None
 
     def all_info(self):
         """Prints and plots all the available information of the nose cone.
@@ -555,7 +547,6 @@ class NoseCone(AeroSurface):
         """
         self.prints.all()
         self.plots.all()
-        return None
 
 
 class Fins(AeroSurface):
@@ -705,8 +696,6 @@ class Fins(AeroSurface):
         self.name = name
         self.d = d
         self.ref_area = ref_area  # Reference area
-
-        return None
 
     @property
     def n(self):
@@ -921,7 +910,6 @@ class Fins(AeroSurface):
         None
         """
         self.plots.draw()
-        return None
 
 
 class TrapezoidalFins(Fins):
@@ -1166,7 +1154,6 @@ class TrapezoidalFins(Fins):
         self.cpy = 0
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
-        return None
 
     def evaluate_geometrical_parameters(self):
         """Calculates and saves fin set's geometrical parameters such as the
@@ -1236,7 +1223,6 @@ class TrapezoidalFins(Fins):
         self.roll_forcing_interference_factor = roll_forcing_interference_factor
 
         self.evaluate_shape()
-        return None
 
     def evaluate_shape(self):
         if self.sweep_length:
@@ -1257,17 +1243,13 @@ class TrapezoidalFins(Fins):
         x_array, y_array = zip(*points)
         self.shape_vec = [np.array(x_array), np.array(y_array)]
 
-        return None
-
     def info(self):
         self.prints.geometry()
         self.prints.lift()
-        return None
 
     def all_info(self):
         self.prints.all()
         self.plots.all()
-        return None
 
 
 class EllipticalFins(Fins):
@@ -1432,8 +1414,6 @@ class EllipticalFins(Fins):
         self.prints = _EllipticalFinsPrints(self)
         self.plots = _EllipticalFinsPlots(self)
 
-        return None
-
     def evaluate_center_of_pressure(self):
         """Calculates and returns the center of pressure of the fin set in local
         coordinates. The center of pressure position is saved and stored as a
@@ -1449,7 +1429,6 @@ class EllipticalFins(Fins):
         self.cpy = 0
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
-        return None
 
     def evaluate_geometrical_parameters(self):
         """Calculates and saves fin set's geometrical parameters such as the
@@ -1565,24 +1544,20 @@ class EllipticalFins(Fins):
         self.roll_forcing_interference_factor = roll_forcing_interference_factor
 
         self.evaluate_shape()
-        return None
 
     def evaluate_shape(self):
         angles = np.arange(0, 180, 5)
         x_array = self.root_chord / 2 + self.root_chord / 2 * np.cos(np.radians(angles))
         y_array = self.span * np.sin(np.radians(angles))
         self.shape_vec = [x_array, y_array]
-        return None
 
     def info(self):
         self.prints.geometry()
         self.prints.lift()
-        return None
 
     def all_info(self):
         self.prints.all()
         self.plots.all()
-        return None
 
 
 class Tail(AeroSurface):
@@ -1670,8 +1645,6 @@ class Tail(AeroSurface):
         self.plots = _TailPlots(self)
         self.prints = _TailPrints(self)
 
-        return None
-
     @property
     def top_radius(self):
         return self._top_radius
@@ -1729,7 +1702,6 @@ class Tail(AeroSurface):
             np.pi * self.slant_length * (self.top_radius + self.bottom_radius)
         )
         self.evaluate_shape()
-        return None
 
     def evaluate_shape(self):
         # Assuming the tail is a cone, calculate the shape vector
@@ -1737,7 +1709,6 @@ class Tail(AeroSurface):
             np.array([0, self.length]),
             np.array([self.top_radius, self.bottom_radius]),
         ]
-        return None
 
     def evaluate_lift_coefficient(self):
         """Calculates and returns tail's lift coefficient.
@@ -1768,7 +1739,6 @@ class Tail(AeroSurface):
             ["Alpha (rad)", "Mach"],
             "Cl",
         )
-        return None
 
     def evaluate_center_of_pressure(self):
         """Calculates and returns the center of pressure of the tail in local
@@ -1788,17 +1758,14 @@ class Tail(AeroSurface):
         self.cpy = 0
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
-        return None
 
     def info(self):
         self.prints.geometry()
         self.prints.lift()
-        return None
 
     def all_info(self):
         self.prints.all()
         self.plots.all()
-        return None
 
 
 class RailButtons(AeroSurface):
@@ -1842,7 +1809,6 @@ class RailButtons(AeroSurface):
         self.evaluate_center_of_pressure()
 
         self.prints = _RailButtonsPrints(self)
-        return None
 
     def evaluate_center_of_pressure(self):
         """Evaluates the center of pressure of the rail buttons. Rail buttons
@@ -1856,7 +1822,6 @@ class RailButtons(AeroSurface):
         self.cpy = 0
         self.cpz = 0
         self.cp = (self.cpx, self.cpy, self.cpz)
-        return None
 
     def evaluate_lift_coefficient(self):
         """Evaluates the lift coefficient curve of the rail buttons. Rail
@@ -1876,7 +1841,6 @@ class RailButtons(AeroSurface):
             ["Alpha (rad)", "Mach"],
             "Cl",
         )
-        return None
 
     def evaluate_geometrical_parameters(self):
         """Evaluates the geometrical parameters of the rail buttons. Rail
@@ -1886,7 +1850,6 @@ class RailButtons(AeroSurface):
         -------
         None
         """
-        return None
 
     def info(self):
         """Prints out all the information about the Rail Buttons.
@@ -1896,7 +1859,6 @@ class RailButtons(AeroSurface):
         None
         """
         self.prints.geometry()
-        return None
 
     def all_info(self):
         """Returns all info of the Rail Buttons.
@@ -1906,7 +1868,6 @@ class RailButtons(AeroSurface):
         None
         """
         self.prints.all()
-        return None
 
 
 class AirBrakes(AeroSurface):

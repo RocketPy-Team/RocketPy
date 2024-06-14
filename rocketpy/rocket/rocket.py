@@ -1601,7 +1601,6 @@ class Rocket:
             https://matplotlib.org/stable/gallery/color/named_colors
         """
         self.plots.draw(vis_args)
-        return None
 
     def info(self):
         """Prints out a summary of the data and graphs available about

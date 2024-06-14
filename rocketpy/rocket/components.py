@@ -186,4 +186,3 @@ class Components:
         None
         """
         self._components.sort(key=lambda x: x.position, reverse=reverse)
-        return None

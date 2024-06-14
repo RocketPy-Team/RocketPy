@@ -3129,8 +3129,6 @@ class Flight:
         self.info()
         self.plots.all()
 
-        return None
-
     def time_iterator(self, node_list):
         i = 0
         while i < len(node_list) - 1:

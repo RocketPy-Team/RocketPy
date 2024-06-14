@@ -409,8 +409,6 @@ class Environment:
             flattening=self.ellipsoid.flattening,
         )
 
-        return None
-
     def set_date(self, date, timezone="UTC"):
         """Set date and time of launch and update weather conditions if
         date dependent atmospheric model is used.
@@ -491,8 +489,6 @@ class Environment:
                 )
         except AttributeError:
             pass
-
-        return None
 
     def set_location(self, latitude, longitude):
         """Set latitude and longitude of launch and update atmospheric
@@ -737,8 +733,6 @@ class Environment:
                         self.elev_lon_array[0], self.elev_lon_array[-1]
                     )
                 )
-
-        return None
 
     def get_elevation_from_topographic_profile(self, lat, lon):
         """Function which receives as inputs the coordinates of a point and
@@ -1365,8 +1359,6 @@ class Environment:
         # Update dynamic viscosity
         self.calculate_dynamic_viscosity()
 
-        return None
-
     def process_standard_atmosphere(self):
         """Sets pressure and temperature profiles corresponding to the
         International Standard Atmosphere defined by ISO 2533 and
@@ -1418,8 +1410,6 @@ class Environment:
 
         # Set maximum expected height
         self.max_expected_height = 80000
-
-        return None
 
     def process_custom_atmosphere(
         self, pressure=None, temperature=None, wind_u=0, wind_v=0
@@ -1594,8 +1584,6 @@ class Environment:
 
         # Save maximum expected height
         self.max_expected_height = max_expected_height
-
-        return None
 
     def process_windy_atmosphere(self, model="ECMWF"):
         """Process data from Windy.com to retrieve atmospheric forecast data.
@@ -1870,8 +1858,6 @@ class Environment:
 
         # Save maximum expected height
         self.max_expected_height = data_array[-1, 1]
-
-        return None
 
     def process_noaaruc_sounding(self, file):
         """Import and process the upper air sounding data from `NOAA
@@ -2464,8 +2450,6 @@ class Environment:
         # Close weather data
         weather_data.close()
 
-        return None
-
     @requires_netCDF4
     def process_ensemble(self, file, dictionary):
         """Import and process atmospheric data from weather ensembles
@@ -2831,10 +2815,7 @@ class Environment:
         self.time_array = time_array[:].tolist()
         self.height = height
 
-        # Close weather data
         weather_data.close()
-
-        return None
 
     def select_ensemble_member(self, member=0):
         """Activates ensemble member, meaning that all atmospheric variables
@@ -2956,8 +2937,6 @@ class Environment:
 
         # Update dynamic viscosity
         self.calculate_dynamic_viscosity()
-
-        return None
 
     def load_international_standard_atmosphere(self):
         """Defines the pressure and temperature profile functions set
@@ -3115,8 +3094,6 @@ class Environment:
         # Save calculated density
         self.density = D
 
-        return None
-
     def calculate_speed_of_sound_profile(self):
         """Compute the speed of sound in the atmosphere as a function
         of height by using the formula a = sqrt(gamma*R*T). This
@@ -3140,8 +3117,6 @@ class Environment:
 
         # Save calculated speed of sound
         self.speed_of_sound = a
-
-        return None
 
     def calculate_dynamic_viscosity(self):
         """Compute the dynamic viscosity of the atmosphere as a function of
@@ -3167,8 +3142,6 @@ class Environment:
 
         # Save calculated density
         self.dynamic_viscosity = u
-
-        return None
 
     def add_wind_gust(self, wind_gust_x, wind_gust_y):
         """Adds a function to the current stored wind profile, in order to
@@ -3233,7 +3206,6 @@ class Environment:
 
         self.prints.all()
         self.plots.info()
-        return None
 
     def all_info(self):
         """Prints out all data and graphs available about the Environment.
@@ -3245,8 +3217,6 @@ class Environment:
 
         self.prints.all()
         self.plots.all()
-
-        return None
 
     def all_plot_info_returned(self):
         """Returns a dictionary with all plot information available about the Environment.
@@ -3462,8 +3432,6 @@ class Environment:
         print(
             "You can use it in the future by using the custom_atmosphere atmospheric model."
         )
-
-        return None
 
     def set_earth_geometry(self, datum):
         """Sets the Earth geometry for the ``Environment`` class based on the

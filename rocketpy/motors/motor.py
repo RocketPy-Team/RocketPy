@@ -311,7 +311,6 @@ class Motor(ABC):
         # Initialize plots and prints object
         self.prints = _MotorPrints(self)
         self.plots = _MotorPlots(self)
-        return None
 
     @property
     def burn_time(self):
@@ -1033,8 +1032,6 @@ class Motor(ABC):
             # Write last line
             file.write(f"{self.thrust.source[-1, 0]:.4f} {0:.3f}\n")
 
-        return None
-
     def info(self):
         """Prints out a summary of the data and graphs available about the
         Motor.
@@ -1042,14 +1039,12 @@ class Motor(ABC):
         # Print motor details
         self.prints.all()
         self.plots.thrust()
-        return None
 
     @abstractmethod
     def all_info(self):
         """Prints out all data and graphs available about the Motor."""
         self.prints.all()
         self.plots.all()
-        return None
 
 
 class GenericMotor(Motor):
@@ -1196,7 +1191,6 @@ class GenericMotor(Motor):
         # Initialize plots and prints object
         self.prints = _MotorPrints(self)
         self.plots = _MotorPlots(self)
-        return None
 
     @cached_property
     def propellant_initial_mass(self):
@@ -1331,7 +1325,6 @@ class GenericMotor(Motor):
         # Print motor details
         self.prints.all()
         self.plots.all()
-        return None
 
 
 class EmptyMotor:
@@ -1377,4 +1370,3 @@ class EmptyMotor:
         self.I_12 = Function(0)
         self.I_13 = Function(0)
         self.I_23 = Function(0)
-        return None

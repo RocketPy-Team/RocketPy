@@ -21,7 +21,6 @@ class _AeroSurfacePlots(ABC):
         None
         """
         self.aero_surface = aero_surface
-        return None
 
     @abstractmethod
     def draw(self):
@@ -37,7 +36,6 @@ class _AeroSurfacePlots(ABC):
         None
         """
         self.aero_surface.cl()
-        return None
 
     def all(self):
         """Plots all aero surface plots.
@@ -48,7 +46,6 @@ class _AeroSurfacePlots(ABC):
         """
         self.draw()
         self.lift()
-        return None
 
 
 class _NoseConePlots(_AeroSurfacePlots):
@@ -68,7 +65,6 @@ class _NoseConePlots(_AeroSurfacePlots):
         None
         """
         super().__init__(nosecone)
-        return None
 
     def draw(self):
         """Draw the nosecone shape along with some important information,
@@ -142,7 +138,6 @@ class _NoseConePlots(_AeroSurfacePlots):
         ax.legend(bbox_to_anchor=(1, -0.2))
         # Show Plot
         plt.show()
-        return None
 
 
 class _FinsPlots(_AeroSurfacePlots):
@@ -162,7 +157,6 @@ class _FinsPlots(_AeroSurfacePlots):
         None
         """
         super().__init__(fin_set)
-        return None
 
     @abstractmethod
     def draw(self):
@@ -180,7 +174,6 @@ class _FinsPlots(_AeroSurfacePlots):
         if self.aero_surface.airfoil:
             print("Airfoil lift curve:")
             self.aero_surface.airfoil_cl.plot_1d(force_data=True)
-        return None
 
     def roll(self):
         """Plots the roll parameters of the fin set.
@@ -193,7 +186,6 @@ class _FinsPlots(_AeroSurfacePlots):
         # TODO: lacks a title in the plots
         self.aero_surface.roll_parameters[0]()
         self.aero_surface.roll_parameters[1]()
-        return None
 
     def lift(self):
         """Plots the lift coefficient of the aero surface as a function of Mach
@@ -210,7 +202,6 @@ class _FinsPlots(_AeroSurfacePlots):
         self.aero_surface.cl()
         self.aero_surface.clalpha_single_fin()
         self.aero_surface.clalpha_multiple_fins()
-        return None
 
     def all(self):
         """Plots all available fin plots.
@@ -223,7 +214,6 @@ class _FinsPlots(_AeroSurfacePlots):
         self.airfoil()
         self.roll()
         self.lift()
-        return None
 
 
 class _TrapezoidalFinsPlots(_FinsPlots):
@@ -231,7 +221,6 @@ class _TrapezoidalFinsPlots(_FinsPlots):
 
     def __init__(self, fin_set):
         super().__init__(fin_set)
-        return None
 
     def draw(self):
         """Draw the fin shape along with some important information, including
@@ -348,7 +337,6 @@ class _TrapezoidalFinsPlots(_FinsPlots):
 
         plt.tight_layout()
         plt.show()
-        return None
 
 
 class _EllipticalFinsPlots(_FinsPlots):
@@ -356,7 +344,6 @@ class _EllipticalFinsPlots(_FinsPlots):
 
     def __init__(self, fin_set):
         super().__init__(fin_set)
-        return None
 
     def draw(self):
         """Draw the fin shape along with some important information.
@@ -424,8 +411,6 @@ class _EllipticalFinsPlots(_FinsPlots):
         plt.tight_layout()
         plt.show()
 
-        return None
-
 
 class _TailPlots(_AeroSurfacePlots):
     """Class that contains all tail plots."""
@@ -443,11 +428,10 @@ class _TailPlots(_AeroSurfacePlots):
         None
         """
         super().__init__(tail)
-        return None
 
     def draw(self):
         # This will de done in the future
-        return None
+        pass
 
 
 class _AirBrakesPlots(_AeroSurfacePlots):

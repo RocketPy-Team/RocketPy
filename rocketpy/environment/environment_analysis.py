@@ -209,7 +209,6 @@ class EnvironmentAnalysis:
                 forecast_args = forecast_args or {"type": "Forecast", "file": "GFS"}
                 env.set_atmospheric_model(**forecast_args)
                 self.forecast[hour] = env
-        return None
 
     # Private, auxiliary methods
 
@@ -244,7 +243,6 @@ class EnvironmentAnalysis:
                 "Given the above errors, some methods may not work. Please run "
                 + "'pip install rocketpy[env_analysis]' to install extra requirements."
             )
-        return None
 
     def __init_surface_dictionary(self):
         # Create dictionary of file variable names to process surface data
@@ -426,8 +424,6 @@ class EnvironmentAnalysis:
             raise ValueError(
                 f"Latitude and longitude pair {(self.latitude, self.longitude)} is outside the grid available in the given file, which is defined by {(lat_array[0], lon_array[0])} and {(lat_array[-1], lon_array[-1])}."
             )
-        else:
-            return None
 
     def __localize_input_dates(self):
         if self.start_date.tzinfo is None:
@@ -477,8 +473,6 @@ class EnvironmentAnalysis:
         }
         # Create a variable to store updated units when units are being updated
         self.updated_units = self.current_units.copy()
-
-        return None
 
     def __init_unit_system(self):
         """Initialize preferred units for output (SI, metric or imperial)."""
@@ -551,8 +545,6 @@ class EnvironmentAnalysis:
         self.__init_unit_system()
         # Update current units
         self.current_units = self.updated_units.copy()
-
-        return None
 
     # General properties
 
@@ -2772,7 +2764,6 @@ class EnvironmentAnalysis:
 
         self.prints.all()
         self.plots.info()
-        return None
 
     def all_info(self):
         """Prints out all data and graphs available.
@@ -2784,8 +2775,6 @@ class EnvironmentAnalysis:
 
         self.prints.all()
         self.plots.all()
-
-        return None
 
     def export_mean_profiles(self, filename="export_env_analysis"):
         """
@@ -2871,8 +2860,6 @@ class EnvironmentAnalysis:
             "You can use it in the future by using the customAtmosphere atmospheric model."
         )
 
-        return None
-
     @classmethod
     def load(self, filename="env_analysis_dict"):
         """Load a previously saved Environment Analysis file.
@@ -2911,5 +2898,3 @@ class EnvironmentAnalysis:
         file.write(encoded_class)
         file.close()
         print("Your Environment Analysis file was saved, check it out: " + filename)
-
-        return None

@@ -359,7 +359,6 @@ class HybridMotor(Motor):
         # Initialize plots and prints object
         self.prints = _HybridMotorPrints(self)
         self.plots = _HybridMotorPlots(self)
-        return None
 
     @funcify_method("Time (s)", "Exhaust velocity (m/s)")
     def exhaust_velocity(self):
@@ -608,7 +607,6 @@ class HybridMotor(Motor):
         """Prints out basic data about the Motor."""
         self.prints.all()
         self.plots.thrust()
-        return None
 
     def all_info(self):
         """Prints out all data and graphs available about the Motor.
@@ -619,4 +617,3 @@ class HybridMotor(Motor):
         """
         self.prints.all()
         self.plots.all()
-        return None

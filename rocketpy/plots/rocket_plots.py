@@ -32,8 +32,6 @@ class _RocketPlots:
 
         self.rocket = rocket
 
-        return None
-
     def total_mass(self):
         """Plots total mass of the rocket as a function of time.
 
@@ -43,8 +41,6 @@ class _RocketPlots:
         """
 
         self.rocket.total_mass()
-
-        return None
 
     def reduced_mass(self):
         """Plots reduced mass of the rocket as a function of time.
@@ -56,8 +52,6 @@ class _RocketPlots:
 
         self.rocket.reduced_mass()
 
-        return None
-
     def static_margin(self):
         """Plots static margin of the rocket as a function of time.
 
@@ -67,8 +61,6 @@ class _RocketPlots:
         """
 
         self.rocket.static_margin()
-
-        return None
 
     def stability_margin(self):
         """Plots static margin of the rocket as a function of time.
@@ -85,8 +77,6 @@ class _RocketPlots:
             disp_type="surface",
             alpha=1,
         )
-
-        return None
 
     def power_on_drag(self):
         """Plots power on drag of the rocket as a function of time.
@@ -105,8 +95,6 @@ class _RocketPlots:
 
         self.rocket.power_on_drag()
 
-        return None
-
     def power_off_drag(self):
         """Plots power off drag of the rocket as a function of time.
 
@@ -123,8 +111,6 @@ class _RocketPlots:
         )
 
         self.rocket.power_off_drag()
-
-        return None
 
     def drag_curves(self):
         """Plots power off and on drag curves of the rocket as a function of time.
@@ -177,8 +163,6 @@ class _RocketPlots:
         self.rocket.thrust_to_weight.plot(
             lower=0, upper=self.rocket.motor.burn_out_time
         )
-
-        return None
 
     def draw(self, vis_args=None):
         """Draws the rocket in a matplotlib figure.
@@ -603,5 +587,3 @@ class _RocketPlots:
         print("\nThrust-to-Weight Plot")
         print("-" * 40)
         self.thrust_to_weight()
-
-        return None

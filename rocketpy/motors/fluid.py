@@ -38,7 +38,6 @@ class Fluid:
         # Initialize plots and prints object
         self.prints = _FluidPrints(self)
         self.plots = _FluidPlots(self)
-        return None
 
     def __repr__(self):
         """Representation method.

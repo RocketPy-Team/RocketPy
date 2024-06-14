@@ -237,11 +237,7 @@ class Parachute:
         """Prints information about the Parachute class."""
         self.prints.all()
 
-        return None
-
     def all_info(self):
         """Prints all information about the Parachute class."""
         self.info()
         # self.plots.all() # Parachutes still doesn't have plots
-
-        return None
