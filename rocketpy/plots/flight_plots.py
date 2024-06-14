@@ -32,7 +32,6 @@ class _FlightPlots:
         None
         """
         self.flight = flight
-        return None
 
     @cached_property
     def first_event_time(self):
@@ -189,7 +188,6 @@ class _FlightPlots:
 
         plt.subplots_adjust(hspace=0.5)
         plt.show()
-        return None
 
     def attitude_data(self):
         """Prints out all Angular position graphs available about the Flight
@@ -241,8 +239,6 @@ class _FlightPlots:
         plt.subplots_adjust(hspace=0.5)
         plt.show()
 
-        return None
-
     def flight_path_angle_data(self):
         """Prints out Flight path and Rocket Attitude angle graphs available
         about the Flight
@@ -287,8 +283,6 @@ class _FlightPlots:
 
         plt.subplots_adjust(hspace=0.5)
         plt.show()
-
-        return None
 
     def angular_kinematics_data(self):
         """Prints out all Angular velocity and acceleration graphs available
@@ -357,8 +351,6 @@ class _FlightPlots:
 
         plt.subplots_adjust(hspace=0.5)
         plt.show()
-
-        return None
 
     def rail_buttons_forces(self):
         """Prints out all Rail Buttons Forces graphs available about the Flight.
@@ -442,7 +434,6 @@ class _FlightPlots:
 
             plt.subplots_adjust(hspace=0.5)
             plt.show()
-        return None
 
     def aerodynamic_forces(self):
         """Prints out all Forces and Moments graphs available about the Flight
@@ -525,8 +516,6 @@ class _FlightPlots:
 
         plt.subplots_adjust(hspace=0.5)
         plt.show()
-
-        return None
 
     def energy_data(self):
         """Prints out all Energy components graphs available about the Flight
@@ -639,8 +628,6 @@ class _FlightPlots:
         plt.subplots_adjust(hspace=1)
         plt.show()
 
-        return None
-
     def fluid_mechanics_data(self):
         """Prints out a summary of the Fluid Mechanics graphs available about
         the Flight
@@ -705,8 +692,6 @@ class _FlightPlots:
 
         plt.subplots_adjust(hspace=0.5)
         plt.show()
-
-        return None
 
     def stability_and_control_data(self):
         """Prints out Rocket Stability and Control parameters graphs available
@@ -787,8 +772,6 @@ class _FlightPlots:
         plt.subplots_adjust(hspace=0.5)
         plt.show()
 
-        return None
-
     def pressure_rocket_altitude(self):
         """Plots out pressure at rocket's altitude.
 
@@ -809,8 +792,6 @@ class _FlightPlots:
         ax1.grid()
 
         plt.show()
-
-        return None
 
     def pressure_signals(self):
         """Plots out all Parachute Trigger Pressure Signals.
@@ -836,8 +817,6 @@ class _FlightPlots:
                 parachute.clean_pressure_signal_function()
         else:
             print("\nRocket has no parachutes. No parachute plots available")
-
-        return None
 
     def all(self):
         """Prints out all plots available about the Flight.
@@ -880,5 +859,3 @@ class _FlightPlots:
         print("\n\nRocket and Parachute Pressure Plots\n")
         self.pressure_rocket_altitude()
         self.pressure_signals()
-
-        return None

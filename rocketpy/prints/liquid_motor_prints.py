@@ -24,7 +24,6 @@ class _LiquidMotorPrints:
         None
         """
         self.liquid_motor = liquid_motor
-        return None
 
     def nozzle_details(self):
         """Prints out all data available about the Nozzle.
@@ -35,7 +34,6 @@ class _LiquidMotorPrints:
         """
         print("Nozzle Details")
         print("Nozzle Radius: " + str(self.liquid_motor.nozzle_radius) + " m\n")
-        return None
 
     def motor_details(self):
         """Prints out all data available about the motor.
@@ -75,7 +73,6 @@ class _LiquidMotorPrints:
             + "{:.3f}".format(self.liquid_motor.total_impulse)
             + " Ns\n"
         )
-        return None
 
     def all(self):
         """Prints out all data available about the LiquidMotor.
@@ -86,4 +83,3 @@ class _LiquidMotorPrints:
         """
         self.nozzle_details()
         self.motor_details()
-        return None

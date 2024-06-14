@@ -15,7 +15,6 @@ class _EnvironmentAnalysisPrints:
 
     def __init__(self, env_analysis):
         self.env_analysis = env_analysis
-        return None
 
     def dataset(self):
         print("Dataset Information: ")
@@ -55,7 +54,6 @@ class _EnvironmentAnalysisPrints:
             self.env_analysis.pressure_level_lon1,
             "°\n",
         )
-        return None
 
     def launch_site(self):
         # Print launch site details
@@ -72,7 +70,6 @@ class _EnvironmentAnalysisPrints:
             self.env_analysis.unit_system["length"],
             "\n",
         )
-        return None
 
     def pressure(self):
         print("Pressure Information")
@@ -88,7 +85,6 @@ class _EnvironmentAnalysisPrints:
         print(
             f"Average Pressure at {convert_units(30000, 'ft', self.env_analysis.unit_system['length']):.0f} {self.env_analysis.unit_system['length']}: {self.env_analysis.average_pressure_at_30000ft:.2f} ± {self.env_analysis.std_pressure_at_1000ft:.2f} {self.env_analysis.unit_system['pressure']}\n"
         )
-        return None
 
     def temperature(self):
         print("Temperature Information")
@@ -104,7 +100,6 @@ class _EnvironmentAnalysisPrints:
         print(
             f"Average Daily Minimum Temperature: {self.env_analysis.average_min_temperature:.2f} {self.env_analysis.unit_system['temperature']}\n"
         )
-        return None
 
     def wind_speed(self):
         print(
@@ -137,7 +132,6 @@ class _EnvironmentAnalysisPrints:
         print(
             f"Average Daily Minimum Wind Speed: {self.env_analysis.average_min_surface_100m_wind_speed:.2f} {self.env_analysis.unit_system['wind_speed']}\n"
         )
-        return None
 
     def wind_gust(self):
         print("Wind Gust Information")
@@ -147,7 +141,6 @@ class _EnvironmentAnalysisPrints:
         print(
             f"Average Daily Maximum Wind Gust: {self.env_analysis.average_max_wind_gust:.2f} {self.env_analysis.unit_system['wind_speed']}\n"
         )
-        return None
 
     def precipitation(self):
         print("Precipitation Information")
@@ -160,7 +153,6 @@ class _EnvironmentAnalysisPrints:
         print(
             f"Average Precipitation in a day: {np.mean(self.env_analysis.precipitation_per_day):.1f} {self.env_analysis.unit_system['precipitation']}\n"
         )
-        return None
 
     def cloud_coverage(self):
         print("Cloud Base Height Information")
@@ -173,7 +165,6 @@ class _EnvironmentAnalysisPrints:
         print(
             f"Percentage of Days Without Clouds: {100*self.env_analysis.percentage_of_days_with_no_cloud_coverage:.1f} %\n"
         )
-        return None
 
     def all(self):
         self.dataset()
@@ -184,4 +175,3 @@ class _EnvironmentAnalysisPrints:
         self.wind_gust()
         self.precipitation()
         self.cloud_coverage()
-        return None

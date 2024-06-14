@@ -24,7 +24,6 @@ class _SolidMotorPrints:
         None
         """
         self.solid_motor = solid_motor
-        return None
 
     def nozzle_details(self):
         """Prints out all data available about the SolidMotor nozzle.
@@ -118,4 +117,3 @@ class _SolidMotorPrints:
         self.nozzle_details()
         self.grain_details()
         self.motor_details()
-        return None

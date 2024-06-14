@@ -102,8 +102,6 @@ class _RocketPrints:
             )
         )
 
-        return None
-
     def rocket_aerodynamics_quantities(self):
         """Print rocket aerodynamics quantities.
 
@@ -162,8 +160,6 @@ class _RocketPrints:
             + " m\n"
         )
 
-        return None
-
     def parachute_data(self):
         """Print parachute data.
 
@@ -173,7 +169,6 @@ class _RocketPrints:
         """
         for chute in self.rocket.parachutes:
             chute.all_info()
-        return None
 
     def all(self):
         """Prints all print methods about the Environment.
@@ -193,5 +188,3 @@ class _RocketPrints:
 
         # Print parachute data
         self.parachute_data()
-
-        return None

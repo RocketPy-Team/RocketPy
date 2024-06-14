@@ -24,7 +24,6 @@ class _MotorPrints:
         None
         """
         self.motor = motor
-        return None
 
     def motor_details(self):
         """Print Motor details.
@@ -56,7 +55,6 @@ class _MotorPrints:
             + " s after ignition."
         )
         print("Total Impulse: " + "{:.3f}".format(self.motor.total_impulse) + " Ns\n")
-        return None
 
     def all(self):
         """Prints out all data available about the Motor.
@@ -66,4 +64,3 @@ class _MotorPrints:
         None
         """
         self.motor_details()
-        return None

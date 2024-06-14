@@ -30,7 +30,6 @@ class _EnvironmentPlots:
         # Create height grid
         self.grid = np.linspace(environment.elevation, environment.max_expected_height)
         self.environment = environment
-        return None
 
     def __wind(self, ax):
         """Adds wind speed and wind direction graphs to the same axis.
@@ -195,8 +194,6 @@ class _EnvironmentPlots:
 
         plt.show()
 
-        return None
-
     def atmospheric_model(self):
         """Plots all atmospheric model graphs available. This includes wind
         speed and wind direction, density and speed of sound, wind u and wind v,
@@ -228,8 +225,6 @@ class _EnvironmentPlots:
 
         plt.subplots_adjust(wspace=0.5, hspace=0.3)
         plt.show()
-
-        return None
 
     def ensemble_member_comparison(self):
         """Plots ensemble member comparisons. It requires that the environment
@@ -330,8 +325,6 @@ class _EnvironmentPlots:
         # Clean up
         self.environment.select_ensemble_member(current_member)
 
-        return None
-
     def info(self):
         """Plots a summary of the atmospheric model, including wind speed and
         wind direction, density and speed of sound. This is important for the
@@ -353,7 +346,6 @@ class _EnvironmentPlots:
 
         plt.subplots_adjust(wspace=0.5)
         plt.show()
-        return None
 
     def all(self):
         """Prints out all graphs available about the Environment. This includes
@@ -376,5 +368,3 @@ class _EnvironmentPlots:
         if self.environment.atmospheric_model_type == "Ensemble":
             print("\n\nEnsemble Members Comparison")
             self.ensemble_member_comparison()
-
-        return None
