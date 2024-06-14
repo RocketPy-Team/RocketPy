@@ -52,7 +52,7 @@ class _EnvironmentPrints:
         print("\nLaunch Site Details\n")
         time_format = "%Y-%m-%d %H:%M:%S"
         if (
-            self.environment.datetime_date != None
+            self.environment.datetime_date is not None
             and "UTC" not in self.environment.timezone
         ):
             print(
@@ -62,13 +62,16 @@ class _EnvironmentPrints:
                 self.environment.local_date.strftime(time_format),
                 self.environment.timezone,
             )
-        elif self.environment.datetime_date != None:
+        elif self.environment.datetime_date is not None:
             print(
                 "Launch Date:",
                 self.environment.datetime_date.strftime(time_format),
                 "UTC",
             )
-        if self.environment.latitude != None and self.environment.longitude != None:
+        if (
+            self.environment.latitude is not None
+            and self.environment.longitude is not None
+        ):
             print("Launch Site Latitude: {:.5f}°".format(self.environment.latitude))
             print("Launch Site Longitude: {:.5f}°".format(self.environment.longitude))
         print("Reference Datum: " + self.environment.datum)

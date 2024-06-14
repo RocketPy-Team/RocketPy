@@ -363,7 +363,7 @@ class Environment:
         self.set_atmospheric_model("standard_atmosphere")
 
         # Save date
-        if date != None:
+        if date is not None:
             self.set_date(date, timezone)
         else:
             self.date = None
@@ -378,7 +378,7 @@ class Environment:
         # Save latitude and longitude
         self.latitude = latitude
         self.longitude = longitude
-        if latitude != None and longitude != None:
+        if latitude is not None and longitude is not None:
             self.set_location(latitude, longitude)
         else:
             self.latitude, self.longitude = None, None
@@ -664,7 +664,7 @@ class Environment:
         """
         if elevation != "Open-Elevation" and elevation != "SRTM":
             self.elevation = elevation
-        # elif elevation == "SRTM" and self.latitude != None and self.longitude != None:
+        # elif elevation == "SRTM" and self.latitude is not None and self.longitude is not None:
         #     # Trigger the authentication flow.
         #     #ee.Authenticate()
         #     # Initialize the library.
@@ -3325,9 +3325,9 @@ class Environment:
             surface_air_density=self.density(self.elevation),
             surface_speed_of_sound=self.speed_of_sound(self.elevation),
         )
-        if self.datetime_date != None:
+        if self.datetime_date is not None:
             info["launch_date"] = self.datetime_date.strftime("%Y-%d-%m %H:%M:%S")
-        if self.latitude != None and self.longitude != None:
+        if self.latitude is not None and self.longitude is not None:
             info["lat"] = self.latitude
             info["lon"] = self.longitude
         if info["model_type"] in ["Forecast", "Reanalysis", "Ensemble"]:
