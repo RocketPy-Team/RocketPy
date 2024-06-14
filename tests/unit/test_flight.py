@@ -3,10 +3,9 @@ from unittest.mock import patch
 
 import matplotlib as plt
 import numpy as np
-import pytest
 from scipy import optimize
 
-from rocketpy import Components, Environment, Flight, Function, Rocket, SolidMotor
+from rocketpy import Components
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
