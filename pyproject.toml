@@ -61,6 +61,9 @@ line-length = 88
 include = '\.py$|\.ipynb$'
 skip-string-normalization = true
 
+[tool.isort]
+profile = "black"
+
 [tool.coverage.report]
 # Regexes for lines to exclude from consideration
 exclude_also = [

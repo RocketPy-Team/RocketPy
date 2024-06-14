@@ -46,7 +46,7 @@ fail-under=10
 #from-stdin=
 
 # Files or directories to be skipped. They should be base names, not paths.
-ignore=CVS, docs
+ignore=CVS, docs, data, 
 
 # Add files or directories matching the regular expressions patterns to the
 # ignore-list. The regex matches against paths and can be in Posix or Windows
@@ -212,6 +212,14 @@ good-names=FlightPhases,
            fin_set_NACA,
            fin_set_E473,
            HIRESW_dictionary,
+           prop_I_11,
+           S_nozzle*, # nozzle gyration tensor
+           r_CM_z,
+           r_CM_t,
+           r_CM_dot,
+           r_CM_ddot,
+           Kt, # transformation matrix transposed
+
 
 
 # Good variable names regexes, separated by a comma. If names match any regex,
@@ -454,7 +462,7 @@ disable=raw-checker-failed,
         file-ignored,
         suppressed-message,
         useless-suppression,
-        deprecated-pragma,
+        deprecated-pragma, # because we have some peniding deprecations in the code. 
         use-symbolic-message-instead,
         use-implicit-booleaness-not-comparison-to-string,
         use-implicit-booleaness-not-comparison-to-zero,
@@ -462,6 +470,10 @@ disable=raw-checker-failed,
         inconsistent-return-statements,
         unspecified-encoding,
         no-member, # because we use funcify_method decorator
+        invalid-overridden-method, # because we use funcify_method decorator
+        fixme, # because we use TODO in the code
+        missing-module-docstring, # not useful for most of the modules.
+        attribute-defined-outside-init, # to avoid more than 200 errors (code works fine)
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
