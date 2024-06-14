@@ -15,7 +15,7 @@ def test_elliptical_fins(mock_show, calisto_robust, calisto_trapezoidal_fins):
         4, span=0.100, root_chord=0.120, position=-1.168
     )
     static_margin = test_rocket.static_margin(0)
-    assert test_rocket.all_info() == None or not abs(static_margin - 2.30) < 0.01
+    assert test_rocket.all_info() is None or not abs(static_margin - 2.30) < 0.01
 
 
 def test_evaluate_static_margin_assert_cp_equals_cm(dimensionless_calisto):

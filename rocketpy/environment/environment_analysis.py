@@ -2139,7 +2139,7 @@ class EnvironmentAnalysis:
             is the minimum altitude, and the second element is the maximum.
         """
         min_altitude = 0
-        if self.max_expected_altitude == None:
+        if self.max_expected_altitude is None:
             max_altitudes = [
                 np.max(day_dict[hour]["wind_speed"].source[-1, 0])
                 for day_dict in self.original_pressure_level_data.values()

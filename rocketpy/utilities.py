@@ -126,7 +126,7 @@ def calculate_equilibrium_altitude(
             if abs(f[i + 2] - f[i + 1]) < eps and abs(f[i + 1] - f[i]) < eps:
                 return i
 
-    if env == None:
+    if env is None:
         environment = Environment(
             latitude=0,
             longitude=0,

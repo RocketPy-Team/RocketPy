@@ -16,11 +16,11 @@ def test_standard_atmosphere(mock_show, example_plain_env):
         Example environment object to be tested.
     """
     example_plain_env.set_atmospheric_model(type="standard_atmosphere")
-    assert example_plain_env.info() == None
-    assert example_plain_env.all_info() == None
+    assert example_plain_env.info() is None
+    assert example_plain_env.all_info() is None
     assert abs(example_plain_env.pressure(0) - 101325.0) < 1e-8
     assert abs(example_plain_env.barometric_height(101325.0)) < 1e-2
-    assert example_plain_env.prints.print_earth_details() == None
+    assert example_plain_env.prints.print_earth_details() is None
 
 
 @patch("matplotlib.pyplot.show")
@@ -41,7 +41,7 @@ def test_custom_atmosphere(mock_show, example_plain_env):
         wind_u=[(0, 5), (1000, 10)],
         wind_v=[(0, -2), (500, 3), (1600, 2)],
     )
-    assert example_plain_env.all_info() == None
+    assert example_plain_env.all_info() is None
     assert abs(example_plain_env.pressure(0) - 101325.0) < 1e-8
     assert abs(example_plain_env.barometric_height(101325.0)) < 1e-2
     assert abs(example_plain_env.wind_velocity_x(0) - 5) < 1e-8
@@ -65,7 +65,7 @@ def test_wyoming_sounding_atmosphere(mock_show, example_plain_env):
     # give it at least 5 times to try to download the file
     example_plain_env.set_atmospheric_model(type="wyoming_sounding", file=URL)
 
-    assert example_plain_env.all_info() == None
+    assert example_plain_env.all_info() is None
     assert abs(example_plain_env.pressure(0) - 93600.0) < 1e-8
     assert (
         abs(example_plain_env.barometric_height(example_plain_env.pressure(0)) - 722.0)
@@ -81,7 +81,7 @@ def test_wyoming_sounding_atmosphere(mock_show, example_plain_env):
 def test_noaa_ruc_sounding_atmosphere(mock_show, example_plain_env):
     URL = r"https://rucsoundings.noaa.gov/get_raobs.cgi?data_source=RAOB&latest=latest&start_year=2019&start_month_name=Feb&start_mday=5&start_hour=12&start_min=0&n_hrs=1.0&fcst_len=shortest&airport=83779&text=Ascii%20text%20%28GSD%20format%29&hydrometeors=false&start=latest"
     example_plain_env.set_atmospheric_model(type="NOAARucSounding", file=URL)
-    assert example_plain_env.all_info() == None
+    assert example_plain_env.all_info() is None
     assert example_plain_env.pressure(0) == 100000.0
 
 
@@ -99,7 +99,7 @@ def test_gfs_atmosphere(mock_show, example_spaceport_env):
         Example environment object to be tested.
     """
     example_spaceport_env.set_atmospheric_model(type="Forecast", file="GFS")
-    assert example_spaceport_env.all_info() == None
+    assert example_spaceport_env.all_info() is None
 
 
 @pytest.mark.slow
@@ -115,7 +115,7 @@ def test_nam_atmosphere(mock_show, example_spaceport_env):
         Example environment object to be tested.
     """
     example_spaceport_env.set_atmospheric_model(type="Forecast", file="NAM")
-    assert example_spaceport_env.all_info() == None
+    assert example_spaceport_env.all_info() is None
 
 
 # Deactivated since it is hard to figure out and appropriate date to use RAP forecast
@@ -126,7 +126,7 @@ def test_rap_atmosphere(mock_show, example_spaceport_env):
     today = datetime.date.today()
     example_spaceport_env.set_date((today.year, today.month, today.day, 8))
     example_spaceport_env.set_atmospheric_model(type="Forecast", file="RAP")
-    assert example_spaceport_env.all_info() == None
+    assert example_spaceport_env.all_info() is None
 
 
 @patch("matplotlib.pyplot.show")
@@ -147,7 +147,7 @@ def test_era5_atmosphere(mock_show, example_spaceport_env):
         file="data/weather/SpaceportAmerica_2018_ERA-5.nc",
         dictionary="ECMWF",
     )
-    assert example_spaceport_env.all_info() == None
+    assert example_spaceport_env.all_info() is None
 
 
 @pytest.mark.slow
@@ -163,7 +163,7 @@ def test_gefs_atmosphere(mock_show, example_spaceport_env):
         Example environment object to be tested.
     """
     example_spaceport_env.set_atmospheric_model(type="Ensemble", file="GEFS")
-    assert example_spaceport_env.all_info() == None
+    assert example_spaceport_env.all_info() is None
 
 
 @patch("matplotlib.pyplot.show")
@@ -224,7 +224,7 @@ def test_cmc_atmosphere(mock_show, example_spaceport_env):
         Example environment object to be tested.
     """
     example_spaceport_env.set_atmospheric_model(type="Ensemble", file="CMC")
-    assert example_spaceport_env.all_info() == None
+    assert example_spaceport_env.all_info() is None
 
 
 @pytest.mark.slow
@@ -261,4 +261,4 @@ def test_hiresw_ensemble_atmosphere(mock_show, example_spaceport_env):
         file=f"https://nomads.ncep.noaa.gov/dods/hiresw/hiresw{date_string}/hiresw_conusarw_12z",
         dictionary=HIRESW_dictionary,
     )
-    assert example_spaceport_env.all_info() == None
+    assert example_spaceport_env.all_info() is None

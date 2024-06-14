@@ -124,7 +124,7 @@ def test_initial_solution(mock_show, example_plain_env, calisto_robust):
         ],
     )
 
-    assert test_flight.all_info() == None
+    assert test_flight.all_info() is None
 
 
 @patch("matplotlib.pyplot.show")
@@ -150,7 +150,7 @@ def test_empty_motor_flight(mock_show, example_plain_env, calisto_motorless):
             2.0747266017020563,
         ],
     )
-    assert flight.all_info() == None
+    assert flight.all_info() is None
 
 
 @pytest.mark.parametrize("wind_u, wind_v", [(0, 10), (0, -10), (10, 0), (-10, 0)])
@@ -292,7 +292,7 @@ def test_rolling_flight(
         heading=0,
     )
 
-    assert test_flight.all_info() == None
+    assert test_flight.all_info() is None
 
 
 @patch("matplotlib.pyplot.show")
@@ -383,8 +383,8 @@ def test_simpler_parachute_triggers(mock_show, example_plain_env, calisto_robust
         )
         <= 1
     )
-    assert calisto_robust.all_info() == None
-    assert test_flight.all_info() == None
+    assert calisto_robust.all_info() is None
+    assert test_flight.all_info() is None
 
 
 @patch("matplotlib.pyplot.show")
@@ -490,7 +490,7 @@ def test_time_overshoot(mock_show, calisto_robust, example_spaceport_env):
         time_overshoot=False,
     )
 
-    assert test_flight.all_info() == None
+    assert test_flight.all_info() is None
 
 
 @patch("matplotlib.pyplot.show")
@@ -515,7 +515,7 @@ def test_liquid_motor_flight(mock_show, calisto_liquid_modded):
         max_time_step=0.25,
     )
 
-    assert test_flight.all_info() == None
+    assert test_flight.all_info() is None
 
 
 @patch("matplotlib.pyplot.show")
@@ -540,7 +540,7 @@ def test_hybrid_motor_flight(mock_show, calisto_hybrid_modded):
         max_time_step=0.25,
     )
 
-    assert test_flight.all_info() == None
+    assert test_flight.all_info() is None
 
 
 def test_surface_wind(flight_calisto_custom_wind):

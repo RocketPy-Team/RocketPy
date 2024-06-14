@@ -96,7 +96,7 @@ def test_all_info(mock_show, flight_calisto_robust):
         Flight object to be tested. See the conftest.py file for more info
         regarding this pytest fixture.
     """
-    assert flight_calisto_robust.all_info() == None
+    assert flight_calisto_robust.all_info() is None
 
 
 def test_get_solution_at_time(flight_calisto):

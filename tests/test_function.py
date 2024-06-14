@@ -118,11 +118,11 @@ def test_plots(mock_show, func_from_csv, func_2d_from_csv):
         A Function object created from a .csv file.
     """
     # Test plot methods
-    assert func_from_csv.plot() == None
-    assert func_2d_from_csv.plot() == None
+    assert func_from_csv.plot() is None
+    assert func_2d_from_csv.plot() is None
     # Test plot methods with limits
-    assert func_from_csv.plot(-1, 1) == None
-    assert func_2d_from_csv.plot(-1, 1) == None
+    assert func_from_csv.plot(-1, 1) is None
+    assert func_2d_from_csv.plot(-1, 1) is None
     # Test compare_plots
     func2 = Function(
         source="tests/fixtures/airfoils/e473-10e6-degrees.csv",
@@ -132,7 +132,7 @@ def test_plots(mock_show, func_from_csv, func_2d_from_csv):
         extrapolation="natural",
     )
     assert (
-        func_from_csv.compare_plots([func_from_csv, func2], return_object=False) == None
+        func_from_csv.compare_plots([func_from_csv, func2], return_object=False) is None
     )
 
 
@@ -320,7 +320,7 @@ def test_multivariable_dataset_plot(mock_show):
     func = Function(source=source, inputs=["x", "y"], outputs=["z"])
 
     # Assert plot
-    assert func.plot() == None
+    assert func.plot() is None
 
 
 @patch("matplotlib.pyplot.show")
@@ -331,7 +331,7 @@ def test_multivariable_function_plot(mock_show):
     func = Function(source=source, inputs=["x", "y"], outputs=["z"])
 
     # Assert plot
-    assert func.plot() == None
+    assert func.plot() is None
 
 
 def test_set_discrete_2d():

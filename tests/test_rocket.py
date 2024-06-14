@@ -12,17 +12,17 @@ def test_rocket(mock_show, calisto_robust):
     test_rocket = calisto_robust
     static_margin = test_rocket.static_margin(0)
     # Check if all_info and static_method methods are working properly
-    assert test_rocket.all_info() == None or not abs(static_margin - 2.05) < 0.01
+    assert test_rocket.all_info() is None or not abs(static_margin - 2.05) < 0.01
 
 
 @patch("matplotlib.pyplot.show")
 def test_aero_surfaces_infos(
     mock_show, calisto_nose_cone, calisto_tail, calisto_trapezoidal_fins
 ):
-    assert calisto_nose_cone.all_info() == None
-    assert calisto_trapezoidal_fins.all_info() == None
-    assert calisto_tail.all_info() == None
-    assert calisto_trapezoidal_fins.draw() == None
+    assert calisto_nose_cone.all_info() is None
+    assert calisto_trapezoidal_fins.all_info() is None
+    assert calisto_tail.all_info() is None
+    assert calisto_trapezoidal_fins.draw() is None
 
 
 def test_coordinate_system_orientation(
@@ -137,7 +137,7 @@ def test_airfoil(
 
     static_margin = test_rocket.static_margin(0)
 
-    assert test_rocket.all_info() == None or not abs(static_margin - 2.03) < 0.01
+    assert test_rocket.all_info() is None or not abs(static_margin - 2.03) < 0.01
 
 
 @patch("matplotlib.pyplot.show")
@@ -171,7 +171,7 @@ def test_air_brakes_clamp_on(mock_show, calisto_air_brakes_clamp_on):
     air_brakes_clamp_on.deployment_level = 0
     assert air_brakes_clamp_on.deployment_level == 0
 
-    assert air_brakes_clamp_on.all_info() == None
+    assert air_brakes_clamp_on.all_info() is None
 
 
 @patch("matplotlib.pyplot.show")
@@ -206,7 +206,7 @@ def test_air_brakes_clamp_off(mock_show, calisto_air_brakes_clamp_off):
     air_brakes_clamp_off.deployment_level = 0
     assert air_brakes_clamp_off.deployment_level == 0
 
-    assert air_brakes_clamp_off.all_info() == None
+    assert air_brakes_clamp_off.all_info() is None
 
 
 def test_add_surfaces_different_noses(calisto):
@@ -253,7 +253,7 @@ def test_add_surfaces_different_noses(calisto):
     assert nose2.radius_ratio == pytest.approx(0.5, 1e-8)
     assert calisto.static_margin(0) == pytest.approx(-8.9053, 0.01)
 
-    # Case 3: base_radius == None
+    # Case 3: base_radius is None
     calisto.aerodynamic_surfaces.remove(nose2)
     nose3 = NoseCone(
         length,
@@ -267,7 +267,7 @@ def test_add_surfaces_different_noses(calisto):
     assert nose3.radius_ratio == pytest.approx(1, 1e-8)
     assert calisto.static_margin(0) == pytest.approx(-8.9053, 0.01)
 
-    # Case 4: rocket_radius == None
+    # Case 4: rocket_radius is None
     calisto.aerodynamic_surfaces.remove(nose3)
     nose4 = NoseCone(
         length,

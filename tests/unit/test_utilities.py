@@ -107,7 +107,7 @@ def test_apogee_by_mass(mock_show, flight):
     assert abs(f(10) - 3697.1896424) < 1e-6
     assert abs(f(15) - 3331.6521059) < 1e-6
     assert abs(f(20) - 2538.4542953) < 1e-6
-    assert f.plot() == None
+    assert f.plot() is None
 
 
 @pytest.mark.skip(reason="legacy tests")
@@ -129,7 +129,7 @@ def test_liftoff_by_mass(mock_show, flight):
     assert abs(f(10) - 31.07885818306235) < 1e-6
     assert abs(f(15) - 26.054819726081266) < 1e-6
     assert abs(f(20) - 22.703279913437058) < 1e-6
-    assert f.plot() == None
+    assert f.plot() is None
 
 
 def test_fin_flutter_analysis(flight_calisto_custom_wind):

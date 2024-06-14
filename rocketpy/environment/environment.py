@@ -474,7 +474,7 @@ class Environment:
             local_date = datetime(*date)
         else:
             local_date = date
-        if local_date.tzinfo == None:
+        if local_date.tzinfo is None:
             local_date = tz.localize(local_date)
         self.date = date
         self.local_date = local_date
