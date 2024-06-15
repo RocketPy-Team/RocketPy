@@ -1,3 +1,5 @@
+# pylint: disable=missing-function-docstring, line-too-long, # TODO: fix this.
+
 import numpy as np
 
 from ..units import convert_units
@@ -58,8 +60,8 @@ class _EnvironmentAnalysisPrints:
     def launch_site(self):
         # Print launch site details
         print("Launch Site Details")
-        print("Launch Site Latitude: {:.5f}°".format(self.env_analysis.latitude))
-        print("Launch Site Longitude: {:.5f}°".format(self.env_analysis.longitude))
+        print(f"Launch Site Latitude: {self.env_analysis.latitude:.5f}°")
+        print(f"Launch Site Longitude: {self.env_analysis.longitude:.5f}°")
         print(
             f"Surface Elevation (from surface data file): {self.env_analysis.converted_elevation:.1f} {self.env_analysis.unit_system['length']}"
         )

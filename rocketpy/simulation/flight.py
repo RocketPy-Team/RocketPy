@@ -498,7 +498,7 @@ class Flight:
         max_time_step=np.inf,
         min_time_step=0,
         rtol=1e-6,
-        atol=6 * [1e-3] + 4 * [1e-6] + 3 * [1e-3],
+        atol=None,
         time_overshoot=True,
         verbose=False,
         name="Flight",
@@ -596,7 +596,7 @@ class Flight:
         self.max_time_step = max_time_step
         self.min_time_step = min_time_step
         self.rtol = rtol
-        self.atol = atol
+        self.atol = atol or 6 * [1e-3] + 4 * [1e-6] + 3 * [1e-3]
         self.initial_solution = initial_solution
         self.time_overshoot = time_overshoot
         self.terminate_on_apogee = terminate_on_apogee
@@ -635,7 +635,7 @@ class Flight:
             f"name= {self.name})>"
         )
 
-    def __simulate(self, verbose):
+    def __simulate(self, verbose):  #  pylint: disable=too-many-branches (fix this)
         """Simulate the flight trajectory."""
         for phase_index, phase in self.time_iterator(self.flight_phases):
             # Determine maximum time for this flight phase
@@ -714,7 +714,7 @@ class Flight:
                     ):
                         # Remove parachute from flight parachutes
                         self.parachutes.remove(parachute)
-                        # Create flight phase for time after detection and before inflation
+                        # Create phase for time after detection and before inflation
                         # Must only be created if parachute has any lag
                         i = 1
                         if parachute.lag != 0:
@@ -955,7 +955,8 @@ class Flight:
                                     ):
                                         # Remove parachute from flight parachutes
                                         self.parachutes.remove(parachute)
-                                        # Create flight phase for time after detection and before inflation
+                                        # Create phase for time after detection and
+                                        # before inflation
                                         # Must only be created if parachute has any lag
                                         i = 1
                                         if parachute.lag != 0:
@@ -1142,7 +1143,8 @@ class Flight:
             if self.time_overshoot:
                 self.time_overshoot = False
                 warnings.warn(
-                    "time_overshoot has been set to False due to the presence of controllers. "
+                    "time_overshoot has been set to False due to the "
+                    "presence of controllers. "
                 )
             # reset controllable object to initial state (only airbrakes for now)
             for air_brakes in self.rocket.air_brakes:
@@ -1233,7 +1235,7 @@ class Flight:
 
         """
         # Retrieve integration data
-        x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
+        _, _, z, vx, vy, vz, e0, e1, e2, e3, _, _, _ = u
 
         # Retrieve important quantities
         # Mass
@@ -1320,7 +1322,7 @@ class Flight:
         """
 
         # Retrieve integration data
-        x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
+        _, _, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
         # Determine lift force and moment
         R1, R2, M1, M2, M3 = 0, 0, 0, 0, 0
         # Determine current behavior
@@ -1582,7 +1584,7 @@ class Flight:
             e0_dot, e1_dot, e2_dot, e3_dot, alpha1, alpha2, alpha3].
         """
         # Retrieve integration data
-        x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
+        _, _, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
 
         # Create necessary vectors
         # r = Vector([x, y, z])               # CDM position vector
@@ -2849,6 +2851,7 @@ class Flight:
         -------
         None
         """
+        # pylint: disable=unused-argument
         # TODO: add a deprecation warning maybe?
         self.post_processed = True
 
@@ -3198,14 +3201,16 @@ class Flight:
                     return None
                 warning_msg = (
                     (
-                        "Trying to add flight phase starting together with the one preceding it. ",
-                        "This may be caused by multiple parachutes being triggered simultaneously.",
+                        "Trying to add flight phase starting together with the "
+                        "one preceding it. This may be caused by multiple "
+                        "parachutes being triggered simultaneously."
                     )
                     if flight_phase.t == previous_phase.t
                     else (
-                        "Trying to add flight phase starting *before* the one *preceding* it. ",
-                        "This may be caused by multiple parachutes being triggered simultaneously",
-                        " or by having a negative parachute lag.",
+                        "Trying to add flight phase starting *before* the one "
+                        "*preceding* it. This may be caused by multiple "
+                        "parachutes being triggered simultaneously "
+                        "or by having a negative parachute lag.",
                     )
                 )
                 self.display_warning(*warning_msg)
@@ -3343,7 +3348,11 @@ class Flight:
         TimeNodes object are instances of the TimeNode class.
         """
 
-        def __init__(self, init_list=[]):
+        # pylint: disable=missing-function-docstring
+
+        def __init__(self, init_list=None):
+            if not init_list:
+                init_list = []
             self.list = init_list[:]
 
         def __getitem__(self, index):

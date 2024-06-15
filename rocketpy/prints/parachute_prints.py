@@ -64,6 +64,6 @@ class _ParachutePrints:
         """
 
         print("\nParachute Details\n")
-        print(self.parachute.__str__())
+        print(str(self.parachute))
         self.trigger()
         self.noise()
