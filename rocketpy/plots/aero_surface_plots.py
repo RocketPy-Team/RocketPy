@@ -52,20 +52,6 @@ class _NoseConePlots(_AeroSurfacePlots):
     """Class that contains all nosecone plots. This class inherits from the
     _AeroSurfacePlots class."""
 
-    def __init__(self, nosecone):
-        """Initialize the class
-
-        Parameters
-        ----------
-        nosecone : rocketpy.AeroSurface.NoseCone
-            Nosecone object to be plotted
-
-        Returns
-        -------
-        None
-        """
-        super().__init__(nosecone)
-
     def draw(self):
         """Draw the nosecone shape along with some important information,
         including the center line and the center of pressure position.
@@ -78,7 +64,7 @@ class _NoseConePlots(_AeroSurfacePlots):
         nosecone_x, nosecone_y = self.aero_surface.shape_vec
 
         # Figure creation and set up
-        fig_ogive, ax = plt.subplots()
+        _, ax = plt.subplots()
         ax.set_xlim(-0.05, self.aero_surface.length * 1.02)  # Horizontal size
         ax.set_ylim(
             -self.aero_surface.base_radius * 1.05, self.aero_surface.base_radius * 1.05
@@ -136,27 +122,13 @@ class _NoseConePlots(_AeroSurfacePlots):
         ax.set_ylabel("Radius")
         ax.set_title(self.aero_surface.kind + " Nose Cone")
         ax.legend(bbox_to_anchor=(1, -0.2))
-        # Show Plot
+
         plt.show()
 
 
 class _FinsPlots(_AeroSurfacePlots):
     """Abstract class that contains all fin plots. This class inherits from the
     _AeroSurfacePlots class."""
-
-    def __init__(self, fin_set):
-        """Initialize the class
-
-        Parameters
-        ----------
-        fin_set : rocketpy.AeroSurface.fin_set
-            fin_set object to be plotted
-
-        Returns
-        -------
-        None
-        """
-        super().__init__(fin_set)
 
     @abstractmethod
     def draw(self):
@@ -218,9 +190,6 @@ class _FinsPlots(_AeroSurfacePlots):
 
 class _TrapezoidalFinsPlots(_FinsPlots):
     """Class that contains all trapezoidal fin plots."""
-
-    def __init__(self, fin_set):
-        super().__init__(fin_set)
 
     def draw(self):
         """Draw the fin shape along with some important information, including
@@ -342,9 +311,6 @@ class _TrapezoidalFinsPlots(_FinsPlots):
 class _EllipticalFinsPlots(_FinsPlots):
     """Class that contains all elliptical fin plots."""
 
-    def __init__(self, fin_set):
-        super().__init__(fin_set)
-
     def draw(self):
         """Draw the fin shape along with some important information.
         These being: the center line and the center of pressure position.
@@ -415,20 +381,6 @@ class _EllipticalFinsPlots(_FinsPlots):
 class _TailPlots(_AeroSurfacePlots):
     """Class that contains all tail plots."""
 
-    def __init__(self, tail):
-        """Initialize the class
-
-        Parameters
-        ----------
-        tail : rocketpy.AeroSurface.Tail
-            Tail object to be plotted
-
-        Returns
-        -------
-        None
-        """
-        super().__init__(tail)
-
     def draw(self):
         # This will de done in the future
         pass
@@ -436,20 +388,6 @@ class _TailPlots(_AeroSurfacePlots):
 
 class _AirBrakesPlots(_AeroSurfacePlots):
     """Class that contains all air brakes plots."""
-
-    def __init__(self, air_brakes):
-        """Initialize the class
-
-        Parameters
-        ----------
-        air_brakes : rocketpy.AeroSurface.air_brakes
-            AirBrakes object to be plotted
-
-        Returns
-        -------
-        None
-        """
-        super().__init__(air_brakes)
 
     def drag_coefficient_curve(self):
         """Plots the drag coefficient curve of the air_brakes."""

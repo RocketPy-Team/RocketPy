@@ -819,6 +819,7 @@ def check_requirement_version(module_name, version):
 
 
 def exponential_backoff(max_attempts, base_delay=1, max_delay=60):
+    # pylint: disable=missing-function-docstring
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -826,7 +827,7 @@ def exponential_backoff(max_attempts, base_delay=1, max_delay=60):
             for i in range(max_attempts):
                 try:
                     return func(*args, **kwargs)
-                except Exception as e:
+                except Exception as e:  # pylint: disable=broad-except
                     if i == max_attempts - 1:
                         raise e from None
                     delay = min(delay * 2, max_delay)
@@ -930,8 +931,8 @@ def quaternions_to_nutation(e1, e2):
 if __name__ == "__main__":
     import doctest
 
-    results = doctest.testmod()
-    if results.failed < 1:
-        print(f"All the {results.attempted} tests passed!")
+    res = doctest.testmod()
+    if res.failed < 1:
+        print(f"All the {res.attempted} tests passed!")
     else:
-        print(f"{results.failed} out of {results.attempted} tests failed.")
+        print(f"{res.failed} out of {res.attempted} tests failed.")

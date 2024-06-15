@@ -1,3 +1,4 @@
+import ast
 import inspect
 import traceback
 import warnings
@@ -101,7 +102,7 @@ def calculate_equilibrium_altitude(
     """
     final_sol = {}
 
-    if not v0 < 0:
+    if v0 >= 0:
         print("Please set a valid negative value for v0")
         return None
 
@@ -471,24 +472,24 @@ def create_dispersion_dictionary(filename):
         )
     except ValueError:
         warnings.warn(
-            f"Error caught: the recommended delimiter is ';'. If using ',' "
-            + "instead, be aware that some resources might not work as "
-            + "expected if your data set contains lists where the items are "
-            + "separated by commas. Please consider changing the delimiter to "
-            + "';' if that is the case."
+            "Error caught: the recommended delimiter is ';'. If using ',' "
+            "instead, be aware that some resources might not work as "
+            "expected if your data set contains lists where the items are "
+            "separated by commas. Please consider changing the delimiter to "
+            "';' if that is the case."
         )
         warnings.warn(traceback.format_exc())
         file = np.genfromtxt(
             filename, usecols=(1, 2, 3), skip_header=1, delimiter=",", dtype=str
         )
-    analysis_parameters = dict()
+    analysis_parameters = {}
     for row in file:
         if row[0] != "":
             if row[2] == "":
                 try:
                     analysis_parameters[row[0].strip()] = float(row[1])
                 except ValueError:
-                    analysis_parameters[row[0].strip()] = eval(row[1])
+                    analysis_parameters[row[0].strip()] = ast.literal_eval(row[1])
             else:
                 try:
                     analysis_parameters[row[0].strip()] = (float(row[1]), float(row[2]))
@@ -651,7 +652,7 @@ def get_instance_attributes(instance):
     dictionary
         Dictionary with all attributes of the given instance.
     """
-    attributes_dict = dict()
+    attributes_dict = {}
     members = inspect.getmembers(instance)
     for member in members:
         # Filter out methods and protected attributes

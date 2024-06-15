@@ -219,7 +219,6 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
 
     def stream_velocities(
@@ -287,7 +286,6 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
 
     def accelerations(
@@ -349,7 +347,6 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
 
     def euler_angles(
@@ -405,7 +402,6 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
 
     def quaternions(
@@ -467,7 +463,6 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
 
     def attitude_angles(
@@ -523,7 +518,6 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
 
     def angular_velocities(
@@ -579,7 +573,6 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
 
     def angular_accelerations(
@@ -635,7 +628,6 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
 
     def aerodynamic_forces(
@@ -695,7 +687,6 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
 
     def aerodynamic_moments(
@@ -755,7 +746,6 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
 
     def energies(
@@ -811,7 +801,6 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
 
     def powers(
@@ -854,7 +843,6 @@ class CompareFlights(Compare):
         # Check if key word is used for x_limit
         x_lim = self.__process_xlim(x_lim)
 
-        # Create the figure
         fig, _ = super().create_comparison_figure(
             y_attributes=["thrust_power", "drag_power"],
             n_rows=2,
@@ -868,7 +856,6 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
 
     def rail_buttons_forces(
@@ -935,7 +922,6 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
 
     def angles_of_attack(
@@ -992,7 +978,6 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
 
     def fluid_mechanics(
@@ -1059,12 +1044,11 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
 
     def stability_margin(
         self, figsize=(7, 10), x_lim=None, y_lim=None, legend=True, filename=None
-    ):
+    ):  # pylint: disable=unused-argument
         """Plots the stability margin of the rocket for the different flights.
         The stability margin here is different than the static margin, it is the
         difference between the center of pressure and the center of gravity of
@@ -1105,7 +1089,7 @@ class CompareFlights(Compare):
         y_lim=None,
         legend=True,
         filename=None,
-    ):
+    ):  # pylint: disable=unused-argument
         """Plots the frequency of the attitude of the rocket for the different
         flights.
 
@@ -1300,10 +1284,10 @@ class CompareFlights(Compare):
                 x = flight.x[:, 1]
                 y = flight.y[:, 1]
                 z = flight.altitude[:, 1]
-            except AttributeError:
+            except AttributeError as e:
                 raise AttributeError(
-                    "Flight object {} does not have a trajectory.".format(flight.name)
-                )
+                    f"Flight object '{flight.name}' does not have a trajectory."
+                ) from e
             flights.append([x, y, z])
             names_list.append(flight.name)
         return flights, names_list

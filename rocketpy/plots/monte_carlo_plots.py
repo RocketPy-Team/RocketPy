@@ -48,14 +48,15 @@ class _MonteCarloPlots:
                 from imageio import imread
 
                 img = imread(image)
-            except ImportError:
+            except ImportError as e:
                 raise ImportError(
-                    "The 'imageio' package is required to add background images. Please install it."
-                )
-            except FileNotFoundError:
+                    "The 'imageio' package is required to add background images. "
+                    "Please install it."
+                ) from e
+            except FileNotFoundError as e:
                 raise FileNotFoundError(
                     "The image file was not found. Please check the path."
-                )
+                ) from e
 
         impact_ellipses, apogee_ellipses, apogee_x, apogee_y, impact_x, impact_y = (
             generate_monte_carlo_ellipses(self.monte_carlo.results)

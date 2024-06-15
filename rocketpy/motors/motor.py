@@ -378,7 +378,6 @@ class Motor(ABC):
           Tanks's mass flow rates. Therefore the exhaust velocity is generally
           variable, being the ratio of the motor thrust by the mass flow rate.
         """
-        pass
 
     @funcify_method("Time (s)", "Total mass (kg)")
     def total_mass(self):
@@ -457,7 +456,6 @@ class Motor(ABC):
         float
             Propellant initial mass in kg.
         """
-        pass
 
     @funcify_method("Time (s)", "Motor center of mass (m)")
     def center_of_mass(self):
@@ -487,7 +485,6 @@ class Motor(ABC):
         Function
             Position of the propellant center of mass as a function of time.
         """
-        pass
 
     @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
     def I_11(self):
@@ -694,7 +691,6 @@ class Motor(ABC):
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        pass
 
     @property
     @abstractmethod
@@ -717,7 +713,6 @@ class Motor(ABC):
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        pass
 
     @property
     @abstractmethod
@@ -740,7 +735,6 @@ class Motor(ABC):
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        pass
 
     @property
     @abstractmethod
@@ -767,7 +761,6 @@ class Motor(ABC):
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        pass
 
     @property
     @abstractmethod
@@ -794,7 +787,6 @@ class Motor(ABC):
         ----------
         https://en.wikipedia.org/wiki/Moment_of_inertia
         """
-        pass
 
     @property
     @abstractmethod
@@ -821,7 +813,6 @@ class Motor(ABC):
         ----------
         https://en.wikipedia.org/wiki/Moment_of_inertia
         """
-        pass
 
     @staticmethod
     def reshape_thrust_curve(thrust, new_burn_time, total_impulse):
@@ -972,7 +963,7 @@ class Motor(ABC):
                     comments.append(re.findall(r";.*", line)[0])
                     line = re.sub(r";.*", "", line)
                 if line.strip():
-                    if description == []:
+                    if not description:
                         # Extract description
                         description = line.strip().split(" ")
                     else:

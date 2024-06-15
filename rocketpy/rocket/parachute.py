@@ -188,21 +188,21 @@ class Parachute:
 
         elif isinstance(trigger, (int, float)):
             # The parachute is deployed at a given height
-            def triggerfunc(p, h, y):
+            def triggerfunc(p, h, y):  # pylint: disable=unused-argument
                 # p = pressure considering parachute noise signal
                 # h = height above ground level considering parachute noise signal
                 # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
-                return True if y[5] < 0 and h < trigger else False
+                return y[5] < 0 and h < trigger
 
             self.triggerfunc = triggerfunc
 
         elif trigger.lower() == "apogee":
             # The parachute is deployed at apogee
-            def triggerfunc(p, h, y):
+            def triggerfunc(p, h, y):  # pylint: disable=unused-argument
                 # p = pressure considering parachute noise signal
                 # h = height above ground level considering parachute noise signal
                 # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
-                return True if y[5] < 0 else False
+                return y[5] < 0
 
             self.triggerfunc = triggerfunc
 
@@ -221,10 +221,7 @@ class Parachute:
         string
             String representation of Parachute class. It is human readable.
         """
-        return "Parachute {} with a cd_s of {:.4f} m2".format(
-            self.name.title(),
-            self.cd_s,
-        )
+        return f"Parachute {self.name.title()} with a cd_s of {self.cd_s:.4f} m2"
 
     def __repr__(self):
         """Representation method for the class, useful when debugging."""
