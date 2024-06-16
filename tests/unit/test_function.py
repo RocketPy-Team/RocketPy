@@ -243,7 +243,9 @@ def test_savetxt(request, func):
     ), "Couldn't save the file using the Function.savetxt method."
 
     read_func = Function(
-        "test_func.csv", interpolation="linear", extrapolation="natural"
+        "test_func.csv",
+        interpolation="linear" if func.get_domain_dim() == 1 else "shepard",
+        extrapolation="natural",
     )
     if callable(func.source):
         source = np.column_stack(
