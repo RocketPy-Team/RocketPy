@@ -2375,7 +2375,7 @@ class Function:
                     # self.__extrapolation__ = 'zero'
                     pass
         elif self.__interpolation__ == "linear" and numerical is False:
-            # Integrate from a to b using np.trapz
+            # Integrate from a to b using np.trapezoid
             x_data = self.x_array
             y_data = self.y_array
             # Get data in interval
@@ -2394,8 +2394,7 @@ class Function:
                 y_integration_data = np.concatenate(([self(a)], y_integration_data))
                 x_integration_data = np.concatenate((x_integration_data, [b]))
                 y_integration_data = np.concatenate((y_integration_data, [self(b)]))
-            # Integrate using np.trapz
-            ans = np.trapz(y_integration_data, x_integration_data)
+            ans = np.trapezoid(y_integration_data, x_integration_data)
         else:
             # Integrate numerically
             ans, _ = integrate.quad(self, a, b, epsabs=1e-4, epsrel=1e-3, limit=1000)
@@ -3172,7 +3171,7 @@ class PiecewiseFunction(Function):
         output_data = []
         for key in sorted(source.keys()):
             i = np.linspace(key[0], key[1], datapoints)
-            i = i[~np.in1d(i, input_data)]
+            i = i[~np.isin(i, input_data)]
             input_data = np.concatenate((input_data, i))
 
             f = Function(source[key])
