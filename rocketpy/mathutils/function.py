@@ -556,9 +556,9 @@ class Function:
             func.set_interpolation(interpolation)
             func.set_extrapolation(extrapolation)
         elif func.__dom_dim__ == 2:
-            lower = 2 * [lower] if isinstance(lower, (int, float)) else lower
-            upper = 2 * [upper] if isinstance(upper, (int, float)) else upper
-            sam = 2 * [samples] if isinstance(samples, (int, float)) else samples
+            lower = 2 * [lower] if isinstance(lower, NUMERICAL_TYPES) else lower
+            upper = 2 * [upper] if isinstance(upper, NUMERICAL_TYPES) else upper
+            sam = 2 * [samples] if isinstance(samples, NUMERICAL_TYPES) else samples
             # Create nodes to evaluate function
             xs = np.linspace(lower[0], upper[0], sam[0])
             ys = np.linspace(lower[1], upper[1], sam[1])
@@ -867,16 +867,16 @@ class Function:
             # if the function is 1-D:
             if self.__dom_dim__ == 1:
                 # if the args is a simple number (int or float)
-                if isinstance(args[0], (int, float, complex)):
-                    return self.source(args[0])
+                if isinstance(args[0], NUMERICAL_TYPES):
+                    return float(self.source(args[0]))
                 # if the arguments are iterable, we map and return a list
                 if isinstance(args[0], Iterable):
-                    return list(map(self.source, args[0]))
+                    return list(map(float(self.source, args[0])))
 
             # if the function is n-D:
             else:
                 # if each arg is a simple number (int or float)
-                if all(isinstance(arg, (int, float, complex)) for arg in args):
+                if all(isinstance(arg, NUMERICAL_TYPES) for arg in args):
                     return self.source(*args)
                 # if each arg is iterable, we map and return a list
                 if all(isinstance(arg, Iterable) for arg in args):
@@ -887,7 +887,7 @@ class Function:
 
         # Returns value for other interpolation type
         else:  # interpolation is "polynomial", "spline", "akima" or "linear"
-            if isinstance(args[0], (int, float, complex, np.integer)):
+            if isinstance(args[0], NUMERICAL_TYPES):
                 args = [list(args)]
 
         x = list(args[0])
@@ -1337,9 +1337,9 @@ class Function:
         if callable(self.source):
             # Determine boundaries
             lower = [0, 0] if lower is None else lower
-            lower = 2 * [lower] if isinstance(lower, (int, float)) else lower
+            lower = 2 * [lower] if isinstance(lower, NUMERICAL_TYPES) else lower
             upper = [10, 10] if upper is None else upper
-            upper = 2 * [upper] if isinstance(upper, (int, float)) else upper
+            upper = 2 * [upper] if isinstance(upper, NUMERICAL_TYPES) else upper
         else:
             # Determine boundaries
             x_data = self.x_array
@@ -1347,9 +1347,9 @@ class Function:
             x_min, x_max = x_data.min(), x_data.max()
             y_min, y_max = y_data.min(), y_data.max()
             lower = [x_min, y_min] if lower is None else lower
-            lower = 2 * [lower] if isinstance(lower, (int, float)) else lower
+            lower = 2 * [lower] if isinstance(lower, NUMERICAL_TYPES) else lower
             upper = [x_max, y_max] if upper is None else upper
-            upper = 2 * [upper] if isinstance(upper, (int, float)) else upper
+            upper = 2 * [upper] if isinstance(upper, NUMERICAL_TYPES) else upper
             # Plot data points if force_data = True
             if force_data:
                 axes.scatter(x_data, y_data, self.source[:, -1])
@@ -2964,7 +2964,7 @@ class Function:
                 )
             return source
 
-        if isinstance(source, (int, float)):
+        if isinstance(source, NUMERICAL_TYPES):
             # Convert number source into vectorized lambda function
             temp = 1 * source
 
