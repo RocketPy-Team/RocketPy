@@ -871,7 +871,7 @@ class Function:
                     return float(self.source(args[0]))
                 # if the arguments are iterable, we map and return a list
                 if isinstance(args[0], Iterable):
-                    return list(map(float(self.source, args[0])))
+                    return list(map(self.source, args[0]))
 
             # if the function is n-D:
             else:
