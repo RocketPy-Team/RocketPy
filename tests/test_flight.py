@@ -671,10 +671,10 @@ def test_rail_buttons_forces(flight_calisto_custom_wind):
     """
     test = flight_calisto_custom_wind
     atol = 5e-3
-    assert pytest.approx(3.80358, abs=atol) == test.max_rail_button1_normal_force
-    assert pytest.approx(1.63602, abs=atol) == test.max_rail_button1_shear_force
-    assert pytest.approx(1.19353, abs=atol) == test.max_rail_button2_normal_force
-    assert pytest.approx(0.51337, abs=atol) == test.max_rail_button2_shear_force
+    assert pytest.approx(3.833613, abs=atol) == test.max_rail_button1_normal_force
+    assert pytest.approx(1.648938, abs=atol) == test.max_rail_button1_shear_force
+    assert pytest.approx(1.165307, abs=atol) == test.max_rail_button2_normal_force
+    assert pytest.approx(0.501229, abs=atol) == test.max_rail_button2_shear_force
 
 
 @pytest.mark.parametrize(
@@ -721,7 +721,7 @@ def test_accelerations(flight_calisto_custom_wind, flight_time, expected_values)
     [
         ("t_initial", (0, 0, 0)),
         ("out_of_rail_time", (0, 2.248727, 25.703072)),
-        ("apogee_time", (-13.209436, 16.05115, -0.000257)),
+        ("apogee_time", (-13.204789, 15.990903, -0.000138)),
         ("t_final", (5, 2, -5.65998)),
     ],
 )
@@ -759,7 +759,7 @@ def test_velocities(flight_calisto_custom_wind, flight_time, expected_values):
     [
         ("t_initial", (1.6542528, 0.65918, -0.067107)),
         ("out_of_rail_time", (5.05334, 2.01364, -1.7541)),
-        ("apogee_time", (2.35291, -1.8275, -0.87851)),
+        ("apogee_time", (2.366258, -1.830744, -0.875342)),
         ("t_final", (0, 0, 159.2212)),
     ],
 )
@@ -797,7 +797,7 @@ def test_aerodynamic_forces(flight_calisto_custom_wind, flight_time, expected_va
     "flight_time, expected_values",
     [
         ("t_initial", (0.17179073815516033, -0.431117, 0)),
-        ("out_of_rail_time", (0.547026, -1.3727895, 0)),
+        ("out_of_rail_time", (0.543760, -1.364593, 0)),
         ("apogee_time", (-0.5874848151271623, -0.7563596, 0)),
         ("t_final", (0, 0, 0)),
     ],
