@@ -16,6 +16,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import integrate, linalg, optimize
 
+# Numpy 1.x compatibility,
+# TODO: remove these lines when all dependencies support numpy>=2.0.0
+if np.lib.NumpyVersion(np.__version__) >= "2.0.0b1":
+    from numpy import trapezoid
+else:
+    from numpy import trapz as trapezoid
+
 NUMERICAL_TYPES = (float, int, complex, np.ndarray, np.integer, np.floating)
 INTERPOLATION_TYPES = {
     "linear": 0,
@@ -2395,7 +2402,7 @@ class Function:
                 y_integration_data = np.concatenate(([self(a)], y_integration_data))
                 x_integration_data = np.concatenate((x_integration_data, [b]))
                 y_integration_data = np.concatenate((y_integration_data, [self(b)]))
-            ans = np.trapezoid(y_integration_data, x_integration_data)
+            ans = trapezoid(y_integration_data, x_integration_data)
         else:
             # Integrate numerically
             ans, _ = integrate.quad(self, a, b, epsabs=1e-4, epsrel=1e-3, limit=1000)
