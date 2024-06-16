@@ -667,7 +667,7 @@ class Environment:
         None
         """
         if elevation != "Open-Elevation" and elevation != "SRTM":
-            self.elevation = elevation
+            self.elevation = float(elevation)
         # elif elevation == "SRTM" and self.latitude != None and self.longitude != None:
         #     # Trigger the authentication flow.
         #     #ee.Authenticate()
@@ -682,7 +682,7 @@ class Environment:
         #     self.elevation = elev
 
         elif self.latitude is not None and self.longitude is not None:
-            self.elevation = self.__fetch_open_elevation()
+            self.elevation = float(self.__fetch_open_elevation())
             print("Elevation received: ", self.elevation)
         else:
             raise ValueError(
@@ -1722,7 +1722,7 @@ class Environment:
         self.max_expected_height = max(altitude_array[0], altitude_array[-1])
 
         # Get elevation data from file
-        self.elevation = response["header"]["elevation"]
+        self.elevation = float(response["header"]["elevation"])
 
         # Compute info data
         self.atmospheric_model_init_date = netCDF4.num2date(
@@ -2423,9 +2423,9 @@ class Environment:
                 f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + (
                     (x - x1) / (x2 - x1)
                 ) * f_x2_y2
-                self.elevation = ((y2 - y) / (y2 - y1)) * f_x_y1 + (
-                    (y - y1) / (y2 - y1)
-                ) * f_x_y2
+                self.elevation = float(
+                    ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
+                )
             except:
                 raise ValueError(
                     "Unable to read surface elevation data. Check file and dictionary."
@@ -2793,9 +2793,9 @@ class Environment:
                 f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + (
                     (x - x1) / (x2 - x1)
                 ) * f_x2_y2
-                self.elevation = ((y2 - y) / (y2 - y1)) * f_x_y1 + (
-                    (y - y1) / (y2 - y1)
-                ) * f_x_y2
+                self.elevation = float(
+                    ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
+                )
             except:
                 raise ValueError(
                     "Unable to read surface elevation data. Check file and dictionary."
