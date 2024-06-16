@@ -1513,7 +1513,8 @@ class Function:
                     ax.scatter(points[0], points[1], marker="o")
 
         # Setup legend
-        ax.legend(loc="best", shadow=True)
+        if any([plot[1] for plot in plots]):
+            ax.legend(loc="best", shadow=True)
 
         # Turn on grid and set title and axis
         plt.grid(True)
