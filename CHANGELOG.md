@@ -56,6 +56,7 @@ You can install this version by running `pip install rocketpy==1.3.0`
 
 ### Changed
 
+- MNT: Fix warnings in test suite and adds support for numpy 2.0 [#623](https://github.com/RocketPy-Team/RocketPy/pull/623)
 - REL: Bump versioning to RocketPy v1.3.0 [#614](https://github.com/RocketPy-Team/RocketPy/pull/614)
 - ENH: Adds StochasticModel.visualize_attributes() method [#612](https://github.com/RocketPy-Team/RocketPy/pull/612)
 - DOC: Monte carlo documentation updates [#607](https://github.com/RocketPy-Team/RocketPy/pull/607)
