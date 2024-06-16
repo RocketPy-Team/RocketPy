@@ -107,7 +107,7 @@ def test_monte_carlo_set_inputs_log(monte_carlo_calisto):
     """
     monte_carlo_calisto.input_file = "tests/fixtures/monte_carlo/example.inputs.txt"
     monte_carlo_calisto.set_inputs_log()
-    assert len(monte_carlo_calisto.inputs_log) == 10
+    assert len(monte_carlo_calisto.inputs_log) == 100
     assert all(isinstance(item, dict) for item in monte_carlo_calisto.inputs_log)
     assert all(
         "gravity" in item and "elevation" in item
@@ -125,7 +125,7 @@ def test_monte_carlo_set_outputs_log(monte_carlo_calisto):
     """
     monte_carlo_calisto.output_file = "tests/fixtures/monte_carlo/example.outputs.txt"
     monte_carlo_calisto.set_outputs_log()
-    assert len(monte_carlo_calisto.outputs_log) == 10
+    assert len(monte_carlo_calisto.outputs_log) == 100
     assert all(isinstance(item, dict) for item in monte_carlo_calisto.outputs_log)
     assert all(
         "apogee" in item and "impact_velocity" in item
@@ -145,24 +145,24 @@ def test_monte_carlo_prints(monte_carlo_calisto):
 
 
 @patch("matplotlib.pyplot.show")
-def test_monte_carlo_plots(mock_show, monte_carlo_calisto):
+def test_monte_carlo_plots(mock_show, monte_carlo_calisto_pre_loaded):
     """Tests the plots methods of the MonteCarlo class."""
-    assert monte_carlo_calisto.all_info() is None
+    assert monte_carlo_calisto_pre_loaded.all_info() is None
 
 
-def test_monte_carlo_export_ellipses_to_kml(monte_carlo_calisto):
+def test_monte_carlo_export_ellipses_to_kml(monte_carlo_calisto_pre_loaded):
     """Tests the export_ellipses_to_kml method of the MonteCarlo class.
 
     Parameters
     ----------
-    monte_carlo_calisto : MonteCarlo
+    monte_carlo_calisto_pre_loaded : MonteCarlo
         The MonteCarlo object, this is a pytest fixture.
     """
     assert (
-        monte_carlo_calisto.export_ellipses_to_kml(
+        monte_carlo_calisto_pre_loaded.export_ellipses_to_kml(
             filename="monte_carlo_class_example.kml",
-            origin_lat=32,
-            origin_lon=-104,
+            origin_lat=32.990254,
+            origin_lon=-106.974998,
             type="impact",
         )
         is None
