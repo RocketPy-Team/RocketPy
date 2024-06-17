@@ -1861,18 +1861,8 @@ class RailButtons(AeroSurface):
         relative to one of the other principal axis.
     """
 
-<<<<<<< HEAD
-    def __init__(
-        self,
-        buttons_distance,
-        angular_position=45,
-        name="Rail Buttons",
-        rocket_radius=None,
-    ):
-=======
     def __init__(self, rocket_radius, buttons_distance,
                  angular_position=45, name="Rail Buttons",):
->>>>>>> 87480c6f (BUG: RailButtons does not have rocket_radius attribute #606.)
         """Initializes RailButtons Class.
 
         Parameters
