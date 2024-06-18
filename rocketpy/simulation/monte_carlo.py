@@ -755,6 +755,7 @@ class MonteCarlo:
         data_size,
         stop_event,
     ):
+        sim_idx = 0
         with h5py.File(file_path, 'a') as h5_file:
             # loop until the stop event is set
             while not stop_event.is_set():
@@ -764,13 +765,15 @@ class MonteCarlo:
                     if sem.acquire(timeout=1e-3):
                         # retrieve the data from the shared buffer
                         data = shared_buffer[i * data_size : (i + 1) * data_size]
-                        data_dict = pickle.loads(bytes(data))
+                        # data_dict = pickle.loads(bytes(data))
 
                         # write data to the file
-                        MonteCarlo.__dict_to_h5(h5_file, '/', data_dict)
-
+                        grp = h5_file.create_group(f"{sim_idx}")
+                        grp.create_dataset("data", data=data)
+                        
                         # release the write semaphore // tell worker it can write again
                         go_write_semaphores[i].release()
+                        sim_idx += 1
                         # print(f"Wrote data to file. Buffer pos: {i}")
                         
             # loop through all the semaphores to write the remaining data
@@ -779,13 +782,15 @@ class MonteCarlo:
                 if sem.acquire(timeout=1e-3):
                     # retrieve the data from the shared buffer
                     data = shared_buffer[i * data_size : (i + 1) * data_size]
-                    data_dict = pickle.loads(bytes(data))
+                    # data_dict = pickle.loads(bytes(data))
 
                     # write data to the file
-                    MonteCarlo.__dict_to_h5(h5_file, '/', data_dict)
+                    grp = h5_file.create_group(f"{sim_idx}")
+                    grp.create_dataset("data", data=data)
 
                     # release the write semaphore // tell worker it can write again
                     go_write_semaphores[i].release()
+                    sim_idx += 1
 
     @staticmethod
     def __downsample_recursive(data_dict, max_time, sample_time):
