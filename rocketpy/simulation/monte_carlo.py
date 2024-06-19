@@ -8,8 +8,9 @@ from time import process_time, time
 
 import h5py
 import numpy as np
+import psutil
 import simplekml
-from multiprocess import Array, Lock, Process, Semaphore, Event
+from multiprocess import Array, Event, Lock, Process, Semaphore, shared_memory
 from multiprocess.managers import BaseManager
 
 from rocketpy import Function
@@ -304,7 +305,9 @@ class MonteCarlo:
         parallel_start = time()
         processes = []
 
-        if n_workers is None or n_workers > os.cpu_count() - 2: # leave 2 cores for the writer workers
+        if (
+            n_workers is None or n_workers > os.cpu_count() - 2
+        ):  # leave 2 cores for the writer workers
             n_workers = os.cpu_count() - 2
 
         # get the size of the serialized dictionary
@@ -313,22 +316,33 @@ class MonteCarlo:
         # add safety margin to the buffer size
         inputs_size += 1024
         results_size += 1024
-
+        
+        # get available memory. Only use 80% of the available memory
+        available_memory = 0.8 * psutil.virtual_memory().available 
+        
+        # calculate the number of simulations that can be stored in memory
+        n_sim_memory = int(available_memory / (inputs_size + results_size))
+        
+        if n_sim_memory > self.number_of_simulations:
+            n_sim_memory = self.number_of_simulations
+            
+        print(f"Number of simulations that can be stored in memory: {n_sim_memory}")
+        
         # initialize shared memory buffer
-        shared_inputs_buffer = Array(ctypes.c_ubyte, inputs_size * n_workers)
-        shared_results_buffer = Array(ctypes.c_ubyte, results_size * n_workers)
-
+        shared_inputs_buffer = shared_memory.SharedMemory(create=True, size=inputs_size * n_sim_memory, name="shared_inputs")
+        shared_results_buffer = shared_memory.SharedMemory(create=True, size=results_size * n_sim_memory, name="shared_results")
+        
         with MonteCarloManager() as manager:
             # initialize queue
             inputs_lock = manager.Lock()
             outputs_lock = manager.Lock()
             errors_lock = manager.Lock()
 
-            go_write_inputs = [manager.Semaphore(value=1) for _ in range(n_workers)]
-            go_read_inputs = [manager.Semaphore(value=1) for _ in range(n_workers)]
-            
-            go_write_results = [manager.Semaphore(value=1) for _ in range(n_workers)]
-            go_read_results = [manager.Semaphore(value=1) for _ in range(n_workers)]
+            go_write_inputs = [manager.Semaphore(value=1) for _ in range(n_sim_memory)]
+            go_read_inputs = [manager.Semaphore(value=1) for _ in range(n_sim_memory)]
+
+            go_write_results = [manager.Semaphore(value=1) for _ in range(n_sim_memory)]
+            go_read_results = [manager.Semaphore(value=1) for _ in range(n_sim_memory)]
 
             # acquire all read semaphores to make sure the readers will wait for data
             for sem in go_read_inputs:
@@ -401,16 +415,18 @@ class MonteCarlo:
                         inputs_lock,
                         outputs_lock,
                         errors_lock,
-                        go_write_inputs[i],
-                        go_write_results[i],
-                        go_read_inputs[i],
-                        go_read_results[i],
+                        go_write_inputs,
+                        go_write_results,
+                        go_read_inputs,
+                        go_read_results,
                         light_mode,
                         file_paths,
-                        shared_inputs_buffer,
-                        shared_results_buffer,
+                        shared_inputs_buffer.name,
+                        shared_results_buffer.name,
                         inputs_size,
                         results_size,
+                        n_sim_memory,
+                        n_workers
                     ),
                 )
                 processes.append(p)
@@ -418,35 +434,37 @@ class MonteCarlo:
             # Starts all the processes
             for p in processes:
                 p.start()
-                
+
             # create writer workers
             input_writer_stop_event = manager.Event()
             results_writer_stop_event = manager.Event()
-            
+
             input_writer = Process(
                 target=self._write_data_worker,
                 args=(
                     file_paths["input_file"],
                     go_write_inputs,
                     go_read_inputs,
-                    shared_inputs_buffer,
+                    shared_inputs_buffer.name,
                     inputs_size,
                     input_writer_stop_event,
+                    n_sim_memory,
                 ),
             )
-            
+
             results_writer = Process(
                 target=self._write_data_worker,
                 args=(
                     file_paths["output_file"],
                     go_write_results,
                     go_read_results,
-                    shared_results_buffer,
+                    shared_results_buffer.name,
                     results_size,
                     results_writer_stop_event,
+                    n_sim_memory,
                 ),
             )
-            
+
             # start the writer workers
             input_writer.start()
             results_writer.start()
@@ -454,13 +472,13 @@ class MonteCarlo:
             # Joins all the processes
             for p in processes:
                 p.join()
-            
+
             print("All workers joined, simulation complete.")
             print("Joining writer workers.")
             # stop the writer workers
             input_writer_stop_event.set()
             results_writer_stop_event.set()
-            
+
             print("Waiting for writer workers to join.")
             # join the writer workers
             input_writer.join()
@@ -475,6 +493,12 @@ class MonteCarlo:
                 f"In total, {sim_counter.get_count() - idx_i} simulations were performed."
             )
             print("Simulation took", parallel_end - parallel_start, "seconds to run.")
+        
+        # release shared memory
+        shared_inputs_buffer.close()
+        shared_results_buffer.close()
+        shared_inputs_buffer.unlink()
+        shared_results_buffer.unlink()
 
     @staticmethod
     def __run_simulation_worker(
@@ -492,10 +516,12 @@ class MonteCarlo:
         go_read_results,
         light_mode,
         file_paths,
-        shared_inputs_buffer,
-        shared_results_buffer,
+        shared_inputs_name,
+        shared_results_name,
         inputs_size,
         results_size,
+        n_sim_memory,
+        n_workers,
     ):
         """
         Runs a single simulation worker.
@@ -544,13 +570,20 @@ class MonteCarlo:
         end_mem_i = (worker_no + 1) * inputs_size
         begin_mem_r = worker_no * results_size
         end_mem_r = (worker_no + 1) * results_size
+        
+        shm_inputs = shared_memory.SharedMemory(shared_inputs_name)
+        shm_results = shared_memory.SharedMemory(shared_results_name)
+        
+        shared_inputs_buffer = np.ndarray((n_sim_memory, inputs_size), dtype=ctypes.c_ubyte, buffer=shm_inputs.buf)
+        shared_results_buffer = np.ndarray((n_sim_memory, results_size), dtype=ctypes.c_ubyte, buffer=shm_results.buf)
 
         try:
             while True:
                 sim_idx = sim_counter.increment()
                 if sim_idx == -1:
                     break
-
+                
+                time_0 = time()
                 env = sto_env.create_object()
                 rocket = sto_rocket.create_object()
                 rail_length = sto_flight._randomize_rail_length()
@@ -603,6 +636,8 @@ class MonteCarlo:
                 #     outputs_lock.release()
 
                 # else:
+                
+                time_1 = time()
                 input_parameters = flightv1_serializer(
                     flight, f"Simulation_{sim_idx}", return_dict=True
                 )
@@ -632,31 +667,41 @@ class MonteCarlo:
                 # convert to bytes
                 export_inputs_bytes = pickle.dumps(export_inputs_downsampled)
                 export_outputs_bytes = pickle.dumps(export_outputs_downsampled)
+                
+                # Ensure the serialized data fits within the allocated space
+                if len(export_inputs_bytes) > inputs_size or len(export_outputs_bytes) > results_size:
+                    raise ValueError("Serialized data is too large to fit in the allocated shared memory space")
+
 
                 # add padding to make sure the byte stream fits in the allocated space
                 export_inputs_bytes = export_inputs_bytes.ljust(inputs_size, b'\0')
-                export_outputs_bytes = export_outputs_bytes.ljust(
-                    results_size, b'\0'
-                )
+                export_outputs_bytes = export_outputs_bytes.ljust(results_size, b'\0')
+                
+                time_2 = time()
+                
 
                 # write to shared memory
-                go_write_inputs.acquire()
-                shared_inputs_buffer[begin_mem_i:end_mem_i] = export_inputs_bytes
-                go_read_inputs.release()
+                i = worker_no
+                found_slot = False
                 
-                go_write_results.acquire()
-                shared_results_buffer[begin_mem_r:end_mem_r] = export_outputs_bytes
-                go_read_results.release()
+                # loop through the shared memory buffer to find an empty slot
+                while not found_slot:
+                    if i >= len(go_write_inputs):
+                        i = worker_no
+                    
+                    if go_write_inputs[i].acquire(timeout=1e-3):
+                        time_3 = time()
+                        shared_inputs_buffer[i] = np.frombuffer(export_inputs_bytes, dtype=ctypes.c_ubyte)
+                        go_read_inputs[i].release()
+                        found_slot = True
+                    else:
+                        i += n_workers
 
-                    # inputs_lock.acquire()
-                    # with h5py.File(file_paths["input_file"], 'a') as h5_file:
-                    #     MonteCarlo.__dict_to_h5(h5_file, '/', export_inputs)
-                    # inputs_lock.release()
-
-                    # outputs_lock.acquire()
-                    # with h5py.File(file_paths["output_file"], 'a') as h5_file:
-                    #     MonteCarlo.__dict_to_h5(h5_file, '/', export_outputs)
-                    # outputs_lock.release()
+                go_write_results[i].acquire()
+                shared_results_buffer[i] = np.frombuffer(export_outputs_bytes, dtype=ctypes.c_ubyte)
+                go_read_results[i].release()
+                
+                time_4 = time()
 
                 average_time = (
                     time() - sim_counter.get_intial_time()
@@ -665,14 +710,20 @@ class MonteCarlo:
                     (sim_counter.get_n_simulations() - sim_counter.get_count())
                     * average_time
                 )
-
-                sim_counter.reprint(
-                    f"Current iteration: {sim_idx:06d} | "
-                    f"Average Time per Iteration: {average_time:.3f} s | "
-                    f"Estimated time left: {estimated_time} s",
-                    end="\n",
-                    flush=False,
-                )
+                msg = f"Current iteration: {sim_idx:06d}"
+                msg += f" | Average Time per Iteration: {average_time:.3f} s"
+                msg += f" | Estimated time left: {estimated_time} s"
+                msg += f" | Time to run: {time_1 - time_0:.3f} s"
+                msg += f" | Time to serialize: {time_2 - time_1:.3f} s"
+                msg += f" | Time looking for shared memory: {time_3 - time_2:.3f} s"
+                msg += f" | Time to write to shared memory: {time_4 - time_3:.3f} s"
+                
+                print(msg, end="\r")
+                # sim_counter.reprint(
+                #     msg,
+                #     end="\n",
+                #     flush=False,
+                # )
 
         # except Exception as error:
         #     print(f"Error on iteration {sim_idx}: {error}")
@@ -751,11 +802,14 @@ class MonteCarlo:
         file_path,
         go_write_semaphores,
         go_read_semaphores,
-        shared_buffer,
+        shared_name,
         data_size,
         stop_event,
+        n_sim_memory,
     ):
         sim_idx = 0
+        shm = shared_memory.SharedMemory(shared_name)
+        shared_buffer = np.ndarray((n_sim_memory, data_size), dtype=ctypes.c_ubyte, buffer=shm.buf)
         with h5py.File(file_path, 'a') as h5_file:
             # loop until the stop event is set
             while not stop_event.is_set():
@@ -764,24 +818,24 @@ class MonteCarlo:
                     # try to acquire the semaphore, skip if it is already acquired
                     if sem.acquire(timeout=1e-3):
                         # retrieve the data from the shared buffer
-                        data = shared_buffer[i * data_size : (i + 1) * data_size]
+                        data = shared_buffer[i]
                         # data_dict = pickle.loads(bytes(data))
 
                         # write data to the file
                         grp = h5_file.create_group(f"{sim_idx}")
                         grp.create_dataset("data", data=data)
-                        
+
                         # release the write semaphore // tell worker it can write again
                         go_write_semaphores[i].release()
                         sim_idx += 1
                         # print(f"Wrote data to file. Buffer pos: {i}")
-                        
+
             # loop through all the semaphores to write the remaining data
             for i, sem in enumerate(go_read_semaphores):
                 # try to acquire the semaphore, skip if it is already acquired
                 if sem.acquire(timeout=1e-3):
                     # retrieve the data from the shared buffer
-                    data = shared_buffer[i * data_size : (i + 1) * data_size]
+                    data = shared_buffer[i]
                     # data_dict = pickle.loads(bytes(data))
 
                     # write data to the file
@@ -887,10 +941,6 @@ class MonteCarlo:
         # serialize the dictionary
         export_inputs_bytes = pickle.dumps(export_inputs)
         results_bytes = pickle.dumps(results)
-
-        # load again and check if the downsample worked
-        export_inputs = pickle.loads(export_inputs_bytes)
-        results = pickle.loads(results_bytes)
 
         # get the size of the serialized dictionary
         export_inputs_size = len(export_inputs_bytes)
@@ -1541,6 +1591,6 @@ class SimCounter:
         # if len_msg < self._last_print_len:
         #     msg += " " * (self._last_print_len - len_msg)
         # else:
-            # self._last_print_len = len_msg
+        # self._last_print_len = len_msg
 
         print(msg, end=end, flush=flush)
