@@ -693,20 +693,8 @@ class MonteCarlo:
                 go_read_results[i].release()
 
                 # update user on progress
-                average_time = (
-                    time() - sim_counter.get_intial_time()
-                ) / sim_counter.get_count()
-                estimated_time = int(
-                    (sim_counter.get_n_simulations() - sim_counter.get_count())
-                    * average_time
-                )
-
-                msg = f"Current iteration: {sim_idx:06d}"
-                msg += f" | Average Time per Iteration: {average_time:.3f} s"
-                msg += f" | Estimated time left: {estimated_time} s"
-
                 sim_counter.reprint(
-                    msg,
+                    sim_idx,
                     end="\n",
                     flush=False,
                 )
@@ -1628,6 +1616,7 @@ class MonteCarloManager(BaseManager):
 
 class SimCounter:
     def __init__(self, initial_count, n_simulations, parallel_start):
+        self.initial_count = initial_count
         self.count = initial_count
         self.n_simulations = n_simulations
         self._last_print_len = 0  # used to print on the same line
@@ -1649,7 +1638,7 @@ class SimCounter:
     def get_intial_time(self):
         return self.initial_time
 
-    def reprint(self, msg, end="\n", flush=False):
+    def reprint(self, sim_idx, end="\n", flush=False):
         """Prints a message on the same line as the previous one and replaces
         the previous message with the new one, deleting the extra characters
         from the previous message.
@@ -1667,11 +1656,19 @@ class SimCounter:
         -------
         None
         """
+        average_time = (time() - self.initial_time) / (self.count - self.initial_count)
+        estimated_time = int(
+            (self.n_simulations - (self.count - self.initial_count)) * average_time
+        )
 
-        # len_msg = len(msg)
-        # if len_msg < self._last_print_len:
-        #     msg += " " * (self._last_print_len - len_msg)
-        # else:
-        # self._last_print_len = len_msg
+        msg = f"Current iteration: {sim_idx:06d}"
+        msg += f" | Average Time per Iteration: {average_time:.3f} s"
+        msg += f" | Estimated time left: {estimated_time} s"
+
+        len_msg = len(msg)
+        if len_msg < self._last_print_len:
+            msg += " " * (self._last_print_len - len_msg)
+        else:
+            self._last_print_len = len_msg
 
         print(msg, end=end, flush=flush)
