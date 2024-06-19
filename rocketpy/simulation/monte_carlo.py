@@ -3,6 +3,7 @@ import ctypes
 import json
 import os
 import pickle
+from copy import deepcopy
 from pathlib import Path
 from time import process_time, time
 
@@ -18,8 +19,6 @@ from rocketpy._encoders import RocketPyEncoder
 from rocketpy.plots.monte_carlo_plots import _MonteCarloPlots
 from rocketpy.prints.monte_carlo_prints import _MonteCarloPrints
 from rocketpy.simulation.flight import Flight
-from rocketpy.simulation.sim_config.flight2serializer import flightv1_serializer
-from rocketpy.simulation.sim_config.serializer import function_serializer
 from rocketpy.stochastic import (
     StochasticEnvironment,
     StochasticFlight,
@@ -189,6 +188,9 @@ class MonteCarlo:
             saved to the output file as a .h5 file. Default is False.
         parallel : bool, optional
             If True, the simulations will be run in parallel. Default is False.
+        n_workers : int, optional
+            Number of workers to be used. If None, the number of workers
+            will be equal to the number of CPUs available. Default is None.
 
         Returns
         -------
@@ -336,8 +338,6 @@ class MonteCarlo:
 
         with MonteCarloManager() as manager:
             # initialize queue
-            inputs_lock = manager.Lock()
-            outputs_lock = manager.Lock()
             errors_lock = manager.Lock()
 
             go_write_inputs = [manager.Semaphore(value=1) for _ in range(n_sim_memory)]
@@ -411,6 +411,8 @@ class MonteCarlo:
                     args=(
                         i,
                         n_workers,
+                        light_mode,
+                        file_paths,
                         self.environment,
                         self.rocket,
                         self.flight,
@@ -420,13 +422,12 @@ class MonteCarlo:
                         go_write_results,
                         go_read_inputs,
                         go_read_results,
-                        light_mode,
-                        file_paths,
                         shared_inputs_buffer.name,
                         shared_results_buffer.name,
                         inputs_size,
                         results_size,
                         n_sim_memory,
+                        self.export_sample_time,
                     ),
                 )
                 processes.append(p)
@@ -504,6 +505,8 @@ class MonteCarlo:
     def __run_simulation_worker(
         worker_no,
         n_workers,
+        light_mode,
+        file_paths,
         sto_env,
         sto_rocket,
         sto_flight,
@@ -513,13 +516,12 @@ class MonteCarlo:
         go_write_results,
         go_read_inputs,
         go_read_results,
-        light_mode,
-        file_paths,
         shared_inputs_name,
         shared_results_name,
         inputs_size,
         results_size,
         n_sim_memory,
+        export_sample_time,
     ):
         """
         Runs a single simulation worker.
@@ -528,6 +530,14 @@ class MonteCarlo:
         ----------
         worker_no : int
             Worker number.
+        n_workers : int
+            Number of workers.
+        light_mode : bool
+            If True, only variables from the export_list will be saved to
+            the output file as a .txt file. If False, all variables will be
+            saved to the output file as a .h5 file.
+        file_paths : dict
+            Dictionary with the file paths.
         sto_env : StochasticEnvironment
             Stochastic environment object.
         sto_rocket : StochasticRocket
@@ -536,28 +546,26 @@ class MonteCarlo:
             Stochastic flight object.
         sim_counter : SimCounter
             Simulation counter object.
-        inputs_lock : Lock
-            Lock object for inputs file.
-        outputs_lock : Lock
-            Lock object for outputs file.
         errors_lock : Lock
-            Lock object for errors file.
-        buffer_lock : Lock
-            Lock object for shared memory buffer.
-        light_mode : bool
-            If True, only variables from the export_list will be saved to
-            the output file as a .txt file. If False, all variables will be
-            saved to the output file as a .h5 file.
-        file_paths : dict
-            Dictionary with the file paths.
-        shared_inputs_buffer : Array
-            Shared memory buffer for inputs.
-        shared_results_buffer : Array
-            Shared memory buffer for results.
+            Lock to write errors to the error file.
+        go_write_inputs : list
+            List of semaphores to write the inputs.
+        go_write_results : list
+            List of semaphores to write the results.
+        go_read_inputs : list
+            List of semaphores to read the inputs.
+        go_read_results : list
+            List of semaphores to read the results.
+        shared_inputs_name : str
+            Name of the shared memory buffer for the inputs.
+        shared_results_name : str
+            Name of the shared memory buffer for the results.
         inputs_size : int
-            Size of the serialized dictionary.
+            Size of the inputs to be written.
         results_size : int
-            Size of the serialized dictionary.
+            Size of the results to be written.
+        n_sim_memory : int
+            Number of simulations that can be stored in memory.
 
         Returns
         -------
@@ -588,7 +596,7 @@ class MonteCarlo:
                 initial_solution = sto_flight.initial_solution
                 terminate_on_apogee = sto_flight.terminate_on_apogee
 
-                flight = Flight(
+                monte_carlo_flight = Flight(
                     rocket=rocket,
                     environment=env,
                     rail_length=rail_length,
@@ -609,48 +617,45 @@ class MonteCarlo:
                         ]
                         for item in d.items()
                     )
-
                     # Construct the dict with the results from the flight
                     results = {
-                        export_item: getattr(flight, export_item)
+                        export_item: getattr(monte_carlo_flight, export_item)
                         for export_item in file_paths["export_list"]
                     }
 
-                    export_inputs_ready = json.dumps(inputs_dict, cls=RocketPyEncoder)
-                    export_outputs_ready = json.dumps(results, cls=RocketPyEncoder)
+                    export_inputs = json.dumps(inputs_dict, cls=RocketPyEncoder)
+                    export_outputs = json.dumps(results, cls=RocketPyEncoder)
 
                 else:
                     # serialize data
-                    input_parameters = flightv1_serializer(
-                        flight, f"Simulation_{sim_idx}", return_dict=True
+                    flight_results = MonteCarlo.inspect_object_attributes(
+                        monte_carlo_flight, sample_time=export_sample_time
                     )
 
-                    flight_results = MonteCarlo.inspect_object_attributes(flight)
-
-                    # place in dictionary as it will be found in output file
+                    # place data in dictionary as it will be found in output file
                     export_inputs = {
-                        str(sim_idx): input_parameters,
+                        str(
+                            sim_idx
+                        ): "Currently no addition data is exported. Use the results file.",
                     }
 
                     export_outputs = {
                         str(sim_idx): flight_results,
                     }
 
-                    # downsample the arrays, ensuring the maximum size won't be exceeded
-                    export_inputs_ready = MonteCarlo.__downsample_recursive(
-                        data_dict=export_inputs,
-                        max_time=flight.max_time,
-                        sample_time=0.1,
-                    )
-                    export_outputs_ready = MonteCarlo.__downsample_recursive(
-                        data_dict=export_outputs,
-                        max_time=flight.max_time,
-                        sample_time=0.1,
+                # convert to bytes
+                export_inputs_bytes = pickle.dumps(export_inputs)
+                export_outputs_bytes = pickle.dumps(export_outputs)
+
+                if len(export_inputs_bytes) > inputs_size:
+                    raise ValueError(
+                        "Input data is too large to fit in the shared memory buffer."
                     )
 
-                # convert to bytes
-                export_inputs_bytes = pickle.dumps(export_inputs_ready)
-                export_outputs_bytes = pickle.dumps(export_outputs_ready)
+                if len(export_outputs_bytes) > results_size:
+                    raise ValueError(
+                        "Output data is too large to fit in the shared memory buffer."
+                    )
 
                 # add padding to make sure the byte stream fits in the allocated space
                 export_inputs_bytes = export_inputs_bytes.ljust(inputs_size, b'\0')
@@ -754,14 +759,21 @@ class MonteCarlo:
                 output_file=output_file,
             )
         else:
-            input_parameters = flightv1_serializer(
-                monte_carlo_flight, f"Simulation_{sim_idx}", return_dict=True
+            # serialize data
+            flight_results = MonteCarlo.inspect_object_attributes(
+                monte_carlo_flight, sample_time=self.export_sample_time
             )
 
-            flight_results = self.inspect_object_attributes(monte_carlo_flight)
+            # place data in dictionary as it will be found in output file
+            export_inputs = {
+                str(
+                    sim_idx
+                ): "Currently no addition data is exported. Use the results file.",
+            }
 
-            export_inputs = {str(sim_idx): input_parameters}
-            export_outputs = {str(sim_idx): flight_results}
+            export_outputs = {
+                str(sim_idx): flight_results,
+            }
 
             self.__dict_to_h5(input_file, '/', export_inputs)
             self.__dict_to_h5(output_file, '/', export_outputs)
@@ -913,7 +925,9 @@ class MonteCarlo:
         monte_carlo_flight = self.flight.create_object()
 
         if monte_carlo_flight.max_time is None or monte_carlo_flight.max_time <= 0:
-            raise ValueError("The max_time attribute must be greater than zero.")
+            raise ValueError(
+                "The max_time attribute must be greater than zero. To use parallel mode."
+            )
 
         # Export inputs and outputs to file
         if light_mode:
@@ -931,13 +945,13 @@ class MonteCarlo:
                 for export_item in self.export_list
             }
         else:
-            input_parameters = flightv1_serializer(
-                monte_carlo_flight, f"probe_simulation", return_dict=True
+            flight_results = self.inspect_object_attributes(
+                monte_carlo_flight, self.export_sample_time
             )
 
-            flight_results = self.inspect_object_attributes(monte_carlo_flight)
-
-            export_inputs = {"probe_flight": input_parameters}
+            export_inputs = {
+                "probe_flight": "Currently no addition data is exported. Use the results file.",
+            }
             results = {"probe_flight": flight_results}
 
             # downsample the arrays, filling them up to the max time
@@ -1408,7 +1422,49 @@ class MonteCarlo:
         self.plots.all()
 
     @staticmethod
-    def inspect_object_attributes(obj):
+    def time_function_serializer(function_object, t_range=None, sample_time=None):
+        """
+        Method to serialize a Function object into a numpy array. If the function is
+        callable, it will be discretized. If the downsample_time is specified, the
+        function will be downsampled. This serializer should not be used for
+        function that are not time dependent.
+
+        Parameters
+        ----------
+        function_object : Function
+            Function object to be serialized.
+        t_range : tuple, optional
+            Tuple with the initial and final time of the function. Default is None.
+        sample_time : float, optional
+            Time interval between samples. Default is None.
+
+        Returns
+        -------
+        np.ndarray
+            Serialized function as a numpy array.
+        """
+        func = deepcopy(function_object)
+
+        # Discretize the function if it is callable
+        if callable(function_object.source):
+            if t_range is not None:
+                func.set_discrete(*t_range, (t_range[1] - t_range[0]) / sample_time)
+            else:
+                raise ValueError("t_range must be specified for callable functions")
+
+        source = func.get_source()
+
+        # Ensure the downsampling is applied
+        if sample_time is not None:
+            t0 = source[0, 0]
+            tf = source[-1, 0]
+            t = np.arange(t0, tf, sample_time)
+            source = func(t)
+
+        return source
+
+    @staticmethod
+    def inspect_object_attributes(obj, sample_time=0.1):
         """
         Inspects the attributes of an object and returns a dictionary of its
         attributes.
@@ -1434,15 +1490,13 @@ class MonteCarlo:
 
             # Check if the attribute is of a type we are interested in and not a private attribute
             if isinstance(
-                attr_value, (int, float, dict, Function)
+                attr_value, (int, float, Function)
             ) and not attr_name.startswith('_'):
                 if isinstance(attr_value, Function):
                     # Serialize the Functions
-                    result[attr_name] = function_serializer(attr_value)
-
-                elif isinstance(attr_value, dict):
-                    # Recursively inspect the dictionary attributes
-                    result[attr_name] = MonteCarlo.inspect_object_attributes(attr_value)
+                    result[attr_name] = MonteCarlo.time_function_serializer(
+                        attr_value, None, sample_time
+                    )
 
                 elif isinstance(attr_value, (int, float)):
                     result[attr_name] = attr_value
