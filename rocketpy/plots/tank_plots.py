@@ -74,7 +74,7 @@ class _TankPlots:
         -------
         None
         """
-        fig, ax = plt.subplots(facecolor="#EEEEEE")
+        _, ax = plt.subplots(facecolor="#EEEEEE")
 
         ax.add_patch(self._generate_tank())
 

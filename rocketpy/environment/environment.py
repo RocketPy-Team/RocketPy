@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines, broad-exception-caught, bare-except, raise-missing-from, consider-using-f-string, too-many-statements, too-many-instance-attributes, invalid-name, too-many-locals
 import bisect
 import json
 import re
@@ -6,9 +7,9 @@ from collections import namedtuple
 from datetime import datetime, timedelta, timezone
 
 import numpy as np
-import numpy.ma as ma
 import pytz
 import requests
+from numpy import ma
 
 from ..mathutils.function import Function, funcify_method
 from ..plots.environment_plots import _EnvironmentPlots
@@ -18,18 +19,18 @@ from ..tools import exponential_backoff
 try:
     import netCDF4
 except ImportError:
-    has_netCDF4 = False
+    HAS_NETCDF4 = False
     warnings.warn(
         "Unable to load netCDF4. NetCDF files and ``OPeNDAP`` will not be imported.",
         ImportWarning,
     )
 else:
-    has_netCDF4 = True
+    HAS_NETCDF4 = True
 
 
 def requires_netCDF4(func):
     def wrapped_func(*args, **kwargs):
-        if has_netCDF4:
+        if HAS_NETCDF4:
             func(*args, **kwargs)
         else:
             raise ImportError(
@@ -470,7 +471,7 @@ class Environment:
         # Store date and configure time zone
         self.timezone = timezone
         tz = pytz.timezone(self.timezone)
-        if type(date) != datetime:
+        if not isinstance(date, datetime):
             local_date = datetime(*date)
         else:
             local_date = date
@@ -662,7 +663,7 @@ class Environment:
         -------
         None
         """
-        if elevation != "Open-Elevation" and elevation != "SRTM":
+        if elevation not in ["Open-Elevation", "SRTM"]:
             self.elevation = elevation
         # elif elevation == "SRTM" and self.latitude is not None and self.longitude is not None:
         #     # Trigger the authentication flow.
@@ -687,7 +688,9 @@ class Environment:
             )
 
     @requires_netCDF4
-    def set_topographic_profile(self, type, file, dictionary="netCDF4", crs=None):
+    def set_topographic_profile(
+        self, type, file, dictionary="netCDF4", crs=None
+    ):  # pylint: disable=unused-argument, redefined-builtin
         """[UNDER CONSTRUCTION] Defines the Topographic profile, importing data
         from previous downloaded files. Mainly data from the Shuttle Radar
         Topography Mission (SRTM) and NASA Digital Elevation Model will be used
@@ -822,7 +825,7 @@ class Environment:
 
     def set_atmospheric_model(
         self,
-        type,
+        type,  # pylint: disable=redefined-builtin
         file=None,
         dictionary=None,
         pressure=None,
@@ -1091,7 +1094,7 @@ class Environment:
             self.process_noaaruc_sounding(file)
             # Save file
             self.atmospheric_model_file = file
-        elif type == "Forecast" or type == "Reanalysis":
+        elif type in ["Forecast", "Reanalysis"]:
             # Process default forecasts if requested
             if file == "GFS":
                 # Define dictionary
@@ -2140,7 +2143,7 @@ class Environment:
                     file_time_date
                 )
             )
-        elif time_index == len(time_array) - 1 and input_time_num > file_time_num:
+        if time_index == len(time_array) - 1 and input_time_num > file_time_num:
             raise ValueError(
                 "Chosen launch time is not available in the provided file, which ends at {:}.".format(
                     file_time_date
@@ -2550,7 +2553,7 @@ class Environment:
                     file_time_date
                 )
             )
-        elif time_index == len(time_array) - 1 and input_time_num > file_time_num:
+        if time_index == len(time_array) - 1 and input_time_num > file_time_num:
             raise ValueError(
                 "Chosen launch time is not available in the provided file, which ends at {:}.".format(
                     file_time_date
@@ -2650,7 +2653,7 @@ class Environment:
                 dictionary["geopotential_height"]
             ].dimensions[:]
             params = tuple(
-                [param_dictionary[inverse_dictionary[dim]] for dim in dimensions]
+                param_dictionary[inverse_dictionary[dim]] for dim in dimensions
             )
             geopotentials = weather_data.variables[dictionary["geopotential_height"]][
                 params
@@ -2661,7 +2664,7 @@ class Environment:
                     dictionary["geopotential"]
                 ].dimensions[:]
                 params = tuple(
-                    [param_dictionary[inverse_dictionary[dim]] for dim in dimensions]
+                    param_dictionary[inverse_dictionary[dim]] for dim in dimensions
                 )
                 geopotentials = (
                     weather_data.variables[dictionary["geopotential"]][params]
@@ -3231,6 +3234,7 @@ class Environment:
         Deprecated in favor of `utilities.get_instance_attributes`.
 
         """
+        # pylint: disable=R1735, unnecessary-comprehension
         warnings.warn(
             "The method 'all_plot_info_returned' is deprecated as of version "
             + "1.2 and will be removed in version 1.4 "
@@ -3304,6 +3308,7 @@ class Environment:
         Deprecated in favor of `utilities.get_instance_attributes`.
 
         """
+        # pylint: disable= unnecessary-comprehension, use-dict-literal
         warnings.warn(
             "The method 'all_info_returned' is deprecated as of version "
             + "1.2 and will be removed in version 1.4 "
@@ -3417,17 +3422,12 @@ class Environment:
             "atmospheric_model_wind_velocity_y_profile": atmospheric_model_wind_velocity_y_profile,
         }
 
-        f = open(filename + ".json", "w")
-
-        # write json object to file
-        f.write(
-            json.dumps(
-                self.export_env_dictionary, sort_keys=False, indent=4, default=str
+        with open(f"{filename}.json", "w") as f:
+            f.write(
+                json.dumps(
+                    self.export_env_dictionary, sort_keys=False, indent=4, default=str
+                )
             )
-        )
-
-        # close file
-        f.close()
         print("Your Environment file was saved, check it out: " + filename + ".json")
         print(
             "You can use it in the future by using the custom_atmosphere atmospheric model."
@@ -3473,7 +3473,7 @@ class Environment:
         try:
             response = requests.get(request_url)
         except Exception as e:
-            raise RuntimeError("Unable to reach Open-Elevation API servers.")
+            raise RuntimeError("Unable to reach Open-Elevation API servers.") from e
         results = response.json()["results"]
         return results[0]["elevation"]
 
@@ -3493,7 +3493,7 @@ class Environment:
                 raise ValueError(
                     "Could not get a valid response for Icon-EU from Windy. "
                     "Check if the coordinates are set inside Europe."
-                )
+                ) from e
         return response
 
     @exponential_backoff(max_attempts=5, base_delay=2, max_delay=60)

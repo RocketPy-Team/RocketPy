@@ -32,7 +32,7 @@ class _TankGeometryPrints:
         -------
         None
         """
-        print(f"Tank Geometry:")
+        print("Tank Geometry:")
         print(f"Average radius {self.tank_geometry.average_radius:.3f} m")
         print(f"Bottom: {self.tank_geometry.bottom} m")
         print(f"Top: {self.tank_geometry.top} m")

@@ -122,9 +122,7 @@ class _FlightPlots:
         -------
         None
         """
-
-        # Velocity and acceleration plots
-        fig2 = plt.figure(figsize=(9, 12))
+        plt.figure(figsize=(9, 12))
 
         ax1 = plt.subplot(414)
         ax1.plot(self.flight.vx[:, 0], self.flight.vx[:, 1], color="#ff7f0e")
@@ -198,7 +196,7 @@ class _FlightPlots:
         """
 
         # Angular position plots
-        fig3 = plt.figure(figsize=(9, 12))
+        _ = plt.figure(figsize=(9, 12))
 
         ax1 = plt.subplot(411)
         ax1.plot(self.flight.e0[:, 0], self.flight.e0[:, 1], label="$e_0$")
@@ -247,10 +245,7 @@ class _FlightPlots:
         -------
         None
         """
-
-        # Path, Attitude and Lateral Attitude Angle
-        # Angular position plots
-        fig5 = plt.figure(figsize=(9, 6))
+        plt.figure(figsize=(9, 6))
 
         ax1 = plt.subplot(211)
         ax1.plot(
@@ -292,9 +287,7 @@ class _FlightPlots:
         -------
         None
         """
-
-        # Angular velocity and acceleration plots
-        fig4 = plt.figure(figsize=(9, 9))
+        plt.figure(figsize=(9, 9))
         ax1 = plt.subplot(311)
         ax1.plot(self.flight.w1[:, 0], self.flight.w1[:, 1], color="#ff7f0e")
         ax1.set_xlim(0, self.first_event_time)
@@ -364,7 +357,7 @@ class _FlightPlots:
         elif self.flight.out_of_rail_time_index == 0:
             print("No rail phase was found. Skipping rail button plots.")
         else:
-            fig6 = plt.figure(figsize=(9, 6))
+            plt.figure(figsize=(9, 6))
 
             ax1 = plt.subplot(211)
             ax1.plot(
@@ -442,9 +435,7 @@ class _FlightPlots:
         -------
         None
         """
-
-        # Aerodynamic force and moment plots
-        fig7 = plt.figure(figsize=(9, 12))
+        plt.figure(figsize=(9, 12))
 
         ax1 = plt.subplot(411)
         ax1.plot(
@@ -525,7 +516,7 @@ class _FlightPlots:
         None
         """
 
-        fig8 = plt.figure(figsize=(9, 9))
+        plt.figure(figsize=(9, 9))
 
         ax1 = plt.subplot(411)
         ax1.plot(
@@ -636,9 +627,7 @@ class _FlightPlots:
         -------
         None
         """
-
-        # Trajectory Fluid Mechanics Plots
-        fig10 = plt.figure(figsize=(9, 12))
+        plt.figure(figsize=(9, 12))
 
         ax1 = plt.subplot(411)
         ax1.plot(self.flight.mach_number[:, 0], self.flight.mach_number[:, 1])
@@ -702,7 +691,7 @@ class _FlightPlots:
         None
         """
 
-        fig9 = plt.figure(figsize=(9, 6))
+        plt.figure(figsize=(9, 6))
 
         ax1 = plt.subplot(211)
         ax1.plot(self.flight.stability_margin[:, 0], self.flight.stability_margin[:, 1])

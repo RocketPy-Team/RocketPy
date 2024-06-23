@@ -216,6 +216,15 @@ good-names=FlightPhases,
            Kt, # transformation matrix transposed
            clalpha2D, 
            clalpha2D_incompresible,
+           r_NOZ, # Nozzle position vector
+           rocket_dry_I_33,
+           rocket_dry_I_11,
+           motor_I_33_at_t,
+           motor_I_11_at_t,
+           motor_I_33_derivative_at_t,
+           motor_I_11_derivative_at_t,
+           M3_forcing,
+           M3_damping,
 
 # Good variable names regexes, separated by a comma. If names match any regex,
 # they will always be accepted
@@ -335,13 +344,13 @@ max-locals=30
 max-parents=7
 
 # Maximum number of public methods for a class (see R0904).
-max-public-methods=40
+max-public-methods=50
 
 # Maximum number of return / yield for function / method body.
 max-returns=50
 
 # Maximum number of statements in function / method body.
-max-statements=50
+max-statements=75
 
 # Minimum number of public methods for a class (see R0903).
 min-public-methods=0
@@ -372,7 +381,7 @@ indent-string='    '
 max-line-length=88
 
 # Maximum number of lines in a module.
-max-module-lines=3000
+max-module-lines=3600
 
 # Allow the body of a class to be on the same line as the declaration if body
 # contains single statement.
@@ -478,6 +487,11 @@ disable=raw-checker-failed,
         missing-timeout, # not a problem to use requests without timeout
         protected-access, # we use private attriubutes out of the class (maybe we should fix this)
         duplicate-code, # repeating code is a bad thing, but should we really care about it?
+        line-too-long, # black already takes care of this
+        missing-function-docstring, # this is too verbose.
+        redefined-outer-name, # too verbose, and doesn't add much value
+        method-cache-max-size-none,
+        no-else-raise, # pointless
 
 
 

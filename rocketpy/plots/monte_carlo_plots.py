@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 
-from ..tools import generate_monte_carlo_ellipses
+from ..tools import generate_monte_carlo_ellipses, import_optional_dependency
 
 
 class _MonteCarloPlots:
@@ -42,17 +42,12 @@ class _MonteCarloPlots:
         None
         """
 
+        imageio = import_optional_dependency("imageio")
+
         # Import background map
         if image is not None:
             try:
-                from imageio import imread
-
-                img = imread(image)
-            except ImportError as e:
-                raise ImportError(
-                    "The 'imageio' package is required to add background images. "
-                    "Please install it."
-                ) from e
+                img = imageio.imread(image)
             except FileNotFoundError as e:
                 raise FileNotFoundError(
                     "The image file was not found. Please check the path."

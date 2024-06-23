@@ -635,7 +635,7 @@ class Flight:
             f"name= {self.name})>"
         )
 
-    def __simulate(self, verbose):  #  pylint: disable=too-many-branches (fix this)
+    def __simulate(self, verbose):  #  pylint: disable=too-many-branches
         """Simulate the flight trajectory."""
         for phase_index, phase in self.time_iterator(self.flight_phases):
             # Determine maximum time for this flight phase
@@ -816,7 +816,7 @@ class Flight:
                             raise ValueError(
                                 "Multiple roots found when solving for rail exit time."
                             )
-                        elif len(valid_t_root) == 0:
+                        if len(valid_t_root) == 0:
                             raise ValueError(
                                 "No valid roots found when solving for rail exit time."
                             )
@@ -1239,7 +1239,7 @@ class Flight:
 
         # Retrieve important quantities
         # Mass
-        M = self.rocket.total_mass.get_value_opt(t)
+        total_mass_at_t = self.rocket.total_mass.get_value_opt(t)
 
         # Get freestream speed
         free_stream_speed = (
@@ -1256,7 +1256,7 @@ class Flight:
         R3 = -0.5 * rho * (free_stream_speed**2) * self.rocket.area * (drag_coeff)
 
         # Calculate Linear acceleration
-        a3 = (R3 + thrust) / M - (
+        a3 = (R3 + thrust) / total_mass_at_t - (
             e0**2 - e1**2 - e2**2 + e3**2
         ) * self.env.gravity.get_value_opt(z)
         if a3 > 0:
@@ -1330,13 +1330,17 @@ class Flight:
             # Motor burning
             # Retrieve important motor quantities
             # Inertias
-            Tz = self.rocket.motor.I_33.get_value_opt(t)
-            Ti = self.rocket.motor.I_11.get_value_opt(t)
-            Tzdot = self.rocket.motor.I_33.differentiate(t, dx=1e-6)
-            Tidot = self.rocket.motor.I_11.differentiate(t, dx=1e-6)
+            motor_I_33_at_t = self.rocket.motor.I_33.get_value_opt(t)
+            motor_I_11_at_t = self.rocket.motor.I_11.get_value_opt(t)
+            motor_I_33_derivative_at_t = self.rocket.motor.I_33.differentiate(
+                t, dx=1e-6
+            )
+            motor_I_11_derivative_at_t = self.rocket.motor.I_11.differentiate(
+                t, dx=1e-6
+            )
             # Mass
-            Mtdot = self.rocket.motor.mass_flow_rate.get_value_opt(t)
-            Mt = self.rocket.motor.propellant_mass.get_value_opt(t)
+            mass_flow_rate_at_t = self.rocket.motor.mass_flow_rate.get_value_opt(t)
+            propellant_mass_at_t = self.rocket.motor.propellant_mass.get_value_opt(t)
             # Thrust
             thrust = self.rocket.motor.thrust.get_value_opt(t)
             # Off center moment
@@ -1345,20 +1349,27 @@ class Flight:
         else:
             # Motor stopped
             # Inertias
-            Tz, Ti, Tzdot, Tidot = 0, 0, 0, 0
+            (
+                motor_I_33_at_t,
+                motor_I_11_at_t,
+                motor_I_33_derivative_at_t,
+                motor_I_11_derivative_at_t,
+            ) = (0, 0, 0, 0)
             # Mass
-            Mtdot, Mt = 0, 0
+            mass_flow_rate_at_t, propellant_mass_at_t = 0, 0
             # thrust
             thrust = 0
 
         # Retrieve important quantities
         # Inertias
-        Rz = self.rocket.dry_I_33
-        Ri = self.rocket.dry_I_11
+        rocket_dry_I_33 = self.rocket.dry_I_33
+        rocket_dry_I_11 = self.rocket.dry_I_11
         # Mass
-        Mr = self.rocket.dry_mass
-        M = Mt + Mr
-        mu = (Mt * Mr) / (Mt + Mr)
+        rocket_dry_mass = self.rocket.dry_mass  # already with motor's dry mass
+        total_mass_at_t = propellant_mass_at_t + rocket_dry_mass
+        mu = (propellant_mass_at_t * rocket_dry_mass) / (
+            propellant_mass_at_t + rocket_dry_mass
+        )
         # Geometry
         # b = -self.rocket.distance_rocket_propellant
         b = (
@@ -1370,7 +1381,7 @@ class Flight:
         )
         c = self.rocket.nozzle_to_cdm
         a = self.rocket.com_to_cdm_function.get_value_opt(t)
-        rN = self.rocket.motor.nozzle_radius
+        nozzle_radius = self.rocket.motor.nozzle_radius
         # Prepare transformation matrix
         a11 = 1 - 2 * (e2**2 + e3**2)
         a12 = 2 * (e1 * e2 - e0 * e3)
@@ -1477,7 +1488,7 @@ class Flight:
             # Calculates Roll Moment
             try:
                 clf_delta, cld_omega, cant_angle_rad = aero_surface.roll_parameters
-                M3f = (
+                M3_forcing = (
                     (1 / 2 * rho * free_stream_speed**2)
                     * reference_area
                     * 2
@@ -1485,7 +1496,7 @@ class Flight:
                     * clf_delta.get_value_opt(free_stream_mach)
                     * cant_angle_rad
                 )
-                M3d = (
+                M3_damping = (
                     (1 / 2 * rho * free_stream_speed)
                     * reference_area
                     * (2 * surface_radius) ** 2
@@ -1493,7 +1504,7 @@ class Flight:
                     * omega3
                     / 2
                 )
-                M3 += M3f - M3d
+                M3 += M3_forcing - M3_damping
             except AttributeError:
                 pass
         # Calculate derivatives
@@ -1501,26 +1512,61 @@ class Flight:
         alpha1 = (
             M1
             - (
-                omega2 * omega3 * (Rz + Tz - Ri - Ti - mu * b**2)
+                omega2
+                * omega3
+                * (
+                    rocket_dry_I_33
+                    + motor_I_33_at_t
+                    - rocket_dry_I_11
+                    - motor_I_11_at_t
+                    - mu * b**2
+                )
                 + omega1
                 * (
-                    (Tidot + Mtdot * (Mr - 1) * (b / M) ** 2)
-                    - Mtdot * ((rN / 2) ** 2 + (c - b * mu / Mr) ** 2)
+                    (
+                        motor_I_11_derivative_at_t
+                        + mass_flow_rate_at_t
+                        * (rocket_dry_mass - 1)
+                        * (b / total_mass_at_t) ** 2
+                    )
+                    - mass_flow_rate_at_t
+                    * ((nozzle_radius / 2) ** 2 + (c - b * mu / rocket_dry_mass) ** 2)
                 )
             )
-        ) / (Ri + Ti + mu * b**2)
+        ) / (rocket_dry_I_11 + motor_I_11_at_t + mu * b**2)
         alpha2 = (
             M2
             - (
-                omega1 * omega3 * (Ri + Ti + mu * b**2 - Rz - Tz)
+                omega1
+                * omega3
+                * (
+                    rocket_dry_I_11
+                    + motor_I_11_at_t
+                    + mu * b**2
+                    - rocket_dry_I_33
+                    - motor_I_33_at_t
+                )
                 + omega2
                 * (
-                    (Tidot + Mtdot * (Mr - 1) * (b / M) ** 2)
-                    - Mtdot * ((rN / 2) ** 2 + (c - b * mu / Mr) ** 2)
+                    (
+                        motor_I_11_derivative_at_t
+                        + mass_flow_rate_at_t
+                        * (rocket_dry_mass - 1)
+                        * (b / total_mass_at_t) ** 2
+                    )
+                    - mass_flow_rate_at_t
+                    * ((nozzle_radius / 2) ** 2 + (c - b * mu / rocket_dry_mass) ** 2)
                 )
             )
-        ) / (Ri + Ti + mu * b**2)
-        alpha3 = (M3 - omega3 * (Tzdot - Mtdot * (rN**2) / 2)) / (Rz + Tz)
+        ) / (rocket_dry_I_11 + motor_I_11_at_t + mu * b**2)
+        alpha3 = (
+            M3
+            - omega3
+            * (
+                motor_I_33_derivative_at_t
+                - mass_flow_rate_at_t * (nozzle_radius**2) / 2
+            )
+        ) / (rocket_dry_I_33 + motor_I_33_at_t)
         # Euler parameters derivative
         e0dot = 0.5 * (-omega1 * e1 - omega2 * e2 - omega3 * e3)
         e1dot = 0.5 * (omega1 * e0 + omega3 * e2 - omega2 * e3)
@@ -1529,9 +1575,20 @@ class Flight:
 
         # Linear acceleration
         L = [
-            (R1 - b * Mt * (omega2**2 + omega3**2) - 2 * c * Mtdot * omega2) / M,
-            (R2 + b * Mt * (alpha3 + omega1 * omega2) + 2 * c * Mtdot * omega1) / M,
-            (R3 - b * Mt * (alpha2 - omega1 * omega3) + thrust) / M,
+            (
+                R1
+                - b * propellant_mass_at_t * (omega2**2 + omega3**2)
+                - 2 * c * mass_flow_rate_at_t * omega2
+            )
+            / total_mass_at_t,
+            (
+                R2
+                + b * propellant_mass_at_t * (alpha3 + omega1 * omega2)
+                + 2 * c * mass_flow_rate_at_t * omega1
+            )
+            / total_mass_at_t,
+            (R3 - b * propellant_mass_at_t * (alpha2 - omega1 * omega3) + thrust)
+            / total_mass_at_t,
         ]
         ax, ay, az = np.dot(K, L)
         az -= self.env.gravity.get_value_opt(z)  # Include gravity
@@ -1658,7 +1715,7 @@ class Flight:
         M2 -= self.rocket.cp_eccentricity_x * R3
 
         # Get rocket velocity in body frame
-        vB = Kt @ v
+        velocity_vector_in_body_frame = Kt @ v
         # Calculate lift and moment for each component of the rocket
         for aero_surface, position in self.rocket.aerodynamic_surfaces:
             comp_cpz = (
@@ -1668,7 +1725,7 @@ class Flight:
             surface_radius = aero_surface.rocket_radius
             reference_area = np.pi * surface_radius**2
             # Component absolute velocity in body frame
-            comp_vb = vB + (w ^ comp_cp)
+            comp_vb = velocity_vector_in_body_frame + (w ^ comp_cp)
             # Wind velocity at component altitude
             comp_z = z + (K @ comp_cp).z
             comp_wind_vx = self.env.wind_velocity_x.get_value_opt(comp_z)
@@ -1707,7 +1764,7 @@ class Flight:
             # Calculates Roll Moment
             try:
                 clf_delta, cld_omega, cant_angle_rad = aero_surface.roll_parameters
-                M3f = (
+                M3_forcing = (
                     (1 / 2 * rho * comp_stream_speed**2)
                     * reference_area
                     * 2
@@ -1715,7 +1772,7 @@ class Flight:
                     * clf_delta.get_value_opt(comp_stream_mach)
                     * cant_angle_rad
                 )
-                M3d = (
+                M3_damping = (
                     (1 / 2 * rho * comp_stream_speed)
                     * reference_area
                     * (2 * surface_radius) ** 2
@@ -1723,10 +1780,12 @@ class Flight:
                     * omega3
                     / 2
                 )
-                M3 += M3f - M3d
+                M3 += M3_forcing - M3_damping
             except AttributeError:
                 pass
-        weightB = Kt @ Vector([0, 0, -total_mass * self.env.gravity.get_value_opt(z)])
+        weight_vector_in_body_frame = Kt @ Vector(
+            [0, 0, -total_mass * self.env.gravity.get_value_opt(z)]
+        )
         T00 = total_mass * r_CM
         T03 = 2 * total_mass_dot * (r_NOZ - r_CM) - 2 * total_mass * r_CM_dot
         T04 = (
@@ -1737,9 +1796,20 @@ class Flight:
         )
         T05 = total_mass_dot * S_nozzle - I_dot
 
-        T20 = ((w ^ T00) ^ w) + (w ^ T03) + T04 + weightB + Vector([R1, R2, R3])
+        T20 = (
+            ((w ^ T00) ^ w)
+            + (w ^ T03)
+            + T04
+            + weight_vector_in_body_frame
+            + Vector([R1, R2, R3])
+        )
 
-        T21 = ((I @ w) ^ w) + T05 @ w - (weightB ^ r_CM) + Vector([M1, M2, M3])
+        T21 = (
+            ((I @ w) ^ w)
+            + T05 @ w
+            - (weight_vector_in_body_frame ^ r_CM)
+            + Vector([M1, M2, M3])
+        )
 
         # Angular velocity derivative
         w_dot = I_CM.inverse @ (T21 + (T20 ^ r_CM))
@@ -1825,11 +1895,11 @@ class Flight:
         free_stream_speed = (freestream_x**2 + freestream_y**2 + freestream_z**2) ** 0.5
 
         # Determine drag force
-        pseudoD = -0.5 * rho * cd_s * free_stream_speed
-        # pseudoD = pseudoD - ka * rho * 4 * np.pi * (R**2) * Rdot
-        Dx = pseudoD * freestream_x
-        Dy = pseudoD * freestream_y
-        Dz = pseudoD * freestream_z
+        pseudo_drag = -0.5 * rho * cd_s * free_stream_speed
+        # pseudo_drag = pseudo_drag - ka * rho * 4 * np.pi * (R**2) * Rdot
+        Dx = pseudo_drag * freestream_x
+        Dy = pseudo_drag * freestream_y
+        Dz = pseudo_drag * freestream_z
         ax = Dx / (mp + ma)
         ay = Dy / (mp + ma)
         az = (Dz - 9.8 * mp) / (mp + ma)
@@ -2450,12 +2520,13 @@ class Flight:
         """Potential energy as a Function of time in relation to sea
         level."""
         # Constants
-        GM = 3.986004418e14  # TODO: this constant should come from Environment.
+        # TODO: this constant should come from Environment.
+        standard_gravitational_parameter = 3.986004418e14
         # Redefine total_mass time grid to allow for efficient Function algebra
         total_mass = deepcopy(self.rocket.total_mass)
         total_mass.set_discrete_based_on_model(self.z)
         return (
-            GM
+            standard_gravitational_parameter
             * total_mass
             * (1 / (self.z + self.env.earth_radius) - 1 / self.env.earth_radius)
         )
@@ -3011,7 +3082,7 @@ class Flight:
 
         # Loop through variables, get points and names (for the header)
         for variable in variables:
-            if variable in self.__dict__.keys():
+            if variable in self.__dict__:
                 variable_function = self.__dict__[variable]
             # Deal with decorated Flight methods
             else:

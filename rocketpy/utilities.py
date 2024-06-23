@@ -230,15 +230,17 @@ def fin_flutter_analysis(
     None
     """
     found_fin = False
+    surface_area = None
+    aspect_ratio = None
+    lambda_ = None
 
     # First, we need identify if there is at least one fin set in the rocket
     for aero_surface in flight.rocket.fins:
         if isinstance(aero_surface, TrapezoidalFins):
-            # s: surface area; ar: aspect ratio; la: lambda
             root_chord = aero_surface.root_chord
-            s = (aero_surface.tip_chord + root_chord) * aero_surface.span / 2
-            ar = aero_surface.span * aero_surface.span / s
-            la = aero_surface.tip_chord / root_chord
+            surface_area = (aero_surface.tip_chord + root_chord) * aero_surface.span / 2
+            aspect_ratio = aero_surface.span * aero_surface.span / surface_area
+            lambda_ = aero_surface.tip_chord / root_chord
             if not found_fin:
                 found_fin = True
             else:
@@ -250,14 +252,21 @@ def fin_flutter_analysis(
 
     # Calculate variables
     flutter_mach = _flutter_mach_number(
-        fin_thickness, shear_modulus, flight, root_chord, ar, la
+        fin_thickness, shear_modulus, flight, root_chord, aspect_ratio, lambda_
     )
     safety_factor = _flutter_safety_factor(flight, flutter_mach)
 
     # Prints and plots
     if see_prints:
         _flutter_prints(
-            fin_thickness, shear_modulus, s, ar, la, flutter_mach, safety_factor, flight
+            fin_thickness,
+            shear_modulus,
+            surface_area,
+            aspect_ratio,
+            lambda_,
+            flutter_mach,
+            safety_factor,
+            flight,
         )
     if see_graphs:
         _flutter_plots(flight, flutter_mach, safety_factor)
@@ -265,10 +274,12 @@ def fin_flutter_analysis(
         return flutter_mach, safety_factor
 
 
-def _flutter_mach_number(fin_thickness, shear_modulus, flight, root_chord, ar, la):
+def _flutter_mach_number(
+    fin_thickness, shear_modulus, flight, root_chord, aspect_ratio, lambda_
+):
     flutter_mach = (
-        (shear_modulus * 2 * (ar + 2) * (fin_thickness / root_chord) ** 3)
-        / (1.337 * (ar**3) * (la + 1) * flight.pressure)
+        (shear_modulus * 2 * (aspect_ratio + 2) * (fin_thickness / root_chord) ** 3)
+        / (1.337 * (aspect_ratio**3) * (lambda_ + 1) * flight.pressure)
     ) ** 0.5
     flutter_mach.set_title("Fin Flutter Mach Number")
     flutter_mach.set_outputs("Mach")
@@ -351,9 +362,9 @@ def _flutter_plots(flight, flutter_mach, safety_factor):
 def _flutter_prints(
     fin_thickness,
     shear_modulus,
-    s,
-    ar,
-    la,
+    surface_area,
+    aspect_ratio,
+    lambda_,
     flutter_mach,
     safety_factor,
     flight,
@@ -367,11 +378,11 @@ def _flutter_prints(
         The fin thickness, in meters
     shear_modulus : float
         Shear Modulus of fins' material, must be given in Pascal
-    s : float
+    surface_area : float
         Fin surface area, in squared meters
-    ar : float
+    aspect_ratio : float
         Fin aspect ratio
-    la : float
+    lambda_ : float
         Fin lambda, defined as the tip_chord / root_chord ratio
     flutter_mach : rocketpy.Function
         The Mach Number at which the fin flutter occurs, considering the
@@ -399,9 +410,9 @@ def _flutter_prints(
     altitude_min_sf = flight.z(time_min_sf) - flight.env.elevation
 
     print("\nFin's parameters")
-    print(f"Surface area (S): {s:.4f} m2")
-    print(f"Aspect ratio (AR): {ar:.3f}")
-    print(f"tip_chord/root_chord ratio = \u03BB = {la:.3f}")
+    print(f"Surface area (S): {surface_area:.4f} m2")
+    print(f"Aspect ratio (AR): {aspect_ratio:.3f}")
+    print(f"tip_chord/root_chord ratio = \u03BB = {lambda_:.3f}")
     print(f"Fin Thickness: {fin_thickness:.5f} m")
     print(f"Shear Modulus (G): {shear_modulus:.3e} Pa")
 

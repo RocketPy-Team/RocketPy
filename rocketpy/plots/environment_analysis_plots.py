@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 import numpy as np
-from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 from matplotlib.animation import PillowWriter as ImageWriter
 from scipy import stats
@@ -230,7 +229,7 @@ class _EnvironmentAnalysisPlots:
         # Format plot
         plt.gca().xaxis.set_major_locator(plt.MaxNLocator(integer=True))
         plt.gca().xaxis.set_major_formatter(
-            lambda x, pos: "{0:02.0f}:{1:02.0f}".format(*divmod(x * 60, 60))
+            lambda x, pos: f"{int(x):02}:{int((x * 60) % 60):02}"
         )
         plt.autoscale(enable=True, axis="x", tight=True)
         plt.xlabel("Time (hours)")
@@ -274,7 +273,7 @@ class _EnvironmentAnalysisPlots:
         # Plot average wind speed along day
         for hour_entries in self.surface_level_dict.values():
             plt.plot(
-                [x for x in self.env_analysis.hours],
+                list(self.env_analysis.hours),
                 [
                     (
                         val["surface10m_wind_velocity_x"] ** 2
@@ -310,7 +309,7 @@ class _EnvironmentAnalysisPlots:
         # Format plot
         plt.gca().xaxis.set_major_locator(plt.MaxNLocator(integer=True))
         plt.gca().xaxis.set_major_formatter(
-            lambda x, pos: "{0:02.0f}:{1:02.0f}".format(*divmod(x * 60, 60))
+            lambda x, pos: f"{int(x):02}:{int((x * 60) % 60):02}"
         )
         plt.autoscale(enable=True, axis="x", tight=True)
 
@@ -765,7 +764,7 @@ class _EnvironmentAnalysisPlots:
         plt.autoscale(enable=True, axis="y", tight=True)
 
         if clear_range_limits:
-            x_min, xmax, ymax, ymin = plt.axis()
+            x_min, xmax, _, _ = plt.axis()
             plt.fill_between(
                 [x_min, xmax],
                 0.7
@@ -967,12 +966,11 @@ class _EnvironmentAnalysisPlots:
         Image : ipywidgets.widget_media.Image
         """
         widgets = import_optional_dependency("ipywidgets")
-        metadata = dict(
-            title="windrose",
-            artist="windrose",
-            comment="""Made with windrose
-                http://www.github.com/scls19fr/windrose""",
-        )
+        metadata = {
+            "title": "windrose",
+            "artist": "windrose",
+            "comment": """Made with windrose\nhttp://www.github.com/scls19fr/windrose""",
+        }
         writer = ImageWriter(fps=1, metadata=metadata)
         fig = plt.figure(facecolor="w", edgecolor="w", figsize=figsize)
         with writer.saving(fig, filename, 100):

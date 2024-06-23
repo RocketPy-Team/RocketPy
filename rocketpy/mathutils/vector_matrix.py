@@ -912,7 +912,7 @@ class Matrix:
         --------
         Matrix.__matmul__
         """
-        return self.__matmul__(other)
+        return self @ (other)
 
     def __str__(self):
         return (

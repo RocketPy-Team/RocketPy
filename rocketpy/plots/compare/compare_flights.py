@@ -1,3 +1,5 @@
+# TODO: remove this disable once the code is refactored
+# pylint: disable=nested-min-max
 import matplotlib.pyplot as plt
 import numpy as np
 

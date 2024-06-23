@@ -171,9 +171,9 @@ def test_flutter_prints(flight_calisto_custom_wind):
         utilities._flutter_prints(  # pylint: disable=protected-access
             fin_thickness=2 / 1000,
             shear_modulus=10e9,
-            s=0.009899999999999999,
-            ar=1.2222222222222223,
-            la=0.5,
+            surface_area=0.009899999999999999,
+            aspect_ratio=1.2222222222222223,
+            lambda_=0.5,
             flutter_mach=flutter_mach,
             safety_factor=safety_factor,
             flight=flight_calisto_custom_wind,

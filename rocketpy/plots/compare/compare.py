@@ -119,36 +119,38 @@ class Compare:
 
         # Adding the plots to each subplot
         if x_attributes:
-            for object in self.object_list:
+            for obj in self.object_list:
                 for i in range(n_plots):
                     try:
                         ax[i].plot(
-                            object.__getattribute__(x_attributes[i])[:, 1],
-                            object.__getattribute__(y_attributes[i])[:, 1],
-                            label=object.name,
+                            getattr(obj, x_attributes[i])[:, 1],
+                            getattr(obj, y_attributes[i])[:, 1],
+                            label=obj.name,
                         )
                     except IndexError:
                         ax[i].plot(
-                            object.__getattribute__(x_attributes[i]),
-                            object.__getattribute__(y_attributes[i])[:, 1],
-                            label=object.name,
+                            getattr(obj, x_attributes[i]),
+                            getattr(obj, y_attributes[i])[:, 1],
+                            label=obj.name,
                         )
-                    except AttributeError:
+                    except AttributeError as e:
                         raise AttributeError(
                             f"Invalid attribute {y_attributes[i]} or {x_attributes[i]}."
-                        )
+                        ) from e
         else:
             # Adding the plots to each subplot
-            for object in self.object_list:
+            for obj in self.object_list:
                 for i in range(n_plots):
                     try:
                         ax[i].plot(
-                            object.__getattribute__(y_attributes[i])[:, 0],
-                            object.__getattribute__(y_attributes[i])[:, 1],
-                            label=object.name,
+                            getattr(obj, y_attributes[i])[:, 0],
+                            getattr(obj, y_attributes[i])[:, 1],
+                            label=obj.name,
                         )
-                    except AttributeError:
-                        raise AttributeError(f"Invalid attribute {y_attributes[i]}.")
+                    except AttributeError as e:
+                        raise AttributeError(
+                            f"Invalid attribute {y_attributes[i]}."
+                        ) from e
 
         for i, subplot in enumerate(ax):
             # Set the labels for the x and y axis
@@ -165,7 +167,6 @@ class Compare:
         # Find the two closest integers to the square root of the number of object_list
         # to be used as the number of columns and rows of the legend
         n_cols_legend = int(round(len(self.object_list) ** 0.5))
-        n_rows_legend = int(round(len(self.object_list) / n_cols_legend))
 
         # Set the legend
         if legend:  # Add a global legend to the figure

@@ -41,7 +41,7 @@ class StochasticRocket(StochasticModel):
 
     Attributes
     ----------
-    object : Rocket
+    obj : Rocket
         The Rocket object to be used as a base for the Stochastic rocket.
     motors : Components
         A Components instance containing all the motors of the rocket.
@@ -144,7 +144,7 @@ class StochasticRocket(StochasticModel):
         self._validate_1d_array_like("power_off_drag", power_off_drag)
         self._validate_1d_array_like("power_on_drag", power_on_drag)
         super().__init__(
-            object=rocket,
+            obj=rocket,
             radius=radius,
             mass=mass,
             I_11_without_motor=inertia_11,
@@ -195,7 +195,7 @@ class StochasticRocket(StochasticModel):
                 motor = StochasticGenericMotor(generic_motor=motor)
         self.motors.add(motor, self._validate_position(motor, position))
 
-    def _add_surfaces(self, surfaces, positions, type, stochastic_type, error_message):
+    def _add_surfaces(self, surfaces, positions, type_, stochastic_type, error_message):
         """Adds a stochastic aerodynamic surface to the stochastic rocket. If
         an aerodynamic surface is already present, it will be replaced.
 
@@ -205,7 +205,7 @@ class StochasticRocket(StochasticModel):
             The aerodynamic surface to be added to the stochastic rocket.
         positions : tuple, list, int, float, optional
             The position of the aerodynamic surface.
-        type : type
+        type_ : type
             The type of the aerodynamic surface to be added to the stochastic
             rocket.
         stochastic_type : type
@@ -215,9 +215,9 @@ class StochasticRocket(StochasticModel):
             The error message to be raised if the input is not of the correct
             type.
         """
-        if not isinstance(surfaces, (type, stochastic_type)):
+        if not isinstance(surfaces, (type_, stochastic_type)):
             raise AssertionError(error_message)
-        if isinstance(surfaces, type):
+        if isinstance(surfaces, type_):
             surfaces = stochastic_type(component=surfaces)
         self.aerodynamic_surfaces.add(
             surfaces, self._validate_position(surfaces, positions)
@@ -236,7 +236,7 @@ class StochasticRocket(StochasticModel):
         self._add_surfaces(
             surfaces=nose,
             positions=position,
-            type=NoseCone,
+            type_=NoseCone,
             stochastic_type=StochasticNoseCone,
             error_message="`nose` must be of NoseCone or StochasticNoseCone type",
         )
@@ -403,12 +403,12 @@ class StochasticRocket(StochasticModel):
         # try to get position from object
         error_msg = (
             "`position` standard deviation was provided but the rocket does "
-            f"not have the same {validated_object.object.__class__.__name__} "
+            f"not have the same {validated_object.obj.__class__.__name__} "
             "to get the nominal position value from."
         )
         # special case for motor stochastic model
         if isinstance(validated_object, (StochasticMotorModel)):
-            if isinstance(self.object.motor, EmptyMotor):
+            if isinstance(self.obj.motor, EmptyMotor):
                 raise AssertionError(error_msg)
 
             def get_motor_position(self_object, _):
@@ -420,12 +420,12 @@ class StochasticRocket(StochasticModel):
 
                 def get_surface_position(self_object, _):
                     surfaces = self_object.rail_buttons.get_tuple_by_type(
-                        validated_object.object.__class__
+                        validated_object.obj.__class__
                     )
                     if len(surfaces) == 0:
                         raise AssertionError(error_msg)
                     for surface in surfaces:
-                        if surface.component == validated_object.object:
+                        if surface.component == validated_object.obj:
                             return surface.position
                         else:
                             raise AssertionError(error_msg)
@@ -434,12 +434,12 @@ class StochasticRocket(StochasticModel):
 
                 def get_surface_position(self_object, _):
                     surfaces = self_object.aerodynamic_surfaces.get_tuple_by_type(
-                        validated_object.object.__class__
+                        validated_object.obj.__class__
                     )
                     if len(surfaces) == 0:
                         raise AssertionError(error_msg)
                     for surface in surfaces:
-                        if surface.component == validated_object.object:
+                        if surface.component == validated_object.obj:
                             return surface.position
                         else:
                             raise AssertionError(error_msg)

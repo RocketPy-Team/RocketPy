@@ -137,7 +137,7 @@ class _RocketPlots:
                 [self.rocket.power_off_drag.source(x) for x in x_power_drag_off]
             )
 
-        fig, ax = plt.subplots()
+        _, ax = plt.subplots()
         ax.plot(x_power_drag_on, y_power_drag_on, label="Power on Drag")
         ax.plot(
             x_power_drag_off, y_power_drag_off, label="Power off Drag", linestyle="--"
@@ -346,13 +346,13 @@ class _RocketPlots:
                 if isinstance(surface, Tail):
                     continue
                 # Else goes to the end of the surface
-                else:
-                    x_tube = [position, last_x]
-                    y_tube = [radius, radius]
-                    y_tube_negated = [-radius, -radius]
+                x_tube = [position, last_x]
+                y_tube = [radius, radius]
+                y_tube_negated = [-radius, -radius]
             else:
                 # If it is not the last surface, the tube goes to the beginning
                 # of the next surface
+                # pylint: disable=unused-variable
                 next_surface, next_position, next_radius, next_last_x = drawn_surfaces[
                     i + 1
                 ]

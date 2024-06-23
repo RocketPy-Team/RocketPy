@@ -338,7 +338,9 @@ class Function:
         interpolation = INTERPOLATION_TYPES[self.__interpolation__]
         if interpolation == 0:  # linear
 
-            def linear_interpolation(x, x_min, x_max, x_data, y_data, coeffs):
+            def linear_interpolation(
+                x, x_min, x_max, x_data, y_data, coeffs
+            ):  # pylint: disable=unused-argument
                 x_interval = bisect_left(x_data, x)
                 x_left = x_data[x_interval - 1]
                 y_left = y_data[x_interval - 1]
@@ -350,14 +352,18 @@ class Function:
 
         elif interpolation == 1:  # polynomial
 
-            def polynomial_interpolation(x, x_min, x_max, x_data, y_data, coeffs):
+            def polynomial_interpolation(
+                x, x_min, x_max, x_data, y_data, coeffs
+            ):  # pylint: disable=unused-argument
                 return np.sum(coeffs * x ** np.arange(len(coeffs)))
 
             self._interpolation_func = polynomial_interpolation
 
         elif interpolation == 2:  # akima
 
-            def akima_interpolation(x, x_min, x_max, x_data, y_data, coeffs):
+            def akima_interpolation(
+                x, x_min, x_max, x_data, y_data, coeffs
+            ):  # pylint: disable=unused-argument
                 x_interval = bisect_left(x_data, x)
                 x_interval = x_interval if x_interval != 0 else 1
                 a = coeffs[4 * x_interval - 4 : 4 * x_interval]
@@ -367,7 +373,9 @@ class Function:
 
         elif interpolation == 3:  # spline
 
-            def spline_interpolation(x, x_min, x_max, x_data, y_data, coeffs):
+            def spline_interpolation(
+                x, x_min, x_max, x_data, y_data, coeffs
+            ):  # pylint: disable=unused-argument
                 x_interval = bisect_left(x_data, x)
                 x_interval = max(x_interval, 1)
                 a = coeffs[:, x_interval - 1]
@@ -391,14 +399,18 @@ class Function:
 
         elif extrapolation == 0:  # zero
 
-            def zero_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):
+            def zero_extrapolation(
+                x, x_min, x_max, x_data, y_data, coeffs
+            ):  # pylint: disable=unused-argument
                 return 0
 
             self._extrapolation_func = zero_extrapolation
         elif extrapolation == 1:  # natural
             if interpolation == 0:  # linear
 
-                def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):
+                def natural_extrapolation(
+                    x, x_min, x_max, x_data, y_data, coeffs
+                ):  # pylint: disable=unused-argument
                     x_interval = 1 if x < x_min else -1
                     x_left = x_data[x_interval - 1]
                     y_left = y_data[x_interval - 1]
@@ -408,18 +420,24 @@ class Function:
 
             elif interpolation == 1:  # polynomial
 
-                def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):
+                def natural_extrapolation(
+                    x, x_min, x_max, x_data, y_data, coeffs
+                ):  # pylint: disable=unused-argument
                     return np.sum(coeffs * x ** np.arange(len(coeffs)))
 
             elif interpolation == 2:  # akima
 
-                def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):
+                def natural_extrapolation(
+                    x, x_min, x_max, x_data, y_data, coeffs
+                ):  # pylint: disable=unused-argument
                     a = coeffs[:4] if x < x_min else coeffs[-4:]
                     return a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
 
             elif interpolation == 3:  # spline
 
-                def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):
+                def natural_extrapolation(
+                    x, x_min, x_max, x_data, y_data, coeffs
+                ):  # pylint: disable=unused-argument
                     if x < x_min:
                         a = coeffs[:, 0]
                         x = x - x_data[0]
@@ -431,7 +449,9 @@ class Function:
             self._extrapolation_func = natural_extrapolation
         elif extrapolation == 2:  # constant
 
-            def constant_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):
+            def constant_extrapolation(
+                x, x_min, x_max, x_data, y_data, coeffs
+            ):  # pylint: disable=unused-argument
                 return y_data[0] if x < x_min else y_data[-1]
 
             self._extrapolation_func = constant_extrapolation
@@ -1357,7 +1377,6 @@ class Function:
         )
         z_min, z_max = z.min(), z.max()
         color_map = plt.colormaps[cmap]
-        norm = plt.Normalize(z_min, z_max)
 
         # Plot function
         if disp_type == "surface":
@@ -2454,7 +2473,7 @@ class Function:
             return float(self.get_value_opt(x + dx * 1j).imag / dx)
         else:
             raise NotImplementedError(
-                "Only 1st order derivatives are supported yet. " "Set order=1."
+                "Only 1st order derivatives are supported yet. Set order=1."
             )
 
     def identity_function(self):
@@ -2944,7 +2963,7 @@ class Function:
                     "Could not read the csv or txt file to create Function source."
                 ) from e
 
-        if isinstance(source, list) or isinstance(source, np.ndarray):
+        if isinstance(source, (list, np.ndarray)):
             # Triggers an error if source is not a list of numbers
             source = np.array(source, dtype=np.float64)
 

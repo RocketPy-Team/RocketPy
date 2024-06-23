@@ -465,7 +465,7 @@ class SolidMotor(Motor):
         t_span = t[0], t[-1]
 
         density = self.grain_density
-        rO = self.grain_outer_radius
+        grain_outer_radius = self.grain_outer_radius
         n_grain = self.grain_number
 
         # Define system of differential equations
@@ -474,12 +474,20 @@ class SolidMotor(Motor):
             volume_diff = self.mass_flow_rate(t) / (n_grain * density)
 
             # Compute state vector derivative
-            rI, h = y
-            burn_area = 2 * np.pi * (rO**2 - rI**2 + rI * h)
-            rI_dot = -volume_diff / burn_area
-            h_dot = -2 * rI_dot
+            grain_inner_radius, grain_height = y
+            burn_area = (
+                2
+                * np.pi
+                * (
+                    grain_outer_radius**2
+                    - grain_inner_radius**2
+                    + grain_inner_radius * grain_height
+                )
+            )
+            grain_inner_radius_derivative = -volume_diff / burn_area
+            grain_height_derivative = -2 * grain_inner_radius_derivative
 
-            return [rI_dot, h_dot]
+            return [grain_inner_radius_derivative, grain_height_derivative]
 
         # Define jacobian of the system of differential equations
         def geometry_jacobian(t, y):
@@ -487,16 +495,35 @@ class SolidMotor(Motor):
             volume_diff = self.mass_flow_rate(t) / (n_grain * density)
 
             # Compute jacobian
-            rI, h = y
-            factor = volume_diff / (2 * np.pi * (rO**2 - rI**2 + rI * h) ** 2)
-            drI_dot_drI = factor * (h - 2 * rI)
-            drI_dot_dh = factor * rI
-            dh_dot_drI = -2 * drI_dot_drI
-            dh_dot_dh = -2 * drI_dot_dh
+            grain_inner_radius, grain_height = y
+            factor = volume_diff / (
+                2
+                * np.pi
+                * (
+                    grain_outer_radius**2
+                    - grain_inner_radius**2
+                    + grain_inner_radius * grain_height
+                )
+                ** 2
+            )
+            inner_radius_derivative_wrt_inner_radius = factor * (
+                grain_height - 2 * grain_inner_radius
+            )
+            inner_radius_derivative_wrt_height = factor * grain_inner_radius
+            height_derivative_wrt_inner_radius = (
+                -2 * inner_radius_derivative_wrt_inner_radius
+            )
+            height_derivative_wrt_height = -2 * inner_radius_derivative_wrt_height
 
-            return [[drI_dot_drI, drI_dot_dh], [dh_dot_drI, dh_dot_dh]]
+            return [
+                [
+                    inner_radius_derivative_wrt_inner_radius,
+                    inner_radius_derivative_wrt_height,
+                ],
+                [height_derivative_wrt_inner_radius, height_derivative_wrt_height],
+            ]
 
-        def terminate_burn(t, y):
+        def terminate_burn(t, y):  # pylint: disable=unused-argument
             end_function = (self.grain_outer_radius - y[0]) * y[1]
             return end_function
 

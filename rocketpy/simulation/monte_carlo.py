@@ -814,12 +814,12 @@ class MonteCarlo:
         ) = generate_monte_carlo_ellipses(self.results)
         outputs = []
 
-        if type == "all" or type == "impact":
+        if type in ["all", "impact"]:
             outputs = outputs + generate_monte_carlo_ellipses_coordinates(
                 impact_ellipses, origin_lat, origin_lon, resolution=resolution
             )
 
-        if type == "all" or type == "apogee":
+        if type in ["all", "apogee"]:
             outputs = outputs + generate_monte_carlo_ellipses_coordinates(
                 apogee_ellipses, origin_lat, origin_lon, resolution=resolution
             )

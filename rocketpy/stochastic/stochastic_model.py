@@ -40,13 +40,13 @@ class StochasticModel:
         "ensemble_member",
     ]
 
-    def __init__(self, object, **kwargs):
+    def __init__(self, obj, **kwargs):
         """
         Initialize the StochasticModel class with validated input arguments.
 
         Parameters
         ----------
-        object : object
+        obj : object
             The main object of the class.
         **kwargs : dict
             Dictionary of input arguments for the class. Valid argument types
@@ -60,10 +60,8 @@ class StochasticModel:
         AssertionError
             If the input arguments do not conform to the specified formats.
         """
-        # TODO: don't use "object" as a variable name, it's a built-in function.
-        #       We can simply change to "obj". Pylint W0622
 
-        self.object = object
+        self.obj = obj
         self.last_rnd_dict = {}
 
         # TODO: This code block is too complex. Refactor it.
@@ -84,7 +82,7 @@ class StochasticModel:
                                 f"'{input_name}' must be a tuple, list, int, or float"
                             )
                 else:
-                    attr_value = [getattr(self.object, input_name)]
+                    attr_value = [getattr(self.obj, input_name)]
                 setattr(self, input_name, attr_value)
 
     def __repr__(self):
@@ -161,7 +159,7 @@ class StochasticModel:
             # function. In this case, the nominal value will be taken from the
             # object passed.
             dist_func = get_distribution(input_value[1])
-            return (getattr(self.object, input_name), input_value[0], dist_func)
+            return (getattr(self.obj, input_name), input_value[0], dist_func)
         else:
             # if second item is an int or float, then it is assumed that the
             # first item is the nominal value and the second item is the
@@ -228,7 +226,7 @@ class StochasticModel:
             If the input is not in a valid format.
         """
         if not input_value:
-            return [getattr(self.object, input_name)]
+            return [getattr(self.obj, input_name)]
         else:
             return input_value
 
@@ -254,7 +252,7 @@ class StochasticModel:
                 distribution function).
         """
         return (
-            getattr(self.object, input_name),
+            getattr(self.obj, input_name),
             input_value,
             get_distribution("normal"),
         )
@@ -281,7 +279,7 @@ class StochasticModel:
             If the input is not in a valid format.
         """
         attribute_name = input_name.replace("_factor", "")
-        setattr(self, f"_{attribute_name}", getattr(self.object, attribute_name))
+        setattr(self, f"_{attribute_name}", getattr(self.obj, attribute_name))
 
         if isinstance(input_value, tuple):
             return self._validate_tuple_factor(input_name, input_value)

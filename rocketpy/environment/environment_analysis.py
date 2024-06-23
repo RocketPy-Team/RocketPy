@@ -634,9 +634,9 @@ class EnvironmentAnalysis:
             )
 
             # Check if date is within analysis range
-            if not (self.start_date <= date_time < self.end_date):
+            if not self.start_date <= date_time < self.end_date:
                 continue
-            if not (self.start_hour <= date_time.hour < self.end_hour):
+            if not self.start_hour <= date_time.hour < self.end_hour:
                 continue
             # Make sure keys exist
             if date_string not in dictionary:
@@ -875,9 +875,9 @@ class EnvironmentAnalysis:
             )
 
             # Check if date is within analysis range
-            if not (self.start_date <= date_time < self.end_date):
+            if not self.start_date <= date_time < self.end_date:
                 continue
-            if not (self.start_hour <= date_time.hour < self.end_hour):
+            if not self.start_hour <= date_time.hour < self.end_hour:
                 continue
 
             # Make sure keys exist
@@ -1506,8 +1506,8 @@ class EnvironmentAnalysis:
             Record maximum wind speed at surface level.
         """
         max_speed = float("-inf")
-        for hour in self.surface_wind_speed_by_hour.keys():
-            speed = max(self.surface_wind_speed_by_hour[hour])
+        for speeds in self.surface_wind_speed_by_hour.values():
+            speed = max(speeds)
             if speed > max_speed:
                 max_speed = speed
         return max_speed
@@ -1524,8 +1524,8 @@ class EnvironmentAnalysis:
             Record minimum wind speed at surface level.
         """
         min_speed = float("inf")
-        for hour in self.surface_wind_speed_by_hour.keys():
-            speed = max(self.surface_wind_speed_by_hour[hour])
+        for speeds in self.surface_wind_speed_by_hour.values():
+            speed = min(speeds)
             if speed < min_speed:
                 min_speed = speed
         return min_speed
@@ -2796,7 +2796,7 @@ class EnvironmentAnalysis:
         flipped_pressure_dict = {}
         flipped_wind_x_dict = {}
         flipped_wind_y_dict = {}
-
+        # pylint: disable=consider-using-dict-items
         for hour in self.average_temperature_profile_by_hour.keys():
             flipped_temperature_dict[hour] = np.column_stack(
                 (
@@ -2861,7 +2861,7 @@ class EnvironmentAnalysis:
         )
 
     @classmethod
-    def load(self, filename="env_analysis_dict"):
+    def load(cls, filename="env_analysis_dict"):
         """Load a previously saved Environment Analysis file.
         Example: EnvA = EnvironmentAnalysis.load("filename").
 
