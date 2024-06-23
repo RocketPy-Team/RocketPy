@@ -115,7 +115,7 @@ def test_get_value():
     Both with respect to return instances and expected behaviour.
     """
     func = Function(lambda x: 2 * x)
-    assert isinstance(func.get_value(1), int or float)
+    assert isinstance(func.get_value(1), (int, float))
 
 
 def test_identity_function():

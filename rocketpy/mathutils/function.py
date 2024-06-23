@@ -23,7 +23,7 @@ if np.lib.NumpyVersion(np.__version__) >= "2.0.0b1":
 else:
     from numpy import trapz as trapezoid
 
-NUMERICAL_TYPES = (float, int, complex, np.ndarray, np.integer, np.floating)
+NUMERICAL_TYPES = (float, int, complex, np.integer, np.floating)
 INTERPOLATION_TYPES = {
     "linear": 0,
     "polynomial": 1,
@@ -868,7 +868,7 @@ class Function:
             if self.__dom_dim__ == 1:
                 # if the args is a simple number (int or float)
                 if isinstance(args[0], NUMERICAL_TYPES):
-                    return float(self.source(args[0]))
+                    return self.source(args[0])
                 # if the arguments are iterable, we map and return a list
                 if isinstance(args[0], Iterable):
                     return list(map(self.source, args[0]))
@@ -1883,7 +1883,9 @@ class Function:
                 return Function(lambda x: (self.get_value_opt(x) + other(x)))
         # If other is Float except...
         except AttributeError:
-            if isinstance(other, NUMERICAL_TYPES):
+            if isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(
+                other
+            ):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
@@ -2005,7 +2007,9 @@ class Function:
             source = np.column_stack((self.x_array, self.y_array * other.y_array))
             outputs = f"({self.__outputs__[0]}*{other.__outputs__[0]})"
             return Function(source, inputs, outputs, interp, extrap)
-        elif isinstance(other, NUMERICAL_TYPES):
+        elif isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(
+            other
+        ):
             if not self_source_is_array:
                 return Function(lambda x: (self.get_value_opt(x) * other), inputs)
             source = np.column_stack((self.x_array, np.multiply(self.y_array, other)))
@@ -2088,7 +2092,9 @@ class Function:
                 return Function(lambda x: (self.get_value_opt(x) / other(x)))
         # If other is Float except...
         except AttributeError:
-            if isinstance(other, NUMERICAL_TYPES):
+            if isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(
+                other
+            ):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
@@ -2127,7 +2133,7 @@ class Function:
             A Function object which gives the result of other(x)/self(x).
         """
         # Check if Function object source is array and other is float
-        if isinstance(other, NUMERICAL_TYPES):
+        if isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(other):
             if isinstance(self.source, np.ndarray):
                 # Operate on grid values
                 ys = other / self.y_array
@@ -2195,7 +2201,9 @@ class Function:
                 return Function(lambda x: (self.get_value_opt(x) ** other(x)))
         # If other is Float except...
         except AttributeError:
-            if isinstance(other, NUMERICAL_TYPES):
+            if isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(
+                other
+            ):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
@@ -2234,7 +2242,7 @@ class Function:
             A Function object which gives the result of other(x)**self(x).
         """
         # Check if Function object source is array and other is float
-        if isinstance(other, NUMERICAL_TYPES):
+        if isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(other):
             if isinstance(self.source, np.ndarray):
                 # Operate on grid values
                 ys = other**self.y_array
@@ -2906,6 +2914,10 @@ class Function:
         with open(filename, "w", encoding=encoding) as file:
             file.write(header_line + newline)
             np.savetxt(file, data_points, fmt=fmt, delimiter=delimiter, newline=newline)
+
+    @staticmethod
+    def __is_single_element_array(var):
+        return isinstance(var, np.ndarray) and var.size == 1
 
     # Input validators
     def __validate_source(self, source):
