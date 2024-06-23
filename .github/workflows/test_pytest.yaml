@@ -18,13 +18,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: [3.8, 3.12]
-        include:
-          - os: macos-latest
-            python-version: 3.12
-          - os: windows-latest
-            python-version: 3.12
+        # include:
+        #   - os: macos-latest
+        #     python-version: 3.12
+        #   - os: windows-latest
+        #     python-version: 3.12
     env:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
