@@ -296,6 +296,37 @@ def test_rolling_flight(
 
 
 @patch("matplotlib.pyplot.show")
+def test_eccentricity_on_flight(
+    mock_show,
+    example_plain_env,
+    cesaroni_m1670,
+    calisto,
+    calisto_nose_cone,
+    calisto_trapezoidal_fins,
+    calisto_tail,
+):
+    test_rocket = calisto
+
+    test_rocket.set_rail_buttons(0.082, -0.618)
+    test_rocket.add_motor(cesaroni_m1670, position=-1.373)
+    calisto.aerodynamic_surfaces.add(calisto_trapezoidal_fins, position=-1.04956)
+    calisto.aerodynamic_surfaces.add(calisto_nose_cone, 1.160)
+    calisto.aerodynamic_surfaces.add(calisto_tail, -1.313)
+    calisto.add_cm_eccentricity(x=-0.01, y=-0.01)
+
+    test_flight = Flight(
+        rocket=test_rocket,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=True,
+    )
+
+    assert test_flight.all_info() == None
+
+
+@patch("matplotlib.pyplot.show")
 def test_air_brakes_flight(mock_show, flight_calisto_air_brakes):
     """Test the flight of a rocket with air brakes. This test only validates
     that a flight simulation can be performed with air brakes; it does not

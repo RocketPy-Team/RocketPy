@@ -1517,6 +1517,9 @@ class Flight:  # pylint: disable=too-many-public-methods
                 M3 += M3_forcing - M3_damping
             except AttributeError:
                 pass
+        # Off center moment
+        M3 += self.rocket.cp_eccentricity_x * R2 - self.rocket.cp_eccentricity_y * R1
+
         # Calculate derivatives
         # Angular acceleration
         alpha1 = (
@@ -1722,10 +1725,6 @@ class Flight:  # pylint: disable=too-many-public-methods
                     R3 = air_brakes_force  # Substitutes rocket drag coefficient
                 else:
                     R3 += air_brakes_force
-        ## Off center moment
-        M1 += self.rocket.cp_eccentricity_y * R3
-        M2 -= self.rocket.cp_eccentricity_x * R3
-
         # Get rocket velocity in body frame
         velocity_vector_in_body_frame = Kt @ v
         # Calculate lift and moment for each component of the rocket
@@ -1795,13 +1794,27 @@ class Flight:  # pylint: disable=too-many-public-methods
                 M3 += M3_forcing - M3_damping
             except AttributeError:
                 pass
+
+        # Off center moment
+        thrust = self.rocket.motor.thrust.get_value_opt(t)
+        M1 += (
+            self.rocket.cp_eccentricity_y * R3
+            + self.rocket.thrust_eccentricity_x * thrust
+        )
+        M2 -= (
+            self.rocket.cp_eccentricity_x * R3
+            - self.rocket.thrust_eccentricity_y * thrust
+        )
+        M3 += self.rocket.cp_eccentricity_x * R2 - self.rocket.cp_eccentricity_y * R1
+
         weight_vector_in_body_frame = Kt @ Vector(
             [0, 0, -total_mass * self.env.gravity.get_value_opt(z)]
         )
+
         T00 = total_mass * r_CM
         T03 = 2 * total_mass_dot * (r_NOZ - r_CM) - 2 * total_mass * r_CM_dot
         T04 = (
-            Vector([0, 0, self.rocket.motor.thrust.get_value_opt(t)])
+            Vector([0, 0, thrust])
             - total_mass * r_CM_ddot
             - 2 * total_mass_dot * r_CM_dot
             + total_mass_ddot * (r_NOZ - r_CM)
