@@ -355,7 +355,7 @@ class _RocketPlots:
                 # pylint: disable=unused-variable
                 next_surface, next_position, next_radius, next_last_x = drawn_surfaces[
                     i + 1
-                ]
+                ]  # pylint: disable=unused-variable
                 x_tube = [last_x, next_position]
                 y_tube = [radius, radius]
                 y_tube_negated = [-radius, -radius]
@@ -402,7 +402,9 @@ class _RocketPlots:
 
         self._draw_nozzle_tube(last_radius, last_x, nozzle_position, ax, vis_args)
 
-    def _generate_motor_patches(self, total_csys, ax, vis_args):
+    def _generate_motor_patches(
+        self, total_csys, ax, vis_args
+    ):  # pylint: disable=unused-argument
         """Generates motor patches for drawing"""
         motor_patches = []
 

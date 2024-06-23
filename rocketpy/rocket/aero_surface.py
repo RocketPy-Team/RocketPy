@@ -784,7 +784,7 @@ class Fins(AeroSurface):
         """
         if not self.airfoil:
             # Defines clalpha2D as 2*pi for planar fins
-            clalpha2D_incompressible = 2 * np.pi
+            clalpha2D_incompressible = 2 * np.pi  # pylint: disable=invalid-name
         else:
             # Defines clalpha2D as the derivative of the lift coefficient curve
             # for the specific airfoil
@@ -794,19 +794,21 @@ class Fins(AeroSurface):
             )
 
             # Differentiating at alpha = 0 to get cl_alpha
-            clalpha2D_incompressible = self.airfoil_cl.differentiate_complex_step(
+            clalpha2D_incompressible = self.airfoil_cl.differentiate_complex_step(  # pylint: disable=invalid-name
                 x=1e-3, dx=1e-3
             )
 
             # Convert to radians if needed
             if self.airfoil[1] == "degrees":
-                clalpha2D_incompressible *= 180 / np.pi
+                clalpha2D_incompressible *= 180 / np.pi  # pylint: disable=invalid-name
 
         # Correcting for compressible flow (apply Prandtl-Glauert correction)
         clalpha2D = Function(lambda mach: clalpha2D_incompressible / self._beta(mach))
 
         # Diederich's Planform Correlation Parameter
-        FD = 2 * np.pi * self.AR / (clalpha2D * np.cos(self.gamma_c))
+        FD = (
+            2 * np.pi * self.AR / (clalpha2D * np.cos(self.gamma_c))
+        )  # pylint: disable=invalid-name
 
         # Lift coefficient derivative for a single fin
         self.clalpha_single_fin = Function(
@@ -898,7 +900,7 @@ class Fins(AeroSurface):
             Factor that accounts for the number of fins.
         """
         corrector_factor = [2.37, 2.74, 2.99, 3.24]
-        if n >= 5 and n <= 8:
+        if n >= 5 and n <= 8:  # pylint: disable=chained-comparison
             return corrector_factor[n - 5]
         else:
             return n / 2
@@ -1221,7 +1223,7 @@ class TrapezoidalFins(Fins):
         self.roll_geometrical_constant = roll_geometrical_constant
         self.tau = tau
         self.lift_interference_factor = lift_interference_factor
-        self.λ = lambda_
+        self.λ = lambda_  # pylint: disable=non-ascii-name
         self.roll_damping_interference_factor = roll_damping_interference_factor
         self.roll_forcing_interference_factor = roll_forcing_interference_factor
 
@@ -1443,10 +1445,12 @@ class EllipticalFins(Fins):
         """
 
         # Compute auxiliary geometrical parameters
-        Af = (np.pi * self.root_chord / 2 * self.span) / 2  # Fin area
+        Af = (
+            np.pi * self.root_chord / 2 * self.span
+        ) / 2  # Fin area  # pylint: disable=invalid-name
         gamma_c = 0  # Zero for elliptical fins
-        AR = 2 * self.span**2 / Af  # Fin aspect ratio
-        Yma = (
+        AR = 2 * self.span**2 / Af  # Fin aspect ratio  # pylint: disable=invalid-name
+        Yma = (  # pylint: disable=invalid-name
             self.span / (3 * np.pi) * np.sqrt(9 * np.pi**2 - 64)
         )  # Span wise coord of mean aero chord
         roll_geometrical_constant = (
@@ -1536,10 +1540,12 @@ class EllipticalFins(Fins):
         )
 
         # Store values
-        self.Af = Af  # Fin area
-        self.AR = AR  # Fin aspect ratio
+        self.Af = Af  # Fin area  # pylint: disable=invalid-name
+        self.AR = AR  # Fin aspect ratio  # pylint: disable=invalid-name
         self.gamma_c = gamma_c  # Mid chord angle
-        self.Yma = Yma  # Span wise coord of mean aero chord
+        self.Yma = (
+            Yma  # Span wise coord of mean aero chord  # pylint: disable=invalid-name
+        )
         self.roll_geometrical_constant = roll_geometrical_constant
         self.tau = tau
         self.lift_interference_factor = lift_interference_factor

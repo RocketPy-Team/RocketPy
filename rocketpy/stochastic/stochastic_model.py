@@ -83,12 +83,16 @@ class StochasticModel:
                             )
                 else:
                     attr_value = [getattr(self.obj, input_name)]
-                setattr(self, input_name, attr_value)
+                setattr(
+                    self, input_name, attr_value
+                )  # pylint: disable=possibly-used-before-assignment
 
     def __repr__(self):
         return f"'{self.__class__.__name__}() object'"
 
-    def _validate_tuple(self, input_name, input_value, getattr=getattr):
+    def _validate_tuple(
+        self, input_name, input_value, getattr=getattr
+    ):  # pylint: disable=redefined-builtin
         """
         Validate tuple arguments.
 
@@ -125,7 +129,9 @@ class StochasticModel:
         if len(input_value) == 3:
             return self._validate_tuple_length_three(input_name, input_value, getattr)
 
-    def _validate_tuple_length_two(self, input_name, input_value, getattr=getattr):
+    def _validate_tuple_length_two(
+        self, input_name, input_value, getattr=getattr
+    ):  # pylint: disable=redefined-builtin
         """
         Validate tuples with length 2.
 
@@ -167,7 +173,9 @@ class StochasticModel:
             # "normal".
             return (input_value[0], input_value[1], get_distribution("normal"))
 
-    def _validate_tuple_length_three(self, input_name, input_value, getattr=getattr):
+    def _validate_tuple_length_three(
+        self, input_name, input_value, getattr=getattr
+    ):  # pylint: disable=redefined-builtin,unused-argument
         """
         Validate tuples with length 3.
 
@@ -202,7 +210,9 @@ class StochasticModel:
         dist_func = get_distribution(input_value[2])
         return (input_value[0], input_value[1], dist_func)
 
-    def _validate_list(self, input_name, input_value, getattr=getattr):
+    def _validate_list(
+        self, input_name, input_value, getattr=getattr
+    ):  # pylint: disable=redefined-builtin
         """
         Validate list arguments.
 
@@ -230,7 +240,9 @@ class StochasticModel:
         else:
             return input_value
 
-    def _validate_scalar(self, input_name, input_value, getattr=getattr):
+    def _validate_scalar(
+        self, input_name, input_value, getattr=getattr
+    ):  # pylint: disable=redefined-builtin
         """
         Validate scalar arguments. If the input is a scalar, the nominal value
         will be taken from the object passed, and the standard deviation will be

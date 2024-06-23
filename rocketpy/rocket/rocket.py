@@ -22,7 +22,7 @@ from rocketpy.rocket.parachute import Parachute
 from rocketpy.tools import parallel_axis_theorem_from_com
 
 
-class Rocket:
+class Rocket:  # pylint: disable=too-many-instance-attributes
     """Keeps rocket information.
 
     Attributes
@@ -644,10 +644,10 @@ class Rocket:
         mass = self.mass
 
         # Compute axes distances
-        noMCM_to_CDM = (
+        noMCM_to_CDM = (  # pylint: disable=invalid-name
             self.center_of_mass_without_motor - self.center_of_dry_mass_position
         )
-        motorCDM_to_CDM = (
+        motorCDM_to_CDM = (  # pylint: disable=invalid-name
             self.motor_center_of_dry_mass_position - self.center_of_dry_mass_position
         )
 
@@ -716,8 +716,12 @@ class Rocket:
         dry_mass = self.dry_mass  # Constant rocket mass with motor, without propellant
 
         # Compute axes distances
-        CM_to_CDM = self.center_of_mass - self.center_of_dry_mass_position
-        CM_to_CPM = self.center_of_mass - self.center_of_propellant_position
+        CM_to_CDM = (
+            self.center_of_mass - self.center_of_dry_mass_position
+        )  # pylint: disable=invalid-name
+        CM_to_CPM = (
+            self.center_of_mass - self.center_of_propellant_position
+        )  # pylint: disable=invalid-name
 
         # Compute inertias
         self.I_11 = parallel_axis_theorem_from_com(
@@ -890,7 +894,9 @@ class Rocket:
         -------
         None
         """
-        if hasattr(self, "motor") and not isinstance(self.motor, EmptyMotor):
+        if hasattr(self, "motor") and not isinstance(
+            self.motor, EmptyMotor
+        ):  # pylint: disable=access-member-before-definition
             print(
                 "Only one motor per rocket is currently supported. "
                 + "Overwriting previous motor."

@@ -178,9 +178,15 @@ class MonteCarlo:
         """
         # Create data files for inputs, outputs and error logging
         open_mode = "a" if append else "w"
-        input_file = open(self._input_file, open_mode, encoding="utf-8")
-        output_file = open(self._output_file, open_mode, encoding="utf-8")
-        error_file = open(self._error_file, open_mode, encoding="utf-8")
+        input_file = open(
+            self._input_file, open_mode, encoding="utf-8"
+        )  # pylint: disable=consider-using-with
+        output_file = open(
+            self._output_file, open_mode, encoding="utf-8"
+        )  # pylint: disable=consider-using-with
+        error_file = open(
+            self._error_file, open_mode, encoding="utf-8"
+        )  # pylint: disable=consider-using-with
 
         # initialize counters
         self.number_of_simulations = number_of_simulations
@@ -765,7 +771,7 @@ class MonteCarlo:
         filename,
         origin_lat,
         origin_lon,
-        type="all",  # TODO: Don't use "type" as a parameter name, it's a reserved word
+        type="all",  # TODO: Don't use "type" as a parameter name, it's a reserved word  # pylint: disable=redefined-builtin
         resolution=100,
         color="ff0000ff",
     ):

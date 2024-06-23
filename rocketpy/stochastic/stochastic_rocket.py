@@ -472,7 +472,9 @@ class StochasticRocket(StochasticModel):
         dict
             Dictionary with the randomly generated input arguments.
         """
-        generated_dict = next(super().dict_generator())
+        generated_dict = next(
+            super().dict_generator()
+        )  # pylint: disable=stop-iteration-return
         generated_dict["motors"] = []
         generated_dict["aerodynamic_surfaces"] = []
         generated_dict["rail_buttons"] = []

@@ -22,7 +22,7 @@ from ..tools import (
 )
 
 
-class Flight:
+class Flight:  # pylint: disable=too-many-public-methods
     """Keeps all flight information and has a method to simulate flight.
 
     Attributes
@@ -635,9 +635,13 @@ class Flight:
             f"name= {self.name})>"
         )
 
-    def __simulate(self, verbose):  #  pylint: disable=too-many-branches
+    def __simulate(
+        self, verbose
+    ):  #  pylint: disable=too-many-branches  # pylint: disable=too-many-locals,too-many-statements
         """Simulate the flight trajectory."""
-        for phase_index, phase in self.time_iterator(self.flight_phases):
+        for phase_index, phase in self.time_iterator(
+            self.flight_phases
+        ):  # pylint: disable=too-many-nested-blocks
             # Determine maximum time for this flight phase
             phase.time_bound = self.flight_phases[phase_index + 1].t
 
@@ -771,10 +775,12 @@ class Flight:
                         self.solution[-1][3] -= self.env.elevation
                         # Get points
                         y0 = (
-                            sum([self.solution[-2][i] ** 2 for i in [1, 2, 3]])
+                            sum(
+                                [self.solution[-2][i] ** 2 for i in [1, 2, 3]]
+                            )  # pylint: disable=consider-using-generator
                             - self.effective_1rl**2
                         )
-                        yp0 = 2 * sum(
+                        yp0 = 2 * sum(  # pylint: disable=consider-using-generator
                             [
                                 self.solution[-2][i] * self.solution[-2][i + 3]
                                 for i in [1, 2, 3]
@@ -782,10 +788,12 @@ class Flight:
                         )
                         t1 = self.solution[-1][0] - self.solution[-2][0]
                         y1 = (
-                            sum([self.solution[-1][i] ** 2 for i in [1, 2, 3]])
+                            sum(
+                                [self.solution[-1][i] ** 2 for i in [1, 2, 3]]
+                            )  # pylint: disable=consider-using-generator
                             - self.effective_1rl**2
                         )
-                        yp1 = 2 * sum(
+                        yp1 = 2 * sum(  # pylint: disable=consider-using-generator
                             [
                                 self.solution[-1][i] * self.solution[-1][i + 3]
                                 for i in [1, 2, 3]
@@ -1298,7 +1306,9 @@ class Flight:
         # Hey! We will finish this function later, now we just can use u_dot
         return self.u_dot_generalized(t, u, post_processing=post_processing)
 
-    def u_dot(self, t, u, post_processing=False):
+    def u_dot(
+        self, t, u, post_processing=False
+    ):  # pylint: disable=too-many-locals,too-many-statements
         """Calculates derivative of u state vector with respect to time
         when rocket is flying in 6 DOF motion during ascent out of rail
         and descent without parachute.
@@ -1617,7 +1627,9 @@ class Flight:
 
         return u_dot
 
-    def u_dot_generalized(self, t, u, post_processing=False):
+    def u_dot_generalized(
+        self, t, u, post_processing=False
+    ):  # pylint: disable=too-many-locals,too-many-statements
         """Calculates derivative of u state vector with respect to time when the
         rocket is flying in 6 DOF motion in space and significant mass variation
         effects exist. Typical flight phases include powered ascent after launch

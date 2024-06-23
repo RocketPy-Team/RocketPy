@@ -5,7 +5,9 @@ import pytest
 
 
 @patch("matplotlib.pyplot.show")
-def test_standard_atmosphere(mock_show, example_plain_env):
+def test_standard_atmosphere(
+    mock_show, example_plain_env
+):  # pylint: disable=unused-argument
     """Tests the standard atmosphere model in the environment object.
 
     Parameters
@@ -24,7 +26,9 @@ def test_standard_atmosphere(mock_show, example_plain_env):
 
 
 @patch("matplotlib.pyplot.show")
-def test_custom_atmosphere(mock_show, example_plain_env):
+def test_custom_atmosphere(
+    mock_show, example_plain_env
+):  # pylint: disable=unused-argument
     """Tests the custom atmosphere model in the environment object.
 
     Parameters
@@ -49,7 +53,9 @@ def test_custom_atmosphere(mock_show, example_plain_env):
 
 
 @patch("matplotlib.pyplot.show")
-def test_wyoming_sounding_atmosphere(mock_show, example_plain_env):
+def test_wyoming_sounding_atmosphere(
+    mock_show, example_plain_env
+):  # pylint: disable=unused-argument
     """Tests the Wyoming sounding model in the environment object.
 
     Parameters
@@ -61,7 +67,7 @@ def test_wyoming_sounding_atmosphere(mock_show, example_plain_env):
     """
     # TODO:: this should be added to the set_atmospheric_model() method as a
     #        "file" option, instead of receiving the URL as a string.
-    URL = "http://weather.uwyo.edu/cgi-bin/sounding?region=samer&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=02&FROM=0500&TO=0512&STNM=83779"
+    URL = "http://weather.uwyo.edu/cgi-bin/sounding?region=samer&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=02&FROM=0500&TO=0512&STNM=83779"  # pylint: disable=invalid-name
     # give it at least 5 times to try to download the file
     example_plain_env.set_atmospheric_model(type="wyoming_sounding", file=URL)
 
@@ -78,8 +84,10 @@ def test_wyoming_sounding_atmosphere(mock_show, example_plain_env):
 @pytest.mark.skip(reason="legacy tests")
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_noaa_ruc_sounding_atmosphere(mock_show, example_plain_env):
-    URL = r"https://rucsoundings.noaa.gov/get_raobs.cgi?data_source=RAOB&latest=latest&start_year=2019&start_month_name=Feb&start_mday=5&start_hour=12&start_min=0&n_hrs=1.0&fcst_len=shortest&airport=83779&text=Ascii%20text%20%28GSD%20format%29&hydrometeors=false&start=latest"
+def test_noaa_ruc_sounding_atmosphere(
+    mock_show, example_plain_env
+):  # pylint: disable=unused-argument
+    URL = r"https://rucsoundings.noaa.gov/get_raobs.cgi?data_source=RAOB&latest=latest&start_year=2019&start_month_name=Feb&start_mday=5&start_hour=12&start_min=0&n_hrs=1.0&fcst_len=shortest&airport=83779&text=Ascii%20text%20%28GSD%20format%29&hydrometeors=false&start=latest"  # pylint: disable=invalid-name
     example_plain_env.set_atmospheric_model(type="NOAARucSounding", file=URL)
     assert example_plain_env.all_info() is None
     assert example_plain_env.pressure(0) == 100000.0
@@ -87,7 +95,9 @@ def test_noaa_ruc_sounding_atmosphere(mock_show, example_plain_env):
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_gfs_atmosphere(mock_show, example_spaceport_env):
+def test_gfs_atmosphere(
+    mock_show, example_spaceport_env
+):  # pylint: disable=unused-argument
     """Tests the Forecast model with the GFS file. It does not test the values,
     instead the test checks if the method runs without errors.
 
@@ -104,7 +114,9 @@ def test_gfs_atmosphere(mock_show, example_spaceport_env):
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_nam_atmosphere(mock_show, example_spaceport_env):
+def test_nam_atmosphere(
+    mock_show, example_spaceport_env
+):  # pylint: disable=unused-argument
     """Tests the Forecast model with the NAM file.
 
     Parameters
@@ -122,7 +134,9 @@ def test_nam_atmosphere(mock_show, example_spaceport_env):
 @pytest.mark.skip(reason="legacy tests")
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_rap_atmosphere(mock_show, example_spaceport_env):
+def test_rap_atmosphere(
+    mock_show, example_spaceport_env
+):  # pylint: disable=unused-argument
     today = datetime.date.today()
     example_spaceport_env.set_date((today.year, today.month, today.day, 8))
     example_spaceport_env.set_atmospheric_model(type="Forecast", file="RAP")
@@ -130,7 +144,9 @@ def test_rap_atmosphere(mock_show, example_spaceport_env):
 
 
 @patch("matplotlib.pyplot.show")
-def test_era5_atmosphere(mock_show, example_spaceport_env):
+def test_era5_atmosphere(
+    mock_show, example_spaceport_env
+):  # pylint: disable=unused-argument
     """Tests the Reanalysis model with the ERA5 file. It uses an example file
     available in the data/weather folder of the RocketPy repository.
 
@@ -152,7 +168,9 @@ def test_era5_atmosphere(mock_show, example_spaceport_env):
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_gefs_atmosphere(mock_show, example_spaceport_env):
+def test_gefs_atmosphere(
+    mock_show, example_spaceport_env
+):  # pylint: disable=unused-argument
     """Tests the Ensemble model with the GEFS file.
 
     Parameters
@@ -167,7 +185,7 @@ def test_gefs_atmosphere(mock_show, example_spaceport_env):
 
 
 @patch("matplotlib.pyplot.show")
-def test_info_returns(mock_show, example_plain_env):
+def test_info_returns(mock_show, example_plain_env):  # pylint: disable=unused-argument
     """Tests the all_info_returned() all_plot_info_returned() and methods of the
     Environment class.
 
@@ -213,7 +231,9 @@ def test_info_returns(mock_show, example_plain_env):
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_cmc_atmosphere(mock_show, example_spaceport_env):
+def test_cmc_atmosphere(
+    mock_show, example_spaceport_env
+):  # pylint: disable=unused-argument
     """Tests the Ensemble model with the CMC file.
 
     Parameters
@@ -229,7 +249,9 @@ def test_cmc_atmosphere(mock_show, example_spaceport_env):
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_hiresw_ensemble_atmosphere(mock_show, example_spaceport_env):
+def test_hiresw_ensemble_atmosphere(
+    mock_show, example_spaceport_env
+):  # pylint: disable=unused-argument
     """Tests the Forecast model with the HIRESW file.
 
     Parameters
