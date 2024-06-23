@@ -193,8 +193,8 @@ def test_utm_coordinate_utm_to_geodesic_converts_coordinate():
         semi_major_axis=6378137.0,  # WGS84
         flattening=1 / 298.257223563,  # WGS84
     )
-    assert np.isclose(lat, 32.99025, atol=1e-5) is True
-    assert np.isclose(lon, -106.9750, atol=1e-5) is True
+    assert np.isclose(lat, 32.99025, atol=1e-5)
+    assert np.isclose(lon, -106.9750, atol=1e-5)
 
 
 @pytest.mark.parametrize(
