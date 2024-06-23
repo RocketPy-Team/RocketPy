@@ -45,38 +45,30 @@ jobs:
 
       - name: Install rocketpy
         run: pip install .
-        continue-on-error: true
 
       - name: Test importing rocketpy
         run: python -c "import sys, rocketpy; print(f'{rocketpy.__name__} running on Python {sys.version}')"
-        continue-on-error: true
 
       - name: Install test dependencies
         run: pip install -r requirements-tests.txt
-        continue-on-error: true
 
       - name: Run Unit Tests
         run: pytest tests/unit --cov=rocketpy
-        continue-on-error: true
 
       - name: Run Integration Tests
         run: pytest $(find tests -maxdepth 1 -name "*.py") --cov=rocketpy --cov-append
-        continue-on-error: true
 
       - name: Run Documentation Tests
         run: pytest rocketpy --doctest-modules --cov=rocketpy --cov-append
-        continue-on-error: true
 
       - name: Run Acceptance Tests
         run: pytest tests/acceptance --cov=rocketpy --cov-append --cov-report=xml
-        continue-on-error: true
 
       - name: Upload coverage to artifacts
         uses: actions/upload-artifact@v2
         with:
           name: coverage
           path: coverage.xml
-        continue-on-error: true
 
   CodecovUpload:
     needs: Pytest

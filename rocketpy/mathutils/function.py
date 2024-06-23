@@ -19,9 +19,9 @@ from scipy import integrate, linalg, optimize
 # Numpy 1.x compatibility,
 # TODO: remove these lines when all dependencies support numpy>=2.0.0
 if np.lib.NumpyVersion(np.__version__) >= "2.0.0b1":
-    from numpy import trapezoid
+    from numpy import trapezoid  # pragma: no cover
 else:
-    from numpy import trapz as trapezoid
+    from numpy import trapz as trapezoid  # pragma: no cover
 
 NUMERICAL_TYPES = (float, int, complex, np.integer, np.floating)
 INTERPOLATION_TYPES = {
