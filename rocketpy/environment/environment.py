@@ -570,7 +570,7 @@ class Environment:
         >>> g_0 = 9.80665
         >>> env_cte_g = Environment(gravity=g_0)
         >>> env_cte_g.gravity([0, 100, 1000])
-        [9.80665, 9.80665, 9.80665]
+        [np.float64(9.80665), np.float64(9.80665), np.float64(9.80665)]
 
         It's also possible to variate the gravity acceleration by defining
         its function of height:
@@ -3090,7 +3090,7 @@ class Environment:
 
         >>> env = Environment()
         >>> env.calculate_density_profile()
-        >>> env.density(0)
+        >>> float(env.density(0))
         1.225000018124288
 
         Creating an Environment object and calculating the density
@@ -3098,7 +3098,7 @@ class Environment:
 
         >>> env = Environment()
         >>> env.calculate_density_profile()
-        >>> env.density(1000)
+        >>> float(env.density(1000))
         1.1116193933422585
         """
         # Retrieve pressure P, gas constant R and temperature T

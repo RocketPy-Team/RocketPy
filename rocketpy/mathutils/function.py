@@ -836,26 +836,26 @@ class Function:
         ...    [(0, 0), (1, 1), (1.5, 2.25), (2, 4), (2.5, 6.25), (3, 9), (4, 16)]
         ... )
         >>> f3.get_value(2)
-        4.0
+        np.float64(4.0)
         >>> f3.get_value(2.5)
-        6.25
+        np.float64(6.25)
         >>> f3.get_value([1, 2, 3])
-        [1.0, 4.0, 9.0]
+        [np.float64(1.0), np.float64(4.0), np.float64(9.0)]
         >>> f3.get_value([1, 2.5, 4.0])
-        [1.0, 6.25, 16.0]
+        [np.float64(1.0), np.float64(6.25), np.float64(16.0)]
 
         Testing with ndarray source (2 dimensions):
         >>> f4 = Function(
         ...    [(0, 0, 0), (1, 1, 1), (1, 2, 2), (2, 4, 8), (3, 9, 27)]
         ... )
         >>> f4.get_value(1, 1)
-        1.0
+        np.float64(1.0)
         >>> f4.get_value(2, 4)
-        8.0
+        np.float64(8.0)
         >>> abs(f4.get_value(1, 1.5) - 1.5) < 1e-2  # the interpolation is not perfect
-        True
+        np.True_
         >>> f4.get_value(3, 9)
-        27.0
+        np.float64(27.0)
         """
         if len(args) != self.__dom_dim__:
             raise ValueError(
@@ -2621,16 +2621,16 @@ class Function:
         Examples
         --------
         >>> f = Function([[0, 0], [1, 1], [2, 4]])
-        >>> f.isbijective()
+        >>> f.isbijective() == True
         True
-        >>> f.is_strictly_bijective()
-        True
+        >>> f.is_strictly_bijective() == True
+        np.True_
 
         >>> f = Function([[-1, 1], [0, 0], [1, 1], [2, 4]])
         >>> f.isbijective()
         False
         >>> f.is_strictly_bijective()
-        False
+        np.False_
 
         A Function which is not "strictly" bijective, but is bijective, can be
         constructed as x^2 defined at -1, 0 and 2.
@@ -2639,7 +2639,7 @@ class Function:
         >>> f.isbijective()
         True
         >>> f.is_strictly_bijective()
-        False
+        np.False_
         """
         if isinstance(self.source, np.ndarray):
             # Assuming domain is sorted, range must also be
