@@ -570,7 +570,7 @@ class Environment:
         >>> g_0 = 9.80665
         >>> env_cte_g = Environment(gravity=g_0)
         >>> env_cte_g.gravity([0, 100, 1000])
-        [9.80665, 9.80665, 9.80665]
+        [np.float64(9.80665), np.float64(9.80665), np.float64(9.80665)]
 
         It's also possible to variate the gravity acceleration by defining
         its function of height:
@@ -667,7 +667,7 @@ class Environment:
         None
         """
         if elevation != "Open-Elevation" and elevation != "SRTM":
-            self.elevation = elevation
+            self.elevation = float(elevation)
         # elif elevation == "SRTM" and self.latitude != None and self.longitude != None:
         #     # Trigger the authentication flow.
         #     #ee.Authenticate()
@@ -682,7 +682,7 @@ class Environment:
         #     self.elevation = elev
 
         elif self.latitude is not None and self.longitude is not None:
-            self.elevation = self.__fetch_open_elevation()
+            self.elevation = float(self.__fetch_open_elevation())
             print("Elevation received: ", self.elevation)
         else:
             raise ValueError(
@@ -1722,7 +1722,7 @@ class Environment:
         self.max_expected_height = max(altitude_array[0], altitude_array[-1])
 
         # Get elevation data from file
-        self.elevation = response["header"]["elevation"]
+        self.elevation = float(response["header"]["elevation"])
 
         # Compute info data
         self.atmospheric_model_init_date = netCDF4.num2date(
@@ -2423,9 +2423,9 @@ class Environment:
                 f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + (
                     (x - x1) / (x2 - x1)
                 ) * f_x2_y2
-                self.elevation = ((y2 - y) / (y2 - y1)) * f_x_y1 + (
-                    (y - y1) / (y2 - y1)
-                ) * f_x_y2
+                self.elevation = float(
+                    ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
+                )
             except:
                 raise ValueError(
                     "Unable to read surface elevation data. Check file and dictionary."
@@ -2793,9 +2793,9 @@ class Environment:
                 f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + (
                     (x - x1) / (x2 - x1)
                 ) * f_x2_y2
-                self.elevation = ((y2 - y) / (y2 - y1)) * f_x_y1 + (
-                    (y - y1) / (y2 - y1)
-                ) * f_x_y2
+                self.elevation = float(
+                    ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
+                )
             except:
                 raise ValueError(
                     "Unable to read surface elevation data. Check file and dictionary."
@@ -3090,7 +3090,7 @@ class Environment:
 
         >>> env = Environment()
         >>> env.calculate_density_profile()
-        >>> env.density(0)
+        >>> float(env.density(0))
         1.225000018124288
 
         Creating an Environment object and calculating the density
@@ -3098,7 +3098,7 @@ class Environment:
 
         >>> env = Environment()
         >>> env.calculate_density_profile()
-        >>> env.density(1000)
+        >>> float(env.density(1000))
         1.1116193933422585
         """
         # Retrieve pressure P, gas constant R and temperature T
