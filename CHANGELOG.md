@@ -27,8 +27,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
-<!-- These are the changes that were not release yet, please add them correctly.
+<!-- These are the changes that were not released yet, please add them correctly.
 Attention: The newest changes should be on top -->
+
+### Added
+
+### Changed
+
+- MNT: bump minimum Python version to 3.9. [#624](https://github.com/RocketPy-Team/RocketPy/pull/624)
+
+### Fixed
+
 
 ## [1.3.0.post1] - 2024-06-02
 
