@@ -115,7 +115,7 @@ def test_get_value():
     Both with respect to return instances and expected behaviour.
     """
     func = Function(lambda x: 2 * x)
-    assert isinstance(func.get_value(1), int or float)
+    assert isinstance(func.get_value(1), (int, float))
 
 
 def test_identity_function():
@@ -243,7 +243,9 @@ def test_savetxt(request, func):
     ), "Couldn't save the file using the Function.savetxt method."
 
     read_func = Function(
-        "test_func.csv", interpolation="linear", extrapolation="natural"
+        "test_func.csv",
+        interpolation="linear" if func.get_domain_dim() == 1 else "shepard",
+        extrapolation="natural",
     )
     if callable(func.source):
         source = np.column_stack(

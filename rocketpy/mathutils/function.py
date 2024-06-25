@@ -16,7 +16,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy import integrate, linalg, optimize
 
-NUMERICAL_TYPES = (float, int, complex, np.ndarray, np.integer, np.floating)
+# Numpy 1.x compatibility,
+# TODO: remove these lines when all dependencies support numpy>=2.0.0
+if np.lib.NumpyVersion(np.__version__) >= "2.0.0b1":
+    from numpy import trapezoid  # pragma: no cover
+else:
+    from numpy import trapz as trapezoid  # pragma: no cover
+
+NUMERICAL_TYPES = (float, int, complex, np.integer, np.floating)
 INTERPOLATION_TYPES = {
     "linear": 0,
     "polynomial": 1,
@@ -569,9 +576,9 @@ class Function:
             func.set_interpolation(interpolation)
             func.set_extrapolation(extrapolation)
         elif func.__dom_dim__ == 2:
-            lower = 2 * [lower] if isinstance(lower, (int, float)) else lower
-            upper = 2 * [upper] if isinstance(upper, (int, float)) else upper
-            sam = 2 * [samples] if isinstance(samples, (int, float)) else samples
+            lower = 2 * [lower] if isinstance(lower, NUMERICAL_TYPES) else lower
+            upper = 2 * [upper] if isinstance(upper, NUMERICAL_TYPES) else upper
+            sam = 2 * [samples] if isinstance(samples, NUMERICAL_TYPES) else samples
             # Create nodes to evaluate function
             xs = np.linspace(lower[0], upper[0], sam[0])
             ys = np.linspace(lower[1], upper[1], sam[1])
@@ -849,26 +856,26 @@ class Function:
         ...    [(0, 0), (1, 1), (1.5, 2.25), (2, 4), (2.5, 6.25), (3, 9), (4, 16)]
         ... )
         >>> f3.get_value(2)
-        4.0
+        np.float64(4.0)
         >>> f3.get_value(2.5)
-        6.25
+        np.float64(6.25)
         >>> f3.get_value([1, 2, 3])
-        [1.0, 4.0, 9.0]
+        [np.float64(1.0), np.float64(4.0), np.float64(9.0)]
         >>> f3.get_value([1, 2.5, 4.0])
-        [1.0, 6.25, 16.0]
+        [np.float64(1.0), np.float64(6.25), np.float64(16.0)]
 
         Testing with ndarray source (2 dimensions):
         >>> f4 = Function(
         ...    [(0, 0, 0), (1, 1, 1), (1, 2, 2), (2, 4, 8), (3, 9, 27)]
         ... )
         >>> f4.get_value(1, 1)
-        1.0
+        np.float64(1.0)
         >>> f4.get_value(2, 4)
-        8.0
+        np.float64(8.0)
         >>> abs(f4.get_value(1, 1.5) - 1.5) < 1e-2  # the interpolation is not perfect
-        True
+        np.True_
         >>> f4.get_value(3, 9)
-        27.0
+        np.float64(27.0)
         """
         if len(args) != self.__dom_dim__:
             raise ValueError(
@@ -880,7 +887,7 @@ class Function:
             # if the function is 1-D:
             if self.__dom_dim__ == 1:
                 # if the args is a simple number (int or float)
-                if isinstance(args[0], (int, float, complex)):
+                if isinstance(args[0], NUMERICAL_TYPES):
                     return self.source(args[0])
                 # if the arguments are iterable, we map and return a list
                 if isinstance(args[0], Iterable):
@@ -889,7 +896,7 @@ class Function:
             # if the function is n-D:
             else:
                 # if each arg is a simple number (int or float)
-                if all(isinstance(arg, (int, float, complex)) for arg in args):
+                if all(isinstance(arg, NUMERICAL_TYPES) for arg in args):
                     return self.source(*args)
                 # if each arg is iterable, we map and return a list
                 if all(isinstance(arg, Iterable) for arg in args):
@@ -900,7 +907,7 @@ class Function:
 
         # Returns value for other interpolation type
         else:  # interpolation is "polynomial", "spline", "akima" or "linear"
-            if isinstance(args[0], (int, float, complex, np.integer)):
+            if isinstance(args[0], NUMERICAL_TYPES):
                 args = [list(args)]
 
         x = list(args[0])
@@ -1350,9 +1357,9 @@ class Function:
         if callable(self.source):
             # Determine boundaries
             lower = [0, 0] if lower is None else lower
-            lower = 2 * [lower] if isinstance(lower, (int, float)) else lower
+            lower = 2 * [lower] if isinstance(lower, NUMERICAL_TYPES) else lower
             upper = [10, 10] if upper is None else upper
-            upper = 2 * [upper] if isinstance(upper, (int, float)) else upper
+            upper = 2 * [upper] if isinstance(upper, NUMERICAL_TYPES) else upper
         else:
             # Determine boundaries
             x_data = self.x_array
@@ -1360,9 +1367,9 @@ class Function:
             x_min, x_max = x_data.min(), x_data.max()
             y_min, y_max = y_data.min(), y_data.max()
             lower = [x_min, y_min] if lower is None else lower
-            lower = 2 * [lower] if isinstance(lower, (int, float)) else lower
+            lower = 2 * [lower] if isinstance(lower, NUMERICAL_TYPES) else lower
             upper = [x_max, y_max] if upper is None else upper
-            upper = 2 * [upper] if isinstance(upper, (int, float)) else upper
+            upper = 2 * [upper] if isinstance(upper, NUMERICAL_TYPES) else upper
             # Plot data points if force_data = True
             if force_data:
                 axes.scatter(x_data, y_data, self.source[:, -1])
@@ -1532,7 +1539,8 @@ class Function:
                     ax.scatter(points[0], points[1], marker="o")
 
         # Setup legend
-        ax.legend(loc="best", shadow=True)
+        if any([plot[1] for plot in plots]):
+            ax.legend(loc="best", shadow=True)
 
         # Turn on grid and set title and axis
         plt.grid(True)
@@ -1892,7 +1900,9 @@ class Function:
                 return Function(lambda x: (self.get_value_opt(x) + other(x)))
         # If other is Float except...
         except AttributeError:
-            if isinstance(other, NUMERICAL_TYPES):
+            if isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(
+                other
+            ):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
@@ -2014,7 +2024,9 @@ class Function:
             source = np.column_stack((self.x_array, self.y_array * other.y_array))
             outputs = f"({self.__outputs__[0]}*{other.__outputs__[0]})"
             return Function(source, inputs, outputs, interp, extrap)
-        elif isinstance(other, NUMERICAL_TYPES):
+        elif isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(
+            other
+        ):
             if not self_source_is_array:
                 return Function(lambda x: (self.get_value_opt(x) * other), inputs)
             source = np.column_stack((self.x_array, np.multiply(self.y_array, other)))
@@ -2097,7 +2109,9 @@ class Function:
                 return Function(lambda x: (self.get_value_opt(x) / other(x)))
         # If other is Float except...
         except AttributeError:
-            if isinstance(other, NUMERICAL_TYPES):
+            if isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(
+                other
+            ):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
@@ -2136,7 +2150,7 @@ class Function:
             A Function object which gives the result of other(x)/self(x).
         """
         # Check if Function object source is array and other is float
-        if isinstance(other, NUMERICAL_TYPES):
+        if isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(other):
             if isinstance(self.source, np.ndarray):
                 # Operate on grid values
                 ys = other / self.y_array
@@ -2204,7 +2218,9 @@ class Function:
                 return Function(lambda x: (self.get_value_opt(x) ** other(x)))
         # If other is Float except...
         except AttributeError:
-            if isinstance(other, NUMERICAL_TYPES):
+            if isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(
+                other
+            ):
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
@@ -2243,7 +2259,7 @@ class Function:
             A Function object which gives the result of other(x)**self(x).
         """
         # Check if Function object source is array and other is float
-        if isinstance(other, NUMERICAL_TYPES):
+        if isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(other):
             if isinstance(self.source, np.ndarray):
                 # Operate on grid values
                 ys = other**self.y_array
@@ -2392,7 +2408,7 @@ class Function:
                     # self.__extrapolation__ = 'zero'
                     pass
         elif self.__interpolation__ == "linear" and numerical is False:
-            # Integrate from a to b using np.trapz
+            # Integrate from a to b using np.trapezoid
             x_data = self.x_array
             y_data = self.y_array
             # Get data in interval
@@ -2411,8 +2427,7 @@ class Function:
                 y_integration_data = np.concatenate(([self(a)], y_integration_data))
                 x_integration_data = np.concatenate((x_integration_data, [b]))
                 y_integration_data = np.concatenate((y_integration_data, [self(b)]))
-            # Integrate using np.trapz
-            ans = np.trapz(y_integration_data, x_integration_data)
+            ans = trapezoid(y_integration_data, x_integration_data)
         else:
             # Integrate numerically
             ans, _ = integrate.quad(self, a, b, epsabs=1e-4, epsrel=1e-3, limit=1000)
@@ -2623,16 +2638,16 @@ class Function:
         Examples
         --------
         >>> f = Function([[0, 0], [1, 1], [2, 4]])
-        >>> f.isbijective()
+        >>> f.isbijective() == True
         True
-        >>> f.is_strictly_bijective()
-        True
+        >>> f.is_strictly_bijective() == True
+        np.True_
 
         >>> f = Function([[-1, 1], [0, 0], [1, 1], [2, 4]])
         >>> f.isbijective()
         False
         >>> f.is_strictly_bijective()
-        False
+        np.False_
 
         A Function which is not "strictly" bijective, but is bijective, can be
         constructed as x^2 defined at -1, 0 and 2.
@@ -2641,7 +2656,7 @@ class Function:
         >>> f.isbijective()
         True
         >>> f.is_strictly_bijective()
-        False
+        np.False_
         """
         if isinstance(self.source, np.ndarray):
             # Assuming domain is sorted, range must also be
@@ -2917,6 +2932,10 @@ class Function:
             file.write(header_line + newline)
             np.savetxt(file, data_points, fmt=fmt, delimiter=delimiter, newline=newline)
 
+    @staticmethod
+    def __is_single_element_array(var):
+        return isinstance(var, np.ndarray) and var.size == 1
+
     # Input validators
     def __validate_source(self, source):
         """Used to validate the source parameter for creating a Function object.
@@ -2974,7 +2993,7 @@ class Function:
                 )
             return source
 
-        if isinstance(source, (int, float)):
+        if isinstance(source, NUMERICAL_TYPES):
             # Convert number source into vectorized lambda function
             temp = 1 * source
 
@@ -3189,7 +3208,7 @@ class PiecewiseFunction(Function):
         output_data = []
         for key in sorted(source.keys()):
             i = np.linspace(key[0], key[1], datapoints)
-            i = i[~np.in1d(i, input_data)]
+            i = i[~np.isin(i, input_data)]
             input_data = np.concatenate((input_data, i))
 
             f = Function(source[key])

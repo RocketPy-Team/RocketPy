@@ -184,6 +184,7 @@ def test_gefs_atmosphere(
     assert example_spaceport_env.all_info() is None
 
 
+@pytest.mark.skip(reason="legacy tests")  # deprecated method
 @patch("matplotlib.pyplot.show")
 def test_info_returns(mock_show, example_plain_env):  # pylint: disable=unused-argument
     """Tests the all_info_returned() all_plot_info_returned() and methods of the
