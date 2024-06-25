@@ -12,6 +12,7 @@ Defining a Rocket in RocketPy is simple and requires a few steps:
 4. Add, if desired, parachutes;
 5. Set, if desired, rail guides;
 6. See results.
+7. Inertia Tensors.
 
 Lets go through each of these steps in detail.
 
@@ -428,3 +429,54 @@ The lets check all the information available about the rocket:
 .. jupyter-execute::
 
     calisto.all_info()
+
+7. Inertia Tensors
+------------------
+
+The inertia tensor of the rocket at a given time can be obtained using the
+``get_inertia_tensor_at_time`` method. This method evaluates each component of
+the inertia tensor at the specified time and returns a
+:class:`rocketpy.mathutils.Matrix` object.
+
+The inertia tensor is a matrix that looks like this:
+
+.. math::
+    :label: inertia_tensor
+
+    \mathbf{I} = \begin{bmatrix}
+    I_{11} & I_{12} & I_{13} \\
+    I_{21} & I_{22} & I_{23} \\
+    I_{31} & I_{32} & I_{33}
+    \end{bmatrix}
+
+For example, to get the inertia tensor of the rocket at time 0.5 seconds, you
+can use the following code:
+
+.. jupyter-execute::
+
+    calisto.get_inertia_tensor_at_time(0.5)
+
+Derivative of the Inertia Tensor
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can also get the derivative of the inertia tensor at a given time using the
+``get_inertia_tensor_derivative_at_time`` method. Here's an example:
+
+.. jupyter-execute::
+
+    calisto.get_inertia_tensor_derivative_at_time(0.5)
+
+Implications from these results
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The inertia tensor reveals important information about the rocket's symmetry 
+and ease of rotation:
+
+1. **Axis Symmetry**: If I\ :sub:`11` and I\ :sub:`22` are equal, the rocket is symmetric around the axes perpendicular to the rocket's center axis. In our defined rocket, I\ :sub:`11` and I\ :sub:`22` are indeed equal, indicating that our rocket is axisymmetric.
+
+2. **Zero Products of Inertia**: The off-diagonal elements of the inertia tensor are zero, which means the products of inertia are zero. This indicates that the rocket is symmetric around its center axis.
+
+3. **Ease of Rotation**: The I\ :sub:`33` value is significantly lower than the other two. This suggests that the rocket is easier to rotate around its center axis than around the axes perpendicular to the rocket. This is an important factor when considering the rocket's stability and control.
+
+However, these conclusions are based on the assumption that the inertia tensor is calculated with respect to the rocket's center of mass and aligned with the principal axes of the rocket. If the inertia tensor is calculated with respect to a different point or not aligned with the principal axes, the conclusions may not hold.
+

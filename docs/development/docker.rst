@@ -108,7 +108,7 @@ operational system.
 However, it is still useful to run the unit tests on different python versions.
 
 Currently, the `docker-compose.yml` file is configured to run the unit tests
-on python 3.8 and 3.12.
+on python 3.9 and 3.12.
 
 To run the unit tests on both python versions, run the following command
 **on your machine**:

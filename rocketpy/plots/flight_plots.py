@@ -66,6 +66,14 @@ class _FlightPlots:
         min_x = min(self.flight.x[:, 1])
         max_y = max(self.flight.y[:, 1])
         min_y = min(self.flight.y[:, 1])
+        min_xy = min(min_x, min_y)
+        max_xy = max(max_x, max_y)
+
+        # avoids errors when x_lim and y_lim are the same
+        if abs(min_z - max_z) < 1e-5:
+            max_z += 1
+        if abs(min_xy - max_xy) < 1e-5:
+            max_xy += 1
 
         _ = plt.figure(figsize=(9, 9))
         ax1 = plt.subplot(111, projection="3d")
@@ -109,8 +117,8 @@ class _FlightPlots:
         ax1.set_ylabel("Y - North (m)")
         ax1.set_zlabel("Z - Altitude Above Ground Level (m)")
         ax1.set_title("Flight Trajectory")
-        ax1.set_xlim(min_x, max_x)
-        ax1.set_ylim(min_y, max_y)
+        ax1.set_xlim(min_xy, max_xy)
+        ax1.set_ylim(min_xy, max_xy)
         ax1.set_zlim(min_z, max_z)
         ax1.view_init(15, 45)
         ax1.set_box_aspect(None, zoom=0.95)  # 95% for label adjustment
