@@ -1,7 +1,6 @@
 from cmath import isclose
+from functools import cached_property
 from itertools import product
-
-from rocketpy.tools import cached_property
 
 
 class Vector:

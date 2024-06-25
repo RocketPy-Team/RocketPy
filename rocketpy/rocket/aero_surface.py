@@ -1,6 +1,5 @@
 import warnings
 from abc import ABC, abstractmethod
-from functools import cached_property
 
 import numpy as np
 from scipy.optimize import fsolve
@@ -368,7 +367,7 @@ class NoseCone(AeroSurface):
         return None
 
     def evaluate_nose_shape(self):
-        """Calculates and saves nose cone's shape as lists and reavulates the
+        """Calculates and saves nose cone's shape as lists and re-evaluates the
         nose cone's length for a given bluffness ratio. The shape is saved as
         two vectors, one for the x coordinates and one for the y coordinates.
 
@@ -382,7 +381,9 @@ class NoseCone(AeroSurface):
 
         # Calculate a function to find the tangential intersection point between the circle and nosecone curve.
         def find_x_intercept(x):
-            return x + self.y_nosecone(x) * self.y_nosecone.differentiate(x)
+            return x + self.y_nosecone(x) * self.y_nosecone.differentiate_complex_step(
+                x
+            )
 
         # Calculate a function to find the radius of the nosecone curve
         def find_radius(x):
@@ -412,11 +413,11 @@ class NoseCone(AeroSurface):
                     r_circle, circle_center, x_init = 0, 0, 0
                 else:
                     # Find the intersection point between circle and nosecone curve
-                    x_init = fsolve(lambda x: find_radius(x) - r_circle, r_circle)[0]
+                    x_init = fsolve(lambda x: find_radius(x[0]) - r_circle, r_circle)[0]
                     circle_center = find_x_intercept(x_init)
             else:
                 # Find the intersection point between circle and nosecone curve
-                x_init = fsolve(lambda x: find_radius(x) - r_circle, r_circle)[0]
+                x_init = fsolve(lambda x: find_radius(x[0]) - r_circle, r_circle)[0]
                 circle_center = find_x_intercept(x_init)
 
         # Calculate a function to create the circle at the correct position
@@ -771,7 +772,9 @@ class Fins(AeroSurface):
             )
 
             # Differentiating at alpha = 0 to get cl_alpha
-            clalpha2D_incompressible = self.airfoil_cl.differentiate(x=1e-3, dx=1e-3)
+            clalpha2D_incompressible = self.airfoil_cl.differentiate_complex_step(
+                x=1e-3, dx=1e-3
+            )
 
             # Convert to radians if needed
             if self.airfoil[1] == "degrees":
@@ -1978,8 +1981,9 @@ class AirBrakes(AeroSurface):
             brakes drag coefficient will be used for the entire rocket instead.
             Default is False.
         deployment_level : float, optional
-            Current deployment level, ranging from 0 to 1. Deployment level is the
-            fraction of the total airbrake area that is Deployment. Default is 0.
+            Initial deployment level, ranging from 0 to 1. Deployment level is
+            the fraction of the total airbrake area that is Deployment. Default
+            is 0.
         name : str, optional
             Name of the air brakes. Default is "AirBrakes".
 
@@ -1997,6 +2001,7 @@ class AirBrakes(AeroSurface):
         self.reference_area = reference_area
         self.clamp = clamp
         self.override_rocket_drag = override_rocket_drag
+        self.initial_deployment_level = deployment_level
         self.deployment_level = deployment_level
         self.prints = _AirBrakesPrints(self)
         self.plots = _AirBrakesPlots(self)
@@ -2022,6 +2027,12 @@ class AirBrakes(AeroSurface):
                     + "curve will be used."
                 )
         self._deployment_level = value
+
+    def _reset(self):
+        """Resets the air brakes to their initial state. This is ran at the
+        beginning of each simulation to ensure the air brakes are in the correct
+        state."""
+        self.deployment_level = self.initial_deployment_level
 
     def evaluate_center_of_pressure(self):
         """Evaluates the center of pressure of the aerodynamic surface in local

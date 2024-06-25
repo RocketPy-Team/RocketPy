@@ -83,7 +83,7 @@ def setup_rocket_with_given_static_margin(rocket, static_margin):
 
 
 @patch("matplotlib.pyplot.show")
-def test_initial_solution(mock_show, example_env, calisto_robust):
+def test_initial_solution(mock_show, example_plain_env, calisto_robust):
     """Tests the initial_solution option of the Flight class. This test simply
     simulates the flight using the initial_solution option and checks if the
     all_info method returns None.
@@ -92,14 +92,14 @@ def test_initial_solution(mock_show, example_env, calisto_robust):
     ----------
     mock_show : unittest.mock.MagicMock
         Mock object to replace matplotlib.pyplot.show
-    example_env : rocketpy.Environment
+    example_plain_env : rocketpy.Environment
         Environment to be simulated. See the conftest.py file for more info.
     calisto_robust : rocketpy.Rocket
         Rocket to be simulated. See the conftest.py file for more info.
     """
     test_flight = Flight(
         rocket=calisto_robust,
-        environment=example_env,
+        environment=example_plain_env,
         rail_length=5,
         inclination=85,
         heading=0,
@@ -128,10 +128,10 @@ def test_initial_solution(mock_show, example_env, calisto_robust):
 
 
 @patch("matplotlib.pyplot.show")
-def test_empty_motor_flight(mock_show, example_env, calisto_motorless):
+def test_empty_motor_flight(mock_show, example_plain_env, calisto_motorless):
     flight = Flight(
         rocket=calisto_motorless,
-        environment=example_env,
+        environment=example_plain_env,
         rail_length=5,
         initial_solution=[  # a random flight starting at apogee
             22.945995194368354,
@@ -259,7 +259,7 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
 @patch("matplotlib.pyplot.show")
 def test_rolling_flight(
     mock_show,
-    example_env,
+    example_plain_env,
     cesaroni_m1670,
     calisto,
     calisto_nose_cone,
@@ -286,7 +286,7 @@ def test_rolling_flight(
 
     test_flight = Flight(
         rocket=test_rocket,
-        environment=example_env,
+        environment=example_plain_env,
         rail_length=5.2,
         inclination=85,
         heading=0,
@@ -316,7 +316,7 @@ def test_air_brakes_flight(mock_show, flight_calisto_air_brakes):
 
 
 @patch("matplotlib.pyplot.show")
-def test_simpler_parachute_triggers(mock_show, example_env, calisto_robust):
+def test_simpler_parachute_triggers(mock_show, example_plain_env, calisto_robust):
     """Tests different types of parachute triggers. This is important to ensure
     the code is working as intended, since the parachute triggers can have very
     different format definitions. It will add 3 parachutes using different
@@ -327,7 +327,7 @@ def test_simpler_parachute_triggers(mock_show, example_env, calisto_robust):
     ----------
     mock_show : unittest.mock.MagicMock
         Mock object to replace matplotlib.pyplot.show
-    example_env : rocketpy.Environment
+    example_plain_env : rocketpy.Environment
         Environment to be simulated. See the conftest.py file for more info.
     calisto_robust : rocketpy.Rocket
         Rocket to be simulated. See the conftest.py file for more info.
@@ -360,7 +360,7 @@ def test_simpler_parachute_triggers(mock_show, example_env, calisto_robust):
 
     test_flight = Flight(
         rocket=calisto_robust,
-        environment=example_env,
+        environment=example_plain_env,
         rail_length=5,
         inclination=85,
         heading=0,
@@ -372,14 +372,14 @@ def test_simpler_parachute_triggers(mock_show, example_env, calisto_robust):
     assert (
         abs(
             test_flight.z(test_flight.parachute_events[1][0])
-            - (800 + example_env.elevation)
+            - (800 + example_plain_env.elevation)
         )
         <= 1
     )
     assert (
         abs(
             test_flight.z(test_flight.parachute_events[2][0])
-            - (400 + example_env.elevation)
+            - (400 + example_plain_env.elevation)
         )
         <= 1
     )
@@ -388,10 +388,10 @@ def test_simpler_parachute_triggers(mock_show, example_env, calisto_robust):
 
 
 @patch("matplotlib.pyplot.show")
-def test_lat_lon_conversion_robust(mock_show, example_env_robust, calisto_robust):
+def test_lat_lon_conversion_robust(mock_show, example_spaceport_env, calisto_robust):
     test_flight = Flight(
         rocket=calisto_robust,
-        environment=example_env_robust,
+        environment=example_spaceport_env,
         rail_length=5.2,
         inclination=85,
         heading=45,
@@ -405,12 +405,12 @@ def test_lat_lon_conversion_robust(mock_show, example_env_robust, calisto_robust
 
 
 @patch("matplotlib.pyplot.show")
-def test_lat_lon_conversion_from_origin(mock_show, example_env, calisto_robust):
+def test_lat_lon_conversion_from_origin(mock_show, example_plain_env, calisto_robust):
     "additional tests to capture incorrect behaviors during lat/lon conversions"
 
     test_flight = Flight(
         rocket=calisto_robust,
-        environment=example_env,
+        environment=example_plain_env,
         rail_length=5.2,
         inclination=85,
         heading=0,
@@ -430,7 +430,7 @@ def test_lat_lon_conversion_from_origin(mock_show, example_env, calisto_robust):
         (100000, 100003.35594050681),
     ],
 )
-def test_rail_length(calisto_robust, example_env, rail_length, out_of_rail_time):
+def test_rail_length(calisto_robust, example_plain_env, rail_length, out_of_rail_time):
     """Tests the rail length parameter of the Flight class. This test simply
     simulate the flight using different rail lengths and checks if the expected
     out of rail altitude is achieved. Four different rail lengths are
@@ -443,7 +443,7 @@ def test_rail_length(calisto_robust, example_env, rail_length, out_of_rail_time)
     calisto_robust : rocketpy.Rocket
         The rocket to be simulated. In this case, the fixture rocket is used.
         See the conftest.py file for more information.
-    example_env : rocketpy.Environment
+    example_plain_env : rocketpy.Environment
         The environment to be simulated. In this case, the fixture environment
         is used. See the conftest.py file for more information.
     rail_length : float, int
@@ -454,7 +454,7 @@ def test_rail_length(calisto_robust, example_env, rail_length, out_of_rail_time)
     """
     test_flight = Flight(
         rocket=calisto_robust,
-        environment=example_env,
+        environment=example_plain_env,
         rail_length=rail_length,
         inclination=85,
         heading=0,
@@ -465,7 +465,7 @@ def test_rail_length(calisto_robust, example_env, rail_length, out_of_rail_time)
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_time_overshoot(mock_show, calisto_robust, example_env_robust):
+def test_time_overshoot(mock_show, calisto_robust, example_spaceport_env):
     """Test the time_overshoot parameter of the Flight class. This basically
     calls the all_info() method for a simulation without time_overshoot and
     checks if it returns None. It is not testing if the values are correct,
@@ -476,14 +476,14 @@ def test_time_overshoot(mock_show, calisto_robust, example_env_robust):
     calisto_robust : rocketpy.Rocket
         The rocket to be simulated. In this case, the fixture rocket is used.
         See the conftest.py file for more information.
-    example_env_robust : rocketpy.Environment
+    example_spaceport_env : rocketpy.Environment
         The environment to be simulated. In this case, the fixture environment
         is used. See the conftest.py file for more information.
     """
 
     test_flight = Flight(
         rocket=calisto_robust,
-        environment=example_env_robust,
+        environment=example_spaceport_env,
         rail_length=5.2,
         inclination=85,
         heading=0,
@@ -604,12 +604,12 @@ def test_max_values(flight_calisto_robust):
     calculated by hand, it was just copied from the test results. This is
     because the expected values are not easy to calculate by hand, and the
     results are not expected to change. If the results change, the test will
-    fail, and the expected values must be updated. If if want to update the
-    values, always double check if the results are really correct. Acceptable
-    reasons for changes in the results are: 1) changes in the code that
-    improve the accuracy of the simulation, 2) a bug was found and fixed. Keep
-    in mind that other tests may be more accurate than this one, for example,
-    the acceptance tests, which are based on the results of real flights.
+    fail, and the expected values must be updated. If the values are updated,
+    always double check if the results are really correct. Acceptable reasons
+    for changes in the results are: 1) changes in the code that improve the
+    accuracy of the simulation, 2) a bug was found and fixed. Keep in mind that
+    other tests may be more accurate than this one, for example, the acceptance
+    tests, which are based on the results of real flights.
 
     Parameters
     ----------
@@ -618,11 +618,11 @@ def test_max_values(flight_calisto_robust):
         regarding this pytest fixture.
     """
     test = flight_calisto_robust
-    atol = 1e-2
-    assert pytest.approx(105.2774, abs=atol) == test.max_acceleration_power_on
-    assert pytest.approx(105.2774, abs=atol) == test.max_acceleration
-    assert pytest.approx(0.85999, abs=atol) == test.max_mach_number
-    assert pytest.approx(285.90240, abs=atol) == test.max_speed
+    rtol = 5e-3
+    assert pytest.approx(105.1599, rel=rtol) == test.max_acceleration_power_on
+    assert pytest.approx(105.1599, rel=rtol) == test.max_acceleration
+    assert pytest.approx(0.85999, rel=rtol) == test.max_mach_number
+    assert pytest.approx(285.94948, rel=rtol) == test.max_speed
 
 
 def test_rail_buttons_forces(flight_calisto_custom_wind):

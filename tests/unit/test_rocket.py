@@ -413,3 +413,86 @@ def test_evaluate_center_of_mass(calisto):
         A predefined instance of the calisto Rocket with a motor, used as a base for testing.
     """
     assert isinstance(calisto.evaluate_center_of_mass(), Function)
+
+
+def test_evaluate_nozzle_to_cdm(calisto):
+    expected_distance = 1.255
+    atol = 1e-3  # Equivalent to 1mm
+    assert pytest.approx(expected_distance, atol) == calisto.nozzle_to_cdm
+    # Test if calling the function returns the same result
+    res = calisto.evaluate_nozzle_to_cdm()
+    assert pytest.approx(expected_distance, atol) == res
+
+
+def test_evaluate_nozzle_gyration_tensor(calisto):
+    expected_gyration_tensor = np.array(
+        [[0.3940207, 0, 0], [0, 0.3940207, 0], [0, 0, 0.0005445]]
+    )
+    atol = 1e-3 * 1e-2 * 1e-2  # Equivalent to 1g * 1cm^2
+    assert np.allclose(
+        expected_gyration_tensor, np.array(calisto.nozzle_gyration_tensor), atol=atol
+    )
+    # Test if calling the function returns the same result
+    res = calisto.evaluate_nozzle_gyration_tensor()
+    assert np.allclose(expected_gyration_tensor, np.array(res), atol=atol)
+
+
+def test_evaluate_com_to_cdm_function(calisto):
+    atol = 1e-3  # Equivalent to 1mm
+    assert np.allclose(
+        (calisto.center_of_dry_mass_position - calisto.center_of_mass).source,
+        calisto.com_to_cdm_function.source,
+        atol=atol,
+    )
+
+
+def test_get_inertia_tensor_at_time(calisto):
+    # Expected values (for t = 0)
+    # TODO: compute these values by hand or using CAD.
+    Ixx = 10.31379
+    Iyy = 10.31379
+    Izz = 0.039942
+
+    # Set tolerance threshold
+    atol = 1e-5
+
+    # Get inertia tensor at t = 0
+    inertia_tensor = calisto.get_inertia_tensor_at_time(0)
+
+    # Check if the values are close to the expected ones
+    assert pytest.approx(Ixx, atol) == inertia_tensor.x[0]
+    assert pytest.approx(Iyy, atol) == inertia_tensor.y[1]
+    assert pytest.approx(Izz, atol) == inertia_tensor.z[2]
+    # Check if products of inertia are zero
+    assert pytest.approx(0, atol) == inertia_tensor.x[1]
+    assert pytest.approx(0, atol) == inertia_tensor.x[2]
+    assert pytest.approx(0, atol) == inertia_tensor.y[0]
+    assert pytest.approx(0, atol) == inertia_tensor.y[2]
+    assert pytest.approx(0, atol) == inertia_tensor.z[0]
+    assert pytest.approx(0, atol) == inertia_tensor.z[1]
+
+
+def test_get_inertia_tensor_derivative_at_time(calisto):
+    # Expected values (for t = 2s)
+    # TODO: compute these values by hand or using CAD.
+    Ixx_dot = -0.634805230901143
+    Iyy_dot = -0.634805230901143
+    Izz_dot = -0.000671493662305
+
+    # Set tolerance threshold
+    atol = 1e-3
+
+    # Get inertia tensor at t = 2s
+    inertia_tensor = calisto.get_inertia_tensor_derivative_at_time(2)
+
+    # Check if the values are close to the expected ones
+    assert pytest.approx(Ixx_dot, atol) == inertia_tensor.x[0]
+    assert pytest.approx(Iyy_dot, atol) == inertia_tensor.y[1]
+    assert pytest.approx(Izz_dot, atol) == inertia_tensor.z[2]
+    # Check if products of inertia are zero
+    assert pytest.approx(0, atol) == inertia_tensor.x[1]
+    assert pytest.approx(0, atol) == inertia_tensor.x[2]
+    assert pytest.approx(0, atol) == inertia_tensor.y[0]
+    assert pytest.approx(0, atol) == inertia_tensor.y[2]
+    assert pytest.approx(0, atol) == inertia_tensor.z[0]
+    assert pytest.approx(0, atol) == inertia_tensor.z[1]

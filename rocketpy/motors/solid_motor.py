@@ -1,3 +1,5 @@
+from functools import cached_property
+
 import numpy as np
 from scipy import integrate
 
@@ -5,11 +7,6 @@ from ..mathutils.function import Function, funcify_method, reset_funcified_metho
 from ..plots.solid_motor_plots import _SolidMotorPlots
 from ..prints.solid_motor_prints import _SolidMotorPrints
 from .motor import Motor
-
-try:
-    from functools import cached_property
-except ImportError:
-    from ..tools import cached_property
 
 
 class SolidMotor(Motor):
@@ -198,7 +195,7 @@ class SolidMotor(Motor):
         grain_separation,
         grains_center_of_mass_position,
         center_of_dry_mass_position,
-        nozzle_position=0,
+        nozzle_position=0.0,
         burn_time=None,
         throat_radius=0.01,
         reshape_thrust_curve=False,

@@ -28,17 +28,58 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased] - yyyy-mm-dd
 
 <!-- These are the changes that were not release yet, please add them correctly.
-  Attention: The newest changes should be on top -->
+Attention: The newest changes should be on top -->
 
-### Added
+## [1.3.0.post1] - 2024-06-02
 
-
-### Changed
-
+You can install this version by running `pip install rocketpy==1.3.0.post1`
 
 ### Fixed
 
-## [v1.2.2] - 2024-03-09
+- BUG: pyproject.toml Main Module Finding. [#616](https://github.com/RocketPy-Team/RocketPy/pull/616)
+
+## [1.3.0] - 2024-06-01
+
+You can install this version by running `pip install rocketpy==1.3.0`
+
+### Added
+
+- DOC: Adds prometheus data, Spaceport America 2022 [#601](https://github.com/RocketPy-Team/RocketPy/pull/601)
+- ENH: Pre-calculate attributes in Rocket class [#595](https://github.com/RocketPy-Team/RocketPy/pull/595)
+- ENH: Complex step differentiation [#594](https://github.com/RocketPy-Team/RocketPy/pull/594)
+- ENH: Exponential backoff decorator (fix #449) [#588](https://github.com/RocketPy-Team/RocketPy/pull/588)
+- ENH: Function Validation Rework & Swap `np.searchsorted` to `bisect_left` [#582](https://github.com/RocketPy-Team/RocketPy/pull/582)
+- ENH: Add new stability margin properties to Flight class [#572](https://github.com/RocketPy-Team/RocketPy/pull/572)
+- ENH: adds `Function.remove_outliers` method [#554](https://github.com/RocketPy-Team/RocketPy/pull/554)
+
+### Changed
+
+- REL: Bump versioning to RocketPy v1.3.0 [#614](https://github.com/RocketPy-Team/RocketPy/pull/614)
+- ENH: Adds StochasticModel.visualize_attributes() method [#612](https://github.com/RocketPy-Team/RocketPy/pull/612)
+- DOC: Monte carlo documentation updates [#607](https://github.com/RocketPy-Team/RocketPy/pull/607)
+- MNT: refactor u_dot parachute method [#596](https://github.com/RocketPy-Team/RocketPy/pull/596)
+- BLD: Change setup.py to pyproject.toml [#589](https://github.com/RocketPy-Team/RocketPy/pull/589)
+- DEP: delete deprecated rocketpy.tools.cached_property [#587](https://github.com/RocketPy-Team/RocketPy/pull/587)
+- ENH: Flight simulation speed up [#581] (https://github.com/RocketPy-Team/RocketPy/pull/581) 
+- MNT: Modularize Rocket Draw [#580](https://github.com/RocketPy-Team/RocketPy/pull/580)
+- DOC: Improvements of Environment docstring phrasing [#565](https://github.com/RocketPy-Team/RocketPy/pull/565)
+- MNT: Refactor flight prints module [#579](https://github.com/RocketPy-Team/RocketPy/pull/579)
+- DOC: Convert CompareFlights example notebooks to .rst files [#576](https://github.com/RocketPy-Team/RocketPy/pull/576)
+- MNT: Refactor inertia calculations using parallel axis theorem [#573] (https://github.com/RocketPy-Team/RocketPy/pull/573)
+- ENH: Optional argument to show the plot in Function.compare_plots [#563](https://github.com/RocketPy-Team/RocketPy/pull/563)
+
+### Fixed
+
+- MNT: Alter PYPI classifier naming. [#615](https://github.com/RocketPy-Team/RocketPy/pull/615)
+- DOC: Solve Dependencies Conflicts and pyproject build [#613](https://github.com/RocketPy-Team/RocketPy/pull/613)
+- BUG: Fixes nose cone bluffness issue #610 [#611](https://github.com/RocketPy-Team/RocketPy/pull/611)
+- BUG: plot drag curves when function source is callable [#599](https://github.com/RocketPy-Team/RocketPy/pull/599)
+- BUG: Fix minor type hinting problems [#598](https://github.com/RocketPy-Team/RocketPy/pull/598)
+- BUG: Optional Dependencies Naming in pyproject.toml. [#592](https://github.com/RocketPy-Team/RocketPy/pull/592)
+- BUG: Swap rocket.total_mass.differentiate for motor.total_mass_flow rate [#585](https://github.com/RocketPy-Team/RocketPy/pull/585)
+- BUG: export_eng 'Motor' method would not work for liquid motors. [#559](https://github.com/RocketPy-Team/RocketPy/pull/559) 
+
+## [v1.2.2] - 2024-03-22
 
 You can install this version by running `pip install rocketpy==1.2.2`
 
