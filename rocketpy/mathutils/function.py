@@ -1109,7 +1109,7 @@ class Function:
         -------
         ans : None, scalar, list
         """
-        if len(args) == 0 or (len(args) == 1 and filename != None):
+        if len(args) == 0:
             return self.plot(filename=filename)
         else:
             return self.get_value(*args)
