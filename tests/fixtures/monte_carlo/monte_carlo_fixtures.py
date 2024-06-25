@@ -32,3 +32,20 @@ def monte_carlo_calisto(stochastic_environment, stochastic_calisto, stochastic_f
         rocket=stochastic_calisto,
         flight=stochastic_flight,
     )
+
+
+@pytest.fixture
+def monte_carlo_calisto_pre_loaded(
+    stochastic_environment, stochastic_calisto, stochastic_flight
+):
+    """Creates a MonteCarlo object with some already imported simulations."""
+    monte_carlo = MonteCarlo(
+        filename="monte_carlo_test",
+        environment=stochastic_environment,
+        rocket=stochastic_calisto,
+        flight=stochastic_flight,
+    )
+    monte_carlo.import_results(
+        filename="tests/fixtures/monte_carlo/example.outputs.txt"
+    )
+    return monte_carlo

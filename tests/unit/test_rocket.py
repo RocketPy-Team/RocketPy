@@ -496,3 +496,19 @@ def test_get_inertia_tensor_derivative_at_time(calisto):
     assert pytest.approx(0, atol) == inertia_tensor.y[2]
     assert pytest.approx(0, atol) == inertia_tensor.z[0]
     assert pytest.approx(0, atol) == inertia_tensor.z[1]
+
+
+def test_add_thrust_eccentricity(calisto):
+    """Test add_thrust_eccentricity method of the Rocket class."""
+    calisto.add_thrust_eccentricity(0.1, 0.1)
+    assert calisto.thrust_eccentricity_x == 0.1
+    assert calisto.thrust_eccentricity_y == 0.1
+
+
+def test_add_cm_eccentricity(calisto):
+    """Test add_cm_eccentricity method of the Rocket class."""
+    calisto.add_cm_eccentricity(-0.1, -0.1)
+    assert calisto.cp_eccentricity_x == 0.1
+    assert calisto.cp_eccentricity_y == 0.1
+    assert calisto.thrust_eccentricity_x == 0.1
+    assert calisto.thrust_eccentricity_y == 0.1
