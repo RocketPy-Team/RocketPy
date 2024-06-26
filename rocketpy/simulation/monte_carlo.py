@@ -1579,7 +1579,8 @@ class MonteCarlo:
             t0 = source[0, 0]
             tf = source[-1, 0]
             t = np.arange(t0, tf, sample_time)
-            source = func(t)
+            y = func(t)
+            source = np.column_stack((t, y))
 
         return source
 
