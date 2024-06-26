@@ -9,7 +9,6 @@ from time import process_time, time
 
 import h5py
 import numpy as np
-import psutil
 import simplekml
 from multiprocess import Event, Lock, Process, Semaphore, shared_memory
 from multiprocess.managers import BaseManager
@@ -234,15 +233,18 @@ class MonteCarlo:
 
         # Open files
         if light_mode:
-            # get initial simulation index
-            idx_i, idx_o = self.__get_light_indexes(
-                self._input_file, self._output_file, append=append
-            )
-
             # open files in write/append mode
             input_file = open(self._input_file, open_mode, encoding="utf-8")
             output_file = open(self._output_file, open_mode, encoding="utf-8")
             error_file = open(self._error_file, open_mode, encoding="utf-8")
+
+            idx_i = self.__get_initial_sim_idx(
+                input_file, append=append, light_mode=light_mode
+            )
+            idx_o = self.__get_initial_sim_idx(
+                output_file, append=append, light_mode=light_mode
+            )
+
         else:
             input_file = h5py.File(Path(self._input_file).with_suffix(".h5"), open_mode)
             output_file = h5py.File(
@@ -250,8 +252,12 @@ class MonteCarlo:
             )
             error_file = open(self._error_file, open_mode, encoding="utf-8")
 
-            idx_i = self.__get_initial_sim_idx(input_file, light_mode=light_mode)
-            idx_o = self.__get_initial_sim_idx(output_file, light_mode=light_mode)
+            idx_i = self.__get_initial_sim_idx(
+                input_file, append=append, light_mode=light_mode
+            )
+            idx_o = self.__get_initial_sim_idx(
+                output_file, append=append, light_mode=light_mode
+            )
 
         if idx_i != idx_o:
             raise ValueError(
@@ -308,9 +314,12 @@ class MonteCarlo:
         processes = []
 
         if (
-            n_workers is None or n_workers > os.cpu_count() - 2
+            n_workers is None or n_workers > os.cpu_count()
         ):  # leave 2 cores for the writer workers
-            n_workers = os.cpu_count() - 2
+            n_workers = os.cpu_count()
+
+        if n_workers < 3:
+            raise ValueError("Number of workers must be at least 3 for parallel mode.")
 
         # get the size of the serialized dictionary
         inputs_size, results_size = self.__get_export_size(light_mode)
@@ -319,14 +328,8 @@ class MonteCarlo:
         inputs_size += 1024
         results_size += 1024
 
-        # get available memory. Only use 80% of the available memory
-        available_memory = 0.8 * psutil.virtual_memory().available
-
         # calculate the number of simulations that can be stored in memory
-        n_sim_memory = int(available_memory / (inputs_size + results_size))
-
-        if n_sim_memory > self.number_of_simulations:
-            n_sim_memory = self.number_of_simulations
+        n_sim_memory = max(n_workers - 2, 2)  # at least a double buffer
 
         # initialize shared memory buffer
         shared_inputs_buffer = shared_memory.SharedMemory(
@@ -336,177 +339,206 @@ class MonteCarlo:
             create=True, size=results_size * n_sim_memory, name="shared_results"
         )
 
-        with MonteCarloManager() as manager:
-            # initialize queue
-            errors_lock = manager.Lock()
+        try:
+            with MonteCarloManager() as manager:
+                # initialize queue
+                errors_lock = manager.Lock()
 
-            go_write_inputs = [manager.Semaphore(value=1) for _ in range(n_sim_memory)]
-            go_read_inputs = [manager.Semaphore(value=1) for _ in range(n_sim_memory)]
+                # initialize semaphores to control the shared memory buffer
+                # input file semaphores
+                go_write_inputs = [
+                    manager.Semaphore(value=1) for _ in range(n_sim_memory)
+                ]
+                go_read_inputs = [
+                    manager.Semaphore(value=1) for _ in range(n_sim_memory)
+                ]
 
-            go_write_results = [manager.Semaphore(value=1) for _ in range(n_sim_memory)]
-            go_read_results = [manager.Semaphore(value=1) for _ in range(n_sim_memory)]
+                # output file semaphores
+                go_write_results = [
+                    manager.Semaphore(value=1) for _ in range(n_sim_memory)
+                ]
+                go_read_results = [
+                    manager.Semaphore(value=1) for _ in range(n_sim_memory)
+                ]
 
-            # acquire all read semaphores to make sure the readers will wait for data
-            for sem in go_read_inputs:
-                sem.acquire()
+                # acquire all read semaphores to make sure the readers will wait for data
+                for sem in go_read_inputs:
+                    sem.acquire()
 
-            for sem in go_read_results:
-                sem.acquire()
+                for sem in go_read_results:
+                    sem.acquire()
 
-            # Initialize write file
-            open_mode = "a" if append else "w"
+                # Initialize write file
+                open_mode = "a" if append else "w"
 
-            file_paths = {
-                "input_file": Path(self._input_file),
-                "output_file": Path(self._output_file),
-                "error_file": Path(self._error_file),
-                "export_list": self.export_list,
-            }
+                file_paths = {
+                    "input_file": Path(self._input_file),
+                    "output_file": Path(self._output_file),
+                    "error_file": Path(self._error_file),
+                    "export_list": self.export_list,
+                }
 
-            # Initialize files
-            if light_mode:
-                # get initial simulation index
-                idx_i, idx_o = self.__get_light_indexes(
-                    self._input_file, self._output_file, append=append
-                )
-                # open files in write/append mode
-                with open(self._input_file, mode=open_mode) as f:
+                # Initialize files
+                if light_mode:
+                    # open files in write/append mode
+                    with open(self._input_file, mode=open_mode) as f:
+                        pass
+
+                    with open(self._output_file, mode=open_mode) as f:
+                        pass
+                        
+                    # get the initial simulation index - read mode is required
+                    with open(self._input_file, mode='r') as f:
+                        idx_i = self.__get_initial_sim_idx(
+                            f, append=append, light_mode=light_mode
+                        )
+
+                    with open(self._output_file, mode='r') as f:
+                        idx_o = self.__get_initial_sim_idx(
+                            f, append=append, light_mode=light_mode
+                        )
+
+                else:
+                    # Change file extensions to .h5
+                    file_paths["input_file"] = file_paths["input_file"].with_suffix(
+                        ".h5"
+                    )
+                    file_paths["output_file"] = file_paths["output_file"].with_suffix(
+                        ".h5"
+                    )
+                    file_paths["error_file"] = file_paths["error_file"].with_suffix(
+                        ".h5"
+                    )
+
+                    # Initialize files and get initial simulation index
+                    with h5py.File(file_paths["input_file"], open_mode) as f:
+                        idx_i = self.__get_initial_sim_idx(
+                            f, append=append, light_mode=light_mode
+                        )
+                    with h5py.File(file_paths["output_file"], open_mode) as f:
+                        idx_o = self.__get_initial_sim_idx(
+                            f, append=append, light_mode=light_mode
+                        )
+
+                if idx_i != idx_o:
+                    raise ValueError(
+                        "Input and output files are not synchronized. Append mode is not available."
+                    )
+
+                # Initialize error file - always a .txt file
+                with open(self._error_file, mode=open_mode) as _:
                     pass  # initialize file
-                with open(self._output_file, mode=open_mode) as f:
-                    pass  # initialize file
 
-            else:
-                # Change file extensions to .h5
-                file_paths["input_file"] = file_paths["input_file"].with_suffix(".h5")
-                file_paths["output_file"] = file_paths["output_file"].with_suffix(".h5")
-                file_paths["error_file"] = file_paths["error_file"].with_suffix(".h5")
-
-                # Initialize files and get initial simulation index
-                with h5py.File(file_paths["input_file"], open_mode) as f:
-                    idx_i = self.__get_initial_sim_idx(f, light_mode=light_mode)
-                with h5py.File(file_paths["output_file"], open_mode) as f:
-                    idx_o = self.__get_initial_sim_idx(f, light_mode=light_mode)
-
-            if idx_i != idx_o:
-                raise ValueError(
-                    "Input and output files are not synchronized. Append mode is not available."
+                # Initialize simulation counter
+                sim_counter = manager.SimCounter(
+                    idx_i, self.number_of_simulations, parallel_start
                 )
 
-            # Initialize error file - always a .txt file
-            with open(self._error_file, mode=open_mode) as _:
-                pass  # initialize file
+                print("\nStarting monte carlo analysis", end="\r")
+                print(f"Number of simulations: {self.number_of_simulations}")
 
-            # Initialize simulation counter
-            sim_counter = manager.SimCounter(
-                idx_i, self.number_of_simulations, parallel_start
-            )
+                # Creates n_workers processes then starts them
+                for i in range(n_workers - 2):  # leave 2 cores for the writer workers
+                    p = Process(
+                        target=self.__run_simulation_worker,
+                        args=(
+                            light_mode,
+                            file_paths,
+                            self.environment,
+                            self.rocket,
+                            self.flight,
+                            sim_counter,
+                            errors_lock,
+                            go_write_inputs,
+                            go_write_results,
+                            go_read_inputs,
+                            go_read_results,
+                            shared_inputs_buffer.name,
+                            shared_results_buffer.name,
+                            inputs_size,
+                            results_size,
+                            n_sim_memory,
+                            self.export_sample_time,
+                        ),
+                    )
+                    processes.append(p)
 
-            print("\nStarting monte carlo analysis", end="\r")
-            print(f"Number of simulations: {self.number_of_simulations}")
+                # Starts all the processes
+                for p in processes:
+                    p.start()
 
-            # Creates n_workers processes then starts them
-            for i in range(n_workers):
-                p = Process(
-                    target=self.__run_simulation_worker,
+                # create writer workers
+                input_writer_stop_event = manager.Event()
+                results_writer_stop_event = manager.Event()
+
+                input_writer = Process(
+                    target=self._write_data_worker,
                     args=(
-                        i,
-                        n_workers,
-                        light_mode,
-                        file_paths,
-                        self.environment,
-                        self.rocket,
-                        self.flight,
-                        sim_counter,
-                        errors_lock,
+                        file_paths["input_file"],
                         go_write_inputs,
-                        go_write_results,
                         go_read_inputs,
-                        go_read_results,
                         shared_inputs_buffer.name,
-                        shared_results_buffer.name,
                         inputs_size,
-                        results_size,
+                        input_writer_stop_event,
                         n_sim_memory,
-                        self.export_sample_time,
+                        light_mode,
                     ),
                 )
-                processes.append(p)
 
-            # Starts all the processes
-            for p in processes:
-                p.start()
+                results_writer = Process(
+                    target=self._write_data_worker,
+                    args=(
+                        file_paths["output_file"],
+                        go_write_results,
+                        go_read_results,
+                        shared_results_buffer.name,
+                        results_size,
+                        results_writer_stop_event,
+                        n_sim_memory,
+                        light_mode,
+                    ),
+                )
 
-            # create writer workers
-            input_writer_stop_event = manager.Event()
-            results_writer_stop_event = manager.Event()
+                # start the writer workers
+                input_writer.start()
+                results_writer.start()
 
-            input_writer = Process(
-                target=self._write_data_worker,
-                args=(
-                    file_paths["input_file"],
-                    go_write_inputs,
-                    go_read_inputs,
-                    shared_inputs_buffer.name,
-                    inputs_size,
-                    input_writer_stop_event,
-                    n_sim_memory,
-                    light_mode,
-                ),
-            )
+                # Joins all the processes
+                for p in processes:
+                    p.join()
 
-            results_writer = Process(
-                target=self._write_data_worker,
-                args=(
-                    file_paths["output_file"],
-                    go_write_results,
-                    go_read_results,
-                    shared_results_buffer.name,
-                    results_size,
-                    results_writer_stop_event,
-                    n_sim_memory,
-                    light_mode,
-                ),
-            )
+                print("All workers joined, simulation complete.")
+                print("Joining writer workers.")
+                # stop the writer workers
+                input_writer_stop_event.set()
+                results_writer_stop_event.set()
 
-            # start the writer workers
-            input_writer.start()
-            results_writer.start()
+                print("Waiting for writer workers to join.")
+                # join the writer workers
+                input_writer.join()
+                results_writer.join()
 
-            # Joins all the processes
-            for p in processes:
-                p.join()
+                self.number_of_simulations = sim_counter.get_count()
 
-            print("All workers joined, simulation complete.")
-            print("Joining writer workers.")
-            # stop the writer workers
-            input_writer_stop_event.set()
-            results_writer_stop_event.set()
+                parallel_end = time()
 
-            print("Waiting for writer workers to join.")
-            # join the writer workers
-            input_writer.join()
-            results_writer.join()
+                print("-" * 80 + "\nAll workers joined, simulation complete.")
+                print(
+                    f"In total, {sim_counter.get_count() - idx_i} simulations were performed."
+                )
+                print(
+                    "Simulation took", parallel_end - parallel_start, "seconds to run."
+                )
 
-            self.number_of_simulations = sim_counter.get_count()
-
-            parallel_end = time()
-
-            print("-" * 80 + "\nAll workers joined, simulation complete.")
-            print(
-                f"In total, {sim_counter.get_count() - idx_i} simulations were performed."
-            )
-            print("Simulation took", parallel_end - parallel_start, "seconds to run.")
-
-        # release shared memory
-        shared_inputs_buffer.close()
-        shared_results_buffer.close()
-        shared_inputs_buffer.unlink()
-        shared_results_buffer.unlink()
+        finally:
+            # ensure shared memory is realeased
+            shared_inputs_buffer.close()
+            shared_results_buffer.close()
+            shared_inputs_buffer.unlink()
+            shared_results_buffer.unlink()
 
     @staticmethod
     def __run_simulation_worker(
-        worker_no,
-        n_workers,
         light_mode,
         file_paths,
         sto_env,
@@ -530,10 +562,6 @@ class MonteCarlo:
 
         Parameters
         ----------
-        worker_no : int
-            Worker number.
-        n_workers : int
-            Number of workers.
         light_mode : bool
             If True, only variables from the export_list will be saved to
             the output file as a .txt file. If False, all variables will be
@@ -668,35 +696,20 @@ class MonteCarlo:
                 export_outputs_bytes = export_outputs_bytes.ljust(results_size, b'\0')
 
                 # write to shared memory
-                i = worker_no
-                found_slot = False
-
-                # loop through the shared memory buffer to find an empty slot
-                while not found_slot:
-                    if i >= len(go_write_inputs):
-                        i = worker_no
-
-                    # try to acquire the semaphore, skip if it is already acquired
-                    if go_write_inputs[i].acquire(timeout=1e-3):
-                        # write data to the shared buffer
-                        shared_inputs_buffer[i] = np.frombuffer(
-                            export_inputs_bytes, dtype=ctypes.c_ubyte
-                        )
-
-                        # signal the input reader that the data is ready
-                        go_read_inputs[i].release()
-                        found_slot = True
-                    else:
-                        i += n_workers
-
-                # write data to the shared buffer
-                go_write_results[i].acquire()
-                shared_results_buffer[i] = np.frombuffer(
-                    export_outputs_bytes, dtype=ctypes.c_ubyte
+                MonteCarlo.__export_simulation_data(
+                    go_write_inputs,
+                    go_read_inputs,
+                    shared_inputs_buffer,
+                    export_inputs_bytes,
                 )
 
-                # signal the output reader that the data is ready
-                go_read_results[i].release()
+                # write data to the shared buffer
+                MonteCarlo.__export_simulation_data(
+                    go_write_results,
+                    go_read_results,
+                    shared_results_buffer,
+                    export_outputs_bytes,
+                )
 
                 # update user on progress
                 sim_counter.reprint(
@@ -707,10 +720,13 @@ class MonteCarlo:
 
         except Exception as error:
             print(f"Error on iteration {sim_idx}: {error}")
+
+            # write error to file
             errors_lock.acquire()
             with open(file_paths["error_file"], mode='a', encoding="utf-8") as f:
                 f.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
             errors_lock.release()
+
             raise error
 
         finally:
@@ -781,6 +797,51 @@ class MonteCarlo:
             end="\r",
             flush=True,
         )
+
+    @staticmethod
+    def __export_simulation_data(go_write, go_read, shared_buffer, export_bytes):
+        """
+        Export the simulation data to the shared memory buffer. This function
+        will loop through the shared memory buffer to find an empty slot, write
+        the data to the shared buffer, and signal the input reader that the data
+        is ready.
+
+        Parameters
+        ----------
+        go_write : list
+            List of semaphores to write the data.
+        go_read : list
+            List of semaphores to read the data.
+        shared_buffer : np.ndarray
+            Shared memory buffer with the data.
+        export_bytes : bytes
+            Data to be written to the shared buffer.
+
+        Returns
+        -------
+        bool
+            True if the data was saved. An error will be raised otherwise.
+        """
+        i = 0
+        found_slot = False
+
+        # loop through the shared memory buffer to find an empty slot
+        while not found_slot:
+            if i >= len(go_write):
+                i = 0
+
+            # try to acquire the semaphore, skip if it is already acquired
+            if go_write[i].acquire(timeout=1e-3):
+                # write data to the shared buffer
+                shared_buffer[i] = np.frombuffer(export_bytes, dtype=ctypes.c_ubyte)
+
+                # signal the input reader that the data is ready
+                go_read[i].release()
+                found_slot = True
+            else:
+                i += 1
+
+        return True
 
     @staticmethod
     def __loop_though_buffer(
@@ -1590,7 +1651,7 @@ class MonteCarlo:
         return result
 
     @staticmethod
-    def __get_initial_sim_idx(file, light_mode):
+    def __get_initial_sim_idx(file, append, light_mode):
         """
         Get the initial simulation index from the filename.
 
@@ -1598,56 +1659,32 @@ class MonteCarlo:
         ----------
         filename : str
             Name of the file to be analyzed.
-
-        Returns
-        -------
-        int
-            Initial simulation index.
-        """
-        if light_mode:
-            lines = file.readlines()
-            return len(lines)
-
-        if len(file.keys()) == 0:
-            return 0  # light mode not using the simulation index
-
-        keys = [int(key) for key in file.keys()]
-        return max(keys) + 1
-
-    @staticmethod
-    def __get_light_indexes(input_file, output_file, append):
-        """
-        Get the initial simulation index from the filename.
-
-        Parameters
-        ----------
-        input_file : str
-            Name of the input file to be analyzed.
-        output_file : str
-            Name of the output file to be analyzed.
         append : bool
-            If True, the results will be appended to the existing files. If
-            False, the files will be overwritten.
+            If True, the file will be opened in append mode. Default is False.
+        light_mode : bool
+            If True, the file will be opened in light mode. Default is False.
 
         Returns
         -------
         int
             Initial simulation index.
         """
-        if append:
-            try:
-                with open(input_file, 'r', encoding="utf-8") as f:
-                    idx_i = MonteCarlo.__get_initial_sim_idx(f, light_mode=True)
-                with open(output_file, 'r', encoding="utf-8") as f:
-                    idx_o = MonteCarlo.__get_initial_sim_idx(f, light_mode=True)
-            except OSError:  # File not found, return 0
-                idx_i = 0
-                idx_o = 0
-        else:
-            idx_i = 0
-            idx_o = 0
+        if append is False:
+            return 0
 
-        return idx_i, idx_o
+        if light_mode:  # txt file / light mode
+            lines = file.readlines()
+            idx = len(lines)
+
+        else:  # h5 file / heavy mode
+            if len(file.keys()) == 0:
+                idx = 0
+            else:
+                # avoid overwriting since parallel mode does not save in order
+                keys = [int(key) for key in file.keys()]
+                idx = max(keys) + 1
+
+        return idx
 
     @staticmethod
     def __dict_to_h5(h5_file, path, dic):
@@ -1723,6 +1760,9 @@ class SimCounter:
 
         self.count += 1
         return self.count - 1
+
+    def set_count(self, count):
+        self.count = count
 
     def get_count(self):
         return self.count
