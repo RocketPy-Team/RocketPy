@@ -13,13 +13,14 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath("../"))
-
+package_path = os.path.abspath("../")
+sys.path.insert(0, package_path)
+os.environ["PYTHONPATH"] = ":".join((package_path, os.environ.get("PYTHONPATH", "")))
 
 # -- Project information -----------------------------------------------------
 
 project = "RocketPy"
-copyright = "2023, RocketPy Team"
+copyright = "2024, RocketPy Team"
 
 author = "RocketPy Team"
 
