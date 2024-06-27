@@ -1,12 +1,9 @@
-import json
-import os
 import time
 from datetime import datetime
 from unittest.mock import patch
 
 import numpy.ma as ma
 import pytest
-import pytz
 
 from rocketpy import Environment
 
