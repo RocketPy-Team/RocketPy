@@ -40,8 +40,6 @@ defusedxml==0.7.1
     # via nbconvert
 docutils==0.20.1
     # via
-    #   -r docs/requirements.in
-    #   m2r2
     #   nbsphinx
     #   pydata-sphinx-theme
     #   sphinx
@@ -100,8 +98,6 @@ lxml==5.2.2
     #   nbconvert
 lxml-html-clean==0.1.1
     # via -r docs/requirements.in
-m2r2==0.3.3.post2
-    # via -r docs/requirements.in
 markupsafe==2.1.5
     # via
     #   jinja2
@@ -111,9 +107,7 @@ matplotlib-inline==0.1.7
     #   ipykernel
     #   ipython
 mistune==0.8.4
-    # via
-    #   m2r2
-    #   nbconvert
+    # via nbconvert
 nbclient==0.10.0
     # via nbconvert
 nbconvert==6.5.4

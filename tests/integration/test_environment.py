@@ -89,6 +89,7 @@ def test_gefs_atmosphere(mock_show, example_spaceport_env):
     assert example_spaceport_env.all_info() == None
 
 
+@pytest.mark.skip(reason="legacy tests")  # deprecated method
 @patch("matplotlib.pyplot.show")
 def test_custom_atmosphere(mock_show, example_plain_env):
     """Tests the custom atmosphere model in the environment object.

@@ -29,16 +29,15 @@ from .stochastic_model import StochasticModel
 from .stochastic_parachute import StochasticParachute
 from .stochastic_solid_motor import StochasticSolidMotor
 
+# TODO: Private methods of this class should be double underscored
+
 
 class StochasticRocket(StochasticModel):
-    """A Stochastic Rocket class that inherits from StochasticModel. This
-    class is used to receive a Rocket object and information about the
-    dispersion of its parameters and generate a random rocket object based on
-    the provided information.
+    """A Stochastic Rocket class that inherits from StochasticModel.
 
     See Also
     --------
-    :ref:`stochastic_model`
+    :ref:`stochastic_model` and :class:`Rocket <rocketpy.Rocket>`
 
     Attributes
     ----------
@@ -55,45 +54,32 @@ class StochasticRocket(StochasticModel):
         A list of StochasticParachute instances containing all the parachutes of
         the rocket.
     radius : tuple, list, int, float
-        The radius of the rocket. Follows the standard input format of
-        Stochastic Models.
+        The radius of the rocket.
     mass : tuple, list, int, float
-        The mass of the rocket. Follows the standard input format of
-        Stochastic Models.
+        The mass of the rocket.
     inertia_11 : tuple, list, int, float
-        The inertia of the rocket around the x axis. Follows the standard input
-        format of Stochastic Models.
+        The inertia of the rocket around the x axis.
     inertia_22 : tuple, list, int, float
-        The inertia of the rocket around the y axis. Follows the standard input
-        format of Stochastic Models.
+        The inertia of the rocket around the y axis.
     inertia_33 : tuple, list, int, float
-        The inertia of the rocket around the z axis. Follows the standard input
-        format of Stochastic Models.
+        The inertia of the rocket around the z axis.
     inertia_12 : tuple, list, int, float
-        The inertia of the rocket around the xy axis. Follows the standard
-        input format of Stochastic Models.
+        The inertia of the rocket around the xy axis.
     inertia_13 : tuple, list, int, float
-        The inertia of the rocket around the xz axis. Follows the standard
-        input format of Stochastic Models.
+        The inertia of the rocket around the xz axis.
     inertia_23 : tuple, list, int, float
-        The inertia of the rocket around the yz axis. Follows the standard
-        input format of Stochastic Models.
+        The inertia of the rocket around the yz axis.
     power_off_drag : list
-        The power off drag of the rocket. Follows the 1d array like input format
-        of Stochastic Models.
+        The power off drag of the rocket.
     power_on_drag : list
-        The power on drag of the rocket. Follows the 1d array like input format
-        of Stochastic Models.
+        The power on drag of the rocket.
     power_off_drag_factor : tuple, list, int, float
-        The power off drag factor of the rocket. Follows the factor input
-        format of Stochastic Models.
+        The power off drag factor of the rocket.
     power_on_drag_factor : tuple, list, int, float
-        The power on drag factor of the rocket. Follows the standard input
-        format of Stochastic Models.
+        The power on drag factor of the rocket.
     center_of_mass_without_motor : tuple, list, int, float
-        The center of mass of the rocket without the motor. Follows the
-        standard input format of Stochastic Models.
-    coordinate_system_orientation : list
+        The center of mass of the rocket without the motor.
+    coordinate_system_orientation : list[str]
         The orientation of the coordinate system of the rocket. This attribute
         can not be a randomized.
     """
@@ -126,45 +112,35 @@ class StochasticRocket(StochasticModel):
         rocket : Rocket
             The Rocket object to be used as a base for the Stochastic rocket.
         radius : int, float, tuple, list, optional
-            The radius of the rocket. Follows the standard input format of
-            Stochastic Models.
+            The radius of the rocket.
         mass : int, float, tuple, list, optional
-            The mass of the rocket. Follows the standard input format of
-            Stochastic Models.
+            The mass of the rocket.
         inertia_11 : int, float, tuple, list, optional
-            The inertia of the rocket around the x axis. Follows the standard
-            input format of Stochastic Models.
+            The inertia of the rocket around the x axis.
         inertia_22 : int, float, tuple, list, optional
-            The inertia of the rocket around the y axis. Follows the standard
-            input format of Stochastic Models.
+            The inertia of the rocket around the y axis.
         inertia_33 : int, float, tuple, list, optional
-            The inertia of the rocket around the z axis. Follows the standard
-            input format of Stochastic Models.
+            The inertia of the rocket around the z axis.
         inertia_12 : int, float, tuple, list, optional
-            The inertia of the rocket around the xy axis. Follows the standard
-            input format of Stochastic Models.
+            The inertia of the rocket around the xy axis.
         inertia_13 : int, float, tuple, list, optional
-            The inertia of the rocket around the xz axis. Follows the standard
-            input format of Stochastic Models.
+            The inertia of the rocket around the xz axis.
         inertia_23 : int, float, tuple, list, optional
-            The inertia of the rocket around the yz axis. Follows the standard
-            input format of Stochastic Models.
+            The inertia of the rocket around the yz axis.
         power_off_drag : list, optional
-            The power off drag of the rocket. Follows the 1d array like input
-            format of Stochastic Models.
+            The power off drag of the rocket.
         power_on_drag : list, optional
-            The power on drag of the rocket. Follows the 1d array like input
-            format of Stochastic Models.
+            The power on drag of the rocket.
         power_off_drag_factor : int, float, tuple, list, optional
-            The power off drag factor of the rocket. Follows the factor input
-            format of Stochastic Models.
+            The power off drag factor of the rocket. This represents a factor
+            that multiplies the power off drag curve.
         power_on_drag_factor : int, float, tuple, list, optional
-            The power on drag factor of the rocket. Follows the standard input
-            format of Stochastic Models.
+            The power on drag factor of the rocket. This represents a factor
+            that multiplies the power on drag curve.
         center_of_mass_without_motor : int, float, tuple, list, optional
-            The center of mass of the rocket without the motor. Follows the
-            standard input format of Stochastic Models.
+            The center of mass of the rocket without the motor.
         """
+        # TODO: mention that these factors are validated differently
         self._validate_1d_array_like("power_off_drag", power_off_drag)
         self._validate_1d_array_like("power_on_drag", power_on_drag)
         super().__init__(
@@ -189,45 +165,6 @@ class StochasticRocket(StochasticModel):
         self.rail_buttons = Components()
         self.parachutes = []
 
-    def __str__(self):
-        # special str for rocket because of the components and parachutes
-        s = ""
-        for key, value in self.__dict__.items():
-            if key.startswith("_"):
-                continue  # Skip attributes starting with underscore
-            if isinstance(value, tuple):
-                # Format the tuple as a string with the mean and standard deviation.
-                value_str = (
-                    f"{value[0]:.5f} ± {value[1]:.5f} "
-                    f"(numpy.random.{value[2].__name__})"
-                )
-                s += f"{key}: {value_str}\n"
-            elif isinstance(value, Components):
-                # Format Components as string with the mean and std deviation
-                s += f"{key}:\n"
-                if len(value) == 0:
-                    s += "\tNone\n"
-                for component in value:
-                    s += f"\t{component.component.__class__.__name__} "
-                    if isinstance(component.position, tuple):
-                        s += f"at position: {component.position[0]:.5f} ± "
-                        s += f"{component.position[1]:.5f} "
-                        s += f"(numpy.random.{component.position[2].__name__})\n"
-                    elif isinstance(component.position, list):
-                        s += f"at position: {component.position}\n"
-                    else:
-                        s += f"at position: {component.position:.5f}\n"
-            else:
-                # Otherwise, just use the default string representation of the value.
-                value_str = str(value)
-                if isinstance(value, list) and len(value) > 0:
-                    if isinstance(value[0], (StochasticParachute)):
-                        value_str = ""
-                        for parachute in value:
-                            value_str += f"\n\t{parachute.name[0]} "
-                s += f"{key}: {value_str}\n"
-        return s.strip()
-
     def add_motor(self, motor, position=None):
         """Adds a stochastic motor to the stochastic rocket. If a motor is
         already present, it will be replaced.
@@ -237,8 +174,7 @@ class StochasticRocket(StochasticModel):
         motor : StochasticMotor or Motor
             The motor to be added to the stochastic rocket.
         position : tuple, list, int, float, optional
-            The position of the motor. Follows the standard input format of
-            Stochastic Models.
+            The position of the motor.
         """
         # checks if there is a motor already
         if len(self.motors) > 0:
@@ -252,7 +188,6 @@ class StochasticRocket(StochasticModel):
         if not isinstance(motor, (Motor, StochasticMotorModel)):
             raise TypeError("`motor` must be a StochasticMotor or Motor type")
         if isinstance(motor, Motor):
-            # create StochasticMotor
             # TODO implement HybridMotor and LiquidMotor stochastic models
             if isinstance(motor, SolidMotor):
                 motor = StochasticSolidMotor(solid_motor=motor)
@@ -269,8 +204,7 @@ class StochasticRocket(StochasticModel):
         surfaces : StochasticAeroSurface or AeroSurface
             The aerodynamic surface to be added to the stochastic rocket.
         positions : tuple, list, int, float, optional
-            The position of the aerodynamic surface. Follows the standard input
-            format of Stochastic Models.
+            The position of the aerodynamic surface.
         type : type
             The type of the aerodynamic surface to be added to the stochastic
             rocket.
@@ -284,7 +218,6 @@ class StochasticRocket(StochasticModel):
         if not isinstance(surfaces, (type, stochastic_type)):
             raise AssertionError(error_message)
         if isinstance(surfaces, type):
-            # create StochasticSurfaces
             surfaces = stochastic_type(component=surfaces)
         self.aerodynamic_surfaces.add(
             surfaces, self._validate_position(surfaces, positions)
@@ -298,8 +231,7 @@ class StochasticRocket(StochasticModel):
         nose : StochasticNoseCone or NoseCone
             The nose cone to be added to the stochastic rocket.
         position : tuple, list, int, float, optional
-            The position of the nose cone. Follows the standard input format of
-            Stochastic Models.
+            The position of the nose cone.
         """
         self._add_surfaces(
             surfaces=nose,
@@ -317,8 +249,7 @@ class StochasticRocket(StochasticModel):
         fins : StochasticTrapezoidalFins or TrapezoidalFins
             The trapezoidal fins to be added to the stochastic rocket.
         position : tuple, list, int, float, optional
-            The position of the trapezoidal fins. Follows the standard input
-            format of Stochastic Models.
+            The position of the trapezoidal fins.
         """
         self._add_surfaces(
             fins,
@@ -336,8 +267,7 @@ class StochasticRocket(StochasticModel):
         fins : StochasticEllipticalFins or EllipticalFins
             The elliptical fins to be added to the stochastic rocket.
         position : tuple, list, int, float, optional
-            The position of the elliptical fins. Follows the standard input
-            format of Stochastic Models.
+            The position of the elliptical fins.
         """
         self._add_surfaces(
             fins,
@@ -355,8 +285,7 @@ class StochasticRocket(StochasticModel):
         tail : StochasticTail or Tail
             The tail to be added to the stochastic rocket.
         position : tuple, list, int, float, optional
-            The position of the tail. Follows the standard input format of
-            Stochastic Models.
+            The position of the tail.
         """
         self._add_surfaces(
             tail,
@@ -380,7 +309,6 @@ class StochasticRocket(StochasticModel):
                 "`parachute` must be of Parachute or StochasticParachute type"
             )
         if isinstance(parachute, Parachute):
-            # create StochasticParachute
             parachute = StochasticParachute(parachute=parachute)
         self.parachutes.append(parachute)
 
@@ -396,15 +324,13 @@ class StochasticRocket(StochasticModel):
         rail_buttons : StochasticRailButtons or RailButtons
             The rail buttons to be added to the stochastic rocket.
         lower_button_position : tuple, list, int, float, optional
-            The position of the lower button. Follows the standard input format
-            of Stochastic Models.
+            The position of the lower button.
         """
         if not isinstance(rail_buttons, (StochasticRailButtons, RailButtons)):
             raise AssertionError(
                 "`rail_buttons` must be of RailButtons or StochasticRailButtons type"
             )
         if isinstance(rail_buttons, RailButtons):
-            # create StochasticRailButtons
             rail_buttons = StochasticRailButtons(rail_buttons=rail_buttons)
         self.rail_buttons.add(
             rail_buttons, self._validate_position(rail_buttons, lower_button_position)
