@@ -13,20 +13,6 @@ class _LiquidMotorPlots(_MotorPlots):
 
     """
 
-    def __init__(self, liquid_motor):
-        """Initializes _MotorClass class.
-
-        Parameters
-        ----------
-        liquid_motor : LiquidMotor
-            Instance of the LiquidMotor class
-
-        Returns
-        -------
-        None
-        """
-        super().__init__(liquid_motor)
-
     def draw(self):
         """Draw a representation of the LiquidMotor.
 

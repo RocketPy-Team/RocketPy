@@ -21,7 +21,6 @@ class _AeroSurfacePlots(ABC):
         None
         """
         self.aero_surface = aero_surface
-        return None
 
     @abstractmethod
     def draw(self):
@@ -37,7 +36,6 @@ class _AeroSurfacePlots(ABC):
         None
         """
         self.aero_surface.cl()
-        return None
 
     def all(self):
         """Plots all aero surface plots.
@@ -48,27 +46,11 @@ class _AeroSurfacePlots(ABC):
         """
         self.draw()
         self.lift()
-        return None
 
 
 class _NoseConePlots(_AeroSurfacePlots):
     """Class that contains all nosecone plots. This class inherits from the
     _AeroSurfacePlots class."""
-
-    def __init__(self, nosecone):
-        """Initialize the class
-
-        Parameters
-        ----------
-        nosecone : rocketpy.AeroSurface.NoseCone
-            Nosecone object to be plotted
-
-        Returns
-        -------
-        None
-        """
-        super().__init__(nosecone)
-        return None
 
     def draw(self):
         """Draw the nosecone shape along with some important information,
@@ -82,7 +64,7 @@ class _NoseConePlots(_AeroSurfacePlots):
         nosecone_x, nosecone_y = self.aero_surface.shape_vec
 
         # Figure creation and set up
-        fig_ogive, ax = plt.subplots()
+        _, ax = plt.subplots()
         ax.set_xlim(-0.05, self.aero_surface.length * 1.02)  # Horizontal size
         ax.set_ylim(
             -self.aero_surface.base_radius * 1.05, self.aero_surface.base_radius * 1.05
@@ -140,29 +122,13 @@ class _NoseConePlots(_AeroSurfacePlots):
         ax.set_ylabel("Radius")
         ax.set_title(self.aero_surface.kind + " Nose Cone")
         ax.legend(bbox_to_anchor=(1, -0.2))
-        # Show Plot
+
         plt.show()
-        return None
 
 
 class _FinsPlots(_AeroSurfacePlots):
     """Abstract class that contains all fin plots. This class inherits from the
     _AeroSurfacePlots class."""
-
-    def __init__(self, fin_set):
-        """Initialize the class
-
-        Parameters
-        ----------
-        fin_set : rocketpy.AeroSurface.fin_set
-            fin_set object to be plotted
-
-        Returns
-        -------
-        None
-        """
-        super().__init__(fin_set)
-        return None
 
     @abstractmethod
     def draw(self):
@@ -180,7 +146,6 @@ class _FinsPlots(_AeroSurfacePlots):
         if self.aero_surface.airfoil:
             print("Airfoil lift curve:")
             self.aero_surface.airfoil_cl.plot_1d(force_data=True)
-        return None
 
     def roll(self):
         """Plots the roll parameters of the fin set.
@@ -193,7 +158,6 @@ class _FinsPlots(_AeroSurfacePlots):
         # TODO: lacks a title in the plots
         self.aero_surface.roll_parameters[0]()
         self.aero_surface.roll_parameters[1]()
-        return None
 
     def lift(self):
         """Plots the lift coefficient of the aero surface as a function of Mach
@@ -210,7 +174,6 @@ class _FinsPlots(_AeroSurfacePlots):
         self.aero_surface.cl()
         self.aero_surface.clalpha_single_fin()
         self.aero_surface.clalpha_multiple_fins()
-        return None
 
     def all(self):
         """Plots all available fin plots.
@@ -223,16 +186,12 @@ class _FinsPlots(_AeroSurfacePlots):
         self.airfoil()
         self.roll()
         self.lift()
-        return None
 
 
 class _TrapezoidalFinsPlots(_FinsPlots):
     """Class that contains all trapezoidal fin plots."""
 
-    def __init__(self, fin_set):
-        super().__init__(fin_set)
-        return None
-
+    # pylint: disable=too-many-statements
     def draw(self):
         """Draw the fin shape along with some important information, including
         the center line, the quarter line and the center of pressure position.
@@ -348,16 +307,12 @@ class _TrapezoidalFinsPlots(_FinsPlots):
 
         plt.tight_layout()
         plt.show()
-        return None
 
 
 class _EllipticalFinsPlots(_FinsPlots):
     """Class that contains all elliptical fin plots."""
 
-    def __init__(self, fin_set):
-        super().__init__(fin_set)
-        return None
-
+    # pylint: disable=too-many-statements
     def draw(self):
         """Draw the fin shape along with some important information.
         These being: the center line and the center of pressure position.
@@ -424,48 +379,17 @@ class _EllipticalFinsPlots(_FinsPlots):
         plt.tight_layout()
         plt.show()
 
-        return None
-
 
 class _TailPlots(_AeroSurfacePlots):
     """Class that contains all tail plots."""
 
-    def __init__(self, tail):
-        """Initialize the class
-
-        Parameters
-        ----------
-        tail : rocketpy.AeroSurface.Tail
-            Tail object to be plotted
-
-        Returns
-        -------
-        None
-        """
-        super().__init__(tail)
-        return None
-
     def draw(self):
         # This will de done in the future
-        return None
+        pass
 
 
 class _AirBrakesPlots(_AeroSurfacePlots):
     """Class that contains all air brakes plots."""
-
-    def __init__(self, air_brakes):
-        """Initialize the class
-
-        Parameters
-        ----------
-        air_brakes : rocketpy.AeroSurface.air_brakes
-            AirBrakes object to be plotted
-
-        Returns
-        -------
-        None
-        """
-        super().__init__(air_brakes)
 
     def drag_coefficient_curve(self):
         """Plots the drag coefficient curve of the air_brakes."""

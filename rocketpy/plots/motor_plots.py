@@ -349,6 +349,7 @@ class _MotorPlots:
         )
         return patch
 
+    # pylint: disable=too-many-statements
     def _generate_grains(self, translate=(0, 0)):
         """Generates a list of patches that represent the grains of the motor.
         Each grain is a polygon with 4 vertices mirrored in the x axis. The top

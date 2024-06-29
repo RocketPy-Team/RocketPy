@@ -42,8 +42,25 @@ def example_spaceport_env(example_date_naive):
         datum="WGS84",
     )
     spaceport_env.set_date(example_date_naive)
-    spaceport_env.height = 1425
     return spaceport_env
+
+
+@pytest.fixture
+def example_euroc_env(example_date_naive):
+    """Environment class with location set to EuRoC launch site
+
+    Returns
+    -------
+    rocketpy.Environment
+    """
+    euroc_env = Environment(
+        latitude=39.3897,
+        longitude=-8.28896388889,
+        elevation=100,
+        datum="WGS84",
+    )
+    euroc_env.set_date(example_date_naive)
+    return euroc_env
 
 
 @pytest.fixture

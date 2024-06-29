@@ -61,6 +61,9 @@ line-length = 88
 include = '\.py$|\.ipynb$'
 skip-string-normalization = true
 
+[tool.isort]
+profile = "black"
+
 [tool.coverage.report]
 # Regexes for lines to exclude from consideration
 exclude_also = [
@@ -71,7 +74,13 @@ exclude_also = [
 [tool.flake8]
 max-line-length = 88
 max-module-lines = 3000
-ignore = ['E203', 'W503']
+ignore = [
+    'W503', # conflicts with black
+    'E203', # conflicts with black
+    'E501', # line too long, already checked by black and pylint
+    'E266', # too many leading '#' for block comment, this is pointless
+    'F401', # imported but unused, already checked by pylint
+]
 exclude = [
     '.git,__pycache__',
 ]

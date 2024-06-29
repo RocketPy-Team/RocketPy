@@ -2,7 +2,6 @@
 and build a rocketpy.Flight object from it.
 """
 
-import warnings
 from os import listdir
 from os.path import isfile, join
 

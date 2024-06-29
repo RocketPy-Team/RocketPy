@@ -24,7 +24,6 @@ class _TankPrints:
         None
         """
         self.tank = tank
-        return None
 
     def all(self):
         """Prints out all data available about the Tank.
@@ -33,4 +32,3 @@ class _TankPrints:
         -------
         None
         """
-        return None

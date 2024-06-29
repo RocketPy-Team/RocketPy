@@ -64,6 +64,7 @@ class StochasticSolidMotor(StochasticMotorModel):
         Radius of the throat in the motor in meters.
     """
 
+    # pylint: disable=too-many-arguments
     def __init__(
         self,
         solid_motor,
