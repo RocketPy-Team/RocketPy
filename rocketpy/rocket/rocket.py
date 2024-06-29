@@ -1030,7 +1030,14 @@ class Rocket:  # pylint: disable=too-many-instance-attributes
         return tail
 
     def add_nose(
-        self, length, kind, position, bluffness=0, name="Nose Cone", base_radius=None
+        self,
+        length,
+        kind,
+        position,
+        bluffness=0,
+        power=None,
+        name="Nose Cone",
+        base_radius=None,
     ):
         """Creates a nose cone, storing its parameters as part of the
         aerodynamic_surfaces list. Its parameters are the axial position
@@ -1044,14 +1051,17 @@ class Rocket:  # pylint: disable=too-many-instance-attributes
             Nose cone length or height in meters. Must be a positive
             value.
         kind : string
-            Nose cone type. Von Karman, conical, ogive, and lvhaack are
-            supported.
+            Nose cone type. Von Karman, conical, ogive, lvhaack and
+            powerseries are supported.
         position : int, float
             Nose cone tip coordinate relative to the rocket's coordinate system.
             See `Rocket.coordinate_system_orientation` for more information.
         bluffness : float, optional
             Ratio between the radius of the circle on the tip of the ogive and
             the radius of the base of the ogive.
+        power : float, optional
+            Factor that controls the bluntness of the nose cone shape when
+            using a 'powerseries' nose cone kind.
         name : string
             Nose cone name. Default is "Nose Cone".
         base_radius : int, float, optional
@@ -1073,6 +1083,7 @@ class Rocket:  # pylint: disable=too-many-instance-attributes
             base_radius=base_radius or self.radius,
             rocket_radius=base_radius or self.radius,
             bluffness=bluffness,
+            power=power,
             name=name,
         )
         self.add_surfaces(nose, position)
