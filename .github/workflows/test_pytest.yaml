@@ -45,7 +45,9 @@ jobs:
         run: python -c "import sys, rocketpy; print(f'{rocketpy.__name__} running on Python {sys.version}')"
 
       - name: Install test dependencies
-        run: pip install -r requirements-tests.txt
+        run: |
+          pip install -r requirements-tests.txt
+          pip install .[all]
 
       - name: Run Unit Tests
         run: pytest tests/unit --cov=rocketpy
