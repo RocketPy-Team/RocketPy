@@ -1,6 +1,6 @@
 """This module contains auxiliary functions for fetching data from various
 third-party APIs. As this is a recent module (introduced in v1.2.0), some
-functions may be changed without notice in future versions.
+functions may be changed without notice in future feature releases.
 """
 
 import re
