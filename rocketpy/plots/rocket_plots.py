@@ -112,6 +112,7 @@ class _RocketPlots:
 
         self.rocket.power_off_drag()
 
+    # pylint: disable=too-many-statements
     def drag_curves(self):
         """Plots power off and on drag curves of the rocket as a function of time.
 

@@ -328,7 +328,7 @@ exclude-too-few-public-methods=
 ignored-parents=
 
 # Maximum number of arguments for function / method.
-max-args=30
+max-args=15
 
 # Maximum number of attributes for a class (see R0902).
 max-attributes=50
@@ -337,7 +337,7 @@ max-attributes=50
 max-bool-expr=5
 
 # Maximum number of branch for function / method body.
-max-branches=50
+max-branches=25
 
 # Maximum number of locals for function / method body.
 max-locals=30
@@ -346,13 +346,13 @@ max-locals=30
 max-parents=7
 
 # Maximum number of public methods for a class (see R0904).
-max-public-methods=50
+max-public-methods=25
 
 # Maximum number of return / yield for function / method body.
-max-returns=50
+max-returns=25
 
 # Maximum number of statements in function / method body.
-max-statements=75
+max-statements=25
 
 # Minimum number of public methods for a class (see R0903).
 min-public-methods=0
@@ -383,7 +383,7 @@ indent-string='    '
 max-line-length=88
 
 # Maximum number of lines in a module.
-max-module-lines=3600
+max-module-lines=3000
 
 # Allow the body of a class to be on the same line as the declaration if body
 # contains single statement.

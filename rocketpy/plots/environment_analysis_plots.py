@@ -12,7 +12,7 @@ from ..tools import find_two_closest_integers, import_optional_dependency
 # TODO: `wind_speed_limit` and `clear_range_limits` and should be numbers, not booleans
 
 
-class _EnvironmentAnalysisPlots:
+class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
     """Class that holds plot methods for EnvironmentAnalysis class.
 
     Attributes
@@ -174,7 +174,9 @@ class _EnvironmentAnalysisPlots:
         plt.legend()
         plt.show()
 
-    def average_surface_temperature_evolution(self):
+    def average_surface_temperature_evolution(
+        self,
+    ):  # pylint: disable=too-many-statements
         """Plots average temperature progression throughout the day, including
         sigma contours.
 
@@ -239,7 +241,9 @@ class _EnvironmentAnalysisPlots:
         plt.legend()
         plt.show()
 
-    def average_surface10m_wind_speed_evolution(self, wind_speed_limit=False):
+    def average_surface10m_wind_speed_evolution(
+        self, wind_speed_limit=False
+    ):  # pylint: disable=too-many-statements
         """Plots average surface wind speed progression throughout the day,
         including sigma contours.
 
@@ -332,7 +336,9 @@ class _EnvironmentAnalysisPlots:
         plt.legend()
         plt.show()
 
-    def average_surface100m_wind_speed_evolution(self):
+    def average_surface100m_wind_speed_evolution(
+        self,
+    ):  # pylint: disable=too-many-statements
         """Plots average surface wind speed progression throughout the day, including
         sigma contours.
 
@@ -878,7 +884,7 @@ class _EnvironmentAnalysisPlots:
         )
         plt.show()
 
-    def average_wind_rose_grid(self):
+    def average_wind_rose_grid(self):  # pylint: disable=too-many-statements
         """Plot wind roses for all hours of a day, in a grid like plot.
 
         Returns
@@ -1004,7 +1010,7 @@ class _EnvironmentAnalysisPlots:
 
     # More plots and animations
 
-    def wind_gust_distribution_grid(self):
+    def wind_gust_distribution_grid(self):  # pylint: disable=too-many-statements
         """Plots shown in the animation of how the wind gust distribution varies
         throughout the day.
 
@@ -1075,7 +1081,7 @@ class _EnvironmentAnalysisPlots:
         fig.supylabel("Probability")
         plt.show()
 
-    def animate_wind_gust_distribution(self):
+    def animate_wind_gust_distribution(self):  # pylint: disable=too-many-statements
         """Animation of how the wind gust distribution varies throughout the day.
         Each frame is a histogram of the wind gust distribution for a specific hour.
 
@@ -1170,7 +1176,9 @@ class _EnvironmentAnalysisPlots:
         plt.close(fig)
         return HTML(animation.to_jshtml())
 
-    def surface_wind_speed_distribution_grid(self, wind_speed_limit=False):
+    def surface_wind_speed_distribution_grid(
+        self, wind_speed_limit=False
+    ):  # pylint: disable=too-many-statements
         """Plots shown in the animation of how the sustained surface wind speed
         distribution varies throughout the day. The plots are histograms of the
         wind speed distribution for a specific hour. The plots are arranged in a
@@ -1269,7 +1277,9 @@ class _EnvironmentAnalysisPlots:
         fig.supylabel("Probability")
         plt.show()
 
-    def animate_surface_wind_speed_distribution(self, wind_speed_limit=False):
+    def animate_surface_wind_speed_distribution(
+        self, wind_speed_limit=False
+    ):  # pylint: disable=too-many-statements
         """Animation of how the sustained surface wind speed distribution varies
         throughout the day. Each frame is a histogram of the wind speed distribution
         for a specific hour.
@@ -1391,7 +1401,9 @@ class _EnvironmentAnalysisPlots:
         plt.close(fig)
         return HTML(animation.to_jshtml())
 
-    def wind_speed_profile_grid(self, clear_range_limits=False):
+    def wind_speed_profile_grid(
+        self, clear_range_limits=False
+    ):  # pylint: disable=too-many-statements
         """Creates a grid of plots with the wind profile over the average day.
         Each subplot represents a different hour of the day.
 
@@ -1483,7 +1495,9 @@ class _EnvironmentAnalysisPlots:
         fig.supylabel(f"Altitude AGL ({self.env_analysis.unit_system['length']})")
         plt.show()
 
-    def wind_heading_profile_grid(self, clear_range_limits=False):
+    def wind_heading_profile_grid(
+        self, clear_range_limits=False
+    ):  # pylint: disable=too-many-statements
         """Creates a grid of plots with the wind heading profile over the
         average day. Each subplot represents a different hour of the day.
 
@@ -1570,7 +1584,9 @@ class _EnvironmentAnalysisPlots:
         fig.supylabel(f"Altitude AGL ({self.env_analysis.unit_system['length']})")
         plt.show()
 
-    def animate_wind_speed_profile(self, clear_range_limits=False):
+    def animate_wind_speed_profile(
+        self, clear_range_limits=False
+    ):  # pylint: disable=too-many-statements
         """Animation of how wind profile evolves throughout an average day.
 
         Parameters
@@ -1650,7 +1666,9 @@ class _EnvironmentAnalysisPlots:
         plt.close(fig)
         return HTML(animation.to_jshtml())
 
-    def animate_wind_heading_profile(self, clear_range_limits=False):
+    def animate_wind_heading_profile(
+        self, clear_range_limits=False
+    ):  # pylint: disable=too-many-statements
         """Animation of how the wind heading profile evolves throughout an
         average day. Each frame is a different hour of the day.
 

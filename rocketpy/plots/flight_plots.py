@@ -52,7 +52,7 @@ class _FlightPlots:
         else:
             return -1
 
-    def trajectory_3d(self):
+    def trajectory_3d(self):  # pylint: disable=too-many-statements
         """Plot a 3D graph of the trajectory
 
         Returns
@@ -123,7 +123,7 @@ class _FlightPlots:
         ax1.set_box_aspect(None, zoom=0.95)  # 95% for label adjustment
         plt.show()
 
-    def linear_kinematics_data(self):
+    def linear_kinematics_data(self):  # pylint: disable=too-many-statements
         """Prints out all Kinematics graphs available about the Flight
 
         Returns
@@ -195,7 +195,7 @@ class _FlightPlots:
         plt.subplots_adjust(hspace=0.5)
         plt.show()
 
-    def attitude_data(self):
+    def attitude_data(self):  # pylint: disable=too-many-statements
         """Prints out all Angular position graphs available about the Flight
 
         Returns
@@ -287,7 +287,7 @@ class _FlightPlots:
         plt.subplots_adjust(hspace=0.5)
         plt.show()
 
-    def angular_kinematics_data(self):
+    def angular_kinematics_data(self):  # pylint: disable=too-many-statements
         """Prints out all Angular velocity and acceleration graphs available
         about the Flight
 
@@ -353,7 +353,7 @@ class _FlightPlots:
         plt.subplots_adjust(hspace=0.5)
         plt.show()
 
-    def rail_buttons_forces(self):
+    def rail_buttons_forces(self):  # pylint: disable=too-many-statements
         """Prints out all Rail Buttons Forces graphs available about the Flight.
 
         Returns
@@ -436,7 +436,7 @@ class _FlightPlots:
             plt.subplots_adjust(hspace=0.5)
             plt.show()
 
-    def aerodynamic_forces(self):
+    def aerodynamic_forces(self):  # pylint: disable=too-many-statements
         """Prints out all Forces and Moments graphs available about the Flight
 
         Returns
@@ -516,7 +516,7 @@ class _FlightPlots:
         plt.subplots_adjust(hspace=0.5)
         plt.show()
 
-    def energy_data(self):
+    def energy_data(self):  # pylint: disable=too-many-statements
         """Prints out all Energy components graphs available about the Flight
 
         Returns
@@ -627,7 +627,7 @@ class _FlightPlots:
         plt.subplots_adjust(hspace=1)
         plt.show()
 
-    def fluid_mechanics_data(self):
+    def fluid_mechanics_data(self):  # pylint: disable=too-many-statements
         """Prints out a summary of the Fluid Mechanics graphs available about
         the Flight
 
@@ -690,7 +690,7 @@ class _FlightPlots:
         plt.subplots_adjust(hspace=0.5)
         plt.show()
 
-    def stability_and_control_data(self):
+    def stability_and_control_data(self):  # pylint: disable=too-many-statements
         """Prints out Rocket Stability and Control parameters graphs available
         about the Flight
 
@@ -815,7 +815,7 @@ class _FlightPlots:
         else:
             print("\nRocket has no parachutes. No parachute plots available")
 
-    def all(self):
+    def all(self):  # pylint: disable=too-many-statements
         """Prints out all plots available about the Flight.
 
         Returns

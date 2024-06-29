@@ -22,7 +22,8 @@ from rocketpy.rocket.parachute import Parachute
 from rocketpy.tools import parallel_axis_theorem_from_com
 
 
-class Rocket:  # pylint: disable=too-many-instance-attributes
+# pylint: disable=too-many-instance-attributes, too-many-public-methods, too-many-instance-attributes
+class Rocket:
     """Keeps rocket information.
 
     Attributes
@@ -193,7 +194,7 @@ class Rocket:  # pylint: disable=too-many-instance-attributes
         Rocket's inertia tensor 23 component with unloaded motor,in kg*m^2.
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-statements
         self,
         radius,
         mass,
@@ -871,7 +872,7 @@ class Rocket:  # pylint: disable=too-many-instance-attributes
             ]
         )
 
-    def add_motor(self, motor, position):
+    def add_motor(self, motor, position):  # pylint: disable=too-many-statements
         """Adds a motor to the rocket.
 
         Parameters

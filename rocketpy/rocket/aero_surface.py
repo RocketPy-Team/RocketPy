@@ -178,7 +178,7 @@ class NoseCone(AeroSurface):
         more about it.
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-statements
         self,
         length,
         kind,
@@ -318,7 +318,7 @@ class NoseCone(AeroSurface):
         return self._kind
 
     @kind.setter
-    def kind(self, value):
+    def kind(self, value):  # pylint: disable=too-many-statements
         # Analyzes nosecone type
         # Sets the k for Cp calculation
         # Sets the function which creates the respective curve
@@ -454,7 +454,7 @@ class NoseCone(AeroSurface):
 
         self.fineness_ratio = self.length / (2 * self.base_radius)
 
-    def evaluate_nose_shape(self):
+    def evaluate_nose_shape(self):  # pylint: disable=too-many-statements
         """Calculates and saves nose cone's shape as lists and re-evaluates the
         nose cone's length for a given bluffness ratio. The shape is saved as
         two vectors, one for the x coordinates and one for the y coordinates.
@@ -1234,7 +1234,7 @@ class TrapezoidalFins(Fins):
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
 
-    def evaluate_geometrical_parameters(self):
+    def evaluate_geometrical_parameters(self):  # pylint: disable=too-many-statements
         """Calculates and saves fin set's geometrical parameters such as the
         fins' area, aspect ratio and parameters for roll movement.
 
@@ -1510,7 +1510,7 @@ class EllipticalFins(Fins):
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
 
-    def evaluate_geometrical_parameters(self):
+    def evaluate_geometrical_parameters(self):  # pylint: disable=too-many-statements
         """Calculates and saves fin set's geometrical parameters such as the
         fins' area, aspect ratio and parameters for roll movement.
 

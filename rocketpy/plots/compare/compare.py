@@ -40,6 +40,7 @@ class Compare:
 
         self.object_list = object_list
 
+    # pylint: disable=too-many-statements
     def create_comparison_figure(
         self,
         y_attributes,

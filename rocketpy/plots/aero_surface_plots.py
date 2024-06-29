@@ -191,6 +191,7 @@ class _FinsPlots(_AeroSurfacePlots):
 class _TrapezoidalFinsPlots(_FinsPlots):
     """Class that contains all trapezoidal fin plots."""
 
+    # pylint: disable=too-many-statements
     def draw(self):
         """Draw the fin shape along with some important information, including
         the center line, the quarter line and the center of pressure position.
@@ -311,6 +312,7 @@ class _TrapezoidalFinsPlots(_FinsPlots):
 class _EllipticalFinsPlots(_FinsPlots):
     """Class that contains all elliptical fin plots."""
 
+    # pylint: disable=too-many-statements
     def draw(self):
         """Draw the fin shape along with some important information.
         These being: the center line and the center of pressure position.

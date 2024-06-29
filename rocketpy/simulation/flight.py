@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines
 import math
 import warnings
 from copy import deepcopy
@@ -485,7 +486,7 @@ class Flight:  # pylint: disable=too-many-public-methods
         array.
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments,too-many-statements
         self,
         rocket,
         environment,

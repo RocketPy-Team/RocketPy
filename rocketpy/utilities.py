@@ -200,6 +200,7 @@ def calculate_equilibrium_altitude(
     return altitude_function, velocity_function, final_sol
 
 
+# pylint: disable=too-many-statements
 def fin_flutter_analysis(
     fin_thickness, shear_modulus, flight, see_prints=True, see_graphs=True
 ):

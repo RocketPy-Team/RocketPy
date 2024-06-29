@@ -369,6 +369,7 @@ def inverted_haversine(lat0, lon0, distance, bearing, earth_radius=6.3781e6):
 
 
 # Functions for monte carlo analysis
+# pylint: disable=too-many-statements
 def generate_monte_carlo_ellipses(results):
     """A function to create apogee and impact ellipses from the monte carlo
     analysis results.

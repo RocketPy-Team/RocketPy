@@ -11,6 +11,7 @@ from ..prints.motor_prints import _MotorPrints
 from ..tools import parallel_axis_theorem_from_com, tuple_handler
 
 
+# pylint: disable=too-many-public-methods
 class Motor(ABC):
     """Abstract class to specify characteristics and useful operations for
     motors. Cannot be instantiated.
@@ -146,6 +147,7 @@ class Motor(ABC):
         'akima' and 'linear'. Default is "linear".
     """
 
+    # pylint: disable=too-many-statements
     def __init__(
         self,
         thrust_source,
@@ -1323,6 +1325,7 @@ class EmptyMotor:
 
     # TODO: This is a temporary solution. It should be replaced by a class that
     # inherits from the abstract Motor class. Currently cannot be done easily.
+    # pylint: disable=too-many-statements
     def __init__(self):
         """Initializes an empty motor with no mass and no thrust.
 

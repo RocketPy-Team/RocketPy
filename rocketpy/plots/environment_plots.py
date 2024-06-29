@@ -226,6 +226,7 @@ class _EnvironmentPlots:
         plt.subplots_adjust(wspace=0.5, hspace=0.3)
         plt.show()
 
+    # pylint: disable=too-many-statements
     def ensemble_member_comparison(self):
         """Plots ensemble member comparisons. It requires that the environment
         model has been set as Ensemble.

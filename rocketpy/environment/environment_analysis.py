@@ -92,7 +92,7 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
           average max wind gust, and average day wind rose.
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-statements
         self,
         start_date,
         end_date,
@@ -548,8 +548,9 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
 
     # General properties
 
+    # pylint: disable=too-many-locals, too-many-statements
     @cached_property
-    def __parse_pressure_level_data(self):  # pylint: disable=too-many-locals
+    def __parse_pressure_level_data(self):
         """
         Parse pressure level data from a weather file.
 
@@ -806,7 +807,7 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
         return self.__parse_pressure_level_data[4]
 
     @cached_property
-    def __parse_surface_data(self):
+    def __parse_surface_data(self):  # pylint: disable=too-many-statements
         """
         Parse surface data from a weather file.
         Currently only supports files from ECMWF.

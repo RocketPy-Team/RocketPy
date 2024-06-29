@@ -181,7 +181,7 @@ class HybridMotor(Motor):
         'akima' and 'linear'. Default is "linear".
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         thrust_source,
         dry_mass,

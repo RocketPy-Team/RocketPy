@@ -6,7 +6,7 @@ import numpy as np
 from .compare import Compare
 
 
-class CompareFlights(Compare):
+class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
     """A class to compare the results of multiple flights.
 
     Parameters
@@ -1124,7 +1124,7 @@ class CompareFlights(Compare):
         print("This method is not implemented yet")
 
     @staticmethod
-    def compare_trajectories_3d(
+    def compare_trajectories_3d(  # pylint: disable=too-many-statements
         flights, names_list=None, figsize=(7, 7), legend=None, filename=None
     ):
         """Creates a trajectory plot combining the trajectories listed.
@@ -1335,7 +1335,7 @@ class CompareFlights(Compare):
 
         func(flights, names_list, figsize, legend, filename)
 
-    def __plot_xy(
+    def __plot_xy(  # pylint: disable=too-many-statements
         self, flights, names_list, figsize=(7, 7), legend=None, filename=None
     ):
         """Creates a 2D trajectory plot in the X-Y plane that is the combination
@@ -1396,7 +1396,7 @@ class CompareFlights(Compare):
         # Save figure
         self.__process_savefig(filename, fig)
 
-    def __plot_xz(
+    def __plot_xz(  # pylint: disable=too-many-statements
         self, flights, names_list, figsize=(7, 7), legend=None, filename=None
     ):
         """Creates a 2D trajectory plot in the X-Z plane that is the combination
@@ -1460,7 +1460,7 @@ class CompareFlights(Compare):
         else:
             plt.show()
 
-    def __plot_yz(
+    def __plot_yz(  # pylint: disable=too-many-statements
         self, flights, names_list, figsize=(7, 7), legend=None, filename=None
     ):
         """Creates a 2D trajectory plot in the Y-Z plane that is the combination

@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines
 """ The mathutils/function.py is a rocketpy module totally dedicated to function
 operations, including interpolation, extrapolation, integration, differentiation
 and more. This is a core class of our package, and should be maintained
@@ -34,7 +35,7 @@ INTERPOLATION_TYPES = {
 EXTRAPOLATION_TYPES = {"zero": 0, "natural": 1, "constant": 2}
 
 
-class Function:
+class Function:  # pylint: disable=too-many-public-methods
     """Class converts a python function or a data sequence into an object
     which can be handled more naturally, enabling easy interpolation,
     extrapolation, plotting and algebra.
@@ -168,7 +169,7 @@ class Function:
         self.__outputs__ = self.__validate_outputs(outputs)
         return self
 
-    def set_source(self, source):
+    def set_source(self, source):  # pylint: disable=too-many-statements
         """Sets the data source for the function, defining how the function
         produces output from a given input.
 
@@ -336,7 +337,7 @@ class Function:
             self.__set_extrapolation_func()
         return self
 
-    def __set_interpolation_func(self):
+    def __set_interpolation_func(self):  # pylint: disable=too-many-statements
         """Defines interpolation function used by the Function. Each
         interpolation method has its own function with exception of shepard,
         which has its interpolation/extrapolation function defined in
@@ -394,7 +395,7 @@ class Function:
         elif interpolation == 4:  # shepard does not use interpolation function
             self._interpolation_func = None
 
-    def __set_extrapolation_func(self):
+    def __set_extrapolation_func(self):  # pylint: disable=too-many-statements
         """Defines extrapolation function used by the Function. Each
         extrapolation method has its own function. The function is stored in
         the attribute _extrapolation_func."""
@@ -1202,7 +1203,7 @@ class Function:
         )
         return self.plot_1d(*args, **kwargs)
 
-    def plot_1d(
+    def plot_1d(  # pylint: disable=too-many-statements
         self,
         lower=None,
         upper=None,
@@ -1295,7 +1296,7 @@ class Function:
         )
         return self.plot_2d(*args, **kwargs)
 
-    def plot_2d(
+    def plot_2d(  # pylint: disable=too-many-statements
         self,
         lower=None,
         upper=None,
@@ -1418,7 +1419,7 @@ class Function:
         plt.show()
 
     @staticmethod
-    def compare_plots(
+    def compare_plots(  # pylint: disable=too-many-statements
         plot_list,
         lower=None,
         upper=None,
@@ -1853,7 +1854,7 @@ class Function:
         return ~self.__ge__(other)
 
     # Define all possible algebraic operations
-    def __add__(self, other):
+    def __add__(self, other):  # pylint: disable=too-many-statements
         """Sums a Function object and 'other', returns a new Function
         object which gives the result of the sum. Only implemented for
         1D domains.
@@ -2060,7 +2061,7 @@ class Function:
         """
         return self * other
 
-    def __truediv__(self, other):
+    def __truediv__(self, other):  # pylint: disable=too-many-statements
         """Divides a Function object and returns a new Function object
         which gives the result of the division. Only implemented for 1D
         domains.
@@ -2170,7 +2171,7 @@ class Function:
         elif callable(other):
             return Function(lambda x: (other(x) / self.get_value_opt(x)))
 
-    def __pow__(self, other):
+    def __pow__(self, other):  # pylint: disable=too-many-statements
         """Raises a Function object to the power of 'other' and
         returns a new Function object which gives the result. Only
         implemented for 1D domains.
@@ -2299,7 +2300,7 @@ class Function:
         """
         return self.compose(other)
 
-    def integral(self, a, b, numerical=False):
+    def integral(self, a, b, numerical=False):  # pylint: disable=too-many-statements
         """Evaluate a definite integral of a 1-D Function in the interval
         from a to b.
 
@@ -2937,7 +2938,7 @@ class Function:
         return isinstance(var, np.ndarray) and var.size == 1
 
     # Input validators
-    def __validate_source(self, source):
+    def __validate_source(self, source):  # pylint: disable=too-many-statements
         """Used to validate the source parameter for creating a Function object.
 
         Parameters
@@ -3223,7 +3224,7 @@ class PiecewiseFunction(Function):
         )
 
 
-def funcify_method(*args, **kwargs):
+def funcify_method(*args, **kwargs):  # pylint: disable=too-many-statements
     """Decorator factory to wrap methods as Function objects and save them as
     cached properties.
 

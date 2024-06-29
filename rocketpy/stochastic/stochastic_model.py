@@ -40,7 +40,6 @@ class StochasticModel:
         "ensemble_member",
     ]
 
-    # pylint: disable=possibly-used-before-assignment
     def __init__(self, obj, **kwargs):
         """
         Initialize the StochasticModel class with validated input arguments.
@@ -68,6 +67,7 @@ class StochasticModel:
         # TODO: This code block is too complex. Refactor it.
         for input_name, input_value in kwargs.items():
             if input_name not in self.exception_list:
+                attr_value = None
                 if input_value is not None:
                     if "factor" in input_name:
                         attr_value = self._validate_factors(input_name, input_value)
@@ -478,6 +478,7 @@ class StochasticModel:
         self.last_rnd_dict = generated_dict
         yield generated_dict
 
+    # pylint: disable=too-many-statements
     def visualize_attributes(self):
         """
         This method prints a report of the attributes stored in the Stochastic

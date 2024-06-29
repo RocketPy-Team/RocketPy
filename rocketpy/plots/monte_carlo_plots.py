@@ -9,6 +9,7 @@ class _MonteCarloPlots:
     def __init__(self, monte_carlo):
         self.monte_carlo = monte_carlo
 
+    # pylint: disable=too-many-statements
     def ellipses(
         self,
         image=None,

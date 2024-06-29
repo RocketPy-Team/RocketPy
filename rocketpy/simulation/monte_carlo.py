@@ -79,7 +79,9 @@ class MonteCarlo:
         spent waiting for I/O operations or other processes to complete.
     """
 
-    def __init__(self, filename, environment, rocket, flight, export_list=None):
+    def __init__(
+        self, filename, environment, rocket, flight, export_list=None
+    ):  # pylint: disable=too-many-statements
         """
         Initialize a MonteCarlo object.
 
@@ -147,7 +149,9 @@ class MonteCarlo:
             self._error_file = f"{filename}.errors.txt"
 
     # pylint: disable=consider-using-with
-    def simulate(self, number_of_simulations, append=False):
+    def simulate(
+        self, number_of_simulations, append=False
+    ):  # pylint: disable=too-many-statements
         """
         Runs the Monte Carlo simulation and saves all data.
 
@@ -761,7 +765,7 @@ class MonteCarlo:
 
     # Export methods
 
-    def export_ellipses_to_kml(
+    def export_ellipses_to_kml(  # pylint: disable=too-many-statements
         self,
         filename,
         origin_lat,

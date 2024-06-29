@@ -40,7 +40,7 @@ def requires_netCDF4(func):
     return wrapped_func
 
 
-class Environment:
+class Environment:  # pylint: disable=too-many-public-methods
     """Keeps all environment information stored, such as wind and temperature
     conditions, as well as gravity.
 
@@ -823,7 +823,7 @@ class Environment:
 
         return elevation
 
-    def set_atmospheric_model(
+    def set_atmospheric_model(  # pylint: disable=too-many-branches
         self,
         type,  # pylint: disable=redefined-builtin
         file=None,
@@ -2043,7 +2043,9 @@ class Environment:
         self.max_expected_height = pressure_array[-1, 0]
 
     @requires_netCDF4
-    def process_forecast_reanalysis(self, file, dictionary):
+    def process_forecast_reanalysis(
+        self, file, dictionary
+    ):  # pylint: disable=too-many-branches
         """Import and process atmospheric data from weather forecasts
         and reanalysis given as ``netCDF`` or ``OPeNDAP`` files.
         Sets pressure, temperature, wind-u and wind-v
@@ -2454,7 +2456,7 @@ class Environment:
         weather_data.close()
 
     @requires_netCDF4
-    def process_ensemble(self, file, dictionary):
+    def process_ensemble(self, file, dictionary):  # pylint: disable=too-many-branches
         """Import and process atmospheric data from weather ensembles
         given as ``netCDF`` or ``OPeNDAP`` files. Sets pressure, temperature,
         wind-u and wind-v profiles and surface elevation obtained from a weather
