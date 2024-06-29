@@ -1273,9 +1273,7 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
             List with total precipitation for each day in the dataset.
         """
         return [
-            sum(
-                [day_dict[hour]["total_precipitation"] for hour in day_dict.keys()]
-            )  # pylint: disable=consider-using-generator
+            sum(day_dict[hour]["total_precipitation"] for hour in day_dict.keys())
             for day_dict in self.converted_surface_data.values()
         ]
 
@@ -2583,15 +2581,8 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
             Maximum average temperature.
         """
         max_temp = float("-inf")
-        for (
-            hour
-        ) in (
-            self.average_temperature_profile_by_hour.keys()
-        ):  # pylint: disable=consider-iterating-dictionary,consider-using-dict-items
-            max_temp = max(
-                max_temp,
-                np.max(self.average_temperature_profile_by_hour[hour][0]),
-            )
+        for temp_profile in self.average_temperature_profile_by_hour.values():
+            max_temp = max(max_temp, np.max(temp_profile[0]))
         return max_temp
 
     @cached_property
@@ -2607,15 +2598,8 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
             Minimum average temperature.
         """
         min_temp = float("inf")
-        for (
-            hour
-        ) in (
-            self.average_temperature_profile_by_hour.keys()
-        ):  # pylint: disable=consider-iterating-dictionary,consider-using-dict-items
-            min_temp = min(
-                min_temp,
-                np.min(self.average_temperature_profile_by_hour[hour][0]),
-            )
+        for temp_profile in self.average_temperature_profile_by_hour.values():
+            min_temp = min(min_temp, np.min(temp_profile[0]))
         return min_temp
 
     @cached_property
@@ -2632,15 +2616,8 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
             Maximum average wind speed.
         """
         max_wind_speed = float("-inf")
-        for (
-            hour
-        ) in (
-            self.average_wind_speed_profile_by_hour.keys()
-        ):  # pylint: disable=consider-iterating-dictionary,consider-using-dict-items
-            max_wind_speed = max(
-                max_wind_speed,
-                np.max(self.average_wind_speed_profile_by_hour[hour][0]),
-            )
+        for wind_speed_profile in self.average_wind_speed_profile_by_hour.values():
+            max_wind_speed = max(max_wind_speed, np.max(wind_speed_profile[0]))
         return max_wind_speed
 
     # Pressure level data - Average values
@@ -2816,35 +2793,31 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
         flipped_pressure_dict = {}
         flipped_wind_x_dict = {}
         flipped_wind_y_dict = {}
-        # pylint: disable=consider-using-dict-items
-        for (
-            hour
-        ) in (
-            self.average_temperature_profile_by_hour.keys()
-        ):  # pylint: disable=consider-iterating-dictionary
+
+        for hour, temp_profile in self.average_temperature_profile_by_hour.items():
             flipped_temperature_dict[hour] = np.column_stack(
-                (
-                    self.average_temperature_profile_by_hour[hour][1],
-                    self.average_temperature_profile_by_hour[hour][0],
-                )
+                (temp_profile[1], temp_profile[0])
             ).tolist()
+
+        for hour, pressure_profile in self.average_pressure_profile_by_hour.items():
             flipped_pressure_dict[hour] = np.column_stack(
-                (
-                    self.average_pressure_profile_by_hour[hour][1],
-                    self.average_pressure_profile_by_hour[hour][0],
-                )
+                (pressure_profile[1], pressure_profile[0])
             ).tolist()
+
+        for (
+            hour,
+            wind_x_profile,
+        ) in self.average_wind_velocity_x_profile_by_hour.items():
             flipped_wind_x_dict[hour] = np.column_stack(
-                (
-                    self.average_wind_velocity_x_profile_by_hour[hour][1],
-                    self.average_wind_velocity_x_profile_by_hour[hour][0],
-                )
+                (wind_x_profile[1], wind_x_profile[0])
             ).tolist()
+
+        for (
+            hour,
+            wind_y_profile,
+        ) in self.average_wind_velocity_y_profile_by_hour.items():
             flipped_wind_y_dict[hour] = np.column_stack(
-                (
-                    self.average_wind_velocity_y_profile_by_hour[hour][1],
-                    self.average_wind_velocity_y_profile_by_hour[hour][0],
-                )
+                (wind_y_profile[1], wind_y_profile[0])
             ).tolist()
 
         self.export_dictionary = {
@@ -2865,23 +2838,15 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
             "atmospheric_model_wind_velocity_y_profile": flipped_wind_y_dict,
         }
 
-        # Convert to json
-        f = open(filename + ".json", "w")  # pylint: disable=consider-using-with
-
-        # write json object to file
-        f.write(
-            json.dumps(self.export_dictionary, sort_keys=False, indent=4, default=str)
-        )
-
-        # close file
-        f.close()
+        with open(filename + ".json", "w") as f:
+            f.write(
+                json.dumps(
+                    self.export_dictionary, sort_keys=False, indent=4, default=str
+                )
+            )
         print(
-            "Your Environment Analysis file was saved, check it out: "
-            + filename
-            + ".json"
-        )
-        print(
-            "You can use it in the future by using the customAtmosphere atmospheric model."
+            f"Your Environment Analysis file was saved, check it out: {filename}.json\n"
+            "You can use it to set a `customAtmosphere` atmospheric model"
         )
 
     @classmethod

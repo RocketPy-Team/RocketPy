@@ -40,6 +40,7 @@ class StochasticModel:
         "ensemble_member",
     ]
 
+    # pylint: disable=possibly-used-before-assignment
     def __init__(self, obj, **kwargs):
         """
         Initialize the StochasticModel class with validated input arguments.
@@ -83,9 +84,7 @@ class StochasticModel:
                             )
                 else:
                     attr_value = [getattr(self.obj, input_name)]
-                setattr(
-                    self, input_name, attr_value
-                )  # pylint: disable=possibly-used-before-assignment
+                setattr(self, input_name, attr_value)
 
     def __repr__(self):
         return f"'{self.__class__.__name__}() object'"

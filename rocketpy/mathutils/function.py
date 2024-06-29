@@ -1539,7 +1539,7 @@ class Function:
                     ax.scatter(points[0], points[1], marker="o")
 
         # Setup legend
-        if any([plot[1] for plot in plots]):
+        if any(plot[1] for plot in plots):
             ax.legend(loc="best", shadow=True)
 
         # Turn on grid and set title and axis

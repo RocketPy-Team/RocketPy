@@ -453,6 +453,7 @@ class StochasticRocket(StochasticModel):
         elif isinstance(position, list):
             return choice(position) if position else position
 
+    # pylint: disable=stop-iteration-return
     def dict_generator(self):
         """Special generator for the rocket class that yields a dictionary with
         the randomly generated input arguments. The dictionary is saved as an
@@ -472,9 +473,7 @@ class StochasticRocket(StochasticModel):
         dict
             Dictionary with the randomly generated input arguments.
         """
-        generated_dict = next(
-            super().dict_generator()
-        )  # pylint: disable=stop-iteration-return
+        generated_dict = next(super().dict_generator())
         generated_dict["motors"] = []
         generated_dict["aerodynamic_surfaces"] = []
         generated_dict["rail_buttons"] = []

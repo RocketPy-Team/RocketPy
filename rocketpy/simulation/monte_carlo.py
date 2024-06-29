@@ -146,6 +146,7 @@ class MonteCarlo:
         except FileNotFoundError:
             self._error_file = f"{filename}.errors.txt"
 
+    # pylint: disable=consider-using-with
     def simulate(self, number_of_simulations, append=False):
         """
         Runs the Monte Carlo simulation and saves all data.
@@ -178,15 +179,9 @@ class MonteCarlo:
         """
         # Create data files for inputs, outputs and error logging
         open_mode = "a" if append else "w"
-        input_file = open(
-            self._input_file, open_mode, encoding="utf-8"
-        )  # pylint: disable=consider-using-with
-        output_file = open(
-            self._output_file, open_mode, encoding="utf-8"
-        )  # pylint: disable=consider-using-with
-        error_file = open(
-            self._error_file, open_mode, encoding="utf-8"
-        )  # pylint: disable=consider-using-with
+        input_file = open(self._input_file, open_mode, encoding="utf-8")
+        output_file = open(self._output_file, open_mode, encoding="utf-8")
+        error_file = open(self._error_file, open_mode, encoding="utf-8")
 
         # initialize counters
         self.number_of_simulations = number_of_simulations

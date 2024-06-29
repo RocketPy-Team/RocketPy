@@ -716,12 +716,8 @@ class Rocket:  # pylint: disable=too-many-instance-attributes
         dry_mass = self.dry_mass  # Constant rocket mass with motor, without propellant
 
         # Compute axes distances
-        CM_to_CDM = (
-            self.center_of_mass - self.center_of_dry_mass_position
-        )  # pylint: disable=invalid-name
-        CM_to_CPM = (
-            self.center_of_mass - self.center_of_propellant_position
-        )  # pylint: disable=invalid-name
+        CM_to_CDM = self.center_of_mass - self.center_of_dry_mass_position
+        CM_to_CPM = self.center_of_mass - self.center_of_propellant_position
 
         # Compute inertias
         self.I_11 = parallel_axis_theorem_from_com(
@@ -894,13 +890,13 @@ class Rocket:  # pylint: disable=too-many-instance-attributes
         -------
         None
         """
-        if hasattr(self, "motor") and not isinstance(
-            self.motor, EmptyMotor
-        ):  # pylint: disable=access-member-before-definition
-            print(
-                "Only one motor per rocket is currently supported. "
-                + "Overwriting previous motor."
-            )
+        if hasattr(self, "motor"):
+            # pylint: disable=access-member-before-definition
+            if not isinstance(self.motor, EmptyMotor):
+                print(
+                    "Only one motor per rocket is currently supported. "
+                    + "Overwriting previous motor."
+                )
         self.motor = motor
         self.motor_position = position
         _ = self._csys * self.motor._csys

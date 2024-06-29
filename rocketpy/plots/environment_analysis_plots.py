@@ -394,9 +394,7 @@ class _EnvironmentAnalysisPlots:
         # Format plot
         plt.gca().xaxis.set_major_locator(plt.MaxNLocator(integer=True))
         plt.gca().xaxis.set_major_formatter(
-            lambda x, pos: "{0:02.0f}:{1:02.0f}".format(
-                *divmod(x * 60, 60)
-            )  # pylint: disable=consider-using-f-string
+            lambda x, pos: f"{int(x):02}:{int((x * 60) % 60):02}"
         )
         plt.autoscale(enable=True, axis="x", tight=True)
         plt.xlabel("Time (hours)")

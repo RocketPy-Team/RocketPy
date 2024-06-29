@@ -635,13 +635,10 @@ class Flight:  # pylint: disable=too-many-public-methods
             f"name= {self.name})>"
         )
 
-    def __simulate(
-        self, verbose
-    ):  #  pylint: disable=too-many-branches  # pylint: disable=too-many-locals,too-many-statements
+    # pylint: disable=too-many-nested-blocks, too-many-branches, too-many-locals,too-many-statements
+    def __simulate(self, verbose):
         """Simulate the flight trajectory."""
-        for phase_index, phase in self.time_iterator(
-            self.flight_phases
-        ):  # pylint: disable=too-many-nested-blocks
+        for phase_index, phase in self.time_iterator(self.flight_phases):
             # Determine maximum time for this flight phase
             phase.time_bound = self.flight_phases[phase_index + 1].t
 
@@ -775,29 +772,21 @@ class Flight:  # pylint: disable=too-many-public-methods
                         self.solution[-1][3] -= self.env.elevation
                         # Get points
                         y0 = (
-                            sum(
-                                [self.solution[-2][i] ** 2 for i in [1, 2, 3]]
-                            )  # pylint: disable=consider-using-generator
+                            sum(self.solution[-2][i] ** 2 for i in [1, 2, 3])
                             - self.effective_1rl**2
                         )
-                        yp0 = 2 * sum(  # pylint: disable=consider-using-generator
-                            [
-                                self.solution[-2][i] * self.solution[-2][i + 3]
-                                for i in [1, 2, 3]
-                            ]
+                        yp0 = 2 * sum(
+                            self.solution[-2][i] * self.solution[-2][i + 3]
+                            for i in [1, 2, 3]
                         )
                         t1 = self.solution[-1][0] - self.solution[-2][0]
                         y1 = (
-                            sum(
-                                [self.solution[-1][i] ** 2 for i in [1, 2, 3]]
-                            )  # pylint: disable=consider-using-generator
+                            sum(self.solution[-1][i] ** 2 for i in [1, 2, 3])
                             - self.effective_1rl**2
                         )
-                        yp1 = 2 * sum(  # pylint: disable=consider-using-generator
-                            [
-                                self.solution[-1][i] * self.solution[-1][i + 3]
-                                for i in [1, 2, 3]
-                            ]
+                        yp1 = 2 * sum(
+                            self.solution[-1][i] * self.solution[-1][i + 3]
+                            for i in [1, 2, 3]
                         )
                         # Put elevation back
                         self.solution[-2][3] += self.env.elevation

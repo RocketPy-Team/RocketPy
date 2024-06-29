@@ -570,7 +570,6 @@ class NoseCone(AeroSurface):
         """
         if self.kind == "powerseries":
             self.k = (2 * self.power) / ((2 * self.power) + 1)
-        return None
 
     def evaluate_center_of_pressure(self):
         """Calculates and returns the center of pressure of the nose cone in
@@ -876,19 +875,25 @@ class Fins(AeroSurface):
         clalpha2D = Function(lambda mach: clalpha2D_incompressible / self._beta(mach))
 
         # Diederich's Planform Correlation Parameter
-        FD = (
+        planform_correlation_parameter = (
             2 * np.pi * self.AR / (clalpha2D * np.cos(self.gamma_c))
         )  # pylint: disable=invalid-name
 
         # Lift coefficient derivative for a single fin
-        self.clalpha_single_fin = Function(
-            lambda mach: (
+        def lift_source(mach):
+            return (
                 clalpha2D(mach)
-                * FD(mach)
+                * planform_correlation_parameter(mach)
                 * (self.Af / self.ref_area)
                 * np.cos(self.gamma_c)
+            ) / (
+                2
+                + planform_correlation_parameter(mach)
+                * np.sqrt(1 + (2 / planform_correlation_parameter(mach)) ** 2)
             )
-            / (2 + FD(mach) * np.sqrt(1 + (2 / FD(mach)) ** 2)),
+
+        self.clalpha_single_fin = Function(
+            lift_source,
             "Mach",
             "Lift coefficient derivative for a single fin",
         )
@@ -1515,9 +1520,9 @@ class EllipticalFins(Fins):
         """
 
         # Compute auxiliary geometrical parameters
-        Af = (
+        Af = (  # Fin area  # pylint: disable=invalid-name
             np.pi * self.root_chord / 2 * self.span
-        ) / 2  # Fin area  # pylint: disable=invalid-name
+        ) / 2
         gamma_c = 0  # Zero for elliptical fins
         AR = 2 * self.span**2 / Af  # Fin aspect ratio  # pylint: disable=invalid-name
         Yma = (  # pylint: disable=invalid-name
@@ -1613,7 +1618,7 @@ class EllipticalFins(Fins):
         self.Af = Af  # Fin area  # pylint: disable=invalid-name
         self.AR = AR  # Fin aspect ratio  # pylint: disable=invalid-name
         self.gamma_c = gamma_c  # Mid chord angle
-        self.Yma = (
+        self.Yma = (  # pylint: disable=invalid-name
             Yma  # Span wise coord of mean aero chord  # pylint: disable=invalid-name
         )
         self.roll_geometrical_constant = roll_geometrical_constant

@@ -352,10 +352,8 @@ class _RocketPlots:
             else:
                 # If it is not the last surface, the tube goes to the beginning
                 # of the next surface
-                # pylint: disable=unused-variable
-                next_surface, next_position, next_radius, next_last_x = drawn_surfaces[
-                    i + 1
-                ]  # pylint: disable=unused-variable
+                # [next_surface, next_position, next_radius, next_last_x]
+                next_position = drawn_surfaces[i + 1][1]
                 x_tube = [last_x, next_position]
                 y_tube = [radius, radius]
                 y_tube_negated = [-radius, -radius]

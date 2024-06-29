@@ -225,6 +225,8 @@ good-names=FlightPhases,
            motor_I_11_derivative_at_t,
            M3_forcing,
            M3_damping,
+           CM_to_CDM,
+           CM_to_CPM,
 
 # Good variable names regexes, separated by a comma. If names match any regex,
 # they will always be accepted
