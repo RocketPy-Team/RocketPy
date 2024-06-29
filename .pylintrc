@@ -46,7 +46,7 @@ fail-under=10
 #from-stdin=
 
 # Files or directories to be skipped. They should be base names, not paths.
-ignore=CVS, docs
+ignore=CVS, docs, data, 
 
 # Add files or directories matching the regular expressions patterns to the
 # ignore-list. The regex matches against paths and can be in Posix or Windows
@@ -88,7 +88,7 @@ persistent=yes
 
 # Minimum Python version to use for version dependent checks. Will default to
 # the version used to run pylint.
-py-version=3.8
+py-version=3.9
 
 # Discover python modules and packages in the file system subtree.
 recursive=no
@@ -212,7 +212,21 @@ good-names=FlightPhases,
            fin_set_NACA,
            fin_set_E473,
            HIRESW_dictionary,
-
+           prop_I_11,
+           Kt, # transformation matrix transposed
+           clalpha2D, 
+           clalpha2D_incompresible,
+           r_NOZ, # Nozzle position vector
+           rocket_dry_I_33,
+           rocket_dry_I_11,
+           motor_I_33_at_t,
+           motor_I_11_at_t,
+           motor_I_33_derivative_at_t,
+           motor_I_11_derivative_at_t,
+           M3_forcing,
+           M3_damping,
+           CM_to_CDM,
+           CM_to_CPM,
 
 # Good variable names regexes, separated by a comma. If names match any regex,
 # they will always be accepted
@@ -222,6 +236,8 @@ good-names-rgxs= ^[a-z][0-9]?$,  # Single lowercase characters, possibly followe
                  ^(dry_|propellant_)[A-Z]+_\d+$,  # Variables starting with 'dry_' or 'propellant_', followed by uppercase characters, underscore, and digits
                  ^[a-z]+_ISA$,  # Lowercase words ending with '_ISA'
                  ^plot(1D|2D)$,  # Variables starting with 'plot' followed by '1D' or '2D'
+                 S_noz*, # nozzle gyration tensor
+                 r_CM*, # center of mass position and its variations
 
 # Include a hint for the correct naming format with invalid-name.
 include-naming-hint=no
@@ -312,16 +328,16 @@ exclude-too-few-public-methods=
 ignored-parents=
 
 # Maximum number of arguments for function / method.
-max-args=10
+max-args=15
 
 # Maximum number of attributes for a class (see R0902).
-max-attributes=30
+max-attributes=50
 
 # Maximum number of boolean expressions in an if statement (see R0916).
 max-bool-expr=5
 
 # Maximum number of branch for function / method body.
-max-branches=12
+max-branches=25
 
 # Maximum number of locals for function / method body.
 max-locals=30
@@ -330,16 +346,16 @@ max-locals=30
 max-parents=7
 
 # Maximum number of public methods for a class (see R0904).
-max-public-methods=40
+max-public-methods=25
 
 # Maximum number of return / yield for function / method body.
-max-returns=6
+max-returns=25
 
 # Maximum number of statements in function / method body.
-max-statements=50
+max-statements=25
 
 # Minimum number of public methods for a class (see R0903).
-min-public-methods=2
+min-public-methods=0
 
 
 [EXCEPTIONS]
@@ -454,14 +470,32 @@ disable=raw-checker-failed,
         file-ignored,
         suppressed-message,
         useless-suppression,
-        deprecated-pragma,
+        deprecated-pragma, # because we have some peniding deprecations in the code. 
         use-symbolic-message-instead,
         use-implicit-booleaness-not-comparison-to-string,
         use-implicit-booleaness-not-comparison-to-zero,
-        no-else-return,
+        no-else-return, # this is a style preference, we don't need to follow it
         inconsistent-return-statements,
-        unspecified-encoding,
+        unspecified-encoding, # this is not a relevant issue.
         no-member, # because we use funcify_method decorator
+        invalid-overridden-method, # because we use funcify_method decorator
+        too-many-function-args, # because we use funcify_method decorator
+        fixme, # because we use TODO in the code
+        missing-module-docstring, # not useful for most of the modules.
+        attribute-defined-outside-init, # to avoid more than 200 errors (code works fine)
+        not-an-iterable, # rocketpy Functions are iterable, false positive
+        too-many-function-args, # gives false positives for Function calls
+        method-hidden, # avoids some errors in tank_geometry and flight classes
+        missing-timeout, # not a problem to use requests without timeout
+        protected-access, # we use private attriubutes out of the class (maybe we should fix this)
+        duplicate-code, # repeating code is a bad thing, but should we really care about it?
+        line-too-long, # black already takes care of this
+        missing-function-docstring, # this is too verbose.
+        redefined-outer-name, # too verbose, and doesn't add much value
+        method-cache-max-size-none,
+        no-else-raise, # pointless
+
+
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option

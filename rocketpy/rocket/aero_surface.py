@@ -32,7 +32,36 @@ class AeroSurface(ABC):
         self.cpy = 0
         self.cpz = 0
         self.name = name
-        return None
+
+    @staticmethod
+    def _beta(mach):
+        """Defines a parameter that is often used in aerodynamic
+        equations. It is commonly used in the Prandtl factor which
+        corrects subsonic force coefficients for compressible flow.
+        This is applied to the lift coefficient of the nose cone,
+        fins and tails/transitions as in [1].
+
+        Parameters
+        ----------
+        mach : int, float
+            Number of mach.
+
+        Returns
+        -------
+        beta : int, float
+            Value that characterizes flow speed based on the mach number.
+
+        References
+        ----------
+        [1] Barrowman, James S. https://arc.aiaa.org/doi/10.2514/6.1979-504
+        """
+
+        if mach < 0.8:
+            return np.sqrt(1 - mach**2)
+        elif mach < 1.1:
+            return np.sqrt(1 - 0.8**2)
+        else:
+            return np.sqrt(mach**2 - 1)
 
     @abstractmethod
     def evaluate_center_of_pressure(self):
@@ -43,7 +72,6 @@ class AeroSurface(ABC):
         -------
         None
         """
-        pass
 
     @abstractmethod
     def evaluate_lift_coefficient(self):
@@ -53,7 +81,6 @@ class AeroSurface(ABC):
         -------
         None
         """
-        pass
 
     @abstractmethod
     def evaluate_geometrical_parameters(self):
@@ -63,7 +90,6 @@ class AeroSurface(ABC):
         -------
         None
         """
-        pass
 
     @abstractmethod
     def info(self):
@@ -73,7 +99,6 @@ class AeroSurface(ABC):
         -------
         None
         """
-        pass
 
     @abstractmethod
     def all_info(self):
@@ -83,7 +108,6 @@ class AeroSurface(ABC):
         -------
         None
         """
-        pass
 
 
 class NoseCone(AeroSurface):
@@ -101,14 +125,15 @@ class NoseCone(AeroSurface):
         Nose cone length. Has units of length and must be given in meters.
     NoseCone.kind : string
         Nose cone kind. Can be "conical", "ogive", "elliptical", "tangent",
-        "von karman", "parabolic" or "lvhaack".
+        "von karman", "parabolic", "powerseries" or "lvhaack".
     NoseCone.bluffness : float
         Ratio between the radius of the circle on the tip of the ogive and the
         radius of the base of the ogive. Currently only used for the nose cone's
         drawing. Must be between 0 and 1. Default is None, which means that the
         nose cone will not have a sphere on the tip. If a value is given, the
         nose cone's length will be slightly reduced because of the addition of
-        the sphere.
+        the sphere. Must be None or 0 if a "powerseries" nose cone kind is
+        specified.
     NoseCone.rocket_radius : float
         The reference rocket radius used for lift coefficient normalization,
         in meters.
@@ -120,6 +145,10 @@ class NoseCone(AeroSurface):
         rocket radius is assumed as 1, meaning that the nose cone has the same
         radius as the rocket. If base radius is given, the ratio between base
         radius and rocket radius is calculated and used for lift calculation.
+    NoseCone.power : float
+        Factor that controls the bluntness of the shape for a power series
+        nose cone. Must be between 0 and 1. It is ignored when other nose
+        cone types are used.
     NoseCone.name : string
         Nose cone name. Has no impact in simulation, as it is only used to
         display data in a more organized matter.
@@ -149,13 +178,14 @@ class NoseCone(AeroSurface):
         more about it.
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-statements
         self,
         length,
         kind,
         base_radius=None,
         bluffness=None,
         rocket_radius=None,
+        power=None,
         name="Nose Cone",
     ):
         """Initializes the nose cone. It is used to define the nose cone
@@ -167,7 +197,9 @@ class NoseCone(AeroSurface):
             Nose cone length. Has units of length and must be given in meters.
         kind : string
             Nose cone kind. Can be "conical", "ogive", "elliptical", "tangent",
-            "von karman", "parabolic" or "lvhaack".
+            "von karman", "parabolic", "powerseries" or "lvhaack". If
+            "powerseries" is used, the "power" argument must be assigned to a
+            value between 0 and 1.
         base_radius : float, optional
             Nose cone base radius. Has units of length and must be given in
             meters. If not given, the ratio between ``base_radius`` and
@@ -178,11 +210,16 @@ class NoseCone(AeroSurface):
             nose cone's drawing. Must be between 0 and 1. Default is None, which
             means that the nose cone will not have a sphere on the tip. If a
             value is given, the nose cone's length will be reduced to account
-            for the addition of the sphere at the tip.
+            for the addition of the sphere at the tip. Must be None or 0 if a
+            "powerseries" nose cone kind is specified.
         rocket_radius : int, float, optional
             The reference rocket radius used for lift coefficient normalization.
             If not given, the ratio between ``base_radius`` and
             ``rocket_radius`` will be assumed as 1.
+        power : float, optional
+            Factor that controls the bluntness of the shape for a power series
+            nose cone. Must be between 0 and 1. It is ignored when other nose
+            cone types are used.
         name : str, optional
             Nose cone name. Has no impact in simulation, as it is only used to
             display data in a more organized matter.
@@ -199,9 +236,27 @@ class NoseCone(AeroSurface):
         if bluffness is not None:
             if bluffness > 1 or bluffness < 0:
                 raise ValueError(
-                    f"Bluffness ratio of {bluffness} is out of range. It must be between 0 and 1."
+                    f"Bluffness ratio of {bluffness} is out of range. "
+                    "It must be between 0 and 1."
                 )
         self._bluffness = bluffness
+        if kind == "powerseries":
+            # Checks if bluffness is not being used
+            if (self.bluffness is not None) and (self.bluffness != 0):
+                raise ValueError(
+                    "Parameter 'bluffness' must be None or 0 when using a nose cone kind 'powerseries'."
+                )
+
+            if power is None:
+                raise ValueError(
+                    "Parameter 'power' cannot be None when using a nose cone kind 'powerseries'."
+                )
+
+            if power > 1 or power <= 0:
+                raise ValueError(
+                    f"Power value of {power} is out of range. It must be between 0 and 1."
+                )
+        self._power = power
         self.kind = kind
 
         self.evaluate_lift_coefficient()
@@ -209,8 +264,6 @@ class NoseCone(AeroSurface):
 
         self.plots = _NoseConePlots(self)
         self.prints = _NoseConePrints(self)
-
-        return None
 
     @property
     def rocket_radius(self):
@@ -245,11 +298,27 @@ class NoseCone(AeroSurface):
         self.evaluate_nose_shape()
 
     @property
+    def power(self):
+        return self._power
+
+    @power.setter
+    def power(self, value):
+        if value is not None:
+            if value > 1 or value <= 0:
+                raise ValueError(
+                    f"Power value of {value} is out of range. It must be between 0 and 1."
+                )
+        self._power = value
+        self.evaluate_k()
+        self.evaluate_center_of_pressure()
+        self.evaluate_nose_shape()
+
+    @property
     def kind(self):
         return self._kind
 
     @kind.setter
-    def kind(self, value):
+    def kind(self, value):  # pylint: disable=too-many-statements
         # Analyzes nosecone type
         # Sets the k for Cp calculation
         # Sets the function which creates the respective curve
@@ -262,7 +331,10 @@ class NoseCone(AeroSurface):
 
         elif value == "lvhaack":
             self.k = 0.563
-            theta = lambda x: np.arccos(1 - 2 * max(min(x / self.length, 1), 0))
+
+            def theta(x):
+                return np.arccos(1 - 2 * max(min(x / self.length, 1), 0))
+
             self.y_nosecone = Function(
                 lambda x: self.base_radius
                 * (theta(x) - np.sin(2 * theta(x)) / 2 + (np.sin(theta(x)) ** 3) / 3)
@@ -293,7 +365,10 @@ class NoseCone(AeroSurface):
 
         elif value == "vonkarman":
             self.k = 0.5
-            theta = lambda x: np.arccos(1 - 2 * max(min(x / self.length, 1), 0))
+
+            def theta(x):
+                return np.arccos(1 - 2 * max(min(x / self.length, 1), 0))
+
             self.y_nosecone = Function(
                 lambda x: self.base_radius
                 * (theta(x) - np.sin(2 * theta(x)) / 2) ** (0.5)
@@ -305,7 +380,11 @@ class NoseCone(AeroSurface):
                 lambda x: self.base_radius
                 * ((2 * x / self.length - (x / self.length) ** 2) / (2 - 1))
             )
-
+        elif value == "powerseries":
+            self.k = (2 * self.power) / ((2 * self.power) + 1)
+            self.y_nosecone = Function(
+                lambda x: self.base_radius * np.power(x / self.length, self.power)
+            )
         else:
             raise ValueError(
                 f"Nose Cone kind '{self.kind}' not found, "
@@ -316,6 +395,7 @@ class NoseCone(AeroSurface):
                 + '\n\t"tangent"'
                 + '\n\t"vonkarman"'
                 + '\n\t"elliptical"'
+                + '\n\t"powerseries"'
                 + '\n\t"parabolic"\n'
             )
 
@@ -329,10 +409,18 @@ class NoseCone(AeroSurface):
 
     @bluffness.setter
     def bluffness(self, value):
+        # prevents from setting bluffness on "powerseries" nose cones
+        if self.kind == "powerseries":
+            # Checks if bluffness is not being used
+            if (value is not None) and (value != 0):
+                raise ValueError(
+                    "Parameter 'bluffness' must be None or 0 when using a nose cone kind 'powerseries'."
+                )
         if value is not None:
             if value > 1 or value < 0:
                 raise ValueError(
-                    f"Bluffness ratio of {value} is out of range. It must be between 0 and 1."
+                    f"Bluffness ratio of {value} is out of range. "
+                    "It must be between 0 and 1."
                 )
         self._bluffness = value
         self.evaluate_nose_shape()
@@ -360,13 +448,13 @@ class NoseCone(AeroSurface):
             self.radius_ratio = self.base_radius / self.rocket_radius
         else:
             raise ValueError(
-                "Either base radius or rocket radius must be given to calculate the nose cone radius ratio."
+                "Either base radius or rocket radius must be given to "
+                "calculate the nose cone radius ratio."
             )
 
         self.fineness_ratio = self.length / (2 * self.base_radius)
-        return None
 
-    def evaluate_nose_shape(self):
+    def evaluate_nose_shape(self):  # pylint: disable=too-many-statements
         """Calculates and saves nose cone's shape as lists and re-evaluates the
         nose cone's length for a given bluffness ratio. The shape is saved as
         two vectors, one for the x coordinates and one for the y coordinates.
@@ -375,12 +463,11 @@ class NoseCone(AeroSurface):
         -------
         None
         """
-        # Constants
-        n = 127  # Points on the final curve.
-        p = 3  # Density modifier. Greater n makes more points closer to 0. n=1 -> points equally spaced.
+        number_of_points = 127
+        density_modifier = 3  # increase density of points to improve accuracy
 
-        # Calculate a function to find the tangential intersection point between the circle and nosecone curve.
         def find_x_intercept(x):
+            # find the tangential intersection point between the circle and nosec curve
             return x + self.y_nosecone(x) * self.y_nosecone.differentiate_complex_step(
                 x
             )
@@ -397,8 +484,9 @@ class NoseCone(AeroSurface):
             # Calculate circle radius
             r_circle = self.bluffness * self.base_radius
             if self.kind == "elliptical":
-                # Calculate a function to set up a circle at the starting position to test bluffness
+
                 def test_circle(x):
+                    # set up a circle at the starting position to test bluffness
                     return np.sqrt(r_circle**2 - (x - r_circle) ** 2)
 
                 # Check if bluffness circle is too small
@@ -433,22 +521,19 @@ class NoseCone(AeroSurface):
 
         # Create the vectors X and Y with the points of the curve
         nosecone_x = (self.length - (circle_center - r_circle)) * (
-            np.linspace(0, 1, n) ** p
+            np.linspace(0, 1, number_of_points) ** density_modifier
         )
         nosecone_y = final_shape_vec(nosecone_x + (circle_center - r_circle))
 
         # Evaluate final geometry parameters
         self.shape_vec = [nosecone_x, nosecone_y]
-        if abs(nosecone_x[-1] - self.length) >= 0.001:  # 1 milimiter
+        if abs(nosecone_x[-1] - self.length) >= 0.001:  # 1 millimeter
             self._length = nosecone_x[-1]
             print(
-                "Due to the chosen bluffness ratio, the nose cone length was reduced to m.".format(
-                    self.length
-                )
+                "Due to the chosen bluffness ratio, the nose "
+                f"cone length was reduced to {self.length} m."
             )
         self.fineness_ratio = self.length / (2 * self.base_radius)
-
-        return None
 
     def evaluate_lift_coefficient(self):
         """Calculates and returns nose cone's lift coefficient.
@@ -465,7 +550,7 @@ class NoseCone(AeroSurface):
         # It must be set as a Function because it will be called and treated
         # as a function of mach in the simulation.
         self.clalpha = Function(
-            lambda mach: 2 * self.radius_ratio**2,
+            lambda mach: 2 / self._beta(mach) * self.radius_ratio**2,
             "Mach",
             f"Lift coefficient derivative for {self.name}",
         )
@@ -474,7 +559,17 @@ class NoseCone(AeroSurface):
             ["Alpha (rad)", "Mach"],
             "Cl",
         )
-        return None
+
+    def evaluate_k(self):
+        """Updates the self.k attribute used to compute the center of
+        pressure when using "powerseries" nose cones.
+
+        Returns
+        -------
+        None
+        """
+        if self.kind == "powerseries":
+            self.k = (2 * self.power) / ((2 * self.power) + 1)
 
     def evaluate_center_of_pressure(self):
         """Calculates and returns the center of pressure of the nose cone in
@@ -513,7 +608,6 @@ class NoseCone(AeroSurface):
         """
         self.prints.geometry()
         self.prints.lift()
-        return None
 
     def all_info(self):
         """Prints and plots all the available information of the nose cone.
@@ -524,7 +618,6 @@ class NoseCone(AeroSurface):
         """
         self.prints.all()
         self.plots.all()
-        return None
 
 
 class Fins(AeroSurface):
@@ -675,8 +768,6 @@ class Fins(AeroSurface):
         self.d = d
         self.ref_area = ref_area  # Reference area
 
-        return None
-
     @property
     def n(self):
         return self._n
@@ -762,7 +853,7 @@ class Fins(AeroSurface):
         """
         if not self.airfoil:
             # Defines clalpha2D as 2*pi for planar fins
-            clalpha2D_incompressible = 2 * np.pi
+            clalpha2D_incompressible = 2 * np.pi  # pylint: disable=invalid-name
         else:
             # Defines clalpha2D as the derivative of the lift coefficient curve
             # for the specific airfoil
@@ -772,34 +863,42 @@ class Fins(AeroSurface):
             )
 
             # Differentiating at alpha = 0 to get cl_alpha
-            clalpha2D_incompressible = self.airfoil_cl.differentiate_complex_step(
+            clalpha2D_incompressible = self.airfoil_cl.differentiate_complex_step(  # pylint: disable=invalid-name
                 x=1e-3, dx=1e-3
             )
 
             # Convert to radians if needed
             if self.airfoil[1] == "degrees":
-                clalpha2D_incompressible *= 180 / np.pi
+                clalpha2D_incompressible *= 180 / np.pi  # pylint: disable=invalid-name
 
         # Correcting for compressible flow (apply Prandtl-Glauert correction)
-        clalpha2D = Function(lambda mach: clalpha2D_incompressible / self.__beta(mach))
+        clalpha2D = Function(lambda mach: clalpha2D_incompressible / self._beta(mach))
 
         # Diederich's Planform Correlation Parameter
-        FD = 2 * np.pi * self.AR / (clalpha2D * np.cos(self.gamma_c))
+        planform_correlation_parameter = (
+            2 * np.pi * self.AR / (clalpha2D * np.cos(self.gamma_c))
+        )  # pylint: disable=invalid-name
 
         # Lift coefficient derivative for a single fin
-        self.clalpha_single_fin = Function(
-            lambda mach: (
+        def lift_source(mach):
+            return (
                 clalpha2D(mach)
-                * FD(mach)
+                * planform_correlation_parameter(mach)
                 * (self.Af / self.ref_area)
                 * np.cos(self.gamma_c)
+            ) / (
+                2
+                + planform_correlation_parameter(mach)
+                * np.sqrt(1 + (2 / planform_correlation_parameter(mach)) ** 2)
             )
-            / (2 + FD(mach) * np.sqrt(1 + (2 / FD(mach)) ** 2)),
+
+        self.clalpha_single_fin = Function(
+            lift_source,
             "Mach",
             "Lift coefficient derivative for a single fin",
         )
 
-        # Lift coefficient derivative for a number of n fins corrected for Fin-Body interference
+        # Lift coefficient derivative for n fins corrected with Fin-Body interference
         self.clalpha_multiple_fins = (
             self.lift_interference_factor
             * self.__fin_num_correction(self.n)
@@ -807,11 +906,11 @@ class Fins(AeroSurface):
         )  # Function of mach number
         self.clalpha_multiple_fins.set_inputs("Mach")
         self.clalpha_multiple_fins.set_outputs(
-            "Lift coefficient derivative for {:.0f} fins".format(self.n)
+            f"Lift coefficient derivative for {self.n:.0f} fins"
         )
         self.clalpha = self.clalpha_multiple_fins
 
-        # Calculates clalpha * alpha
+        # Cl = clalpha * alpha
         self.cl = Function(
             lambda alpha, mach: alpha * self.clalpha_multiple_fins(mach),
             ["Alpha (rad)", "Mach"],
@@ -857,32 +956,8 @@ class Fins(AeroSurface):
         self.roll_parameters = [clf_delta, cld_omega, self.cant_angle_rad]
         return self.roll_parameters
 
-    # Defines beta parameter
-    def __beta(_, mach):
-        """Defines a parameter that is often used in aerodynamic
-        equations. It is commonly used in the Prandtl factor which
-        corrects subsonic force coefficients for compressible flow.
-
-        Parameters
-        ----------
-        mach : int, float
-            Number of mach.
-
-        Returns
-        -------
-        beta : int, float
-            Value that characterizes flow speed based on the mach number.
-        """
-
-        if mach < 0.8:
-            return np.sqrt(1 - mach**2)
-        elif mach < 1.1:
-            return np.sqrt(1 - 0.8**2)
-        else:
-            return np.sqrt(mach**2 - 1)
-
-    # Defines number of fins  factor
-    def __fin_num_correction(_, n):
+    @staticmethod
+    def __fin_num_correction(n):
         """Calculates a correction factor for the lift coefficient of multiple
         fins.
         The specifics  values are documented at:
@@ -900,7 +975,7 @@ class Fins(AeroSurface):
             Factor that accounts for the number of fins.
         """
         corrector_factor = [2.37, 2.74, 2.99, 3.24]
-        if n >= 5 and n <= 8:
+        if n >= 5 and n <= 8:  # pylint: disable=chained-comparison
             return corrector_factor[n - 5]
         else:
             return n / 2
@@ -914,7 +989,6 @@ class Fins(AeroSurface):
         None
         """
         self.plots.draw()
-        return None
 
 
 class TrapezoidalFins(Fins):
@@ -1159,9 +1233,8 @@ class TrapezoidalFins(Fins):
         self.cpy = 0
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
-        return None
 
-    def evaluate_geometrical_parameters(self):
+    def evaluate_geometrical_parameters(self):  # pylint: disable=too-many-statements
         """Calculates and saves fin set's geometrical parameters such as the
         fins' area, aspect ratio and parameters for roll movement.
 
@@ -1169,7 +1242,7 @@ class TrapezoidalFins(Fins):
         -------
         None
         """
-
+        # pylint: disable=invalid-name
         Yr = self.root_chord + self.tip_chord
         Af = Yr * self.span / 2  # Fin area
         AR = 2 * self.span**2 / Af  # Fin aspect ratio
@@ -1184,10 +1257,10 @@ class TrapezoidalFins(Fins):
         # Fin–body interference correction parameters
         tau = (self.span + self.rocket_radius) / self.rocket_radius
         lift_interference_factor = 1 + 1 / tau
-        λ = self.tip_chord / self.root_chord
+        lambda_ = self.tip_chord / self.root_chord
 
         # Parameters for Roll Moment.
-        # Documented at: https://github.com/RocketPy-Team/RocketPy/blob/master/docs/technical/aerodynamics/Roll_Equations.pdf
+        # Documented at: https://docs.rocketpy.org/en/latest/technical/
         roll_geometrical_constant = (
             (self.root_chord + 3 * self.tip_chord) * self.span**3
             + 4
@@ -1197,9 +1270,10 @@ class TrapezoidalFins(Fins):
             + 6 * (self.root_chord + self.tip_chord) * self.span * self.rocket_radius**2
         ) / 12
         roll_damping_interference_factor = 1 + (
-            ((tau - λ) / (tau)) - ((1 - λ) / (tau - 1)) * np.log(tau)
+            ((tau - lambda_) / (tau)) - ((1 - lambda_) / (tau - 1)) * np.log(tau)
         ) / (
-            ((tau + 1) * (tau - λ)) / (2) - ((1 - λ) * (tau**3 - 1)) / (3 * (tau - 1))
+            ((tau + 1) * (tau - lambda_)) / (2)
+            - ((1 - lambda_) * (tau**3 - 1)) / (3 * (tau - 1))
         )
         roll_forcing_interference_factor = (1 / np.pi**2) * (
             (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
@@ -1224,12 +1298,11 @@ class TrapezoidalFins(Fins):
         self.roll_geometrical_constant = roll_geometrical_constant
         self.tau = tau
         self.lift_interference_factor = lift_interference_factor
-        self.λ = λ
+        self.λ = lambda_  # pylint: disable=non-ascii-name
         self.roll_damping_interference_factor = roll_damping_interference_factor
         self.roll_forcing_interference_factor = roll_forcing_interference_factor
 
         self.evaluate_shape()
-        return None
 
     def evaluate_shape(self):
         if self.sweep_length:
@@ -1250,17 +1323,13 @@ class TrapezoidalFins(Fins):
         x_array, y_array = zip(*points)
         self.shape_vec = [np.array(x_array), np.array(y_array)]
 
-        return None
-
     def info(self):
         self.prints.geometry()
         self.prints.lift()
-        return None
 
     def all_info(self):
         self.prints.all()
         self.plots.all()
-        return None
 
 
 class EllipticalFins(Fins):
@@ -1425,8 +1494,6 @@ class EllipticalFins(Fins):
         self.prints = _EllipticalFinsPrints(self)
         self.plots = _EllipticalFinsPlots(self)
 
-        return None
-
     def evaluate_center_of_pressure(self):
         """Calculates and returns the center of pressure of the fin set in local
         coordinates. The center of pressure position is saved and stored as a
@@ -1442,9 +1509,8 @@ class EllipticalFins(Fins):
         self.cpy = 0
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
-        return None
 
-    def evaluate_geometrical_parameters(self):
+    def evaluate_geometrical_parameters(self):  # pylint: disable=too-many-statements
         """Calculates and saves fin set's geometrical parameters such as the
         fins' area, aspect ratio and parameters for roll movement.
 
@@ -1454,10 +1520,12 @@ class EllipticalFins(Fins):
         """
 
         # Compute auxiliary geometrical parameters
-        Af = (np.pi * self.root_chord / 2 * self.span) / 2  # Fin area
+        Af = (  # Fin area  # pylint: disable=invalid-name
+            np.pi * self.root_chord / 2 * self.span
+        ) / 2
         gamma_c = 0  # Zero for elliptical fins
-        AR = 2 * self.span**2 / Af  # Fin aspect ratio
-        Yma = (
+        AR = 2 * self.span**2 / Af  # Fin aspect ratio  # pylint: disable=invalid-name
+        Yma = (  # pylint: disable=invalid-name
             self.span / (3 * np.pi) * np.sqrt(9 * np.pi**2 - 64)
         )  # Span wise coord of mean aero chord
         roll_geometrical_constant = (
@@ -1529,7 +1597,7 @@ class EllipticalFins(Fins):
                 * (-self.span**2 + self.rocket_radius**2)
                 * (self.span**2 / 3 + np.pi * self.span * self.rocket_radius / 4)
             )
-        elif self.span == self.rocket_radius:
+        else:
             roll_damping_interference_factor = (28 - 3 * np.pi) / (4 + 3 * np.pi)
 
         roll_forcing_interference_factor = (1 / np.pi**2) * (
@@ -1547,10 +1615,12 @@ class EllipticalFins(Fins):
         )
 
         # Store values
-        self.Af = Af  # Fin area
-        self.AR = AR  # Fin aspect ratio
+        self.Af = Af  # Fin area  # pylint: disable=invalid-name
+        self.AR = AR  # Fin aspect ratio  # pylint: disable=invalid-name
         self.gamma_c = gamma_c  # Mid chord angle
-        self.Yma = Yma  # Span wise coord of mean aero chord
+        self.Yma = (  # pylint: disable=invalid-name
+            Yma  # Span wise coord of mean aero chord  # pylint: disable=invalid-name
+        )
         self.roll_geometrical_constant = roll_geometrical_constant
         self.tau = tau
         self.lift_interference_factor = lift_interference_factor
@@ -1558,24 +1628,20 @@ class EllipticalFins(Fins):
         self.roll_forcing_interference_factor = roll_forcing_interference_factor
 
         self.evaluate_shape()
-        return None
 
     def evaluate_shape(self):
         angles = np.arange(0, 180, 5)
         x_array = self.root_chord / 2 + self.root_chord / 2 * np.cos(np.radians(angles))
         y_array = self.span * np.sin(np.radians(angles))
         self.shape_vec = [x_array, y_array]
-        return None
 
     def info(self):
         self.prints.geometry()
         self.prints.lift()
-        return None
 
     def all_info(self):
         self.prints.all()
         self.plots.all()
-        return None
 
 
 class Tail(AeroSurface):
@@ -1649,21 +1715,17 @@ class Tail(AeroSurface):
         """
         super().__init__(name)
 
-        # Store arguments as attributes
         self._top_radius = top_radius
         self._bottom_radius = bottom_radius
         self._length = length
         self._rocket_radius = rocket_radius
 
-        # Calculate geometrical parameters
         self.evaluate_geometrical_parameters()
         self.evaluate_lift_coefficient()
         self.evaluate_center_of_pressure()
 
         self.plots = _TailPlots(self)
         self.prints = _TailPrints(self)
-
-        return None
 
     @property
     def top_radius(self):
@@ -1713,16 +1775,13 @@ class Tail(AeroSurface):
         -------
         None
         """
-        # Calculate tail slant length
         self.slant_length = np.sqrt(
             (self.length) ** 2 + (self.top_radius - self.bottom_radius) ** 2
         )
-        # Calculate the surface area of the tail
         self.surface_area = (
             np.pi * self.slant_length * (self.top_radius + self.bottom_radius)
         )
         self.evaluate_shape()
-        return None
 
     def evaluate_shape(self):
         # Assuming the tail is a cone, calculate the shape vector
@@ -1730,7 +1789,6 @@ class Tail(AeroSurface):
             np.array([0, self.length]),
             np.array([self.top_radius, self.bottom_radius]),
         ]
-        return None
 
     def evaluate_lift_coefficient(self):
         """Calculates and returns tail's lift coefficient.
@@ -1748,6 +1806,7 @@ class Tail(AeroSurface):
         # as a function of mach in the simulation.
         self.clalpha = Function(
             lambda mach: 2
+            / self._beta(mach)
             * (
                 (self.bottom_radius / self.rocket_radius) ** 2
                 - (self.top_radius / self.rocket_radius) ** 2
@@ -1760,7 +1819,6 @@ class Tail(AeroSurface):
             ["Alpha (rad)", "Mach"],
             "Cl",
         )
-        return None
 
     def evaluate_center_of_pressure(self):
         """Calculates and returns the center of pressure of the tail in local
@@ -1780,17 +1838,14 @@ class Tail(AeroSurface):
         self.cpy = 0
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
-        return None
 
     def info(self):
         self.prints.geometry()
         self.prints.lift()
-        return None
 
     def all_info(self):
         self.prints.all()
         self.plots.all()
-        return None
 
 
 class RailButtons(AeroSurface):
@@ -1834,7 +1889,6 @@ class RailButtons(AeroSurface):
         self.evaluate_center_of_pressure()
 
         self.prints = _RailButtonsPrints(self)
-        return None
 
     def evaluate_center_of_pressure(self):
         """Evaluates the center of pressure of the rail buttons. Rail buttons
@@ -1848,7 +1902,6 @@ class RailButtons(AeroSurface):
         self.cpy = 0
         self.cpz = 0
         self.cp = (self.cpx, self.cpy, self.cpz)
-        return None
 
     def evaluate_lift_coefficient(self):
         """Evaluates the lift coefficient curve of the rail buttons. Rail
@@ -1868,7 +1921,6 @@ class RailButtons(AeroSurface):
             ["Alpha (rad)", "Mach"],
             "Cl",
         )
-        return None
 
     def evaluate_geometrical_parameters(self):
         """Evaluates the geometrical parameters of the rail buttons. Rail
@@ -1878,7 +1930,6 @@ class RailButtons(AeroSurface):
         -------
         None
         """
-        return None
 
     def info(self):
         """Prints out all the information about the Rail Buttons.
@@ -1888,7 +1939,6 @@ class RailButtons(AeroSurface):
         None
         """
         self.prints.geometry()
-        return None
 
     def all_info(self):
         """Returns all info of the Rail Buttons.
@@ -1898,7 +1948,6 @@ class RailButtons(AeroSurface):
         None
         """
         self.prints.all()
-        return None
 
 
 class AirBrakes(AeroSurface):
@@ -2079,7 +2128,6 @@ class AirBrakes(AeroSurface):
         -------
         None
         """
-        pass
 
     def info(self):
         """Prints and plots summarized information of the aerodynamic surface.

@@ -174,7 +174,7 @@ def test_matrix_eq(matrix_components):
     matrix = Matrix(matrix_components)
     assert matrix == matrix
     assert matrix == matrix_components
-    assert (matrix == 2 * matrix) == False
+    assert (matrix == 2 * matrix) is False
 
 
 @pytest.mark.parametrize("operation", [lambda i: i**2, lambda i: 1 / (i + 1.1)])

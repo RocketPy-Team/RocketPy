@@ -101,8 +101,7 @@ def test_setters(func_from_csv, func_2d_from_csv):
     assert func_2d_from_csv.get_outputs() == ["Scalar3"]
     func_2d_from_csv.set_interpolation("shepard")
     assert func_2d_from_csv.get_interpolation_method() == "shepard"
-    func_2d_from_csv.set_extrapolation("zero")
-    # 2d functions do not support zero extrapolation, must change to natural
+    func_2d_from_csv.set_extrapolation("natural")
     assert func_2d_from_csv.get_extrapolation_method() == "natural"
 
 
@@ -118,11 +117,11 @@ def test_plots(mock_show, func_from_csv, func_2d_from_csv):
         A Function object created from a .csv file.
     """
     # Test plot methods
-    assert func_from_csv.plot() == None
-    assert func_2d_from_csv.plot() == None
+    assert func_from_csv.plot() is None
+    assert func_2d_from_csv.plot() is None
     # Test plot methods with limits
-    assert func_from_csv.plot(-1, 1) == None
-    assert func_2d_from_csv.plot(-1, 1) == None
+    assert func_from_csv.plot(-1, 1) is None
+    assert func_2d_from_csv.plot(-1, 1) is None
     # Test compare_plots
     func2 = Function(
         source="tests/fixtures/airfoils/e473-10e6-degrees.csv",
@@ -132,7 +131,7 @@ def test_plots(mock_show, func_from_csv, func_2d_from_csv):
         extrapolation="natural",
     )
     assert (
-        func_from_csv.compare_plots([func_from_csv, func2], return_object=False) == None
+        func_from_csv.compare_plots([func_from_csv, func2], return_object=False) is None
     )
 
 
@@ -320,7 +319,7 @@ def test_multivariable_dataset_plot(mock_show):
     func = Function(source=source, inputs=["x", "y"], outputs=["z"])
 
     # Assert plot
-    assert func.plot() == None
+    assert func.plot() is None
 
 
 @patch("matplotlib.pyplot.show")
@@ -331,7 +330,7 @@ def test_multivariable_function_plot(mock_show):
     func = Function(source=source, inputs=["x", "y"], outputs=["z"])
 
     # Assert plot
-    assert func.plot() == None
+    assert func.plot() is None
 
 
 def test_set_discrete_2d():
@@ -403,7 +402,7 @@ def test_shepard_interpolation(x, y, z_expected):
     assert np.isclose(z, z_expected, atol=1e-8).all()
 
 
-@pytest.mark.parametrize("other", [1, 0.1, np.int_(1), np.float_(0.1), np.array([1])])
+@pytest.mark.parametrize("other", [1, 0.1, np.int_(1), np.float64(0.1), np.array([1])])
 def test_sum_arithmetic_priority(other):
     """Test the arithmetic priority of the add operation of the Function class,
     specially comparing to the numpy array operations.
@@ -419,7 +418,7 @@ def test_sum_arithmetic_priority(other):
     assert isinstance(other + func_array, Function)
 
 
-@pytest.mark.parametrize("other", [1, 0.1, np.int_(1), np.float_(0.1), np.array([1])])
+@pytest.mark.parametrize("other", [1, 0.1, np.int_(1), np.float64(0.1), np.array([1])])
 def test_sub_arithmetic_priority(other):
     """Test the arithmetic priority of the sub operation of the Function class,
     specially comparing to the numpy array operations.
@@ -435,7 +434,7 @@ def test_sub_arithmetic_priority(other):
     assert isinstance(other - func_array, Function)
 
 
-@pytest.mark.parametrize("other", [1, 0.1, np.int_(1), np.float_(0.1), np.array([1])])
+@pytest.mark.parametrize("other", [1, 0.1, np.int_(1), np.float64(0.1), np.array([1])])
 def test_mul_arithmetic_priority(other):
     """Test the arithmetic priority of the mul operation of the Function class,
     specially comparing to the numpy array operations.
@@ -451,7 +450,7 @@ def test_mul_arithmetic_priority(other):
     assert isinstance(other * func_array, Function)
 
 
-@pytest.mark.parametrize("other", [1, 0.1, np.int_(1), np.float_(0.1), np.array([1])])
+@pytest.mark.parametrize("other", [1, 0.1, np.int_(1), np.float64(0.1), np.array([1])])
 def test_truediv_arithmetic_priority(other):
     """Test the arithmetic priority of the truediv operation of the Function class,
     specially comparing to the numpy array operations.
@@ -467,7 +466,7 @@ def test_truediv_arithmetic_priority(other):
     assert isinstance(other / func_array, Function)
 
 
-@pytest.mark.parametrize("other", [1, 0.1, np.int_(1), np.float_(0.1), np.array([1])])
+@pytest.mark.parametrize("other", [1, 0.1, np.int_(1), np.float64(0.1), np.array([1])])
 def test_pow_arithmetic_priority(other):
     """Test the arithmetic priority of the pow operation of the Function class,
     specially comparing to the numpy array operations.

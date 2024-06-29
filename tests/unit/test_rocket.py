@@ -3,7 +3,7 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
-from rocketpy import Function, NoseCone, Rocket, SolidMotor
+from rocketpy import Function, NoseCone, SolidMotor
 from rocketpy.motors.motor import EmptyMotor, Motor
 
 
@@ -15,7 +15,7 @@ def test_elliptical_fins(mock_show, calisto_robust, calisto_trapezoidal_fins):
         4, span=0.100, root_chord=0.120, position=-1.168
     )
     static_margin = test_rocket.static_margin(0)
-    assert test_rocket.all_info() == None or not abs(static_margin - 2.30) < 0.01
+    assert test_rocket.all_info() is None or not abs(static_margin - 2.30) < 0.01
 
 
 def test_evaluate_static_margin_assert_cp_equals_cm(dimensionless_calisto):
@@ -496,3 +496,19 @@ def test_get_inertia_tensor_derivative_at_time(calisto):
     assert pytest.approx(0, atol) == inertia_tensor.y[2]
     assert pytest.approx(0, atol) == inertia_tensor.z[0]
     assert pytest.approx(0, atol) == inertia_tensor.z[1]
+
+
+def test_add_thrust_eccentricity(calisto):
+    """Test add_thrust_eccentricity method of the Rocket class."""
+    calisto.add_thrust_eccentricity(0.1, 0.1)
+    assert calisto.thrust_eccentricity_x == 0.1
+    assert calisto.thrust_eccentricity_y == 0.1
+
+
+def test_add_cm_eccentricity(calisto):
+    """Test add_cm_eccentricity method of the Rocket class."""
+    calisto.add_cm_eccentricity(-0.1, -0.1)
+    assert calisto.cp_eccentricity_x == 0.1
+    assert calisto.cp_eccentricity_y == 0.1
+    assert calisto.thrust_eccentricity_x == 0.1
+    assert calisto.thrust_eccentricity_y == 0.1

@@ -27,8 +27,8 @@ def test_generic_motor_info(mock_show, generic_motor):
     generic_motor : rocketpy.GenericMotor
         The GenericMotor object to be used in the tests.
     """
-    assert generic_motor.info() == None
-    assert generic_motor.all_info() == None
+    assert generic_motor.info() is None
+    assert generic_motor.all_info() is None
 
 
 def test_generic_motor_basic_parameters(generic_motor):

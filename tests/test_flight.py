@@ -124,7 +124,7 @@ def test_initial_solution(mock_show, example_plain_env, calisto_robust):
         ],
     )
 
-    assert test_flight.all_info() == None
+    assert test_flight.all_info() is None
 
 
 @patch("matplotlib.pyplot.show")
@@ -150,7 +150,7 @@ def test_empty_motor_flight(mock_show, example_plain_env, calisto_motorless):
             2.0747266017020563,
         ],
     )
-    assert flight.all_info() == None
+    assert flight.all_info() is None
 
 
 @pytest.mark.parametrize("wind_u, wind_v", [(0, 10), (0, -10), (10, 0), (-10, 0)])
@@ -292,6 +292,37 @@ def test_rolling_flight(
         heading=0,
     )
 
+    assert test_flight.all_info() is None
+
+
+@patch("matplotlib.pyplot.show")
+def test_eccentricity_on_flight(
+    mock_show,
+    example_plain_env,
+    cesaroni_m1670,
+    calisto,
+    calisto_nose_cone,
+    calisto_trapezoidal_fins,
+    calisto_tail,
+):
+    test_rocket = calisto
+
+    test_rocket.set_rail_buttons(0.082, -0.618)
+    test_rocket.add_motor(cesaroni_m1670, position=-1.373)
+    calisto.aerodynamic_surfaces.add(calisto_trapezoidal_fins, position=-1.04956)
+    calisto.aerodynamic_surfaces.add(calisto_nose_cone, 1.160)
+    calisto.aerodynamic_surfaces.add(calisto_tail, -1.313)
+    calisto.add_cm_eccentricity(x=-0.01, y=-0.01)
+
+    test_flight = Flight(
+        rocket=test_rocket,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=True,
+    )
+
     assert test_flight.all_info() == None
 
 
@@ -383,8 +414,8 @@ def test_simpler_parachute_triggers(mock_show, example_plain_env, calisto_robust
         )
         <= 1
     )
-    assert calisto_robust.all_info() == None
-    assert test_flight.all_info() == None
+    assert calisto_robust.all_info() is None
+    assert test_flight.all_info() is None
 
 
 @patch("matplotlib.pyplot.show")
@@ -490,7 +521,7 @@ def test_time_overshoot(mock_show, calisto_robust, example_spaceport_env):
         time_overshoot=False,
     )
 
-    assert test_flight.all_info() == None
+    assert test_flight.all_info() is None
 
 
 @patch("matplotlib.pyplot.show")
@@ -515,7 +546,7 @@ def test_liquid_motor_flight(mock_show, calisto_liquid_modded):
         max_time_step=0.25,
     )
 
-    assert test_flight.all_info() == None
+    assert test_flight.all_info() is None
 
 
 @patch("matplotlib.pyplot.show")
@@ -540,7 +571,7 @@ def test_hybrid_motor_flight(mock_show, calisto_hybrid_modded):
         max_time_step=0.25,
     )
 
-    assert test_flight.all_info() == None
+    assert test_flight.all_info() is None
 
 
 def test_surface_wind(flight_calisto_custom_wind):
@@ -640,10 +671,10 @@ def test_rail_buttons_forces(flight_calisto_custom_wind):
     """
     test = flight_calisto_custom_wind
     atol = 5e-3
-    assert pytest.approx(3.80358, abs=atol) == test.max_rail_button1_normal_force
-    assert pytest.approx(1.63602, abs=atol) == test.max_rail_button1_shear_force
-    assert pytest.approx(1.19353, abs=atol) == test.max_rail_button2_normal_force
-    assert pytest.approx(0.51337, abs=atol) == test.max_rail_button2_shear_force
+    assert pytest.approx(3.833613, abs=atol) == test.max_rail_button1_normal_force
+    assert pytest.approx(1.648938, abs=atol) == test.max_rail_button1_shear_force
+    assert pytest.approx(1.165307, abs=atol) == test.max_rail_button2_normal_force
+    assert pytest.approx(0.501229, abs=atol) == test.max_rail_button2_shear_force
 
 
 @pytest.mark.parametrize(
@@ -690,7 +721,7 @@ def test_accelerations(flight_calisto_custom_wind, flight_time, expected_values)
     [
         ("t_initial", (0, 0, 0)),
         ("out_of_rail_time", (0, 2.248727, 25.703072)),
-        ("apogee_time", (-13.209436, 16.05115, -0.000257)),
+        ("apogee_time", (-13.204789, 15.990903, -0.000138)),
         ("t_final", (5, 2, -5.65998)),
     ],
 )
@@ -728,7 +759,7 @@ def test_velocities(flight_calisto_custom_wind, flight_time, expected_values):
     [
         ("t_initial", (1.6542528, 0.65918, -0.067107)),
         ("out_of_rail_time", (5.05334, 2.01364, -1.7541)),
-        ("apogee_time", (2.35291, -1.8275, -0.87851)),
+        ("apogee_time", (2.366258, -1.830744, -0.875342)),
         ("t_final", (0, 0, 159.2212)),
     ],
 )
@@ -766,7 +797,7 @@ def test_aerodynamic_forces(flight_calisto_custom_wind, flight_time, expected_va
     "flight_time, expected_values",
     [
         ("t_initial", (0.17179073815516033, -0.431117, 0)),
-        ("out_of_rail_time", (0.547026, -1.3727895, 0)),
+        ("out_of_rail_time", (0.543760, -1.364593, 0)),
         ("apogee_time", (-0.5874848151271623, -0.7563596, 0)),
         ("t_final", (0, 0, 0)),
     ],

@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines, broad-exception-caught, bare-except, raise-missing-from, consider-using-f-string, too-many-statements, too-many-instance-attributes, invalid-name, too-many-locals
 import bisect
 import json
 import re
@@ -42,9 +43,39 @@ from rocketpy.mathutils.function import Function, funcify_method
 from rocketpy.plots.environment_plots import _EnvironmentPlots
 from rocketpy.prints.environment_prints import _EnvironmentPrints
 from rocketpy.tools import geopotential_height_to_geometric_height
+import requests
+from numpy import ma
+
+from ..mathutils.function import Function, funcify_method
+from ..plots.environment_plots import _EnvironmentPlots
+from ..prints.environment_prints import _EnvironmentPrints
+from ..tools import exponential_backoff
+
+try:
+    import netCDF4
+except ImportError:
+    HAS_NETCDF4 = False
+    warnings.warn(
+        "Unable to load netCDF4. NetCDF files and ``OPeNDAP`` will not be imported.",
+        ImportWarning,
+    )
+else:
+    HAS_NETCDF4 = True
 
 
-class Environment:
+def requires_netCDF4(func):
+    def wrapped_func(*args, **kwargs):
+        if HAS_NETCDF4:
+            func(*args, **kwargs)
+        else:
+            raise ImportError(
+                "This feature requires netCDF4 to be installed. Install it with `pip install netCDF4`"
+            )
+
+    return wrapped_func
+
+
+class Environment:  # pylint: disable=too-many-public-methods
     """Keeps all environment information stored, such as wind and temperature
     conditions, as well as gravity.
 
@@ -687,11 +718,11 @@ class Environment:
         # Store date and configure time zone
         self.timezone = timezone
         tz = pytz.timezone(self.timezone)
-        if type(date) != datetime:
+        if not isinstance(date, datetime):
             local_date = datetime(*date)
         else:
             local_date = date
-        if local_date.tzinfo == None:
+        if local_date.tzinfo is None:
             local_date = tz.localize(local_date)
         self.date = date
         self.local_date = local_date
@@ -706,8 +737,6 @@ class Environment:
                 )
         except AttributeError:
             pass
-
-        return None
 
     def set_location(self, latitude, longitude):
         """Set latitude and longitude of launch and update atmospheric
@@ -785,7 +814,7 @@ class Environment:
         >>> g_0 = 9.80665
         >>> env_cte_g = Environment(gravity=g_0)
         >>> env_cte_g.gravity([0, 100, 1000])
-        [9.80665, 9.80665, 9.80665]
+        [np.float64(9.80665), np.float64(9.80665), np.float64(9.80665)]
 
         It's also possible to variate the gravity acceleration by defining
         its function of height:
@@ -1023,9 +1052,9 @@ class Environment:
 
         return elevation
 
-    def set_atmospheric_model(
+    def set_atmospheric_model(  # pylint: disable=too-many-branches
         self,
-        type,
+        type,  # pylint: disable=redefined-builtin
         file=None,
         dictionary=None,
         pressure=None,
@@ -1547,7 +1576,7 @@ class Environment:
         self.max_expected_height = max(altitude_array[0], altitude_array[-1])
 
         # Get elevation data from file
-        self.elevation = response["header"]["elevation"]
+        self.elevation = float(response["header"]["elevation"])
 
         # Compute info data
         self.atmospheric_model_init_date = get_initial_data_from_time_array(
@@ -2362,7 +2391,7 @@ class Environment:
 
         >>> env = Environment()
         >>> env.calculate_density_profile()
-        >>> env.density(0)
+        >>> float(env.density(0))
         1.225000018124288
 
         Creating an Environment object and calculating the density
@@ -2370,7 +2399,7 @@ class Environment:
 
         >>> env = Environment()
         >>> env.calculate_density_profile()
-        >>> env.density(1000)
+        >>> float(env.density(1000))
         1.1116193933422585
         """
         # Retrieve pressure P, gas constant R and temperature T
@@ -2386,8 +2415,6 @@ class Environment:
 
         # Save calculated density
         self.density = D
-
-        return None
 
     def calculate_speed_of_sound_profile(self):
         """Compute the speed of sound in the atmosphere as a function
@@ -2413,8 +2440,6 @@ class Environment:
         # Save calculated speed of sound
         self.speed_of_sound = a
 
-        return None
-
     def calculate_dynamic_viscosity(self):
         """Compute the dynamic viscosity of the atmosphere as a function of
         height by using the formula given in ISO 2533 u = B*T^(1.5)/(T+S).
@@ -2439,8 +2464,6 @@ class Environment:
 
         # Save calculated density
         self.dynamic_viscosity = u
-
-        return None
 
     def add_wind_gust(self, wind_gust_x, wind_gust_y):
         """Adds a function to the current stored wind profile, in order to
@@ -2499,7 +2522,6 @@ class Environment:
 
         self.prints.all()
         self.plots.info()
-        return None
 
     def all_info(self):
         """Prints out all data and graphs available about the Environment.
@@ -2511,8 +2533,6 @@ class Environment:
 
         self.prints.all()
         self.plots.all()
-
-        return None
 
     def all_plot_info_returned(self):
         """Returns a dictionary with all plot information available about the Environment.
@@ -2527,6 +2547,7 @@ class Environment:
         Deprecated in favor of `utilities.get_instance_attributes`.
 
         """
+        # pylint: disable=R1735, unnecessary-comprehension
         warnings.warn(
             "The method 'all_plot_info_returned' is deprecated as of version "
             + "1.2 and will be removed in version 1.4 "
@@ -2600,6 +2621,7 @@ class Environment:
         Deprecated in favor of `utilities.get_instance_attributes`.
 
         """
+        # pylint: disable= unnecessary-comprehension, use-dict-literal
         warnings.warn(
             "The method 'all_info_returned' is deprecated as of version "
             + "1.2 and will be removed in version 1.4 "
@@ -2621,9 +2643,9 @@ class Environment:
             surface_air_density=self.density(self.elevation),
             surface_speed_of_sound=self.speed_of_sound(self.elevation),
         )
-        if self.datetime_date != None:
+        if self.datetime_date is not None:
             info["launch_date"] = self.datetime_date.strftime("%Y-%d-%m %H:%M:%S")
-        if self.latitude != None and self.longitude != None:
+        if self.latitude is not None and self.longitude is not None:
             info["lat"] = self.latitude
             info["lon"] = self.longitude
         if info["model_type"] in ["Forecast", "Reanalysis", "Ensemble"]:
@@ -2724,6 +2746,111 @@ class Environment:
             ) from e
 
     # Auxiliary functions - Geodesic Coordinates # TODO: move it to env.tools.py
+    # Auxiliary functions - Fetching Data from 3rd party APIs
+
+    @exponential_backoff(max_attempts=3, base_delay=1, max_delay=60)
+    def __fetch_open_elevation(self):
+        print("Fetching elevation from open-elevation.com...")
+        request_url = (
+            "https://api.open-elevation.com/api/v1/lookup?locations"
+            f"={self.latitude},{self.longitude}"
+        )
+        try:
+            response = requests.get(request_url)
+        except Exception as e:
+            raise RuntimeError("Unable to reach Open-Elevation API servers.") from e
+        results = response.json()["results"]
+        return results[0]["elevation"]
+
+    @exponential_backoff(max_attempts=5, base_delay=2, max_delay=60)
+    def __fetch_atmospheric_data_from_windy(self, model):
+        model = model.lower()
+        if model[-1] == "u":  # case iconEu
+            model = "".join([model[:4], model[4].upper(), model[4 + 1 :]])
+        url = (
+            f"https://node.windy.com/forecast/meteogram/{model}/"
+            f"{self.latitude}/{self.longitude}/?step=undefined"
+        )
+        try:
+            response = requests.get(url).json()
+        except Exception as e:
+            if model == "iconEu":
+                raise ValueError(
+                    "Could not get a valid response for Icon-EU from Windy. "
+                    "Check if the coordinates are set inside Europe."
+                ) from e
+        return response
+
+    @exponential_backoff(max_attempts=5, base_delay=2, max_delay=60)
+    def __fetch_wyoming_sounding(self, file):
+        response = requests.get(file)
+        if response.status_code != 200:
+            raise ImportError(f"Unable to load {file}.")
+        if len(re.findall("Can't get .+ Observations at", response.text)):
+            raise ValueError(
+                re.findall("Can't get .+ Observations at .+", response.text)[0]
+                + " Check station number and date."
+            )
+        if response.text == "Invalid OUTPUT: specified\n":
+            raise ValueError(
+                "Invalid OUTPUT: specified. Make sure the output is Text: List."
+            )
+        return response
+
+    @exponential_backoff(max_attempts=5, base_delay=2, max_delay=60)
+    def __fetch_noaaruc_sounding(self, file):
+        response = requests.get(file)
+        if response.status_code != 200 or len(response.text) < 10:
+            raise ImportError("Unable to load " + file + ".")
+
+    @exponential_backoff(max_attempts=5, base_delay=2, max_delay=60)
+    def __fetch_gefs_ensemble(self, dictionary):
+        time_attempt = datetime.now(tz=timezone.utc)
+        success = False
+        attempt_count = 0
+        while not success and attempt_count < 10:
+            time_attempt -= timedelta(hours=6 * attempt_count)
+            file = (
+                f"https://nomads.ncep.noaa.gov/dods/gens_bc/gens"
+                f"{time_attempt.year:04d}{time_attempt.month:02d}"
+                f"{time_attempt.day:02d}/"
+                f"gep_all_{6 * (time_attempt.hour // 6):02d}z"
+            )
+            try:
+                self.process_ensemble(file, dictionary)
+                success = True
+            except OSError:
+                attempt_count += 1
+        if not success:
+            raise RuntimeError(
+                "Unable to load latest weather data for GEFS through " + file
+            )
+
+    @exponential_backoff(max_attempts=5, base_delay=2, max_delay=60)
+    def __fetch_cmc_ensemble(self, dictionary):
+        # Attempt to get latest forecast
+        time_attempt = datetime.now(tz=timezone.utc)
+        success = False
+        attempt_count = 0
+        while not success and attempt_count < 10:
+            time_attempt -= timedelta(hours=12 * attempt_count)
+            file = (
+                f"https://nomads.ncep.noaa.gov/dods/cmcens/"
+                f"cmcens{time_attempt.year:04d}{time_attempt.month:02d}"
+                f"{time_attempt.day:02d}/"
+                f"cmcens_all_{12 * (time_attempt.hour // 12):02d}z"
+            )
+            try:
+                self.process_ensemble(file, dictionary)
+                success = True
+            except OSError:
+                attempt_count += 1
+        if not success:
+            raise RuntimeError(
+                "Unable to load latest weather data for CMC through " + file
+            )
+
+    # Auxiliary functions - Geodesic Coordinates
 
     @staticmethod
     def geodesic_to_utm(

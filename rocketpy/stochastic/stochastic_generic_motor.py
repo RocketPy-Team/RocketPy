@@ -5,73 +5,56 @@ from rocketpy.motors import GenericMotor
 from .stochastic_motor_model import StochasticMotorModel
 
 
+# pylint: disable=too-many-arguments
 class StochasticGenericMotor(StochasticMotorModel):
     """A Stochastic Generic Motor class that inherits from StochasticModel.
-    This class is used to receive a GenericMotor object and information about
-    the dispersion of its parameters and generate a random generic motor object
-    based on the provided information.
 
     See Also
     --------
-    :ref:`stochastic_model`
+    :ref:`stochastic_model` and
+    :class:`GenericMotor <rocketpy.motors.GenericMotor>`
 
     Attributes
     ----------
     object : GenericMotor
-        GenericMotor object to be used for validation.
+        GenericMotor object to be used as a base for the stochastic model.
     thrust_source : list
         List of strings representing the thrust source to be selected.
     total_impulse : int, float, tuple, list
-        Total impulse of the motor in newton seconds. Follows the standard
-        input format of Stochastic Models.
+        Total impulse of the motor in newton seconds.
     burn_start_time : int, float, tuple, list
-        Burn start time of the motor in seconds. Follows the standard input
-        format of Stochastic Models.
+        Burn start time of the motor in seconds.
     burn_out_time : int, float, tuple, list
-        Burn out time of the motor in seconds. Follows the standard input
-        format of Stochastic Models.
+        Burn out time of the motor in seconds.
     dry_mass : int, float, tuple, list
-        Dry mass of the motor in kilograms. Follows the standard input
-        format of Stochastic Models.
+        Dry mass of the motor in kilograms.
     dry_I_11 : int, float, tuple, list
-        Dry inertia of the motor in kilograms times meters squared. Follows the
-        standard input format of Stochastic Models.
+        Dry inertia of the motor in kilograms times meters squared.
     dry_I_22 : int, float, tuple, list
-        Dry inertia of the motor in kilograms times meters squared. Follows the
-        standard input format of Stochastic Models.
+        Dry inertia of the motor in kilograms times meters squared.
     dry_I_33 : int, float, tuple, list
-        Dry inertia of the motor in kilograms times meters squared. Follows the
-        standard input format of Stochastic Models.
+        Dry inertia of the motor in kilograms times meters squared.
     dry_I_12 : int, float, tuple, list
-        Dry inertia of the motor in kilograms times meters squared. Follows the
-        standard input format of Stochastic Models.
+        Dry inertia of the motor in kilograms times meters squared.
     dry_I_13 : int, float, tuple, list
-        Dry inertia of the motor in kilograms times meters squared. Follows the
-        standard input format of Stochastic Models.
+        Dry inertia of the motor in kilograms times meters squared.
     dry_I_23 : int, float, tuple, list
-        Dry inertia of the motor in kilograms times meters squared. Follows the
-        standard input format of Stochastic Models.
+        Dry inertia of the motor in kilograms times meters squared.
     chamber_radius : int, float, tuple, list
-        Chamber radius of the motor in meters. Follows the standard input
-        format of Stochastic Models.
+        Chamber radius of the motor in meters.
     chamber_height : int, float, tuple, list
-        Chamber height of the motor in meters. Follows the standard input
-        format of Stochastic Models.
+        Chamber height of the motor in meters.
     chamber_position : int, float, tuple, list
-        Chamber position of the motor in meters. Follows the standard input
-        format of Stochastic Models.
+        Chamber position of the motor in meters.
     nozzle_radius : int, float, tuple, list
-        Nozzle radius of the motor in meters. Follows the standard input
-        format of Stochastic Models.
+        Nozzle radius of the motor in meters.
     nozzle_position : int, float, tuple, list
-        Nozzle position of the motor in meters. Follows the standard input
-        format of Stochastic Models.
+        Nozzle position of the motor in meters.
     center_of_dry_mass_position : int, float, tuple, list
-        Center of dry mass position of the motor in meters. Follows the
-        standard input format of Stochastic Models.
-    interpolation_method : str, optional
+        Center of dry mass position of the motor in meters.
+    interpolation_method : str
         Interpolation method to be used. This attribute can not be randomized.
-    coordinate_system_orientation : str, optional
+    coordinate_system_orientation : str
         Coordinate system orientation to be used. This attribute can not be
         randomized.
     """
@@ -102,7 +85,8 @@ class StochasticGenericMotor(StochasticMotorModel):
 
         See Also
         --------
-        :ref:`stochastic_model`
+        :ref:`stochastic_model` and
+        :class:`GenericMotor <rocketpy.motors.GenericMotor>`
 
         Parameters
         ----------
@@ -110,55 +94,38 @@ class StochasticGenericMotor(StochasticMotorModel):
             GenericMotor object to be used for validation.
         thrust_source : list, optional
             List of strings representing the thrust source to be selected.
-            Follows the 1d array like input format of Stochastic Models.
         total_impulse : int, float, tuple, list, optional
-            Total impulse of the motor in newton seconds. Follows the standard
-            input format of Stochastic Models.
+            Total impulse of the motor in newton seconds.
         burn_start_time : int, float, tuple, list, optional
-            Burn start time of the motor in seconds. Follows the standard input
-            format of Stochastic Models.
+            Burn start time of the motor in seconds.
         burn_out_time : int, float, tuple, list, optional
-            Burn out time of the motor in seconds. Follows the standard input
-            format of Stochastic Models.
+            Burn out time of the motor in seconds.
         dry_mass : int, float, tuple, list, optional
-            Dry mass of the motor in kilograms. Follows the standard input
-            format of Stochastic Models.
+            Dry mass of the motor in kilograms.
         dry_I_11 : int, float, tuple, list, optional
-            Dry inertia of the motor in kilograms times meters squared. Follows
-            the standard input format of Stochastic Models.
+            Dry inertia of the motor in kilograms times meters squared.
         dry_I_22 : int, float, tuple, list, optional
-            Dry inertia of the motor in kilograms times meters squared. Follows
-            the standard input format of Stochastic Models.
+            Dry inertia of the motor in kilograms times meters squared.
         dry_I_33 : int, float, tuple, list, optional
-            Dry inertia of the motor in kilograms times meters squared. Follows
-            the standard input format of Stochastic Models.
+            Dry inertia of the motor in kilograms times meters squared.
         dry_I_12 : int, float, tuple, list, optional
-            Dry inertia of the motor in kilograms times meters squared. Follows
-            the standard input format of Stochastic Models.
+            Dry inertia of the motor in kilograms times meters squared.
         dry_I_13 : int, float, tuple, list, optional
-            Dry inertia of the motor in kilograms times meters squared. Follows
-            the standard input format of Stochastic Models.
+            Dry inertia of the motor in kilograms times meters squared.
         dry_I_23 : int, float, tuple, list, optional
-            Dry inertia of the motor in kilograms times meters squared. Follows
-            the standard input format of Stochastic Models.
+            Dry inertia of the motor in kilograms times meters squared.
         chamber_radius : int, float, tuple, list, optional
-            Chamber radius of the motor in meters. Follows the standard input
-            format of Stochastic Models.
+            Chamber radius of the motor in meters.
         chamber_height : int, float, tuple, list, optional
-            Chamber height of the motor in meters. Follows the standard input
-            format of Stochastic Models.
+            Chamber height of the motor in meters.
         chamber_position : int, float, tuple, list, optional
-            Chamber position of the motor in meters. Follows the standard input
-            format of Stochastic Models.
+            Position of the motor chamber in meters.
         nozzle_radius : int, float, tuple, list, optional
-            Nozzle radius of the motor in meters. Follows the standard input
-            format of Stochastic Models.
+            Nozzle radius of the motor in meters.
         nozzle_position : int, float, tuple, list, optional
-            Nozzle position of the motor in meters. Follows the standard input
-            format of Stochastic Models.
+            Nozzle position of the motor in meters.
         center_of_dry_mass_position : int, float, tuple, list, optional
-            Center of dry mass position of the motor in meters. Follows the
-            standard input format of Stochastic Models.
+            Center of dry mass position of the motor in meters.
         """
         super().__init__(
             generic_motor,
@@ -185,16 +152,16 @@ class StochasticGenericMotor(StochasticMotorModel):
         )
 
     def create_object(self):
-        """Creates and returns a GenericMotor object from the randomly generated
-        input arguments.
+        """Creates a `GenericMotor` object from the randomly generated input
+        arguments.
 
         Returns
         -------
-        generic_motor : GenericMotor
+        GenericMotor
             GenericMotor object with the randomly generated input arguments.
         """
         generated_dict = next(self.dict_generator())
-        generic_motor = GenericMotor(
+        return GenericMotor(
             thrust_source=generated_dict["thrust_source"],
             burn_time=(
                 generated_dict["burn_start_time"],
@@ -225,4 +192,3 @@ class StochasticGenericMotor(StochasticMotorModel):
             ],
             interpolation_method=generated_dict["interpolate"],
         )
-        return generic_motor

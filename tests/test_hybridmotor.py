@@ -34,8 +34,8 @@ def test_hybrid_motor_info(mock_show, hybrid_motor):
     hybrid_motor : rocketpy.HybridMotor
         The HybridMotor object to be used in the tests.
     """
-    assert hybrid_motor.info() == None
-    assert hybrid_motor.all_info() == None
+    assert hybrid_motor.info() is None
+    assert hybrid_motor.all_info() is None
 
 
 def test_hybrid_motor_basic_parameters(hybrid_motor):

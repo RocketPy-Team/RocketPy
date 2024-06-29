@@ -88,3 +88,30 @@ def env_analysis():
     )
 
     return env_analysis
+
+
+@pytest.fixture
+def environment_spaceport_america_2023():
+    """Creates an Environment object for Spaceport America with a 2023 launch
+    conditions.
+
+    Returns
+    -------
+    rocketpy.Environment
+        Environment object configured for Spaceport America in 2023.
+    """
+    env = Environment(
+        latitude=32.939377,
+        longitude=-106.911986,
+        elevation=1401,
+    )
+    env.set_date(date=(2023, 6, 24, 9), timezone="America/Denver")
+
+    env.set_atmospheric_model(
+        type="Reanalysis",
+        file="data/weather/spaceport_america_pressure_levels_2023_hourly.nc",
+        dictionary="ECMWF",
+    )
+
+    env.max_expected_height = 6000
+    return env
