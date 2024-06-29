@@ -32,8 +32,14 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- ENH: CP and Thrust Eccentricity Effects Generate Roll Moment [#617](https://github.com/RocketPy-Team/RocketPy/pull/617)
+- ENH: Add Prandtl-Gauss transformation to NoseCone and Tail [#609](https://github.com/RocketPy-Team/RocketPy/pull/609)
+- ENH: Implement power series nose cones[#603](https://github.com/RocketPy-Team/RocketPy/pull/603)
+
 ### Changed
 
+- ENH: Eliminating multiple plots for inertia components [#566](https://github.com/RocketPy-Team/RocketPy/pull/566)
+- MNT: Fix warnings in test suite and adds support for numpy 2.0 [#623](https://github.com/RocketPy-Team/RocketPy/pull/623)
 - MNT: bump minimum Python version to 3.9. [#624](https://github.com/RocketPy-Team/RocketPy/pull/624)
 
 ### Fixed
@@ -53,9 +59,6 @@ You can install this version by running `pip install rocketpy==1.3.0`
 
 ### Added
 
-- ENH: CP and Thrust Eccentricity Effects Generate Roll Moment [#617](https://github.com/RocketPy-Team/RocketPy/pull/617)
-- ENH: Add Prandtl-Gauss transformation to NoseCone and Tail [#609](https://github.com/RocketPy-Team/RocketPy/pull/609)
-- ENH: Implement power series nose cones[#603](https://github.com/RocketPy-Team/RocketPy/pull/603)
 - DOC: Adds prometheus data, Spaceport America 2022 [#601](https://github.com/RocketPy-Team/RocketPy/pull/601)
 - ENH: Pre-calculate attributes in Rocket class [#595](https://github.com/RocketPy-Team/RocketPy/pull/595)
 - ENH: Complex step differentiation [#594](https://github.com/RocketPy-Team/RocketPy/pull/594)
@@ -66,7 +69,6 @@ You can install this version by running `pip install rocketpy==1.3.0`
 
 ### Changed
 
-- MNT: Fix warnings in test suite and adds support for numpy 2.0 [#623](https://github.com/RocketPy-Team/RocketPy/pull/623)
 - REL: Bump versioning to RocketPy v1.3.0 [#614](https://github.com/RocketPy-Team/RocketPy/pull/614)
 - ENH: Adds StochasticModel.visualize_attributes() method [#612](https://github.com/RocketPy-Team/RocketPy/pull/612)
 - DOC: Monte carlo documentation updates [#607](https://github.com/RocketPy-Team/RocketPy/pull/607)
