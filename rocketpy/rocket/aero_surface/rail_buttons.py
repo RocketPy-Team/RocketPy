@@ -1,0 +1,111 @@
+from rocketpy.mathutils.function import Function
+from rocketpy.prints.aero_surface_prints import _RailButtonsPrints
+from .aero_surface import AeroSurface
+
+
+class RailButtons(AeroSurface):
+    """Class that defines a rail button pair or group.
+
+    Attributes
+    ----------
+    RailButtons.buttons_distance : int, float
+        Distance between the two rail buttons closest to the nozzle.
+    RailButtons.angular_position : int, float
+        Angular position of the rail buttons in degrees measured
+        as the rotation around the symmetry axis of the rocket
+        relative to one of the other principal axis.
+    """
+
+    def __init__(self, buttons_distance, angular_position=45, name="Rail Buttons"):
+        """Initializes RailButtons Class.
+
+        Parameters
+        ----------
+        buttons_distance : int, float
+            Distance between the first and the last rail button in meters.
+        angular_position : int, float, optional
+            Angular position of the rail buttons in degrees measured
+            as the rotation around the symmetry axis of the rocket
+            relative to one of the other principal axis.
+        name : string, optional
+            Name of the rail buttons. Default is "Rail Buttons".
+
+        Returns
+        -------
+        None
+
+        """
+        super().__init__(name)
+        self.buttons_distance = buttons_distance
+        self.angular_position = angular_position
+        self.name = name
+
+        self.evaluate_lift_coefficient()
+        self.evaluate_center_of_pressure()
+
+        self.prints = _RailButtonsPrints(self)
+        return None
+
+    def evaluate_center_of_pressure(self):
+        """Evaluates the center of pressure of the rail buttons. Rail buttons
+        do not contribute to the center of pressure of the rocket.
+
+        Returns
+        -------
+        None
+        """
+        self.cpx = 0
+        self.cpy = 0
+        self.cpz = 0
+        self.cp = (self.cpx, self.cpy, self.cpz)
+        return None
+
+    def evaluate_lift_coefficient(self):
+        """Evaluates the lift coefficient curve of the rail buttons. Rail
+        buttons do not contribute to the lift coefficient of the rocket.
+
+        Returns
+        -------
+        None
+        """
+        self.clalpha = Function(
+            lambda mach: 0,
+            "Mach",
+            f"Lift coefficient derivative for {self.name}",
+        )
+        self.cl = Function(
+            lambda alpha, mach: 0,
+            ["Alpha (rad)", "Mach"],
+            "Cl",
+        )
+        return None
+
+    def evaluate_geometrical_parameters(self):
+        """Evaluates the geometrical parameters of the rail buttons. Rail
+        buttons do not contribute to the geometrical parameters of the rocket.
+
+        Returns
+        -------
+        None
+        """
+        return None
+
+    def info(self):
+        """Prints out all the information about the Rail Buttons.
+
+        Returns
+        -------
+        None
+        """
+        self.prints.geometry()
+        return None
+
+    def all_info(self):
+        """Returns all info of the Rail Buttons.
+
+        Returns
+        -------
+        None
+        """
+        self.prints.all()
+        return None
