@@ -22,6 +22,7 @@ from rocketpy.rocket.parachute import Parachute
 from rocketpy.tools import parallel_axis_theorem_from_com
 
 
+# pylint: disable=too-many-instance-attributes, too-many-public-methods, too-many-instance-attributes
 class Rocket:
     """Keeps rocket information.
 
@@ -193,7 +194,7 @@ class Rocket:
         Rocket's inertia tensor 23 component with unloaded motor,in kg*m^2.
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-statements
         self,
         radius,
         mass,
@@ -644,10 +645,10 @@ class Rocket:
         mass = self.mass
 
         # Compute axes distances
-        noMCM_to_CDM = (
+        noMCM_to_CDM = (  # pylint: disable=invalid-name
             self.center_of_mass_without_motor - self.center_of_dry_mass_position
         )
-        motorCDM_to_CDM = (
+        motorCDM_to_CDM = (  # pylint: disable=invalid-name
             self.motor_center_of_dry_mass_position - self.center_of_dry_mass_position
         )
 
@@ -871,7 +872,7 @@ class Rocket:
             ]
         )
 
-    def add_motor(self, motor, position):
+    def add_motor(self, motor, position):  # pylint: disable=too-many-statements
         """Adds a motor to the rocket.
 
         Parameters
@@ -890,11 +891,13 @@ class Rocket:
         -------
         None
         """
-        if hasattr(self, "motor") and not isinstance(self.motor, EmptyMotor):
-            print(
-                "Only one motor per rocket is currently supported. "
-                + "Overwriting previous motor."
-            )
+        if hasattr(self, "motor"):
+            # pylint: disable=access-member-before-definition
+            if not isinstance(self.motor, EmptyMotor):
+                print(
+                    "Only one motor per rocket is currently supported. "
+                    + "Overwriting previous motor."
+                )
         self.motor = motor
         self.motor_position = position
         _ = self._csys * self.motor._csys
@@ -1612,7 +1615,6 @@ class Rocket:
             https://matplotlib.org/stable/gallery/color/named_colors
         """
         self.plots.draw(vis_args)
-        return None
 
     def info(self):
         """Prints out a summary of the data and graphs available about

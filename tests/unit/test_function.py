@@ -366,4 +366,4 @@ def test_get_domain_dim(linear_func):
 
 def test_bool(linear_func):
     """Test the __bool__ method of the Function class."""
-    assert bool(linear_func) == True
+    assert bool(linear_func) is True

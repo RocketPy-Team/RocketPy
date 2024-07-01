@@ -32,9 +32,7 @@ class _RocketPrints:
         print("\nInertia Details\n")
         print(f"Rocket Mass: {self.rocket.mass:.3f} kg (without motor)")
         print(f"Rocket Dry Mass: {self.rocket.dry_mass:.3f} kg (with unloaded motor)")
-        print(
-            f"Rocket Loaded Mass: {self.rocket.total_mass(0):.3f} kg (with loaded motor)"
-        )
+        print(f"Rocket Loaded Mass: {self.rocket.total_mass(0):.3f} kg")
         print(
             f"Rocket Inertia (with unloaded motor) 11: {self.rocket.dry_I_11:.3f} kg*m2"
         )
@@ -62,47 +60,35 @@ class _RocketPrints:
         None
         """
         print("\nGeometrical Parameters\n")
-        print("Rocket Maximum Radius: " + str(self.rocket.radius) + " m")
-        print("Rocket Frontal Area: " + "{:.6f}".format(self.rocket.area) + " m2")
+        print(f"Rocket Maximum Radius: {self.rocket.radius} m")
+        print(f"Rocket Frontal Area: {self.rocket.area:.6f} m2")
+
         print("\nRocket Distances")
+        distance = abs(
+            self.rocket.center_of_mass_without_motor
+            - self.rocket.center_of_dry_mass_position
+        )
         print(
             "Rocket Center of Dry Mass - Center of Mass without Motor: "
-            + "{:.3f} m".format(
-                abs(
-                    self.rocket.center_of_mass_without_motor
-                    - self.rocket.center_of_dry_mass_position
-                )
-            )
+            f"{distance:.3f} m"
+        )
+        distance = abs(
+            self.rocket.center_of_dry_mass_position - self.rocket.nozzle_position
+        )
+        print(f"Rocket Center of Dry Mass - Nozzle Exit: {distance:.3f} m")
+        distance = abs(
+            self.rocket.center_of_propellant_position(0)
+            - self.rocket.center_of_dry_mass_position
         )
         print(
-            "Rocket Center of Dry Mass - Nozzle Exit: "
-            + "{:.3f} m".format(
-                abs(
-                    self.rocket.center_of_dry_mass_position
-                    - self.rocket.nozzle_position
-                )
-            )
+            f"Rocket Center of Dry Mass - Center of Propellant Mass: {distance:.3f} m"
+        )
+        distance = abs(
+            self.rocket.center_of_mass(0) - self.rocket.center_of_dry_mass_position
         )
         print(
-            "Rocket Center of Dry Mass - Center of Propellant Mass: "
-            + "{:.3f} m".format(
-                abs(
-                    self.rocket.center_of_propellant_position(0)
-                    - self.rocket.center_of_dry_mass_position
-                )
-            )
+            f"Rocket Center of Mass - Rocket Loaded Center of Mass: {distance:.3f} m\n"
         )
-        print(
-            "Rocket Center of Mass - Rocket Loaded Center of Mass: "
-            + "{:.3f} m\n".format(
-                abs(
-                    self.rocket.center_of_mass(0)
-                    - self.rocket.center_of_dry_mass_position
-                )
-            )
-        )
-
-        return None
 
     def rocket_aerodynamics_quantities(self):
         """Print rocket aerodynamics quantities.
@@ -117,11 +103,8 @@ class _RocketPrints:
             # ref_factor corrects lift for different reference areas
             ref_factor = (surface.rocket_radius / self.rocket.radius) ** 2
             print(
-                name
-                + " Lift Coefficient Derivative: {:.3f}".format(
-                    ref_factor * surface.clalpha(0)
-                )
-                + "/rad"
+                f"{name} Lift Coefficient Derivative: "
+                f"{ref_factor * surface.clalpha(0):.3f}/rad"
             )
 
         print("\nCenter of Pressure\n")
@@ -129,11 +112,8 @@ class _RocketPrints:
             name = surface.name
             cpz = surface.cp[2]  # relative to the user defined coordinate system
             print(
-                name
-                + " Center of Pressure position: {:.3f}".format(
-                    position - self.rocket._csys * cpz
-                )
-                + " m"
+                f"{name} Center of Pressure position: "
+                f"{position - self.rocket._csys * cpz:.3f} m"
             )
         print("\nStability\n")
         print(
@@ -143,26 +123,17 @@ class _RocketPrints:
             f"Center of Pressure position (time=0): {self.rocket.cp_position(0):.3f} m"
         )
         print(
-            "Initial Static Margin (mach=0, time=0): "
-            + "{:.3f}".format(self.rocket.static_margin(0))
-            + " c"
+            f"Initial Static Margin (mach=0, time=0): "
+            f"{self.rocket.static_margin(0):.3f} c"
         )
         print(
-            "Final Static Margin (mach=0, time=burn_out): "
-            + "{:.3f}".format(
-                self.rocket.static_margin(self.rocket.motor.burn_out_time)
-            )
-            + " c"
+            f"Final Static Margin (mach=0, time=burn_out): "
+            f"{self.rocket.static_margin(self.rocket.motor.burn_out_time):.3f} c"
         )
         print(
-            "Rocket Center of Mass (time=0) - Center of Pressure (mach=0): "
-            + "{:.3f}".format(
-                abs(self.rocket.center_of_mass(0) - self.rocket.cp_position(0))
-            )
-            + " m\n"
+            f"Rocket Center of Mass (time=0) - Center of Pressure (mach=0): "
+            f"{abs(self.rocket.center_of_mass(0) - self.rocket.cp_position(0)):.3f} m\n"
         )
-
-        return None
 
     def parachute_data(self):
         """Print parachute data.
@@ -173,7 +144,6 @@ class _RocketPrints:
         """
         for chute in self.rocket.parachutes:
             chute.all_info()
-        return None
 
     def all(self):
         """Prints all print methods about the Environment.
@@ -182,16 +152,7 @@ class _RocketPrints:
         -------
         None
         """
-        # Print inertia details
         self.inertia_details()
-
-        # Print rocket geometrical parameters
         self.rocket_geometrical_parameters()
-
-        # Print rocket aerodynamics quantities
         self.rocket_aerodynamics_quantities()
-
-        # Print parachute data
         self.parachute_data()
-
-        return None

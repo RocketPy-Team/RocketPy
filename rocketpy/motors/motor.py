@@ -11,6 +11,7 @@ from ..prints.motor_prints import _MotorPrints
 from ..tools import parallel_axis_theorem_from_com, tuple_handler
 
 
+# pylint: disable=too-many-public-methods
 class Motor(ABC):
     """Abstract class to specify characteristics and useful operations for
     motors. Cannot be instantiated.
@@ -146,6 +147,7 @@ class Motor(ABC):
         'akima' and 'linear'. Default is "linear".
     """
 
+    # pylint: disable=too-many-statements
     def __init__(
         self,
         thrust_source,
@@ -311,7 +313,6 @@ class Motor(ABC):
         # Initialize plots and prints object
         self.prints = _MotorPrints(self)
         self.plots = _MotorPlots(self)
-        return None
 
     @property
     def burn_time(self):
@@ -379,7 +380,6 @@ class Motor(ABC):
           Tanks's mass flow rates. Therefore the exhaust velocity is generally
           variable, being the ratio of the motor thrust by the mass flow rate.
         """
-        pass
 
     @funcify_method("Time (s)", "Total mass (kg)")
     def total_mass(self):
@@ -458,7 +458,6 @@ class Motor(ABC):
         float
             Propellant initial mass in kg.
         """
-        pass
 
     @funcify_method("Time (s)", "Motor center of mass (m)")
     def center_of_mass(self):
@@ -488,7 +487,6 @@ class Motor(ABC):
         Function
             Position of the propellant center of mass as a function of time.
         """
-        pass
 
     @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
     def I_11(self):
@@ -695,7 +693,6 @@ class Motor(ABC):
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        pass
 
     @property
     @abstractmethod
@@ -718,7 +715,6 @@ class Motor(ABC):
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        pass
 
     @property
     @abstractmethod
@@ -741,7 +737,6 @@ class Motor(ABC):
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        pass
 
     @property
     @abstractmethod
@@ -768,7 +763,6 @@ class Motor(ABC):
         ----------
         .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        pass
 
     @property
     @abstractmethod
@@ -795,7 +789,6 @@ class Motor(ABC):
         ----------
         https://en.wikipedia.org/wiki/Moment_of_inertia
         """
-        pass
 
     @property
     @abstractmethod
@@ -822,7 +815,6 @@ class Motor(ABC):
         ----------
         https://en.wikipedia.org/wiki/Moment_of_inertia
         """
-        pass
 
     @staticmethod
     def reshape_thrust_curve(thrust, new_burn_time, total_impulse):
@@ -973,7 +965,7 @@ class Motor(ABC):
                     comments.append(re.findall(r";.*", line)[0])
                     line = re.sub(r";.*", "", line)
                 if line.strip():
-                    if description == []:
+                    if not description:
                         # Extract description
                         description = line.strip().split(" ")
                     else:
@@ -1033,8 +1025,6 @@ class Motor(ABC):
             # Write last line
             file.write(f"{self.thrust.source[-1, 0]:.4f} {0:.3f}\n")
 
-        return None
-
     def info(self):
         """Prints out a summary of the data and graphs available about the
         Motor.
@@ -1042,14 +1032,12 @@ class Motor(ABC):
         # Print motor details
         self.prints.all()
         self.plots.thrust()
-        return None
 
     @abstractmethod
     def all_info(self):
         """Prints out all data and graphs available about the Motor."""
         self.prints.all()
         self.plots.all()
-        return None
 
 
 class GenericMotor(Motor):
@@ -1196,7 +1184,6 @@ class GenericMotor(Motor):
         # Initialize plots and prints object
         self.prints = _MotorPrints(self)
         self.plots = _MotorPlots(self)
-        return None
 
     @cached_property
     def propellant_initial_mass(self):
@@ -1331,7 +1318,6 @@ class GenericMotor(Motor):
         # Print motor details
         self.prints.all()
         self.plots.all()
-        return None
 
 
 class EmptyMotor:
@@ -1339,6 +1325,7 @@ class EmptyMotor:
 
     # TODO: This is a temporary solution. It should be replaced by a class that
     # inherits from the abstract Motor class. Currently cannot be done easily.
+    # pylint: disable=too-many-statements
     def __init__(self):
         """Initializes an empty motor with no mass and no thrust.
 
@@ -1377,4 +1364,3 @@ class EmptyMotor:
         self.I_12 = Function(0)
         self.I_13 = Function(0)
         self.I_23 = Function(0)
-        return None

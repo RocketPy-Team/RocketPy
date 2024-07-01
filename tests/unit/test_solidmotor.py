@@ -27,7 +27,7 @@ def test_motor(mock_show, cesaroni_m1670):
     cesaroni_m1670 : rocketpy.SolidMotor
         The SolidMotor object to be used in the tests.
     """
-    assert cesaroni_m1670.all_info() == None
+    assert cesaroni_m1670.all_info() is None
 
 
 def test_evaluate_inertia_11_asserts_extreme_values(cesaroni_m1670):

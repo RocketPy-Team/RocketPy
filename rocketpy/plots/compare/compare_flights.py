@@ -1,10 +1,12 @@
+# TODO: remove this disable once the code is refactored
+# pylint: disable=nested-min-max
 import matplotlib.pyplot as plt
 import numpy as np
 
 from .compare import Compare
 
 
-class CompareFlights(Compare):
+class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
     """A class to compare the results of multiple flights.
 
     Parameters
@@ -45,8 +47,6 @@ class CompareFlights(Compare):
         self.max_time = max_time
         self.apogee_time = apogee_time
         self.flights = self.object_list
-
-        return None
 
     def __process_xlim(self, x_lim):
         """Function to process the x_lim key word argument. It is simply a
@@ -95,7 +95,6 @@ class CompareFlights(Compare):
             print("Plot saved to file: " + filename)
         else:
             plt.show()
-        return None
 
     def __process_legend(self, legend, fig):
         """Function to add a legend to the plot, if the legend key word
@@ -115,7 +114,6 @@ class CompareFlights(Compare):
         """
         if legend:
             fig.legend()
-        return None
 
     def positions(
         self, figsize=(7, 10), x_lim=None, y_lim=None, legend=True, filename=None
@@ -168,8 +166,6 @@ class CompareFlights(Compare):
         # Saving the plot to a file if a filename is provided, showing the plot
         # otherwise
         self.__process_savefig(filename, fig)
-
-        return None
 
     def velocities(
         self,
@@ -225,10 +221,7 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
-
-        return None
 
     def stream_velocities(
         self,
@@ -295,10 +288,7 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
-
-        return None
 
     def accelerations(
         self,
@@ -359,10 +349,7 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
-
-        return None
 
     def euler_angles(
         self, figsize=(7, 10), x_lim=None, y_lim=None, legend=True, filename=None
@@ -417,10 +404,7 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
-
-        return None
 
     def quaternions(
         self,
@@ -481,10 +465,7 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
-
-        return None
 
     def attitude_angles(
         self, figsize=(7, 10), x_lim=None, y_lim=None, legend=True, filename=None
@@ -539,10 +520,7 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
-
-        return None
 
     def angular_velocities(
         self, figsize=(7, 10), x_lim=None, y_lim=None, legend=True, filename=None
@@ -597,10 +575,7 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
-
-        return None
 
     def angular_accelerations(
         self, figsize=(7, 10), x_lim=None, y_lim=None, legend=True, filename=None
@@ -655,10 +630,7 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
-
-        return None
 
     def aerodynamic_forces(
         self,
@@ -717,10 +689,7 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
-
-        return None
 
     def aerodynamic_moments(
         self,
@@ -779,10 +748,7 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
-
-        return None
 
     def energies(
         self, figsize=(7, 10), x_lim=None, y_lim=None, legend=True, filename=None
@@ -837,10 +803,7 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
-
-        return None
 
     def powers(
         self,
@@ -882,7 +845,6 @@ class CompareFlights(Compare):
         # Check if key word is used for x_limit
         x_lim = self.__process_xlim(x_lim)
 
-        # Create the figure
         fig, _ = super().create_comparison_figure(
             y_attributes=["thrust_power", "drag_power"],
             n_rows=2,
@@ -896,10 +858,7 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
-
-        return None
 
     def rail_buttons_forces(
         self,
@@ -965,10 +924,7 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
-
-        return None
 
     def angles_of_attack(
         self,
@@ -1024,10 +980,7 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
-
-        return None
 
     def fluid_mechanics(
         self,
@@ -1093,14 +1046,11 @@ class CompareFlights(Compare):
             y_lim=y_lim,
         )
 
-        # Saving the plot to a file if a filename is provided, showing the plot otherwise
         self.__process_savefig(filename, fig)
-
-        return None
 
     def stability_margin(
         self, figsize=(7, 10), x_lim=None, y_lim=None, legend=True, filename=None
-    ):
+    ):  # pylint: disable=unused-argument
         """Plots the stability margin of the rocket for the different flights.
         The stability margin here is different than the static margin, it is the
         difference between the center of pressure and the center of gravity of
@@ -1134,8 +1084,6 @@ class CompareFlights(Compare):
 
         print("This method is not implemented yet")
 
-        return None
-
     def attitude_frequency(
         self,
         figsize=(7, 10 * 4 / 3),
@@ -1143,7 +1091,7 @@ class CompareFlights(Compare):
         y_lim=None,
         legend=True,
         filename=None,
-    ):
+    ):  # pylint: disable=unused-argument
         """Plots the frequency of the attitude of the rocket for the different
         flights.
 
@@ -1175,10 +1123,8 @@ class CompareFlights(Compare):
 
         print("This method is not implemented yet")
 
-        return None
-
     @staticmethod
-    def compare_trajectories_3d(
+    def compare_trajectories_3d(  # pylint: disable=too-many-statements
         flights, names_list=None, figsize=(7, 7), legend=None, filename=None
     ):
         """Creates a trajectory plot combining the trajectories listed.
@@ -1281,8 +1227,6 @@ class CompareFlights(Compare):
         else:
             plt.show()
 
-        return None
-
     def trajectories_3d(self, figsize=(7, 7), legend=None, filename=None):
         """Creates a trajectory plot that is the combination of the trajectories
         of the Flight objects passed via a Python list.
@@ -1314,8 +1258,6 @@ class CompareFlights(Compare):
             figsize=figsize,
         )
 
-        return None
-
     def __retrieve_trajectories(self):
         """Retrieve trajectories from Flight objects.
 
@@ -1344,10 +1286,10 @@ class CompareFlights(Compare):
                 x = flight.x[:, 1]
                 y = flight.y[:, 1]
                 z = flight.altitude[:, 1]
-            except AttributeError:
+            except AttributeError as e:
                 raise AttributeError(
-                    "Flight object {} does not have a trajectory.".format(flight.name)
-                )
+                    f"Flight object '{flight.name}' does not have a trajectory."
+                ) from e
             flights.append([x, y, z])
             names_list.append(flight.name)
         return flights, names_list
@@ -1393,9 +1335,7 @@ class CompareFlights(Compare):
 
         func(flights, names_list, figsize, legend, filename)
 
-        return None
-
-    def __plot_xy(
+    def __plot_xy(  # pylint: disable=too-many-statements
         self, flights, names_list, figsize=(7, 7), legend=None, filename=None
     ):
         """Creates a 2D trajectory plot in the X-Y plane that is the combination
@@ -1456,9 +1396,7 @@ class CompareFlights(Compare):
         # Save figure
         self.__process_savefig(filename, fig)
 
-        return None
-
-    def __plot_xz(
+    def __plot_xz(  # pylint: disable=too-many-statements
         self, flights, names_list, figsize=(7, 7), legend=None, filename=None
     ):
         """Creates a 2D trajectory plot in the X-Z plane that is the combination
@@ -1522,9 +1460,7 @@ class CompareFlights(Compare):
         else:
             plt.show()
 
-        return None
-
-    def __plot_yz(
+    def __plot_yz(  # pylint: disable=too-many-statements
         self, flights, names_list, figsize=(7, 7), legend=None, filename=None
     ):
         """Creates a 2D trajectory plot in the Y-Z plane that is the combination
@@ -1585,8 +1521,6 @@ class CompareFlights(Compare):
         # Save figure
         self.__process_savefig(filename, fig)
 
-        return None
-
     def all(self):
         """Prints out all data and graphs available about the Flight.
 
@@ -1634,5 +1568,3 @@ class CompareFlights(Compare):
         self.fluid_mechanics()
 
         self.attitude_frequency()
-
-        return None

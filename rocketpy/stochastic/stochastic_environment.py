@@ -178,11 +178,11 @@ class StochasticEnvironment(StochasticModel):
             # special case for ensemble member
             # TODO: Generalize create_object() with a env.ensemble_member setter
             if key == "ensemble_member":
-                self.object.select_ensemble_member(value)
+                self.obj.select_ensemble_member(value)
             else:
                 if "factor" in key:
                     # get original attribute value and multiply by factor
                     attribute_name = f"_{key.replace('_factor', '')}"
                     value = getattr(self, attribute_name) * value
-                setattr(self.object, key, value)
-        return self.object
+                setattr(self.obj, key, value)
+        return self.obj

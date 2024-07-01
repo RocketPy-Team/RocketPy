@@ -1,4 +1,5 @@
 import pytest
+
 from rocketpy import NoseCone
 
 NOSECONE_LENGTH = 1

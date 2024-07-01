@@ -5,6 +5,7 @@ from rocketpy.motors import GenericMotor
 from .stochastic_motor_model import StochasticMotorModel
 
 
+# pylint: disable=too-many-arguments
 class StochasticGenericMotor(StochasticMotorModel):
     """A Stochastic Generic Motor class that inherits from StochasticModel.
 

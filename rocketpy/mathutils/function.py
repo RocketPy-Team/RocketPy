@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines
 """ The mathutils/function.py is a rocketpy module totally dedicated to function
 operations, including interpolation, extrapolation, integration, differentiation
 and more. This is a core class of our package, and should be maintained
@@ -34,7 +35,7 @@ INTERPOLATION_TYPES = {
 EXTRAPOLATION_TYPES = {"zero": 0, "natural": 1, "constant": 2}
 
 
-class Function:
+class Function:  # pylint: disable=too-many-public-methods
     """Class converts a python function or a data sequence into an object
     which can be handled more naturally, enabling easy interpolation,
     extrapolation, plotting and algebra.
@@ -168,7 +169,7 @@ class Function:
         self.__outputs__ = self.__validate_outputs(outputs)
         return self
 
-    def set_source(self, source):
+    def set_source(self, source):  # pylint: disable=too-many-statements
         """Sets the data source for the function, defining how the function
         produces output from a given input.
 
@@ -336,7 +337,7 @@ class Function:
             self.__set_extrapolation_func()
         return self
 
-    def __set_interpolation_func(self):
+    def __set_interpolation_func(self):  # pylint: disable=too-many-statements
         """Defines interpolation function used by the Function. Each
         interpolation method has its own function with exception of shepard,
         which has its interpolation/extrapolation function defined in
@@ -345,7 +346,9 @@ class Function:
         interpolation = INTERPOLATION_TYPES[self.__interpolation__]
         if interpolation == 0:  # linear
 
-            def linear_interpolation(x, x_min, x_max, x_data, y_data, coeffs):
+            def linear_interpolation(
+                x, x_min, x_max, x_data, y_data, coeffs
+            ):  # pylint: disable=unused-argument
                 x_interval = bisect_left(x_data, x)
                 x_left = x_data[x_interval - 1]
                 y_left = y_data[x_interval - 1]
@@ -357,14 +360,18 @@ class Function:
 
         elif interpolation == 1:  # polynomial
 
-            def polynomial_interpolation(x, x_min, x_max, x_data, y_data, coeffs):
+            def polynomial_interpolation(
+                x, x_min, x_max, x_data, y_data, coeffs
+            ):  # pylint: disable=unused-argument
                 return np.sum(coeffs * x ** np.arange(len(coeffs)))
 
             self._interpolation_func = polynomial_interpolation
 
         elif interpolation == 2:  # akima
 
-            def akima_interpolation(x, x_min, x_max, x_data, y_data, coeffs):
+            def akima_interpolation(
+                x, x_min, x_max, x_data, y_data, coeffs
+            ):  # pylint: disable=unused-argument
                 x_interval = bisect_left(x_data, x)
                 x_interval = x_interval if x_interval != 0 else 1
                 a = coeffs[4 * x_interval - 4 : 4 * x_interval]
@@ -374,7 +381,9 @@ class Function:
 
         elif interpolation == 3:  # spline
 
-            def spline_interpolation(x, x_min, x_max, x_data, y_data, coeffs):
+            def spline_interpolation(
+                x, x_min, x_max, x_data, y_data, coeffs
+            ):  # pylint: disable=unused-argument
                 x_interval = bisect_left(x_data, x)
                 x_interval = max(x_interval, 1)
                 a = coeffs[:, x_interval - 1]
@@ -386,7 +395,7 @@ class Function:
         elif interpolation == 4:  # shepard does not use interpolation function
             self._interpolation_func = None
 
-    def __set_extrapolation_func(self):
+    def __set_extrapolation_func(self):  # pylint: disable=too-many-statements
         """Defines extrapolation function used by the Function. Each
         extrapolation method has its own function. The function is stored in
         the attribute _extrapolation_func."""
@@ -398,14 +407,18 @@ class Function:
 
         elif extrapolation == 0:  # zero
 
-            def zero_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):
+            def zero_extrapolation(
+                x, x_min, x_max, x_data, y_data, coeffs
+            ):  # pylint: disable=unused-argument
                 return 0
 
             self._extrapolation_func = zero_extrapolation
         elif extrapolation == 1:  # natural
             if interpolation == 0:  # linear
 
-                def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):
+                def natural_extrapolation(
+                    x, x_min, x_max, x_data, y_data, coeffs
+                ):  # pylint: disable=unused-argument
                     x_interval = 1 if x < x_min else -1
                     x_left = x_data[x_interval - 1]
                     y_left = y_data[x_interval - 1]
@@ -415,18 +428,24 @@ class Function:
 
             elif interpolation == 1:  # polynomial
 
-                def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):
+                def natural_extrapolation(
+                    x, x_min, x_max, x_data, y_data, coeffs
+                ):  # pylint: disable=unused-argument
                     return np.sum(coeffs * x ** np.arange(len(coeffs)))
 
             elif interpolation == 2:  # akima
 
-                def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):
+                def natural_extrapolation(
+                    x, x_min, x_max, x_data, y_data, coeffs
+                ):  # pylint: disable=unused-argument
                     a = coeffs[:4] if x < x_min else coeffs[-4:]
                     return a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
 
             elif interpolation == 3:  # spline
 
-                def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):
+                def natural_extrapolation(
+                    x, x_min, x_max, x_data, y_data, coeffs
+                ):  # pylint: disable=unused-argument
                     if x < x_min:
                         a = coeffs[:, 0]
                         x = x - x_data[0]
@@ -438,7 +457,9 @@ class Function:
             self._extrapolation_func = natural_extrapolation
         elif extrapolation == 2:  # constant
 
-            def constant_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):
+            def constant_extrapolation(
+                x, x_min, x_max, x_data, y_data, coeffs
+            ):  # pylint: disable=unused-argument
                 return y_data[0] if x < x_min else y_data[-1]
 
             self._extrapolation_func = constant_extrapolation
@@ -1182,7 +1203,7 @@ class Function:
         )
         return self.plot_1d(*args, **kwargs)
 
-    def plot_1d(
+    def plot_1d(  # pylint: disable=too-many-statements
         self,
         lower=None,
         upper=None,
@@ -1275,7 +1296,7 @@ class Function:
         )
         return self.plot_2d(*args, **kwargs)
 
-    def plot_2d(
+    def plot_2d(  # pylint: disable=too-many-statements
         self,
         lower=None,
         upper=None,
@@ -1364,7 +1385,6 @@ class Function:
         )
         z_min, z_max = z.min(), z.max()
         color_map = plt.colormaps[cmap]
-        norm = plt.Normalize(z_min, z_max)
 
         # Plot function
         if disp_type == "surface":
@@ -1399,7 +1419,7 @@ class Function:
         plt.show()
 
     @staticmethod
-    def compare_plots(
+    def compare_plots(  # pylint: disable=too-many-statements
         plot_list,
         lower=None,
         upper=None,
@@ -1520,7 +1540,7 @@ class Function:
                     ax.scatter(points[0], points[1], marker="o")
 
         # Setup legend
-        if any([plot[1] for plot in plots]):
+        if any(plot[1] for plot in plots):
             ax.legend(loc="best", shadow=True)
 
         # Turn on grid and set title and axis
@@ -1735,7 +1755,6 @@ class Function:
                         "Comparison not supported between two instances of "
                         "the Function class with callable sources."
                     ) from exc
-        return None
 
     def __le__(self, other):
         """Less than or equal to comparison operator. It can be used to
@@ -1789,7 +1808,6 @@ class Function:
                         "Comparison not supported between two instances of "
                         "the Function class with callable sources."
                     ) from exc
-        return None
 
     def __gt__(self, other):
         """Greater than comparison operator. It can be used to compare a
@@ -1836,7 +1854,7 @@ class Function:
         return ~self.__ge__(other)
 
     # Define all possible algebraic operations
-    def __add__(self, other):
+    def __add__(self, other):  # pylint: disable=too-many-statements
         """Sums a Function object and 'other', returns a new Function
         object which gives the result of the sum. Only implemented for
         1D domains.
@@ -2043,7 +2061,7 @@ class Function:
         """
         return self * other
 
-    def __truediv__(self, other):
+    def __truediv__(self, other):  # pylint: disable=too-many-statements
         """Divides a Function object and returns a new Function object
         which gives the result of the division. Only implemented for 1D
         domains.
@@ -2153,7 +2171,7 @@ class Function:
         elif callable(other):
             return Function(lambda x: (other(x) / self.get_value_opt(x)))
 
-    def __pow__(self, other):
+    def __pow__(self, other):  # pylint: disable=too-many-statements
         """Raises a Function object to the power of 'other' and
         returns a new Function object which gives the result. Only
         implemented for 1D domains.
@@ -2282,7 +2300,7 @@ class Function:
         """
         return self.compose(other)
 
-    def integral(self, a, b, numerical=False):
+    def integral(self, a, b, numerical=False):  # pylint: disable=too-many-statements
         """Evaluate a definite integral of a 1-D Function in the interval
         from a to b.
 
@@ -2471,7 +2489,7 @@ class Function:
             return float(self.get_value_opt(x + dx * 1j).imag / dx)
         else:
             raise NotImplementedError(
-                "Only 1st order derivatives are supported yet. " "Set order=1."
+                "Only 1st order derivatives are supported yet. Set order=1."
             )
 
     def identity_function(self):
@@ -2920,7 +2938,7 @@ class Function:
         return isinstance(var, np.ndarray) and var.size == 1
 
     # Input validators
-    def __validate_source(self, source):
+    def __validate_source(self, source):  # pylint: disable=too-many-statements
         """Used to validate the source parameter for creating a Function object.
 
         Parameters
@@ -2965,7 +2983,7 @@ class Function:
                     "Could not read the csv or txt file to create Function source."
                 ) from e
 
-        if isinstance(source, list) or isinstance(source, np.ndarray):
+        if isinstance(source, (list, np.ndarray)):
             # Triggers an error if source is not a list of numbers
             source = np.array(source, dtype=np.float64)
 
@@ -3206,7 +3224,7 @@ class PiecewiseFunction(Function):
         )
 
 
-def funcify_method(*args, **kwargs):
+def funcify_method(*args, **kwargs):  # pylint: disable=too-many-statements
     """Decorator factory to wrap methods as Function objects and save them as
     cached properties.
 

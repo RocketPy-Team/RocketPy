@@ -10,7 +10,9 @@ from rocketpy import Environment
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_gfs_atmosphere(mock_show, example_spaceport_env):
+def test_gfs_atmosphere(
+    mock_show, example_spaceport_env
+):  # pylint: disable=unused-argument
     """Tests the Forecast model with the GFS file. It does not test the values,
     instead the test checks if the method runs without errors.
 
@@ -22,12 +24,14 @@ def test_gfs_atmosphere(mock_show, example_spaceport_env):
         Example environment object to be tested.
     """
     example_spaceport_env.set_atmospheric_model(type="Forecast", file="GFS")
-    assert example_spaceport_env.all_info() == None
+    assert example_spaceport_env.all_info() is None
 
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_nam_atmosphere(mock_show, example_spaceport_env):
+def test_nam_atmosphere(
+    mock_show, example_spaceport_env
+):  # pylint: disable=unused-argument
     """Tests the Forecast model with the NAM file.
 
     Parameters
@@ -38,22 +42,26 @@ def test_nam_atmosphere(mock_show, example_spaceport_env):
         Example environment object to be tested.
     """
     example_spaceport_env.set_atmospheric_model(type="Forecast", file="NAM")
-    assert example_spaceport_env.all_info() == None
+    assert example_spaceport_env.all_info() is None
 
 
 # Deactivated since it is hard to figure out and appropriate date to use RAP forecast
 @pytest.mark.skip(reason="legacy tests")
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_rap_atmosphere(mock_show, example_spaceport_env):
+def test_rap_atmosphere(
+    mock_show, example_spaceport_env
+):  # pylint: disable=unused-argument
     today = datetime.date.today()
     example_spaceport_env.set_date((today.year, today.month, today.day, 8))
     example_spaceport_env.set_atmospheric_model(type="Forecast", file="RAP")
-    assert example_spaceport_env.all_info() == None
+    assert example_spaceport_env.all_info() is None
 
 
 @patch("matplotlib.pyplot.show")
-def test_era5_atmosphere(mock_show, example_spaceport_env):
+def test_era5_atmosphere(
+    mock_show, example_spaceport_env
+):  # pylint: disable=unused-argument
     """Tests the Reanalysis model with the ERA5 file. It uses an example file
     available in the data/weather folder of the RocketPy repository.
 
@@ -70,12 +78,14 @@ def test_era5_atmosphere(mock_show, example_spaceport_env):
         file="data/weather/SpaceportAmerica_2018_ERA-5.nc",
         dictionary="ECMWF",
     )
-    assert example_spaceport_env.all_info() == None
+    assert example_spaceport_env.all_info() is None
 
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_gefs_atmosphere(mock_show, example_spaceport_env):
+def test_gefs_atmosphere(
+    mock_show, example_spaceport_env
+):  # pylint: disable=unused-argument
     """Tests the Ensemble model with the GEFS file.
 
     Parameters
@@ -86,7 +96,7 @@ def test_gefs_atmosphere(mock_show, example_spaceport_env):
         Example environment object to be tested.
     """
     example_spaceport_env.set_atmospheric_model(type="Ensemble", file="GEFS")
-    assert example_spaceport_env.all_info() == None
+    assert example_spaceport_env.all_info() is None
 
 
 @pytest.mark.skip(reason="legacy tests")  # deprecated method
@@ -171,7 +181,9 @@ def test_wyoming_sounding_atmosphere(mock_show, example_plain_env):
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_hiresw_ensemble_atmosphere(mock_show, example_spaceport_env):
+def test_hiresw_ensemble_atmosphere(
+    mock_show, example_spaceport_env
+):  # pylint: disable=unused-argument
     """Tests the Forecast model with the HIRESW file.
 
     Parameters

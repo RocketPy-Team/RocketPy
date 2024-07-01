@@ -13,20 +13,6 @@ class _HybridMotorPlots(_MotorPlots):
 
     """
 
-    def __init__(self, hybrid_motor):
-        """Initializes _MotorClass class.
-
-        Parameters
-        ----------
-        hybrid_motor : HybridMotor
-            Instance of the HybridMotor class
-
-        Returns
-        -------
-        None
-        """
-        super().__init__(hybrid_motor)
-
     def grain_inner_radius(self, lower_limit=None, upper_limit=None):
         """Plots grain_inner_radius of the hybrid_motor as a function of time.
 

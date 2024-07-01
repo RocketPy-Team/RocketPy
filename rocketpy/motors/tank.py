@@ -145,7 +145,6 @@ class Tank(ABC):
         Function
             Mass of the tank as a function of time. Units in kg.
         """
-        pass
 
     @property
     @abstractmethod
@@ -160,7 +159,6 @@ class Tank(ABC):
         Function
             Net mass flow rate of the tank as a function of time.
         """
-        pass
 
     @property
     @abstractmethod
@@ -175,7 +173,6 @@ class Tank(ABC):
         Function
             Volume of the fluid as a function of time.
         """
-        pass
 
     @property
     @abstractmethod
@@ -188,7 +185,6 @@ class Tank(ABC):
         Function
             Volume of the liquid as a function of time.
         """
-        pass
 
     @property
     @abstractmethod
@@ -201,7 +197,6 @@ class Tank(ABC):
         Function
             Volume of the gas as a function of time.
         """
-        pass
 
     @property
     @abstractmethod
@@ -216,7 +211,6 @@ class Tank(ABC):
         Function
             Height of the ullage as a function of time.
         """
-        pass
 
     @property
     @abstractmethod
@@ -231,7 +225,6 @@ class Tank(ABC):
         Function
             Height of the ullage as a function of time.
         """
-        pass
 
     @property
     @abstractmethod
@@ -244,7 +237,6 @@ class Tank(ABC):
         Function
             Mass of the liquid as a function of time.
         """
-        pass
 
     @property
     @abstractmethod
@@ -257,7 +249,6 @@ class Tank(ABC):
         Function
             Mass of the gas as a function of time.
         """
-        pass
 
     @funcify_method("Time (s)", "Center of mass of liquid (m)")
     def liquid_center_of_mass(self):
@@ -609,7 +600,8 @@ class MassFlowRateBasedTank(Tank):
         )
 
         # Discretize input flow if needed
-        self.discretize_flow() if discretize else None
+        if discretize:
+            self.discretize_flow()
 
         # Check if the tank is overfilled or underfilled
         self._check_volume_bounds()
@@ -890,7 +882,8 @@ class UllageBasedTank(Tank):
         self.ullage = Function(ullage, "Time (s)", "Volume (m³)", "linear")
 
         # Discretize input if needed
-        self.discretize_ullage() if discretize else None
+        if discretize:
+            self.discretize_ullage()
 
         # Check if the tank is overfilled or underfilled
         self._check_volume_bounds()
@@ -1083,8 +1076,8 @@ class LevelBasedTank(Tank):
         # Define liquid level function
         self.liquid_level = Function(liquid_height, "Time (s)", "height (m)", "linear")
 
-        # Discretize input if needed
-        self.discretize_liquid_height() if discretize else None
+        if discretize:
+            self.discretize_liquid_height()
 
         # Check if the tank is overfilled or underfilled
         self._check_height_bounds()
@@ -1298,8 +1291,8 @@ class MassBasedTank(Tank):
         self.liquid_mass = Function(liquid_mass, "Time (s)", "Mass (kg)", "linear")
         self.gas_mass = Function(gas_mass, "Time (s)", "Mass (kg)", "linear")
 
-        # Discretize input if needed
-        self.discretize_masses() if discretize else None
+        if discretize:
+            self.discretize_masses()
 
         # Check if the tank is overfilled or underfilled
         self._check_volume_bounds()
