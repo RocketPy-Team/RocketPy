@@ -51,7 +51,7 @@ However, in any case, it is of utmost importance that the expected behaviour or 
 **should be included within the docstring of the test**, just as illustrated below by the docstring
 of the same test:
 
-    """Test the method add_motor and related position properties in a Rocket
+    Test the method add_motor and related position properties in a Rocket
     instance.
 
     This test checks the correctness of the `add_motor` method and the computed
@@ -126,33 +126,6 @@ fixtures are imported.
 
 **Important:** If a new module containing fixtures is to be created, do not forget to look for the 
 ``conftest.py`` file within the tests folder to include your newly created module. 
-This file contains, besides the rest, something that looks like:
-
-.. code-block:: python
-
-    import pytest
-
-    # Pytest configuration
-    pytest_plugins = [
-        "tests.fixtures.environment.environment_fixtures",
-        "tests.fixtures.flight.flight_fixtures",
-        "tests.fixtures.function.function_fixtures",
-        "tests.fixtures.motor.liquid_fixtures",
-        "tests.fixtures.motor.hybrid_fixtures",
-        "tests.fixtures.motor.solid_motor_fixtures",
-        "tests.fixtures.motor.tanks_fixtures",
-        "tests.fixtures.motor.generic_motor_fixtures",
-        "tests.fixtures.parachutes.parachute_fixtures",
-        "tests.fixtures.rockets.rocket_fixtures",
-        "tests.fixtures.surfaces.surface_fixtures",
-        "tests.fixtures.units.numerical_fixtures",
-        "tests.fixtures.monte_carlo.monte_carlo_fixtures",
-        "tests.fixtures.monte_carlo.stochastic_fixtures",
-        "tests.fixtures.monte_carlo.stochastic_motors_fixtures",
-    ]
-
-Pay close attention to the organization of the plugins, they are also organized in a way
-to help the developer position the fixtures in a certain pattern. 
 
 To finish, let's take a quick look inside the tests directory structure. Consider the **motor**
 folder containing its fixtures:
@@ -169,12 +142,8 @@ folder containing its fixtures:
     ├── solid_motor_fixtures.py
     └── tanks_fixtures.py
 
-Observe the naming convention for the fixtures within the modules and also how the fixtures were
-structured, such that each kind of motor contains a module loaded with its needed fixtures:
-
-* kindofmotor_fixtures.py
-
-One is expected to follow this convention.
+Observe the naming convention (**RocketPy prefers Hungarian Notation**) for the fixtures within the modules and also how the fixtures were
+structured, such that each kind of motor contains a module loaded with its needed fixtures.
 
 Unit tests definition
 ---------------------
@@ -183,7 +152,7 @@ Within a complex code such as RocketPy, some definitions or agreements need to b
 to make sense within a projec. In RocketPy, unit tests are/can be **sociable**, which **still** means that:
 
 * (Speed) They have to be **fast**.
-* (Isolated behavior) They focus on a **small part** of the system. Here, we focus on methods.
+* (Isolated behavior) They focus on a **small part** of the system. Here we define unit in the method-level.
 
 *However*, as already said, they are/can be sociable:
 
@@ -207,13 +176,15 @@ to interact naturally. In practical terms, consider the test:
 
 This test is **sociable** because it relies on the actual Rocket instance and tests its real behavior without 
 isolating the Rocket class from its potential interactions with other classes or methods within its implementation. 
-It checks the real implementation of ``evaluate_total_mass`` rather than a mocked or stubbed version, ensuring that the 
-functionality being tested is part of the integrated system.
+It checks the real implementation of ``evaluate_total_mass`` rather than a mocked or stubbed version, ensuring that 
+the functionality being tested is part of the integrated system.
 
-Please note that writing an unit test which is solitary is **allowed**. The classification regarding solitary and
-sociable tests was clarified due to the specific needs developers naturally encountered within the software,
-while also hoping that since the developers had the need to further identify them, external contributors would probably
-fall into the same problem.
+Please note that writing an unit test which is solitary is allowed, however: make sure to back it up with proper contract
+tests when applicable. 
+
+The classification regarding solitary and sociable tests was clarified due to the specific needs developers
+naturally encountered within the software, while also hoping that since the developers had the need to further 
+identify them, external contributors would probably fall into the same problem.
 
 Integration tests definition
 ----------------------------
@@ -256,7 +227,7 @@ Consider the following integration test:
 
 This test contains two fundamental traits which defines it as an integration test:
 
-* (I/O Access) Communication with external dependencies that may not be stable or quick to access. 
+* (I/O Access) Communication with external dependencies that may not be stable or quick to access. Emphasis on I/O and functionality of public interfaces.
 * Contains the ``all_info()`` method, which is an integration test by convention for RocketPy.
 
 **Observation:** The ``all_info()`` method present in the code is considered to be an integration test.
@@ -266,25 +237,73 @@ to be considered an unit test.
 Please be aware that Integration tests are not solely classfied when interacting with external dependencies,
 but also encompass verifying the interaction between classes or too many methods at once, such as ``all_info()``. 
 
-Further clarification: If the test contains traits of unit tests and use dependencies which are stable, such as
+Further clarification: Even if the test contains traits of unit tests and use dependencies which are stable, such as
 .csv or .eng files contained within the project or any other external dependencies which are easy to access 
-and do not make the test slow, then your test may be classfied as an unit test (solitary or sociable). 
+and do not make the test slow, **then your test is still an integration test, since those are strongly I/O related.** 
 
 Acceptance tests definition
 ---------------------------
 
 Acceptance tests configure the final phase of the testing lifecycle within RocketPy. These tests are designed to
-account for user-scenarios where usually real flights and configurations are setup and launched. 
+account for user-centered scenarios where usually real flights and configurations are setup and launched. 
 
 This phase of testing presents the task of letting the developers know if the system still satisfies well enough the 
 requirements of normal use of the software, including for instance:
 
 * Error free use of the software within the setup of a real launch.
-* Assertions regarding the accuracy of simulations. Thresholds are put and should be checked. 
-* Usually include prior knowledge of real flight data.
+* Assertions regarding the accuracy of simulations. Thresholds are put and should be checked. RocketPy Paper results are a good reference.
+* Usually include prior knowledge of real flight data. 
 
 In practical terms, acceptance tests come through the form of a notebook where a certain flight is tested.
 It is an important feature and also defining feature of the acceptance tests that thresholds are compared 
 to real flight data allowing for true comparison. 
 
+Docstrings
+----------
 
+Some tests are also defined within the docstring of some methods. That has been done so far for example and
+documenting purposes, such as below:
+
+.. code-block:: python
+
+    def to_frequency_domain(self, lower, upper, sampling_frequency, remove_dc=True):
+        """Performs the conversion of the Function to the Frequency Domain and
+        returns the result. This is done by taking the Fourier transform of the
+        Function. The resulting frequency domain is symmetric, i.e., the
+        negative frequencies are included as well.
+
+        Parameters
+        ----------
+        lower : float
+            Lower bound of the time range.
+        upper : float
+            Upper bound of the time range.
+        sampling_frequency : float
+            Sampling frequency at which to perform the Fourier transform.
+        remove_dc : bool, optional
+            If True, the DC component is removed from the Fourier transform.
+
+        Returns
+        -------
+        Function
+            The Function in the frequency domain.
+
+        Examples
+        --------
+        >>> from rocketpy import Function
+        >>> import numpy as np
+        >>> main_frequency = 10 # Hz
+        >>> time = np.linspace(0, 10, 1000)
+        >>> signal = np.sin(2 * np.pi * main_frequency * time)
+        >>> time_domain = Function(np.array([time, signal]).T)
+        >>> frequency_domain = time_domain.to_frequency_domain(
+        ...     lower=0, upper=10, sampling_frequency=100
+        ... )
+        >>> peak_frequencies_index = np.where(frequency_domain[:, 1] > 0.001)
+        >>> peak_frequencies = frequency_domain[peak_frequencies_index, 0]
+        >>> print(peak_frequencies)
+        [[-10.  10.]]
+        """
+
+This is not common practice, but it is optional and can be done. RocketPy however encourages
+the use of other means to test its software, as described.
