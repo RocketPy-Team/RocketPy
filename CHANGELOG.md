@@ -32,6 +32,8 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- DOC: Adding testing guidelines for RocketPy. [#626](https://github.com/RocketPy-Team/RocketPy/pull/626)
+
 ### Changed
 
 - MNT: bump minimum Python version to 3.9. [#624](https://github.com/RocketPy-Team/RocketPy/pull/624)
