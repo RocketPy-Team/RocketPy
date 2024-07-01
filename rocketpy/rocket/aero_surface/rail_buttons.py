@@ -35,7 +35,7 @@ class RailButtons(AeroSurface):
         None
 
         """
-        super().__init__(name)
+        super().__init__(name, None)
         self.buttons_distance = buttons_distance
         self.angular_position = angular_position
         self.name = name

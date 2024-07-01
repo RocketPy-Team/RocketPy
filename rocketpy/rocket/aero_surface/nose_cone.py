@@ -114,7 +114,7 @@ class NoseCone(AeroSurface):
         -------
         None
         """
-        super().__init__(name)
+        super().__init__(name, np.pi * rocket_radius**2)
 
         self._rocket_radius = rocket_radius
         self._base_radius = base_radius

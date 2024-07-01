@@ -142,12 +142,11 @@ class Fins(AeroSurface):
         -------
         None
         """
-
-        super().__init__(name)
-
         # Compute auxiliary geometrical parameters
         d = 2 * rocket_radius
         ref_area = np.pi * rocket_radius**2  # Reference area
+
+        super().__init__(name, ref_area)
 
         # Store values
         self._n = n
@@ -341,6 +340,27 @@ class Fins(AeroSurface):
         cld_omega.set_outputs("Roll moment damping coefficient derivative")
         self.roll_parameters = [clf_delta, cld_omega, self.cant_angle_rad]
         return self.roll_parameters
+
+    def evaluate_roll_moment(self, stream_speed, stream_mach, rho, omega3):
+
+        clf_delta, cld_omega, cant_angle_rad = self.roll_parameters
+        M3f = (
+            (1 / 2 * rho * stream_speed**2)
+            * self.ref_area
+            * 2
+            * self.surface_radius
+            * clf_delta.get_value_opt(stream_mach)
+            * cant_angle_rad
+        )
+        M3d = (
+            (1 / 2 * rho * stream_speed)
+            * self.ref_area
+            * (2 * self.surface_radius) ** 2
+            * cld_omega.get_value_opt(stream_mach)
+            * omega3
+            / 2
+        )
+        M3 += M3f - M3d
 
     # Defines number of fins  factor
     def __fin_num_correction(_, n):

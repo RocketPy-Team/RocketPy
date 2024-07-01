@@ -8,10 +8,11 @@ import numpy as np
 class AeroSurface(ABC):
     """Abstract class used to define aerodynamic surfaces."""
 
-    def __init__(self, name):
+    def __init__(self, name, reference_area):
         self.cpx = 0
         self.cpy = 0
         self.cpz = 0
+        self.reference_area = reference_area
         self.name = name
         return None
 

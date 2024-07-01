@@ -98,14 +98,13 @@ class AirBrakes(AeroSurface):
         -------
         None
         """
-        super().__init__(name)
+        super().__init__(name, reference_area)
         self.drag_coefficient_curve = drag_coefficient_curve
         self.drag_coefficient = Function(
             drag_coefficient_curve,
             inputs=["Deployment Level", "Mach"],
             outputs="Drag Coefficient",
         )
-        self.reference_area = reference_area
         self.clamp = clamp
         self.override_rocket_drag = override_rocket_drag
         self.initial_deployment_level = deployment_level
