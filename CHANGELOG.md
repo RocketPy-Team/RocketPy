@@ -32,6 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- DOC: Adding testing guidelines for RocketPy. [#626](https://github.com/RocketPy-Team/RocketPy/pull/626)
 - ENH: CP and Thrust Eccentricity Effects Generate Roll Moment [#617](https://github.com/RocketPy-Team/RocketPy/pull/617)
 - ENH: Add Prandtl-Gauss transformation to NoseCone and Tail [#609](https://github.com/RocketPy-Team/RocketPy/pull/609)
 - ENH: Implement power series nose cones[#603](https://github.com/RocketPy-Team/RocketPy/pull/603)
