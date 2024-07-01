@@ -79,6 +79,7 @@ You can install this version by running `pip install rocketpy==1.3.0`
 - DOC: Change rocketpy Landing Page to Standard Code docs [#584](https://github.com/RocketPy-Team/RocketPy/pull/584)
 - ENH: Flight simulation speed up [#581] (https://github.com/RocketPy-Team/RocketPy/pull/581) 
 - MNT: Modularize Rocket Draw [#580](https://github.com/RocketPy-Team/RocketPy/pull/580)
+- ENH: Initial solution from flights gets previous results [#568](https://github.com/RocketPy-Team/RocketPy/pull/568)
 - DOC: Improvements of Environment docstring phrasing [#565](https://github.com/RocketPy-Team/RocketPy/pull/565)
 - MNT: Refactor flight prints module [#579](https://github.com/RocketPy-Team/RocketPy/pull/579)
 - DOC: Convert CompareFlights example notebooks to .rst files [#576](https://github.com/RocketPy-Team/RocketPy/pull/576)
