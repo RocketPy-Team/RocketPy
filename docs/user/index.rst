@@ -28,10 +28,12 @@ RocketPy's User Guide
 
 .. toctree::
    :maxdepth: 2
-   :caption: Dispersion Analysis
+   :caption: Monte Carlo Simulations
 
-   ../notebooks/dispersion_analysis/dispersion_analysis.ipynb  
-   ../notebooks/dispersion_analysis/parachute_drop_from_helicopter.ipynb
+   Stochastic Classes <stochastic.rst>
+   ../notebooks/monte_carlo_analysis/monte_carlo_class_usage.ipynb
+   ../notebooks/monte_carlo_analysis/monte_carlo_analysis.ipynb
+   ../notebooks/monte_carlo_analysis/parachute_drop_from_helicopter.ipynb
 
 .. toctree::
    :maxdepth: 2

@@ -64,7 +64,7 @@ def test_sensors_prints(sensor, request):
 
 
 def test_rotation_matrix(noisy_rotated_accelerometer):
-    """Test the rotation_matrix property of the InertialSensors class. Checks if
+    """Test the rotation_matrix property of the InertialSensor class. Checks if
     the rotation matrix is correctly calculated.
     """
     # values from external source
@@ -80,7 +80,7 @@ def test_rotation_matrix(noisy_rotated_accelerometer):
 
 
 def test_inertial_quantization(quantized_accelerometer):
-    """Test the quantize method of the InertialSensors class. Checks if returned values
+    """Test the quantize method of the InertialSensor class. Checks if returned values
     are as expected.
     """
     # expected values calculated by hand
@@ -96,7 +96,7 @@ def test_inertial_quantization(quantized_accelerometer):
 
 
 def test_scalar_quantization(quantized_barometer):
-    """Test the quantize method of the ScalarSensors class. Checks if returned values
+    """Test the quantize method of the ScalarSensor class. Checks if returned values
     are as expected.
     """
     # expected values calculated by hand
@@ -157,7 +157,7 @@ def test_quantization(sensor, input_value, expected_output, request):
     ],
 )
 def test_inertial_measured_data(sensor, request):
-    """Test the measured_data property of the Sensors class. Checks if
+    """Test the measured_data property of the Sensor class. Checks if
     the measured data is treated properly when the sensor is added once or more
     than once to the rocket.
     """
@@ -209,7 +209,7 @@ def test_inertial_measured_data(sensor, request):
 
 
 def test_scalar_measured_data(ideal_barometer, example_plain_env):
-    """Test the measure method of ScalarSensors. Checks if saved
+    """Test the measure method of ScalarSensor. Checks if saved
     measurement is (P) and if measured_data is [(t, P), ...]
     """
     t = TIME
@@ -368,7 +368,7 @@ def test_noisy_barometer(noisy_barometer, example_plain_env):
 
 
 @pytest.mark.parametrize(
-    "sensor, format, expected_header, expected_keys",
+    "sensor, file_format, expected_header, expected_keys",
     [
         ("ideal_accelerometer", "csv", "t,ax,ay,az\n", ("ax", "ay", "az")),
         ("ideal_gyroscope", "csv", "t,wx,wy,wz\n", ("wx", "wy", "wz")),
@@ -379,10 +379,10 @@ def test_noisy_barometer(noisy_barometer, example_plain_env):
     ],
 )
 def test_export_data(
-    sensor, format, expected_header, expected_keys, request, example_plain_env
+    sensor, file_format, expected_header, expected_keys, request, example_plain_env
 ):
     """Test the export_data method of the sensors. Checks if the data is
-    exported correctly in the specified format.
+    exported correctly in the specified file_format.
     """
     sensor = request.getfixturevalue(sensor)
 
@@ -403,11 +403,11 @@ def test_export_data(
         pressure=example_plain_env.pressure,
     )
 
-    file_name = f"sensors.{format}"
+    file_name = f"sensors.{file_format}"
 
-    sensor.export_measured_data(file_name, format=format)
+    sensor.export_measured_data(file_name, file_format=file_format)
 
-    if format == "csv":
+    if file_format == "csv":
         with open(file_name, "r") as file:
             contents = file.read()
 
@@ -417,7 +417,7 @@ def test_export_data(
 
         assert contents == expected_data
 
-    elif format == "json":
+    elif file_format == "json":
         with open(file_name, "r") as file:
             contents = json.load(file)
 
@@ -437,9 +437,9 @@ def test_export_data(
         sensor.measured_data[:],
         sensor.measured_data[:],
     ]
-    sensor.export_measured_data(file_name, format=format)
+    sensor.export_measured_data(file_name, file_format=file_format)
 
-    if format == "csv":
+    if file_format == "csv":
         with open(f"{file_name}_1", "r") as file:
             contents = file.read()
         assert contents == expected_data
@@ -448,7 +448,7 @@ def test_export_data(
             contents = file.read()
         assert contents == expected_data
 
-    elif format == "json":
+    elif file_format == "json":
         with open(f"{file_name}_1", "r") as file:
             contents = json.load(file)
         assert contents == expected_data

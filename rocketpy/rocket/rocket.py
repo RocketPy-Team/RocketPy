@@ -4,7 +4,7 @@ import numpy as np
 
 from rocketpy.control.controller import _Controller
 from rocketpy.mathutils.function import Function
-from rocketpy.mathutils.vector_matrix import Vector
+from rocketpy.mathutils.vector_matrix import Vector, Matrix
 from rocketpy.motors.motor import EmptyMotor
 from rocketpy.plots.rocket_plots import _RocketPlots
 from rocketpy.prints.rocket_prints import _RocketPrints
@@ -73,6 +73,9 @@ class Rocket:
         for more information
         regarding the coordinate system.
         Expressed in meters as a function of time.
+    Rocket.com_to_cdm_function : Function
+        Function of time expressing the z-coordinate of the center of mass
+        relative to the center of dry mass.
     Rocket.reduced_mass : Function
         Function of time expressing the reduced mass of the rocket,
         defined as the product of the propellant mass and the mass
@@ -147,6 +150,11 @@ class Rocket:
         defined rocket coordinate system.
         See :doc:`Positions and Coordinate Systems </user/positions>`
         for more information.
+    Rocket.nozzle_to_cdm : float
+        Distance between the nozzle exit and the rocket's center of dry mass
+        position, in meters.
+    Rocket.nozzle_gyration_tensor: Matrix
+        Matrix representing the nozzle gyration tensor.
     Rocket.center_of_propellant_position : Function
         Position of the propellant's center of mass relative to the user defined
         rocket reference system. See
@@ -286,7 +294,7 @@ class Rocket:
         self.thrust_eccentricity_y = 0
         self.thrust_eccentricity_x = 0
 
-        # Parachute, Aerodynamic, Buttons, Controllers, Sensors data initialization
+        # Parachute, Aerodynamic, Buttons, Controllers, Sensor data initialization
         self.parachutes = []
         self._controllers = []
         self.air_brakes = []
@@ -542,7 +550,11 @@ class Rocket:
         """
         self.stability_margin.set_source(
             lambda mach, time: (
-                (self.center_of_mass(time) - self.cp_position(mach)) / (2 * self.radius)
+                (
+                    self.center_of_mass.get_value_opt(time)
+                    - self.cp_position.get_value_opt(mach)
+                )
+                / (2 * self.radius)
             )
             * self._csys
         )
@@ -560,7 +572,10 @@ class Rocket:
         """
         # Calculate static margin
         self.static_margin.set_source(
-            lambda time: (self.center_of_mass(time) - self.cp_position(0))
+            lambda time: (
+                self.center_of_mass.get_value_opt(time)
+                - self.cp_position.get_value_opt(0)
+            )
             / (2 * self.radius)
         )
         # Change sign if coordinate system is upside down
@@ -723,8 +738,133 @@ class Rocket:
             self.I_23,
         )
 
+    def evaluate_nozzle_to_cdm(self):
+        """Evaluates the distance between the nozzle exit and the rocket's
+        center of dry mass.
+
+        Returns
+        -------
+        self.nozzle_to_cdm : float
+            Distance between the nozzle exit and the rocket's center of dry
+            mass position, in meters.
+        """
+        self.nozzle_to_cdm = (
+            -(self.nozzle_position - self.center_of_dry_mass_position) * self._csys
+        )
+        return self.nozzle_to_cdm
+
     def evaluate_nozzle_gyration_tensor(self):
-        pass
+        """Calculates and returns the nozzle gyration tensor relative to the
+        rocket's center of dry mass. The gyration tensor is saved and returned
+        in units of kg*m².
+
+        Returns
+        -------
+        self.nozzle_gyration_tensor : Matrix
+            Matrix containing the nozzle gyration tensor.
+        """
+        S_noz_33 = 0.5 * self.motor.nozzle_radius**2
+        S_noz_11 = S_noz_22 = 0.5 * S_noz_33 + 0.25 * self.nozzle_to_cdm**2
+        S_noz_12, S_noz_13, S_noz_23 = 0, 0, 0  # Due to axis symmetry
+        self.nozzle_gyration_tensor = Matrix(
+            [
+                [S_noz_11, S_noz_12, S_noz_13],
+                [S_noz_12, S_noz_22, S_noz_23],
+                [S_noz_13, S_noz_23, S_noz_33],
+            ]
+        )
+        return self.nozzle_gyration_tensor
+
+    def evaluate_com_to_cdm_function(self):
+        """Evaluates the z-coordinate of the center of mass (COM) relative to
+        the center of dry mass (CDM).
+
+        Notes
+        -----
+        1. The `com_to_cdm_function` plus `center_of_mass` should be equal
+        to `center_of_dry_mass_position` at every time step.
+        2. The `com_to_cdm_function` is a function of time and will usually
+        already be discretized.
+
+        Returns
+        -------
+        self.com_to_cdm_function : Function
+            Function of time expressing the z-coordinate of the center of mass
+            relative to the center of dry mass.
+        """
+        self.com_to_cdm_function = (
+            -1
+            * (
+                (self.center_of_propellant_position - self.center_of_dry_mass_position)
+                * self._csys
+            )
+            * self.motor.propellant_mass
+            / self.total_mass
+        )
+        self.com_to_cdm_function.set_inputs("Time (s)")
+        self.com_to_cdm_function.set_outputs("Z Coordinate COM to CDM (m)")
+        self.com_to_cdm_function.set_title("Z Coordinate COM to CDM")
+        return self.com_to_cdm_function
+
+    def get_inertia_tensor_at_time(self, t):
+        """Returns a Matrix representing the inertia tensor of the rocket with
+        respect to the rocket's center of mass at a given time. It evaluates
+        each inertia tensor component at the given time and returns a Matrix
+        with the computed values.
+
+        Parameters
+        ----------
+        t : float
+            Time at which the inertia tensor is to be evaluated.
+
+        Returns
+        -------
+        Matrix
+            Inertia tensor of the rocket at time t.
+        """
+        I_11 = self.I_11.get_value_opt(t)
+        I_12 = self.I_12.get_value_opt(t)
+        I_13 = self.I_13.get_value_opt(t)
+        I_22 = self.I_22.get_value_opt(t)
+        I_23 = self.I_23.get_value_opt(t)
+        I_33 = self.I_33.get_value_opt(t)
+        return Matrix(
+            [
+                [I_11, I_12, I_13],
+                [I_12, I_22, I_23],
+                [I_13, I_23, I_33],
+            ]
+        )
+
+    def get_inertia_tensor_derivative_at_time(self, t):
+        """Returns a Matrix representing the time derivative of the inertia
+        tensor of the rocket with respect to the rocket's center of mass at a
+        given time. It evaluates each inertia tensor component's derivative at
+        the given time and returns a Matrix with the computed values.
+
+        Parameters
+        ----------
+        t : float
+            Time at which the inertia tensor derivative is to be evaluated.
+
+        Returns
+        -------
+        Matrix
+            Inertia tensor time derivative of the rocket at time t.
+        """
+        I_11_dot = self.I_11.differentiate_complex_step(t)
+        I_12_dot = self.I_12.differentiate_complex_step(t)
+        I_13_dot = self.I_13.differentiate_complex_step(t)
+        I_22_dot = self.I_22.differentiate_complex_step(t)
+        I_23_dot = self.I_23.differentiate_complex_step(t)
+        I_33_dot = self.I_33.differentiate_complex_step(t)
+        return Matrix(
+            [
+                [I_11_dot, I_12_dot, I_13_dot],
+                [I_12_dot, I_22_dot, I_23_dot],
+                [I_13_dot, I_23_dot, I_33_dot],
+            ]
+        )
 
     def add_motor(self, motor, position):
         """Adds a motor to the rocket.
@@ -767,6 +907,7 @@ class Rocket:
         self.evaluate_dry_mass()
         self.evaluate_total_mass()
         self.evaluate_center_of_dry_mass()
+        self.evaluate_nozzle_to_cdm()
         self.evaluate_center_of_mass()
         self.evaluate_dry_inertias()
         self.evaluate_inertias()
@@ -775,6 +916,8 @@ class Rocket:
         self.evaluate_center_of_pressure()
         self.evaluate_stability_margin()
         self.evaluate_static_margin()
+        self.evaluate_com_to_cdm_function()
+        self.evaluate_nozzle_gyration_tensor()
 
     def add_surfaces(self, surfaces, positions):
         """Adds one or more aerodynamic surfaces to the rocket. The aerodynamic
@@ -943,7 +1086,7 @@ class Rocket:
         tip_chord,
         span,
         position,
-        cant_angle=0,
+        cant_angle=0.0,
         sweep_length=None,
         sweep_angle=None,
         radius=None,

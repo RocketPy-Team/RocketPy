@@ -101,6 +101,7 @@ class _Controller:
         sig = signature(controller_function)
         if len(sig.parameters) == 6:
 
+            # pylint: disable=unused-argument
             def new_controller_function(
                 time,
                 sampling_rate,

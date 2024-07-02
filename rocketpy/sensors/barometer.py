@@ -1,18 +1,16 @@
-import json
-
 import numpy as np
 
 from ..mathutils.vector_matrix import Matrix
-from ..prints.sensors_prints import _BarometerPrints
-from ..sensors.sensors import ScalarSensors
+from ..prints.sensors_prints import _SensorPrints
+from ..sensors.sensor import ScalarSensor
 
 
-class Barometer(ScalarSensors):
+class Barometer(ScalarSensor):
     """Class for the barometer sensor
 
     Attributes
     ----------
-    prints : _BarometerPrints
+    prints : _SensorPrints
         Object that contains the print functions for the sensor.
     sampling_rate : float
         Sample rate of the sensor in Hz.
@@ -33,11 +31,11 @@ class Barometer(ScalarSensors):
     constant_bias : float
         The constant bias of the sensor in Pa.
     operating_temperature : float
-        The operating temperature of the sensor in degrees Celsius.
+        The operating temperature of the sensor in Kelvin.
     temperature_bias : float
-        The temperature bias of the sensor in Pa/°C.
+        The temperature bias of the sensor in Pa/K.
     temperature_scale_factor : float
-        The temperature scale factor of the sensor in %/°C.
+        The temperature scale factor of the sensor in %/K.
     name : str
         The name of the sensor.
     measurement : float
@@ -101,13 +99,14 @@ class Barometer(ScalarSensors):
             The constant bias of the sensor in Pa. Default is 0, meaning no
             constant bias is applied.
         operating_temperature : float, optional
-            The operating temperature of the sensor in degrees Celsius. At 25°C,
-            the temperature bias and scale factor are 0. Default is 25.
+            The operating temperature of the sensor in Kelvin.
+            At 298.15 K (25 °C), the sensor is assumed to operate ideally, no
+            temperature related noise is applied. Default is 298.15.
         temperature_bias : float, optional
-            The temperature bias of the sensor in Pa/°C. Default is 0, meaning no
+            The temperature bias of the sensor in Pa/K. Default is 0, meaning no
             temperature bias is applied.
         temperature_scale_factor : float, optional
-            The temperature scale factor of the sensor in %/°C. Default is 0,
+            The temperature scale factor of the sensor in %/K. Default is 0,
             meaning no temperature scale factor is applied.
         name : str, optional
             The name of the sensor. Default is "Barometer".
@@ -134,8 +133,7 @@ class Barometer(ScalarSensors):
             temperature_scale_factor=temperature_scale_factor,
             name=name,
         )
-        self.type = "Barometer"
-        self.prints = _BarometerPrints(self)
+        self.prints = _SensorPrints(self)
 
     def measure(self, time, **kwargs):
         """Measures the pressure at barometer location
@@ -171,21 +169,23 @@ class Barometer(ScalarSensors):
         self.measurement = P
         self._save_data((time, P))
 
-    def export_measured_data(self, filename, format="csv"):
+    def export_measured_data(self, filename, file_format="csv"):
         """Export the measured values to a file
 
         Parameters
         ----------
         filename : str
             Name of the file to export the values to
-        format : str
-            Format of the file to export the values to. Options are "csv" and
+        file_format : str
+            file_format of the file to export the values to. Options are "csv" and
             "json". Default is "csv".
 
         Returns
         -------
         None
         """
-        super().export_measured_data(
-            filename=filename, format=format, data_labels=("t", "pressure")
+        self._generic_export_measured_data(
+            filename=filename,
+            file_format=file_format,
+            data_labels=("t", "pressure"),
         )

@@ -34,6 +34,37 @@ class AeroSurface(ABC):
         self.name = name
         return None
 
+    # Defines beta parameter
+    @staticmethod
+    def _beta(mach):
+        """Defines a parameter that is often used in aerodynamic
+        equations. It is commonly used in the Prandtl factor which
+        corrects subsonic force coefficients for compressible flow.
+        This is applied to the lift coefficient of the nose cone,
+        fins and tails/transitions as in [1].
+
+        Parameters
+        ----------
+        mach : int, float
+            Number of mach.
+
+        Returns
+        -------
+        beta : int, float
+            Value that characterizes flow speed based on the mach number.
+
+        References
+        ----------
+        [1] Barrowman, James S. https://arc.aiaa.org/doi/10.2514/6.1979-504
+        """
+
+        if mach < 0.8:
+            return np.sqrt(1 - mach**2)
+        elif mach < 1.1:
+            return np.sqrt(1 - 0.8**2)
+        else:
+            return np.sqrt(mach**2 - 1)
+
     @abstractmethod
     def evaluate_center_of_pressure(self):
         """Evaluates the center of pressure of the aerodynamic surface in local
@@ -367,7 +398,7 @@ class NoseCone(AeroSurface):
         return None
 
     def evaluate_nose_shape(self):
-        """Calculates and saves nose cone's shape as lists and reavulates the
+        """Calculates and saves nose cone's shape as lists and re-evaluates the
         nose cone's length for a given bluffness ratio. The shape is saved as
         two vectors, one for the x coordinates and one for the y coordinates.
 
@@ -381,7 +412,9 @@ class NoseCone(AeroSurface):
 
         # Calculate a function to find the tangential intersection point between the circle and nosecone curve.
         def find_x_intercept(x):
-            return x + self.y_nosecone(x) * self.y_nosecone.differentiate(x)
+            return x + self.y_nosecone(x) * self.y_nosecone.differentiate_complex_step(
+                x
+            )
 
         # Calculate a function to find the radius of the nosecone curve
         def find_radius(x):
@@ -411,11 +444,11 @@ class NoseCone(AeroSurface):
                     r_circle, circle_center, x_init = 0, 0, 0
                 else:
                     # Find the intersection point between circle and nosecone curve
-                    x_init = fsolve(lambda x: find_radius(x) - r_circle, r_circle)[0]
+                    x_init = fsolve(lambda x: find_radius(x[0]) - r_circle, r_circle)[0]
                     circle_center = find_x_intercept(x_init)
             else:
                 # Find the intersection point between circle and nosecone curve
-                x_init = fsolve(lambda x: find_radius(x) - r_circle, r_circle)[0]
+                x_init = fsolve(lambda x: find_radius(x[0]) - r_circle, r_circle)[0]
                 circle_center = find_x_intercept(x_init)
 
         # Calculate a function to create the circle at the correct position
@@ -463,7 +496,7 @@ class NoseCone(AeroSurface):
         # It must be set as a Function because it will be called and treated
         # as a function of mach in the simulation.
         self.clalpha = Function(
-            lambda mach: 2 * self.radius_ratio**2,
+            lambda mach: 2 / self._beta(mach) * self.radius_ratio**2,
             "Mach",
             f"Lift coefficient derivative for {self.name}",
         )
@@ -770,14 +803,16 @@ class Fins(AeroSurface):
             )
 
             # Differentiating at alpha = 0 to get cl_alpha
-            clalpha2D_incompressible = self.airfoil_cl.differentiate(x=1e-3, dx=1e-3)
+            clalpha2D_incompressible = self.airfoil_cl.differentiate_complex_step(
+                x=1e-3, dx=1e-3
+            )
 
             # Convert to radians if needed
             if self.airfoil[1] == "degrees":
                 clalpha2D_incompressible *= 180 / np.pi
 
         # Correcting for compressible flow (apply Prandtl-Glauert correction)
-        clalpha2D = Function(lambda mach: clalpha2D_incompressible / self.__beta(mach))
+        clalpha2D = Function(lambda mach: clalpha2D_incompressible / self._beta(mach))
 
         # Diederich's Planform Correlation Parameter
         FD = 2 * np.pi * self.AR / (clalpha2D * np.cos(self.gamma_c))
@@ -852,30 +887,6 @@ class Fins(AeroSurface):
         cld_omega.set_outputs("Roll moment damping coefficient derivative")
         self.roll_parameters = [clf_delta, cld_omega, self.cant_angle_rad]
         return self.roll_parameters
-
-    # Defines beta parameter
-    def __beta(_, mach):
-        """Defines a parameter that is often used in aerodynamic
-        equations. It is commonly used in the Prandtl factor which
-        corrects subsonic force coefficients for compressible flow.
-
-        Parameters
-        ----------
-        mach : int, float
-            Number of mach.
-
-        Returns
-        -------
-        beta : int, float
-            Value that characterizes flow speed based on the mach number.
-        """
-
-        if mach < 0.8:
-            return np.sqrt(1 - mach**2)
-        elif mach < 1.1:
-            return np.sqrt(1 - 0.8**2)
-        else:
-            return np.sqrt(mach**2 - 1)
 
     # Defines number of fins  factor
     def __fin_num_correction(_, n):
@@ -1744,6 +1755,7 @@ class Tail(AeroSurface):
         # as a function of mach in the simulation.
         self.clalpha = Function(
             lambda mach: 2
+            / self._beta(mach)
             * (
                 (self.bottom_radius / self.rocket_radius) ** 2
                 - (self.top_radius / self.rocket_radius) ** 2
@@ -1978,7 +1990,7 @@ class AirBrakes(AeroSurface):
             Default is False.
         deployment_level : float, optional
             Initial deployment level, ranging from 0 to 1. Deployment level is
-            the fraction of the total airbrake area that is deployed. Default
+            the fraction of the total airbrake area that is Deployment. Default
             is 0.
         name : str, optional
             Name of the air brakes. Default is "AirBrakes".

@@ -1,5 +1,6 @@
 import pytest
 
+# Pytest configuration
 pytest_plugins = [
     "tests.fixtures.environment.environment_fixtures",
     "tests.fixtures.flight.flight_fixtures",
@@ -13,6 +14,9 @@ pytest_plugins = [
     "tests.fixtures.rockets.rocket_fixtures",
     "tests.fixtures.surfaces.surface_fixtures",
     "tests.fixtures.units.numerical_fixtures",
+    "tests.fixtures.monte_carlo.monte_carlo_fixtures",
+    "tests.fixtures.monte_carlo.stochastic_fixtures",
+    "tests.fixtures.monte_carlo.stochastic_motors_fixtures",
     "tests.fixtures.sensors.sensors_fixtures",
 ]
 

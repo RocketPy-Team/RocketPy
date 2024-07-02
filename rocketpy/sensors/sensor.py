@@ -1,18 +1,16 @@
-from abc import ABC, abstractmethod
 import json
+from abc import ABC, abstractmethod
 
 import numpy as np
 
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
 
 
-class Sensors(ABC):
+class Sensor(ABC):
     """Abstract class for sensors
 
     Attributes
     ----------
-    type : str
-        Type of the sensor (e.g. Accelerometer, Gyroscope).
     sampling_rate : float
         Sample rate of the sensor in Hz.
     measurement_range : float, tuple
@@ -30,11 +28,11 @@ class Sensors(ABC):
     constant_bias : float, list
         The constant bias of the sensor in sensor units.
     operating_temperature : float
-        The operating temperature of the sensor in degrees Celsius.
+        The operating temperature of the sensor in Kelvin.
     temperature_bias : float, list
-        The temperature bias of the sensor in sensor units/°C.
+        The temperature bias of the sensor in sensor units/K.
     temperature_scale_factor : float, list
-        The temperature scale factor of the sensor in %/°C.
+        The temperature scale factor of the sensor in %/K.
     name : str
         The name of the sensor.
     measurement : float
@@ -97,13 +95,14 @@ class Sensors(ABC):
             The constant bias of the sensor in sensor units. Default is 0,
             meaning no constant bias is applied.
         operating_temperature : float, optional
-            The operating temperature of the sensor in degrees Celsius. At 25°C,
-            the temperature bias and scale factor are 0. Default is 25.
+            The operating temperature of the sensor in Kelvin.
+            At 298.15 K (25 °C), the sensor is assumed to operate ideally, no
+            temperature related noise is applied. Default is 298.15.
         temperature_bias : float, list, optional
-            The temperature bias of the sensor in sensor units/°C. Default is 0,
+            The temperature bias of the sensor in sensor units/K. Default is 0,
             meaning no temperature bias is applied.
         temperature_scale_factor : float, list, optional
-            The temperature scale factor of the sensor in %/°C. Default is 0,
+            The temperature scale factor of the sensor in %/K. Default is 0,
             meaning no temperature scale factor is applied.
         name : str, optional
             The name of the sensor. Default is "Sensor".
@@ -183,10 +182,7 @@ class Sensors(ABC):
 
     @abstractmethod
     def measure(self, time, **kwargs):
-        pass
-
-    @abstractmethod
-    def export_measured_data(self):
+        """Measure the sensor data at a given time"""
         pass
 
     @abstractmethod
@@ -204,17 +200,24 @@ class Sensors(ABC):
         """Apply temperature drift to the sensor measurement"""
         pass
 
-    def export_measured_data(self, filename, format, data_labels):
-        """
-        Export the measured values to a file
+    @abstractmethod
+    def export_measured_data(self, filename, file_format="csv"):
+        """Export the measured values to a file"""
+        pass
+
+    def _generic_export_measured_data(self, filename, file_format, data_labels):
+        """Export the measured values to a file given the data labels of each
+        sensor.
 
         Parameters
         ----------
+        sensor : Sensor
+            Sensor object to export the measured values from.
         filename : str
             Name of the file to export the values to
-        format : str
-            Format of the file to export the values to. Options are "csv" and
-            "json". Default is "csv".
+        file_format : str
+            file_format of the file to export the values to. Options are "csv"
+            and "json". Default is "csv".
         data_labels : tuple
             Tuple of strings representing the labels for the data columns
 
@@ -222,10 +225,10 @@ class Sensors(ABC):
         -------
         None
         """
-        if format.lower() not in ["json", "csv"]:
-            raise ValueError("Invalid format")
+        if file_format.lower() not in ["json", "csv"]:
+            raise ValueError("Invalid file_format")
 
-        if format.lower() == "csv":
+        if file_format.lower() == "csv":
             # if sensor has been added multiple times to the simulated rocket
             if isinstance(self.measured_data[0], list):
                 print("Data saved to", end=" ")
@@ -243,7 +246,7 @@ class Sensors(ABC):
                 print(f"Data saved to {filename}")
             return
 
-        if format.lower() == "json":
+        if file_format.lower() == "json":
             if isinstance(self.measured_data[0], list):
                 print("Data saved to", end=" ")
                 for i, data in enumerate(self.measured_data):
@@ -265,8 +268,10 @@ class Sensors(ABC):
             return
 
 
-class InertialSensors(Sensors):
-    """Abstract class for sensors
+class InertialSensor(Sensor):
+    """Model of an inertial sensor (accelerometer, gyroscope, magnetometer).
+    Inertial sensors measurements are handled as vectors. The measurements are
+    affected by the sensor's orientation in the rocket.
 
     Attributes
     ----------
@@ -289,11 +294,11 @@ class InertialSensors(Sensors):
     constant_bias : float, list
         The constant bias of the sensor in sensor units.
     operating_temperature : float
-        The operating temperature of the sensor in degrees Celsius.
+        The operating temperature of the sensor in Kelvin.
     temperature_bias : float, list
-        The temperature bias of the sensor in sensor units/°C.
+        The temperature bias of the sensor in sensor units/K.
     temperature_scale_factor : float, list
-        The temperature scale factor of the sensor in %/°C.
+        The temperature scale factor of the sensor in %/K.
     cross_axis_sensitivity : float
         The cross axis sensitivity of the sensor in percentage.
     name : str
@@ -322,7 +327,7 @@ class InertialSensors(Sensors):
         random_walk_density=0,
         random_walk_variance=1,
         constant_bias=0,
-        operating_temperature=25,
+        operating_temperature=298.15,
         temperature_bias=0,
         temperature_scale_factor=0,
         cross_axis_sensitivity=0,
@@ -396,15 +401,16 @@ class InertialSensors(Sensors):
             same constant bias is applied to all axes. The values of each axis
             can be set individually by passing a list of length 3.
         operating_temperature : float, optional
-            The operating temperature of the sensor in degrees Celsius. At 25°C,
-            the temperature bias and scale factor are 0. Default is 25.
+            The operating temperature of the sensor in Kelvin.
+            At 298.15 K (25 °C), the sensor is assumed to operate ideally, no
+            temperature related noise is applied. Default is 298.15.
         temperature_bias : float, list, optional
-            The temperature bias of the sensor in sensor units/°C. Default is 0,
+            The temperature bias of the sensor in sensor units/K. Default is 0,
             meaning no temperature bias is applied. If a float or int is given,
             the same temperature bias is applied to all axes. The values of each
             axis can be set individually by passing a list of length 3.
         temperature_scale_factor : float, list, optional
-            The temperature scale factor of the sensor in %/°C. Default is 0,
+            The temperature scale factor of the sensor in %/K. Default is 0,
             meaning no temperature scale factor is applied. If a float or int is
             given, the same temperature scale factor is applied to all axes. The
             values of each axis can be set individually by passing a list of
@@ -554,22 +560,24 @@ class InertialSensors(Sensors):
             The value with applied temperature drift
         """
         # temperature drift
-        value += (self.operating_temperature - 25) * self.temperature_bias
+        value += (self.operating_temperature - 298.15) * self.temperature_bias
         # temperature scale factor
         scale_factor = (
             Vector([1, 1, 1])
-            + (self.operating_temperature - 25) / 100 * self.temperature_scale_factor
+            + (self.operating_temperature - 298.15)
+            / 100
+            * self.temperature_scale_factor
         )
         return value & scale_factor
 
 
-class ScalarSensors(Sensors):
-    """Abstract class for sensors
+class ScalarSensor(Sensor):
+    """Model of a scalar sensor (barometer, GPS, etc.). Scalar sensors are used
+    to measure a single scalar value. The measurements are not affected by the
+    sensor's orientation in the rocket.
 
     Attributes
     ----------
-    type : str
-        Type of the sensor (e.g. Barometer, GPS).
     sampling_rate : float
         Sample rate of the sensor in Hz.
     measurement_range : float, tuple
@@ -587,11 +595,11 @@ class ScalarSensors(Sensors):
     constant_bias : float
         The constant bias of the sensor in sensor units.
     operating_temperature : float
-        The operating temperature of the sensor in degrees Celsius.
+        The operating temperature of the sensor in Kelvin.
     temperature_bias : float
-        The temperature bias of the sensor in sensor units/°C.
+        The temperature bias of the sensor in sensor units/K.
     temperature_scale_factor : float
-        The temperature scale factor of the sensor in %/°C.
+        The temperature scale factor of the sensor in %/K.
     name : str
         The name of the sensor.
     measurement : float
@@ -654,13 +662,14 @@ class ScalarSensors(Sensors):
             The constant bias of the sensor in sensor units. Default is 0,
             meaning no constant bias is applied.
         operating_temperature : float, optional
-            The operating temperature of the sensor in degrees Celsius. At 25°C,
-            the temperature bias and scale factor are 0. Default is 25.
+            The operating temperature of the sensor in Kelvin.
+            At 298.15 K (25 °C), the sensor is assumed to operate ideally, no
+            temperature related noise is applied. Default is 298.15.
         temperature_bias : float, list, optional
-            The temperature bias of the sensor in sensor units/°C. Default is 0,
+            The temperature bias of the sensor in sensor units/K. Default is 0,
             meaning no temperature bias is applied.
         temperature_scale_factor : float, list, optional
-            The temperature scale factor of the sensor in %/°C. Default is 0,
+            The temperature scale factor of the sensor in %/K. Default is 0,
             meaning no temperature scale factor is applied.
         name : str, optional
             The name of the sensor. Default is "Sensor".
@@ -756,10 +765,13 @@ class ScalarSensors(Sensors):
             The value with applied temperature drift
         """
         # temperature drift
-        value += (self.operating_temperature - 25) * self.temperature_bias
+        value += (self.operating_temperature - 298.15) * self.temperature_bias
         # temperature scale factor
         scale_factor = (
-            1 + (self.operating_temperature - 25) / 100 * self.temperature_scale_factor
+            1
+            + (self.operating_temperature - 298.15)
+            / 100
+            * self.temperature_scale_factor
         )
         value = value * scale_factor
 
