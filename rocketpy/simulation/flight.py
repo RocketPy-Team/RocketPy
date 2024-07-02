@@ -1664,7 +1664,7 @@ class Flight:
             ) * self.rocket._csys - aero_surface.cpz
             comp_cp = Vector([0, 0, comp_cpz])
             surface_radius = aero_surface.rocket_radius
-            reference_area = np.pi * surface_radius**2
+            reference_area = aero_surface.reference_area
             # Component absolute velocity in body frame
             comp_vb = vB + (w ^ comp_cp)
             # Wind velocity at component altitude
