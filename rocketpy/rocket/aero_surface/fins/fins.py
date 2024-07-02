@@ -146,7 +146,7 @@ class Fins(AeroSurface):
         d = 2 * rocket_radius
         ref_area = np.pi * rocket_radius**2  # Reference area
 
-        super().__init__(name, ref_area)
+        super().__init__(name, ref_area, d)
 
         # Store values
         self._n = n

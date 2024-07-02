@@ -75,7 +75,7 @@ class Tail(AeroSurface):
         -------
         None
         """
-        super().__init__(name, np.pi * rocket_radius**2)
+        super().__init__(name, np.pi * rocket_radius**2, 2 * rocket_radius)
 
         # Store arguments as attributes
         self._top_radius = top_radius

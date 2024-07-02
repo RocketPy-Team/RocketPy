@@ -1427,8 +1427,8 @@ class Flight:
             comp_cp = (
                 position - self.rocket.center_of_dry_mass_position
             ) * self.rocket._csys - aero_surface.cpz
-            surface_radius = aero_surface.rocket_radius
-            reference_area = np.pi * surface_radius**2
+            reference_area = aero_surface.reference_area
+            reference_length = aero_surface.reference_length
             # Component absolute velocity in body frame
             comp_vx_b = vx_b + comp_cp * omega2
             comp_vy_b = vy_b - comp_cp * omega1
@@ -1478,15 +1478,14 @@ class Flight:
                 M3f = (
                     (1 / 2 * rho * free_stream_speed**2)
                     * reference_area
-                    * 2
-                    * surface_radius
+                    * reference_length
                     * clf_delta.get_value_opt(free_stream_mach)
                     * cant_angle_rad
                 )
                 M3d = (
                     (1 / 2 * rho * free_stream_speed)
                     * reference_area
-                    * (2 * surface_radius) ** 2
+                    * (reference_length) ** 2
                     * cld_omega.get_value_opt(free_stream_mach)
                     * omega3
                     / 2
@@ -1663,8 +1662,8 @@ class Flight:
                 position - self.rocket.center_of_dry_mass_position
             ) * self.rocket._csys - aero_surface.cpz
             comp_cp = Vector([0, 0, comp_cpz])
-            surface_radius = aero_surface.rocket_radius
             reference_area = aero_surface.reference_area
+            reference_length = aero_surface.reference_length
             # Component absolute velocity in body frame
             comp_vb = vB + (w ^ comp_cp)
             # Wind velocity at component altitude
@@ -1708,15 +1707,14 @@ class Flight:
                 M3f = (
                     (1 / 2 * rho * comp_stream_speed**2)
                     * reference_area
-                    * 2
-                    * surface_radius
+                    * reference_length
                     * clf_delta.get_value_opt(comp_stream_mach)
                     * cant_angle_rad
                 )
                 M3d = (
                     (1 / 2 * rho * comp_stream_speed)
                     * reference_area
-                    * (2 * surface_radius) ** 2
+                    * (reference_length) ** 2
                     * cld_omega.get_value_opt(comp_stream_mach)
                     * omega3
                     / 2
