@@ -4,7 +4,7 @@ import numpy as np
 
 from rocketpy.control.controller import _Controller
 from rocketpy.mathutils.function import Function
-from rocketpy.mathutils.vector_matrix import Matrix
+from rocketpy.mathutils.vector_matrix import Matrix, Vector
 from rocketpy.motors.motor import EmptyMotor
 from rocketpy.plots.rocket_plots import _RocketPlots
 from rocketpy.prints.rocket_prints import _RocketPrints
@@ -884,7 +884,7 @@ class Rocket:
 
         See Also
         --------
-        :ref:`add_surfaces`
+        :ref:`addsurface`
 
         Returns
         -------
@@ -947,7 +947,7 @@ class Rocket:
 
         See Also
         --------
-        :ref:`add_surfaces`
+        :ref:`addsurface`
 
         Returns
         -------
@@ -1010,10 +1010,16 @@ class Rocket:
             By tail position, understand the point belonging to the tail which
             is highest in the rocket coordinate system (i.e. the point
             closest to the nose cone).
+        radius : int, float, optional
+            Reference radius of the tail. This is used to calculate lift
+            coefficient. If None, which is default, the rocket radius will
+            be used.
+        name : string
+            Tail name. Default is "Tail".
 
         See Also
         --------
-        :ref:`add_surfaces`
+        :ref:`addsurface`
 
         Returns
         -------
@@ -1034,7 +1040,6 @@ class Rocket:
         aerodynamic_surfaces list. Its parameters are the axial position
         along the rocket and its derivative of the coefficient of lift
         in respect to angle of attack.
-
 
         Parameters
         ----------
@@ -1058,7 +1063,7 @@ class Rocket:
 
         See Also
         --------
-        :ref:`add_surfaces`
+        :ref:`addsurface`
 
         Returns
         -------
@@ -1122,10 +1127,6 @@ class Rocket:
             By fin set position, understand the point belonging to the root
             chord which is highest in the rocket coordinate system (i.e.
             the point closest to the nose cone tip).
-
-            See Also
-            --------
-            :ref:`add_surfaces`
         cant_angle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
@@ -1218,10 +1219,6 @@ class Rocket:
             set position, understand the point belonging to the root chord which
             is highest in the rocket coordinate system (i.e. the point
             closest to the nose cone tip).
-
-            See Also
-            --------
-            :ref:`add_surfaces`
         cant_angle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must be given
             in degrees.
@@ -1243,6 +1240,10 @@ class Rocket:
             return the lift coefficient at that angle of attack.
             The tuple's second item is the unit of the angle of attack,
             accepting either "radians" or "degrees".
+
+        See Also
+        --------
+        :ref:`addsurface`
 
         Returns
         -------
@@ -1463,7 +1464,11 @@ class Rocket:
             return air_brakes
 
     def set_rail_buttons(
-        self, upper_button_position, lower_button_position, angular_position=45
+        self,
+        upper_button_position,
+        lower_button_position,
+        angular_position=45,
+        radius=None,
     ):
         """Adds rail buttons to the rocket, allowing for the calculation of
         forces exerted by them when the rocket is sliding in the launch rail.
@@ -1488,10 +1493,12 @@ class Rocket:
             relative to one of the other principal axis.
             Default value is 45 degrees, generally used in rockets with
             4 fins.
+        radius : int, float, optional
+            Fuselage radius where the rail buttons are located.
 
         See Also
         --------
-        :ref:`add_surfaces`
+        :ref:`addsurface`
 
         Returns
         -------

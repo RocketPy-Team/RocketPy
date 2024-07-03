@@ -210,7 +210,7 @@ to the rocket in one step:
 .. caution::
 
     Again, pay special attention to the ``position`` parameter. See
-    the :ref:`Adding Aerodynamic Surfaces <add_surfaces>` section for
+    the :ref:`Adding Aerodynamic Surfaces <addsurface>` section for
     more information.
 
 .. seealso::
