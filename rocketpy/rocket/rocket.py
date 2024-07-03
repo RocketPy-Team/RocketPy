@@ -535,7 +535,7 @@ class Rocket:
                 self.cp_position += (
                     ref_factor
                     * aero_surface.clalpha
-                    * (position - self._csys * aero_surface.cpz)
+                    * (position.z - self._csys * aero_surface.cpz)
                 )
             self.cp_position /= self.total_lift_coeff_der
 
@@ -955,8 +955,12 @@ class Rocket:
         """
         try:
             for surface, position in zip(surfaces, positions):
+                if not isinstance(position, Vector):
+                    position = Vector([0, 0, position])
                 self.aerodynamic_surfaces.add(surface, position)
         except TypeError:
+            if not isinstance(positions, Vector):
+                positions = Vector([0, 0, positions])
             self.aerodynamic_surfaces.add(surfaces, positions)
 
         self.evaluate_center_of_pressure()
@@ -1494,11 +1498,21 @@ class Rocket:
         rail_buttons : RailButtons
             RailButtons object created
         """
+        radius = radius if radius else self.radius
         buttons_distance = abs(upper_button_position - lower_button_position)
         rail_buttons = RailButtons(
             buttons_distance=buttons_distance, angular_position=angular_position
         )
-        self.rail_buttons.add(rail_buttons, lower_button_position)
+        position = Vector(
+            [
+                radius * np.sin(np.radians(angular_position)),
+                radius * np.cos(np.radians(angular_position)),
+                lower_button_position,
+            ]
+        )
+        if self._csys == -1:
+            position.x, position.y = position.y, position.x
+        self.rail_buttons.add(rail_buttons, position)
         return rail_buttons
 
     def add_cm_eccentricity(self, x, y):
