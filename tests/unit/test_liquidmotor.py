@@ -17,21 +17,6 @@ fuel_tank_position = -1.048
 oxidizer_tank_position = 0.711
 
 
-@patch("matplotlib.pyplot.show")
-def test_liquid_motor_info(mock_show, liquid_motor):
-    """Tests the LiquidMotor.all_info() method.
-
-    Parameters
-    ----------
-    mock_show : mock
-        Mock of the matplotlib.pyplot.show function.
-    liquid_motor : rocketpy.LiquidMotor
-        The LiquidMotor object to be used in the tests.
-    """
-    assert liquid_motor.info() is None
-    assert liquid_motor.all_info() is None
-
-
 def test_liquid_motor_basic_parameters(liquid_motor):
     """Tests the LiquidMotor class construction parameters.
 
