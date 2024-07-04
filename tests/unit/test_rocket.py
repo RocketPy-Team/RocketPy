@@ -496,3 +496,167 @@ def test_get_inertia_tensor_derivative_at_time(calisto):
     assert pytest.approx(0, atol) == inertia_tensor.y[2]
     assert pytest.approx(0, atol) == inertia_tensor.z[0]
     assert pytest.approx(0, atol) == inertia_tensor.z[1]
+
+
+def test_add_thrust_eccentricity(calisto):
+    """Test add_thrust_eccentricity method of the Rocket class."""
+    calisto.add_thrust_eccentricity(0.1, 0.1)
+    assert calisto.thrust_eccentricity_x == 0.1
+    assert calisto.thrust_eccentricity_y == 0.1
+
+
+def test_add_cm_eccentricity(calisto):
+    """Test add_cm_eccentricity method of the Rocket class."""
+    calisto.add_cm_eccentricity(-0.1, -0.1)
+    assert calisto.cp_eccentricity_x == 0.1
+    assert calisto.cp_eccentricity_y == 0.1
+    assert calisto.thrust_eccentricity_x == 0.1
+    assert calisto.thrust_eccentricity_y == 0.1
+
+
+def test_add_surfaces_different_noses(calisto):
+    """Test the add_surfaces method with different nose cone configurations.
+    More specifically, this will check the static margin of the rocket with
+    different nose cone configurations.
+
+    Parameters
+    ----------
+    calisto : Rocket
+        Pytest fixture for the calisto rocket.
+    """
+    length = 0.55829
+    kind = "vonkarman"
+    position = 1.16
+    bluffness = 0
+    base_radius = 0.0635
+    rocket_radius = 0.0635
+
+    # Case 1: base_radius == rocket_radius
+    nose1 = NoseCone(
+        length,
+        kind,
+        base_radius=base_radius,
+        bluffness=bluffness,
+        rocket_radius=rocket_radius,
+        name="Nose Cone 1",
+    )
+    calisto.add_surfaces(nose1, position)
+    assert nose1.radius_ratio == pytest.approx(1, 1e-8)
+    assert calisto.static_margin(0) == pytest.approx(-8.9053, 0.01)
+
+    # Case 2: base_radius == rocket_radius / 2
+    calisto.aerodynamic_surfaces.remove(nose1)
+    nose2 = NoseCone(
+        length,
+        kind,
+        base_radius=base_radius / 2,
+        bluffness=bluffness,
+        rocket_radius=rocket_radius,
+        name="Nose Cone 2",
+    )
+    calisto.add_surfaces(nose2, position)
+    assert nose2.radius_ratio == pytest.approx(0.5, 1e-8)
+    assert calisto.static_margin(0) == pytest.approx(-8.9053, 0.01)
+
+    # Case 3: base_radius == None
+    calisto.aerodynamic_surfaces.remove(nose2)
+    nose3 = NoseCone(
+        length,
+        kind,
+        base_radius=None,
+        bluffness=bluffness,
+        rocket_radius=rocket_radius * 2,
+        name="Nose Cone 3",
+    )
+    calisto.add_surfaces(nose3, position)
+    assert nose3.radius_ratio == pytest.approx(1, 1e-8)
+    assert calisto.static_margin(0) == pytest.approx(-8.9053, 0.01)
+
+    # Case 4: rocket_radius == None
+    calisto.aerodynamic_surfaces.remove(nose3)
+    nose4 = NoseCone(
+        length,
+        kind,
+        base_radius=base_radius,
+        bluffness=bluffness,
+        rocket_radius=None,
+        name="Nose Cone 4",
+    )
+    calisto.add_surfaces(nose4, position)
+    assert nose4.radius_ratio == pytest.approx(1, 1e-8)
+    assert calisto.static_margin(0) == pytest.approx(-8.9053, 0.01)
+
+
+def test_coordinate_system_orientation(
+    calisto_nose_cone, cesaroni_m1670, calisto_trapezoidal_fins
+):
+    """Test if the coordinate system orientation is working properly. This test
+    basically checks if the static margin is the same for the same rocket with
+    different coordinate system orientation.
+
+    Parameters
+    ----------
+    calisto_nose_cone : rocketpy.NoseCone
+        Nose cone of the rocket
+    cesaroni_m1670 : rocketpy.SolidMotor
+        Cesaroni M1670 motor
+    calisto_trapezoidal_fins : rocketpy.TrapezoidalFins
+        Trapezoidal fins of the rocket
+    """
+    motor_nozzle_to_combustion_chamber = cesaroni_m1670
+
+    motor_combustion_chamber_to_nozzle = SolidMotor(
+        thrust_source="data/motors/Cesaroni_M1670.eng",
+        burn_time=3.9,
+        dry_mass=1.815,
+        dry_inertia=(0.125, 0.125, 0.002),
+        center_of_dry_mass_position=-0.317,
+        nozzle_position=0,
+        grain_number=5,
+        grain_density=1815,
+        nozzle_radius=33 / 1000,
+        throat_radius=11 / 1000,
+        grain_separation=5 / 1000,
+        grain_outer_radius=33 / 1000,
+        grain_initial_height=120 / 1000,
+        grains_center_of_mass_position=-0.397,
+        grain_initial_inner_radius=15 / 1000,
+        interpolation_method="linear",
+        coordinate_system_orientation="combustion_chamber_to_nozzle",
+    )
+
+    rocket_tail_to_nose = Rocket(
+        radius=0.0635,
+        mass=14.426,
+        inertia=(6.321, 6.321, 0.034),
+        power_off_drag="data/calisto/powerOffDragCurve.csv",
+        power_on_drag="data/calisto/powerOnDragCurve.csv",
+        center_of_mass_without_motor=0,
+        coordinate_system_orientation="tail_to_nose",
+    )
+
+    rocket_tail_to_nose.add_motor(motor_nozzle_to_combustion_chamber, position=-1.373)
+
+    rocket_tail_to_nose.aerodynamic_surfaces.add(calisto_nose_cone, 1.160)
+    rocket_tail_to_nose.aerodynamic_surfaces.add(calisto_trapezoidal_fins, -1.168)
+
+    static_margin_tail_to_nose = rocket_tail_to_nose.static_margin
+
+    rocket_nose_to_tail = Rocket(
+        radius=0.0635,
+        mass=14.426,
+        inertia=(6.321, 6.321, 0.034),
+        power_off_drag="data/calisto/powerOffDragCurve.csv",
+        power_on_drag="data/calisto/powerOnDragCurve.csv",
+        center_of_mass_without_motor=0,
+        coordinate_system_orientation="nose_to_tail",
+    )
+
+    rocket_nose_to_tail.add_motor(motor_combustion_chamber_to_nozzle, position=1.373)
+
+    rocket_nose_to_tail.aerodynamic_surfaces.add(calisto_nose_cone, -1.160)
+    rocket_nose_to_tail.aerodynamic_surfaces.add(calisto_trapezoidal_fins, 1.168)
+
+    static_margin_nose_to_tail = rocket_nose_to_tail.static_margin
+
+    assert np.array_equal(static_margin_tail_to_nose, static_margin_nose_to_tail)

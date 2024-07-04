@@ -1,5 +1,0 @@
-.nbinput .prompt,
-.nboutput.container .output_area.stderr,
-.nboutput .prompt {
-    display: none;
-}

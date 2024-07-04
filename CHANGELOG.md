@@ -27,8 +27,36 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
-<!-- These are the changes that were not release yet, please add them correctly.
+<!-- These are the changes that were not released yet, please add them correctly.
 Attention: The newest changes should be on top -->
+
+### Added
+
+- 
+
+### Changed
+
+- 
+
+### Fixed
+
+- 
+
+## [1.4.0] - 2024-07-dd
+
+### Added
+
+- DOC: Adding testing guidelines for RocketPy. [#626](https://github.com/RocketPy-Team/RocketPy/pull/626)
+- ENH: CP and Thrust Eccentricity Effects Generate Roll Moment [#617](https://github.com/RocketPy-Team/RocketPy/pull/617)
+- ENH: Add Prandtl-Gauss transformation to NoseCone and Tail [#609](https://github.com/RocketPy-Team/RocketPy/pull/609)
+- ENH: Implement power series nose cones [#603](https://github.com/RocketPy-Team/RocketPy/pull/603)
+
+### Changed
+
+- ENH: Eliminating multiple plots for inertia components [#566](https://github.com/RocketPy-Team/RocketPy/pull/566)
+- MNT: Fix warnings in test suite and adds support for numpy 2.0 [#623](https://github.com/RocketPy-Team/RocketPy/pull/623)
+- MNT: bump minimum Python version to 3.9. [#624](https://github.com/RocketPy-Team/RocketPy/pull/624)
+- DOC: Change rocketpy Landing Page to Standard Code docs [#584](https://github.com/RocketPy-Team/RocketPy/pull/584)
 
 ## [1.3.0.post1] - 2024-06-02
 
