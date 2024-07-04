@@ -820,7 +820,6 @@ def check_requirement_version(module_name, version):
 
 
 def exponential_backoff(max_attempts, base_delay=1, max_delay=60):
-    # pylint: disable=missing-function-docstring
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):

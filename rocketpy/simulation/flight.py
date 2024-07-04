@@ -1716,7 +1716,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                 else:
                     R3 += air_brakes_force
         # Get rocket velocity in body frame
-        velocity_vector_in_body_frame = Kt @ v
+        velocity_in_body_frame = Kt @ v
         # Calculate lift and moment for each component of the rocket
         for aero_surface, position in self.rocket.aerodynamic_surfaces:
             comp_cpz = (
@@ -1726,7 +1726,7 @@ class Flight:  # pylint: disable=too-many-public-methods
             surface_radius = aero_surface.rocket_radius
             reference_area = np.pi * surface_radius**2
             # Component absolute velocity in body frame
-            comp_vb = velocity_vector_in_body_frame + (w ^ comp_cp)
+            comp_vb = velocity_in_body_frame + (w ^ comp_cp)
             # Wind velocity at component altitude
             comp_z = z + (K @ comp_cp).z
             comp_wind_vx = self.env.wind_velocity_x.get_value_opt(comp_z)
@@ -1797,7 +1797,7 @@ class Flight:  # pylint: disable=too-many-public-methods
         )
         M3 += self.rocket.cp_eccentricity_x * R2 - self.rocket.cp_eccentricity_y * R1
 
-        weight_vector_in_body_frame = Kt @ Vector(
+        weight_in_body_frame = Kt @ Vector(
             [0, 0, -total_mass * self.env.gravity.get_value_opt(z)]
         )
 
@@ -1815,14 +1815,14 @@ class Flight:  # pylint: disable=too-many-public-methods
             ((w ^ T00) ^ w)
             + (w ^ T03)
             + T04
-            + weight_vector_in_body_frame
+            + weight_in_body_frame
             + Vector([R1, R2, R3])
         )
 
         T21 = (
             ((I @ w) ^ w)
             + T05 @ w
-            - (weight_vector_in_body_frame ^ r_CM)
+            - (weight_in_body_frame ^ r_CM)
             + Vector([M1, M2, M3])
         )
 
@@ -3433,8 +3433,6 @@ class Flight:  # pylint: disable=too-many-public-methods
         methods that are useful for the simulation. Them items stored in are
         TimeNodes object are instances of the TimeNode class.
         """
-
-        # pylint: disable=missing-function-docstring
 
         def __init__(self, init_list=None):
             if not init_list:

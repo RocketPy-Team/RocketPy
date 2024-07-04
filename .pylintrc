@@ -227,6 +227,8 @@ good-names=FlightPhases,
            M3_damping,
            CM_to_CDM,
            CM_to_CPM,
+           center_of_mass_without_motor_to_CDM,
+           motor_center_of_dry_mass_to_CDM,
 
 # Good variable names regexes, separated by a comma. If names match any regex,
 # they will always be accepted
