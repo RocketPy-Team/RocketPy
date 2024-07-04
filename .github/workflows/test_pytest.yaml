@@ -51,7 +51,7 @@ jobs:
         run: pytest tests/unit --cov=rocketpy
 
       - name: Run Integration Tests
-        run: pytest $(find tests -maxdepth 1 -name "*.py") --cov=rocketpy --cov-append
+        run: pytest tests/integration --cov=rocketpy --cov-append
 
       - name: Run Documentation Tests
         run: pytest rocketpy --doctest-modules --cov=rocketpy --cov-append
