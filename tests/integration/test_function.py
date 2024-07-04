@@ -87,15 +87,15 @@ def test_function_from_csv(func_from_csv, func_2d_from_csv):
     assert np.isclose(func_from_csv(0), 0.0, atol=1e-6)
     assert np.isclose(func_2d_from_csv(0, 0), 0.0, atol=1e-6)
     # Check the __str__ method
-    assert func_from_csv.__str__() == "Function from R1 to R1 : (Scalar) → (Scalar)"
+    assert str(func_from_csv) == "Function from R1 to R1 : (Scalar) → (Scalar)"
     assert (
-        func_2d_from_csv.__str__()
+        str(func_2d_from_csv)
         == "Function from R2 to R1 : (Input 1, Input 2) → (Scalar)"
     )
     # Check the __repr__ method
-    assert func_from_csv.__repr__() == "'Function from R1 to R1 : (Scalar) → (Scalar)'"
+    assert repr(func_from_csv) == "'Function from R1 to R1 : (Scalar) → (Scalar)'"
     assert (
-        func_2d_from_csv.__repr__()
+        repr(func_2d_from_csv)
         == "'Function from R2 to R1 : (Input 1, Input 2) → (Scalar)'"
     )
 
@@ -118,7 +118,9 @@ def test_func_from_csv_with_header(csv_file):
 
 
 @patch("matplotlib.pyplot.show")
-def test_plots(mock_show, func_from_csv, func_2d_from_csv):
+def test_plots(
+    mock_show, func_from_csv, func_2d_from_csv
+):  # pylint: disable: unused-argument
     """Test different plot methods of the Function class.
 
     Parameters
@@ -129,11 +131,11 @@ def test_plots(mock_show, func_from_csv, func_2d_from_csv):
         A Function object created from a .csv file.
     """
     # Test plot methods
-    assert func_from_csv.plot() == None
-    assert func_2d_from_csv.plot() == None
+    assert func_from_csv.plot() is None
+    assert func_2d_from_csv.plot() is None
     # Test plot methods with limits
-    assert func_from_csv.plot(-1, 1) == None
-    assert func_2d_from_csv.plot(-1, 1) == None
+    assert func_from_csv.plot(-1, 1) is None
+    assert func_2d_from_csv.plot(-1, 1) is None
     # Test compare_plots
     func2 = Function(
         source="tests/fixtures/airfoils/e473-10e6-degrees.csv",
@@ -143,12 +145,12 @@ def test_plots(mock_show, func_from_csv, func_2d_from_csv):
         extrapolation="natural",
     )
     assert (
-        func_from_csv.compare_plots([func_from_csv, func2], return_object=False) == None
+        func_from_csv.compare_plots([func_from_csv, func2], return_object=False) is None
     )
 
 
 @patch("matplotlib.pyplot.show")
-def test_multivariable_dataset_plot(mock_show):
+def test_multivariable_dataset_plot(mock_show):  # pylint: disable: unused-argument
     """Test the plot method of the Function class with a multivariable dataset."""
     # Test plane f(x,y) = x - y
     source = [
@@ -165,15 +167,19 @@ def test_multivariable_dataset_plot(mock_show):
     func = Function(source=source, inputs=["x", "y"], outputs=["z"])
 
     # Assert plot
-    assert func.plot() == None
+    assert func.plot() is None
 
 
 @patch("matplotlib.pyplot.show")
-def test_multivariable_function_plot(mock_show):
+def test_multivariable_function_plot(mock_show):  # pylint: disable: unused-argument
     """Test the plot method of the Function class with a multivariable function."""
-    # Test plane f(x,y) = sin(x + y)
-    source = lambda x, y: np.sin(x * y)
+
+    def source(x, y):
+
+        # Test plane f(x,y) = sin(x + y)
+        return np.sin(x * y)
+
     func = Function(source=source, inputs=["x", "y"], outputs=["z"])
 
     # Assert plot
-    assert func.plot() == None
+    assert func.plot() is None

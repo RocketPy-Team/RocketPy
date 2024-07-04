@@ -43,7 +43,7 @@ def test_tank_bounds(params, request):
 @parametrize_fixtures
 def test_tank_coordinates(params, request):
     """Test basic coordinate values of the tanks."""
-    tank, (radius, height) = params
+    tank, (_, height) = params
     tank = request.getfixturevalue(tank)
 
     expected_bottom = -height / 2
@@ -140,12 +140,27 @@ def test_mass_based_tank():
         density=51.75,
     )  # density value may be estimate
 
-    top_endcap = lambda y: np.sqrt(
-        0.0775**2 - (y - 0.7924) ** 2
-    )  # Hemisphere equation creating top endcap
-    bottom_endcap = lambda y: np.sqrt(
-        0.0775**2 - (0.0775 - y) ** 2
-    )  # Hemisphere equation creating bottom endcap
+    def top_endcap(y):
+        """Calculate the top endcap based on hemisphere equation.
+
+        Parameters:
+        y (float): The y-coordinate.
+
+        Returns:
+        float: The result of the hemisphere equation for the top endcap.
+        """
+        return np.sqrt(0.0775**2 - (y - 0.7924) ** 2)
+
+    def bottom_endcap(y):
+        """Calculate the bottom endcap based on hemisphere equation.
+
+        Parameters:
+        y (float): The y-coordinate.
+
+        Returns:
+        float: The result of the hemisphere equation for the bottom endcap.
+        """
+        return np.sqrt(0.0775**2 - (0.0775 - y) ** 2)
 
     # Generate tank geometry {radius: height, ...}
     real_geometry = TankGeometry(
@@ -331,7 +346,7 @@ def test_level_based_tank():
         mass_flow_rate_data[0][-1],
         len(mass_flow_rate_data[0]),
     )
-    calculated_mfr, test_mfr = align_time_series(
+    calculated_mfr, _ = align_time_series(
         calculated_mfr.get_source(), mass_flow_rate_data
     )
 
@@ -474,7 +489,7 @@ def test_mfr_tank_basic():
     test_inertia()
 
 
-"""Auxiliary testing functions"""
+# Auxiliary testing functions
 
 
 def cylinder_volume(radius, height):

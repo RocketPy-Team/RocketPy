@@ -3,17 +3,17 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
-from rocketpy import Function, NoseCone, SolidMotor
+from rocketpy import Function, NoseCone, Rocket, SolidMotor
 from rocketpy.motors.motor import EmptyMotor, Motor
 
 
 @patch("matplotlib.pyplot.show")
-def test_elliptical_fins(mock_show, calisto_robust, calisto_trapezoidal_fins):
+def test_elliptical_fins(
+    mock_show, calisto_robust, calisto_trapezoidal_fins
+):  # pylint: disable: unused-argument
     test_rocket = calisto_robust
     calisto_robust.aerodynamic_surfaces.remove(calisto_trapezoidal_fins)
-    fin_set = test_rocket.add_elliptical_fins(
-        4, span=0.100, root_chord=0.120, position=-1.168
-    )
+    test_rocket.add_elliptical_fins(4, span=0.100, root_chord=0.120, position=-1.168)
     static_margin = test_rocket.static_margin(0)
     assert test_rocket.all_info() is None or not abs(static_margin - 2.30) < 0.01
 
@@ -36,11 +36,11 @@ def test_evaluate_static_margin_assert_cp_equals_cm(dimensionless_calisto):
 
 
 @pytest.mark.parametrize(
-    "k, type",
+    "k, type_",
     ([2 / 3, "conical"], [0.46469957130675876, "ogive"], [0.563, "lvhaack"]),
 )
-def test_add_nose_assert_cp_cm_plus_nose(k, type, calisto, dimensionless_calisto, m):
-    calisto.add_nose(length=0.55829, kind=type, position=1.160)
+def test_add_nose_assert_cp_cm_plus_nose(k, type_, calisto, dimensionless_calisto, m):
+    calisto.add_nose(length=0.55829, kind=type_, position=1.160)
     cpz = (1.160) - k * 0.55829  # Relative to the center of dry mass
     clalpha = 2
 
@@ -53,7 +53,7 @@ def test_add_nose_assert_cp_cm_plus_nose(k, type, calisto, dimensionless_calisto
     assert clalpha == pytest.approx(calisto.total_lift_coeff_der(0), 1e-8)
     assert calisto.cp_position(0) == pytest.approx(cpz, 1e-8)
 
-    dimensionless_calisto.add_nose(length=0.55829 * m, kind=type, position=(1.160) * m)
+    dimensionless_calisto.add_nose(length=0.55829 * m, kind=type_, position=(1.160) * m)
     assert pytest.approx(dimensionless_calisto.static_margin(0), 1e-8) == pytest.approx(
         calisto.static_margin(0), 1e-8
     )
@@ -558,7 +558,7 @@ def test_add_surfaces_different_noses(calisto):
     assert nose2.radius_ratio == pytest.approx(0.5, 1e-8)
     assert calisto.static_margin(0) == pytest.approx(-8.9053, 0.01)
 
-    # Case 3: base_radius == None
+    # Case 3: base_radius is None
     calisto.aerodynamic_surfaces.remove(nose2)
     nose3 = NoseCone(
         length,
@@ -572,7 +572,7 @@ def test_add_surfaces_different_noses(calisto):
     assert nose3.radius_ratio == pytest.approx(1, 1e-8)
     assert calisto.static_margin(0) == pytest.approx(-8.9053, 0.01)
 
-    # Case 4: rocket_radius == None
+    # Case 4: rocket_radius is None
     calisto.aerodynamic_surfaces.remove(nose3)
     nose4 = NoseCone(
         length,

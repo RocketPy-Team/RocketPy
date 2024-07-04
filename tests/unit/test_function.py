@@ -2,8 +2,6 @@
 individual method of the Function class. The tests are made on both the
 expected behaviour and the return instances."""
 
-from unittest.mock import patch
-
 import matplotlib as plt
 import numpy as np
 import pytest
@@ -307,7 +305,7 @@ def test_get_domain_dim(linear_func):
 
 def test_bool(linear_func):
     """Test the __bool__ method of the Function class."""
-    assert bool(linear_func) == True
+    assert bool(linear_func)
 
 
 def test_getters(func_from_csv, func_2d_from_csv):
@@ -519,8 +517,10 @@ def test_3d_shepard_interpolation(x, y, z, w_expected):
 @pytest.mark.parametrize("b", [-1, -0.5, 0, 0.5, 1])
 def test_multivariable_function(a, b):
     """Test the Function class with a multivariable function."""
-    # Test plane f(x,y) = sin(x + y)
-    source = lambda x, y: np.sin(x + y)
+
+    def source(x, y):
+        return np.sin(x + y)
+
     func = Function(source=source, inputs=["x", "y"], outputs=["z"])
 
     # Assert values

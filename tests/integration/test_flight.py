@@ -5,13 +5,13 @@ import matplotlib as plt
 import numpy as np
 import pytest
 
-from rocketpy import Components, Environment, Flight, Function, Rocket, SolidMotor
+from rocketpy import Environment, Flight
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
 
 @patch("matplotlib.pyplot.show")
-def test_all_info(mock_show, flight_calisto_robust):
+def test_all_info(mock_show, flight_calisto_robust):  # pylint: disable: unused-argument
     """Test that the flight class is working as intended. This basically calls
     the all_info() method and checks if it returns None. It is not testing if
     the values are correct, but whether the method is working without errors.
@@ -24,7 +24,7 @@ def test_all_info(mock_show, flight_calisto_robust):
         Flight object to be tested. See the conftest.py file for more info
         regarding this pytest fixture.
     """
-    assert flight_calisto_robust.all_info() == None
+    assert flight_calisto_robust.all_info() is None
 
 
 def test_export_data(flight_calisto):
@@ -61,31 +61,30 @@ def test_export_data(flight_calisto):
     os.remove("test_export_data_2.csv")
 
     # Check if basic exported content matches data
-    assert np.allclose(test_flight.x[:, 0], test_1[:, 0], atol=1e-5) == True
-    assert np.allclose(test_flight.x[:, 1], test_1[:, 1], atol=1e-5) == True
-    assert np.allclose(test_flight.y[:, 1], test_1[:, 2], atol=1e-5) == True
-    assert np.allclose(test_flight.z[:, 1], test_1[:, 3], atol=1e-5) == True
-    assert np.allclose(test_flight.vx[:, 1], test_1[:, 4], atol=1e-5) == True
-    assert np.allclose(test_flight.vy[:, 1], test_1[:, 5], atol=1e-5) == True
-    assert np.allclose(test_flight.vz[:, 1], test_1[:, 6], atol=1e-5) == True
-    assert np.allclose(test_flight.e0[:, 1], test_1[:, 7], atol=1e-5) == True
-    assert np.allclose(test_flight.e1[:, 1], test_1[:, 8], atol=1e-5) == True
-    assert np.allclose(test_flight.e2[:, 1], test_1[:, 9], atol=1e-5) == True
-    assert np.allclose(test_flight.e3[:, 1], test_1[:, 10], atol=1e-5) == True
-    assert np.allclose(test_flight.w1[:, 1], test_1[:, 11], atol=1e-5) == True
-    assert np.allclose(test_flight.w2[:, 1], test_1[:, 12], atol=1e-5) == True
-    assert np.allclose(test_flight.w3[:, 1], test_1[:, 13], atol=1e-5) == True
+    assert np.allclose(test_flight.x[:, 0], test_1[:, 0], atol=1e-5)
+    assert np.allclose(test_flight.x[:, 1], test_1[:, 1], atol=1e-5)
+    assert np.allclose(test_flight.y[:, 1], test_1[:, 2], atol=1e-5)
+    assert np.allclose(test_flight.z[:, 1], test_1[:, 3], atol=1e-5)
+    assert np.allclose(test_flight.vx[:, 1], test_1[:, 4], atol=1e-5)
+    assert np.allclose(test_flight.vy[:, 1], test_1[:, 5], atol=1e-5)
+    assert np.allclose(test_flight.vz[:, 1], test_1[:, 6], atol=1e-5)
+    assert np.allclose(test_flight.e0[:, 1], test_1[:, 7], atol=1e-5)
+    assert np.allclose(test_flight.e1[:, 1], test_1[:, 8], atol=1e-5)
+    assert np.allclose(test_flight.e2[:, 1], test_1[:, 9], atol=1e-5)
+    assert np.allclose(test_flight.e3[:, 1], test_1[:, 10], atol=1e-5)
+    assert np.allclose(test_flight.w1[:, 1], test_1[:, 11], atol=1e-5)
+    assert np.allclose(test_flight.w2[:, 1], test_1[:, 12], atol=1e-5)
+    assert np.allclose(test_flight.w3[:, 1], test_1[:, 13], atol=1e-5)
 
     # Check if custom exported content matches data
-    timePoints = np.arange(test_flight.t_initial, test_flight.t_final, 0.1)
-    assert np.allclose(timePoints, test_2[:, 0], atol=1e-5) == True
-    assert np.allclose(test_flight.z(timePoints), test_2[:, 1], atol=1e-5) == True
-    assert np.allclose(test_flight.vz(timePoints), test_2[:, 2], atol=1e-5) == True
-    assert np.allclose(test_flight.e1(timePoints), test_2[:, 3], atol=1e-5) == True
-    assert np.allclose(test_flight.w3(timePoints), test_2[:, 4], atol=1e-5) == True
-    assert (
-        np.allclose(test_flight.angle_of_attack(timePoints), test_2[:, 5], atol=1e-5)
-        == True
+    time_points = np.arange(test_flight.t_initial, test_flight.t_final, 0.1)
+    assert np.allclose(time_points, test_2[:, 0], atol=1e-5)
+    assert np.allclose(test_flight.z(time_points), test_2[:, 1], atol=1e-5)
+    assert np.allclose(test_flight.vz(time_points), test_2[:, 2], atol=1e-5)
+    assert np.allclose(test_flight.e1(time_points), test_2[:, 3], atol=1e-5)
+    assert np.allclose(test_flight.w3(time_points), test_2[:, 4], atol=1e-5)
+    assert np.allclose(
+        test_flight.angle_of_attack(time_points), test_2[:, 5], atol=1e-5
     )
 
 
@@ -128,9 +127,9 @@ def test_export_kml(flight_calisto_robust):
     test_1.close()
     os.remove("test_export_data_1.kml")
 
-    assert np.allclose(test_flight.latitude[:, 1], lat, atol=1e-3) == True
-    assert np.allclose(test_flight.longitude[:, 1], lon, atol=1e-3) == True
-    assert np.allclose(test_flight.z[:, 1], z, atol=1e-3) == True
+    assert np.allclose(test_flight.latitude[:, 1], lat, atol=1e-3)
+    assert np.allclose(test_flight.longitude[:, 1], lon, atol=1e-3)
+    assert np.allclose(test_flight.z[:, 1], z, atol=1e-3)
 
 
 def test_export_pressures(flight_calisto_robust):
@@ -183,7 +182,7 @@ def test_hybrid_motor_flight(mock_show, calisto_hybrid_modded):
         max_time_step=0.25,
     )
 
-    assert test_flight.all_info() == None
+    assert test_flight.all_info() is None
 
 
 @patch("matplotlib.pyplot.show")
@@ -208,7 +207,7 @@ def test_liquid_motor_flight(mock_show, calisto_liquid_modded):
         max_time_step=0.25,
     )
 
-    assert test_flight.all_info() == None
+    assert test_flight.all_info() is None
 
 
 @pytest.mark.slow
@@ -238,7 +237,7 @@ def test_time_overshoot(mock_show, calisto_robust, example_spaceport_env):
         time_overshoot=False,
     )
 
-    assert test_flight.all_info() == None
+    assert test_flight.all_info() is None
 
 
 @patch("matplotlib.pyplot.show")
@@ -309,13 +308,13 @@ def test_simpler_parachute_triggers(mock_show, example_plain_env, calisto_robust
         )
         <= 1
     )
-    assert calisto_robust.all_info() == None
-    assert test_flight.all_info() == None
+    assert calisto_robust.all_info() is None
+    assert test_flight.all_info() is None
 
 
 @patch("matplotlib.pyplot.show")
 def test_rolling_flight(
-    mock_show,
+    mock_show,  # pylint: disable: unused-argument
     example_plain_env,
     cesaroni_m1670,
     calisto,
@@ -349,12 +348,12 @@ def test_rolling_flight(
         heading=0,
     )
 
-    assert test_flight.all_info() == None
+    assert test_flight.all_info() is None
 
 
 @patch("matplotlib.pyplot.show")
 def test_eccentricity_on_flight(
-    mock_show,
+    mock_show,  # pylint: disable: unused-argument
     example_plain_env,
     cesaroni_m1670,
     calisto,
@@ -380,7 +379,7 @@ def test_eccentricity_on_flight(
         terminate_on_apogee=True,
     )
 
-    assert test_flight.all_info() == None
+    assert test_flight.all_info() is None
 
 
 @patch("matplotlib.pyplot.show")
@@ -445,7 +444,7 @@ def test_initial_solution(mock_show, example_plain_env, calisto_robust):
         ],
     )
 
-    assert test_flight.all_info() == None
+    assert test_flight.all_info() is None
 
 
 @patch("matplotlib.pyplot.show")
@@ -471,4 +470,4 @@ def test_empty_motor_flight(mock_show, example_plain_env, calisto_motorless):
             2.0747266017020563,
         ],
     )
-    assert flight.all_info() == None
+    assert flight.all_info() is None

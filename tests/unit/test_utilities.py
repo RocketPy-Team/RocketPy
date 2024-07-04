@@ -89,7 +89,7 @@ def test_create_dispersion_dictionary():
     reason="legacy tests"
 )  # it is not working on CI and I don't have time
 @patch("matplotlib.pyplot.show")
-def test_apogee_by_mass(mock_show, flight):
+def test_apogee_by_mass(mock_show, flight):  # pylint: disable=unused-argument
     """Tests the apogee_by_mass function.
 
     Parameters
@@ -109,7 +109,7 @@ def test_apogee_by_mass(mock_show, flight):
 
 @pytest.mark.skip(reason="legacy tests")
 @patch("matplotlib.pyplot.show")
-def test_liftoff_by_mass(mock_show, flight):
+def test_liftoff_by_mass(mock_show, flight):  # pylint: disable=unused-argument
     """Tests the liftoff_by_mass function.
 
     Parameters
@@ -180,7 +180,9 @@ def test_flutter_prints(flight_calisto_custom_wind):
 
 
 @patch("matplotlib.pyplot.show")
-def test_flutter_plots(mock_show, flight_calisto_custom_wind):
+def test_flutter_plots(
+    mock_show, flight_calisto_custom_wind
+):  # pylint: disable=unused-argument
     """Tests the _flutter_plots function.
 
     Parameters
