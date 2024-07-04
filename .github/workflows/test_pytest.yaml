@@ -50,11 +50,11 @@ jobs:
       - name: Run Unit Tests
         run: pytest tests/unit --cov=rocketpy
 
-      - name: Run Integration Tests
-        run: pytest tests/integration --cov=rocketpy --cov-append
-
       - name: Run Documentation Tests
         run: pytest rocketpy --doctest-modules --cov=rocketpy --cov-append
+
+      - name: Run Integration Tests
+        run: pytest tests/integration --cov=rocketpy --cov-append
 
       - name: Run Acceptance Tests
         run: pytest tests/acceptance --cov=rocketpy --cov-append --cov-report=xml
