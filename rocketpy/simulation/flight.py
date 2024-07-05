@@ -1158,7 +1158,7 @@ class Flight:
             rail_buttons = self.rocket.rail_buttons[0]
             upper_r_button = (
                 rail_buttons.component.buttons_distance * self.rocket._csys
-                + rail_buttons.position
+                + rail_buttons.position.z
             )
         except IndexError:  # No rail buttons defined
             upper_r_button = nozzle
@@ -1173,7 +1173,7 @@ class Flight:
         nozzle = self.rocket.nozzle_position
         try:
             rail_buttons = self.rocket.rail_buttons[0]
-            lower_r_button = rail_buttons.position
+            lower_r_button = rail_buttons.position.z
         except IndexError:  # No rail buttons defined
             lower_r_button = nozzle
         effective_2rl = self.rail_length - abs(nozzle - lower_r_button)
@@ -1425,7 +1425,7 @@ class Flight:
         # Calculate lift and moment for each component of the rocket
         for aero_surface, position in self.rocket.aerodynamic_surfaces:
             comp_cp = (
-                position - self.rocket.center_of_dry_mass_position
+                position.z - self.rocket.center_of_dry_mass_position
             ) * self.rocket._csys - aero_surface.cpz
             reference_area = aero_surface.reference_area
             reference_length = aero_surface.reference_length
@@ -1659,7 +1659,7 @@ class Flight:
         # Calculate lift and moment for each component of the rocket
         for aero_surface, position in self.rocket.aerodynamic_surfaces:
             comp_cpz = (
-                position - self.rocket.center_of_dry_mass_position
+                position.z - self.rocket.center_of_dry_mass_position
             ) * self.rocket._csys - aero_surface.cpz
             comp_cp = Vector([0, 0, comp_cpz])
             reference_area = aero_surface.reference_area
@@ -2727,9 +2727,10 @@ class Flight:
         # Distance from Rail Button 1 (upper) to CM
         rail_buttons_tuple = self.rocket.rail_buttons[0]
         upper_button_position = (
-            rail_buttons_tuple.component.buttons_distance + rail_buttons_tuple.position
+            rail_buttons_tuple.component.buttons_distance
+            + rail_buttons_tuple.position.z
         )
-        lower_button_position = rail_buttons_tuple.position
+        lower_button_position = rail_buttons_tuple.position.z
         angular_position_rad = (
             rail_buttons_tuple.component.angular_position * np.pi / 180
         )
