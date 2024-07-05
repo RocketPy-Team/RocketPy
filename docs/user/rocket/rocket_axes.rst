@@ -1,7 +1,7 @@
 Rocket Class Axes Definitions
 =============================
 
-The Rocket class have two differente coordinate systems:
+The Rocket class has two different coordinate systems:
 
 1. **User Defined Coordinate System**: Used for geometrical inputs of the 
    aerodynamic surfaces and motor.
@@ -17,13 +17,13 @@ coordinate system for use during the simulation.
 Two things are set by the user in the user input coordinate system:
 
 1. **Coordinate System Origin**: The origin of the coordinate system is set at 
-   any point along the rocket's center line. This point can be arbitrary chosen
+   any point along the rocket's center line. This point can be arbitrarily chosen
    and is not explicitly defined. All inputs must be given in relation to this
    point.
-2. **Direction of Center Axis**: Is specified in the ``coordinate_system_orientation``
+2. **Direction of Center Axis**: Specified in the ``coordinate_system_orientation``
    argument of the class constructor :class:`rocketpy.Rocket.__init__`. This
    argument defines the direction of the axis that follows the rocket's center
-   line. Can be either "nose_to_tail" or "tail_to_nose".
+   line. It can be either ``"nose_to_tail"`` or ``"tail_to_nose"``.
 
 .. seealso:: 
      
@@ -31,11 +31,11 @@ Two things are set by the user in the user input coordinate system:
     information on how this is used in the definitions of the rocket's
     aerodynamic surfaces and motor.
 
-The ``x`` and ``y`` axes are defined in the plane perpendicular to the center axis and
-the ``z`` axis is defined along the center axis. Depending on the choice of
-``coordinate_system_orientation``, the X axis and Y axis can be inverted.
+The ``x`` and ``y`` axes are defined in the plane perpendicular to the center axis,
+and the ``z`` axis is defined along the center axis. Depending on the choice of
+``coordinate_system_orientation``, the ``x`` axis and ``y`` axis can be inverted.
 
-The following figure shows the two posibilities for the user input coordinate system:
+The following figure shows the two possibilities for the user input coordinate system:
 
 .. figure:: ../../static/rocket/3dcsys.png
   :align: center
@@ -44,15 +44,15 @@ The following figure shows the two posibilities for the user input coordinate sy
 .. note::
 
     When ``coordinate_system_orientation`` is set to ``"tail_to_nose"``, the direction
-    of the ``x``, ``y`` and ``z`` axis of the **User Defined Coordinate System** is
+    of the ``x``, ``y``, and ``z`` axes of the **User Defined Coordinate System** is
     the same as the **Body Axes Coordinate System**. The orgin of the coordinate
     system may still be different.
 
 Angular Position Inputs
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Angular position inputs (``angular_position``) refers to roll angle position
-of that surface along the rocket's tube. The roll angle is defined as the angle
+Angular position inputs (``angular_position``) refer to the roll angle position
+of that surface along the rocket's tube. The roll angle is defined as the angle 
 from the ``y`` axis to the surface. Currently, only :class:`rocketpy.RailButtons`
 use this input.  
 
@@ -66,8 +66,9 @@ definition for both ``coordinate_system_orientation`` options:
 
 .. note::
 
-   The positive direction of the roll angle is defined as the direction that
+   The positive direction of the roll angle is defined as the direction that 
    rotates the surface in the positive direction of the ``z`` axis.
+
 
 
 2. Body Axes Coordinate System
@@ -77,9 +78,9 @@ The body axes coordinate system is used inside the simulation to assess the
 governing equations of motion. The body axes coordinate system is defined as follows:
 
 - The origin is at the rocket's center of dry mass (``center_of_dry_mass_position``).
-- The ``z`` axis is defined along the rocket's center line, pointing from the
+- The ``z`` axis is defined along the rocket's centerline, pointing from the 
   center of dry mass towards the nose.
-- The ``x`` and ``y`` axes are perpendicular 
+- The ``x`` and ``y`` axes are perpendicular.
 
 3. Relation to Flight Coordinates
 ---------------------------------
