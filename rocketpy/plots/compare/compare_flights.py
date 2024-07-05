@@ -1207,9 +1207,11 @@ class CompareFlights(Compare):
             Tuple with the size of the figure. The default is (7,7).
         legend : boolean, optional
             Whether legend will or will not be plotted. Default is True
-        filename : string, optional
-            If a filename is passed, the figure will be saved in the current
-            directory. The default is None.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -1290,9 +1292,11 @@ class CompareFlights(Compare):
             must be in the form (width, height).
         legend : boolean, optional
             Whether legend will or will not be included. Default is True
-        filename : string, optional
-            If a filename is passed, the figure will be saved in the current
-            directory. The default is None.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
