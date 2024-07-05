@@ -18,8 +18,6 @@ from scipy import integrate, linalg, optimize
 
 from ..plots.plot_helpers import show_or_save_plot
 
-from ..plots.plot_helpers import show_or_save_plot
-
 # Numpy 1.x compatibility,
 # TODO: remove these lines when all dependencies support numpy>=2.0.0
 if np.lib.NumpyVersion(np.__version__) >= "2.0.0b1":

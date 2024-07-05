@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Polygon
 
+from ..plots.plot_helpers import show_or_save_plot
+
 
 class _MotorPlots:
     """Class that holds plot methods for Motor class.
@@ -175,7 +177,9 @@ class _MotorPlots:
             lower=lower_limit, upper=upper_limit, filename=filename
         )
 
-    def inertia_tensor(self, lower_limit=None, upper_limit=None, show_products=False, filename=None):
+    def inertia_tensor(
+        self, lower_limit=None, upper_limit=None, show_products=False, filename=None
+    ):
         """Plots all inertia tensors (I_11, I_22, I_33, I_12, I_13, I_23)
         of the motor as a function of time in a single chart.
 
