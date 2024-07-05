@@ -30,7 +30,7 @@ black:
 	black rocketpy/ tests/ docs/
 	
 pylint:
-	-pylint rocketpy tests --output=.pylint-report.txt
+	-pylint rocketpy --output=.pylint-report.txt
 
 build-docs:
 	cd docs && $(PYTHON) -m pip install -r requirements.txt && make html

@@ -2,11 +2,7 @@ from functools import cached_property
 
 import numpy as np
 
-from rocketpy.mathutils.function import (
-    Function,
-    funcify_method,
-    reset_funcified_methods,
-)
+from rocketpy.mathutils.function import funcify_method, reset_funcified_methods
 from rocketpy.tools import parallel_axis_theorem_from_com
 
 from ..plots.liquid_motor_plots import _LiquidMotorPlots
@@ -251,7 +247,6 @@ class LiquidMotor(Motor):
         # Initialize plots and prints object
         self.prints = _LiquidMotorPrints(self)
         self.plots = _LiquidMotorPlots(self)
-        return None
 
     @funcify_method("Time (s)", "Exhaust Velocity (m/s)")
     def exhaust_velocity(self):
@@ -474,7 +469,6 @@ class LiquidMotor(Motor):
         """Prints out basic data about the Motor."""
         self.prints.all()
         self.plots.thrust()
-        return None
 
     def all_info(self):
         """Prints out all data and graphs available about the Motor.
@@ -485,4 +479,3 @@ class LiquidMotor(Motor):
         """
         self.prints.all()
         self.plots.all()
-        return None

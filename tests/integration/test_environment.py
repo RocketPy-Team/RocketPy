@@ -2,15 +2,14 @@ import time
 from datetime import datetime
 from unittest.mock import patch
 
-import numpy.ma as ma
 import pytest
-
-from rocketpy import Environment
 
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_gfs_atmosphere(mock_show, example_spaceport_env):
+def test_gfs_atmosphere(
+    mock_show, example_spaceport_env
+):  # pylint: disable=unused-argument
     """Tests the Forecast model with the GFS file. It does not test the values,
     instead the test checks if the method runs without errors.
 
@@ -22,12 +21,14 @@ def test_gfs_atmosphere(mock_show, example_spaceport_env):
         Example environment object to be tested.
     """
     example_spaceport_env.set_atmospheric_model(type="Forecast", file="GFS")
-    assert example_spaceport_env.all_info() == None
+    assert example_spaceport_env.all_info() is None
 
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_nam_atmosphere(mock_show, example_spaceport_env):
+def test_nam_atmosphere(
+    mock_show, example_spaceport_env
+):  # pylint: disable=unused-argument
     """Tests the Forecast model with the NAM file.
 
     Parameters
@@ -38,22 +39,26 @@ def test_nam_atmosphere(mock_show, example_spaceport_env):
         Example environment object to be tested.
     """
     example_spaceport_env.set_atmospheric_model(type="Forecast", file="NAM")
-    assert example_spaceport_env.all_info() == None
+    assert example_spaceport_env.all_info() is None
 
 
 # Deactivated since it is hard to figure out and appropriate date to use RAP forecast
 @pytest.mark.skip(reason="legacy tests")
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_rap_atmosphere(mock_show, example_spaceport_env):
+def test_rap_atmosphere(
+    mock_show, example_spaceport_env
+):  # pylint: disable=unused-argument
     today = datetime.date.today()
     example_spaceport_env.set_date((today.year, today.month, today.day, 8))
     example_spaceport_env.set_atmospheric_model(type="Forecast", file="RAP")
-    assert example_spaceport_env.all_info() == None
+    assert example_spaceport_env.all_info() is None
 
 
 @patch("matplotlib.pyplot.show")
-def test_era5_atmosphere(mock_show, example_spaceport_env):
+def test_era5_atmosphere(
+    mock_show, example_spaceport_env
+):  # pylint: disable=unused-argument
     """Tests the Reanalysis model with the ERA5 file. It uses an example file
     available in the data/weather folder of the RocketPy repository.
 
@@ -70,12 +75,14 @@ def test_era5_atmosphere(mock_show, example_spaceport_env):
         file="data/weather/SpaceportAmerica_2018_ERA-5.nc",
         dictionary="ECMWF",
     )
-    assert example_spaceport_env.all_info() == None
+    assert example_spaceport_env.all_info() is None
 
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_gefs_atmosphere(mock_show, example_spaceport_env):
+def test_gefs_atmosphere(
+    mock_show, example_spaceport_env
+):  # pylint: disable=unused-argument
     """Tests the Ensemble model with the GEFS file.
 
     Parameters
@@ -86,12 +93,14 @@ def test_gefs_atmosphere(mock_show, example_spaceport_env):
         Example environment object to be tested.
     """
     example_spaceport_env.set_atmospheric_model(type="Ensemble", file="GEFS")
-    assert example_spaceport_env.all_info() == None
+    assert example_spaceport_env.all_info() is None
 
 
 @pytest.mark.skip(reason="legacy tests")  # deprecated method
 @patch("matplotlib.pyplot.show")
-def test_custom_atmosphere(mock_show, example_plain_env):
+def test_custom_atmosphere(
+    mock_show, example_plain_env
+):  # pylint: disable: unused-argument
     """Tests the custom atmosphere model in the environment object.
 
     Parameters
@@ -108,7 +117,7 @@ def test_custom_atmosphere(mock_show, example_plain_env):
         wind_u=[(0, 5), (1000, 10)],
         wind_v=[(0, -2), (500, 3), (1600, 2)],
     )
-    assert example_plain_env.all_info() == None
+    assert example_plain_env.all_info() is None
     assert abs(example_plain_env.pressure(0) - 101325.0) < 1e-8
     assert abs(example_plain_env.barometric_height(101325.0)) < 1e-2
     assert abs(example_plain_env.wind_velocity_x(0) - 5) < 1e-8
@@ -116,7 +125,9 @@ def test_custom_atmosphere(mock_show, example_plain_env):
 
 
 @patch("matplotlib.pyplot.show")
-def test_standard_atmosphere(mock_show, example_plain_env):
+def test_standard_atmosphere(
+    mock_show, example_plain_env
+):  # pylint: disable: unused-argument
     """Tests the standard atmosphere model in the environment object.
 
     Parameters
@@ -127,15 +138,17 @@ def test_standard_atmosphere(mock_show, example_plain_env):
         Example environment object to be tested.
     """
     example_plain_env.set_atmospheric_model(type="standard_atmosphere")
-    assert example_plain_env.info() == None
-    assert example_plain_env.all_info() == None
+    assert example_plain_env.info() is None
+    assert example_plain_env.all_info() is None
     assert abs(example_plain_env.pressure(0) - 101325.0) < 1e-8
     assert abs(example_plain_env.barometric_height(101325.0)) < 1e-2
-    assert example_plain_env.prints.print_earth_details() == None
+    assert example_plain_env.prints.print_earth_details() is None
 
 
 @patch("matplotlib.pyplot.show")
-def test_wyoming_sounding_atmosphere(mock_show, example_plain_env):
+def test_wyoming_sounding_atmosphere(
+    mock_show, example_plain_env
+):  # pylint: disable: unused-argument
     """Asserts whether the Wyoming sounding model in the environment
     object behaves as expected with respect to some attributes such
     as pressure, barometric_height, wind_velocity and temperature.
@@ -159,7 +172,7 @@ def test_wyoming_sounding_atmosphere(mock_show, example_plain_env):
         except:
             time.sleep(1)  # wait 1 second before trying again
             pass
-    assert example_plain_env.all_info() == None
+    assert example_plain_env.all_info() is None
     assert abs(example_plain_env.pressure(0) - 93600.0) < 1e-8
     assert (
         abs(example_plain_env.barometric_height(example_plain_env.pressure(0)) - 722.0)
@@ -171,7 +184,9 @@ def test_wyoming_sounding_atmosphere(mock_show, example_plain_env):
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_hiresw_ensemble_atmosphere(mock_show, example_spaceport_env):
+def test_hiresw_ensemble_atmosphere(
+    mock_show, example_spaceport_env
+):  # pylint: disable=unused-argument
     """Tests the Forecast model with the HIRESW file.
 
     Parameters
@@ -205,12 +220,14 @@ def test_hiresw_ensemble_atmosphere(mock_show, example_spaceport_env):
         dictionary=HIRESW_dictionary,
     )
 
-    assert example_spaceport_env.all_info() == None
+    assert example_spaceport_env.all_info() is None
 
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_cmc_atmosphere(mock_show, example_spaceport_env):
+def test_cmc_atmosphere(
+    mock_show, example_spaceport_env
+):  # pylint: disable: unused-argument
     """Tests the Ensemble model with the CMC file.
 
     Parameters
@@ -221,4 +238,4 @@ def test_cmc_atmosphere(mock_show, example_spaceport_env):
         Example environment object to be tested.
     """
     example_spaceport_env.set_atmospheric_model(type="Ensemble", file="CMC")
-    assert example_spaceport_env.all_info() == None
+    assert example_spaceport_env.all_info() is None

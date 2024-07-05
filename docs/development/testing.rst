@@ -216,7 +216,7 @@ Consider the following integration test:
         # give it at least 5 times to try to download the file
         example_plain_env.set_atmospheric_model(type="wyoming_sounding", file=URL)
 
-        assert example_plain_env.all_info() == None
+        assert example_plain_env.all_info() is None
         assert abs(example_plain_env.pressure(0) - 93600.0) < 1e-8
         assert (
             abs(example_plain_env.barometric_height(example_plain_env.pressure(0)) - 722.0)

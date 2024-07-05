@@ -136,7 +136,7 @@ def calisto_robust(
     calisto_nose_cone,
     calisto_tail,
     calisto_trapezoidal_fins,
-    calisto_rail_buttons,
+    calisto_rail_buttons,  # pylint: disable=unused-argument
     calisto_main_chute,
     calisto_drogue_chute,
 ):

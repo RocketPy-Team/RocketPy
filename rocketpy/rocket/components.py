@@ -144,7 +144,7 @@ class Components:
                 self._components.pop(index)
                 break
         else:
-            raise Exception(f"Component {component} not found in components {self}")
+            raise ValueError(f"Component {component} not found in components {self}")
 
     def pop(self, index=-1):
         """Pop a component from the list of components.
@@ -186,4 +186,3 @@ class Components:
         None
         """
         self._components.sort(key=lambda x: x.position, reverse=reverse)
-        return None
