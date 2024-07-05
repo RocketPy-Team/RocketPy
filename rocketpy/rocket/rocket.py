@@ -1515,7 +1515,7 @@ class Rocket:
         )
         position = Vector(
             [
-                radius * np.sin(np.radians(angular_position)),
+                radius * -np.sin(np.radians(angular_position)),
                 radius * np.cos(np.radians(angular_position)),
                 lower_button_position,
             ]

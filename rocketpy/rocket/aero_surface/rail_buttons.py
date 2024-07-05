@@ -1,3 +1,4 @@
+import numpy as np
 from rocketpy.mathutils.function import Function
 from rocketpy.prints.aero_surface_prints import _RailButtonsPrints
 from .aero_surface import AeroSurface
@@ -38,6 +39,7 @@ class RailButtons(AeroSurface):
         super().__init__(name, None, None)
         self.buttons_distance = buttons_distance
         self.angular_position = angular_position
+        self.angular_position_rad = np.radians(angular_position)
         self.name = name
 
         self.evaluate_lift_coefficient()

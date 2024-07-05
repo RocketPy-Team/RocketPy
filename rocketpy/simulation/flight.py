@@ -1071,6 +1071,13 @@ class Flight:
             # Initialize attitude
             psi_init = -self.heading * (np.pi / 180)  # Precession / Heading Angle
             theta_init = (self.inclination - 90) * (np.pi / 180)  # Nutation Angle
+            # Consider Rail Buttons position
+            try:
+                psi_init += (
+                    self.rocket.rail_buttons[0].component.angular_position_rad * self.rocket._csys
+                )
+            except IndexError:
+                pass
             e0_init = np.cos(psi_init / 2) * np.cos(theta_init / 2)
             e1_init = np.cos(psi_init / 2) * np.sin(theta_init / 2)
             e2_init = np.sin(psi_init / 2) * np.sin(theta_init / 2)
