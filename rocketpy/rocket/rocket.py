@@ -934,9 +934,12 @@ class Rocket:
         surfaces : list, AeroSurface, NoseCone, TrapezoidalFins, EllipticalFins, Tail
             Aerodynamic surface to be added to the rocket. Can be a list of
             AeroSurface if more than one surface is to be added.
-        positions : int, float, list
-            Position, in m, of the aerodynamic surface's center of pressure
-            relative to the user defined rocket coordinate system.
+        positions : int, float, Vector, list[int, float, Vector]
+            Position, in m, of the aerodynamic surface's reference point
+            relative to the user defined rocket coordinate system. The position
+            can be specified as a single value, that refers to the axial
+            position of the surface, or as a Vector object, that refers to the
+            position of the reference point in the rocket coordinate system.
             If a list is passed, it will correspond to the position of each item
             in the surfaces list.
             For NoseCone type, position is relative to the nose cone tip.

@@ -18,9 +18,10 @@ class Fins(AeroSurface):
 
     Note
     ----
-    Local coordinate system: Z axis along the longitudinal axis of symmetry,
-    positive downwards (top -> bottom). Origin located at the top of the root
-    chord.
+    Local coordinate system: Origin located at the top of the root chord. Z axis
+    along the longitudinal axis of symmetry, positive downwards (top -> bottom).
+    Y axis perpendicular to the Z axis, in the span direction, positive upwards.
+    X axis completes the right-handed coordinate system.
 
     Attributes
     ----------
