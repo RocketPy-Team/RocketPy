@@ -42,7 +42,9 @@ Attention: The newest changes should be on top -->
 
 - 
 
-## [1.4.0] - 2024-07-dd
+## [1.4.0] - 2024-07-06
+
+You can install this version by running `pip install rocketpy==1.4.0`
 
 ### Added
 
