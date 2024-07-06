@@ -18,18 +18,6 @@ THROAT_RADIUS = 11 / 1000
 GRAIN_VOL = 0.12 * (np.pi * (0.033**2 - 0.015**2))
 GRAIN_MASS = GRAIN_VOL * 1815 * 5
 
-burn_time = 3.9
-grain_number = 5
-grain_separation = 5 / 1000
-grain_density = 1815
-grain_outer_radius = 33 / 1000
-grain_initial_inner_radius = 15 / 1000
-grain_initial_height = 120 / 1000
-nozzle_radius = 33 / 1000
-throat_radius = 11 / 1000
-grain_vol = 0.12 * (np.pi * (0.033**2 - 0.015**2))
-grain_mass = grain_vol * 1815 * 5
-
 
 @patch("matplotlib.pyplot.show")
 def test_motor(mock_show, cesaroni_m1670):
@@ -42,7 +30,7 @@ def test_motor(mock_show, cesaroni_m1670):
     cesaroni_m1670 : rocketpy.SolidMotor
         The SolidMotor object to be used in the tests.
     """
-    assert cesaroni_m1670.all_info() == None
+    assert cesaroni_m1670.all_info() is None
 
 
 def test_evaluate_inertia_11_asserts_extreme_values(cesaroni_m1670):
@@ -152,11 +140,11 @@ def tests_export_eng_asserts_exported_values_correct(cesaroni_m1670):
     assert comments == []
     assert description == [
         "test_motor",
-        "{:3.1f}".format(2000 * GRAIN_OUTER_RADIUS),
-        "{:3.1f}".format(1000 * 5 * (0.12 + 0.005)),
+        f"{2000 * GRAIN_OUTER_RADIUS:3.1f}",
+        f"{1000 * 5 * (0.12 + 0.005):3.1f}",
         "0",
-        "{:2.3}".format(GRAIN_MASS),
-        "{:2.3}".format(GRAIN_MASS),
+        f"{GRAIN_MASS:2.3}",
+        f"{GRAIN_MASS:2.3}",
         "RocketPy",
     ]
 
@@ -181,31 +169,31 @@ def tests_export_eng_asserts_exported_values_correct(cesaroni_m1670):
 
 
 def test_initialize_motor_asserts_dynamic_values(cesaroni_m1670):
-    grain_vol = grain_initial_height * (
-        np.pi * (grain_outer_radius**2 - grain_initial_inner_radius**2)
+    grain_vol = GRAIN_INITIAL_HEIGHT * (
+        np.pi * (GRAIN_OUTER_RADIUS**2 - GRAIN_INITIAL_INNER_RADIUS**2)
     )
-    grain_mass = grain_vol * grain_density
+    grain_mass = grain_vol * GRAIN_DENSITY
 
     assert abs(cesaroni_m1670.max_thrust - 2200.0) < 1e-9
     assert abs(cesaroni_m1670.max_thrust_time - 0.15) < 1e-9
-    assert abs(cesaroni_m1670.burn_time[1] - burn_time) < 1e-9
+    assert abs(cesaroni_m1670.burn_time[1] - BURN_TIME) < 1e-9
     assert (
-        abs(cesaroni_m1670.total_impulse - cesaroni_m1670.thrust.integral(0, burn_time))
+        abs(cesaroni_m1670.total_impulse - cesaroni_m1670.thrust.integral(0, BURN_TIME))
         < 1e-9
     )
     assert (
         cesaroni_m1670.average_thrust
-        - cesaroni_m1670.thrust.integral(0, burn_time) / burn_time
+        - cesaroni_m1670.thrust.integral(0, BURN_TIME) / BURN_TIME
     ) < 1e-9
     assert abs(cesaroni_m1670.grain_initial_volume - grain_vol) < 1e-9
     assert abs(cesaroni_m1670.grain_initial_mass - grain_mass) < 1e-9
     assert (
-        abs(cesaroni_m1670.propellant_initial_mass - grain_number * grain_mass) < 1e-9
+        abs(cesaroni_m1670.propellant_initial_mass - GRAIN_NUMBER * grain_mass) < 1e-9
     )
     assert (
         abs(
             cesaroni_m1670.exhaust_velocity(0)
-            - cesaroni_m1670.thrust.integral(0, burn_time) / (grain_number * grain_mass)
+            - cesaroni_m1670.thrust.integral(0, BURN_TIME) / (GRAIN_NUMBER * grain_mass)
         )
         < 1e-9
     )
@@ -227,14 +215,14 @@ def test_grain_geometry_progression_asserts_extreme_values(cesaroni_m1670):
 
 
 def test_mass_curve_asserts_extreme_values(cesaroni_m1670):
-    grain_vol = grain_initial_height * (
-        np.pi * (grain_outer_radius**2 - grain_initial_inner_radius**2)
+    grain_vol = GRAIN_INITIAL_HEIGHT * (
+        np.pi * (GRAIN_OUTER_RADIUS**2 - GRAIN_INITIAL_INNER_RADIUS**2)
     )
-    grain_mass = grain_vol * grain_density
+    grain_mass = grain_vol * GRAIN_DENSITY
 
     assert np.allclose(cesaroni_m1670.propellant_mass.get_source()[-1][-1], 0)
     assert np.allclose(
-        cesaroni_m1670.propellant_mass.get_source()[0][-1], grain_number * grain_mass
+        cesaroni_m1670.propellant_mass.get_source()[0][-1], GRAIN_NUMBER * grain_mass
     )
 
 
@@ -243,11 +231,11 @@ def test_burn_area_asserts_extreme_values(cesaroni_m1670):
         2
         * np.pi
         * (
-            grain_outer_radius**2
-            - grain_initial_inner_radius**2
-            + grain_initial_inner_radius * grain_initial_height
+            GRAIN_OUTER_RADIUS**2
+            - GRAIN_INITIAL_INNER_RADIUS**2
+            + GRAIN_INITIAL_INNER_RADIUS * GRAIN_INITIAL_HEIGHT
         )
-        * grain_number
+        * GRAIN_NUMBER
     )
     final_burn_area = (
         2
@@ -256,7 +244,7 @@ def test_burn_area_asserts_extreme_values(cesaroni_m1670):
             cesaroni_m1670.grain_inner_radius.get_source()[-1][-1]
             * cesaroni_m1670.grain_height.get_source()[-1][-1]
         )
-        * grain_number
+        * GRAIN_NUMBER
     )
 
     assert np.allclose(cesaroni_m1670.burn_area.get_source()[0][-1], initial_burn_area)

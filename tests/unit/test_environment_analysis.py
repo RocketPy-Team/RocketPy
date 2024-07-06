@@ -1,4 +1,3 @@
-import copy
 import os
 from unittest.mock import patch
 
@@ -29,15 +28,15 @@ def test_distribution_plots(mock_show, env_analysis):
     """
 
     # Check distribution plots
-    assert env_analysis.plots.wind_gust_distribution() == None
+    assert env_analysis.plots.wind_gust_distribution() is None
     assert (
         env_analysis.plots.surface10m_wind_speed_distribution(wind_speed_limit=True)
-        == None
+        is None
     )
-    assert env_analysis.plots.wind_gust_distribution_grid() == None
+    assert env_analysis.plots.wind_gust_distribution_grid() is None
     assert (
         env_analysis.plots.surface_wind_speed_distribution_grid(wind_speed_limit=True)
-        == None
+        is None
     )
 
 
@@ -59,12 +58,12 @@ def test_average_plots(mock_show, env_analysis):
     None
     """
     # Check "average" plots
-    assert env_analysis.plots.average_surface_temperature_evolution() == None
-    assert env_analysis.plots.average_surface10m_wind_speed_evolution(False) == None
-    assert env_analysis.plots.average_surface10m_wind_speed_evolution(True) == None
-    assert env_analysis.plots.average_surface100m_wind_speed_evolution() == None
-    assert env_analysis.plots.average_wind_rose_grid() == None
-    assert env_analysis.plots.average_wind_rose_specific_hour(12) == None
+    assert env_analysis.plots.average_surface_temperature_evolution() is None
+    assert env_analysis.plots.average_surface10m_wind_speed_evolution(False) is None
+    assert env_analysis.plots.average_surface10m_wind_speed_evolution(True) is None
+    assert env_analysis.plots.average_surface100m_wind_speed_evolution() is None
+    assert env_analysis.plots.average_wind_rose_grid() is None
+    assert env_analysis.plots.average_wind_rose_specific_hour(12) is None
 
 
 @pytest.mark.slow
@@ -83,29 +82,29 @@ def test_profile_plots(mock_show, env_analysis):
         A simple object of the EnvironmentAnalysis class.
     """
     # Check profile plots
-    assert env_analysis.plots.wind_heading_profile_grid(clear_range_limits=True) == None
+    assert env_analysis.plots.wind_heading_profile_grid(clear_range_limits=True) is None
     assert (
         env_analysis.plots.average_wind_heading_profile(clear_range_limits=False)
-        == None
+        is None
     )
     assert (
-        env_analysis.plots.average_wind_heading_profile(clear_range_limits=True) == None
+        env_analysis.plots.average_wind_heading_profile(clear_range_limits=True) is None
     )
     assert (
-        env_analysis.plots.average_wind_speed_profile(clear_range_limits=False) == None
+        env_analysis.plots.average_wind_speed_profile(clear_range_limits=False) is None
     )
     assert (
-        env_analysis.plots.average_wind_speed_profile(clear_range_limits=True) == None
+        env_analysis.plots.average_wind_speed_profile(clear_range_limits=True) is None
     )
-    assert env_analysis.plots.average_pressure_profile(clear_range_limits=False) == None
-    assert env_analysis.plots.average_pressure_profile(clear_range_limits=True) == None
-    assert env_analysis.plots.wind_speed_profile_grid(clear_range_limits=True) == None
+    assert env_analysis.plots.average_pressure_profile(clear_range_limits=False) is None
+    assert env_analysis.plots.average_pressure_profile(clear_range_limits=True) is None
+    assert env_analysis.plots.wind_speed_profile_grid(clear_range_limits=True) is None
     assert (
         env_analysis.plots.average_wind_velocity_xy_profile(clear_range_limits=True)
-        == None
+        is None
     )
     assert (
-        env_analysis.plots.average_temperature_profile(clear_range_limits=True) == None
+        env_analysis.plots.average_temperature_profile(clear_range_limits=True) is None
     )
 
 

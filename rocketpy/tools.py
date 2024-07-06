@@ -369,6 +369,7 @@ def inverted_haversine(lat0, lon0, distance, bearing, earth_radius=6.3781e6):
 
 
 # Functions for monte carlo analysis
+# pylint: disable=too-many-statements
 def generate_monte_carlo_ellipses(results):
     """A function to create apogee and impact ellipses from the monte carlo
     analysis results.
@@ -475,16 +476,16 @@ def generate_monte_carlo_ellipses(results):
         return ell_list
 
     # Calculate error ellipses for impact and apogee
-    impactTheta, impactW, impactH = calculate_ellipses(impact_x, impact_y)
-    apogeeTheta, apogeeW, apogeeH = calculate_ellipses(apogee_x, apogee_y)
+    impact_theta, impact_w, impact_h = calculate_ellipses(impact_x, impact_y)
+    apogee_theta, apogee_w, apogee_h = calculate_ellipses(apogee_x, apogee_y)
 
     # Draw error ellipses for impact
     impact_ellipses = create_ellipse_objects(
-        impact_x, impact_y, 3, impactW, impactH, impactTheta, (0, 0, 1, 0.2)
+        impact_x, impact_y, 3, impact_w, impact_h, impact_theta, (0, 0, 1, 0.2)
     )
 
     apogee_ellipses = create_ellipse_objects(
-        apogee_x, apogee_y, 3, apogeeW, apogeeH, apogeeTheta, (0, 1, 0, 0.2)
+        apogee_x, apogee_y, 3, apogee_w, apogee_h, apogee_theta, (0, 1, 0, 0.2)
     )
 
     return impact_ellipses, apogee_ellipses, apogee_x, apogee_y, impact_x, impact_y
@@ -826,7 +827,7 @@ def exponential_backoff(max_attempts, base_delay=1, max_delay=60):
             for i in range(max_attempts):
                 try:
                     return func(*args, **kwargs)
-                except Exception as e:
+                except Exception as e:  # pylint: disable=broad-except
                     if i == max_attempts - 1:
                         raise e from None
                     delay = min(delay * 2, max_delay)
@@ -930,8 +931,8 @@ def quaternions_to_nutation(e1, e2):
 if __name__ == "__main__":
     import doctest
 
-    results = doctest.testmod()
-    if results.failed < 1:
-        print(f"All the {results.attempted} tests passed!")
+    res = doctest.testmod()
+    if res.failed < 1:
+        print(f"All the {res.attempted} tests passed!")
     else:
-        print(f"{results.failed} out of {results.attempted} tests failed.")
+        print(f"{res.failed} out of {res.attempted} tests failed.")

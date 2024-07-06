@@ -5,8 +5,6 @@ from unittest.mock import patch
 import matplotlib as plt
 import pytest
 
-from rocketpy.tools import import_optional_dependency
-
 plt.rcParams.update({"figure.max_open_warning": 0})
 
 
@@ -26,9 +24,9 @@ def test_all_info(mock_show, env_analysis):
     -------
     None
     """
-    assert env_analysis.info() == None
-    assert env_analysis.all_info() == None
-    assert env_analysis.plots.info() == None
+    assert env_analysis.info() is None
+    assert env_analysis.all_info() is None
+    assert env_analysis.plots.info() is None
     os.remove("wind_rose.gif")  # remove the files created by the method
 
 
@@ -46,12 +44,12 @@ def test_exports(mock_show, env_analysis):
         A simple object of the EnvironmentAnalysis class.
     """
 
-    assert env_analysis.export_mean_profiles() == None
-    assert env_analysis.save("env_analysis_dict") == None
+    assert env_analysis.export_mean_profiles() is None
+    assert env_analysis.save("env_analysis_dict") is None
 
     env2 = copy.deepcopy(env_analysis)
     env2.load("env_analysis_dict")
-    assert env2.all_info() == None
+    assert env2.all_info() is None
 
     # Delete file created by save method
     os.remove("env_analysis_dict")

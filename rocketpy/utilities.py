@@ -1,3 +1,4 @@
+import ast
 import inspect
 import traceback
 import warnings
@@ -101,7 +102,7 @@ def calculate_equilibrium_altitude(
     """
     final_sol = {}
 
-    if not v0 < 0:
+    if v0 >= 0:
         print("Please set a valid negative value for v0")
         return None
 
@@ -125,9 +126,8 @@ def calculate_equilibrium_altitude(
         for i in range(len(f) - 2):
             if abs(f[i + 2] - f[i + 1]) < eps and abs(f[i + 1] - f[i]) < eps:
                 return i
-        return None
 
-    if env == None:
+    if env is None:
         environment = Environment(
             latitude=0,
             longitude=0,
@@ -200,6 +200,7 @@ def calculate_equilibrium_altitude(
     return altitude_function, velocity_function, final_sol
 
 
+# pylint: disable=too-many-statements
 def fin_flutter_analysis(
     fin_thickness, shear_modulus, flight, see_prints=True, see_graphs=True
 ):
@@ -230,15 +231,17 @@ def fin_flutter_analysis(
     None
     """
     found_fin = False
+    surface_area = None
+    aspect_ratio = None
+    lambda_ = None
 
     # First, we need identify if there is at least one fin set in the rocket
     for aero_surface in flight.rocket.fins:
         if isinstance(aero_surface, TrapezoidalFins):
-            # s: surface area; ar: aspect ratio; la: lambda
             root_chord = aero_surface.root_chord
-            s = (aero_surface.tip_chord + root_chord) * aero_surface.span / 2
-            ar = aero_surface.span * aero_surface.span / s
-            la = aero_surface.tip_chord / root_chord
+            surface_area = (aero_surface.tip_chord + root_chord) * aero_surface.span / 2
+            aspect_ratio = aero_surface.span * aero_surface.span / surface_area
+            lambda_ = aero_surface.tip_chord / root_chord
             if not found_fin:
                 found_fin = True
             else:
@@ -250,14 +253,21 @@ def fin_flutter_analysis(
 
     # Calculate variables
     flutter_mach = _flutter_mach_number(
-        fin_thickness, shear_modulus, flight, root_chord, ar, la
+        fin_thickness, shear_modulus, flight, root_chord, aspect_ratio, lambda_
     )
     safety_factor = _flutter_safety_factor(flight, flutter_mach)
 
     # Prints and plots
     if see_prints:
         _flutter_prints(
-            fin_thickness, shear_modulus, s, ar, la, flutter_mach, safety_factor, flight
+            fin_thickness,
+            shear_modulus,
+            surface_area,
+            aspect_ratio,
+            lambda_,
+            flutter_mach,
+            safety_factor,
+            flight,
         )
     if see_graphs:
         _flutter_plots(flight, flutter_mach, safety_factor)
@@ -265,10 +275,12 @@ def fin_flutter_analysis(
         return flutter_mach, safety_factor
 
 
-def _flutter_mach_number(fin_thickness, shear_modulus, flight, root_chord, ar, la):
+def _flutter_mach_number(
+    fin_thickness, shear_modulus, flight, root_chord, aspect_ratio, lambda_
+):
     flutter_mach = (
-        (shear_modulus * 2 * (ar + 2) * (fin_thickness / root_chord) ** 3)
-        / (1.337 * (ar**3) * (la + 1) * flight.pressure)
+        (shear_modulus * 2 * (aspect_ratio + 2) * (fin_thickness / root_chord) ** 3)
+        / (1.337 * (aspect_ratio**3) * (lambda_ + 1) * flight.pressure)
     ) ** 0.5
     flutter_mach.set_title("Fin Flutter Mach Number")
     flutter_mach.set_outputs("Mach")
@@ -351,9 +363,9 @@ def _flutter_plots(flight, flutter_mach, safety_factor):
 def _flutter_prints(
     fin_thickness,
     shear_modulus,
-    s,
-    ar,
-    la,
+    surface_area,
+    aspect_ratio,
+    lambda_,
     flutter_mach,
     safety_factor,
     flight,
@@ -367,11 +379,11 @@ def _flutter_prints(
         The fin thickness, in meters
     shear_modulus : float
         Shear Modulus of fins' material, must be given in Pascal
-    s : float
+    surface_area : float
         Fin surface area, in squared meters
-    ar : float
+    aspect_ratio : float
         Fin aspect ratio
-    la : float
+    lambda_ : float
         Fin lambda, defined as the tip_chord / root_chord ratio
     flutter_mach : rocketpy.Function
         The Mach Number at which the fin flutter occurs, considering the
@@ -399,9 +411,9 @@ def _flutter_prints(
     altitude_min_sf = flight.z(time_min_sf) - flight.env.elevation
 
     print("\nFin's parameters")
-    print(f"Surface area (S): {s:.4f} m2")
-    print(f"Aspect ratio (AR): {ar:.3f}")
-    print(f"tip_chord/root_chord ratio = \u03BB = {la:.3f}")
+    print(f"Surface area (S): {surface_area:.4f} m2")
+    print(f"Aspect ratio (AR): {aspect_ratio:.3f}")
+    print(f"tip_chord/root_chord ratio = \u03BB = {lambda_:.3f}")
     print(f"Fin Thickness: {fin_thickness:.5f} m")
     print(f"Shear Modulus (G): {shear_modulus:.3e} Pa")
 
@@ -472,24 +484,24 @@ def create_dispersion_dictionary(filename):
         )
     except ValueError:
         warnings.warn(
-            f"Error caught: the recommended delimiter is ';'. If using ',' "
-            + "instead, be aware that some resources might not work as "
-            + "expected if your data set contains lists where the items are "
-            + "separated by commas. Please consider changing the delimiter to "
-            + "';' if that is the case."
+            "Error caught: the recommended delimiter is ';'. If using ',' "
+            "instead, be aware that some resources might not work as "
+            "expected if your data set contains lists where the items are "
+            "separated by commas. Please consider changing the delimiter to "
+            "';' if that is the case."
         )
         warnings.warn(traceback.format_exc())
         file = np.genfromtxt(
             filename, usecols=(1, 2, 3), skip_header=1, delimiter=",", dtype=str
         )
-    analysis_parameters = dict()
+    analysis_parameters = {}
     for row in file:
         if row[0] != "":
             if row[2] == "":
                 try:
                     analysis_parameters[row[0].strip()] = float(row[1])
                 except ValueError:
-                    analysis_parameters[row[0].strip()] = eval(row[1])
+                    analysis_parameters[row[0].strip()] = ast.literal_eval(row[1])
             else:
                 try:
                     analysis_parameters[row[0].strip()] = (float(row[1]), float(row[2]))
@@ -652,7 +664,7 @@ def get_instance_attributes(instance):
     dictionary
         Dictionary with all attributes of the given instance.
     """
-    attributes_dict = dict()
+    attributes_dict = {}
     members = inspect.getmembers(instance)
     for member in members:
         # Filter out methods and protected attributes
