@@ -113,8 +113,8 @@ def test_matrix_neg(components):
     assert -Matrix(components) + Matrix(components) == Matrix.zeros()
 
 
-@pytest.mark.parametrize("A_c", test_matrices)
-@pytest.mark.parametrize("B_c", test_matrices)
+@pytest.mark.parametrize("A", test_matrices)
+@pytest.mark.parametrize("B", test_matrices)
 def test_matrix_add(A, B):
     expected_result = np.array(A) + np.array(B)
     assert Matrix(A) + Matrix(B) == expected_result
