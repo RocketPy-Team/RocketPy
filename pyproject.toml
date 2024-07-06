@@ -75,11 +75,14 @@ exclude_also = [
 max-line-length = 88
 max-module-lines = 3000
 ignore = [
-    'W503', # conflicts with black
-    'E203', # conflicts with black
-    'E501', # line too long, already checked by black and pylint
-    'E266', # too many leading '#' for block comment, this is pointless
-    'F401', # imported but unused, already checked by pylint
+    'W503', # conflicts with black (line break before binary operator)
+    'E203', # conflicts with black (whitespace before ':')
+    'E501', # ignored now because it is hard to fix the whole code (line too long)
+    'E266', # this is pointless (too many leading '#' for block comment)
+    'F401', # too many errors on __init__.py files (imported but unused)
+    'E722', # pylint already checks for bare except
+    'E226', # black does not adjust errors like this
+    'E731', # pylint already checks for this (lambda functions)
 ]
 exclude = [
     '.git,__pycache__',

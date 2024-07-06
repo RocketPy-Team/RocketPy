@@ -39,4 +39,4 @@ def test_compare(mock_show, flight_calisto):
         x_attributes=["time"],
     )
 
-    assert isinstance(fig, plt.Figure) == True
+    assert isinstance(fig, plt.Figure)
