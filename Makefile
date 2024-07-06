@@ -23,12 +23,19 @@ install:
 	pip install -r requirements-optional.txt
 	pip install -e .
 
+format: isort black
+
 isort:
 	isort --profile black rocketpy/ tests/ docs/
 
 black:
 	black rocketpy/ tests/ docs/
-	
+
+lint: flake8 pylint
+
+flake8:
+	flake8 rocketpy/ tests/
+
 pylint:
 	-pylint rocketpy --output=.pylint-report.txt
 
