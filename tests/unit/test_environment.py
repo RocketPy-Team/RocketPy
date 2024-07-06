@@ -79,8 +79,8 @@ def test_geodesic_coordinate_geodesic_to_utm_converts_coordinate():
         semi_major_axis=6378137.0,  # WGS84
         flattening=1 / 298.257223563,  # WGS84
     )
-    assert np.isclose(x, 315468.64, atol=1e-5) == True
-    assert np.isclose(y, 3651938.65, atol=1e-5) == True
+    assert np.isclose(x, 315468.64, atol=1e-5)
+    assert np.isclose(y, 3651938.65, atol=1e-5)
     assert utm_zone == 13
     assert utm_letter == "S"
     assert hemis == "N"
@@ -101,8 +101,8 @@ def test_utm_to_geodesic_converts_coordinates():
         semi_major_axis=6378137.0,  # WGS84
         flattening=1 / 298.257223563,  # WGS84
     )
-    assert np.isclose(lat, 32.99025, atol=1e-5) == True
-    assert np.isclose(lon, -106.9750, atol=1e-5) == True
+    assert np.isclose(lat, 32.99025, atol=1e-5)
+    assert np.isclose(lon, -106.9750, atol=1e-5)
 
 
 @pytest.mark.parametrize(

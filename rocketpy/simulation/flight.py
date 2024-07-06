@@ -1670,13 +1670,13 @@ class Flight:  # pylint: disable=too-many-public-methods
         ## Nozzle gyration tensor
         S_nozzle = self.rocket.nozzle_gyration_tensor
         ## Inertia tensor
-        I = self.rocket.get_inertia_tensor_at_time(t)
+        inertia_tensor = self.rocket.get_inertia_tensor_at_time(t)
         ## Inertia tensor time derivative in the body frame
         I_dot = self.rocket.get_inertia_tensor_derivative_at_time(t)
 
         # Calculate the Inertia tensor relative to CM
         H = (r_CM.cross_matrix @ -r_CM.cross_matrix) * total_mass
-        I_CM = I - H
+        I_CM = inertia_tensor - H
 
         # Prepare transformation matrices
         K = Matrix.transformation(e)
@@ -1820,7 +1820,7 @@ class Flight:  # pylint: disable=too-many-public-methods
         )
 
         T21 = (
-            ((I @ w) ^ w)
+            ((inertia_tensor @ w) ^ w)
             + T05 @ w
             - (weight_in_body_frame ^ r_CM)
             + Vector([M1, M2, M3])

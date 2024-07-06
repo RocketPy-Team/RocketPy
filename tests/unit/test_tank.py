@@ -131,10 +131,6 @@ def test_mass_based_tank():
     tank and a simplified tank.
     """
     lox = Fluid(name="LOx", density=1141.7)
-    propane = Fluid(
-        name="Propane",
-        density=493,
-    )
     n2 = Fluid(
         name="Nitrogen Gas",
         density=51.75,

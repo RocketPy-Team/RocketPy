@@ -1,4 +1,4 @@
-"""Unit tests for the Function class. Each method in tis module tests an 
+"""Unit tests for the Function class. Each method in tis module tests an
 individual method of the Function class. The tests are made on both the
 expected behaviour and the return instances."""
 
