@@ -644,9 +644,9 @@ def geopotential_height_to_geometric_height(geopotential_height, radius=63781370
     --------
     >>> from rocketpy.tools import geopotential_height_to_geometric_height
     >>> geopotential_height_to_geometric_height(0)
-    10001.568101798659
+    0.0
     >>> geopotential_height_to_geometric_height(10000)
-    10001.57
+    10001.568101798659
     >>> geopotential_height_to_geometric_height(20000)
     20006.2733909262
     """

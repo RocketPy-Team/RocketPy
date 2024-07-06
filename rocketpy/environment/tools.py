@@ -37,13 +37,13 @@ def calculate_wind_heading(u, v):
     --------
     >>> from rocketpy.environment.tools import calculate_wind_heading
     >>> calculate_wind_heading(1, 0)
-    90.0
+    np.float64(90.0)
     >>> calculate_wind_heading(0, 1)
-    0.0
+    np.float64(0.0)
     >>> calculate_wind_heading(3, 3)
-    45.0
+    np.float64(45.0)
     >>> calculate_wind_heading(-3, 3)
-    315.0
+    np.float64(315.0)
     """
     return np.degrees(np.arctan2(u, v)) % 360
 
@@ -90,21 +90,21 @@ def calculate_wind_speed(u, v, w=0.0):
     --------
     >>> from rocketpy.environment.tools import calculate_wind_speed
     >>> calculate_wind_speed(1, 0, 0)
-    1.0
+    np.float64(1.0)
     >>> calculate_wind_speed(0, 1, 0)
-    1.0
+    np.float64(1.0)
     >>> calculate_wind_speed(0, 0, 1)
-    1.0
+    np.float64(1.0)
     >>> calculate_wind_speed(3, 4, 0)
-    5.0
+    np.float64(5.0)
 
     The third component of the wind is optional, and if not provided, it is
     assumed to be zero.
 
     >>> calculate_wind_speed(3, 4)
-    5.0
+    np.float64(5.0)
     >>> calculate_wind_speed(3, 4, 0)
-    5.0
+    np.float64(5.0)
     """
     return np.sqrt(u**2 + v**2 + w**2)
 

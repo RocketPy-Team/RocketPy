@@ -2393,7 +2393,7 @@ class Environment:
         >>> env = Environment()
         >>> env.calculate_density_profile()
         >>> float(env.density(1000))
-        1.1116193933422585
+        1.1115112430077818
         """
         # Retrieve pressure P, gas constant R and temperature T
         P = self.pressure
