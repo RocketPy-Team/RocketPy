@@ -461,7 +461,7 @@ def get_elevation_data_from_dataset(
     )
 
 
-def get_initial_data_from_time_array(time_array, units=None):
+def get_initial_date_from_time_array(time_array, units=None):
     """Returns a datetime object representing the first time in the time array.
 
     Parameters
@@ -480,7 +480,7 @@ def get_initial_data_from_time_array(time_array, units=None):
     return netCDF4.num2date(time_array[0], units, calendar="gregorian")
 
 
-def get_final_data_from_time_array(time_array, units=None):
+def get_final_date_from_time_array(time_array, units=None):
     """Returns a datetime object representing the last time in the time array.
 
     Parameters
@@ -499,7 +499,7 @@ def get_final_data_from_time_array(time_array, units=None):
     return netCDF4.num2date(time_array[-1], units, calendar="gregorian")
 
 
-def get_interval_data_from_time_array(time_array, units=None):
+def get_interval_date_from_time_array(time_array, units=None):
     """Returns the interval between two times in the time array in hours.
 
     Parameters
@@ -521,6 +521,157 @@ def get_interval_data_from_time_array(time_array, units=None):
         units,
         calendar="gregorian",
     ).hour
+
+
+# Geodesic conversions functions
+
+
+def geodesic_to_utm(
+    lat, lon, semi_major_axis=6378137.0, flattening=1 / 298.257223563
+):  # pylint: disable=too-many-locals,too-many-statements
+    # NOTE: already documented in the Environment class.
+    # TODO: deprecated the static method from the environment class, use only this one.
+
+    # Calculate the central meridian of UTM zone
+    if lon != 0:
+        signal = lon / abs(lon)
+        if signal > 0:
+            aux = lon - 3
+            aux = aux * signal
+            div = aux // 6
+            lon_mc = div * 6 + 3
+            EW = "E"  # pylint: disable=invalid-name
+        else:
+            aux = lon + 3
+            aux = aux * signal
+            div = aux // 6
+            lon_mc = (div * 6 + 3) * signal
+            EW = "W"  # pylint: disable=invalid-name
+    else:
+        lon_mc = 3
+        EW = "W|E"  # pylint: disable=invalid-name
+
+    # Evaluate the hemisphere and determine the N coordinate at the Equator
+    if lat < 0:
+        N0 = 10000000
+        hemis = "S"
+    else:
+        N0 = 0
+        hemis = "N"
+
+    # Convert the input lat and lon to radians
+    lat = lat * np.pi / 180
+    lon = lon * np.pi / 180
+    lon_mc = lon_mc * np.pi / 180
+
+    # Evaluate reference parameters
+    K0 = 1 - 1 / 2500
+    e2 = 2 * flattening - flattening**2
+    e2lin = e2 / (1 - e2)
+
+    # Evaluate auxiliary parameters
+    A = e2 * e2
+    B = A * e2
+    C = np.sin(2 * lat)
+    D = np.sin(4 * lat)
+    E = np.sin(6 * lat)
+    F = (1 - e2 / 4 - 3 * A / 64 - 5 * B / 256) * lat
+    G = (3 * e2 / 8 + 3 * A / 32 + 45 * B / 1024) * C
+    H = (15 * A / 256 + 45 * B / 1024) * D
+    aux_i = (35 * B / 3072) * E
+
+    # Evaluate other reference parameters
+    n = semi_major_axis / ((1 - e2 * (np.sin(lat) ** 2)) ** 0.5)
+    t = np.tan(lat) ** 2
+    c = e2lin * (np.cos(lat) ** 2)
+    ag = (lon - lon_mc) * np.cos(lat)
+    m = semi_major_axis * (F - G + H - aux_i)
+
+    # Evaluate new auxiliary parameters
+    J = (1 - t + c) * ag * ag * ag / 6
+    K = (5 - 18 * t + t * t + 72 * c - 58 * e2lin) * (ag**5) / 120
+    L = (5 - t + 9 * c + 4 * c * c) * ag * ag * ag * ag / 24
+    M = (61 - 58 * t + t * t + 600 * c - 330 * e2lin) * (ag**6) / 720
+
+    # Evaluate the final coordinates
+    x = 500000 + K0 * n * (ag + J + K)
+    y = N0 + K0 * (m + n * np.tan(lat) * (ag * ag / 2 + L + M))
+
+    # Convert the output lat and lon to degrees
+    lat = lat * 180 / np.pi
+    lon = lon * 180 / np.pi
+    lon_mc = lon_mc * 180 / np.pi
+
+    # Calculate the UTM zone number
+    utm_zone = int((lon_mc + 183) / 6)
+
+    # Calculate the UTM zone letter
+    letters = "CDEFGHJKLMNPQRSTUVWXX"
+    utm_letter = letters[int(80 + lat) >> 3]
+
+    return x, y, utm_zone, utm_letter, hemis, EW
+
+
+def utm_to_geodesic(  # pylint: disable=too-many-locals,too-many-statements
+    x, y, utm_zone, hemis, semi_major_axis=6378137.0, flattening=1 / 298.257223563
+):
+    # NOTE: already documented in the Environment class.
+    # TODO: deprecated the static method from the environment class, use only this one.
+
+    if hemis == "N":
+        y = y + 10000000
+
+    # Calculate the Central Meridian from the UTM zone number
+    central_meridian = utm_zone * 6 - 183  # degrees
+
+    # Calculate reference values
+    K0 = 1 - 1 / 2500
+    e2 = 2 * flattening - flattening**2
+    e2lin = e2 / (1 - e2)
+    e1 = (1 - (1 - e2) ** 0.5) / (1 + (1 - e2) ** 0.5)
+
+    # Calculate auxiliary values
+    A = e2 * e2
+    B = A * e2
+    C = e1 * e1
+    D = e1 * C
+    E = e1 * D
+
+    m = (y - 10000000) / K0
+    mi = m / (semi_major_axis * (1 - e2 / 4 - 3 * A / 64 - 5 * B / 256))
+
+    # Calculate other auxiliary values
+    F = (3 * e1 / 2 - 27 * D / 32) * np.sin(2 * mi)
+    G = (21 * C / 16 - 55 * E / 32) * np.sin(4 * mi)
+    H = (151 * D / 96) * np.sin(6 * mi)
+
+    lat1 = mi + F + G + H
+    c1 = e2lin * (np.cos(lat1) ** 2)
+    t1 = np.tan(lat1) ** 2
+    n1 = semi_major_axis / ((1 - e2 * (np.sin(lat1) ** 2)) ** 0.5)
+    quoc = (1 - e2 * np.sin(lat1) * np.sin(lat1)) ** 3
+    r1 = semi_major_axis * (1 - e2) / (quoc**0.5)
+    d = (x - 500000) / (n1 * K0)
+
+    # Calculate other auxiliary values
+    aux_i = (5 + 3 * t1 + 10 * c1 - 4 * c1 * c1 - 9 * e2lin) * d * d * d * d / 24
+    J = (
+        (61 + 90 * t1 + 298 * c1 + 45 * t1 * t1 - 252 * e2lin - 3 * c1 * c1)
+        * (d**6)
+        / 720
+    )
+    K = d - (1 + 2 * t1 + c1) * d * d * d / 6
+    L = (5 - 2 * c1 + 28 * t1 - 3 * c1 * c1 + 8 * e2lin + 24 * t1 * t1) * (d**5) / 120
+
+    # Finally calculate the coordinates in lat/lot
+    lat = lat1 - (n1 * np.tan(lat1) / r1) * (d * d / 2 - aux_i + J)
+    lon = central_meridian * np.pi / 180 + (K + L) / np.cos(lat1)
+
+    # Convert final lat/lon to Degrees
+    lat = lat * 180 / np.pi
+    lon = lon * 180 / np.pi
+
+    return lat, lon
 
 
 if __name__ == "__main__":

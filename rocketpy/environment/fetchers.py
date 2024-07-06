@@ -35,7 +35,7 @@ def fetch_open_elevation(lat, lon):
     RuntimeError
         If there is a problem reaching the Open-Elevation API servers.
     """
-    print("Fetching elevation from open-elevation.com...")
+    print(f"Fetching elevation from open-elevation.com for lat={lat}, lon={lon}...")
     request_url = (
         "https://api.open-elevation.com/api/v1/lookup?locations" f"={lat},{lon}"
     )
@@ -136,7 +136,7 @@ def fetch_gfs_file_return_dataset(max_attempts=10, base_delay=2):
             return dataset
         except OSError:
             attempt_count += 1
-            time.sleep(base_delay * attempt_count)
+            time.sleep(base_delay**attempt_count)
 
     if dataset is None:
         raise RuntimeError(
@@ -183,7 +183,7 @@ def fetch_nam_file_return_dataset(max_attempts=10, base_delay=2):
             return dataset
         except OSError:
             attempt_count += 1
-            time.sleep(base_delay * attempt_count)
+            time.sleep(base_delay**attempt_count)
 
     if dataset is None:
         raise RuntimeError("Unable to load latest weather data for NAM through " + file)
@@ -228,7 +228,7 @@ def fetch_rap_file_return_dataset(max_attempts=10, base_delay=2):
             return dataset
         except OSError:
             attempt_count += 1
-            time.sleep(base_delay * attempt_count)
+            time.sleep(base_delay**attempt_count)
 
     if dataset is None:
         raise RuntimeError("Unable to load latest weather data for RAP through " + file)
@@ -282,7 +282,7 @@ def fetch_hiresw_file_return_dataset(max_attempts=10, base_delay=2):
             return dataset
         except OSError:
             attempt_count += 1
-            time.sleep(base_delay * attempt_count)
+            time.sleep(base_delay**attempt_count)
 
     if dataset is None:
         raise RuntimeError(
@@ -316,7 +316,7 @@ def fetch_wyoming_sounding(file):
     """
     response = requests.get(file)
     if response.status_code != 200:
-        raise ImportError(f"Unable to load {file}.")
+        raise ImportError(f"Unable to load {file}.")  # pragma: no cover
     if len(re.findall("Can't get .+ Observations at", response.text)):
         raise ValueError(
             re.findall("Can't get .+ Observations at .+", response.text)[0]
@@ -386,6 +386,7 @@ def fetch_gefs_ensemble():
             return dataset
         except OSError:
             attempt_count += 1
+            time.sleep(2**attempt_count)
     if not success:
         raise RuntimeError(
             "Unable to load latest weather data for GEFS through " + file
@@ -419,7 +420,7 @@ def fetch_cmc_ensemble():
             f"https://nomads.ncep.noaa.gov/dods/cmcens/"
             f"cmcens{time_attempt.year:04d}{time_attempt.month:02d}"
             f"{time_attempt.day:02d}/"
-            f"cmcens_all_{12 * (time_attempt.hour // 12):02d}z"
+            f"cmcensspr_{12 * (time_attempt.hour // 12):02d}z"
         )
         try:
             dataset = netCDF4.Dataset(file)
@@ -427,5 +428,6 @@ def fetch_cmc_ensemble():
             return dataset
         except OSError:
             attempt_count += 1
+            time.sleep(2**attempt_count)
     if not success:
         raise RuntimeError("Unable to load latest weather data for CMC through " + file)

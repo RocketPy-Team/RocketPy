@@ -1,4 +1,4 @@
-# pylint: disable=too-many-lines, broad-exception-caught, bare-except, raise-missing-from, consider-using-f-string, too-many-statements, too-many-instance-attributes, invalid-name, too-many-locals
+# pylint: disable=too-many-public-methods, too-many-instance-attributes
 import bisect
 import json
 import re
@@ -12,7 +12,6 @@ import pytz
 
 from rocketpy.environment.fetchers import (
     fetch_atmospheric_data_from_windy,
-    fetch_cmc_ensemble,
     fetch_gefs_ensemble,
     fetch_gfs_file_return_dataset,
     fetch_hiresw_file_return_dataset,
@@ -31,48 +30,25 @@ from rocketpy.environment.tools import (
     find_latitude_index,
     find_longitude_index,
     find_time_index,
+)
+from rocketpy.environment.tools import geodesic_to_utm as geodesic_to_utm_tools
+from rocketpy.environment.tools import (
     get_elevation_data_from_dataset,
-    get_final_data_from_time_array,
-    get_initial_data_from_time_array,
-    get_interval_data_from_time_array,
+    get_final_date_from_time_array,
+    get_initial_date_from_time_array,
+    get_interval_date_from_time_array,
     get_pressure_levels_from_file,
     mask_and_clean_dataset,
 )
+from rocketpy.environment.tools import utm_to_geodesic as utm_to_geodesic_tools
 from rocketpy.environment.weather_model_mapping import WeatherModelMapping
-from rocketpy.mathutils.function import Function, funcify_method
+from rocketpy.mathutils.function import NUMERICAL_TYPES, Function, funcify_method
 from rocketpy.plots.environment_plots import _EnvironmentPlots
 from rocketpy.prints.environment_prints import _EnvironmentPrints
 from rocketpy.tools import geopotential_height_to_geometric_height
 
-from ..mathutils.function import Function, funcify_method
-from ..plots.environment_plots import _EnvironmentPlots
-from ..prints.environment_prints import _EnvironmentPrints
 
-try:
-    import netCDF4
-except ImportError:
-    HAS_NETCDF4 = False
-    warnings.warn(
-        "Unable to load netCDF4. NetCDF files and ``OPeNDAP`` will not be imported.",
-        ImportWarning,
-    )
-else:
-    HAS_NETCDF4 = True
-
-
-def requires_netCDF4(func):
-    def wrapped_func(*args, **kwargs):
-        if HAS_NETCDF4:
-            func(*args, **kwargs)
-        else:
-            raise ImportError(
-                "This feature requires netCDF4 to be installed. Install it with `pip install netCDF4`"
-            )
-
-    return wrapped_func
-
-
-class Environment:  # pylint: disable=too-many-public-methods
+class Environment:
     """Keeps all environment information stored, such as wind and temperature
     conditions, as well as gravity.
 
@@ -392,7 +368,7 @@ class Environment:  # pylint: disable=too-many-public-methods
 
         # Initialize date, latitude, longitude, and Earth geometry
         self.__initialize_date(date, timezone)
-        self.__initialize_lat_and_lon(latitude, longitude)
+        self.set_location(latitude, longitude)
         self.__initialize_earth_geometry(datum)
         self.__initialize_utm_coordinates()
 
@@ -402,7 +378,7 @@ class Environment:  # pylint: disable=too-many-public-methods
     def __initialize_constants(self):
         """Sets some important constants and atmospheric variables."""
         self.earth_radius = 6.3781 * (10**6)
-        self.air_gas_constant = 287.05287  # in J/K/Kg
+        self.air_gas_constant = 287.05287  # in J/K/kg
         self.standard_g = 9.80665
         self.__weather_model_map = WeatherModelMapping()
         self.__atm_type_file_to_function_map = {
@@ -411,7 +387,7 @@ class Environment:  # pylint: disable=too-many-public-methods
             ("Forecast", "RAP"): fetch_rap_file_return_dataset,
             ("Forecast", "HIRESW"): fetch_hiresw_file_return_dataset,
             ("Ensemble", "GEFS"): fetch_gefs_ensemble,
-            ("Ensemble", "CMC"): fetch_cmc_ensemble,
+            # ("Ensemble", "CMC"): fetch_cmc_ensemble,
         }
         self.__standard_atmosphere_layers = {
             "geopotential_height": [  # in geopotential m
@@ -480,33 +456,27 @@ class Environment:  # pylint: disable=too-many-public-methods
             flattening=self.ellipsoid.flattening,
         )
 
-    def __initialize_lat_and_lon(self, latitude, longitude):
-        """Saves latitude and longitude coordinates."""
-        if isinstance(latitude, (int, float)) and isinstance(longitude, (int, float)):
-            self.set_location(latitude, longitude)
-        else:
-            self.latitude, self.longitude = None, None
-
     def __initialize_utm_coordinates(self):
         """Store launch site coordinates referenced to UTM projection system."""
-        if self.latitude > -80 and self.latitude < 84:
-            convert = self.geodesic_to_utm(
+        if -80 < self.latitude < 84:
+            (
+                self.initial_east,
+                self.initial_north,
+                self.initial_utm_zone,
+                self.initial_utm_letter,
+                self.initial_hemisphere,
+                self.initial_ew,
+            ) = self.geodesic_to_utm(
                 lat=self.latitude,
                 lon=self.longitude,
                 flattening=self.ellipsoid.flattening,
                 semi_major_axis=self.ellipsoid.semi_major_axis,
             )
-
-            self.initial_north = convert[1]
-            self.initial_east = convert[0]
-            self.initial_utm_zone = convert[2]
-            self.initial_utm_letter = convert[3]
-            self.initial_hemisphere = convert[4]
-            self.initial_ew = convert[5]
         else:
-            print(
+            # pragma: no cover
+            warnings.warning(
                 "UTM coordinates are not available for latitudes "
-                "above 84 or below -80 degrees."
+                "above 84 or below -80 degrees. The UTM conversions will fail."
             )
             self.initial_north = None
             self.initial_east = None
@@ -604,15 +574,16 @@ class Environment:  # pylint: disable=too-many-public-methods
         self.wind_speed.set_outputs("Wind Speed (m/s)")
         self.wind_speed.set_title("Wind Speed Profile")
 
-    def __reset_wind_heading_function(self):
-        # NOTE: this assumes wind_u and wind_v as numpy arrays with same length.
-        # TODO: should we implement arctan2 in the Function class?
-        self.wind_heading = calculate_wind_heading(
-            self.wind_velocity_x, self.wind_velocity_y
-        )
-        self.wind_heading.set_inputs("Height Above Sea Level (m)")
-        self.wind_heading.set_outputs("Wind Heading (Deg True)")
-        self.wind_heading.set_title("Wind Heading Profile")
+    # commented because I never finished, leave it for future implementation
+    # def __reset_wind_heading_function(self):
+    # NOTE: this assumes wind_u and wind_v as numpy arrays with same length.
+    # TODO: should we implement arctan2 in the Function class?
+    # self.wind_heading = calculate_wind_heading(
+    #     self.wind_velocity_x, self.wind_velocity_y
+    # )
+    # self.wind_heading.set_inputs("Height Above Sea Level (m)")
+    # self.wind_heading.set_outputs("Wind Heading (Deg True)")
+    # self.wind_heading.set_title("Wind Heading Profile")
 
     def __reset_wind_direction_function(self):
         self.wind_direction = convert_wind_heading_to_direction(self.wind_heading)
@@ -623,33 +594,25 @@ class Environment:  # pylint: disable=too-many-public-methods
     # Validators (used to verify an attribute is being set correctly.)
 
     def __validate_dictionary(self, file, dictionary):
+        # removed CMC until it is fixed.
+        available_models = ["GFS", "NAM", "RAP", "HIRESW", "GEFS", "ERA5"]
         if isinstance(dictionary, str):
             dictionary = self.__weather_model_map.get(dictionary)
-        elif file in ["GFS", "NAM", "RAP", "HIRESW", "GEFS", "CMC", "ERA5"]:
+        elif file in available_models:
             dictionary = self.__weather_model_map.get(file)
         if not isinstance(dictionary, dict):
             raise TypeError(
-                "Please specify a dictionary or choose a default one such as: "
-                "ECMWF or NOAA."
+                "Please specify a dictionary or choose a valid model from the "
+                f"following list: {available_models}"
             )
 
         return dictionary
 
     def __validate_datetime(self):
         if self.datetime_date is None:
-            raise TypeError(
-                "Please specify Date (array-like) when "
-                "initializing this Environment. "
-                "Alternatively, use the Environment.set_date"
-                " method."
-            )
-
-    def __validate_coordinates(self):
-        if self.latitude is None or self.longitude is None:
-            raise TypeError(
-                "Please specify Location (lat, lon). when "
-                "initializing this Environment. "
-                "Alternatively, use the Environment.set_location() method."
+            raise ValueError(
+                "Please specify the launch date and time using the "
+                "Environment.set_date() method."
             )
 
     # Define setters
@@ -727,13 +690,14 @@ class Environment:  # pylint: disable=too-many-public-methods
 
         # Update atmospheric conditions if atmosphere type is Forecast,
         # Reanalysis or Ensemble
-        try:
-            if self.atmospheric_model_type in ["Forecast", "Reanalysis", "Ensemble"]:
-                self.set_atmospheric_model(
-                    self.atmospheric_model_file, self.atmospheric_model_dict
-                )
-        except AttributeError:
-            pass
+        if hasattr(self, "atmospheric_model_type") and self.atmospheric_model_type in [
+            "Forecast",
+            "Reanalysis",
+            "Ensemble",
+        ]:
+            self.set_atmospheric_model(
+                self.atmospheric_model_file, self.atmospheric_model_dict
+            )
 
     def set_location(self, latitude, longitude):
         """Set latitude and longitude of launch and update atmospheric
@@ -751,13 +715,24 @@ class Environment:  # pylint: disable=too-many-public-methods
         -------
         None
         """
+
+        if not isinstance(latitude, NUMERICAL_TYPES) and isinstance(
+            longitude, NUMERICAL_TYPES
+        ):
+            # pragma: no cover
+            raise TypeError("Latitude and Longitude must be numbers!")
+
         # Store latitude and longitude
         self.latitude = latitude
         self.longitude = longitude
 
         # Update atmospheric conditions if atmosphere type is Forecast,
         # Reanalysis or Ensemble
-        if self.atmospheric_model_type in ["Forecast", "Reanalysis", "Ensemble"]:
+        if hasattr(self, "atmospheric_model_type") and self.atmospheric_model_type in [
+            "Forecast",
+            "Reanalysis",
+            "Ensemble",
+        ]:
             self.set_atmospheric_model(
                 self.atmospheric_model_file, self.atmospheric_model_dict
             )
@@ -839,7 +814,7 @@ class Environment:  # pylint: disable=too-many-public-methods
     @max_expected_height.setter
     def max_expected_height(self, value):
         if value < self.elevation:
-            raise ValueError(
+            raise ValueError(  # pragma: no cover
                 "Max expected height cannot be lower than the surface elevation"
             )
         self._max_expected_height = value
@@ -910,16 +885,13 @@ class Environment:  # pylint: disable=too-many-public-methods
         if elevation not in ["Open-Elevation", "SRTM"]:
             # NOTE: this is assuming the elevation is a number (i.e. float, int, etc.)
             self.elevation = elevation
-        elif self.latitude is not None and self.longitude is not None:
+        else:
             self.elevation = fetch_open_elevation(self.latitude, self.longitude)
             print("Elevation received: ", self.elevation)
-        else:
-            raise ValueError(
-                "Latitude and longitude must be set to use"
-                " Open-Elevation API. See Environment.set_location."
-            )
 
-    def set_topographic_profile(self, type, file, dictionary="netCDF4", crs=None):
+    def set_topographic_profile(  # pylint: disable=redefined-builtin, unused-argument
+        self, type, file, dictionary="netCDF4", crs=None
+    ):
         """[UNDER CONSTRUCTION] Defines the Topographic profile, importing data
         from previous downloaded files. Mainly data from the Shuttle Radar
         Topography Mission (SRTM) and NASA Digital Elevation Model will be used
@@ -980,12 +952,12 @@ class Environment:  # pylint: disable=too-many-public-methods
         elevation : float | int
             Elevation provided by the topographic data, in meters.
         """
+        # TODO: refactor this method.  pylint: disable=too-many-statements
         if self.topographic_profile_activated is False:
-            print(
+            raise ValueError(  # pragma: no cover
                 "You must define a Topographic profile first, please use the "
                 "Environment.set_topographic_profile() method first."
             )
-            return None
 
         # Find latitude index
         # Check if reversed or sorted
@@ -1049,7 +1021,7 @@ class Environment:  # pylint: disable=too-many-public-methods
 
         return elevation
 
-    def set_atmospheric_model(  # pylint: disable=too-many-branches
+    def set_atmospheric_model(  # pylint: disable=too-many-statements
         self,
         type,  # pylint: disable=redefined-builtin
         file=None,
@@ -1199,8 +1171,8 @@ class Environment:  # pylint: disable=too-many-public-methods
                 - ``NAM``: `Regional CONUS Nest` - 5 km resolution - Updates
                   every 6 hours, forecast for 21 points spaced by 3 hours
 
-            If type is ``Ensemble``, this parameter can also be either ``GEFS``,
-            or ``CMC`` for the latest of these ensembles.
+            If type is ``Ensemble``, this parameter can also be ``GEFS``
+            for the latest of this ensemble.
 
             .. note::
 
@@ -1209,8 +1181,9 @@ class Environment:  # pylint: disable=too-many-public-methods
                 - GEFS: Global, bias-corrected, 0.5deg resolution, 21 forecast
                   members, Updates every 6 hours, forecast for 65 points spaced
                   by 4 hours
-                - CMC: Global, 0.5deg resolution, 21 forecast members, Updates
-                  every 12 hours, forecast for 65 points spaced by 4 hours
+                - CMC (currently not available): Global, 0.5deg resolution, 21 \
+                  forecast members, Updates every 12 hours, forecast for 65 \
+                  points spaced by 4 hours
 
             If type is ``Windy``, this parameter can be either ``GFS``,
             ``ECMWF``, ``ICON`` or ``ICONEU``. Default in this case is ``ECMWF``.
@@ -1309,7 +1282,7 @@ class Environment:  # pylint: disable=too-many-public-methods
         # Save atmospheric model type
         self.atmospheric_model_type = type
 
-        # Handle each case
+        # Handle each case # TODO: use match case when python 3.9 is no longer supported
         if type == "standard_atmosphere":
             self.process_standard_atmosphere()
         elif type == "wyoming_sounding":
@@ -1332,7 +1305,7 @@ class Environment:  # pylint: disable=too-many-public-methods
             else:
                 self.process_ensemble(dataset, dictionary)
         else:
-            raise ValueError("Unknown model type.")
+            raise ValueError(f"Unknown model type '{type}'.")  # pragma: no cover
 
         if type not in ["Ensemble"]:
             # Ensemble already computed these values
@@ -1492,7 +1465,9 @@ class Environment:  # pylint: disable=too-many-public-methods
 
         self.max_expected_height = max_expected_height
 
-    def process_windy_atmosphere(self, model="ECMWF"):
+    def process_windy_atmosphere(
+        self, model="ECMWF"
+    ):  # pylint: disable=too-many-statements
         """Process data from Windy.com to retrieve atmospheric forecast data.
 
         Parameters
@@ -1521,26 +1496,13 @@ class Environment:  # pylint: disable=too-many-public-methods
         )
 
         # Process geopotential height array
-        geopotential_height_array = np.array(
-            [response["data"][f"gh-{pL}h"][time_index] for pL in pressure_levels]
-        )
-        # Convert geopotential height to geometric altitude (ASL)
-        altitude_array = geopotential_height_to_geometric_height(
-            geopotential_height_array, self.earth_radius
-        )
-
-        # Process temperature array (in Kelvin)
-        temperature_array = np.array(
-            [response["data"][f"temp-{pL}h"][time_index] for pL in pressure_levels]
-        )
-
-        # Process wind-u and wind-v array (in m/s)
-        wind_u_array = np.array(
-            [response["data"][f"wind_u-{pL}h"][time_index] for pL in pressure_levels]
-        )
-        wind_v_array = np.array(
-            [response["data"][f"wind_v-{pL}h"][time_index] for pL in pressure_levels]
-        )
+        (
+            geopotential_height_array,
+            altitude_array,
+            temperature_array,
+            wind_u_array,
+            wind_v_array,
+        ) = self.__parse_windy_file(response, time_index, pressure_levels)
 
         # Determine wind speed, heading and direction
         wind_speed_array = calculate_wind_speed(wind_u_array, wind_v_array)
@@ -1576,13 +1538,13 @@ class Environment:  # pylint: disable=too-many-public-methods
         self.elevation = float(response["header"]["elevation"])
 
         # Compute info data
-        self.atmospheric_model_init_date = get_initial_data_from_time_array(
+        self.atmospheric_model_init_date = get_initial_date_from_time_array(
             time_array, time_units
         )
-        self.atmospheric_model_end_date = get_final_data_from_time_array(
+        self.atmospheric_model_end_date = get_final_date_from_time_array(
             time_array, time_units
         )
-        self.atmospheric_model_interval = get_interval_data_from_time_array(
+        self.atmospheric_model_interval = get_interval_date_from_time_array(
             time_array, time_units
         )
         self.atmospheric_model_init_lat = self.latitude
@@ -1599,7 +1561,37 @@ class Environment:  # pylint: disable=too-many-public-methods
         self.time_array = time_array
         self.height = altitude_array
 
-    def process_wyoming_sounding(self, file):
+    def __parse_windy_file(self, response, time_index, pressure_levels):
+        geopotential_height_array = np.array(
+            [response["data"][f"gh-{pL}h"][time_index] for pL in pressure_levels]
+        )
+        # Convert geopotential height to geometric altitude (ASL)
+        altitude_array = geopotential_height_to_geometric_height(
+            geopotential_height_array, self.earth_radius
+        )
+
+        # Process temperature array (in Kelvin)
+        temperature_array = np.array(
+            [response["data"][f"temp-{pL}h"][time_index] for pL in pressure_levels]
+        )
+
+        # Process wind-u and wind-v array (in m/s)
+        wind_u_array = np.array(
+            [response["data"][f"wind_u-{pL}h"][time_index] for pL in pressure_levels]
+        )
+        wind_v_array = np.array(
+            [response["data"][f"wind_v-{pL}h"][time_index] for pL in pressure_levels]
+        )
+
+        return (
+            geopotential_height_array,
+            altitude_array,
+            temperature_array,
+            wind_u_array,
+            wind_v_array,
+        )
+
+    def process_wyoming_sounding(self, file):  # pylint: disable=too-many-statements
         """Import and process the upper air sounding data from `Wyoming
         Upper Air Soundings` database given by the url in file. Sets
         pressure, temperature, wind-u, wind-v profiles and surface elevation.
@@ -1678,7 +1670,7 @@ class Environment:  # pylint: disable=too-many-public-methods
         # Save maximum expected height
         self.max_expected_height = data_array[-1, 1]
 
-    def process_noaaruc_sounding(self, file):
+    def process_noaaruc_sounding(self, file):  # pylint: disable=too-many-statements
         """Import and process the upper air sounding data from `NOAA
         Ruc Soundings` database (https://rucsoundings.noaa.gov/) given as
         ASCII GSD format pages passed by its url to the file parameter. Sets
@@ -1732,7 +1724,7 @@ class Environment:  # pylint: disable=too-many-public-methods
             if len(columns) < 6:
                 # skip lines with less than 6 columns
                 continue
-            elif columns[0] in ["4", "5", "6", "7", "8", "9"]:
+            if columns[0] in ["4", "5", "6", "7", "8", "9"]:
                 # Convert columns to floats
                 columns = np.array(columns, dtype=float)
                 # Select relevant columns
@@ -1796,7 +1788,9 @@ class Environment:  # pylint: disable=too-many-public-methods
         # Save maximum expected height
         self.max_expected_height = pressure_array[-1, 0]
 
-    def process_forecast_reanalysis(self, file, dictionary):
+    def process_forecast_reanalysis(
+        self, file, dictionary
+    ):  # pylint: disable=too-many-locals,too-many-statements
         """Import and process atmospheric data from weather forecasts
         and reanalysis given as ``netCDF`` or ``OPeNDAP`` files.
         Sets pressure, temperature, wind-u and wind-v
@@ -1855,7 +1849,6 @@ class Environment:  # pylint: disable=too-many-public-methods
         """
         # Check if date, lat and lon are known
         self.__validate_datetime()
-        self.__validate_coordinates()
 
         # Read weather file
         if isinstance(file, str):
@@ -1892,23 +1885,23 @@ class Environment:  # pylint: disable=too-many-public-methods
                     ]
                     / self.standard_g
                 )
-            except KeyError:
+            except KeyError as e:
                 raise ValueError(
                     "Unable to read geopotential height"
                     " nor geopotential from file. At least"
                     " one of them is necessary. Check "
                     " file and dictionary."
-                )
+                ) from e
 
         # Get temperature from file
         try:
             temperatures = data.variables[dictionary["temperature"]][
                 time_index, :, (lat_index - 1, lat_index), (lon_index - 1, lon_index)
             ]
-        except:
+        except Exception as e:
             raise ValueError(
                 "Unable to read temperature from file. Check file and dictionary."
-            )
+            ) from e
 
         # Get wind data from file
         try:
@@ -1978,9 +1971,9 @@ class Environment:  # pylint: disable=too-many-public-methods
             )
 
         # Compute info data
-        self.atmospheric_model_init_date = get_initial_data_from_time_array(time_array)
-        self.atmospheric_model_end_date = get_final_data_from_time_array(time_array)
-        self.atmospheric_model_interval = get_interval_data_from_time_array(time_array)
+        self.atmospheric_model_init_date = get_initial_date_from_time_array(time_array)
+        self.atmospheric_model_end_date = get_final_date_from_time_array(time_array)
+        self.atmospheric_model_interval = get_interval_date_from_time_array(time_array)
         self.atmospheric_model_init_lat = lat_list[0]
         self.atmospheric_model_end_lat = lat_list[-1]
         self.atmospheric_model_init_lon = lon_list[0]
@@ -2002,7 +1995,9 @@ class Environment:  # pylint: disable=too-many-public-methods
         # Close weather data
         data.close()
 
-    def process_ensemble(self, file, dictionary):
+    def process_ensemble(
+        self, file, dictionary
+    ):  # pylint: disable=too-many-locals,too-many-statements
         """Import and process atmospheric data from weather ensembles
         given as ``netCDF`` or ``OPeNDAP`` files. Sets pressure, temperature,
         wind-u and wind-v profiles and surface elevation obtained from a weather
@@ -2060,7 +2055,6 @@ class Environment:  # pylint: disable=too-many-public-methods
         """
         # Check if date, lat and lon are known
         self.__validate_datetime()
-        self.__validate_coordinates()
 
         # Read weather file
         if isinstance(file, str):
@@ -2105,9 +2099,7 @@ class Environment:  # pylint: disable=too-many-public-methods
             dimensions = data.variables[dictionary["geopotential"]].dimensions[:]
 
         # Get params
-        params = tuple(
-            [param_dictionary[inverse_dictionary[dim]] for dim in dimensions]
-        )
+        params = tuple(param_dictionary[inverse_dictionary[dim]] for dim in dimensions)
 
         # Get geopotential data from file
         try:
@@ -2134,7 +2126,7 @@ class Environment:  # pylint: disable=too-many-public-methods
         # Get wind data from file
         try:
             wind_us = data.variables[dictionary["u_wind"]][params]
-        except KeyError:
+        except KeyError as e:
             raise ValueError(
                 "Unable to read wind-u component. Check file and dictionary."
             ) from e
@@ -2189,9 +2181,9 @@ class Environment:  # pylint: disable=too-many-public-methods
             )
 
         # Compute info data
-        self.atmospheric_model_init_date = get_initial_data_from_time_array(time_array)
-        self.atmospheric_model_end_date = get_final_data_from_time_array(time_array)
-        self.atmospheric_model_interval = get_interval_data_from_time_array(time_array)
+        self.atmospheric_model_init_date = get_initial_date_from_time_array(time_array)
+        self.atmospheric_model_end_date = get_final_date_from_time_array(time_array)
+        self.atmospheric_model_interval = get_interval_date_from_time_array(time_array)
         self.atmospheric_model_init_lat = lat_list[0]
         self.atmospheric_model_end_lat = lat_list[-1]
         self.atmospheric_model_init_lon = lon_list[0]
@@ -2281,7 +2273,7 @@ class Environment:  # pylint: disable=too-many-public-methods
         self.calculate_speed_of_sound_profile()
         self.calculate_dynamic_viscosity()
 
-    def load_international_standard_atmosphere(self):
+    def load_international_standard_atmosphere(self):  # pragma: no cover
         """Defines the pressure and temperature profile functions set
         by `ISO 2533` for the International Standard atmosphere and saves
         them as ``Environment.pressure_ISA`` and ``Environment.temperature_ISA``.
@@ -2298,7 +2290,7 @@ class Environment:  # pylint: disable=too-many-public-methods
         """
         warnings.warn(
             "load_international_standard_atmosphere() is deprecated in version "
-            "1.2.0 and will be removed in version 1.4.0. This method is no longer "
+            "1.5.0 and will be removed in version 1.7.0. This method is no longer "
             "needed as the International Standard Atmosphere is already calculated "
             "when the Environment object is created.",
             DeprecationWarning,
@@ -2336,17 +2328,21 @@ class Environment:  # pylint: disable=too-many-public-methods
             layer = bisect.bisect(geopotential_height, H) - 1
 
             # Retrieve layer base geopotential height, temp, beta and pressure
-            Hb = geopotential_height[layer]
-            Tb = temperature[layer]
-            Pb = pressure[layer]
+            base_geopotential_height = geopotential_height[layer]
+            base_temperature = temperature[layer]
+            base_pressure = pressure[layer]
             B = beta[layer]
 
             # Compute pressure
             if B != 0:
-                P = Pb * (1 + (B / Tb) * (H - Hb)) ** (-g / (B * R))
+                P = base_pressure * (
+                    1 + (B / base_temperature) * (H - base_geopotential_height)
+                ) ** (-g / (B * R))
             else:
-                T = Tb + B * (H - Hb)
-                P = Pb * np.exp(-(H - Hb) * (g / (R * T)))
+                T = base_temperature + B * (H - base_geopotential_height)
+                P = base_pressure * np.exp(
+                    -(H - base_geopotential_height) * (g / (R * T))
+                )
             return P
 
         # Discretize this Function to speed up the trajectory simulation
@@ -2531,137 +2527,6 @@ class Environment:  # pylint: disable=too-many-public-methods
         self.prints.all()
         self.plots.all()
 
-    def all_plot_info_returned(self):
-        """Returns a dictionary with all plot information available about the Environment.
-
-        Returns
-        ------
-        plot_info : Dict
-            Dict of data relevant to plot externally
-
-        Warning
-        -------
-        Deprecated in favor of `utilities.get_instance_attributes`.
-
-        """
-        # pylint: disable=R1735, unnecessary-comprehension
-        warnings.warn(
-            "The method 'all_plot_info_returned' is deprecated as of version "
-            + "1.2 and will be removed in version 1.4 "
-            + "Use 'utilities.get_instance_attributes' instead.",
-            DeprecationWarning,
-        )
-
-        grid = np.linspace(self.elevation, self.max_expected_height)
-        plot_info = dict(
-            grid=[i for i in grid],
-            wind_speed=[self.wind_speed(i) for i in grid],
-            wind_direction=[self.wind_direction(i) for i in grid],
-            speed_of_sound=[self.speed_of_sound(i) for i in grid],
-            density=[self.density(i) for i in grid],
-            wind_vel_x=[self.wind_velocity_x(i) for i in grid],
-            wind_vel_y=[self.wind_velocity_y(i) for i in grid],
-            pressure=[self.pressure(i) / 100 for i in grid],
-            temperature=[self.temperature(i) for i in grid],
-        )
-        if self.atmospheric_model_type != "Ensemble":
-            return plot_info
-        current_member = self.ensemble_member
-        # List for each ensemble
-        plot_info["ensemble_wind_velocity_x"] = []
-        for i in range(self.num_ensemble_members):
-            self.select_ensemble_member(i)
-            plot_info["ensemble_wind_velocity_x"].append(
-                [self.wind_velocity_x(i) for i in grid]
-            )
-        plot_info["ensemble_wind_velocity_y"] = []
-        for i in range(self.num_ensemble_members):
-            self.select_ensemble_member(i)
-            plot_info["ensemble_wind_velocity_y"].append(
-                [self.wind_velocity_y(i) for i in grid]
-            )
-        plot_info["ensemble_wind_speed"] = []
-        for i in range(self.num_ensemble_members):
-            self.select_ensemble_member(i)
-            plot_info["ensemble_wind_speed"].append([self.wind_speed(i) for i in grid])
-        plot_info["ensemble_wind_direction"] = []
-        for i in range(self.num_ensemble_members):
-            self.select_ensemble_member(i)
-            plot_info["ensemble_wind_direction"].append(
-                [self.wind_direction(i) for i in grid]
-            )
-        plot_info["ensemble_pressure"] = []
-        for i in range(self.num_ensemble_members):
-            self.select_ensemble_member(i)
-            plot_info["ensemble_pressure"].append([self.pressure(i) for i in grid])
-        plot_info["ensemble_temperature"] = []
-        for i in range(self.num_ensemble_members):
-            self.select_ensemble_member(i)
-            plot_info["ensemble_temperature"].append(
-                [self.temperature(i) for i in grid]
-            )
-
-        # Clean up
-        self.select_ensemble_member(current_member)
-        return plot_info
-
-    def all_info_returned(self):
-        """Returns as dicts all data available about the Environment.
-
-        Returns
-        ------
-        info : Dict
-            Information relevant about the Environment class.
-
-        Warning
-        -------
-        Deprecated in favor of `utilities.get_instance_attributes`.
-
-        """
-        # pylint: disable= unnecessary-comprehension, use-dict-literal
-        warnings.warn(
-            "The method 'all_info_returned' is deprecated as of version "
-            + "1.2 and will be removed in version 1.4 "
-            + "Use 'utilities.get_instance_attributes' instead.",
-            DeprecationWarning,
-        )
-
-        # Dictionary creation, if not commented follows the SI
-        info = dict(
-            grav=self.gravity,
-            elevation=self.elevation,
-            model_type=self.atmospheric_model_type,
-            model_type_max_expected_height=self.max_expected_height,
-            wind_speed=self.wind_speed(self.elevation),
-            wind_direction=self.wind_direction(self.elevation),
-            wind_heading=self.wind_heading(self.elevation),
-            surface_pressure=self.pressure(self.elevation) / 100,  # in hPa
-            surface_temperature=self.temperature(self.elevation),
-            surface_air_density=self.density(self.elevation),
-            surface_speed_of_sound=self.speed_of_sound(self.elevation),
-        )
-        if self.datetime_date is not None:
-            info["launch_date"] = self.datetime_date.strftime("%Y-%d-%m %H:%M:%S")
-        if self.latitude is not None and self.longitude is not None:
-            info["lat"] = self.latitude
-            info["lon"] = self.longitude
-        if info["model_type"] in ["Forecast", "Reanalysis", "Ensemble"]:
-            info["init_date"] = self.atmospheric_model_init_date.strftime(
-                "%Y-%d-%m %H:%M:%S"
-            )
-            info["endDate"] = self.atmospheric_model_end_date.strftime(
-                "%Y-%d-%m %H:%M:%S"
-            )
-            info["interval"] = self.atmospheric_model_interval
-            info["init_lat"] = self.atmospheric_model_init_lat
-            info["end_lat"] = self.atmospheric_model_end_lat
-            info["init_lon"] = self.atmospheric_model_init_lon
-            info["end_lon"] = self.atmospheric_model_end_lon
-        if info["model_type"] == "Ensemble":
-            info["num_ensemble_members"] = self.num_ensemble_members
-            info["selected_ensemble_member"] = self.ensemble_member
-        return info
-
     # TODO: Create a better .json format and allow loading a class from it.
     def export_environment(self, filename="environment"):
         """Export important attributes of Environment class to a ``.json`` file,
@@ -2742,7 +2607,7 @@ class Environment:  # pylint: disable=too-many-public-methods
                 f"the following recognized datum: {available_datums}"
             ) from e
 
-    # Auxiliary functions - Geodesic Coordinates # TODO: move it to env.tools.py
+    # Auxiliary functions - Geodesic Coordinates
 
     @staticmethod
     def geodesic_to_utm(
@@ -2786,85 +2651,7 @@ class Environment:  # pylint: disable=too-many-public-methods
         EW : string
             Returns "W" for western hemisphere and "E" for eastern hemisphere
         """
-
-        # Calculate the central meridian of UTM zone
-        if lon != 0:
-            signal = lon / abs(lon)
-            if signal > 0:
-                aux = lon - 3
-                aux = aux * signal
-                div = aux // 6
-                lon_mc = div * 6 + 3
-                EW = "E"
-            else:
-                aux = lon + 3
-                aux = aux * signal
-                div = aux // 6
-                lon_mc = (div * 6 + 3) * signal
-                EW = "W"
-        else:
-            lon_mc = 3
-            EW = "W|E"
-
-        # Evaluate the hemisphere and determine the N coordinate at the Equator
-        if lat < 0:
-            N0 = 10000000
-            hemis = "S"
-        else:
-            N0 = 0
-            hemis = "N"
-
-        # Convert the input lat and lon to radians
-        lat = lat * np.pi / 180
-        lon = lon * np.pi / 180
-        lon_mc = lon_mc * np.pi / 180
-
-        # Evaluate reference parameters
-        K0 = 1 - 1 / 2500
-        e2 = 2 * flattening - flattening**2
-        e2lin = e2 / (1 - e2)
-
-        # Evaluate auxiliary parameters
-        A = e2 * e2
-        B = A * e2
-        C = np.sin(2 * lat)
-        D = np.sin(4 * lat)
-        E = np.sin(6 * lat)
-        F = (1 - e2 / 4 - 3 * A / 64 - 5 * B / 256) * lat
-        G = (3 * e2 / 8 + 3 * A / 32 + 45 * B / 1024) * C
-        H = (15 * A / 256 + 45 * B / 1024) * D
-        aux_i = (35 * B / 3072) * E
-
-        # Evaluate other reference parameters
-        n = semi_major_axis / ((1 - e2 * (np.sin(lat) ** 2)) ** 0.5)
-        t = np.tan(lat) ** 2
-        c = e2lin * (np.cos(lat) ** 2)
-        ag = (lon - lon_mc) * np.cos(lat)
-        m = semi_major_axis * (F - G + H - aux_i)
-
-        # Evaluate new auxiliary parameters
-        J = (1 - t + c) * ag * ag * ag / 6
-        K = (5 - 18 * t + t * t + 72 * c - 58 * e2lin) * (ag**5) / 120
-        L = (5 - t + 9 * c + 4 * c * c) * ag * ag * ag * ag / 24
-        M = (61 - 58 * t + t * t + 600 * c - 330 * e2lin) * (ag**6) / 720
-
-        # Evaluate the final coordinates
-        x = 500000 + K0 * n * (ag + J + K)
-        y = N0 + K0 * (m + n * np.tan(lat) * (ag * ag / 2 + L + M))
-
-        # Convert the output lat and lon to degrees
-        lat = lat * 180 / np.pi
-        lon = lon * 180 / np.pi
-        lon_mc = lon_mc * 180 / np.pi
-
-        # Calculate the UTM zone number
-        utm_zone = int((lon_mc + 183) / 6)
-
-        # Calculate the UTM zone letter
-        letters = "CDEFGHJKLMNPQRSTUVWXX"
-        utm_letter = letters[int(80 + lat) >> 3]
-
-        return x, y, utm_zone, utm_letter, hemis, EW
+        return geodesic_to_utm_tools(lat, lon, semi_major_axis, flattening)
 
     @staticmethod
     def utm_to_geodesic(
@@ -2902,65 +2689,7 @@ class Environment:  # pylint: disable=too-many-public-methods
         lon : float
             latitude of the analyzed point
         """
-
-        if hemis == "N":
-            y = y + 10000000
-
-        # Calculate the Central Meridian from the UTM zone number
-        central_meridian = utm_zone * 6 - 183  # degrees
-
-        # Calculate reference values
-        K0 = 1 - 1 / 2500
-        e2 = 2 * flattening - flattening**2
-        e2lin = e2 / (1 - e2)
-        e1 = (1 - (1 - e2) ** 0.5) / (1 + (1 - e2) ** 0.5)
-
-        # Calculate auxiliary values
-        A = e2 * e2
-        B = A * e2
-        C = e1 * e1
-        D = e1 * C
-        E = e1 * D
-
-        m = (y - 10000000) / K0
-        mi = m / (semi_major_axis * (1 - e2 / 4 - 3 * A / 64 - 5 * B / 256))
-
-        # Calculate other auxiliary values
-        F = (3 * e1 / 2 - 27 * D / 32) * np.sin(2 * mi)
-        G = (21 * C / 16 - 55 * E / 32) * np.sin(4 * mi)
-        H = (151 * D / 96) * np.sin(6 * mi)
-
-        lat1 = mi + F + G + H
-        c1 = e2lin * (np.cos(lat1) ** 2)
-        t1 = np.tan(lat1) ** 2
-        n1 = semi_major_axis / ((1 - e2 * (np.sin(lat1) ** 2)) ** 0.5)
-        quoc = (1 - e2 * np.sin(lat1) * np.sin(lat1)) ** 3
-        r1 = semi_major_axis * (1 - e2) / (quoc**0.5)
-        d = (x - 500000) / (n1 * K0)
-
-        # Calculate other auxiliary values
-        aux_i = (5 + 3 * t1 + 10 * c1 - 4 * c1 * c1 - 9 * e2lin) * d * d * d * d / 24
-        J = (
-            (61 + 90 * t1 + 298 * c1 + 45 * t1 * t1 - 252 * e2lin - 3 * c1 * c1)
-            * (d**6)
-            / 720
-        )
-        K = d - (1 + 2 * t1 + c1) * d * d * d / 6
-        L = (
-            (5 - 2 * c1 + 28 * t1 - 3 * c1 * c1 + 8 * e2lin + 24 * t1 * t1)
-            * (d**5)
-            / 120
-        )
-
-        # Finally calculate the coordinates in lat/lot
-        lat = lat1 - (n1 * np.tan(lat1) / r1) * (d * d / 2 - aux_i + J)
-        lon = central_meridian * np.pi / 180 + (K + L) / np.cos(lat1)
-
-        # Convert final lat/lon to Degrees
-        lat = lat * 180 / np.pi
-        lon = lon * 180 / np.pi
-
-        return lat, lon
+        return utm_to_geodesic_tools(x, y, utm_zone, hemis, semi_major_axis, flattening)
 
     @staticmethod
     def calculate_earth_radius(
