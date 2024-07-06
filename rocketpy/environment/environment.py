@@ -2833,14 +2833,14 @@ class Environment:  # pylint: disable=too-many-public-methods
         F = (1 - e2 / 4 - 3 * A / 64 - 5 * B / 256) * lat
         G = (3 * e2 / 8 + 3 * A / 32 + 45 * B / 1024) * C
         H = (15 * A / 256 + 45 * B / 1024) * D
-        I = (35 * B / 3072) * E
+        aux_i = (35 * B / 3072) * E
 
         # Evaluate other reference parameters
         n = semi_major_axis / ((1 - e2 * (np.sin(lat) ** 2)) ** 0.5)
         t = np.tan(lat) ** 2
         c = e2lin * (np.cos(lat) ** 2)
         ag = (lon - lon_mc) * np.cos(lat)
-        m = semi_major_axis * (F - G + H - I)
+        m = semi_major_axis * (F - G + H - aux_i)
 
         # Evaluate new auxiliary parameters
         J = (1 - t + c) * ag * ag * ag / 6
@@ -2939,7 +2939,7 @@ class Environment:  # pylint: disable=too-many-public-methods
         d = (x - 500000) / (n1 * K0)
 
         # Calculate other auxiliary values
-        I = (5 + 3 * t1 + 10 * c1 - 4 * c1 * c1 - 9 * e2lin) * d * d * d * d / 24
+        aux_i = (5 + 3 * t1 + 10 * c1 - 4 * c1 * c1 - 9 * e2lin) * d * d * d * d / 24
         J = (
             (61 + 90 * t1 + 298 * c1 + 45 * t1 * t1 - 252 * e2lin - 3 * c1 * c1)
             * (d**6)
@@ -2953,7 +2953,7 @@ class Environment:  # pylint: disable=too-many-public-methods
         )
 
         # Finally calculate the coordinates in lat/lot
-        lat = lat1 - (n1 * np.tan(lat1) / r1) * (d * d / 2 - I + J)
+        lat = lat1 - (n1 * np.tan(lat1) / r1) * (d * d / 2 - aux_i + J)
         lon = central_meridian * np.pi / 180 + (K + L) / np.cos(lat1)
 
         # Convert final lat/lon to Degrees

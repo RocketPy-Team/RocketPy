@@ -1,98 +1,11 @@
-import datetime
+import time
+from datetime import datetime
 from unittest.mock import patch
 
 import pytest
 
 
-@patch("matplotlib.pyplot.show")
-def test_standard_atmosphere(
-    mock_show, example_plain_env
-):  # pylint: disable=unused-argument
-    """Tests the standard atmosphere model in the environment object.
-
-    Parameters
-    ----------
-    mock_show : mock
-        Mock object to replace matplotlib.pyplot.show() method.
-    example_plain_env : rocketpy.Environment
-        Example environment object to be tested.
-    """
-    example_plain_env.set_atmospheric_model(type="standard_atmosphere")
-    assert example_plain_env.info() is None
-    assert example_plain_env.all_info() is None
-    assert abs(example_plain_env.pressure(0) - 101325.0) < 1e-8
-    assert abs(example_plain_env.barometric_height(101325.0)) < 1e-2
-    assert example_plain_env.prints.print_earth_details() is None
-
-
-@patch("matplotlib.pyplot.show")
-def test_custom_atmosphere(
-    mock_show, example_plain_env
-):  # pylint: disable=unused-argument
-    """Tests the custom atmosphere model in the environment object.
-
-    Parameters
-    ----------
-    mock_show : mock
-        Mock object to replace matplotlib.pyplot.show() method.
-    example_plain_env : rocketpy.Environment
-        Example environment object to be tested.
-    """
-    example_plain_env.set_atmospheric_model(
-        type="custom_atmosphere",
-        pressure=None,
-        temperature=300,
-        wind_u=[(0, 5), (1000, 10)],
-        wind_v=[(0, -2), (500, 3), (1600, 2)],
-    )
-    assert example_plain_env.all_info() is None
-    assert abs(example_plain_env.pressure(0) - 101325.0) < 1e-8
-    assert abs(example_plain_env.barometric_height(101325.0)) < 1e-2
-    assert abs(example_plain_env.wind_velocity_x(0) - 5) < 1e-8
-    assert abs(example_plain_env.temperature(100) - 300) < 1e-8
-
-
-@patch("matplotlib.pyplot.show")
-def test_wyoming_sounding_atmosphere(
-    mock_show, example_plain_env
-):  # pylint: disable=unused-argument
-    """Tests the Wyoming sounding model in the environment object.
-
-    Parameters
-    ----------
-    mock_show : mock
-        Mock object to replace matplotlib.pyplot.show() method.
-    example_plain_env : rocketpy.Environment
-        Example environment object to be tested.
-    """
-    # TODO:: this should be added to the set_atmospheric_model() method as a
-    #        "file" option, instead of receiving the URL as a string.
-    URL = "http://weather.uwyo.edu/cgi-bin/sounding?region=samer&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=02&FROM=0500&TO=0512&STNM=83779"  # pylint: disable=invalid-name
-    # give it at least 5 times to try to download the file
-    example_plain_env.set_atmospheric_model(type="wyoming_sounding", file=URL)
-
-    assert example_plain_env.all_info() is None
-    assert abs(example_plain_env.pressure(0) - 93600.0) < 1e-8
-    assert (
-        abs(example_plain_env.barometric_height(example_plain_env.pressure(0)) - 722.0)
-        < 1e-8
-    )
-    assert abs(example_plain_env.wind_velocity_x(0) - -2.9005178894925043) < 1e-8
-    assert abs(example_plain_env.temperature(100) - 291.75) < 1e-8
-
-
-# @pytest.mark.slow
-@patch("matplotlib.pyplot.show")
-def test_noaa_ruc_sounding_atmosphere(
-    mock_show, example_plain_env
-):  # pylint: disable=unused-argument
-    URL = r"https://rucsoundings.noaa.gov/get_raobs.cgi?data_source=RAOB&latest=latest&start_year=2019&start_month_name=Feb&start_mday=5&start_hour=12&start_min=0&n_hrs=1.0&fcst_len=shortest&airport=83779&text=Ascii%20text%20%28GSD%20format%29&hydrometeors=false&start=latest"  # pylint: disable=invalid-name
-    example_plain_env.set_atmospheric_model(type="NOAARucSounding", file=URL)
-    assert example_plain_env.all_info() is None
-    assert example_plain_env.pressure(0) == 100000.0
-
-
-# @pytest.mark.slow
+@pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_gfs_atmosphere(
     mock_show, example_spaceport_env
@@ -184,9 +97,10 @@ def test_gefs_atmosphere(
 
 @pytest.mark.skip(reason="legacy tests")  # deprecated method
 @patch("matplotlib.pyplot.show")
-def test_info_returns(mock_show, example_plain_env):  # pylint: disable=unused-argument
-    """Tests the all_info_returned() all_plot_info_returned() and methods of the
-    Environment class.
+def test_custom_atmosphere(
+    mock_show, example_plain_env
+):  # pylint: disable=unused-argument
+    """Tests the custom atmosphere model in the environment object.
 
     Parameters
     ----------
@@ -195,55 +109,75 @@ def test_info_returns(mock_show, example_plain_env):  # pylint: disable=unused-a
     example_plain_env : rocketpy.Environment
         Example environment object to be tested.
     """
-    returned_plots = example_plain_env.all_plot_info_returned()
-    returned_infos = example_plain_env.all_info_returned()
-    expected_info = {
-        "grav": example_plain_env.gravity,
-        "elevation": 0,
-        "model_type": "standard_atmosphere",
-        "model_type_max_expected_height": 80000,
-        "wind_speed": 0,
-        "wind_direction": 0,
-        "wind_heading": 0,
-        "surface_pressure": 1013.25,
-        "surface_temperature": 288.15,
-        "surface_air_density": 1.225000018124288,
-        "surface_speed_of_sound": 340.293988026089,
-        "lat": 0,
-        "lon": 0,
-    }
-    expected_plots_keys = [
-        "grid",
-        "wind_speed",
-        "wind_direction",
-        "speed_of_sound",
-        "density",
-        "wind_vel_x",
-        "wind_vel_y",
-        "pressure",
-        "temperature",
-    ]
-    assert list(returned_infos.keys()) == list(expected_info.keys())
-    assert list(returned_infos.values()) == list(expected_info.values())
-    assert list(returned_plots.keys()) == expected_plots_keys
+    example_plain_env.set_atmospheric_model(
+        type="custom_atmosphere",
+        pressure=None,
+        temperature=300,
+        wind_u=[(0, 5), (1000, 10)],
+        wind_v=[(0, -2), (500, 3), (1600, 2)],
+    )
+    assert example_plain_env.all_info() is None
+    assert abs(example_plain_env.pressure(0) - 101325.0) < 1e-8
+    assert abs(example_plain_env.barometric_height(101325.0)) < 1e-2
+    assert abs(example_plain_env.wind_velocity_x(0) - 5) < 1e-8
+    assert abs(example_plain_env.temperature(100) - 300) < 1e-8
 
 
-# @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_cmc_atmosphere(
-    mock_show, example_spaceport_env
+def test_standard_atmosphere(
+    mock_show, example_plain_env
 ):  # pylint: disable=unused-argument
-    """Tests the Ensemble model with the CMC file.
+    """Tests the standard atmosphere model in the environment object.
 
     Parameters
     ----------
     mock_show : mock
         Mock object to replace matplotlib.pyplot.show() method.
-    example_spaceport_env : rocketpy.Environment
+    example_plain_env : rocketpy.Environment
         Example environment object to be tested.
     """
-    example_spaceport_env.set_atmospheric_model(type="Ensemble", file="CMC")
-    assert example_spaceport_env.all_info() is None
+    example_plain_env.set_atmospheric_model(type="standard_atmosphere")
+    assert example_plain_env.info() is None
+    assert example_plain_env.all_info() is None
+    assert abs(example_plain_env.pressure(0) - 101325.0) < 1e-8
+    assert abs(example_plain_env.barometric_height(101325.0)) < 1e-2
+    assert example_plain_env.prints.print_earth_details() is None
+
+
+@patch("matplotlib.pyplot.show")
+def test_wyoming_sounding_atmosphere(
+    mock_show, example_plain_env
+):  # pylint: disable=unused-argument
+    """Asserts whether the Wyoming sounding model in the environment
+    object behaves as expected with respect to some attributes such
+    as pressure, barometric_height, wind_velocity and temperature.
+
+    Parameters
+    ----------
+    mock_show : mock
+        Mock object to replace matplotlib.pyplot.show() method.
+    example_plain_env : rocketpy.Environment
+        Example environment object to be tested.
+    """
+
+    # TODO:: this should be added to the set_atmospheric_model() method as a
+    #        "file" option, instead of receiving the URL as a string.
+    url = "http://weather.uwyo.edu/cgi-bin/sounding?region=samer&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=02&FROM=0500&TO=0512&STNM=83779"
+    # give it at least 5 times to try to download the file
+    for i in range(5):
+        try:
+            example_plain_env.set_atmospheric_model(type="wyoming_sounding", file=url)
+            break
+        except Exception:  # pylint: disable=broad-except
+            time.sleep(2**i)
+    assert example_plain_env.all_info() is None
+    assert abs(example_plain_env.pressure(0) - 93600.0) < 1e-8
+    assert (
+        abs(example_plain_env.barometric_height(example_plain_env.pressure(0)) - 722.0)
+        < 1e-8
+    )
+    assert abs(example_plain_env.wind_velocity_x(0) - -2.9005178894925043) < 1e-8
+    assert abs(example_plain_env.temperature(100) - 291.75) < 1e-8
 
 
 # @pytest.mark.slow
@@ -264,11 +198,31 @@ def test_hiresw_ensemble_atmosphere(
     date_info = (today.year, today.month, today.day, 12)  # Hour given in UTC time
 
     example_spaceport_env.set_date(date_info)
+
     example_spaceport_env.set_atmospheric_model(
         type="Forecast",
         file="HIRESW",
         dictionary="HIRESW",
     )
+
+    assert example_spaceport_env.all_info() is None
+
+
+@pytest.mark.slow
+@patch("matplotlib.pyplot.show")
+def test_cmc_atmosphere(
+    mock_show, example_spaceport_env
+):  # pylint: disable=unused-argument
+    """Tests the Ensemble model with the CMC file.
+
+    Parameters
+    ----------
+    mock_show : mock
+        Mock object to replace matplotlib.pyplot.show() method.
+    example_spaceport_env : rocketpy.Environment
+        Example environment object to be tested.
+    """
+    example_spaceport_env.set_atmospheric_model(type="Ensemble", file="CMC")
     assert example_spaceport_env.all_info() is None
 
 

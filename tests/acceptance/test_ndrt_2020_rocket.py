@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy.signal import savgol_filter
 
-from rocketpy import Environment, Flight, Function, Rocket, SolidMotor
+from rocketpy import Environment, Flight, Rocket, SolidMotor
 
 
 def test_ndrt_2020_rocket_data_asserts_acceptance():
@@ -17,11 +17,6 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
     # Drift: 2275 ft
 
     # Importing libraries
-    import numpy as np
-    import pandas as pd
-    from scipy.signal import savgol_filter
-
-    from rocketpy import Environment, Flight, Function, Rocket, SolidMotor
 
     # Defining all parameters
     parameters = {
@@ -69,19 +64,19 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
     }
 
     # Environment conditions
-    Env23 = Environment(
+    env = Environment(
         gravity=9.81,
         latitude=41.775447,
         longitude=-86.572467,
         date=(2020, 2, 23, 16),
         elevation=206,
     )
-    Env23.set_atmospheric_model(
+    env.set_atmospheric_model(
         type="Reanalysis",
         file="tests/fixtures/acceptance/NDRT_2020/ndrt_2020_weather_data_ERA5.nc",
         dictionary="ECMWF",
     )
-    Env23.max_expected_height = 2000
+    env.max_expected_height = 2000
 
     # motor information
     L1395 = SolidMotor(
@@ -118,20 +113,20 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
     )
     NDRT2020.set_rail_buttons(0.2, -0.5, 45)
     NDRT2020.add_motor(L1395, parameters.get("distance_rocket_nozzle")[0])
-    nose_cone = NDRT2020.add_nose(
+    NDRT2020.add_nose(
         length=parameters.get("nose_length")[0],
         kind="tangent",
         position=parameters.get("nose_distance_to_cm")[0]
         + parameters.get("nose_length")[0],
     )
-    fin_set = NDRT2020.add_trapezoidal_fins(
+    NDRT2020.add_trapezoidal_fins(
         3,
         span=parameters.get("fin_span")[0],
         root_chord=parameters.get("fin_root_chord")[0],
         tip_chord=parameters.get("fin_tip_chord")[0],
         position=parameters.get("fin_distance_to_cm")[0],
     )
-    transition = NDRT2020.add_tail(
+    NDRT2020.add_tail(
         top_radius=parameters.get("transition_top_radius")[0],
         bottom_radius=parameters.get("transition_bottom_radius")[0],
         length=parameters.get("transition_length")[0],
@@ -139,19 +134,19 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
     )
 
     # Parachute set-up
-    def drogue_trigger(p, h, y):
+    def drogue_trigger(p, h, y):  # pylint: disable=unused-argument
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate drogue when vz < 0 m/s.
         return True if y[5] < 0 else False
 
-    def main_trigger(p, h, y):
+    def main_trigger(p, h, y):  # pylint: disable=unused-argument
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate main when vz < 0 m/s and z < 167.64 m (AGL) or 550 ft (AGL)
         return True if y[5] < 0 and h < 167.64 else False
 
-    Drogue = NDRT2020.add_parachute(
+    NDRT2020.add_parachute(
         "Drogue",
         cd_s=parameters.get("cd_s_drogue")[0],
         trigger=drogue_trigger,
@@ -159,7 +154,7 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
         lag=parameters.get("lag_rec")[0],
         noise=(0, 8.3, 0.5),
     )
-    Main = NDRT2020.add_parachute(
+    NDRT2020.add_parachute(
         "Main",
         cd_s=parameters.get("cd_s_main")[0],
         trigger=main_trigger,
@@ -169,17 +164,19 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
     )
 
     # Flight
-    Flight23 = Flight(
+    rocketpy_flight = Flight(
         rocket=NDRT2020,
-        environment=Env23,
+        environment=env,
         rail_length=parameters.get("rail_length")[0],
         inclination=parameters.get("inclination")[0],
         heading=parameters.get("heading")[0],
     )
-    df_ndrt_rocketpy = pd.DataFrame(Flight23.z[:, :], columns=["Time", "Altitude"])
-    df_ndrt_rocketpy["Vertical Velocity"] = Flight23.vz[:, 1]
-    # df_ndrt_rocketpy["Vertical Acceleration"] = Flight23.az[:, 1]
-    df_ndrt_rocketpy["Altitude"] -= Env23.elevation
+    df_ndrt_rocketpy = pd.DataFrame(
+        rocketpy_flight.z[:, :], columns=["Time", "Altitude"]
+    )
+    df_ndrt_rocketpy["Vertical Velocity"] = rocketpy_flight.vz[:, 1]
+    # df_ndrt_rocketpy["Vertical Acceleration"] = rocketpy_flight.az[:, 1]
+    df_ndrt_rocketpy["Altitude"] -= env.elevation
 
     # Reading data from the flightData (sensors: Raven)
     df_ndrt_raven = pd.read_csv(
@@ -210,14 +207,14 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
     apogee_time_measured = df_ndrt_raven.loc[
         df_ndrt_raven[" Altitude (Ft-AGL)"].idxmax(), " Time (s)"
     ]
-    apogee_time_simulated = Flight23.apogee_time
+    apogee_time_simulated = rocketpy_flight.apogee_time
 
     assert (
         abs(max(df_ndrt_raven[" Altitude (m-AGL)"]) - max(df_ndrt_rocketpy["Altitude"]))
         / max(df_ndrt_raven[" Altitude (m-AGL)"])
         < 0.015
     )
-    assert (max(velocity_raven_filt) - Flight23.max_speed) / max(
+    assert (max(velocity_raven_filt) - rocketpy_flight.max_speed) / max(
         velocity_raven_filt
     ) < 0.06
     assert (

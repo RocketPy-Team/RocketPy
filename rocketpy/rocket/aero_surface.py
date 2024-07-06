@@ -901,7 +901,7 @@ class Fins(AeroSurface):
         # Lift coefficient derivative for n fins corrected with Fin-Body interference
         self.clalpha_multiple_fins = (
             self.lift_interference_factor
-            * self.__fin_num_correction(self.n)
+            * self.fin_num_correction(self.n)
             * self.clalpha_single_fin
         )  # Function of mach number
         self.clalpha_multiple_fins.set_inputs("Mach")
@@ -957,7 +957,7 @@ class Fins(AeroSurface):
         return self.roll_parameters
 
     @staticmethod
-    def __fin_num_correction(n):
+    def fin_num_correction(n):
         """Calculates a correction factor for the lift coefficient of multiple
         fins.
         The specifics  values are documented at:
@@ -975,7 +975,7 @@ class Fins(AeroSurface):
             Factor that accounts for the number of fins.
         """
         corrector_factor = [2.37, 2.74, 2.99, 3.24]
-        if n >= 5 and n <= 8:  # pylint: disable=chained-comparison
+        if 5 <= n <= 8:
             return corrector_factor[n - 5]
         else:
             return n / 2

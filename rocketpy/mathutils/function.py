@@ -3051,7 +3051,7 @@ class Function:  # pylint: disable=too-many-public-methods
             )
         if self.__dom_dim__ > 1:
             if inputs is None:
-                return [f"Input {i+1}" for i in range(self.__dom_dim__)]
+                return [f"Input {i + 1}" for i in range(self.__dom_dim__)]
             if isinstance(inputs, list):
                 if len(inputs) == self.__dom_dim__ and all(
                     isinstance(i, str) for i in inputs

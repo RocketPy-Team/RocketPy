@@ -69,7 +69,7 @@ def test_vector_cross_matrix(vector_components):
 def test_vector_abs(vector_components):
     vector = Vector(vector_components)
     vector_magnitude = abs(vector)
-    assert vector_magnitude == sum([i**2 for i in vector_components]) ** 0.5
+    assert vector_magnitude == sum(i**2 for i in vector_components) ** 0.5
 
 
 @pytest.mark.parametrize("vector_components", test_vectors)
@@ -199,12 +199,14 @@ def test_vector_proj(u_c, v_c):
 @pytest.mark.parametrize("vector_components", test_vectors)
 def test_vector_str(vector_components):
     vector = Vector(vector_components)
+    # pylint: disable=eval-used
     assert eval("Vector(" + str(vector) + ")") == vector
 
 
 @pytest.mark.parametrize("vector_components", test_vectors)
 def test_vector_repr(vector_components):
     vector = Vector(vector_components)
+    # pylint: disable=eval-used
     assert eval(repr(vector).replace("(", "((").replace(")", "))")) == vector
 
 
@@ -222,3 +224,17 @@ def test_vector_j():
 
 def test_vector_k():
     assert Vector.k() == [0, 0, 1]
+
+
+test_vector_1 = [1, 2, 3]
+test_vector_2 = [-np.pi, 1, np.e]
+test_vector_3 = [3 * 1j, -2j, 0j]
+test_vectors = [test_vector_1, test_vector_2, test_vector_3]
+
+
+@pytest.mark.parametrize("vector_components", test_vectors)
+def test_vector_x_y_z(vector_components):
+    vector = Vector(vector_components)
+    assert vector.x == vector_components[0]
+    assert vector.y == vector_components[1]
+    assert vector.z == vector_components[2]

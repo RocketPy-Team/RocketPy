@@ -644,25 +644,25 @@ class Rocket:
         motor_dry_mass = self.motor.dry_mass
         mass = self.mass
 
-        # Compute axes distances
-        noMCM_to_CDM = (  # pylint: disable=invalid-name
+        # Compute axes distances (CDM: Center of Dry Mass)
+        center_of_mass_without_motor_to_CDM = (
             self.center_of_mass_without_motor - self.center_of_dry_mass_position
         )
-        motorCDM_to_CDM = (  # pylint: disable=invalid-name
+        motor_center_of_dry_mass_to_CDM = (
             self.motor_center_of_dry_mass_position - self.center_of_dry_mass_position
         )
 
         # Compute dry inertias
         self.dry_I_11 = parallel_axis_theorem_from_com(
-            self.I_11_without_motor, mass, noMCM_to_CDM
+            self.I_11_without_motor, mass, center_of_mass_without_motor_to_CDM
         ) + parallel_axis_theorem_from_com(
-            self.motor.dry_I_11, motor_dry_mass, motorCDM_to_CDM
+            self.motor.dry_I_11, motor_dry_mass, motor_center_of_dry_mass_to_CDM
         )
 
         self.dry_I_22 = parallel_axis_theorem_from_com(
-            self.I_22_without_motor, mass, noMCM_to_CDM
+            self.I_22_without_motor, mass, center_of_mass_without_motor_to_CDM
         ) + parallel_axis_theorem_from_com(
-            self.motor.dry_I_22, motor_dry_mass, motorCDM_to_CDM
+            self.motor.dry_I_22, motor_dry_mass, motor_center_of_dry_mass_to_CDM
         )
 
         self.dry_I_33 = self.I_33_without_motor + self.motor.dry_I_33
