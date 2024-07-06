@@ -245,7 +245,7 @@ def test_add_fins_assert_cp_cm_plus_fins(calisto, dimensionless_calisto, m):
 
 
 @pytest.mark.parametrize(
-    """cdm_position, grain_cm_position, nozzle_position, coord_direction, 
+    """cdm_position, grain_cm_position, nozzle_position, coord_direction,
     motor_position, expected_motor_cdm, expected_motor_cpp""",
     [
         (0.317, 0.397, 0, "nozzle_to_combustion_chamber", -1.373, -1.056, -0.976),

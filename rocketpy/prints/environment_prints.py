@@ -39,7 +39,7 @@ class _EnvironmentPrints:
         print("\nGravity Details\n")
         print(f"Acceleration of gravity at surface level: {surface_gravity:9.4f} m/s²")
         print(
-            f"Acceleration of gravity at {max_expected_height/1000:7.3f} "
+            f"Acceleration of gravity at {max_expected_height / 1000:7.3f} "
             f"km (ASL): {ceiling_gravity:.4f} m/s²\n"
         )
 

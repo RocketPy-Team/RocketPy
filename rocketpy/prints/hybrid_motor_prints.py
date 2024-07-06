@@ -39,8 +39,10 @@ class _HybridMotorPrints:
         print("Nozzle Details")
         print(f"Outlet Radius: {self.hybrid_motor.nozzle_radius} m")
         print(f"Throat Radius: {self.hybrid_motor.solid.throat_radius} m")
-        print(f"Outlet Area: {np.pi*self.hybrid_motor.nozzle_radius**2:.6f} m²")
-        print(f"Throat Area: {np.pi*self.hybrid_motor.solid.throat_radius**2:.6f} m²")
+        print(f"Outlet Area: {np.pi * self.hybrid_motor.nozzle_radius ** 2:.6f} m²")
+        print(
+            f"Throat Area: {np.pi * self.hybrid_motor.solid.throat_radius ** 2:.6f} m²"
+        )
         print(f"Position: {self.hybrid_motor.nozzle_position} m\n")
 
     def grain_details(self):

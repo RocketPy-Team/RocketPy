@@ -327,7 +327,7 @@ def test_rolling_flight(
 
     test_rocket.set_rail_buttons(0.082, -0.618)
     test_rocket.add_motor(cesaroni_m1670, position=-1.373)
-    fin_set = test_rocket.add_trapezoidal_fins(
+    test_rocket.add_trapezoidal_fins(
         4,
         span=0.100,
         root_chord=0.120,
