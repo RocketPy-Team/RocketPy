@@ -1,5 +1,5 @@
 import time
-from datetime import datetime
+from datetime import date
 from unittest.mock import patch
 
 import pytest
@@ -47,7 +47,7 @@ def test_nam_atmosphere(
 def test_rap_atmosphere(
     mock_show, example_spaceport_env
 ):  # pylint: disable=unused-argument
-    today = datetime.date.today()
+    today = date.today()
     example_spaceport_env.set_date((today.year, today.month, today.day, 8))
     example_spaceport_env.set_atmospheric_model(type="Forecast", file="RAP")
     assert example_spaceport_env.all_info() is None
@@ -194,7 +194,7 @@ def test_hiresw_ensemble_atmosphere(
     example_spaceport_env : rocketpy.Environment
         Example environment object to be tested.
     """
-    today = datetime.date.today()
+    today = date.today()
     date_info = (today.year, today.month, today.day, 12)  # Hour given in UTC time
 
     example_spaceport_env.set_date(date_info)

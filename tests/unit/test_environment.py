@@ -5,7 +5,6 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 import pytz
-from numpy import ma
 
 from rocketpy import Environment
 
@@ -234,6 +233,7 @@ def test_date_aware_set_date_saves_custom_timezone(
     assert example_plain_env.datetime_date == example_date_aware
 
 
+@pytest.mark.parametrize("env_name", ["example_spaceport_env", "example_euroc_env"])
 def test_environment_export_environment_exports_valid_environment_json(
     request, env_name
 ):
