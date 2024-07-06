@@ -40,4 +40,4 @@ jobs:
       run: flake8 rocketpy/ tests/
     - name: Run pylint
       run: |
-        pylint rocketpy/
+        pylint rocketpy/ tests/

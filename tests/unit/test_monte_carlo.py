@@ -1,8 +1,5 @@
-from unittest.mock import patch
-
 import matplotlib as plt
 import numpy as np
-import pytest
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
