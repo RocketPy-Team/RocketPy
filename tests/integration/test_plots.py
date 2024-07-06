@@ -1,10 +1,9 @@
+# pylint: disable=unused-argument
 import os
 from unittest.mock import patch
 
-import matplotlib.pyplot as plt
-
 from rocketpy import Flight
-from rocketpy.plots.compare import Compare, CompareFlights
+from rocketpy.plots.compare import CompareFlights
 
 
 @patch("matplotlib.pyplot.show")
