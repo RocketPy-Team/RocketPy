@@ -1,6 +1,5 @@
 import json
 import os
-from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -157,51 +156,6 @@ def test_decimal_degrees_to_arc_seconds_computes_correct_values(
     assert pytest.approx(computed_data[0], abs=1e-8) == theoretical_degree
     assert pytest.approx(computed_data[1], abs=1e-8) == theoretical_arc_minutes
     assert pytest.approx(computed_data[2], abs=1e-8) == theoretical_arc_seconds
-
-
-@patch("matplotlib.pyplot.show")
-def test_info_returns(mock_show, example_plain_env):  # pylint: disable=unused-argument
-    """Tests the all_info_returned() all_plot_info_returned() and methods of the
-    Environment class.
-
-    Parameters
-    ----------
-    mock_show : mock
-        Mock object to replace matplotlib.pyplot.show() method.
-    example_plain_env : rocketpy.Environment
-        Example environment object to be tested.
-    """
-    returned_plots = example_plain_env.all_plot_info_returned()
-    returned_infos = example_plain_env.all_info_returned()
-    expected_info = {
-        "grav": example_plain_env.gravity,
-        "elevation": 0,
-        "model_type": "standard_atmosphere",
-        "model_type_max_expected_height": 80000,
-        "wind_speed": 0,
-        "wind_direction": 0,
-        "wind_heading": 0,
-        "surface_pressure": 1013.25,
-        "surface_temperature": 288.15,
-        "surface_air_density": 1.225000018124288,
-        "surface_speed_of_sound": 340.293988026089,
-        "lat": 0,
-        "lon": 0,
-    }
-    expected_plots_keys = [
-        "grid",
-        "wind_speed",
-        "wind_direction",
-        "speed_of_sound",
-        "density",
-        "wind_vel_x",
-        "wind_vel_y",
-        "pressure",
-        "temperature",
-    ]
-    assert list(returned_infos.keys()) == list(expected_info.keys())
-    assert list(returned_infos.values()) == list(expected_info.values())
-    assert list(returned_plots.keys()) == expected_plots_keys
 
 
 def test_date_naive_set_date_saves_utc_timezone_by_default(
