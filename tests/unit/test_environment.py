@@ -3,9 +3,9 @@ import os
 from unittest.mock import patch
 
 import numpy as np
-import numpy.ma as ma
 import pytest
 import pytz
+from numpy import ma
 
 from rocketpy import Environment
 
@@ -73,18 +73,20 @@ def test_location_set_topographic_profile_computes_elevation(
 
 def test_geodesic_coordinate_geodesic_to_utm_converts_coordinate():
     """Tests the conversion from geodesic to UTM coordinates."""
-    x, y, utm_zone, utm_letter, hemis, EW = Environment.geodesic_to_utm(
-        lat=32.990254,
-        lon=-106.974998,
-        semi_major_axis=6378137.0,  # WGS84
-        flattening=1 / 298.257223563,  # WGS84
+    x, y, utm_zone, utm_letter, north_south_hemis, east_west_hemis = (
+        Environment.geodesic_to_utm(
+            lat=32.990254,
+            lon=-106.974998,
+            semi_major_axis=6378137.0,  # WGS84
+            flattening=1 / 298.257223563,  # WGS84
+        )
     )
     assert np.isclose(x, 315468.64, atol=1e-5)
     assert np.isclose(y, 3651938.65, atol=1e-5)
     assert utm_zone == 13
     assert utm_letter == "S"
-    assert hemis == "N"
-    assert EW == "W"
+    assert north_south_hemis == "N"
+    assert east_west_hemis == "W"
 
 
 def test_utm_to_geodesic_converts_coordinates():
@@ -159,7 +161,7 @@ def test_decimal_degrees_to_arc_seconds_computes_correct_values(
 
 
 @patch("matplotlib.pyplot.show")
-def test_info_returns(mock_show, example_plain_env):
+def test_info_returns(mock_show, example_plain_env):  # pylint: disable=unused-argument
     """Tests the all_info_returned() all_plot_info_returned() and methods of the
     Environment class.
 

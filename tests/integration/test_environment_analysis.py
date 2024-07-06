@@ -10,7 +10,7 @@ plt.rcParams.update({"figure.max_open_warning": 0})
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_all_info(mock_show, env_analysis):
+def test_all_info(mock_show, env_analysis):  # pylint: disable=unused-argument
     """Test the EnvironmentAnalysis.all_info() method, which already invokes
     several other methods. It is a good way to test the whole class in a first view.
     However, if it fails, it is hard to know which method is failing.
@@ -32,7 +32,7 @@ def test_all_info(mock_show, env_analysis):
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_exports(mock_show, env_analysis):
+def test_exports(mock_show, env_analysis):  # pylint: disable=unused-argument
     """Check the export methods of the EnvironmentAnalysis class. It
     only checks if the method runs without errors. It does not check if the
     files are correct, as this would require a lot of work and would be

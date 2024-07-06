@@ -117,3 +117,28 @@ def dimensionless_cesaroni_m1670(kg, m):  # old name: dimensionless_motor
         coordinate_system_orientation="nozzle_to_combustion_chamber",
     )
     return example_motor
+
+
+@pytest.fixture
+def dummy_empty_motor():
+    # Create a motor with ZERO thrust and ZERO mass to keep the rocket's speed constant
+    # TODO: why don t we use these same values to create EmptyMotor class?
+    return SolidMotor(
+        thrust_source=1e-300,
+        burn_time=1e-10,
+        dry_mass=1.815,
+        dry_inertia=(0.125, 0.125, 0.002),
+        center_of_dry_mass_position=0.317,
+        grains_center_of_mass_position=0.397,
+        grain_number=5,
+        grain_separation=5 / 1000,
+        grain_density=1e-300,
+        grain_outer_radius=33 / 1000,
+        grain_initial_inner_radius=15 / 1000,
+        grain_initial_height=120 / 1000,
+        nozzle_radius=33 / 1000,
+        throat_radius=11 / 1000,
+        nozzle_position=0,
+        interpolation_method="linear",
+        coordinate_system_orientation="nozzle_to_combustion_chamber",
+    )

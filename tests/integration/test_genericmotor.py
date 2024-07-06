@@ -1,10 +1,9 @@
+# pylint: disable=unused-argument
 from unittest.mock import patch
 
 
 @patch("matplotlib.pyplot.show")
-def test_generic_motor_info(
-    mock_show, generic_motor
-):  # pylint: disable: unused-argument
+def test_generic_motor_info(mock_show, generic_motor):
     """Tests the GenericMotor.all_info() method.
 
     Parameters
