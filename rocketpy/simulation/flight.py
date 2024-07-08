@@ -893,7 +893,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                             self.flight_phases.add_phase(self.t)
                             # Prepare to leave loops and start new flight phase
                             phase.time_nodes.flush_after(node_index)
-                            phase.time_nodes.add_node(self.t, [], [])
+                            phase.time_nodes.add_node(self.t, [], [], [])
                             phase.solver.status = "finished"
                     # Check for impact event
                     if self.y_sol[2] < self.env.elevation:
@@ -3174,6 +3174,32 @@ class Flight:  # pylint: disable=too-many-public-methods
             header=exported_header,
             encoding="utf-8",
         )
+
+    def export_sensor_data(self, file_name, sensor=None):
+        """Exports sensors data to a file. The file format can be either .csv or
+        .json.
+
+        Parameters
+        ----------
+        file_name : str
+            The file name or path of the exported file. Example: flight_data.csv
+            Do not use forbidden characters, such as / in Linux/Unix and
+            `<, >, :, ", /, \\, | ?, *` in Windows.
+        sensor : Sensor, optional
+            The sensor to export data. If None, all sensors data will be exported.
+            Default is None.
+        """
+        if sensor is None:
+            data_dict = {}
+            for used_sensor, measured_data in self.sensor_data.items():
+                data_dict[used_sensor.name] = measured_data
+        else:
+            # export data of only that sensor
+            data_dict = {}
+            data_dict[sensor.name] = self.sensor_data[sensor]
+        with open(file_name, "w") as file:
+            json.dump(data_dict, file)
+        print("Sensor data exported to", file_name)
 
     def export_kml(  # TODO: should be moved out of this class.
         self,
