@@ -535,7 +535,7 @@ class Rocket:
                 self.cp_position += (
                     ref_factor
                     * aero_surface.clalpha
-                    * (position.z - self._csys * aero_surface.cpz)
+                    * (position - self._csys * aero_surface.cpz)
                 )
             self.cp_position /= self.total_lift_coeff_der
 
@@ -934,12 +934,9 @@ class Rocket:
         surfaces : list, AeroSurface, NoseCone, TrapezoidalFins, EllipticalFins, Tail
             Aerodynamic surface to be added to the rocket. Can be a list of
             AeroSurface if more than one surface is to be added.
-        positions : int, float, Vector, list[int, float, Vector]
-            Position, in m, of the aerodynamic surface's reference point
-            relative to the user defined rocket coordinate system. The position
-            can be specified as a single value, that refers to the axial
-            position of the surface, or as a Vector object, that refers to the
-            position of the reference point in the rocket coordinate system.
+        positions : int, float, list
+            Position, in m, of the aerodynamic surface's center of pressure
+            relative to the user defined rocket coordinate system.
             If a list is passed, it will correspond to the position of each item
             in the surfaces list.
             For NoseCone type, position is relative to the nose cone tip.
@@ -958,12 +955,8 @@ class Rocket:
         """
         try:
             for surface, position in zip(surfaces, positions):
-                if not isinstance(position, Vector):
-                    position = Vector([0, 0, position])
                 self.aerodynamic_surfaces.add(surface, position)
         except TypeError:
-            if not isinstance(positions, Vector):
-                positions = Vector([0, 0, positions])
             self.aerodynamic_surfaces.add(surfaces, positions)
 
         self.evaluate_center_of_pressure()
@@ -1513,16 +1506,8 @@ class Rocket:
         rail_buttons = RailButtons(
             buttons_distance=buttons_distance, angular_position=angular_position
         )
-        position = Vector(
-            [
-                radius * -np.sin(np.radians(angular_position)),
-                radius * np.cos(np.radians(angular_position)),
-                lower_button_position,
-            ]
-        )
-        if self._csys == -1:
-            position.x, position.y = position.y, position.x
-        self.rail_buttons.add(rail_buttons, position)
+        self.rail_buttons = Components()
+        self.rail_buttons.add(rail_buttons, lower_button_position)
         return rail_buttons
 
     def add_cm_eccentricity(self, x, y):

@@ -131,7 +131,7 @@ class _RocketPrints:
             print(
                 name
                 + " Center of Pressure position: {:.3f}".format(
-                    position.z - self.rocket._csys * cpz
+                    position - self.rocket._csys * cpz
                 )
                 + " m"
             )
