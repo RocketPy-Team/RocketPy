@@ -4,11 +4,11 @@ import math
 import numpy as np
 
 from ..mathutils.vector_matrix import Matrix, Vector
-from ..prints.sensors_prints import _BarometerPrints, _GNSSPrints
-from .sensors import ScalarSensors
+from ..prints.sensors_prints import _GNSSPrints
+from .sensor import ScalarSensor
 
 
-class GNSS(ScalarSensors):
+class GNSS(ScalarSensor):
     """Class for the GNSS sensor
 
     Attributes
@@ -90,7 +90,7 @@ class GNSS(ScalarSensors):
         # Apply accuracy to the position
         x = np.random.normal(x, self.position_accuracy)
         y = np.random.normal(y, self.position_accuracy)
-        z = np.random.normal(z, self.altitude_accuracy)
+        altitude = np.random.normal(z, self.altitude_accuracy)
 
         # Convert x and y to latitude and longitude
         lat1 = math.radians(lat)  # Launch lat point converted to radians
@@ -120,21 +120,17 @@ class GNSS(ScalarSensors):
             )
         )
 
-        latitude = np.random.normal(latitude, self.position_accuracy)
-        longitude = np.random.normal(longitude, self.position_accuracy)
-        altitude = np.random.normal(z, self.altitude_accuracy)
-
         self.measurement = (latitude, longitude, altitude)
         self._save_data((time, *self.measurement))
 
-    def export_measured_data(self, filename, format):
+    def export_measured_data(self, filename, file_format):
         """Export the measured values to a file
 
         Parameters
         ----------
         filename : str
             Name of the file to export the values to
-        format : str
+        file_format : str
             Format of the file to export the values to. Options are "csv" and
             "json". Default is "csv".
 
@@ -142,8 +138,8 @@ class GNSS(ScalarSensors):
         -------
         None
         """
-        super().export_measured_data(
+        self._generic_export_measured_data(
             filename=filename,
-            format=format,
+            file_format=file_format,
             data_labels=("t", "latitude", "longitude", "altitude"),
         )

@@ -662,10 +662,9 @@ class Flight:
             # Initialize phase time nodes
             phase.time_nodes = self.TimeNodes()
             # Add first time node to the time_nodes list
-            phase.time_nodes.add_node(phase.t, [], [])
+            phase.time_nodes.add_node(phase.t, [], [], [])
             # Add non-overshootable parachute time nodes
             if self.time_overshoot is False:
-                # TODO: move parachutes to controllers
                 phase.time_nodes.add_parachutes(
                     self.parachutes, phase.t, phase.time_bound
                 )
@@ -1147,7 +1146,7 @@ class Flight:
             self.out_of_rail_time = self.initial_solution[0]
             self.out_of_rail_time_index = 0
             self.initial_derivative = self.u_dot_generalized
-        if self._controllers:
+        if self._controllers or self.sensors:
             # Handle post process during simulation, get initial accel/forces
             self.initial_derivative(
                 self.t_initial, self.initial_solution[1:], post_processing=True
@@ -3503,8 +3502,8 @@ class Flight:
                     # Try to access the node and merge if it exists
                     tmp_dict[time].parachutes += node.parachutes
                     tmp_dict[time].callbacks += node.callbacks
-                    tmp_dict[-1]._component_sensors += node._component_sensors
-                    tmp_dict[-1]._controllers += node._controllers
+                    tmp_dict[time]._component_sensors += node._component_sensors
+                    tmp_dict[time]._controllers += node._controllers
                 except KeyError:
                     # If the node does not exist, add it to the dictionary
                     tmp_dict[time] = node
