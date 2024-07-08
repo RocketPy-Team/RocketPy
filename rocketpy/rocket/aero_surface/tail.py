@@ -78,21 +78,17 @@ class Tail(AeroSurface):
         """
         super().__init__(name, np.pi * rocket_radius**2, 2 * rocket_radius)
 
-        # Store arguments as attributes
         self._top_radius = top_radius
         self._bottom_radius = bottom_radius
         self._length = length
         self._rocket_radius = rocket_radius
 
-        # Calculate geometrical parameters
         self.evaluate_geometrical_parameters()
         self.evaluate_lift_coefficient()
         self.evaluate_center_of_pressure()
 
         self.plots = _TailPlots(self)
         self.prints = _TailPrints(self)
-
-        return None
 
     @property
     def top_radius(self):
@@ -142,16 +138,13 @@ class Tail(AeroSurface):
         -------
         None
         """
-        # Calculate tail slant length
         self.slant_length = np.sqrt(
             (self.length) ** 2 + (self.top_radius - self.bottom_radius) ** 2
         )
-        # Calculate the surface area of the tail
         self.surface_area = (
             np.pi * self.slant_length * (self.top_radius + self.bottom_radius)
         )
         self.evaluate_shape()
-        return None
 
     def evaluate_shape(self):
         # Assuming the tail is a cone, calculate the shape vector
@@ -159,7 +152,6 @@ class Tail(AeroSurface):
             np.array([0, self.length]),
             np.array([self.top_radius, self.bottom_radius]),
         ]
-        return None
 
     def evaluate_lift_coefficient(self):
         """Calculates and returns tail's lift coefficient.
@@ -190,7 +182,6 @@ class Tail(AeroSurface):
             ["Alpha (rad)", "Mach"],
             "Cl",
         )
-        return None
 
     def evaluate_center_of_pressure(self):
         """Calculates and returns the center of pressure of the tail in local
@@ -210,14 +201,11 @@ class Tail(AeroSurface):
         self.cpy = 0
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
-        return None
 
     def info(self):
         self.prints.geometry()
         self.prints.lift()
-        return None
 
     def all_info(self):
         self.prints.all()
         self.plots.all()
-        return None

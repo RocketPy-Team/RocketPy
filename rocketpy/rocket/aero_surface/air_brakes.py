@@ -186,7 +186,6 @@ class AirBrakes(AeroSurface):
         -------
         None
         """
-        pass
 
     def info(self):
         """Prints and plots summarized information of the aerodynamic surface.

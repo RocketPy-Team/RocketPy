@@ -168,8 +168,6 @@ class EllipticalFins(Fins):
         self.prints = _EllipticalFinsPrints(self)
         self.plots = _EllipticalFinsPlots(self)
 
-        return None
-
     def evaluate_center_of_pressure(self):
         """Calculates and returns the center of pressure of the fin set in local
         coordinates. The center of pressure position is saved and stored as a
@@ -185,9 +183,8 @@ class EllipticalFins(Fins):
         self.cpy = 0
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
-        return None
 
-    def evaluate_geometrical_parameters(self):
+    def evaluate_geometrical_parameters(self):  # pylint: disable=too-many-statements
         """Calculates and saves fin set's geometrical parameters such as the
         fins' area, aspect ratio and parameters for roll movement.
 
@@ -197,6 +194,7 @@ class EllipticalFins(Fins):
         """
 
         # Compute auxiliary geometrical parameters
+        # pylint: disable=invalid-name
         Af = (np.pi * self.root_chord / 2 * self.span) / 2  # Fin area
         gamma_c = 0  # Zero for elliptical fins
         AR = 2 * self.span**2 / Af  # Fin aspect ratio
@@ -272,7 +270,7 @@ class EllipticalFins(Fins):
                 * (-self.span**2 + self.rocket_radius**2)
                 * (self.span**2 / 3 + np.pi * self.span * self.rocket_radius / 4)
             )
-        elif self.span == self.rocket_radius:
+        else:
             roll_damping_interference_factor = (28 - 3 * np.pi) / (4 + 3 * np.pi)
 
         roll_forcing_interference_factor = (1 / np.pi**2) * (
@@ -290,6 +288,7 @@ class EllipticalFins(Fins):
         )
 
         # Store values
+        # pylint: disable=invalid-name
         self.Af = Af  # Fin area
         self.AR = AR  # Fin aspect ratio
         self.gamma_c = gamma_c  # Mid chord angle
@@ -301,21 +300,17 @@ class EllipticalFins(Fins):
         self.roll_forcing_interference_factor = roll_forcing_interference_factor
 
         self.evaluate_shape()
-        return None
 
     def evaluate_shape(self):
         angles = np.arange(0, 180, 5)
         x_array = self.root_chord / 2 + self.root_chord / 2 * np.cos(np.radians(angles))
         y_array = self.span * np.sin(np.radians(angles))
         self.shape_vec = [x_array, y_array]
-        return None
 
     def info(self):
         self.prints.geometry()
         self.prints.lift()
-        return None
 
     def all_info(self):
         self.prints.all()
         self.plots.all()
-        return None

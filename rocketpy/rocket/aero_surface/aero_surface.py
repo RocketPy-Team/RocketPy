@@ -2,8 +2,6 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-# TODO: all the evaluate_shape() methods need tests and documentation
-
 
 class AeroSurface(ABC):
     """Abstract class used to define aerodynamic surfaces."""
@@ -16,9 +14,7 @@ class AeroSurface(ABC):
         self.cpx = 0
         self.cpy = 0
         self.cpz = 0
-        return None
 
-    # Defines beta parameter
     @staticmethod
     def _beta(mach):
         """Defines a parameter that is often used in aerodynamic
@@ -58,7 +54,6 @@ class AeroSurface(ABC):
         -------
         None
         """
-        pass
 
     @abstractmethod
     def evaluate_lift_coefficient(self):
@@ -68,7 +63,6 @@ class AeroSurface(ABC):
         -------
         None
         """
-        pass
 
     @abstractmethod
     def evaluate_geometrical_parameters(self):
@@ -78,7 +72,6 @@ class AeroSurface(ABC):
         -------
         None
         """
-        pass
 
     @abstractmethod
     def info(self):
@@ -88,7 +81,6 @@ class AeroSurface(ABC):
         -------
         None
         """
-        pass
 
     @abstractmethod
     def all_info(self):
@@ -98,4 +90,3 @@ class AeroSurface(ABC):
         -------
         None
         """
-        pass

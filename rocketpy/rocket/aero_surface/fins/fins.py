@@ -1,14 +1,6 @@
 import numpy as np
 
 from rocketpy.mathutils.function import Function
-from rocketpy.plots.aero_surface_plots import (
-    _EllipticalFinsPlots,
-    _TrapezoidalFinsPlots,
-)
-from rocketpy.prints.aero_surface_prints import (
-    _EllipticalFinsPrints,
-    _TrapezoidalFinsPrints,
-)
 
 from ..aero_surface import AeroSurface
 
@@ -160,8 +152,6 @@ class Fins(AeroSurface):
         self.d = d
         self.ref_area = ref_area  # Reference area
 
-        return None
-
     @property
     def n(self):
         return self._n
@@ -269,34 +259,42 @@ class Fins(AeroSurface):
         clalpha2D = Function(lambda mach: clalpha2D_incompressible / self._beta(mach))
 
         # Diederich's Planform Correlation Parameter
-        FD = 2 * np.pi * self.AR / (clalpha2D * np.cos(self.gamma_c))
+        planform_correlation_parameter = (
+            2 * np.pi * self.AR / (clalpha2D * np.cos(self.gamma_c))
+        )
 
         # Lift coefficient derivative for a single fin
-        self.clalpha_single_fin = Function(
-            lambda mach: (
+        def lift_source(mach):
+            return (
                 clalpha2D(mach)
-                * FD(mach)
+                * planform_correlation_parameter(mach)
                 * (self.Af / self.ref_area)
                 * np.cos(self.gamma_c)
+            ) / (
+                2
+                + planform_correlation_parameter(mach)
+                * np.sqrt(1 + (2 / planform_correlation_parameter(mach)) ** 2)
             )
-            / (2 + FD(mach) * np.sqrt(1 + (2 / FD(mach)) ** 2)),
+
+        self.clalpha_single_fin = Function(
+            lift_source,
             "Mach",
             "Lift coefficient derivative for a single fin",
         )
 
-        # Lift coefficient derivative for a number of n fins corrected for Fin-Body interference
+        # Lift coefficient derivative for n fins corrected with Fin-Body interference
         self.clalpha_multiple_fins = (
             self.lift_interference_factor
-            * self.__fin_num_correction(self.n)
+            * self.fin_num_correction(self.n)
             * self.clalpha_single_fin
         )  # Function of mach number
         self.clalpha_multiple_fins.set_inputs("Mach")
         self.clalpha_multiple_fins.set_outputs(
-            "Lift coefficient derivative for {:.0f} fins".format(self.n)
+            f"Lift coefficient derivative for {self.n:.0f} fins"
         )
         self.clalpha = self.clalpha_multiple_fins
 
-        # Calculates clalpha * alpha
+        # Cl = clalpha * alpha
         self.cl = Function(
             lambda alpha, mach: alpha * self.clalpha_multiple_fins(mach),
             ["Alpha (rad)", "Mach"],
@@ -342,8 +340,8 @@ class Fins(AeroSurface):
         self.roll_parameters = [clf_delta, cld_omega, self.cant_angle_rad]
         return self.roll_parameters
 
-    # Defines number of fins  factor
-    def __fin_num_correction(_, n):
+    @staticmethod
+    def fin_num_correction(n):
         """Calculates a correction factor for the lift coefficient of multiple
         fins.
         The specifics  values are documented at:
@@ -361,7 +359,7 @@ class Fins(AeroSurface):
             Factor that accounts for the number of fins.
         """
         corrector_factor = [2.37, 2.74, 2.99, 3.24]
-        if n >= 5 and n <= 8:
+        if 5 <= n <= 8:
             return corrector_factor[n - 5]
         else:
             return n / 2
@@ -375,4 +373,3 @@ class Fins(AeroSurface):
         None
         """
         self.plots.draw()
-        return None
