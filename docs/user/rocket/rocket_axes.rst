@@ -99,10 +99,47 @@ The following figure shows the rotational relationship between the
   :align: center
   :alt: Flight coordinate system
 
-In the figure, *θᵢ* is ``90° - inclination`` and *θₕ* is the heading of the 
-launch rail.
+In the figure $\bf{i}$** is the ``inclination`` and $\bf{h}$ is the
+``heading`` of the launch rail.
+
+The heading and inclination can be described in terms of Euler angles.
+The relation is given by:
+
+.. math::
+    \begin{aligned}
+        &\text{Precession:} \quad &\psi &= -\bf{h} \\
+        &\text{Nutation:} \quad &\theta &= \bf{i} - 90° \\
+   \end{aligned}
+
+A last rotation is defined by the ``angular_position`` of the rocket's rail buttons.
+This is a rotation around the rocket's centerline, and describes the last 
+Euler angle:
+
+.. math::
+    \begin{aligned}
+        &\text{Spin:} \quad &φ & \\
+    \end{aligned}
+
+If no rail buttons are present, the spin angle is set to **0°**.
 
 .. note::
    
-   If the lauch rail ``heading`` is set to **0°** and ``rail_inclination`` to **90°**,
+   With spin angle set to **0°**, if the
+   lauch rail ``heading`` is set to **0°** and rail ``inclination`` to **90°**,
    the **Body Axes Coordinate System** is aligned with the **Flight Coordinate System**.
+
+
+This is used to calculate the initial orientation of the rocket, which is 
+expressed in Euler parameters (quaternions). The Euler parameters are defined 
+using the 3-1-3 rotation sequence:
+
+.. math::
+
+   \begin{aligned}
+      e₀ &= \cos\left(\frac{φ}{2}\right) \cos\left(\frac{θ}{2}\right) \cos\left(\frac{ψ}{2}\right) - \sin\left(\frac{φ}{2}\right) \cos\left(\frac{θ}{2}\right) \sin\left(\frac{ψ}{2}\right) \\
+      e₁ &= \cos\left(\frac{φ}{2}\right) \cos\left(\frac{ψ}{2}\right) \sin\left(\frac{θ}{2}\right) + \sin\left(\frac{φ}{2}\right) \sin\left(\frac{θ}{2}\right) \sin\left(\frac{ψ}{2}\right) \\
+      e₂ &= \cos\left(\frac{φ}{2}\right) \sin\left(\frac{θ}{2}\right) \sin\left(\frac{ψ}{2}\right) - \sin\left(\frac{φ}{2}\right) \cos\left(\frac{ψ}{2}\right) \sin\left(\frac{θ}{2}\right) \\
+      e₃ &= \cos\left(\frac{φ}{2}\right) \cos\left(\frac{θ}{2}\right) \sin\left(\frac{ψ}{2}\right) + \cos\left(\frac{θ}{2}\right) \cos\left(\frac{ψ}{2}\right) \sin\left(\frac{φ}{2}\right) \\
+   \end{aligned}
+
+
