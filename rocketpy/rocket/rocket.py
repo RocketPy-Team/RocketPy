@@ -5,6 +5,7 @@ import numpy as np
 from rocketpy.control.controller import _Controller
 from rocketpy.mathutils.function import Function
 from rocketpy.mathutils.vector_matrix import Vector, Matrix
+from rocketpy.mathutils.vector_matrix import Matrix
 from rocketpy.motors.motor import EmptyMotor
 from rocketpy.plots.rocket_plots import _RocketPlots
 from rocketpy.prints.rocket_prints import _RocketPrints
@@ -22,6 +23,7 @@ from rocketpy.rocket.parachute import Parachute
 from rocketpy.tools import parallel_axis_theorem_from_com
 
 
+# pylint: disable=too-many-instance-attributes, too-many-public-methods, too-many-instance-attributes
 class Rocket:
     """Keeps rocket information.
 
@@ -193,7 +195,7 @@ class Rocket:
         Rocket's inertia tensor 23 component with unloaded motor,in kg*m^2.
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-statements
         self,
         radius,
         mass,
@@ -638,25 +640,25 @@ class Rocket:
         motor_dry_mass = self.motor.dry_mass
         mass = self.mass
 
-        # Compute axes distances
-        noMCM_to_CDM = (
+        # Compute axes distances (CDM: Center of Dry Mass)
+        center_of_mass_without_motor_to_CDM = (
             self.center_of_mass_without_motor - self.center_of_dry_mass_position
         )
-        motorCDM_to_CDM = (
+        motor_center_of_dry_mass_to_CDM = (
             self.motor_center_of_dry_mass_position - self.center_of_dry_mass_position
         )
 
         # Compute dry inertias
         self.dry_I_11 = parallel_axis_theorem_from_com(
-            self.I_11_without_motor, mass, noMCM_to_CDM
+            self.I_11_without_motor, mass, center_of_mass_without_motor_to_CDM
         ) + parallel_axis_theorem_from_com(
-            self.motor.dry_I_11, motor_dry_mass, motorCDM_to_CDM
+            self.motor.dry_I_11, motor_dry_mass, motor_center_of_dry_mass_to_CDM
         )
 
         self.dry_I_22 = parallel_axis_theorem_from_com(
-            self.I_22_without_motor, mass, noMCM_to_CDM
+            self.I_22_without_motor, mass, center_of_mass_without_motor_to_CDM
         ) + parallel_axis_theorem_from_com(
-            self.motor.dry_I_22, motor_dry_mass, motorCDM_to_CDM
+            self.motor.dry_I_22, motor_dry_mass, motor_center_of_dry_mass_to_CDM
         )
 
         self.dry_I_33 = self.I_33_without_motor + self.motor.dry_I_33
@@ -866,7 +868,7 @@ class Rocket:
             ]
         )
 
-    def add_motor(self, motor, position):
+    def add_motor(self, motor, position):  # pylint: disable=too-many-statements
         """Adds a motor to the rocket.
 
         Parameters
@@ -885,11 +887,13 @@ class Rocket:
         -------
         None
         """
-        if hasattr(self, "motor") and not isinstance(self.motor, EmptyMotor):
-            print(
-                "Only one motor per rocket is currently supported. "
-                + "Overwriting previous motor."
-            )
+        if hasattr(self, "motor"):
+            # pylint: disable=access-member-before-definition
+            if not isinstance(self.motor, EmptyMotor):
+                print(
+                    "Only one motor per rocket is currently supported. "
+                    + "Overwriting previous motor."
+                )
         self.motor = motor
         self.motor_position = position
         _ = self._csys * self.motor._csys
@@ -1019,7 +1023,14 @@ class Rocket:
         return tail
 
     def add_nose(
-        self, length, kind, position, bluffness=0, name="Nose Cone", base_radius=None
+        self,
+        length,
+        kind,
+        position,
+        bluffness=0,
+        power=None,
+        name="Nose Cone",
+        base_radius=None,
     ):
         """Creates a nose cone, storing its parameters as part of the
         aerodynamic_surfaces list. Its parameters are the axial position
@@ -1033,14 +1044,17 @@ class Rocket:
             Nose cone length or height in meters. Must be a positive
             value.
         kind : string
-            Nose cone type. Von Karman, conical, ogive, and lvhaack are
-            supported.
+            Nose cone type. Von Karman, conical, ogive, lvhaack and
+            powerseries are supported.
         position : int, float
             Nose cone tip coordinate relative to the rocket's coordinate system.
             See `Rocket.coordinate_system_orientation` for more information.
         bluffness : float, optional
             Ratio between the radius of the circle on the tip of the ogive and
             the radius of the base of the ogive.
+        power : float, optional
+            Factor that controls the bluntness of the nose cone shape when
+            using a 'powerseries' nose cone kind.
         name : string
             Nose cone name. Default is "Nose Cone".
         base_radius : int, float, optional
@@ -1062,6 +1076,7 @@ class Rocket:
             base_radius=base_radius or self.radius,
             rocket_radius=base_radius or self.radius,
             bluffness=bluffness,
+            power=power,
             name=name,
         )
         self.add_surfaces(nose, position)

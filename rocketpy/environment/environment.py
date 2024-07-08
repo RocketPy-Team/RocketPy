@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines, broad-exception-caught, bare-except, raise-missing-from, consider-using-f-string, too-many-statements, too-many-instance-attributes, invalid-name, too-many-locals
 import bisect
 import json
 import re
@@ -6,9 +7,9 @@ from collections import namedtuple
 from datetime import datetime, timedelta, timezone
 
 import numpy as np
-import numpy.ma as ma
 import pytz
 import requests
+from numpy import ma
 
 from ..mathutils.function import Function, funcify_method
 from ..plots.environment_plots import _EnvironmentPlots
@@ -18,18 +19,18 @@ from ..tools import exponential_backoff
 try:
     import netCDF4
 except ImportError:
-    has_netCDF4 = False
+    HAS_NETCDF4 = False
     warnings.warn(
         "Unable to load netCDF4. NetCDF files and ``OPeNDAP`` will not be imported.",
         ImportWarning,
     )
 else:
-    has_netCDF4 = True
+    HAS_NETCDF4 = True
 
 
 def requires_netCDF4(func):
     def wrapped_func(*args, **kwargs):
-        if has_netCDF4:
+        if HAS_NETCDF4:
             func(*args, **kwargs)
         else:
             raise ImportError(
@@ -39,7 +40,7 @@ def requires_netCDF4(func):
     return wrapped_func
 
 
-class Environment:
+class Environment:  # pylint: disable=too-many-public-methods
     """Keeps all environment information stored, such as wind and temperature
     conditions, as well as gravity.
 
@@ -363,7 +364,7 @@ class Environment:
         self.set_atmospheric_model("standard_atmosphere")
 
         # Save date
-        if date != None:
+        if date is not None:
             self.set_date(date, timezone)
         else:
             self.date = None
@@ -378,7 +379,7 @@ class Environment:
         # Save latitude and longitude
         self.latitude = latitude
         self.longitude = longitude
-        if latitude != None and longitude != None:
+        if latitude is not None and longitude is not None:
             self.set_location(latitude, longitude)
         else:
             self.latitude, self.longitude = None, None
@@ -408,8 +409,6 @@ class Environment:
             semi_major_axis=self.ellipsoid.semi_major_axis,
             flattening=self.ellipsoid.flattening,
         )
-
-        return None
 
     def set_date(self, date, timezone="UTC"):
         """Set date and time of launch and update weather conditions if
@@ -472,11 +471,11 @@ class Environment:
         # Store date and configure time zone
         self.timezone = timezone
         tz = pytz.timezone(self.timezone)
-        if type(date) != datetime:
+        if not isinstance(date, datetime):
             local_date = datetime(*date)
         else:
             local_date = date
-        if local_date.tzinfo == None:
+        if local_date.tzinfo is None:
             local_date = tz.localize(local_date)
         self.date = date
         self.local_date = local_date
@@ -491,8 +490,6 @@ class Environment:
                 )
         except AttributeError:
             pass
-
-        return None
 
     def set_location(self, latitude, longitude):
         """Set latitude and longitude of launch and update atmospheric
@@ -570,7 +567,7 @@ class Environment:
         >>> g_0 = 9.80665
         >>> env_cte_g = Environment(gravity=g_0)
         >>> env_cte_g.gravity([0, 100, 1000])
-        [9.80665, 9.80665, 9.80665]
+        [np.float64(9.80665), np.float64(9.80665), np.float64(9.80665)]
 
         It's also possible to variate the gravity acceleration by defining
         its function of height:
@@ -666,8 +663,8 @@ class Environment:
         -------
         None
         """
-        if elevation != "Open-Elevation" and elevation != "SRTM":
-            self.elevation = elevation
+        if elevation not in ["Open-Elevation", "SRTM"]:
+            self.elevation = float(elevation)
         # elif elevation == "SRTM" and self.latitude != None and self.longitude != None:
         #     # Trigger the authentication flow.
         #     #ee.Authenticate()
@@ -682,7 +679,7 @@ class Environment:
         #     self.elevation = elev
 
         elif self.latitude is not None and self.longitude is not None:
-            self.elevation = self.__fetch_open_elevation()
+            self.elevation = float(self.__fetch_open_elevation())
             print("Elevation received: ", self.elevation)
         else:
             raise ValueError(
@@ -691,7 +688,9 @@ class Environment:
             )
 
     @requires_netCDF4
-    def set_topographic_profile(self, type, file, dictionary="netCDF4", crs=None):
+    def set_topographic_profile(
+        self, type, file, dictionary="netCDF4", crs=None
+    ):  # pylint: disable=unused-argument, redefined-builtin
         """[UNDER CONSTRUCTION] Defines the Topographic profile, importing data
         from previous downloaded files. Mainly data from the Shuttle Radar
         Topography Mission (SRTM) and NASA Digital Elevation Model will be used
@@ -738,8 +737,6 @@ class Environment:
                     )
                 )
 
-        return None
-
     def get_elevation_from_topographic_profile(self, lat, lon):
         """Function which receives as inputs the coordinates of a point and
         finds its elevation in the provided Topographic Profile.
@@ -756,7 +753,7 @@ class Environment:
         elevation : float | int
             Elevation provided by the topographic data, in meters.
         """
-        if self.topographic_profile_activated == False:
+        if self.topographic_profile_activated is False:
             print(
                 "You must define a Topographic profile first, please use the method Environment.set_topographic_profile()"
             )
@@ -826,9 +823,9 @@ class Environment:
 
         return elevation
 
-    def set_atmospheric_model(
+    def set_atmospheric_model(  # pylint: disable=too-many-branches
         self,
-        type,
+        type,  # pylint: disable=redefined-builtin
         file=None,
         dictionary=None,
         pressure=None,
@@ -1097,7 +1094,7 @@ class Environment:
             self.process_noaaruc_sounding(file)
             # Save file
             self.atmospheric_model_file = file
-        elif type == "Forecast" or type == "Reanalysis":
+        elif type in ["Forecast", "Reanalysis"]:
             # Process default forecasts if requested
             if file == "GFS":
                 # Define dictionary
@@ -1365,8 +1362,6 @@ class Environment:
         # Update dynamic viscosity
         self.calculate_dynamic_viscosity()
 
-        return None
-
     def process_standard_atmosphere(self):
         """Sets pressure and temperature profiles corresponding to the
         International Standard Atmosphere defined by ISO 2533 and
@@ -1418,8 +1413,6 @@ class Environment:
 
         # Set maximum expected height
         self.max_expected_height = 80000
-
-        return None
 
     def process_custom_atmosphere(
         self, pressure=None, temperature=None, wind_u=0, wind_v=0
@@ -1595,8 +1588,6 @@ class Environment:
         # Save maximum expected height
         self.max_expected_height = max_expected_height
 
-        return None
-
     def process_windy_atmosphere(self, model="ECMWF"):
         """Process data from Windy.com to retrieve atmospheric forecast data.
 
@@ -1722,7 +1713,7 @@ class Environment:
         self.max_expected_height = max(altitude_array[0], altitude_array[-1])
 
         # Get elevation data from file
-        self.elevation = response["header"]["elevation"]
+        self.elevation = float(response["header"]["elevation"])
 
         # Compute info data
         self.atmospheric_model_init_date = netCDF4.num2date(
@@ -1870,8 +1861,6 @@ class Environment:
 
         # Save maximum expected height
         self.max_expected_height = data_array[-1, 1]
-
-        return None
 
     def process_noaaruc_sounding(self, file):
         """Import and process the upper air sounding data from `NOAA
@@ -2054,7 +2043,9 @@ class Environment:
         self.max_expected_height = pressure_array[-1, 0]
 
     @requires_netCDF4
-    def process_forecast_reanalysis(self, file, dictionary):
+    def process_forecast_reanalysis(
+        self, file, dictionary
+    ):  # pylint: disable=too-many-branches
         """Import and process atmospheric data from weather forecasts
         and reanalysis given as ``netCDF`` or ``OPeNDAP`` files.
         Sets pressure, temperature, wind-u and wind-v
@@ -2154,7 +2145,7 @@ class Environment:
                     file_time_date
                 )
             )
-        elif time_index == len(time_array) - 1 and input_time_num > file_time_num:
+        if time_index == len(time_array) - 1 and input_time_num > file_time_num:
             raise ValueError(
                 "Chosen launch time is not available in the provided file, which ends at {:}.".format(
                     file_time_date
@@ -2423,9 +2414,9 @@ class Environment:
                 f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + (
                     (x - x1) / (x2 - x1)
                 ) * f_x2_y2
-                self.elevation = ((y2 - y) / (y2 - y1)) * f_x_y1 + (
-                    (y - y1) / (y2 - y1)
-                ) * f_x_y2
+                self.elevation = float(
+                    ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
+                )
             except:
                 raise ValueError(
                     "Unable to read surface elevation data. Check file and dictionary."
@@ -2464,10 +2455,8 @@ class Environment:
         # Close weather data
         weather_data.close()
 
-        return None
-
     @requires_netCDF4
-    def process_ensemble(self, file, dictionary):
+    def process_ensemble(self, file, dictionary):  # pylint: disable=too-many-branches
         """Import and process atmospheric data from weather ensembles
         given as ``netCDF`` or ``OPeNDAP`` files. Sets pressure, temperature,
         wind-u and wind-v profiles and surface elevation obtained from a weather
@@ -2566,7 +2555,7 @@ class Environment:
                     file_time_date
                 )
             )
-        elif time_index == len(time_array) - 1 and input_time_num > file_time_num:
+        if time_index == len(time_array) - 1 and input_time_num > file_time_num:
             raise ValueError(
                 "Chosen launch time is not available in the provided file, which ends at {:}.".format(
                     file_time_date
@@ -2666,7 +2655,7 @@ class Environment:
                 dictionary["geopotential_height"]
             ].dimensions[:]
             params = tuple(
-                [param_dictionary[inverse_dictionary[dim]] for dim in dimensions]
+                param_dictionary[inverse_dictionary[dim]] for dim in dimensions
             )
             geopotentials = weather_data.variables[dictionary["geopotential_height"]][
                 params
@@ -2677,7 +2666,7 @@ class Environment:
                     dictionary["geopotential"]
                 ].dimensions[:]
                 params = tuple(
-                    [param_dictionary[inverse_dictionary[dim]] for dim in dimensions]
+                    param_dictionary[inverse_dictionary[dim]] for dim in dimensions
                 )
                 geopotentials = (
                     weather_data.variables[dictionary["geopotential"]][params]
@@ -2793,9 +2782,9 @@ class Environment:
                 f_x_y2 = ((x2 - x) / (x2 - x1)) * f_x1_y2 + (
                     (x - x1) / (x2 - x1)
                 ) * f_x2_y2
-                self.elevation = ((y2 - y) / (y2 - y1)) * f_x_y1 + (
-                    (y - y1) / (y2 - y1)
-                ) * f_x_y2
+                self.elevation = float(
+                    ((y2 - y) / (y2 - y1)) * f_x_y1 + ((y - y1) / (y2 - y1)) * f_x_y2
+                )
             except:
                 raise ValueError(
                     "Unable to read surface elevation data. Check file and dictionary."
@@ -2831,10 +2820,7 @@ class Environment:
         self.time_array = time_array[:].tolist()
         self.height = height
 
-        # Close weather data
         weather_data.close()
-
-        return None
 
     def select_ensemble_member(self, member=0):
         """Activates ensemble member, meaning that all atmospheric variables
@@ -2956,8 +2942,6 @@ class Environment:
 
         # Update dynamic viscosity
         self.calculate_dynamic_viscosity()
-
-        return None
 
     def load_international_standard_atmosphere(self):
         """Defines the pressure and temperature profile functions set
@@ -3090,7 +3074,7 @@ class Environment:
 
         >>> env = Environment()
         >>> env.calculate_density_profile()
-        >>> env.density(0)
+        >>> float(env.density(0))
         1.225000018124288
 
         Creating an Environment object and calculating the density
@@ -3098,7 +3082,7 @@ class Environment:
 
         >>> env = Environment()
         >>> env.calculate_density_profile()
-        >>> env.density(1000)
+        >>> float(env.density(1000))
         1.1116193933422585
         """
         # Retrieve pressure P, gas constant R and temperature T
@@ -3114,8 +3098,6 @@ class Environment:
 
         # Save calculated density
         self.density = D
-
-        return None
 
     def calculate_speed_of_sound_profile(self):
         """Compute the speed of sound in the atmosphere as a function
@@ -3141,8 +3123,6 @@ class Environment:
         # Save calculated speed of sound
         self.speed_of_sound = a
 
-        return None
-
     def calculate_dynamic_viscosity(self):
         """Compute the dynamic viscosity of the atmosphere as a function of
         height by using the formula given in ISO 2533 u = B*T^(1.5)/(T+S).
@@ -3167,8 +3147,6 @@ class Environment:
 
         # Save calculated density
         self.dynamic_viscosity = u
-
-        return None
 
     def add_wind_gust(self, wind_gust_x, wind_gust_y):
         """Adds a function to the current stored wind profile, in order to
@@ -3233,7 +3211,6 @@ class Environment:
 
         self.prints.all()
         self.plots.info()
-        return None
 
     def all_info(self):
         """Prints out all data and graphs available about the Environment.
@@ -3245,8 +3222,6 @@ class Environment:
 
         self.prints.all()
         self.plots.all()
-
-        return None
 
     def all_plot_info_returned(self):
         """Returns a dictionary with all plot information available about the Environment.
@@ -3261,6 +3236,7 @@ class Environment:
         Deprecated in favor of `utilities.get_instance_attributes`.
 
         """
+        # pylint: disable=R1735, unnecessary-comprehension
         warnings.warn(
             "The method 'all_plot_info_returned' is deprecated as of version "
             + "1.2 and will be removed in version 1.4 "
@@ -3334,6 +3310,7 @@ class Environment:
         Deprecated in favor of `utilities.get_instance_attributes`.
 
         """
+        # pylint: disable= unnecessary-comprehension, use-dict-literal
         warnings.warn(
             "The method 'all_info_returned' is deprecated as of version "
             + "1.2 and will be removed in version 1.4 "
@@ -3355,9 +3332,9 @@ class Environment:
             surface_air_density=self.density(self.elevation),
             surface_speed_of_sound=self.speed_of_sound(self.elevation),
         )
-        if self.datetime_date != None:
+        if self.datetime_date is not None:
             info["launch_date"] = self.datetime_date.strftime("%Y-%d-%m %H:%M:%S")
-        if self.latitude != None and self.longitude != None:
+        if self.latitude is not None and self.longitude is not None:
             info["lat"] = self.latitude
             info["lon"] = self.longitude
         if info["model_type"] in ["Forecast", "Reanalysis", "Ensemble"]:
@@ -3447,23 +3424,16 @@ class Environment:
             "atmospheric_model_wind_velocity_y_profile": atmospheric_model_wind_velocity_y_profile,
         }
 
-        f = open(filename + ".json", "w")
-
-        # write json object to file
-        f.write(
-            json.dumps(
-                self.export_env_dictionary, sort_keys=False, indent=4, default=str
+        with open(f"{filename}.json", "w") as f:
+            f.write(
+                json.dumps(
+                    self.export_env_dictionary, sort_keys=False, indent=4, default=str
+                )
             )
-        )
-
-        # close file
-        f.close()
         print("Your Environment file was saved, check it out: " + filename + ".json")
         print(
             "You can use it in the future by using the custom_atmosphere atmospheric model."
         )
-
-        return None
 
     def set_earth_geometry(self, datum):
         """Sets the Earth geometry for the ``Environment`` class based on the
@@ -3505,7 +3475,7 @@ class Environment:
         try:
             response = requests.get(request_url)
         except Exception as e:
-            raise RuntimeError("Unable to reach Open-Elevation API servers.")
+            raise RuntimeError("Unable to reach Open-Elevation API servers.") from e
         results = response.json()["results"]
         return results[0]["elevation"]
 
@@ -3525,7 +3495,7 @@ class Environment:
                 raise ValueError(
                     "Could not get a valid response for Icon-EU from Windy. "
                     "Check if the coordinates are set inside Europe."
-                )
+                ) from e
         return response
 
     @exponential_backoff(max_attempts=5, base_delay=2, max_delay=60)
@@ -3688,14 +3658,14 @@ class Environment:
         F = (1 - e2 / 4 - 3 * A / 64 - 5 * B / 256) * lat
         G = (3 * e2 / 8 + 3 * A / 32 + 45 * B / 1024) * C
         H = (15 * A / 256 + 45 * B / 1024) * D
-        I = (35 * B / 3072) * E
+        aux_i = (35 * B / 3072) * E
 
         # Evaluate other reference parameters
         n = semi_major_axis / ((1 - e2 * (np.sin(lat) ** 2)) ** 0.5)
         t = np.tan(lat) ** 2
         c = e2lin * (np.cos(lat) ** 2)
         ag = (lon - lon_mc) * np.cos(lat)
-        m = semi_major_axis * (F - G + H - I)
+        m = semi_major_axis * (F - G + H - aux_i)
 
         # Evaluate new auxiliary parameters
         J = (1 - t + c) * ag * ag * ag / 6
@@ -3794,7 +3764,7 @@ class Environment:
         d = (x - 500000) / (n1 * K0)
 
         # Calculate other auxiliary values
-        I = (5 + 3 * t1 + 10 * c1 - 4 * c1 * c1 - 9 * e2lin) * d * d * d * d / 24
+        aux_i = (5 + 3 * t1 + 10 * c1 - 4 * c1 * c1 - 9 * e2lin) * d * d * d * d / 24
         J = (
             (61 + 90 * t1 + 298 * c1 + 45 * t1 * t1 - 252 * e2lin - 3 * c1 * c1)
             * (d**6)
@@ -3808,7 +3778,7 @@ class Environment:
         )
 
         # Finally calculate the coordinates in lat/lot
-        lat = lat1 - (n1 * np.tan(lat1) / r1) * (d * d / 2 - I + J)
+        lat = lat1 - (n1 * np.tan(lat1) / r1) * (d * d / 2 - aux_i + J)
         lon = central_meridian * np.pi / 180 + (K + L) / np.cos(lat1)
 
         # Convert final lat/lon to Degrees
