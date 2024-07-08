@@ -335,11 +335,11 @@ class Vector:
 
     def dot(self, other):
         """Dot product between two R3 vectors."""
-        return self.__matmul__(other)
+        return self @ other
 
     def cross(self, other):
         """Cross product between two R3 vectors."""
-        return self.__xor__(other)
+        return self ^ other
 
     def proj(self, other):
         """Scalar projection of R3 vector self onto R3 vector other.
@@ -613,17 +613,11 @@ class Matrix:
     @cached_property
     def det(self):
         """Matrix determinant."""
-        return self.__abs__()
+        return abs(self)
 
     @cached_property
-    def is_diagonal(self, tol=1e-6):
+    def is_diagonal(self):
         """Boolean indicating if matrix is diagonal.
-
-        Parameters
-        ----------
-        tol : float, optional
-            Tolerance used to determine if non-diagonal elements are negligible.
-            Defaults to 1e-6.
 
         Returns
         -------
@@ -647,7 +641,7 @@ class Matrix:
         for i, j in product(range(3), range(3)):
             if i == j:
                 continue
-            if abs(self[i, j]) > tol:
+            if abs(self[i, j]) > 1e-6:
                 return False
         return True
 
@@ -918,7 +912,7 @@ class Matrix:
         --------
         Matrix.__matmul__
         """
-        return self.__matmul__(other)
+        return self @ (other)
 
     def __str__(self):
         return (

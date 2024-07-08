@@ -98,7 +98,7 @@ def controller_function():
         A controller function
     """
 
-    def controller_function(
+    def controller_function(  # pylint: disable=unused-argument
         time, sampling_rate, state, state_history, observed_variables, air_brakes
     ):
         z = state[2]
@@ -134,7 +134,7 @@ def lambda_quad_func():
     Function
         A lambda function based on a string.
     """
-    func = lambda x: x**2
+    func = lambda x: x**2  # pylint: disable=unnecessary-lambda
     return Function(
         source=func,
     )

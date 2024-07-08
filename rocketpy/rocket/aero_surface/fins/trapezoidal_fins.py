@@ -2,6 +2,7 @@ import numpy as np
 
 from rocketpy.plots.aero_surface_plots import _TrapezoidalFinsPlots
 from rocketpy.prints.aero_surface_prints import _TrapezoidalFinsPrints
+
 from .fins import Fins
 
 
@@ -248,9 +249,8 @@ class TrapezoidalFins(Fins):
         self.cpy = 0
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
-        return None
 
-    def evaluate_geometrical_parameters(self):
+    def evaluate_geometrical_parameters(self):  # pylint: disable=too-many-statements
         """Calculates and saves fin set's geometrical parameters such as the
         fins' area, aspect ratio and parameters for roll movement.
 
@@ -258,7 +258,7 @@ class TrapezoidalFins(Fins):
         -------
         None
         """
-
+        # pylint: disable=invalid-name
         Yr = self.root_chord + self.tip_chord
         Af = Yr * self.span / 2  # Fin area
         AR = 2 * self.span**2 / Af  # Fin aspect ratio
@@ -273,10 +273,10 @@ class TrapezoidalFins(Fins):
         # Fin–body interference correction parameters
         tau = (self.span + self.rocket_radius) / self.rocket_radius
         lift_interference_factor = 1 + 1 / tau
-        λ = self.tip_chord / self.root_chord
+        lambda_ = self.tip_chord / self.root_chord
 
         # Parameters for Roll Moment.
-        # Documented at: https://github.com/RocketPy-Team/RocketPy/blob/master/docs/technical/aerodynamics/Roll_Equations.pdf
+        # Documented at: https://docs.rocketpy.org/en/latest/technical/
         roll_geometrical_constant = (
             (self.root_chord + 3 * self.tip_chord) * self.span**3
             + 4
@@ -286,9 +286,10 @@ class TrapezoidalFins(Fins):
             + 6 * (self.root_chord + self.tip_chord) * self.span * self.rocket_radius**2
         ) / 12
         roll_damping_interference_factor = 1 + (
-            ((tau - λ) / (tau)) - ((1 - λ) / (tau - 1)) * np.log(tau)
+            ((tau - lambda_) / (tau)) - ((1 - lambda_) / (tau - 1)) * np.log(tau)
         ) / (
-            ((tau + 1) * (tau - λ)) / (2) - ((1 - λ) * (tau**3 - 1)) / (3 * (tau - 1))
+            ((tau + 1) * (tau - lambda_)) / (2)
+            - ((1 - lambda_) * (tau**3 - 1)) / (3 * (tau - 1))
         )
         roll_forcing_interference_factor = (1 / np.pi**2) * (
             (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
@@ -313,12 +314,11 @@ class TrapezoidalFins(Fins):
         self.roll_geometrical_constant = roll_geometrical_constant
         self.tau = tau
         self.lift_interference_factor = lift_interference_factor
-        self.λ = λ
+        self.λ = lambda_  # pylint: disable=non-ascii-name
         self.roll_damping_interference_factor = roll_damping_interference_factor
         self.roll_forcing_interference_factor = roll_forcing_interference_factor
 
         self.evaluate_shape()
-        return None
 
     def evaluate_shape(self):
         if self.sweep_length:
@@ -339,14 +339,10 @@ class TrapezoidalFins(Fins):
         x_array, y_array = zip(*points)
         self.shape_vec = [np.array(x_array), np.array(y_array)]
 
-        return None
-
     def info(self):
         self.prints.geometry()
         self.prints.lift()
-        return None
 
     def all_info(self):
         self.prints.all()
         self.plots.all()
-        return None

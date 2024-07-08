@@ -29,7 +29,7 @@ class RocketPyEncoder(json.JSONEncoder):
             ),
         ):
             return int(o)
-        elif isinstance(o, (np.float_, np.float16, np.float32, np.float64)):
+        elif isinstance(o, (np.float16, np.float32, np.float64)):
             return float(o)
         elif isinstance(o, np.ndarray):
             return o.tolist()

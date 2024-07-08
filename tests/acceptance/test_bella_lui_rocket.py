@@ -4,6 +4,7 @@
 # Importing libraries
 import matplotlib as mpl
 import numpy as np
+from scipy.signal import savgol_filter
 
 from rocketpy import Environment, Flight, Function, Rocket, SolidMotor
 
@@ -103,20 +104,20 @@ def test_bella_lui_rocket_data_asserts_acceptance():
     )
     BellaLui.set_rail_buttons(0.1, -0.5)
     BellaLui.add_motor(K828FJ, parameters.get("distance_rocket_nozzle")[0])
-    NoseCone = BellaLui.add_nose(
+    BellaLui.add_nose(
         length=parameters.get("nose_length")[0],
         kind="tangent",
         position=parameters.get("nose_distance_to_cm")[0]
         + parameters.get("nose_length")[0],
     )
-    fin_set = BellaLui.add_trapezoidal_fins(
+    BellaLui.add_trapezoidal_fins(
         3,
         span=parameters.get("fin_span")[0],
         root_chord=parameters.get("fin_root_chord")[0],
         tip_chord=parameters.get("fin_tip_chord")[0],
         position=parameters.get("fin_distance_to_cm")[0],
     )
-    tail = BellaLui.add_tail(
+    BellaLui.add_tail(
         top_radius=parameters.get("tail_top_radius")[0],
         bottom_radius=parameters.get("tail_bottom_radius")[0],
         length=parameters.get("tail_length")[0],
@@ -130,7 +131,7 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         # activate drogue when vz < 0 m/s.
         return True if y[5] < 0 else False
 
-    Drogue = BellaLui.add_parachute(
+    BellaLui.add_parachute(
         "Drogue",
         cd_s=parameters.get("CdS_drogue")[0],
         trigger=drogue_trigger,
@@ -213,7 +214,6 @@ def test_bella_lui_rocket_data_asserts_acceptance():
     acceleration_rcp.append(test_flight.az(test_flight.t_final))
 
     # Acceleration comparison (will not be used in our publication)
-    from scipy.signal import savgol_filter
 
     # Calculate the acceleration as a velocity derivative
     acceleration_kalt = [0]

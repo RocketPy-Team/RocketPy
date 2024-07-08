@@ -1,6 +1,7 @@
 import numpy as np
 from rocketpy.mathutils.function import Function
 from rocketpy.prints.aero_surface_prints import _RailButtonsPrints
+
 from .aero_surface import AeroSurface
 
 
@@ -46,7 +47,6 @@ class RailButtons(AeroSurface):
         self.evaluate_center_of_pressure()
 
         self.prints = _RailButtonsPrints(self)
-        return None
 
     def evaluate_center_of_pressure(self):
         """Evaluates the center of pressure of the rail buttons. Rail buttons
@@ -60,7 +60,6 @@ class RailButtons(AeroSurface):
         self.cpy = 0
         self.cpz = 0
         self.cp = (self.cpx, self.cpy, self.cpz)
-        return None
 
     def evaluate_lift_coefficient(self):
         """Evaluates the lift coefficient curve of the rail buttons. Rail
@@ -80,7 +79,6 @@ class RailButtons(AeroSurface):
             ["Alpha (rad)", "Mach"],
             "Cl",
         )
-        return None
 
     def evaluate_geometrical_parameters(self):
         """Evaluates the geometrical parameters of the rail buttons. Rail
@@ -90,7 +88,6 @@ class RailButtons(AeroSurface):
         -------
         None
         """
-        return None
 
     def info(self):
         """Prints out all the information about the Rail Buttons.
@@ -100,7 +97,6 @@ class RailButtons(AeroSurface):
         None
         """
         self.prints.geometry()
-        return None
 
     def all_info(self):
         """Returns all info of the Rail Buttons.
@@ -110,4 +106,3 @@ class RailButtons(AeroSurface):
         None
         """
         self.prints.all()
-        return None
