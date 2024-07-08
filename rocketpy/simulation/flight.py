@@ -1069,19 +1069,41 @@ class Flight:
             vx_init, vy_init, vz_init = 0, 0, 0
             w1_init, w2_init, w3_init = 0, 0, 0
             # Initialize attitude
-            psi_init = -self.heading * (np.pi / 180)  # Precession / Heading Angle
-            theta_init = (self.inclination - 90) * (np.pi / 180)  # Nutation Angle
-            # Consider Rail Buttons position
+            self.psi_init = -self.heading * (np.pi / 180)  # Precession / Heading Angle
+            self.theta_init = (
+                (self.inclination - 90) * np.pi / 180
+            )  # Nutation / Attitude Angle
+            self.phi_init = 0  # Spin / Bank Angle
+            # Consider Rail Buttons position, if there is rail buttons
             try:
-                psi_init += (
-                    self.rocket.rail_buttons[0].component.angular_position_rad * self.rocket._csys
+                self.phi_init += (
+                    self.rocket.rail_buttons[0].component.angular_position_rad
+                    * self.rocket._csys
                 )
             except IndexError:
                 pass
-            e0_init = np.cos(psi_init / 2) * np.cos(theta_init / 2)
-            e1_init = np.cos(psi_init / 2) * np.sin(theta_init / 2)
-            e2_init = np.sin(psi_init / 2) * np.sin(theta_init / 2)
-            e3_init = np.sin(psi_init / 2) * np.cos(theta_init / 2)
+            # 3-1-3 Euler Angles to Euler Parameters
+            # source: https://www.astro.rug.nl/software/kapteyn-beta/_downloads/attitude.pdf
+            e0_init = np.cos(self.phi_init / 2) * np.cos(self.theta_init / 2) * np.cos(
+                self.psi_init / 2
+            ) - np.sin(self.phi_init / 2) * np.cos(self.theta_init / 2) * np.sin(
+                self.psi_init / 2
+            )
+            e1_init = np.cos(self.phi_init / 2) * np.cos(self.psi_init / 2) * np.sin(
+                self.theta_init / 2
+            ) + np.sin(self.phi_init / 2) * np.sin(self.theta_init / 2) * np.sin(
+                self.psi_init / 2
+            )
+            e2_init = np.cos(self.phi_init / 2) * np.sin(self.theta_init / 2) * np.sin(
+                self.psi_init / 2
+            ) - np.sin(self.phi_init / 2) * np.cos(self.psi_init / 2) * np.sin(
+                self.theta_init / 2
+            )
+            e3_init = np.cos(self.phi_init / 2) * np.cos(self.theta_init / 2) * np.sin(
+                self.psi_init / 2
+            ) + np.cos(self.theta_init / 2) * np.cos(self.psi_init / 2) * np.sin(
+                self.phi_init / 2
+            )
             # Store initial conditions
             self.initial_solution = [
                 self.t_initial,
@@ -2734,13 +2756,10 @@ class Flight:
         # Distance from Rail Button 1 (upper) to CM
         rail_buttons_tuple = self.rocket.rail_buttons[0]
         upper_button_position = (
-            rail_buttons_tuple.component.buttons_distance
-            + rail_buttons_tuple.position
+            rail_buttons_tuple.component.buttons_distance + rail_buttons_tuple.position
         )
         lower_button_position = rail_buttons_tuple.position
-        angular_position_rad = (
-            rail_buttons_tuple.component.angular_position * np.pi / 180
-        )
+        angular_position_rad = rail_buttons_tuple.component.angular_position_rad
         D1 = (
             upper_button_position - self.rocket.center_of_dry_mass_position
         ) * self.rocket._csys
