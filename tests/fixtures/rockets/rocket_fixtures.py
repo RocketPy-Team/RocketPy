@@ -136,7 +136,7 @@ def calisto_robust(
     calisto_nose_cone,
     calisto_tail,
     calisto_trapezoidal_fins,
-    calisto_rail_buttons,
+    calisto_rail_buttons,  # pylint: disable=unused-argument
     calisto_main_chute,
     calisto_drogue_chute,
 ):
@@ -368,8 +368,8 @@ def prometheus_rocket(generic_motor_cesaroni_M1520):
     prometheus.set_rail_buttons(0.69, 0.21, 60)
 
     prometheus.add_motor(motor=generic_motor_cesaroni_M1520, position=0)
-    nose_cone = prometheus.add_nose(length=0.742, kind="Von Karman", position=2.229)
-    fin_set = prometheus.add_trapezoidal_fins(
+    prometheus.add_nose(length=0.742, kind="Von Karman", position=2.229)
+    prometheus.add_trapezoidal_fins(
         n=3,
         span=0.13,
         root_chord=0.268,
@@ -377,12 +377,12 @@ def prometheus_rocket(generic_motor_cesaroni_M1520):
         position=0.273,
         sweep_length=0.066,
     )
-    drogue_chute = prometheus.add_parachute(
+    prometheus.add_parachute(
         "Drogue",
         cd_s=1.6 * np.pi * 0.3048**2,  # Cd = 1.6, D_chute = 24 in
         trigger="apogee",
     )
-    main_chute = prometheus.add_parachute(
+    prometheus.add_parachute(
         "Main",
         cd_s=2.2 * np.pi * 0.9144**2,  # Cd = 2.2, D_chute = 72 in
         trigger=457.2,  # 1500 ft

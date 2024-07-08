@@ -8,6 +8,7 @@ Contributing to RocketPy
    Running RocketPy as a Developer <rocketpy_as_developer.rst>
    GitHub Workflow for RocketPy Hackathon 2022 <github_hackathon.rst>
    Style Guide <style_guide>
+   Testing Guidelines <testing.rst>
    RocketPy with Docker <docker.rst>
    Building the Documentation <build_docs.rst>
 

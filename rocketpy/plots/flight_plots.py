@@ -32,7 +32,6 @@ class _FlightPlots:
         None
         """
         self.flight = flight
-        return None
 
     @cached_property
     def first_event_time(self):
@@ -53,7 +52,7 @@ class _FlightPlots:
         else:
             return -1
 
-    def trajectory_3d(self):
+    def trajectory_3d(self):  # pylint: disable=too-many-statements
         """Plot a 3D graph of the trajectory
 
         Returns
@@ -66,6 +65,14 @@ class _FlightPlots:
         min_x = min(self.flight.x[:, 1])
         max_y = max(self.flight.y[:, 1])
         min_y = min(self.flight.y[:, 1])
+        min_xy = min(min_x, min_y)
+        max_xy = max(max_x, max_y)
+
+        # avoids errors when x_lim and y_lim are the same
+        if abs(min_z - max_z) < 1e-5:
+            max_z += 1
+        if abs(min_xy - max_xy) < 1e-5:
+            max_xy += 1
 
         _ = plt.figure(figsize=(9, 9))
         ax1 = plt.subplot(111, projection="3d")
@@ -109,23 +116,21 @@ class _FlightPlots:
         ax1.set_ylabel("Y - North (m)")
         ax1.set_zlabel("Z - Altitude Above Ground Level (m)")
         ax1.set_title("Flight Trajectory")
-        ax1.set_xlim(min_x, max_x)
-        ax1.set_ylim(min_y, max_y)
+        ax1.set_xlim(min_xy, max_xy)
+        ax1.set_ylim(min_xy, max_xy)
         ax1.set_zlim(min_z, max_z)
         ax1.view_init(15, 45)
         ax1.set_box_aspect(None, zoom=0.95)  # 95% for label adjustment
         plt.show()
 
-    def linear_kinematics_data(self):
+    def linear_kinematics_data(self):  # pylint: disable=too-many-statements
         """Prints out all Kinematics graphs available about the Flight
 
         Returns
         -------
         None
         """
-
-        # Velocity and acceleration plots
-        fig2 = plt.figure(figsize=(9, 12))
+        plt.figure(figsize=(9, 12))
 
         ax1 = plt.subplot(414)
         ax1.plot(self.flight.vx[:, 0], self.flight.vx[:, 1], color="#ff7f0e")
@@ -189,9 +194,8 @@ class _FlightPlots:
 
         plt.subplots_adjust(hspace=0.5)
         plt.show()
-        return None
 
-    def attitude_data(self):
+    def attitude_data(self):  # pylint: disable=too-many-statements
         """Prints out all Angular position graphs available about the Flight
 
         Returns
@@ -200,7 +204,7 @@ class _FlightPlots:
         """
 
         # Angular position plots
-        fig3 = plt.figure(figsize=(9, 12))
+        _ = plt.figure(figsize=(9, 12))
 
         ax1 = plt.subplot(411)
         ax1.plot(self.flight.e0[:, 0], self.flight.e0[:, 1], label="$e_0$")
@@ -241,8 +245,6 @@ class _FlightPlots:
         plt.subplots_adjust(hspace=0.5)
         plt.show()
 
-        return None
-
     def flight_path_angle_data(self):
         """Prints out Flight path and Rocket Attitude angle graphs available
         about the Flight
@@ -251,10 +253,7 @@ class _FlightPlots:
         -------
         None
         """
-
-        # Path, Attitude and Lateral Attitude Angle
-        # Angular position plots
-        fig5 = plt.figure(figsize=(9, 6))
+        plt.figure(figsize=(9, 6))
 
         ax1 = plt.subplot(211)
         ax1.plot(
@@ -288,9 +287,7 @@ class _FlightPlots:
         plt.subplots_adjust(hspace=0.5)
         plt.show()
 
-        return None
-
-    def angular_kinematics_data(self):
+    def angular_kinematics_data(self):  # pylint: disable=too-many-statements
         """Prints out all Angular velocity and acceleration graphs available
         about the Flight
 
@@ -298,9 +295,7 @@ class _FlightPlots:
         -------
         None
         """
-
-        # Angular velocity and acceleration plots
-        fig4 = plt.figure(figsize=(9, 9))
+        plt.figure(figsize=(9, 9))
         ax1 = plt.subplot(311)
         ax1.plot(self.flight.w1[:, 0], self.flight.w1[:, 1], color="#ff7f0e")
         ax1.set_xlim(0, self.first_event_time)
@@ -358,9 +353,7 @@ class _FlightPlots:
         plt.subplots_adjust(hspace=0.5)
         plt.show()
 
-        return None
-
-    def rail_buttons_forces(self):
+    def rail_buttons_forces(self):  # pylint: disable=too-many-statements
         """Prints out all Rail Buttons Forces graphs available about the Flight.
 
         Returns
@@ -372,7 +365,7 @@ class _FlightPlots:
         elif self.flight.out_of_rail_time_index == 0:
             print("No rail phase was found. Skipping rail button plots.")
         else:
-            fig6 = plt.figure(figsize=(9, 6))
+            plt.figure(figsize=(9, 6))
 
             ax1 = plt.subplot(211)
             ax1.plot(
@@ -442,18 +435,15 @@ class _FlightPlots:
 
             plt.subplots_adjust(hspace=0.5)
             plt.show()
-        return None
 
-    def aerodynamic_forces(self):
+    def aerodynamic_forces(self):  # pylint: disable=too-many-statements
         """Prints out all Forces and Moments graphs available about the Flight
 
         Returns
         -------
         None
         """
-
-        # Aerodynamic force and moment plots
-        fig7 = plt.figure(figsize=(9, 12))
+        plt.figure(figsize=(9, 12))
 
         ax1 = plt.subplot(411)
         ax1.plot(
@@ -526,9 +516,7 @@ class _FlightPlots:
         plt.subplots_adjust(hspace=0.5)
         plt.show()
 
-        return None
-
-    def energy_data(self):
+    def energy_data(self):  # pylint: disable=too-many-statements
         """Prints out all Energy components graphs available about the Flight
 
         Returns
@@ -536,7 +524,7 @@ class _FlightPlots:
         None
         """
 
-        fig8 = plt.figure(figsize=(9, 9))
+        plt.figure(figsize=(9, 9))
 
         ax1 = plt.subplot(411)
         ax1.plot(
@@ -639,9 +627,7 @@ class _FlightPlots:
         plt.subplots_adjust(hspace=1)
         plt.show()
 
-        return None
-
-    def fluid_mechanics_data(self):
+    def fluid_mechanics_data(self):  # pylint: disable=too-many-statements
         """Prints out a summary of the Fluid Mechanics graphs available about
         the Flight
 
@@ -649,9 +635,7 @@ class _FlightPlots:
         -------
         None
         """
-
-        # Trajectory Fluid Mechanics Plots
-        fig10 = plt.figure(figsize=(9, 12))
+        plt.figure(figsize=(9, 12))
 
         ax1 = plt.subplot(411)
         ax1.plot(self.flight.mach_number[:, 0], self.flight.mach_number[:, 1])
@@ -706,9 +690,7 @@ class _FlightPlots:
         plt.subplots_adjust(hspace=0.5)
         plt.show()
 
-        return None
-
-    def stability_and_control_data(self):
+    def stability_and_control_data(self):  # pylint: disable=too-many-statements
         """Prints out Rocket Stability and Control parameters graphs available
         about the Flight
 
@@ -717,7 +699,7 @@ class _FlightPlots:
         None
         """
 
-        fig9 = plt.figure(figsize=(9, 6))
+        plt.figure(figsize=(9, 6))
 
         ax1 = plt.subplot(211)
         ax1.plot(self.flight.stability_margin[:, 0], self.flight.stability_margin[:, 1])
@@ -787,8 +769,6 @@ class _FlightPlots:
         plt.subplots_adjust(hspace=0.5)
         plt.show()
 
-        return None
-
     def pressure_rocket_altitude(self):
         """Plots out pressure at rocket's altitude.
 
@@ -809,8 +789,6 @@ class _FlightPlots:
         ax1.grid()
 
         plt.show()
-
-        return None
 
     def pressure_signals(self):
         """Plots out all Parachute Trigger Pressure Signals.
@@ -837,9 +815,7 @@ class _FlightPlots:
         else:
             print("\nRocket has no parachutes. No parachute plots available")
 
-        return None
-
-    def all(self):
+    def all(self):  # pylint: disable=too-many-statements
         """Prints out all plots available about the Flight.
 
         Returns
@@ -880,5 +856,3 @@ class _FlightPlots:
         print("\n\nRocket and Parachute Pressure Plots\n")
         self.pressure_rocket_altitude()
         self.pressure_signals()
-
-        return None

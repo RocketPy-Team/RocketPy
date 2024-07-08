@@ -13,21 +13,6 @@ class _SolidMotorPlots(_MotorPlots):
 
     """
 
-    def __init__(self, solid_motor):
-        """Initializes _MotorClass class.
-
-        Parameters
-        ----------
-        solid_motor : SolidMotor
-            Instance of the SolidMotor class
-
-        Returns
-        -------
-        None
-        """
-
-        super().__init__(solid_motor)
-
     def grain_inner_radius(self, lower_limit=None, upper_limit=None):
         """Plots grain_inner_radius of the solid_motor as a function of time.
 
@@ -176,9 +161,4 @@ class _SolidMotorPlots(_MotorPlots):
         self.burn_rate(self.motor.burn_time[0], self.motor.grain_burn_out)
         self.burn_area(*self.motor.burn_time)
         self.Kn()
-        self.I_11(*self.motor.burn_time)
-        self.I_22(*self.motor.burn_time)
-        self.I_33(*self.motor.burn_time)
-        self.I_12(*self.motor.burn_time)
-        self.I_13(*self.motor.burn_time)
-        self.I_23(*self.motor.burn_time)
+        self.inertia_tensor(*self.motor.burn_time)
