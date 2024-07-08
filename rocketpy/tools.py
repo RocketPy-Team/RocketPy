@@ -857,16 +857,14 @@ def parallel_axis_theorem_from_com(com_inertia_moment, mass, distance):
     float
         Moment of inertia relative to the new axis.
 
-    Reference
-    ---------
+    References
+    ----------
     https://en.wikipedia.org/wiki/Parallel_axis_theorem
     """
     return com_inertia_moment + mass * distance**2
 
 
 # Flight
-
-
 def quaternions_to_precession(e0, e1, e2, e3):
     """Calculates the Precession angle
 
@@ -880,11 +878,17 @@ def quaternions_to_precession(e0, e1, e2, e3):
         Euler parameter 2, must be between -1 and 1
     e3 : float
         Euler parameter 3, must be between -1 and 1
+
     Returns
     -------
     float
         Euler Precession angle in degrees
+
+    References
+    ----------
+    .. [1] Baruh, Haim. Analytical dynamics
     """
+    # minus sign in e2 and e1 is due to changin from 3-1-3 to 3-2-3 convention
     return (180 / np.pi) * (np.arctan2(e3, e0) + np.arctan2(-e2, -e1))
 
 
@@ -906,7 +910,12 @@ def quaternions_to_spin(e0, e1, e2, e3):
     -------
     float
         Euler Spin angle in degrees
+
+    References
+    ----------
+    .. [1] Baruh, Haim. Analytical dynamics
     """
+    # minus sign in e2 and e1 is due to changin from 3-1-3 to 3-2-3 convention
     return (180 / np.pi) * (np.arctan2(e3, e0) - np.arctan2(-e2, -e1))
 
 
@@ -919,11 +928,17 @@ def quaternions_to_nutation(e1, e2):
         Euler parameter 1, must be between -1 and 1
     e2 : float
         Euler parameter 2, must be between -1 and 1
+
     Returns
     -------
     float
         Euler Nutation angle in degrees
+
+    References
+    ----------
+    .. [1] Baruh, Haim. Analytical dynamics
     """
+    # minus sign is due to changin from 3-1-3 to 3-2-3 convention
     return (180 / np.pi) * 2 * np.arcsin(-((e1**2 + e2**2) ** 0.5))
 
 

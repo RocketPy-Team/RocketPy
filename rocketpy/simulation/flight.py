@@ -290,15 +290,15 @@ class Flight:
         of time. Can be called or accessed as array.
     Flight.phi : Function
         Rocket's Spin Euler Angle, φ, according to the 3-2-3 rotation
-        system (NASA Standard Aerospace). Measured in degrees and
+        system nomenclature (NASA Standard Aerospace). Measured in degrees and
         expressed as a function of time. Can be called or accessed as array.
     Flight.theta : Function
         Rocket's Nutation Euler Angle, θ, according to the 3-2-3 rotation
-        system (NASA Standard Aerospace). Measured in degrees and
+        system nomenclature (NASA Standard Aerospace). Measured in degrees and
         expressed as a function of time. Can be called or accessed as array.
     Flight.psi : Function
         Rocket's Precession Euler Angle, ψ, according to the 3-2-3 rotation
-        system (NASA Standard Aerospace). Measured in degrees and
+        system nomenclature (NASA Standard Aerospace). Measured in degrees and
         expressed as a function of time. Can be called or accessed as array.
     Flight.R1 : Function
         Resultant force perpendicular to rockets axis due to
@@ -522,7 +522,7 @@ class Flight:
             Default is 80.
         heading : int, float, optional
             Heading angle relative to north given in degrees.
-            Default is 90, which points in the x direction.
+            Default is 90, which points in the x (east) direction.
         initial_solution : array, Flight, optional
             Initial solution array to be used. Format is:
 
