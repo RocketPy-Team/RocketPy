@@ -1,5 +1,6 @@
 from rocketpy.mathutils.function import Function
 from rocketpy.prints.aero_surface_prints import _RailButtonsPrints
+
 from .aero_surface import AeroSurface
 
 

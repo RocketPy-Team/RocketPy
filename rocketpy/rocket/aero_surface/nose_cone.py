@@ -6,6 +6,7 @@ from scipy.optimize import fsolve
 from rocketpy.mathutils.function import Function
 from rocketpy.plots.aero_surface_plots import _NoseConePlots
 from rocketpy.prints.aero_surface_prints import _NoseConePrints
+
 from .aero_surface import AeroSurface
 
 

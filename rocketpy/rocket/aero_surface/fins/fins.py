@@ -9,6 +9,7 @@ from rocketpy.prints.aero_surface_prints import (
     _EllipticalFinsPrints,
     _TrapezoidalFinsPrints,
 )
+
 from ..aero_surface import AeroSurface
 
 

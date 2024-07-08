@@ -3,6 +3,7 @@ import numpy as np
 from rocketpy.mathutils.function import Function
 from rocketpy.plots.aero_surface_plots import _TailPlots
 from rocketpy.prints.aero_surface_prints import _TailPrints
+
 from .aero_surface import AeroSurface
 
 

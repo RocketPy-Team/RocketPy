@@ -2,6 +2,7 @@ import numpy as np
 
 from rocketpy.plots.aero_surface_plots import _EllipticalFinsPlots
 from rocketpy.prints.aero_surface_prints import _EllipticalFinsPrints
+
 from .fins import Fins
 
 
