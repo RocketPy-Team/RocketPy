@@ -4,6 +4,8 @@ from ..mathutils.vector_matrix import Matrix, Vector
 from ..prints.sensors_prints import _GyroscopePrints
 from ..sensors.sensor import InertialSensor
 
+# pylint: disable=too-many-arguments
+
 
 class Gyroscope(InertialSensor):
     """Class for the gyroscope sensor

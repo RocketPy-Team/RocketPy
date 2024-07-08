@@ -109,10 +109,6 @@ class _GyroscopePrints(_InertialSensorPrints):
 class _GNSSPrints(_SensorPrints):
     """Class that contains all GNSS prints."""
 
-    def __init__(self, gnss):
-        """Initialize the class."""
-        super().__init__(gnss)
-
     def accuracy(self):
         """Prints the accuracy of the sensor."""
         print("\nAccuracy:\n")

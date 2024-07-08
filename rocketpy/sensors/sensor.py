@@ -6,6 +6,7 @@ import numpy as np
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
 
 
+# pylint: disable=too-many-statements
 class Sensor(ABC):
     """Abstract class for sensors
 
@@ -183,27 +184,22 @@ class Sensor(ABC):
     @abstractmethod
     def measure(self, time, **kwargs):
         """Measure the sensor data at a given time"""
-        pass
 
     @abstractmethod
     def quantize(self, value):
         """Quantize the sensor measurement"""
-        pass
 
     @abstractmethod
     def apply_noise(self, value):
         """Add noise to the sensor measurement"""
-        pass
 
     @abstractmethod
     def apply_temperature_drift(self, value):
         """Apply temperature drift to the sensor measurement"""
-        pass
 
     @abstractmethod
     def export_measured_data(self, filename, file_format="csv"):
         """Export the measured values to a file"""
-        pass
 
     def _generic_export_measured_data(self, filename, file_format, data_labels):
         """Export the measured values to a file given the data labels of each

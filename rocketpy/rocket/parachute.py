@@ -190,6 +190,7 @@ class Parachute:
         """This is used to set the triggerfunc attribute that will be used to
         interact with the Flight class.
         """
+        # pylint: disable=unused-argument disable=function-redefined
         # The parachute is deployed by a custom function
         if callable(trigger):
             # work around for having added sensors to parachute triggers

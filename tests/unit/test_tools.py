@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 from rocketpy.tools import (
-    euler_to_quaternions,
     calculate_cubic_hermite_coefficients,
+    euler_to_quaternions,
     find_roots_cubic_function,
 )
 

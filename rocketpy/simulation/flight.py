@@ -3497,8 +3497,6 @@ class Flight:  # pylint: disable=too-many-public-methods
                 self.derivative = derivative
                 self.callbacks = callbacks[:] if callbacks is not None else []
                 self.clear = clear
-                self.time_bound = None
-                self.TimeNodes = None
 
             def __repr__(self):
                 name = "None" if self.derivative is None else self.derivative.__name__

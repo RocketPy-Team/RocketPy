@@ -928,7 +928,7 @@ def quaternions_to_nutation(e1, e2):
     return (180 / np.pi) * 2 * np.arcsin(-((e1**2 + e2**2) ** 0.5))
 
 
-def euler_to_quaternions(yaw, pitch, roll):
+def euler_to_quaternions(roll, pitch, yaw):
     """Calculates the quaternions (Euler parameters) from the Euler angles in
     yaw, pitch, and roll sequence (3-2-1).
 

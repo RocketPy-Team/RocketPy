@@ -3,7 +3,6 @@ import warnings
 import matplotlib.pyplot as plt
 import numpy as np
 
-from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.motors import EmptyMotor, HybridMotor, LiquidMotor, SolidMotor
 from rocketpy.rocket.aero_surface import Fins, NoseCone, Tail
 
@@ -166,8 +165,6 @@ class _RocketPlots:
             lower=0, upper=self.rocket.motor.burn_out_time
         )
 
-        return None
-
     def draw(self, vis_args=None, plane="xz"):
         """Draws the rocket in a matplotlib figure.
 
@@ -204,7 +201,7 @@ class _RocketPlots:
                 "line_width": 1.0,
             }
 
-        fig, ax = plt.subplots(figsize=(8, 6), facecolor=vis_args["background"])
+        _, ax = plt.subplots(figsize=(8, 6), facecolor=vis_args["background"])
         ax.set_aspect("equal")
         ax.grid(True, linestyle="--", linewidth=0.5)
 
@@ -217,7 +214,7 @@ class _RocketPlots:
         self._draw_motor(last_radius, last_x, ax, vis_args)
         self._draw_rail_buttons(ax, vis_args)
         self._draw_center_of_mass_and_pressure(ax)
-        self._draw_sensors(ax, self.rocket.sensors, plane, vis_args)
+        self._draw_sensors(ax, self.rocket.sensors, plane)
 
         plt.title("Rocket Representation")
         plt.xlim()
@@ -386,7 +383,7 @@ class _RocketPlots:
         )
 
         # Get motor patches translated to the correct position
-        motor_patches = self._generate_motor_patches(total_csys, ax, vis_args)
+        motor_patches = self._generate_motor_patches(total_csys, ax)
 
         # Draw patches
         if not isinstance(self.rocket.motor, EmptyMotor):
@@ -407,7 +404,7 @@ class _RocketPlots:
         self._draw_nozzle_tube(last_radius, last_x, nozzle_position, ax, vis_args)
 
     def _generate_motor_patches(
-        self, total_csys, ax, vis_args
+        self, total_csys, ax
     ):  # pylint: disable=unused-argument
         """Generates motor patches for drawing"""
         motor_patches = []
@@ -554,7 +551,7 @@ class _RocketPlots:
             cp, 0, label="Static Center of Pressure", color="red", s=10, zorder=10
         )
 
-    def _draw_sensors(self, ax, sensors, plane, vis_args):
+    def _draw_sensors(self, ax, sensors, plane):
         """Draw the sensor as a small thick line at the position of the sensor,
         with a vector pointing in the direction normal of the sensor. Get the
         normal vector from the sensor orientation matrix."""

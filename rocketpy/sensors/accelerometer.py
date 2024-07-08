@@ -4,6 +4,8 @@ from ..mathutils.vector_matrix import Matrix, Vector
 from ..prints.sensors_prints import _InertialSensorPrints
 from ..sensors.sensor import InertialSensor
 
+# pylint: disable=too-many-arguments
+
 
 class Accelerometer(InertialSensor):
     """Class for the accelerometer sensor

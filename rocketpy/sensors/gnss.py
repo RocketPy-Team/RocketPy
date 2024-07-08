@@ -1,4 +1,3 @@
-import json
 import math
 
 import numpy as np
@@ -123,7 +122,7 @@ class GNSS(ScalarSensor):
         self.measurement = (latitude, longitude, altitude)
         self._save_data((time, *self.measurement))
 
-    def export_measured_data(self, filename, file_format):
+    def export_measured_data(self, filename, file_format="csv"):
         """Export the measured values to a file
 
         Parameters
