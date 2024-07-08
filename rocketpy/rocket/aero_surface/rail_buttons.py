@@ -1,4 +1,5 @@
 import numpy as np
+
 from rocketpy.mathutils.function import Function
 from rocketpy.prints.aero_surface_prints import _RailButtonsPrints
 
