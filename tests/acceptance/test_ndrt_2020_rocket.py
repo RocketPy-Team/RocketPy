@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy.signal import savgol_filter
 
-from rocketpy import Environment, Flight, Function, Rocket, SolidMotor
+from rocketpy import Environment, Flight, Rocket, SolidMotor
 
 
 def test_ndrt_2020_rocket_data_asserts_acceptance():
@@ -17,11 +17,6 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
     # Drift: 2275 ft
 
     # Importing libraries
-    import numpy as np
-    import pandas as pd
-    from scipy.signal import savgol_filter
-
-    from rocketpy import Environment, Flight, Function, Rocket, SolidMotor
 
     # Defining all parameters
     parameters = {
@@ -118,20 +113,20 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
     )
     NDRT2020.set_rail_buttons(0.2, -0.5, 45)
     NDRT2020.add_motor(L1395, parameters.get("distance_rocket_nozzle")[0])
-    nose_cone = NDRT2020.add_nose(
+    NDRT2020.add_nose(
         length=parameters.get("nose_length")[0],
         kind="tangent",
         position=parameters.get("nose_distance_to_cm")[0]
         + parameters.get("nose_length")[0],
     )
-    fin_set = NDRT2020.add_trapezoidal_fins(
+    NDRT2020.add_trapezoidal_fins(
         3,
         span=parameters.get("fin_span")[0],
         root_chord=parameters.get("fin_root_chord")[0],
         tip_chord=parameters.get("fin_tip_chord")[0],
         position=parameters.get("fin_distance_to_cm")[0],
     )
-    transition = NDRT2020.add_tail(
+    NDRT2020.add_tail(
         top_radius=parameters.get("transition_top_radius")[0],
         bottom_radius=parameters.get("transition_bottom_radius")[0],
         length=parameters.get("transition_length")[0],
@@ -151,7 +146,7 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
         # activate main when vz < 0 m/s and z < 167.64 m (AGL) or 550 ft (AGL)
         return True if y[5] < 0 and h < 167.64 else False
 
-    Drogue = NDRT2020.add_parachute(
+    NDRT2020.add_parachute(
         "Drogue",
         cd_s=parameters.get("cd_s_drogue")[0],
         trigger=drogue_trigger,
@@ -159,7 +154,7 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
         lag=parameters.get("lag_rec")[0],
         noise=(0, 8.3, 0.5),
     )
-    Main = NDRT2020.add_parachute(
+    NDRT2020.add_parachute(
         "Main",
         cd_s=parameters.get("cd_s_main")[0],
         trigger=main_trigger,

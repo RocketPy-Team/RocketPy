@@ -13,20 +13,6 @@ class _LiquidMotorPlots(_MotorPlots):
 
     """
 
-    def __init__(self, liquid_motor):
-        """Initializes _MotorClass class.
-
-        Parameters
-        ----------
-        liquid_motor : LiquidMotor
-            Instance of the LiquidMotor class
-
-        Returns
-        -------
-        None
-        """
-        super().__init__(liquid_motor)
-
     def draw(self):
         """Draw a representation of the LiquidMotor.
 
@@ -72,9 +58,4 @@ class _LiquidMotorPlots(_MotorPlots):
         self.total_mass(*self.motor.burn_time)
         self.propellant_mass(*self.motor.burn_time)
         self.center_of_mass(*self.motor.burn_time)
-        self.I_11(*self.motor.burn_time)
-        self.I_22(*self.motor.burn_time)
-        self.I_33(*self.motor.burn_time)
-        self.I_12(*self.motor.burn_time)
-        self.I_13(*self.motor.burn_time)
-        self.I_23(*self.motor.burn_time)
+        self.inertia_tensor(*self.motor.burn_time)

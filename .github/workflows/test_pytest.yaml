@@ -18,11 +18,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
-        python-version: [3.8, 3.12]
-        include:
-          - os: macos-latest
-            python-version: 3.12
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: [3.9, 3.12]
     env:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
@@ -48,16 +45,18 @@ jobs:
         run: python -c "import sys, rocketpy; print(f'{rocketpy.__name__} running on Python {sys.version}')"
 
       - name: Install test dependencies
-        run: pip install -r requirements-tests.txt
+        run: |
+          pip install -r requirements-tests.txt
+          pip install .[all]
 
       - name: Run Unit Tests
         run: pytest tests/unit --cov=rocketpy
 
-      - name: Run Integration Tests
-        run: pytest $(find tests -maxdepth 1 -name "*.py") --cov=rocketpy --cov-append
-
       - name: Run Documentation Tests
         run: pytest rocketpy --doctest-modules --cov=rocketpy --cov-append
+
+      - name: Run Integration Tests
+        run: pytest tests/integration --cov=rocketpy --cov-append
 
       - name: Run Acceptance Tests
         run: pytest tests/acceptance --cov=rocketpy --cov-append --cov-report=xml

@@ -174,7 +174,7 @@ def test_matrix_eq(matrix_components):
     matrix = Matrix(matrix_components)
     assert matrix == matrix
     assert matrix == matrix_components
-    assert (matrix == 2 * matrix) == False
+    assert (matrix == 2 * matrix) is False
 
 
 @pytest.mark.parametrize("operation", [lambda i: i**2, lambda i: 1 / (i + 1.1)])
@@ -242,3 +242,17 @@ def test_matrix_transformation():
     q1, q2, q3 = np.sin(phi / 2) * n
     matrix = Matrix.transformation((q0, q1, q2, q3))
     assert matrix @ Vector([0, 0, 1]) == Vector([0, -1, 0])
+
+
+@pytest.mark.parametrize("components", test_matrices)
+def test_matrix_x_y_z(components):
+    matrix = Matrix(components)
+    assert matrix.xx == components[0][0]
+    assert matrix.xy == components[0][1]
+    assert matrix.xz == components[0][2]
+    assert matrix.yx == components[1][0]
+    assert matrix.yy == components[1][1]
+    assert matrix.yz == components[1][2]
+    assert matrix.zx == components[2][0]
+    assert matrix.zy == components[2][1]
+    assert matrix.zz == components[2][2]

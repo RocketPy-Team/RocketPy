@@ -13,20 +13,6 @@ class _HybridMotorPlots(_MotorPlots):
 
     """
 
-    def __init__(self, hybrid_motor):
-        """Initializes _MotorClass class.
-
-        Parameters
-        ----------
-        hybrid_motor : HybridMotor
-            Instance of the HybridMotor class
-
-        Returns
-        -------
-        None
-        """
-        super().__init__(hybrid_motor)
-
     def grain_inner_radius(self, lower_limit=None, upper_limit=None):
         """Plots grain_inner_radius of the hybrid_motor as a function of time.
 
@@ -179,9 +165,4 @@ class _HybridMotorPlots(_MotorPlots):
         self.burn_rate(self.motor.burn_time[0], self.motor.solid.grain_burn_out)
         self.burn_area(*self.motor.burn_time)
         self.Kn()
-        self.I_11(*self.motor.burn_time)
-        self.I_22(*self.motor.burn_time)
-        self.I_33(*self.motor.burn_time)
-        self.I_12(*self.motor.burn_time)
-        self.I_13(*self.motor.burn_time)
-        self.I_23(*self.motor.burn_time)
+        self.inertia_tensor(*self.motor.burn_time)
