@@ -134,7 +134,7 @@ def lambda_quad_func():
     Function
         A lambda function based on a string.
     """
-    func = lambda x: x**2  # pylint: disable=unnecessary-lambda
+    func = lambda x: x**2  # pylint: disable=unnecessary-lambda-assignment
     return Function(
         source=func,
     )

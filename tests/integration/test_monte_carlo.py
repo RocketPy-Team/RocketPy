@@ -1,3 +1,4 @@
+# pylint: disable=unused-argument
 import os
 from unittest.mock import patch
 
@@ -85,7 +86,7 @@ def test_monte_carlo_prints(monte_carlo_calisto):
     monte_carlo_calisto.info()
 
 
-@patch("matplotlib.pyplot.show")
+@patch("matplotlib.pyplot.show")  # pylint: disable=unused-argument
 def test_monte_carlo_plots(mock_show, monte_carlo_calisto_pre_loaded):
     """Tests the plots methods of the MonteCarlo class."""
     assert monte_carlo_calisto_pre_loaded.all_info() is None
