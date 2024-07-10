@@ -22,8 +22,6 @@ from rocketpy.environment.fetchers import (
     fetch_wyoming_sounding,
 )
 from rocketpy.environment.tools import (
-    apply_bilinear_interpolation,
-    apply_bilinear_interpolation_ensemble,
     calculate_wind_heading,
     calculate_wind_speed,
     convert_wind_heading_to_direction,
@@ -45,7 +43,10 @@ from rocketpy.environment.weather_model_mapping import WeatherModelMapping
 from rocketpy.mathutils.function import NUMERICAL_TYPES, Function, funcify_method
 from rocketpy.plots.environment_plots import _EnvironmentPlots
 from rocketpy.prints.environment_prints import _EnvironmentPrints
-from rocketpy.tools import geopotential_height_to_geometric_height
+from rocketpy.tools import (
+    bilinear_interpolation,
+    geopotential_height_to_geometric_height,
+)
 
 
 class Environment:
@@ -66,8 +67,7 @@ class Environment:
         Launch site longitude.
     Environment.datum : string
         The desired reference ellipsoid model, the following options are
-        available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
-        is "SIRGAS2000".
+        available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000".
     Environment.initial_east : float
         Launch site East UTM coordinate
     Environment.initial_north :  float
@@ -503,6 +503,15 @@ class Environment:
             interpolation="linear",
             extrapolation="natural",
         )
+        if callable(self.barometric_height.source):
+            # discretize to speed up flight simulation
+            self.barometric_height.set_discrete(
+                0,
+                self.max_expected_height,
+                100,
+                extrapolation="constant",
+                mutate_self=True,
+            )
 
     def __set_temperature_function(self, source):
         self.temperature = Function(
@@ -1141,7 +1150,7 @@ class Environment:
               .. seealso::
 
                 To activate other ensemble forecasts see
-                ``Environment.selectEnsembleMemberMember``.
+                ``Environment.select_ensemble_member``.
 
             - ``custom_atmosphere``: sets pressure, temperature, wind-u and
               wind-v profiles given though the pressure, temperature, wind-u and
@@ -1164,8 +1173,6 @@ class Environment:
 
                 - ``GFS``: `Global` - 0.25deg resolution - Updates every 6
                   hours, forecast for 81 points spaced by 3 hours
-                - ``FV3``: `Global` - 0.25deg resolution - Updates every 6
-                  hours, forecast for 129 points spaced by 3 hours
                 - ``RAP``: `Regional USA` - 0.19deg resolution - Updates hourly,
                   forecast for 40 points spaced hourly
                 - ``NAM``: `Regional CONUS Nest` - 5 km resolution - Updates
@@ -1478,6 +1485,12 @@ class Environment:
             ``ICON`` for the `ICON-Global` model or ``ICONEU`` for the `ICON-EU`
             model.
         """
+
+        if model.lower() not in ["ecmwf", "gfs", "icon", "iconeu"]:
+            raise ValueError(
+                f"Invalid model '{model}'. "
+                "Valid options are 'ECMWF', 'GFS', 'ICON' or 'ICONEU'."
+            )
 
         response = fetch_atmospheric_data_from_windy(
             self.latitude, self.longitude, model
@@ -1927,10 +1940,54 @@ class Environment:
         x2, y2 = lat_list[lat_index], lon_list[lon_index]
 
         # Determine properties in lat, lon
-        height = apply_bilinear_interpolation(x, y, x1, x2, y1, y2, geopotentials)
-        temper = apply_bilinear_interpolation(x, y, x1, x2, y1, y2, temperatures)
-        wind_u = apply_bilinear_interpolation(x, y, x1, x2, y1, y2, wind_us)
-        wind_v = apply_bilinear_interpolation(x, y, x1, x2, y1, y2, wind_vs)
+        height = bilinear_interpolation(
+            x,
+            y,
+            x1,
+            x2,
+            y1,
+            y2,
+            geopotentials[:, 0, 0],
+            geopotentials[:, 0, 1],
+            geopotentials[:, 1, 0],
+            geopotentials[:, 1, 1],
+        )
+        temper = bilinear_interpolation(
+            x,
+            y,
+            x1,
+            x2,
+            y1,
+            y2,
+            temperatures[:, 0, 0],
+            temperatures[:, 0, 1],
+            temperatures[:, 1, 0],
+            temperatures[:, 1, 1],
+        )
+        wind_u = bilinear_interpolation(
+            x,
+            y,
+            x1,
+            x2,
+            y1,
+            y2,
+            wind_us[:, 0, 0],
+            wind_us[:, 0, 1],
+            wind_us[:, 1, 0],
+            wind_us[:, 1, 1],
+        )
+        wind_v = bilinear_interpolation(
+            x,
+            y,
+            x1,
+            x2,
+            y1,
+            y2,
+            wind_vs[:, 0, 0],
+            wind_vs[:, 0, 1],
+            wind_vs[:, 1, 0],
+            wind_vs[:, 1, 1],
+        )
 
         # Determine wind speed, heading and direction
         wind_speed = calculate_wind_speed(wind_u, wind_v)
@@ -2016,12 +2073,12 @@ class Environment:
         rectangular grid sorted in either ascending or descending order of
         latitude and longitude. By default the first ensemble forecast is
         activated. To activate other ensemble forecasts see
-        ``Environment.selectEnsembleMemberMember()``.
+        ``Environment.select_ensemble_member()``.
 
         Parameters
         ----------
         file : string
-            String containing path to local ``netCDF`` file or URL of an
+            String containing path to local ``.nc`` file or URL of an
             ``OPeNDAP`` file, such as NOAA's NOMAD or UCAR TRHEDDS server.
         dictionary : dictionary
             Specifies the dictionary to be used when reading ``netCDF`` and
@@ -2049,9 +2106,10 @@ class Environment:
                     "v_wind": "vgrdprs",
                 }
 
-        Returns
-        -------
-        None
+        Notes
+        -----
+        See the ``rocketpy.environment.weather_model_mapping`` for some
+        dictionary examples.
         """
         # Check if date, lat and lon are known
         self.__validate_datetime()
@@ -2143,14 +2201,54 @@ class Environment:
         x2, y2 = lat_list[lat_index], lon_list[lon_index]
 
         # Determine properties in lat, lon
-        height = apply_bilinear_interpolation_ensemble(
-            x, y, x1, x2, y1, y2, geopotentials
+        height = bilinear_interpolation(
+            x,
+            y,
+            x1,
+            x2,
+            y1,
+            y2,
+            geopotentials[:, :, 0, 0],
+            geopotentials[:, :, 0, 1],
+            geopotentials[:, :, 1, 0],
+            geopotentials[:, :, 1, 1],
         )
-        temper = apply_bilinear_interpolation_ensemble(
-            x, y, x1, x2, y1, y2, temperatures
+        temper = bilinear_interpolation(
+            x,
+            y,
+            x1,
+            x2,
+            y1,
+            y2,
+            temperatures[:, :, 0, 0],
+            temperatures[:, :, 0, 1],
+            temperatures[:, :, 1, 0],
+            temperatures[:, :, 1, 1],
         )
-        wind_u = apply_bilinear_interpolation_ensemble(x, y, x1, x2, y1, y2, wind_us)
-        wind_v = apply_bilinear_interpolation_ensemble(x, y, x1, x2, y1, y2, wind_vs)
+        wind_u = bilinear_interpolation(
+            x,
+            y,
+            x1,
+            x2,
+            y1,
+            y2,
+            wind_us[:, :, 0, 0],
+            wind_us[:, :, 0, 1],
+            wind_us[:, :, 1, 0],
+            wind_us[:, :, 1, 1],
+        )
+        wind_v = bilinear_interpolation(
+            x,
+            y,
+            x1,
+            x2,
+            y1,
+            y2,
+            wind_vs[:, :, 0, 0],
+            wind_vs[:, :, 0, 1],
+            wind_vs[:, :, 1, 0],
+            wind_vs[:, :, 1, 1],
+        )
 
         # Determine wind speed, heading and direction
         wind_speed = calculate_wind_speed(wind_u, wind_v)
@@ -2206,11 +2304,9 @@ class Environment:
         data.close()
 
     def select_ensemble_member(self, member=0):
-        """Activates the specified ensemble member, ensuring that all atmospheric
-        variables read from the Environment instance correspond to the desired
-        ensemble member. By default, the first ensemble member (index 0) is activated,
-        typically representing the control member generated without perturbations.
-        Other ensemble members are generated by perturbing the control member.
+        """Activates the specified ensemble member, ensuring all atmospheric
+        variables read from the Environment instance correspond to the selected
+        ensemble member.
 
         Parameters
         ----------
@@ -2222,9 +2318,12 @@ class Environment:
         ValueError
             If the specified ensemble member index is out of range.
 
-        Returns
-        -------
-        None
+        Notes
+        -----
+        The first ensemble member (index 0) is activated by default when loading
+        an ensemble model. This member typically represents a control member
+        that is generated without perturbations. Other ensemble members are
+        generated by perturbing the control member.
         """
         # Verify ensemble member
         if member >= self.num_ensemble_members:
@@ -2278,14 +2377,10 @@ class Environment:
         by `ISO 2533` for the International Standard atmosphere and saves
         them as ``Environment.pressure_ISA`` and ``Environment.temperature_ISA``.
 
-        Returns
-        -------
-        None
-
         Notes
         -----
-        This method is deprecated and will be removed in version 1.4.0. You can
-        access `Environment.pressure_ISA` and `Environment.temperature_ISA`
+        This method is **deprecated** and will be removed in version 1.6.0. You
+        can access `Environment.pressure_ISA` and `Environment.temperature_ISA`
         directly without the need to call this method.
         """
         warnings.warn(
@@ -2353,12 +2448,12 @@ class Environment:
 
     @funcify_method("Pressure (Pa)", "Height Above Sea Level (m)")
     def barometric_height_ISA(self):
-        """Returns the inverse function of the pressure_ISA function."""
+        """Returns the inverse function of the ``pressure_ISA`` function."""
         return self.pressure_ISA.inverse_function()
 
     @funcify_method("Height Above Sea Level (m)", "Temperature (K)", "linear")
     def temperature_ISA(self):
-        """ "Air temperature, in K, as a function of altitude as defined by the
+        """Air temperature, in K, as a function of altitude as defined by the
         `International Standard Atmosphere ISO 2533`."""
         temperature = self.__standard_atmosphere_layers["temperature"]
         geopotential_height = self.__standard_atmosphere_layers["geopotential_height"]
@@ -2369,13 +2464,14 @@ class Environment:
         return np.column_stack([altitude_asl, temperature])
 
     def calculate_density_profile(self):
-        """Compute the density of the atmosphere as a function of
-        height by using the formula rho = P/(RT). This function is
-        automatically called whenever a new atmospheric model is set.
+        r"""Compute the density of the atmosphere as a function of
+        height. This function is automatically called whenever a new atmospheric
+        model is set.
 
-        Returns
-        -------
-        None
+        Notes
+        -----
+        1. The density is calculated as:
+            .. math:: \rho = \frac{P}{RT}
 
         Examples
         --------
@@ -2410,14 +2506,14 @@ class Environment:
         self.density = D
 
     def calculate_speed_of_sound_profile(self):
-        """Compute the speed of sound in the atmosphere as a function
-        of height by using the formula a = sqrt(gamma*R*T). This
-        function is automatically called whenever a new atmospheric
-        model is set.
+        r"""Compute the speed of sound in the atmosphere as a function
+        of height. This function is automatically called whenever a new
+        atmospheric model is set.
 
-        Returns
-        -------
-        None
+        Notes
+        -----
+        1. The speed of sound is calculated as:
+            .. math:: a = \sqrt{\gamma \cdot R \cdot T}
         """
         # Retrieve gas constant R and temperature T
         R = self.air_gas_constant
@@ -2434,15 +2530,19 @@ class Environment:
         self.speed_of_sound = a
 
     def calculate_dynamic_viscosity(self):
-        """Compute the dynamic viscosity of the atmosphere as a function of
-        height by using the formula given in ISO 2533 u = B*T^(1.5)/(T+S).
-        This function is automatically called whenever a new atmospheric model is set.
-        Warning: This equation is invalid for very high or very low temperatures
-        and under conditions occurring at altitudes above 90 km.
+        r"""Compute the dynamic viscosity of the atmosphere as a function of
+        height by using the formula given in ISO 2533. This function is
+        automatically called whenever a new atmospheric model is set.
 
-        Returns
-        -------
-        None
+        Notes
+        -----
+        1. The dynamic viscosity is calculated as:
+            .. math::
+                \mu = \frac{B \cdot T^{1.5}}{(T + S)}
+
+            where `B` and `S` are constants, and `T` is the temperature.
+        2. This equation is invalid for very high or very low temperatures.
+        3. Also invalid under conditions occurring at altitudes above 90 km.
         """
         # Retrieve temperature T and set constants
         T = self.temperature
@@ -2472,10 +2572,6 @@ class Environment:
             Callable, function of altitude, which will be added to the
             y velocity of the current stored wind profile. If float is given,
             it will be considered as a constant function in altitude.
-
-        Returns
-        -------
-        None
         """
         # Recalculate wind_velocity_x and wind_velocity_y
         self.__set_wind_velocity_x_function(self.wind_velocity_x + wind_gust_x)
@@ -2505,42 +2601,25 @@ class Environment:
         )
 
     def info(self):
-        """Prints most important data and graphs available about the
-        Environment.
-
-        Return
-        ------
-        None
-        """
-
+        """Prints important data and graphs available about the Environment."""
         self.prints.all()
         self.plots.info()
 
     def all_info(self):
-        """Prints out all data and graphs available about the Environment.
-
-        Returns
-        -------
-        None
-        """
-
+        """Prints out all data and graphs available about the Environment."""
         self.prints.all()
         self.plots.all()
 
     # TODO: Create a better .json format and allow loading a class from it.
     def export_environment(self, filename="environment"):
         """Export important attributes of Environment class to a ``.json`` file,
-        saving all the information needed to recreate the same environment using
-        custom_atmosphere.
+        saving the information needed to recreate the same environment using
+        the ``custom_atmosphere`` model.
 
         Parameters
         ----------
         filename : string
             The name of the file to be saved, without the extension.
-
-        Return
-        ------
-        None
         """
         pressure = self.pressure.source
         temperature = self.temperature.source
@@ -2579,12 +2658,13 @@ class Environment:
 
     def set_earth_geometry(self, datum):
         """Sets the Earth geometry for the ``Environment`` class based on the
-        datum provided.
+        provided datum.
 
         Parameters
         ----------
         datum : str
-            The datum to be used for the Earth geometry.
+            The datum to be used for the Earth geometry. The following options
+            are supported: 'SIRGAS2000', 'SAD69', 'NAD83', 'WGS84'.
 
         Returns
         -------
@@ -2658,8 +2738,7 @@ class Environment:
         x, y, utm_zone, hemis, semi_major_axis=6378137.0, flattening=1 / 298.257223563
     ):
         """Function to convert UTM coordinates to geodesic coordinates
-        (i.e. latitude and longitude). The latitude should be between -80°
-        and 84°
+        (i.e. latitude and longitude).
 
         Parameters
         ----------
@@ -2695,18 +2774,15 @@ class Environment:
     def calculate_earth_radius(
         lat, semi_major_axis=6378137.0, flattening=1 / 298.257223563
     ):
-        """Simple function to calculate the Earth Radius at a specific latitude
-        based on ellipsoidal reference model (datum). The earth radius here is
+        """Function to calculate the Earth's radius at a specific latitude
+        based on ellipsoidal reference model. The Earth radius here is
         assumed as the distance between the ellipsoid's center of gravity and a
-        point on ellipsoid surface at the desired
-        Pay attention: The ellipsoid is an approximation for the earth model and
-        will obviously output an estimate of the perfect distance between
-        earth's relief and its center of gravity.
+        point on ellipsoid surface at the desired latitude.
 
         Parameters
         ----------
         lat : float
-            latitude in which the Earth radius will be calculated
+            latitude at which the Earth radius will be calculated
         semi_major_axis : float
             The semi-major axis of the ellipsoid used to represent the Earth,
             must be given in meters (default is 6,378,137.0 m, which corresponds
@@ -2719,7 +2795,13 @@ class Environment:
         Returns
         -------
         radius : float
-            Earth Radius at the desired latitude in meters
+            Earth radius at the desired latitude, in meters
+
+        Notes
+        -----
+        The ellipsoid is an approximation for the Earth model and
+        will result in an estimate of the perfect distance between
+        Earth's relief and its center of gravity.
         """
         semi_minor_axis = semi_major_axis * (1 - flattening)
 
@@ -2742,23 +2824,30 @@ class Environment:
 
     @staticmethod
     def decimal_degrees_to_arc_seconds(angle):
-        """Function to convert an angle in decimal degrees to deg/min/sec.
-         Converts (°) to (° ' ")
+        """Function to convert an angle in decimal degrees to degrees, arc
+        minutes and arc seconds.
 
         Parameters
         ----------
         angle : float
-            The angle that you need convert to deg/min/sec. Must be given in
-            decimal degrees.
+            The angle that you need convert. Must be given in decimal degrees.
 
         Returns
         -------
-        degrees : float
+        degrees : int
             The degrees.
         arc_minutes : int
             The arc minutes. 1 arc-minute = (1/60)*degree
         arc_seconds : float
             The arc Seconds. 1 arc-second = (1/3600)*degree
+
+        Examples
+        --------
+        Convert 45.5 degrees to degrees, arc minutes and arc seconds:
+
+        >>> from rocketpy import Environment
+        >>> Environment.decimal_degrees_to_arc_seconds(45.5)
+        (45, 30, 0.0)
         """
         sign = -1 if angle < 0 else 1
         degrees = int(abs(angle)) * sign
@@ -2766,3 +2855,13 @@ class Environment:
         arc_minutes = int(remainder * 60)
         arc_seconds = (remainder * 60 - arc_minutes) * 60
         return degrees, arc_minutes, arc_seconds
+
+
+if __name__ == "__main__":
+    import doctest
+
+    results = doctest.testmod()
+    if results.failed < 1:
+        print(f"All the {results.attempted} tests passed!")
+    else:
+        print(f"{results.failed} out of {results.attempted} tests failed.")

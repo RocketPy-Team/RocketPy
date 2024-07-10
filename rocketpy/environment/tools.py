@@ -1,7 +1,7 @@
 """"This module contains auxiliary functions for helping with the Environment
 classes operations. The functions mainly deal with wind calculations and
 interpolation of data from netCDF4 datasets. As this is a recent addition to
-the library (introduced in version 1.2.0), some functions may be modified in the
+the library (introduced in version 1.5.0), some functions may be modified in the
 future to improve their performance and usability.
 """
 
@@ -154,11 +154,6 @@ def mask_and_clean_dataset(*args):
     -------
     numpy.ma.MaskedArray
         A cleaned array with rows containing masked values removed.
-
-    Raises
-    ------
-    UserWarning
-        If any values were missing and rows were removed.
     """
     data_array = np.ma.column_stack(list(args))
 
@@ -171,85 +166,6 @@ def mask_and_clean_dataset(*args):
         )
 
     return data_array
-
-
-def apply_bilinear_interpolation(x, y, x1, x2, y1, y2, data):
-    """Applies bilinear interpolation to the given data points.
-
-    Parameters
-    ----------
-    x : float
-        The x-coordinate of the point to be interpolated.
-    y : float
-        The y-coordinate of the point to be interpolated.
-    x1 : float
-        The x-coordinate of the first reference point.
-    x2 : float
-        The x-coordinate of the second reference point.
-    y1 : float
-        The y-coordinate of the first reference point.
-    y2 : float
-        The y-coordinate of the second reference point.
-    data : ???
-        A 2x2 array containing the data values at the four reference points.
-
-    Returns
-    -------
-    float
-        The interpolated value at the point (x, y).
-    """
-    return bilinear_interpolation(
-        x,
-        y,
-        x1,
-        x2,
-        y1,
-        y2,
-        data[:, 0, 0],
-        data[:, 0, 1],
-        data[:, 1, 0],
-        data[:, 1, 1],
-    )
-
-
-def apply_bilinear_interpolation_ensemble(x, y, x1, x2, y1, y2, data):
-    """Applies bilinear interpolation to the given data points for an ensemble
-    dataset.
-
-    Parameters
-    ----------
-    x : float
-        The x-coordinate of the point to be interpolated.
-    y : float
-        The y-coordinate of the point to be interpolated.
-    x1 : float
-        The x-coordinate of the first reference point.
-    x2 : float
-        The x-coordinate of the second reference point.
-    y1 : float
-        The y-coordinate of the first reference point.
-    y2 : float
-        The y-coordinate of the second reference point.
-    data : ???
-        A 2x2 array containing the data values at the four reference points.
-
-    Returns
-    -------
-    ???
-        The interpolated values at the point (x, y).
-    """
-    return bilinear_interpolation(
-        x,
-        y,
-        x1,
-        x2,
-        y1,
-        y2,
-        data[:, :, 0, 0],
-        data[:, :, 0, 1],
-        data[:, :, 1, 0],
-        data[:, :, 1, 1],
-    )
 
 
 def find_longitude_index(longitude, lon_list):
@@ -476,7 +392,7 @@ def get_initial_date_from_time_array(time_array, units=None):
     datetime.datetime
         A datetime object representing the first time in the time array.
     """
-    units = units if units is not None else time_array.units
+    units = units or time_array.units
     return netCDF4.num2date(time_array[0], units, calendar="gregorian")
 
 
@@ -515,7 +431,7 @@ def get_interval_date_from_time_array(time_array, units=None):
     int
         The interval in hours between two times in the time array.
     """
-    units = units if units is not None else time_array.units
+    units = units or time_array.units
     return netCDF4.num2date(
         (time_array[-1] - time_array[0]) / (len(time_array) - 1),
         units,

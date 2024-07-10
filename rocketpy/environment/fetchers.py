@@ -65,11 +65,6 @@ def fetch_atmospheric_data_from_windy(lat, lon, model):
     -------
     dict
         A dictionary containing the atmospheric data retrieved from the API.
-
-    Raises
-    ------
-    ValueError
-        If an invalid response is received from the API.
     """
     model = model.lower()
     if model[-1] == "u":  # case iconEu
@@ -84,7 +79,7 @@ def fetch_atmospheric_data_from_windy(lat, lon, model):
         response = requests.get(url).json()
         if "data" not in response.keys():
             raise ValueError(
-                f"Could not get a valid response for {model} from Windy. "
+                f"Could not get a valid response for '{model}' from Windy. "
                 "Check if the coordinates are set inside the model's domain."
             )
     except requests.exceptions.RequestException as e:
@@ -122,6 +117,9 @@ def fetch_gfs_file_return_dataset(max_attempts=10, base_delay=2):
     attempt_count = 0
     dataset = None
 
+    # TODO: the code below is trying to determine the hour of the latest available
+    # forecast by trial and error. This is not the best way to do it. We should
+    # actually check the NOAA website for the latest forecast time. Refactor needed.
     while attempt_count < max_attempts:
         time_attempt -= timedelta(hours=6)  # GFS updates every 6 hours
         file_url = (
