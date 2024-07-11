@@ -396,6 +396,7 @@ class StochasticRailButtons(StochasticModel):
     def __init__(
         self,
         rail_buttons=None,
+        rocket_radius=None,
         buttons_distance=None,
         angular_position=None,
     ):
@@ -416,6 +417,7 @@ class StochasticRailButtons(StochasticModel):
         """
         super().__init__(
             rail_buttons,
+            rocket_radius=rocket_radius,
             buttons_distance=buttons_distance,
             angular_position=angular_position,
             name=None,
