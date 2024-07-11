@@ -72,6 +72,7 @@ def calisto_rail_buttons():
         The rail buttons of the Calisto rocket.
     """
     return RailButtons(
+        rocket_radius=0.0635,
         buttons_distance=0.7,
         angular_position=45,
         name="Rail Buttons",
