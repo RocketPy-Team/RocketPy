@@ -36,6 +36,7 @@ Attention: The newest changes should be on top -->
 
 ### Changed
 
+- ENH: Environment class major refactor may 2024 [#605](https://github.com/RocketPy-Team/RocketPy/pull/605)
 - MNT: Refactors the code to adopt pylint [#621](https://github.com/RocketPy-Team/RocketPy/pull/621)
 - MNT: Refactor AeroSurfaces [#634](https://github.com/RocketPy-Team/RocketPy/pull/634)
 

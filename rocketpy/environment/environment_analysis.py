@@ -2,6 +2,7 @@ import bisect
 import copy
 import datetime
 import json
+import warnings
 from collections import defaultdict
 from functools import cached_property
 
@@ -441,7 +442,7 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
                     tf.timezone_at(lng=self.longitude, lat=self.latitude)
                 )
             except ImportError:
-                print(
+                warnings.warning(  # pragma: no cover
                     "'timezonefinder' not installed, defaulting to UTC."
                     + " Install timezonefinder to get local time zone."
                     + " To do so, run 'pip install timezonefinder'"
