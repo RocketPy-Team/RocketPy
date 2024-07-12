@@ -95,7 +95,7 @@ class Environment:  # pylint: disable=too-many-public-methods
         True if the user already set a topographic profile. False otherwise.
     Environment.max_expected_height : float
         Maximum altitude in meters to keep weather data. The altitude must be
-        above sea level (ASL). Especially useful for controlling plottings.
+        above sea level (ASL). Especially useful for controlling plots.
         Can be altered as desired by doing `max_expected_height = number`.
     Environment.pressure_ISA : Function
         Air pressure in Pa as a function of altitude as defined by the
@@ -962,7 +962,7 @@ class Environment:  # pylint: disable=too-many-public-methods
 
             .. note::
 
-                Time referece for the Forecasts are:
+                Time reference for the Forecasts are:
 
                 - ``GFS``: `Global` - 0.25deg resolution - Updates every 6
                   hours, forecast for 81 points spaced by 3 hours
