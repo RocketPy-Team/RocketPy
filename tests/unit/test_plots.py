@@ -1,14 +1,12 @@
-import os
 from unittest.mock import patch
 
 import matplotlib.pyplot as plt
 
-from rocketpy import Flight
-from rocketpy.plots.compare import Compare, CompareFlights
+from rocketpy.plots.compare import Compare
 
 
 @patch("matplotlib.pyplot.show")
-def test_compare(mock_show, flight_calisto):
+def test_compare(mock_show, flight_calisto):  # pylint: disable=unused-argument
     """Here we want to test the 'x_attributes' argument, which is the only one
     that is not tested in the other tests.
 
@@ -39,4 +37,4 @@ def test_compare(mock_show, flight_calisto):
         x_attributes=["time"],
     )
 
-    assert isinstance(fig, plt.Figure) == True
+    assert isinstance(fig, plt.Figure)

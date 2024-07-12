@@ -2,14 +2,14 @@
 Monte Carlo Simulation Module for RocketPy
 
 This module defines the `MonteCarlo` class, which is used to perform Monte Carlo
-simulations of rocket flights. The Monte Carlo simulation is a powerful tool for 
-understanding the variability and uncertainty in the performance of rocket flights 
+simulations of rocket flights. The Monte Carlo simulation is a powerful tool for
+understanding the variability and uncertainty in the performance of rocket flights
 by running multiple simulations with varied input parameters.
 
 Notes
 -----
-This module is still under active development, and some features or attributes may 
-change in future versions. Users are encouraged to check for updates and read the 
+This module is still under active development, and some features or attributes may
+change in future versions. Users are encouraged to check for updates and read the
 latest documentation.
 """
 

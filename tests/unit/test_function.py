@@ -1,4 +1,4 @@
-"""Unit tests for the Function class. Each method in tis module tests an 
+"""Unit tests for the Function class. Each method in tis module tests an
 individual method of the Function class. The tests are made on both the
 expected behaviour and the return instances."""
 
@@ -359,89 +359,78 @@ def test_setters(func_from_csv, func_2d_from_csv):
     assert func_2d_from_csv.get_extrapolation_method() == "natural"
 
 
-def test_interpolation_methods(linear_func):
-    """Tests some of the interpolation methods of the Function class. Methods
-    not tested here are already being called in other tests.
+class TestInterpolationMethods:
+    """Tests some of the interpolation methods of the Function class."""
 
-    Parameters
-    ----------
-    linear_func : rocketpy.Function
-        A Function object created from a list of values.
-    """
-    # Test Akima
-    assert isinstance(linear_func.set_interpolation("akima"), Function)
-    linear_func.set_interpolation("akima")
-    assert isinstance(linear_func.get_interpolation_method(), str)
-    assert linear_func.get_interpolation_method() == "akima"
-    assert np.isclose(linear_func.get_value(0), 0.0, atol=1e-6)
+    def test_akima_interpolation(self, linear_func):
+        """Tests Akima interpolation method"""
+        assert isinstance(linear_func.set_interpolation("akima"), Function)
+        linear_func.set_interpolation("akima")
+        assert isinstance(linear_func.get_interpolation_method(), str)
+        assert linear_func.get_interpolation_method() == "akima"
+        assert np.isclose(linear_func.get_value(0), 0.0, atol=1e-6)
 
-    # Test polynomial
-
-    assert isinstance(linear_func.set_interpolation("polynomial"), Function)
-    linear_func.set_interpolation("polynomial")
-    assert isinstance(linear_func.get_interpolation_method(), str)
-    assert linear_func.get_interpolation_method() == "polynomial"
-    assert np.isclose(linear_func.get_value(0), 0.0, atol=1e-6)
+    def test_polynomial_interpolation(self, linear_func):
+        """Tests polynomial interpolation method"""
+        assert isinstance(linear_func.set_interpolation("polynomial"), Function)
+        linear_func.set_interpolation("polynomial")
+        assert isinstance(linear_func.get_interpolation_method(), str)
+        assert linear_func.get_interpolation_method() == "polynomial"
+        assert np.isclose(linear_func.get_value(0), 0.0, atol=1e-6)
 
 
-def test_extrapolation_methods(linear_func):
-    """Test some of the extrapolation methods of the Function class. Methods
-    not tested here are already being called in other tests.
+class TestExtrapolationMethods:
+    """Test some of the extrapolation methods of the Function class."""
 
-    Parameters
-    ----------
-    linear_func : rocketpy.Function
-        A Function object created from a list of values.
-    """
-    # Test zero
-    linear_func.set_extrapolation("zero")
-    assert linear_func.get_extrapolation_method() == "zero"
-    assert np.isclose(linear_func.get_value(-1), 0, atol=1e-6)
+    def test_zero_extrapolation(self, linear_func):
+        linear_func.set_extrapolation("zero")
+        assert linear_func.get_extrapolation_method() == "zero"
+        assert np.isclose(linear_func.get_value(-1), 0, atol=1e-6)
 
-    # Test constant
-    assert isinstance(linear_func.set_extrapolation("constant"), Function)
-    linear_func.set_extrapolation("constant")
-    assert isinstance(linear_func.get_extrapolation_method(), str)
-    assert linear_func.get_extrapolation_method() == "constant"
-    assert np.isclose(linear_func.get_value(-1), 0, atol=1e-6)
+    def test_constant_extrapolation(self, linear_func):
+        assert isinstance(linear_func.set_extrapolation("constant"), Function)
+        linear_func.set_extrapolation("constant")
+        assert isinstance(linear_func.get_extrapolation_method(), str)
+        assert linear_func.get_extrapolation_method() == "constant"
+        assert np.isclose(linear_func.get_value(-1), 0, atol=1e-6)
 
-    # Test natural for linear interpolation
-    linear_func.set_interpolation("linear")
-    assert isinstance(linear_func.set_extrapolation("natural"), Function)
-    linear_func.set_extrapolation("natural")
-    assert isinstance(linear_func.get_extrapolation_method(), str)
-    assert linear_func.get_extrapolation_method() == "natural"
-    assert np.isclose(linear_func.get_value(-1), -1, atol=1e-6)
+    def test_natural_extrapolation_linear(self, linear_func):
+        linear_func.set_interpolation("linear")
+        assert isinstance(linear_func.set_extrapolation("natural"), Function)
+        linear_func.set_extrapolation("natural")
+        assert isinstance(linear_func.get_extrapolation_method(), str)
+        assert linear_func.get_extrapolation_method() == "natural"
+        assert np.isclose(linear_func.get_value(-1), -1, atol=1e-6)
 
-    # Test natural for spline interpolation
-    linear_func.set_interpolation("spline")
-    assert isinstance(linear_func.set_extrapolation("natural"), Function)
-    linear_func.set_extrapolation("natural")
-    assert isinstance(linear_func.get_extrapolation_method(), str)
-    assert linear_func.get_extrapolation_method() == "natural"
-    assert np.isclose(linear_func.get_value(-1), -1, atol=1e-6)
+    def test_natural_extrapolation_spline(self, linear_func):
+        linear_func.set_interpolation("spline")
+        assert isinstance(linear_func.set_extrapolation("natural"), Function)
+        linear_func.set_extrapolation("natural")
+        assert isinstance(linear_func.get_extrapolation_method(), str)
+        assert linear_func.get_extrapolation_method() == "natural"
+        assert np.isclose(linear_func.get_value(-1), -1, atol=1e-6)
 
-    # Test natural for akima interpolation
-    linear_func.set_interpolation("akima")
-    assert isinstance(linear_func.set_extrapolation("natural"), Function)
-    linear_func.set_extrapolation("natural")
-    assert isinstance(linear_func.get_extrapolation_method(), str)
-    assert linear_func.get_extrapolation_method() == "natural"
-    assert np.isclose(linear_func.get_value(-1), -1, atol=1e-6)
+    def test_natural_extrapolation_akima(self, linear_func):
+        linear_func.set_interpolation("akima")
+        assert isinstance(linear_func.set_extrapolation("natural"), Function)
+        linear_func.set_extrapolation("natural")
+        assert isinstance(linear_func.get_extrapolation_method(), str)
+        assert linear_func.get_extrapolation_method() == "natural"
+        assert np.isclose(linear_func.get_value(-1), -1, atol=1e-6)
 
-    # Test natural for polynomial interpolation
-    linear_func.set_interpolation("polynomial")
-    assert isinstance(linear_func.set_extrapolation("natural"), Function)
-    linear_func.set_extrapolation("natural")
-    assert isinstance(linear_func.get_extrapolation_method(), str)
-    assert linear_func.get_extrapolation_method() == "natural"
-    assert np.isclose(linear_func.get_value(-1), -1, atol=1e-6)
+    def test_natural_extrapolation_polynomial(self, linear_func):
+        linear_func.set_interpolation("polynomial")
+        assert isinstance(linear_func.set_extrapolation("natural"), Function)
+        linear_func.set_extrapolation("natural")
+        assert isinstance(linear_func.get_extrapolation_method(), str)
+        assert linear_func.get_extrapolation_method() == "natural"
+        assert np.isclose(linear_func.get_value(-1), -1, atol=1e-6)
 
 
 @pytest.mark.parametrize("a", [-1, 0, 1])
 @pytest.mark.parametrize("b", [-1, 0, 1])
-def test_multivariable_dataset(a, b):
-    """Test the Function class with a multivariable dataset."""
+def test_multivariate_dataset(a, b):
+    """Test the Function class with a multivariate dataset."""
     # Test plane f(x,y) = x + y
     source = [
         (-1, -1, -2),
@@ -515,8 +504,8 @@ def test_3d_shepard_interpolation(x, y, z, w_expected):
 
 @pytest.mark.parametrize("a", [-1, -0.5, 0, 0.5, 1])
 @pytest.mark.parametrize("b", [-1, -0.5, 0, 0.5, 1])
-def test_multivariable_function(a, b):
-    """Test the Function class with a multivariable function."""
+def test_multivariate_function(a, b):
+    """Test the Function class with a multivariate function."""
 
     def source(x, y):
         return np.sin(x + y)

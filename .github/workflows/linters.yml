@@ -28,7 +28,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install .[all]
         pip install .[tests]
-        pip install pylint isort
+        pip install pylint isort flake8 black
     - name: Run isort
       run: isort --check-only rocketpy/ tests/ docs/ --profile black
     - name: Run black
@@ -36,6 +36,8 @@ jobs:
       with:
         options: "--check rocketpy/ tests/ docs/"
         jupyter: true
+    - name: Run flake8
+      run: flake8 rocketpy/ tests/
     - name: Run pylint
       run: |
-        pylint rocketpy/
+        pylint rocketpy/ tests/

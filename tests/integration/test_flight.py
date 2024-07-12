@@ -11,7 +11,7 @@ plt.rcParams.update({"figure.max_open_warning": 0})
 
 
 @patch("matplotlib.pyplot.show")
-def test_all_info(mock_show, flight_calisto_robust):  # pylint: disable: unused-argument
+def test_all_info(mock_show, flight_calisto_robust):  # pylint: disable=unused-argument
     """Test that the flight class is working as intended. This basically calls
     the all_info() method and checks if it returns None. It is not testing if
     the values are correct, but whether the method is working without errors.
@@ -27,65 +27,61 @@ def test_all_info(mock_show, flight_calisto_robust):  # pylint: disable: unused-
     assert flight_calisto_robust.all_info() is None
 
 
-def test_export_data(flight_calisto):
-    """Tests wether the method Flight.export_data is working as intended
+class TestExportData:
+    """Tests the export_data method of the Flight class."""
 
-    Parameters:
-    -----------
-    flight_calisto : rocketpy.Flight
-        Flight object to be tested. See the conftest.py file for more info
-        regarding this pytest fixture.
-    """
-    test_flight = flight_calisto
+    def test_basic_export(self, flight_calisto):
+        """Tests basic export functionality"""
+        file_name = "test_export_data_1.csv"
+        flight_calisto.export_data(file_name)
+        self.validate_basic_export(flight_calisto, file_name)
+        os.remove(file_name)
 
-    # Basic export
-    test_flight.export_data("test_export_data_1.csv")
+    def test_custom_export(self, flight_calisto):
+        """Tests custom export functionality"""
+        file_name = "test_export_data_2.csv"
+        flight_calisto.export_data(
+            file_name,
+            "z",
+            "vz",
+            "e1",
+            "w3",
+            "angle_of_attack",
+            time_step=0.1,
+        )
+        self.validate_custom_export(flight_calisto, file_name)
+        os.remove(file_name)
 
-    # Custom export
-    test_flight.export_data(
-        "test_export_data_2.csv",
-        "z",
-        "vz",
-        "e1",
-        "w3",
-        "angle_of_attack",
-        time_step=0.1,
-    )
+    def validate_basic_export(self, flight_calisto, file_name):
+        """Validates the basic export file content"""
+        test_data = np.loadtxt(file_name, delimiter=",")
+        assert np.allclose(flight_calisto.x[:, 0], test_data[:, 0], atol=1e-5)
+        assert np.allclose(flight_calisto.x[:, 1], test_data[:, 1], atol=1e-5)
+        assert np.allclose(flight_calisto.y[:, 1], test_data[:, 2], atol=1e-5)
+        assert np.allclose(flight_calisto.z[:, 1], test_data[:, 3], atol=1e-5)
+        assert np.allclose(flight_calisto.vx[:, 1], test_data[:, 4], atol=1e-5)
+        assert np.allclose(flight_calisto.vy[:, 1], test_data[:, 5], atol=1e-5)
+        assert np.allclose(flight_calisto.vz[:, 1], test_data[:, 6], atol=1e-5)
+        assert np.allclose(flight_calisto.e0[:, 1], test_data[:, 7], atol=1e-5)
+        assert np.allclose(flight_calisto.e1[:, 1], test_data[:, 8], atol=1e-5)
+        assert np.allclose(flight_calisto.e2[:, 1], test_data[:, 9], atol=1e-5)
+        assert np.allclose(flight_calisto.e3[:, 1], test_data[:, 10], atol=1e-5)
+        assert np.allclose(flight_calisto.w1[:, 1], test_data[:, 11], atol=1e-5)
+        assert np.allclose(flight_calisto.w2[:, 1], test_data[:, 12], atol=1e-5)
+        assert np.allclose(flight_calisto.w3[:, 1], test_data[:, 13], atol=1e-5)
 
-    # Load exported files and fixtures and compare them
-    test_1 = np.loadtxt("test_export_data_1.csv", delimiter=",")
-    test_2 = np.loadtxt("test_export_data_2.csv", delimiter=",")
-
-    # Delete files
-    os.remove("test_export_data_1.csv")
-    os.remove("test_export_data_2.csv")
-
-    # Check if basic exported content matches data
-    assert np.allclose(test_flight.x[:, 0], test_1[:, 0], atol=1e-5)
-    assert np.allclose(test_flight.x[:, 1], test_1[:, 1], atol=1e-5)
-    assert np.allclose(test_flight.y[:, 1], test_1[:, 2], atol=1e-5)
-    assert np.allclose(test_flight.z[:, 1], test_1[:, 3], atol=1e-5)
-    assert np.allclose(test_flight.vx[:, 1], test_1[:, 4], atol=1e-5)
-    assert np.allclose(test_flight.vy[:, 1], test_1[:, 5], atol=1e-5)
-    assert np.allclose(test_flight.vz[:, 1], test_1[:, 6], atol=1e-5)
-    assert np.allclose(test_flight.e0[:, 1], test_1[:, 7], atol=1e-5)
-    assert np.allclose(test_flight.e1[:, 1], test_1[:, 8], atol=1e-5)
-    assert np.allclose(test_flight.e2[:, 1], test_1[:, 9], atol=1e-5)
-    assert np.allclose(test_flight.e3[:, 1], test_1[:, 10], atol=1e-5)
-    assert np.allclose(test_flight.w1[:, 1], test_1[:, 11], atol=1e-5)
-    assert np.allclose(test_flight.w2[:, 1], test_1[:, 12], atol=1e-5)
-    assert np.allclose(test_flight.w3[:, 1], test_1[:, 13], atol=1e-5)
-
-    # Check if custom exported content matches data
-    time_points = np.arange(test_flight.t_initial, test_flight.t_final, 0.1)
-    assert np.allclose(time_points, test_2[:, 0], atol=1e-5)
-    assert np.allclose(test_flight.z(time_points), test_2[:, 1], atol=1e-5)
-    assert np.allclose(test_flight.vz(time_points), test_2[:, 2], atol=1e-5)
-    assert np.allclose(test_flight.e1(time_points), test_2[:, 3], atol=1e-5)
-    assert np.allclose(test_flight.w3(time_points), test_2[:, 4], atol=1e-5)
-    assert np.allclose(
-        test_flight.angle_of_attack(time_points), test_2[:, 5], atol=1e-5
-    )
+    def validate_custom_export(self, flight_calisto, file_name):
+        """Validates the custom export file content"""
+        test_data = np.loadtxt(file_name, delimiter=",")
+        time_points = np.arange(flight_calisto.t_initial, flight_calisto.t_final, 0.1)
+        assert np.allclose(time_points, test_data[:, 0], atol=1e-5)
+        assert np.allclose(flight_calisto.z(time_points), test_data[:, 1], atol=1e-5)
+        assert np.allclose(flight_calisto.vz(time_points), test_data[:, 2], atol=1e-5)
+        assert np.allclose(flight_calisto.e1(time_points), test_data[:, 3], atol=1e-5)
+        assert np.allclose(flight_calisto.w3(time_points), test_data[:, 4], atol=1e-5)
+        assert np.allclose(
+            flight_calisto.angle_of_attack(time_points), test_data[:, 5], atol=1e-5
+        )
 
 
 def test_export_kml(flight_calisto_robust):
@@ -106,14 +102,13 @@ def test_export_kml(flight_calisto_robust):
     )
 
     # Load exported files and fixtures and compare them
-    test_1 = open("test_export_data_1.kml", "r")
-
-    for row in test_1:
-        if row[:29] == "                <coordinates>":
-            r = row[29:-15]
-            r = r.split(",")
-            for i, j in enumerate(r):
-                r[i] = j.split(" ")
+    with open("test_export_data_1.kml", "r") as test_1:
+        for row in test_1:
+            if row[:29] == "                <coordinates>":
+                r = row[29:-15]
+                r = r.split(",")
+                for i, j in enumerate(r):
+                    r[i] = j.split(" ")
     lon, lat, z, coords = [], [], [], []
     for i in r:
         for j in i:
@@ -122,9 +117,6 @@ def test_export_kml(flight_calisto_robust):
         lon.append(float(coords[i]))
         lat.append(float(coords[i + 1]))
         z.append(float(coords[i + 2]))
-
-    # Delete temporary test file
-    test_1.close()
     os.remove("test_export_data_1.kml")
 
     assert np.allclose(test_flight.latitude[:, 1], lat, atol=1e-3)
@@ -161,7 +153,9 @@ def test_export_pressures(flight_calisto_robust):
 
 
 @patch("matplotlib.pyplot.show")
-def test_hybrid_motor_flight(mock_show, calisto_hybrid_modded):
+def test_hybrid_motor_flight(
+    mock_show, calisto_hybrid_modded
+):  # pylint: disable=unused-argument
     """Test the flight of a rocket with a hybrid motor. This test only validates
     that a flight simulation can be performed with a hybrid motor; it does not
     validate the results.
@@ -186,7 +180,9 @@ def test_hybrid_motor_flight(mock_show, calisto_hybrid_modded):
 
 
 @patch("matplotlib.pyplot.show")
-def test_liquid_motor_flight(mock_show, calisto_liquid_modded):
+def test_liquid_motor_flight(
+    mock_show, calisto_liquid_modded
+):  # pylint: disable=unused-argument
     """Test the flight of a rocket with a liquid motor. This test only validates
     that a flight simulation can be performed with a liquid motor; it does not
     validate the results.
@@ -212,7 +208,9 @@ def test_liquid_motor_flight(mock_show, calisto_liquid_modded):
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_time_overshoot(mock_show, calisto_robust, example_spaceport_env):
+def test_time_overshoot(
+    mock_show, calisto_robust, example_spaceport_env
+):  # pylint: disable=unused-argument
     """Test the time_overshoot parameter of the Flight class. This basically
     calls the all_info() method for a simulation without time_overshoot and
     checks if it returns None. It is not testing if the values are correct,
@@ -241,7 +239,9 @@ def test_time_overshoot(mock_show, calisto_robust, example_spaceport_env):
 
 
 @patch("matplotlib.pyplot.show")
-def test_simpler_parachute_triggers(mock_show, example_plain_env, calisto_robust):
+def test_simpler_parachute_triggers(
+    mock_show, example_plain_env, calisto_robust
+):  # pylint: disable=unused-argument
     """Tests different types of parachute triggers. This is important to ensure
     the code is working as intended, since the parachute triggers can have very
     different format definitions. It will add 3 parachutes using different
@@ -313,8 +313,8 @@ def test_simpler_parachute_triggers(mock_show, example_plain_env, calisto_robust
 
 
 @patch("matplotlib.pyplot.show")
-def test_rolling_flight(
-    mock_show,  # pylint: disable: unused-argument
+def test_rolling_flight(  # pylint: disable=unused-argument
+    mock_show,
     example_plain_env,
     cesaroni_m1670,
     calisto,
@@ -327,7 +327,7 @@ def test_rolling_flight(
 
     test_rocket.set_rail_buttons(0.082, -0.618)
     test_rocket.add_motor(cesaroni_m1670, position=-1.373)
-    fin_set = test_rocket.add_trapezoidal_fins(
+    test_rocket.add_trapezoidal_fins(
         4,
         span=0.100,
         root_chord=0.120,
@@ -352,8 +352,8 @@ def test_rolling_flight(
 
 
 @patch("matplotlib.pyplot.show")
-def test_eccentricity_on_flight(
-    mock_show,  # pylint: disable: unused-argument
+def test_eccentricity_on_flight(  # pylint: disable=unused-argument
+    mock_show,
     example_plain_env,
     cesaroni_m1670,
     calisto,
@@ -383,7 +383,9 @@ def test_eccentricity_on_flight(
 
 
 @patch("matplotlib.pyplot.show")
-def test_air_brakes_flight(mock_show, flight_calisto_air_brakes):
+def test_air_brakes_flight(
+    mock_show, flight_calisto_air_brakes
+):  # pylint: disable=unused-argument
     """Test the flight of a rocket with air brakes. This test only validates
     that a flight simulation can be performed with air brakes; it does not
     validate the results.
@@ -403,7 +405,9 @@ def test_air_brakes_flight(mock_show, flight_calisto_air_brakes):
 
 
 @patch("matplotlib.pyplot.show")
-def test_initial_solution(mock_show, example_plain_env, calisto_robust):
+def test_initial_solution(
+    mock_show, example_plain_env, calisto_robust
+):  # pylint: disable=unused-argument
     """Tests the initial_solution option of the Flight class. This test simply
     simulates the flight using the initial_solution option and checks if the
     all_info method returns None.
@@ -448,7 +452,9 @@ def test_initial_solution(mock_show, example_plain_env, calisto_robust):
 
 
 @patch("matplotlib.pyplot.show")
-def test_empty_motor_flight(mock_show, example_plain_env, calisto_motorless):
+def test_empty_motor_flight(
+    mock_show, example_plain_env, calisto_motorless
+):  # pylint: disable=unused-argument
     flight = Flight(
         rocket=calisto_motorless,
         environment=example_plain_env,
