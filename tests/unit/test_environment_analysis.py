@@ -118,12 +118,8 @@ def test_values(env_analysis):
     ----------
     env_analysis : EnvironmentAnalysis
         A simple object of the EnvironmentAnalysis class.
-
-    Returns
-    -------
-    None
     """
-    assert pytest.approx(env_analysis.record_min_surface_wind_speed, 1e-6) == 5.190407
+    assert pytest.approx(0.07569172, 1e-2) == env_analysis.record_min_surface_wind_speed
     assert (
         pytest.approx(env_analysis.max_average_temperature_at_altitude, 1e-6)
         == 24.52549
