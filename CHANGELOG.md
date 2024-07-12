@@ -37,6 +37,7 @@ Attention: The newest changes should be on top -->
 ### Changed
 
 - MNT: Refactors the code to adopt pylint [#621](https://github.com/RocketPy-Team/RocketPy/pull/621)
+- MNT: Refactor AeroSurfaces [#634](https://github.com/RocketPy-Team/RocketPy/pull/634)
 
 ### Fixed
 
