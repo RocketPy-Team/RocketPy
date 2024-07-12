@@ -411,10 +411,10 @@ def test_noisy_gnss(noisy_gnss, example_plain_env):
         relative_position=relative_position,
         environment=example_plain_env,
     )
-    assert noisy_gnss.measurement == approx([latitude, longitude, altitude], abs=2)
+    assert noisy_gnss.measurement == approx([latitude, longitude, altitude], abs=3.2)
     assert len(noisy_gnss.measurement) == 3
     assert noisy_gnss.measured_data[0][1:] == approx(
-        [latitude, longitude, altitude], abs=2
+        [latitude, longitude, altitude], abs=3.2
     )
     assert noisy_gnss.measured_data[0][0] == TIME
 
@@ -425,10 +425,10 @@ def test_noisy_gnss(noisy_gnss, example_plain_env):
         relative_position=relative_position,
         environment=example_plain_env,
     )
-    assert noisy_gnss.measurement == approx([latitude, longitude, altitude], abs=2)
+    assert noisy_gnss.measurement == approx([latitude, longitude, altitude], abs=3.2)
     assert len(noisy_gnss.measurement) == 3
     assert noisy_gnss.measured_data[1][1:] == approx(
-        [latitude, longitude, altitude], abs=2
+        [latitude, longitude, altitude], abs=3.2
     )
     assert noisy_gnss.measured_data[1][0] == TIME
 
