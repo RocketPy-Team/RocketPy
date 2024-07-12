@@ -245,9 +245,9 @@ def test_matrix_transformation():
 
 
 def test_matrix_transformation_euler_angles():
-    phi = 90
+    phi = 0
     theta = 0
-    psi = 0
+    psi = 90
     matrix = Matrix.transformation_euler_angles(phi, theta, psi)
     matrix = matrix.round(12)
     # Check that the matrix is orthogonal
