@@ -474,7 +474,7 @@ class Environment:
             )
         else:
             # pragma: no cover
-            warnings.warning(
+            warnings.warn(
                 "UTM coordinates are not available for latitudes "
                 "above 84 or below -80 degrees. The UTM conversions will fail."
             )
