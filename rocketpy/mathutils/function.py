@@ -1191,7 +1191,7 @@ class Function:  # pylint: disable=too-many-public-methods
             elif self.__dom_dim__ == 2:
                 self.plot_2d(*args, **kwargs)
             else:
-                print("Error: Only functions with 1D or 2D domains are plottable!")
+                print("Error: Only functions with 1D or 2D domains can be plotted.")
 
     def plot1D(self, *args, **kwargs):
         """Deprecated method, use Function.plot_1d instead."""
@@ -2631,8 +2631,8 @@ class Function:  # pylint: disable=too-many-public-methods
             return len(distinct_map) == len(x_data_distinct) == len(y_data_distinct)
         else:
             raise TypeError(
-                "Only Functions whose source is a list of points can be "
-                "checked for bijectivity."
+                "`isbijective()` method only supports Functions whose "
+                "source is an array."
             )
 
     def is_strictly_bijective(self):
@@ -2684,8 +2684,8 @@ class Function:  # pylint: disable=too-many-public-methods
             return np.all(y_data_diff >= 0) or np.all(y_data_diff <= 0)
         else:
             raise TypeError(
-                "Only Functions whose source is a list of points can be "
-                "checked for bijectivity."
+                "`is_strictly_bijective()` method only supports Functions "
+                "whose source is an array."
             )
 
     def inverse_function(self, approx_func=None, tol=1e-4):
@@ -2695,8 +2695,9 @@ class Function:  # pylint: disable=too-many-public-methods
         and only if F is bijective. Makes the domain the range and the range
         the domain.
 
-        If the Function is given by a list of points, its bijectivity is
-        checked and an error is raised if it is not bijective.
+        If the Function is given by a list of points, the method
+        `is_strictly_bijective()` is called and an error is raised if the
+        Function is not bijective.
         If the Function is given by a function, its bijection is not
         checked and may lead to inaccuracies outside of its bijective region.
 
