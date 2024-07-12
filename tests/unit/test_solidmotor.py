@@ -20,7 +20,7 @@ GRAIN_MASS = GRAIN_VOL * 1815 * 5
 
 
 @patch("matplotlib.pyplot.show")
-def test_motor(mock_show, cesaroni_m1670):
+def test_motor(mock_show, cesaroni_m1670):  # pylint: disable=unused-argument
     """Tests the SolidMotor.all_info() method.
 
     Parameters

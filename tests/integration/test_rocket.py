@@ -80,7 +80,9 @@ def test_air_brakes_clamp_on(
 
 
 @patch("matplotlib.pyplot.show")
-def test_air_brakes_clamp_off(mock_show, calisto_air_brakes_clamp_off):
+def test_air_brakes_clamp_off(  # pylint: disable=unused-argument
+    mock_show, calisto_air_brakes_clamp_off
+):
     """Test the air brakes class with clamp off configuration. This test checks
     the basic attributes and the deployment_level setter. It also checks the
     all_info method.
@@ -115,7 +117,7 @@ def test_air_brakes_clamp_off(mock_show, calisto_air_brakes_clamp_off):
 
 
 @patch("matplotlib.pyplot.show")
-def test_rocket(mock_show, calisto_robust):
+def test_rocket(mock_show, calisto_robust):  # pylint: disable=unused-argument
     test_rocket = calisto_robust
     static_margin = test_rocket.static_margin(0)
     # Check if all_info and static_method methods are working properly
@@ -123,7 +125,7 @@ def test_rocket(mock_show, calisto_robust):
 
 
 @patch("matplotlib.pyplot.show")
-def test_aero_surfaces_infos(
+def test_aero_surfaces_infos(  # pylint: disable=unused-argument
     mock_show, calisto_nose_cone, calisto_tail, calisto_trapezoidal_fins
 ):
     assert calisto_nose_cone.all_info() is None
