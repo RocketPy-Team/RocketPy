@@ -100,7 +100,7 @@ def test_gefs_atmosphere(
 @patch("matplotlib.pyplot.show")
 def test_custom_atmosphere(
     mock_show, example_plain_env
-):  # pylint: disable: unused-argument
+):  # pylint: disable=unused-argument
     """Tests the custom atmosphere model in the environment object.
 
     Parameters
@@ -127,7 +127,7 @@ def test_custom_atmosphere(
 @patch("matplotlib.pyplot.show")
 def test_standard_atmosphere(
     mock_show, example_plain_env
-):  # pylint: disable: unused-argument
+):  # pylint: disable=unused-argument
     """Tests the standard atmosphere model in the environment object.
 
     Parameters
@@ -148,7 +148,7 @@ def test_standard_atmosphere(
 @patch("matplotlib.pyplot.show")
 def test_wyoming_sounding_atmosphere(
     mock_show, example_plain_env
-):  # pylint: disable: unused-argument
+):  # pylint: disable=unused-argument
     """Asserts whether the Wyoming sounding model in the environment
     object behaves as expected with respect to some attributes such
     as pressure, barometric_height, wind_velocity and temperature.
@@ -163,15 +163,14 @@ def test_wyoming_sounding_atmosphere(
 
     # TODO:: this should be added to the set_atmospheric_model() method as a
     #        "file" option, instead of receiving the URL as a string.
-    URL = "http://weather.uwyo.edu/cgi-bin/sounding?region=samer&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=02&FROM=0500&TO=0512&STNM=83779"
+    url = "http://weather.uwyo.edu/cgi-bin/sounding?region=samer&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=02&FROM=0500&TO=0512&STNM=83779"
     # give it at least 5 times to try to download the file
     for i in range(5):
         try:
-            example_plain_env.set_atmospheric_model(type="wyoming_sounding", file=URL)
+            example_plain_env.set_atmospheric_model(type="wyoming_sounding", file=url)
             break
-        except:
-            time.sleep(1)  # wait 1 second before trying again
-            pass
+        except Exception:  # pylint: disable=broad-except
+            time.sleep(2**i)
     assert example_plain_env.all_info() is None
     assert abs(example_plain_env.pressure(0) - 93600.0) < 1e-8
     assert (
@@ -227,7 +226,7 @@ def test_hiresw_ensemble_atmosphere(
 @patch("matplotlib.pyplot.show")
 def test_cmc_atmosphere(
     mock_show, example_spaceport_env
-):  # pylint: disable: unused-argument
+):  # pylint: disable=unused-argument
     """Tests the Ensemble model with the CMC file.
 
     Parameters

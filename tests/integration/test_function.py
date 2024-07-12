@@ -112,15 +112,15 @@ def test_func_from_csv_with_header(csv_file):
     line. It tests cases where the fields are separated by quotes and without
     quotes."""
     f = Function(csv_file)
-    assert f.__repr__() == "'Function from R1 to R1 : (time) → (value)'"
+    assert repr(f) == "'Function from R1 to R1 : (time) → (value)'"
     assert np.isclose(f(0), 100)
     assert np.isclose(f(0) + f(1), 300), "Error summing the values of the function"
 
 
 @patch("matplotlib.pyplot.show")
-def test_plots(
+def test_plots(  # pylint: disable=unused-argument
     mock_show, func_from_csv, func_2d_from_csv
-):  # pylint: disable: unused-argument
+):
     """Test different plot methods of the Function class.
 
     Parameters
@@ -150,7 +150,7 @@ def test_plots(
 
 
 @patch("matplotlib.pyplot.show")
-def test_multivariable_dataset_plot(mock_show):  # pylint: disable: unused-argument
+def test_multivariable_dataset_plot(mock_show):  # pylint: disable=unused-argument
     """Test the plot method of the Function class with a multivariable dataset."""
     # Test plane f(x,y) = x - y
     source = [
@@ -171,7 +171,7 @@ def test_multivariable_dataset_plot(mock_show):  # pylint: disable: unused-argum
 
 
 @patch("matplotlib.pyplot.show")
-def test_multivariable_function_plot(mock_show):  # pylint: disable: unused-argument
+def test_multivariable_function_plot(mock_show):  # pylint: disable=unused-argument
     """Test the plot method of the Function class with a multivariable function."""
 
     def source(x, y):
