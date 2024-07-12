@@ -37,14 +37,17 @@ def fetch_open_elevation(lat, lon):
     """
     print(f"Fetching elevation from open-elevation.com for lat={lat}, lon={lon}...")
     request_url = (
-        "https://api.open-elevation.com/api/v1/lookup?locations" f"={lat},{lon}"
+        f"https://api.open-elevation.com/api/v1/lookup?locations={lat},{lon}"
     )
     try:
         response = requests.get(request_url)
-    except requests.exceptions.RequestException as e:
+        results = response.json()["results"]
+        return results[0]["elevation"]
+    except (
+        requests.exceptions.RequestException,
+        requests.exceptions.JSONDecodeError,
+    ) as e:
         raise RuntimeError("Unable to reach Open-Elevation API servers.") from e
-    results = response.json()["results"]
-    return results[0]["elevation"]
 
 
 @exponential_backoff(max_attempts=5, base_delay=2, max_delay=60)
