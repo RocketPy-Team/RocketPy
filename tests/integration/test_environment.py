@@ -20,7 +20,9 @@ def test_set_elevation_open_elevation(
     # either successfully gets the elevation or raises RuntimeError
     with pytest.raises(RuntimeError):
         example_plain_env.set_elevation(elevation="Open-Elevation")
-        assert example_plain_env.elevation == pytest.approx(theoretical_elevation, abs=1)
+        assert example_plain_env.elevation == pytest.approx(
+            theoretical_elevation, abs=1
+        )
 
 
 @patch("matplotlib.pyplot.show")
