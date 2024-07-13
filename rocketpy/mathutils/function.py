@@ -1012,9 +1012,7 @@ class Function:  # pylint: disable=too-many-public-methods
             extrapolation="zero",
         )
 
-    def to_stft(
-        self, lower, upper, sampling_frequency, window_size, step_size, remove_dc=True
-    ):
+    def short_time_fft(self, lower, upper, sampling_frequency, window_size, step_size, remove_dc=True):
         '''
         Performs the Short-Time Fourier Transform (STFT) of the Function and
         returns the result. The STFT is computed by applying the Fourier transform
@@ -1062,18 +1060,17 @@ class Function:  # pylint: disable=too-many-public-methods
         sampling_time_step = 1.0 / sampling_frequency
         sampling_range = np.arange(lower, upper, sampling_time_step)
         sampled_points = self(sampling_range)
-        window_samples = int(window_size * sampling_frequency)
-        step_samples = int(step_size * sampling_frequency)
-
+        samples_per_window= int(window_size * sampling_frequency)  
+        samples_skipped_per_step= int(step_size * sampling_frequency)
         stft_results = []
-        for start in range(0, len(sampled_points) - window_samples + 1, step_samples):
-            windowed_samples = sampled_points[start : start + window_samples]
+        for start in range(0, len(sampled_points) - samples_per_window+ 1, samples_skipped_per_step):
+            windowed_samples = sampled_points[start : start + samples_per_window]
             if remove_dc:
                 windowed_samples -= np.mean(windowed_samples)
             fourier_amplitude = np.abs(
-                np.fft.fft(windowed_samples) / (window_samples / 2)
+                np.fft.fft(windowed_samples) / (samples_per_window/ 2)
             )
-            fourier_frequencies = np.fft.fftfreq(window_samples, sampling_time_step)
+            fourier_frequencies = np.fft.fftfreq(samples_per_window, sampling_time_step)
             stft_results.append(
                 Function(
                     source=np.array([fourier_frequencies, fourier_amplitude]).T,
