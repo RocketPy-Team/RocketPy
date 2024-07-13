@@ -36,9 +36,7 @@ def fetch_open_elevation(lat, lon):
         If there is a problem reaching the Open-Elevation API servers.
     """
     print(f"Fetching elevation from open-elevation.com for lat={lat}, lon={lon}...")
-    request_url = (
-        f"https://api.open-elevation.com/api/v1/lookup?locations={lat},{lon}"
-    )
+    request_url = f"https://api.open-elevation.com/api/v1/lookup?locations={lat},{lon}"
     try:
         response = requests.get(request_url)
         results = response.json()["results"]
