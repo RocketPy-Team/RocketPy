@@ -215,7 +215,7 @@ good-names=FlightPhases,
            prop_I_11,
            Kt, # transformation matrix transposed
            clalpha2D, 
-           clalpha2D_incompresible,
+           clalpha2D_incompressible,
            r_NOZ, # Nozzle position vector
            rocket_dry_I_33,
            rocket_dry_I_11,

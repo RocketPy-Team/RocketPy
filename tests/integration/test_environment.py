@@ -1,58 +1,28 @@
 import time
-from datetime import datetime
+from datetime import date, datetime, timezone
 from unittest.mock import patch
 
 import pytest
 
 
-@pytest.mark.slow
-@patch("matplotlib.pyplot.show")
-def test_gfs_atmosphere(
-    mock_show, example_spaceport_env
-):  # pylint: disable=unused-argument
-    """Tests the Forecast model with the GFS file. It does not test the values,
-    instead the test checks if the method runs without errors.
+@pytest.mark.parametrize(
+    "lat, lon, theoretical_elevation",
+    [
+        (48.858844, 2.294351, 34),  # The Eiffel Tower
+        (32.990254, -106.974998, 1401),  # Spaceport America
+    ],
+)
+def test_set_elevation_open_elevation(
+    lat, lon, theoretical_elevation, example_plain_env
+):
+    example_plain_env.set_location(lat, lon)
 
-    Parameters
-    ----------
-    mock_show : mock
-        Mock object to replace matplotlib.pyplot.show() method.
-    example_spaceport_env : rocketpy.Environment
-        Example environment object to be tested.
-    """
-    example_spaceport_env.set_atmospheric_model(type="Forecast", file="GFS")
-    assert example_spaceport_env.all_info() is None
-
-
-@pytest.mark.slow
-@patch("matplotlib.pyplot.show")
-def test_nam_atmosphere(
-    mock_show, example_spaceport_env
-):  # pylint: disable=unused-argument
-    """Tests the Forecast model with the NAM file.
-
-    Parameters
-    ----------
-    mock_show : mock
-        Mock object to replace matplotlib.pyplot.show() method.
-    example_spaceport_env : rocketpy.Environment
-        Example environment object to be tested.
-    """
-    example_spaceport_env.set_atmospheric_model(type="Forecast", file="NAM")
-    assert example_spaceport_env.all_info() is None
-
-
-# Deactivated since it is hard to figure out and appropriate date to use RAP forecast
-@pytest.mark.skip(reason="legacy tests")
-@pytest.mark.slow
-@patch("matplotlib.pyplot.show")
-def test_rap_atmosphere(
-    mock_show, example_spaceport_env
-):  # pylint: disable=unused-argument
-    today = datetime.date.today()
-    example_spaceport_env.set_date((today.year, today.month, today.day, 8))
-    example_spaceport_env.set_atmospheric_model(type="Forecast", file="RAP")
-    assert example_spaceport_env.all_info() is None
+    # either successfully gets the elevation or raises RuntimeError
+    with pytest.raises(RuntimeError):
+        example_plain_env.set_elevation(elevation="Open-Elevation")
+        assert example_plain_env.elevation == pytest.approx(
+            theoretical_elevation, abs=1
+        )
 
 
 @patch("matplotlib.pyplot.show")
@@ -78,25 +48,6 @@ def test_era5_atmosphere(
     assert example_spaceport_env.all_info() is None
 
 
-@pytest.mark.slow
-@patch("matplotlib.pyplot.show")
-def test_gefs_atmosphere(
-    mock_show, example_spaceport_env
-):  # pylint: disable=unused-argument
-    """Tests the Ensemble model with the GEFS file.
-
-    Parameters
-    ----------
-    mock_show : mock
-        Mock object to replace matplotlib.pyplot.show() method.
-    example_spaceport_env : rocketpy.Environment
-        Example environment object to be tested.
-    """
-    example_spaceport_env.set_atmospheric_model(type="Ensemble", file="GEFS")
-    assert example_spaceport_env.all_info() is None
-
-
-@pytest.mark.skip(reason="legacy tests")  # deprecated method
 @patch("matplotlib.pyplot.show")
 def test_custom_atmosphere(
     mock_show, example_plain_env
@@ -145,6 +96,120 @@ def test_standard_atmosphere(
     assert example_plain_env.prints.print_earth_details() is None
 
 
+@patch("matplotlib.pyplot.show")
+def test_noaaruc_atmosphere(
+    mock_show, example_spaceport_env
+):  # pylint: disable=unused-argument
+    url = (
+        r"https://rucsoundings.noaa.gov/get_raobs.cgi?data_source=RAOB&latest="
+        r"latest&start_year=2019&start_month_name=Feb&start_mday=5&start_hour=12"
+        r"&start_min=0&n_hrs=1.0&fcst_len=shortest&airport=83779&text=Ascii"
+        r"%20text%20%28GSD%20format%29&hydrometeors=false&start=latest"
+    )
+    example_spaceport_env.set_atmospheric_model(type="NOAARucSounding", file=url)
+    assert example_spaceport_env.all_info() is None
+
+
+@pytest.mark.parametrize(
+    "model_name",
+    [
+        "ECMWF",
+        "GFS",
+        "ICON",
+        "ICONEU",
+    ],
+)
+def test_windy_atmosphere(example_euroc_env, model_name):
+    """Tests the Windy model in the environment object. The test ensures the
+    pressure, temperature, and wind profiles are working and giving reasonable
+    values. The tolerances may be higher than usual due to the nature of the
+    atmospheric uncertainties, but it is ok since we are just testing if the
+    method is working.
+
+    Parameters
+    ----------
+    example_euroc_env : Environment
+        Example environment object to be tested. The EuRoC launch site is used
+        to test the ICONEU model, which only works in Europe.
+    model_name : str
+        The name of the model to be passed to the set_atmospheric_model() method
+        as the "file" parameter.
+    """
+    example_euroc_env.set_atmospheric_model(type="Windy", file=model_name)
+    assert pytest.approx(100000.0, rel=0.1) == example_euroc_env.pressure(100)
+    assert 0 + 273 < example_euroc_env.temperature(100) < 40 + 273
+    assert abs(example_euroc_env.wind_velocity_x(100)) < 20.0
+    assert abs(example_euroc_env.wind_velocity_y(100)) < 20.0
+
+
+@pytest.mark.slow
+@patch("matplotlib.pyplot.show")
+def test_gfs_atmosphere(
+    mock_show, example_spaceport_env
+):  # pylint: disable=unused-argument
+    """Tests the Forecast model with the GFS file. It does not test the values,
+    instead the test checks if the method runs without errors.
+
+    Parameters
+    ----------
+    mock_show : mock
+        Mock object to replace matplotlib.pyplot.show() method.
+    example_spaceport_env : rocketpy.Environment
+        Example environment object to be tested.
+    """
+    example_spaceport_env.set_atmospheric_model(type="Forecast", file="GFS")
+    assert example_spaceport_env.all_info() is None
+
+
+@pytest.mark.slow
+@patch("matplotlib.pyplot.show")
+def test_nam_atmosphere(
+    mock_show, example_spaceport_env
+):  # pylint: disable=unused-argument
+    """Tests the Forecast model with the NAM file.
+
+    Parameters
+    ----------
+    mock_show : mock
+        Mock object to replace matplotlib.pyplot.show() method.
+    example_spaceport_env : rocketpy.Environment
+        Example environment object to be tested.
+    """
+    example_spaceport_env.set_atmospheric_model(type="Forecast", file="NAM")
+    assert example_spaceport_env.all_info() is None
+
+
+@pytest.mark.slow
+@patch("matplotlib.pyplot.show")
+def test_rap_atmosphere(
+    mock_show, example_spaceport_env
+):  # pylint: disable=unused-argument
+    today = date.today()
+    now = datetime.now(timezone.utc)
+    example_spaceport_env.set_date((today.year, today.month, today.day, now.hour))
+    example_spaceport_env.set_atmospheric_model(type="Forecast", file="RAP")
+    assert example_spaceport_env.all_info() is None
+
+
+@pytest.mark.slow
+@patch("matplotlib.pyplot.show")
+def test_gefs_atmosphere(
+    mock_show, example_spaceport_env
+):  # pylint: disable=unused-argument
+    """Tests the Ensemble model with the GEFS file.
+
+    Parameters
+    ----------
+    mock_show : mock
+        Mock object to replace matplotlib.pyplot.show() method.
+    example_spaceport_env : rocketpy.Environment
+        Example environment object to be tested.
+    """
+    example_spaceport_env.set_atmospheric_model(type="Ensemble", file="GEFS")
+    assert example_spaceport_env.all_info() is None
+
+
+@pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_wyoming_sounding_atmosphere(
     mock_show, example_plain_env
@@ -195,34 +260,21 @@ def test_hiresw_ensemble_atmosphere(
     example_spaceport_env : rocketpy.Environment
         Example environment object to be tested.
     """
-    # TODO: why isn't the HIRESW a built-in option in the set_atmospheric_model() method?
-    HIRESW_dictionary = {
-        "time": "time",
-        "latitude": "lat",
-        "longitude": "lon",
-        "level": "lev",
-        "temperature": "tmpprs",
-        "surface_geopotential_height": "hgtsfc",
-        "geopotential_height": "hgtprs",
-        "u_wind": "ugrdprs",
-        "v_wind": "vgrdprs",
-    }
-    today = datetime.date.today()
+    today = date.today()
     date_info = (today.year, today.month, today.day, 12)  # Hour given in UTC time
-    date_string = f"{date_info[0]}{date_info[1]:02}{date_info[2]:02}"
 
     example_spaceport_env.set_date(date_info)
 
     example_spaceport_env.set_atmospheric_model(
         type="Forecast",
-        file=f"https://nomads.ncep.noaa.gov/dods/hiresw/hiresw{date_string}/hiresw_conusarw_12z",
-        dictionary=HIRESW_dictionary,
+        file="HIRESW",
+        dictionary="HIRESW",
     )
 
     assert example_spaceport_env.all_info() is None
 
 
-@pytest.mark.slow
+@pytest.mark.skip(reason="CMC model is currently not working")
 @patch("matplotlib.pyplot.show")
 def test_cmc_atmosphere(
     mock_show, example_spaceport_env

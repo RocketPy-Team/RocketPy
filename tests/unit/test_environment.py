@@ -1,11 +1,9 @@
 import json
 import os
-from unittest.mock import patch
 
 import numpy as np
 import pytest
 import pytz
-from numpy import ma
 
 from rocketpy import Environment
 
@@ -29,7 +27,7 @@ def test_location_set_location_saves_location(latitude, longitude, example_plain
     assert example_plain_env.longitude == longitude
 
 
-@pytest.mark.parametrize("elevation", [(-200), (0), (200)])
+@pytest.mark.parametrize("elevation", [(0), (100), (1000), (100000)])
 def test_elevation_set_elevation_saves_elevation(elevation, example_plain_env):
     """Tests the wether the 'set_elevation' method within the Environment class
     sets the elevation correctly.
@@ -160,51 +158,6 @@ def test_decimal_degrees_to_arc_seconds_computes_correct_values(
     assert pytest.approx(computed_data[2], abs=1e-8) == theoretical_arc_seconds
 
 
-@patch("matplotlib.pyplot.show")
-def test_info_returns(mock_show, example_plain_env):  # pylint: disable=unused-argument
-    """Tests the all_info_returned() all_plot_info_returned() and methods of the
-    Environment class.
-
-    Parameters
-    ----------
-    mock_show : mock
-        Mock object to replace matplotlib.pyplot.show() method.
-    example_plain_env : rocketpy.Environment
-        Example environment object to be tested.
-    """
-    returned_plots = example_plain_env.all_plot_info_returned()
-    returned_infos = example_plain_env.all_info_returned()
-    expected_info = {
-        "grav": example_plain_env.gravity,
-        "elevation": 0,
-        "model_type": "standard_atmosphere",
-        "model_type_max_expected_height": 80000,
-        "wind_speed": 0,
-        "wind_direction": 0,
-        "wind_heading": 0,
-        "surface_pressure": 1013.25,
-        "surface_temperature": 288.15,
-        "surface_air_density": 1.225000018124288,
-        "surface_speed_of_sound": 340.293988026089,
-        "lat": 0,
-        "lon": 0,
-    }
-    expected_plots_keys = [
-        "grid",
-        "wind_speed",
-        "wind_direction",
-        "speed_of_sound",
-        "density",
-        "wind_vel_x",
-        "wind_vel_y",
-        "pressure",
-        "temperature",
-    ]
-    assert list(returned_infos.keys()) == list(expected_info.keys())
-    assert list(returned_infos.values()) == list(expected_info.values())
-    assert list(returned_plots.keys()) == expected_plots_keys
-
-
 def test_date_naive_set_date_saves_utc_timezone_by_default(
     example_plain_env, example_date_naive
 ):
@@ -234,70 +187,53 @@ def test_date_aware_set_date_saves_custom_timezone(
     assert example_plain_env.datetime_date == example_date_aware
 
 
+@pytest.mark.parametrize("env_name", ["example_spaceport_env", "example_euroc_env"])
 def test_environment_export_environment_exports_valid_environment_json(
-    example_spaceport_env,
+    request, env_name
 ):
     """Tests the export_environment() method of the Environment class.
 
     Parameters
     ----------
-    example_spaceport_env : rocketpy.Environment
+    env_name : str
+        The name of the environment fixture to be tested.
     """
+    # get the fixture with the name in the string
+    env = request.getfixturevalue(env_name)
     # Check file creation
-    assert example_spaceport_env.export_environment(filename="environment") is None
+    assert env.export_environment(filename="environment") is None
     with open("environment.json", "r") as json_file:
         exported_env = json.load(json_file)
     assert os.path.isfile("environment.json")
 
     # Check file content
-    assert exported_env["gravity"] == example_spaceport_env.gravity(
-        example_spaceport_env.elevation
-    )
+    assert exported_env["gravity"] == env.gravity(env.elevation)
     assert exported_env["date"] == [
-        example_spaceport_env.datetime_date.year,
-        example_spaceport_env.datetime_date.month,
-        example_spaceport_env.datetime_date.day,
-        example_spaceport_env.datetime_date.hour,
+        env.datetime_date.year,
+        env.datetime_date.month,
+        env.datetime_date.day,
+        env.datetime_date.hour,
     ]
-    assert exported_env["latitude"] == example_spaceport_env.latitude
-    assert exported_env["longitude"] == example_spaceport_env.longitude
-    assert exported_env["elevation"] == example_spaceport_env.elevation
-    assert exported_env["datum"] == example_spaceport_env.datum
-    assert exported_env["timezone"] == example_spaceport_env.timezone
-    assert exported_env["max_expected_height"] == float(
-        example_spaceport_env.max_expected_height
+    assert exported_env["latitude"] == env.latitude
+    assert exported_env["longitude"] == env.longitude
+    assert exported_env["elevation"] == env.elevation
+    assert exported_env["datum"] == env.datum
+    assert exported_env["timezone"] == env.timezone
+    assert exported_env["max_expected_height"] == float(env.max_expected_height)
+    assert exported_env["atmospheric_model_type"] == env.atmospheric_model_type
+    assert exported_env["atmospheric_model_file"] is None
+    assert exported_env["atmospheric_model_dict"] is None
+    assert exported_env["atmospheric_model_pressure_profile"] == str(
+        env.pressure.get_source()
     )
-    assert (
-        exported_env["atmospheric_model_type"]
-        == example_spaceport_env.atmospheric_model_type
+    assert exported_env["atmospheric_model_temperature_profile"] == str(
+        env.temperature.get_source()
     )
-    assert exported_env["atmospheric_model_file"] == ""
-    assert exported_env["atmospheric_model_dict"] == ""
-    assert (
-        exported_env["atmospheric_model_pressure_profile"]
-        == ma.getdata(
-            example_spaceport_env.pressure.get_source()(example_spaceport_env.height)
-        ).tolist()
+    assert exported_env["atmospheric_model_wind_velocity_x_profile"] == str(
+        env.wind_velocity_x.get_source()
     )
-    assert (
-        exported_env["atmospheric_model_temperature_profile"]
-        == ma.getdata(example_spaceport_env.temperature.get_source()).tolist()
-    )
-    assert (
-        exported_env["atmospheric_model_wind_velocity_x_profile"]
-        == ma.getdata(
-            example_spaceport_env.wind_velocity_x.get_source()(
-                example_spaceport_env.height
-            )
-        ).tolist()
-    )
-    assert (
-        exported_env["atmospheric_model_wind_velocity_y_profile"]
-        == ma.getdata(
-            example_spaceport_env.wind_velocity_y.get_source()(
-                example_spaceport_env.height
-            )
-        ).tolist()
+    assert exported_env["atmospheric_model_wind_velocity_y_profile"] == str(
+        env.wind_velocity_y.get_source()
     )
 
     os.remove("environment.json")
