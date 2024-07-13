@@ -1863,10 +1863,10 @@ class RailButtons(AeroSurface):
 
     def __init__(
         self,
-        rocket_radius,
         buttons_distance,
         angular_position=45,
         name="Rail Buttons",
+        rocket_radius=None,
     ):
         """Initializes RailButtons Class.
 
