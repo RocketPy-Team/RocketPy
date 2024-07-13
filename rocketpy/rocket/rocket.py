@@ -1510,9 +1510,9 @@ class Rocket:
         """
         buttons_distance = abs(upper_button_position - lower_button_position)
         rail_buttons = RailButtons(
+            rocket_radius=self.radius,
             buttons_distance=buttons_distance,
             angular_position=angular_position,
-            rocket_radius=self.radius,
         )
         self.rail_buttons.add(rail_buttons, lower_button_position)
         return rail_buttons
