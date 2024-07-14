@@ -1044,19 +1044,34 @@ class Function:  # pylint: disable=too-many-public-methods
         --------
         >>> from rocketpy import Function
         >>> import numpy as np
-        >>> main_frequency = 10 # Hz
-        >>> time = np.linspace(0, 10, 1000)
-        >>> signal = np.sin(2 * np.pi * main_frequency * time)
-        >>> time_domain = Function(np.array([time, signal]).T)
-        >>> stft_result = time_domain.to_stft(
-        ...     lower=0, upper=10, sampling_frequency=100,
-        ...     window_size=1, step_size=0.1
+        >>> import matplotlib.pyplot as plt
+
+        >>> # Generate a signal with varying frequency
+        >>> T_x, N = 1 / 20, 1000  # 20 Hz sampling rate for 50 s signal
+        >>> t_x = np.arange(N) * T_x  # time indexes for signal
+        >>> f_i = 1 * np.arctan((t_x - t_x[N // 2]) / 2) + 5  # varying frequency
+        >>> signal = np.sin(2 * np.pi * np.cumsum(f_i) * T_x)  # the signal
+
+        >>> # Create a Function object
+        >>> time_domain = Function(np.array([t_x, signal]).T)
+
+        >>> # Perform the STFT
+        >>> stft_result = time_domain.short_time_fft(
+        ...     lower=0, upper=50, sampling_frequency=20,
+        ...     window_size=2, step_size=0.5
         ... )
+
+        >>> # Plot the result
+        >>> fig, ax = plt.subplots(figsize=(10, 6))
         >>> for window in stft_result:
-        ...     peak_frequencies_index = np.where(window[:, 1] > 0.001)
-        ...     peak_frequencies = window[peak_frequencies_index, 0]
-        >>> print(peak_frequencies)
-        [[-10.  10.]]
+        ...     freq = window[:, 0]
+        ...     amplitude = window[:, 1]
+        ...     ax.plot(freq, amplitude)
+
+        >>> ax.set_xlabel('Frequency (Hz)')
+        >>> ax.set_ylabel('Amplitude')
+        >>> ax.set_title('Short-Time Fourier Transform (STFT) Result')
+        >>> plt.show()
         '''
         # Get the time domain data
         sampling_time_step = 1.0 / sampling_frequency
