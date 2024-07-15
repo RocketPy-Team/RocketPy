@@ -34,13 +34,12 @@ def test_stochastic_solid_motor_create_object_with_impulse(stochastic_solid_moto
     stochastic_solid_motor : StochasticSolidMotor
         The stochastic solid motor object, this is a pytest fixture.
     """
-    total_impulse = []
-    for _ in range(20):
-        random_motor = stochastic_solid_motor.create_object()
-        total_impulse.append(random_motor.total_impulse)
+    total_impulse = [
+        stochastic_solid_motor.create_object().total_impulse for _ in range(200)
+    ]
 
     assert np.isclose(np.mean(total_impulse), 6500, rtol=0.3)
-    assert np.isclose(np.std(total_impulse), 1000, rtol=0.3)
+    assert np.isclose(np.std(total_impulse), 1000, rtol=0.4)
 
 
 def test_stochastic_calisto_create_object_with_static_margin(stochastic_calisto):

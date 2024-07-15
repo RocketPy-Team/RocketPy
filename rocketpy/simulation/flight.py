@@ -838,6 +838,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                         phase.solver.status = "finished"
 
                     # Check for apogee event
+                    # TODO: negative vz doesn't really mean apogee. Improve this.
                     if len(self.apogee_state) == 1 and self.y_sol[5] < 0:
                         # Assume linear vz(t) to detect when vz = 0
                         t0, vz0 = self.solution[-2][0], self.solution[-2][6]
@@ -863,6 +864,10 @@ class Flight:  # pylint: disable=too-many-public-methods
                             phase.time_nodes.flush_after(node_index)
                             phase.time_nodes.add_node(self.t, [], [])
                             phase.solver.status = "finished"
+                        elif len(self.solution) > 2:
+                            # adding the apogee state to solution increases accuracy
+                            # we can only do this if the apogee is not the first state
+                            self.solution.insert(-1, [t_root, *self.apogee_state])
                     # Check for impact event
                     if self.y_sol[2] < self.env.elevation:
                         # Check exactly when it happened using root finding
