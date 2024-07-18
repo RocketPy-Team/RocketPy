@@ -1054,7 +1054,6 @@ class Function:  # pylint: disable=too-many-public-methods
 
         >>> # Create a Function object
         >>> time_domain = Function(np.array([t_x, signal]).T)
-
         >>> # Perform the STFT
         >>> stft_result = time_domain.short_time_fft(
         ...     lower=0, upper=50, sampling_frequency=20,
@@ -1066,11 +1065,14 @@ class Function:  # pylint: disable=too-many-public-methods
         >>> for window in stft_result:
         ...     freq = window[:, 0]
         ...     amplitude = window[:, 1]
-        ...     ax.plot(freq, amplitude)
+        ...     _=ax.plot(freq, amplitude)
 
         >>> ax.set_xlabel('Frequency (Hz)')
+        Text(0.5, 0, 'Frequency (Hz)')
         >>> ax.set_ylabel('Amplitude')
+        Text(0, 0.5, 'Amplitude')
         >>> ax.set_title('Short-Time Fourier Transform (STFT) Result')
+        Text(0.5, 1.0, 'Short-Time Fourier Transform (STFT) Result')
         >>> plt.show()
         '''
         # Get the time domain data
