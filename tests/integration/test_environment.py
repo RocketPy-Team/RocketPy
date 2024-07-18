@@ -18,11 +18,13 @@ def test_set_elevation_open_elevation(
     example_plain_env.set_location(lat, lon)
 
     # either successfully gets the elevation or raises RuntimeError
-    with pytest.raises(RuntimeError):
+    try:
         example_plain_env.set_elevation(elevation="Open-Elevation")
         assert example_plain_env.elevation == pytest.approx(
             theoretical_elevation, abs=1
-        )
+        ), "The Open-Elevation API returned an unexpected value for the elevation"
+    except RuntimeError:
+        pass  # Ignore the error and pass the test
 
 
 @patch("matplotlib.pyplot.show")
