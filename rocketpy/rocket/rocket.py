@@ -956,9 +956,18 @@ class Rocket:
         -------
         None
         """
+        if isinstance(surfaces, list) is False:
+            if isinstance(surfaces, RailButtons):
+                surfaces = [surfaces]
+                positions = [positions]
         try:
             for surface, position in zip(surfaces, positions):
                 self.aerodynamic_surfaces.add(surface, position)
+                if isinstance(surface, RailButtons):
+                    try:
+                        self.rail_buttons.add(surface, position)
+                    except TypeError:
+                        self.rail_buttons.add(surface, positions)
         except TypeError:
             self.aerodynamic_surfaces.add(surfaces, positions)
 
