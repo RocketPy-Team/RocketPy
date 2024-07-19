@@ -298,7 +298,7 @@ class MonteCarlo:
         try:
             while self.__iteration_count < self.number_of_simulations:
                 self.__run_single_simulation(
-                    self.iteration_count + idx_i,
+                    self.__iteration_count + idx_i,
                     input_file,
                     output_file,
                     light_mode=light_mode,
