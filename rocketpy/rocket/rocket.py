@@ -964,10 +964,7 @@ class Rocket:
             for surface, position in zip(surfaces, positions):
                 self.aerodynamic_surfaces.add(surface, position)
                 if isinstance(surface, RailButtons):
-                    try:
-                        self.rail_buttons.add(surface, position)
-                    except TypeError:
-                        self.rail_buttons.add(surface, positions)
+                    self.rail_buttons.add(surface, position)
         except TypeError:
             self.aerodynamic_surfaces.add(surfaces, positions)
 
