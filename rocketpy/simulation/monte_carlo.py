@@ -1,4 +1,5 @@
 """Defines the MonteCarlo class."""
+
 import ctypes
 import json
 import os
@@ -216,13 +217,13 @@ class MonteCarlo:
 
         Parameters
         ----------
-            append: bool
-                If True, the results will be appended to the existing files. If
-                False, the files will be overwritten.
-            light_mode: bool
-                If True, only variables from the export_list will be saved to
-                the output file as a .txt file. If False, all variables will be
-                saved to the output file as a .h5 file.
+        append: bool
+            If True, the results will be appended to the existing files. If
+            False, the files will be overwritten.
+        light_mode: bool
+            If True, only variables from the export_list will be saved to
+            the output file as a .txt file. If False, all variables will be
+            saved to the output file as a .h5 file.
 
         Returns
         -------
@@ -238,13 +239,6 @@ class MonteCarlo:
             output_file = open(self._output_file, open_mode, encoding="utf-8")
             error_file = open(self._error_file, open_mode, encoding="utf-8")
 
-            idx_i = self.__get_initial_sim_idx(
-                input_file, append=append, light_mode=light_mode
-            )
-            idx_o = self.__get_initial_sim_idx(
-                output_file, append=append, light_mode=light_mode
-            )
-
         else:
             input_file = h5py.File(Path(self._input_file).with_suffix(".h5"), open_mode)
             output_file = h5py.File(
@@ -252,12 +246,12 @@ class MonteCarlo:
             )
             error_file = open(self._error_file, open_mode, encoding="utf-8")
 
-            idx_i = self.__get_initial_sim_idx(
-                input_file, append=append, light_mode=light_mode
-            )
-            idx_o = self.__get_initial_sim_idx(
-                output_file, append=append, light_mode=light_mode
-            )
+        idx_i = self.__get_initial_sim_idx(
+            input_file, append=append, light_mode=light_mode
+        )
+        idx_o = self.__get_initial_sim_idx(
+            output_file, append=append, light_mode=light_mode
+        )
 
         if idx_i != idx_o:
             raise ValueError(
@@ -295,22 +289,22 @@ class MonteCarlo:
 
         Parameters
         ----------
-            append: bool
-                If True, the results will be appended to the existing files. If
-                False, the files will be overwritten.
-            light_mode: bool
-                If True, only variables from the export_list will be saved to
-                the output file as a .txt file. If False, all variables will be
-                saved to the output file as a .h5 file.
-            n_workers: int, optional
-                Number of workers to be used. If None, the number of workers
-                will be equal to the number of CPUs available. Default is None.
+        append: bool
+            If True, the results will be appended to the existing files. If
+            False, the files will be overwritten.
+        light_mode: bool
+            If True, only variables from the export_list will be saved to
+            the output file as a .txt file. If False, all variables will be
+            saved to the output file as a .h5 file.
+        n_workers: int, optional
+            Number of workers to be used. If None, the number of workers
+            will be equal to the number of CPUs available. Default is None.
 
         Returns
         -------
         None
         """
-        parallel_start = time()
+        parallel_start_time = time()
         processes = []
 
         if (
@@ -386,7 +380,7 @@ class MonteCarlo:
 
                     with open(self._output_file, mode=open_mode) as f:
                         pass
-                        
+
                     # get the initial simulation index - read mode is required
                     with open(self._input_file, mode='r') as f:
                         idx_i = self.__get_initial_sim_idx(
@@ -431,7 +425,7 @@ class MonteCarlo:
 
                 # Initialize simulation counter
                 sim_counter = manager.SimCounter(
-                    idx_i, self.number_of_simulations, parallel_start
+                    idx_i, self.number_of_simulations, parallel_start_time
                 )
 
                 print("\nStarting monte carlo analysis", end="\r")
@@ -507,7 +501,6 @@ class MonteCarlo:
                 for p in processes:
                     p.join()
 
-                print("All workers joined, simulation complete.")
                 print("Joining writer workers.")
                 # stop the writer workers
                 input_writer_stop_event.set()
@@ -527,7 +520,9 @@ class MonteCarlo:
                     f"In total, {sim_counter.get_count() - idx_i} simulations were performed."
                 )
                 print(
-                    "Simulation took", parallel_end - parallel_start, "seconds to run."
+                    "Simulation took",
+                    parallel_end - parallel_start_time,
+                    "seconds to run.",
                 )
 
         finally:
@@ -1748,12 +1743,12 @@ class MonteCarloManager(BaseManager):
 
 
 class SimCounter:
-    def __init__(self, initial_count, n_simulations, parallel_start):
+    def __init__(self, initial_count, n_simulations, parallel_start_time):
         self.initial_count = initial_count
         self.count = initial_count
         self.n_simulations = n_simulations
         self._last_print_len = 0  # used to print on the same line
-        self.initial_time = parallel_start
+        self.initial_time = parallel_start_time
 
     def increment(self):
         if self.count >= self.n_simulations:
