@@ -97,7 +97,7 @@ def test_matrix_inverse(components):
     matrix = Matrix(components)
     if matrix.det == 0:
         with pytest.raises(ZeroDivisionError):
-            matrix.inverse
+            assert matrix.inverse
     else:
         assert matrix.inverse == np.linalg.inv(matrix)
 
@@ -113,68 +113,68 @@ def test_matrix_neg(components):
     assert -Matrix(components) + Matrix(components) == Matrix.zeros()
 
 
-@pytest.mark.parametrize("A_c", test_matrices)
-@pytest.mark.parametrize("B_c", test_matrices)
-def test_matrix_add(A_c, B_c):
-    expected_result = np.array(A_c) + np.array(B_c)
-    assert Matrix(A_c) + Matrix(B_c) == expected_result
+@pytest.mark.parametrize("A", test_matrices)
+@pytest.mark.parametrize("B", test_matrices)
+def test_matrix_add(A, B):
+    expected_result = np.array(A) + np.array(B)
+    assert Matrix(A) + Matrix(B) == expected_result
 
 
-@pytest.mark.parametrize("A_c", test_matrices)
-@pytest.mark.parametrize("B_c", test_matrices)
-def test_matrix_sub(A_c, B_c):
-    expected_result = np.array(A_c) - np.array(B_c)
-    assert Matrix(A_c) - Matrix(B_c) == expected_result
-
-
-@pytest.mark.parametrize("k", [-1, 0, 1, np.pi])
-@pytest.mark.parametrize("A_c", test_matrices)
-def test_matrix_mul(A_c, k):
-    A = Matrix(A_c)
-    assert A * k == k * np.array(A_c)
+@pytest.mark.parametrize("A", test_matrices)
+@pytest.mark.parametrize("B", test_matrices)
+def test_matrix_sub(A, B):
+    expected_result = np.array(A) - np.array(B)
+    assert Matrix(A) - Matrix(B) == expected_result
 
 
 @pytest.mark.parametrize("k", [-1, 0, 1, np.pi])
-@pytest.mark.parametrize("A_c", test_matrices)
-def test_matrix_rmul(A_c, k):
-    A = Matrix(A_c)
-    assert k * A == k * np.array(A_c)
+@pytest.mark.parametrize("A", test_matrices)
+def test_matrix_mul(A, k):
+    A = Matrix(A)
+    assert A * k == k * np.array(A)
 
 
-@pytest.mark.parametrize("A_c", test_matrices)
+@pytest.mark.parametrize("k", [-1, 0, 1, np.pi])
+@pytest.mark.parametrize("A", test_matrices)
+def test_matrix_rmul(A, k):
+    np_array = np.array(A)
+    A = Matrix(A)
+    assert k * A == k * np_array
+
+
+@pytest.mark.parametrize("A", test_matrices)
 @pytest.mark.parametrize("k", [-1, 1, np.pi, np.e])
-def test_matrix_truediv(A_c, k):
-    A = Matrix(A_c)
+def test_matrix_truediv(A, k):
+    A = Matrix(A)
     assert A / k == np.array(A) / k
 
 
-@pytest.mark.parametrize("A_c", test_matrices)
-@pytest.mark.parametrize("B_c", test_matrices)
-def test_matrix_matmul_matrices(A_c, B_c):
-    expected_result = np.dot(A_c, B_c)
-    assert Matrix(A_c) @ Matrix(B_c) == expected_result
+@pytest.mark.parametrize("A", test_matrices)
+@pytest.mark.parametrize("B", test_matrices)
+def test_matrix_matmul_matrices(A, B):
+    expected_result = np.dot(A, B)
+    assert Matrix(A) @ Matrix(B) == expected_result
 
 
-@pytest.mark.parametrize("A_c", test_matrices)
-@pytest.mark.parametrize("B_c", [[1, 2, 3], [-np.pi, 1, np.e], [3 * 1j, -2j, 0j]])
-def test_matrix_matmul_vectors(A_c, B_c):
-    expected_result = np.dot(A_c, B_c)
-    assert Matrix(A_c) @ Vector(B_c) == expected_result
+@pytest.mark.parametrize("A", test_matrices)
+@pytest.mark.parametrize("B", [[1, 2, 3], [-np.pi, 1, np.e], [3 * 1j, -2j, 0j]])
+def test_matrix_matmul_vectors(A, B):
+    expected_result = np.dot(A, B)
+    assert Matrix(A) @ Vector(B) == expected_result
 
 
 @pytest.mark.parametrize("k", [0, 1, 2, 3, 4, 5])
-@pytest.mark.parametrize("A_c", test_matrices)
-def test_matrix_pow(A_c, k):
-    A = Matrix(A_c)
+@pytest.mark.parametrize("A", test_matrices)
+def test_matrix_pow(A, k):
+    A = Matrix(A)
     assert A**k == np.linalg.matrix_power(A, k)
 
 
 @pytest.mark.parametrize("matrix_components", test_matrices)
 def test_matrix_eq(matrix_components):
     matrix = Matrix(matrix_components)
-    assert matrix == matrix
     assert matrix == matrix_components
-    assert (matrix == 2 * matrix) == False
+    assert (matrix == 2 * matrix) is False
 
 
 @pytest.mark.parametrize("operation", [lambda i: i**2, lambda i: 1 / (i + 1.1)])
@@ -191,10 +191,10 @@ def test_matrix_element_wise(matrix_components, operation):
     )
 
 
-@pytest.mark.parametrize("A_c", test_matrices)
-@pytest.mark.parametrize("B_c", test_matrices)
-def test_matrix_dot(A_c, B_c):
-    A, B = Matrix(A_c), Matrix(B_c)
+@pytest.mark.parametrize("A", test_matrices)
+@pytest.mark.parametrize("B", test_matrices)
+def test_matrix_dot(A, B):
+    A, B = Matrix(A), Matrix(B)
     assert A.dot(B) == np.dot(A, B)
 
 
@@ -242,3 +242,17 @@ def test_matrix_transformation():
     q1, q2, q3 = np.sin(phi / 2) * n
     matrix = Matrix.transformation((q0, q1, q2, q3))
     assert matrix @ Vector([0, 0, 1]) == Vector([0, -1, 0])
+
+
+@pytest.mark.parametrize("components", test_matrices)
+def test_matrix_x_y_z(components):
+    matrix = Matrix(components)
+    assert matrix.xx == components[0][0]
+    assert matrix.xy == components[0][1]
+    assert matrix.xz == components[0][2]
+    assert matrix.yx == components[1][0]
+    assert matrix.yy == components[1][1]
+    assert matrix.yz == components[1][2]
+    assert matrix.zx == components[2][0]
+    assert matrix.zy == components[2][1]
+    assert matrix.zz == components[2][2]

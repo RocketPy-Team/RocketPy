@@ -1,35 +1,18 @@
-from unittest.mock import patch
-
 import numpy as np
 import pytest
 import scipy.integrate
 
 from rocketpy import Function
 
-burn_time = (8, 20)
-dry_mass = 10
-dry_inertia = (5, 5, 0.2)
-center_of_dry_mass = 0
-nozzle_position = -1.364
-nozzle_radius = 0.069 / 2
-pressurant_tank_position = 2.007
-fuel_tank_position = -1.048
-oxidizer_tank_position = 0.711
-
-
-@patch("matplotlib.pyplot.show")
-def test_liquid_motor_info(mock_show, liquid_motor):
-    """Tests the LiquidMotor.all_info() method.
-
-    Parameters
-    ----------
-    mock_show : mock
-        Mock of the matplotlib.pyplot.show function.
-    liquid_motor : rocketpy.LiquidMotor
-        The LiquidMotor object to be used in the tests.
-    """
-    assert liquid_motor.info() == None
-    assert liquid_motor.all_info() == None
+BURN_TIME = (8, 20)
+DRY_MASS = 10
+DRY_INERTIA = (5, 5, 0.2)
+CENTER_OF_DRY_MASS = 0
+NOZZLE_POSITION = -1.364
+NOZZLE_RADIUS = 0.069 / 2
+PRESSURANT_TANK_POSITION = 2.007
+FUEL_TANK_POSITION = -1.048
+OXIDIZER_TANK_POSITION = 0.711
 
 
 def test_liquid_motor_basic_parameters(liquid_motor):
@@ -40,19 +23,19 @@ def test_liquid_motor_basic_parameters(liquid_motor):
     liquid_motor : rocketpy.LiquidMotor
         The LiquidMotor object to be used in the tests.
     """
-    assert liquid_motor.burn_time == burn_time
-    assert liquid_motor.dry_mass == dry_mass
+    assert liquid_motor.burn_time == BURN_TIME
+    assert liquid_motor.dry_mass == DRY_MASS
     assert (
         liquid_motor.dry_I_11,
         liquid_motor.dry_I_22,
         liquid_motor.dry_I_33,
-    ) == dry_inertia
-    assert liquid_motor.center_of_dry_mass_position == center_of_dry_mass
-    assert liquid_motor.nozzle_position == nozzle_position
-    assert liquid_motor.nozzle_radius == nozzle_radius
-    assert liquid_motor.positioned_tanks[0]["position"] == pressurant_tank_position
-    assert liquid_motor.positioned_tanks[1]["position"] == fuel_tank_position
-    assert liquid_motor.positioned_tanks[2]["position"] == oxidizer_tank_position
+    ) == DRY_INERTIA
+    assert liquid_motor.center_of_dry_mass_position == CENTER_OF_DRY_MASS
+    assert liquid_motor.nozzle_position == NOZZLE_POSITION
+    assert liquid_motor.nozzle_radius == NOZZLE_RADIUS
+    assert liquid_motor.positioned_tanks[0]["position"] == PRESSURANT_TANK_POSITION
+    assert liquid_motor.positioned_tanks[1]["position"] == FUEL_TANK_POSITION
+    assert liquid_motor.positioned_tanks[2]["position"] == OXIDIZER_TANK_POSITION
 
 
 def test_liquid_motor_thrust_parameters(
@@ -140,12 +123,12 @@ def test_liquid_motor_mass_volume(
     )
 
     # Perform default discretization
-    expected_pressurant_mass.set_discrete(*burn_time, 100)
-    expected_fuel_mass.set_discrete(*burn_time, 100)
-    expected_oxidizer_mass.set_discrete(*burn_time, 100)
-    expected_pressurant_volume.set_discrete(*burn_time, 100)
-    expected_fuel_volume.set_discrete(*burn_time, 100)
-    expected_oxidizer_volume.set_discrete(*burn_time, 100)
+    expected_pressurant_mass.set_discrete(*BURN_TIME, 100)
+    expected_fuel_mass.set_discrete(*BURN_TIME, 100)
+    expected_oxidizer_mass.set_discrete(*BURN_TIME, 100)
+    expected_pressurant_volume.set_discrete(*BURN_TIME, 100)
+    expected_fuel_volume.set_discrete(*BURN_TIME, 100)
+    expected_oxidizer_volume.set_discrete(*BURN_TIME, 100)
 
     assert (
         pytest.approx(expected_pressurant_mass.y_array, 0.01)
@@ -195,14 +178,14 @@ def test_liquid_motor_center_of_mass(
     propellant_mass = pressurant_mass + fuel_mass + oxidizer_mass
 
     propellant_balance = (
-        pressurant_mass * (pressurant_tank.center_of_mass + pressurant_tank_position)
-        + fuel_mass * (fuel_tank.center_of_mass + fuel_tank_position)
-        + oxidizer_mass * (oxidizer_tank.center_of_mass + oxidizer_tank_position)
+        pressurant_mass * (pressurant_tank.center_of_mass + PRESSURANT_TANK_POSITION)
+        + fuel_mass * (fuel_tank.center_of_mass + FUEL_TANK_POSITION)
+        + oxidizer_mass * (oxidizer_tank.center_of_mass + OXIDIZER_TANK_POSITION)
     )
-    balance = propellant_balance + dry_mass * center_of_dry_mass
+    balance = propellant_balance + DRY_MASS * CENTER_OF_DRY_MASS
 
     propellant_center_of_mass = propellant_balance / propellant_mass
-    center_of_mass = balance / (propellant_mass + dry_mass)
+    center_of_mass = balance / (propellant_mass + DRY_MASS)
 
     assert (
         pytest.approx(liquid_motor.center_of_propellant_mass.y_array)
@@ -238,7 +221,7 @@ def test_liquid_motor_inertia(liquid_motor, pressurant_tank, fuel_tank, oxidizer
         * (
             pressurant_tank.center_of_mass
             - liquid_motor.center_of_propellant_mass
-            + pressurant_tank_position
+            + PRESSURANT_TANK_POSITION
         )
         ** 2
     )
@@ -247,7 +230,7 @@ def test_liquid_motor_inertia(liquid_motor, pressurant_tank, fuel_tank, oxidizer
         * (
             fuel_tank.center_of_mass
             - liquid_motor.center_of_propellant_mass
-            + fuel_tank_position
+            + FUEL_TANK_POSITION
         )
         ** 2
     )
@@ -256,7 +239,7 @@ def test_liquid_motor_inertia(liquid_motor, pressurant_tank, fuel_tank, oxidizer
         * (
             oxidizer_tank.center_of_mass
             - liquid_motor.center_of_propellant_mass
-            + oxidizer_tank_position
+            + OXIDIZER_TANK_POSITION
         )
         ** 2
     )
@@ -268,8 +251,8 @@ def test_liquid_motor_inertia(liquid_motor, pressurant_tank, fuel_tank, oxidizer
         propellant_inertia
         + propellant_mass
         * (liquid_motor.center_of_propellant_mass - liquid_motor.center_of_mass) ** 2
-        + dry_inertia[0]
-        + dry_mass * (-liquid_motor.center_of_mass + center_of_dry_mass) ** 2
+        + DRY_INERTIA[0]
+        + DRY_MASS * (-liquid_motor.center_of_mass + CENTER_OF_DRY_MASS) ** 2
     )
 
     assert (

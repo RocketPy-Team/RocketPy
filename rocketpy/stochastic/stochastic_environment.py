@@ -5,43 +5,40 @@ from .stochastic_model import StochasticModel
 
 class StochasticEnvironment(StochasticModel):
     """A Stochastic Environment class that inherits from StochasticModel. This
-    class is used to receive a Environment object and information about the
-    dispersion of its parameters and generate a random environment object based
-    on the provided information.
+    class is used to store an Environment object and the uncertainty of their
+    parameters.
 
     See Also
     --------
-    :ref:`stochastic_model`
+    :ref:`stochastic_model` and :class:`Environment <rocketpy.environment.Environment>`
 
     Attributes
     ----------
     object : Environment
-        Environment object to be used for validation.
+        Environment object to be used as a base for the stochastic model.
     elevation : tuple, list, int, float
-        Elevation of the launch site in meters. Follows the standard input
-        format of Stochastic Models.
+        Elevation of the launch site in meters.
     gravity : tuple, list, int, float
-        Gravitational acceleration in meters per second squared. Follows the
-        standard input format of Stochastic Models.
+        Gravitational acceleration in meters per second squared.
     latitude : tuple, list, int, float
-        Latitude of the launch site in degrees. Follows the standard input
-        format of Stochastic Models.
+        Latitude of the launch site in degrees.
     longitude : tuple, list, int, float
-        Longitude of the launch site in degrees. Follows the standard input
-        format of Stochastic Models.
-    ensemble_member : list
-        List of integers representing the ensemble member to be selected.
-    wind_velocity_x_factor : tuple, list, int, float
-        Factor to be multiplied by the wind velocity in the x direction.
-    wind_velocity_y_factor : tuple, list, int, float
-        Factor to be multiplied by the wind velocity in the y direction.
-    date : list
+        Longitude of the launch site in degrees.
+    ensemble_member : list[int]
+        List of integers representing the ensemble members to be selected.
+    date : list[tuple]
         List of dates, which are tuples of four elements
         (year, month, day, hour). This attribute can not be randomized.
-    datum : list
+    datum : list[str]
         List of datum. This attribute can not be randomized.
-    timezone : list
-        List of timezones. This attribute can not be randomized.
+    timezone : list[pytz.timezone]
+        List with the timezone. This attribute can not be randomized.
+    wind_velocity_x_factor : tuple, list, int, float
+        Factor to multiply the wind velocity in the x direction. This should
+        be used only when the wind velocity is defined as a constant value.
+    wind_velocity_y_factor : tuple, list, int, float
+        Factor to multiply the wind velocity in the y direction. This should
+        be used only when the wind velocity is defined as a constant value.
     """
 
     def __init__(
@@ -69,27 +66,23 @@ class StochasticEnvironment(StochasticModel):
             List of dates, which are tuples of four elements
             (year, month, day, hour).
         elevation : int, float, tuple, list, optional
-            Elevation of the launch site in meters. Follows the standard
-            input format of Stochastic Models.
+            Elevation of the launch site in meters.
         gravity : int, float, tuple, list, optional
-            Gravitational acceleration in meters per second squared. Follows
-            the standard input format of Stochastic Models.
+            Gravitational acceleration in meters per second squared.
         latitude : int, float, tuple, list, optional
-            Latitude of the launch site in degrees. Follows the standard
-            input format of Stochastic Models.
+            Latitude of the launch site in degrees.
         longitude : int, float, tuple, list, optional
-            Longitude of the launch site in degrees. Follows the standard
-            input format of Stochastic Models.
+            Longitude of the launch site in degrees.
         ensemble_member : list, optional
             List of integers representing the ensemble member to be selected.
-        wind_velocity_x_factor : int, float, tuple, list, optional
-            Factor to be multiplied by the wind velocity in the x direction.
-            Follows the factor input format of Stochastic Models.
-        wind_velocity_y_factor : int, float, tuple, list, optional
-            Factor to be multiplied by the wind velocity in the y direction.
-            Follows the factor input format of Stochastic Models.
+        wind_velocity_x_factor : tuple, list, int, float, optional
+            Factor to multiply the wind velocity in the x direction. This should
+            be used only when the wind velocity is defined as a constant value.
+        wind_velocity_y_factor : tuple, list, int, float, optional
+            Factor to multiply the wind velocity in the y direction. This should
+            be used only when the wind velocity is defined as a constant value.
         """
-        # Validate in StochasticModel
+
         super().__init__(
             environment,
             date=None,
@@ -105,28 +98,6 @@ class StochasticEnvironment(StochasticModel):
         )
         self._validate_ensemble(ensemble_member, environment)
 
-    def __str__(self):
-        # special str for environment because of datetime
-        s = ""
-        for key, value in self.__dict__.items():
-            if key.startswith("_"):
-                continue  # Skip attributes starting with underscore
-            if isinstance(value, tuple):
-                try:
-                    # Format the tuple as a string with the mean and standard deviation.
-                    value_str = (
-                        f"{value[0]:.5f} ± {value[1]:.5f} "
-                        f"(numpy.random.{value[2].__name__})"
-                    )
-                except AttributeError:
-                    # treats date attribute
-                    value_str = str(value)
-            else:
-                # Otherwise, just use the default string representation of the value.
-                value_str = str(value)
-            s += f"{key}: {value_str}\n"
-        return s.strip()
-
     def _validate_ensemble(self, ensemble_member, environment):
         """Validates the ensemble member input argument. If the environment
         does not have ensemble members, the ensemble member input argument
@@ -138,7 +109,7 @@ class StochasticEnvironment(StochasticModel):
         Parameters
         ----------
         ensemble_member : list
-            List of integers representing the ensemble member to be selected.
+            List of integers representing the ensemble members to be selected.
         environment : Environment
             Environment object to be used for validation.
 
@@ -182,8 +153,8 @@ class StochasticEnvironment(StochasticModel):
             setattr(self, "ensemble_member", environment.ensemble_member)
 
     def create_object(self):
-        """Creates a Environment object from the randomly generated input
-        arguments.The environment object is not recreated to avoid having to
+        """Creates an Environment object from the randomly generated input
+        arguments. The environment object is not recreated to avoid having to
         reestablish the atmospheric model. Instead, attributes are changed
         directly.
 
@@ -193,19 +164,25 @@ class StochasticEnvironment(StochasticModel):
 
         Returns
         -------
-        obj : Environment
+        Environment
             Environment object with the randomly generated input arguments.
+
+        Notes
+        -----
+        This method is overwriting the create_object method from the
+        `StochasticModel` class to handle the special case of the ensemble
+        member attribute.
         """
         generated_dict = next(self.dict_generator())
         for key, value in generated_dict.items():
             # special case for ensemble member
             # TODO: Generalize create_object() with a env.ensemble_member setter
             if key == "ensemble_member":
-                self.object.select_ensemble_member(value)
+                self.obj.select_ensemble_member(value)
             else:
                 if "factor" in key:
                     # get original attribute value and multiply by factor
                     attribute_name = f"_{key.replace('_factor', '')}"
                     value = getattr(self, attribute_name) * value
-                setattr(self.object, key, value)
-        return self.object
+                setattr(self.obj, key, value)
+        return self.obj

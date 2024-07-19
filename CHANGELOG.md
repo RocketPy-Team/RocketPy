@@ -27,11 +27,59 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] - yyyy-mm-dd
 
-<!-- These are the changes that were not release yet, please add them correctly.
-  Attention: The newest changes should be on top -->
+<!-- These are the changes that were not released yet, please add them correctly.
+Attention: The newest changes should be on top -->
 
 ### Added
 
+- 
+
+### Changed
+
+- ENH: Insert apogee state into solution list during flight simulation [#638](https://github.com/RocketPy-Team/RocketPy/pull/638)
+- ENH: Environment class major refactor may 2024 [#605](https://github.com/RocketPy-Team/RocketPy/pull/605)
+- MNT: Refactors the code to adopt pylint [#621](https://github.com/RocketPy-Team/RocketPy/pull/621)
+- MNT: Refactor AeroSurfaces [#634](https://github.com/RocketPy-Team/RocketPy/pull/634)
+
+### Fixed
+
+- 
+
+## [1.4.0] - 2024-07-06
+
+You can install this version by running `pip install rocketpy==1.4.0`
+
+### Added
+
+- DOC: Adding testing guidelines for RocketPy. [#626](https://github.com/RocketPy-Team/RocketPy/pull/626)
+- ENH: CP and Thrust Eccentricity Effects Generate Roll Moment [#617](https://github.com/RocketPy-Team/RocketPy/pull/617)
+- ENH: Add Prandtl-Gauss transformation to NoseCone and Tail [#609](https://github.com/RocketPy-Team/RocketPy/pull/609)
+- ENH: Implement power series nose cones [#603](https://github.com/RocketPy-Team/RocketPy/pull/603)
+
+### Changed
+
+- ENH: Eliminating multiple plots for inertia components [#566](https://github.com/RocketPy-Team/RocketPy/pull/566)
+- MNT: Fix warnings in test suite and adds support for numpy 2.0 [#623](https://github.com/RocketPy-Team/RocketPy/pull/623)
+- MNT: bump minimum Python version to 3.9. [#624](https://github.com/RocketPy-Team/RocketPy/pull/624)
+- DOC: Change rocketpy Landing Page to Standard Code docs [#584](https://github.com/RocketPy-Team/RocketPy/pull/584)
+
+## [1.3.0.post1] - 2024-06-02
+
+You can install this version by running `pip install rocketpy==1.3.0.post1`
+
+### Fixed
+
+- BUG: pyproject.toml Main Module Finding. [#616](https://github.com/RocketPy-Team/RocketPy/pull/616)
+
+## [1.3.0] - 2024-06-01
+
+You can install this version by running `pip install rocketpy==1.3.0`
+
+### Added
+
+- DOC: Adds prometheus data, Spaceport America 2022 [#601](https://github.com/RocketPy-Team/RocketPy/pull/601)
+- ENH: Pre-calculate attributes in Rocket class [#595](https://github.com/RocketPy-Team/RocketPy/pull/595)
+- ENH: Complex step differentiation [#594](https://github.com/RocketPy-Team/RocketPy/pull/594)
 - ENH: Exponential backoff decorator (fix #449) [#588](https://github.com/RocketPy-Team/RocketPy/pull/588)
 - ENH: Function Validation Rework & Swap `np.searchsorted` to `bisect_left` [#582](https://github.com/RocketPy-Team/RocketPy/pull/582)
 - ENH: Add new stability margin properties to Flight class [#572](https://github.com/RocketPy-Team/RocketPy/pull/572)
@@ -39,6 +87,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 
+- REL: Bump versioning to RocketPy v1.3.0 [#614](https://github.com/RocketPy-Team/RocketPy/pull/614)
+- ENH: Adds StochasticModel.visualize_attributes() method [#612](https://github.com/RocketPy-Team/RocketPy/pull/612)
+- DOC: Monte carlo documentation updates [#607](https://github.com/RocketPy-Team/RocketPy/pull/607)
+- MNT: refactor u_dot parachute method [#596](https://github.com/RocketPy-Team/RocketPy/pull/596)
 - BLD: Change setup.py to pyproject.toml [#589](https://github.com/RocketPy-Team/RocketPy/pull/589)
 - DEP: delete deprecated rocketpy.tools.cached_property [#587](https://github.com/RocketPy-Team/RocketPy/pull/587)
 - ENH: Flight simulation speed up [#581] (https://github.com/RocketPy-Team/RocketPy/pull/581) 
@@ -51,6 +103,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+- MNT: Alter PYPI classifier naming. [#615](https://github.com/RocketPy-Team/RocketPy/pull/615)
+- DOC: Solve Dependencies Conflicts and pyproject build [#613](https://github.com/RocketPy-Team/RocketPy/pull/613)
+- BUG: Fixes nose cone bluffness issue #610 [#611](https://github.com/RocketPy-Team/RocketPy/pull/611)
+- BUG: plot drag curves when function source is callable [#599](https://github.com/RocketPy-Team/RocketPy/pull/599)
+- BUG: Fix minor type hinting problems [#598](https://github.com/RocketPy-Team/RocketPy/pull/598)
 - BUG: Optional Dependencies Naming in pyproject.toml. [#592](https://github.com/RocketPy-Team/RocketPy/pull/592)
 - BUG: Swap rocket.total_mass.differentiate for motor.total_mass_flow rate [#585](https://github.com/RocketPy-Team/RocketPy/pull/585)
 - BUG: export_eng 'Motor' method would not work for liquid motors. [#559](https://github.com/RocketPy-Team/RocketPy/pull/559) 

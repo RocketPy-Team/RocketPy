@@ -135,98 +135,9 @@ class _MotorPlots:
         """
         self.motor.exhaust_velocity.plot(lower=lower_limit, upper=upper_limit)
 
-    def I_11(self, lower_limit=None, upper_limit=None):
-        """Plots I_11 of the motor as a function of time.
-
-        Parameters
-        ----------
-        lower_limit : float
-            Lower limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-        upper_limit : float
-            Upper limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-
-        Return
-        ------
-        None
-        """
-        self.motor.I_11.plot(lower=lower_limit, upper=upper_limit)
-
-    def I_22(self, lower_limit=None, upper_limit=None):
-        """Plots I_22 of the motor as a function of time.
-
-        Parameters
-        ----------
-        lower_limit : float
-            Lower limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-        upper_limit : float
-            Upper limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-
-        Return
-        ------
-        None
-        """
-        self.motor.I_22.plot(lower=lower_limit, upper=upper_limit)
-
-    def I_33(self, lower_limit=None, upper_limit=None):
-        """Plots I_33 of the motor as a function of time.
-
-        Parameters
-        ----------
-        lower_limit : float
-            Lower limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-        upper_limit : float
-            Upper limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-
-        Return
-        ------
-        None
-        """
-        self.motor.I_33.plot(lower=lower_limit, upper=upper_limit)
-
-    def I_12(self, lower_limit=None, upper_limit=None):
-        """Plots I_12 of the motor as a function of time.
-
-        Parameters
-        ----------
-        lower_limit : float
-            Lower limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-        upper_limit : float
-            Upper limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-
-        Return
-        ------
-        None
-        """
-        self.motor.I_12.plot(lower=lower_limit, upper=upper_limit)
-
-    def I_13(self, lower_limit=None, upper_limit=None):
-        """Plots I_13 of the motor as a function of time.
-
-        Parameters
-        ----------
-        lower_limit : float
-            Lower limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-        upper_limit : float
-            Upper limit of the plot. Default is none, which means that the plot
-            limits will be automatically calculated.
-
-        Return
-        ------
-        None
-        """
-        self.motor.I_13.plot(lower=lower_limit, upper=upper_limit)
-
-    def I_23(self, lower_limit=None, upper_limit=None):
-        """Plots I_23 of the motor as a function of time.
+    def inertia_tensor(self, lower_limit=None, upper_limit=None, show_products=False):
+        """Plots all inertia tensors (I_11, I_22, I_33, I_12, I_13, I_23)
+        of the motor as a function of time in a single chart.
 
         Parameters
         ----------
@@ -236,12 +147,41 @@ class _MotorPlots:
         upper_limit : float
             Upper limit of the plot. Default is None, which means that the plot
             limits will be automatically calculated.
+        show_products : bool
+            If True, the products of inertia (I_12, I_13, I_23) will be shown
+            in the plot. Default is False. These are kept as hidden by default
+            because they are usually very small compared to the main inertia
+            components.
 
         Return
         ------
         None
         """
-        self.motor.I_23.plot(lower=lower_limit, upper=upper_limit)
+        lower = lower_limit or self.motor.burn_start_time
+        upper = upper_limit or self.motor.burn_out_time
+
+        time = np.linspace(lower, upper, 100)
+
+        _, ax = plt.subplots()
+        ax.plot(time, self.motor.I_11(time), label='I_11', linestyle='-')
+        ax.plot(time, self.motor.I_22(time), label='I_22', linestyle='--', linewidth=3)
+        ax.plot(time, self.motor.I_33(time), label='I_33', linestyle='-.')
+        if show_products:
+            ax.plot(time, self.motor.I_12(time), label='I_12', linestyle=':')
+            ax.plot(
+                time, self.motor.I_13(time), label='I_13', linestyle='-.', linewidth=2
+            )
+            ax.plot(
+                time, self.motor.I_23(time), label='I_23', linestyle='--', linewidth=3
+            )
+
+        ax.set_title('Inertia tensor over time')
+        ax.set_xlabel('Time (s)')
+        ax.set_ylabel('Inertia (kg*m^2)')
+        ax.legend()
+        ax.grid(True)
+
+        plt.show()
 
     def _generate_nozzle(self, translate=(0, 0), csys=1):
         """Generates a patch that represents the nozzle of the motor. It is
@@ -349,6 +289,7 @@ class _MotorPlots:
         )
         return patch
 
+    # pylint: disable=too-many-statements
     def _generate_grains(self, translate=(0, 0)):
         """Generates a list of patches that represent the grains of the motor.
         Each grain is a polygon with 4 vertices mirrored in the x axis. The top
@@ -544,9 +485,4 @@ class _MotorPlots:
         self.total_mass(*self.motor.burn_time)
         self.propellant_mass(*self.motor.burn_time)
         self.center_of_mass(*self.motor.burn_time)
-        self.I_11(*self.motor.burn_time)
-        self.I_22(*self.motor.burn_time)
-        self.I_33(*self.motor.burn_time)
-        self.I_12(*self.motor.burn_time)
-        self.I_13(*self.motor.burn_time)
-        self.I_23(*self.motor.burn_time)
+        self.inertia_tensor(*self.motor.burn_time)

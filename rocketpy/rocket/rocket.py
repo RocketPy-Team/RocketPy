@@ -4,6 +4,7 @@ import numpy as np
 
 from rocketpy.control.controller import _Controller
 from rocketpy.mathutils.function import Function
+from rocketpy.mathutils.vector_matrix import Matrix
 from rocketpy.motors.motor import EmptyMotor
 from rocketpy.plots.rocket_plots import _RocketPlots
 from rocketpy.prints.rocket_prints import _RocketPrints
@@ -21,6 +22,7 @@ from rocketpy.rocket.parachute import Parachute
 from rocketpy.tools import parallel_axis_theorem_from_com
 
 
+# pylint: disable=too-many-instance-attributes, too-many-public-methods, too-many-instance-attributes
 class Rocket:
     """Keeps rocket information.
 
@@ -72,6 +74,9 @@ class Rocket:
         for more information
         regarding the coordinate system.
         Expressed in meters as a function of time.
+    Rocket.com_to_cdm_function : Function
+        Function of time expressing the z-coordinate of the center of mass
+        relative to the center of dry mass.
     Rocket.reduced_mass : Function
         Function of time expressing the reduced mass of the rocket,
         defined as the product of the propellant mass and the mass
@@ -146,6 +151,11 @@ class Rocket:
         defined rocket coordinate system.
         See :doc:`Positions and Coordinate Systems </user/positions>`
         for more information.
+    Rocket.nozzle_to_cdm : float
+        Distance between the nozzle exit and the rocket's center of dry mass
+        position, in meters.
+    Rocket.nozzle_gyration_tensor: Matrix
+        Matrix representing the nozzle gyration tensor.
     Rocket.center_of_propellant_position : Function
         Position of the propellant's center of mass relative to the user defined
         rocket reference system. See
@@ -184,7 +194,7 @@ class Rocket:
         Rocket's inertia tensor 23 component with unloaded motor,in kg*m^2.
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-statements
         self,
         radius,
         mass,
@@ -634,25 +644,25 @@ class Rocket:
         motor_dry_mass = self.motor.dry_mass
         mass = self.mass
 
-        # Compute axes distances
-        noMCM_to_CDM = (
+        # Compute axes distances (CDM: Center of Dry Mass)
+        center_of_mass_without_motor_to_CDM = (
             self.center_of_mass_without_motor - self.center_of_dry_mass_position
         )
-        motorCDM_to_CDM = (
+        motor_center_of_dry_mass_to_CDM = (
             self.motor_center_of_dry_mass_position - self.center_of_dry_mass_position
         )
 
         # Compute dry inertias
         self.dry_I_11 = parallel_axis_theorem_from_com(
-            self.I_11_without_motor, mass, noMCM_to_CDM
+            self.I_11_without_motor, mass, center_of_mass_without_motor_to_CDM
         ) + parallel_axis_theorem_from_com(
-            self.motor.dry_I_11, motor_dry_mass, motorCDM_to_CDM
+            self.motor.dry_I_11, motor_dry_mass, motor_center_of_dry_mass_to_CDM
         )
 
         self.dry_I_22 = parallel_axis_theorem_from_com(
-            self.I_22_without_motor, mass, noMCM_to_CDM
+            self.I_22_without_motor, mass, center_of_mass_without_motor_to_CDM
         ) + parallel_axis_theorem_from_com(
-            self.motor.dry_I_22, motor_dry_mass, motorCDM_to_CDM
+            self.motor.dry_I_22, motor_dry_mass, motor_center_of_dry_mass_to_CDM
         )
 
         self.dry_I_33 = self.I_33_without_motor + self.motor.dry_I_33
@@ -734,10 +744,135 @@ class Rocket:
             self.I_23,
         )
 
-    def evaluate_nozzle_gyration_tensor(self):
-        pass
+    def evaluate_nozzle_to_cdm(self):
+        """Evaluates the distance between the nozzle exit and the rocket's
+        center of dry mass.
 
-    def add_motor(self, motor, position):
+        Returns
+        -------
+        self.nozzle_to_cdm : float
+            Distance between the nozzle exit and the rocket's center of dry
+            mass position, in meters.
+        """
+        self.nozzle_to_cdm = (
+            -(self.nozzle_position - self.center_of_dry_mass_position) * self._csys
+        )
+        return self.nozzle_to_cdm
+
+    def evaluate_nozzle_gyration_tensor(self):
+        """Calculates and returns the nozzle gyration tensor relative to the
+        rocket's center of dry mass. The gyration tensor is saved and returned
+        in units of kg*m².
+
+        Returns
+        -------
+        self.nozzle_gyration_tensor : Matrix
+            Matrix containing the nozzle gyration tensor.
+        """
+        S_noz_33 = 0.5 * self.motor.nozzle_radius**2
+        S_noz_11 = S_noz_22 = 0.5 * S_noz_33 + 0.25 * self.nozzle_to_cdm**2
+        S_noz_12, S_noz_13, S_noz_23 = 0, 0, 0  # Due to axis symmetry
+        self.nozzle_gyration_tensor = Matrix(
+            [
+                [S_noz_11, S_noz_12, S_noz_13],
+                [S_noz_12, S_noz_22, S_noz_23],
+                [S_noz_13, S_noz_23, S_noz_33],
+            ]
+        )
+        return self.nozzle_gyration_tensor
+
+    def evaluate_com_to_cdm_function(self):
+        """Evaluates the z-coordinate of the center of mass (COM) relative to
+        the center of dry mass (CDM).
+
+        Notes
+        -----
+        1. The `com_to_cdm_function` plus `center_of_mass` should be equal
+        to `center_of_dry_mass_position` at every time step.
+        2. The `com_to_cdm_function` is a function of time and will usually
+        already be discretized.
+
+        Returns
+        -------
+        self.com_to_cdm_function : Function
+            Function of time expressing the z-coordinate of the center of mass
+            relative to the center of dry mass.
+        """
+        self.com_to_cdm_function = (
+            -1
+            * (
+                (self.center_of_propellant_position - self.center_of_dry_mass_position)
+                * self._csys
+            )
+            * self.motor.propellant_mass
+            / self.total_mass
+        )
+        self.com_to_cdm_function.set_inputs("Time (s)")
+        self.com_to_cdm_function.set_outputs("Z Coordinate COM to CDM (m)")
+        self.com_to_cdm_function.set_title("Z Coordinate COM to CDM")
+        return self.com_to_cdm_function
+
+    def get_inertia_tensor_at_time(self, t):
+        """Returns a Matrix representing the inertia tensor of the rocket with
+        respect to the rocket's center of mass at a given time. It evaluates
+        each inertia tensor component at the given time and returns a Matrix
+        with the computed values.
+
+        Parameters
+        ----------
+        t : float
+            Time at which the inertia tensor is to be evaluated.
+
+        Returns
+        -------
+        Matrix
+            Inertia tensor of the rocket at time t.
+        """
+        I_11 = self.I_11.get_value_opt(t)
+        I_12 = self.I_12.get_value_opt(t)
+        I_13 = self.I_13.get_value_opt(t)
+        I_22 = self.I_22.get_value_opt(t)
+        I_23 = self.I_23.get_value_opt(t)
+        I_33 = self.I_33.get_value_opt(t)
+        return Matrix(
+            [
+                [I_11, I_12, I_13],
+                [I_12, I_22, I_23],
+                [I_13, I_23, I_33],
+            ]
+        )
+
+    def get_inertia_tensor_derivative_at_time(self, t):
+        """Returns a Matrix representing the time derivative of the inertia
+        tensor of the rocket with respect to the rocket's center of mass at a
+        given time. It evaluates each inertia tensor component's derivative at
+        the given time and returns a Matrix with the computed values.
+
+        Parameters
+        ----------
+        t : float
+            Time at which the inertia tensor derivative is to be evaluated.
+
+        Returns
+        -------
+        Matrix
+            Inertia tensor time derivative of the rocket at time t.
+        """
+        I_11_dot = self.I_11.differentiate_complex_step(t)
+        I_12_dot = self.I_12.differentiate_complex_step(t)
+        I_13_dot = self.I_13.differentiate_complex_step(t)
+        I_22_dot = self.I_22.differentiate_complex_step(t)
+        I_23_dot = self.I_23.differentiate_complex_step(t)
+        I_33_dot = self.I_33.differentiate_complex_step(t)
+        return Matrix(
+            [
+                [I_11_dot, I_12_dot, I_13_dot],
+                [I_12_dot, I_22_dot, I_23_dot],
+                [I_13_dot, I_23_dot, I_33_dot],
+            ]
+        )
+
+    def add_motor(self, motor, position):  # pylint: disable=too-many-statements
         """Adds a motor to the rocket.
 
         Parameters
@@ -756,11 +891,13 @@ class Rocket:
         -------
         None
         """
-        if hasattr(self, "motor") and not isinstance(self.motor, EmptyMotor):
-            print(
-                "Only one motor per rocket is currently supported. "
-                + "Overwriting previous motor."
-            )
+        if hasattr(self, "motor"):
+            # pylint: disable=access-member-before-definition
+            if not isinstance(self.motor, EmptyMotor):
+                print(
+                    "Only one motor per rocket is currently supported. "
+                    + "Overwriting previous motor."
+                )
         self.motor = motor
         self.motor_position = position
         _ = self._csys * self.motor._csys
@@ -778,6 +915,7 @@ class Rocket:
         self.evaluate_dry_mass()
         self.evaluate_total_mass()
         self.evaluate_center_of_dry_mass()
+        self.evaluate_nozzle_to_cdm()
         self.evaluate_center_of_mass()
         self.evaluate_dry_inertias()
         self.evaluate_inertias()
@@ -786,6 +924,8 @@ class Rocket:
         self.evaluate_center_of_pressure()
         self.evaluate_stability_margin()
         self.evaluate_static_margin()
+        self.evaluate_com_to_cdm_function()
+        self.evaluate_nozzle_gyration_tensor()
 
     def add_surfaces(self, surfaces, positions):
         """Adds one or more aerodynamic surfaces to the rocket. The aerodynamic
@@ -887,7 +1027,14 @@ class Rocket:
         return tail
 
     def add_nose(
-        self, length, kind, position, bluffness=0, name="Nose Cone", base_radius=None
+        self,
+        length,
+        kind,
+        position,
+        bluffness=0,
+        power=None,
+        name="Nose Cone",
+        base_radius=None,
     ):
         """Creates a nose cone, storing its parameters as part of the
         aerodynamic_surfaces list. Its parameters are the axial position
@@ -901,14 +1048,17 @@ class Rocket:
             Nose cone length or height in meters. Must be a positive
             value.
         kind : string
-            Nose cone type. Von Karman, conical, ogive, and lvhaack are
-            supported.
+            Nose cone type. Von Karman, conical, ogive, lvhaack and
+            powerseries are supported.
         position : int, float
             Nose cone tip coordinate relative to the rocket's coordinate system.
             See `Rocket.coordinate_system_orientation` for more information.
         bluffness : float, optional
             Ratio between the radius of the circle on the tip of the ogive and
             the radius of the base of the ogive.
+        power : float, optional
+            Factor that controls the bluntness of the nose cone shape when
+            using a 'powerseries' nose cone kind.
         name : string
             Nose cone name. Default is "Nose Cone".
         base_radius : int, float, optional
@@ -930,6 +1080,7 @@ class Rocket:
             base_radius=base_radius or self.radius,
             rocket_radius=base_radius or self.radius,
             bluffness=bluffness,
+            power=power,
             name=name,
         )
         self.add_surfaces(nose, position)
@@ -954,7 +1105,7 @@ class Rocket:
         tip_chord,
         span,
         position,
-        cant_angle=0,
+        cant_angle=0.0,
         sweep_length=None,
         sweep_angle=None,
         radius=None,
@@ -1464,7 +1615,6 @@ class Rocket:
             https://matplotlib.org/stable/gallery/color/named_colors
         """
         self.plots.draw(vis_args)
-        return None
 
     def info(self):
         """Prints out a summary of the data and graphs available about

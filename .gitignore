@@ -72,6 +72,9 @@ instance/
 # Sphinx documentation
 docs/_build/
 
+# WebServer extension
+.iis
+
 # PyBuilder
 .pybuilder/
 target/
@@ -158,9 +161,6 @@ cython_debug/
 # Docs
 *.docx
 *.pdf
-
-# VSCode project settings
-.vscode/
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can

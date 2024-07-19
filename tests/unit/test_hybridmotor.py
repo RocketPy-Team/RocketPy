@@ -1,41 +1,28 @@
-from unittest.mock import patch
-
 import numpy as np
 import pytest
 import scipy.integrate
 
 from rocketpy import Function
 
-thrust_function = lambda t: 2000 - 100 * t
-burn_time = 10
-center_of_dry_mass = 0
-dry_inertia = (4, 4, 0.1)
-dry_mass = 8
-grain_density = 1700
-grain_number = 4
-grain_initial_height = 0.1
-grain_separation = 0
-grain_initial_inner_radius = 0.04
-grain_outer_radius = 0.1
-nozzle_position = -0.4
-nozzle_radius = 0.07
-grains_center_of_mass_position = -0.1
-oxidizer_tank_position = 0.3
+
+def thrust_function(t):
+    return 2000 - 100 * t
 
 
-@patch("matplotlib.pyplot.show")
-def test_hybrid_motor_info(mock_show, hybrid_motor):
-    """Tests the HybridMotor.all_info() method.
-
-    Parameters
-    ----------
-    mock_show : mock
-        Mock of the matplotlib.pyplot.show function.
-    hybrid_motor : rocketpy.HybridMotor
-        The HybridMotor object to be used in the tests.
-    """
-    assert hybrid_motor.info() == None
-    assert hybrid_motor.all_info() == None
+BURN_TIME = 10
+CENTER_OF_DRY_MASS = 0
+DRY_INERTIA = (4, 4, 0.1)
+DRY_MASS = 8
+GRAIN_DENSITY = 1700
+GRAIN_NUMBER = 4
+GRAIN_INITIAL_HEIGHT = 0.1
+GRAIN_SEPARATION = 0
+GRAIN_INITIAL_INNER_RADIUS = 0.04
+GRAIN_OUTER_RADIUS = 0.1
+NOZZLE_POSITION = -0.4
+NOZZLE_RADIUS = 0.07
+GRAINS_CENTER_OF_MASS_POSITION = -0.1
+OXIDIZER_TANK_POSITION = 0.3
 
 
 def test_hybrid_motor_basic_parameters(hybrid_motor):
@@ -46,25 +33,25 @@ def test_hybrid_motor_basic_parameters(hybrid_motor):
     hybrid_motor : rocketpy.HybridMotor
         The HybridMotor object to be used in the tests.
     """
-    assert hybrid_motor.burn_time == (0, burn_time)
-    assert hybrid_motor.dry_mass == dry_mass
+    assert hybrid_motor.burn_time == (0, BURN_TIME)
+    assert hybrid_motor.dry_mass == DRY_MASS
     assert (
         hybrid_motor.dry_I_11,
         hybrid_motor.dry_I_22,
         hybrid_motor.dry_I_33,
-    ) == dry_inertia
-    assert hybrid_motor.center_of_dry_mass_position == center_of_dry_mass
-    assert hybrid_motor.nozzle_position == nozzle_position
-    assert hybrid_motor.nozzle_radius == nozzle_radius
-    assert hybrid_motor.solid.grain_number == grain_number
-    assert hybrid_motor.solid.grain_density == grain_density
-    assert hybrid_motor.solid.grain_initial_height == grain_initial_height
-    assert hybrid_motor.solid.grain_separation == grain_separation
-    assert hybrid_motor.solid.grain_initial_inner_radius == grain_initial_inner_radius
-    assert hybrid_motor.solid.grain_outer_radius == grain_outer_radius
+    ) == DRY_INERTIA
+    assert hybrid_motor.center_of_dry_mass_position == CENTER_OF_DRY_MASS
+    assert hybrid_motor.nozzle_position == NOZZLE_POSITION
+    assert hybrid_motor.nozzle_radius == NOZZLE_RADIUS
+    assert hybrid_motor.solid.grain_number == GRAIN_NUMBER
+    assert hybrid_motor.solid.grain_density == GRAIN_DENSITY
+    assert hybrid_motor.solid.grain_initial_height == GRAIN_INITIAL_HEIGHT
+    assert hybrid_motor.solid.grain_separation == GRAIN_SEPARATION
+    assert hybrid_motor.solid.grain_initial_inner_radius == GRAIN_INITIAL_INNER_RADIUS
+    assert hybrid_motor.solid.grain_outer_radius == GRAIN_OUTER_RADIUS
     assert (
         hybrid_motor.solid.grains_center_of_mass_position
-        == grains_center_of_mass_position
+        == GRAINS_CENTER_OF_MASS_POSITION
     )
     assert hybrid_motor.liquid.positioned_tanks[0]["position"] == 0.3
 
@@ -84,11 +71,11 @@ def test_hybrid_motor_thrust_parameters(hybrid_motor, spherical_oxidizer_tank):
     expected_total_impulse = scipy.integrate.quad(expected_thrust, 0, 10)[0]
 
     initial_grain_mass = (
-        grain_density
+        GRAIN_DENSITY
         * np.pi
-        * (grain_outer_radius**2 - grain_initial_inner_radius**2)
-        * grain_initial_height
-        * grain_number
+        * (GRAIN_OUTER_RADIUS**2 - GRAIN_INITIAL_INNER_RADIUS**2)
+        * GRAIN_INITIAL_HEIGHT
+        * GRAIN_NUMBER
     )
     initial_oxidizer_mass = spherical_oxidizer_tank.fluid_mass(0)
     initial_mass = initial_grain_mass + initial_oxidizer_mass
@@ -126,13 +113,13 @@ def test_hybrid_motor_center_of_mass(hybrid_motor, spherical_oxidizer_tank):
     oxidizer_mass = spherical_oxidizer_tank.fluid_mass
     grain_mass = hybrid_motor.solid.propellant_mass
 
-    propellant_balance = grain_mass * grains_center_of_mass_position + oxidizer_mass * (
-        oxidizer_tank_position + spherical_oxidizer_tank.center_of_mass
+    propellant_balance = grain_mass * GRAINS_CENTER_OF_MASS_POSITION + oxidizer_mass * (
+        OXIDIZER_TANK_POSITION + spherical_oxidizer_tank.center_of_mass
     )
-    balance = propellant_balance + dry_mass * center_of_dry_mass
+    balance = propellant_balance + DRY_MASS * CENTER_OF_DRY_MASS
 
     propellant_center_of_mass = propellant_balance / (grain_mass + oxidizer_mass)
-    center_of_mass = balance / (grain_mass + oxidizer_mass + dry_mass)
+    center_of_mass = balance / (grain_mass + oxidizer_mass + DRY_MASS)
 
     for t in np.linspace(0, 100, 100):
         assert pytest.approx(
@@ -160,12 +147,12 @@ def test_hybrid_motor_inertia(hybrid_motor, spherical_oxidizer_tank):
     # Validate parallel axis theorem translation
     grain_inertia += (
         grain_mass
-        * (grains_center_of_mass_position - hybrid_motor.center_of_propellant_mass) ** 2
+        * (GRAINS_CENTER_OF_MASS_POSITION - hybrid_motor.center_of_propellant_mass) ** 2
     )
     oxidizer_inertia += (
         oxidizer_mass
         * (
-            oxidizer_tank_position
+            OXIDIZER_TANK_POSITION
             + spherical_oxidizer_tank.center_of_mass
             - hybrid_motor.center_of_propellant_mass
         )
@@ -179,8 +166,8 @@ def test_hybrid_motor_inertia(hybrid_motor, spherical_oxidizer_tank):
         propellant_inertia
         + propellant_mass
         * (hybrid_motor.center_of_propellant_mass - hybrid_motor.center_of_mass) ** 2
-        + dry_inertia[0]
-        + dry_mass * (-hybrid_motor.center_of_mass + center_of_dry_mass) ** 2
+        + DRY_INERTIA[0]
+        + DRY_MASS * (-hybrid_motor.center_of_mass + CENTER_OF_DRY_MASS) ** 2
     )
 
     for t in np.linspace(0, 100, 100):

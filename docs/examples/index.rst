@@ -16,4 +16,5 @@ If you want to see your rocket here, please contact the maintainers!
    valetudo_flight_sim.ipynb
    SEB_liquid_motor.ipynb
    juno3_flight_sim.ipynb
+   prometheus_2022_flight_sim.ipynb
 

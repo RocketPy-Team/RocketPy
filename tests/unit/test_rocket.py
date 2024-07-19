@@ -8,14 +8,14 @@ from rocketpy.motors.motor import EmptyMotor, Motor
 
 
 @patch("matplotlib.pyplot.show")
-def test_elliptical_fins(mock_show, calisto_robust, calisto_trapezoidal_fins):
+def test_elliptical_fins(
+    mock_show, calisto_robust, calisto_trapezoidal_fins
+):  # pylint: disable=unused-argument
     test_rocket = calisto_robust
     calisto_robust.aerodynamic_surfaces.remove(calisto_trapezoidal_fins)
-    fin_set = test_rocket.add_elliptical_fins(
-        4, span=0.100, root_chord=0.120, position=-1.168
-    )
+    test_rocket.add_elliptical_fins(4, span=0.100, root_chord=0.120, position=-1.168)
     static_margin = test_rocket.static_margin(0)
-    assert test_rocket.all_info() == None or not abs(static_margin - 2.30) < 0.01
+    assert test_rocket.all_info() is None or not abs(static_margin - 2.30) < 0.01
 
 
 def test_evaluate_static_margin_assert_cp_equals_cm(dimensionless_calisto):
@@ -36,11 +36,11 @@ def test_evaluate_static_margin_assert_cp_equals_cm(dimensionless_calisto):
 
 
 @pytest.mark.parametrize(
-    "k, type",
+    "k, type_",
     ([2 / 3, "conical"], [0.46469957130675876, "ogive"], [0.563, "lvhaack"]),
 )
-def test_add_nose_assert_cp_cm_plus_nose(k, type, calisto, dimensionless_calisto, m):
-    calisto.add_nose(length=0.55829, kind=type, position=1.160)
+def test_add_nose_assert_cp_cm_plus_nose(k, type_, calisto, dimensionless_calisto, m):
+    calisto.add_nose(length=0.55829, kind=type_, position=1.160)
     cpz = (1.160) - k * 0.55829  # Relative to the center of dry mass
     clalpha = 2
 
@@ -53,7 +53,7 @@ def test_add_nose_assert_cp_cm_plus_nose(k, type, calisto, dimensionless_calisto
     assert clalpha == pytest.approx(calisto.total_lift_coeff_der(0), 1e-8)
     assert calisto.cp_position(0) == pytest.approx(cpz, 1e-8)
 
-    dimensionless_calisto.add_nose(length=0.55829 * m, kind=type, position=(1.160) * m)
+    dimensionless_calisto.add_nose(length=0.55829 * m, kind=type_, position=(1.160) * m)
     assert pytest.approx(dimensionless_calisto.static_margin(0), 1e-8) == pytest.approx(
         calisto.static_margin(0), 1e-8
     )
@@ -245,7 +245,7 @@ def test_add_fins_assert_cp_cm_plus_fins(calisto, dimensionless_calisto, m):
 
 
 @pytest.mark.parametrize(
-    """cdm_position, grain_cm_position, nozzle_position, coord_direction, 
+    """cdm_position, grain_cm_position, nozzle_position, coord_direction,
     motor_position, expected_motor_cdm, expected_motor_cpp""",
     [
         (0.317, 0.397, 0, "nozzle_to_combustion_chamber", -1.373, -1.056, -0.976),
@@ -413,3 +413,245 @@ def test_evaluate_center_of_mass(calisto):
         A predefined instance of the calisto Rocket with a motor, used as a base for testing.
     """
     assert isinstance(calisto.evaluate_center_of_mass(), Function)
+
+
+def test_evaluate_nozzle_to_cdm(calisto):
+    expected_distance = 1.255
+    atol = 1e-3  # Equivalent to 1mm
+    assert pytest.approx(expected_distance, atol) == calisto.nozzle_to_cdm
+    # Test if calling the function returns the same result
+    res = calisto.evaluate_nozzle_to_cdm()
+    assert pytest.approx(expected_distance, atol) == res
+
+
+def test_evaluate_nozzle_gyration_tensor(calisto):
+    expected_gyration_tensor = np.array(
+        [[0.3940207, 0, 0], [0, 0.3940207, 0], [0, 0, 0.0005445]]
+    )
+    atol = 1e-3 * 1e-2 * 1e-2  # Equivalent to 1g * 1cm^2
+    assert np.allclose(
+        expected_gyration_tensor, np.array(calisto.nozzle_gyration_tensor), atol=atol
+    )
+    # Test if calling the function returns the same result
+    res = calisto.evaluate_nozzle_gyration_tensor()
+    assert np.allclose(expected_gyration_tensor, np.array(res), atol=atol)
+
+
+def test_evaluate_com_to_cdm_function(calisto):
+    atol = 1e-3  # Equivalent to 1mm
+    assert np.allclose(
+        (calisto.center_of_dry_mass_position - calisto.center_of_mass).source,
+        calisto.com_to_cdm_function.source,
+        atol=atol,
+    )
+
+
+def test_get_inertia_tensor_at_time(calisto):
+    # Expected values (for t = 0)
+    # TODO: compute these values by hand or using CAD.
+    I_11 = 10.31379
+    I_22 = 10.31379
+    I_33 = 0.039942
+
+    # Set tolerance threshold
+    atol = 1e-5
+
+    # Get inertia tensor at t = 0
+    inertia_tensor = calisto.get_inertia_tensor_at_time(0)
+
+    # Check if the values are close to the expected ones
+    assert pytest.approx(I_11, atol) == inertia_tensor.x[0]
+    assert pytest.approx(I_22, atol) == inertia_tensor.y[1]
+    assert pytest.approx(I_33, atol) == inertia_tensor.z[2]
+    # Check if products of inertia are zero
+    assert pytest.approx(0, atol) == inertia_tensor.x[1]
+    assert pytest.approx(0, atol) == inertia_tensor.x[2]
+    assert pytest.approx(0, atol) == inertia_tensor.y[0]
+    assert pytest.approx(0, atol) == inertia_tensor.y[2]
+    assert pytest.approx(0, atol) == inertia_tensor.z[0]
+    assert pytest.approx(0, atol) == inertia_tensor.z[1]
+
+
+def test_get_inertia_tensor_derivative_at_time(calisto):
+    # Expected values (for t = 2s)
+    # TODO: compute these values by hand or using CAD.
+    I_11_dot = -0.634805230901143
+    I_22_dot = -0.634805230901143
+    I_33_dot = -0.000671493662305
+
+    # Set tolerance threshold
+    atol = 1e-3
+
+    # Get inertia tensor at t = 2s
+    inertia_tensor = calisto.get_inertia_tensor_derivative_at_time(2)
+
+    # Check if the values are close to the expected ones
+    assert pytest.approx(I_11_dot, atol) == inertia_tensor.x[0]
+    assert pytest.approx(I_22_dot, atol) == inertia_tensor.y[1]
+    assert pytest.approx(I_33_dot, atol) == inertia_tensor.z[2]
+    # Check if products of inertia are zero
+    assert pytest.approx(0, atol) == inertia_tensor.x[1]
+    assert pytest.approx(0, atol) == inertia_tensor.x[2]
+    assert pytest.approx(0, atol) == inertia_tensor.y[0]
+    assert pytest.approx(0, atol) == inertia_tensor.y[2]
+    assert pytest.approx(0, atol) == inertia_tensor.z[0]
+    assert pytest.approx(0, atol) == inertia_tensor.z[1]
+
+
+def test_add_thrust_eccentricity(calisto):
+    """Test add_thrust_eccentricity method of the Rocket class."""
+    calisto.add_thrust_eccentricity(0.1, 0.1)
+    assert calisto.thrust_eccentricity_x == 0.1
+    assert calisto.thrust_eccentricity_y == 0.1
+
+
+def test_add_cm_eccentricity(calisto):
+    """Test add_cm_eccentricity method of the Rocket class."""
+    calisto.add_cm_eccentricity(-0.1, -0.1)
+    assert calisto.cp_eccentricity_x == 0.1
+    assert calisto.cp_eccentricity_y == 0.1
+    assert calisto.thrust_eccentricity_x == 0.1
+    assert calisto.thrust_eccentricity_y == 0.1
+
+
+class TestAddSurfaces:
+    """Test the add_surfaces method with different nose cone configurations.
+    More specifically, this will check the static margin of the rocket with
+    different nose cone configurations."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, calisto):
+        self.calisto = calisto
+        self.length = 0.55829
+        self.kind = "vonkarman"
+        self.position = 1.16
+        self.bluffness = 0
+        self.base_radius = 0.0635
+        self.rocket_radius = 0.0635
+
+    def test_add_surfaces_base_equals_rocket_radius(self):
+        nose = NoseCone(
+            self.length,
+            self.kind,
+            base_radius=self.base_radius,
+            bluffness=self.bluffness,
+            rocket_radius=self.rocket_radius,
+            name="Nose Cone 1",
+        )
+        self.calisto.add_surfaces(nose, self.position)
+        assert nose.radius_ratio == pytest.approx(1, 1e-8)
+        assert self.calisto.static_margin(0) == pytest.approx(-8.9053, 0.01)
+
+    def test_add_surfaces_base_half_rocket_radius(self):
+        nose = NoseCone(
+            self.length,
+            self.kind,
+            base_radius=self.base_radius / 2,
+            bluffness=self.bluffness,
+            rocket_radius=self.rocket_radius,
+            name="Nose Cone 2",
+        )
+        self.calisto.add_surfaces(nose, self.position)
+        assert nose.radius_ratio == pytest.approx(0.5, 1e-8)
+        assert self.calisto.static_margin(0) == pytest.approx(-8.9053, 0.01)
+
+    def test_add_surfaces_base_radius_none(self):
+        nose = NoseCone(
+            self.length,
+            self.kind,
+            base_radius=None,
+            bluffness=self.bluffness,
+            rocket_radius=self.rocket_radius * 2,
+            name="Nose Cone 3",
+        )
+        self.calisto.add_surfaces(nose, self.position)
+        assert nose.radius_ratio == pytest.approx(1, 1e-8)
+        assert self.calisto.static_margin(0) == pytest.approx(-8.9053, 0.01)
+
+    def test_add_surfaces_rocket_radius_none(self):
+        nose = NoseCone(
+            self.length,
+            self.kind,
+            base_radius=self.base_radius,
+            bluffness=self.bluffness,
+            rocket_radius=None,
+            name="Nose Cone 4",
+        )
+        self.calisto.add_surfaces(nose, self.position)
+        assert nose.radius_ratio == pytest.approx(1, 1e-8)
+        assert self.calisto.static_margin(0) == pytest.approx(-8.9053, 0.01)
+
+
+def test_coordinate_system_orientation(
+    calisto_nose_cone, cesaroni_m1670, calisto_trapezoidal_fins
+):
+    """Test if the coordinate system orientation is working properly. This test
+    basically checks if the static margin is the same for the same rocket with
+    different coordinate system orientation.
+
+    Parameters
+    ----------
+    calisto_nose_cone : rocketpy.NoseCone
+        Nose cone of the rocket
+    cesaroni_m1670 : rocketpy.SolidMotor
+        Cesaroni M1670 motor
+    calisto_trapezoidal_fins : rocketpy.TrapezoidalFins
+        Trapezoidal fins of the rocket
+    """
+    motor_nozzle_to_combustion_chamber = cesaroni_m1670
+
+    motor_combustion_chamber_to_nozzle = SolidMotor(
+        thrust_source="data/motors/Cesaroni_M1670.eng",
+        burn_time=3.9,
+        dry_mass=1.815,
+        dry_inertia=(0.125, 0.125, 0.002),
+        center_of_dry_mass_position=-0.317,
+        nozzle_position=0,
+        grain_number=5,
+        grain_density=1815,
+        nozzle_radius=33 / 1000,
+        throat_radius=11 / 1000,
+        grain_separation=5 / 1000,
+        grain_outer_radius=33 / 1000,
+        grain_initial_height=120 / 1000,
+        grains_center_of_mass_position=-0.397,
+        grain_initial_inner_radius=15 / 1000,
+        interpolation_method="linear",
+        coordinate_system_orientation="combustion_chamber_to_nozzle",
+    )
+
+    rocket_tail_to_nose = Rocket(
+        radius=0.0635,
+        mass=14.426,
+        inertia=(6.321, 6.321, 0.034),
+        power_off_drag="data/calisto/powerOffDragCurve.csv",
+        power_on_drag="data/calisto/powerOnDragCurve.csv",
+        center_of_mass_without_motor=0,
+        coordinate_system_orientation="tail_to_nose",
+    )
+
+    rocket_tail_to_nose.add_motor(motor_nozzle_to_combustion_chamber, position=-1.373)
+
+    rocket_tail_to_nose.aerodynamic_surfaces.add(calisto_nose_cone, 1.160)
+    rocket_tail_to_nose.aerodynamic_surfaces.add(calisto_trapezoidal_fins, -1.168)
+
+    static_margin_tail_to_nose = rocket_tail_to_nose.static_margin
+
+    rocket_nose_to_tail = Rocket(
+        radius=0.0635,
+        mass=14.426,
+        inertia=(6.321, 6.321, 0.034),
+        power_off_drag="data/calisto/powerOffDragCurve.csv",
+        power_on_drag="data/calisto/powerOnDragCurve.csv",
+        center_of_mass_without_motor=0,
+        coordinate_system_orientation="nose_to_tail",
+    )
+
+    rocket_nose_to_tail.add_motor(motor_combustion_chamber_to_nozzle, position=1.373)
+
+    rocket_nose_to_tail.aerodynamic_surfaces.add(calisto_nose_cone, -1.160)
+    rocket_nose_to_tail.aerodynamic_surfaces.add(calisto_trapezoidal_fins, 1.168)
+
+    static_margin_nose_to_tail = rocket_nose_to_tail.static_margin
+
+    assert np.array_equal(static_margin_tail_to_nose, static_margin_nose_to_tail)
