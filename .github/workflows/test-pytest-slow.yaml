@@ -1,0 +1,55 @@
+name: Scheduled Tests
+
+on:
+  schedule:
+    - cron: "0 17 */14 * 5"  # every 2 weeks, always on a Friday at 17:00
+      timezone: "America/Sao_Paulo"
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  pytest:
+    if: github.ref == "refs/heads/master" || github.ref == "refs/heads/develop"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        fail-fast: false
+        python-version: [3.9, 3.12]
+
+    env:
+      OS: ${{ matrix.os }}
+      PYTHON: ${{ matrix.python-version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install rocketpy
+        run: pip install .
+
+      - name: Test importing rocketpy
+        run: python -c "import sys, rocketpy; print(f'{rocketpy.__name__} running on Python {sys.version}')"
+
+      - name: Install test dependencies
+        run: |
+          pip install -r requirements-tests.txt
+          pip install .[all]
+
+      - name: Run Unit Tests
+        run: pytest tests/unit --cov=rocketpy
+
+      - name: Run Documentation Tests
+        run: pytest rocketpy --doctest-modules --cov=rocketpy --cov-append
+
+      - name: Run Integration Tests
+        run: pytest tests/integration --cov=rocketpy --cov-append
+
+      - name: Run Acceptance Tests
+        run: pytest tests/acceptance --cov=rocketpy --cov-append --cov-report=xml
+
+      - name: Run slow tests
+        run: pytest tests -vv -m slow --runslow --cov=rocketpy --cov-append --cov-report=xml

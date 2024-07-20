@@ -69,7 +69,7 @@ def test_vector_cross_matrix(vector_components):
 def test_vector_abs(vector_components):
     vector = Vector(vector_components)
     vector_magnitude = abs(vector)
-    assert vector_magnitude == sum([i**2 for i in vector_components]) ** 0.5
+    assert vector_magnitude == sum(i**2 for i in vector_components) ** 0.5
 
 
 @pytest.mark.parametrize("vector_components", test_vectors)
@@ -140,7 +140,7 @@ def test_vector_eq(vector_components):
     u, v = Vector(vector_components), Vector(vector_components)
     assert u == vector_components
     assert u == v
-    assert (u == 2 * v) == False
+    assert (u == 2 * v) is False
 
 
 @pytest.mark.parametrize("vector_components", test_vectors)
@@ -148,8 +148,8 @@ def test_vector_is_parallel_to(vector_components):
     u = Vector(vector_components)
     v = 2 * Vector(vector_components)
     w = u - Vector.i()
-    assert u.is_parallel_to(v) == True
-    assert u.is_parallel_to(w) == False
+    assert u.is_parallel_to(v) is True
+    assert u.is_parallel_to(w) is False
 
 
 @pytest.mark.parametrize("vector_components", test_vectors)
@@ -159,8 +159,8 @@ def test_vector_is_orthogonal_to(vector_components):
     projection = u.proj(v)
     projection_vector = projection * v.unit_vector
     w = u - projection_vector
-    assert u.is_orthogonal_to(2 * u) == False
-    assert w.is_orthogonal_to(v) == True
+    assert u.is_orthogonal_to(2 * u) is False
+    assert w.is_orthogonal_to(v) is True
 
 
 @pytest.mark.parametrize("operation", [lambda i: i**2, lambda i: 1 / i])
@@ -199,12 +199,14 @@ def test_vector_proj(u_c, v_c):
 @pytest.mark.parametrize("vector_components", test_vectors)
 def test_vector_str(vector_components):
     vector = Vector(vector_components)
+    # pylint: disable=eval-used
     assert eval("Vector(" + str(vector) + ")") == vector
 
 
 @pytest.mark.parametrize("vector_components", test_vectors)
 def test_vector_repr(vector_components):
     vector = Vector(vector_components)
+    # pylint: disable=eval-used
     assert eval(repr(vector).replace("(", "((").replace(")", "))")) == vector
 
 

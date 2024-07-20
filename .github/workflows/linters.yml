@@ -1,0 +1,43 @@
+name: Linters
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "**.py"
+      - "**.ipynb"
+      - ".github/**"
+      - "pyproject.toml"
+      - "requirements*"
+      - ".pylintrc"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9"]
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install .[all]
+        pip install .[tests]
+        pip install pylint isort flake8 black
+    - name: Run isort
+      run: isort --check-only rocketpy/ tests/ docs/ --profile black
+    - name: Run black
+      uses: psf/black@stable
+      with:
+        options: "--check rocketpy/ tests/ docs/"
+        jupyter: true
+    - name: Run flake8
+      run: flake8 rocketpy/ tests/
+    - name: Run pylint
+      run: |
+        pylint rocketpy/ tests/

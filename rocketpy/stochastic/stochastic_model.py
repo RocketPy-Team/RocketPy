@@ -40,13 +40,13 @@ class StochasticModel:
         "ensemble_member",
     ]
 
-    def __init__(self, object, **kwargs):
+    def __init__(self, obj, **kwargs):
         """
         Initialize the StochasticModel class with validated input arguments.
 
         Parameters
         ----------
-        object : object
+        obj : object
             The main object of the class.
         **kwargs : dict
             Dictionary of input arguments for the class. Valid argument types
@@ -60,15 +60,14 @@ class StochasticModel:
         AssertionError
             If the input arguments do not conform to the specified formats.
         """
-        # TODO: don't use "object" as a variable name, it's a built-in function.
-        #       We can simply change to "obj". Pylint W0622
 
-        self.object = object
+        self.obj = obj
         self.last_rnd_dict = {}
 
         # TODO: This code block is too complex. Refactor it.
         for input_name, input_value in kwargs.items():
             if input_name not in self.exception_list:
+                attr_value = None
                 if input_value is not None:
                     if "factor" in input_name:
                         attr_value = self._validate_factors(input_name, input_value)
@@ -84,13 +83,15 @@ class StochasticModel:
                                 f"'{input_name}' must be a tuple, list, int, or float"
                             )
                 else:
-                    attr_value = [getattr(self.object, input_name)]
+                    attr_value = [getattr(self.obj, input_name)]
                 setattr(self, input_name, attr_value)
 
     def __repr__(self):
         return f"'{self.__class__.__name__}() object'"
 
-    def _validate_tuple(self, input_name, input_value, getattr=getattr):
+    def _validate_tuple(
+        self, input_name, input_value, getattr=getattr
+    ):  # pylint: disable=redefined-builtin
         """
         Validate tuple arguments.
 
@@ -127,7 +128,9 @@ class StochasticModel:
         if len(input_value) == 3:
             return self._validate_tuple_length_three(input_name, input_value, getattr)
 
-    def _validate_tuple_length_two(self, input_name, input_value, getattr=getattr):
+    def _validate_tuple_length_two(
+        self, input_name, input_value, getattr=getattr
+    ):  # pylint: disable=redefined-builtin
         """
         Validate tuples with length 2.
 
@@ -161,7 +164,7 @@ class StochasticModel:
             # function. In this case, the nominal value will be taken from the
             # object passed.
             dist_func = get_distribution(input_value[1])
-            return (getattr(self.object, input_name), input_value[0], dist_func)
+            return (getattr(self.obj, input_name), input_value[0], dist_func)
         else:
             # if second item is an int or float, then it is assumed that the
             # first item is the nominal value and the second item is the
@@ -169,7 +172,9 @@ class StochasticModel:
             # "normal".
             return (input_value[0], input_value[1], get_distribution("normal"))
 
-    def _validate_tuple_length_three(self, input_name, input_value, getattr=getattr):
+    def _validate_tuple_length_three(
+        self, input_name, input_value, getattr=getattr
+    ):  # pylint: disable=redefined-builtin,unused-argument
         """
         Validate tuples with length 3.
 
@@ -204,7 +209,9 @@ class StochasticModel:
         dist_func = get_distribution(input_value[2])
         return (input_value[0], input_value[1], dist_func)
 
-    def _validate_list(self, input_name, input_value, getattr=getattr):
+    def _validate_list(
+        self, input_name, input_value, getattr=getattr
+    ):  # pylint: disable=redefined-builtin
         """
         Validate list arguments.
 
@@ -228,11 +235,13 @@ class StochasticModel:
             If the input is not in a valid format.
         """
         if not input_value:
-            return [getattr(self.object, input_name)]
+            return [getattr(self.obj, input_name)]
         else:
             return input_value
 
-    def _validate_scalar(self, input_name, input_value, getattr=getattr):
+    def _validate_scalar(
+        self, input_name, input_value, getattr=getattr
+    ):  # pylint: disable=redefined-builtin
         """
         Validate scalar arguments. If the input is a scalar, the nominal value
         will be taken from the object passed, and the standard deviation will be
@@ -254,7 +263,7 @@ class StochasticModel:
                 distribution function).
         """
         return (
-            getattr(self.object, input_name),
+            getattr(self.obj, input_name),
             input_value,
             get_distribution("normal"),
         )
@@ -281,7 +290,7 @@ class StochasticModel:
             If the input is not in a valid format.
         """
         attribute_name = input_name.replace("_factor", "")
-        setattr(self, f"_{attribute_name}", getattr(self.object, attribute_name))
+        setattr(self, f"_{attribute_name}", getattr(self.obj, attribute_name))
 
         if isinstance(input_value, tuple):
             return self._validate_tuple_factor(input_name, input_value)
@@ -469,6 +478,7 @@ class StochasticModel:
         self.last_rnd_dict = generated_dict
         yield generated_dict
 
+    # pylint: disable=too-many-statements
     def visualize_attributes(self):
         """
         This method prints a report of the attributes stored in the Stochastic

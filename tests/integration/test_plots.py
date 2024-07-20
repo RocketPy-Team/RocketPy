@@ -1,10 +1,9 @@
+# pylint: disable=unused-argument
 import os
 from unittest.mock import patch
 
-import matplotlib.pyplot as plt
-
 from rocketpy import Flight
-from rocketpy.plots.compare import Compare, CompareFlights
+from rocketpy.plots.compare import CompareFlights
 
 
 @patch("matplotlib.pyplot.show")
@@ -53,14 +52,14 @@ def test_compare_flights(mock_show, calisto, example_plain_env):
 
     comparison = CompareFlights(flights)
 
-    assert comparison.all() == None
-    assert comparison.trajectories_2d(plane="xz", legend=False) == None
-    assert comparison.trajectories_2d(plane="yz", legend=True) == None
+    assert comparison.all() is None
+    assert comparison.trajectories_2d(plane="xz", legend=False) is None
+    assert comparison.trajectories_2d(plane="yz", legend=True) is None
 
     # Test save fig and then remove file
-    assert comparison.positions(filename="test.png") == None
+    assert comparison.positions(filename="test.png") is None
     os.remove("test.png")
 
     # Test xlim and ylim arguments
-    assert comparison.positions(x_lim=[0, 100], y_lim=[0, 1000]) == None
-    assert comparison.positions(x_lim=[0, "apogee"]) == None
+    assert comparison.positions(x_lim=[0, 100], y_lim=[0, 1000]) is None
+    assert comparison.positions(x_lim=[0, "apogee"]) is None
