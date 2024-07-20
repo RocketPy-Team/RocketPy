@@ -192,8 +192,7 @@ Integration tests definition
 Integration tests verify that individual modules or components of a software system work together as expected.
 Unlike unit tests that isolate specific units of code, integration tests contain an interesting feature:
 
-* (Non-isolated behavior) Focus on interactions between different parts of the system, such as modules, services, databases, or external 
-APIs. 
+* (Non-isolated behavior) Focus on interactions between different parts of the system, such as modules, services, databases, or external APIs.
 
 Consider the following integration test:
 

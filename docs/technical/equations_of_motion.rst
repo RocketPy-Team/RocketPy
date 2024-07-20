@@ -6,6 +6,7 @@ Equations of Motion v0
 
 Notes on the .rst file format version
 =====================================
+
 This file was originally written by Giovani Ceotto in 2017, while he was the 
 aerodynamic director of Projeto Jupiter. 
 It was then translated to .rst by Guilherme F. Alves in 2022, and then incorporated
@@ -100,7 +101,7 @@ which is the same as transposing it:
    {\overrightarrow{b}}_{3} \\
    \end{bmatrix}
 
-Therefore, point O’s velocity relative to :math:`A` expressed in
+Therefore, point O's velocity relative to :math:`A` expressed in
 :math:`B` is given by:
 
 .. math:: _{\ }^{A}{\overrightarrow{v}}_{*} = \frac{\text{dx}}{\text{dt}}\left\lbrack \Bigl( e_{0}^{2} + e_{1}^{2} - e_{2}^{2} - e_{3}^{2} \Bigr){\overrightarrow{b}}_{1} + \Bigl( 2\Bigl( e_{1}e_{2} - e_{0}e_{3} \Bigr) \Bigr){\overrightarrow{b}}_{2} + \Bigl( 2(e_{1}e_{3} + e_{0}e_{2}) \Bigr){\overrightarrow{b}}_{3} \right\rbrack + \frac{\text{dy}}{\text{dt}}\left\lbrack \Bigl( 2\Bigl( e_{1}e_{2} + e_{0}e_{3} \Bigr) \Bigr){\overrightarrow{b}}_{1} + \Bigl( e_{0}^{2} - e_{1}^{2} + e_{2}^{2} - e_{3}^{2} \Bigr){\overrightarrow{b}}_{2} + \Bigl( 2\Bigl( e_{2}e_{3} - e_{0}e_{1} \Bigr) \Bigr){\overrightarrow{b}}_{3} \right\rbrack + \frac{\text{dz}}{\text{dt}}\left\lbrack \Bigl( 2(e_{1}e_{3} - e_{0}e_{2}) \Bigr){\overrightarrow{b}}_{1} + \Bigl( 2\Bigl( e_{2}e_{3} + e_{0}e_{1} \Bigr) \Bigr){\overrightarrow{b}}_{2} + \Bigl( e_{0}^{2} - e_{1}^{2} - e_{2}^{2} + e_{3}^{2} \Bigr){\overrightarrow{b}}_{3} \right\rbrack
@@ -151,10 +152,10 @@ Kane`s equations of motion states that:
 Where the sub-index :math:`i` indicates a particle in the system and
 :math:`u_{r}` is a generalized speed of choice. The summation is over
 all particles and an equation is obtained for every :math:`u_{r}` in the
-system. It is simply a statement of d’Alembert Principle in terms of
+system. It is simply a statement of d'Alembert Principle in terms of
 generalized forces.
 
-Kane’s equations are only valid in an inertial frame of reference and
+Kane's equations are only valid in an inertial frame of reference and
 for constant mass systems. Therefore, our strategy is to express
 velocities and accelerations of every particle contained in
 :math:`R + T + G` with respect to reference frame :math:`A`. Since all
@@ -172,14 +173,14 @@ and its angular velocity, we can choose generalized speeds such that:
 .. math:: _{\ }^{A}{{\overrightarrow{v}}_{*} = u_{4}{\overrightarrow{b}}_{1} + u_{5}{\overrightarrow{b}}_{2} + u_{6}{\overrightarrow{b}}_{3}}
 
 This choice greatly facilitates the derivation of the equations of
-motions using Kane’s method. Notice that the two equations above
+motions using Kane's method. Notice that the two equations above
 represent the translational and angular velocity of :math:`S` with
 respect to :math:`A` in terms of :math:`B`.
 
 Kinematics
 ==========
 
-Notice that Kane’s equations involve two kinematic quantities, the
+Notice that Kane's equations involve two kinematic quantities, the
 partial velocity and acceleration of every particle in :math:`S`.
 Partial velocity, also known as quasi-velocity is simply
 :math:`\partial\overrightarrow{v_{i}}/\partial u_{r}`.
@@ -266,11 +267,11 @@ Combining both equations, we reach:
 
 .. math:: \boxed{_{\ }^{A}{\overrightarrow{a}}_{i} =_{\ }^{A}{\overrightarrow{a}}_{*} +_{\ }^{A}\overrightarrow{\alpha} \times {\overrightarrow{r}}_{i - *} +_{\ }^{A}\overrightarrow{\omega} \times \Bigl(_{\ }^{A}\overrightarrow{\omega} \times {\overrightarrow{r}}_{i - *} \Bigr) + 2_{\ }^{A}\overrightarrow{\omega} \times (_{\ }^{R}{\overrightarrow{v}}_{i} -_{\ }^{R}{\overrightarrow{v}}_{*}) + (_{\ }^{R}{\overrightarrow{a}}_{i} -_{\ }^{R}{\overrightarrow{a}}_{*})}
 
-Application of Kane’s Equation of Motion
+Application of Kane's Equation of Motion
 ========================================
 
 Using the results from the previous section on the partial velocity and
-acceleration of an arbitrary particle, we can use Kane’s equation of
+acceleration of an arbitrary particle, we can use Kane's equation of
 motion as follows:
 
 .. math:: \sum_{}^{}\Bigl( \frac{\partial_{\ }^{A}{\overrightarrow{v}}_{i}}{\partial u_{r}} \cdot \overrightarrow{F_{i}} \Bigr) - \sum_{}^{}\Bigl( \frac{\partial_{\ }^{A}{\overrightarrow{v}}_{i}}{\partial u_{r}} \cdot m_{\ }^{A}{\overrightarrow{a}}_{i} \Bigr) = 0
@@ -384,7 +385,7 @@ apply Reynolds Transport Theorem to make the equations useful.
 Application of Reynolds Transport Theorem
 =========================================
 
-Let’s first work with the following equation:
+Let's first work with the following equation:
 
 .. math:: \overrightarrow{R} = m\Bigl(_{\ }^{A}{\overrightarrow{a}}_{O} +_{\ }^{A}\overrightarrow{\alpha} \times {\overrightarrow{r}}_{* - O} +_{\ }^{A}\overrightarrow{\omega} \times \Bigl(_{\ }^{A}\overrightarrow{\omega} \times {\overrightarrow{r}}_{* - O} \Bigr) + 2_{\ }^{A}\overrightarrow{\omega} \times_{\ }^{R}{\overrightarrow{v}}_{*} +_{\ }^{R}{\overrightarrow{a}}_{*} \Bigr)
 
@@ -535,8 +536,8 @@ dyadic for :math:`S = R + T`:
    0 & 0 & R_{z} + T_{z} \\
    \end{bmatrix}
 
-Where :math:`m_{R}` is the mass of the rocket’s permanent rigid body
-:math:`R`, :math:`m_{T}` is the mass of the rocket’s propellant grains,
+Where :math:`m_{R}` is the mass of the rocket's permanent rigid body
+:math:`R`, :math:`m_{T}` is the mass of the rocket's propellant grains,
 :math:`a` is the distance between the center of mass of :math:`R` and
 the center of mass of :math:`S = T + R`, and :math:`b` is the distance
 between the center of mass of :math:`T` and the center of mass of
@@ -617,7 +618,7 @@ the distance between the center of mass of :math:`S` and the nozzle exit
 plane.
 
 The other two integrals present in the other equation are easier to
-calculate. Let’s start with the following:
+calculate. Let's start with the following:
 
 .. math:: \int_{\partial C}^{\ }{\rho_{\ }^{R}{\overrightarrow{v}}_{i}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{dS}}
 
@@ -807,7 +808,7 @@ the inertial coordinate system :math:`A`. On the other hand,
 :math:`\Bigl( v_{x},\ v_{y},\ v_{z} \Bigr)` represents the velocity of
 point :math:`O` relative to :math:`A` written in terms of :math:`A`. As
 expected, :math:`\Bigl( e_{0},\ e_{1},\ e_{2},\ e_{3} \Bigr)` are the
-quaternions used to represent the rocket’s attitude. Finally,
+quaternions used to represent the rocket's attitude. Finally,
 :math:`\Bigl( \omega_{1},\omega_{2},\omega_{3} \Bigr)` represents the
 rockets angular velocity relative to :math:`A` but written in terms of
 :math:`B`.

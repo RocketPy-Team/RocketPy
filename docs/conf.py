@@ -1,3 +1,5 @@
+# pylint: skip-file
+
 # Configuration file for the Sphinx documentation builder.
 #
 # This file only contains a selection of the most common options. For a full
@@ -38,13 +40,22 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "sphinx.ext.mathjax",
+    "sphinx_copybutton",
     "sphinx_design",
     "jupyter_sphinx",
     "nbsphinx",
 ]
 
-# source_suffix = '.rst'
-# source_suffix = ['.rst', '.md']
+
+# Compatibility: https://about.readthedocs.com/blog/2024/07/addons-by-default/
+## Define the canonical URL if you are using a custom domain on Read the Docs
+html_baseurl = os.environ.get("READTHEDOCS_CANONICAL_URL", "")
+
+## Tell Jinja2 templates the build is running on Read the Docs
+if os.environ.get("READTHEDOCS", "") == "True":
+    if "html_context" not in globals():
+        html_context = {}
+    html_context["READTHEDOCS"] = True
 
 # Don't run notebooks
 nbsphinx_execute = "never"
@@ -71,7 +82,7 @@ autoclass_content = "class"
 # -- Options for autodoc ----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html#configuration
 
-# Automatically extract typehints when specified and place them in
+# Automatically extract type hints when specified and place them in
 # descriptions of the relevant function/method.
 autodoc_typehints = "description"
 
@@ -90,6 +101,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # a list of builtin themes.
 #
 html_theme = "pydata_sphinx_theme"
+numfig = True
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -97,13 +109,6 @@ html_theme = "pydata_sphinx_theme"
 html_static_path = ["static"]
 html_css_files = ["rocketpy.css"]
 html_favicon = "static/favicon.ico"
-html_theme_options = {
-    "logo_link": "index",
-    "github_url": "https://github.com/RocketPy-Team/RocketPy",
-    "collapse_navigation": True,
-    "show_toc_level": 4,
-    "show_nav_level": 4,
-}
 
 html_sidebars = {
     "**": ["search-field.html", "sidebar-nav-bs.html", "sidebar-ethical-ads.html"]
@@ -113,6 +118,9 @@ html_theme_options = {
         "image_light": "static/RocketPy_Logo_black.png",
         "image_dark": "static/RocketPy_Logo_white.png",
     },
+    "navigation_with_keys": False,
+    "collapse_navigation": True,
+    "github_url": "https://github.com/RocketPy-Team/RocketPy",
     "navbar_end": ["theme-switcher", "navbar-icon-links.html"],
     "icon_links": [
         {

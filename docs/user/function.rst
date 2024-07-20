@@ -249,11 +249,17 @@ A ``Function`` objects maps input data to an output, therefore should you want t
 
 Equivalently, the same operation is defined by the Python dunder method 
 ``__call__`` so that the object can be used like a common function.
- For instance:
+For instance:
 
 .. jupyter-execute::
 
     print(f(9), f(25))
+
+.. note::
+
+    A dunder method is a method that is surrounded by double underscores, such \
+    as ``__call__``. These methods are used by Python to implement operator \
+    overloading.
 
 Furthermore, both the :meth:`rocketpy.Function.get_value` and the dunder
 ``__call__`` method can be used to get a list of outputs from a list of inputs:

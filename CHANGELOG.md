@@ -36,6 +36,7 @@ Attention: The newest changes should be on top -->
 ### Changed
 
 - 
+- DOC: Fix documentation warnings [#645](https://github.com/RocketPy-Team/RocketPy/pull/645)
 - DOC: New Environment class docs pages [#644](https://github.com/RocketPy-Team/RocketPy/pull/644)
 
 ### Fixed
