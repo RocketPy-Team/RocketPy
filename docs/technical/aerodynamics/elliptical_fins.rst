@@ -11,6 +11,7 @@ Elliptical Fins Equations
 
 Nomenclature
 ============
+
 - :math:`Cr` - Root chord
 - :math:`Ct` - Tip chord
 - :math:`A_{r}` - Reference area
@@ -53,23 +54,22 @@ Geometrical Parameters
 ======================
 
 An elliptical fin can be defined with two basic parameters: the root
-chord (:math:`Cr`) and the span (:math:`S`), as can be seen in Figure
-`1 <#fig:elliptical>`__. Through them, other geometrical properties are 
-calculated, which are then used in the computations for the center of pressure
-and roll coefficients.
+chord (:math:`Cr`) and the span (:math:`S`), as can be seen in the next Figure.
+Through them, other geometrical properties are calculated, which are then used
+in the computations for the center of pressure and roll coefficients.
 
 .. image:: ../../static/elliptical_fins/elliptical_fin.svg
    :align: center
    :width: 400
-   :name: fig:elliptical
+   :name: fig-elliptical
+
 
 Chord Length (:math:`c`)
 ------------------------
 
 The chord length (:math:`c`) at a spanwise position must be calculated
 through two axis: :math:`y`, that begins at the fuselage wall, and
-:math:`\xi` that begins in the fuselages center line (Figure
-`1 <#fig:elliptical>`__).
+:math:`\xi` that begins in the fuselages center line.
 
 First we calculate :math:`c(y)` through the following elliptical
 equation:

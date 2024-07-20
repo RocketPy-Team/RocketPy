@@ -379,10 +379,10 @@ def generate_monte_carlo_ellipses(results):
     results : dict
         A dictionary containing the results of the monte carlo analysis. It
         should contain the following keys:
-            - apogeeX: an array containing the x coordinates of the apogee
-            - apogeeY: an array containing the y coordinates of the apogee
-            - xImpact: an array containing the x coordinates of the impact
-            - yImpact: an array containing the y coordinates of the impact
+        - apogeeX: an array containing the x coordinates of the apogee
+        - apogeeY: an array containing the y coordinates of the apogee
+        - xImpact: an array containing the x coordinates of the impact
+        - yImpact: an array containing the y coordinates of the impact
 
     Returns
     -------

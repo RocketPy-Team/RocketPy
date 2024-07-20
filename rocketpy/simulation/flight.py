@@ -3141,8 +3141,6 @@ class Flight:  # pylint: disable=too-many-public-methods
         ----------
         file_name : string
             The file name or path of the exported file. Example: flight_data.csv
-            Do not use forbidden characters, such as '/' in Linux/Unix and
-            '<, >, :, ", /, \\, | ?, *' in Windows.
         time_step : float, optional
             Time step desired for the data. If None, all integration time steps
             will be exported. Otherwise, linear interpolation is carried out to
@@ -3162,9 +3160,6 @@ class Flight:  # pylint: disable=too-many-public-methods
             Default is 'relativetoground'. Only works properly if the ground
             level is flat. Change to 'absolute' if the terrain is to irregular
             or contains mountains.
-        Returns
-        -------
-        None
         """
         # Define time points vector
         if time_step is None:

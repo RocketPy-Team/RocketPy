@@ -3,7 +3,7 @@ Equations of Motion v1
 ======================
 
 Introduction
-============
+------------
 
 This document briefly describes the equations of motion which govern the flight
 of a rocket used in v1.0 onwards. This document simply shows some of the 
@@ -27,7 +27,7 @@ Development
 
 .. math:: \mathbf{I} \cdot \dot{\boldsymbol{\omega}}+\boldsymbol{\omega} \times(\mathbf{I} \cdot \boldsymbol{\omega})+\mathbf{I}^{\prime} \cdot \boldsymbol{\omega}+m \mathbf{r}_{\mathrm{CM}} \times \dot{\mathbf{v}}=\left(\dot{m} \mathbf{S}_{\mathrm{noz}}\right) \cdot \boldsymbol{\omega}+\sum_i \mathbf{r}_i \times \mathbf{N}_i-\mathbf{r}_{\mathrm{CM}} \times m g \hat{\mathbf{a}}_3
 
-**Cross multiplying the linear equation by 𝐫CM:**
+**Cross multiplying the linear equation by** :math:`r_{CM}` **:**
 
 .. math:: 
    \begin{aligned}
@@ -110,37 +110,37 @@ Development
 
 **Available terms that must be interpolated in time/altitude**
 
-1. 𝑚
-2. 𝑚'
-3. 𝑚''
-4. 𝐫CM
-5. 𝐫CM'
-6. 𝐫CM''
-7. 𝐓
-8. 𝐈
-9. 𝐈'
-10. 𝑔
+1. :math:`m`: mass
+2. :math:`𝑚'`: time derivative of :math:`m`
+3. :math:`𝑚''`: time derivative of :math:`𝑚'`
+4. :math:`r_{CM}`:
+5. :math:`r_{CM}'`:
+6. :math:`r_{CM}''`: 
+7. :math:`T`: thrust
+8. :math:`I`: inertia tensor
+9. :math:`I'`: time derivative of :math:`I`
+10. :math:`g`: gravity acceleration
 
 **Pre-computed terms that optimize interpolations needed**
  
-1. 𝑚
-2. 𝐫CM'
-3. T03: 2𝑚̇ (𝐫noz − 𝐫CM) − 2𝑚𝐫CM
-4. T04: 𝐓 − 𝑚𝐫CM′′ − 2𝑚̇ 𝐫CM + 𝑚̈ (𝐫noz − 𝐫CM)
-5. T05: 𝑚̇ 𝐒noz − 𝐈′
-6. 𝑔
-7. 𝐈
+1. :math:`m`: mass
+2. :math:`r_{CM}`:
+3. :math:`T_{03}`: 2𝑚̇ (𝐫_{noz} − 𝐫CM) − 2𝑚𝐫CM
+4. :math:`T_{04}`: :math:`T - m \cdot r_{CM}' - 2 \cdot 𝑚̇ \cdot r_{CM} + 𝑚̈ \cdot (r_{noz} - r_{CM})`
+5. :math:`T_{05}`: 𝑚̇ 𝐒noz − 𝐈′
+6. :math:`g`: gravity acceleration
+7. :math:`I`: inertia tensor
  
 Pre-computed terms
 
-1. T00: 𝑚𝐫CM
-2. T01: [𝑚𝐫CM]×
-3. T02: [𝑚𝐫CM]×𝑇′
-4. T03: 2𝑚̇ (𝐫noz − 𝐫CM) − 2𝑚𝐫CM
-5. T04: 𝐓 − 𝑚𝐫CM′′ − 2𝑚̇ 𝐫CM + 𝑚̈ (𝐫noz − 𝐫CM)
-6. T05: 𝑚̇ 𝐒noz − 𝐈′
-7. T20: −𝝎 × (𝝎 × 𝑇00) + 𝝎 × (𝑇03) + 𝑇04 − 𝑚𝑔𝐚̂3 + 𝐀 + ∑ 𝐍𝑖
-8. T21: −𝝎 × (𝐈 ⋅ 𝝎) + (𝑇05) ⋅ 𝝎 + 𝐫CM × 𝑚𝑔𝐚̂3 + ∑ 𝐫𝑖 × 𝐍𝑖 
+1. :math:`T_{00}`: :math:`m \cdot r_{CM}`
+2. :math:`T_{01}`: [mrCM]×
+3. :math:`T_{02}`: [mrCM]×𝑇′
+4. :math:`T_{03}`: 2𝑚̇ (rnoz − rCM) − 2𝑚rCM
+5. :math:`T_{04}`: 𝐓 − 𝑚rCM′′ − 2𝑚̇ rCM + 𝑚̈ (rnoz − rCM)
+6. :math:`T_{05}`: 𝑚̇ 𝐒noz − 𝐈′
+7. :math:`T_{20}`: −𝝎 × (𝝎 × 𝑇00) + 𝝎 × (𝑇03) + 𝑇04 − 𝑚𝑔𝐚̂3 + 𝐀 + ∑ 𝐍𝑖
+8. :math:`T_{21}`: −𝝎 × (𝐈 ⋅ 𝝎) + (𝑇05) ⋅ 𝝎 + 𝐫CM × 𝑚𝑔𝐚̂3 + ∑ 𝐫𝑖 × 𝐍𝑖 
 
 **Final system of equations**
 
@@ -207,7 +207,7 @@ Pre-computed terms
    \end{array}\right]
    \end{equation}
 
-**Consider 𝐼CM as the inertia tensor relative to the true center of mass. Then:**
+**Consider** :math:`I_{CM}` **as the inertia tensor relative to the true center of mass. Then:**
 
 .. math::
    \begin{equation}
