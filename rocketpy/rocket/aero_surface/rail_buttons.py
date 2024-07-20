@@ -36,6 +36,10 @@ class RailButtons(AeroSurface):
             relative to one of the other principal axis.
         name : string, optional
             Name of the rail buttons. Default is "Rail Buttons".
+        rocket_radius : int, float, optional
+            Radius of the rocket at the location of the rail buttons in meters.
+            If not provided, it will be calculated when the RailButtons object
+            is added to a Rocket object.
 
         Returns
         -------
