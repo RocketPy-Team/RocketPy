@@ -35,8 +35,8 @@ Attention: The newest changes should be on top -->
 - 
 
 ### Changed
-
-- 
+ 
+- ENH: Adding rocket radius to RailButtons class [#643](https://github.com/RocketPy-Team/RocketPy/pull/643)
 
 ### Fixed
 
@@ -50,10 +50,10 @@ You can install this version by running `pip install rocketpy==1.4.1`
 
 - Bumps rocketpy version to 1.4.1 [#646](https://github.com/RocketPy-Team/RocketPy/pull/646)
 - ENH: Insert apogee state into solution list during flight simulation [#638](https://github.com/RocketPy-Team/RocketPy/pull/638)
+- MNT: Refactor AeroSurfaces [#634](https://github.com/RocketPy-Team/RocketPy/pull/634)
 - ENH: Environment class major refactor may 2024 [#605](https://github.com/RocketPy-Team/RocketPy/pull/605)
 - MNT: Refactors the code to adopt flake8 [#631](https://github.com/RocketPy-Team/RocketPy/pull/631)
 - MNT: Refactors the code to adopt pylint [#621](https://github.com/RocketPy-Team/RocketPy/pull/621)
-- MNT: Refactor AeroSurfaces [#634](https://github.com/RocketPy-Team/RocketPy/pull/634)
 
 ## [1.4.0] - 2024-07-06
 

@@ -947,6 +947,7 @@ class Rocket:
             the root chord which is highest in the rocket coordinate system.
             For Tail type, position is relative to the point belonging to the
             tail which is highest in the rocket coordinate system.
+            For RailButtons type, position is relative to the lower rail button.
 
         See Also
         --------
@@ -956,11 +957,16 @@ class Rocket:
         -------
         None
         """
-        try:
-            for surface, position in zip(surfaces, positions):
+        if not isinstance(surfaces, list):
+            surfaces = [surfaces]
+            positions = [positions]
+
+        for surface, position in zip(surfaces, positions):
+            if isinstance(surface, RailButtons):
+                surface.rocket_radius = surface.rocket_radius or self.radius
+                self.rail_buttons.add(surface, position)
+            else:
                 self.aerodynamic_surfaces.add(surface, position)
-        except TypeError:
-            self.aerodynamic_surfaces.add(surfaces, positions)
 
         self.evaluate_center_of_pressure()
         self.evaluate_stability_margin()
@@ -1512,6 +1518,7 @@ class Rocket:
         rail_buttons = RailButtons(
             buttons_distance=buttons_distance, angular_position=angular_position
         )
+        rail_buttons.rocket_radius = rail_buttons.rocket_radius or self.radius
         self.rail_buttons.add(rail_buttons, lower_button_position)
         return rail_buttons
 
