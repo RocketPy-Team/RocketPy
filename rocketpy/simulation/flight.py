@@ -8,8 +8,6 @@ import numpy as np
 import simplekml
 from scipy import integrate
 
-from rocketpy.rocket.aero_surface import RailButtons
-
 from ..mathutils.function import Function, funcify_method
 from ..mathutils.vector_matrix import Matrix, Vector
 from ..plots.flight_plots import _FlightPlots
@@ -1725,8 +1723,6 @@ class Flight:  # pylint: disable=too-many-public-methods
         velocity_in_body_frame = Kt @ v
         # Calculate lift and moment for each component of the rocket
         for aero_surface, position in self.rocket.aerodynamic_surfaces:
-            if isinstance(aero_surface, RailButtons):
-                continue
             comp_cpz = (
                 position - self.rocket.center_of_dry_mass_position
             ) * self.rocket._csys - aero_surface.cpz

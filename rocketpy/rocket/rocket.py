@@ -962,10 +962,11 @@ class Rocket:
             positions = [positions]
 
         for surface, position in zip(surfaces, positions):
-            self.aerodynamic_surfaces.add(surface, position)
             if isinstance(surface, RailButtons):
                 surface.rocket_radius = surface.rocket_radius or self.radius
                 self.rail_buttons.add(surface, position)
+            else:
+                self.aerodynamic_surfaces.add(surface, position)
 
         self.evaluate_center_of_pressure()
         self.evaluate_stability_margin()

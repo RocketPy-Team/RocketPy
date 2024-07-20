@@ -395,9 +395,10 @@ def test_set_rail_button(calisto):
 def test_add_rail_button(calisto, calisto_rail_buttons):
     calisto.add_surfaces(calisto_rail_buttons, -0.5)
     assert calisto.rail_buttons[0].position == -0.5
-    assert calisto.rail_buttons[0].component.buttons_distance + calisto.rail_buttons[
-        0
-    ].position == pytest.approx(0.7, 1e-12)
+    upper_position = (
+        calisto_rail_buttons.buttons_distance + calisto.rail_buttons[0].position
+    )
+    assert upper_position == pytest.approx(0.2, 1e-12)
 
 
 def test_evaluate_total_mass(calisto_motorless):
