@@ -26,7 +26,7 @@ or spreadsheet software. The file should have the following structure:
 
     # Create a .csv file with the profiles
     data = {
-        'height': [0, 1000, 2000, 3000, 4000],
+        'height': [0, 1000, 2000, 3000, 4000], # m
         'pressure': [101325, 89876, 79508, 70122, 61653], # Pa
         'temperature': [288.15, 281.65, 275.15, 268.65, 262.15], # K
         'wind_u': [0, 1.0, 3, -0.5, -1], # m/s

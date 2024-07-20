@@ -85,7 +85,7 @@ The same coordinates for SpacePort America will be used.
 .. jupyter-execute::
 
     now = datetime.now()
-    now_plus_six = now + timedelta(hours=12)
+    now_plus_twelve = now + timedelta(hours=12)
 
     env_rap = Environment(
         date=now_plus_six,

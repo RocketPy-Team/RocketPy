@@ -2,7 +2,7 @@ Setting Up the Environment
 ==========================
 
 The first step is to set up the environment with the basic information.
-The date, time, location and elevation are the minimum requirements to start
+The date, time, location, and elevation are the minimum requirements to start
 setting up the environment.
 
 .. toctree::

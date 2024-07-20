@@ -14,34 +14,27 @@ as well as participation from the German and Italian space agencies.
     `NASA's Earth data Search <https://lpdaac.usgs.gov/products/nasadem_hgtv001/>`_.
 
 
-This is a first step forward stopping consider Earth as a constant plane better
-results when we are flying next to mountains or valleys
+Including the topography provides more accurate results when flying next to mountains or valleys.
 
 Initialization
 --------------
 
-First of all, we import the Environment class: 
+Let us consider a fictional launch in Switzerland. First, we set the basic information about our Environment object
 
 .. jupyter-execute::
 
     from rocketpy import Environment
-
-For example, let's set an Environment consider a fictional launch at Switzerland.
-First we need to set the basic information about our Environment object
-
-.. jupyter-execute::
-
     env = Environment(latitude=46.90479, longitude=8.07575, datum="WGS84")
 
 .. note::
     
-    Notice that the datum argument is used only for the converting from geodesic \
-    (i.e. lat/lon) to UTM coordinate system.
+    The datum argument is used only for converting from geodesic \
+    (i.e. lat/lon) to the UTM coordinate system.
 
 Set the topographic profile
 ---------------------------
 
-Now we finally set our topography
+Now we set our topography
 
 .. jupyter-execute::
 
@@ -56,7 +49,7 @@ Now we finally set our topography
 Find the launch site elevation
 ------------------------------
 
-Once we defined the topographic profile, we can find the launch site elevation
+Once the topographic profile is defined, we can find the launch site elevation
 
 .. jupyter-execute::
 
@@ -72,8 +65,8 @@ And finally set the elevation to the Environment object:
 Visualize information
 ---------------------
 
-Now we can see the elevation that we have set, as well as other important
-attributes of our Environment object. We do that by running the
+To check the elevation we have set, as well as other important
+attributes of our Environment object, we run the
 :meth:`rocketpy.Environment.info` method:
 
 .. jupyter-execute::
