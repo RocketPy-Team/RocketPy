@@ -51,7 +51,9 @@ env-analysis = [
 ]
 
 monte-carlo = [
-    "imageio", "h5py", "multiprocess"
+    "imageio", 
+    "h5py", 
+    "multiprocess"
 ]
 
 all = ["rocketpy[env-analysis]", "rocketpy[monte-carlo]"]
