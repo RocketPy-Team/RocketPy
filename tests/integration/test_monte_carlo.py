@@ -24,8 +24,8 @@ def test_monte_carlo_simulate(monte_carlo_calisto):
     assert monte_carlo_calisto.num_of_loaded_sims == 10
     assert monte_carlo_calisto.number_of_simulations == 10
     assert monte_carlo_calisto.filename == "monte_carlo_test"
-    assert monte_carlo_calisto.error_file == "monte_carlo_test.errors.txt"
-    assert monte_carlo_calisto.output_file == "monte_carlo_test.outputs.txt"
+    assert str(monte_carlo_calisto.error_file.name) == "monte_carlo_test.errors.txt"
+    assert str(monte_carlo_calisto.output_file.name) == "monte_carlo_test.outputs.txt"
     assert np.isclose(
         monte_carlo_calisto.processed_results["apogee"][0], 4711, rtol=0.15
     )
