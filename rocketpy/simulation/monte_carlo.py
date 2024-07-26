@@ -17,9 +17,9 @@ import ctypes
 import json
 import os
 import pickle
+import warnings
 from copy import deepcopy
 from pathlib import Path
-import warnings
 from time import process_time, time
 
 import h5py
@@ -102,7 +102,7 @@ class MonteCarlo:
         export_list=None,
         batch_path=None,
         export_sample_time=0.1,
-    ): # pylint: disable=too-many-statements
+    ):  # pylint: disable=too-many-statements
         """
         Initialize a MonteCarlo object.
 
@@ -165,7 +165,7 @@ class MonteCarlo:
 
         if not os.path.exists(self.batch_path):
             os.makedirs(self.batch_path)
-            
+
         self.export_list = self.__check_export_list(export_list)
 
         try:
@@ -191,7 +191,6 @@ class MonteCarlo:
         light_mode=False,
         parallel=False,
         n_workers=None,
-    
     ):  # pylint: disable=too-many-statements
         """
         Runs the Monte Carlo simulation and saves all data.
@@ -245,7 +244,6 @@ class MonteCarlo:
             self.__run_in_parallel(append, light_mode=light_mode, n_workers=n_workers)
         else:
             self.__run_in_serial(append, light_mode=light_mode)
-
 
     def __run_in_serial(self, append, light_mode):
         """
@@ -468,7 +466,7 @@ class MonteCarlo:
                 print(f"Number of simulations: {self.number_of_simulations}")
 
                 # Creates n_workers processes then starts them
-                for i in range(n_workers - 2):  # leave 2 cores for the writer workers
+                for _ in range(n_workers - 2):  # leave 2 cores for the writer workers
                     p = Process(
                         target=self.__run_simulation_worker,
                         args=(
@@ -542,8 +540,6 @@ class MonteCarlo:
                 input_writer_stop_event.set()
                 results_writer_stop_event.set()
 
-                print("Waiting for writer workers to join.")
-                # join the writer workers
                 input_writer.join()
                 results_writer.join()
 
@@ -551,18 +547,17 @@ class MonteCarlo:
 
                 parallel_end = time()
 
-                print("-" * 80 + "\nAll workers joined, simulation complete.")
+                print("-" * 80 + "\n")
+                print("All workers joined, simulation complete.")
                 print(
                     f"In total, {sim_counter.get_count() - idx_i} simulations were performed."
                 )
                 print(
-                    "Simulation took",
-                    parallel_end - parallel_start_time,
-                    "seconds to run.",
+                    f"Simulation took {(parallel_end - parallel_start_time):.2f} seconds to run."
                 )
 
         finally:
-            # ensure shared memory is realeased
+            # ensure shared memory is released
             shared_inputs_buffer.close()
             shared_results_buffer.close()
             shared_inputs_buffer.unlink()
@@ -649,22 +644,14 @@ class MonteCarlo:
                 if sim_idx == -1:
                     break
 
-                env = sto_env.create_object()
-                rocket = sto_rocket.create_object()
-                rail_length = sto_flight._randomize_rail_length()
-                inclination = sto_flight._randomize_inclination()
-                heading = sto_flight._randomize_heading()
-                initial_solution = sto_flight.initial_solution
-                terminate_on_apogee = sto_flight.terminate_on_apogee
-
                 monte_carlo_flight = Flight(
-                    rocket=rocket,
-                    environment=env,
-                    rail_length=rail_length,
-                    inclination=inclination,
-                    heading=heading,
-                    initial_solution=initial_solution,
-                    terminate_on_apogee=terminate_on_apogee,
+                    rocket=sto_rocket.create_object(),
+                    environment=sto_env.create_object(),
+                    rail_length=sto_flight._randomize_rail_length(),
+                    inclination=sto_flight._randomize_inclination(),
+                    heading=sto_flight._randomize_heading(),
+                    initial_solution=sto_flight.initial_solution,
+                    terminate_on_apogee=sto_flight.terminate_on_apogee,
                 )
 
                 # Export to file
@@ -793,7 +780,7 @@ class MonteCarlo:
             terminate_on_apogee=self.flight.terminate_on_apogee,
         )
 
-        self._inputs_dict = dict(
+        inputs_dict = dict(
             item
             for d in [
                 self.environment.last_rnd_dict,
@@ -802,7 +789,13 @@ class MonteCarlo:
             ]
             for item in d.items()
         )
-        self._inputs_dict["idx"] = sim_idx
+        inputs_dict["idx"] = sim_idx
+
+        inputs_dict = MonteCarlo.prepare_export_data(
+                    inputs_dict, self.export_sample_time, remove_functions=True
+                )
+
+        self._inputs_dict = inputs_dict
 
         # Export inputs and outputs to file
         if light_mode:

@@ -5,4 +5,3 @@ jsonpickle
 timezonefinder
 imageio
 h5py
-easygui
