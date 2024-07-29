@@ -24,8 +24,6 @@ from time import process_time, time
 
 import numpy as np
 import simplekml
-from multiprocess import Event, Lock, Process, Semaphore, shared_memory
-from multiprocess.managers import BaseManager
 
 from rocketpy import Function
 from rocketpy._encoders import RocketPyEncoder
@@ -40,6 +38,7 @@ from rocketpy.stochastic import (
 from rocketpy.tools import (
     generate_monte_carlo_ellipses,
     generate_monte_carlo_ellipses_coordinates,
+    import_optional_dependency,
 )
 
 # TODO: Create evolution plots to analyze convergence
@@ -355,6 +354,8 @@ class MonteCarlo:
         # calculate the number of simulations that can be stored in memory
         n_sim_memory = max(n_workers - 2, 2)  # at least a double buffer
 
+        multiprocess, shared_memory, managers = import_multiprocess()
+
         # initialize shared memory buffer
         shared_inputs_buffer = shared_memory.SharedMemory(
             create=True, size=inputs_size * n_sim_memory, name="shared_inputs"
@@ -364,7 +365,7 @@ class MonteCarlo:
         )
 
         try:
-            with MonteCarloManager() as manager:
+            with create_multiprocess_manager(multiprocess, managers) as manager:
                 # initialize queue
                 errors_lock = manager.Lock()
 
@@ -404,9 +405,10 @@ class MonteCarlo:
 
                 # Creates n_workers processes then starts them
                 for _ in range(n_workers - 2):  # leave 2 cores for the writer workers
-                    p = Process(
+                    p = multiprocess.Process(
                         target=self.__run_simulation_worker,
                         args=(
+                            shared_memory,
                             self.error_file,
                             self.export_list,
                             self.environment,
@@ -436,9 +438,10 @@ class MonteCarlo:
                 input_writer_stop_event = manager.Event()
                 results_writer_stop_event = manager.Event()
 
-                input_writer = Process(
+                input_writer = multiprocess.Process(
                     target=self._write_data_worker,
                     args=(
+                        shared_memory,
                         self.input_file,
                         go_write_inputs,
                         go_read_inputs,
@@ -449,9 +452,10 @@ class MonteCarlo:
                     ),
                 )
 
-                results_writer = Process(
+                results_writer = multiprocess.Process(
                     target=self._write_data_worker,
                     args=(
+                        shared_memory,
                         self.output_file,
                         go_write_results,
                         go_read_results,
@@ -500,6 +504,7 @@ class MonteCarlo:
 
     @staticmethod
     def __run_simulation_worker(
+        shared_memory,
         error_file,
         export_list,
         sto_env,
@@ -523,6 +528,8 @@ class MonteCarlo:
 
         Parameters
         ----------
+        shared_memory : module
+            Shared memory handler of multiprocess module.
         error_file : Path
             Path of the error file.
         export_list : list
@@ -820,6 +827,7 @@ class MonteCarlo:
 
     @staticmethod
     def _write_data_worker(
+        shared_memory,
         file_path,
         go_write_semaphores,
         go_read_semaphores,
@@ -833,6 +841,8 @@ class MonteCarlo:
 
         Parameters
         ----------
+        shared_memory : module
+            Shared memory handler of multiprocess module.
         file_path : str
             Path to the file to write the data.
         go_write_semaphores : list
@@ -1672,16 +1682,50 @@ class MonteCarlo:
         return result
 
 
-class MonteCarloManager(BaseManager):
-    def __init__(self):
-        super().__init__()
-        self.register('Lock', Lock)
-        self.register('Event', Event)
-        self.register('Semaphore', Semaphore)
-        self.register('SimCounter', SimCounter)
-        self.register('StochasticEnvironment', StochasticEnvironment)
-        self.register('StochasticRocket', StochasticRocket)
-        self.register('StochasticFlight', StochasticFlight)
+def import_multiprocess():
+    """Import the necessary modules for the multiprocess module.
+
+    Returns
+    -------
+    tuple
+        Tuple containing the imported modules.
+    """
+    multiprocess = import_optional_dependency("multiprocess")
+    shared_memory = import_optional_dependency("multiprocess.shared_memory")
+    managers = import_optional_dependency("multiprocess.managers")
+
+    return multiprocess, shared_memory, managers
+
+
+def create_multiprocess_manager(multiprocess, managers):
+    """Creates a manager for the multiprocess control of the
+    Monte Carlo simulation.
+
+    Parameters
+    ----------
+    multiprocess : module
+        Multiprocess module.
+    managers : module
+        Managing submodules of the multiprocess module.
+
+    Returns
+    -------
+    MonteCarloManager
+        Subclass of BaseManager with the necessary classes registered.
+    """
+
+    class MonteCarloManager(managers.BaseManager):
+        def __init__(self):
+            super().__init__()
+            self.register('Lock', multiprocess.Lock)
+            self.register('Event', multiprocess.Event)
+            self.register('Semaphore', multiprocess.Semaphore)
+            self.register('SimCounter', SimCounter)
+            self.register('StochasticEnvironment', StochasticEnvironment)
+            self.register('StochasticRocket', StochasticRocket)
+            self.register('StochasticFlight', StochasticFlight)
+
+    return MonteCarloManager()
 
 
 class SimCounter:

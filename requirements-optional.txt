@@ -4,5 +4,4 @@ ipywidgets>=7.6.3
 jsonpickle
 timezonefinder
 imageio
-h5py
-multiprocess
+multiprocess>=0.70
