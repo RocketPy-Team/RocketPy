@@ -19,7 +19,7 @@ import queue
 import warnings
 from copy import deepcopy
 from pathlib import Path
-from time import process_time, time
+from time import time
 
 import numpy as np
 import simplekml
@@ -279,7 +279,7 @@ class MonteCarlo:
         -------
         None
         """
-        sim_monitor = SimMonitor(
+        sim_monitor = _SimMonitor(
             initial_count=self._initial_sim_idx,
             n_simulations=self.number_of_simulations,
             start_time=time(),
@@ -346,7 +346,7 @@ class MonteCarlo:
             mutex = manager.Lock()
             consumer_stop_event = manager.Event()
 
-            sim_monitor = manager.SimMonitor(
+            sim_monitor = manager._SimMonitor(
                 initial_count=self._initial_sim_idx,
                 n_simulations=self.number_of_simulations,
                 start_time=time(),
@@ -411,9 +411,34 @@ class MonteCarlo:
         mutex,
         seed,
     ):
+        """Simulation producer to be used in parallel by multiprocessing.
+
+        Parameters
+        ----------
+        sto_env : StochasticEnvironment
+            The stochastic environment object to be iterated over.
+        sto_rocket : StochasticRocket
+            The stochastic rocket object to be iterated over.
+        sto_flight : StochasticFlight
+            The stochastic flight object to be iterated over.
+        sim_monitor : _SimMonitor
+            The simulation monitor object to keep track of the simulations.
+        export_list : list
+            The list of variables to export at each simulation.
+        export_sample_time : float
+            Sample time to downsample the arrays in seconds.
+        export_queue : multiprocess.Queue
+            The queue to export the results.
+        error_file : str
+            The file to write the errors.
+        mutex : multiprocess.Lock
+            The mutex to lock access to critical regions.
+        seed : int
+            The seed to set the random number generator.
+        """
         try:
             while sim_monitor.keep_simulating():
-                sim_idx = sim_monitor.increment()
+                sim_idx = sim_monitor.increment() - 1
 
                 sto_env._set_stochastic(seed)
                 sto_rocket._set_stochastic(seed)
@@ -450,6 +475,23 @@ class MonteCarlo:
         mutex,
         stop_event,
     ):
+        """Simulation consumer to be used in parallel by multiprocessing.
+        It consumes the results from the queue and writes them to the files.
+        If no results are received for 10 seconds, a TimeoutError is raised.
+
+        Parameters
+        ----------
+        export_queue : multiprocess.Queue
+            The queue to export the results.
+        inputs_file : str
+            The file path to write the inputs.
+        outputs_file : str
+            The file path to write the outputs.
+        mutex : multiprocess.Lock
+            The mutex to lock access to critical regions.
+        stop_event : multiprocess.Event
+            The event indicating that the simulations are done.
+        """
         trials = 0
         while not stop_event.is_set():
             try:
@@ -478,6 +520,23 @@ class MonteCarlo:
     def __run_single_simulation(
         sim_idx, sto_env, sto_rocket, sto_flight, export_list, export_sample_time
     ):
+        """Runs a single simulation and returns the inputs and outputs.
+
+        Parameters
+        ----------
+        sim_idx : int
+            The index of the simulation.
+        sto_env : StochasticEnvironment
+            The stochastic environment object to be iterated over.
+        sto_rocket : StochasticRocket
+            The stochastic rocket object to be iterated over.
+        sto_flight : StochasticFlight
+            The stochastic flight object to be iterated over.
+        export_list : list
+            The list of variables to export at each simulation.
+        export_sample_time : float
+            Sample time to downsample the arrays in seconds.
+        """
         monte_carlo_flight = Flight(
             rocket=sto_rocket.create_object(),
             environment=sto_env.create_object(),
@@ -510,21 +569,6 @@ class MonteCarlo:
 
         return inputs_dict, outputs_dict
 
-    def __terminate_simulation(self):
-        """
-        Terminates the simulation, closes the files and prints the results.
-
-        Returns
-        -------
-        None
-        """
-        # resave the files on self and calculate post simulation attributes
-        self.input_file = self.batch_path / f"{self.filename}.inputs.txt"
-        self.output_file = self.batch_path / f"{self.filename}.outputs.txt"
-        self.error_file = self.batch_path / f"{self.filename}.errors.txt"
-
-        print(f"Results saved to {self._output_file}")
-
     @staticmethod
     def __export_flight_data(
         inputs_dict,
@@ -554,6 +598,21 @@ class MonteCarlo:
             file.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
         with open(outputs_file, "a", encoding="utf-8") as file:
             file.write(json.dumps(outputs_dict, cls=RocketPyEncoder) + "\n")
+
+    def __terminate_simulation(self):
+        """
+        Terminates the simulation, closes the files and prints the results.
+
+        Returns
+        -------
+        None
+        """
+        # resave the files on self and calculate post simulation attributes
+        self.input_file = self.batch_path / f"{self.filename}.inputs.txt"
+        self.output_file = self.batch_path / f"{self.filename}.outputs.txt"
+        self.error_file = self.batch_path / f"{self.filename}.errors.txt"
+
+        print(f"Results saved to {self._output_file}")
 
     def __check_export_list(self, export_list):
         """
@@ -1186,7 +1245,8 @@ class MonteCarlo:
 
 
 def import_multiprocess():
-    """Import the necessary modules for the multiprocess module.
+    """Import the necessary modules and submodules for the
+    multiprocess library.
 
     Returns
     -------
@@ -1217,17 +1277,21 @@ def create_multiprocess_manager(multiprocess, managers):
     """
 
     class MonteCarloManager(managers.BaseManager):
+        """Custom manager for shared objects in the Monte Carlo simulation."""
+
         def __init__(self):
             super().__init__()
             self.register('Lock', multiprocess.Lock)
             self.register('Queue', multiprocess.Queue)
             self.register('Event', multiprocess.Event)
-            self.register('SimMonitor', SimMonitor)
+            self.register('_SimMonitor', _SimMonitor)
 
     return MonteCarloManager()
 
 
-class SimMonitor:
+class _SimMonitor:
+    """Class to monitor the simulation progress and display the status."""
+
     def __init__(self, initial_count, n_simulations, start_time):
         self.initial_count = initial_count
         self.count = initial_count
@@ -1239,7 +1303,7 @@ class SimMonitor:
 
     def increment(self):
         self.count += 1
-        return self.count - 1
+        return self.count
 
     def update_status(self, sim_idx, end="\n", flush=False):
         """Prints a message on the same line as the previous one and replaces

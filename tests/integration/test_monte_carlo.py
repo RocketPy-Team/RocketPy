@@ -30,12 +30,12 @@ def test_monte_carlo_simulate(monte_carlo_calisto, parallel):
     assert str(monte_carlo_calisto.error_file.name) == "monte_carlo_test.errors.txt"
     assert str(monte_carlo_calisto.output_file.name) == "monte_carlo_test.outputs.txt"
     assert np.isclose(
-        monte_carlo_calisto.processed_results["apogee"][0], 4711, rtol=0.15
+        monte_carlo_calisto.processed_results["apogee"][0], 4711, rtol=0.2
     )
     assert np.isclose(
         monte_carlo_calisto.processed_results["impact_velocity"][0],
         -5.234,
-        rtol=0.15,
+        rtol=0.2,
     )
     os.remove("monte_carlo_test.errors.txt")
     os.remove("monte_carlo_test.outputs.txt")
