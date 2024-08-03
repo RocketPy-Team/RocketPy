@@ -10,7 +10,8 @@ plt.rcParams.update({"figure.max_open_warning": 0})
 
 
 @pytest.mark.slow
-def test_monte_carlo_simulate(monte_carlo_calisto):
+@pytest.mark.parametrize("parallel", [False, True])
+def test_monte_carlo_simulate(monte_carlo_calisto, parallel):
     """Tests the simulate method of the MonteCarlo class.
 
     Parameters
@@ -19,7 +20,9 @@ def test_monte_carlo_simulate(monte_carlo_calisto):
         The MonteCarlo object, this is a pytest fixture.
     """
     # NOTE: this is really slow, it runs 10 flight simulations
-    monte_carlo_calisto.simulate(number_of_simulations=10, append=False)
+    monte_carlo_calisto.simulate(
+        number_of_simulations=10, append=False, parallel=parallel
+    )
 
     assert monte_carlo_calisto.num_of_loaded_sims == 10
     assert monte_carlo_calisto.number_of_simulations == 10
