@@ -3498,6 +3498,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                 try:
                     # Try to access the node and merge if it exists
                     tmp_dict[time].parachutes += node.parachutes
+                    tmp_dict[time]._controllers += node._controllers
                     tmp_dict[time].callbacks += node.callbacks
                 except KeyError:
                     # If the node does not exist, add it to the dictionary

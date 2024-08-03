@@ -32,15 +32,26 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
-- 
 
 ### Changed
 
-- 
 
 ### Fixed
 
-- 
+
+
+## [v1.4.2] - 2024-08-03
+
+You can install this version by running `pip install rocketpy==1.4.2`
+
+### Changed
+
+- REL: Bump versioning to RocketPy v1.4.2 [#648](https://github.com/RocketPy-Team/RocketPy/pull/648)
+- ENH: Adding rocket radius to RailButtons class [#643](https://github.com/RocketPy-Team/RocketPy/pull/643)
+
+### Fixed
+
+- BUG: Time Node Merge Not Including Controllers [#647](https://github.com/RocketPy-Team/RocketPy/pull/647)
 
 ## [v1.4.1] - 2024-07-20
 
@@ -48,12 +59,12 @@ You can install this version by running `pip install rocketpy==1.4.1`
 
 ### Changed
 
-- Bumps rocketpy version to 1.4.1 [#646](https://github.com/RocketPy-Team/RocketPy/pull/646)
+- REL: Bumps rocketpy version to 1.4.1 [#646](https://github.com/RocketPy-Team/RocketPy/pull/646)
 - ENH: Insert apogee state into solution list during flight simulation [#638](https://github.com/RocketPy-Team/RocketPy/pull/638)
+- MNT: Refactor AeroSurfaces [#634](https://github.com/RocketPy-Team/RocketPy/pull/634)
 - ENH: Environment class major refactor may 2024 [#605](https://github.com/RocketPy-Team/RocketPy/pull/605)
 - MNT: Refactors the code to adopt flake8 [#631](https://github.com/RocketPy-Team/RocketPy/pull/631)
 - MNT: Refactors the code to adopt pylint [#621](https://github.com/RocketPy-Team/RocketPy/pull/621)
-- MNT: Refactor AeroSurfaces [#634](https://github.com/RocketPy-Team/RocketPy/pull/634)
 
 ## [1.4.0] - 2024-07-06
 
