@@ -40,7 +40,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
-- 
+- BUG: Time Node Merge Not Including Controllers [#647](https://github.com/RocketPy-Team/RocketPy/pull/647)
 
 ## [v1.4.1] - 2024-07-20
 
