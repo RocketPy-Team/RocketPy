@@ -221,7 +221,7 @@ class MonteCarlo:
         self._initial_sim_idx = self.num_of_loaded_sims if append else 0
 
         # Begin display
-        MonteCarlo._reprint("Starting Monte Carlo analysis", end="\r")
+        MonteCarlo._reprint("Starting Monte Carlo analysis")
 
         # Setup files
         self.__setup_files(append)
@@ -304,17 +304,19 @@ class MonteCarlo:
                     self._output_file,
                 )
 
-                sim_monitor.update_status(sim_monitor.count, end="\r", flush=True)
+                sim_monitor.update_status(sim_monitor.count)
 
             sim_monitor.finalize_status()
 
         except KeyboardInterrupt:
-            print("Keyboard Interrupt, files saved.")
+            MonteCarlo._reprint("Keyboard Interrupt, files saved.")
             with open(self._error_file, "a", encoding="utf-8") as file:
                 file.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
 
         except Exception as error:
-            print(f"Error on iteration {self.__sim_monitor.count}: {error}")
+            MonteCarlo._reprint(
+                f"Error on iteration {self.__sim_monitor.count}: {error}"
+            )
             with open(self._error_file, "a", encoding="utf-8") as file:
                 file.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
             raise error
@@ -455,14 +457,16 @@ class MonteCarlo:
 
                 export_queue.put((inputs_dict, outputs_dict))
 
-                sim_monitor.update_status(sim_idx, end="\r", flush=True)
+                mutex.acquire()
+                sim_monitor.update_status(sim_idx)
+                mutex.release()
 
         except Exception as error:
             mutex.acquire()
             with open(error_file, "a", encoding="utf-8") as file:
                 file.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
 
-            print(f"Error on iteration {sim_idx}: {error}")
+            MonteCarlo._reprint(f"Error on iteration {sim_idx}: {error}")
             mutex.release()
 
             raise error
@@ -477,7 +481,7 @@ class MonteCarlo:
     ):
         """Simulation consumer to be used in parallel by multiprocessing.
         It consumes the results from the queue and writes them to the files.
-        If no results are received for 10 seconds, a TimeoutError is raised.
+        If no results are received for 30 seconds, a TimeoutError is raised.
 
         Parameters
         ----------
@@ -496,7 +500,7 @@ class MonteCarlo:
         while not stop_event.is_set():
             try:
                 mutex.acquire()
-                inputs_dict, outputs_dict = export_queue.get(timeout=0.5)
+                inputs_dict, outputs_dict = export_queue.get(timeout=3)
 
                 MonteCarlo.__export_flight_data(
                     inputs_dict,
@@ -508,9 +512,9 @@ class MonteCarlo:
             except queue.Empty as exc:
                 trials += 1
 
-                if trials > 20:
+                if trials > 10:
                     raise TimeoutError(
-                        "No simulations were received for 10 seconds."
+                        "No simulations were received for 30 seconds."
                     ) from exc
 
             finally:
@@ -612,7 +616,7 @@ class MonteCarlo:
         self.output_file = self.batch_path / f"{self.filename}.outputs.txt"
         self.error_file = self.batch_path / f"{self.filename}.errors.txt"
 
-        print(f"Results saved to {self._output_file}")
+        MonteCarlo._reprint(f"Results saved to {self._output_file}")
 
     def __check_export_list(self, export_list):
         """
@@ -738,13 +742,14 @@ class MonteCarlo:
         -------
         None
         """
-        len_msg = len(msg)
-        if len_msg < MonteCarlo._last_print_len:
-            msg += " " * (MonteCarlo._last_print_len - len_msg)
-        else:
-            MonteCarlo._last_print_len = len_msg
+        padding = ""
 
-        print(msg, end=end, flush=flush)
+        if len(msg) < MonteCarlo._last_print_len:
+            padding = " " * (MonteCarlo._last_print_len - len(msg))
+
+        MonteCarlo._last_print_len = len(msg)
+
+        print(msg + padding, end=end, flush=flush)
 
     # Properties and setters
 
@@ -942,7 +947,7 @@ class MonteCarlo:
             with open(filepath, "r+", encoding="utf-8"):
                 self.output_file = filepath
 
-        print(
+        MonteCarlo._reprint(
             f"A total of {self.num_of_loaded_sims} simulations results were "
             f"loaded from the following output file: {self.output_file}\n"
         )
@@ -970,7 +975,7 @@ class MonteCarlo:
             with open(filepath, "r+", encoding="utf-8"):
                 self.input_file = filepath
 
-        print(f"The following input file was imported: {self.input_file}")
+        MonteCarlo._reprint(f"The following input file was imported: {self.input_file}")
 
     def import_errors(self, filename=None):
         """
@@ -994,7 +999,7 @@ class MonteCarlo:
         except FileNotFoundError:
             with open(filepath, "r+", encoding="utf-8"):
                 self.error_file = filepath
-        print(f"The following error file was imported: {self.error_file}")
+        MonteCarlo._reprint(f"The following error file was imported: {self.error_file}")
 
     def import_results(self, filename=None):
         """
@@ -1305,7 +1310,7 @@ class _SimMonitor:
         self.count += 1
         return self.count
 
-    def update_status(self, sim_idx, end="\n", flush=False):
+    def update_status(self, sim_idx):
         """Prints a message on the same line as the previous one and replaces
         the previous message with the new one, deleting the extra characters
         from the previous message.
@@ -1314,25 +1319,19 @@ class _SimMonitor:
         ----------
         msg : str
             Message to be printed.
-        end : str, optional
-            String appended after the message. Default is a new line.
-        flush : bool, optional
-            If True, the output is flushed. Default is False.
 
         Returns
         -------
         None
         """
         average_time = (time() - self.start_time) / (self.count - self.initial_count)
-        estimated_time = int(
-            (self.n_simulations - (self.count - self.initial_count)) * average_time
-        )
+        estimated_time = int((self.n_simulations - self.count) * average_time)
 
         msg = f"Current iteration: {sim_idx:06d}"
         msg += f" | Average Time per Iteration: {average_time:.3f} s"
         msg += f" | Estimated time left: {estimated_time} s"
 
-        MonteCarlo._reprint(msg, end=end, flush=flush)
+        MonteCarlo._reprint(msg, end="\r", flush=True)
 
     def finalize_status(self):
         """Prints the final status of the simulation.
@@ -1346,7 +1345,10 @@ class _SimMonitor:
         -------
         None
         """
-        msg = f"Completed {self.count} iterations."
-        msg += f" Total wall time: {time() - self.start_time:.1f} s"
+        print()
+        performed_sims = self.count - self.initial_count
+        msg = f"Completed {performed_sims} iterations."
+        msg += f" In total, {self.n_simulations} simulations are exported.\n"
+        msg += f"Total wall time: {time() - self.start_time:.1f} s"
 
-        MonteCarlo._reprint(msg, end="\n", flush=False)
+        MonteCarlo._reprint(msg, end="\n", flush=True)
