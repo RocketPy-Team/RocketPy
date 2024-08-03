@@ -88,7 +88,7 @@ The same coordinates for SpacePort America will be used.
     now_plus_twelve = now + timedelta(hours=12)
 
     env_rap = Environment(
-        date=now_plus_six,
+        date=now_plus_twelve,
         latitude=32.988528,
         longitude=-106.975056,
     )
@@ -207,6 +207,8 @@ described in the :ref:`global-forecast-system` section.
 ICON
 ^^^^
 
+The ICON model is a global weather forecasting model already available on Windy.com.
+
 .. jupyter-execute::
 
     env_windy.set_atmospheric_model(type="Windy", file="ICON")
@@ -221,6 +223,8 @@ ICON
 
 ICON-EU
 ^^^^^^^
+
+The ICON-EU model is a regional weather forecasting model available on Windy.com.
 
 .. code-block:: python
 

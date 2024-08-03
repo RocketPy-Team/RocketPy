@@ -68,9 +68,19 @@ Therefore, we can create an environment like this:
 
     env.set_atmospheric_model(
         type="forecast",
-        file="",
+        file="<your_url_here>",
         dictionary=name_mapping,
     )
+
+.. caution::
+
+    Notice the ``file`` argument were suppressed in the code above. This is because \
+    the URL depends on the date you are running the simulation. For example, as \
+    it for now, a possible link could be: https://nomads.ncep.noaa.gov/dods/hiresw/hiresw20240803/hiresw_conusfv3_12z \
+    (for the 3rd of August, 2024, at 12:00 UTC). \
+    You should replace the date in the URL with the date you are running the simulation. \
+    Different models may have different URL structures, so be sure to check the \
+    documentation of the model you are using.
 
 
 Without OPeNDAP protocol

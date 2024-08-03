@@ -1,3 +1,5 @@
+.. _atmospheric_models:
+
 Atmospheric Models
 ===================
 

@@ -30,8 +30,9 @@ Additionally, a timezone can be specified to localize the time.
 
         print(pytz.all_timezones)
 
-It is also possible to omit the timezone, in which case RocketPy will assume the
-time is given in standard UTC time.
+.. tip::
+    
+    When the timezone is omitted, RocketPy assumes it is given in standard UTC.
 
 .. seealso::
 
@@ -58,7 +59,7 @@ Setting tomorrow's date
 
 In the examples we will cover next, it is quite common to set the launch date to
 tomorrow. This can be done by using the ``datetime`` module to calculate the
-date of tomorrow and then passing it to the Environment class.
+date of tomorrow.
 
 .. jupyter-execute::
 
@@ -72,15 +73,24 @@ date of tomorrow and then passing it to the Environment class.
 
 .. note::
 
+    The code above will set the date to tomorrow at 9:00 UTC time. The hour can \
+    be adjusted as needed.
+
+.. danger::
+
     The ``datetime`` module in Python contains both the ``date`` and ``timedelta`` \
-    submodules, as well as the ``datetime`` class. The ``datetime`` class is \
+    classes, as well as the ``datetime`` class. The ``datetime`` class is \
     used to create datetime objects. It is common to confuse the ``datetime`` \
     module (which includes various classes and methods for manipulating dates \
     and times) with the ``datetime`` class itself (which is used to create \
     specific datetime objects). \
+    See the `official documentation <https://docs.python.org/3/library/datetime.html>`_ \
+    for more information.
 
 
-Alternatively, you can use the ``datetime`` module to calculate the date of tomorrow and then pass it to the Environment class.
+Alternatively, you can use the ``datetime`` module to calculate the date of
+tomorrow at the same time as the current time, and then pass it to the
+Environment class.
 
 .. jupyter-execute::
 
@@ -91,3 +101,7 @@ Alternatively, you can use the ``datetime`` module to calculate the date of tomo
 
     env = Environment(date=tomorrow)
 
+.. note::
+    
+    The code above will set the environment to tomorrow's date at the same time \
+    as the current time. 
