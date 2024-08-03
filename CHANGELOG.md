@@ -35,6 +35,8 @@ Attention: The newest changes should be on top -->
 
 ### Changed
 
+- 
+- DOC: New Environment class docs pages [#644](https://github.com/RocketPy-Team/RocketPy/pull/644)
 
 ### Fixed
 

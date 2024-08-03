@@ -59,15 +59,17 @@ class Environment:
         Value of Earth's Radius as 6.3781e6 m.
     Environment.air_gas_constant : float
         Value of Air's Gas Constant as 287.05287 J/K/Kg
-    Environment.gravity : float
-        Positive value of gravitational acceleration in m/s^2.
+    Environment.gravity : Function
+        Gravitational acceleration. Positive values point the
+        acceleration down. See :meth:`Environment.set_gravity_model` for more
+        information.
     Environment.latitude : float
         Launch site latitude.
     Environment.longitude : float
         Launch site longitude.
     Environment.datum : string
         The desired reference ellipsoid model, the following options are
-        available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000".
+        available: ``SAD69``, ``WGS84``, ``NAD83``, and ``SIRGAS2000``.
     Environment.initial_east : float
         Launch site East UTM coordinate
     Environment.initial_north :  float
@@ -78,16 +80,16 @@ class Environment:
         Launch site UTM letter, to keep the latitude band and describe the
         UTM Zone
     Environment.initial_hemisphere : string
-        Launch site S/N hemisphere
+        Launch site South/North hemisphere
     Environment.initial_ew : string
-        Launch site E/W hemisphere
+        Launch site East/West hemisphere
     Environment.elevation : float
         Launch site elevation.
     Environment.datetime_date : datetime
-        Date time of launch in UTC.
+        Date time of launch in UTC time zone using the ``datetime`` object.
     Environment.local_date : datetime
-        Date time of launch in the local time zone, defined by
-        ``Environment.timezone``.
+        Date time of launch in the local time zone, defined by the
+        ``Environment.timezone`` parameter.
     Environment.timezone : string
         Local time zone specification. See `pytz`_. for time zone information.
 
@@ -103,63 +105,40 @@ class Environment:
         True if the user already set a topographic profile. False otherwise.
     Environment.max_expected_height : float
         Maximum altitude in meters to keep weather data. The altitude must be
-        above sea level (ASL). Especially useful for controlling plots.
-        Can be altered as desired by doing `max_expected_height = number`.
+        Above Sea Level (ASL). Especially useful for controlling plots.
+        Can be altered as desired by running ``max_expected_height = number``.
     Environment.pressure_ISA : Function
         Air pressure in Pa as a function of altitude as defined by the
-        `International Standard Atmosphere ISO 2533`. Only defined after load
-        ``Environment.load_international_standard_atmosphere`` has been called.
-        Can be accessed as regular array, or called as a Function. See Function
-        for more information.
+        International Standard Atmosphere ISO 2533.
     Environment.temperature_ISA : Function
         Air temperature in K as a function of altitude as defined by the
-        `International Standard Atmosphere ISO 2533`. Only defined after load
-        ``Environment.load_international_standard_atmosphere`` has been called.
-        Can be accessed as regular array, or called as a Function. See Function
-        for more information.
+        International Standard Atmosphere ISO 2533
     Environment.pressure : Function
-        Air pressure in Pa as a function of altitude. Can be accessed as regular
-        array, or called as a Function. See Function for more information.
+        Air pressure in Pa as a function of altitude.
     Environment.barometric_height : Function
-        Geometric height above sea level in m as a function of pressure. Can be
-        accessed as regular array, or called as a Function. See Function for
-        more information.
+        Geometric height above sea level in m as a function of pressure.
     Environment.temperature : Function
-        Air temperature in K as a function of altitude. Can be accessed as
-        regular array, or called as a Function. See Function for more
-        information.
+        Air temperature in K as a function of altitude.
     Environment.speed_of_sound : Function
-        Speed of sound in air in m/s as a function of altitude. Can be accessed
-        as regular array, or called as a Function. See Function for more
-        information.
+        Speed of sound in air in m/s as a function of altitude.
     Environment.density : Function
-        Air density in kg/m³ as a function of altitude. Can be accessed as
-        regular array, or called as a Function. See Function for more
-        information.
+        Air density in kg/m³ as a function of altitude.
     Environment.dynamic_viscosity : Function
-        Air dynamic viscosity in Pa*s as a function of altitude. Can be accessed
-        as regular array, or called as a Function. See Function for more
-        information.
+        Air dynamic viscosity in Pa*s as a function of altitude.
     Environment.wind_speed : Function
-        Wind speed in m/s as a function of altitude. Can be accessed as regular
-        array, or called as a Function. See Function for more information.
+        Wind speed in m/s as a function of altitude.
     Environment.wind_direction : Function
         Wind direction (from which the wind blows) in degrees relative to north
-        (positive clockwise) as a function of altitude. Can be accessed as an
-        array, or called as a Function. See Function for more information.
+        (positive clockwise) as a function of altitude.
     Environment.wind_heading : Function
         Wind heading (direction towards which the wind blows) in degrees
         relative to north (positive clockwise) as a function of altitude.
-        Can be accessed as an array, or called as a Function.
-        See Function for more information.
     Environment.wind_velocity_x : Function
         Wind U, or X (east) component of wind velocity in m/s as a function of
-        altitude. Can be accessed as an array, or called as a Function. See
-        Function for more information.
+        altitude.
     Environment.wind_velocity_y : Function
         Wind V, or Y (north) component of wind velocity in m/s as a function of
-        altitude. Can be accessed as an array, or called as a Function. See
-        Function for more information.
+        altitude.
     Environment.atmospheric_model_type : string
         Describes the atmospheric model which is being used. Can only assume the
         following values: ``standard_atmosphere``, ``custom_atmosphere``,
@@ -272,6 +251,12 @@ class Environment:
         Number of ensemble members. Only defined when using Ensembles.
     Environment.ensemble_member : int
         Current selected ensemble member. Only defined when using Ensembles.
+
+    Notes
+    -----
+    All the attributes listed as Function objects can be accessed as
+    regular arrays, or called as a Function. See :class:`rocketpy.Function`
+    for more information.
     """
 
     def __init__(
@@ -333,7 +318,7 @@ class Environment:
         elevation : float, optional
             Elevation of launch site measured as height above sea
             level in meters. Alternatively, can be set as
-            'Open-Elevation' which uses the Open-Elevation API to
+            ``Open-Elevation`` which uses the Open-Elevation API to
             find elevation data. For this option, latitude and
             longitude must also be specified. Default value is 0.
         datum : string, optional
@@ -345,8 +330,8 @@ class Environment:
             ``print(pytz.all_timezones)``. Default time zone is "UTC".
         max_expected_height : float, optional
             Maximum altitude in meters to keep weather data. The altitude must
-            be above sea level (ASL). Especially useful for visualization.
-            Can be altered as desired by doing `max_expected_height = number`.
+            be above sea level (ASL). Especially useful for visualization. Can
+            be altered as desired by running ``max_expected_height = number``.
             Depending on the atmospheric model, this value may be automatically
             modified.
 
@@ -382,12 +367,12 @@ class Environment:
         self.standard_g = 9.80665
         self.__weather_model_map = WeatherModelMapping()
         self.__atm_type_file_to_function_map = {
-            ("Forecast", "GFS"): fetch_gfs_file_return_dataset,
-            ("Forecast", "NAM"): fetch_nam_file_return_dataset,
-            ("Forecast", "RAP"): fetch_rap_file_return_dataset,
-            ("Forecast", "HIRESW"): fetch_hiresw_file_return_dataset,
-            ("Ensemble", "GEFS"): fetch_gefs_ensemble,
-            # ("Ensemble", "CMC"): fetch_cmc_ensemble,
+            ("forecast", "GFS"): fetch_gfs_file_return_dataset,
+            ("forecast", "NAM"): fetch_nam_file_return_dataset,
+            ("forecast", "RAP"): fetch_rap_file_return_dataset,
+            ("forecast", "HIRESW"): fetch_hiresw_file_return_dataset,
+            ("ensemble", "GEFS"): fetch_gefs_ensemble,
+            # ("ensemble", "CMC"): fetch_cmc_ensemble,
         }
         self.__standard_atmosphere_layers = {
             "geopotential_height": [  # in geopotential m
@@ -635,9 +620,8 @@ class Environment:
         date : list, tuple, datetime
             List or tuple of length 4, stating (year, month, day, hour) in the
             time zone of the parameter ``timezone``. See Notes for more
-            information.
-            Alternatively, can be a ``datetime`` object specifying launch
-            date and time.
+            information. Alternatively, can be a ``datetime`` object specifying
+            launch date and time.
         timezone : string, optional
             Name of the time zone. To see all time zones, import pytz and run
             ``print(pytz.all_timezones)``. Default time zone is "UTC".
@@ -879,13 +863,13 @@ class Environment:
         ----------
         elevation : float, string, optional
             Elevation of launch site measured as height above sea level in
-            meters. Alternatively, can be set as 'Open-Elevation' which uses
+            meters. Alternatively, can be set as ``Open-Elevation`` which uses
             the Open-Elevation API to find elevation data. For this option,
             latitude and longitude must have already been specified.
 
             See Also
             --------
-            Environment.set_location
+            :meth:`rocketpy.Environment.set_location`
 
         Returns
         -------
@@ -896,7 +880,7 @@ class Environment:
             self.elevation = elevation
         else:
             self.elevation = fetch_open_elevation(self.latitude, self.longitude)
-            print("Elevation received: ", self.elevation)
+            print(f"Elevation received: {self.elevation} m")
 
     def set_topographic_profile(  # pylint: disable=redefined-builtin, unused-argument
         self, type, file, dictionary="netCDF4", crs=None
@@ -928,11 +912,11 @@ class Environment:
 
         if type == "NASADEM_HGT":
             if dictionary == "netCDF4":
-                rootgrp = netCDF4.Dataset(file, "r", format="NETCDF4")
-                self.elev_lon_array = rootgrp.variables["lon"][:].tolist()
-                self.elev_lat_array = rootgrp.variables["lat"][:].tolist()
-                self.elev_array = rootgrp.variables["NASADEM_HGT"][:].tolist()
-                # crsArray = rootgrp.variables['crs'][:].tolist().
+                nasa_dem = netCDF4.Dataset(file, "r", format="NETCDF4")
+                self.elev_lon_array = nasa_dem.variables["lon"][:].tolist()
+                self.elev_lat_array = nasa_dem.variables["lat"][:].tolist()
+                self.elev_array = nasa_dem.variables["NASADEM_HGT"][:].tolist()
+                # crsArray = nasa_dem.variables['crs'][:].tolist().
                 self.topographic_profile_activated = True
 
                 print("Region covered by the Topographical file: ")
@@ -1150,7 +1134,7 @@ class Environment:
               .. seealso::
 
                 To activate other ensemble forecasts see
-                ``Environment.select_ensemble_member``.
+                :meth:`rocketpy.Environment.select_ensemble_member`.
 
             - ``custom_atmosphere``: sets pressure, temperature, wind-u and
               wind-v profiles given though the pressure, temperature, wind-u and
@@ -1288,33 +1272,34 @@ class Environment:
         """
         # Save atmospheric model type
         self.atmospheric_model_type = type
+        type = type.lower()
 
         # Handle each case # TODO: use match case when python 3.9 is no longer supported
         if type == "standard_atmosphere":
             self.process_standard_atmosphere()
         elif type == "wyoming_sounding":
             self.process_wyoming_sounding(file)
-        elif type == "NOAARucSounding":
+        elif type == "noaarucsounding":
             self.process_noaaruc_sounding(file)
         elif type == "custom_atmosphere":
             self.process_custom_atmosphere(pressure, temperature, wind_u, wind_v)
-        elif type == "Windy":
+        elif type == "windy":
             self.process_windy_atmosphere(file)
-        elif type in ["Forecast", "Reanalysis", "Ensemble"]:
+        elif type in ["forecast", "reanalysis", "ensemble"]:
             dictionary = self.__validate_dictionary(file, dictionary)
             fetch_function = self.__atm_type_file_to_function_map.get((type, file))
 
             # Fetches the dataset using OpenDAP protocol or uses the file path
             dataset = fetch_function() if fetch_function is not None else file
 
-            if type in ["Forecast", "Reanalysis"]:
+            if type in ["forecast", "reanalysis"]:
                 self.process_forecast_reanalysis(dataset, dictionary)
             else:
                 self.process_ensemble(dataset, dictionary)
         else:
             raise ValueError(f"Unknown model type '{type}'.")  # pragma: no cover
 
-        if type not in ["Ensemble"]:
+        if type not in ["ensemble"]:
             # Ensemble already computed these values
             self.calculate_density_profile()
             self.calculate_speed_of_sound_profile()
@@ -1619,7 +1604,9 @@ class Environment:
 
             http://weather.uwyo.edu/cgi-bin/sounding?region=samer&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=02&FROM=0200&TO=0200&STNM=82599
 
-            More can be found at: http://weather.uwyo.edu/upperair/sounding.html.
+        Notes
+        -----
+        More can be found at: http://weather.uwyo.edu/upperair/sounding.html.
 
         Returns
         -------
@@ -1699,7 +1686,10 @@ class Environment:
 
             https://rucsoundings.noaa.gov/get_raobs.cgi?data_source=RAOB&latest=latest&start_year=2019&start_month_name=Feb&start_mday=5&start_hour=12&start_min=0&n_hrs=1.0&fcst_len=shortest&airport=83779&text=Ascii%20text%20%28GSD%20format%29&hydrometeors=false&start=latest
 
-            More can be found at: https://rucsoundings.noaa.gov/.
+
+        See also
+        --------
+        More details can be found at: https://rucsoundings.noaa.gov/.
 
         Returns
         -------
@@ -2073,7 +2063,7 @@ class Environment:
         rectangular grid sorted in either ascending or descending order of
         latitude and longitude. By default the first ensemble forecast is
         activated. To activate other ensemble forecasts see
-        ``Environment.select_ensemble_member()``.
+        :meth:`Environment.select_ensemble_member()`.
 
         Parameters
         ----------
@@ -2106,9 +2096,9 @@ class Environment:
                     "v_wind": "vgrdprs",
                 }
 
-        Notes
-        -----
-        See the ``rocketpy.environment.weather_model_mapping`` for some
+        See also
+        --------
+        See the :class:``rocketpy.environment.weather_model_mapping`` for some
         dictionary examples.
         """
         # Check if date, lat and lon are known
@@ -2380,8 +2370,9 @@ class Environment:
         Notes
         -----
         This method is **deprecated** and will be removed in version 1.6.0. You
-        can access `Environment.pressure_ISA` and `Environment.temperature_ISA`
-        directly without the need to call this method.
+        can access :meth:`rocketpy.Environment.pressure_ISA` and
+        :meth:`rocketpy.Environment.temperature_ISA` directly without the need
+        to call this method.
         """
         warnings.warn(
             "load_international_standard_atmosphere() is deprecated in version "
