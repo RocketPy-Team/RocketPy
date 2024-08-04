@@ -147,7 +147,9 @@ by Kane himself.
 
 Kane`s equations of motion states that:
 
-.. math:: \boxed{\sum_{}^{}\Bigl( \frac{\partial_{\ }^{A}{\overrightarrow{v}}_{i}}{\partial u_{r}} \cdot \overrightarrow{F_{i}} \Bigr) - \sum_{}^{}\Bigl( \frac{\partial_{\ }^{A}{\overrightarrow{v}}_{i}}{\partial u_{r}} \cdot m_{\ }^{A}{\overrightarrow{a}}_{i} \Bigr) = 0}
+.. math::
+   
+   \boxed{\sum_{}^{}\Bigl( \frac{\partial_{\ }^{A}{\overrightarrow{v}}_{i}}{\partial u_{r}} \cdot \overrightarrow{F_{i}} \Bigr) - \sum_{}^{}\Bigl( \frac{\partial_{\ }^{A}{\overrightarrow{v}}_{i}}{\partial u_{r}} \cdot m_{\ }^{A}{\overrightarrow{a}}_{i} \Bigr) = 0}
 
 Where the sub-index :math:`i` indicates a particle in the system and
 :math:`u_{r}` is a generalized speed of choice. The summation is over
@@ -206,7 +208,9 @@ particles in gas phase which can have arbitrary velocities.
 Calculating the partial velocity of particle :math:`i` with respect to a
 generalized speed :math:`u_{r}`, we get:
 
-.. math:: \frac{\partial_{\ }^{A}{\overrightarrow{v}}_{i}}{\partial u_{r}} = \frac{\partial_{\ }^{A}{\overrightarrow{v}}_{O}}{\partial u_{r}} + \frac{\partial_{\ }^{A}\overrightarrow{\omega}}{\partial u_{r}} \times {\overrightarrow{r}}_{i - O} +_{\ }^{A}\overrightarrow{\omega} \times \frac{\partial{\overrightarrow{r}}_{i - O}}{\partial u_{r}} + \frac{\partial_{\ }^{R}{\overrightarrow{v}}_{i}}{\partial u_{r}}
+.. math::
+   
+   \frac{\partial_{\ }^{A}{\overrightarrow{v}}_{i}}{\partial u_{r}} = \frac{\partial_{\ }^{A}{\overrightarrow{v}}_{O}}{\partial u_{r}} + \frac{\partial_{\ }^{A}\overrightarrow{\omega}}{\partial u_{r}} \times {\overrightarrow{r}}_{i - O} +_{\ }^{A}\overrightarrow{\omega} \times \frac{\partial{\overrightarrow{r}}_{i - O}}{\partial u_{r}} + \frac{\partial_{\ }^{R}{\overrightarrow{v}}_{i}}{\partial u_{r}}
 
 However, the last two terms of the equation above are null. The reason
 for this is because :math:`{\overrightarrow{r}}_{i - O}` is a vector
@@ -222,12 +226,16 @@ changes with time.
 
 Simplifying, we reach:
 
-.. math:: \frac{\partial_{\ }^{A}{\overrightarrow{v}}_{i}}{\partial u_{r}} = \frac{\partial_{\ }^{A}{\overrightarrow{v}}_{O}}{\partial u_{r}} + \frac{\partial_{\ }^{A}\overrightarrow{\omega}}{\partial u_{r}} \times {\overrightarrow{r}}_{i - O}\ \text{or}\ \frac{\partial_{\ }^{A}{\overrightarrow{v}}_{O}}{\partial u_{r}} = \frac{\partial_{\ }^{A}{\overrightarrow{v}}_{i}}{\partial u_{r}} - \frac{\partial_{\ }^{A}\overrightarrow{\omega}}{\partial u_{r}} \times {\overrightarrow{r}}_{i - O}
+.. math::
+   
+   \frac{\partial_{\ }^{A}{\overrightarrow{v}}_{i}}{\partial u_{r}} = \frac{\partial_{\ }^{A}{\overrightarrow{v}}_{O}}{\partial u_{r}} + \frac{\partial_{\ }^{A}\overrightarrow{\omega}}{\partial u_{r}} \times {\overrightarrow{r}}_{i - O}\ \text{or}\ \frac{\partial_{\ }^{A}{\overrightarrow{v}}_{O}}{\partial u_{r}} = \frac{\partial_{\ }^{A}{\overrightarrow{v}}_{i}}{\partial u_{r}} - \frac{\partial_{\ }^{A}\overrightarrow{\omega}}{\partial u_{r}} \times {\overrightarrow{r}}_{i - O}
 
 Similarly, one may express the partial velocity of the center of mass
 :math:`*` of :math:`S` as:
 
-.. math:: \frac{\partial_{\ }^{A}{\overrightarrow{v}}_{*}}{\partial u_{r}} = \frac{\partial_{\ }^{A}{\overrightarrow{v}}_{O}}{\partial u_{r}} + \frac{\partial_{\ }^{A}\overrightarrow{\omega}}{\partial u_{r}} \times {\overrightarrow{r}}_{* - O}
+.. math::
+   
+   \frac{\partial_{\ }^{A}{\overrightarrow{v}}_{*}}{\partial u_{r}} = \frac{\partial_{\ }^{A}{\overrightarrow{v}}_{O}}{\partial u_{r}} + \frac{\partial_{\ }^{A}\overrightarrow{\omega}}{\partial u_{r}} \times {\overrightarrow{r}}_{* - O}
 
 The derivation of this formula is the same as the derivation of an
 arbitrary particle :math:`i`. However, one must be careful since the
@@ -238,7 +246,9 @@ velocities of the particles in the gas phase.
 
 Combining the last two equations, we reach:
 
-.. math:: \frac{\partial_{\ }^{A}{\overrightarrow{v}}_{*}}{\partial u_{r}} = \Bigl( \frac{\partial_{\ }^{A}{\overrightarrow{v}}_{i}}{\partial u_{r}} - \frac{\partial_{\ }^{A}\overrightarrow{\omega}}{\partial u_{r}} \times {\overrightarrow{r}}_{i - O} \Bigr) + \frac{\partial_{\ }^{A}\overrightarrow{\omega}}{\partial u_{r}} \times {\overrightarrow{r}}_{* - O}
+.. math::
+   
+   \frac{\partial_{\ }^{A}{\overrightarrow{v}}_{*}}{\partial u_{r}} = \Bigl( \frac{\partial_{\ }^{A}{\overrightarrow{v}}_{i}}{\partial u_{r}} - \frac{\partial_{\ }^{A}\overrightarrow{\omega}}{\partial u_{r}} \times {\overrightarrow{r}}_{i - O} \Bigr) + \frac{\partial_{\ }^{A}\overrightarrow{\omega}}{\partial u_{r}} \times {\overrightarrow{r}}_{* - O}
 
 .. math:: \frac{\partial_{\ }^{A}{\overrightarrow{v}}_{i}}{\partial u_{r}} = \frac{\partial_{\ }^{A}{\overrightarrow{v}}_{*}}{\partial u_{r}} + \frac{\partial_{\ }^{A}\overrightarrow{\omega}}{\partial u_{r}} \times \Bigl( {\overrightarrow{r}}_{i - O} - {\overrightarrow{r}}_{* - O} \Bigr)
 
@@ -453,9 +463,13 @@ Preparing Equations for Simulation
 The following two equations have been derived to describe the complete
 motion of a variable mass system:
 
-.. math:: \overrightarrow{R} = m\Bigl(_{\ }^{A}{\overrightarrow{a}}_{O} +_{\ }^{A}\overrightarrow{\alpha} \times {\overrightarrow{r}}_{* - O} +_{\ }^{A}\overrightarrow{\omega} \times \Bigl(_{\ }^{A}\overrightarrow{\omega} \times {\overrightarrow{r}}_{* - O} \Bigr) \Bigr) + 2\int_{\partial C}^{\ }{_{\ }^{A}\overrightarrow{\omega} \times \rho{\overrightarrow{r}}_{i - O}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{dS}} + \int_{\partial C}^{\ }{\rho_{\ }^{R}{\overrightarrow{v}}_{i}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{dS}}
+.. math::
+   
+   \overrightarrow{R} = m\Bigl(_{\ }^{A}{\overrightarrow{a}}_{O} +_{\ }^{A}\overrightarrow{\alpha} \times {\overrightarrow{r}}_{* - O} +_{\ }^{A}\overrightarrow{\omega} \times \Bigl(_{\ }^{A}\overrightarrow{\omega} \times {\overrightarrow{r}}_{* - O} \Bigr) \Bigr) + 2\int_{\partial C}^{\ }{_{\ }^{A}\overrightarrow{\omega} \times \rho{\overrightarrow{r}}_{i - O}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{dS}} + \int_{\partial C}^{\ }{\rho_{\ }^{R}{\overrightarrow{v}}_{i}\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{dS}}
 
-.. math:: {\overrightarrow{M}}_{*} = {\widetilde{I}}_{*} \cdot_{\ }^{A}\overrightarrow{\alpha} +_{\ }^{A}\overrightarrow{\omega}\  \times \ {\widetilde{I}}_{*} \cdot_{\ }^{A}\overrightarrow{\omega} + \Bigl( \frac{_{\ }^{B}d{\widetilde{I}}_{*}}{\text{dt}} \Bigr) \cdot_{\ }^{A}\overrightarrow{\omega} + \int_{\partial C}^{\ }{\rho\left\lbrack {\overrightarrow{r}}_{i - *} \times \Bigl(_{\ }^{A}\overrightarrow{\omega} \times {\overrightarrow{r}}_{i - *} \Bigr) \right\rbrack\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{dS}}
+.. math::
+   
+   {\overrightarrow{M}}_{*} = {\widetilde{I}}_{*} \cdot_{\ }^{A}\overrightarrow{\alpha} +_{\ }^{A}\overrightarrow{\omega}\  \times \ {\widetilde{I}}_{*} \cdot_{\ }^{A}\overrightarrow{\omega} + \Bigl( \frac{_{\ }^{B}d{\widetilde{I}}_{*}}{\text{dt}} \Bigr) \cdot_{\ }^{A}\overrightarrow{\omega} + \int_{\partial C}^{\ }{\rho\left\lbrack {\overrightarrow{r}}_{i - *} \times \Bigl(_{\ }^{A}\overrightarrow{\omega} \times {\overrightarrow{r}}_{i - *} \Bigr) \right\rbrack\ \Bigl(_{\ }^{R}{\overrightarrow{v}}_{i} \cdot \overrightarrow{n} \Bigr)\text{dS}}
 
 The only assumptions they make are that the internal gas flow is steady
 and irrotational relative to the axis of symmetry.

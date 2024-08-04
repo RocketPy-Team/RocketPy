@@ -371,7 +371,7 @@ class LiquidMotor(Motor):
 
         References
         ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
         I_11 = 0
         center_of_mass = self.center_of_propellant_mass
@@ -404,7 +404,7 @@ class LiquidMotor(Motor):
 
         References
         ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
         return self.propellant_I_11
 
@@ -426,7 +426,7 @@ class LiquidMotor(Motor):
 
         References
         ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
         return 0
 

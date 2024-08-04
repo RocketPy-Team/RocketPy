@@ -1,7 +1,8 @@
 Testing Guidelines
 ==================
 
-This page describes the testing philosophy used throughout RocketPy's development with Pytest. That includes the definition 
+This page describes the testing philosophy used throughout RocketPy's
+development with pytest. That includes the definition 
 and some technical discussion regarding:
 
 * Testing philosophy and style
