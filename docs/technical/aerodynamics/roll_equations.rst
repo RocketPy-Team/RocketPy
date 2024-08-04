@@ -258,9 +258,3 @@ Mach.
 ..    k = 1 + \frac{\sqrt{s^2-r_{t}^2}\Bigl(2r_{t}^2\ln\Bigl(\frac{2s\sqrt{s^2-r_{t}^2}+2s^2}{r_{t}}\Bigr)-2r_{t}^2\ln\Bigl(2s\Bigr)\Bigr)+2s^3-{\pi}r_{t}s^2-2r_{t}^2s+{\pi}r_{t}^3}
 ..        {(2r_{t}s^3-2r_{t}^3s) \cdot\Bigl(\dfrac{s^2}{3}+\dfrac{{\pi}r_{t}s}{4}\Bigr)}
 
-References
-==========
-
-.. [Barrowman]  Barrowman, James S.. (1967). *The practical calculation of the aerodynamic characteristics of slender finned vehicles*.
-
-.. [Niskanen] Niskanen, S. (2013). *Development of an Open Source model rocket simulation software*.

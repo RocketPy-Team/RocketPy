@@ -1131,7 +1131,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         - Mateus Stano: https://github.com/RocketPy-Team/Hackathon_2020/pull/123
         - Dyllon Preston: https://github.com/Dyllon-P/MBS-Template/blob/main/MBS.py
         Also, some of the credits go to Georgia Tech Experimental Rocketry Club
-        (GTXR) as well.
+        as well.
         The final function was created by the RocketPy Team.
 
         Parameters

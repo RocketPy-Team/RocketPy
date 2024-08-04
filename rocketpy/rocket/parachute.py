@@ -124,9 +124,6 @@ class Parachute:
             The values are used to add noise to the pressure signal which is
             passed to the trigger function. Default value is ``(0, 0, 0)``.
             Units are in Pa.
-        Returns
-        -------
-        None
         """
         self.name = name
         self.cd_s = cd_s
@@ -212,11 +209,3 @@ class Parachute:
         """Prints all information about the Parachute class."""
         self.info()
         # self.plots.all() # Parachutes still doesn't have plots
-
-        # .. note::
-
-        #     The drag force exerted on the parachute is computed by \
-        #     the equation F = ((1/2)*rho*V^2)*cd_s, where rho is the \
-        #     freestream air density, ``V`` is the relative velocity between \
-        #     the rocket and the air, and ``cd_s`` is the drag coefficient \
-        #     times the reference area of the parachute.
