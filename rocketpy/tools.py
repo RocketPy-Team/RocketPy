@@ -232,7 +232,7 @@ def bilinear_interpolation(x, y, x1, x2, y1, y2, z11, z12, z21, z22):
     ) / ((x2 - x1) * (y2 - y1))
 
 
-def get_distribution(distribution_function_name, rng_generator=None):
+def get_distribution(distribution_function_name, random_number_generator=None):
     """Sets the distribution function to be used in the monte carlo analysis.
 
     Parameters
@@ -240,31 +240,31 @@ def get_distribution(distribution_function_name, rng_generator=None):
     distribution_function_name : string
         The type of distribution to be used in the analysis. It can be
         'uniform', 'normal', 'lognormal', etc.
-    rng_generator : np.random.Generator, optional
+    random_number_generator : np.random.Generator, optional
         The random number generator to be used. If None, the default generator
-        is used.
+        ``numpy.random.default_rng`` is used.
 
     Returns
     -------
     np.random distribution function
         The distribution function to be used in the analysis.
     """
-    if rng_generator is None:
-        rng_generator = np.random.default_rng()
+    if random_number_generator is None:
+        random_number_generator = np.random.default_rng()
 
     # Dictionary mapping distribution names to RNG methods
     distributions = {
-        "normal": rng_generator.normal,
-        "binomial": rng_generator.binomial,
-        "chisquare": rng_generator.chisquare,
-        "exponential": rng_generator.exponential,
-        "gamma": rng_generator.gamma,
-        "gumbel": rng_generator.gumbel,
-        "laplace": rng_generator.laplace,
-        "logistic": rng_generator.logistic,
-        "poisson": rng_generator.poisson,
-        "uniform": rng_generator.uniform,
-        "wald": rng_generator.wald,
+        "normal": random_number_generator.normal,
+        "binomial": random_number_generator.binomial,
+        "chisquare": random_number_generator.chisquare,
+        "exponential": random_number_generator.exponential,
+        "gamma": random_number_generator.gamma,
+        "gumbel": random_number_generator.gumbel,
+        "laplace": random_number_generator.laplace,
+        "logistic": random_number_generator.logistic,
+        "poisson": random_number_generator.poisson,
+        "uniform": random_number_generator.uniform,
+        "wald": random_number_generator.wald,
     }
     try:
         return distributions[distribution_function_name]
