@@ -14,6 +14,7 @@ from ..plots.flight_plots import _FlightPlots
 from ..prints.flight_prints import _FlightPrints
 from ..tools import (
     calculate_cubic_hermite_coefficients,
+    euler_angles_to_euler_parameters,
     find_closest,
     find_root_linear_interpolation,
     find_roots_cubic_function,
@@ -1073,11 +1074,13 @@ class Flight:  # pylint: disable=too-many-public-methods
             vx_init, vy_init, vz_init = 0, 0, 0
             w1_init, w2_init, w3_init = 0, 0, 0
             # Initialize attitude
-            self.psi_init = -self.heading * (np.pi / 180)  # Precession / Heading Angle
-            self.theta_init = (
-                (self.inclination - 90) * np.pi / 180
-            )  # Nutation / Attitude Angle
-            self.phi_init = 0  # Spin / Bank Angle
+            # Precession / Heading Angle
+            self.psi_init = np.radians(-self.heading)
+            # Nutation / Attitude Angle
+            self.theta_init = np.radians(self.inclination - 90)
+            # Spin / Bank Angle
+            self.phi_init = 0
+
             # Consider Rail Buttons position, if there is rail buttons
             try:
                 self.phi_init += (
@@ -1086,27 +1089,10 @@ class Flight:  # pylint: disable=too-many-public-methods
                 )
             except IndexError:
                 pass
+
             # 3-1-3 Euler Angles to Euler Parameters
-            # source: https://www.astro.rug.nl/software/kapteyn-beta/_downloads/attitude.pdf
-            e0_init = np.cos(self.phi_init / 2) * np.cos(self.theta_init / 2) * np.cos(
-                self.psi_init / 2
-            ) - np.sin(self.phi_init / 2) * np.cos(self.theta_init / 2) * np.sin(
-                self.psi_init / 2
-            )
-            e1_init = np.cos(self.phi_init / 2) * np.cos(self.psi_init / 2) * np.sin(
-                self.theta_init / 2
-            ) + np.sin(self.phi_init / 2) * np.sin(self.theta_init / 2) * np.sin(
-                self.psi_init / 2
-            )
-            e2_init = np.cos(self.phi_init / 2) * np.sin(self.theta_init / 2) * np.sin(
-                self.psi_init / 2
-            ) - np.sin(self.phi_init / 2) * np.cos(self.psi_init / 2) * np.sin(
-                self.theta_init / 2
-            )
-            e3_init = np.cos(self.phi_init / 2) * np.cos(self.theta_init / 2) * np.sin(
-                self.psi_init / 2
-            ) + np.cos(self.theta_init / 2) * np.cos(self.psi_init / 2) * np.sin(
-                self.phi_init / 2
+            e0_init, e1_init, e2_init, e3_init = euler_angles_to_euler_parameters(
+                self.phi_init, self.theta_init, self.psi_init
             )
             # Store initial conditions
             self.initial_solution = [

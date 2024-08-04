@@ -958,7 +958,7 @@ class Matrix:
 
         Reference
         ---------
-        .. [1] https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+        https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
         """
         q_w, q_x, q_y, q_z = quaternion
         return Matrix(
