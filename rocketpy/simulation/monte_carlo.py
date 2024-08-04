@@ -304,9 +304,9 @@ class MonteCarlo:
                     self._output_file,
                 )
 
-                sim_monitor.update_status(sim_monitor.count)
+                sim_monitor.print_update_status(sim_monitor.count)
 
-            sim_monitor.finalize_status()
+            sim_monitor.print_final_status()
 
         except KeyboardInterrupt:
             MonteCarlo._reprint("Keyboard Interrupt, files saved.")
@@ -398,7 +398,7 @@ class MonteCarlo:
 
             sim_consumer.join()
 
-            sim_monitor.finalize_status()
+            sim_monitor.print_final_status()
 
     @staticmethod
     def __sim_producer(
@@ -458,7 +458,7 @@ class MonteCarlo:
                 export_queue.put((inputs_dict, outputs_dict))
 
                 mutex.acquire()
-                sim_monitor.update_status(sim_idx)
+                sim_monitor.print_update_status(sim_idx)
                 mutex.release()
 
         except Exception as error:
@@ -1310,15 +1310,15 @@ class _SimMonitor:
         self.count += 1
         return self.count
 
-    def update_status(self, sim_idx):
+    def print_update_status(self, sim_idx):
         """Prints a message on the same line as the previous one and replaces
         the previous message with the new one, deleting the extra characters
         from the previous message.
 
         Parameters
         ----------
-        msg : str
-            Message to be printed.
+        sim_idx : int
+            Index of the current simulation.
 
         Returns
         -------
@@ -1333,18 +1333,8 @@ class _SimMonitor:
 
         MonteCarlo._reprint(msg, end="\r", flush=True)
 
-    def finalize_status(self):
-        """Prints the final status of the simulation.
-
-        Parameters
-        ----------
-        show_process_time : bool, optional
-            If True, the process time will be shown. Default is True.
-
-        Returns
-        -------
-        None
-        """
+    def print_final_status(self):
+        """Prints the final status of the simulation."""
         print()
         performed_sims = self.count - self.initial_count
         msg = f"Completed {performed_sims} iterations."
