@@ -67,7 +67,7 @@ class StochasticModel:
         self.obj = obj
         self.last_rnd_dict = {}
         self.__stochastic_dict = kwargs
-        self._set_stochastic()
+        self._set_stochastic(seed)
 
     def _set_stochastic(self, seed=None):
         """Set the stochastic attributes from the input dictionary.
