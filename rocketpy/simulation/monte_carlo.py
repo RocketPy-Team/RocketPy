@@ -123,7 +123,9 @@ class MonteCarlo:
             Path to the batch folder to be used in the simulation. Export file
             will be saved in this folder. Default is None.
         export_sample_time : float, optional
-            Sample time to downsample the arrays in seconds. Default is 0.1.
+            Sample time to downsample the arrays in seconds. Used to automatically
+            discretize inputs that contain callable ``rocketpy.Function`` objects.
+            Default is 0.1.
 
         Returns
         -------
@@ -196,8 +198,9 @@ class MonteCarlo:
         parallel : bool, optional
             If True, the simulations will be run in parallel. Default is False.
         n_workers : int, optional
-            Number of workers to be used. If None, the number of workers
-            will be equal to the number of CPUs available. Default is None.
+            Number of workers to be used if ``parallel=True``. If None, the
+            number of workers will be equal to the number of CPUs available.
+            Default is None.
 
         Returns
         -------
@@ -1191,6 +1194,10 @@ class MonteCarlo:
         ----------
         obj : object
             The object whose attributes are to be inspected.
+        sample_time : float, optional
+            Time interval between samples. Default is 0.1.
+        remove_functions : bool, optional
+            If True, the Function objects will not be serialized. Default is False.
 
         Returns
         -------
