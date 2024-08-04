@@ -12,9 +12,9 @@ class Tail(AeroSurface):
 
     Note
     ----
-    Local coordinate system: Z axis along the longitudinal axis of symmetry,
-    positive downwards (top -> bottom). Origin located at top of the tail
-    (generally the portion closest to the rocket's nose).
+    Local coordinate system:
+        - Z axis along the longitudinal axis of symmetry, positive downwards (top -> bottom).
+        - Origin located at top of the tail (generally the portion closest to the rocket's nose).
 
     Attributes
     ----------

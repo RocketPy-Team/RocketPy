@@ -83,7 +83,7 @@ def calisto_nose_to_tail(cesaroni_m1670):
     calisto.set_rail_buttons(
         upper_button_position=-0.082,
         lower_button_position=0.618,
-        angular_position=45,
+        angular_position=0,
     )
     return calisto
 
@@ -177,7 +177,7 @@ def calisto_robust(
     calisto.set_rail_buttons(
         upper_button_position=0.082,
         lower_button_position=-0.618,
-        angular_position=45,
+        angular_position=0,
     )
     calisto.parachutes.append(calisto_main_chute)
     calisto.parachutes.append(calisto_drogue_chute)

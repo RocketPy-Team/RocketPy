@@ -62,22 +62,16 @@ class Function:  # pylint: disable=too-many-public-methods
         source : callable, scalar, ndarray, string, or Function
             The data source to be used for the function:
 
-            - Callable: Called for evaluation with input values. Must have the
-              desired inputs as arguments and return a single output value.
-              Input order is important. Example: Python functions, classes, and
-              methods.
-
-            - int or float: Treated as a constant value function.
-
-            - ndarray: Used for interpolation. Format as [(x0, y0, z0),
-            (x1, y1, z1), ..., (xn, yn, zn)], where 'x' and 'y' are inputs,
+            - ``Callable``: Called for evaluation with input values. Must have \
+                the desired inputs as arguments and return a single output \
+                value. Input order is important. Example: Python functions.
+            - ``int`` or ``float``: Treated as a constant value function.
+            - ``np.ndarray``: Used for interpolation. Format as [(x0, y0, z0), \
+            (x1, y1, z1), ..., (xn, yn, zn)], where 'x' and 'y' are inputs, \
             and 'z' is the output.
-
-            - string: Path to a CSV file. The file is read and converted into an
-            ndarray. The file can optionally contain a single header line, see
-            notes below for more information.
-
-            - Function: Copies the source of the provided Function object,
+            - ``str``: Path to a CSV file. The file is read and converted into an \
+            ndarray. The file can optionally contain a single header line.
+            - ``Function``: Copies the source of the provided Function object, \
             creating a new Function with adjusted inputs and outputs.
 
         inputs : string, sequence of strings, optional
@@ -178,42 +172,38 @@ class Function:  # pylint: disable=too-many-public-methods
         source : callable, scalar, ndarray, string, or Function
             The data source to be used for the function:
 
-            - Callable: Called for evaluation with input values. Must have the
-              desired inputs as arguments and return a single output value.
-              Input order is important. Example: Python functions, classes, and
-              methods.
-
-            - int or float: Treated as a constant value function.
-
-            - ndarray: Used for interpolation. Format as [(x0, y0, z0),
-            (x1, y1, z1), ..., (xn, yn, zn)], where 'x' and 'y' are inputs,
+            - ``Callable``: Called for evaluation with input values. Must have \
+                the desired inputs as arguments and return a single output \
+                value. Input order is important. Example: Python functions.
+            - ``int`` or ``float``: Treated as a constant value function.
+            - ``np.ndarray``: Used for interpolation. Format as [(x0, y0, z0), \
+            (x1, y1, z1), ..., (xn, yn, zn)], where 'x' and 'y' are inputs, \
             and 'z' is the output.
-
-            - string: Path to a CSV file. The file is read and converted into an
+            - ``str``: Path to a CSV file. The file is read and converted into an \
             ndarray. The file can optionally contain a single header line.
-
-            - Function: Copies the source of the provided Function object,
+            - ``Function``: Copies the source of the provided Function object, \
             creating a new Function with adjusted inputs and outputs.
 
         Notes
         -----
-        (I) CSV files may include an optional single header line. If this
-        header line is present and contains names for each data column, those
-        names will be used to label the inputs and outputs unless specified
-        otherwise. If the header is specified for only a few columns, it is
-        ignored.
+        (I) **CSV files may include an optional single header line**: \
+            If this header line is present and contains names for each data \
+            column, those names will be used to label the inputs and outputs \
+            unless specified otherwise. If the header is specified for only a \
+            few columns, it is ignored.
 
-        Commas in a header will be interpreted as a delimiter, which may cause
-        undesired input or output labeling. To avoid this, specify each input
-        and output name using the `inputs` and `outputs` arguments.
+        (II) **Commas in a header will be interpreted as a delimiter**: \
+            this may cause undesired input or output labeling. To avoid this, \
+            specify each input and output name using the `inputs` and `outputs` \
+            arguments.
 
-        (II) Fields in CSV files may be enclosed in double quotes. If fields
-        are not quoted, double quotes should not appear inside them.
+        (III) **Fields in CSV files may be enclosed in double quotes**: \
+            If fields are not quoted, double quotes should not appear inside them.
 
         Returns
         -------
         self : Function
-            Returns the Function instance.
+            Returns the Function instance with the new source set.
         """
         source = self.__validate_source(source)
 
@@ -833,6 +823,7 @@ class Function:  # pylint: disable=too-many-public-methods
         >>> from rocketpy import Function
 
         Testing with callable source (1 dimension):
+
         >>> f = Function(lambda x: x**2)
         >>> f.get_value(2)
         4
@@ -844,6 +835,7 @@ class Function:  # pylint: disable=too-many-public-methods
         [1, 6.25, 16.0]
 
         Testing with callable source (2 dimensions):
+
         >>> f2 = Function(lambda x, y: x**2 + y**2)
         >>> f2.get_value(1, 2)
         5
@@ -853,6 +845,7 @@ class Function:  # pylint: disable=too-many-public-methods
         [50]
 
         Testing with ndarray source (1 dimension):
+
         >>> f3 = Function(
         ...    [(0, 0), (1, 1), (1.5, 2.25), (2, 4), (2.5, 6.25), (3, 9), (4, 16)]
         ... )
@@ -866,6 +859,7 @@ class Function:  # pylint: disable=too-many-public-methods
         [np.float64(1.0), np.float64(6.25), np.float64(16.0)]
 
         Testing with ndarray source (2 dimensions):
+
         >>> f4 = Function(
         ...    [(0, 0, 0), (1, 1, 1), (1, 2, 2), (2, 4, 8), (3, 9, 27)]
         ... )
@@ -3017,7 +3011,7 @@ class Function:  # pylint: disable=too-many-public-methods
         newline="\n",
         encoding=None,
     ):
-        """Save a Function object to a text file. The first line is the header
+        r"""Save a Function object to a text file. The first line is the header
         with inputs and outputs. The following lines are the data. The text file
         can have any extension, but it is recommended to use .csv or .txt.
 
