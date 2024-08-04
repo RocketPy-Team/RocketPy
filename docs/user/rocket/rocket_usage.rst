@@ -209,7 +209,7 @@ to the rocket in one step:
 
 .. caution::
 
-    Once again, pay special attention to the ``position`` parameter. Check
+    Once again, pay special attention to the ``position`` parameter. Check \
     the :meth:`rocketpy.Rocket.add_surfaces` method for more information.
 
 .. seealso::

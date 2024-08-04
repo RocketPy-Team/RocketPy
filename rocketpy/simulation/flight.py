@@ -14,6 +14,7 @@ from ..plots.flight_plots import _FlightPlots
 from ..prints.flight_prints import _FlightPrints
 from ..tools import (
     calculate_cubic_hermite_coefficients,
+    euler_angles_to_euler_parameters,
     find_closest,
     find_root_linear_interpolation,
     find_roots_cubic_function,
@@ -291,15 +292,15 @@ class Flight:  # pylint: disable=too-many-public-methods
         of time. Can be called or accessed as array.
     Flight.phi : Function
         Rocket's Spin Euler Angle, φ, according to the 3-2-3 rotation
-        system (NASA Standard Aerospace). Measured in degrees and
+        system nomenclature (NASA Standard Aerospace). Measured in degrees and
         expressed as a function of time. Can be called or accessed as array.
     Flight.theta : Function
         Rocket's Nutation Euler Angle, θ, according to the 3-2-3 rotation
-        system (NASA Standard Aerospace). Measured in degrees and
+        system nomenclature (NASA Standard Aerospace). Measured in degrees and
         expressed as a function of time. Can be called or accessed as array.
     Flight.psi : Function
         Rocket's Precession Euler Angle, ψ, according to the 3-2-3 rotation
-        system (NASA Standard Aerospace). Measured in degrees and
+        system nomenclature (NASA Standard Aerospace). Measured in degrees and
         expressed as a function of time. Can be called or accessed as array.
     Flight.R1 : Function
         Resultant force perpendicular to rockets axis due to
@@ -523,7 +524,7 @@ class Flight:  # pylint: disable=too-many-public-methods
             Default is 80.
         heading : int, float, optional
             Heading angle relative to north given in degrees.
-            Default is 90, which points in the x direction.
+            Default is 90, which points in the x (east) direction.
         initial_solution : array, Flight, optional
             Initial solution array to be used. Format is:
 
@@ -1073,12 +1074,26 @@ class Flight:  # pylint: disable=too-many-public-methods
             vx_init, vy_init, vz_init = 0, 0, 0
             w1_init, w2_init, w3_init = 0, 0, 0
             # Initialize attitude
-            psi_init = -self.heading * (np.pi / 180)  # Precession / Heading Angle
-            theta_init = (self.inclination - 90) * (np.pi / 180)  # Nutation Angle
-            e0_init = np.cos(psi_init / 2) * np.cos(theta_init / 2)
-            e1_init = np.cos(psi_init / 2) * np.sin(theta_init / 2)
-            e2_init = np.sin(psi_init / 2) * np.sin(theta_init / 2)
-            e3_init = np.sin(psi_init / 2) * np.cos(theta_init / 2)
+            # Precession / Heading Angle
+            self.psi_init = np.radians(-self.heading)
+            # Nutation / Attitude Angle
+            self.theta_init = np.radians(self.inclination - 90)
+            # Spin / Bank Angle
+            self.phi_init = 0
+
+            # Consider Rail Buttons position, if there is rail buttons
+            try:
+                self.phi_init += (
+                    self.rocket.rail_buttons[0].component.angular_position_rad
+                    * self.rocket._csys
+                )
+            except IndexError:
+                pass
+
+            # 3-1-3 Euler Angles to Euler Parameters
+            e0_init, e1_init, e2_init, e3_init = euler_angles_to_euler_parameters(
+                self.phi_init, self.theta_init, self.psi_init
+            )
             # Store initial conditions
             self.initial_solution = [
                 self.t_initial,
@@ -2823,9 +2838,7 @@ class Flight:  # pylint: disable=too-many-public-methods
             rail_buttons_tuple.component.buttons_distance + rail_buttons_tuple.position
         )
         lower_button_position = rail_buttons_tuple.position
-        angular_position_rad = (
-            rail_buttons_tuple.component.angular_position * np.pi / 180
-        )
+        angular_position_rad = rail_buttons_tuple.component.angular_position_rad
         D1 = (
             upper_button_position - self.rocket.center_of_dry_mass_position
         ) * self.rocket._csys

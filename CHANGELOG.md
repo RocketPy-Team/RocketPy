@@ -32,6 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+-  ENH: Rocket Axis Definition [#635](https://github.com/RocketPy-Team/RocketPy/pull/635)
 
 ### Changed
 

@@ -334,10 +334,10 @@ def test_rail_buttons_forces(flight_calisto_custom_wind):
     """
     test = flight_calisto_custom_wind
     atol = 5e-3
-    assert pytest.approx(3.833613, abs=atol) == test.max_rail_button1_normal_force
-    assert pytest.approx(1.648938, abs=atol) == test.max_rail_button1_shear_force
-    assert pytest.approx(1.165307, abs=atol) == test.max_rail_button2_normal_force
-    assert pytest.approx(0.501229, abs=atol) == test.max_rail_button2_shear_force
+    assert pytest.approx(3.876749, abs=atol) == test.max_rail_button1_normal_force
+    assert pytest.approx(1.544799, abs=atol) == test.max_rail_button1_shear_force
+    assert pytest.approx(1.178420, abs=atol) == test.max_rail_button2_normal_force
+    assert pytest.approx(0.469574, abs=atol) == test.max_rail_button2_shear_force
 
 
 def test_max_values(flight_calisto_robust):

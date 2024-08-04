@@ -1,3 +1,5 @@
+import numpy as np
+
 from rocketpy.mathutils.function import Function
 from rocketpy.prints.aero_surface_prints import _RailButtonsPrints
 
@@ -15,6 +17,8 @@ class RailButtons(AeroSurface):
         Angular position of the rail buttons in degrees measured
         as the rotation around the symmetry axis of the rocket
         relative to one of the other principal axis.
+    RailButtons.angular_position_rad : float
+        Angular position of the rail buttons in radians.
     """
 
     def __init__(
@@ -40,11 +44,6 @@ class RailButtons(AeroSurface):
             Radius of the rocket at the location of the rail buttons in meters.
             If not provided, it will be calculated when the RailButtons object
             is added to a Rocket object.
-
-        Returns
-        -------
-        None
-
         """
         super().__init__(name, None, None)
         self.buttons_distance = buttons_distance
@@ -55,6 +54,10 @@ class RailButtons(AeroSurface):
         self.evaluate_center_of_pressure()
 
         self.prints = _RailButtonsPrints(self)
+
+    @property
+    def angular_position_rad(self):
+        return np.radians(self.angular_position)
 
     def evaluate_center_of_pressure(self):
         """Evaluates the center of pressure of the rail buttons. Rail buttons
