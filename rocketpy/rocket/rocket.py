@@ -4,7 +4,7 @@ import numpy as np
 
 from rocketpy.control.controller import _Controller
 from rocketpy.mathutils.function import Function
-from rocketpy.mathutils.vector_matrix import Matrix, Vector
+from rocketpy.mathutils.vector_matrix import Matrix
 from rocketpy.motors.motor import EmptyMotor
 from rocketpy.plots.rocket_plots import _RocketPlots
 from rocketpy.prints.rocket_prints import _RocketPrints
@@ -1536,13 +1536,12 @@ class Rocket:
         rail_buttons : RailButtons
             RailButtons object created
         """
-        radius = radius if radius else self.radius
         buttons_distance = abs(upper_button_position - lower_button_position)
         rail_buttons = RailButtons(
             buttons_distance=buttons_distance, angular_position=angular_position
         )
         self.rail_buttons = Components()
-        rail_buttons.rocket_radius = rail_buttons.rocket_radius or self.radius
+        rail_buttons.rocket_radius = radius or self.radius
         self.rail_buttons.add(rail_buttons, lower_button_position)
         return rail_buttons
 
