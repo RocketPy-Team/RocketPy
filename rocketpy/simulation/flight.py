@@ -838,6 +838,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                         phase.solver.status = "finished"
 
                     # Check for apogee event
+                    # TODO: negative vz doesn't really mean apogee. Improve this.
                     if len(self.apogee_state) == 1 and self.y_sol[5] < 0:
                         # Assume linear vz(t) to detect when vz = 0
                         t0, vz0 = self.solution[-2][0], self.solution[-2][6]
@@ -863,6 +864,10 @@ class Flight:  # pylint: disable=too-many-public-methods
                             phase.time_nodes.flush_after(node_index)
                             phase.time_nodes.add_node(self.t, [], [])
                             phase.solver.status = "finished"
+                        elif len(self.solution) > 2:
+                            # adding the apogee state to solution increases accuracy
+                            # we can only do this if the apogee is not the first state
+                            self.solution.insert(-1, [t_root, *self.apogee_state])
                     # Check for impact event
                     if self.y_sol[2] < self.env.elevation:
                         # Check exactly when it happened using root finding
@@ -3163,8 +3168,6 @@ class Flight:  # pylint: disable=too-many-public-methods
         ----------
         file_name : string
             The file name or path of the exported file. Example: flight_data.csv
-            Do not use forbidden characters, such as '/' in Linux/Unix and
-            '<, >, :, ", /, \\, | ?, *' in Windows.
         time_step : float, optional
             Time step desired for the data. If None, all integration time steps
             will be exported. Otherwise, linear interpolation is carried out to
@@ -3184,9 +3187,6 @@ class Flight:  # pylint: disable=too-many-public-methods
             Default is 'relativetoground'. Only works properly if the ground
             level is flat. Change to 'absolute' if the terrain is to irregular
             or contains mountains.
-        Returns
-        -------
-        None
         """
         # Define time points vector
         if time_step is None:
@@ -3520,6 +3520,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                 try:
                     # Try to access the node and merge if it exists
                     tmp_dict[time].parachutes += node.parachutes
+                    tmp_dict[time]._controllers += node._controllers
                     tmp_dict[time].callbacks += node.callbacks
                 except KeyError:
                     # If the node does not exist, add it to the dictionary

@@ -1,0 +1,23 @@
+{
+    "recommendations": [
+        "ambooth.git-rename",
+        "github.vscode-pull-request-github",
+        "gruntfuggly.todo-tree",
+        "mechatroner.rainbow-csv",
+        "ms-python.black-formatter",
+        "ms-python.debugpy",
+        "ms-python.pylint",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-toolsai.jupyter",
+        "ms-toolsai.jupyter-keymap",
+        "ms-toolsai.jupyter-renderers",
+        "ms-toolsai.vscode-jupyter-cell-tags",
+        "ms-toolsai.vscode-jupyter-slideshow",
+        "ms-vscode.cmake-tools",
+        "ms-vscode.makefile-tools",
+        "njpwerner.autodocstring",
+        "streetsidesoftware.code-spell-checker",
+        "trond-snekvik.simple-rst",
+    ]
+}

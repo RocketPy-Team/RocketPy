@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 from scipy import optimize
 
-from rocketpy import Components, Environment, Flight, Function, Rocket, SolidMotor
+from rocketpy import Components, Flight, Function, Rocket
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
@@ -190,13 +190,13 @@ def test_aerodynamic_moments(flight_calisto_custom_wind, flight_time, expected_v
         The expected values of the aerodynamic moments vector at the point to
         be tested.
     """
-    expected_attr, expected_M = flight_time, expected_values
+    expected_attr, expected_moment = flight_time, expected_values
 
     test = flight_calisto_custom_wind
     t = getattr(test, expected_attr)
     atol = 5e-3
 
-    assert pytest.approx(expected_M, abs=atol) == (
+    assert pytest.approx(expected_moment, abs=atol) == (
         test.M1(t),
         test.M2(t),
         test.M3(t),
@@ -229,13 +229,13 @@ def test_aerodynamic_forces(flight_calisto_custom_wind, flight_time, expected_va
         The expected values of the aerodynamic forces vector at the point to be
         tested.
     """
-    expected_attr, expected_R = flight_time, expected_values
+    expected_attr, expected_forces = flight_time, expected_values
 
     test = flight_calisto_custom_wind
     t = getattr(test, expected_attr)
     atol = 5e-3
 
-    assert pytest.approx(expected_R, abs=atol) == (
+    assert pytest.approx(expected_forces, abs=atol) == (
         test.R1(t),
         test.R2(t),
         test.R3(t),
@@ -507,7 +507,9 @@ def test_lat_lon_conversion_from_origin(
     "static_margin, max_time",
     [(-0.1, 2), (-0.01, 5), (0, 5), (0.01, 20), (0.1, 20), (1.0, 20)],
 )
-def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
+def test_stability_static_margins(
+    wind_u, wind_v, static_margin, max_time, example_plain_env, dummy_empty_motor
+):
     """Test stability margins for a constant velocity flight, 100 m/s, wind a
     lateral wind speed of 10 m/s. Rocket has infinite mass to prevent side motion.
     Check if a restoring moment exists depending on static margins.
@@ -522,11 +524,14 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
         Static margin to be tested
     max_time : float
         Maximum time to be simulated
+    example_plain_env : rocketpy.Environment
+        This is a fixture.
+    dummy_empty_motor : rocketpy.SolidMotor
+        This is a fixture.
     """
 
     # Create an environment with ZERO gravity to keep the rocket's speed constant
-    env = Environment(gravity=0, latitude=0, longitude=0, elevation=0)
-    env.set_atmospheric_model(
+    example_plain_env.set_atmospheric_model(
         type="custom_atmosphere",
         wind_u=wind_u,
         wind_v=wind_v,
@@ -535,29 +540,7 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
     )
     # Make sure that the free_stream_mach will always be 0, so that the rocket
     # behaves as the STATIC (free_stream_mach=0) margin predicts
-    env.speed_of_sound = Function(1e16)
-
-    # Create a motor with ZERO thrust and ZERO mass to keep the rocket's speed constant
-    # TODO: why don t we use these same values to create EmptyMotor class?
-    dummy_motor = SolidMotor(
-        thrust_source=1e-300,
-        burn_time=1e-10,
-        dry_mass=1.815,
-        dry_inertia=(0.125, 0.125, 0.002),
-        center_of_dry_mass_position=0.317,
-        grains_center_of_mass_position=0.397,
-        grain_number=5,
-        grain_separation=5 / 1000,
-        grain_density=1e-300,
-        grain_outer_radius=33 / 1000,
-        grain_initial_inner_radius=15 / 1000,
-        grain_initial_height=120 / 1000,
-        nozzle_radius=33 / 1000,
-        throat_radius=11 / 1000,
-        nozzle_position=0,
-        interpolation_method="linear",
-        coordinate_system_orientation="nozzle_to_combustion_chamber",
-    )
+    example_plain_env.speed_of_sound = Function(1e16)
 
     # create a rocket with zero drag and huge mass to keep the rocket's speed constant
     dummy_rocket = Rocket(
@@ -569,7 +552,7 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
         center_of_mass_without_motor=0,
     )
     dummy_rocket.set_rail_buttons(0.082, -0.618)
-    dummy_rocket.add_motor(dummy_motor, position=-1.373)
+    dummy_rocket.add_motor(dummy_empty_motor, position=-1.373)
 
     setup_rocket_with_given_static_margin(dummy_rocket, static_margin)
 
@@ -582,13 +565,12 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
     test_flight = Flight(
         rocket=dummy_rocket,
         rail_length=1,
-        environment=env,
+        environment=example_plain_env,
         initial_solution=initial_solution,
         max_time=max_time,
         max_time_step=1e-2,
         verbose=False,
     )
-    test_flight.post_process(interpolation="linear")
 
     # Check stability according to static margin
     if wind_u == 0:
@@ -598,8 +580,9 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
         moments = test_flight.M2.get_source()[:, 1]
         wind_sign = -np.sign(wind_u)
 
-    assert (
-        (static_margin > 0 and np.max(moments) * np.min(moments) < 0)
-        or (static_margin < 0 and np.all(moments / wind_sign <= 0))
-        or (static_margin == 0 and np.all(np.abs(moments) <= 1e-10))
-    )
+    if static_margin > 0:
+        assert np.max(moments) * np.min(moments) < 0
+    elif static_margin < 0:
+        assert np.all(moments / wind_sign <= 0)
+    else:  # static_margin == 0
+        assert np.all(np.abs(moments) <= 1e-10)

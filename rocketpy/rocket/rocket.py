@@ -629,16 +629,16 @@ class Rocket:
 
         Notes
         -----
-        The e_1 and e_2 directions are assumed to be the directions
-        perpendicular to the rocket axial direction.
-        The e_3 direction is assumed to be the direction parallel to the axis
-        of symmetry of the rocket.
-        RocketPy follows the definition of the inertia tensor as in [1], which
-        includes the minus sign for all products of inertia.
+        #. The ``e_1`` and ``e_2`` directions are assumed to be the directions \
+            perpendicular to the rocket axial direction.
+        #. The ``e_3`` direction is assumed to be the direction parallel to the \
+            axis of symmetry of the rocket.
+        #. RocketPy follows the definition of the inertia tensor that includes \
+            the minus sign for all products of inertia.
 
-        References
-        ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        See Also
+        --------
+        `Inertia Tensor <https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor>`_
         """
         # Get masses
         motor_dry_mass = self.motor.dry_mass
@@ -701,16 +701,16 @@ class Rocket:
 
         Notes
         -----
-        The e_1 and e_2 directions are assumed to be the directions
-        perpendicular to the rocket axial direction.
-        The e_3 direction is assumed to be the direction parallel to the axis
-        of symmetry of the rocket.
-        RocketPy follows the definition of the inertia tensor as in [1], which
-        includes the minus sign for all products of inertia.
+        #. The ``e_1`` and ``e_2`` directions are assumed to be the directions \
+            perpendicular to the rocket axial direction.
+        #. The ``e_3`` direction is assumed to be the direction parallel to the \
+            axis of symmetry of the rocket.
+        #. RocketPy follows the definition of the inertia tensor that includes \
+            the minus sign for all products of inertia.
 
-        References
-        ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        See Also
+        --------
+        `Inertia Tensor <https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor>`_
         """
         # Get masses
         prop_mass = self.motor.propellant_mass  # Propellant mass as a function of time
@@ -947,6 +947,7 @@ class Rocket:
             the root chord which is highest in the rocket coordinate system.
             For Tail type, position is relative to the point belonging to the
             tail which is highest in the rocket coordinate system.
+            For RailButtons type, position is relative to the lower rail button.
 
         See Also
         --------
@@ -956,11 +957,16 @@ class Rocket:
         -------
         None
         """
-        try:
-            for surface, position in zip(surfaces, positions):
+        if not isinstance(surfaces, list):
+            surfaces = [surfaces]
+            positions = [positions]
+
+        for surface, position in zip(surfaces, positions):
+            if isinstance(surface, RailButtons):
+                surface.rocket_radius = surface.rocket_radius or self.radius
+                self.rail_buttons.add(surface, position)
+            else:
                 self.aerodynamic_surfaces.add(surface, position)
-        except TypeError:
-            self.aerodynamic_surfaces.add(surfaces, positions)
 
         self.evaluate_center_of_pressure()
         self.evaluate_stability_margin()
@@ -1137,6 +1143,10 @@ class Rocket:
             By fin set position, understand the point belonging to the root
             chord which is highest in the rocket coordinate system (i.e.
             the point closest to the nose cone tip).
+
+            See Also
+            --------
+            :ref:`positions`
         cant_angle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
@@ -1229,6 +1239,10 @@ class Rocket:
             set position, understand the point belonging to the root chord which
             is highest in the rocket coordinate system (i.e. the point
             closest to the nose cone tip).
+
+            See Also
+            --------
+            :ref:`positions`
         cant_angle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must be given
             in degrees.
@@ -1284,28 +1298,33 @@ class Rocket:
             force is the dynamic pressure computed on the parachute
             times its cd_s coefficient. Has units of area and must be
             given in squared meters.
-        trigger : function, float, string
-            This parameter defines the trigger condition for the parachute
-            ejection system. It can be one of the following:
+        trigger : callable, float, str
+            Defines the trigger condition for the parachute ejection system. It
+            can be one of the following:
 
-            - A callable function that takes three arguments:
+            - A callable function that takes three arguments: \
+
                 1. Freestream pressure in pascals.
                 2. Height in meters above ground level.
-                3. The state vector of the simulation, which is defined as:
-                    [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz].
+                3. The state vector of the simulation, which is defined as: \
 
-            The function should return True if the parachute ejection system should
-            be triggered and False otherwise.
+                    .. code-block:: python
 
-            - A float value, representing an absolute height in meters. In this
-            case, the parachute will be ejected when the rocket reaches this height
-            above ground level.
+                        u = [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]
 
-            - The string "apogee" which triggers the parachute at apogee, i.e.,
-            when the rocket reaches its highest point and starts descending.
+                .. note::
 
-            Note: The function will be called according to the sampling rate
-            specified next.
+                    The function should return ``True`` if the parachute \
+                    ejection system should be triggered and ``False`` otherwise.
+            - A float value, representing an absolute height in meters. In this \
+                case, the parachute will be ejected when the rocket reaches this \
+                height above ground level.
+            - The string "apogee" which triggers the parachute at apogee, i.e., \
+                when the rocket reaches its highest point and starts descending.
+
+            .. note::
+
+                The function will be called according to the sampling rate specified.
         sampling_rate : float, optional
             Sampling rate in which the trigger function works. It is used to
             simulate the refresh rate of onboard sensors such as barometers.
@@ -1400,14 +1419,16 @@ class Rocket:
             6. `interactive_objects` (list): A list containing the objects that
                the controller function can interact with. The objects are
                listed in the same order as they are provided in the
-               `interactive_objects`
+               ``interactive_objects``
 
             This function will be called during the simulation at the specified
             sampling rate. The function should evaluate and change the observed
             objects as needed. The function should return None.
 
-            .. note:: The function will be called according to the sampling rate
-            specified.
+            .. note::
+
+                The function will be called according to the sampling rate specified.
+
         sampling_rate : float
             The sampling rate of the controller function in Hertz (Hz). This
             means that the controller function will be called every
@@ -1521,6 +1542,7 @@ class Rocket:
             buttons_distance=buttons_distance, angular_position=angular_position
         )
         self.rail_buttons = Components()
+        rail_buttons.rocket_radius = rail_buttons.rocket_radius or self.radius
         self.rail_buttons.add(rail_buttons, lower_button_position)
         return rail_buttons
 
@@ -1610,16 +1632,20 @@ class Rocket:
         vis_args : dict, optional
             Determines the visual aspects when drawing the rocket. If None,
             default values are used. Default values are:
-            {
-                "background": "#EEEEEE",
-                "tail": "black",
-                "nose": "black",
-                "body": "dimgrey",
-                "fins": "black",
-                "motor": "black",
-                "buttons": "black",
-                "line_width": 2.0,
-            }
+
+            .. code-block:: python
+
+                {
+                    "background": "#EEEEEE",
+                    "tail": "black",
+                    "nose": "black",
+                    "body": "dimgrey",
+                    "fins": "black",
+                    "motor": "black",
+                    "buttons": "black",
+                    "line_width": 2.0,
+                }
+
             A full list of color names can be found at:
             https://matplotlib.org/stable/gallery/color/named_colors
         """

@@ -36,12 +36,39 @@ Attention: The newest changes should be on top -->
 
 ### Changed
 
-- MNT: Refactors the code to adopt pylint [#621](https://github.com/RocketPy-Team/RocketPy/pull/621)
-- MNT: Refactor AeroSurfaces [#634](https://github.com/RocketPy-Team/RocketPy/pull/634)
+- 
+- DOC: Fix documentation warnings [#645](https://github.com/RocketPy-Team/RocketPy/pull/645)
+- DOC: New Environment class docs pages [#644](https://github.com/RocketPy-Team/RocketPy/pull/644)
 
 ### Fixed
 
-- 
+
+
+## [v1.4.2] - 2024-08-03
+
+You can install this version by running `pip install rocketpy==1.4.2`
+
+### Changed
+
+- REL: Bump versioning to RocketPy v1.4.2 [#648](https://github.com/RocketPy-Team/RocketPy/pull/648)
+- ENH: Adding rocket radius to RailButtons class [#643](https://github.com/RocketPy-Team/RocketPy/pull/643)
+
+### Fixed
+
+- BUG: Time Node Merge Not Including Controllers [#647](https://github.com/RocketPy-Team/RocketPy/pull/647)
+
+## [v1.4.1] - 2024-07-20
+
+You can install this version by running `pip install rocketpy==1.4.1`
+
+### Changed
+
+- REL: Bumps rocketpy version to 1.4.1 [#646](https://github.com/RocketPy-Team/RocketPy/pull/646)
+- ENH: Insert apogee state into solution list during flight simulation [#638](https://github.com/RocketPy-Team/RocketPy/pull/638)
+- MNT: Refactor AeroSurfaces [#634](https://github.com/RocketPy-Team/RocketPy/pull/634)
+- ENH: Environment class major refactor may 2024 [#605](https://github.com/RocketPy-Team/RocketPy/pull/605)
+- MNT: Refactors the code to adopt flake8 [#631](https://github.com/RocketPy-Team/RocketPy/pull/631)
+- MNT: Refactors the code to adopt pylint [#621](https://github.com/RocketPy-Team/RocketPy/pull/621)
 
 ## [1.4.0] - 2024-07-06
 
@@ -91,12 +118,12 @@ You can install this version by running `pip install rocketpy==1.3.0`
 - MNT: refactor u_dot parachute method [#596](https://github.com/RocketPy-Team/RocketPy/pull/596)
 - BLD: Change setup.py to pyproject.toml [#589](https://github.com/RocketPy-Team/RocketPy/pull/589)
 - DEP: delete deprecated rocketpy.tools.cached_property [#587](https://github.com/RocketPy-Team/RocketPy/pull/587)
-- ENH: Flight simulation speed up [#581] (https://github.com/RocketPy-Team/RocketPy/pull/581) 
+- ENH: Flight simulation speed up [#581](https://github.com/RocketPy-Team/RocketPy/pull/581) 
 - MNT: Modularize Rocket Draw [#580](https://github.com/RocketPy-Team/RocketPy/pull/580)
 - DOC: Improvements of Environment docstring phrasing [#565](https://github.com/RocketPy-Team/RocketPy/pull/565)
 - MNT: Refactor flight prints module [#579](https://github.com/RocketPy-Team/RocketPy/pull/579)
 - DOC: Convert CompareFlights example notebooks to .rst files [#576](https://github.com/RocketPy-Team/RocketPy/pull/576)
-- MNT: Refactor inertia calculations using parallel axis theorem [#573] (https://github.com/RocketPy-Team/RocketPy/pull/573)
+- MNT: Refactor inertia calculations using parallel axis theorem [#573](https://github.com/RocketPy-Team/RocketPy/pull/573)
 - ENH: Optional argument to show the plot in Function.compare_plots [#563](https://github.com/RocketPy-Team/RocketPy/pull/563)
 
 ### Fixed

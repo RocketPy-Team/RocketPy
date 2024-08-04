@@ -209,9 +209,8 @@ to the rocket in one step:
 
 .. caution::
 
-    Again, pay special attention to the ``position`` parameter. See
-    the :ref:`Adding Aerodynamic Surfaces <addsurface>` section for
-    more information.
+    Once again, pay special attention to the ``position`` parameter. Check \
+    the :meth:`rocketpy.Rocket.add_surfaces` method for more information.
 
 .. seealso::
 

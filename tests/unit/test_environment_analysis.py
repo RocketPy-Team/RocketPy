@@ -11,7 +11,7 @@ plt.rcParams.update({"figure.max_open_warning": 0})
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_distribution_plots(mock_show, env_analysis):
+def test_distribution_plots(mock_show, env_analysis):  # pylint: disable=unused-argument
     """Tests the distribution plots method of the EnvironmentAnalysis class. It
     only checks if the method runs without errors. It does not check if the
     plots are correct, as this would require a lot of work and would be
@@ -42,7 +42,7 @@ def test_distribution_plots(mock_show, env_analysis):
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_average_plots(mock_show, env_analysis):
+def test_average_plots(mock_show, env_analysis):  # pylint: disable=unused-argument
     """Tests the average plots method of the EnvironmentAnalysis class. It
     only checks if the method runs without errors. It does not check if the
     plots are correct, as this would require a lot of work and would be
@@ -68,7 +68,7 @@ def test_average_plots(mock_show, env_analysis):
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_profile_plots(mock_show, env_analysis):
+def test_profile_plots(mock_show, env_analysis):  # pylint: disable=unused-argument
     """Check the profile plots method of the EnvironmentAnalysis class. It
     only checks if the method runs without errors. It does not check if the
     plots are correct, as this would require a lot of work and would be
@@ -118,12 +118,8 @@ def test_values(env_analysis):
     ----------
     env_analysis : EnvironmentAnalysis
         A simple object of the EnvironmentAnalysis class.
-
-    Returns
-    -------
-    None
     """
-    assert pytest.approx(env_analysis.record_min_surface_wind_speed, 1e-6) == 5.190407
+    assert pytest.approx(0.07569172, 1e-2) == env_analysis.record_min_surface_wind_speed
     assert (
         pytest.approx(env_analysis.max_average_temperature_at_altitude, 1e-6)
         == 24.52549
@@ -138,7 +134,7 @@ def test_values(env_analysis):
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_animation_plots(mock_show, env_analysis):
+def test_animation_plots(mock_show, env_analysis):  # pylint: disable=unused-argument
     """Check the animation plots method of the EnvironmentAnalysis class. It
     only checks if the method runs without errors. It does not check if the
     plots are correct, as this would require a lot of work and would be

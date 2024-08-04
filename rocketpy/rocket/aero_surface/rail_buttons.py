@@ -19,7 +19,13 @@ class RailButtons(AeroSurface):
         relative to one of the other principal axis.
     """
 
-    def __init__(self, buttons_distance, angular_position=45, name="Rail Buttons"):
+    def __init__(
+        self,
+        buttons_distance,
+        angular_position=45,
+        name="Rail Buttons",
+        rocket_radius=None,
+    ):
         """Initializes RailButtons Class.
 
         Parameters
@@ -32,6 +38,10 @@ class RailButtons(AeroSurface):
             relative to one of the other principal axis.
         name : string, optional
             Name of the rail buttons. Default is "Rail Buttons".
+        rocket_radius : int, float, optional
+            Radius of the rocket at the location of the rail buttons in meters.
+            If not provided, it will be calculated when the RailButtons object
+            is added to a Rocket object.
 
         Returns
         -------
@@ -43,7 +53,7 @@ class RailButtons(AeroSurface):
         self.angular_position = angular_position
         self.angular_position_rad = np.radians(angular_position)
         self.name = name
-
+        self.rocket_radius = rocket_radius
         self.evaluate_lift_coefficient()
         self.evaluate_center_of_pressure()
 
