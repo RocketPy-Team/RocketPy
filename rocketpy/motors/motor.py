@@ -149,10 +149,10 @@ class Motor(ABC):
     def __init__(
         self,
         thrust_source,
-        dry_mass,
         dry_inertia,
         nozzle_radius,
         center_of_dry_mass_position,
+        dry_mass=None,
         nozzle_position=0,
         burn_time=None,
         reshape_thrust_curve=False,
@@ -251,7 +251,6 @@ class Motor(ABC):
             )
 
         # Motor parameters
-        self.dry_mass = dry_mass
         self.interpolate = interpolation_method
         self.nozzle_position = nozzle_position
         self.nozzle_radius = nozzle_radius
@@ -267,9 +266,10 @@ class Motor(ABC):
         self.dry_I_23 = inertia[5]
 
         # Handle .eng file inputs
+        self.description_eng_file = None
         if isinstance(thrust_source, str):
             if thrust_source[-3:] == "eng":
-                _, _, points = Motor.import_eng(thrust_source)
+                _, self.description_eng_file, points = Motor.import_eng(thrust_source)
                 thrust_source = points
 
         # Evaluate raw thrust source
@@ -277,6 +277,9 @@ class Motor(ABC):
         self.thrust = Function(
             thrust_source, "Time (s)", "Thrust (N)", self.interpolate, "zero"
         )
+
+        # Handle dry_mass input
+        self.dry_mass = dry_mass
 
         # Handle burn_time input
         self.burn_time = burn_time
@@ -342,6 +345,38 @@ class Motor(ABC):
                     "When using a float or callable as thrust source, a burn_time"
                     " argument must be specified."
                 )
+
+    @property
+    def dry_mass(self):
+        """Dry mass of the motor in kg.
+
+        Returns
+        -------
+        self.dry_mass : float
+            Motor dry mass in kg.
+        """
+        return self._dry_mass
+
+    @dry_mass.setter
+    def dry_mass(self, dry_mass):
+        """Sets dry mass of the motor in kg.
+
+        Parameters
+        ----------
+        dry_mass : float
+            Motor dry mass in kg.
+        """
+        if dry_mass:
+            if isinstance(dry_mass, (int, float)):
+                self._dry_mass = dry_mass
+            else:
+                raise ValueError("Dry mass must be a number.")
+        elif self.description_eng_file:
+            self._dry_mass = float(self.description_eng_file[-2]) - float(
+                self.description_eng_file[-3]
+            )
+        else:
+            raise ValueError("Dry mass must be specified.")
 
     @cached_property
     def total_impulse(self):
@@ -1152,16 +1187,16 @@ class GenericMotor(Motor):
             "nozzle_to_combustion_chamber".
         """
         super().__init__(
-            thrust_source,
-            dry_mass,
-            dry_inertia,
-            nozzle_radius,
-            center_of_dry_mass_position,
-            nozzle_position,
-            burn_time,
-            reshape_thrust_curve,
-            interpolation_method,
-            coordinate_system_orientation,
+            thrust_source=thrust_source,
+            dry_inertia=dry_inertia,
+            nozzle_radius=nozzle_radius,
+            center_of_dry_mass_position=center_of_dry_mass_position,
+            dry_mass=dry_mass,
+            nozzle_position=nozzle_position,
+            burn_time=burn_time,
+            reshape_thrust_curve=reshape_thrust_curve,
+            interpolation_method=interpolation_method,
+            coordinate_system_orientation=coordinate_system_orientation,
         )
 
         self.chamber_radius = chamber_radius
