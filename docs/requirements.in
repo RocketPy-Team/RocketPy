@@ -5,3 +5,4 @@ sphinx_design==0.5.0
 ipykernel==6.29.4
 pandas==2.2.2
 lxml_html_clean==0.1.1
+sphinx-copybutton==0.5.2

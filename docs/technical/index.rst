@@ -14,6 +14,7 @@ in their code.
    Equations of Motion v1 <equations_of_motion_v1.rst>
    Elliptical Fins <aerodynamics/elliptical_fins.rst>
    Roll Moment <aerodynamics/roll_equations.rst>
+   References <references.rst>
 
 This section is still a work in progress, however, and not everything is documented yet.
 If you have any questions, please contact the maintainers of RocketPy.

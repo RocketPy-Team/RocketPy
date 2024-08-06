@@ -22,7 +22,7 @@ Here we will show how to set up a complete simulation with RocketPy.
 
         .. grid-item::
 
-            .. button-link:: https://colab.research.google.com/github/RocketPy-Team/rocketpy/blob/master/docs/notebooks/getting_started_colab.html
+            .. button-link:: https://colab.research.google.com/github/RocketPy-Team/rocketpy/blob/master/docs/notebooks/getting_started_colab.ipynb
                 :ref-type: any
                 :color: secondary
 
