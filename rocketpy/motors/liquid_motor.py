@@ -230,16 +230,16 @@ class LiquidMotor(Motor):
             "nozzle_to_combustion_chamber".
         """
         super().__init__(
-            thrust_source,
-            dry_mass,
-            dry_inertia,
-            nozzle_radius,
-            center_of_dry_mass_position,
-            nozzle_position,
-            burn_time,
-            reshape_thrust_curve,
-            interpolation_method,
-            coordinate_system_orientation,
+            thrust_source=thrust_source,
+            dry_inertia=dry_inertia,
+            nozzle_radius=nozzle_radius,
+            center_of_dry_mass_position=center_of_dry_mass_position,
+            dry_mass=dry_mass,
+            nozzle_position=nozzle_position,
+            burn_time=burn_time,
+            reshape_thrust_curve=reshape_thrust_curve,
+            interpolation_method=interpolation_method,
+            coordinate_system_orientation=coordinate_system_orientation,
         )
 
         self.positioned_tanks = []
