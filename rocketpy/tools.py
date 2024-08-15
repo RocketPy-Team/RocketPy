@@ -934,12 +934,12 @@ def euler_to_quaternions(roll, pitch, yaw):
 
     Parameters
     ----------
-    yaw : float
-        Euler angle due to yaw (phi) in degrees
-    pitch : float
-        Euler angle due to pitch (theta) in degrees
     roll : float
         Euler angle due to roll (psi) in degrees
+    pitch : float
+        Euler angle due to pitch (theta) in degrees
+    yaw : float
+        Euler angle due to yaw (phi) in degrees
 
     Returns
     -------
