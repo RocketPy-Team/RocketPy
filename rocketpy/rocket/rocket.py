@@ -714,20 +714,20 @@ class Rocket:
         """
         # Get masses
         prop_mass = self.motor.propellant_mass  # Propellant mass as a function of time
-        dry_mass = self.dry_mass  # Constant rocket mass with motor, without propellant
 
         # Compute axes distances
-        CM_to_CDM = self.center_of_mass - self.center_of_dry_mass_position
-        CM_to_CPM = self.center_of_mass - self.center_of_propellant_position
+        CDM_to_CPM = (
+            self.center_of_dry_mass_position - self.center_of_propellant_position
+        )
 
         # Compute inertias
-        self.I_11 = parallel_axis_theorem_from_com(
-            self.dry_I_11, dry_mass, CM_to_CDM
-        ) + parallel_axis_theorem_from_com(self.motor.I_11, prop_mass, CM_to_CPM)
+        self.I_11 = self.dry_I_11 + parallel_axis_theorem_from_com(
+            self.motor.I_11, prop_mass, CDM_to_CPM
+        )
 
-        self.I_22 = parallel_axis_theorem_from_com(
-            self.dry_I_22, dry_mass, CM_to_CDM
-        ) + parallel_axis_theorem_from_com(self.motor.I_22, prop_mass, CM_to_CPM)
+        self.I_22 = self.dry_I_22 + parallel_axis_theorem_from_com(
+            self.motor.I_22, prop_mass, CDM_to_CPM
+        )
 
         self.I_33 = self.dry_I_33 + self.motor.I_33
         self.I_12 = self.dry_I_12 + self.motor.I_12
