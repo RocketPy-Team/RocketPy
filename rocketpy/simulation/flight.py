@@ -1503,8 +1503,8 @@ class Flight:  # pylint: disable=too-many-public-methods
                     R1 += comp_lift_xb
                     R2 += comp_lift_yb
                     # Add to total moment
-                    M1 -= (comp_cp + a) * comp_lift_yb
-                    M2 += (comp_cp + a) * comp_lift_xb
+                    M1 -= (comp_cp) * comp_lift_yb
+                    M2 += (comp_cp) * comp_lift_xb
             # Calculates Roll Moment
             try:
                 clf_delta, cld_omega, cant_angle_rad = aero_surface.roll_parameters
@@ -1779,8 +1779,8 @@ class Flight:  # pylint: disable=too-many-public-methods
                     R1 += comp_lift_xb
                     R2 += comp_lift_yb
                     # Add to total moment
-                    M1 -= (comp_cpz + r_CM_t) * comp_lift_yb
-                    M2 += (comp_cpz + r_CM_t) * comp_lift_xb
+                    M1 -= (comp_cpz) * comp_lift_yb
+                    M2 += (comp_cpz) * comp_lift_xb
             # Calculates Roll Moment
             try:
                 clf_delta, cld_omega, cant_angle_rad = aero_surface.roll_parameters
