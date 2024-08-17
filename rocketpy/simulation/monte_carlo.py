@@ -20,6 +20,8 @@ import warnings
 from copy import deepcopy
 from pathlib import Path
 from time import time
+import multiprocessing as mp
+from multiprocessing.managers import BaseManager
 
 import numpy as np
 import simplekml
@@ -32,7 +34,6 @@ from rocketpy.simulation.flight import Flight
 from rocketpy.tools import (
     generate_monte_carlo_ellipses,
     generate_monte_carlo_ellipses_coordinates,
-    import_optional_dependency,
 )
 
 # TODO: Create evolution plots to analyze convergence
@@ -224,7 +225,7 @@ class MonteCarlo:
         self._initial_sim_idx = self.num_of_loaded_sims if append else 0
 
         # Begin display
-        MonteCarlo._reprint("Starting Monte Carlo analysis")
+        _SimMonitor._reprint("Starting Monte Carlo analysis")
 
         # Setup files
         self.__setup_files(append)
@@ -262,8 +263,8 @@ class MonteCarlo:
             open(self._error_file, open_mode, encoding="utf-8").close()
 
             if idx_i != idx_o and not append:
-                raise ValueError(
-                    "Input and output files are not synchronized. Append mode is not available."
+                warnings.warn(
+                    "Input and output files are not synchronized", UserWarning
                 )
 
         except OSError as error:
@@ -291,33 +292,23 @@ class MonteCarlo:
             while sim_monitor.keep_simulating():
                 sim_monitor.increment()
 
-                inputs_dict, outputs_dict = MonteCarlo.__run_single_simulation(
+                inputs_dict, outputs_dict = self.__run_single_simulation(
                     sim_monitor.count,
-                    self.environment,
-                    self.rocket,
-                    self.flight,
-                    self.export_list,
-                    self.export_sample_time,
                 )
 
-                MonteCarlo.__export_flight_data(
-                    inputs_dict,
-                    outputs_dict,
-                    self._input_file,
-                    self._output_file,
-                )
+                self.__export_flight_data(inputs_dict, outputs_dict)
 
                 sim_monitor.print_update_status(sim_monitor.count)
 
             sim_monitor.print_final_status()
 
         except KeyboardInterrupt:
-            MonteCarlo._reprint("Keyboard Interrupt, files saved.")
+            _SimMonitor._reprint("Keyboard Interrupt, files saved.")
             with open(self._error_file, "a", encoding="utf-8") as file:
                 file.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
 
         except Exception as error:
-            MonteCarlo._reprint(
+            _SimMonitor._reprint(
                 f"Error on iteration {self.__sim_monitor.count}: {error}"
             )
             with open(self._error_file, "a", encoding="utf-8") as file:
@@ -341,12 +332,10 @@ class MonteCarlo:
         if n_workers is None or n_workers > os.cpu_count():
             n_workers = os.cpu_count()
 
-        if n_workers < 3:
-            raise ValueError("Number of workers must be at least 3 for parallel mode.")
+        if n_workers < 2:
+            raise ValueError("Number of workers must be at least 2 for parallel mode.")
 
-        multiprocess, managers = import_multiprocess()
-
-        with create_multiprocess_manager(multiprocess, managers) as manager:
+        with MonteCarloManager() as manager:
             export_queue = manager.Queue()
             mutex = manager.Lock()
             consumer_stop_event = manager.Event()
@@ -361,17 +350,11 @@ class MonteCarlo:
             seeds = np.random.SeedSequence().spawn(n_workers - 1)
 
             for seed in seeds:
-                sim_producer = multiprocess.Process(
+                sim_producer = mp.Process(
                     target=self.__sim_producer,
                     args=(
-                        self.environment,
-                        self.rocket,
-                        self.flight,
                         sim_monitor,
-                        self.export_list,
-                        self.export_sample_time,
                         export_queue,
-                        self._error_file,
                         mutex,
                         seed,
                     ),
@@ -381,12 +364,10 @@ class MonteCarlo:
             for sim_producer in processes:
                 sim_producer.start()
 
-            sim_consumer = multiprocess.Process(
+            sim_consumer = mp.Process(
                 target=self.__sim_consumer,
                 args=(
                     export_queue,
-                    self._input_file,
-                    self._output_file,
                     mutex,
                     consumer_stop_event,
                 ),
@@ -403,35 +384,13 @@ class MonteCarlo:
 
             sim_monitor.print_final_status()
 
-    @staticmethod
-    def __sim_producer(
-        sto_env,
-        sto_rocket,
-        sto_flight,
-        sim_monitor,
-        export_list,
-        export_sample_time,
-        export_queue,
-        error_file,
-        mutex,
-        seed,
-    ):
+    def __sim_producer(self, sim_monitor, export_queue, mutex, seed):
         """Simulation producer to be used in parallel by multiprocessing.
 
         Parameters
         ----------
-        sto_env : StochasticEnvironment
-            The stochastic environment object to be iterated over.
-        sto_rocket : StochasticRocket
-            The stochastic rocket object to be iterated over.
-        sto_flight : StochasticFlight
-            The stochastic flight object to be iterated over.
         sim_monitor : _SimMonitor
             The simulation monitor object to keep track of the simulations.
-        export_list : list
-            The list of variables to export at each simulation.
-        export_sample_time : float
-            Sample time to downsample the arrays in seconds.
         export_queue : multiprocess.Queue
             The queue to export the results.
         error_file : str
@@ -445,18 +404,11 @@ class MonteCarlo:
             while sim_monitor.keep_simulating():
                 sim_idx = sim_monitor.increment() - 1
 
-                sto_env._set_stochastic(seed)
-                sto_rocket._set_stochastic(seed)
-                sto_flight._set_stochastic(seed)
+                self.environment._set_stochastic(seed)
+                self.rocket._set_stochastic(seed)
+                self.flight._set_stochastic(seed)
 
-                inputs_dict, outputs_dict = MonteCarlo.__run_single_simulation(
-                    sim_idx,
-                    sto_env,
-                    sto_rocket,
-                    sto_flight,
-                    export_list,
-                    export_sample_time,
-                )
+                inputs_dict, outputs_dict = self.__run_single_simulation(sim_idx)
 
                 export_queue.put((inputs_dict, outputs_dict))
 
@@ -466,19 +418,17 @@ class MonteCarlo:
 
         except Exception as error:
             mutex.acquire()
-            with open(error_file, "a", encoding="utf-8") as file:
+            with open(self.error_file, "a", encoding="utf-8") as file:
                 file.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
 
-            MonteCarlo._reprint(f"Error on iteration {sim_idx}: {error}")
+            _SimMonitor._reprint(f"Error on iteration {sim_idx}: {error}")
             mutex.release()
 
             raise error
 
-    @staticmethod
     def __sim_consumer(
+        self,
         export_queue,
-        inputs_file,
-        outputs_file,
         mutex,
         stop_event,
     ):
@@ -505,12 +455,7 @@ class MonteCarlo:
                 mutex.acquire()
                 inputs_dict, outputs_dict = export_queue.get(timeout=3)
 
-                MonteCarlo.__export_flight_data(
-                    inputs_dict,
-                    outputs_dict,
-                    inputs_file,
-                    outputs_file,
-                )
+                self.__export_flight_data(inputs_dict, outputs_dict)
 
             except queue.Empty as exc:
                 trials += 1
@@ -523,66 +468,47 @@ class MonteCarlo:
             finally:
                 mutex.release()
 
-    @staticmethod
-    def __run_single_simulation(
-        sim_idx, sto_env, sto_rocket, sto_flight, export_list, export_sample_time
-    ):
+    def __run_single_simulation(self, sim_idx):
         """Runs a single simulation and returns the inputs and outputs.
 
         Parameters
         ----------
         sim_idx : int
             The index of the simulation.
-        sto_env : StochasticEnvironment
-            The stochastic environment object to be iterated over.
-        sto_rocket : StochasticRocket
-            The stochastic rocket object to be iterated over.
-        sto_flight : StochasticFlight
-            The stochastic flight object to be iterated over.
-        export_list : list
-            The list of variables to export at each simulation.
-        export_sample_time : float
-            Sample time to downsample the arrays in seconds.
         """
         monte_carlo_flight = Flight(
-            rocket=sto_rocket.create_object(),
-            environment=sto_env.create_object(),
-            rail_length=sto_flight._randomize_rail_length(),
-            inclination=sto_flight._randomize_inclination(),
-            heading=sto_flight._randomize_heading(),
-            initial_solution=sto_flight.initial_solution,
-            terminate_on_apogee=sto_flight.terminate_on_apogee,
+            rocket=self.rocket.create_object(),
+            environment=self.environment.create_object(),
+            rail_length=self.flight._randomize_rail_length(),
+            inclination=self.flight._randomize_inclination(),
+            heading=self.flight._randomize_heading(),
+            initial_solution=self.flight.initial_solution,
+            terminate_on_apogee=self.flight.terminate_on_apogee,
         )
 
         inputs_dict = dict(
             item
             for d in [
-                sto_env.last_rnd_dict,
-                sto_rocket.last_rnd_dict,
-                sto_flight.last_rnd_dict,
+                self.environment.last_rnd_dict,
+                self.rocket.last_rnd_dict,
+                self.flight.last_rnd_dict,
             ]
             for item in d.items()
         )
         inputs_dict["idx"] = sim_idx
 
-        inputs_dict = MonteCarlo.prepare_export_data(
-            inputs_dict, export_sample_time, remove_functions=True
+        inputs_dict = MonteCarlo._prepare_export_data(
+            inputs_dict, self.export_sample_time, remove_functions=True
         )
 
         outputs_dict = {
             export_item: getattr(monte_carlo_flight, export_item)
-            for export_item in export_list
+            for export_item in self.export_list
         }
 
         return inputs_dict, outputs_dict
 
-    @staticmethod
-    def __export_flight_data(
-        inputs_dict,
-        outputs_dict,
-        inputs_file,
-        outputs_file,
-    ):
+    def __export_flight_data(self, inputs_dict, outputs_dict):
         """
         Exports the flight data to the respective files.
 
@@ -592,18 +518,14 @@ class MonteCarlo:
             Dictionary with the inputs of the simulation.
         outputs_dict : dict
             Dictionary with the outputs of the simulation.
-        inputs_file : str
-            The file object to write the inputs.
-        outputs_file : str
-            The file object to write the outputs.
 
         Returns
         -------
         None
         """
-        with open(inputs_file, "a", encoding="utf-8") as file:
+        with open(self.input_file, "a", encoding="utf-8") as file:
             file.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
-        with open(outputs_file, "a", encoding="utf-8") as file:
+        with open(self.output_file, "a", encoding="utf-8") as file:
             file.write(json.dumps(outputs_dict, cls=RocketPyEncoder) + "\n")
 
     def __terminate_simulation(self):
@@ -619,7 +541,7 @@ class MonteCarlo:
         self.output_file = self.batch_path / f"{self.filename}.outputs.txt"
         self.error_file = self.batch_path / f"{self.filename}.errors.txt"
 
-        MonteCarlo._reprint(f"Results saved to {self._output_file}")
+        _SimMonitor._reprint(f"Results saved to {self._output_file}")
 
     def __check_export_list(self, export_list):
         """
@@ -724,35 +646,6 @@ class MonteCarlo:
             export_list = standard_output
 
         return export_list
-
-    @staticmethod
-    def _reprint(msg, end="\n", flush=False):
-        """
-        Prints a message on the same line as the previous one and replaces the
-        previous message with the new one, deleting the extra characters from
-        the previous message.
-
-        Parameters
-        ----------
-        msg : str
-            Message to be printed.
-        end : str, optional
-            String appended after the message. Default is a new line.
-        flush : bool, optional
-            If True, the output is flushed. Default is False.
-
-        Returns
-        -------
-        None
-        """
-        padding = ""
-
-        if len(msg) < MonteCarlo._last_print_len:
-            padding = " " * (MonteCarlo._last_print_len - len(msg))
-
-        MonteCarlo._last_print_len = len(msg)
-
-        print(msg + padding, end=end, flush=flush)
 
     # Properties and setters
 
@@ -950,7 +843,7 @@ class MonteCarlo:
             with open(filepath, "r+", encoding="utf-8"):
                 self.output_file = filepath
 
-        MonteCarlo._reprint(
+        _SimMonitor._reprint(
             f"A total of {self.num_of_loaded_sims} simulations results were "
             f"loaded from the following output file: {self.output_file}\n"
         )
@@ -978,7 +871,9 @@ class MonteCarlo:
             with open(filepath, "r+", encoding="utf-8"):
                 self.input_file = filepath
 
-        MonteCarlo._reprint(f"The following input file was imported: {self.input_file}")
+        _SimMonitor._reprint(
+            f"The following input file was imported: {self.input_file}"
+        )
 
     def import_errors(self, filename=None):
         """
@@ -1002,7 +897,10 @@ class MonteCarlo:
         except FileNotFoundError:
             with open(filepath, "r+", encoding="utf-8"):
                 self.error_file = filepath
-        MonteCarlo._reprint(f"The following error file was imported: {self.error_file}")
+
+        _SimMonitor._reprint(
+            f"The following error file was imported: {self.error_file}"
+        )
 
     def import_results(self, filename=None):
         """
@@ -1142,7 +1040,7 @@ class MonteCarlo:
         self.plots.all()
 
     @staticmethod
-    def time_function_serializer(function_object, t_range=None, sample_time=None):
+    def _time_function_serializer(function_object, t_range=None, sample_time=None):
         """
         Method to serialize a Function object into a numpy array. If the function is
         callable, it will be discretized. If the downsample_time is specified, the
@@ -1185,7 +1083,7 @@ class MonteCarlo:
         return source
 
     @staticmethod
-    def prepare_export_data(obj, sample_time=0.1, remove_functions=False):
+    def _prepare_export_data(obj, sample_time=0.1, remove_functions=False):
         """
         Inspects the attributes of an object and returns a dictionary of its
         attributes.
@@ -1221,13 +1119,13 @@ class MonteCarlo:
                         result[attr_name] = attr_value
 
                     elif isinstance(attr_value, dict):
-                        result[attr_name] = MonteCarlo.prepare_export_data(
+                        result[attr_name] = MonteCarlo._prepare_export_data(
                             attr_value, sample_time
                         )
 
                     elif not remove_functions and isinstance(attr_value, Function):
                         # Serialize the Functions
-                        result[attr_name] = MonteCarlo.time_function_serializer(
+                        result[attr_name] = MonteCarlo._time_function_serializer(
                             attr_value, None, sample_time
                         )
         else:
@@ -1243,66 +1141,34 @@ class MonteCarlo:
                         result[attr_name] = attr_value
 
                     elif isinstance(attr_value, dict):
-                        result[attr_name] = MonteCarlo.prepare_export_data(
+                        result[attr_name] = MonteCarlo._prepare_export_data(
                             attr_value, sample_time
                         )
 
                     elif not remove_functions and isinstance(attr_value, Function):
                         # Serialize the Functions
-                        result[attr_name] = MonteCarlo.time_function_serializer(
+                        result[attr_name] = MonteCarlo._time_function_serializer(
                             attr_value, None, sample_time
                         )
 
         return result
 
 
-def import_multiprocess():
-    """Import the necessary modules and submodules for the
-    multiprocess library.
+class MonteCarloManager(BaseManager):
+    """Custom manager for shared objects in the Monte Carlo simulation."""
 
-    Returns
-    -------
-    tuple
-        Tuple containing the imported modules.
-    """
-    multiprocess = import_optional_dependency("multiprocess")
-    managers = import_optional_dependency("multiprocess.managers")
-
-    return multiprocess, managers
-
-
-def create_multiprocess_manager(multiprocess, managers):
-    """Creates a manager for the multiprocess control of the
-    Monte Carlo simulation.
-
-    Parameters
-    ----------
-    multiprocess : module
-        Multiprocess module.
-    managers : module
-        Managing submodules of the multiprocess module.
-
-    Returns
-    -------
-    MonteCarloManager
-        Subclass of BaseManager with the necessary classes registered.
-    """
-
-    class MonteCarloManager(managers.BaseManager):
-        """Custom manager for shared objects in the Monte Carlo simulation."""
-
-        def __init__(self):
-            super().__init__()
-            self.register('Lock', multiprocess.Lock)
-            self.register('Queue', multiprocess.Queue)
-            self.register('Event', multiprocess.Event)
-            self.register('_SimMonitor', _SimMonitor)
-
-    return MonteCarloManager()
+    def __init__(self):
+        super().__init__()
+        self.register('Lock', mp.Lock)
+        self.register('Queue', mp.Queue)
+        self.register('Event', mp.Event)
+        self.register('_SimMonitor', _SimMonitor)
 
 
 class _SimMonitor:
     """Class to monitor the simulation progress and display the status."""
+
+    _last_print_len = 0
 
     def __init__(self, initial_count, n_simulations, start_time):
         self.initial_count = initial_count
@@ -1338,7 +1204,7 @@ class _SimMonitor:
         msg += f" | Average Time per Iteration: {average_time:.3f} s"
         msg += f" | Estimated time left: {estimated_time} s"
 
-        MonteCarlo._reprint(msg, end="\r", flush=True)
+        _SimMonitor._reprint(msg, end="\r", flush=True)
 
     def print_final_status(self):
         """Prints the final status of the simulation."""
@@ -1348,4 +1214,33 @@ class _SimMonitor:
         msg += f" In total, {self.n_simulations} simulations are exported.\n"
         msg += f"Total wall time: {time() - self.start_time:.1f} s"
 
-        MonteCarlo._reprint(msg, end="\n", flush=True)
+        _SimMonitor._reprint(msg, end="\n", flush=True)
+
+    @staticmethod
+    def _reprint(msg, end="\n", flush=False):
+        """
+        Prints a message on the same line as the previous one and replaces the
+        previous message with the new one, deleting the extra characters from
+        the previous message.
+
+        Parameters
+        ----------
+        msg : str
+            Message to be printed.
+        end : str, optional
+            String appended after the message. Default is a new line.
+        flush : bool, optional
+            If True, the output is flushed. Default is False.
+
+        Returns
+        -------
+        None
+        """
+        padding = ""
+
+        if len(msg) < _SimMonitor._last_print_len:
+            padding = " " * (_SimMonitor._last_print_len - len(msg))
+
+        _SimMonitor._last_print_len = len(msg)
+
+        print(msg + padding, end=end, flush=flush)
