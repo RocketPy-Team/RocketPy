@@ -240,7 +240,7 @@ class MonteCarlo:
 
     def __setup_files(self, append):
         """
-        Sets up the files for the simulation, creating then if necessary.
+        Sets up the files for the simulation, creating them if necessary.
 
         Parameters
         ----------
