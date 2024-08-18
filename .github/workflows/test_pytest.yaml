@@ -53,7 +53,9 @@ jobs:
         run: pytest tests/unit --cov=rocketpy
 
       - name: Run Documentation Tests
-        run: pytest rocketpy --doctest-modules --cov=rocketpy --cov-append
+        run: |
+          pip install numpy --upgrade
+          pytest rocketpy --doctest-modules --cov=rocketpy --cov-append
 
       - name: Run Integration Tests
         run: pytest tests/integration --cov=rocketpy --cov-append
