@@ -1014,11 +1014,12 @@ class Function:  # pylint: disable=too-many-public-methods
         window_size,
         step_size,
         remove_dc=True,
-        only_positive=True):
-        '''
+        only_positive=True,
+    ):
+        r"""
         Performs the Short-Time Fourier Transform (STFT) of the Function and
-        returns the result. The STFT is computed by applying the Fourier transform
-        to overlapping windows of the Function.
+        returns the result. The STFT is computed by applying the Fourier
+        transform to overlapping windows of the Function.
 
         Parameters
         ----------
@@ -1033,69 +1034,77 @@ class Function:  # pylint: disable=too-many-public-methods
         step_size : float
             Step size for the window, in seconds.
         remove_dc : bool, optional
-            If True, the DC component is removed from each window before computing the Fourier transform.
+            If True, the DC component is removed from each window before
+            computing the Fourier transform.
         only_positive: bool, optional
             If True, only the positive frequencies are returned.
 
         Returns
         -------
-        list of Function
+        list[Function]
             A list of Functions, each representing the STFT of a window.
 
         Examples
         --------
-        Adopted from (1)
-        >>> from rocketpy import Function
+
         >>> import numpy as np
         >>> import matplotlib.pyplot as plt
+        >>> from rocketpy import Function
 
-        >>> # Generate a signal with varying frequency
+        Generate a signal with varying frequency:
+
         >>> T_x, N = 1 / 20 , 1000  # 20 Hz sampling rate for 50 s signal
         >>> t_x = np.arange(N) * T_x  # time indexes for signal
         >>> f_i = 1 * np.arctan((t_x - t_x[N // 2]) / 2) + 5 # varying frequency
         >>> signal = np.sin(2 * np.pi * np.cumsum(f_i) * T_x)  # the signal
 
-        >>> # Create a Function object
+        Create the Function object and perform the STFT:
+
         >>> time_domain = Function(np.array([t_x, signal]).T)
-        >>> # Perform the STFT
         >>> stft_result = time_domain.short_time_fft(
-        ...     lower=0, upper=50, sampling_frequency=95,
-        ...     window_size=2, step_size=0.5
+        ...     lower=0,
+        ...     upper=50,
+        ...     sampling_frequency=95,
+        ...     window_size=2,
+        ...     step_size=0.5,
         ... )
 
-        >>> # Prepare data for plotting
+        Plot the spectrogram:
+
         >>> Sx = np.abs([window[:, 1] for window in stft_result])
         >>> t_lo, t_hi = t_x[0], t_x[-1]
-        >>> extent = [t_lo, t_hi, 0, 50]
-        >>> # Plot the spectrogram
         >>> fig1, ax1 = plt.subplots(figsize=(10, 6))
-        >>> im1 = ax1.imshow(Sx.T, origin='lower', aspect='auto',
-        ...                  extent=extent, cmap='viridis')
-        >>> _=ax1.set_title(rf"STFT (2$\,s$ Gaussian window, $\sigma_t=0.4\,$s)")
-        >>> _=ax1.set(xlabel=f"Time $t$ in seconds",
-        ...         ylabel=f"Freq. $f$ in Hz)",
-        ...         xlim=(t_lo, t_hi))
-        >>> _=ax1.plot(t_x, f_i, 'r--', alpha=.5, label='$f_i(t)$')
-        >>> _=fig1.colorbar(im1, label="Magnitude $|S_x(t, f)|$")
-
+        >>> im1 = ax1.imshow(
+        ...     Sx.T,
+        ...     origin='lower',
+        ...     aspect='auto',
+        ...     extent=[t_lo, t_hi, 0, 50],
+        ...     cmap='viridis'
+        ... )
+        >>> _ = ax1.set_title(rf"STFT (2$\,s$ Gaussian window, $\sigma_t=0.4\,$s)")
+        >>> _ = ax1.set(
+        ...     xlabel=f"Time $t$ in seconds",
+        ...     ylabel=f"Freq. $f$ in Hz)",
+        ...     xlim=(t_lo, t_hi)
+        ... )
+        >>> _ = ax1.plot(t_x, f_i, 'r--', alpha=.5, label='$f_i(t)$')
+        >>> _ = fig1.colorbar(im1, label="Magnitude $|S_x(t, f)|$")
         >>> # Shade areas where window slices stick out to the side
-        >>> for t0_, t1_ in [(t_lo, 1),
-        ...                  (49, t_hi)]:
-        ...     _=ax1.axvspan(t0_, t1_, color='w', linewidth=0, alpha=.2)
-
+        >>> for t0_, t1_ in [(t_lo, 1), (49, t_hi)]:
+        ...     _ = ax1.axvspan(t0_, t1_, color='w', linewidth=0, alpha=.2)
         >>> # Mark signal borders with vertical line
         >>> for t_ in [t_lo, t_hi]:
-        ...     _=ax1.axvline(t_, color='y', linestyle='--', alpha=0.5)
-
+        ...     _ = ax1.axvline(t_, color='y', linestyle='--', alpha=0.5)
         >>> # Add legend and finalize plot
-        >>> _=ax1.legend()
+        >>> _ = ax1.legend()
         >>> fig1.tight_layout()
-        >>> plt.show()
+        >>> # plt.show() # uncomment to show the plot
 
         References
-        ---------------
-        [1] https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.ShortTimeFFT.html
-        '''
+        ----------
+        Example adapted from the SciPy documentation:
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.ShortTimeFFT.html
+        """
         # Get the time domain data
         sampling_time_step = 1.0 / sampling_frequency
         sampling_range = np.arange(lower, upper, sampling_time_step)
@@ -1104,9 +1113,9 @@ class Function:  # pylint: disable=too-many-public-methods
         samples_skipped_per_step = int(step_size * sampling_frequency)
         stft_results = []
 
-        for start in range(
-            0, len(sampled_points) - samples_per_window + 1, samples_skipped_per_step
-        ):
+        max_start = len(sampled_points) - samples_per_window + 1
+
+        for start in range(0, max_start, samples_skipped_per_step):
             windowed_samples = sampled_points[start : start + samples_per_window]
             if remove_dc:
                 windowed_samples -= np.mean(windowed_samples)
