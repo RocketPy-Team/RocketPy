@@ -43,7 +43,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
-
+- BUG: fix the Frequency Response plot of Flight class [#653](https://github.com/RocketPy-Team/RocketPy/pull/653)
 
 ## [v1.4.2] - 2024-08-03
 
