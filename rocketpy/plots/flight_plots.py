@@ -753,7 +753,7 @@ class _FlightPlots:
             self.flight.omega2_frequency_response(x_axis) / max_omega2,
             label=r"$\omega_2$",
         )
-        max_omega3 = max(self.flight.omega3_frequency_response[:, 1])
+        max_omega3 = self.flight.omega3_frequency_response.max
         max_omega3 = max_omega3 if max_omega3 != 0 else 1
         ax2.plot(
             x_axis,
