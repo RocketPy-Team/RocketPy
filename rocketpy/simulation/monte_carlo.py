@@ -225,7 +225,7 @@ class MonteCarlo:
         self._initial_sim_idx = self.num_of_loaded_sims if append else 0
 
         # Begin display
-        _SimMonitor._reprint("Starting Monte Carlo analysis")
+        _SimMonitor.reprint("Starting Monte Carlo analysis")
 
         # Setup files
         self.__setup_files(append)
@@ -303,12 +303,12 @@ class MonteCarlo:
             sim_monitor.print_final_status()
 
         except KeyboardInterrupt:
-            _SimMonitor._reprint("Keyboard Interrupt, files saved.")
+            _SimMonitor.reprint("Keyboard Interrupt, files saved.")
             with open(self._error_file, "a", encoding="utf-8") as file:
                 file.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
 
         except Exception as error:
-            _SimMonitor._reprint(
+            _SimMonitor.reprint(
                 f"Error on iteration {self.__sim_monitor.count}: {error}"
             )
             with open(self._error_file, "a", encoding="utf-8") as file:
@@ -338,6 +338,7 @@ class MonteCarlo:
         with MonteCarloManager() as manager:
             export_queue = manager.Queue()
             mutex = manager.Lock()
+            producer_stop_event = manager.Event()
             consumer_stop_event = manager.Event()
 
             sim_monitor = manager._SimMonitor(
@@ -356,6 +357,7 @@ class MonteCarlo:
                         sim_monitor,
                         export_queue,
                         mutex,
+                        producer_stop_event,
                         seed,
                     ),
                 )
@@ -375,16 +377,30 @@ class MonteCarlo:
 
             sim_consumer.start()
 
-            for sim_producer in processes:
-                sim_producer.join()
+            try:
+                for sim_producer in processes:
+                    sim_producer.join()
 
-            consumer_stop_event.set()
+                consumer_stop_event.set()
 
-            sim_consumer.join()
+                sim_consumer.join()
 
-            sim_monitor.print_final_status()
+                sim_monitor.print_final_status()
+            except KeyboardInterrupt:
+                producer_stop_event.set()
+                for sim_producer in processes:
+                    sim_producer.join()
+                consumer_stop_event.set()
+                sim_consumer.join()
+            except Exception as error:
+                producer_stop_event.set()
+                for sim_producer in processes:
+                    sim_producer.join()
+                consumer_stop_event.set()
+                sim_consumer.join()
+                raise error
 
-    def __sim_producer(self, sim_monitor, export_queue, mutex, seed):
+    def __sim_producer(self, sim_monitor, export_queue, mutex, stop_event, seed):
         """Simulation producer to be used in parallel by multiprocessing.
 
         Parameters
@@ -411,20 +427,30 @@ class MonteCarlo:
                 inputs_dict, outputs_dict = self.__run_single_simulation(sim_idx)
 
                 export_queue.put((inputs_dict, outputs_dict))
+                
+                try:
+                    mutex.acquire()
+                    sim_monitor.print_update_status(sim_idx)
 
-                mutex.acquire()
-                sim_monitor.print_update_status(sim_idx)
-                mutex.release()
+                    if stop_event.is_set():
+                        sim_monitor.reprint(f"Keyboard Interrupt, files from simulation {sim_idx} saved.")
+                        with open(self.error_file, "a", encoding="utf-8") as file:
+                            file.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
+                        
+                        break
+                finally:
+                    mutex.release()
 
         except Exception as error:
             mutex.acquire()
             with open(self.error_file, "a", encoding="utf-8") as file:
                 file.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
 
-            _SimMonitor._reprint(f"Error on iteration {sim_idx}: {error}")
+            sim_monitor.reprint(f"Error on iteration {sim_idx}: {error}")
             mutex.release()
 
             raise error
+            
 
     def __sim_consumer(
         self,
@@ -541,7 +567,7 @@ class MonteCarlo:
         self.output_file = self.batch_path / f"{self.filename}.outputs.txt"
         self.error_file = self.batch_path / f"{self.filename}.errors.txt"
 
-        _SimMonitor._reprint(f"Results saved to {self._output_file}")
+        _SimMonitor.reprint(f"Results saved to {self._output_file}")
 
     def __check_export_list(self, export_list):
         """
@@ -843,7 +869,7 @@ class MonteCarlo:
             with open(filepath, "r+", encoding="utf-8"):
                 self.output_file = filepath
 
-        _SimMonitor._reprint(
+        _SimMonitor.reprint(
             f"A total of {self.num_of_loaded_sims} simulations results were "
             f"loaded from the following output file: {self.output_file}\n"
         )
@@ -871,7 +897,7 @@ class MonteCarlo:
             with open(filepath, "r+", encoding="utf-8"):
                 self.input_file = filepath
 
-        _SimMonitor._reprint(
+        _SimMonitor.reprint(
             f"The following input file was imported: {self.input_file}"
         )
 
@@ -898,7 +924,7 @@ class MonteCarlo:
             with open(filepath, "r+", encoding="utf-8"):
                 self.error_file = filepath
 
-        _SimMonitor._reprint(
+        _SimMonitor.reprint(
             f"The following error file was imported: {self.error_file}"
         )
 
@@ -1204,7 +1230,7 @@ class _SimMonitor:
         msg += f" | Average Time per Iteration: {average_time:.3f} s"
         msg += f" | Estimated time left: {estimated_time} s"
 
-        _SimMonitor._reprint(msg, end="\r", flush=True)
+        _SimMonitor.reprint(msg, end="\r", flush=True)
 
     def print_final_status(self):
         """Prints the final status of the simulation."""
@@ -1214,10 +1240,10 @@ class _SimMonitor:
         msg += f" In total, {self.n_simulations} simulations are exported.\n"
         msg += f"Total wall time: {time() - self.start_time:.1f} s"
 
-        _SimMonitor._reprint(msg, end="\n", flush=True)
+        _SimMonitor.reprint(msg, end="\n", flush=True)
 
     @staticmethod
-    def _reprint(msg, end="\n", flush=False):
+    def reprint(msg, end="\n", flush=True):
         """
         Prints a message on the same line as the previous one and replaces the
         previous message with the new one, deleting the extra characters from
@@ -1241,6 +1267,7 @@ class _SimMonitor:
         if len(msg) < _SimMonitor._last_print_len:
             padding = " " * (_SimMonitor._last_print_len - len(msg))
 
+        print(msg + padding, end=end, flush=flush)
+
         _SimMonitor._last_print_len = len(msg)
 
-        print(msg + padding, end=end, flush=flush)
