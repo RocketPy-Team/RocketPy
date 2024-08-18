@@ -596,7 +596,7 @@ class Rocket:
 
     def evaluate_dry_inertias(self):
         """Calculates and returns the rocket's dry inertias relative to
-        the rocket's center of mass. The inertias are saved and returned
+        the rocket's center of dry mass. The inertias are saved and returned
         in units of kg*m². This does not consider propellant mass but does take
         into account the motor dry mass.
 
@@ -605,27 +605,27 @@ class Rocket:
         self.dry_I_11 : float
             Float value corresponding to rocket inertia tensor 11
             component, which corresponds to the inertia relative to the
-            e_1 axis, centered at the instantaneous center of mass.
+            e_1 axis, centered at the center of dry mass.
         self.dry_I_22 : float
             Float value corresponding to rocket inertia tensor 22
             component, which corresponds to the inertia relative to the
-            e_2 axis, centered at the instantaneous center of mass.
+            e_2 axis, centered at the center of dry mass.
         self.dry_I_33 : float
             Float value corresponding to rocket inertia tensor 33
             component, which corresponds to the inertia relative to the
-            e_3 axis, centered at the instantaneous center of mass.
+            e_3 axis, centered at the center of dry mass.
         self.dry_I_12 : float
             Float value corresponding to rocket inertia tensor 12
             component, which corresponds to the inertia relative to the
-            e_1 and e_2 axes, centered at the instantaneous center of mass.
+            e_1 and e_2 axes, centered at the center of dry mass.
         self.dry_I_13 : float
             Float value corresponding to rocket inertia tensor 13
             component, which corresponds to the inertia relative to the
-            e_1 and e_3 axes, centered at the instantaneous center of mass.
+            e_1 and e_3 axes, centered at the center of dry mass.
         self.dry_I_23 : float
             Float value corresponding to rocket inertia tensor 23
             component, which corresponds to the inertia relative to the
-            e_2 and e_3 axes, centered at the instantaneous center of mass.
+            e_2 and e_3 axes, centered at the center of dry mass.
 
         Notes
         -----
@@ -681,7 +681,7 @@ class Rocket:
 
     def evaluate_inertias(self):
         """Calculates and returns the rocket's inertias relative to
-        the rocket's center of mass. The inertias are saved and returned
+        the rocket's center of dry mass. The inertias are saved and returned
         in units of kg*m².
 
         Returns
@@ -689,15 +689,15 @@ class Rocket:
         self.I_11 : float
             Float value corresponding to rocket inertia tensor 11
             component, which corresponds to the inertia relative to the
-            e_1 axis, centered at the instantaneous center of mass.
+            e_1 axis, centered at the center of dry mass.
         self.I_22 : float
             Float value corresponding to rocket inertia tensor 22
             component, which corresponds to the inertia relative to the
-            e_2 axis, centered at the instantaneous center of mass.
+            e_2 axis, centered at the center of dry mass.
         self.I_33 : float
             Float value corresponding to rocket inertia tensor 33
             component, which corresponds to the inertia relative to the
-            e_3 axis, centered at the instantaneous center of mass.
+            e_3 axis, centered at the center of dry mass.
 
         Notes
         -----
@@ -814,7 +814,7 @@ class Rocket:
 
     def get_inertia_tensor_at_time(self, t):
         """Returns a Matrix representing the inertia tensor of the rocket with
-        respect to the rocket's center of mass at a given time. It evaluates
+        respect to the rocket's center of dry mass at a given time. It evaluates
         each inertia tensor component at the given time and returns a Matrix
         with the computed values.
 
@@ -844,8 +844,8 @@ class Rocket:
 
     def get_inertia_tensor_derivative_at_time(self, t):
         """Returns a Matrix representing the time derivative of the inertia
-        tensor of the rocket with respect to the rocket's center of mass at a
-        given time. It evaluates each inertia tensor component's derivative at
+        tensor of the rocket with respect to the rocket's center of dry mass at
+        a given time. It evaluates each inertia tensor component's derivative at
         the given time and returns a Matrix with the computed values.
 
         Parameters
