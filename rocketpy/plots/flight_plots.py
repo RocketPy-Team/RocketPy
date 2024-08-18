@@ -731,32 +731,33 @@ class _FlightPlots:
         ax1.grid()
 
         ax2 = plt.subplot(212)
-        max_attitude = max(self.flight.attitude_frequency_response[:, 1])
+        x_axis = np.arange(0, 5, 0.01)
+        max_attitude = self.flight.attitude_frequency_response.max
         max_attitude = max_attitude if max_attitude != 0 else 1
         ax2.plot(
-            self.flight.attitude_frequency_response[:, 0],
-            self.flight.attitude_frequency_response[:, 1] / max_attitude,
+            x_axis,
+            self.flight.attitude_frequency_response(x_axis) / max_attitude,
             label="Attitude Angle",
         )
-        max_omega1 = max(self.flight.omega1_frequency_response[:, 1])
+        max_omega1 = self.flight.omega1_frequency_response.max
         max_omega1 = max_omega1 if max_omega1 != 0 else 1
         ax2.plot(
-            self.flight.omega1_frequency_response[:, 0],
-            self.flight.omega1_frequency_response[:, 1] / max_omega1,
+            x_axis,
+            self.flight.omega1_frequency_response(x_axis) / max_omega1,
             label=r"$\omega_1$",
         )
-        max_omega2 = max(self.flight.omega2_frequency_response[:, 1])
+        max_omega2 = self.flight.omega2_frequency_response.max
         max_omega2 = max_omega2 if max_omega2 != 0 else 1
         ax2.plot(
-            self.flight.omega2_frequency_response[:, 0],
-            self.flight.omega2_frequency_response[:, 1] / max_omega2,
+            x_axis,
+            self.flight.omega2_frequency_response(x_axis) / max_omega2,
             label=r"$\omega_2$",
         )
         max_omega3 = max(self.flight.omega3_frequency_response[:, 1])
         max_omega3 = max_omega3 if max_omega3 != 0 else 1
         ax2.plot(
-            self.flight.omega3_frequency_response[:, 0],
-            self.flight.omega3_frequency_response[:, 1] / max_omega3,
+            x_axis,
+            self.flight.omega3_frequency_response(x_axis) / max_omega3,
             label=r"$\omega_3$",
         )
         ax2.set_title("Frequency Response")
