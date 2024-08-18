@@ -1400,7 +1400,6 @@ class Flight:  # pylint: disable=too-many-public-methods
             * self.rocket._csys
         )
         c = self.rocket.nozzle_to_cdm
-        a = self.rocket.com_to_cdm_function.get_value_opt(t)
         nozzle_radius = self.rocket.motor.nozzle_radius
         # Prepare transformation matrix
         a11 = 1 - 2 * (e2**2 + e3**2)
