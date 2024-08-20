@@ -353,11 +353,15 @@ def inverted_haversine(lat0, lon0, distance, bearing, earth_radius=6.3781e6):
     # Apply inverted Haversine formula
     lat1_rad = math.asin(
         math.sin(lat0_rad) * math.cos(distance / earth_radius)
-        + math.cos(lat0_rad) * math.sin(distance / earth_radius) * math.cos(bearing)
+        + math.cos(lat0_rad)
+        * math.sin(distance / earth_radius)
+        * math.cos(math.radians(bearing))
     )
 
     lon1_rad = lon0_rad + math.atan2(
-        math.sin(bearing) * math.sin(distance / earth_radius) * math.cos(lat0_rad),
+        math.sin(math.radians(bearing))
+        * math.sin(distance / earth_radius)
+        * math.cos(lat0_rad),
         math.cos(distance / earth_radius) - math.sin(lat0_rad) * math.sin(lat1_rad),
     )
 
