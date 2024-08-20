@@ -2382,7 +2382,7 @@ class Environment:
             DeprecationWarning,
         )
 
-    @funcify_method("Height Above Sea Level (m)", "Pressure (Pa)", "spline", "linear")
+    @funcify_method("Height Above Sea Level (m)", "Pressure (Pa)", "spline", "natural")
     def pressure_ISA(self):
         """Pressure, in Pa, as a function of height above sea level as defined
         by the `International Standard Atmosphere ISO 2533`."""
