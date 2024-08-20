@@ -3185,9 +3185,10 @@ class Flight:  # pylint: disable=too-many-public-methods
             The file name or path of the exported file. Example: flight_data.csv
             Do not use forbidden characters, such as / in Linux/Unix and
             `<, >, :, ", /, \\, | ?, *` in Windows.
-        sensor : Sensor, optional
-            The sensor to export data. If None, all sensors data will be exported.
-            Default is None.
+        sensor : Sensor, string, optional
+            The sensor to export data from. Can be given as a Sensor object or
+            as a string with the sensor name. If None, all sensors data will be
+            exported. Default is None.
         """
         if sensor is None:
             data_dict = {}
@@ -3196,7 +3197,21 @@ class Flight:  # pylint: disable=too-many-public-methods
         else:
             # export data of only that sensor
             data_dict = {}
-            data_dict[sensor.name] = self.sensor_data[sensor]
+
+            if not isinstance(sensor, str):
+                data_dict[sensor.name] = self.sensor_data[sensor]
+            else:  # sensor is a string
+                matching_sensors = [s for s in self.sensor_data.keys() if s.name == sensor]
+
+                if len(matching_sensors)>1:
+                    data_dict[sensor] = []
+                    for s in matching_sensors:
+                        data_dict[s.name].append(self.sensor_data[s])
+                elif len(matching_sensors) == 1:
+                    data_dict[sensor] = self.sensor_data[matching_sensors[0]]
+                else:
+                    raise ValueError("Sensor not found in the Flight.sensor_data.")
+
         with open(file_name, "w") as file:
             json.dump(data_dict, file)
         print("Sensor data exported to", file_name)
