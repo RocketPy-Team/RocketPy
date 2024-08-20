@@ -42,7 +42,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
-
+- BUG: Rotational EOMs Not Relative To CDM [#674](https://github.com/RocketPy-Team/RocketPy/pull/674)
 
 ## [v1.4.2] - 2024-08-03
 
