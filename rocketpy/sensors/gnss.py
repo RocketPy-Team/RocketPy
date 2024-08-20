@@ -2,6 +2,8 @@ import math
 
 import numpy as np
 
+from rocketpy.tools import inverted_haversine
+
 from ..mathutils.vector_matrix import Matrix, Vector
 from ..prints.sensors_prints import _GNSSPrints
 from .sensor import ScalarSensor
@@ -98,26 +100,7 @@ class GNSS(ScalarSensor):
         bearing = (2 * math.pi - math.atan2(-x, y)) * (180 / math.pi)
 
         # Applies the haversine equation to find final lat/lon coordinates
-        latitude = math.degrees(
-            math.asin(
-                math.sin(lat1) * math.cos(drift / earth_radius)
-                + math.cos(lat1)
-                * math.sin(drift / earth_radius)
-                * math.cos(math.radians(bearing))
-            )
-        )
-
-        # Applies the haversine equation to find final lat/lon coordinates
-        longitude = math.degrees(
-            lon1
-            + math.atan2(
-                math.sin(math.radians(bearing))
-                * math.sin(drift / earth_radius)
-                * math.cos(lat1),
-                math.cos(drift / earth_radius)
-                - math.sin(lat1) * math.sin(math.radians(latitude)),
-            )
-        )
+        latitude, longitude = inverted_haversine(lat, lon, drift, bearing, earth_radius)
 
         self.measurement = (latitude, longitude, altitude)
         self._save_data((time, *self.measurement))
