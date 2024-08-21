@@ -14,12 +14,10 @@ latest documentation.
 """
 
 import json
-import multiprocessing as mp
 import os
 import queue
 import traceback
 import warnings
-from multiprocessing.managers import BaseManager
 from pathlib import Path
 from time import time
 
@@ -33,6 +31,7 @@ from rocketpy.simulation.flight import Flight
 from rocketpy.tools import (
     generate_monte_carlo_ellipses,
     generate_monte_carlo_ellipses_coordinates,
+    import_optional_dependency,
 )
 
 # TODO: Create evolution plots to analyze convergence
@@ -305,7 +304,9 @@ class MonteCarlo:
         if n_workers < 2:
             raise ValueError("Number of workers must be at least 2 for parallel mode.")
 
-        with MonteCarloManager() as manager:
+        multiprocess, managers = import_multiprocess()
+
+        with create_multiprocess_manager(multiprocess, managers) as manager:
             export_queue = manager.Queue()
             mutex = manager.Lock()
             consumer_stop_event = manager.Event()
@@ -321,7 +322,7 @@ class MonteCarlo:
             seeds = np.random.SeedSequence().spawn(n_workers - 1)
 
             for seed in seeds:
-                sim_producer = mp.Process(
+                sim_producer = multiprocess.Process(
                     target=self.__sim_producer,
                     args=(
                         seed,
@@ -336,7 +337,7 @@ class MonteCarlo:
             for sim_producer in processes:
                 sim_producer.start()
 
-            sim_consumer = mp.Process(
+            sim_consumer = multiprocess.Process(
                 target=self.__sim_consumer,
                 args=(export_queue, mutex, consumer_stop_event, simulation_error_event),
             )
@@ -1037,15 +1038,49 @@ class MonteCarlo:
         self.plots.all()
 
 
-class MonteCarloManager(BaseManager):
-    """Custom manager for shared objects in the Monte Carlo simulation."""
+def import_multiprocess():
+    """Import the necessary modules and submodules for the
+    multiprocess library.
 
-    def __init__(self):
-        super().__init__()
-        self.register('Lock', mp.Lock)
-        self.register('Queue', mp.Queue)
-        self.register('Event', mp.Event)
-        self.register('_SimMonitor', _SimMonitor)
+    Returns
+    -------
+    tuple
+        Tuple containing the imported modules.
+    """
+    multiprocess = import_optional_dependency("multiprocess")
+    managers = import_optional_dependency("multiprocess.managers")
+
+    return multiprocess, managers
+
+
+def create_multiprocess_manager(multiprocess, managers):
+    """Creates a manager for the multiprocess control of the
+    Monte Carlo simulation.
+
+    Parameters
+    ----------
+    multiprocess : module
+        Multiprocess module.
+    managers : module
+        Managing submodules of the multiprocess module.
+
+    Returns
+    -------
+    MonteCarloManager
+        Subclass of BaseManager with the necessary classes registered.
+    """
+
+    class MonteCarloManager(managers.BaseManager):
+        """Custom manager for shared objects in the Monte Carlo simulation."""
+
+        def __init__(self):
+            super().__init__()
+            self.register('Lock', multiprocess.Lock)
+            self.register('Queue', multiprocess.Queue)
+            self.register('Event', multiprocess.Event)
+            self.register('_SimMonitor', _SimMonitor)
+
+    return MonteCarloManager()
 
 
 class _SimMonitor:
