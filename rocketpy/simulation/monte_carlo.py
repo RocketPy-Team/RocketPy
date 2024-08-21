@@ -283,6 +283,7 @@ class MonteCarlo:
                 file.write(inputs_dict)
             raise error
 
+    # pylint: disable=too-many-statements
     def __run_in_parallel(self, n_workers=None):
         """
         Runs the monte carlo simulation in parallel.
@@ -298,7 +299,8 @@ class MonteCarlo:
         None
         """
         if n_workers is None or n_workers > os.cpu_count():
-            n_workers = os.cpu_count()
+            # For Windows, the number of workers must be at most os.cpu_count() - 1
+            n_workers = os.cpu_count() - 1
 
         if n_workers < 2:
             raise ValueError("Number of workers must be at least 2 for parallel mode.")
