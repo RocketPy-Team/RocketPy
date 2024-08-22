@@ -551,6 +551,28 @@ def generate_monte_carlo_ellipses_coordinates(
     return outputs
 
 
+def flatten_dict(x):
+    # Auxiliary function that flattens dictionary
+    # this is used mainly in the load_monte_carlo_data function
+    new_dict = {}
+    for key, value in x.items():
+        # the nested dictionary is inside a list
+        if isinstance(x[key], list):
+            # sometimes the object inside the list is another list
+            # we must skip these cases
+            if isinstance(value[0], dict):
+                inner_dict = flatten_dict(value[0])
+                inner_dict = {
+                    key + "_" + inner_key: inner_value
+                    for inner_key, inner_value in inner_dict.items()
+                }
+                new_dict.update(inner_dict)
+        else:
+            new_dict.update({key: value})
+
+    return new_dict
+
+
 def load_monte_carlo_data(
     input_filename,
     output_filename,
@@ -587,26 +609,6 @@ def load_monte_carlo_data(
     """
     number_of_samples_parameters = 0
     number_of_samples_variables = 0
-
-    # Auxiliary function that flattens dictionary
-    def flatten_dict(x):
-        new_dict = {}
-        for key, value in x.items():
-            # the nested dictionary is inside a list
-            if isinstance(x[key], list):
-                # sometimes the object inside the list is another list
-                # we must skip these cases
-                if isinstance(value[0], dict):
-                    inner_dict = flatten_dict(value[0])
-                    inner_dict = {
-                        key + "_" + inner_key: inner_value
-                        for inner_key, inner_value in inner_dict.items()
-                    }
-                    new_dict.update(inner_dict)
-            else:
-                new_dict.update({key: value})
-
-        return new_dict
 
     parameters_samples = {parameter: [] for parameter in parameters_list}
     with open(input_filename, "r") as parameters_file:
