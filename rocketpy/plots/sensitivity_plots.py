@@ -7,6 +7,28 @@ class _SensitivityModelPlots:
     def __init__(self, model):
         self.model = model
 
+    def __create_bar_plot(self, x, y, title, bar_colors):
+        fig, axs = plt.subplots()
+        fig.supxlabel("")
+        fig.supylabel("Sensitivity (%)")
+        axs.bar(x, y, color=bar_colors)
+        axs.set_title(title)
+        axs.tick_params(labelrotation=90)
+
+    def __calculate_sensitivities(self, target_variable):
+        x = self.model.parameters_names + ["LAE"]
+        y = np.array(
+            [
+                100
+                * self.model.target_variables_info[target_variable]["sensitivity"][
+                    param
+                ]
+                for param in self.model.parameters_names
+            ]
+            + [100 * self.model.target_variables_info[target_variable]["LAE"]]
+        )
+        return x, y
+
     def bar_plot(self, target_variable="all"):
         """Creates a bar plot showing the sensitivity of the target_variable due
         to parameters
@@ -24,67 +46,28 @@ class _SensitivityModelPlots:
         """
         self.model._raise_error_if_not_fitted()
 
-        if (target_variable not in self.model.target_variables_names) and (
+        if (
             target_variable != "all"
+            and target_variable not in self.model.target_variables_names
         ):
             raise ValueError(
-                f"Target variable {target_variable} was not listed in \
-                  initialization!"
+                f"Target variable {target_variable} was not listed in initialization!"
             )
 
-        # Parameters bars are blue colored
-        # LAE bar is red colored
-        bar_colors = self.model.n_parameters * ["blue"]
-        bar_colors.append("red")
+        bar_colors = self.model.n_parameters * ["blue"] + ["red"]
 
         if target_variable == "all":
-            for i in range(self.model.n_target_variables):
-                fig, axs = plt.subplots()
-                fig.supxlabel("")
-                fig.supylabel("Sensitivity (%)")
-                x = self.model.parameters_names
-                x.append("LAE")
-                current_target_variable = self.model.target_variables_names[i]
-                y = np.empty(self.model.n_parameters + 1)
-                for j in range(self.model.n_parameters):
-                    parameter = x[j]
-                    y[j] = (
-                        100
-                        * self.model.target_variables_info[current_target_variable][
-                            "sensitivity"
-                        ][parameter]
-                    )
-                y[self.model.n_parameters] = (
-                    100
-                    * self.model.target_variables_info[current_target_variable]["LAE"]
-                )
-                axs.bar(x, y, color=bar_colors)
-                axs.set_title(current_target_variable)
-                axs.tick_params(labelrotation=90)
-            plt.show()
+            for current_target_variable in self.model.target_variables_names:
+                x, y = self.__calculate_sensitivities(current_target_variable)
+                # sort by sensitivity
+                y, x, bar_colors = zip(*sorted(zip(y, x, bar_colors), reverse=True))
+                self.__create_bar_plot(x, y, current_target_variable, bar_colors)
+        else:
+            x, y = self.__calculate_sensitivities(target_variable)
+            # sort by sensitivity
+            y, x, bar_colors = zip(*sorted(zip(y, x, bar_colors), reverse=True))
+            self.__create_bar_plot(x, y, target_variable, bar_colors)
 
-            return
-
-        fig, axs = plt.subplots()
-        fig.supxlabel("")
-        fig.supylabel("Sensitivity (%)")
-        x = self.model.parameters_names
-        x.append("LAE")
-        y = np.empty(self.model.n_parameters + 1)
-        for j in range(self.model.n_parameters):
-            parameter = x[j]
-            y[j] = (
-                100
-                * self.model.target_variables_info[target_variable]["sensitivity"][
-                    parameter
-                ]
-            )
-        y[self.model.n_parameters] = (
-            100 * self.model.target_variables_info[target_variable]["LAE"]
-        )
-        axs.bar(x, y, color=bar_colors)
-        axs.set_title(target_variable)
-        axs.tick_params(labelrotation=90)
         plt.show()
 
     def all(self):
