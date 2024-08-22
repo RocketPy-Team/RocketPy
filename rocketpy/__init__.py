@@ -50,4 +50,3 @@ from .stochastic import (
     StochasticTail,
     StochasticTrapezoidalFins,
 )
-from .tools import load_monte_carlo_data
