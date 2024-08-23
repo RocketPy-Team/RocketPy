@@ -136,3 +136,29 @@ def test_export_all_sensors_data(flight_calisto_with_sensors):
     )
     assert sensor_data["GNSS"] == flight_calisto_with_sensors.sensors[4].measured_data
     os.remove(filename)
+
+
+def test_export_single_sensor_data(flight_calisto_with_sensors):
+    """Test the export of a single sensor data.
+
+    Parameters
+    ----------
+    flight_calisto_with_sensors : Flight
+        Pytest fixture for the flight of the calisto rocket with a set of ideal
+        sensors.
+    """
+    flight_calisto_with_sensors.export_sensor_data("test_sensor_data.json", "Gyroscope")
+    # read the json and parse as dict
+    filename = "test_sensor_data.json"
+    with open(filename, "r") as f:
+        data = f.read()
+        sensor_data = json.loads(data)
+    # convert list of tuples into list of lists to compare with the json
+    flight_calisto_with_sensors.sensors[2].measured_data = [
+        list(measurement)
+        for measurement in flight_calisto_with_sensors.sensors[2].measured_data
+    ]
+    assert (
+        sensor_data["Gyroscope"] == flight_calisto_with_sensors.sensors[2].measured_data
+    )
+    os.remove(filename)
