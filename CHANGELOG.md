@@ -32,7 +32,8 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
--  ENH: Rocket Axis Definition [#635](https://github.com/RocketPy-Team/RocketPy/pull/635)
+- ENH: Add STFT function to Function class [#620](https://github.com/RocketPy-Team/RocketPy/pull/620) 
+- ENH: Rocket Axis Definition [#635](https://github.com/RocketPy-Team/RocketPy/pull/635)
 
 ### Changed
 
@@ -42,7 +43,8 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
-
+- BUG: Pressure ISA Extrapolation as "linear" [#675](https://github.com/RocketPy-Team/RocketPy/pull/675)
+- BUG: fix the Frequency Response plot of Flight class [#653](https://github.com/RocketPy-Team/RocketPy/pull/653)
 
 ## [v1.4.2] - 2024-08-03
 
