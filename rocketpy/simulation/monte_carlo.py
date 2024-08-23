@@ -167,6 +167,7 @@ class MonteCarlo:
         n_workers : int, optional
             Number of workers to be used if ``parallel=True``. If None, the
             number of workers will be equal to the number of CPUs available.
+            A minimum of 2 workers is required for parallel mode.
             Default is None.
 
         Returns
