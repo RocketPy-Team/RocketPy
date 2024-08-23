@@ -3201,9 +3201,9 @@ class Flight:  # pylint: disable=too-many-public-methods
             if not isinstance(sensor, str):
                 data_dict[sensor.name] = self.sensor_data[sensor]
             else:  # sensor is a string
-                matching_sensors = [s for s in self.sensor_data.keys() if s.name == sensor]
+                matching_sensors = [s for s in self.sensor_data if s.name == sensor]
 
-                if len(matching_sensors)>1:
+                if len(matching_sensors) > 1:
                     data_dict[sensor] = []
                     for s in matching_sensors:
                         data_dict[s.name].append(self.sensor_data[s])
