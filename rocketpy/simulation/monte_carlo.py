@@ -145,14 +145,13 @@ class MonteCarlo:
         self.import_outputs(self.filename.with_suffix(".outputs.txt"))
         self.import_errors(self.filename.with_suffix(".errors.txt"))
 
-    # pylint: disable=consider-using-with
     def simulate(
         self,
         number_of_simulations,
         append=False,
         parallel=False,
         n_workers=None,
-    ):  # pylint: disable=too-many-statements
+    ):
         """
         Runs the Monte Carlo simulation and saves all data.
 
@@ -191,13 +190,10 @@ class MonteCarlo:
         self.number_of_simulations = number_of_simulations
         self._initial_sim_idx = self.num_of_loaded_sims if append else 0
 
-        # Begin display
         _SimMonitor.reprint("Starting Monte Carlo analysis")
 
-        # Setup files
         self.__setup_files(append)
 
-        # Run simulations
         if parallel:
             self.__run_in_parallel(n_workers)
         else:
@@ -240,11 +236,6 @@ class MonteCarlo:
     def __run_in_serial(self):
         """
         Runs the monte carlo simulation in serial mode.
-
-        Parameters
-        ----------
-        start_index : int
-            The index of the first simulation to be run.
 
         Returns
         -------
@@ -303,9 +294,9 @@ class MonteCarlo:
         if n_workers < 2:
             raise ValueError("Number of workers must be at least 2 for parallel mode.")
 
-        multiprocess, managers = import_multiprocess()
+        multiprocess, managers = _import_multiprocess()
 
-        with create_multiprocess_manager(multiprocess, managers) as manager:
+        with _create_multiprocess_manager(multiprocess, managers) as manager:
             export_queue = manager.Queue()
             mutex = manager.Lock()
             consumer_stop_event = manager.Event()
@@ -442,10 +433,6 @@ class MonteCarlo:
         ----------
         export_queue : multiprocess.Queue
             The queue to export the results.
-        inputs_file : str
-            The file path to write the inputs.
-        outputs_file : str
-            The file path to write the outputs.
         mutex : multiprocess.Lock
             The mutex to lock access to critical regions.
         stop_event : multiprocess.Event
@@ -1041,7 +1028,7 @@ class MonteCarlo:
         self.plots.all()
 
 
-def import_multiprocess():
+def _import_multiprocess():
     """Import the necessary modules and submodules for the
     multiprocess library.
 
@@ -1056,7 +1043,7 @@ def import_multiprocess():
     return multiprocess, managers
 
 
-def create_multiprocess_manager(multiprocess, managers):
+def _create_multiprocess_manager(multiprocess, managers):
     """Creates a manager for the multiprocess control of the
     Monte Carlo simulation.
 
@@ -1150,7 +1137,7 @@ class _SimMonitor:
         end : str, optional
             String appended after the message. Default is a new line.
         flush : bool, optional
-            If True, the output is flushed. Default is False.
+            If True, the output is flushed. Default is True.
 
         Returns
         -------
