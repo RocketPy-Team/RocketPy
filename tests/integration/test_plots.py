@@ -2,6 +2,8 @@
 import os
 from unittest.mock import patch
 
+import matplotlib.pyplot as plt
+
 from rocketpy import Flight
 from rocketpy.plots.compare import CompareFlights
 
@@ -22,7 +24,7 @@ def test_compare(mock_show, flight_calisto):
 
     objects = [flight, flight, flight]
 
-    comparison = Compare(object_list=objects)
+    comparison = CompareFlights(objects)
 
     fig, _ = comparison.create_comparison_figure(
         y_attributes=["z"],
@@ -38,7 +40,7 @@ def test_compare(mock_show, flight_calisto):
         x_attributes=["time"],
     )
 
-    assert isinstance(fig, plt.Figure) == True
+    assert isinstance(fig, plt.Figure)
 
 
 @patch("matplotlib.pyplot.show")

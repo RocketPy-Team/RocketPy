@@ -189,7 +189,8 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
         show_or_save_plot(filename)
 
     def average_surface_temperature_evolution(
-        self, filename=None,
+        self,
+        filename=None,
     ):  # pylint: disable=too-many-statements
         """Plots average temperature progression throughout the day, including
         sigma contours.
@@ -264,9 +265,7 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
         show_or_save_plot(filename)
 
     def average_surface10m_wind_speed_evolution(
-        
         self, wind_speed_limit=False, filename=None
-    
     ):  # pylint: disable=too-many-statements
         """Plots average surface wind speed progression throughout the day,
         including sigma contours.
@@ -366,7 +365,8 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
         show_or_save_plot(filename)
 
     def average_surface100m_wind_speed_evolution(
-        self, filename=None,
+        self,
+        filename=None,
     ):  # pylint: disable=too-many-statements
         """Plots average surface wind speed progression throughout the day, including
         sigma contours.
@@ -951,7 +951,9 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
         )
         show_or_save_plot(filename)
 
-    def average_wind_rose_grid(self, filename=None):  # pylint: disable=too-many-statements
+    def average_wind_rose_grid(
+        self, filename=None
+    ):  # pylint: disable=too-many-statements
         """Plot wind roses for all hours of a day, in a grid like plot.
 
         Parameters
@@ -1085,7 +1087,9 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
 
     # More plots and animations
 
-    def wind_gust_distribution_grid(self, filename=None):  # pylint: disable=too-many-statements
+    def wind_gust_distribution_grid(
+        self, filename=None
+    ):  # pylint: disable=too-many-statements
         """Plots shown in the animation of how the wind gust distribution varies
         throughout the day.
 
@@ -1260,9 +1264,7 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
         return HTML(animation.to_jshtml())
 
     def surface_wind_speed_distribution_grid(
-        
         self, wind_speed_limit=False, filename=None
-    
     ):  # pylint: disable=too-many-statements
         """Plots shown in the animation of how the sustained surface wind speed
         distribution varies throughout the day. The plots are histograms of the
