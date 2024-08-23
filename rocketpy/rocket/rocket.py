@@ -722,17 +722,17 @@ class Rocket:
 
         # Compute inertias
         self.I_11 = self.dry_I_11 + parallel_axis_theorem_from_com(
-            self.motor.I_11, prop_mass, CDM_to_CPM
+            self.motor.propellant_I_11, prop_mass, CDM_to_CPM
         )
 
         self.I_22 = self.dry_I_22 + parallel_axis_theorem_from_com(
-            self.motor.I_22, prop_mass, CDM_to_CPM
+            self.motor.propellant_I_22, prop_mass, CDM_to_CPM
         )
 
-        self.I_33 = self.dry_I_33 + self.motor.I_33
-        self.I_12 = self.dry_I_12 + self.motor.I_12
-        self.I_13 = self.dry_I_13 + self.motor.I_13
-        self.I_23 = self.dry_I_23 + self.motor.I_23
+        self.I_33 = self.dry_I_33 + self.motor.propellant_I_33
+        self.I_12 = self.dry_I_12 + self.motor.propellant_I_12
+        self.I_13 = self.dry_I_13 + self.motor.propellant_I_13
+        self.I_23 = self.dry_I_23 + self.motor.propellant_I_23
 
         # Return inertias
         return (
