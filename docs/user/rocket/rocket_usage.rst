@@ -434,7 +434,7 @@ The lets check all the information available about the rocket:
 7. Inertia Tensors
 ------------------
 
-The inertia tensor in relation to the center of dry mass of the rocket at a
+The inertia tensor relative to the center of dry mass of the rocket at a
 given time can be obtained using the ``get_inertia_tensor_at_time`` method.
 This method evaluates each component of the inertia tensor at the specified
 time and returns a :class:`rocketpy.mathutils.Matrix` object.
