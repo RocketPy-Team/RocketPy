@@ -298,8 +298,7 @@ class MonteCarlo:
         None
         """
         if n_workers is None or n_workers > os.cpu_count():
-            # For Windows, the number of workers must be at most os.cpu_count() - 1
-            n_workers = os.cpu_count() - 1
+            n_workers = os.cpu_count()
 
         if n_workers < 2:
             raise ValueError("Number of workers must be at least 2 for parallel mode.")
@@ -321,6 +320,13 @@ class MonteCarlo:
             processes = []
             seeds = np.random.SeedSequence().spawn(n_workers - 1)
 
+            sim_consumer = multiprocess.Process(
+                target=self.__sim_consumer,
+                args=(export_queue, mutex, consumer_stop_event, simulation_error_event),
+            )
+
+            sim_consumer.start()
+
             for seed in seeds:
                 sim_producer = multiprocess.Process(
                     target=self.__sim_producer,
@@ -336,13 +342,6 @@ class MonteCarlo:
 
             for sim_producer in processes:
                 sim_producer.start()
-
-            sim_consumer = multiprocess.Process(
-                target=self.__sim_consumer,
-                args=(export_queue, mutex, consumer_stop_event, simulation_error_event),
-            )
-
-            sim_consumer.start()
 
             try:
                 for sim_producer in processes:
@@ -455,7 +454,8 @@ class MonteCarlo:
             The event indicating that an error occurred during the simulation.
         """
         trials = 0
-        while not stop_event.is_set() and not error_event.is_set():
+
+        while not error_event.is_set():
             try:
                 mutex.acquire()
                 inputs_dict, outputs_dict = export_queue.get(timeout=3)
@@ -463,6 +463,9 @@ class MonteCarlo:
                 self.__export_flight_data(inputs_dict, outputs_dict)
 
             except queue.Empty as exc:
+                if stop_event.is_set():
+                    break
+
                 trials += 1
 
                 if trials > 10:
