@@ -1023,13 +1023,28 @@ class Motor(ABC):
             # Write last line
             file.write(f"{self.thrust.source[-1, 0]:.4f} {0:.3f}\n")
 
-    def info(self):
+        return None
+
+    def info(self, filename=None):
         """Prints out a summary of the data and graphs available about the
         Motor.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
+
+        Returns
+        -------
+        None
         """
         # Print motor details
         self.prints.all()
-        self.plots.thrust()
+        self.plots.thrust(filename=filename)
+        return None
 
     @abstractmethod
     def all_info(self):

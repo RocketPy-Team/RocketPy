@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+from .plot_helpers import show_or_save_plot
+
 
 class _EnvironmentPlots:
     """Class that holds plot methods for Environment class.
@@ -171,9 +173,17 @@ class _EnvironmentPlots:
 
         return ax
 
-    def gravity_model(self):
+    def gravity_model(self, filename=None):
         """Plots the gravity model graph that represents the gravitational
         acceleration as a function of height.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -192,12 +202,20 @@ class _EnvironmentPlots:
         ax.set_ylim(self.grid[0], self.grid[-1])
         plt.xticks(rotation=45)
 
-        plt.show()
+        show_or_save_plot(filename)
 
-    def atmospheric_model(self):
+    def atmospheric_model(self, filename=None):
         """Plots all atmospheric model graphs available. This includes wind
         speed and wind direction, density and speed of sound, wind u and wind v,
         and pressure and temperature.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -224,12 +242,20 @@ class _EnvironmentPlots:
         ax4 = self.__pressure_temperature(ax4)
 
         plt.subplots_adjust(wspace=0.5, hspace=0.3)
-        plt.show()
+        show_or_save_plot(filename)
 
     # pylint: disable=too-many-statements
-    def ensemble_member_comparison(self):
+    def ensemble_member_comparison(self, filename=None):
         """Plots ensemble member comparisons. It requires that the environment
         model has been set as Ensemble.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -321,15 +347,23 @@ class _EnvironmentPlots:
 
         # Display plot
         plt.subplots_adjust(wspace=0.5, hspace=0.3)
-        plt.show()
+        show_or_save_plot(filename)
 
         # Clean up
         self.environment.select_ensemble_member(current_member)
 
-    def info(self):
+    def info(self, filename=None):
         """Plots a summary of the atmospheric model, including wind speed and
         wind direction, density and speed of sound. This is important for the
         Environment.info() method.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -346,7 +380,7 @@ class _EnvironmentPlots:
         ax2 = self.__density_speed_of_sound(ax2)
 
         plt.subplots_adjust(wspace=0.5)
-        plt.show()
+        show_or_save_plot(filename)
 
     def all(self):
         """Prints out all graphs available about the Environment. This includes

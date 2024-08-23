@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 
 from .motor_plots import _MotorPlots
+from .plot_helpers import show_or_save_plot
 
 
 class _SolidMotorPlots(_MotorPlots):
@@ -100,7 +101,11 @@ class _SolidMotorPlots(_MotorPlots):
         upper_limit : float
             Upper limit of the plot. Default is none, which means that the plot
             limits will be automatically calculated.
-
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
         Return
         ------
         None
@@ -108,8 +113,16 @@ class _SolidMotorPlots(_MotorPlots):
 
         self.motor.Kn.plot(lower=lower_limit, upper=upper_limit)
 
-    def draw(self):
+    def draw(self, filename=None):
         """Draw a representation of the SolidMotor.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -139,7 +152,7 @@ class _SolidMotorPlots(_MotorPlots):
         ax.set_title("Solid Motor Representation")
         self._draw_center_of_mass(ax)
         self._set_plot_properties(ax)
-        plt.show()
+        show_or_save_plot(filename)
 
     def all(self):
         """Prints out all graphs available about the SolidMotor. It simply calls

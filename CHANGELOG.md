@@ -34,6 +34,7 @@ Attention: The newest changes should be on top -->
 
 - ENH: Add STFT function to Function class [#620](https://github.com/RocketPy-Team/RocketPy/pull/620) 
 - ENH: Rocket Axis Definition [#635](https://github.com/RocketPy-Team/RocketPy/pull/635)
+- ENH: Implement optional plot saving [#597](https://github.com/RocketPy-Team/RocketPy/pull/597)
 
 ### Changed
 

@@ -6,6 +6,8 @@ import numpy as np
 from rocketpy.motors import EmptyMotor, HybridMotor, LiquidMotor, SolidMotor
 from rocketpy.rocket.aero_surface import Fins, NoseCone, Tail
 
+from .plot_helpers import show_or_save_plot
+
 
 class _RocketPlots:
     """Class that holds plot methods for Rocket class.
@@ -51,15 +53,23 @@ class _RocketPlots:
 
         self.rocket.reduced_mass()
 
-    def static_margin(self):
+    def static_margin(self, filename=None):
         """Plots static margin of the rocket as a function of time.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
         None
         """
 
-        self.rocket.static_margin()
+        self.rocket.static_margin(filename=filename)
 
     def stability_margin(self):
         """Plots static margin of the rocket as a function of time.
@@ -112,8 +122,16 @@ class _RocketPlots:
         self.rocket.power_off_drag()
 
     # pylint: disable=too-many-statements
-    def drag_curves(self):
+    def drag_curves(self, filename=None):
         """Plots power off and on drag curves of the rocket as a function of time.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -149,7 +167,7 @@ class _RocketPlots:
         ax.axvspan(0.8, 1.2, alpha=0.3, color="gray", label="Transonic Region")
         ax.legend(loc="best", shadow=True)
         plt.grid(True)
-        plt.show()
+        show_or_save_plot(filename)
 
     def thrust_to_weight(self):
         """
@@ -160,7 +178,7 @@ class _RocketPlots:
             lower=0, upper=self.rocket.motor.burn_out_time
         )
 
-    def draw(self, vis_args=None):
+    def draw(self, vis_args=None, filename=None):
         """Draws the rocket in a matplotlib figure.
 
         Parameters
@@ -184,6 +202,11 @@ class _RocketPlots:
 
             A full list of color names can be found at: \
             https://matplotlib.org/stable/gallery/color/named_colors
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
         """
         if vis_args is None:
             vis_args = {
@@ -220,7 +243,7 @@ class _RocketPlots:
         plt.ylabel("Radius (m)")
         plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
         plt.tight_layout()
-        plt.show()
+        show_or_save_plot(filename)
 
     def _draw_aerodynamic_surfaces(self, ax, vis_args):
         """Draws the aerodynamic surfaces and saves the position of the points

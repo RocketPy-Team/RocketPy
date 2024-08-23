@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Ellipse
 
+from .plot_helpers import show_or_save_plot
+
 
 class _AeroSurfacePlots(ABC):
     """Abstract class that contains all aero surface plots."""
@@ -23,7 +25,7 @@ class _AeroSurfacePlots(ABC):
         self.aero_surface = aero_surface
 
     @abstractmethod
-    def draw(self):
+    def draw(self, filename=None):
         pass
 
     def lift(self):
@@ -52,9 +54,17 @@ class _NoseConePlots(_AeroSurfacePlots):
     """Class that contains all nosecone plots. This class inherits from the
     _AeroSurfacePlots class."""
 
-    def draw(self):
+    def draw(self, filename=None):
         """Draw the nosecone shape along with some important information,
         including the center line and the center of pressure position.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -122,8 +132,7 @@ class _NoseConePlots(_AeroSurfacePlots):
         ax.set_ylabel("Radius")
         ax.set_title(self.aero_surface.kind + " Nose Cone")
         ax.legend(bbox_to_anchor=(1, -0.2))
-
-        plt.show()
+        show_or_save_plot(filename)
 
 
 class _FinsPlots(_AeroSurfacePlots):
@@ -131,7 +140,7 @@ class _FinsPlots(_AeroSurfacePlots):
     _AeroSurfacePlots class."""
 
     @abstractmethod
-    def draw(self):
+    def draw(self, filename=None):
         pass
 
     def airfoil(self):
@@ -192,9 +201,17 @@ class _TrapezoidalFinsPlots(_FinsPlots):
     """Class that contains all trapezoidal fin plots."""
 
     # pylint: disable=too-many-statements
-    def draw(self):
+    def draw(self, filename=None):
         """Draw the fin shape along with some important information, including
         the center line, the quarter line and the center of pressure position.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -306,16 +323,24 @@ class _TrapezoidalFinsPlots(_FinsPlots):
         ax.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
 
         plt.tight_layout()
-        plt.show()
+        show_or_save_plot(filename)
 
 
 class _EllipticalFinsPlots(_FinsPlots):
     """Class that contains all elliptical fin plots."""
 
     # pylint: disable=too-many-statements
-    def draw(self):
+    def draw(self, filename=None):
         """Draw the fin shape along with some important information.
         These being: the center line and the center of pressure position.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -383,7 +408,7 @@ class _EllipticalFinsPlots(_FinsPlots):
 class _TailPlots(_AeroSurfacePlots):
     """Class that contains all tail plots."""
 
-    def draw(self):
+    def draw(self, filename=None):
         # This will de done in the future
         pass
 
@@ -398,7 +423,7 @@ class _AirBrakesPlots(_AeroSurfacePlots):
         else:
             return self.aero_surface.drag_coefficient.plot()
 
-    def draw(self):
+    def draw(self, filename=None):
         raise NotImplementedError
 
     def all(self):

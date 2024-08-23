@@ -3,6 +3,8 @@ from functools import cached_property
 import matplotlib.pyplot as plt
 import numpy as np
 
+from .plot_helpers import show_or_save_plot
+
 
 class _FlightPlots:
     """Class that holds plot methods for Flight class.
@@ -52,8 +54,16 @@ class _FlightPlots:
         else:
             return -1
 
-    def trajectory_3d(self):  # pylint: disable=too-many-statements
+    def trajectory_3d(self, filename=None):  # pylint: disable=too-many-statements
         """Plot a 3D graph of the trajectory
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -121,10 +131,18 @@ class _FlightPlots:
         ax1.set_zlim(min_z, max_z)
         ax1.view_init(15, 45)
         ax1.set_box_aspect(None, zoom=0.95)  # 95% for label adjustment
-        plt.show()
+        show_or_save_plot(filename)
 
-    def linear_kinematics_data(self):  # pylint: disable=too-many-statements
+    def linear_kinematics_data(self, filename=None):  # pylint: disable=too-many-statements
         """Prints out all Kinematics graphs available about the Flight
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -193,10 +211,18 @@ class _FlightPlots:
         ax4up.tick_params("y", colors="#1f77b4")
 
         plt.subplots_adjust(hspace=0.5)
-        plt.show()
+        show_or_save_plot(filename)
 
-    def attitude_data(self):  # pylint: disable=too-many-statements
+    def attitude_data(self, filename=None):  # pylint: disable=too-many-statements
         """Prints out all Angular position graphs available about the Flight
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -243,11 +269,19 @@ class _FlightPlots:
         ax4.grid(True)
 
         plt.subplots_adjust(hspace=0.5)
-        plt.show()
+        show_or_save_plot(filename)
 
-    def flight_path_angle_data(self):
+    def flight_path_angle_data(self, filename=None):
         """Prints out Flight path and Rocket Attitude angle graphs available
         about the Flight
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -285,11 +319,19 @@ class _FlightPlots:
         ax2.grid(True)
 
         plt.subplots_adjust(hspace=0.5)
-        plt.show()
+        show_or_save_plot(filename)
 
-    def angular_kinematics_data(self):  # pylint: disable=too-many-statements
+    def angular_kinematics_data(self, filename=None):  # pylint: disable=too-many-statements
         """Prints out all Angular velocity and acceleration graphs available
         about the Flight
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -351,10 +393,18 @@ class _FlightPlots:
         ax3up.tick_params("y", colors="#1f77b4")
 
         plt.subplots_adjust(hspace=0.5)
-        plt.show()
+        show_or_save_plot(filename)
 
-    def rail_buttons_forces(self):  # pylint: disable=too-many-statements
+    def rail_buttons_forces(self, filename=None):  # pylint: disable=too-many-statements
         """Prints out all Rail Buttons Forces graphs available about the Flight.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -434,10 +484,18 @@ class _FlightPlots:
             ax2.set_title("Rail Buttons Shear Force")
 
             plt.subplots_adjust(hspace=0.5)
-            plt.show()
+            show_or_save_plot(filename)
 
-    def aerodynamic_forces(self):  # pylint: disable=too-many-statements
+    def aerodynamic_forces(self, filename=None):  # pylint: disable=too-many-statements
         """Prints out all Forces and Moments graphs available about the Flight
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -514,10 +572,18 @@ class _FlightPlots:
         ax4.grid()
 
         plt.subplots_adjust(hspace=0.5)
-        plt.show()
+        show_or_save_plot(filename)
 
-    def energy_data(self):  # pylint: disable=too-many-statements
+    def energy_data(self, filename=None):  # pylint: disable=too-many-statements
         """Prints out all Energy components graphs available about the Flight
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -625,11 +691,19 @@ class _FlightPlots:
         ax4.grid()
 
         plt.subplots_adjust(hspace=1)
-        plt.show()
+        show_or_save_plot(filename)
 
-    def fluid_mechanics_data(self):  # pylint: disable=too-many-statements
+    def fluid_mechanics_data(self, filename=None):  # pylint: disable=too-many-statements
         """Prints out a summary of the Fluid Mechanics graphs available about
         the Flight
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -688,11 +762,19 @@ class _FlightPlots:
         ax4.grid()
 
         plt.subplots_adjust(hspace=0.5)
-        plt.show()
+        show_or_save_plot(filename)
 
-    def stability_and_control_data(self):  # pylint: disable=too-many-statements
+    def stability_and_control_data(self, filename=None):  # pylint: disable=too-many-statements
         """Prints out Rocket Stability and Control parameters graphs available
         about the Flight
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -768,10 +850,18 @@ class _FlightPlots:
         ax2.grid()
 
         plt.subplots_adjust(hspace=0.5)
-        plt.show()
+        show_or_save_plot(filename)
 
-    def pressure_rocket_altitude(self):
+    def pressure_rocket_altitude(self, filename=None):
         """Plots out pressure at rocket's altitude.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -789,7 +879,7 @@ class _FlightPlots:
         ax1.set_xlim(0, self.flight.t_final)
         ax1.grid()
 
-        plt.show()
+        show_or_save_plot(filename)
 
     def pressure_signals(self):
         """Plots out all Parachute Trigger Pressure Signals.

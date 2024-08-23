@@ -1623,7 +1623,7 @@ class Rocket:
         self.thrust_eccentricity_x = y
         return self
 
-    def draw(self, vis_args=None):
+    def draw(self, vis_args=None, filename=None):
         """Draws the rocket in a matplotlib figure.
 
         Parameters
@@ -1647,8 +1647,13 @@ class Rocket:
 
             A full list of color names can be found at:
             https://matplotlib.org/stable/gallery/color/named_colors
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
         """
-        self.plots.draw(vis_args)
+        self.plots.draw(vis_args, filename)
 
     def info(self):
         """Prints out a summary of the data and graphs available about
