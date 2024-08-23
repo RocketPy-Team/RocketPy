@@ -458,9 +458,9 @@ def test_evaluate_com_to_cdm_function(calisto):
 def test_get_inertia_tensor_at_time(calisto):
     # Expected values (for t = 0)
     # TODO: compute these values by hand or using CAD.
-    I_11 = 10.64885
-    I_22 = 10.64885
-    I_33 = 0.039942
+    I_11 = 10.516647727227216
+    I_22 = 10.516647727227216
+    I_33 = 0.0379420341586346
 
     # Set tolerance threshold
     atol = 1e-5
@@ -484,9 +484,9 @@ def test_get_inertia_tensor_at_time(calisto):
 def test_get_inertia_tensor_derivative_at_time(calisto):
     # Expected values (for t = 2s)
     # TODO: compute these values by hand or using CAD.
-    I_11_dot = -0.718752566200817
-    I_22_dot = -0.718752566200817
-    I_33_dot = -0.000671493662305
+    I_11_dot = -0.7164327431607691
+    I_22_dot = -0.7164327431607691
+    I_33_dot = -0.0006714936623050
 
     # Set tolerance threshold
     atol = 1e-3

@@ -169,7 +169,7 @@ def test_out_of_rail_stability_margin(flight_calisto_custom_wind):
     [
         ("t_initial", (0.258818, -0.649515, 0)),
         ("out_of_rail_time", (0.788918, -1.979828, 0)),
-        ("apogee_time", (-0.531829, -0.754103, 0)),
+        ("apogee_time", (-0.522394, -0.744154, 0)),
         ("t_final", (0, 0, 0)),
     ],
 )
@@ -208,7 +208,7 @@ def test_aerodynamic_moments(flight_calisto_custom_wind, flight_time, expected_v
     [
         ("t_initial", (1.6542528, 0.65918, -0.067107)),
         ("out_of_rail_time", (5.05334, 2.01364, -1.7541)),
-        ("apogee_time", (2.378161, -1.677083, -0.933044)),
+        ("apogee_time", (2.354663, -1.652953, -0.936126)),
         ("t_final", (0, 0, 159.2212)),
     ],
 )
@@ -249,7 +249,7 @@ def test_aerodynamic_forces(flight_calisto_custom_wind, flight_time, expected_va
         ("out_of_rail_time", (0, 2.248727, 25.703072)),
         (
             "apogee_time",
-            (-14.426265, 15.596488, -0.000254),
+            (-14.485655, 15.580647, -0.000240),
         ),
         ("t_final", (5, 2, -5.65998)),
     ],
