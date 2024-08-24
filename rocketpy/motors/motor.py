@@ -1214,6 +1214,145 @@ class GenericMotor(Motor):
         self.prints = _MotorPrints(self)
         self.plots = _MotorPlots(self)
 
+    @staticmethod
+    def load_from_eng_file(
+        file_name,
+        nozzle_radius,
+        chamber_radius=None,
+        chamber_height=None,
+        chamber_position=0,
+        propellant_initial_mass=None,
+        dry_mass=None,
+        burn_time=None,
+        center_of_dry_mass_position=None,
+        dry_inertia=(0, 0, 0),
+        nozzle_position=0,
+        reshape_thrust_curve=False,
+        interpolation_method="linear",
+        coordinate_system_orientation="nozzle_to_combustion_chamber",
+    ):
+        """Loads motor data from a .eng file and processes it.
+
+        Parameters
+        ----------
+        file_name : string
+            Name of the .eng file. E.g. 'test.eng'.
+        nozzle_radius : int, float
+            Motor's nozzle outlet radius in meters.
+        chamber_radius : int, float, optional
+            The radius of a overall cylindrical chamber of propellant in meters.
+        chamber_height : int, float, optional
+            The height of a overall cylindrical chamber of propellant in meters.
+        chamber_position : int, float, optional
+            The position, in meters, of the centroid (half height) of the motor's
+            overall cylindrical chamber of propellant with respect to the motor's
+            coordinate system.
+        propellant_initial_mass : int, float, optional
+            The initial mass of the propellant in the motor.
+        dry_mass : int, float, optional
+            Same as in Motor class. See the :class:`Motor <rocketpy.Motor>` docs
+        burn_time: float, tuple of float, optional
+            Motor's burn time.
+            If a float is given, the burn time is assumed to be between 0 and
+            the given float, in seconds.
+            If a tuple of float is given, the burn time is assumed to be between
+            the first and second elements of the tuple, in seconds.
+            If not specified, automatically sourced as the range between the
+            first and last-time step of the motor's thrust curve. This can only
+            be used if the motor's thrust is defined by a list of points, such
+            as a .csv file, a .eng file or a Function instance whose source is a
+            list.
+        center_of_dry_mass_position : int, float, optional
+            The position, in meters, of the motor's center of mass with respect
+            to the motor's coordinate system when it is devoid of propellant.
+            If not specified, automatically sourced as the chamber position.
+        dry_inertia : tuple, list
+            Tuple or list containing the motor's dry mass inertia tensor
+        nozzle_position : int, float, optional
+            Motor's nozzle outlet position in meters, in the motor's coordinate
+            system. Default is 0, in which case the origin of the
+            coordinate system is placed at the motor's nozzle outlet.
+        reshape_thrust_curve : boolean, tuple, optional
+            If False, the original thrust curve supplied is not altered. If a
+            tuple is given, whose first parameter is a new burn out time and
+            whose second parameter is a new total impulse in Ns, the thrust
+            curve is reshaped to match the new specifications. May be useful
+            for motors whose thrust curve shape is expected to remain similar
+            in case the impulse and burn time varies slightly. Default is
+            False. Note that the Motor burn_time parameter must include the new
+            reshaped burn time.
+        interpolation_method : string, optional
+            Method of interpolation to be used in case thrust curve is given
+        coordinate_system_orientation : string, optional
+            Orientation of the motor's coordinate system. The coordinate system
+            is defined by the motor's axis of symmetry. The origin of the
+            coordinate system may be placed anywhere along such axis, such as
+            at the nozzle area, and must be kept the same for all other
+            positions specified. Options are "nozzle_to_combustion_chamber" and
+            "combustion_chamber_to_nozzle". Default is
+            "nozzle_to_combustion_chamber".
+        Returns
+        -------
+        Generic Motor object
+        """
+        if isinstance(file_name, str):
+            if file_name[-3:] == "eng":
+                comments, description, thrust_source = Motor.import_eng(file_name)
+            else:
+                raise ValueError("File must be a .eng file.")
+        else:
+            raise ValueError("File name must be a string.")
+
+        thrust = Function(thrust_source, "Time (s)", "Thrust (N)", "linear", "zero")
+
+        # handle eng parameters
+
+        if chamber_radius:
+            if not isinstance(chamber_radius, (int, float)):
+                raise ValueError("Chamber radius must be a number.")
+        else:
+            chamber_radius = float(description[1])  # get motor diameter
+
+        if chamber_height:
+            if not isinstance(chamber_height, (int, float)):
+                raise ValueError("Chamber height must be a number.")
+        else:
+            chamber_height = float(description[2])  # get motor length
+
+        if propellant_initial_mass:
+            if not isinstance(propellant_initial_mass, (int, float)):
+                raise ValueError("Propellant initial mass must be a number.")
+        else:
+            propellant_initial_mass = float(description[-3])
+
+        if dry_mass:
+            if not isinstance(dry_mass, (int, float)):
+                raise ValueError("Dry mass must be a number.")
+        else:
+            total_mass = float(description[-2])
+            dry_mass = total_mass - propellant_initial_mass
+
+        e_vel = thrust.integral(*(0.0, 4.897)) / propellant_initial_mass
+        print(f"exhaust velocity: {e_vel:.2f} m/s ")
+
+        gen_motor = GenericMotor(
+            thrust_source=thrust,
+            burn_time=burn_time,
+            chamber_radius=chamber_radius,
+            chamber_height=chamber_height,
+            chamber_position=chamber_position,
+            propellant_initial_mass=propellant_initial_mass,
+            nozzle_radius=nozzle_radius,
+            dry_mass=dry_mass,
+            center_of_dry_mass_position=center_of_dry_mass_position,
+            dry_inertia=dry_inertia,
+            nozzle_position=nozzle_position,
+            reshape_thrust_curve=reshape_thrust_curve,
+            interpolation_method=interpolation_method,
+            coordinate_system_orientation=coordinate_system_orientation,
+        )
+        return gen_motor
+
     @cached_property
     def propellant_initial_mass(self):
         """Calculates the initial mass of the propellant.
