@@ -1400,7 +1400,6 @@ class Flight:  # pylint: disable=too-many-public-methods
             * self.rocket._csys
         )
         c = self.rocket.nozzle_to_cdm
-        a = self.rocket.com_to_cdm_function.get_value_opt(t)
         nozzle_radius = self.rocket.motor.nozzle_radius
         # Prepare transformation matrix
         a11 = 1 - 2 * (e2**2 + e3**2)
@@ -1503,8 +1502,8 @@ class Flight:  # pylint: disable=too-many-public-methods
                     R1 += comp_lift_xb
                     R2 += comp_lift_yb
                     # Add to total moment
-                    M1 -= (comp_cp + a) * comp_lift_yb
-                    M2 += (comp_cp + a) * comp_lift_xb
+                    M1 -= (comp_cp) * comp_lift_yb
+                    M2 += (comp_cp) * comp_lift_xb
             # Calculates Roll Moment
             try:
                 clf_delta, cld_omega, cant_angle_rad = aero_surface.roll_parameters
@@ -1779,8 +1778,8 @@ class Flight:  # pylint: disable=too-many-public-methods
                     R1 += comp_lift_xb
                     R2 += comp_lift_yb
                     # Add to total moment
-                    M1 -= (comp_cpz + r_CM_t) * comp_lift_yb
-                    M2 += (comp_cpz + r_CM_t) * comp_lift_xb
+                    M1 -= (comp_cpz) * comp_lift_yb
+                    M2 += (comp_cpz) * comp_lift_xb
             # Calculates Roll Moment
             try:
                 clf_delta, cld_omega, cant_angle_rad = aero_surface.roll_parameters
