@@ -1,1 +1,1 @@
-from .sensivity_model import SensitivityModel
+from .sensitivity_model import SensitivityModel
