@@ -75,13 +75,14 @@ Fluid are then passed to tanks when they are defined.
 
 .. note::
   
-  One may define the fluid density as a function of time. In this case, the
-  fluid would be defined as such:
+  One may define the fluid density as a function of temperature (K) and 
+  pressure (Pa). In this case, the fluid would be defined as such:
 
-  >>> Fluid(name="Liquid Nitrous Oxide", density=lambda t: 855 - 10*t)
+  >>> Fluid(name="Liquid Nitrous Oxide", density=lambda t, p: 44 * p / (8.314 * t))
 
   In fact, the density parameter can be any ``Function`` source, such as a
-  ``callable``, csv file or an array of points. See more on :class:`rocketpy.Function`.
+  ``callable``, csv file or an array of points. See more on 
+  :class:`rocketpy.Function`.
 
 Tank Geometry
 -------------
