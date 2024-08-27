@@ -43,6 +43,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+- BUG: Zero Mass Flow Rate in Liquid Motors breaks Exhaust Velocity [#677](https://github.com/RocketPy-Team/RocketPy/pull/677)
 - DOC: Fix documentation dependencies [#651](https://github.com/RocketPy-Team/RocketPy/pull/651)
 - DOC: Fix documentation warnings [#645](https://github.com/RocketPy-Team/RocketPy/pull/645)
 - BUG: Rotational EOMs Not Relative To CDM [#674](https://github.com/RocketPy-Team/RocketPy/pull/674)

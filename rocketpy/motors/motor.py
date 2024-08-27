@@ -483,7 +483,8 @@ class Motor(ABC):
         rate should not be greater than `total_mass_flow_rate`, otherwise the
         grains mass flow rate will be negative, losing physical meaning.
         """
-        return -1 * self.thrust / self.exhaust_velocity
+        average_exhaust_velocity = self.total_impulse / self.propellant_initial_mass
+        return self.thrust / -average_exhaust_velocity
 
     @property
     @abstractmethod
