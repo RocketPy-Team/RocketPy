@@ -1297,7 +1297,7 @@ class GenericMotor(Motor):
         """
         if isinstance(file_name, str):
             if file_name[-3:] == "eng":
-                comments, description, thrust_source = Motor.import_eng(file_name)
+                _, description, thrust_source = Motor.import_eng(file_name)
             else:
                 raise ValueError("File must be a .eng file.")
         else:
