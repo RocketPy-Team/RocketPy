@@ -431,7 +431,9 @@ def oxidizer_tank(oxidizer_fluid, oxidizer_pressurant, propellant_tank_geometry)
 
 
 @pytest.fixture
-def spherical_oxidizer_tank(oxidizer_fluid, oxidizer_pressurant):
+def spherical_oxidizer_tank(
+    oxidizer_fluid, oxidizer_pressurant, spherical_oxidizer_geometry
+):
     """An example of a oxidizer spherical tank.
 
     Parameters
