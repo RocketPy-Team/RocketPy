@@ -9,6 +9,7 @@ pytest_plugins = [
     "tests.fixtures.motor.hybrid_fixtures",
     "tests.fixtures.motor.solid_motor_fixtures",
     "tests.fixtures.motor.tanks_fixtures",
+    "tests.fixtures.motor.tank_geometry_fixtures",
     "tests.fixtures.motor.generic_motor_fixtures",
     "tests.fixtures.parachutes.parachute_fixtures",
     "tests.fixtures.rockets.rocket_fixtures",
