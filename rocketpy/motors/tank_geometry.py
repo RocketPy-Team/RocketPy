@@ -1,6 +1,7 @@
 from functools import cached_property
 
 import numpy as np
+
 from ..mathutils.function import Function, PiecewiseFunction, funcify_method
 from ..plots.tank_geometry_plots import _TankGeometryPlots
 from ..prints.tank_geometry_prints import _TankGeometryPrints

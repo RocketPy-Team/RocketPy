@@ -631,7 +631,9 @@ class MassFlowRateBasedTank(Tank):
         Function
             Mass of the liquid as a function of time.
         """
-        liquid_flow = self.net_liquid_flow_rate.integral_function()
+        liquid_flow = self.net_liquid_flow_rate.integral_function(
+            datapoints=self.discretize
+        )
         liquid_mass = self.initial_liquid_mass + liquid_flow
         if (liquid_mass < 0).any():
             raise ValueError(
@@ -655,7 +657,7 @@ class MassFlowRateBasedTank(Tank):
         Function
             Mass of the gas as a function of time.
         """
-        gas_flow = self.net_gas_flow_rate.integral_function()
+        gas_flow = self.net_gas_flow_rate.integral_function(datapoints=self.discretize)
         gas_mass = self.initial_gas_mass + gas_flow
         if (gas_mass < -1e-6).any():  # -1e-6 is to avoid numerical errors
             raise ValueError(

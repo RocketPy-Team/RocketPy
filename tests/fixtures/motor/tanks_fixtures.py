@@ -1,7 +1,332 @@
 import numpy as np
 import pytest
 
-from rocketpy import Function, LevelBasedTank, MassBasedTank, UllageBasedTank
+from rocketpy import (
+    CylindricalTank,
+    Fluid,
+    Function,
+    LevelBasedTank,
+    MassBasedTank,
+    MassFlowRateBasedTank,
+    TankGeometry,
+    UllageBasedTank,
+)
+
+
+@pytest.fixture
+def sample_full_mass_flow_rate_tank():
+    """An example of a full MassFlowRateBasedTank.
+
+    Returns
+    -------
+    rocketpy.MassFlowRateBasedTank
+        An object of the MassFlowRateBasedTank class.
+    """
+    full_tank = MassFlowRateBasedTank(
+        name="Full Tank",
+        geometry=CylindricalTank(0.1, 1 / np.pi),
+        initial_liquid_mass=9,
+        initial_gas_mass=0.001,
+        liquid=Fluid("Water", 1000),
+        gas=Fluid("Air", 1),
+        liquid_mass_flow_rate_in=0,
+        gas_mass_flow_rate_in=0,
+        gas_mass_flow_rate_out=0,
+        liquid_mass_flow_rate_out=0,
+        flux_time=(0, 10),
+    )
+
+    return full_tank
+
+
+@pytest.fixture
+def sample_empty_mass_flow_rate_tank():
+    """An example of an empty MassFlowRateBasedTank.
+
+    Returns
+    -------
+    rocketpy.MassFlowRateBasedTank
+        An object of the MassFlowRateBasedTank class.
+    """
+    empty_tank = MassFlowRateBasedTank(
+        name="Empty Tank",
+        geometry=CylindricalTank(0.1, 1 / np.pi),
+        initial_liquid_mass=0,
+        initial_gas_mass=0,
+        liquid=Fluid("Water", 1000),
+        gas=Fluid("Air", 1),
+        liquid_mass_flow_rate_in=0,
+        gas_mass_flow_rate_in=0,
+        gas_mass_flow_rate_out=0,
+        liquid_mass_flow_rate_out=0,
+        flux_time=(0, 10),
+    )
+
+    return empty_tank
+
+
+@pytest.fixture
+def sample_full_ullage_tank():
+    """An example of a UllageBasedTank full of liquid.
+
+    Returns
+    -------
+    rocketpy.UllageBasedTank
+        An object of the UllageBasedTank class.
+    """
+    full_tank = UllageBasedTank(
+        name="Full Tank",
+        geometry=CylindricalTank(0.1, 1 / np.pi),
+        liquid=Fluid("Water", 1000),
+        gas=Fluid("Air", 1),
+        ullage=0,
+        flux_time=(0, 10),
+    )
+
+    return full_tank
+
+
+@pytest.fixture
+def sample_empty_ullage_tank():
+    """An example of a UllageBasedTank with no liquid.
+
+    Returns
+    -------
+    rocketpy.UllageBasedTank
+        An object of the UllageBasedTank class.
+    """
+    empty_tank = UllageBasedTank(
+        name="Empty Tank",
+        geometry=CylindricalTank(0.1, 1 / np.pi),
+        liquid=Fluid("Water", 1000),
+        gas=Fluid("Air", 1),
+        ullage=0.01,
+        flux_time=(0, 10),
+    )
+
+    return empty_tank
+
+
+@pytest.fixture
+def sample_full_level_tank():
+    """An example of a LevelBasedTank full of liquid.
+
+    Returns
+    -------
+    rocketpy.LevelBasedTank
+        An object of the LevelBasedTank class.
+    """
+    full_tank = LevelBasedTank(
+        name="Full Tank",
+        geometry=CylindricalTank(0.1, 1 / np.pi),
+        liquid=Fluid("Water", 1000),
+        gas=Fluid("Air", 1),
+        liquid_height=1 / (2 * np.pi),
+        flux_time=(0, 10),
+    )
+
+    return full_tank
+
+
+@pytest.fixture
+def sample_empty_level_tank():
+    """An example of a LevelBasedTank with no liquid.
+
+    Returns
+    -------
+    rocketpy.LevelBasedTank
+        An object of the LevelBasedTank class.
+    """
+    empty_tank = LevelBasedTank(
+        name="Empty Tank",
+        geometry=CylindricalTank(0.1, 1 / np.pi),
+        liquid=Fluid("Water", 1000),
+        gas=Fluid("Air", 1),
+        liquid_height=0,
+        flux_time=(0, 10),
+    )
+
+    return empty_tank
+
+
+@pytest.fixture
+def sample_full_mass_tank():
+    """An example of a full MassBasedTank.
+
+    Returns
+    -------
+    rocketpy.MassBasedTank
+        An object of the MassBasedTank class.
+    """
+    full_tank = MassBasedTank(
+        name="Full Tank",
+        geometry=CylindricalTank(0.1, 1 / np.pi),
+        liquid=Fluid("Water", 1000),
+        gas=Fluid("Air", 1),
+        liquid_mass=9,
+        gas_mass=0.001,
+        flux_time=(0, 10),
+    )
+
+    return full_tank
+
+
+@pytest.fixture
+def sample_empty_mass_tank():
+    """An example of an empty MassBasedTank.
+
+    Returns
+    -------
+    rocketpy.MassBasedTank
+        An object of the MassBasedTank class.
+    """
+    empty_tank = MassBasedTank(
+        name="Empty Tank",
+        geometry=CylindricalTank(0.1, 1 / np.pi),
+        liquid=Fluid("Water", 1000),
+        gas=Fluid("Air", 1),
+        liquid_mass=0,
+        gas_mass=0,
+        flux_time=(0, 10),
+    )
+
+    return empty_tank
+
+
+@pytest.fixture
+def real_mass_based_tank_seblm(lox_fluid_seblm, nitrogen_fluid_seblm):
+    """An instance of a real cylindrical tank with spherical caps.
+
+    Parameters
+    ----------
+    lox_fluid_seblm : rocketpy.Fluid
+        Liquid oxygen fluid. This is a pytest fixture.
+    nitrogen_fluid_seblm : rocketpy.Fluid
+        Nitrogen gas fluid. This is a pytest fixture.
+
+    Returns
+    -------
+    rocketpy.MassBasedTank
+        An object of the MassBasedTank class.
+    """
+    geometry = CylindricalTank(0.0744, 0.8698, True)
+
+    lox_tank = MassBasedTank(
+        name="Real Tank",
+        geometry=geometry,
+        flux_time=(0, 15.583),
+        liquid_mass="./data/berkeley/Test135LoxMass.csv",
+        gas_mass="./data/berkeley/Test135GasMass.csv",
+        liquid=lox_fluid_seblm,
+        gas=nitrogen_fluid_seblm,
+        discretize=200,
+    )
+
+    return lox_tank
+
+
+@pytest.fixture
+def example_mass_based_tank_seblm(lox_fluid_seblm, nitrogen_fluid_seblm):
+    """Example data of a cylindrical tank with spherical caps.
+
+    Parameters
+    ----------
+    lox_fluid_seblm : rocketpy.Fluid
+        Liquid oxygen fluid. This is a pytest fixture.
+    nitrogen_fluid_seblm : rocketpy.Fluid
+        Nitrogen gas fluid. This is a pytest fixture.
+
+    Returns
+    -------
+    rocketpy.MassBasedTank
+        An object of the MassBasedTank class.
+    """
+    geometry = TankGeometry({(0, 5): 1})
+
+    example_tank = MassBasedTank(
+        name="Example Tank",
+        geometry=geometry,
+        flux_time=(0, 10),
+        liquid_mass="./data/berkeley/ExampleTankLiquidMassData.csv",
+        gas_mass="./data/berkeley/ExampleTankGasMassData.csv",
+        liquid=lox_fluid_seblm,
+        gas=nitrogen_fluid_seblm,
+        discretize=None,
+    )
+
+    return example_tank
+
+
+@pytest.fixture
+def real_level_based_tank_seblm(lox_fluid_seblm, nitrogen_fluid_seblm):
+    """An instance of a real cylindrical tank with spherical caps.
+
+    Parameters
+    ----------
+    lox_fluid_seblm : rocketpy.Fluid
+        Liquid oxygen fluid. This is a pytest fixture.
+    nitrogen_fluid_seblm : rocketpy.Fluid
+        Nitrogen gas fluid. This is a pytest fixture.
+
+    Returns
+    -------
+    rocketpy.LevelBasedTank
+        An object of the LevelBasedTank class.
+    """
+    geometry = TankGeometry(
+        {
+            (0, 0.0559): lambda h: np.sqrt(0.0775**2 - (0.0775 - h) ** 2),
+            (0.0559, 0.7139): 0.0744,
+            (0.7139, 0.7698): lambda h: np.sqrt(0.0775**2 - (h - 0.6924) ** 2),
+        }
+    )
+
+    level_tank = LevelBasedTank(
+        name="Level Tank",
+        geometry=geometry,
+        flux_time=(0, 15.583),
+        gas=nitrogen_fluid_seblm,
+        liquid=lox_fluid_seblm,
+        liquid_height="./data/berkeley/loxUllage.csv",
+        discretize=None,
+    )
+
+    return level_tank
+
+
+@pytest.fixture
+def example_mass_flow_rate_based_tank_seblm(lox_fluid_seblm, nitrogen_fluid_seblm):
+    """An instance of a example cylindrical tank whose flux
+    is given by mass flow rates.
+
+    Parameters
+    ----------
+    lox_fluid_seblm : rocketpy.Fluid
+        Liquid oxygen fluid. This is a pytest fixture.
+    nitrogen_fluid_seblm : rocketpy.Fluid
+        Nitrogen gas fluid. This is a pytest fixture.
+
+    Returns
+    -------
+    rocketpy.MassFlowRateBasedTank
+        An object of the MassFlowRateBasedTank class.
+    """
+    mass_flow_rate_tank = MassFlowRateBasedTank(
+        name="Test Tank",
+        geometry=TankGeometry({(0, 1): 1}),
+        flux_time=(0, 10),
+        initial_liquid_mass=5,
+        initial_gas_mass=0.1,
+        liquid_mass_flow_rate_in=0.1,
+        gas_mass_flow_rate_in=0.01,
+        liquid_mass_flow_rate_out=0.2,
+        gas_mass_flow_rate_out=0.02,
+        liquid=lox_fluid_seblm,
+        gas=nitrogen_fluid_seblm,
+        discretize=11,
+    )
+
+    return mass_flow_rate_tank
 
 
 @pytest.fixture
