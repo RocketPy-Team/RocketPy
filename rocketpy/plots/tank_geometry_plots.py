@@ -40,6 +40,6 @@ class _TankGeometryPlots:
         -------
         None
         """
-        self.radius()
-        self.area()
-        self.volume()
+        self.tank_geometry.radius.plot(equal_axis=True)
+        self.tank_geometry.area()
+        self.tank_geometry.volume()
