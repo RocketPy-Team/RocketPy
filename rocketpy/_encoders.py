@@ -1,15 +1,14 @@
 """Defines a custom JSON encoder for RocketPy objects."""
 
 import json
-import types
+from datetime import datetime
 
 import numpy as np
 
-from rocketpy.mathutils.function import Function
-
 
 class RocketPyEncoder(json.JSONEncoder):
-    """NOTE: This is still under construction, please don't use it yet."""
+    """Custom JSON encoder for RocketPy objects. It defines how to encode
+    different types of objects to a JSON supported format."""
 
     def default(self, o):
         if isinstance(
@@ -33,11 +32,18 @@ class RocketPyEncoder(json.JSONEncoder):
             return float(o)
         elif isinstance(o, np.ndarray):
             return o.tolist()
+        elif isinstance(o, datetime):
+            return o.isoformat()
+        elif hasattr(o, "__iter__") and not isinstance(o, str):
+            return list(o)
         elif hasattr(o, "to_dict"):
             return o.to_dict()
-        # elif isinstance(o, Function):
-        #     return o.__dict__()
-        elif isinstance(o, (Function, types.FunctionType)):
-            return repr(o)
+        elif hasattr(o, "__dict__"):
+            exception_set = {"prints", "plots"}
+            return {
+                key: value
+                for key, value in o.__dict__.items()
+                if key not in exception_set
+            }
         else:
-            return json.JSONEncoder.default(self, o)
+            return super().default(o)
