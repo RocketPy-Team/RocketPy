@@ -32,3 +32,5 @@ class _FluidPrints:
         -------
         None
         """
+        print(f"Name: {self.fluid.name}")
+        print(f"Density: {self.fluid.density:.4f} kg/m^3")

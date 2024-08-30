@@ -94,7 +94,7 @@ def tests_import_eng_asserts_read_values_correctly(cesaroni_m1670):
         The SolidMotor object to be used in the tests.
     """
     comments, description, data_points = cesaroni_m1670.import_eng(
-        "tests/fixtures/motor/Cesaroni_M1670.eng"
+        "tests/fixtures/motor/data/Cesaroni_M1670.eng"
     )
 
     assert comments == [";this motor is COTS", ";3.9 burnTime", ";"]

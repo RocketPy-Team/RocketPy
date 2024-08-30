@@ -52,7 +52,7 @@ def cesaroni_m1670_shifted():  # old name: solid_motor
         A simple object of the SolidMotor class
     """
     example_motor = SolidMotor(
-        thrust_source="tests/fixtures/motor/Cesaroni_M1670_shifted.eng",
+        thrust_source="tests/fixtures/motor/data/Cesaroni_M1670_shifted.eng",
         burn_time=3.9,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
