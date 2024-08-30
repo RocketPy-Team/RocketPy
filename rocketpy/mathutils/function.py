@@ -5,7 +5,9 @@ and more. This is a core class of our package, and should be maintained
 carefully as it may impact all the rest of the project.
 """
 
+import base64
 import warnings
+import zlib
 from bisect import bisect_left
 from collections.abc import Iterable
 from copy import deepcopy
@@ -13,6 +15,7 @@ from functools import cached_property
 from inspect import signature
 from pathlib import Path
 
+import dill
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import integrate, linalg, optimize
@@ -3268,6 +3271,52 @@ class Function:  # pylint: disable=too-many-public-methods
                 )
             extrapolation = "natural"
         return extrapolation
+
+    def to_dict(self):
+        """Serializes the Function instance to a dictionary.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the Function's attributes.
+        """
+        source = self.source
+
+        if callable(source):
+            source = zlib.compress(base64.b85encode(dill.dumps(source))).hex()
+
+        return {
+            "source": source,
+            "title": self.title,
+            "inputs": self.__inputs__,
+            "outputs": self.__outputs__,
+            "interpolation": self.__interpolation__,
+            "extrapolation": self.__extrapolation__,
+        }
+
+    @classmethod
+    def from_dict(cls, func_dict):
+        """Creates a Function instance from a dictionary.
+
+        Parameters
+        ----------
+        func_dict
+            The JSON like Function dictionary.
+        """
+        source = func_dict["source"]
+        if func_dict["interpolation"] is None and func_dict["extrapolation"] is None:
+            source = dill.loads(
+                base64.b85decode(zlib.decompress(bytes.fromhex(source)))
+            )
+
+        return cls(
+            source=source,
+            interpolation=func_dict["interpolation"],
+            extrapolation=func_dict["extrapolation"],
+            inputs=func_dict["inputs"],
+            outputs=func_dict["outputs"],
+            title=func_dict["title"],
+        )
 
 
 class PiecewiseFunction(Function):

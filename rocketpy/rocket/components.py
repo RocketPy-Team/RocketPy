@@ -186,3 +186,18 @@ class Components:
         None
         """
         self._components.sort(key=lambda x: x.position, reverse=reverse)
+
+    def to_dict(self):
+        """Return a dictionary representation of the components.
+
+        Returns
+        -------
+        dict
+            A dictionary representation of the components.
+        """
+        return {
+            "components": [
+                {"component": c.component, "position": c.position}
+                for c in self._components
+            ]
+        }
