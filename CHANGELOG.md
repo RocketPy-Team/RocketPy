@@ -206,6 +206,8 @@ To install this version, run `pip install rocketpy==1.8.0`
 
 ### Changed
 
+- DOC: Fix documentation dependencies [#651](https://github.com/RocketPy-Team/RocketPy/pull/651)
+- DOC: Fix documentation warnings [#645](https://github.com/RocketPy-Team/RocketPy/pull/645)
 - DOC: New Environment class docs pages [#644](https://github.com/RocketPy-Team/RocketPy/pull/644)
 
 ### Fixed
