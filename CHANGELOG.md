@@ -37,6 +37,7 @@ Attention: The newest changes should be on top -->
 
 ### Changed
 
+- MNT: Refactor Tank's testing Assertion with CAD data. [#678](https://github.com/RocketPy-Team/RocketPy/pull/678)
 - DOC: Fix documentation dependencies [#651](https://github.com/RocketPy-Team/RocketPy/pull/651)
 - DOC: Fix documentation warnings [#645](https://github.com/RocketPy-Team/RocketPy/pull/645)
 - DOC: New Environment class docs pages [#644](https://github.com/RocketPy-Team/RocketPy/pull/644)
