@@ -76,7 +76,9 @@ Fluid are then passed to tanks when they are defined.
 .. note::
   
   One may define the fluid density as a function of temperature (K) and 
-  pressure (Pa). In this case, the fluid would be defined as such:
+  pressure (Pa). The data can be imported from an external source, such as
+  a dataset or external libraries. 
+  In this case, the fluid would be defined as such:
 
   >>> Fluid(name="Liquid Nitrous Oxide", density=lambda t, p: 44 * p / (8.314 * t))
 

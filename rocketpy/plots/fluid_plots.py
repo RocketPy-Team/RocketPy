@@ -31,3 +31,4 @@ class _FluidPlots:
         ------
         None
         """
+        self.fluid.density_function()
