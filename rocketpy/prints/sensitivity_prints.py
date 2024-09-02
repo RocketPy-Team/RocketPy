@@ -18,7 +18,7 @@ class _SensitivityModelPrints:
             "Sensitivity (%)",
             nominal_mean_text,
             nominal_sd_text,
-            "Regression Coefficient",
+            "Effect per sd",
         ]
 
         model = self.model.target_variables_info[target_variable]["model"]
@@ -27,6 +27,7 @@ class _SensitivityModelPrints:
         for i in range(self.model.n_parameters):
             parameter = self.model.parameters_names[i]
             beta = coef[i]
+            effect_per_sd = beta * self.model.parameters_info[parameter]["nominal_sd"]
             sensitivity = self.model.target_variables_info[target_variable][
                 "sensitivity"
             ][parameter]
@@ -38,7 +39,7 @@ class _SensitivityModelPrints:
                         self.model.parameters_info[parameter]["nominal_mean"], digits
                     ),
                     round(self.model.parameters_info[parameter]["nominal_sd"], digits),
-                    round(beta, digits),
+                    round(effect_per_sd, digits),
                 ]
             )
 
