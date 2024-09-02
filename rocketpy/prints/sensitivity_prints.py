@@ -19,17 +19,14 @@ class _SensitivityModelPrints:
             nominal_mean_text,
             nominal_sd_text,
             "Regression Coefficient",
-            "p-value",
         ]
 
         model = self.model.target_variables_info[target_variable]["model"]
         coef = model.params[1:]  # skipping intercept
-        p_values = model.pvalues
 
         for i in range(self.model.n_parameters):
             parameter = self.model.parameters_names[i]
             beta = coef[i]
-            p_val = p_values[i]
             sensitivity = self.model.target_variables_info[target_variable][
                 "sensitivity"
             ][parameter]
@@ -42,7 +39,6 @@ class _SensitivityModelPrints:
                     ),
                     round(self.model.parameters_info[parameter]["nominal_sd"], digits),
                     round(beta, digits),
-                    round(p_val, digits),
                 ]
             )
 
@@ -53,7 +49,6 @@ class _SensitivityModelPrints:
                     100 * self.model.target_variables_info[target_variable]["LAE"],
                     digits,
                 ),
-                "",
                 "",
                 "",
                 "",
