@@ -295,6 +295,8 @@ class MonteCarlo:
         if n_workers < 2:
             raise ValueError("Number of workers must be at least 2 for parallel mode.")
 
+        _SimMonitor.reprint(f"Running Monte Carlo simulation with {n_workers} workers.")
+
         multiprocess, managers = _import_multiprocess()
 
         with _create_multiprocess_manager(multiprocess, managers) as manager:
@@ -386,7 +388,6 @@ class MonteCarlo:
 
             while sim_monitor.keep_simulating():
                 sim_idx = sim_monitor.increment() - 1
-
 
                 inputs_dict, outputs_dict = self.__run_single_simulation(sim_idx)
 
