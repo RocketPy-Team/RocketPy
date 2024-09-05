@@ -2630,24 +2630,37 @@ class Flight:  # pylint: disable=too-many-public-methods
         velocity vector. By partial angle of attack, it is meant the angle
         between the stream velocity vector in the y-z plane and the rocket's
         z-axis. All in the Body Axes Coordinate System."""
+        # Stream velocity in standard aerodynamic frame
+        stream_velocity = -self.stream_velocity_body_frame
         alpha = np.arctan2(
-            -self.stream_velocity_body_frame[:, 1],
-            -self.stream_velocity_body_frame[:, 2],
-        )  # Y-Z plane
+            stream_velocity[:, 1],
+            stream_velocity[:, 2],
+        )  # y-z plane
         return np.column_stack([self.time, np.rad2deg(alpha)])
 
     @funcify_method("Time (s)", "Beta (°)", "spline", "constant")
     def angle_of_sideslip(self):
         """Angle of sideslip of the rocket with respect to the stream
         velocity vector. Defined as the angle between the stream velocity
-        vector and the rocket's z-axis in the x-z plane. All in the Body
+        vector in the x-z plane and the rocket's z-axis. All in the Body
         Axes Coordinate System."""
-        # stream velocity in the body frame
+        # Stream velocity in standard aerodynamic frame
+        stream_velocity = -self.stream_velocity_body_frame
         beta = np.arctan2(
-            self.stream_velocity_body_frame[:, 0],
-            -self.stream_velocity_body_frame[:, 2],
-        )  # X-Z plane
+            -stream_velocity[:, 0],
+            stream_velocity[:, 2],
+        )  # x-z plane
         return np.column_stack([self.time, np.rad2deg(beta)])
+
+    @funcify_method("Time (s)", "Angle of Attack (°)", "spline", "constant")
+    def angle_of_attack2(self):
+        alpha = np.arctan(
+            np.sqrt(
+                np.tan(np.deg2rad(self.partial_angle_of_attack.y_array)) ** 2
+                + np.tan(np.deg2rad(self.angle_of_sideslip.y_array)) ** 2
+            )
+        )
+        return np.column_stack([self.time, np.rad2deg(alpha)])
 
     # Frequency response and stability variables
     @funcify_method("Frequency (Hz)", "ω1 Fourier Amplitude", "spline", "zero")
