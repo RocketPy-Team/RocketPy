@@ -491,12 +491,13 @@ class MonteCarlo:
             ]
             for item in d.items()
         )
-        inputs_dict["idx"] = sim_idx
+        inputs_dict["index"] = sim_idx
 
         outputs_dict = {
             export_item: getattr(monte_carlo_flight, export_item)
             for export_item in self.export_list
         }
+        outputs_dict["index"] = sim_idx
 
         encoded_inputs = json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n"
         encoded_outputs = json.dumps(outputs_dict, cls=RocketPyEncoder) + "\n"
