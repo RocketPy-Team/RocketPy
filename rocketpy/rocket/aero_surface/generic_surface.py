@@ -5,11 +5,9 @@ import numpy as np
 
 
 class GenericSurface(AeroSurface):
-    """Class that defines a generic aerodynamic surface. This class is used to
-    define aerodynamic surfaces with custom force and moment coefficients. The
-    coefficients can be nonlinear functions of the angle of attack, sideslip
-    angle, mach number, and altitude.
-    """
+    """Defines a generic aerodynamic surface with custom force and moment coefficients.
+    The coefficients can be nonlinear functions of the angle of attack, sideslip angle,
+    Mach number, and altitude."""
 
     def __init__(
         self,
@@ -108,32 +106,38 @@ class GenericSurface(AeroSurface):
 
         Parameters
         ----------
-        input_data : str, callable
-            Input data to be processed.
+        input_data : str or callable
+            Input data to be processed, either a path to a CSV or a callable.
         coeff_name : str
-            Name of the coefficient being processed.
+            Name of the coefficient being processed for error reporting.
+
+        Returns
+        -------
+        Function
+            Function object with 4 input arguments (alpha, beta, mach, height).
         """
         if isinstance(input_data, str):
-            # Assume input_data is a file path to a CSV
+            # Input is assumed to be a file path to a CSV
             return self.__load_csv(input_data, coeff_name)
         elif isinstance(input_data, Function):
-            # Check if it has 4 inputs (alpha, beta, mach, height)
             if input_data.__dom_dim__ != 4:
                 raise ValueError(
-                    f"Function for {coeff_name} must have 4 input arguments in"
-                    " the form (alpha, beta, mach, height)."
+                    f"{coeff_name} function must have 4 input arguments"
+                    " (alpha, beta, mach, height)."
                 )
+            return input_data
         elif callable(input_data):
-            # Check if it has 4 inputs (alpha, beta, mach, height)
+            # Check if callable has 4 inputs (alpha, beta, mach, height)
             if input_data.__code__.co_argcount != 4:
                 raise ValueError(
-                    f"Function for {coeff_name} must have 4 input arguments in"
-                    " the form (alpha, beta, mach, height)."
+                    f"{coeff_name} function must have 4 input arguments"
+                    " (alpha, beta, mach, height)."
                 )
             return input_data
         else:
-            raise ValueError(
-                f"Input for {coeff_name} must be a file path or a callable."
+            raise TypeError(
+                f"Invalid input for {coeff_name}: must be a CSV file path"
+                " or a callable."
             )
 
     def __load_csv(self, file_path, coeff_name):
@@ -154,21 +158,19 @@ class GenericSurface(AeroSurface):
         Returns
         -------
         Function
-            Function object that interpolates the data from the CSV file.
+            Function object with 4 input arguments (alpha, beta, mach, height).
         """
         try:
             with open(file_path, mode='r') as file:
                 reader = csv.reader(file)
-                header = next(reader)  # Read only the first row (the header)
-        except Exception as e:
-            raise ValueError(f"Could not read CSV file for {coeff_name}: {e}")
+                header = next(reader)
+        except (FileNotFoundError, IOError) as e:
+            raise ValueError(f"Error reading {coeff_name} CSV file: {e}")
 
         if not header:
-            raise ValueError(f"CSV file for {coeff_name} is empty or invalid.")
+            raise ValueError(f"Invalid or empty CSV file for {coeff_name}.")
 
         # TODO make header strings flexible (e.g. 'alpha', 'Alpha', 'ALPHA')
-
-        # Define possible independent variables
         independent_vars = ['alpha', 'beta', 'mach', 'height']
         present_columns = [col for col in independent_vars if col in header]
 
@@ -223,77 +225,43 @@ class GenericSurface(AeroSurface):
 
         Parameters
         ----------
-        stream_velocity : tuple
-            Tuple containing the stream velocity components in the body frame.
-        stream_speed : int, float
-            Speed of the stream in m/s.
-        stream_mach : int, float
-            Mach number of the stream.
-        rho : int, float
-            Density of the stream in kg/m^3.
-        cpz : int, float
-            Distance between the center of pressure and the center of dry mass
-            in the z direction in meters.
-        height : int, float
-            Altitude of the rocket in meters.
-        omega1 : int, float
-            Angular velocity of the rocket in the x direction in rad/s.
-        omega2 : int, float
-            Angular velocity of the rocket in the y direction in rad/s.
-        omega3 : int, float
-            Angular velocity of the rocket in the z direction in rad/s.
-        args : tuple
-            Additional arguments.
-        kwargs : dict
-            Additional keyword arguments.
+        stream_velocity : tuple of float
+            The velocity of the airflow relative to the surface.
+        stream_speed : float
+            The magnitude of the airflow speed.
+        stream_mach : float
+            The Mach number of the airflow.
+        rho : float
+            Air density.
+        height : float
+            Altitude of the surface.
+        omega1, omega2, omega3 : float
+            Angular velocities around the x, y, z axes.
 
         Returns
         -------
-        R1 : int, float
-            Force component in the x direction in Newtons.
-        R2 : int, float
-            Force component in the y direction in Newtons.
-        R3 : int, float
-            Force component in the z direction in Newtons.
-        M1 : int, float
-            Moment component in the x direction in Newton-meters.
-        M2 : int, float
-            Moment component in the y direction in Newton-meters.
-        M3 : int, float
-            Moment component in the z direction in Newton-meters.
+        tuple of float
+            The aerodynamic forces (lift, side_force, drag) and moments (pitch, yaw, roll).
         """
+        # Calculate aerodynamic angles
+        alpha = np.arctan2(-stream_velocity[0], stream_velocity[2])
+        beta = np.arctan2(-stream_velocity[1], stream_velocity[2])
 
-        # calculate the aerodynamic angles
-        alpha = np.arctan(-stream_velocity[0] / stream_velocity[2])  # X-Z plane
-        beta = np.arctan(-stream_velocity[1] / stream_velocity[2])  # Y-Z plane
-
-        # calculate the forces
-        lift = (
-            0.5
-            * rho
-            * stream_speed**2
-            * self.reference_area
-            * self.cL(alpha, beta, stream_mach, height)
+        # Compute aerodynamic forces
+        lift = self.__compute_force(
+            self.cL, alpha, beta, stream_mach, height, rho, stream_speed
+        )
+        side_force = self.__compute_force(
+            self.cQ, alpha, beta, stream_mach, height, rho, stream_speed
+        )
+        drag = self.__compute_force(
+            self.cD, alpha, beta, stream_mach, height, rho, stream_speed
         )
 
-        side_force = (
-            0.5
-            * rho
-            * stream_speed**2
-            * self.reference_area
-            * self.cQ(alpha, beta, stream_mach, height)
-        )
-
-        drag = (
-            0.5
-            * rho
-            * stream_speed**2
-            * self.reference_area
-            * self.cD(alpha, beta, stream_mach, height)
-        )
-
+        # Compute aerodynamic moments
         pitch = self.__compute_moment(
             self.cm,
+            self.cm_d,
             alpha,
             beta,
             stream_mach,
@@ -302,9 +270,9 @@ class GenericSurface(AeroSurface):
             stream_speed,
             omega1,
         )
-
         yaw = self.__compute_moment(
             self.cn,
+            self.cn_d,
             alpha,
             beta,
             stream_mach,
@@ -313,9 +281,9 @@ class GenericSurface(AeroSurface):
             stream_speed,
             omega2,
         )
-
         roll = self.__compute_moment(
             self.cl,
+            self.cl_d,
             alpha,
             beta,
             stream_mach,
@@ -326,6 +294,18 @@ class GenericSurface(AeroSurface):
         )
 
         return lift, side_force, drag, pitch, yaw, roll
+
+    def __compute_force(
+        self, coeff_function, alpha, beta, mach, height, rho, stream_speed
+    ):
+        """Helper function to compute aerodynamic forces."""
+        return (
+            0.5
+            * rho
+            * stream_speed**2
+            * self.reference_area
+            * coeff_function(alpha, beta, mach, height)
+        )
 
     def __compute_moment(
         self,
@@ -339,6 +319,9 @@ class GenericSurface(AeroSurface):
         stream_speed,
         angular_velocity,
     ):
+        """
+        Helper function to compute aerodynamic moments.
+        """
         forcing_moment = (
             0.5
             * rho
