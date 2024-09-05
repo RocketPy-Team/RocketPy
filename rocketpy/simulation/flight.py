@@ -2563,11 +2563,46 @@ class Flight:  # pylint: disable=too-many-public-methods
         return drag_power
 
     # Angle of Attack
+    @cached_property
+    def direction_cosine_matrixes(self):
+        """Direction cosine matrix representing the attitude of the body frame,
+        relative to the inertial frame, at each time step."""
+        # Stack the y_arrays from e0, e1, e2, and e3 along a new axis
+        stacked_arrays = np.stack(
+            [self.e0.y_array, self.e1.y_array, self.e2.y_array, self.e3.y_array],
+            axis=-1,
+        )
+
+        # Apply the transformation to the stacked arrays along the last axis
+        Kt = np.array([Matrix.transformation(row).transpose for row in stacked_arrays])
+
+        return Kt
+
+    @cached_property
+    def stream_velocity_body_frame(self):
+        """Stream velocity array at the center of dry mass in the body frame at
+        each time step."""
+        Kt = self.direction_cosine_matrixes
+        stream_velocity = np.array(
+            [
+                self.stream_velocity_x.y_array,
+                self.stream_velocity_y.y_array,
+                self.stream_velocity_z.y_array,
+            ]
+        ).transpose()
+        stream_velocity_body = np.squeeze(
+            np.matmul(Kt, stream_velocity[:, :, np.newaxis])
+        )
+        return stream_velocity_body
+
     @funcify_method("Time (s)", "Angle of Attack (°)", "spline", "constant")
     def angle_of_attack(self):
         """Angle of attack of the rocket with respect to the freestream
-        velocity vector."""
-        dot_product = (
+        velocity vector. Sometimes called total angle of attack. Defined as the
+        angle between the freestream velocity vector and the rocket's z-axis.
+        All in the Body Axes Coordinate System."""
+        # Define stream velocity z component in body frame
+        stream_vz_body = (
             -self.attitude_vector_x.y_array * self.stream_velocity_x.y_array
             - self.attitude_vector_y.y_array * self.stream_velocity_y.y_array
             - self.attitude_vector_z.y_array * self.stream_velocity_z.y_array
@@ -2575,20 +2610,44 @@ class Flight:  # pylint: disable=too-many-public-methods
         # Define freestream speed list
         free_stream_speed = self.free_stream_speed.y_array
 
-        # Normalize dot product
-        dot_product_normalized = np.divide(
-            dot_product,
+        stream_vz_body_normalized = np.divide(
+            stream_vz_body,
             free_stream_speed,
-            out=np.zeros_like(dot_product),
+            out=np.zeros_like(stream_vz_body),
             where=free_stream_speed > 1e-6,
         )
-        dot_product_normalized = np.nan_to_num(dot_product_normalized)
-        dot_product_normalized = np.clip(dot_product_normalized, -1, 1)
+        stream_vz_body_normalized = np.clip(stream_vz_body_normalized, -1, 1)
 
         # Calculate angle of attack and convert to degrees
-        angle_of_attack = np.rad2deg(np.arccos(dot_product_normalized))
+        angle_of_attack = np.rad2deg(np.arccos(stream_vz_body_normalized))
+        angle_of_attack = np.nan_to_num(angle_of_attack)
 
         return np.column_stack([self.time, angle_of_attack])
+
+    @funcify_method("Time (s)", "Partial Angle of Attack (°)", "spline", "constant")
+    def partial_angle_of_attack(self):
+        """Partial angle of attack of the rocket with respect to the stream
+        velocity vector. By partial angle of attack, it is meant the angle
+        between the stream velocity vector in the y-z plane and the rocket's
+        z-axis. All in the Body Axes Coordinate System."""
+        alpha = np.arctan2(
+            -self.stream_velocity_body_frame[:, 1],
+            -self.stream_velocity_body_frame[:, 2],
+        )  # Y-Z plane
+        return np.column_stack([self.time, np.rad2deg(alpha)])
+
+    @funcify_method("Time (s)", "Beta (°)", "spline", "constant")
+    def angle_of_sideslip(self):
+        """Angle of sideslip of the rocket with respect to the stream
+        velocity vector. Defined as the angle between the stream velocity
+        vector and the rocket's z-axis in the x-z plane. All in the Body
+        Axes Coordinate System."""
+        # stream velocity in the body frame
+        beta = np.arctan2(
+            self.stream_velocity_body_frame[:, 0],
+            -self.stream_velocity_body_frame[:, 2],
+        )  # X-Z plane
+        return np.column_stack([self.time, np.rad2deg(beta)])
 
     # Frequency response and stability variables
     @funcify_method("Frequency (Hz)", "ω1 Fourier Amplitude", "spline", "zero")
