@@ -18,6 +18,7 @@ from rocketpy.rocket.aero_surface import (
     Tail,
     TrapezoidalFins,
 )
+from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
 from rocketpy.tools import parallel_axis_theorem_from_com
@@ -539,6 +540,8 @@ class Rocket:
         # Calculate total lift coefficient derivative and center of pressure
         if len(self.aerodynamic_surfaces) > 0:
             for aero_surface, position in self.aerodynamic_surfaces:
+                if isinstance(aero_surface, GenericSurface):
+                    continue
                 # ref_factor corrects lift for different reference areas
                 ref_factor = (aero_surface.rocket_radius / self.radius) ** 2
                 self.total_lift_coeff_der += ref_factor * aero_surface.clalpha
@@ -547,7 +550,9 @@ class Rocket:
                     * aero_surface.clalpha
                     * (position.z - self._csys * aero_surface.cpz)
                 )
-            self.cp_position /= self.total_lift_coeff_der
+            # Avoid errors when only generic surfaces are added
+            if self.total_lift_coeff_der.get_value(0) != 0:
+                self.cp_position /= self.total_lift_coeff_der
         return self.cp_position
 
     def evaluate_surfaces_cp_to_cdm(self):
@@ -1318,7 +1323,66 @@ class Rocket:
         self.add_surfaces(fin_set, position)
         return fin_set
 
-    # def add_generic_surface(self, surface, position):
+    def add_generic_surface(
+        self,
+        generic_surface,
+        position,
+        angular_position=None,
+        radius=None,
+    ):
+        """Adds a generic surface to the rocket. A generic surface is used to
+        model any aerodynamic surface that does not fit the predefined classes
+        such as NoseCone, TrapezoidalFins, EllipticalFins, Tail, etc.
+
+        Parameters
+        ----------
+        generic_surface : GenericSurface, LinearGenericSurface
+            Generic surface object to be added to the rocket. Must be an
+            instance of the GenericSurface or LinearGenericSurface class.
+        position : int, float, tuple, list
+            Position of the application point of the forces and moments of the
+            surface. If a tuple or list is passed, it must be in the format
+            (x, y, z) where x, y, and z are defined in the rocket's user
+            defined coordinate system. If a single value is passed, it is
+            assumed to be along the z-axis (centerline) of the rocket's user
+            defined coordinate system and angular_position and radius must be
+            given.
+        angular_position : int, float, optional
+            Angular position of the surface along the rocket's user defined
+            coordinate system. By angular position, understand the angle,
+            measured from the y-axis, that the surface is located. Positive
+            values are defined as a positive rotation around the z-axis. Only
+            used if position is a single value. Default is None.
+        radius : int, float, optional
+            Fuselage radius where the surface is located. Only used if the
+            position is a single value. If None, which is default, the rocket
+            radius will be used.
+
+        Returns
+        -------
+        generic_surface : GenericSurface
+            Generic surface object created.
+        """
+        radius = radius if radius is not None else self.radius
+        if isinstance(position, (tuple, list)):
+            position = Vector(position)
+        else:
+            position = Vector(
+                [
+                    radius * -math.sin(math.radians(angular_position)),
+                    radius * math.cos(math.radians(angular_position)),
+                    position,
+                ]
+            )
+            self.add_surfaces(generic_surface, position)
+
+        warnings.warn(
+            "Generic surfaces do not affect the center of pressure position, "
+            "static margin or stability margin calculations. This does not "
+            "affect the simulation accuracy.",
+            UserWarning,
+        )
+        return generic_surface
 
     def add_parachute(
         self, name, cd_s, trigger, sampling_rate=100, lag=0, noise=(0, 0, 0)
