@@ -224,7 +224,8 @@ class MonteCarlo:
                 idx_i = len(input_file.readlines())
             with open(self._output_file, open_mode, encoding="utf-8") as output_file:
                 idx_o = len(output_file.readlines())
-            open(self._error_file, open_mode, encoding="utf-8").close()
+            with open(self._error_file, open_mode, encoding="utf-8"):
+                pass
 
             if idx_i != idx_o and not append:
                 warnings.warn(
