@@ -36,6 +36,8 @@ from .rocket import (
     Rocket,
     Tail,
     TrapezoidalFins,
+    GenericSurface,
+    LinearGenericSurface,
 )
 from .simulation import Flight, MonteCarlo
 from .stochastic import (
