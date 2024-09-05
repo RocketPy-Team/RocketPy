@@ -90,3 +90,61 @@ class AeroSurface(ABC):
         -------
         None
         """
+
+    def compute_forces_and_moments(
+        self,
+        stream_velocity,
+        stream_speed,
+        stream_mach,
+        rho,
+        cp,
+        *args,
+        **kwargs,
+    ):
+        """Computes the forces and moments acting on the aerodynamic surface.
+        Used in each time step of the simulation. This method is valid for
+        the barrowman aerodynamic models.
+
+        Parameters
+        ----------
+        stream_velocity : tuple
+            Tuple containing the stream velocity components in the body frame.
+        stream_speed : int, float
+            Speed of the stream in m/s.
+        stream_mach : int, float
+            Mach number of the stream.
+        rho : int, float
+            Density of the stream in kg/m^3.
+        cp : Vector
+            Center of pressure coordinates in the body frame.
+        args : tuple
+            Additional arguments.
+        kwargs : dict
+            Additional keyword arguments.
+
+        Returns
+        -------
+        tuple of float
+            The aerodynamic forces (lift, side_force, drag) and moments
+            (pitch, yaw, roll) in the body frame.
+        """
+        R1, R2, R3, M1, M2, M3 = 0, 0, 0, 0, 0, 0
+        cpz = cp[2]
+        stream_vx, stream_vy, stream_vz = stream_velocity
+        if stream_vx**2 + stream_vy**2 != 0:  # TODO: maybe try/except
+            # Normalize component stream velocity in body frame
+            stream_vzn = stream_vz / stream_speed
+            if -1 * stream_vzn < 1:
+                attack_angle = np.arccos(-stream_vzn)
+                c_lift = self.cl.get_value_opt(attack_angle, stream_mach)
+                # Component lift force magnitude
+                lift = 0.5 * rho * (stream_speed**2) * self.reference_area * c_lift
+                # Component lift force components
+                lift_dir_norm = (stream_vx**2 + stream_vy**2) ** 0.5
+                lift_xb = lift * (stream_vx / lift_dir_norm)
+                lift_yb = lift * (stream_vy / lift_dir_norm)
+                # Total lift force
+                R1, R2, R3 = lift_xb, lift_yb, 0
+                # Total moment
+                M1, M2, M3 = -cpz * lift_yb, cpz * lift_xb, 0
+        return R1, R2, R3, M1, M2, M3

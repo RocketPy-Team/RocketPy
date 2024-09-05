@@ -1400,7 +1400,6 @@ class Flight:  # pylint: disable=too-many-public-methods
             * self.rocket._csys
         )
         c = self.rocket.nozzle_to_cdm
-        a = self.rocket.com_to_cdm_function.get_value_opt(t)
         nozzle_radius = self.rocket.motor.nozzle_radius
         # Prepare transformation matrix
         a11 = 1 - 2 * (e2**2 + e3**2)
@@ -1503,8 +1502,8 @@ class Flight:  # pylint: disable=too-many-public-methods
                     R1 += comp_lift_xb
                     R2 += comp_lift_yb
                     # Add to total moment
-                    M1 -= (comp_cp + a) * comp_lift_yb
-                    M2 += (comp_cp + a) * comp_lift_xb
+                    M1 -= (comp_cp) * comp_lift_yb
+                    M2 += (comp_cp) * comp_lift_xb
             # Calculates Roll Moment
             try:
                 clf_delta, cld_omega, cant_angle_rad = aero_surface.roll_parameters
@@ -1753,55 +1752,26 @@ class Flight:  # pylint: disable=too-many-public-methods
             # Component freestream velocity in body frame
             comp_wind_vb = Kt @ Vector([comp_wind_vx, comp_wind_vy, 0])
             comp_stream_velocity = comp_wind_vb - comp_vb
-            comp_stream_vx_b, comp_stream_vy_b, comp_stream_vz_b = comp_stream_velocity
             comp_stream_speed = abs(comp_stream_velocity)
             comp_stream_mach = comp_stream_speed / speed_of_sound
-            # Component attack angle and lift force
-            comp_attack_angle = 0
-            comp_lift, comp_lift_xb, comp_lift_yb = 0, 0, 0
-            if comp_stream_vx_b**2 + comp_stream_vy_b**2 != 0:  # TODO: maybe try/except
-                # Normalize component stream velocity in body frame
-                comp_stream_vz_bn = comp_stream_vz_b / comp_stream_speed
-                if -1 * comp_stream_vz_bn < 1:
-                    comp_attack_angle = np.arccos(-comp_stream_vz_bn)
-                    c_lift = aero_surface.cl.get_value_opt(
-                        comp_attack_angle, comp_stream_mach
-                    )
-                    # Component lift force magnitude
-                    comp_lift = (
-                        0.5 * rho * (comp_stream_speed**2) * reference_area * c_lift
-                    )
-                    # Component lift force components
-                    lift_dir_norm = (comp_stream_vx_b**2 + comp_stream_vy_b**2) ** 0.5
-                    comp_lift_xb = comp_lift * (comp_stream_vx_b / lift_dir_norm)
-                    comp_lift_yb = comp_lift * (comp_stream_vy_b / lift_dir_norm)
-                    # Add to total lift force
-                    R1 += comp_lift_xb
-                    R2 += comp_lift_yb
-                    # Add to total moment
-                    M1 -= (comp_cpz + r_CM_t) * comp_lift_yb
-                    M2 += (comp_cpz + r_CM_t) * comp_lift_xb
-            # Calculates Roll Moment
-            try:
-                clf_delta, cld_omega, cant_angle_rad = aero_surface.roll_parameters
-                M3_forcing = (
-                    (1 / 2 * rho * comp_stream_speed**2)
-                    * reference_area
-                    * reference_length
-                    * clf_delta.get_value_opt(comp_stream_mach)
-                    * cant_angle_rad
-                )
-                M3_damping = (
-                    (1 / 2 * rho * comp_stream_speed)
-                    * reference_area
-                    * (reference_length) ** 2
-                    * cld_omega.get_value_opt(comp_stream_mach)
-                    * omega3
-                    / 2
-                )
-                M3 += M3_forcing - M3_damping
-            except AttributeError:
-                pass
+            # Forces and moments
+            X, Y, Z, M, N, L = aero_surface.compute_forces_and_moments(
+                comp_stream_velocity,
+                comp_stream_speed,
+                comp_stream_mach,
+                rho,
+                comp_cp,
+                comp_z,
+                omega1,
+                omega2,
+                omega3,
+            )
+            R1 += X
+            R2 += Y
+            R3 += Z
+            M1 += M
+            M2 += N
+            M3 += L
 
         # Off center moment
         thrust = self.rocket.motor.thrust.get_value_opt(t)

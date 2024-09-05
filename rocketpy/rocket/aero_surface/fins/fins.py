@@ -366,6 +366,54 @@ class Fins(AeroSurface):
         else:
             return n / 2
 
+    def compute_forces_and_moments(
+        self,
+        stream_velocity,
+        stream_speed,
+        stream_mach,
+        rho,
+        cp,
+        _,
+        omega1,
+        omega2,
+        omega3,
+        *args,
+        **kwargs,
+    ):
+        """Computes the forces and moments acting on the aerodynamic surface.
+
+        Parameters
+        ----------
+        stream_speed : int, float
+            Speed of the flow stream in the body frame.
+
+        """
+        R1, R2, R3, M1, M2, _ = super().compute_forces_and_moments(
+            stream_velocity,
+            stream_speed,
+            stream_mach,
+            rho,
+            cp,
+        )
+        clf_delta, cld_omega, cant_angle_rad = self.roll_parameters
+        M3_forcing = (
+            (1 / 2 * rho * stream_speed**2)
+            * self.reference_area
+            * self.reference_length
+            * clf_delta.get_value_opt(stream_mach)
+            * cant_angle_rad
+        )
+        M3_damping = (
+            (1 / 2 * rho * stream_speed)
+            * self.reference_area
+            * (self.reference_length) ** 2
+            * cld_omega.get_value_opt(stream_mach)
+            * omega3
+            / 2
+        )
+        M3 = M3_forcing - M3_damping
+        return R1, R2, R3, M1, M2, M3
+
     def draw(self):
         """Draw the fin shape along with some important information, including
         the center line, the quarter line and the center of pressure position.
