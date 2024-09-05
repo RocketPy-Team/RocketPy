@@ -335,8 +335,8 @@ def test_rolling_flight(  # pylint: disable=unused-argument
         position=-1.04956,
         cant_angle=0.5,
     )
-    calisto.aerodynamic_surfaces.add(calisto_nose_cone, 1.160)
-    calisto.aerodynamic_surfaces.add(calisto_tail, -1.313)
+    calisto.add_surfaces(calisto_nose_cone, 1.160)
+    calisto.add_surfaces(calisto_tail, -1.313)
     calisto.parachutes.append(calisto_main_chute)
     calisto.parachutes.append(calisto_drogue_chute)
 
@@ -365,9 +365,9 @@ def test_eccentricity_on_flight(  # pylint: disable=unused-argument
 
     test_rocket.set_rail_buttons(0.082, -0.618)
     test_rocket.add_motor(cesaroni_m1670, position=-1.373)
-    calisto.aerodynamic_surfaces.add(calisto_trapezoidal_fins, position=-1.04956)
-    calisto.aerodynamic_surfaces.add(calisto_nose_cone, 1.160)
-    calisto.aerodynamic_surfaces.add(calisto_tail, -1.313)
+    calisto.add_surfaces(calisto_trapezoidal_fins, -1.04956)
+    calisto.add_surfaces(calisto_nose_cone, 1.160)
+    calisto.add_surfaces(calisto_tail, -1.313)
     calisto.add_cm_eccentricity(x=-0.01, y=-0.01)
 
     test_flight = Flight(

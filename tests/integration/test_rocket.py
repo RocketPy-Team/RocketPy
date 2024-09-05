@@ -14,8 +14,8 @@ def test_airfoil(
 ):
     test_rocket = calisto
     test_rocket.set_rail_buttons(0.082, -0.618)
-    calisto.aerodynamic_surfaces.add(calisto_nose_cone, 1.160)
-    calisto.aerodynamic_surfaces.add(calisto_tail, -1.313)
+    calisto.add_surfaces(calisto_nose_cone, 1.160)
+    calisto.add_surfaces(calisto_tail, -1.313)
 
     test_rocket.add_trapezoidal_fins(
         2,
