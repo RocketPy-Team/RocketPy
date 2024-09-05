@@ -9,7 +9,6 @@ class LinearGenericSurface(GenericSurface):
 
     def __init__(
         self,
-        rocket_radius,
         reference_area,
         reference_length,
         cL_0=0,
@@ -70,8 +69,6 @@ class LinearGenericSurface(GenericSurface):
 
         Parameters
         ----------
-        rocket_radius : int, float
-            The rocket radius in which the aerodynamic surface is attached to.
         reference_area : int, float
             Reference area of the aerodynamic surface. Has the unit of meters
             squared. Commonly defined as the rocket's cross-sectional area.
@@ -191,7 +188,6 @@ class LinearGenericSurface(GenericSurface):
         name : str
             Name of the aerodynamic surface. Default is 'GenericSurface'.
         """
-        self.rocket_radius = rocket_radius
         self.reference_area = reference_area
         self.reference_length = reference_length
         self.center_of_pressure = center_of_pressure

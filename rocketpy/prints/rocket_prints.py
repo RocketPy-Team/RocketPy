@@ -1,3 +1,6 @@
+from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
+
+
 class _RocketPrints:
     """Class that holds prints methods for Rocket class.
 
@@ -99,6 +102,8 @@ class _RocketPrints:
         """
         print("\nAerodynamics Lift Coefficient Derivatives\n")
         for surface, _ in self.rocket.aerodynamic_surfaces:
+            if isinstance(surface, GenericSurface):
+                continue
             name = surface.name
             # ref_factor corrects lift for different reference areas
             ref_factor = (surface.rocket_radius / self.rocket.radius) ** 2
