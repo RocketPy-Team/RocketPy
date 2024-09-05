@@ -41,6 +41,8 @@ and radius:
     Pay special attention to the following:
 
     - ``mass`` is the rocket's mass, **without the motor**, in kg.
+    - All ``inertia`` values are given in relation to the rocket's center of 
+      mass without motor.
     - ``inertia`` is defined as a tuple of the form ``(I11, I22, I33)``.
       Where ``I11`` and ``I22`` are the inertia of the mass around the
       perpendicular axes to the rocket, and ``I33`` is the inertia around the
@@ -432,10 +434,10 @@ The lets check all the information available about the rocket:
 7. Inertia Tensors
 ------------------
 
-The inertia tensor of the rocket at a given time can be obtained using the
-``get_inertia_tensor_at_time`` method. This method evaluates each component of
-the inertia tensor at the specified time and returns a
-:class:`rocketpy.mathutils.Matrix` object.
+The inertia tensor relative to the center of dry mass of the rocket at a
+given time can be obtained using the ``get_inertia_tensor_at_time`` method.
+This method evaluates each component of the inertia tensor at the specified
+time and returns a :class:`rocketpy.mathutils.Matrix` object.
 
 The inertia tensor is a matrix that looks like this:
 

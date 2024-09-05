@@ -1352,6 +1352,12 @@ class EmptyMotor:
         self.dry_I_12 = 0
         self.dry_I_13 = 0
         self.dry_I_23 = 0
+        self.propellant_I_11 = Function(0, "Time (s)", "Propellant I_11 (kg m²)")
+        self.propellant_I_22 = Function(0, "Time (s)", "Propellant I_22 (kg m²)")
+        self.propellant_I_33 = Function(0, "Time (s)", "Propellant I_33 (kg m²)")
+        self.propellant_I_12 = Function(0, "Time (s)", "Propellant I_12 (kg m²)")
+        self.propellant_I_13 = Function(0, "Time (s)", "Propellant I_13 (kg m²)")
+        self.propellant_I_23 = Function(0, "Time (s)", "Propellant I_23 (kg m²)")
         self.I_11 = Function(0)
         self.I_22 = Function(0)
         self.I_33 = Function(0)
