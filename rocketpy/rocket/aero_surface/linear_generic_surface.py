@@ -2,7 +2,7 @@ from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 from rocketpy.mathutils import Function
 
 
-class GenericLinearSurface(GenericSurface):
+class LinearGenericSurface(GenericSurface):
     """Class that defines a generic linear aerodynamic surface. This class is
     used to define aerodynamic surfaces that have aerodynamic coefficients
     defined as linear functions of the coefficients derivatives."""
@@ -54,12 +54,13 @@ class GenericLinearSurface(GenericSurface):
         Important
         ---------
         The coefficients can be defined as a CSV file or as a callable function.
-        The function must have 4 input arguments in the form (alpha, beta, mach,
-        height). The CSV file must have a header with the following columns:
-        'alpha', 'beta', 'mach', 'height', 'pitch_rate', 'yaw_rate', 'roll_rate'
-        and the last column must be the coefficient value, which can have any
-        name. Not all columns are required, but at least one independent
-        variable and the coefficient value are required.
+        The function must have 7 input arguments in the form (alpha, beta, mach,
+        reynolds, pitch_rate, yaw_rate, roll_rate). The CSV file must have a
+        header with the following columns: 'alpha', 'beta', 'mach', 'reynolds',
+        'pitch_rate', 'yaw_rate', 'roll_rate' and the last column must be the
+        coefficient value, which can have any name. Not all columns are
+        required, but at least one independent variable and the coefficient
+        value are required.
 
         See Also
         --------
@@ -239,28 +240,28 @@ class GenericLinearSurface(GenericSurface):
         self, c_0, c_alpha, c_beta, c_p, c_q, c_r, coeff_name
     ):
 
-        def total_coefficient(alpha, beta, mach, height, p, q, r):
+        def total_coefficient(alpha, beta, mach, reynolds, p, q, r):
             return (
-                c_0(alpha, beta, mach, height)
-                + c_alpha(alpha, beta, mach, height) * alpha
-                + c_beta(alpha, beta, mach, height) * beta
+                c_0(alpha, beta, mach, reynolds)
+                + c_alpha(alpha, beta, mach, reynolds) * alpha
+                + c_beta(alpha, beta, mach, reynolds) * beta
                 + self.reference_length
                 / (2 * self.stream_speed)
-                * c_p(alpha, beta, mach, height)
+                * c_p(alpha, beta, mach, reynolds)
                 * p
                 + self.reference_length
                 / (2 * self.stream_speed)
-                * c_q(alpha, beta, mach, height)
+                * c_q(alpha, beta, mach, reynolds)
                 * q
                 + self.reference_length
                 / (2 * self.stream_speed)
-                * c_r(alpha, beta, mach, height)
+                * c_r(alpha, beta, mach, reynolds)
                 * r
             )
 
         return Function(
             total_coefficient,
-            ['alpha', 'beta', 'mach', 'height', 'p', 'q', 'r'],
+            ['alpha', 'beta', 'mach', 'reynolds', 'p', 'q', 'r'],
             [coeff_name],
         )
 

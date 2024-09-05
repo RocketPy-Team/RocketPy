@@ -31,12 +31,13 @@ class GenericSurface(AeroSurface):
         Important
         ---------
         The coefficients can be defined as a CSV file or as a callable function.
-        The function must have 4 input arguments in the form (alpha, beta, mach,
-        height). The CSV file must have a header with the following columns:
-        'alpha', 'beta', 'mach', 'height', 'pitch_rate', 'yaw_rate', 'roll_rate'
-        and the last column must be the coefficient value, which can have any
-        name. Not all columns are required, but at least one independent
-        variable and the coefficient value are required.
+        The function must have 7 input arguments in the form (alpha, beta, mach,
+        reynolds, pitch_rate, yaw_rate, roll_rate). The CSV file must have a
+        header with the following columns: 'alpha', 'beta', 'mach', 'reynolds',
+        'pitch_rate', 'yaw_rate', 'roll_rate' and the last column must be the
+        coefficient value, which can have any name. Not all columns are
+        required, but at least one independent variable and the coefficient
+        value are required.
 
         See Also
         --------
@@ -50,24 +51,24 @@ class GenericSurface(AeroSurface):
         reference_length : int, float
             Reference length of the aerodynamic surface. Has the unit of meters.
             Commonly defined as the rocket's diameter.
-        cL : str, callable
-            Lift coefficient. Can be a path to a CSV file or a callable
-            function.
-        cQ : str, callable
-            Side force coefficient. Can be a path to a CSV file or a callable
-            function.
-        cD : str, callable
-            Drag coefficient. Can be a path to a CSV file or a callable
-            function.
-        cm : str, callable
-            Pitch moment coefficient. Can be a path to a CSV file or a callable
-            function.
-        cn : str, callable
-            Yaw moment coefficient. Can be a path to a CSV file or a callable
-            function.
-        cl : str, callable
-            Roll moment coefficient. Can be a path to a CSV file or a callable
-            function.
+        cL : str, callable, optional
+            Lift coefficient. Can be a path to a CSV file or a callable.
+            Default is 0.
+        cQ : str, callable, optional
+            Side force coefficient. Can be a path to a CSV file or a callable.
+            Default is 0.
+        cD : str, callable, optional
+            Drag coefficient. Can be a path to a CSV file or a callable.
+            Default is 0.
+        cm : str, callable, optional
+            Pitch moment coefficient. Can be a path to a CSV file or a callable.
+            Default is 0.
+        cn : str, callable, optional
+            Yaw moment coefficient. Can be a path to a CSV file or a callable.
+            Default is 0.
+        cl : str, callable, optional
+            Roll moment coefficient. Can be a path to a CSV file or a callable.
+            Default is 0.
         center_of_pressure : tuple, list
             Application point of the aerodynamic forces and moments. The
             center of pressure is defined in the local coordinate system of the
@@ -96,7 +97,7 @@ class GenericSurface(AeroSurface):
         stream_mach,
         rho,
         cp,
-        height,
+        reynolds,
         omega1,
         omega2,
         omega3,
@@ -119,8 +120,8 @@ class GenericSurface(AeroSurface):
             Air density.
         cp : Vector
             Center of pressure coordinates in the body frame.
-        height : float
-            Altitude of the surface.
+        reynolds : float
+            Reynolds number.
         omega1, omega2, omega3 : float
             Angular velocities around the x, y, z axes.
 
@@ -140,24 +141,24 @@ class GenericSurface(AeroSurface):
 
         # Compute aerodynamic forces
         lift = dyn_pressure_area * self.cL(
-            alpha, beta, stream_mach, height, omega1, omega2, omega3
+            alpha, beta, stream_mach, reynolds, omega1, omega2, omega3
         )
         side = dyn_pressure_area * self.cQ(
-            alpha, beta, stream_mach, height, omega1, omega2, omega3
+            alpha, beta, stream_mach, reynolds, omega1, omega2, omega3
         )
         drag = dyn_pressure_area * self.cD(
-            alpha, beta, stream_mach, height, omega1, omega2, omega3
+            alpha, beta, stream_mach, reynolds, omega1, omega2, omega3
         )
 
         # Compute aerodynamic moments
         pitch = dyn_pressure_area_length * self.cm(
-            alpha, beta, stream_mach, height, omega1, omega2, omega3
+            alpha, beta, stream_mach, reynolds, omega1, omega2, omega3
         )
         yaw = dyn_pressure_area_length * self.cn(
-            alpha, beta, stream_mach, height, omega1, omega2, omega3
+            alpha, beta, stream_mach, reynolds, omega1, omega2, omega3
         )
         roll = dyn_pressure_area_length * self.cl(
-            alpha, beta, stream_mach, height, omega1, omega2, omega3
+            alpha, beta, stream_mach, reynolds, omega1, omega2, omega3
         )
 
         # Conversion from aerodynamic frame to body frame
@@ -194,26 +195,40 @@ class GenericSurface(AeroSurface):
         Returns
         -------
         Function
-            Function object with 4 input arguments (alpha, beta, mach, height).
+            Function object with 4 input arguments (alpha, beta, mach, reynolds).
         """
         if isinstance(input_data, str):
             # Input is assumed to be a file path to a CSV
             return self.__load_csv(input_data, coeff_name)
         elif isinstance(input_data, Function):
-            if input_data.__dom_dim__ != 4:
+            if input_data.__dom_dim__ != 7:
                 raise ValueError(
-                    f"{coeff_name} function must have 4 input arguments"
-                    " (alpha, beta, mach, height)."
+                    f"{coeff_name} function must have 7 input arguments"
+                    " (alpha, beta, mach, reynolds)."
                 )
             return input_data
         elif callable(input_data):
-            # Check if callable has 4 inputs (alpha, beta, mach, height)
-            if input_data.__code__.co_argcount != 4:
+            # Check if callable has 7 inputs (alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate)
+            if input_data.__code__.co_argcount != 7:
                 raise ValueError(
-                    f"{coeff_name} function must have 4 input arguments"
-                    " (alpha, beta, mach, height)."
+                    f"{coeff_name} function must have 7 input arguments"
+                    " (alpha, beta, mach, reynolds)."
                 )
             return input_data
+        elif input_data == 0:
+            return Function(
+                lambda alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate: 0,
+                [
+                    'alpha',
+                    'beta',
+                    'mach',
+                    'reynolds',
+                    'pitch_rate',
+                    'yaw_rate',
+                    'roll_rate',
+                ],
+                [coeff_name],
+            )
         else:
             raise TypeError(
                 f"Invalid input for {coeff_name}: must be a CSV file path"
@@ -235,7 +250,8 @@ class GenericSurface(AeroSurface):
         Returns
         -------
         Function
-            Function object with 4 input arguments (alpha, beta, mach, height).
+            Function object with 7 input arguments (alpha, beta, mach, reynolds,
+            pitch_rate, yaw_rate, roll_rate).
         """
         try:
             with open(file_path, mode='r') as file:
@@ -252,7 +268,7 @@ class GenericSurface(AeroSurface):
             'alpha',
             'beta',
             'mach',
-            'height',
+            'reynolds',
             'pitch_rate',
             'yaw_rate',
             'roll_rate',
@@ -278,8 +294,8 @@ class GenericSurface(AeroSurface):
         self._mask = [1 if col in present_columns else 0 for col in independent_vars]
 
         # Generate a lambda that applies only the relevant arguments to csv_func
-        def wrapper(alpha, beta, mach, height, pitch_rate, yaw_rate, roll_rate):
-            args = [alpha, beta, mach, height, pitch_rate, yaw_rate, roll_rate]
+        def wrapper(alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate):
+            args = [alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate]
             # Select arguments that correspond to present variables
             selected_args = [arg for arg, m in zip(args, self.mask) if m]
             return csv_func(*selected_args)

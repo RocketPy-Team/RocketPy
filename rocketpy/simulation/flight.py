@@ -1750,6 +1750,15 @@ class Flight:  # pylint: disable=too-many-public-methods
             comp_stream_velocity = comp_wind_vb - comp_vb
             comp_stream_speed = abs(comp_stream_velocity)
             comp_stream_mach = comp_stream_speed / speed_of_sound
+            # Reynolds at component altitude
+            # TODO: Reynolds is only used in generic surfaces. This calculation
+            # should be moved to the surface class for efficiency
+            comp_reynolds = (
+                self.env.density.get_value_opt(z)
+                * comp_stream_speed
+                * aero_surface.reference_length
+                / self.env.dynamic_viscosity.get_value_opt(z)
+            )
             # Forces and moments
             X, Y, Z, M, N, L = aero_surface.compute_forces_and_moments(
                 comp_stream_velocity,
@@ -1757,7 +1766,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                 comp_stream_mach,
                 rho,
                 comp_cp,
-                comp_z,
+                comp_reynolds,
                 omega1,
                 omega2,
                 omega3,
@@ -2801,7 +2810,8 @@ class Flight:  # pylint: disable=too-many-public-methods
         # Distance from Rail Button 1 (upper) to CM
         rail_buttons_tuple = self.rocket.rail_buttons[0]
         upper_button_position = (
-            rail_buttons_tuple.component.buttons_distance + rail_buttons_tuple.position.z
+            rail_buttons_tuple.component.buttons_distance
+            + rail_buttons_tuple.position.z
         )
         lower_button_position = rail_buttons_tuple.position.z
         angular_position_rad = rail_buttons_tuple.component.angular_position_rad
