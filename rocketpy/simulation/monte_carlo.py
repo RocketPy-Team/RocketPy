@@ -316,7 +316,6 @@ class MonteCarlo:
                 target=self.__sim_consumer,
                 args=(export_queue, mutex, consumer_stop_event, simulation_error_event),
             )
-
             sim_consumer.start()
 
             for seed in seeds:
@@ -331,8 +330,6 @@ class MonteCarlo:
                     ),
                 )
                 processes.append(sim_producer)
-
-            for sim_producer in processes:
                 sim_producer.start()
 
             try:
