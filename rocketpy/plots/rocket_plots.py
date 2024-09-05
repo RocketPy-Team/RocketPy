@@ -237,11 +237,11 @@ class _RocketPlots:
 
         for surface, position in self.rocket.aerodynamic_surfaces:
             if isinstance(surface, NoseCone):
-                self._draw_nose_cone(ax, surface, position, drawn_surfaces, vis_args)
+                self._draw_nose_cone(ax, surface, position.z, drawn_surfaces, vis_args)
             elif isinstance(surface, Tail):
-                self._draw_tail(ax, surface, position, drawn_surfaces, vis_args)
+                self._draw_tail(ax, surface, position.z, drawn_surfaces, vis_args)
             elif isinstance(surface, Fins):
-                self._draw_fins(ax, surface, position, drawn_surfaces, vis_args)
+                self._draw_fins(ax, surface, position.z, drawn_surfaces, vis_args)
         return drawn_surfaces
 
     def _draw_nose_cone(self, ax, surface, position, drawn_surfaces, vis_args):
@@ -526,8 +526,8 @@ class _RocketPlots:
         """Draws the rail buttons of the rocket."""
         try:
             buttons, pos = self.rocket.rail_buttons[0]
-            lower = pos
-            upper = pos + buttons.buttons_distance * self.rocket._csys
+            lower = pos.z
+            upper = lower + buttons.buttons_distance * self.rocket._csys
             ax.scatter(
                 lower, -self.rocket.radius, marker="s", color=vis_args["buttons"], s=15
             )

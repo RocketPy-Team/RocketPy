@@ -173,7 +173,7 @@ class Components:
         self._components.clear()
 
     def sort_by_position(self, reverse=False):
-        """Sort the list of components by position.
+        """Sort the list of components by z axis position.
 
         Parameters
         ----------
@@ -185,4 +185,4 @@ class Components:
         -------
         None
         """
-        self._components.sort(key=lambda x: x.position, reverse=reverse)
+        self._components.sort(key=lambda x: x.position.z, reverse=reverse)

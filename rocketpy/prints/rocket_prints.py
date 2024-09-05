@@ -98,7 +98,7 @@ class _RocketPrints:
         None
         """
         print("\nAerodynamics Lift Coefficient Derivatives\n")
-        for surface, position in self.rocket.aerodynamic_surfaces:
+        for surface, _ in self.rocket.aerodynamic_surfaces:
             name = surface.name
             # ref_factor corrects lift for different reference areas
             ref_factor = (surface.rocket_radius / self.rocket.radius) ** 2
@@ -113,7 +113,7 @@ class _RocketPrints:
             cpz = surface.cp[2]  # relative to the user defined coordinate system
             print(
                 f"{name} Center of Pressure position: "
-                f"{position - self.rocket._csys * cpz:.3f} m"
+                f"{position.z - self.rocket._csys * cpz:.3f} m"
             )
         print("\nStability\n")
         print(
