@@ -2,19 +2,19 @@ import csv
 import math
 
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
-from .aero_surface import AeroSurface
 from rocketpy.mathutils import Function
 import numpy as np
 
 
-# TODO ADD GEOMETRIC FORM TO GENERIC SURFACE
-class GenericSurface(AeroSurface):
-    """Defines a generic aerodynamic surface with custom force and moment coefficients.
-    The coefficients can be nonlinear functions of the angle of attack, sideslip angle,
-    Mach number, and altitude."""
+class GenericSurface:
+    """Defines a generic aerodynamic surface with custom force and moment
+    coefficients. The coefficients can be nonlinear functions of the angle of
+    attack, sideslip angle, Mach number, Reynolds number, pitch rate, yaw rate
+    and roll rate."""
 
     def __init__(
         self,
+        rocket_radius,
         reference_area,
         reference_length,
         cL=0,
@@ -26,25 +26,27 @@ class GenericSurface(AeroSurface):
         center_of_pressure=(0, 0, 0),
         name="Generic Surface",
     ):
-        """Initializes the generic aerodynamic surface object.
+        """Create a generic aerodynamic surface, defined by its aerodynamic
+        coefficients. This surface is used to model any aerodynamic surface
+        that does not fit the predefined classes.
 
         Important
         ---------
-        The coefficients can be defined as a CSV file or as a callable function.
-        The function must have 7 input arguments in the form (alpha, beta, mach,
-        reynolds, pitch_rate, yaw_rate, roll_rate). The CSV file must have a
-        header with the following columns: 'alpha', 'beta', 'mach', 'reynolds',
-        'pitch_rate', 'yaw_rate', 'roll_rate' and the last column must be the
-        coefficient value, which can have any name. Not all columns are
-        required, but at least one independent variable and the coefficient
-        value are required.
+        All the aerodynamic coefficients can be input as callable functions of
+        angle of attack, angle of sideslip, Mach number, Reynolds number,
+        pitch rate, yaw rate and roll rate. For CSV files, the header must
+        contain at least one of the following: "alpha", "beta", "mach",
+        "reynolds", "pitch_rate", "yaw_rate" and "roll_rate".
 
         See Also
         --------
-        LINK TO DOCS
+        For more information on how to create a custom aerodynamic surface,
+        check TODO: ADD LINK TO DOCUMENTATION
 
         Parameters
         ----------
+        rocket_radius : int, float
+            The rocket radius in which the aerodynamic surface is attached to.
         reference_area : int, float
             Reference area of the aerodynamic surface. Has the unit of meters
             squared. Commonly defined as the rocket's cross-sectional area.
@@ -69,19 +71,22 @@ class GenericSurface(AeroSurface):
         cl : str, callable, optional
             Roll moment coefficient. Can be a path to a CSV file or a callable.
             Default is 0.
-        center_of_pressure : tuple, list
+        center_of_pressure : tuple, list, optional
             Application point of the aerodynamic forces and moments. The
             center of pressure is defined in the local coordinate system of the
             aerodynamic surface. The default value is (0, 0, 0).
-        name : str
+        name : str, optional
             Name of the aerodynamic surface. Default is 'GenericSurface'.
         """
-        super().__init__(name, reference_area, reference_length)
+        self.rocket_radius = rocket_radius
+        self.reference_area = reference_area
+        self.reference_length = reference_length
         self.center_of_pressure = center_of_pressure
         self.cp = center_of_pressure
         self.cpx = center_of_pressure[0]
         self.cpy = center_of_pressure[1]
         self.cpz = center_of_pressure[2]
+        self.name = name
 
         self.cL = self._process_input(cL, "cL")
         self.cD = self._process_input(cD, "cD")
@@ -89,6 +94,76 @@ class GenericSurface(AeroSurface):
         self.cm = self._process_input(cm, "cm")
         self.cn = self._process_input(cn, "cn")
         self.cl = self._process_input(cl, "cl")
+
+    def _compute_from_coefficients(
+        self,
+        rho,
+        stream_speed,
+        alpha,
+        beta,
+        mach,
+        reynolds,
+        pitch_rate,
+        yaw_rate,
+        roll_rate,
+    ):
+        """Compute the aerodynamic forces and moments from the aerodynamic
+        coefficients.
+
+        Parameters
+        ----------
+        rho : float
+            Air density.
+        stream_speed : float
+            Magnitude of the airflow speed.
+        alpha : float
+            Angle of attack in radians.
+        beta : float
+            Sideslip angle in radians.
+        mach : float
+            Mach number.
+        reynolds : float
+            Reynolds number.
+        pitch_rate : float
+            Pitch rate in radians per second.
+        yaw_rate : float
+            Yaw rate in radians per second.
+        roll_rate : float
+            Roll rate in radians per second.
+
+        Returns
+        -------
+        tuple of float
+            The aerodynamic forces (lift, side_force, drag) and moments
+            (pitch, yaw, roll) in the body frame.
+        """
+        # Precompute common values
+        dyn_pressure_area = 0.5 * rho * stream_speed**2 * self.reference_area
+        dyn_pressure_area_length = dyn_pressure_area * self.reference_length
+
+        # Compute aerodynamic forces
+        lift = dyn_pressure_area * self.cL(
+            alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
+        )
+        side = dyn_pressure_area * self.cQ(
+            alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
+        )
+        drag = dyn_pressure_area * self.cD(
+            alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
+        )
+
+        # Compute aerodynamic moments
+        pitch = dyn_pressure_area_length * self.cm(
+            alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
+        )
+        yaw = dyn_pressure_area_length * self.cn(
+            alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
+        )
+        roll = dyn_pressure_area_length * self.cl(
+            alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
+        )
+
+        return lift, side, drag, pitch, yaw, roll
 
     def compute_forces_and_moments(
         self,
@@ -131,34 +206,24 @@ class GenericSurface(AeroSurface):
             The aerodynamic forces (lift, side_force, drag) and moments
             (pitch, yaw, roll) in the body frame.
         """
-        # Calculate aerodynamic angles
-        alpha = np.arctan2(-stream_velocity[0], stream_velocity[2])
-        beta = np.arctan2(-stream_velocity[1], stream_velocity[2])
+        # Stream velocity in standard aerodynamic frame
+        stream_velocity = -stream_velocity
 
-        # Precompute common values
-        dyn_pressure_area = 0.5 * rho * stream_speed**2 * self.reference_area
-        dyn_pressure_area_length = dyn_pressure_area * self.reference_length
+        # Angles of attack and sideslip
+        alpha = np.arctan2(stream_velocity[1], stream_velocity[2])
+        beta = np.arctan2(-stream_velocity[0], stream_velocity[2])
 
-        # Compute aerodynamic forces
-        lift = dyn_pressure_area * self.cL(
-            alpha, beta, stream_mach, reynolds, omega1, omega2, omega3
-        )
-        side = dyn_pressure_area * self.cQ(
-            alpha, beta, stream_mach, reynolds, omega1, omega2, omega3
-        )
-        drag = dyn_pressure_area * self.cD(
-            alpha, beta, stream_mach, reynolds, omega1, omega2, omega3
-        )
-
-        # Compute aerodynamic moments
-        pitch = dyn_pressure_area_length * self.cm(
-            alpha, beta, stream_mach, reynolds, omega1, omega2, omega3
-        )
-        yaw = dyn_pressure_area_length * self.cn(
-            alpha, beta, stream_mach, reynolds, omega1, omega2, omega3
-        )
-        roll = dyn_pressure_area_length * self.cl(
-            alpha, beta, stream_mach, reynolds, omega1, omega2, omega3
+        # Compute aerodynamic forces and moments
+        lift, side, drag, pitch, yaw, roll = self._compute_from_coefficients(
+            rho,
+            stream_speed,
+            alpha,
+            beta,
+            stream_mach,
+            reynolds,
+            omega1,
+            omega2,
+            omega3,
         )
 
         # Conversion from aerodynamic frame to body frame
@@ -170,15 +235,15 @@ class GenericSurface(AeroSurface):
             ]
         ) @ Matrix(
             [
-                [math.cos(beta), 0, math.sin(beta)],
+                [math.cos(beta), 0, -math.sin(beta)],
                 [0, 1, 0],
-                [-math.sin(beta), 0, math.cos(beta)],
+                [math.sin(beta), 0, math.cos(beta)],
             ]
         )
-        R1, R2, R3 = rotation_matrix @ Vector([lift, side, drag])
+        R1, R2, R3 = rotation_matrix @ Vector([side, -lift, -drag])
 
         # Dislocation of the aerodynamic application point to CDM
-        M1, M2, M3 = Vector([pitch, yaw, roll]) + cp ^ Vector([R1, R2, R3])
+        M1, M2, M3 = Vector([pitch, yaw, roll]) + (cp ^ Vector([R1, R2, R3]))
 
         return R1, R2, R3, M1, M2, M3
 
@@ -287,17 +352,17 @@ class GenericSurface(AeroSurface):
             raise ValueError(f"No independent variables found in {coeff_name} CSV.")
 
         # Initialize the CSV-based function
-        csv_func = Function(file_path, interpolation='linear', extrapolation='natural')
+        csv_func = Function(file_path, extrapolation='natural')
 
         # Create a mask for the presence of each independent variable
         # save on self to avoid loss of scope
-        self._mask = [1 if col in present_columns else 0 for col in independent_vars]
+        _mask = [1 if col in present_columns else 0 for col in independent_vars]
 
         # Generate a lambda that applies only the relevant arguments to csv_func
         def wrapper(alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate):
             args = [alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate]
             # Select arguments that correspond to present variables
-            selected_args = [arg for arg, m in zip(args, self.mask) if m]
+            selected_args = [arg for arg, m in zip(args, _mask) if m]
             return csv_func(*selected_args)
 
         # Create the interpolation function
