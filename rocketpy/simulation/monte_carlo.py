@@ -382,12 +382,14 @@ class MonteCarlo:
             Event signaling an error occurred during the simulation.
         """
         try:
+            # Ensure Processes generate different random numbers
+            self.environment._set_stochastic(seed)
+            self.rocket._set_stochastic(seed)
+            self.flight._set_stochastic(seed)
+
             while sim_monitor.keep_simulating():
                 sim_idx = sim_monitor.increment() - 1
 
-                self.environment._set_stochastic(seed)
-                self.rocket._set_stochastic(seed)
-                self.flight._set_stochastic(seed)
 
                 inputs_dict, outputs_dict = self.__run_single_simulation(sim_idx)
 
