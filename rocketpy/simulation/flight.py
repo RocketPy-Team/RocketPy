@@ -1982,37 +1982,44 @@ class Flight:  # pylint: disable=too-many-public-methods
     # Transform solution array into Functions
     @funcify_method("Time (s)", "X (m)", "spline", "constant")
     def x(self):
-        """Rocket x position as a Function of time."""
+        """Rocket x position in relation to the launch pad as a Function of
+        time."""
         return self.solution_array[:, [0, 1]]
 
     @funcify_method("Time (s)", "Y (m)", "spline", "constant")
     def y(self):
-        """Rocket y position as a Function of time."""
+        """Rocket y position in relation to the lauch pad as a Function of
+        time."""
         return self.solution_array[:, [0, 2]]
 
     @funcify_method("Time (s)", "Z (m)", "spline", "constant")
     def z(self):
-        """Rocket z position as a Function of time."""
+        """Rocket z position in relation to the launch pad as a Function of
+        time."""
         return self.solution_array[:, [0, 3]]
 
     @funcify_method("Time (s)", "Altitude AGL (m)", "spline", "constant")
     def altitude(self):
-        """Rocket altitude above ground level as a Function of time."""
+        """Rocket altitude above ground level as a Function of time. Ground
+        level is defined by the environment elevation."""
         return self.z - self.env.elevation
 
     @funcify_method("Time (s)", "Vx (m/s)", "spline", "zero")
     def vx(self):
-        """Rocket x velocity as a Function of time."""
+        """Velocity of the rocket center of dry mass in the direction of
+        the rocket x-axis as a Function of time."""
         return self.solution_array[:, [0, 4]]
 
     @funcify_method("Time (s)", "Vy (m/s)", "spline", "zero")
     def vy(self):
-        """Rocket y velocity as a Function of time."""
+        """Velocity of the rocket center of dry mass in the direction of
+        the rocket y-axis as a Function of time."""
         return self.solution_array[:, [0, 5]]
 
     @funcify_method("Time (s)", "Vz (m/s)", "spline", "zero")
     def vz(self):
-        """Rocket z velocity as a Function of time."""
+        """Velocity of the rocket center of dry mass in the direction of
+        the rocket z-axis as a Function of time."""
         return self.solution_array[:, [0, 6]]
 
     @funcify_method("Time (s)", "e0", "spline", "constant")
@@ -2037,88 +2044,94 @@ class Flight:  # pylint: disable=too-many-public-methods
 
     @funcify_method("Time (s)", "ω1 (rad/s)", "spline", "zero")
     def w1(self):
-        """Rocket angular velocity ω1 as a Function of time."""
+        """Angular velocity of the rocket in the x-axis as a Function of time.
+        Sometimes referred to as pitch rate (q)."""
         return self.solution_array[:, [0, 11]]
 
     @funcify_method("Time (s)", "ω2 (rad/s)", "spline", "zero")
     def w2(self):
-        """Rocket angular velocity ω2 as a Function of time."""
+        """Angular velocity of the rocket in the y-axis as a Function of time.
+        Sometimes referred to as yaw rate (r)."""
         return self.solution_array[:, [0, 12]]
 
     @funcify_method("Time (s)", "ω3 (rad/s)", "spline", "zero")
     def w3(self):
-        """Rocket angular velocity ω3 as a Function of time."""
+        """Angular velocity of the rocket in the z-axis as a Function of time.
+        Sometimes referred to as roll rate (p)."""
         return self.solution_array[:, [0, 13]]
 
     # Process second type of outputs - accelerations components
     @funcify_method("Time (s)", "Ax (m/s²)", "spline", "zero")
     def ax(self):
-        """Rocket x acceleration as a Function of time."""
+        """Acceleration of the rocket center of dry mass in the direction of
+        the rocket x-axis as a Function of time."""
         return self.__evaluate_post_process[:, [0, 1]]
 
     @funcify_method("Time (s)", "Ay (m/s²)", "spline", "zero")
     def ay(self):
-        """Rocket y acceleration as a Function of time."""
+        """Acceleration of the rocket center of dry mass in the direction of
+        the rocket y-axis as a Function of time."""
         return self.__evaluate_post_process[:, [0, 2]]
 
     @funcify_method("Time (s)", "Az (m/s²)", "spline", "zero")
     def az(self):
-        """Rocket z acceleration as a Function of time."""
+        """Acceleration of the rocket center of dry mass in the direction of
+        the rocket z-axis as a Function of time."""
         return self.__evaluate_post_process[:, [0, 3]]
 
     @funcify_method("Time (s)", "α1 (rad/s²)", "spline", "zero")
     def alpha1(self):
-        """Rocket angular acceleration α1 as a Function of time."""
+        """Angular acceleration of the rocket in the x-axis as a Function of
+        time. Sometimes referred to as pitch acceleration."""
         return self.__evaluate_post_process[:, [0, 4]]
 
     @funcify_method("Time (s)", "α2 (rad/s²)", "spline", "zero")
     def alpha2(self):
-        """Rocket angular acceleration α2 as a Function of time."""
+        """Angular acceleration of the rocket in the y-axis as a Function of
+        time. Sometimes referred to as yaw acceleration."""
         return self.__evaluate_post_process[:, [0, 5]]
 
     @funcify_method("Time (s)", "α3 (rad/s²)", "spline", "zero")
     def alpha3(self):
-        """Rocket angular acceleration α3 as a Function of time."""
+        """Angular acceleration of the rocket in the z-axis as a Function of
+        time. Sometimes referred to as roll acceleration."""
         return self.__evaluate_post_process[:, [0, 6]]
 
     # Process third type of outputs - Temporary values
     @funcify_method("Time (s)", "R1 (N)", "spline", "zero")
     def R1(self):
-        """Aerodynamic force along the first axis that is perpendicular to the
-        rocket's axis of symmetry as a Function of time."""
+        """Aerodynamic force along the x-axis of the rocket as a Function of
+        time."""
         return self.__evaluate_post_process[:, [0, 7]]
 
     @funcify_method("Time (s)", "R2 (N)", "spline", "zero")
     def R2(self):
-        """Aerodynamic force along the second axis that is perpendicular to the
-        rocket's axis of symmetry as a Function of time."""
+        """Aerodynamic force along the y-axis of the rocket as a Function of
+        time."""
         return self.__evaluate_post_process[:, [0, 8]]
 
     @funcify_method("Time (s)", "R3 (N)", "spline", "zero")
     def R3(self):
-        """Aerodynamic force along the rocket's axis of symmetry as a
+        """Aerodynamic force along the z-axis (rocket's axis of symmetry) as a
         Function of time."""
         return self.__evaluate_post_process[:, [0, 9]]
 
-    @funcify_method("Time (s)", "M1 (Nm)", "spline", "zero")
+    @funcify_method("Time (s)", "M1 (Nm)", "linear", "zero")
     def M1(self):
-        """Aerodynamic bending moment in the same direction as the axis that is
-        perpendicular to the rocket's axis of symmetry as a Function of
-        time.
-        """
+        """Aerodynamic moment in the rocket x-axis as a Function of time.
+        Sometimes referred to as pitch moment."""
         return self.__evaluate_post_process[:, [0, 10]]
 
-    @funcify_method("Time (s)", "M2 (Nm)", "spline", "zero")
+    @funcify_method("Time (s)", "M2 (Nm)", "linear", "zero")
     def M2(self):
-        """Aerodynamic bending moment in the same direction as the axis that is
-        perpendicular to the rocket's axis of symmetry as a Function
-        of time."""
+        """Aerodynamic moment in the rocket y-axis as a Function of time.
+        Sometimes referred to as yaw moment."""
         return self.__evaluate_post_process[:, [0, 11]]
 
-    @funcify_method("Time (s)", "M3 (Nm)", "spline", "zero")
+    @funcify_method("Time (s)", "M3 (Nm)", "linear", "zero")
     def M3(self):
-        """Aerodynamic bending moment in the same direction as the rocket's
-        axis of symmetry as a Function of time."""
+        """Aerodynamic moment in the rocket z-axis as a Function of time.
+        Sometimes referred to as roll moment."""
         return self.__evaluate_post_process[:, [0, 12]]
 
     @funcify_method("Time (s)", "Pressure (Pa)", "spline", "constant")
@@ -2149,7 +2162,7 @@ class Flight:  # pylint: disable=too-many-public-methods
 
     @funcify_method("Time (s)", "Wind Velocity Y (North) (m/s)", "spline", "constant")
     def wind_velocity_y(self):
-        """Wind velocity in the y direction (north) as a Function of time."""
+        """Wind velocity in the Y direction (north) as a Function of time."""
         return [(t, self.env.wind_velocity_y.get_value_opt(z)) for t, z in self.z]
 
     # Process fourth type of output - values calculated from previous outputs
@@ -2249,17 +2262,26 @@ class Flight:  # pylint: disable=too-many-public-methods
     # Attitude Angle
     @funcify_method("Time (s)", "Attitude Vector X Component")
     def attitude_vector_x(self):
-        """Rocket attitude vector X component as a Function of time."""
+        """Rocket attitude vector X component as a Function of time.
+        Same as row 1, column 3 of the rotation matrix that defines
+        the conversion from the body frame to the inertial frame
+        at each time step."""
         return 2 * (self.e1 * self.e3 + self.e0 * self.e2)  # a13
 
     @funcify_method("Time (s)", "Attitude Vector Y Component")
     def attitude_vector_y(self):
-        """Rocket attitude vector Y component as a Function of time."""
+        """Rocket attitude vector Y component as a Function of time.
+        Same as row 2, column 3 of the rotation matrix that defines
+        the conversion from the body frame to the inertial frame
+        at each time step."""
         return 2 * (self.e2 * self.e3 - self.e0 * self.e1)  # a23
 
     @funcify_method("Time (s)", "Attitude Vector Z Component")
     def attitude_vector_z(self):
-        """Rocket attitude vector Z component as a Function of time."""
+        """Rocket attitude vector Z component as a Function of time.
+        Same as row 3, column 3 of the rotation matrix that defines
+        the conversion from the body frame to the inertial frame
+        at each time step."""
         return 1 - 2 * (self.e1**2 + self.e2**2)  # a33
 
     @funcify_method("Time (s)", "Attitude Angle (°)")
@@ -2460,6 +2482,7 @@ class Flight:  # pylint: disable=too-many-public-methods
     # Total Pressure
     @funcify_method("Time (s)", "Total Pressure (Pa)", "spline", "zero")
     def total_pressure(self):
+        """Total pressure as a Function of time."""
         return self.pressure * (1 + 0.2 * self.mach_number**2) ** (3.5)
 
     @cached_property
@@ -2476,6 +2499,9 @@ class Flight:  # pylint: disable=too-many-public-methods
     # Dynamics functions and variables
 
     #  Aerodynamic Lift and Drag
+    # TODO: These are not lift and drag, they are the aerodynamic forces in
+    # the rocket frame, meaning they are normal and axial forces. They should
+    # be renamed.
     @funcify_method("Time (s)", "Aerodynamic Lift Force (N)", "spline", "zero")
     def aerodynamic_lift(self):
         """Aerodynamic lift force as a Function of time."""
@@ -2500,6 +2526,7 @@ class Flight:  # pylint: disable=too-many-public-methods
     # Kinetic Energy
     @funcify_method("Time (s)", "Rotational Kinetic Energy (J)")
     def rotational_energy(self):
+        """Rotational kinetic energy as a Function of time."""
         rotational_energy = 0.5 * (
             self.rocket.I_11 * self.w1**2
             + self.rocket.I_22 * self.w2**2
@@ -2548,7 +2575,7 @@ class Flight:  # pylint: disable=too-many-public-methods
     # thrust Power
     @funcify_method("Time (s)", "thrust Power (W)", "spline", "zero")
     def thrust_power(self):
-        """thrust power as a Function of time."""
+        """Thrust power as a Function of time."""
         thrust = deepcopy(self.rocket.motor.thrust)
         thrust = thrust.set_discrete_based_on_model(self.speed)
         thrust_power = thrust * self.speed
