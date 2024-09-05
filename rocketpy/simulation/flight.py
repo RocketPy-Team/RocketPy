@@ -2567,23 +2567,21 @@ class Flight:  # pylint: disable=too-many-public-methods
     def angle_of_attack(self):
         """Angle of attack of the rocket with respect to the freestream
         velocity vector."""
-        dot_product = [
-            -self.attitude_vector_x.get_value_opt(i)
-            * self.stream_velocity_x.get_value_opt(i)
-            - self.attitude_vector_y.get_value_opt(i)
-            * self.stream_velocity_y.get_value_opt(i)
-            - self.attitude_vector_z.get_value_opt(i)
-            * self.stream_velocity_z.get_value_opt(i)
-            for i in self.time
-        ]
+        dot_product = (
+            -self.attitude_vector_x.y_array * self.stream_velocity_x.y_array
+            - self.attitude_vector_y.y_array * self.stream_velocity_y.y_array
+            - self.attitude_vector_z.y_array * self.stream_velocity_z.y_array
+        )
         # Define freestream speed list
-        free_stream_speed = [self.free_stream_speed.get_value_opt(i) for i in self.time]
-        free_stream_speed = np.nan_to_num(free_stream_speed)
+        free_stream_speed = self.free_stream_speed.y_array
 
         # Normalize dot product
-        dot_product_normalized = [
-            i / j if j > 1e-6 else 0 for i, j in zip(dot_product, free_stream_speed)
-        ]
+        dot_product_normalized = np.divide(
+            dot_product,
+            free_stream_speed,
+            out=np.zeros_like(dot_product),
+            where=free_stream_speed > 1e-6,
+        )
         dot_product_normalized = np.nan_to_num(dot_product_normalized)
         dot_product_normalized = np.clip(dot_product_normalized, -1, 1)
 
