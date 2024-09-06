@@ -185,6 +185,39 @@ like any other rocketpy object.
 
 Interpreting the Results
 ------------------------
+The `plots` show the ordered sensitivity coefficient of the apogee by 
+input parameters. For instance, the sensitivity coefficient of the mass
+in the apogee is approximately :math:`64\%`. This is interpreted as follows:
+if we were able to measure the mass of the rocket without any errors, i.e.
+our balance provided the **exact** mass of the rocket, then the variance
+of the apogee would decrease by :math:`64\%`. To give some numbers,
+the summary table shows that the standard deviation (square root of the
+variance) was around :math:`112`. Hence, we would expect a decrease by
+:math:`64\%`, so that the new standard deviation would be approximately
+:math:`112 \times \sqrt{0.64} \approx 89.6`. This reduction in the
+standard deviation will decrease the uncertainty on the apogee and better
+quantify how likely it is for the rocket to reach the target apogee.
 
-Final Considerations
---------------------
+The first column of the summary table are the sensitivity coefficients
+shown by the previous plot. The next two columns shows the nominal mean
+and sd. If they were not provided to the model, the columns will show 
+the estimated mean and sd. Finally, the last column shows the linear
+effect of one unit change, scaled by the sd, of the parameter on the
+apogee. For instance, if the mass increases by 1 unit of the sd, that is,
+if the mass increases by :math:`0.5` Kg, then we would expect the
+apogee to decrease by -89.9 meters.
+
+By looking at the lower end of the summary table, we see three measures
+associated with the apogee: (i) the estimated value ; 
+(ii) the standard deviation; (iii) the :math:`95\%` symmetric prediction 
+interval. The prediction ranges from 3562 to 4000, containing values
+below 3600, the target apogee. 
+
+One can actually compute that the probability that the apogee being at 
+least 3600 is approximately :math:`94.7\%`. This means that there is a
+:math:`5\%` probability of not meeting the goal. This level of uncertainty
+might be inadmissible and can be reduced by having better instrumental 
+measures. The sensitivity analysis results is telling that the best
+parameter to be measured with increase precision is the mass. And it
+makes sense: the mass of the rocket is one of the most critical parameters
+and the instrumental error of :math:`0.5` Kg is just too much.
