@@ -4,7 +4,8 @@ Sensitivity Analysis
 ====================
 
 You can use the results from a Monte Carlo simulation to perform sensitivity analysis.
-We will first introduce the concepts of sensitivity analysis and then show how to use the `SensitivityModel` class.
+We will first introduce the concepts of sensitivity analysis and then show how to use the
+:class:`rocketpy.sensitivity.SensitivityModel` class.
 
 It is highly recommended that you read about the Monte Carlo simulations.
 
@@ -19,20 +20,21 @@ trajectory.
 To that end, we must understand the factors that increase variability in the predictions. 
 From all sources of variation, there are four of major importance:
 
-1. **Rocket Physics model**: consists of the physics models used in rocketry. It encompasses
-which rocketry elements we can incorporate such as different types of motors, aerodynamic
-surfaces, and other rocket components along with the mathematical equations used to describe them.
+1. **Rocket Physics model**: consists of the physics models used in rocketry. \
+    It encompasses which rocketry elements we can incorporate such as different \
+    types of motors, aerodynamic surfaces, and other rocket components along with \
+    the mathematical equations used to describe them.
 
-2. **Numerical approximations**: consists of how well we can solve the physics equations.
-Analytic solutions are seldomly available, and therefore we must resort on numerical
-approximations.
+2. **Numerical approximations**: consists of how well we can solve the physics \
+    equations. Analytic solutions are seldomly available, and therefore we must \
+    resort on numerical approximations.
 
-3. **Weather forecast**: consists of how well the environment is predicted. Accurate predictions 
-are crucial for rocketry simulation as many components are influenced by it.
+3. **Weather forecast**: consists of how well the environment is predicted. \
+    Accurate predictions are crucial for rocketry simulation as many components are influenced by it.
 
-4. **Measurement uncertainty**: consists of measurement errors. Every instrument has a limited
-precision, which causes us to simulate flights with parameters values that are not the true
-values but should be somewhat close.
+4. **Measurement uncertainty**: consists of measurement errors. Every instrument \
+    has a limited precision, which causes us to simulate flights with parameters \
+    values that are not the true values but should be somewhat close.
 
 Accurate predictions requires analyzing carefully each source of variation, and this is
 RocketPy's goal. The first two sources of variation are naturally handled in the simulator
@@ -63,8 +65,8 @@ The code below defines a dictionary containing a description of the instrumental
 for the parameters of the Rocket. They have been described in the following manner:
 the keys of the first dictionary are the parameters names. Then, for each parameter,
 we have a dictionary containing the *mean* of that parameter, referring to the nominal
-value of that parameter, i.e. the measured value by the instrument, and the *sd*, which
-is the standard deviation of the measurement.
+value of that parameter, i.e. the measured value by the instrument, and the 
+*standard deviation*, which is the standard deviation of the measurement.
 
 .. jupyter-execute::
 
@@ -108,6 +110,7 @@ We will show you how to perform sensitivity analysis and interpret its
 results.
 
 .. seealso::
+
     If you are unfamiliar with the Calisto Rocket, see :ref:`firstsimulation`
 
 Importing Monte Carlo Data
@@ -126,8 +129,8 @@ which are given by the entries of the previous dictionary.
     parameters = list(analysis_parameters.keys())
 
     parameters_matrix, target_variables_matrix = load_monte_carlo_data(
-        input_filename="monte_carlo_analysis_outputs/sensitivity_analysis_data.inputs.txt",
-        output_filename="monte_carlo_analysis_outputs/sensitivity_analysis_data.outputs.txt",
+        input_filename="notebooks/monte_carlo_analysis/monte_carlo_analysis_outputs/sensitivity_analysis_data.inputs.txt",
+        output_filename="notebooks/monte_carlo_analysis/monte_carlo_analysis_outputs/sensitivity_analysis_data.outputs.txt",
         parameters_list=parameters,
         target_variables_list=target_variables,
     )
@@ -139,22 +142,26 @@ which are given by the entries of the previous dictionary.
 
 Creating and fitting a `SensitivityModel`
 -----------------------------------------
-We pass the parameters list and target variables list to the `SensitivityModel`
-object in order to create it.
+We pass the parameters list and target variables list to the
+:class:`rocketpy.sensitivity.SensitivityModel` object in order to create it.
 
 
 .. jupyter-execute::
-    from rocketpy import SensitivityModel
+
+    from rocketpy.sensitivity import SensitivityModel
 
     model = SensitivityModel(parameters, target_variables)
 
 If we know the nominal values for the parameters and target variables in the
-simulation, we can pass them using the methods `set_parameters_nominal` and
-`set_target_variables_nominal`. If we do not pass it to the model, the fit method
+simulation, we can pass them using the methods
+:meth:`rocketpy.sensitivity.SensitivityModel.set_parameters_nominal` and
+:meth:`rocketpy.sensitivity.SensitivityModel.set_target_variables_nominal`.
+If we do not pass it to the model, the fit method
 estimates them from data. In this example, we will pass the nominal values only for the
 parameters and let the method estimate the nominals for the target variables.
 
 .. jupyter-execute::
+
     parameters_nominal_mean = [
         analysis_parameters[parameter_name]["mean"]
         for parameter_name in analysis_parameters.keys()
@@ -169,22 +176,26 @@ Finally, we fit the model by passing the parameters and target
 variables matrices loaded previously.
 
 .. jupyter-execute::
+
     model.fit(parameters_matrix, target_variables_matrix)
 
 Results
 -------
-The results can be accessed through the `prints` and `plots` attributes, just 
+The results can be accessed through the ``prints`` and ``plots`` attributes, just 
 like any other rocketpy object.
 
 .. jupyter-execute::
+
     model.plots.bar_plot()
 
 
 .. jupyter-execute::
+
     model.prints.all()
 
 Interpreting the Results
 ------------------------
+
 The `plots` show the ordered sensitivity coefficient of the apogee by 
 input parameters. For instance, the sensitivity coefficient of the mass
 in the apogee is approximately :math:`64\%`. This is interpreted as follows:
@@ -201,17 +212,18 @@ quantify how likely it is for the rocket to reach the target apogee.
 The first column of the summary table are the sensitivity coefficients
 shown by the previous plot. The next two columns shows the nominal mean
 and sd. If they were not provided to the model, the columns will show 
-the estimated mean and sd. Finally, the last column shows the linear
+the estimated mean and standard deviation. Finally, the last column shows the linear
 effect of one unit change, scaled by the sd, of the parameter on the
 apogee. For instance, if the mass increases by 1 unit of the sd, that is,
-if the mass increases by :math:`0.5` Kg, then we would expect the
+if the mass increases by :math:`0.5` kg, then we would expect the
 apogee to decrease by -89.9 meters.
 
 By looking at the lower end of the summary table, we see three measures
-associated with the apogee: (i) the estimated value ; 
-(ii) the standard deviation; (iii) the :math:`95\%` symmetric prediction 
-interval. The prediction ranges from 3562 to 4000, containing values
-below 3600, the target apogee. 
+associated with the apogee:
+
+(i) the estimated value;
+(ii) the standard deviation;
+(iii) the :math:`95\%` symmetric prediction interval. The prediction ranges from 3562 to 4000, containing values below 3600, the target apogee.
 
 One can actually compute that the probability that the apogee being at 
 least 3600 is approximately :math:`94.7\%`. This means that there is a
@@ -220,4 +232,4 @@ might be inadmissible and can be reduced by having better instrumental
 measures. The sensitivity analysis results is telling that the best
 parameter to be measured with increase precision is the mass. And it
 makes sense: the mass of the rocket is one of the most critical parameters
-and the instrumental error of :math:`0.5` Kg is just too much.
+and the instrumental error of :math:`0.5` kg is just too much.
