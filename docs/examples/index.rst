@@ -18,5 +18,4 @@ If you want to see your rocket here, please contact the maintainers!
    juno3_flight_sim.ipynb
    prometheus_2022_flight_sim.ipynb
    halcyon_flight_sim.ipynb
-   cavour_flight_sim.ipynb
 
