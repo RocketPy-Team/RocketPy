@@ -2,6 +2,7 @@ import json
 import os
 
 import numpy as np
+import pytest
 
 from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.rocket.components import Components
@@ -31,60 +32,58 @@ def test_sensor_on_rocket(calisto_with_sensors):
     assert isinstance(sensors[4].position, Vector)
 
 
-def test_ideal_sensors(flight_calisto_with_sensors):
-    """Test the ideal sensors. All types of sensors are here to reduce
-    testing time.
+class TestIdealSensors:
+    """Test a flight with ideal sensors on the rocket."""
 
-    Parameters
-    ----------
-    flight_calisto_with_sensors : Flight
-        Pytest fixture for the flight of the calisto rocket with an ideal accelerometer and a gyroscope.
-    """
-    accelerometer = flight_calisto_with_sensors.rocket.sensors[0].component
-    time, ax, ay, az = zip(*accelerometer.measured_data[0])
-    ax = np.array(ax)
-    ay = np.array(ay)
-    az = np.array(az)
-    a = np.sqrt(ax**2 + ay**2 + az**2)
-    sim_accel = flight_calisto_with_sensors.acceleration(time)
+    @pytest.fixture(autouse=True)
+    def setup(self, flight_calisto_with_sensors):
+        """Setup an flight fixture for all tests."""
+        self.flight = flight_calisto_with_sensors
 
-    # tolerance is bounded to numerical errors in the transformation matrixes
-    assert np.allclose(a, sim_accel, atol=1e-12)
-    # check if both added accelerometer instances saved the same data
-    assert (
-        flight_calisto_with_sensors.sensors[0].measured_data[0]
-        == flight_calisto_with_sensors.sensors[0].measured_data[1]
-    )
+    def test_accelerometer(self):
+        """Test an ideal accelerometer."""
+        accelerometer = self.flight.rocket.sensors[0].component
+        time, ax, ay, az = zip(*accelerometer.measured_data[0])
+        a = np.sqrt(np.array(ax) ** 2 + np.array(ay) ** 2 + np.array(az) ** 2)
+        sim_accel = self.flight.acceleration(time)
 
-    gyroscope = flight_calisto_with_sensors.rocket.sensors[2].component
-    time, wx, wy, wz = zip(*gyroscope.measured_data)
-    wx = np.array(wx)
-    wy = np.array(wy)
-    wz = np.array(wz)
-    w = np.sqrt(wx**2 + wy**2 + wz**2)
-    flight_wx = np.array(flight_calisto_with_sensors.w1(time))
-    flight_wy = np.array(flight_calisto_with_sensors.w2(time))
-    flight_wz = np.array(flight_calisto_with_sensors.w3(time))
-    sim_w = np.sqrt(flight_wx**2 + flight_wy**2 + flight_wz**2)
-    assert np.allclose(w, sim_w, atol=1e-12)
+        # tolerance is bounded to numerical errors in the transformation matrixes
+        assert np.allclose(a, sim_accel, atol=1e-12)
+        # check if both added accelerometer instances saved the same data
+        assert (
+            self.flight.sensors[0].measured_data[0]
+            == self.flight.sensors[0].measured_data[1]
+        )
 
-    barometer = flight_calisto_with_sensors.rocket.sensors[3].component
-    time, pressure = zip(*barometer.measured_data)
-    pressure = np.array(pressure)
-    sim_data = flight_calisto_with_sensors.pressure(time)
-    assert np.allclose(pressure, sim_data, atol=1e-12)
+    def test_gyroscope(self):
+        """Test an ideal gyroscope."""
+        gyroscope = self.flight.rocket.sensors[2].component
+        time, wx, wy, wz = zip(*gyroscope.measured_data)
+        w = np.sqrt(np.array(wx) ** 2 + np.array(wy) ** 2 + np.array(wz) ** 2)
+        flight_wx = np.array(self.flight.w1(time))
+        flight_wy = np.array(self.flight.w2(time))
+        flight_wz = np.array(self.flight.w3(time))
+        sim_w = np.sqrt(flight_wx**2 + flight_wy**2 + flight_wz**2)
+        assert np.allclose(w, sim_w, atol=1e-12)
 
-    gnss = flight_calisto_with_sensors.rocket.sensors[4].component
-    time, latitude, longitude, altitude = zip(*gnss.measured_data)
-    latitude = np.array(latitude)
-    longitude = np.array(longitude)
-    altitude = np.array(altitude)
-    sim_latitude = flight_calisto_with_sensors.latitude(time)
-    sim_longitude = flight_calisto_with_sensors.longitude(time)
-    sim_altitude = flight_calisto_with_sensors.altitude(time)
-    assert np.allclose(latitude, sim_latitude, atol=1e-12)
-    assert np.allclose(longitude, sim_longitude, atol=1e-12)
-    assert np.allclose(altitude, sim_altitude, atol=1e-12)
+    def test_barometer(self):
+        """Test an ideal barometer."""
+        barometer = self.flight.rocket.sensors[3].component
+        time, pressure = zip(*barometer.measured_data)
+        pressure = np.array(pressure)
+        sim_data = self.flight.pressure(time)
+        assert np.allclose(pressure, sim_data, atol=1e-12)
+
+    def test_gnss_receiver(self):
+        """Test an ideal GnssReceiver."""
+        gnss = self.flight.rocket.sensors[4].component
+        time, latitude, longitude, altitude = zip(*gnss.measured_data)
+        sim_latitude = self.flight.latitude(time)
+        sim_longitude = self.flight.longitude(time)
+        sim_altitude = self.flight.altitude(time)
+        assert np.allclose(np.array(latitude), sim_latitude, atol=1e-12)
+        assert np.allclose(np.array(longitude), sim_longitude, atol=1e-12)
+        assert np.allclose(np.array(altitude), sim_altitude, atol=1e-12)
 
 
 def test_export_all_sensors_data(flight_calisto_with_sensors):

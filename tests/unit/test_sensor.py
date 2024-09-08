@@ -270,11 +270,11 @@ def test_noisy_rotated_accelerometer(noisy_rotated_accelerometer, example_plain_
 
     # calculate acceleration at sensor position in inertial frame
     relative_position = Vector([0.4, 0.4, 1])
-    a_I = Vector(U_DOT[3:6]) + Vector([0, 0, -GRAVITY])
+    inertial_acceleration = Vector(U_DOT[3:6]) + Vector([0, 0, -GRAVITY])
     omega = Vector(U[10:13])
     omega_dot = Vector(U_DOT[10:13])
-    accel = (
-        a_I
+    acceleration = (
+        inertial_acceleration
         + Vector.cross(omega_dot, relative_position)
         + Vector.cross(omega, Vector.cross(omega, relative_position))
     )
@@ -291,7 +291,7 @@ def test_noisy_rotated_accelerometer(noisy_rotated_accelerometer, example_plain_
     total_rotation = sensor_rotation @ cross_axis_sensitivity
     rocket_rotation = Matrix.transformation(U[6:10])
     # expected measurement without noise
-    ax, ay, az = total_rotation @ (rocket_rotation @ accel)
+    ax, ay, az = total_rotation @ (rocket_rotation @ acceleration)
     # expected measurement with constant bias
     ax += 0.5
     ay += 0.5
@@ -434,31 +434,21 @@ def test_noisy_gnss(noisy_gnss, example_plain_env):
 
 
 @pytest.mark.parametrize(
-    "sensor, file_format, expected_header, expected_keys",
+    "sensor, file_format, expected_header",
     [
-        ("ideal_accelerometer", "csv", "t,ax,ay,az\n", ("ax", "ay", "az")),
-        ("ideal_accelerometer", "json", None, ("ax", "ay", "az")),
-        ("ideal_gyroscope", "csv", "t,wx,wy,wz\n", ("wx", "wy", "wz")),
-        ("ideal_gyroscope", "json", None, ("wx", "wy", "wz")),
-        ("ideal_barometer", "csv", "t,pressure\n", ("pressure",)),
-        ("ideal_barometer", "json", None, ("pressure",)),
-        (
-            "ideal_gnss",
-            "csv",
-            "t,latitude,longitude,altitude\n",
-            ("latitude", "longitude", "altitude"),
-        ),
-        ("ideal_gnss", "json", None, ("latitude", "longitude", "altitude")),
+        ("ideal_accelerometer", "csv", "t,ax,ay,az\n"),
+        ("ideal_gyroscope", "csv", "t,wx,wy,wz\n"),
+        ("ideal_barometer", "csv", "t,pressure\n"),
+        ("ideal_gnss", "csv", "t,latitude,longitude,altitude\n"),
     ],
 )
-def test_export_data(
-    sensor, file_format, expected_header, expected_keys, request, example_plain_env
+def test_export_data_csv(
+    sensor, file_format, expected_header, request, example_plain_env
 ):
-    """Test the export_data method of the sensors. Checks if the data is
-    exported correctly in the specified file_format.
-    """
+    """Test the export_data method for CSV format."""
     sensor = request.getfixturevalue(sensor)
 
+    # Perform measurement
     sensor.measure(
         time=TIME,
         u=U,
@@ -466,68 +456,160 @@ def test_export_data(
         relative_position=Vector([0, 0, 0]),
         environment=example_plain_env,
     )
-    sensor.measure(
-        time=TIME,
-        u=U,
-        u_dot=U_DOT,
-        relative_position=Vector([0, 0, 0]),
-        environment=example_plain_env,
-    )
-
     file_name = f"sensors.{file_format}"
 
+    # Export data
     sensor.export_measured_data(file_name, file_format=file_format)
 
-    if file_format == "csv":
-        with open(file_name, "r") as file:
-            contents = file.read()
+    # Check CSV contents
+    with open(file_name, "r") as file:
+        contents = file.read()
 
-        expected_data = expected_header
-        for data in sensor.measured_data:
-            expected_data += ",".join(map(str, data)) + "\n"
+    expected_data = expected_header
+    for data in sensor.measured_data:
+        expected_data += ",".join(map(str, data)) + "\n"
 
-        assert contents == expected_data
-
-    elif file_format == "json":
-        with open(file_name, "r") as file:
-            contents = json.load(file)
-
-        expected_data = {"t": []}
-        for key in expected_keys:
-            expected_data[key] = []
-
-        for data in sensor.measured_data:
-            expected_data["t"].append(data[0])
-            for i, key in enumerate(expected_keys):
-                expected_data[key].append(data[i + 1])
-
-        assert contents == expected_data
-
-    # check exports for sensors added more than once to the rocket
-    sensor.measured_data = [
-        sensor.measured_data[:],
-        sensor.measured_data[:],
-    ]
-    sensor.export_measured_data(file_name, file_format=file_format)
-
-    if file_format == "csv":
-        with open(f"{file_name}_1", "r") as file:
-            contents = file.read()
-        assert contents == expected_data
-
-        with open(f"{file_name}_2", "r") as file:
-            contents = file.read()
-        assert contents == expected_data
-
-    elif file_format == "json":
-        with open(f"{file_name}_1", "r") as file:
-            contents = json.load(file)
-        assert contents == expected_data
-
-        with open(f"{file_name}_2", "r") as file:
-            contents = json.load(file)
-        assert contents == expected_data
+    assert contents == expected_data
 
     os.remove(file_name)
+
+
+@pytest.mark.parametrize(
+    "sensor, file_format, expected_keys",
+    [
+        ("ideal_accelerometer", "json", ("ax", "ay", "az")),
+        ("ideal_gyroscope", "json", ("wx", "wy", "wz")),
+        ("ideal_barometer", "json", ("pressure",)),
+        ("ideal_gnss", "json", ("latitude", "longitude", "altitude")),
+    ],
+)
+def test_export_data_json(
+    sensor, file_format, expected_keys, request, example_plain_env
+):
+    """Test the export_data method for JSON format."""
+    sensor = request.getfixturevalue(sensor)
+
+    # Perform measurement
+    sensor.measure(
+        time=TIME,
+        u=U,
+        u_dot=U_DOT,
+        relative_position=Vector([0, 0, 0]),
+        environment=example_plain_env,
+    )
+    file_name = f"sensors.{file_format}"
+
+    # Export data
+    sensor.export_measured_data(file_name, file_format=file_format)
+
+    # Check JSON contents
+    with open(file_name, "r") as file:
+        contents = json.load(file)
+
+    expected_data = {"t": []}
+    for key in expected_keys:
+        expected_data[key] = []
+
+    for data in sensor.measured_data:
+        expected_data["t"].append(data[0])
+        for i, key in enumerate(expected_keys):
+            expected_data[key].append(data[i + 1])
+
+    assert contents == expected_data
+
+    os.remove(file_name)
+
+
+@pytest.mark.parametrize(
+    "sensor, file_format, expected_header",
+    [
+        ("ideal_accelerometer", "csv", "t,ax,ay,az\n"),
+        ("ideal_gyroscope", "csv", "t,wx,wy,wz\n"),
+    ],
+)
+def test_export_multiple_sensors_csv(
+    sensor, file_format, expected_header, request, example_plain_env
+):
+    """Test exporting data for multiple instances in CSV format."""
+    sensor = request.getfixturevalue(sensor)
+
+    # Perform measurement
+    sensor.measure(
+        time=TIME,
+        u=U,
+        u_dot=U_DOT,
+        relative_position=Vector([0, 0, 0]),
+        environment=example_plain_env,
+    )
+    sensor.measured_data = [sensor.measured_data[:], sensor.measured_data[:]]
+    file_name = f"sensors.{file_format}"
+
+    # Export multiple data
+    sensor.export_measured_data(file_name, file_format=file_format)
+
+    # Check CSV for both instances
+    with open(f"{file_name}_1", "r") as file:
+        contents_1 = file.read()
+
+    with open(f"{file_name}_2", "r") as file:
+        contents_2 = file.read()
+
+    expected_data = expected_header
+    for data in sensor.measured_data[0]:
+        expected_data += ",".join(map(str, data)) + "\n"
+
+    assert contents_1 == expected_data
+    assert contents_2 == expected_data
+
+    os.remove(f"{file_name}_1")
+    os.remove(f"{file_name}_2")
+
+
+@pytest.mark.parametrize(
+    "sensor, file_format, expected_keys",
+    [
+        ("ideal_accelerometer", "json", ("ax", "ay", "az")),
+        ("ideal_gyroscope", "json", ("wx", "wy", "wz")),
+    ],
+)
+def test_export_multiple_sensors_json(
+    sensor, file_format, expected_keys, request, example_plain_env
+):
+    """Test exporting data for multiple instances in JSON format."""
+    sensor = request.getfixturevalue(sensor)
+
+    # Perform measurement
+    sensor.measure(
+        time=TIME,
+        u=U,
+        u_dot=U_DOT,
+        relative_position=Vector([0, 0, 0]),
+        environment=example_plain_env,
+    )
+    sensor.measured_data = [sensor.measured_data[:], sensor.measured_data[:]]
+    file_name = f"sensors.{file_format}"
+
+    # Export multiple data
+    sensor.export_measured_data(file_name, file_format=file_format)
+
+    # Check JSON for both instances
+    with open(f"{file_name}_1", "r") as file:
+        contents_1 = json.load(file)
+
+    with open(f"{file_name}_2", "r") as file:
+        contents_2 = json.load(file)
+
+    expected_data = {"t": []}
+    for key in expected_keys:
+        expected_data[key] = []
+
+    for data in sensor.measured_data[0]:
+        expected_data["t"].append(data[0])
+        for i, key in enumerate(expected_keys):
+            expected_data[key].append(data[i + 1])
+
+    assert contents_1 == expected_data
+    assert contents_2 == expected_data
+
     os.remove(f"{file_name}_1")
     os.remove(f"{file_name}_2")
