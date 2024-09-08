@@ -664,10 +664,9 @@ class Flight:  # pylint: disable=too-many-public-methods
             # Initialize phase time nodes
             phase.time_nodes = self.TimeNodes()
             # Add first time node to the time_nodes list
-            phase.time_nodes.add_node(phase.t, [], [])
+            phase.time_nodes.add_node(phase.t, [], [], [])
             # Add non-overshootable parachute time nodes
             if self.time_overshoot is False:
-                # TODO: move parachutes to controllers
                 phase.time_nodes.add_parachutes(
                     self.parachutes, phase.t, phase.time_bound
                 )
@@ -717,10 +716,13 @@ class Flight:  # pylint: disable=too-many-public-methods
                             u=self.y_sol,
                             u_dot=u_dot,
                             relative_position=relative_position,
+                            environment=self.env,
                             gravity=self.env.gravity.get_value_opt(
                                 self.solution[-1][3]
                             ),
                             pressure=self.env.pressure,
+                            earth_radius=self.env.earth_radius,
+                            initial_coordinates=(self.env.latitude, self.env.longitude),
                         )
 
                 for controller in node._controllers:
@@ -891,7 +893,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                             self.flight_phases.add_phase(self.t)
                             # Prepare to leave loops and start new flight phase
                             phase.time_nodes.flush_after(node_index)
-                            phase.time_nodes.add_node(self.t, [], [])
+                            phase.time_nodes.add_node(self.t, [], [], [])
                             phase.solver.status = "finished"
                     # Check for impact event
                     if self.y_sol[2] < self.env.elevation:
@@ -1143,7 +1145,7 @@ class Flight:  # pylint: disable=too-many-public-methods
             self.out_of_rail_time = self.initial_solution[0]
             self.out_of_rail_time_index = 0
             self.initial_derivative = self.u_dot_generalized
-        if self._controllers:
+        if self._controllers or self.sensors:
             # Handle post process during simulation, get initial accel/forces
             self.initial_derivative(
                 self.t_initial, self.initial_solution[1:], post_processing=True
@@ -3173,6 +3175,47 @@ class Flight:  # pylint: disable=too-many-public-methods
             encoding="utf-8",
         )
 
+    def export_sensor_data(self, file_name, sensor=None):
+        """Exports sensors data to a file. The file format can be either .csv or
+        .json.
+
+        Parameters
+        ----------
+        file_name : str
+            The file name or path of the exported file. Example: flight_data.csv
+            Do not use forbidden characters, such as / in Linux/Unix and
+            `<, >, :, ", /, \\, | ?, *` in Windows.
+        sensor : Sensor, string, optional
+            The sensor to export data from. Can be given as a Sensor object or
+            as a string with the sensor name. If None, all sensors data will be
+            exported. Default is None.
+        """
+        if sensor is None:
+            data_dict = {}
+            for used_sensor, measured_data in self.sensor_data.items():
+                data_dict[used_sensor.name] = measured_data
+        else:
+            # export data of only that sensor
+            data_dict = {}
+
+            if not isinstance(sensor, str):
+                data_dict[sensor.name] = self.sensor_data[sensor]
+            else:  # sensor is a string
+                matching_sensors = [s for s in self.sensor_data if s.name == sensor]
+
+                if len(matching_sensors) > 1:
+                    data_dict[sensor] = []
+                    for s in matching_sensors:
+                        data_dict[s.name].append(self.sensor_data[s])
+                elif len(matching_sensors) == 1:
+                    data_dict[sensor] = self.sensor_data[matching_sensors[0]]
+                else:
+                    raise ValueError("Sensor not found in the Flight.sensor_data.")
+
+        with open(file_name, "w") as file:
+            json.dump(data_dict, file)
+        print("Sensor data exported to", file_name)
+
     def export_kml(  # TODO: should be moved out of this class.
         self,
         file_name="trajectory.kml",
@@ -3469,8 +3512,6 @@ class Flight:  # pylint: disable=too-many-public-methods
                 self.derivative = derivative
                 self.callbacks = callbacks[:] if callbacks is not None else []
                 self.clear = clear
-                self.time_bound = None
-                self.TimeNodes = None
 
             def __repr__(self):
                 name = "None" if self.derivative is None else self.derivative.__name__
@@ -3564,8 +3605,8 @@ class Flight:  # pylint: disable=too-many-public-methods
                     # Try to access the node and merge if it exists
                     tmp_dict[time].parachutes += node.parachutes
                     tmp_dict[time].callbacks += node.callbacks
-                    tmp_dict[-1]._component_sensors += node._component_sensors
-                    tmp_dict[-1]._controllers += node._controllers
+                    tmp_dict[time]._component_sensors += node._component_sensors
+                    tmp_dict[time]._controllers += node._controllers
                 except KeyError:
                     # If the node does not exist, add it to the dictionary
                     tmp_dict[time] = node

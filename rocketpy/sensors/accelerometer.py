@@ -4,6 +4,8 @@ from ..mathutils.vector_matrix import Matrix, Vector
 from ..prints.sensors_prints import _InertialSensorPrints
 from ..sensors.sensor import InertialSensor
 
+# pylint: disable=too-many-arguments
+
 
 class Accelerometer(InertialSensor):
     """Class for the accelerometer sensor
@@ -208,15 +210,13 @@ class Accelerometer(InertialSensor):
                 Derivative of the state vector of the rocket.
             - relative_position : np.array
                 Position of the sensor relative to the rocket center of mass.
-            - gravity : float
-                Gravitational acceleration in m/s^2.
-            - pressure : Function
-                Atmospheric pressure profile as a function of altitude in Pa.
+            - environment : Environment
+                Environment object containing the atmospheric conditions.
         """
         u = kwargs["u"]
         u_dot = kwargs["u_dot"]
         relative_position = kwargs["relative_position"]
-        gravity = kwargs["gravity"]
+        gravity = kwargs["environment"].gravity.get_value_opt(u[3])
 
         # Linear acceleration of rocket cdm in inertial frame
         gravity = (

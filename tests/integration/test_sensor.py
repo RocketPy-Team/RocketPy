@@ -2,11 +2,12 @@ import json
 import os
 
 import numpy as np
-import pytest
 
 from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.rocket.components import Components
 from rocketpy.sensors.accelerometer import Accelerometer
+from rocketpy.sensors.barometer import Barometer
+from rocketpy.sensors.gnss_receiver import GnssReceiver
 from rocketpy.sensors.gyroscope import Gyroscope
 
 
@@ -24,6 +25,10 @@ def test_sensor_on_rocket(calisto_with_sensors):
     assert isinstance(sensors[1].position, Vector)
     assert isinstance(sensors[2].component, Gyroscope)
     assert isinstance(sensors[2].position, Vector)
+    assert isinstance(sensors[3].component, Barometer)
+    assert isinstance(sensors[3].position, Vector)
+    assert isinstance(sensors[4].component, GnssReceiver)
+    assert isinstance(sensors[4].position, Vector)
 
 
 def test_ideal_sensors(flight_calisto_with_sensors):
@@ -69,6 +74,18 @@ def test_ideal_sensors(flight_calisto_with_sensors):
     sim_data = flight_calisto_with_sensors.pressure(time)
     assert np.allclose(pressure, sim_data, atol=1e-12)
 
+    gnss = flight_calisto_with_sensors.rocket.sensors[4].component
+    time, latitude, longitude, altitude = zip(*gnss.measured_data)
+    latitude = np.array(latitude)
+    longitude = np.array(longitude)
+    altitude = np.array(altitude)
+    sim_latitude = flight_calisto_with_sensors.latitude(time)
+    sim_longitude = flight_calisto_with_sensors.longitude(time)
+    sim_altitude = flight_calisto_with_sensors.altitude(time)
+    assert np.allclose(latitude, sim_latitude, atol=1e-12)
+    assert np.allclose(longitude, sim_longitude, atol=1e-12)
+    assert np.allclose(altitude, sim_altitude, atol=1e-12)
+
 
 def test_export_all_sensors_data(flight_calisto_with_sensors):
     """Test the export of sensor data.
@@ -102,6 +119,10 @@ def test_export_all_sensors_data(flight_calisto_with_sensors):
         list(measurement)
         for measurement in flight_calisto_with_sensors.sensors[3].measured_data
     ]
+    flight_calisto_with_sensors.sensors[4].measured_data = [
+        list(measurement)
+        for measurement in flight_calisto_with_sensors.sensors[4].measured_data
+    ]
     assert (
         sensor_data["Accelerometer"]
         == flight_calisto_with_sensors.sensors[0].measured_data
@@ -111,5 +132,35 @@ def test_export_all_sensors_data(flight_calisto_with_sensors):
     )
     assert (
         sensor_data["Barometer"] == flight_calisto_with_sensors.sensors[3].measured_data
+    )
+    assert (
+        sensor_data["GnssReceiver"]
+        == flight_calisto_with_sensors.sensors[4].measured_data
+    )
+    os.remove(filename)
+
+
+def test_export_single_sensor_data(flight_calisto_with_sensors):
+    """Test the export of a single sensor data.
+
+    Parameters
+    ----------
+    flight_calisto_with_sensors : Flight
+        Pytest fixture for the flight of the calisto rocket with a set of ideal
+        sensors.
+    """
+    flight_calisto_with_sensors.export_sensor_data("test_sensor_data.json", "Gyroscope")
+    # read the json and parse as dict
+    filename = "test_sensor_data.json"
+    with open(filename, "r") as f:
+        data = f.read()
+        sensor_data = json.loads(data)
+    # convert list of tuples into list of lists to compare with the json
+    flight_calisto_with_sensors.sensors[2].measured_data = [
+        list(measurement)
+        for measurement in flight_calisto_with_sensors.sensors[2].measured_data
+    ]
+    assert (
+        sensor_data["Gyroscope"] == flight_calisto_with_sensors.sensors[2].measured_data
     )
     os.remove(filename)

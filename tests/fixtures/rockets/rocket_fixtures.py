@@ -253,6 +253,7 @@ def calisto_with_sensors(
     ideal_accelerometer,
     ideal_gyroscope,
     ideal_barometer,
+    ideal_gnss,
 ):
     """Create an object class of the Rocket class to be used in the tests. This
     is the same Calisto rocket that was defined in the calisto fixture, but with
@@ -272,6 +273,7 @@ def calisto_with_sensors(
     calisto.add_sensor(ideal_accelerometer, -0.1180124376577797)
     calisto.add_sensor(ideal_gyroscope, -0.1180124376577797)
     calisto.add_sensor(ideal_barometer, -0.1180124376577797)
+    calisto.add_sensor(ideal_gnss, -0.1180124376577797)
     return calisto
 
 

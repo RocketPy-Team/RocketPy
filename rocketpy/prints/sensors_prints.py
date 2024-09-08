@@ -16,17 +16,6 @@ class _SensorPrints(ABC):
         self._print_aligned("Name:", self.sensor.name)
         self._print_aligned("Type:", self.sensor.__class__.__name__)
 
-    def orientation(self):
-        """Prints the orientation of the sensor."""
-        print("\nOrientation:\n")
-        self._print_aligned("Orientation:", self.sensor.orientation)
-        self._print_aligned("Normal Vector:", self.sensor.normal_vector)
-        print("Rotation Matrix:")
-        for row in self.sensor.rotation_matrix:
-            value = " ".join(f"{val:.2f}" for val in row)
-            value = [float(val) for val in value.split()]
-            self._print_aligned("", value)
-
     def quantization(self):
         """Prints the quantization of the sensor."""
         print("\nQuantization:\n")
@@ -115,3 +104,18 @@ class _GyroscopePrints(_InertialSensorPrints):
             "Acceleration Sensitivity:",
             f"{self.sensor.acceleration_sensitivity} rad/s/g",
         )
+
+
+class _GnssReceiverPrints(_SensorPrints):
+    """Class that contains all GnssReceiver prints."""
+
+    def accuracy(self):
+        """Prints the accuracy of the sensor."""
+        print("\nAccuracy:\n")
+        self._print_aligned("Position Accuracy:", f"{self.sensor.position_accuracy} m")
+        self._print_aligned("Altitude Accuracy:", f"{self.sensor.altitude_accuracy} m")
+
+    def all(self):
+        """Prints all information of the sensor."""
+        self.identity()
+        self.accuracy()

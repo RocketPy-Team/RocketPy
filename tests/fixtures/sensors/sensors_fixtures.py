@@ -1,8 +1,8 @@
-import numpy as np
 import pytest
 
 from rocketpy import Accelerometer, Gyroscope
 from rocketpy.sensors.barometer import Barometer
+from rocketpy.sensors.gnss_receiver import GnssReceiver
 
 
 @pytest.fixture
@@ -66,6 +66,15 @@ def noisy_barometer():
 
 
 @pytest.fixture
+def noisy_gnss():
+    return GnssReceiver(
+        sampling_rate=1,
+        position_accuracy=1,
+        altitude_accuracy=1,
+    )
+
+
+@pytest.fixture
 def quantized_accelerometer():
     """Returns an accelerometer with all parameters set to non-default values,
     i.e. with noise and rotation."""
@@ -116,4 +125,11 @@ def ideal_gyroscope():
 def ideal_barometer():
     return Barometer(
         sampling_rate=10,
+    )
+
+
+@pytest.fixture
+def ideal_gnss():
+    return GnssReceiver(
+        sampling_rate=1,
     )

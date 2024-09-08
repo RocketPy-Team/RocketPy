@@ -150,16 +150,12 @@ class Barometer(ScalarSensor):
                 Derivative of the state vector of the rocket.
             - relative_position : np.array
                 Position of the sensor relative to the rocket center of mass.
-            - gravity : float
-                Gravitational acceleration in m/s^2.
-            - pressure : Function
-                Atmospheric pressure profile as a function of altitude in Pa.
-            - elevation : float
-                Elevation of the launch site in meters.
+            - environment : Environment
+                Environment object containing the atmospheric conditions.
         """
         u = kwargs["u"]
         relative_position = kwargs["relative_position"]
-        pressure = kwargs["pressure"]
+        pressure = kwargs["environment"].pressure
 
         # Calculate the altitude of the sensor
         relative_altitude = (Matrix.transformation(u[6:10]) @ relative_position).z

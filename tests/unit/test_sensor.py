@@ -52,6 +52,7 @@ GRAVITY = 9.81
         "quantized_gyroscope",
         "noisy_barometer",
         "quantized_barometer",
+        "noisy_gnss",
     ],
 )
 def test_sensors_prints(sensor, request):
@@ -105,9 +106,6 @@ def test_scalar_quantization(quantized_barometer):
     assert quantized_barometer.quantize(1001) == 1000.96
 
 
-import pytest
-
-
 @pytest.mark.parametrize(
     "sensor, input_value, expected_output",
     [
@@ -156,7 +154,7 @@ def test_quantization(sensor, input_value, expected_output, request):
         "ideal_gyroscope",
     ],
 )
-def test_inertial_measured_data(sensor, request):
+def test_inertial_measured_data(sensor, request, example_plain_env):
     """Test the measured_data property of the Sensor class. Checks if
     the measured data is treated properly when the sensor is added once or more
     than once to the rocket.
@@ -168,7 +166,7 @@ def test_inertial_measured_data(sensor, request):
         u=U,
         u_dot=U_DOT,
         relative_position=Vector([0, 0, 0]),
-        gravity=GRAVITY,
+        environment=example_plain_env,
     )
     assert len(sensor.measured_data) == 1
     sensor.measure(
@@ -176,7 +174,7 @@ def test_inertial_measured_data(sensor, request):
         u=U,
         u_dot=U_DOT,
         relative_position=Vector([0, 0, 0]),
-        gravity=GRAVITY,
+        environment=example_plain_env,
     )
     assert len(sensor.measured_data) == 2
     assert all(isinstance(i, tuple) for i in sensor.measured_data)
@@ -192,7 +190,7 @@ def test_inertial_measured_data(sensor, request):
         u=U,
         u_dot=U_DOT,
         relative_position=Vector([0, 0, 0]),
-        gravity=GRAVITY,
+        environment=example_plain_env,
     )
     assert len(sensor.measured_data) == 2
     assert len(sensor.measured_data[0]) == 3
@@ -202,61 +200,70 @@ def test_inertial_measured_data(sensor, request):
         u=U,
         u_dot=U_DOT,
         relative_position=Vector([0, 0, 0]),
-        gravity=GRAVITY,
+        environment=example_plain_env,
     )
     assert len(sensor.measured_data[0]) == 3
     assert len(sensor.measured_data[1]) == 3
 
 
-def test_scalar_measured_data(ideal_barometer, example_plain_env):
+@pytest.mark.parametrize(
+    "sensor",
+    [
+        "ideal_barometer",
+        "ideal_gnss",
+    ],
+)
+def test_scalar_measured_data(sensor, request, example_plain_env):
     """Test the measure method of ScalarSensor. Checks if saved
     measurement is (P) and if measured_data is [(t, P), ...]
     """
+    sensor = request.getfixturevalue(sensor)
+
     t = TIME
     u = U
 
-    ideal_barometer.measure(
+    sensor.measure(
         t,
         u=u,
         relative_position=Vector([0, 0, 0]),
-        pressure=example_plain_env.pressure,
+        environment=example_plain_env,
     )
-    assert len(ideal_barometer.measured_data) == 1
-    ideal_barometer.measure(
+    assert len(sensor.measured_data) == 1
+    sensor.measure(
         t,
         u=u,
         relative_position=Vector([0, 0, 0]),
-        pressure=example_plain_env.pressure,
+        environment=example_plain_env,
     )
-    assert len(ideal_barometer.measured_data) == 2
-    assert all(isinstance(i, tuple) for i in ideal_barometer.measured_data)
+    assert len(sensor.measured_data) == 2
+    assert all(isinstance(i, tuple) for i in sensor.measured_data)
 
     # check case when sensor is added more than once to the rocket
-    ideal_barometer.measured_data = [
-        ideal_barometer.measured_data[:],
-        ideal_barometer.measured_data[:],
+    sensor.measured_data = [
+        sensor.measured_data[:],
+        sensor.measured_data[:],
     ]
-    ideal_barometer._save_data = ideal_barometer._save_data_multiple
-    ideal_barometer.measure(
+    sensor._save_data = sensor._save_data_multiple
+    sensor.measure(
         t,
         u=u,
         relative_position=Vector([0, 0, 0]),
-        pressure=example_plain_env.pressure,
+        environment=example_plain_env,
     )
-    assert len(ideal_barometer.measured_data) == 2
-    assert len(ideal_barometer.measured_data[0]) == 3
-    assert len(ideal_barometer.measured_data[1]) == 2
-    ideal_barometer.measure(
+    assert len(sensor.measured_data) == 2
+    assert len(sensor.measured_data[0]) == 3
+    assert len(sensor.measured_data[1]) == 2
+    sensor.measure(
         t,
         u=u,
         relative_position=Vector([0, 0, 0]),
-        pressure=example_plain_env.pressure,
+        environment=example_plain_env,
     )
-    assert len(ideal_barometer.measured_data[0]) == 3
-    assert len(ideal_barometer.measured_data[1]) == 3
+    assert len(sensor.measured_data[0]) == 3
+    assert len(sensor.measured_data[1]) == 3
 
 
-def test_noisy_rotated_accelerometer(noisy_rotated_accelerometer):
+def test_noisy_rotated_accelerometer(noisy_rotated_accelerometer, example_plain_env):
     """Test the measure method of the Accelerometer class. Checks if saved
     measurement is (ax,ay,az) and if measured_data is [(t, (ax,ay,az)), ...]
     """
@@ -296,7 +303,7 @@ def test_noisy_rotated_accelerometer(noisy_rotated_accelerometer):
         u=U,
         u_dot=U_DOT,
         relative_position=relative_position,
-        gravity=GRAVITY,
+        environment=example_plain_env,
     )
     assert noisy_rotated_accelerometer.measurement == approx([ax, ay, az], rel=0.1)
     assert len(noisy_rotated_accelerometer.measurement) == 3
@@ -306,7 +313,7 @@ def test_noisy_rotated_accelerometer(noisy_rotated_accelerometer):
     assert noisy_rotated_accelerometer.measured_data[0][0] == TIME
 
 
-def test_noisy_rotated_gyroscope(noisy_rotated_gyroscope):
+def test_noisy_rotated_gyroscope(noisy_rotated_gyroscope, example_plain_env):
     """Test the measure method of the Gyroscope class. Checks if saved
     measurement is (wx,wy,wz) and if measured_data is [(t, (wx,wy,wz)), ...]
     """
@@ -337,7 +344,7 @@ def test_noisy_rotated_gyroscope(noisy_rotated_gyroscope):
         u=U,
         u_dot=U_DOT,
         relative_position=relative_position,
-        gravity=GRAVITY,
+        environment=example_plain_env,
     )
     assert noisy_rotated_gyroscope.measurement == approx([wx, wy, wz], rel=0.3)
     assert len(noisy_rotated_gyroscope.measurement) == 3
@@ -360,22 +367,88 @@ def test_noisy_barometer(noisy_barometer, example_plain_env):
         time=TIME,
         u=U,
         relative_position=relative_position,
-        pressure=example_plain_env.pressure,
+        environment=example_plain_env,
     )
     assert noisy_barometer.measurement == approx(P, rel=0.03)
     assert noisy_barometer.measured_data[0][1] == approx(P, rel=0.03)
     assert noisy_barometer.measured_data[0][0] == TIME
 
 
+def test_noisy_gnss(noisy_gnss, example_plain_env):
+    """Test the measure method of the GnssReceiver class. Checks if saved
+    measurement is (latitude, longitude, altitude) and if measured_data is [(t, (latitude, longitude, altitude)), ...]
+    """
+    # expected measurement without noise
+    relative_position = Vector([0.4, 0.4, 1])
+    lat, lon = example_plain_env.latitude, example_plain_env.longitude
+    earth_radius = example_plain_env.earth_radius
+    x, y, z = (Matrix.transformation(U[6:10]) @ relative_position) + Vector(U[0:3])
+    drift = (x**2 + y**2) ** 0.5
+    bearing = (2 * np.pi - np.arctan2(-x, y)) * (180 / np.pi)
+    latitude = np.degrees(
+        np.arcsin(
+            np.sin(np.radians(lat)) * np.cos(drift / earth_radius)
+            + np.cos(np.radians(lat))
+            * np.sin(drift / earth_radius)
+            * np.cos(np.radians(bearing))
+        )
+    )
+    longitude = np.degrees(
+        np.radians(lon)
+        + np.arctan2(
+            np.sin(np.radians(bearing))
+            * np.sin(drift / earth_radius)
+            * np.cos(np.radians(lat)),
+            np.cos(drift / earth_radius)
+            - np.sin(np.radians(lat)) * np.sin(np.radians(latitude)),
+        )
+    )
+    altitude = z
+
+    noisy_gnss.measure(
+        time=TIME,
+        u=U,
+        relative_position=relative_position,
+        environment=example_plain_env,
+    )
+    assert noisy_gnss.measurement == approx([latitude, longitude, altitude], abs=3.2)
+    assert len(noisy_gnss.measurement) == 3
+    assert noisy_gnss.measured_data[0][1:] == approx(
+        [latitude, longitude, altitude], abs=3.2
+    )
+    assert noisy_gnss.measured_data[0][0] == TIME
+
+    # check last measurement considering noise error bounds
+    noisy_gnss.measure(
+        time=TIME,
+        u=U,
+        relative_position=relative_position,
+        environment=example_plain_env,
+    )
+    assert noisy_gnss.measurement == approx([latitude, longitude, altitude], abs=3.2)
+    assert len(noisy_gnss.measurement) == 3
+    assert noisy_gnss.measured_data[1][1:] == approx(
+        [latitude, longitude, altitude], abs=3.2
+    )
+    assert noisy_gnss.measured_data[1][0] == TIME
+
+
 @pytest.mark.parametrize(
     "sensor, file_format, expected_header, expected_keys",
     [
         ("ideal_accelerometer", "csv", "t,ax,ay,az\n", ("ax", "ay", "az")),
-        ("ideal_gyroscope", "csv", "t,wx,wy,wz\n", ("wx", "wy", "wz")),
         ("ideal_accelerometer", "json", None, ("ax", "ay", "az")),
+        ("ideal_gyroscope", "csv", "t,wx,wy,wz\n", ("wx", "wy", "wz")),
         ("ideal_gyroscope", "json", None, ("wx", "wy", "wz")),
         ("ideal_barometer", "csv", "t,pressure\n", ("pressure",)),
         ("ideal_barometer", "json", None, ("pressure",)),
+        (
+            "ideal_gnss",
+            "csv",
+            "t,latitude,longitude,altitude\n",
+            ("latitude", "longitude", "altitude"),
+        ),
+        ("ideal_gnss", "json", None, ("latitude", "longitude", "altitude")),
     ],
 )
 def test_export_data(
@@ -391,16 +464,14 @@ def test_export_data(
         u=U,
         u_dot=U_DOT,
         relative_position=Vector([0, 0, 0]),
-        gravity=GRAVITY,
-        pressure=example_plain_env.pressure,
+        environment=example_plain_env,
     )
     sensor.measure(
         time=TIME,
         u=U,
         u_dot=U_DOT,
         relative_position=Vector([0, 0, 0]),
-        gravity=GRAVITY,
-        pressure=example_plain_env.pressure,
+        environment=example_plain_env,
     )
 
     file_name = f"sensors.{file_format}"

@@ -353,11 +353,15 @@ def inverted_haversine(lat0, lon0, distance, bearing, earth_radius=6.3781e6):
     # Apply inverted Haversine formula
     lat1_rad = math.asin(
         math.sin(lat0_rad) * math.cos(distance / earth_radius)
-        + math.cos(lat0_rad) * math.sin(distance / earth_radius) * math.cos(bearing)
+        + math.cos(lat0_rad)
+        * math.sin(distance / earth_radius)
+        * math.cos(math.radians(bearing))
     )
 
     lon1_rad = lon0_rad + math.atan2(
-        math.sin(bearing) * math.sin(distance / earth_radius) * math.cos(lat0_rad),
+        math.sin(math.radians(bearing))
+        * math.sin(distance / earth_radius)
+        * math.cos(lat0_rad),
         math.cos(distance / earth_radius) - math.sin(lat0_rad) * math.sin(lat1_rad),
     )
 
@@ -928,18 +932,18 @@ def quaternions_to_nutation(e1, e2):
     return (180 / np.pi) * 2 * np.arcsin(-((e1**2 + e2**2) ** 0.5))
 
 
-def euler_to_quaternions(yaw, pitch, roll):
+def euler_to_quaternions(roll, pitch, yaw):
     """Calculates the quaternions (Euler parameters) from the Euler angles in
     yaw, pitch, and roll sequence (3-2-1).
 
     Parameters
     ----------
-    yaw : float
-        Euler angle due to yaw (phi) in degrees
-    pitch : float
-        Euler angle due to pitch (theta) in degrees
     roll : float
         Euler angle due to roll (psi) in degrees
+    pitch : float
+        Euler angle due to pitch (theta) in degrees
+    yaw : float
+        Euler angle due to yaw (phi) in degrees
 
     Returns
     -------
