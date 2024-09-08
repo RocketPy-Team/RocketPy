@@ -568,7 +568,7 @@ class InertialSensor(Sensor):
 
 
 class ScalarSensor(Sensor):
-    """Model of a scalar sensor (barometer, GPS, etc.). Scalar sensors are used
+    """Model of a scalar sensor (e.g. Barometer). Scalar sensors are used
     to measure a single scalar value. The measurements are not affected by the
     sensor's orientation in the rocket.
 

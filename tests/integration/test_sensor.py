@@ -8,7 +8,7 @@ from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.rocket.components import Components
 from rocketpy.sensors.accelerometer import Accelerometer
 from rocketpy.sensors.barometer import Barometer
-from rocketpy.sensors.gnss import GNSS
+from rocketpy.sensors.gnss import GnssReceiver
 from rocketpy.sensors.gyroscope import Gyroscope
 
 
@@ -28,7 +28,7 @@ def test_sensor_on_rocket(calisto_with_sensors):
     assert isinstance(sensors[2].position, Vector)
     assert isinstance(sensors[3].component, Barometer)
     assert isinstance(sensors[3].position, Vector)
-    assert isinstance(sensors[4].component, GNSS)
+    assert isinstance(sensors[4].component, GnssReceiver)
     assert isinstance(sensors[4].position, Vector)
 
 
@@ -134,7 +134,10 @@ def test_export_all_sensors_data(flight_calisto_with_sensors):
     assert (
         sensor_data["Barometer"] == flight_calisto_with_sensors.sensors[3].measured_data
     )
-    assert sensor_data["GNSS"] == flight_calisto_with_sensors.sensors[4].measured_data
+    assert (
+        sensor_data["GnssReceiver"]
+        == flight_calisto_with_sensors.sensors[4].measured_data
+    )
     os.remove(filename)
 
 

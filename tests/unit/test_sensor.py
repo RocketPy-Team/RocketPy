@@ -375,7 +375,7 @@ def test_noisy_barometer(noisy_barometer, example_plain_env):
 
 
 def test_noisy_gnss(noisy_gnss, example_plain_env):
-    """Test the measure method of the GNSS class. Checks if saved
+    """Test the measure method of the GnssReceiver class. Checks if saved
     measurement is (latitude, longitude, altitude) and if measured_data is [(t, (latitude, longitude, altitude)), ...]
     """
     # expected measurement without noise

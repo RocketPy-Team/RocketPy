@@ -5,16 +5,16 @@ import numpy as np
 from rocketpy.tools import inverted_haversine
 
 from ..mathutils.vector_matrix import Matrix, Vector
-from ..prints.sensors_prints import _GNSSPrints
+from ..prints.sensors_prints import _GnssReceiverPrints
 from .sensor import ScalarSensor
 
 
-class GNSS(ScalarSensor):
-    """Class for the GNSS sensor
+class GnssReceiver(ScalarSensor):
+    """Class for the GNSS Receiver sensor.
 
     Attributes
     ----------
-    prints : _GNSSPrints
+    prints : _GnssReceiverPrints
         Object that contains the print functions for the sensor.
     sampling_rate : float
         Sample rate of the sensor in Hz.
@@ -39,9 +39,9 @@ class GNSS(ScalarSensor):
         sampling_rate,
         position_accuracy=0,
         altitude_accuracy=0,
-        name="GNSS",
+        name="GnssReceiver",
     ):
-        """Initialize the GNSS sensor.
+        """Initialize the Gnss Receiver sensor.
 
         Parameters
         ----------
@@ -54,13 +54,13 @@ class GNSS(ScalarSensor):
             Accuracy of the sensor interpreted as the standard deviation of the
             position in meters. Default is 0.
         name : str
-            The name of the sensor. Default is "GNSS".
+            The name of the sensor. Default is "GnssReceiver".
         """
         super().__init__(sampling_rate=sampling_rate, name=name)
         self.position_accuracy = position_accuracy
         self.altitude_accuracy = altitude_accuracy
 
-        self.prints = _GNSSPrints(self)
+        self.prints = _GnssReceiverPrints(self)
 
     def measure(self, time, **kwargs):
         """Measure the position of the rocket in latitude, longitude and

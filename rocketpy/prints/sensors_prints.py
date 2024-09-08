@@ -106,8 +106,8 @@ class _GyroscopePrints(_InertialSensorPrints):
         )
 
 
-class _GNSSPrints(_SensorPrints):
-    """Class that contains all GNSS prints."""
+class _GnssReceiverPrints(_SensorPrints):
+    """Class that contains all GnssReceiver prints."""
 
     def accuracy(self):
         """Prints the accuracy of the sensor."""

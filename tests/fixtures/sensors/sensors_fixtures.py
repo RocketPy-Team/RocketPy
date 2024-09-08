@@ -3,7 +3,7 @@ import pytest
 
 from rocketpy import Accelerometer, Gyroscope
 from rocketpy.sensors.barometer import Barometer
-from rocketpy.sensors.gnss import GNSS
+from rocketpy.sensors.gnss import GnssReceiver
 
 
 @pytest.fixture
@@ -68,7 +68,7 @@ def noisy_barometer():
 
 @pytest.fixture
 def noisy_gnss():
-    return GNSS(
+    return GnssReceiver(
         sampling_rate=1,
         position_accuracy=1,
         altitude_accuracy=1,
@@ -131,6 +131,6 @@ def ideal_barometer():
 
 @pytest.fixture
 def ideal_gnss():
-    return GNSS(
+    return GnssReceiver(
         sampling_rate=1,
     )
