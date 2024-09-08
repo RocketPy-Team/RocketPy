@@ -2,6 +2,8 @@ import numpy as np
 import pytest
 import scipy.integrate
 
+from rocketpy import Function, Motor
+
 BURN_TIME = (2, 7)
 
 
@@ -129,3 +131,49 @@ def test_generic_motor_inertia(generic_motor):
     assert generic_motor.I_11.y_array == pytest.approx(I_11)
     assert generic_motor.I_22.y_array == pytest.approx(I_22)
     assert generic_motor.I_33.y_array == pytest.approx(I_33)
+
+
+def test_load_from_eng_file(generic_motor):
+    """Tests the GenericMotor.load_from_eng_file method.
+
+    Parameters
+    ----------
+    generic_motor : rocketpy.GenericMotor
+        The GenericMotor object to be used in the tests.
+    """
+    # using cesaroni data as example
+    burnt_time = (0, 3.9)
+    dry_mass = 5.231 - 3.101  # 2.130 kg
+    propellant_initial_mass = 3.101
+    chamber_radius = 75 / 1000
+    chamber_height = 757 / 1000
+    nozzle_radius = chamber_radius * 0.85  # nozzle radius is 85% of chamber radius
+    # Parameters from manual testing using the SolidMotor class as a reference
+    average_thrust = 1545.218
+    total_impulse = 6026.350
+    max_thrust = 2200.0
+    exhaust_velocity = 1943.357
+
+    # importing .eng file
+    generic_motor = generic_motor.load_from_eng_file("data/motors/Cesaroni_M1670.eng")
+
+    # testing relevant parameters
+    assert generic_motor.burn_time == burnt_time
+    assert generic_motor.dry_mass == dry_mass
+    assert generic_motor.propellant_initial_mass == propellant_initial_mass
+    assert generic_motor.chamber_radius == chamber_radius
+    assert generic_motor.chamber_height == chamber_height
+    assert generic_motor.chamber_position == 0
+    assert generic_motor.average_thrust == pytest.approx(average_thrust)
+    assert generic_motor.total_impulse == pytest.approx(total_impulse)
+    assert generic_motor.exhaust_velocity.average(*burnt_time) == pytest.approx(
+        exhaust_velocity
+    )
+    assert generic_motor.max_thrust == pytest.approx(max_thrust)
+    assert generic_motor.nozzle_radius == pytest.approx(nozzle_radius)
+
+    # testing thrust curve
+    _, _, points = Motor.import_eng("data/motors/Cesaroni_M1670.eng")
+    assert generic_motor.thrust.y_array == pytest.approx(
+        Function(points, "Time (s)", "Thrust (N)", "linear", "zero").y_array
+    )
