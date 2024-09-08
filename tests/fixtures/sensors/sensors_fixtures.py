@@ -2,7 +2,7 @@ import pytest
 
 from rocketpy import Accelerometer, Gyroscope
 from rocketpy.sensors.barometer import Barometer
-from rocketpy.sensors.gnss import GnssReceiver
+from rocketpy.sensors.gnss_receiver import GnssReceiver
 
 
 @pytest.fixture

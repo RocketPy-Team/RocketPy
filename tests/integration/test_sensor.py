@@ -2,13 +2,12 @@ import json
 import os
 
 import numpy as np
-import pytest
 
 from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.rocket.components import Components
 from rocketpy.sensors.accelerometer import Accelerometer
 from rocketpy.sensors.barometer import Barometer
-from rocketpy.sensors.gnss import GnssReceiver
+from rocketpy.sensors.gnss_receiver import GnssReceiver
 from rocketpy.sensors.gyroscope import Gyroscope
 
 
