@@ -37,6 +37,7 @@ from .rocket import (
     Tail,
     TrapezoidalFins,
 )
+from .sensitivity import SensitivityModel
 from .sensors import Accelerometer, Barometer, GnssReceiver, Gyroscope
 from .simulation import Flight, MonteCarlo
 from .stochastic import (
