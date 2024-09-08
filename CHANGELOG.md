@@ -30,20 +30,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 <!-- These are the changes that were not released yet, please add them correctly.
 Attention: The newest changes should be on top -->
 
-## [1.3.0.post1] - 2024-06-02
-
-You can install this version by running `pip install rocketpy==1.3.0.post1`
-
-### Fixed
-
-- BUG: pyproject.toml Main Module Finding. [#616](https://github.com/RocketPy-Team/RocketPy/pull/616)
-
-## [1.3.0] - 2024-06-01
-
-You can install this version by running `pip install rocketpy==1.3.0`
-
 ### Added
 
+- ENH: Adds Sensors classes [683](https://github.com/RocketPy-Team/RocketPy/pull/683)
 - ENH: Add STFT function to Function class [#620](https://github.com/RocketPy-Team/RocketPy/pull/620) 
 - ENH: Rocket Axis Definition [#635](https://github.com/RocketPy-Team/RocketPy/pull/635)
 
