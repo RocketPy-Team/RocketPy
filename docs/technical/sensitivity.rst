@@ -31,7 +31,7 @@ This work formalizes mathematically that question and provides a tool to answer 
 
 
 Error Modeling
--------------
+--------------
 
 Defining the system
 ~~~~~~~~~~~~~~~~~~~
@@ -118,7 +118,7 @@ Then
 The nominal parameters $x^*$ and nominal target variable $y^* = g(x^*)$ are known.
 The Jacobian $J_g(x^*)$ and $\Sigma_{\epsilon}$ can be estimated using a linear regression of $X^{(i)}$ on $Y^{(i)} = g(X^{(i)})$.
 
-\textbf{Case $d = 1$} The regression approach is best understood considering the simplest case when $d = 1$.
+**Case** :math:`d = 1` The regression approach is best understood considering the simplest case when $d = 1$.
 Indeed, we have the usual case of multiple linear regression.
 The Jacobian is simply the gradient $J_{g}(x^*) = \nabla g(x^*)$.
 Write $\nabla g(x^*) = \beta = (\beta_1, \ldots, \beta_p)$, where the coefficient $\beta_j$ is exactly the linear approximation coefficient of $g(x)$ around $x^*$ for the $j$-th input parameter.
@@ -133,7 +133,7 @@ where $\mathbf{X^*} = \begin{bmatrix} x^* \\ \vdots \\ x^* \end{bmatrix}$, a mat
 
 A good example where this would be the case is when performing sensitivity analysis for the apogee only.
 
-\textbf{Case $d > 1$} This is case requires the use of multivariate multiple linear regression.
+**Case** :math:`d > 1` This is case requires the use of multivariate multiple linear regression.
 The Jacobian is indeed an $n \times d$ matrix so that the regression coefficients are also a matrix $\mathbf{B} = (\mathbf{B}_1, \ldots, \mathbf{B}_d)$.
 The term $\mathbf{B}_i$ is the $i$-th column of $\mathbf{B}$ and $\mathbf{B}_{ij}$ is the regression coefficient of the $j$-th parameter for the $i$-th variable.
 
@@ -157,7 +157,7 @@ Remember that our goal is to obtain which parameters are important and which are
 To that end, we need to define what is parameter importance.
 In sensitivity analysis, the importance of the parameter should take into account both how much the target variable changes its values depending on that parameter and the prior uncertainty in that parameter.
 
-Hence, the parameter importance should be a metric that answers the following question: \textbf{how much would the variability of the target variable decrease if we knew the true value of the parameter with certainty?}
+Hence, the parameter importance should be a metric that answers the following question: **how much would the variability of the target variable decrease if we knew the true value of the parameter with certainty?**
 
 To better grasp why this question captures the idea of parameter importance, let us think of some examples.
 On one hand, assume that there is a parameter extremely important for the simulation, very small changes in this parameter reflect very large changes in the target variable.
@@ -202,9 +202,9 @@ Note that $\beta_j$ and $\sigma_\epsilon$ are replaced by their estimators compu
 
 The importance represents by what factor would the total variance $Var(Y)$ reduce if we knew the true value of that parameter.
 For instance, if $I(j) = 20\%$, then if we had no uncertainty on the $j$-th parameter, i.e. $\hat{\sigma}_j^2 = 0$, then $Var(Y)$ would reduce in $20\%$.
-\textbf{It is crucial to emphasize that this reduction is with respect to the current variance of the target variable.}
+**It is crucial to emphasize that this reduction is with respect to the current variance of the target variable.**
 
-It is important to observe that the \textbf{parameter importance is a local measure}.
+It is important to observe that the **parameter importance is a local measure**.
 An even better notation for it would be $I(j, x^*)$ representing the importance of the $j$-th parameter around the nominal parameter $x^*$.
 We prefer to omit the reference to $x^*$ but emphasize that, if $x^*$ is changed, then we need to perform the sensitivity analysis again.
 
