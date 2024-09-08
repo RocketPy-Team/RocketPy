@@ -424,6 +424,7 @@ def _flutter_prints(
     print(f"Altitude of minimum Safety Factor: {altitude_min_sf:.3f} m (AGL)\n")
 
 
+# TODO: deprecate and delete this function. Never used and now we have Monte Carlo.
 def create_dispersion_dictionary(filename):
     """Creates a dictionary with the rocket data provided by a .csv file.
     File should be organized in four columns: attribute_class, parameter_name,

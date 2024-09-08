@@ -642,9 +642,9 @@ class SolidMotor(Motor):
         The e_1 direction is assumed to be the direction perpendicular to the
         motor body axis.
 
-        References
-        ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        See Also
+        --------
+        https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
         grain_mass = self.propellant_mass / self.grain_number
         grain_number = self.grain_number
@@ -680,9 +680,9 @@ class SolidMotor(Motor):
         The e_2 direction is assumed to be the direction perpendicular to the
         motor body axis, and perpendicular to e_1.
 
-        References
-        ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        See Also
+        --------
+        https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
         return self.propellant_I_11
 
@@ -702,9 +702,9 @@ class SolidMotor(Motor):
         The e_3 direction is assumed to be the axial direction of the rocket
         motor.
 
-        References
-        ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        See Also
+        --------
+        https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
         I_33 = (
             (1 / 2.0)

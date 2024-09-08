@@ -20,6 +20,7 @@ from scipy import integrate, linalg, optimize
 # Numpy 1.x compatibility,
 # TODO: remove these lines when all dependencies support numpy>=2.0.0
 if np.lib.NumpyVersion(np.__version__) >= "2.0.0b1":
+    # pylint: disable=no-name-in-module
     from numpy import trapezoid  # pragma: no cover
 else:
     from numpy import trapz as trapezoid  # pragma: no cover
@@ -62,22 +63,16 @@ class Function:  # pylint: disable=too-many-public-methods
         source : callable, scalar, ndarray, string, or Function
             The data source to be used for the function:
 
-            - Callable: Called for evaluation with input values. Must have the
-              desired inputs as arguments and return a single output value.
-              Input order is important. Example: Python functions, classes, and
-              methods.
-
-            - int or float: Treated as a constant value function.
-
-            - ndarray: Used for interpolation. Format as [(x0, y0, z0),
-            (x1, y1, z1), ..., (xn, yn, zn)], where 'x' and 'y' are inputs,
+            - ``Callable``: Called for evaluation with input values. Must have \
+                the desired inputs as arguments and return a single output \
+                value. Input order is important. Example: Python functions.
+            - ``int`` or ``float``: Treated as a constant value function.
+            - ``np.ndarray``: Used for interpolation. Format as [(x0, y0, z0), \
+            (x1, y1, z1), ..., (xn, yn, zn)], where 'x' and 'y' are inputs, \
             and 'z' is the output.
-
-            - string: Path to a CSV file. The file is read and converted into an
-            ndarray. The file can optionally contain a single header line, see
-            notes below for more information.
-
-            - Function: Copies the source of the provided Function object,
+            - ``str``: Path to a CSV file. The file is read and converted into an \
+            ndarray. The file can optionally contain a single header line.
+            - ``Function``: Copies the source of the provided Function object, \
             creating a new Function with adjusted inputs and outputs.
 
         inputs : string, sequence of strings, optional
@@ -178,42 +173,38 @@ class Function:  # pylint: disable=too-many-public-methods
         source : callable, scalar, ndarray, string, or Function
             The data source to be used for the function:
 
-            - Callable: Called for evaluation with input values. Must have the
-              desired inputs as arguments and return a single output value.
-              Input order is important. Example: Python functions, classes, and
-              methods.
-
-            - int or float: Treated as a constant value function.
-
-            - ndarray: Used for interpolation. Format as [(x0, y0, z0),
-            (x1, y1, z1), ..., (xn, yn, zn)], where 'x' and 'y' are inputs,
+            - ``Callable``: Called for evaluation with input values. Must have \
+                the desired inputs as arguments and return a single output \
+                value. Input order is important. Example: Python functions.
+            - ``int`` or ``float``: Treated as a constant value function.
+            - ``np.ndarray``: Used for interpolation. Format as [(x0, y0, z0), \
+            (x1, y1, z1), ..., (xn, yn, zn)], where 'x' and 'y' are inputs, \
             and 'z' is the output.
-
-            - string: Path to a CSV file. The file is read and converted into an
+            - ``str``: Path to a CSV file. The file is read and converted into an \
             ndarray. The file can optionally contain a single header line.
-
-            - Function: Copies the source of the provided Function object,
+            - ``Function``: Copies the source of the provided Function object, \
             creating a new Function with adjusted inputs and outputs.
 
         Notes
         -----
-        (I) CSV files may include an optional single header line. If this
-        header line is present and contains names for each data column, those
-        names will be used to label the inputs and outputs unless specified
-        otherwise. If the header is specified for only a few columns, it is
-        ignored.
+        (I) **CSV files may include an optional single header line**: \
+            If this header line is present and contains names for each data \
+            column, those names will be used to label the inputs and outputs \
+            unless specified otherwise. If the header is specified for only a \
+            few columns, it is ignored.
 
-        Commas in a header will be interpreted as a delimiter, which may cause
-        undesired input or output labeling. To avoid this, specify each input
-        and output name using the `inputs` and `outputs` arguments.
+        (II) **Commas in a header will be interpreted as a delimiter**: \
+            this may cause undesired input or output labeling. To avoid this, \
+            specify each input and output name using the `inputs` and `outputs` \
+            arguments.
 
-        (II) Fields in CSV files may be enclosed in double quotes. If fields
-        are not quoted, double quotes should not appear inside them.
+        (III) **Fields in CSV files may be enclosed in double quotes**: \
+            If fields are not quoted, double quotes should not appear inside them.
 
         Returns
         -------
         self : Function
-            Returns the Function instance.
+            Returns the Function instance with the new source set.
         """
         source = self.__validate_source(source)
 
@@ -833,6 +824,7 @@ class Function:  # pylint: disable=too-many-public-methods
         >>> from rocketpy import Function
 
         Testing with callable source (1 dimension):
+
         >>> f = Function(lambda x: x**2)
         >>> f.get_value(2)
         4
@@ -844,6 +836,7 @@ class Function:  # pylint: disable=too-many-public-methods
         [1, 6.25, 16.0]
 
         Testing with callable source (2 dimensions):
+
         >>> f2 = Function(lambda x, y: x**2 + y**2)
         >>> f2.get_value(1, 2)
         5
@@ -853,6 +846,7 @@ class Function:  # pylint: disable=too-many-public-methods
         [50]
 
         Testing with ndarray source (1 dimension):
+
         >>> f3 = Function(
         ...    [(0, 0), (1, 1), (1.5, 2.25), (2, 4), (2.5, 6.25), (3, 9), (4, 16)]
         ... )
@@ -866,6 +860,7 @@ class Function:  # pylint: disable=too-many-public-methods
         [np.float64(1.0), np.float64(6.25), np.float64(16.0)]
 
         Testing with ndarray source (2 dimensions):
+
         >>> f4 = Function(
         ...    [(0, 0, 0), (1, 1, 1), (1, 2, 2), (2, 4, 8), (3, 9, 27)]
         ... )
@@ -1011,6 +1006,142 @@ class Function:  # pylint: disable=too-many-public-methods
             interpolation="linear",
             extrapolation="zero",
         )
+
+    def short_time_fft(
+        self,
+        lower,
+        upper,
+        sampling_frequency,
+        window_size,
+        step_size,
+        remove_dc=True,
+        only_positive=True,
+    ):
+        r"""
+        Performs the Short-Time Fourier Transform (STFT) of the Function and
+        returns the result. The STFT is computed by applying the Fourier
+        transform to overlapping windows of the Function.
+
+        Parameters
+        ----------
+        lower : float
+            Lower bound of the time range.
+        upper : float
+            Upper bound of the time range.
+        sampling_frequency : float
+            Sampling frequency at which to perform the Fourier transform.
+        window_size : float
+            Size of the window for the STFT, in seconds.
+        step_size : float
+            Step size for the window, in seconds.
+        remove_dc : bool, optional
+            If True, the DC component is removed from each window before
+            computing the Fourier transform.
+        only_positive: bool, optional
+            If True, only the positive frequencies are returned.
+
+        Returns
+        -------
+        list[Function]
+            A list of Functions, each representing the STFT of a window.
+
+        Examples
+        --------
+
+        >>> import numpy as np
+        >>> import matplotlib.pyplot as plt
+        >>> from rocketpy import Function
+
+        Generate a signal with varying frequency:
+
+        >>> T_x, N = 1 / 20 , 1000  # 20 Hz sampling rate for 50 s signal
+        >>> t_x = np.arange(N) * T_x  # time indexes for signal
+        >>> f_i = 1 * np.arctan((t_x - t_x[N // 2]) / 2) + 5 # varying frequency
+        >>> signal = np.sin(2 * np.pi * np.cumsum(f_i) * T_x)  # the signal
+
+        Create the Function object and perform the STFT:
+
+        >>> time_domain = Function(np.array([t_x, signal]).T)
+        >>> stft_result = time_domain.short_time_fft(
+        ...     lower=0,
+        ...     upper=50,
+        ...     sampling_frequency=95,
+        ...     window_size=2,
+        ...     step_size=0.5,
+        ... )
+
+        Plot the spectrogram:
+
+        >>> Sx = np.abs([window[:, 1] for window in stft_result])
+        >>> t_lo, t_hi = t_x[0], t_x[-1]
+        >>> fig1, ax1 = plt.subplots(figsize=(10, 6))
+        >>> im1 = ax1.imshow(
+        ...     Sx.T,
+        ...     origin='lower',
+        ...     aspect='auto',
+        ...     extent=[t_lo, t_hi, 0, 50],
+        ...     cmap='viridis'
+        ... )
+        >>> _ = ax1.set_title(rf"STFT (2$\,s$ Gaussian window, $\sigma_t=0.4\,$s)")
+        >>> _ = ax1.set(
+        ...     xlabel=f"Time $t$ in seconds",
+        ...     ylabel=f"Freq. $f$ in Hz)",
+        ...     xlim=(t_lo, t_hi)
+        ... )
+        >>> _ = ax1.plot(t_x, f_i, 'r--', alpha=.5, label='$f_i(t)$')
+        >>> _ = fig1.colorbar(im1, label="Magnitude $|S_x(t, f)|$")
+        >>> # Shade areas where window slices stick out to the side
+        >>> for t0_, t1_ in [(t_lo, 1), (49, t_hi)]:
+        ...     _ = ax1.axvspan(t0_, t1_, color='w', linewidth=0, alpha=.2)
+        >>> # Mark signal borders with vertical line
+        >>> for t_ in [t_lo, t_hi]:
+        ...     _ = ax1.axvline(t_, color='y', linestyle='--', alpha=0.5)
+        >>> # Add legend and finalize plot
+        >>> _ = ax1.legend()
+        >>> fig1.tight_layout()
+        >>> # plt.show() # uncomment to show the plot
+
+        References
+        ----------
+        Example adapted from the SciPy documentation:
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.ShortTimeFFT.html
+        """
+        # Get the time domain data
+        sampling_time_step = 1.0 / sampling_frequency
+        sampling_range = np.arange(lower, upper, sampling_time_step)
+        sampled_points = self(sampling_range)
+        samples_per_window = int(window_size * sampling_frequency)
+        samples_skipped_per_step = int(step_size * sampling_frequency)
+        stft_results = []
+
+        max_start = len(sampled_points) - samples_per_window + 1
+
+        for start in range(0, max_start, samples_skipped_per_step):
+            windowed_samples = sampled_points[start : start + samples_per_window]
+            if remove_dc:
+                windowed_samples -= np.mean(windowed_samples)
+            fourier_amplitude = np.abs(
+                np.fft.fft(windowed_samples) / (samples_per_window / 2)
+            )
+            fourier_frequencies = np.fft.fftfreq(samples_per_window, sampling_time_step)
+
+            # Filter to keep only positive frequencies if specified
+            if only_positive:
+                positive_indices = fourier_frequencies > 0
+                fourier_frequencies = fourier_frequencies[positive_indices]
+                fourier_amplitude = fourier_amplitude[positive_indices]
+
+            stft_results.append(
+                Function(
+                    source=np.array([fourier_frequencies, fourier_amplitude]).T,
+                    inputs="Frequency (Hz)",
+                    outputs="Amplitude",
+                    interpolation="linear",
+                    extrapolation="zero",
+                )
+            )
+
+        return stft_results
 
     def low_pass_filter(self, alpha, file_path=None):
         """Implements a low pass filter with a moving average filter. This does
@@ -1191,7 +1322,7 @@ class Function:  # pylint: disable=too-many-public-methods
             elif self.__dom_dim__ == 2:
                 self.plot_2d(*args, **kwargs)
             else:
-                print("Error: Only functions with 1D or 2D domains are plottable!")
+                print("Error: Only functions with 1D or 2D domains can be plotted.")
 
     def plot1D(self, *args, **kwargs):
         """Deprecated method, use Function.plot_1d instead."""
@@ -2300,6 +2431,23 @@ class Function:  # pylint: disable=too-many-public-methods
         """
         return self.compose(other)
 
+    def __mod__(self, other):
+        """Operator % as an alias for modulo operation."""
+        if callable(self.source):
+            return Function(lambda x: self.source(x) % other)
+        elif isinstance(self.source, np.ndarray) and isinstance(other, NUMERICAL_TYPES):
+            return Function(
+                np.column_stack((self.x_array, self.y_array % other)),
+                self.__inputs__,
+                self.__outputs__,
+                self.__interpolation__,
+                self.__extrapolation__,
+            )
+        raise NotImplementedError(
+            "Modulo operation not implemented for operands of type "
+            f"'{type(self)}' and '{type(other)}'."
+        )
+
     def integral(self, a, b, numerical=False):  # pylint: disable=too-many-statements
         """Evaluate a definite integral of a 1-D Function in the interval
         from a to b.
@@ -2614,8 +2762,8 @@ class Function:  # pylint: disable=too-many-public-methods
             return len(distinct_map) == len(x_data_distinct) == len(y_data_distinct)
         else:
             raise TypeError(
-                "Only Functions whose source is a list of points can be "
-                "checked for bijectivity."
+                "`isbijective()` method only supports Functions whose "
+                "source is an array."
             )
 
     def is_strictly_bijective(self):
@@ -2667,8 +2815,8 @@ class Function:  # pylint: disable=too-many-public-methods
             return np.all(y_data_diff >= 0) or np.all(y_data_diff <= 0)
         else:
             raise TypeError(
-                "Only Functions whose source is a list of points can be "
-                "checked for bijectivity."
+                "`is_strictly_bijective()` method only supports Functions "
+                "whose source is an array."
             )
 
     def inverse_function(self, approx_func=None, tol=1e-4):
@@ -2678,8 +2826,9 @@ class Function:  # pylint: disable=too-many-public-methods
         and only if F is bijective. Makes the domain the range and the range
         the domain.
 
-        If the Function is given by a list of points, its bijectivity is
-        checked and an error is raised if it is not bijective.
+        If the Function is given by a list of points, the method
+        `is_strictly_bijective()` is called and an error is raised if the
+        Function is not bijective.
         If the Function is given by a function, its bijection is not
         checked and may lead to inaccuracies outside of its bijective region.
 
@@ -2872,7 +3021,7 @@ class Function:  # pylint: disable=too-many-public-methods
         newline="\n",
         encoding=None,
     ):
-        """Save a Function object to a text file. The first line is the header
+        r"""Save a Function object to a text file. The first line is the header
         with inputs and outputs. The following lines are the data. The text file
         can have any extension, but it is recommended to use .csv or .txt.
 

@@ -15,6 +15,7 @@ from ..plots.flight_plots import _FlightPlots
 from ..prints.flight_prints import _FlightPrints
 from ..tools import (
     calculate_cubic_hermite_coefficients,
+    euler_angles_to_euler_parameters,
     find_closest,
     find_root_linear_interpolation,
     find_roots_cubic_function,
@@ -292,15 +293,15 @@ class Flight:  # pylint: disable=too-many-public-methods
         of time. Can be called or accessed as array.
     Flight.phi : Function
         Rocket's Spin Euler Angle, φ, according to the 3-2-3 rotation
-        system (NASA Standard Aerospace). Measured in degrees and
+        system nomenclature (NASA Standard Aerospace). Measured in degrees and
         expressed as a function of time. Can be called or accessed as array.
     Flight.theta : Function
         Rocket's Nutation Euler Angle, θ, according to the 3-2-3 rotation
-        system (NASA Standard Aerospace). Measured in degrees and
+        system nomenclature (NASA Standard Aerospace). Measured in degrees and
         expressed as a function of time. Can be called or accessed as array.
     Flight.psi : Function
         Rocket's Precession Euler Angle, ψ, according to the 3-2-3 rotation
-        system (NASA Standard Aerospace). Measured in degrees and
+        system nomenclature (NASA Standard Aerospace). Measured in degrees and
         expressed as a function of time. Can be called or accessed as array.
     Flight.R1 : Function
         Resultant force perpendicular to rockets axis due to
@@ -524,7 +525,7 @@ class Flight:  # pylint: disable=too-many-public-methods
             Default is 80.
         heading : int, float, optional
             Heading angle relative to north given in degrees.
-            Default is 90, which points in the x direction.
+            Default is 90, which points in the x (east) direction.
         initial_solution : array, Flight, optional
             Initial solution array to be used. Format is:
 
@@ -870,6 +871,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                         phase.solver.status = "finished"
 
                     # Check for apogee event
+                    # TODO: negative vz doesn't really mean apogee. Improve this.
                     if len(self.apogee_state) == 1 and self.y_sol[5] < 0:
                         # Assume linear vz(t) to detect when vz = 0
                         t0, vz0 = self.solution[-2][0], self.solution[-2][6]
@@ -895,6 +897,10 @@ class Flight:  # pylint: disable=too-many-public-methods
                             phase.time_nodes.flush_after(node_index)
                             phase.time_nodes.add_node(self.t, [], [], [])
                             phase.solver.status = "finished"
+                        elif len(self.solution) > 2:
+                            # adding the apogee state to solution increases accuracy
+                            # we can only do this if the apogee is not the first state
+                            self.solution.insert(-1, [t_root, *self.apogee_state])
                     # Check for impact event
                     if self.y_sol[2] < self.env.elevation:
                         # Check exactly when it happened using root finding
@@ -1103,12 +1109,26 @@ class Flight:  # pylint: disable=too-many-public-methods
             vx_init, vy_init, vz_init = 0, 0, 0
             w1_init, w2_init, w3_init = 0, 0, 0
             # Initialize attitude
-            psi_init = -self.heading * (np.pi / 180)  # Precession / Heading Angle
-            theta_init = (self.inclination - 90) * (np.pi / 180)  # Nutation Angle
-            e0_init = np.cos(psi_init / 2) * np.cos(theta_init / 2)
-            e1_init = np.cos(psi_init / 2) * np.sin(theta_init / 2)
-            e2_init = np.sin(psi_init / 2) * np.sin(theta_init / 2)
-            e3_init = np.sin(psi_init / 2) * np.cos(theta_init / 2)
+            # Precession / Heading Angle
+            self.psi_init = np.radians(-self.heading)
+            # Nutation / Attitude Angle
+            self.theta_init = np.radians(self.inclination - 90)
+            # Spin / Bank Angle
+            self.phi_init = 0
+
+            # Consider Rail Buttons position, if there is rail buttons
+            try:
+                self.phi_init += (
+                    self.rocket.rail_buttons[0].component.angular_position_rad
+                    * self.rocket._csys
+                )
+            except IndexError:
+                pass
+
+            # 3-1-3 Euler Angles to Euler Parameters
+            e0_init, e1_init, e2_init, e3_init = euler_angles_to_euler_parameters(
+                self.phi_init, self.theta_init, self.psi_init
+            )
             # Store initial conditions
             self.initial_solution = [
                 self.t_initial,
@@ -1432,7 +1452,6 @@ class Flight:  # pylint: disable=too-many-public-methods
             * self.rocket._csys
         )
         c = self.rocket.nozzle_to_cdm
-        a = self.rocket.com_to_cdm_function.get_value_opt(t)
         nozzle_radius = self.rocket.motor.nozzle_radius
         # Prepare transformation matrix
         a11 = 1 - 2 * (e2**2 + e3**2)
@@ -1492,8 +1511,8 @@ class Flight:  # pylint: disable=too-many-public-methods
             comp_cp = (
                 position - self.rocket.center_of_dry_mass_position
             ) * self.rocket._csys - aero_surface.cpz
-            surface_radius = aero_surface.rocket_radius
-            reference_area = np.pi * surface_radius**2
+            reference_area = aero_surface.reference_area
+            reference_length = aero_surface.reference_length
             # Component absolute velocity in body frame
             comp_vx_b = vx_b + comp_cp * omega2
             comp_vy_b = vy_b - comp_cp * omega1
@@ -1535,23 +1554,22 @@ class Flight:  # pylint: disable=too-many-public-methods
                     R1 += comp_lift_xb
                     R2 += comp_lift_yb
                     # Add to total moment
-                    M1 -= (comp_cp + a) * comp_lift_yb
-                    M2 += (comp_cp + a) * comp_lift_xb
+                    M1 -= (comp_cp) * comp_lift_yb
+                    M2 += (comp_cp) * comp_lift_xb
             # Calculates Roll Moment
             try:
                 clf_delta, cld_omega, cant_angle_rad = aero_surface.roll_parameters
                 M3_forcing = (
                     (1 / 2 * rho * free_stream_speed**2)
                     * reference_area
-                    * 2
-                    * surface_radius
+                    * reference_length
                     * clf_delta.get_value_opt(free_stream_mach)
                     * cant_angle_rad
                 )
                 M3_damping = (
                     (1 / 2 * rho * free_stream_speed)
                     * reference_area
-                    * (2 * surface_radius) ** 2
+                    * (reference_length) ** 2
                     * cld_omega.get_value_opt(free_stream_mach)
                     * omega3
                     / 2
@@ -1775,8 +1793,8 @@ class Flight:  # pylint: disable=too-many-public-methods
                 position - self.rocket.center_of_dry_mass_position
             ) * self.rocket._csys - aero_surface.cpz
             comp_cp = Vector([0, 0, comp_cpz])
-            surface_radius = aero_surface.rocket_radius
-            reference_area = np.pi * surface_radius**2
+            reference_area = aero_surface.reference_area
+            reference_length = aero_surface.reference_length
             # Component absolute velocity in body frame
             comp_vb = velocity_in_body_frame + (w ^ comp_cp)
             # Wind velocity at component altitude
@@ -1812,23 +1830,22 @@ class Flight:  # pylint: disable=too-many-public-methods
                     R1 += comp_lift_xb
                     R2 += comp_lift_yb
                     # Add to total moment
-                    M1 -= (comp_cpz + r_CM_t) * comp_lift_yb
-                    M2 += (comp_cpz + r_CM_t) * comp_lift_xb
+                    M1 -= (comp_cpz) * comp_lift_yb
+                    M2 += (comp_cpz) * comp_lift_xb
             # Calculates Roll Moment
             try:
                 clf_delta, cld_omega, cant_angle_rad = aero_surface.roll_parameters
                 M3_forcing = (
                     (1 / 2 * rho * comp_stream_speed**2)
                     * reference_area
-                    * 2
-                    * surface_radius
+                    * reference_length
                     * clf_delta.get_value_opt(comp_stream_mach)
                     * cant_angle_rad
                 )
                 M3_damping = (
                     (1 / 2 * rho * comp_stream_speed)
                     * reference_area
-                    * (2 * surface_radius) ** 2
+                    * (reference_length) ** 2
                     * cld_omega.get_value_opt(comp_stream_mach)
                     * omega3
                     / 2
@@ -2872,9 +2889,7 @@ class Flight:  # pylint: disable=too-many-public-methods
             rail_buttons_tuple.component.buttons_distance + rail_buttons_tuple.position
         )
         lower_button_position = rail_buttons_tuple.position
-        angular_position_rad = (
-            rail_buttons_tuple.component.angular_position * np.pi / 180
-        )
+        angular_position_rad = rail_buttons_tuple.component.angular_position_rad
         D1 = (
             upper_button_position - self.rocket.center_of_dry_mass_position
         ) * self.rocket._csys
@@ -3231,8 +3246,6 @@ class Flight:  # pylint: disable=too-many-public-methods
         ----------
         file_name : string
             The file name or path of the exported file. Example: flight_data.csv
-            Do not use forbidden characters, such as '/' in Linux/Unix and
-            '<, >, :, ", /, \\, | ?, *' in Windows.
         time_step : float, optional
             Time step desired for the data. If None, all integration time steps
             will be exported. Otherwise, linear interpolation is carried out to
@@ -3252,9 +3265,6 @@ class Flight:  # pylint: disable=too-many-public-methods
             Default is 'relativetoground'. Only works properly if the ground
             level is flat. Change to 'absolute' if the terrain is to irregular
             or contains mountains.
-        Returns
-        -------
-        None
         """
         # Define time points vector
         if time_step is None:
@@ -3604,6 +3614,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                 try:
                     # Try to access the node and merge if it exists
                     tmp_dict[time].parachutes += node.parachutes
+                    tmp_dict[time]._controllers += node._controllers
                     tmp_dict[time].callbacks += node.callbacks
                     tmp_dict[time]._component_sensors += node._component_sensors
                     tmp_dict[time]._controllers += node._controllers

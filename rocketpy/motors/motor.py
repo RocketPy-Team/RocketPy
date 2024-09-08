@@ -29,9 +29,7 @@ class Motor(ABC):
         Radius of motor nozzle outlet in meters.
     Motor.nozzle_position : float
         Motor's nozzle outlet position in meters, specified in the motor's
-        coordinate system. See
-        :doc:`Positions and Coordinate Systems </user/positions>` for more
-        information.
+        coordinate system. See :ref:`positions` for more information.
     Motor.dry_mass : float
         The mass of the motor when devoid of any propellants, measured in
         kilograms (kg). It encompasses the structural weight of the motor,
@@ -423,7 +421,7 @@ class Motor(ABC):
         HybridMotor.mass_flow_rate :
             Numerically equivalent to ``total_mass_flow_rate``.
         LiquidMotor.mass_flow_rate :
-            Independent of ``total_mass_flow_rate`` favoring more accurate
+            Independent of ``total_mass_flow_rate`` favoring more accurate \
             sum of Tanks' mass flow rates.
 
         Notes
@@ -432,17 +430,17 @@ class Motor(ABC):
         dividing the thrust data by the exhaust velocity. This is an
         approximation, and it  is used by the child Motor classes as follows:
 
-        - The ``SolidMotor`` class uses this approximation to compute the
-          grain's mass flow rate;
-        - The ``HybridMotor`` class uses this approximation as a reference
-          to the sum of the oxidizer and fuel (grains) mass flow rates;
-        - The ``LiquidMotor`` class favors the more accurate data from the
-          Tanks's mass flow rates. Therefore this value is numerically
-          independent of the ``LiquidMotor.mass_flow_rate``.
-        - The ``GenericMotor`` class considers the total_mass_flow_rate as the
-        same as the mass_flow_rate.
+        - The ``SolidMotor`` class uses this approximation to compute the \
+            grain's mass flow rate;
+        - The ``HybridMotor`` class uses this approximation as a reference \
+            to the sum of the oxidizer and fuel (grains) mass flow rates;
+        - The ``LiquidMotor`` class favors the more accurate data from the \
+            Tanks's mass flow rates. Therefore this value is numerically \
+            independent of the ``LiquidMotor.mass_flow_rate``.
+        - The ``GenericMotor`` class considers the total_mass_flow_rate as the \
+            same as the mass_flow_rate.
 
-        It should be noted that, for hybrid motors, the oxidizer mass flow
+        It should also be noted that, for hybrid motors, the oxidizer mass flow
         rate should not be greater than `total_mass_flow_rate`, otherwise the
         grains mass flow rate will be negative, losing physical meaning.
         """
@@ -503,9 +501,9 @@ class Motor(ABC):
         The e_1 direction is assumed to be the direction perpendicular to the
         motor body axis. Also, due to symmetry, I_11 = I_22.
 
-        References
-        ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        See Also
+        --------
+        https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
 
         prop_I_11 = self.propellant_I_11
@@ -537,9 +535,9 @@ class Motor(ABC):
         motor body axis, and perpendicular to e_1. Also, due to symmetry,
         I_22 = I_11.
 
-        References
-        ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        See Also
+        --------
+        https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
         # Due to symmetry, I_22 = I_11
         return self.I_11
@@ -561,7 +559,7 @@ class Motor(ABC):
 
         References
         ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
         # Propellant inertia tensor 33 component wrt propellant center of mass
         propellant_I_33 = self.propellant_I_33
@@ -594,7 +592,7 @@ class Motor(ABC):
 
         References
         ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
         # Propellant inertia tensor 12 component wrt propellant center of mass
         propellant_I_12 = self.propellant_I_12
@@ -691,7 +689,7 @@ class Motor(ABC):
 
         References
         ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
 
     @property
@@ -713,7 +711,7 @@ class Motor(ABC):
 
         References
         ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
 
     @property
@@ -735,7 +733,7 @@ class Motor(ABC):
 
         References
         ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
 
     @property
@@ -761,7 +759,7 @@ class Motor(ABC):
 
         References
         ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
 
     @property
@@ -1152,10 +1150,6 @@ class GenericMotor(Motor):
             positions specified. Options are "nozzle_to_combustion_chamber" and
             "combustion_chamber_to_nozzle". Default is
             "nozzle_to_combustion_chamber".
-
-        Returns
-        -------
-        None
         """
         super().__init__(
             thrust_source,
@@ -1249,7 +1243,7 @@ class GenericMotor(Motor):
 
         References
         ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
         return (
             self.propellant_mass
@@ -1275,7 +1269,7 @@ class GenericMotor(Motor):
 
         References
         ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
         return self.propellant_I_11
 
@@ -1297,7 +1291,7 @@ class GenericMotor(Motor):
 
         References
         ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
         return self.propellant_mass * self.chamber_radius**2 / 2
 
@@ -1358,6 +1352,12 @@ class EmptyMotor:
         self.dry_I_12 = 0
         self.dry_I_13 = 0
         self.dry_I_23 = 0
+        self.propellant_I_11 = Function(0, "Time (s)", "Propellant I_11 (kg m²)")
+        self.propellant_I_22 = Function(0, "Time (s)", "Propellant I_22 (kg m²)")
+        self.propellant_I_33 = Function(0, "Time (s)", "Propellant I_33 (kg m²)")
+        self.propellant_I_12 = Function(0, "Time (s)", "Propellant I_12 (kg m²)")
+        self.propellant_I_13 = Function(0, "Time (s)", "Propellant I_13 (kg m²)")
+        self.propellant_I_23 = Function(0, "Time (s)", "Propellant I_23 (kg m²)")
         self.I_11 = Function(0)
         self.I_22 = Function(0)
         self.I_33 = Function(0)

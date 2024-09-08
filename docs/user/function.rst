@@ -40,14 +40,15 @@ A ``list`` or ``numpy.ndarray`` of datapoints that maps input values to an outpu
     # Create a Function object with this dataset
     f = Function(source, "x", "y")
 
-One may print the source attribute from the ``Function`` object to check the inputed dataset.
+One may print the source attribute from the ``Function`` object to check the input dataset.
 
 .. jupyter-execute::
 
     # Print the source to see the dataset
     print(f.source)
 
-Furthermore, in order to visualize the dataset, one may use the ``plot`` method from the ``Function`` object:
+Furthermore, in order to visualize the dataset, one may use the ``plot`` method
+from the ``Function`` object:
 
 .. jupyter-execute::
 
@@ -56,7 +57,9 @@ Furthermore, in order to visualize the dataset, one may use the ``plot`` method 
 
 |
 
-The dataset can be defined as a *multidimensional* array (more than one input maps to an output), where each row is a datapoint. For example, let us define a dataset that follows the plane :math:`z = x + y`:
+The dataset can be defined as a *multidimensional* array (more than one input
+maps to an output), where each row is a data point. For example, let us define
+a dataset that follows the plane :math:`z = x + y`:
 
 .. jupyter-execute::
 
@@ -70,13 +73,15 @@ The dataset can be defined as a *multidimensional* array (more than one input ma
     # Create a Function object with this dataset
     f = Function(source, ["x", "y"], "z")
 
-One may print the source attribute from the ``Function`` object to check the input dataset.
+One may print the source attribute from the ``Function`` object to check the
+input dataset.
 
 .. jupyter-execute::
 
     print(f.source)
 
-Two dimensional plots are also supported, therefore this data source can be plotted as follows:
+Two dimensional plots are also supported, therefore this data source can be
+plotted as follows:
 
 .. jupyter-execute::
 
@@ -84,12 +89,17 @@ Two dimensional plots are also supported, therefore this data source can be plot
     f.plot()
 
 .. important::
-    The ``Function`` class only supports interpolation ``shepard`` and extrapolation ``natural`` for datasets higher than one dimension (more than one input). 
+
+    The ``Function`` class only supports interpolation ``shepard`` and \
+    extrapolation ``natural`` for datasets higher than one dimension (more than \
+    one input). 
 
 CSV File
 ^^^^^^^^
 
-A CSV file path can be passed as ``string`` to the ``Function`` source. The file must contain a dataset structured so that each line is a datapoint: the last column is the output and the previous columns are the inputs.
+A CSV file path can be passed as ``string`` to the ``Function`` source.
+The file must contain a dataset structured so that each line is a data point:
+the last column is the output and the previous columns are the inputs.
 
 .. jupyter-execute::
 
@@ -170,7 +180,7 @@ A special case of the python function source is the definition of a constant ``F
 
 In this section we are going to delve deeper on ``Function`` creation and its parameters:
 
-- source: the ``Function`` datasource. We have explored this parameter in the section above;
+- source: the ``Function`` data source. We have explored this parameter in the section above;
 - inputs: a list of strings containing each input variable name. If the source only has one input, may be abbreviated as a string (e.g. "speed (m/s)");
 - outputs: a list of strings containing each output variable name. If the source only has one output, may be abbreviated as a string (e.g. "total energy (J)");
 - interpolation: a string that is the interpolation method to be used if the source is a dataset. Defaults to ``spline``;
@@ -249,11 +259,17 @@ A ``Function`` objects maps input data to an output, therefore should you want t
 
 Equivalently, the same operation is defined by the Python dunder method 
 ``__call__`` so that the object can be used like a common function.
- For instance:
+For instance:
 
 .. jupyter-execute::
 
     print(f(9), f(25))
+
+.. note::
+
+    A dunder method is a method that is surrounded by double underscores, such \
+    as ``__call__``. These methods are used by Python to implement operator \
+    overloading.
 
 Furthermore, both the :meth:`rocketpy.Function.get_value` and the dunder
 ``__call__`` method can be used to get a list of outputs from a list of inputs:

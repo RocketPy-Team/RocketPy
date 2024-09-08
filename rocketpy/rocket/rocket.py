@@ -591,7 +591,7 @@ class Rocket:
 
     def evaluate_dry_inertias(self):
         """Calculates and returns the rocket's dry inertias relative to
-        the rocket's center of mass. The inertias are saved and returned
+        the rocket's center of dry mass. The inertias are saved and returned
         in units of kg*m². This does not consider propellant mass but does take
         into account the motor dry mass.
 
@@ -600,40 +600,40 @@ class Rocket:
         self.dry_I_11 : float
             Float value corresponding to rocket inertia tensor 11
             component, which corresponds to the inertia relative to the
-            e_1 axis, centered at the instantaneous center of mass.
+            e_1 axis, centered at the center of dry mass.
         self.dry_I_22 : float
             Float value corresponding to rocket inertia tensor 22
             component, which corresponds to the inertia relative to the
-            e_2 axis, centered at the instantaneous center of mass.
+            e_2 axis, centered at the center of dry mass.
         self.dry_I_33 : float
             Float value corresponding to rocket inertia tensor 33
             component, which corresponds to the inertia relative to the
-            e_3 axis, centered at the instantaneous center of mass.
+            e_3 axis, centered at the center of dry mass.
         self.dry_I_12 : float
             Float value corresponding to rocket inertia tensor 12
             component, which corresponds to the inertia relative to the
-            e_1 and e_2 axes, centered at the instantaneous center of mass.
+            e_1 and e_2 axes, centered at the center of dry mass.
         self.dry_I_13 : float
             Float value corresponding to rocket inertia tensor 13
             component, which corresponds to the inertia relative to the
-            e_1 and e_3 axes, centered at the instantaneous center of mass.
+            e_1 and e_3 axes, centered at the center of dry mass.
         self.dry_I_23 : float
             Float value corresponding to rocket inertia tensor 23
             component, which corresponds to the inertia relative to the
-            e_2 and e_3 axes, centered at the instantaneous center of mass.
+            e_2 and e_3 axes, centered at the center of dry mass.
 
         Notes
         -----
-        The e_1 and e_2 directions are assumed to be the directions
-        perpendicular to the rocket axial direction.
-        The e_3 direction is assumed to be the direction parallel to the axis
-        of symmetry of the rocket.
-        RocketPy follows the definition of the inertia tensor as in [1], which
-        includes the minus sign for all products of inertia.
+        #. The ``e_1`` and ``e_2`` directions are assumed to be the directions \
+            perpendicular to the rocket axial direction.
+        #. The ``e_3`` direction is assumed to be the direction parallel to the \
+            axis of symmetry of the rocket.
+        #. RocketPy follows the definition of the inertia tensor that includes \
+            the minus sign for all products of inertia.
 
-        References
-        ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        See Also
+        --------
+        `Inertia Tensor <https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor>`_
         """
         # Get masses
         motor_dry_mass = self.motor.dry_mass
@@ -676,7 +676,7 @@ class Rocket:
 
     def evaluate_inertias(self):
         """Calculates and returns the rocket's inertias relative to
-        the rocket's center of mass. The inertias are saved and returned
+        the rocket's center of dry mass. The inertias are saved and returned
         in units of kg*m².
 
         Returns
@@ -684,50 +684,50 @@ class Rocket:
         self.I_11 : float
             Float value corresponding to rocket inertia tensor 11
             component, which corresponds to the inertia relative to the
-            e_1 axis, centered at the instantaneous center of mass.
+            e_1 axis, centered at the center of dry mass.
         self.I_22 : float
             Float value corresponding to rocket inertia tensor 22
             component, which corresponds to the inertia relative to the
-            e_2 axis, centered at the instantaneous center of mass.
+            e_2 axis, centered at the center of dry mass.
         self.I_33 : float
             Float value corresponding to rocket inertia tensor 33
             component, which corresponds to the inertia relative to the
-            e_3 axis, centered at the instantaneous center of mass.
+            e_3 axis, centered at the center of dry mass.
 
         Notes
         -----
-        The e_1 and e_2 directions are assumed to be the directions
-        perpendicular to the rocket axial direction.
-        The e_3 direction is assumed to be the direction parallel to the axis
-        of symmetry of the rocket.
-        RocketPy follows the definition of the inertia tensor as in [1], which
-        includes the minus sign for all products of inertia.
+        #. The ``e_1`` and ``e_2`` directions are assumed to be the directions \
+            perpendicular to the rocket axial direction.
+        #. The ``e_3`` direction is assumed to be the direction parallel to the \
+            axis of symmetry of the rocket.
+        #. RocketPy follows the definition of the inertia tensor that includes \
+            the minus sign for all products of inertia.
 
-        References
-        ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        See Also
+        --------
+        `Inertia Tensor <https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor>`_
         """
         # Get masses
         prop_mass = self.motor.propellant_mass  # Propellant mass as a function of time
-        dry_mass = self.dry_mass  # Constant rocket mass with motor, without propellant
 
         # Compute axes distances
-        CM_to_CDM = self.center_of_mass - self.center_of_dry_mass_position
-        CM_to_CPM = self.center_of_mass - self.center_of_propellant_position
+        CDM_to_CPM = (
+            self.center_of_dry_mass_position - self.center_of_propellant_position
+        )
 
         # Compute inertias
-        self.I_11 = parallel_axis_theorem_from_com(
-            self.dry_I_11, dry_mass, CM_to_CDM
-        ) + parallel_axis_theorem_from_com(self.motor.I_11, prop_mass, CM_to_CPM)
+        self.I_11 = self.dry_I_11 + parallel_axis_theorem_from_com(
+            self.motor.propellant_I_11, prop_mass, CDM_to_CPM
+        )
 
-        self.I_22 = parallel_axis_theorem_from_com(
-            self.dry_I_22, dry_mass, CM_to_CDM
-        ) + parallel_axis_theorem_from_com(self.motor.I_22, prop_mass, CM_to_CPM)
+        self.I_22 = self.dry_I_22 + parallel_axis_theorem_from_com(
+            self.motor.propellant_I_22, prop_mass, CDM_to_CPM
+        )
 
-        self.I_33 = self.dry_I_33 + self.motor.I_33
-        self.I_12 = self.dry_I_12 + self.motor.I_12
-        self.I_13 = self.dry_I_13 + self.motor.I_13
-        self.I_23 = self.dry_I_23 + self.motor.I_23
+        self.I_33 = self.dry_I_33 + self.motor.propellant_I_33
+        self.I_12 = self.dry_I_12 + self.motor.propellant_I_12
+        self.I_13 = self.dry_I_13 + self.motor.propellant_I_13
+        self.I_23 = self.dry_I_23 + self.motor.propellant_I_23
 
         # Return inertias
         return (
@@ -809,7 +809,7 @@ class Rocket:
 
     def get_inertia_tensor_at_time(self, t):
         """Returns a Matrix representing the inertia tensor of the rocket with
-        respect to the rocket's center of mass at a given time. It evaluates
+        respect to the rocket's center of dry mass at a given time. It evaluates
         each inertia tensor component at the given time and returns a Matrix
         with the computed values.
 
@@ -839,8 +839,8 @@ class Rocket:
 
     def get_inertia_tensor_derivative_at_time(self, t):
         """Returns a Matrix representing the time derivative of the inertia
-        tensor of the rocket with respect to the rocket's center of mass at a
-        given time. It evaluates each inertia tensor component's derivative at
+        tensor of the rocket with respect to the rocket's center of dry mass at
+        a given time. It evaluates each inertia tensor component's derivative at
         the given time and returns a Matrix with the computed values.
 
         Parameters
@@ -880,7 +880,7 @@ class Rocket:
 
         See Also
         --------
-        :ref:`add_surfaces`
+        :ref:`addsurface`
 
         Returns
         -------
@@ -942,20 +942,26 @@ class Rocket:
             the root chord which is highest in the rocket coordinate system.
             For Tail type, position is relative to the point belonging to the
             tail which is highest in the rocket coordinate system.
+            For RailButtons type, position is relative to the lower rail button.
 
         See Also
         --------
-        :ref:`add_surfaces`
+        :ref:`addsurface`
 
         Returns
         -------
         None
         """
-        try:
-            for surface, position in zip(surfaces, positions):
+        if not isinstance(surfaces, list):
+            surfaces = [surfaces]
+            positions = [positions]
+
+        for surface, position in zip(surfaces, positions):
+            if isinstance(surface, RailButtons):
+                surface.rocket_radius = surface.rocket_radius or self.radius
+                self.rail_buttons.add(surface, position)
+            else:
                 self.aerodynamic_surfaces.add(surface, position)
-        except TypeError:
-            self.aerodynamic_surfaces.add(surfaces, positions)
 
         self.evaluate_center_of_pressure()
         self.evaluate_stability_margin()
@@ -1004,10 +1010,16 @@ class Rocket:
             By tail position, understand the point belonging to the tail which
             is highest in the rocket coordinate system (i.e. the point
             closest to the nose cone).
+        radius : int, float, optional
+            Reference radius of the tail. This is used to calculate lift
+            coefficient. If None, which is default, the rocket radius will
+            be used.
+        name : string
+            Tail name. Default is "Tail".
 
         See Also
         --------
-        :ref:`add_surfaces`
+        :ref:`addsurface`
 
         Returns
         -------
@@ -1036,7 +1048,6 @@ class Rocket:
         along the rocket and its derivative of the coefficient of lift
         in respect to angle of attack.
 
-
         Parameters
         ----------
         length : int, float
@@ -1062,7 +1073,7 @@ class Rocket:
 
         See Also
         --------
-        :ref:`add_surfaces`
+        :ref:`addsurface`
 
         Returns
         -------
@@ -1130,7 +1141,7 @@ class Rocket:
 
             See Also
             --------
-            :ref:`add_surfaces`
+            :ref:`positions`
         cant_angle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
@@ -1226,7 +1237,7 @@ class Rocket:
 
             See Also
             --------
-            :ref:`add_surfaces`
+            :ref:`positions`
         cant_angle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must be given
             in degrees.
@@ -1248,6 +1259,10 @@ class Rocket:
             return the lift coefficient at that angle of attack.
             The tuple's second item is the unit of the angle of attack,
             accepting either "radians" or "degrees".
+
+        See Also
+        --------
+        :ref:`addsurface`
 
         Returns
         -------
@@ -1278,28 +1293,33 @@ class Rocket:
             force is the dynamic pressure computed on the parachute
             times its cd_s coefficient. Has units of area and must be
             given in squared meters.
-        trigger : function, float, string
-            This parameter defines the trigger condition for the parachute
-            ejection system. It can be one of the following:
+        trigger : callable, float, str
+            Defines the trigger condition for the parachute ejection system. It
+            can be one of the following:
 
-            - A callable function that takes three arguments:
+            - A callable function that takes three arguments: \
+
                 1. Freestream pressure in pascals.
                 2. Height in meters above ground level.
-                3. The state vector of the simulation, which is defined as:
-                    [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz].
+                3. The state vector of the simulation, which is defined as: \
 
-            The function should return True if the parachute ejection system should
-            be triggered and False otherwise.
+                    .. code-block:: python
 
-            - A float value, representing an absolute height in meters. In this
-            case, the parachute will be ejected when the rocket reaches this height
-            above ground level.
+                        u = [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]
 
-            - The string "apogee" which triggers the parachute at apogee, i.e.,
-            when the rocket reaches its highest point and starts descending.
+                .. note::
 
-            Note: The function will be called according to the sampling rate
-            specified next.
+                    The function should return ``True`` if the parachute \
+                    ejection system should be triggered and ``False`` otherwise.
+            - A float value, representing an absolute height in meters. In this \
+                case, the parachute will be ejected when the rocket reaches this \
+                height above ground level.
+            - The string "apogee" which triggers the parachute at apogee, i.e., \
+                when the rocket reaches its highest point and starts descending.
+
+            .. note::
+
+                The function will be called according to the sampling rate specified.
         sampling_rate : float, optional
             Sampling rate in which the trigger function works. It is used to
             simulate the refresh rate of onboard sensors such as barometers.
@@ -1428,13 +1448,16 @@ class Rocket:
                 rocket. The most recent measurements of the sensors are provided
                 with the ``sensor.measurement`` attribute. The sensors are
                 listed in the same order as they are added to the rocket
+               ``interactive_objects``
 
             This function will be called during the simulation at the specified
             sampling rate. The function should evaluate and change the observed
             objects as needed. The function should return None.
 
-            .. note:: The function will be called according to the sampling rate
-            specified.
+            .. note::
+
+                The function will be called according to the sampling rate specified.
+
         sampling_rate : float
             The sampling rate of the controller function in Hertz (Hz). This
             means that the controller function will be called every
@@ -1501,7 +1524,11 @@ class Rocket:
             return air_brakes
 
     def set_rail_buttons(
-        self, upper_button_position, lower_button_position, angular_position=45
+        self,
+        upper_button_position,
+        lower_button_position,
+        angular_position=45,
+        radius=None,
     ):
         """Adds rail buttons to the rocket, allowing for the calculation of
         forces exerted by them when the rocket is sliding in the launch rail.
@@ -1526,10 +1553,12 @@ class Rocket:
             relative to one of the other principal axis.
             Default value is 45 degrees, generally used in rockets with
             4 fins.
+        radius : int, float, optional
+            Fuselage radius where the rail buttons are located.
 
         See Also
         --------
-        :ref:`add_surfaces`
+        :ref:`addsurface`
 
         Returns
         -------
@@ -1540,6 +1569,8 @@ class Rocket:
         rail_buttons = RailButtons(
             buttons_distance=buttons_distance, angular_position=angular_position
         )
+        self.rail_buttons = Components()
+        rail_buttons.rocket_radius = radius or self.radius
         self.rail_buttons.add(rail_buttons, lower_button_position)
         return rail_buttons
 
@@ -1629,16 +1660,20 @@ class Rocket:
         vis_args : dict, optional
             Determines the visual aspects when drawing the rocket. If None,
             default values are used. Default values are:
-            {
-                "background": "#EEEEEE",
-                "tail": "black",
-                "nose": "black",
-                "body": "dimgrey",
-                "fins": "black",
-                "motor": "black",
-                "buttons": "black",
-                "line_width": 2.0,
-            }
+
+            .. code-block:: python
+
+                {
+                    "background": "#EEEEEE",
+                    "tail": "black",
+                    "nose": "black",
+                    "body": "dimgrey",
+                    "fins": "black",
+                    "motor": "black",
+                    "buttons": "black",
+                    "line_width": 2.0,
+                }
+
             A full list of color names can be found at:
             https://matplotlib.org/stable/gallery/color/named_colors
         plane : str, optional

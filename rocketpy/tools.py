@@ -383,10 +383,10 @@ def generate_monte_carlo_ellipses(results):
     results : dict
         A dictionary containing the results of the monte carlo analysis. It
         should contain the following keys:
-            - apogeeX: an array containing the x coordinates of the apogee
-            - apogeeY: an array containing the y coordinates of the apogee
-            - xImpact: an array containing the x coordinates of the impact
-            - yImpact: an array containing the y coordinates of the impact
+        - apogeeX: an array containing the x coordinates of the apogee
+        - apogeeY: an array containing the y coordinates of the apogee
+        - xImpact: an array containing the x coordinates of the impact
+        - yImpact: an array containing the y coordinates of the impact
 
     Returns
     -------
@@ -627,6 +627,36 @@ def time_num_to_date_string(time_num, units, timezone, calendar="gregorian"):
     return date_string, hour_string, date_time
 
 
+def geopotential_height_to_geometric_height(geopotential_height, radius=63781370.0):
+    """Converts geopotential height to geometric height.
+
+    Parameters
+    ----------
+    geopotential_height : float
+        Geopotential height in meters. This vertical coordinate, referenced to
+        Earth's mean sea level, accounts for variations in gravity with altitude
+        and latitude.
+    radius : float, optional
+        The Earth's radius in meters, defaulting to 6378137.0.
+
+    Returns
+    -------
+    geometric_height : float
+        Geometric height in meters.
+
+    Examples
+    --------
+    >>> from rocketpy.tools import geopotential_height_to_geometric_height
+    >>> geopotential_height_to_geometric_height(0)
+    0.0
+    >>> geopotential_height_to_geometric_height(10000)
+    10001.568101798659
+    >>> geopotential_height_to_geometric_height(20000)
+    20006.2733909262
+    """
+    return radius * geopotential_height / (radius - geopotential_height)
+
+
 def geopotential_to_height_asl(geopotential, radius=63781370, g=9.80665):
     """Compute height above sea level from geopotential.
 
@@ -658,7 +688,7 @@ def geopotential_to_height_asl(geopotential, radius=63781370, g=9.80665):
     20400.84750449947
     """
     geopotential_height = geopotential / g
-    return radius * geopotential_height / (radius - geopotential_height)
+    return geopotential_height_to_geometric_height(geopotential_height, radius)
 
 
 def geopotential_to_height_agl(geopotential, elevation, radius=63781370, g=9.80665):
@@ -862,16 +892,14 @@ def parallel_axis_theorem_from_com(com_inertia_moment, mass, distance):
     float
         Moment of inertia relative to the new axis.
 
-    Reference
-    ---------
+    References
+    ----------
     https://en.wikipedia.org/wiki/Parallel_axis_theorem
     """
     return com_inertia_moment + mass * distance**2
 
 
 # Flight
-
-
 def quaternions_to_precession(e0, e1, e2, e3):
     """Calculates the Precession angle
 
@@ -885,11 +913,17 @@ def quaternions_to_precession(e0, e1, e2, e3):
         Euler parameter 2, must be between -1 and 1
     e3 : float
         Euler parameter 3, must be between -1 and 1
+
     Returns
     -------
     float
         Euler Precession angle in degrees
+
+    References
+    ----------
+    Baruh, Haim. Analytical dynamics
     """
+    # minus sign in e2 and e1 is due to changing from 3-1-3 to 3-2-3 convention
     return (180 / np.pi) * (np.arctan2(e3, e0) + np.arctan2(-e2, -e1))
 
 
@@ -911,7 +945,12 @@ def quaternions_to_spin(e0, e1, e2, e3):
     -------
     float
         Euler Spin angle in degrees
+
+    References
+    ----------
+    Baruh, Haim. Analytical dynamics
     """
+    # minus sign in e2 and e1 is due to changing from 3-1-3 to 3-2-3 convention
     return (180 / np.pi) * (np.arctan2(e3, e0) - np.arctan2(-e2, -e1))
 
 
@@ -924,11 +963,17 @@ def quaternions_to_nutation(e1, e2):
         Euler parameter 1, must be between -1 and 1
     e2 : float
         Euler parameter 2, must be between -1 and 1
+
     Returns
     -------
     float
         Euler Nutation angle in degrees
+
+    References
+    ----------
+    Baruh, Haim. Analytical dynamics
     """
+    # we are changing from 3-1-3 to 3-2-3 conventions
     return (180 / np.pi) * 2 * np.arcsin(-((e1**2 + e2**2) ** 0.5))
 
 
@@ -984,6 +1029,43 @@ def normalize_quaternions(quaternions):
     if q_norm == 0:
         return 1, 0, 0, 0
     return q_w / q_norm, q_x / q_norm, q_y / q_norm, q_z / q_norm
+
+
+def euler_angles_to_euler_parameters(phi, theta, psi):
+    """Convert 3-1-3 Euler Angles to Euler Parameters (quaternions).
+
+    Parameters
+    ----------
+    phi : float
+        Rotation angle around the z-axis (in radians). Represents the precession angle.
+    theta : float
+        Rotation angle around the x-axis (in radians). Represents the nutation angle.
+    psi : float
+        Rotation angle around the z-axis (in radians). Represents the spin angle.
+
+
+    Returns
+    -------
+    tuple[float, float, float, float]
+        The Euler parameters or quaternions (e0, e1, e2, e3)
+
+    References
+    ----------
+    https://www.astro.rug.nl/software/kapteyn-beta/_downloads/attitude.pdf
+    """
+    e0 = np.cos(phi / 2) * np.cos(theta / 2) * np.cos(psi / 2) - np.sin(
+        phi / 2
+    ) * np.cos(theta / 2) * np.sin(psi / 2)
+    e1 = np.cos(phi / 2) * np.cos(psi / 2) * np.sin(theta / 2) + np.sin(
+        phi / 2
+    ) * np.sin(theta / 2) * np.sin(psi / 2)
+    e2 = np.cos(phi / 2) * np.sin(theta / 2) * np.sin(psi / 2) - np.sin(
+        phi / 2
+    ) * np.cos(psi / 2) * np.sin(theta / 2)
+    e3 = np.cos(phi / 2) * np.cos(theta / 2) * np.sin(psi / 2) + np.cos(
+        theta / 2
+    ) * np.cos(psi / 2) * np.sin(phi / 2)
+    return e0, e1, e2, e3
 
 
 if __name__ == "__main__":

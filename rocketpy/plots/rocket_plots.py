@@ -14,7 +14,6 @@ class _RocketPlots:
     ----------
     _RocketPlots.rocket : Rocket
         Rocket object that will be used for the plots.
-
     """
 
     def __init__(self, rocket):
@@ -153,12 +152,8 @@ class _RocketPlots:
         plt.show()
 
     def thrust_to_weight(self):
-        """Plots the motor thrust force divided by rocket
-            weight as a function of time.
-
-        Returns
-        -------
-        None
+        """
+        Plots the motor thrust force divided by rocket weight as a function of time.
         """
 
         self.rocket.thrust_to_weight.plot(
@@ -171,19 +166,23 @@ class _RocketPlots:
         Parameters
         ----------
         vis_args : dict, optional
-            Determines the visual aspects when drawing the rocket. If None,
+            Determines the visual aspects when drawing the rocket. If ``None``,
             default values are used. Default values are:
-            {
-                "background": "#EEEEEE",
-                "tail": "black",
-                "nose": "black",
-                "body": "black",
-                "fins": "black",
-                "motor": "black",
-                "buttons": "black",
-                "line_width": 2.0,
-            }
-            A full list of color names can be found at:
+
+            .. code-block:: python
+
+                {
+                    "background": "#EEEEEE",
+                    "tail": "black",
+                    "nose": "black",
+                    "body": "black",
+                    "fins": "black",
+                    "motor": "black",
+                    "buttons": "black",
+                    "line_width": 2.0,
+                }
+
+            A full list of color names can be found at: \
             https://matplotlib.org/stable/gallery/color/named_colors
         plane : str, optional
             Plane in which the rocket will be drawn. Default is 'xz'. Other

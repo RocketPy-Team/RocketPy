@@ -1024,6 +1024,10 @@ class Matrix:
         -------
         Matrix
             The transformation matrix from frame B to frame A.
+
+        Reference
+        ---------
+        https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
         """
         # normalize quaternion
         q_w, q_x, q_y, q_z = normalize_quaternions(quaternion)

@@ -2,9 +2,7 @@
 TimeNode.
 """
 
-import pytest
-
-from rocketpy.rocket import Parachute, _Controller
+# from rocketpy.rocket import Parachute, _Controller
 
 
 def test_time_nodes_init(flight_calisto):

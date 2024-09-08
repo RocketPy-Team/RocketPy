@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 from scipy import optimize
 
-from rocketpy import Components, Environment, Flight, Function, Rocket, SolidMotor
+from rocketpy import Components, Flight, Function, Rocket
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
@@ -210,9 +210,9 @@ def test_export_sensor_data(flight_calisto_with_sensors):
 @pytest.mark.parametrize(
     "flight_time, expected_values",
     [
-        ("t_initial", (0.17179073815516033, -0.431117, 0)),
-        ("out_of_rail_time", (0.543760, -1.364593, 0)),
-        ("apogee_time", (-0.5874848151271623, -0.7563596, 0)),
+        ("t_initial", (0.258818, -0.649515, 0)),
+        ("out_of_rail_time", (0.788918, -1.979828, 0)),
+        ("apogee_time", (-0.522394, -0.744154, 0)),
         ("t_final", (0, 0, 0)),
     ],
 )
@@ -233,13 +233,13 @@ def test_aerodynamic_moments(flight_calisto_custom_wind, flight_time, expected_v
         The expected values of the aerodynamic moments vector at the point to
         be tested.
     """
-    expected_attr, expected_M = flight_time, expected_values
+    expected_attr, expected_moment = flight_time, expected_values
 
     test = flight_calisto_custom_wind
     t = getattr(test, expected_attr)
     atol = 5e-3
 
-    assert pytest.approx(expected_M, abs=atol) == (
+    assert pytest.approx(expected_moment, abs=atol) == (
         test.M1(t),
         test.M2(t),
         test.M3(t),
@@ -251,7 +251,7 @@ def test_aerodynamic_moments(flight_calisto_custom_wind, flight_time, expected_v
     [
         ("t_initial", (1.6542528, 0.65918, -0.067107)),
         ("out_of_rail_time", (5.05334, 2.01364, -1.7541)),
-        ("apogee_time", (2.366258, -1.830744, -0.875342)),
+        ("apogee_time", (2.354663, -1.652953, -0.936126)),
         ("t_final", (0, 0, 159.2212)),
     ],
 )
@@ -272,13 +272,13 @@ def test_aerodynamic_forces(flight_calisto_custom_wind, flight_time, expected_va
         The expected values of the aerodynamic forces vector at the point to be
         tested.
     """
-    expected_attr, expected_R = flight_time, expected_values
+    expected_attr, expected_forces = flight_time, expected_values
 
     test = flight_calisto_custom_wind
     t = getattr(test, expected_attr)
     atol = 5e-3
 
-    assert pytest.approx(expected_R, abs=atol) == (
+    assert pytest.approx(expected_forces, abs=atol) == (
         test.R1(t),
         test.R2(t),
         test.R3(t),
@@ -290,7 +290,10 @@ def test_aerodynamic_forces(flight_calisto_custom_wind, flight_time, expected_va
     [
         ("t_initial", (0, 0, 0)),
         ("out_of_rail_time", (0, 2.248727, 25.703072)),
-        ("apogee_time", (-13.204789, 15.990903, -0.000138)),
+        (
+            "apogee_time",
+            (-14.485655, 15.580647, -0.000240),
+        ),
         ("t_final", (5, 2, -5.65998)),
     ],
 )
@@ -377,10 +380,10 @@ def test_rail_buttons_forces(flight_calisto_custom_wind):
     """
     test = flight_calisto_custom_wind
     atol = 5e-3
-    assert pytest.approx(3.833613, abs=atol) == test.max_rail_button1_normal_force
-    assert pytest.approx(1.648938, abs=atol) == test.max_rail_button1_shear_force
-    assert pytest.approx(1.165307, abs=atol) == test.max_rail_button2_normal_force
-    assert pytest.approx(0.501229, abs=atol) == test.max_rail_button2_shear_force
+    assert pytest.approx(1.825283, abs=atol) == test.max_rail_button1_normal_force
+    assert pytest.approx(0.727335, abs=atol) == test.max_rail_button1_shear_force
+    assert pytest.approx(3.229578, abs=atol) == test.max_rail_button2_normal_force
+    assert pytest.approx(1.286915, abs=atol) == test.max_rail_button2_shear_force
 
 
 def test_max_values(flight_calisto_robust):
@@ -550,7 +553,9 @@ def test_lat_lon_conversion_from_origin(
     "static_margin, max_time",
     [(-0.1, 2), (-0.01, 5), (0, 5), (0.01, 20), (0.1, 20), (1.0, 20)],
 )
-def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
+def test_stability_static_margins(
+    wind_u, wind_v, static_margin, max_time, example_plain_env, dummy_empty_motor
+):
     """Test stability margins for a constant velocity flight, 100 m/s, wind a
     lateral wind speed of 10 m/s. Rocket has infinite mass to prevent side motion.
     Check if a restoring moment exists depending on static margins.
@@ -565,11 +570,14 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
         Static margin to be tested
     max_time : float
         Maximum time to be simulated
+    example_plain_env : rocketpy.Environment
+        This is a fixture.
+    dummy_empty_motor : rocketpy.SolidMotor
+        This is a fixture.
     """
 
     # Create an environment with ZERO gravity to keep the rocket's speed constant
-    env = Environment(gravity=0, latitude=0, longitude=0, elevation=0)
-    env.set_atmospheric_model(
+    example_plain_env.set_atmospheric_model(
         type="custom_atmosphere",
         wind_u=wind_u,
         wind_v=wind_v,
@@ -578,29 +586,7 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
     )
     # Make sure that the free_stream_mach will always be 0, so that the rocket
     # behaves as the STATIC (free_stream_mach=0) margin predicts
-    env.speed_of_sound = Function(1e16)
-
-    # Create a motor with ZERO thrust and ZERO mass to keep the rocket's speed constant
-    # TODO: why don t we use these same values to create EmptyMotor class?
-    dummy_motor = SolidMotor(
-        thrust_source=1e-300,
-        burn_time=1e-10,
-        dry_mass=1.815,
-        dry_inertia=(0.125, 0.125, 0.002),
-        center_of_dry_mass_position=0.317,
-        grains_center_of_mass_position=0.397,
-        grain_number=5,
-        grain_separation=5 / 1000,
-        grain_density=1e-300,
-        grain_outer_radius=33 / 1000,
-        grain_initial_inner_radius=15 / 1000,
-        grain_initial_height=120 / 1000,
-        nozzle_radius=33 / 1000,
-        throat_radius=11 / 1000,
-        nozzle_position=0,
-        interpolation_method="linear",
-        coordinate_system_orientation="nozzle_to_combustion_chamber",
-    )
+    example_plain_env.speed_of_sound = Function(1e16)
 
     # create a rocket with zero drag and huge mass to keep the rocket's speed constant
     dummy_rocket = Rocket(
@@ -612,7 +598,7 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
         center_of_mass_without_motor=0,
     )
     dummy_rocket.set_rail_buttons(0.082, -0.618)
-    dummy_rocket.add_motor(dummy_motor, position=-1.373)
+    dummy_rocket.add_motor(dummy_empty_motor, position=-1.373)
 
     setup_rocket_with_given_static_margin(dummy_rocket, static_margin)
 
@@ -625,13 +611,12 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
     test_flight = Flight(
         rocket=dummy_rocket,
         rail_length=1,
-        environment=env,
+        environment=example_plain_env,
         initial_solution=initial_solution,
         max_time=max_time,
         max_time_step=1e-2,
         verbose=False,
     )
-    test_flight.post_process(interpolation="linear")
 
     # Check stability according to static margin
     if wind_u == 0:
@@ -641,8 +626,9 @@ def test_stability_static_margins(wind_u, wind_v, static_margin, max_time):
         moments = test_flight.M2.get_source()[:, 1]
         wind_sign = -np.sign(wind_u)
 
-    assert (
-        (static_margin > 0 and np.max(moments) * np.min(moments) < 0)
-        or (static_margin < 0 and np.all(moments / wind_sign <= 0))
-        or (static_margin == 0 and np.all(np.abs(moments) <= 1e-10))
-    )
+    if static_margin > 0:
+        assert np.max(moments) * np.min(moments) < 0
+    elif static_margin < 0:
+        assert np.all(moments / wind_sign <= 0)
+    else:  # static_margin == 0
+        assert np.all(np.abs(moments) <= 1e-10)
