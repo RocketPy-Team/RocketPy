@@ -56,7 +56,7 @@ monte-carlo = [
     "prettytable",
 ]
 
-all = ["rocketpy[env-analysis,monte-carlo]"]
+all = ["rocketpy[env-analysis]", "rocketpy[monte-carlo]"]
 
 [tool.black]
 line-length = 88 
