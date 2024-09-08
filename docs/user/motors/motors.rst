@@ -24,6 +24,12 @@ Motors Usage
     :caption: Liquid Motors
 
     Liquid Motor Usage <liquidmotor.rst>
+
+.. toctree::
+    :maxdepth: 3
+    :caption: Generic Motors
+
+    Generic Motor Usage <genericmotor.rst>
     
 .. toctree::
     :maxdepth: 3

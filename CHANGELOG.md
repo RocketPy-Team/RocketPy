@@ -32,17 +32,22 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- DOC : Cavour Flight Example [#682](https://github.com/RocketPy-Team/RocketPy/pull/682)
+- DOC: Halcyon Flight Example [#681](https://github.com/RocketPy-Team/RocketPy/pull/681)
+- ENH: Adds GenericMotor.load_from_eng_file() method [#676](https://github.com/RocketPy-Team/RocketPy/pull/676)
+- ENH: Introducing local sensitivity analysis [#575](https://github.com/RocketPy-Team/RocketPy/pull/575)
 - ENH: Add STFT function to Function class [#620](https://github.com/RocketPy-Team/RocketPy/pull/620) 
 - ENH: Rocket Axis Definition [#635](https://github.com/RocketPy-Team/RocketPy/pull/635)
 
 ### Changed
 
-- DOC: Fix documentation dependencies [#651](https://github.com/RocketPy-Team/RocketPy/pull/651)
-- DOC: Fix documentation warnings [#645](https://github.com/RocketPy-Team/RocketPy/pull/645)
 - DOC: New Environment class docs pages [#644](https://github.com/RocketPy-Team/RocketPy/pull/644)
 
 ### Fixed
 
+- BUG: Zero Mass Flow Rate in Liquid Motors breaks Exhaust Velocity [#677](https://github.com/RocketPy-Team/RocketPy/pull/677)
+- DOC: Fix documentation dependencies [#651](https://github.com/RocketPy-Team/RocketPy/pull/651)
+- DOC: Fix documentation warnings [#645](https://github.com/RocketPy-Team/RocketPy/pull/645)
 - BUG: Rotational EOMs Not Relative To CDM [#674](https://github.com/RocketPy-Team/RocketPy/pull/674)
 - BUG: Pressure ISA Extrapolation as "linear" [#675](https://github.com/RocketPy-Team/RocketPy/pull/675)
 - BUG: fix the Frequency Response plot of Flight class [#653](https://github.com/RocketPy-Team/RocketPy/pull/653)

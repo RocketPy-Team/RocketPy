@@ -39,6 +39,7 @@ from .rocket import (
     GenericSurface,
     LinearGenericSurface,
 )
+from .sensitivity import SensitivityModel
 from .simulation import Flight, MonteCarlo
 from .stochastic import (
     StochasticEllipticalFins,

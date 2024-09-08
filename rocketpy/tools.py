@@ -9,6 +9,7 @@ between minor versions if necessary, although this will be always avoided.
 import functools
 import importlib
 import importlib.metadata
+import json
 import math
 import re
 import time
@@ -548,6 +549,115 @@ def generate_monte_carlo_ellipses_coordinates(
 
         outputs[index] = lat_lon_points
     return outputs
+
+
+def flatten_dict(x):
+    # Auxiliary function that flattens dictionary
+    # this is used mainly in the load_monte_carlo_data function
+    new_dict = {}
+    for key, value in x.items():
+        # the nested dictionary is inside a list
+        if isinstance(x[key], list):
+            # sometimes the object inside the list is another list
+            # we must skip these cases
+            if isinstance(value[0], dict):
+                inner_dict = flatten_dict(value[0])
+                inner_dict = {
+                    key + "_" + inner_key: inner_value
+                    for inner_key, inner_value in inner_dict.items()
+                }
+                new_dict.update(inner_dict)
+        else:
+            new_dict.update({key: value})
+
+    return new_dict
+
+
+def load_monte_carlo_data(
+    input_filename,
+    output_filename,
+    parameters_list,
+    target_variables_list,
+):
+    """Reads MonteCarlo simulation data file and builds parameters and flight
+    variables matrices
+
+    Parameters
+    ----------
+    input_filename : str
+        Input file exported by MonteCarlo class. Each line is a
+        sample unit described by a dictionary where keys are parameters names
+        and the values are the sampled parameters values.
+    output_filename : str
+        Output file exported by MonteCarlo.simulate function. Each line is a
+        sample unit described by a dictionary where keys are target variables
+        names and the values are the obtained values from the flight simulation.
+    parameters_list : list[str]
+        List of parameters whose values will be extracted.
+    target_variables_list : list[str]
+        List of target variables whose values will be extracted.
+
+    Returns
+    -------
+    parameters_matrix: np.matrix
+        Numpy matrix containing input parameters values. Each column correspond
+        to a parameter in the same order specified by 'parameters_list' input.
+    target_variables_matrix: np.matrix
+        Numpy matrix containing target variables values. Each column correspond
+        to a target variable in the same order specified by 'target_variables_list'
+        input.
+    """
+    number_of_samples_parameters = 0
+    number_of_samples_variables = 0
+
+    parameters_samples = {parameter: [] for parameter in parameters_list}
+    with open(input_filename, "r") as parameters_file:
+        for line in parameters_file.readlines():
+            number_of_samples_parameters += 1
+
+            parameters_dict = json.loads(line)
+            parameters_dict = flatten_dict(parameters_dict)
+            for parameter in parameters_list:
+                try:
+                    value = parameters_dict[parameter]
+                except KeyError as e:
+                    raise KeyError(
+                        f"Parameter {parameter} was not found in {input_filename}!"
+                    ) from e
+                parameters_samples[parameter].append(value)
+
+    target_variables_samples = {variable: [] for variable in target_variables_list}
+    with open(output_filename, "r") as target_variables_file:
+        for line in target_variables_file.readlines():
+            number_of_samples_variables += 1
+            target_variables_dict = json.loads(line)
+            for variable in target_variables_list:
+                try:
+                    value = target_variables_dict[variable]
+                except KeyError as e:
+                    raise KeyError(
+                        f"Variable {variable} was not found in {output_filename}!"
+                    ) from e
+                target_variables_samples[variable].append(value)
+
+    if number_of_samples_parameters != number_of_samples_variables:
+        raise ValueError(
+            "Number of samples for parameters does not match the number of samples for target variables!"
+        )
+
+    n_samples = number_of_samples_variables
+    n_parameters = len(parameters_list)
+    n_variables = len(target_variables_list)
+    parameters_matrix = np.empty((n_samples, n_parameters))
+    target_variables_matrix = np.empty((n_samples, n_variables))
+
+    for i, parameter in enumerate(parameters_list):
+        parameters_matrix[:, i] = parameters_samples[parameter]
+
+    for i, target_variable in enumerate(target_variables_list):
+        target_variables_matrix[:, i] = target_variables_samples[target_variable]
+
+    return parameters_matrix, target_variables_matrix
 
 
 def find_two_closest_integers(number):
