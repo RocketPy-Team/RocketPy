@@ -45,7 +45,7 @@ analysis_parameters = {
     # Motor Properties
     "motors_dry_mass": {"mean": 1.815, "std": 1 / 100},
     "motors_grain_density": {"mean": 1815, "std": 50},
-    "motors_total_impulse": {"mean": 6500, "std": 50},
+    "motors_total_impulse": {"mean": 5700, "std": 50},
     "motors_burn_out_time": {"mean": 3.9, "std": 0.2},
     "motors_nozzle_radius": {"mean": 33 / 1000, "std": 0.5 / 1000},
     "motors_grain_separation": {"mean": 5 / 1000, "std": 1 / 1000},
@@ -314,3 +314,5 @@ test_dispersion.simulate(number_of_simulations=100, append=False)
 
 # %%
 test_dispersion.prints.all()
+
+# %%
