@@ -35,7 +35,7 @@ aided by the use of another specialized simulator. Sensitivity analysis tackles 
 last source of uncertainty by quantifying how the variability in rocket parameters 
 causes variability in the variables of interest.
 
-Thi document provides the mathematical justification for a used of tool that aids the 
+This document provides the mathematical justification for a used of tool that aids the 
 practitioner in deciding which parameters he should more accurately measure.
 
 As a motivating example, imagine a rocket designer who wishes to accurately estimate the 

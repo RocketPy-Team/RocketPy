@@ -1,4 +1,4 @@
-.. _sensitivity_analysis:
+.. _sensitivity-practical:
 
 Sensitivity Analysis
 ====================
@@ -51,9 +51,9 @@ Framing the question
 
 Let us explore sensitivity analysis in more detail in a simplified yet practical example.
 Consider that we will launch the Calisto Rocket and one of the goals is for its apogee
-to reach at least 3650 meters above ground level. Will it reach this target apogee
+to reach at least 3000 meters above ground level. Will it reach this target apogee
 under current specifications? To answer that question, we build Calisto in RocketPy, run
-the simulations and get a predicted apogee of 3781 meters (AGL). Is this the final
+the simulations and get a predicted apogee of 3181 meters (AGL). Is this the final
 answer to that question, then?
 
 Well, the previous section just discussed that there is always uncertainty surrounding
@@ -77,7 +77,7 @@ value of that parameter, i.e. the measured value by the instrument, and the
         # Motor
         "motors_dry_mass": {"mean": 1.815, "std": 1 / 100},
         "motors_grain_density": {"mean": 1815, "std": 50},
-        "motors_total_impulse": {"mean": 6500, "std": 50},
+        "motors_total_impulse": {"mean": 5700, "std": 50},
         "motors_burn_out_time": {"mean": 3.9, "std": 0.2},
         "motors_nozzle_radius": {"mean": 33 / 1000, "std": 0.5 / 1000},
         "motors_grain_separation": {"mean": 5 / 1000, "std": 1 / 1000},
@@ -196,40 +196,86 @@ like any other rocketpy object.
 Interpreting the Results
 ------------------------
 
-The `plots` show the ordered sensitivity coefficient of the apogee by 
-input parameters. For instance, the sensitivity coefficient of the mass
-in the apogee is approximately :math:`64\%`. This is interpreted as follows:
+Sensitivity Coefficients
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+The plot shows the ordered sensitivity coefficient of the apogee by 
+input parameters. For instance, the sensitivity coefficient of the mass is approximately 
+:math:`71\%`. This is interpreted as follows:
 if we were able to measure the mass of the rocket without any errors, i.e.
 our balance provided the **exact** mass of the rocket, then the variance
-of the apogee would decrease by :math:`64\%`. To give some numbers,
+of the apogee would decrease by :math:`71\%`. To give some numbers,
 the summary table shows that the standard deviation (square root of the
-variance) was around :math:`112`. Hence, we would expect a decrease by
-:math:`64\%`, so that the new standard deviation would be approximately
-:math:`112 \times \sqrt{0.64} \approx 89.6`. This reduction in the
-standard deviation will decrease the uncertainty on the apogee and better
-quantify how likely it is for the rocket to reach the target apogee.
+variance) was around :math:`117`. Hence, we would expect a decrease by
+:math:`71\%` of the variance, so that the new standard deviation would 
+be approximately :math:`117 \times \sqrt{1 - 0.71} \approx 63`. This is 
+a significant reduction in the standard deviation and will decrease the 
+uncertainty on the apogee so we can better answer the main question.
 
-The first column of the summary table are the sensitivity coefficients
+The first column of the summary table display the sensitivity coefficients
 shown by the previous plot. The next two columns shows the nominal mean
-and sd. If they were not provided to the model, the columns will show 
+and sd. If they are not provided to the model, the columns will show 
 the estimated mean and standard deviation. Finally, the last column shows the linear
 effect of one unit change, scaled by the sd, of the parameter on the
-apogee. For instance, if the mass increases by 1 unit of the sd, that is,
+apogee. For instance, if the mass increases by 1 unit of the sd, i.e. 
 if the mass increases by :math:`0.5` kg, then we would expect the
-apogee to decrease by -89.9 meters.
+apogee to decrease by :math:`98.7` meters.
 
 By looking at the lower end of the summary table, we see three measures
 associated with the apogee:
 
 (i) the estimated value;
 (ii) the standard deviation;
-(iii) the :math:`95\%` symmetric prediction interval. The prediction ranges from 3562 to 4000, containing values below 3600, the target apogee.
+(iii) the :math:`95\%` symmetric prediction interval. 
 
-One can actually compute that the probability that the apogee being at 
-least 3600 is approximately :math:`94.7\%`. This means that there is a
-:math:`5\%` probability of not meeting the goal. This level of uncertainty
+The prediction interval ranges from 2951 to 3410, containing values below 3000, 
+the target apogee.
+
+One can actually compute that the probability that the apogee reaching at 
+least 3000 meters is approximately :math:`94\%`. This means that there is a
+:math:`6\%` probability of not meeting the goal. This level of uncertainty
 might be inadmissible and can be reduced by having better instrumental 
 measures. The sensitivity analysis results is telling that the best
-parameter to be measured with increase precision is the mass. And it
+parameter to be measured with increased precision is the mass. And it
 makes sense: the mass of the rocket is one of the most critical parameters
 and the instrumental error of :math:`0.5` kg is just too much.
+
+
+A second measure
+^^^^^^^^^^^^^^^^
+
+To wrap up the example, assume the rocket mass was remeasured so that the 
+standard deviation of the rocket mass measure is insignificant. To simplify the
+example, assume that the rocket mass was measured obtained was again :math:`14.426`` Kg,
+otherwise, we would have to rerun the sensitivity analysis to the new nominal
+value.
+
+Now, the new :math:`95\%` prediction interval is approximately :math:`[3057, 3304]`,
+so that all values are above the target apogee. Moreover, the probability of the apogee
+now reaching at least 3000 meters is :math:`99.8\%`, which is way more acceptable.
+
+Approximation Error
+^^^^^^^^^^^^^^^^^^^
+
+The results of sensitivity analysis should not be taken at face value. There are 
+mathematical assumptions behind the construction of the sensitivity coefficients and the
+results are depend on those assumptions being reasonable in practice. To quantify
+how 'trustworthy' sensitivity analysis is, we provide a **Linear Approximation Error (LAE)**
+measure. This measure can be found in the plot, with the name **LAE** and shown as an
+red bar, and in the summary table as well.
+
+Defining what are acceptable values for the LAE depends on the task at hand and 
+should be explored more carefully in the future. Our current pragmatic recomendation 
+is the following: **focus on the parameters whose sensitivity coefficient is larger than
+the LAE.** Moreover, even if more than one parameter has a coefficient above the LAE,
+this does not mean that you should immediately try to decrease all of them. For instance,
+in the example provided in this notebook, measuring the rocket mass with higher precision
+was already enough to get a predictive probability of :math:`99.8\%` that the apogee 
+will be higher than 3000 meters, which should be good by most standards.
+
+If all parameters have their sensitivity coefficients smaller than the LAE, then this
+probably means that our local linear sensitivity analysis tool can not help you further. 
+
+.. seealso::
+
+    For the mathematical underpin of sensitivity analysis, see :ref:`sensitivity-theory`
