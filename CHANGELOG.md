@@ -32,6 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- DOC: Halcyon Flight Example [#681](https://github.com/RocketPy-Team/RocketPy/pull/681)
 - ENH: Adds GenericMotor.load_from_eng_file() method [#676](https://github.com/RocketPy-Team/RocketPy/pull/676)
 - ENH: Introducing local sensitivity analysis [#575](https://github.com/RocketPy-Team/RocketPy/pull/575)
 - ENH: Add STFT function to Function class [#620](https://github.com/RocketPy-Team/RocketPy/pull/620) 
