@@ -24,7 +24,7 @@ RocketPy's User Guide
    Compare Flights Class<compare_flights.rst>
    Deployable Payload <deployable.rst>
    Air Brakes Example <airbrakes.rst>
-   ../notebooks/sensors_testing.ipynb
+   ../notebooks/sensors.ipynb
    ../matlab/matlab.rst
 
 .. toctree::
