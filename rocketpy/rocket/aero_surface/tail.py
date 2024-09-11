@@ -169,7 +169,6 @@ class Tail(AeroSurface):
         # as a function of mach in the simulation.
         self.clalpha = Function(
             lambda mach: 2
-            / self._beta(mach)
             * (
                 (self.bottom_radius / self.rocket_radius) ** 2
                 - (self.top_radius / self.rocket_radius) ** 2

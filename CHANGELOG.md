@@ -38,7 +38,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
-
+- BUG: Rollback Prandtl-Glauert corrections for Tail and Nose. [#685](https://github.com/RocketPy-Team/RocketPy/pull/685)
 
 ## [v1.4.2] - 2024-08-03
 

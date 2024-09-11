@@ -451,7 +451,7 @@ class NoseCone(AeroSurface):
         # It must be set as a Function because it will be called and treated
         # as a function of mach in the simulation.
         self.clalpha = Function(
-            lambda mach: 2 / self._beta(mach) * self.radius_ratio**2,
+            lambda mach: 2 * self.radius_ratio**2,
             "Mach",
             f"Lift coefficient derivative for {self.name}",
         )
