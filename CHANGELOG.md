@@ -38,6 +38,16 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+## [v1.4.3] - 2024-09-11
+
+You can install this version by running `pip install rocketpy==1.4.3`
+
+### Changed
+
+- REL: Bump versioning to RocketPy v1.4.3 [#687](https://github.com/RocketPy-Team/RocketPy/pull/687)
+
+### Fixed
+
 - BUG: Rollback Prandtl-Glauert corrections for Tail and Nose. [#685](https://github.com/RocketPy-Team/RocketPy/pull/685)
 
 ## [v1.4.2] - 2024-08-03
