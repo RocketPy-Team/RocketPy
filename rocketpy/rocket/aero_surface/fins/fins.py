@@ -328,7 +328,7 @@ class Fins(AeroSurface):
         )  # Function of mach number
         clf_delta.set_inputs("Mach")
         clf_delta.set_outputs("Roll moment forcing coefficient derivative")
-        cld_omega = (
+        cld_omega = -(
             2
             * self.roll_damping_interference_factor
             * self.n
@@ -411,7 +411,7 @@ class Fins(AeroSurface):
             * omega3
             / 2
         )
-        M3 = M3_forcing - M3_damping
+        M3 = M3_forcing + M3_damping
         return R1, R2, R3, M1, M2, M3
 
     def draw(self):

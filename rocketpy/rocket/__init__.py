@@ -2,14 +2,17 @@ from rocketpy.control.controller import _Controller
 from rocketpy.rocket.aero_surface import (
     AeroSurface,
     AirBrakes,
+    EllipticalFin,
     EllipticalFins,
+    Fin,
     Fins,
+    GenericSurface,
+    LinearGenericSurface,
     NoseCone,
     RailButtons,
     Tail,
+    TrapezoidalFin,
     TrapezoidalFins,
-    GenericSurface,
-    LinearGenericSurface,
 )
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
