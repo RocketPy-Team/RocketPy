@@ -266,16 +266,16 @@ class LiquidMotor(Motor):
         """
         times, thrusts = self.thrust.source[:, 0], self.thrust.source[:, 1]
         mass_flow_rates = self.mass_flow_rate(times)
+        exhaust_velocity = np.zeros_like(mass_flow_rates)
 
         # Compute exhaust velocity only for non-zero mass flow rates
         valid_indices = mass_flow_rates != 0
-        valid_times = times[valid_indices]
-        valid_thrusts = thrusts[valid_indices]
-        valid_mass_flow_rates = mass_flow_rates[valid_indices]
 
-        ext_vel = -valid_thrusts / valid_mass_flow_rates
+        exhaust_velocity[valid_indices] = (
+            -thrusts[valid_indices] / mass_flow_rates[valid_indices]
+        )
 
-        return np.column_stack([valid_times, ext_vel])
+        return np.column_stack([times, exhaust_velocity])
 
     @funcify_method("Time (s)", "Propellant Mass (kg)")
     def propellant_mass(self):
