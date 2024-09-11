@@ -18,6 +18,9 @@ from rocketpy.rocket.aero_surface import (
     Tail,
     TrapezoidalFins,
 )
+from rocketpy.rocket.aero_surface.fins.elliptical_fin import EllipticalFin
+from rocketpy.rocket.aero_surface.fins.fin import Fin
+from rocketpy.rocket.aero_surface.fins.trapezoidal_fin import TrapezoidalFin
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
@@ -574,14 +577,29 @@ class Rocket:
         """Calculates the relative position of each aerodynamic surface
         center of pressure to the rocket's center of dry mass in Body Axes
         Coordinate System."""
-        pos = Vector(
-            [
-                (position.x - self.cm_eccentricity_x) * self._csys - surface.cpx,
-                (position.y - self.cm_eccentricity_y) - surface.cpy,
-                (position.z - self.center_of_dry_mass_position) * self._csys
-                - surface.cpz,
-            ]
-        )
+        # try for individual fin
+        if isinstance(surface, Fin):
+            # TODO: include cm_eccentricity_x and cm_eccentricity_y for Fin
+            pos = Vector(
+                [
+                    -(surface.rocket_radius + surface.cpy)
+                    * -np.sin(surface.angular_position_rad)
+                    * self._csys,
+                    (surface.rocket_radius + surface.cpy)
+                    * np.cos(surface.angular_position_rad),
+                    (position.z - self.center_of_dry_mass_position) * self._csys
+                    - surface.cpz,
+                ]
+            )
+        else:
+            pos = Vector(
+                [
+                    (position.x - self.cm_eccentricity_x) * self._csys - surface.cpx,
+                    (position.y - self.cm_eccentricity_y) + surface.cpy,
+                    (position.z - self.center_of_dry_mass_position) * self._csys
+                    - surface.cpz,
+                ]
+            )
         self.surfaces_cp_to_cdm[surface] = pos
 
     def evaluate_stability_margin(self):
@@ -1322,6 +1340,190 @@ class Rocket:
         fin_set = EllipticalFins(n, root_chord, span, radius, cant_angle, airfoil, name)
         self.add_surfaces(fin_set, position)
         return fin_set
+
+    def add_trapezoidal_fin(
+        self,
+        root_chord,
+        tip_chord,
+        span,
+        position,
+        angular_position,
+        cant_angle=0.0,
+        sweep_length=None,
+        sweep_angle=None,
+        radius=None,
+        airfoil=None,
+        name="Fin",
+    ):
+        """Adds a single fin to the rocket. This method is useful when the user
+        wants to add a single fin with a specific shape and position.
+
+        See Also
+        --------
+        :ref:`positions`
+
+        Parameters
+        ----------
+        root_chord : int, float
+            Fin root chord in meters.
+        tip_chord : int, float
+            Fin tip chord in meters.
+        span : int, float
+            Fin span in meters.
+        position : int, float
+            Fin position relative to the rocket's user defined coordinate system.
+            By fin position, understand the point belonging to the root chord
+            which is highest in the rocket coordinate system (i.e. the point
+            closest to the nose cone tip).
+        angular_position : int, float
+            The angular orientation of the fin. This is the angle measured
+            from the positive y-axis, with positive values corresponding to a
+            positive rotation about the z-axis.
+        cant_angle : int, float, optional
+            Fins cant angle with respect to the rocket centerline. Must be given
+            in degrees. Default is 0.
+        sweep_length : int, float, optional
+            Fins sweep length in meters. By sweep length, understand the axial
+            distance between the fin root leading edge and the fin tip leading
+            edge measured parallel to the rocket centerline. If not given, the
+            sweep length is assumed to be equal the root chord minus the tip
+            chord, in which case the fin is a right trapezoid with its base
+            perpendicular to the rocket's axis. Cannot be used in conjunction
+            with sweep_angle. Default is None.
+        sweep_angle : int, float, optional
+            Fins sweep angle with respect to the rocket centerline. Must be
+            given in degrees. If not given, the sweep angle is automatically
+            calculated, in which case the fin is assumed to be a right trapezoid
+            with its base perpendicular to the rocket's axis. Cannot be used in
+            conjunction with sweep_length. Default is None.
+        radius : int, float, optional
+            Radius of the rocket at the fin position. If not given, the rocket
+            radius will be used. Default is None.
+        airfoil : tuple, optional
+            Default is null, in which case fins will be treated as flat plates.
+            Otherwise, if tuple, fins will be considered as airfoils. The
+            tuple's first item specifies the airfoil's lift coefficient
+            by angle of attack and must be either a .csv, .txt, ndarray
+            or callable. The .csv and .txt files can contain a single line
+            header and the first column must specify the angle of attack, while
+            the second column must specify the lift coefficient. The
+            ndarray should be as [(x0, y0), (x1, y1), (x2, y2), ...]
+            where x0 is the angle of attack and y0 is the lift coefficient.
+            If callable, it should take an angle of attack as input and
+            return the lift coefficient at that angle of attack.
+            The tuple's second item is the unit of the angle of attack,
+            accepting either "radians" or "degrees". Default is None.
+        name : string, optional
+            Fin name. Default is "Fin".
+
+        Returns
+        -------
+        fin : Fin
+            Fin object created.
+        """
+        radius = radius or self.radius
+        fin = TrapezoidalFin(
+            angular_position=angular_position,
+            root_chord=root_chord,
+            tip_chord=tip_chord,
+            span=span,
+            rocket_radius=radius,
+            cant_angle=cant_angle,
+            sweep_length=sweep_length,
+            sweep_angle=sweep_angle,
+            airfoil=airfoil,
+            name=name,
+        )
+        position = Vector(
+            [
+                radius * -math.sin(math.radians(angular_position)),
+                radius * math.cos(math.radians(angular_position)),
+                position,
+            ]
+        )
+        self.add_surfaces(fin, position)
+        return fin
+
+    def add_elliptical_fin(
+        self,
+        root_chord,
+        span,
+        position,
+        angular_position,
+        cant_angle=0.0,
+        radius=None,
+        airfoil=None,
+        name="Fin",
+    ):
+        """Adds a single fin to the rocket. This method is useful when the user
+        wants to add a single fin with a specific shape and position.
+
+        See Also
+        --------
+        :ref:`positions`
+
+        Parameters
+        ----------
+        root_chord : int, float
+            Fin root chord in meters.
+        span : int, float
+            Fin span in meters.
+        position : int, float
+            Fin position relative to the rocket's user defined coordinate system.
+            By fin position, understand the point belonging to the root chord
+            which is highest in the rocket coordinate system (i.e. the point
+            closest to the nose cone tip).
+        angular_position : int, float
+            The angular orientation of the fin. This is the angle measured
+            from the positive y-axis, with positive values corresponding to a
+            positive rotation about the z-axis.
+        cant_angle : int, float, optional
+            Fins cant angle with respect to the rocket centerline. Must be given
+            in degrees. Default is 0.
+        radius : int, float, optional
+            Radius of the rocket at the fin position. If not given, the rocket
+            radius will be used. Default is None.
+        airfoil : tuple, optional
+            Default is null, in which case fins will be treated as flat plates.
+            Otherwise, if tuple, fins will be considered as airfoils. The
+            tuple's first item specifies the airfoil's lift coefficient
+            by angle of attack and must be either a .csv, .txt, ndarray
+            or callable. The .csv and .txt files can contain a single line
+            header and the first column must specify the angle of attack, while
+            the second column must specify the lift coefficient. The
+            ndarray should be as [(x0, y0), (x1, y1), (x2, y2), ...]
+            where x0 is the angle of attack and y0 is the lift coefficient.
+            If callable, it should take an angle of attack as input and
+            return the lift coefficient at that angle of attack.
+            The tuple's second item is the unit of the angle of attack,
+            accepting either "radians" or "degrees". Default is None.
+        name : string, optional
+            Fin name. Default is "Fin".
+
+        Returns
+        -------
+        fin : Fin
+            Fin object created.
+        """
+        radius = radius or self.radius
+        fin = EllipticalFin(
+            angular_position=angular_position,
+            root_chord=root_chord,
+            span=span,
+            rocket_radius=radius,
+            cant_angle=cant_angle,
+            airfoil=airfoil,
+            name=name,
+        )
+        position = Vector(
+            [
+                radius * -math.sin(math.radians(angular_position)),
+                radius * math.cos(math.radians(angular_position)),
+                position,
+            ]
+        )
+        self.add_surfaces(fin, position)
+        return fin
 
     def add_generic_surface(
         self,

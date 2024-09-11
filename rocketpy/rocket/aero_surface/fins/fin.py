@@ -1,12 +1,16 @@
+import math
+from abc import abstractmethod
+
 import numpy as np
 
 from rocketpy.mathutils.function import Function
+from rocketpy.mathutils.vector_matrix import Matrix, Vector
 
 from ..aero_surface import AeroSurface
 
 
-class Fins(AeroSurface):
-    """Abstract class that holds common methods for the fin classes.
+class Fin(AeroSurface):
+    """Abstract class that holds common methods for the individual fin classes.
     Cannot be instantiated.
 
     Note
@@ -19,8 +23,6 @@ class Fins(AeroSurface):
 
     Attributes
     ----------
-    Fins.n : int
-        Number of fins in fin set.
     Fins.rocket_radius : float
         The reference rocket radius used for lift coefficient normalization,
         in meters.
@@ -93,20 +95,20 @@ class Fins(AeroSurface):
 
     def __init__(
         self,
-        n,
+        angular_position,
         root_chord,
         span,
         rocket_radius,
         cant_angle=0,
         airfoil=None,
-        name="Fins",
+        name="Fin",
     ):
-        """Initialize Fins class.
+        """Initialize Fin class.
 
         Parameters
         ----------
-        n : int
-            Number of fins, from 2 to infinity.
+        angular_position : int, float
+            Angular position of the fin in degrees.
         root_chord : int, float
             Fin root chord in meters.
         span : int, float
@@ -114,7 +116,7 @@ class Fins(AeroSurface):
         rocket_radius : int, float
             Reference rocket radius used for lift coefficient normalization.
         cant_angle : int, float, optional
-            Fins cant angle with respect to the rocket centerline. Must
+            Fin cant angle with respect to the rocket centerline. Must
             be given in degrees.
         airfoil : tuple, optional
             Default is null, in which case fins will be treated as flat plates.
@@ -131,7 +133,7 @@ class Fins(AeroSurface):
             The tuple's second item is the unit of the angle of attack,
             accepting either "radians" or "degrees".
         name : str
-            Name of fin set.
+            Name of fin.
 
         Returns
         -------
@@ -144,27 +146,35 @@ class Fins(AeroSurface):
         super().__init__(name, ref_area, d)
 
         # Store values
-        self._n = n
-        self._rocket_radius = rocket_radius
-        self._airfoil = airfoil
-        self._cant_angle = cant_angle
-        self._root_chord = root_chord
-        self._span = span
         self.name = name
         self.d = d
-        self.ref_area = ref_area  # Reference area
+        self.ref_area = ref_area
+        self._rocket_radius = rocket_radius
+        self._airfoil = airfoil
+        self._root_chord = root_chord
+        self._span = span
+        self._cant_angle = -cant_angle
+        self._cant_angle_rad = math.radians(-cant_angle)
+        self._angular_position = angular_position
+        self._angular_position_rad = math.radians(angular_position)
 
     @property
-    def n(self):
-        return self._n
+    def angular_position(self):
+        return self._angular_position
 
-    @n.setter
-    def n(self, value):
-        self._n = value
-        self.evaluate_geometrical_parameters()
-        self.evaluate_center_of_pressure()
-        self.evaluate_lift_coefficient()
-        self.evaluate_roll_parameters()
+    @angular_position.setter
+    def angular_position(self, value):
+        self._angular_position = value
+        self.angular_position_rad = math.radians(value)
+
+    @property
+    def angular_position_rad(self):
+        return self._angular_position_rad
+
+    @angular_position_rad.setter
+    def angular_position_rad(self, value):
+        self._angular_position_rad = value
+        self.evaluate_rotation_matrix()
 
     @property
     def root_chord(self):
@@ -204,15 +214,25 @@ class Fins(AeroSurface):
 
     @property
     def cant_angle(self):
-        return self._cant_angle
+        return -self._cant_angle
 
     @cant_angle.setter
     def cant_angle(self, value):
-        self._cant_angle = value
+        self._cant_angle = -value
+        self.cant_angle_rad = math.radians(-value)
+
+    @property
+    def cant_angle_rad(self):
+        return self._cant_angle_rad
+
+    @cant_angle_rad.setter
+    def cant_angle_rad(self, value):
+        self._cant_angle_rad = value
         self.evaluate_geometrical_parameters()
         self.evaluate_center_of_pressure()
         self.evaluate_lift_coefficient()
         self.evaluate_roll_parameters()
+        self.evaluate_rotation_matrix()
 
     @property
     def airfoil(self):
@@ -269,6 +289,7 @@ class Fins(AeroSurface):
         def lift_source(mach):
             return (
                 clalpha2D(mach)
+                * self.lift_interference_factor
                 * planform_correlation_parameter(mach)
                 * (self.Af / self.ref_area)
                 * np.cos(self.gamma_c)
@@ -284,21 +305,11 @@ class Fins(AeroSurface):
             "Lift coefficient derivative for a single fin",
         )
 
-        # Lift coefficient derivative for n fins corrected with Fin-Body interference
-        self.clalpha_multiple_fins = (
-            self.lift_interference_factor
-            * self.fin_num_correction(self.n)
-            * self.clalpha_single_fin
-        )  # Function of mach number
-        self.clalpha_multiple_fins.set_inputs("Mach")
-        self.clalpha_multiple_fins.set_outputs(
-            f"Lift coefficient derivative for {self.n:.0f} fins"
-        )
-        self.clalpha = self.clalpha_multiple_fins
+        self.clalpha = self.clalpha_single_fin
 
         # Cl = clalpha * alpha
         self.cl = Function(
-            lambda alpha, mach: alpha * self.clalpha_multiple_fins(mach),
+            lambda alpha, mach: alpha * self.clalpha_single_fin(mach),
             ["Alpha (rad)", "Mach"],
             "Lift coefficient",
         )
@@ -316,22 +327,12 @@ class Fins(AeroSurface):
             roll moment damping coefficient and the cant angle in
             radians
         """
-
-        self.cant_angle_rad = np.radians(self.cant_angle)
-
-        clf_delta = (
-            self.roll_forcing_interference_factor
-            * self.n
-            * (self.Yma + self.rocket_radius)
-            * self.clalpha_single_fin
-            / self.d
-        )  # Function of mach number
+        clf_delta = Function(lambda mach: 0)
         clf_delta.set_inputs("Mach")
         clf_delta.set_outputs("Roll moment forcing coefficient derivative")
         cld_omega = -(
             2
             * self.roll_damping_interference_factor
-            * self.n
             * self.clalpha_single_fin
             * np.cos(self.cant_angle_rad)
             * self.roll_geometrical_constant
@@ -342,29 +343,56 @@ class Fins(AeroSurface):
         self.roll_parameters = [clf_delta, cld_omega, self.cant_angle_rad]
         return self.roll_parameters
 
-    @staticmethod
-    def fin_num_correction(n):
-        """Calculates a correction factor for the lift coefficient of multiple
-        fins.
-        The specifics  values are documented at:
-        Niskanen, S. (2013). “OpenRocket technical documentation”.
-        In: Development of an Open Source model rocket simulation software.
+    def evaluate_rotation_matrix(self):
+        """Calculates and returns the rotation matrix from the rocket body frame
+        to the fin frame.
 
-        Parameters
-        ----------
-        n : int
-            Number of fins.
+        TODO: paste this description where it is relevant
+        Note
+        ----
+        Local coordinate system:
+        - Origin located at the leading edge of the root chord.
+        - Z axis along the longitudinal axis of the fin, positive downwards
+            (leading edge -> trailing edge).
+        - Y axis perpendicular to the Z axis, in the span direction,
+            positive upwards (root chord -> tip chord).
+        - X axis completes the right-handed coordinate system.
+
 
         Returns
         -------
-        Corrector factor : int
-            Factor that accounts for the number of fins.
+        None
+
+        References
+        ----------
+        [1] TODO link to docs
         """
-        corrector_factor = [2.37, 2.74, 2.99, 3.24]
-        if 5 <= n <= 8:
-            return corrector_factor[n - 5]
-        else:
-            return n / 2
+        phi = self.angular_position_rad
+        delta = self.cant_angle_rad
+        # TODO check rotation for nose_to_tail csystems
+        # Body to fin rotation matrix
+        R = Matrix(
+            [
+                [
+                    -np.cos(delta) * np.cos(phi),
+                    -np.cos(delta) * np.sin(phi),
+                    np.sin(delta),
+                ],
+                [-np.sin(phi), np.cos(phi), 0],
+                [
+                    np.sin(delta) * np.cos(phi),
+                    np.sin(delta) * np.sin(phi),
+                    -np.cos(delta),
+                ],
+            ]
+        )
+        self._body_to_fin = R
+        self._fin_to_body = R.transpose
+
+        # Body to fin aerodynamic frame rotation matrix, need only invert the x and z axis
+        R = Matrix([[-1, 0, 0], [0, 1, 0], [0, 0, -1]]) @ R
+        self._body_to_fin_aero = R
+        self._fin_aero_to_body = R.transpose
 
     def compute_forces_and_moments(
         self,
@@ -388,21 +416,27 @@ class Fins(AeroSurface):
             Speed of the flow stream in the body frame.
 
         """
-        R1, R2, R3, M1, M2, _ = super().compute_forces_and_moments(
-            stream_velocity,
-            stream_speed,
-            stream_mach,
-            rho,
-            cp,
-        )
-        clf_delta, cld_omega, cant_angle_rad = self.roll_parameters
-        M3_forcing = (
-            (1 / 2 * rho * stream_speed**2)
-            * self.reference_area
-            * self.reference_length
-            * clf_delta.get_value_opt(stream_mach)
-            * cant_angle_rad
-        )
+        R1, R2, R3, M1, M2, M3 = 0, 0, 0, 0, 0, 0
+        # stream velocity in fin frame
+        stream_vx_f, _, stream_vz_f = self._body_to_fin_aero @ stream_velocity
+        if stream_vx_f != 0:
+            attack_angle = np.arctan(-stream_vx_f / stream_vz_f)
+            # Force in the X direction of the fin
+            X = (
+                0.5
+                * rho
+                * stream_speed**2
+                * self.reference_area
+                * self.cl(attack_angle, stream_mach)
+            )
+            M = cp.z * X
+            N = -(self.cp[1] + self.rocket_radius) * X
+            # Forces and moments in body frame
+            R1, R2, R3 = self._fin_aero_to_body @ Vector([X, 0, 0])
+            M1, M2, M3 = self._fin_aero_to_body @ Vector([0, M, N])
+
+        # Roll damping
+        _, cld_omega, _ = self.roll_parameters
         M3_damping = (
             (1 / 2 * rho * stream_speed)
             * self.reference_area
@@ -411,7 +445,7 @@ class Fins(AeroSurface):
             * omega3
             / 2
         )
-        M3 = M3_forcing + M3_damping
+        M3 += M3_damping
         return R1, R2, R3, M1, M2, M3
 
     def draw(self):
