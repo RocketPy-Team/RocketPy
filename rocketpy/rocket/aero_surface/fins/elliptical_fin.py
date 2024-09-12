@@ -2,6 +2,9 @@ import numpy as np
 
 from .fin import Fin
 
+from rocketpy.plots.aero_surface_plots import _EllipticalFinPlots
+from rocketpy.prints.aero_surface_prints import _EllipticalFinPrints
+
 
 class EllipticalFin(Fin):
     """Class that defines and holds information for an elliptical fin.
@@ -158,6 +161,9 @@ class EllipticalFin(Fin):
         self.evaluate_lift_coefficient()
         self.evaluate_roll_parameters()
         self.evaluate_rotation_matrix()
+
+        self.prints = _EllipticalFinPrints(self)
+        self.plots = _EllipticalFinPlots(self)
 
     def evaluate_center_of_pressure(self):
         """Calculates and returns the center of pressure of the fin set in local

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from rocketpy.motors import EmptyMotor, HybridMotor, LiquidMotor, SolidMotor
-from rocketpy.rocket.aero_surface import Fins, NoseCone, Tail
+from rocketpy.rocket.aero_surface import Fins, Fin, NoseCone, Tail
 
 
 class _RocketPlots:
@@ -242,6 +242,8 @@ class _RocketPlots:
                 self._draw_tail(ax, surface, position.z, drawn_surfaces, vis_args)
             elif isinstance(surface, Fins):
                 self._draw_fins(ax, surface, position.z, drawn_surfaces, vis_args)
+            elif isinstance(surface, Fin):
+                self._draw_fin(ax, surface, position.z, drawn_surfaces, vis_args)
         return drawn_surfaces
 
     def _draw_nose_cone(self, ax, surface, position, drawn_surfaces, vis_args):
@@ -331,6 +333,35 @@ class _RocketPlots:
                 color=vis_args["fins"],
                 linewidth=vis_args["line_width"],
             )
+
+        drawn_surfaces.append((surface, position, surface.rocket_radius, x_rotated[-1]))
+
+    def _draw_fin(self, ax, surface, position, drawn_surfaces, vis_args):
+        """Draws the fins and saves the position of the points of interest
+        for the tubes."""
+
+        x_fin = -self.rocket._csys * surface.shape_vec[0] + position
+        y_fin = surface.shape_vec[1] + surface.rocket_radius
+        angle = surface.angular_position
+
+        # Create a rotation matrix for the angle around the x-axis
+        rotation_matrix = np.array([[1, 0], [0, np.cos(angle)]])
+
+        # Apply the rotation to the original fin points
+        rotated_points_2d = np.dot(rotation_matrix, np.vstack((x_fin, y_fin)))
+
+        # Extract x and y coordinates of the rotated points
+        x_rotated, y_rotated = rotated_points_2d
+
+        # Project points above the XY plane back into the XY plane (set z-coordinate to 0)
+        x_rotated = np.where(rotated_points_2d[1] > 0, rotated_points_2d[0], x_rotated)
+        y_rotated = np.where(rotated_points_2d[1] > 0, rotated_points_2d[1], y_rotated)
+        ax.plot(
+            x_rotated,
+            y_rotated,
+            color=vis_args["fins"],
+            linewidth=vis_args["line_width"],
+        )
 
         drawn_surfaces.append((surface, position, surface.rocket_radius, x_rotated[-1]))
 

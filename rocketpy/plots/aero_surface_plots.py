@@ -188,6 +188,67 @@ class _FinsPlots(_AeroSurfacePlots):
         self.lift()
 
 
+class _FinPlots(_AeroSurfacePlots):
+    """Abstract class that contains all fin plots. This class inherits from the
+    _AeroSurfacePlots class."""
+
+    @abstractmethod
+    def draw(self):
+        pass
+
+    def airfoil(self):
+        """Plots the airfoil information when the fin has an airfoil shape. If
+        the fin does not have an airfoil shape, this method does nothing.
+
+        Returns
+        -------
+        None
+        """
+
+        if self.aero_surface.airfoil:
+            print("Airfoil lift curve:")
+            self.aero_surface.airfoil_cl.plot_1d(force_data=True)
+
+    def roll(self):
+        """Plots the roll parameters of the fin set.
+
+        Returns
+        -------
+        None
+        """
+        print("Roll parameters:")
+        # TODO: lacks a title in the plots
+        self.aero_surface.roll_parameters[0]()
+        self.aero_surface.roll_parameters[1]()
+
+    def lift(self):
+        """Plots the lift coefficient of the aero surface as a function of Mach
+        and the angle of attack. A 3D plot is expected. See the rocketpy.Function
+        class for more information on how this plot is made. Also, this method
+        plots the lift coefficient considering a single fin and the lift
+        coefficient considering all fins.
+
+        Returns
+        -------
+        None
+        """
+        print("Lift coefficient:")
+        self.aero_surface.cl()
+        self.aero_surface.clalpha_single_fin()
+
+    def all(self):
+        """Plots all available fin plots.
+
+        Returns
+        -------
+        None
+        """
+        self.draw()
+        self.airfoil()
+        self.roll()
+        self.lift()
+
+
 class _TrapezoidalFinsPlots(_FinsPlots):
     """Class that contains all trapezoidal fin plots."""
 
@@ -309,7 +370,199 @@ class _TrapezoidalFinsPlots(_FinsPlots):
         plt.show()
 
 
+class _TrapezoidalFinPlots(_FinPlots):
+    """Class that contains all trapezoidal fin plots."""
+
+    # pylint: disable=too-many-statements
+    def draw(self):
+        """Draw the fin shape along with some important information, including
+        the center line, the quarter line and the center of pressure position.
+
+        Returns
+        -------
+        None
+        """
+        # Color cycle [#348ABD, #A60628, #7A68A6, #467821, #D55E00, #CC79A7,
+        # #56B4E9, #009E73, #F0E442, #0072B2]
+        # Fin
+        leading_edge = plt.Line2D(
+            (0, self.aero_surface.sweep_length),
+            (0, self.aero_surface.span),
+            color="#A60628",
+        )
+        tip = plt.Line2D(
+            (
+                self.aero_surface.sweep_length,
+                self.aero_surface.sweep_length + self.aero_surface.tip_chord,
+            ),
+            (self.aero_surface.span, self.aero_surface.span),
+            color="#A60628",
+        )
+        back_edge = plt.Line2D(
+            (
+                self.aero_surface.sweep_length + self.aero_surface.tip_chord,
+                self.aero_surface.root_chord,
+            ),
+            (self.aero_surface.span, 0),
+            color="#A60628",
+        )
+        root = plt.Line2D((self.aero_surface.root_chord, 0), (0, 0), color="#A60628")
+
+        # Center and Quarter line
+        center_line = plt.Line2D(
+            (
+                self.aero_surface.root_chord / 2,
+                self.aero_surface.sweep_length + self.aero_surface.tip_chord / 2,
+            ),
+            (0, self.aero_surface.span),
+            color="#7A68A6",
+            alpha=0.35,
+            linestyle="--",
+            label="Center Line",
+        )
+        quarter_line = plt.Line2D(
+            (
+                self.aero_surface.root_chord / 4,
+                self.aero_surface.sweep_length + self.aero_surface.tip_chord / 4,
+            ),
+            (0, self.aero_surface.span),
+            color="#7A68A6",
+            alpha=1,
+            linestyle="--",
+            label="Quarter Line",
+        )
+
+        # Center of pressure
+        cp_point = [self.aero_surface.cpz, self.aero_surface.Yma]
+
+        # Mean Aerodynamic Chord
+        yma_start = (
+            self.aero_surface.sweep_length
+            * (self.aero_surface.root_chord + 2 * self.aero_surface.tip_chord)
+            / (3 * (self.aero_surface.root_chord + self.aero_surface.tip_chord))
+        )
+        yma_end = (
+            2 * self.aero_surface.root_chord**2
+            + self.aero_surface.root_chord * self.aero_surface.sweep_length
+            + 2 * self.aero_surface.root_chord * self.aero_surface.tip_chord
+            + 2 * self.aero_surface.sweep_length * self.aero_surface.tip_chord
+            + 2 * self.aero_surface.tip_chord**2
+        ) / (3 * (self.aero_surface.root_chord + self.aero_surface.tip_chord))
+        yma_line = plt.Line2D(
+            (yma_start, yma_end),
+            (self.aero_surface.Yma, self.aero_surface.Yma),
+            color="#467821",
+            linestyle="--",
+            label="Mean Aerodynamic Chord",
+        )
+
+        # Plotting
+        fig = plt.figure(figsize=(7, 4))
+        with plt.style.context("bmh"):
+            ax = fig.add_subplot(111)
+
+        # Fin
+        ax.add_line(leading_edge)
+        ax.add_line(tip)
+        ax.add_line(back_edge)
+        ax.add_line(root)
+
+        ax.add_line(center_line)
+        ax.add_line(quarter_line)
+        ax.add_line(yma_line)
+        ax.scatter(*cp_point, label="Center of Pressure", color="red", s=100, zorder=10)
+        ax.scatter(*cp_point, facecolors="none", edgecolors="red", s=500, zorder=10)
+
+        # Plot settings
+        xlim = (
+            self.aero_surface.root_chord
+            if self.aero_surface.sweep_length + self.aero_surface.tip_chord
+            < self.aero_surface.root_chord
+            else self.aero_surface.sweep_length + self.aero_surface.tip_chord
+        )
+        ax.set_xlim(0, xlim * 1.1)
+        ax.set_ylim(0, self.aero_surface.span * 1.1)
+        ax.set_xlabel("Root chord (m)")
+        ax.set_ylabel("Span (m)")
+        ax.set_title("Trapezoidal Fin Cross Section")
+        ax.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
+
+        plt.tight_layout()
+        plt.show()
+
+
 class _EllipticalFinsPlots(_FinsPlots):
+    """Class that contains all elliptical fin plots."""
+
+    # pylint: disable=too-many-statements
+    def draw(self):
+        """Draw the fin shape along with some important information.
+        These being: the center line and the center of pressure position.
+
+        Returns
+        -------
+        None
+        """
+        # Ellipse
+        ellipse = Ellipse(
+            (self.aero_surface.root_chord / 2, 0),
+            self.aero_surface.root_chord,
+            self.aero_surface.span * 2,
+            fill=False,
+            edgecolor="#A60628",
+            linewidth=2,
+        )
+
+        # Mean Aerodynamic Chord # From Barrowman's theory
+        yma_length = 8 * self.aero_surface.root_chord / (3 * np.pi)
+        yma_start = (self.aero_surface.root_chord - yma_length) / 2
+        yma_end = (
+            self.aero_surface.root_chord
+            - (self.aero_surface.root_chord - yma_length) / 2
+        )
+        yma_line = plt.Line2D(
+            (yma_start, yma_end),
+            (self.aero_surface.Yma, self.aero_surface.Yma),
+            label="Mean Aerodynamic Chord",
+            color="#467821",
+        )
+
+        # Center Line
+        center_line = plt.Line2D(
+            (self.aero_surface.root_chord / 2, self.aero_surface.root_chord / 2),
+            (0, self.aero_surface.span),
+            color="#7A68A6",
+            alpha=0.35,
+            linestyle="--",
+            label="Center Line",
+        )
+
+        # Center of pressure
+        cp_point = [self.aero_surface.cpz, self.aero_surface.Yma]
+
+        # Plotting
+        fig = plt.figure(figsize=(7, 4))
+        with plt.style.context("bmh"):
+            ax = fig.add_subplot(111)
+        ax.add_patch(ellipse)
+        ax.add_line(yma_line)
+        ax.add_line(center_line)
+        ax.scatter(*cp_point, label="Center of Pressure", color="red", s=100, zorder=10)
+        ax.scatter(*cp_point, facecolors="none", edgecolors="red", s=500, zorder=10)
+
+        # Plot settings
+        ax.set_xlim(0, self.aero_surface.root_chord)
+        ax.set_ylim(0, self.aero_surface.span * 1.1)
+        ax.set_xlabel("Root chord (m)")
+        ax.set_ylabel("Span (m)")
+        ax.set_title("Elliptical Fin Cross Section")
+        ax.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
+
+        plt.tight_layout()
+        plt.show()
+
+
+class _EllipticalFinPlots(_FinPlots):
     """Class that contains all elliptical fin plots."""
 
     # pylint: disable=too-many-statements

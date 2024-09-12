@@ -157,9 +157,105 @@ class _FinsPrints(_AeroSurfacePrints):
             "Lift Coefficient derivative (single fin) at Mach 0 and AoA 0: "
             f"{self.aero_surface.clalpha_single_fin(0):.3f}"
         )
+
+    def all(self):
+        """Prints all information of the fin set.
+
+        Returns
+        -------
+        None
+        """
+        self.identity()
+        self.geometry()
+        self.airfoil()
+        self.roll()
+        self.lift()
+
+
+class _FinPrints(_AeroSurfacePrints):
+
+    def geometry(self):
+        print("Geometric information of the fin set:")
+        print("-------------------------------------")
+        print(f"Reference rocket radius: {self.aero_surface.rocket_radius:.3f} m")
+        try:
+            print(f"Tip chord: {self.aero_surface.tip_chord:.3f} m")
+        except AttributeError:
+            pass  # it isn't a trapezoidal fin, just don't worry about tip chord
+        print(f"Root chord: {self.aero_surface.root_chord:.3f} m")
+        print(f"Span: {self.aero_surface.span:.3f} m")
         print(
-            "Lift Coefficient derivative (fin set) at Mach 0 and AoA 0: "
-            f"{self.aero_surface.clalpha_multiple_fins(0):.3f}"
+            f"Cant angle: {self.aero_surface.cant_angle:.3f} ° or "
+            f"{self.aero_surface.cant_angle_rad:.3f} rad"
+        )
+        print(f"Longitudinal section area: {self.aero_surface.Af:.3f} m²")
+        print(f"Aspect ratio: {self.aero_surface.AR:.3f} ")
+        print(f"Gamma_c: {self.aero_surface.gamma_c:.3f} m")
+        print(f"Mean aerodynamic chord: {self.aero_surface.Yma:.3f} m\n")
+
+    def airfoil(self):
+        """Prints out airfoil related information of the fin set.
+
+        Returns
+        -------
+        None
+        """
+        if self.aero_surface.airfoil:
+            print("Airfoil information:")
+            print("--------------------")
+            print(
+                "Number of points defining the lift curve: "
+                f"{len(self.aero_surface.airfoil_cl.x_array)}"
+            )
+            print(
+                "Lift coefficient derivative at Mach 0 and AoA 0: "
+                f"{self.aero_surface.clalpha(0):.5f} 1/rad\n"
+            )
+
+    def roll(self):
+        """Prints out information about roll parameters
+        of the fin set.
+
+        Returns
+        -------
+        None
+        """
+        print("Roll information of the fin set:")
+        print("--------------------------------")
+        print(
+            f"Geometric constant: {self.aero_surface.roll_geometrical_constant:.3f} m"
+        )
+        print(
+            "Damping interference factor: "
+            f"{self.aero_surface.roll_damping_interference_factor:.3f} rad"
+        )
+        print(
+            "Forcing interference factor: "
+            f"{self.aero_surface.roll_forcing_interference_factor:.3f} rad\n"
+        )
+
+    def lift(self):
+        """Prints out information about lift parameters
+        of the fin set.
+
+        Returns
+        -------
+        None
+        """
+        print("Lift information of the fin set:")
+        print("--------------------------------")
+        print(
+            "Lift interference factor: "
+            f"{self.aero_surface.lift_interference_factor:.3f} m"
+        )
+        print(
+            "Center of Pressure position in local coordinates: "
+            f"({self.aero_surface.cpx:.3f}, {self.aero_surface.cpy:.3f}, "
+            f"{self.aero_surface.cpz:.3f})"
+        )
+        print(
+            "Lift Coefficient derivative (single fin) at Mach 0 and AoA 0: "
+            f"{self.aero_surface.clalpha_single_fin(0):.3f}"
         )
 
     def all(self):
@@ -180,8 +276,16 @@ class _TrapezoidalFinsPrints(_FinsPrints):
     """Class that contains all trapezoidal fins prints."""
 
 
+class _TrapezoidalFinPrints(_FinPrints):
+    """Class that contains all trapezoidal fin prints."""
+
+
 class _EllipticalFinsPrints(_FinsPrints):
     """Class that contains all elliptical fins prints."""
+
+
+class _EllipticalFinPrints(_FinPrints):
+    """Class that contains all elliptical fin prints."""
 
 
 class _TailPrints(_AeroSurfacePrints):

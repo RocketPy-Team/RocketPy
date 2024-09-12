@@ -2,6 +2,9 @@ import math
 
 import numpy as np
 
+from rocketpy.plots.aero_surface_plots import _TrapezoidalFinPlots
+from rocketpy.prints.aero_surface_prints import _TrapezoidalFinPrints
+
 from .fin import Fin
 
 
@@ -48,6 +51,9 @@ class TrapezoidalFin(Fin):
         self.evaluate_lift_coefficient()
         self.evaluate_roll_parameters()
         self.evaluate_rotation_matrix()
+
+        self.prints = _TrapezoidalFinPrints(self)
+        self.plots = _TrapezoidalFinPlots(self)
 
     @property
     def tip_chord(self):
