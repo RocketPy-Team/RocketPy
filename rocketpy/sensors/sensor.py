@@ -1,4 +1,5 @@
 import json
+import warnings
 from abc import ABC, abstractmethod
 
 import numpy as np
@@ -116,6 +117,13 @@ class Sensor(ABC):
         --------
         TODO link to documentation on noise model
         """
+        warnings.warn(
+            "The Sensor class (and all its subclasses) is still under "
+            "experimental development. Some features may be changed in future "
+            "versions, although we will try to keep the changes to a minimum.",
+            UserWarning,
+        )
+
         self.sampling_rate = sampling_rate
         self.resolution = resolution
         self.operating_temperature = operating_temperature
