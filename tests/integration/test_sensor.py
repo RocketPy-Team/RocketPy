@@ -1,5 +1,6 @@
 import json
 import os
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -84,6 +85,15 @@ class TestIdealSensors:
         assert np.allclose(np.array(latitude), sim_latitude, atol=1e-12)
         assert np.allclose(np.array(longitude), sim_longitude, atol=1e-12)
         assert np.allclose(np.array(altitude), sim_altitude, atol=1e-12)
+
+
+@pytest.mark.parametrize("plane", ["xz", "yz"])
+@patch("matplotlib.pyplot.show")
+def test_draw(
+    mock_show, calisto_with_sensors, plane
+):  # pylint: disable=unused-argument
+    """Test the drawing of the sensors."""
+    calisto_with_sensors.draw(plane=plane)
 
 
 def test_export_all_sensors_data(flight_calisto_with_sensors):
