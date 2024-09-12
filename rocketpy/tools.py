@@ -1087,40 +1087,6 @@ def quaternions_to_nutation(e1, e2):
     return (180 / np.pi) * 2 * np.arcsin(-((e1**2 + e2**2) ** 0.5))
 
 
-def euler_to_quaternions(roll, pitch, yaw):
-    """Calculates the quaternions (Euler parameters) from the Euler angles in
-    yaw, pitch, and roll sequence (3-2-1).
-
-    Parameters
-    ----------
-    roll : float
-        Euler angle due to roll (psi) in degrees
-    pitch : float
-        Euler angle due to pitch (theta) in degrees
-    yaw : float
-        Euler angle due to yaw (phi) in degrees
-
-    Returns
-    -------
-    tuple
-        Tuple containing the Euler parameters e0, e1, e2, e3
-    """
-    phi = math.radians(yaw)
-    theta = math.radians(pitch)
-    psi = math.radians(roll)
-    cr = math.cos(phi / 2)
-    sr = math.sin(phi / 2)
-    cp = math.cos(theta / 2)
-    sp = math.sin(theta / 2)
-    cy = math.cos(psi / 2)
-    sy = math.sin(psi / 2)
-    e0 = cr * cp * cy + sr * sp * sy
-    e1 = sr * cp * cy - cr * sp * sy
-    e2 = cr * sp * cy + sr * cp * sy
-    e3 = cr * cp * sy - sr * sp * cy
-    return e0, e1, e2, e3
-
-
 def normalize_quaternions(quaternions):
     """Normalizes the quaternions (Euler parameters) to have unit magnitude.
 
@@ -1141,18 +1107,54 @@ def normalize_quaternions(quaternions):
     return q_w / q_norm, q_x / q_norm, q_y / q_norm, q_z / q_norm
 
 
-def euler_angles_to_euler_parameters(phi, theta, psi):
-    """Convert 3-1-3 Euler Angles to Euler Parameters (quaternions).
+def euler321_to_quaternions(psi, theta, phi):
+    """Calculates the quaternions (Euler parameters) from the Euler angles in
+    yaw, pitch, and roll sequence (3-2-1).
+
+    Parameters
+    ----------
+    psi : float
+        Euler angle due to roll in degrees, also known as the spin angle.
+    theta : float
+        Euler angle due to pitch in degrees, also known as the nutation angle.
+    phi : float
+        Euler angle due to yaw in degrees, also known as the precession angle.
+
+    Returns
+    -------
+    tuple[float, float, float, float]
+        Tuple containing the Euler parameters e0, e1, e2, e3
+    """
+    phi = math.radians(phi)
+    theta = math.radians(theta)
+    psi = math.radians(psi)
+    cr = math.cos(phi / 2)
+    sr = math.sin(phi / 2)
+    cp = math.cos(theta / 2)
+    sp = math.sin(theta / 2)
+    cy = math.cos(psi / 2)
+    sy = math.sin(psi / 2)
+    e0 = cr * cp * cy + sr * sp * sy
+    e1 = sr * cp * cy - cr * sp * sy
+    e2 = cr * sp * cy + sr * cp * sy
+    e3 = cr * cp * sy - sr * sp * cy
+    return e0, e1, e2, e3
+
+
+def euler313_to_quaternions(phi, theta, psi):
+    """Convert 3-1-3 Euler angles to Euler parameters (quaternions).
 
     Parameters
     ----------
     phi : float
-        Rotation angle around the z-axis (in radians). Represents the precession angle.
+        Rotation angle around the z-axis (in radians). Represents the precession
+        angle or the yaw angle.
     theta : float
-        Rotation angle around the x-axis (in radians). Represents the nutation angle.
+        Rotation angle around the x-axis (in radians). Represents the nutation
+        angle or the pitch angle.
     psi : float
-        Rotation angle around the z-axis (in radians). Represents the spin angle.
-
+        Rotation angle around the z-axis (in radians). Represents the spin angle
+        or the roll angle.
 
     Returns
     -------

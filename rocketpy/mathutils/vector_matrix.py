@@ -2,7 +2,7 @@ from cmath import isclose
 from functools import cached_property
 from itertools import product
 
-from rocketpy.tools import euler_to_quaternions, normalize_quaternions
+from rocketpy.tools import euler321_to_quaternions, normalize_quaternions
 
 
 class Vector:
@@ -1081,7 +1081,7 @@ class Matrix:
         Matrix
             The transformation matrix from frame B to frame A.
         """
-        return Matrix.transformation(euler_to_quaternions(roll, pitch, yaw))
+        return Matrix.transformation(euler321_to_quaternions(roll, pitch, yaw))
 
 
 if __name__ == "__main__":

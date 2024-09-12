@@ -15,7 +15,7 @@ from ..plots.flight_plots import _FlightPlots
 from ..prints.flight_prints import _FlightPrints
 from ..tools import (
     calculate_cubic_hermite_coefficients,
-    euler_angles_to_euler_parameters,
+    euler313_to_quaternions,
     find_closest,
     find_root_linear_interpolation,
     find_roots_cubic_function,
@@ -1126,7 +1126,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                 pass
 
             # 3-1-3 Euler Angles to Euler Parameters
-            e0_init, e1_init, e2_init, e3_init = euler_angles_to_euler_parameters(
+            e0_init, e1_init, e2_init, e3_init = euler313_to_quaternions(
                 self.phi_init, self.theta_init, self.psi_init
             )
             # Store initial conditions

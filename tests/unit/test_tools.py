@@ -3,7 +3,7 @@ import pytest
 
 from rocketpy.tools import (
     calculate_cubic_hermite_coefficients,
-    euler_to_quaternions,
+    euler321_to_quaternions,
     find_roots_cubic_function,
 )
 
@@ -13,7 +13,7 @@ from rocketpy.tools import (
     [((0, 0, 0), (1, 0, 0, 0)), ((90, 90, 90), (0.7071068, 0, 0.7071068, 0))],
 )
 def test_euler_to_quaternions(angles, expected_quaternions):
-    q0, q1, q2, q3 = euler_to_quaternions(*angles)
+    q0, q1, q2, q3 = euler321_to_quaternions(*angles)
     assert round(q0, 7) == expected_quaternions[0]
     assert round(q1, 7) == expected_quaternions[1]
     assert round(q2, 7) == expected_quaternions[2]
