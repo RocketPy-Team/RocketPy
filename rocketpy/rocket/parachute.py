@@ -34,8 +34,8 @@ class Parachute:
            ``sensor.measurement`` attribute. The sensors are listed in the same
            order as they are added to the rocket.
 
-        The function should return True if the parachute ejection system should
-        be triggered and False otherwise.
+        The function should return ``True`` if the parachute ejection system
+        should be triggered and False otherwise.
 
         - A float value, representing an absolute height in meters. In this
         case, the parachute will be ejected when the rocket reaches this height

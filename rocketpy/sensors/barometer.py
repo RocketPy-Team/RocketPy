@@ -71,7 +71,7 @@ class Barometer(ScalarSensor):
         sampling_rate : float
             Sample rate of the sensor in Hz.
         measurement_range : float, tuple, optional
-            The measurement range of the sensor in the Pa. If a float, the same
+            The measurement range of the sensor in Pa. If a float, the same
             range is applied both for positive and negative values. If a tuple,
             the first value is the positive range and the second value is the
             negative range. Default is np.inf.

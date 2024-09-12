@@ -706,7 +706,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                     callback(self)
 
                 if self.sensors:
-                    # udot for all sensors
+                    # u_dot for all sensors
                     u_dot = phase.derivative(self.t, self.y_sol)
                     for sensor, position in node._component_sensors:
                         relative_position = position - self.rocket._csys * Vector(
@@ -3229,7 +3229,7 @@ class Flight:  # pylint: disable=too-many-public-methods
 
         with open(file_name, "w") as file:
             json.dump(data_dict, file)
-        print("Sensor data exported to", file_name)
+        print("Sensor data exported to: ", file_name)
 
     def export_kml(  # TODO: should be moved out of this class.
         self,

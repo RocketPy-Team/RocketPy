@@ -352,8 +352,6 @@ class InertialSensor(Sensor):
               standard rotation sequence is z-y-x (3-2-1) is used, meaning the
               sensor is first rotated by ψ around the x axis, then by θ around
               the new y axis and finally by φ around the new z axis.
-              TODO: x and y are not defined in the rocket class. User has no
-              way to know which axis is which.
             - A list of lists (matrix) of shape 3x3, representing the rotation
               matrix from the sensor frame to the rocket frame. The sensor frame
               of reference is defined as to have z axis along the sensor's normal

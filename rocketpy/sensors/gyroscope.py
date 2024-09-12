@@ -228,8 +228,7 @@ class Gyroscope(InertialSensor):
         )
         W = inertial_to_sensor @ omega
 
-        # Apply noise + bias
-        # Apply noise + bias and quatize
+        # Apply noise + bias and quantize
         W = self.apply_noise(W)
         W = self.apply_temperature_drift(W)
 
