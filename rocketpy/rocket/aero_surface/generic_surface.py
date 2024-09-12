@@ -1,9 +1,10 @@
 import csv
 import math
 
-from rocketpy.mathutils.vector_matrix import Matrix, Vector
-from rocketpy.mathutils import Function
 import numpy as np
+
+from rocketpy.mathutils import Function
+from rocketpy.mathutils.vector_matrix import Matrix, Vector
 
 
 class GenericSurface:

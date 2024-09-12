@@ -30,14 +30,14 @@ from .rocket import (
     Components,
     EllipticalFins,
     Fins,
+    GenericSurface,
+    LinearGenericSurface,
     NoseCone,
     Parachute,
     RailButtons,
     Rocket,
     Tail,
     TrapezoidalFins,
-    GenericSurface,
-    LinearGenericSurface,
 )
 from .sensitivity import SensitivityModel
 from .simulation import Flight, MonteCarlo

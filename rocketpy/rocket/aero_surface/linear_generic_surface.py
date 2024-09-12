@@ -1,5 +1,5 @@
-from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 from rocketpy.mathutils import Function
+from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 
 
 class LinearGenericSurface(GenericSurface):
