@@ -373,13 +373,9 @@ class Fins(AeroSurface):
         stream_mach,
         rho,
         cp,
-        _,
-        omega1,
-        omega2,
-        omega3,
+        omega,
         *args,
-        **kwargs,
-    ):
+    ):  # pylint: disable=arguments-differ
         """Computes the forces and moments acting on the aerodynamic surface.
 
         Parameters
@@ -408,7 +404,7 @@ class Fins(AeroSurface):
             * self.reference_area
             * (self.reference_length) ** 2
             * cld_omega.get_value_opt(stream_mach)
-            * omega3
+            * omega[2]  # note to STANO: this was omega3
             / 2
         )
         M3 = M3_forcing - M3_damping

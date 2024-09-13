@@ -99,8 +99,7 @@ class AeroSurface(ABC):
         rho,
         cp,
         *args,
-        **kwargs,
-    ):
+    ):  # pylint: disable=unused-argument
         """Computes the forces and moments acting on the aerodynamic surface.
         Used in each time step of the simulation. This method is valid for
         the barrowman aerodynamic models.
