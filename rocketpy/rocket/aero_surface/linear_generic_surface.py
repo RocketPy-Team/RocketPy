@@ -11,45 +11,10 @@ class LinearGenericSurface(GenericSurface):
         self,
         reference_area,
         reference_length,
-        cL_0=0,
-        cL_alpha=0,
-        cL_beta=0,
-        cL_p=0,
-        cL_q=0,
-        cL_r=0,
-        cQ_0=0,
-        cQ_alpha=0,
-        cQ_beta=0,
-        cQ_p=0,
-        cQ_q=0,
-        cQ_r=0,
-        cD_0=0,
-        cD_alpha=0,
-        cD_beta=0,
-        cD_p=0,
-        cD_q=0,
-        cD_r=0,
-        cm_0=0,
-        cm_alpha=0,
-        cm_beta=0,
-        cm_p=0,
-        cm_q=0,
-        cm_r=0,
-        cn_0=0,
-        cn_alpha=0,
-        cn_beta=0,
-        cn_p=0,
-        cn_q=0,
-        cn_r=0,
-        cl_0=0,
-        cl_alpha=0,
-        cl_beta=0,
-        cl_p=0,
-        cl_q=0,
-        cl_r=0,
+        coefficients="all_null",
         center_of_pressure=(0, 0, 0),
         name="Generic Linear Surface",
-    ):
+    ):  # pylint: disable=invalid-name
         """Create a generic linear aerodynamic surface, defined by its
         aerodynamic coefficients derivatives. This surface is used to model any
         aerodynamic surface that does not fit the predefined classes.
@@ -75,112 +40,115 @@ class LinearGenericSurface(GenericSurface):
         reference_length : int, float
             Reference length of the aerodynamic surface. Has the unit of meters.
             Commonly defined as the rocket's diameter.
-        cL_0 : callable, str, optional
-            Coefficient of lift at zero angle of attack. Default is 0.
-        cL_alpha : callable, str, optional
-            Coefficient of lift derivative with respect to angle of attack.
-            Default is 0.
-        cL_beta : callable, str, optional
-            Coefficient of lift derivative with respect to sideslip angle.
-            Default is 0.
-        cL_p : callable, str, optional
-            Coefficient of lift derivative with respect to roll rate.
-            Default is 0.
-        cL_q : callable, str, optional
-            Coefficient of lift derivative with respect to pitch rate.
-            Default is 0.
-        cL_r : callable, str, optional
-            Coefficient of lift derivative with respect to yaw rate.
-            Default is 0.
-        cQ_0 : callable, str, optional
-            Coefficient of pitch moment at zero angle of attack.
-            Default is 0.
-        cQ_alpha : callable, str, optional
-            Coefficient of pitch moment derivative with respect to angle of
-            attack. Default is 0.
-        cQ_beta : callable, str, optional
-            Coefficient of pitch moment derivative with respect to sideslip
-            angle. Default is 0.
-        cQ_p : callable, str, optional
-            Coefficient of pitch moment derivative with respect to roll rate.
-            Default is 0.
-        cQ_q : callable, str, optional
-            Coefficient of pitch moment derivative with respect to pitch rate.
-            Default is 0.
-        cQ_r : callable, str, optional
-            Coefficient of pitch moment derivative with respect to yaw rate.
-            Default is 0.
-        cD_0 : callable, str, optional
-            Coefficient of drag at zero angle of attack. Default is 0.
-        cD_alpha : callable, str, optional
-            Coefficient of drag derivative with respect to angle of attack.
-            Default is 0.
-        cD_beta : callable, str, optional
-            Coefficient of drag derivative with respect to sideslip angle.
-            Default is 0.
-        cD_p : callable, str, optional
-            Coefficient of drag derivative with respect to roll rate.
-            Default is 0.
-        cD_q : callable, str, optional
-            Coefficient of drag derivative with respect to pitch rate.
-            Default is 0.
-        cD_r : callable, str, optional
-            Coefficient of drag derivative with respect to yaw rate.
-            Default is 0.
-        cm_0 : callable, str, optional
-            Coefficient of pitch moment at zero angle of attack.
-            Default is 0.
-        cm_alpha : callable, str, optional
-            Coefficient of pitch moment derivative with respect to angle of
-            attack. Default is 0.
-        cm_beta : callable, str, optional
-            Coefficient of pitch moment derivative with respect to sideslip
-            angle. Default is 0.
-        cm_p : callable, str, optional
-            Coefficient of pitch moment derivative with respect to roll rate.
-            Default is 0.
-        cm_q : callable, str, optional
-            Coefficient of pitch moment derivative with respect to pitch rate.
-            Default is 0.
-        cm_r : callable, str, optional
-            Coefficient of pitch moment derivative with respect to yaw rate.
-            Default is 0.
-        cn_0 : callable, str, optional
-            Coefficient of yaw moment at zero angle of attack.
-            Default is 0.
-        cn_alpha : callable, str, optional
-            Coefficient of yaw moment derivative with respect to angle of
-            attack. Default is 0.
-        cn_beta : callable, str, optional
-            Coefficient of yaw moment derivative with respect to sideslip angle.
-            Default is 0.
-        cn_p : callable, str, optional
-            Coefficient of yaw moment derivative with respect to roll rate.
-            Default is 0.
-        cn_q : callable, str, optional
-            Coefficient of yaw moment derivative with respect to pitch rate.
-            Default is 0.
-        cn_r : callable, str, optional
-            Coefficient of yaw moment derivative with respect to yaw rate.
-            Default is 0.
-        cl_0 : callable, str, optional
-            Coefficient of roll moment at zero angle of attack.
-            Default is 0.
-        cl_alpha : callable, str, optional
-            Coefficient of roll moment derivative with respect to angle of
-            attack. Default is 0.
-        cl_beta : callable, str, optional
-            Coefficient of roll moment derivative with respect to sideslip
-            angle. Default is 0.
-        cl_p : callable, str, optional
-            Coefficient of roll moment derivative with respect to roll rate.
-            Default is 0.
-        cl_q : callable, str, optional
-            Coefficient of roll moment derivative with respect to pitch rate.
-            Default is 0.
-        cl_r : callable, str, optional
-            Coefficient of roll moment derivative with respect to yaw rate.
-            Default is 0.
+        coefficients: dict, optional
+            List of coefficients. Default is "all_null", which creates a
+            dict with every coefficient set to 0. The valid coefficients are:\n
+            cL_0: callable, str, optional
+                Coefficient of lift at zero angle of attack. Default is 0.\n
+            cL_alpha: callable, str, optional
+                Coefficient of lift derivative with respect to angle of attack.
+                Default is 0.\n
+            cL_beta: callable, str, optional
+                Coefficient of lift derivative with respect to sideslip angle.
+                Default is 0.\n
+            cL_p: callable, str, optional
+                Coefficient of lift derivative with respect to roll rate.
+                Default is 0.\n
+            cL_q: callable, str, optional
+                Coefficient of lift derivative with respect to pitch rate.
+                Default is 0.\n
+            cL_r: callable, str, optional
+                Coefficient of lift derivative with respect to yaw rate.
+                Default is 0.\n
+            cQ_0: callable, str, optional
+                Coefficient of pitch moment at zero angle of attack.
+                Default is 0.\n
+            cQ_alpha: callable, str, optional
+                Coefficient of pitch moment derivative with respect to angle of
+                attack. Default is 0.\n
+            cQ_beta: callable, str, optional
+                Coefficient of pitch moment derivative with respect to sideslip
+                angle. Default is 0.\n
+            cQ_p: callable, str, optional
+                Coefficient of pitch moment derivative with respect to roll rate.
+                Default is 0.\n
+            cQ_q: callable, str, optional
+                Coefficient of pitch moment derivative with respect to pitch rate.
+                Default is 0.\n
+            cQ_r: callable, str, optional
+                Coefficient of pitch moment derivative with respect to yaw rate.
+                Default is 0.\n
+            cD_0: callable, str, optional
+                Coefficient of drag at zero angle of attack. Default is 0.\n
+            cD_alpha: callable, str, optional
+                Coefficient of drag derivative with respect to angle of attack.
+                Default is 0.\n
+            cD_beta: callable, str, optional
+                Coefficient of drag derivative with respect to sideslip angle.
+                Default is 0.\n
+            cD_p: callable, str, optional
+                Coefficient of drag derivative with respect to roll rate.
+                Default is 0.\n
+            cD_q: callable, str, optional
+                Coefficient of drag derivative with respect to pitch rate.
+                Default is 0.\n
+            cD_r: callable, str, optional
+                Coefficient of drag derivative with respect to yaw rate.
+                Default is 0.\n
+            cm_0: callable, str, optional
+                Coefficient of pitch moment at zero angle of attack.
+                Default is 0.\n
+            cm_alpha: callable, str, optional
+                Coefficient of pitch moment derivative with respect to angle of
+                attack. Default is 0.\n
+            cm_beta: callable, str, optional
+                Coefficient of pitch moment derivative with respect to sideslip
+                angle. Default is 0.\n
+            cm_p: callable, str, optional
+                Coefficient of pitch moment derivative with respect to roll rate.
+                Default is 0.\n
+            cm_q: callable, str, optional
+                Coefficient of pitch moment derivative with respect to pitch rate.
+                Default is 0.\n
+            cm_r: callable, str, optional
+                Coefficient of pitch moment derivative with respect to yaw rate.
+                Default is 0.\n
+            cn_0: callable, str, optional
+                Coefficient of yaw moment at zero angle of attack.
+                Default is 0.\n
+            cn_alpha: callable, str, optional
+                Coefficient of yaw moment derivative with respect to angle of
+                attack. Default is 0.\n
+            cn_beta: callable, str, optional
+                Coefficient of yaw moment derivative with respect to sideslip angle.
+                Default is 0.\n
+            cn_p: callable, str, optional
+                Coefficient of yaw moment derivative with respect to roll rate.
+                Default is 0.\n
+            cn_q: callable, str, optional
+                Coefficient of yaw moment derivative with respect to pitch rate.
+                Default is 0.\n
+            cn_r: callable, str, optional
+                Coefficient of yaw moment derivative with respect to yaw rate.
+                Default is 0.\n
+            cl_0: callable, str, optional
+                Coefficient of roll moment at zero angle of attack.
+                Default is 0.\n
+            cl_alpha: callable, str, optional
+                Coefficient of roll moment derivative with respect to angle of
+                attack. Default is 0.\n
+            cl_beta: callable, str, optional
+                Coefficient of roll moment derivative with respect to sideslip
+                angle. Default is 0.\n
+            cl_p: callable, str, optional
+                Coefficient of roll moment derivative with respect to roll rate.
+                Default is 0.\n
+            cl_q: callable, str, optional
+                Coefficient of roll moment derivative with respect to pitch rate.
+                Default is 0.\n
+            cl_r: callable, str, optional
+                Coefficient of roll moment derivative with respect to yaw rate.
+                Default is 0.\n
         center_of_pressure : tuple, optional
             Application point of the aerodynamic forces and moments. The
             center of pressure is defined in the local coordinate system of the
@@ -188,53 +156,65 @@ class LinearGenericSurface(GenericSurface):
         name : str
             Name of the aerodynamic surface. Default is 'GenericSurface'.
         """
-        self.reference_area = reference_area
-        self.reference_length = reference_length
-        self.center_of_pressure = center_of_pressure
-        self.cp = center_of_pressure
-        self.cpx = center_of_pressure[0]
-        self.cpy = center_of_pressure[1]
-        self.cpz = center_of_pressure[2]
-        self.name = name
 
-        self.cL_0 = self._process_input(cL_0, "cL_0")
-        self.cL_alpha = self._process_input(cL_alpha, "cL_alpha")
-        self.cL_beta = self._process_input(cL_beta, "cL_beta")
-        self.cL_p = self._process_input(cL_p, "cL_p")
-        self.cL_q = self._process_input(cL_q, "cL_q")
-        self.cL_r = self._process_input(cL_r, "cL_r")
-        self.cQ_0 = self._process_input(cQ_0, "cQ_0")
-        self.cQ_alpha = self._process_input(cQ_alpha, "cQ_alpha")
-        self.cQ_beta = self._process_input(cQ_beta, "cQ_beta")
-        self.cQ_p = self._process_input(cQ_p, "cQ_p")
-        self.cQ_q = self._process_input(cQ_q, "cQ_q")
-        self.cQ_r = self._process_input(cQ_r, "cQ_r")
-        self.cD_0 = self._process_input(cD_0, "cD_0")
-        self.cD_alpha = self._process_input(cD_alpha, "cD_alpha")
-        self.cD_beta = self._process_input(cD_beta, "cD_beta")
-        self.cD_p = self._process_input(cD_p, "cD_p")
-        self.cD_q = self._process_input(cD_q, "cD_q")
-        self.cD_r = self._process_input(cD_r, "cD_r")
-        self.cl_0 = self._process_input(cl_0, "cl_0")
-        self.cl_alpha = self._process_input(cl_alpha, "cl_alpha")
-        self.cl_beta = self._process_input(cl_beta, "cl_beta")
-        self.cl_p = self._process_input(cl_p, "cl_p")
-        self.cl_q = self._process_input(cl_q, "cl_q")
-        self.cl_r = self._process_input(cl_r, "cl_r")
-        self.cm_0 = self._process_input(cm_0, "cm_0")
-        self.cm_alpha = self._process_input(cm_alpha, "cm_alpha")
-        self.cm_beta = self._process_input(cm_beta, "cm_beta")
-        self.cm_p = self._process_input(cm_p, "cm_p")
-        self.cm_q = self._process_input(cm_q, "cm_q")
-        self.cm_r = self._process_input(cm_r, "cm_r")
-        self.cn_0 = self._process_input(cn_0, "cn_0")
-        self.cn_alpha = self._process_input(cn_alpha, "cn_alpha")
-        self.cn_beta = self._process_input(cn_beta, "cn_beta")
-        self.cn_p = self._process_input(cn_p, "cn_p")
-        self.cn_q = self._process_input(cn_q, "cn_q")
-        self.cn_r = self._process_input(cn_r, "cn_r")
+        super().__init__(
+            reference_area=reference_area,
+            reference_length=reference_length,
+            coefficients=coefficients,
+            center_of_pressure=center_of_pressure,
+            name=name,
+        )
 
         self.compute_all_coefficients()
+
+    def _get_default_coefficients(self):
+        """Returns default coefficients
+
+        Returns
+        -------
+        default_coefficients: dict
+            Dictionary whose keys are the coefficients names and keys
+            are the default values.
+        """
+        default_coefficients = {
+            "cL_0": 0,
+            "cL_alpha": 0,
+            "cL_beta": 0,
+            "cL_p": 0,
+            "cL_q": 0,
+            "cL_r": 0,
+            "cQ_0": 0,
+            "cQ_alpha": 0,
+            "cQ_beta": 0,
+            "cQ_p": 0,
+            "cQ_q": 0,
+            "cQ_r": 0,
+            "cD_0": 0,
+            "cD_alpha": 0,
+            "cD_beta": 0,
+            "cD_p": 0,
+            "cD_q": 0,
+            "cD_r": 0,
+            "cm_0": 0,
+            "cm_alpha": 0,
+            "cm_beta": 0,
+            "cm_p": 0,
+            "cm_q": 0,
+            "cm_r": 0,
+            "cn_0": 0,
+            "cn_alpha": 0,
+            "cn_beta": 0,
+            "cn_p": 0,
+            "cn_q": 0,
+            "cn_r": 0,
+            "cl_0": 0,
+            "cl_alpha": 0,
+            "cl_beta": 0,
+            "cl_p": 0,
+            "cl_q": 0,
+            "cl_r": 0,
+        }
+        return default_coefficients
 
     def compute_forcing_coefficient(self, c_0, c_alpha, c_beta):
         """Compute the forcing coefficient from the derivatives of the
@@ -297,6 +277,7 @@ class LinearGenericSurface(GenericSurface):
 
     def compute_all_coefficients(self):
         """Compute all the aerodynamic coefficients from the derivatives."""
+        # pylint: disable=invalid-name
         self.cLf = self.compute_forcing_coefficient(
             self.cL_0, self.cL_alpha, self.cL_beta
         )
