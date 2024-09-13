@@ -20,7 +20,7 @@ class GenericSurface:
         coefficients="all_null",
         center_of_pressure=(0, 0, 0),
         name="Generic Surface",
-    ):  # pylint: disable=invalid-name
+    ):
         """Create a generic aerodynamic surface, defined by its aerodynamic
         coefficients. This surface is used to model any aerodynamic surface
         that does not fit the predefined classes.
@@ -308,7 +308,7 @@ class GenericSurface:
                 )
             return input_data
         elif callable(input_data):
-            # Check if callable ha#s 7 inputs (alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate)
+            # Check if callable has 7 inputs (alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate)
             if input_data.__code__.co_argcount != 7:
                 raise ValueError(
                     f"{coeff_name} function must have 7 input arguments"

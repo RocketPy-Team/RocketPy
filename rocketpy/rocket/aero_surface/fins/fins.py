@@ -404,7 +404,7 @@ class Fins(AeroSurface):
             * self.reference_area
             * (self.reference_length) ** 2
             * cld_omega.get_value_opt(stream_mach)
-            * omega[2]  # note to STANO: this was omega3
+            * omega[2]
             / 2
         )
         M3 = M3_forcing - M3_damping
