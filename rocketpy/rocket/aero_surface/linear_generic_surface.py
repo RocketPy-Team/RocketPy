@@ -14,7 +14,7 @@ class LinearGenericSurface(GenericSurface):
         coefficients="all_null",
         center_of_pressure=(0, 0, 0),
         name="Generic Linear Surface",
-    ):  # pylint: disable=invalid-name
+    ):
         """Create a generic linear aerodynamic surface, defined by its
         aerodynamic coefficients derivatives. This surface is used to model any
         aerodynamic surface that does not fit the predefined classes.
