@@ -1,3 +1,4 @@
+import copy
 import csv
 import math
 
@@ -17,7 +18,7 @@ class GenericSurface:
         self,
         reference_area,
         reference_length,
-        coefficients="all_null",
+        coefficients,
         center_of_pressure=(0, 0, 0),
         name="Generic Surface",
     ):
@@ -47,7 +48,7 @@ class GenericSurface:
             Reference length of the aerodynamic surface. Has the unit of meters.
             Commonly defined as the rocket's diameter.
         coefficients: dict, optional
-            List of coefficients. Default is "all_null", which creates a
+            List of coefficients. Default is , which creates a
             dict with every coefficient set to 0. The valid coefficients are:\n
             cL: str, callable, optional
                 Lift coefficient. Can be a path to a CSV file or a callable.
@@ -116,18 +117,21 @@ class GenericSurface:
         ----------
         input_coefficients : str, dict
             Coefficients dictionary passed by the user. If the user only specifies some
-            of the coefficients, the
+            of the coefficients, the remaining are completed with class default
+            values
+        default_coefficients : dict
+            Default coefficients of the class
 
         Returns
         -------
-        coefficients: dict
-            Coefficients dictionary used to setup coefficients attributes
+        coefficients : dict
+            Coefficients dictionary used to setup coefficient attributes
         """
 
         if input_coefficients == "all_null":
             coefficients = default_coefficients
         else:  # complete user dictionary with null values for the coefficients
-            coefficients = input_coefficients
+            coefficients = copy.deepcopy(input_coefficients)
             for coeff, value in default_coefficients.items():
                 if coeff not in coefficients.keys():
                     coefficients[coeff] = value
