@@ -11,7 +11,7 @@ class LinearGenericSurface(GenericSurface):
         self,
         reference_area,
         reference_length,
-        coefficients="all_null",
+        coefficients,
         center_of_pressure=(0, 0, 0),
         name="Generic Linear Surface",
     ):
