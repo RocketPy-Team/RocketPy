@@ -1671,6 +1671,7 @@ class Flight:  # pylint: disable=too-many-public-methods
         v = Vector([vx, vy, vz])  # CDM velocity vector
         e = [e0, e1, e2, e3]  # Euler parameters/quaternions
         w = Vector([omega1, omega2, omega3])  # Angular velocity vector
+        omega = [omega1, omega2, omega3]
 
         # Retrieve necessary quantities
         ## Rocket mass
@@ -1766,10 +1767,8 @@ class Flight:  # pylint: disable=too-many-public-methods
                 comp_stream_mach,
                 rho,
                 comp_cp,
+                omega,
                 comp_reynolds,
-                omega1,
-                omega2,
-                omega3,
             )
             R1 += X
             R2 += Y
