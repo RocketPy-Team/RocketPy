@@ -2,7 +2,7 @@ from cmath import isclose
 from functools import cached_property
 from itertools import product
 
-from rocketpy.tools import euler321_to_quaternions, normalize_quaternions
+from rocketpy.tools import euler313_to_quaternions, normalize_quaternions
 
 
 class Vector:
@@ -1063,25 +1063,26 @@ class Matrix:
         )
 
     @staticmethod
-    def transformation_euler_angles(roll, pitch, yaw):
+    def transformation_euler_angles(roll, pitch, roll2):
         """Returns the transformation Matrix from frame B to frame A, where B
-        is rotated by the Euler angles roll, pitch and yaw with respect to A.
+        is rotated by the Euler angles roll, pitch and roll2 in an instrinsic
+        3-1-3 sequence with respect to A.
 
         Parameters
         ----------
         roll : float
-            The roll angle in degrees.
+            The roll angle in radians.
         pitch : float
-            The pitch angle in degrees.
-        yaw : float
-            The yaw angle in degrees.
+            The pitch angle in radians.
+        roll2 : float
+            The roll2 angle in radians.
 
         Returns
         -------
         Matrix
             The transformation matrix from frame B to frame A.
         """
-        return Matrix.transformation(euler321_to_quaternions(roll, pitch, yaw))
+        return Matrix.transformation(euler313_to_quaternions(roll, pitch, roll2))
 
 
 if __name__ == "__main__":

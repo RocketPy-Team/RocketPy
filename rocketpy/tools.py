@@ -1107,40 +1107,6 @@ def normalize_quaternions(quaternions):
     return q_w / q_norm, q_x / q_norm, q_y / q_norm, q_z / q_norm
 
 
-def euler321_to_quaternions(psi, theta, phi):
-    """Calculates the quaternions (Euler parameters) from the Euler angles in
-    yaw, pitch, and roll sequence (3-2-1).
-
-    Parameters
-    ----------
-    psi : float
-        Euler angle due to roll in degrees, also known as the spin angle.
-    theta : float
-        Euler angle due to pitch in degrees, also known as the nutation angle.
-    phi : float
-        Euler angle due to yaw in degrees, also known as the precession angle.
-
-    Returns
-    -------
-    tuple[float, float, float, float]
-        Tuple containing the Euler parameters e0, e1, e2, e3
-    """
-    phi = math.radians(phi)
-    theta = math.radians(theta)
-    psi = math.radians(psi)
-    cr = math.cos(phi / 2)
-    sr = math.sin(phi / 2)
-    cp = math.cos(theta / 2)
-    sp = math.sin(theta / 2)
-    cy = math.cos(psi / 2)
-    sy = math.sin(psi / 2)
-    e0 = cr * cp * cy + sr * sp * sy
-    e1 = sr * cp * cy - cr * sp * sy
-    e2 = cr * sp * cy + sr * cp * sy
-    e3 = cr * cp * sy - sr * sp * cy
-    return e0, e1, e2, e3
-
-
 def euler313_to_quaternions(phi, theta, psi):
     """Convert 3-1-3 Euler angles to Euler parameters (quaternions).
 
@@ -1148,7 +1114,7 @@ def euler313_to_quaternions(phi, theta, psi):
     ----------
     phi : float
         Rotation angle around the z-axis (in radians). Represents the precession
-        angle or the yaw angle.
+        angle or the roll angle.
     theta : float
         Rotation angle around the x-axis (in radians). Represents the nutation
         angle or the pitch angle.
@@ -1165,18 +1131,16 @@ def euler313_to_quaternions(phi, theta, psi):
     ----------
     https://www.astro.rug.nl/software/kapteyn-beta/_downloads/attitude.pdf
     """
-    e0 = np.cos(phi / 2) * np.cos(theta / 2) * np.cos(psi / 2) - np.sin(
-        phi / 2
-    ) * np.cos(theta / 2) * np.sin(psi / 2)
-    e1 = np.cos(phi / 2) * np.cos(psi / 2) * np.sin(theta / 2) + np.sin(
-        phi / 2
-    ) * np.sin(theta / 2) * np.sin(psi / 2)
-    e2 = np.cos(phi / 2) * np.sin(theta / 2) * np.sin(psi / 2) - np.sin(
-        phi / 2
-    ) * np.cos(psi / 2) * np.sin(theta / 2)
-    e3 = np.cos(phi / 2) * np.cos(theta / 2) * np.sin(psi / 2) + np.cos(
-        theta / 2
-    ) * np.cos(psi / 2) * np.sin(phi / 2)
+    cphi = np.cos(phi / 2)
+    sphi = np.sin(phi / 2)
+    ctheta = np.cos(theta / 2)
+    stheta = np.sin(theta / 2)
+    cpsi = np.cos(psi / 2)
+    spsi = np.sin(psi / 2)
+    e0 = cphi * ctheta * cpsi - sphi * ctheta * spsi
+    e1 = cphi * cpsi * stheta + sphi * stheta * spsi
+    e2 = cphi * stheta * spsi - sphi * cpsi * stheta
+    e3 = cphi * ctheta * spsi + ctheta * cpsi * sphi
     return e0, e1, e2, e3
 
 
