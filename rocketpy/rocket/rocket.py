@@ -304,16 +304,11 @@ class Rocket:
         self.thrust_eccentricity_y = 0
         self.thrust_eccentricity_x = 0
 
-        # Parachute, Aerodynamic and Rail buttons data initialization
+        # Parachute, Aerodynamic, Buttons, Controllers, Sensor data initialization
         self.parachutes = []
-
-        # Controllers data initialization
         self._controllers = []
-
-        # AirBrakes data initialization
         self.air_brakes = []
-
-        # Aerodynamic data initialization
+        self.sensors = Components()
         self.aerodynamic_surfaces = Components()
         self.surfaces_cp_to_cdm = {}
         self.rail_buttons = Components()
@@ -1457,6 +1452,34 @@ class Rocket:
         self.parachutes.append(parachute)
         return self.parachutes[-1]
 
+    def add_sensor(self, sensor, position):
+        """Adds a sensor to the rocket.
+
+        Parameters
+        ----------
+        sensor : Sensor
+            Sensor to be added to the rocket.
+        position : int, float, tuple, list, Vector
+            Position of the sensor. If a Vector, tuple or list is passed, it
+            must be in the format (x, y, z) where x, y, and z are defined in the
+            rocket's user defined coordinate system. If a single value is
+            passed, it is assumed to be along the z-axis (centerline) of the
+            rocket's user defined coordinate system and angular_position and
+            radius must be given.
+
+        Returns
+        -------
+        None
+        """
+        if isinstance(position, (float, int)):
+            position = (0, 0, position)
+        position = Vector(position)
+        self.sensors.add(sensor, position)
+        try:
+            sensor._attached_rockets[self] += 1
+        except KeyError:
+            sensor._attached_rockets[self] = 1
+
     def add_air_brakes(
         self,
         drag_coefficient_curve,
@@ -1524,6 +1547,11 @@ class Rocket:
             6. `interactive_objects` (list): A list containing the objects that
                the controller function can interact with. The objects are
                listed in the same order as they are provided in the
+               `interactive_objects`
+            7. `sensors` (list): A list of sensors that are attached to the
+                rocket. The most recent measurements of the sensors are provided
+                with the ``sensor.measurement`` attribute. The sensors are
+                listed in the same order as they are added to the rocket
                ``interactive_objects``
 
             This function will be called during the simulation at the specified
@@ -1757,7 +1785,7 @@ class Rocket:
         self.thrust_eccentricity_x = y
         return self
 
-    def draw(self, vis_args=None):
+    def draw(self, vis_args=None, plane="xz"):
         """Draws the rocket in a matplotlib figure.
 
         Parameters
@@ -1781,8 +1809,11 @@ class Rocket:
 
             A full list of color names can be found at:
             https://matplotlib.org/stable/gallery/color/named_colors
+        plane : str, optional
+            Plane in which the rocket will be drawn. Default is 'xz'. Other
+            options is 'yz'. Used only for sensors representation.
         """
-        self.plots.draw(vis_args)
+        self.plots.draw(vis_args, plane)
 
     def info(self):
         """Prints out a summary of the data and graphs available about
