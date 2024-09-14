@@ -373,21 +373,33 @@ class Fins(AeroSurface):
         stream_mach,
         rho,
         cp,
-        _,
-        omega1,
-        omega2,
-        omega3,
+        omega,
         *args,
-        **kwargs,
-    ):
+    ):  # pylint: disable=arguments-differ
         """Computes the forces and moments acting on the aerodynamic surface.
 
         Parameters
         ----------
-        stream_speed : int, float
-            Speed of the flow stream in the body frame.
+        stream_velocity : tuple of float
+            The velocity of the airflow relative to the surface.
+        stream_speed : float
+            The magnitude of the airflow speed.
+        stream_mach : float
+            The Mach number of the airflow.
+        rho : float
+            Air density.
+        cp : Vector
+            Center of pressure coordinates in the body frame.
+        omega: tuple[float, float, float]
+            Tuple containing angular velocities around the x, y, z axes.
 
+        Returns
+        -------
+        tuple of float
+            The aerodynamic forces (lift, side_force, drag) and moments
+            (pitch, yaw, roll) in the body frame.
         """
+
         R1, R2, R3, M1, M2, _ = super().compute_forces_and_moments(
             stream_velocity,
             stream_speed,
@@ -408,7 +420,7 @@ class Fins(AeroSurface):
             * self.reference_area
             * (self.reference_length) ** 2
             * cld_omega.get_value_opt(stream_mach)
-            * omega3
+            * omega[2]
             / 2
         )
         M3 = M3_forcing - M3_damping

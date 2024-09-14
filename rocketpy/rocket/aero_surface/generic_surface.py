@@ -1,3 +1,4 @@
+import copy
 import csv
 import math
 
@@ -17,12 +18,7 @@ class GenericSurface:
         self,
         reference_area,
         reference_length,
-        cL=0,
-        cQ=0,
-        cD=0,
-        cm=0,
-        cn=0,
-        cl=0,
+        coefficients,
         center_of_pressure=(0, 0, 0),
         name="Generic Surface",
     ):
@@ -51,24 +47,27 @@ class GenericSurface:
         reference_length : int, float
             Reference length of the aerodynamic surface. Has the unit of meters.
             Commonly defined as the rocket's diameter.
-        cL : str, callable, optional
-            Lift coefficient. Can be a path to a CSV file or a callable.
-            Default is 0.
-        cQ : str, callable, optional
-            Side force coefficient. Can be a path to a CSV file or a callable.
-            Default is 0.
-        cD : str, callable, optional
-            Drag coefficient. Can be a path to a CSV file or a callable.
-            Default is 0.
-        cm : str, callable, optional
-            Pitch moment coefficient. Can be a path to a CSV file or a callable.
-            Default is 0.
-        cn : str, callable, optional
-            Yaw moment coefficient. Can be a path to a CSV file or a callable.
-            Default is 0.
-        cl : str, callable, optional
-            Roll moment coefficient. Can be a path to a CSV file or a callable.
-            Default is 0.
+        coefficients: dict
+            List of coefficients. If a coefficient is omitted, it is set to 0.
+            The valid coefficients are:\n
+            cL: str, callable, optional
+                Lift coefficient. Can be a path to a CSV file or a callable.
+                Default is 0.\n
+            cQ: str, callable, optional
+                Side force coefficient. Can be a path to a CSV file or a callable.
+                Default is 0.\n
+            cD: str, callable, optional
+                Drag coefficient. Can be a path to a CSV file or a callable.
+                Default is 0.\n
+            cm: str, callable, optional
+                Pitch moment coefficient. Can be a path to a CSV file or a callable.
+                Default is 0.\n
+            cn: str, callable, optional
+                Yaw moment coefficient. Can be a path to a CSV file or a callable.
+                Default is 0.\n
+            cl: str, callable, optional
+                Roll moment coefficient. Can be a path to a CSV file or a callable.
+                Default is 0.\n
         center_of_pressure : tuple, list, optional
             Application point of the aerodynamic forces and moments. The
             center of pressure is defined in the local coordinate system of the
@@ -76,6 +75,7 @@ class GenericSurface:
         name : str, optional
             Name of the aerodynamic surface. Default is 'GenericSurface'.
         """
+
         self.reference_area = reference_area
         self.reference_length = reference_length
         self.center_of_pressure = center_of_pressure
@@ -85,12 +85,80 @@ class GenericSurface:
         self.cpz = center_of_pressure[2]
         self.name = name
 
-        self.cL = self._process_input(cL, "cL")
-        self.cD = self._process_input(cD, "cD")
-        self.cQ = self._process_input(cQ, "cQ")
-        self.cm = self._process_input(cm, "cm")
-        self.cn = self._process_input(cn, "cn")
-        self.cl = self._process_input(cl, "cl")
+        default_coefficients = self._get_default_coefficients()
+        self._check_coefficients(coefficients, default_coefficients)
+        coefficients = self._complete_coefficients(coefficients, default_coefficients)
+        for coeff, coeff_value in coefficients.items():
+            value = self._process_input(coeff_value, coeff)
+            setattr(self, coeff, value)
+
+    def _get_default_coefficients(self):
+        """Returns default coefficients
+
+        Returns
+        -------
+        default_coefficients: dict
+            Dictionary whose keys are the coefficients names and keys
+            are the default values.
+        """
+        default_coefficients = {
+            "cL": 0,
+            "cQ": 0,
+            "cD": 0,
+            "cm": 0,
+            "cn": 0,
+            "cl": 0,
+        }
+        return default_coefficients
+
+    def _complete_coefficients(self, input_coefficients, default_coefficients):
+        """Creates a copy of the input coefficients dict and fill it with missing
+        keys with default values
+
+        Parameters
+        ----------
+        input_coefficients : str, dict
+            Coefficients dictionary passed by the user. If the user only specifies some
+            of the coefficients, the remaining are completed with class default
+            values
+        default_coefficients : dict
+            Default coefficients of the class
+
+        Returns
+        -------
+        coefficients : dict
+            Coefficients dictionary used to setup coefficient attributes
+        """
+        coefficients = copy.deepcopy(input_coefficients)
+        for coeff, value in default_coefficients.items():
+            if coeff not in coefficients.keys():
+                coefficients[coeff] = value
+
+        return coefficients
+
+    def _check_coefficients(self, input_coefficients, default_coefficients):
+        """Check if input coefficients have only valid keys
+
+        Parameters
+        ----------
+        input_coefficients : str, dict
+            Coefficients dictionary passed by the user. If the user only specifies some
+            of the coefficients, the remaining are completed with class default
+            values
+        default_coefficients : dict
+            Default coefficients of the class
+
+        Raises
+        ------
+        ValueError
+            Raises a value error if the input coefficient has an invalid key
+        """
+        invalid_keys = set(input_coefficients) - set(default_coefficients)
+        if invalid_keys:
+            raise ValueError(
+                f"Invalid coefficient name(s) used in key(s): {', '.join(invalid_keys)}. "
+                "Check the documentation for valid names."
+            )
 
     def _compute_from_coefficients(
         self,
@@ -169,12 +237,8 @@ class GenericSurface:
         stream_mach,
         rho,
         cp,
+        omega,
         reynolds,
-        omega1,
-        omega2,
-        omega3,
-        *args,
-        **kwargs,
     ):
         """Computes the forces and moments acting on the aerodynamic surface.
         Used in each time step of the simulation.  This method is valid for
@@ -192,10 +256,10 @@ class GenericSurface:
             Air density.
         cp : Vector
             Center of pressure coordinates in the body frame.
+        omega: tuple[float, float, float]
+            Tuple containing angular velocities around the x, y, z axes.
         reynolds : float
             Reynolds number.
-        omega1, omega2, omega3 : float
-            Angular velocities around the x, y, z axes.
 
         Returns
         -------
@@ -218,9 +282,9 @@ class GenericSurface:
             beta,
             stream_mach,
             reynolds,
-            omega1,
-            omega2,
-            omega3,
+            omega[0],
+            omega[1],
+            omega[2],
         )
 
         # Conversion from aerodynamic frame to body frame
@@ -320,7 +384,7 @@ class GenericSurface:
                 reader = csv.reader(file)
                 header = next(reader)
         except (FileNotFoundError, IOError) as e:
-            raise ValueError(f"Error reading {coeff_name} CSV file: {e}")
+            raise ValueError(f"Error reading {coeff_name} CSV file: {e}") from e
 
         if not header:
             raise ValueError(f"Invalid or empty CSV file for {coeff_name}.")
