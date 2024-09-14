@@ -4,12 +4,19 @@ Generic Surfaces and Custom Aerodynamic Coefficients
 ====================================================
 
 Generic aerodynamic surfaces can be used to model aerodynamic forces based on 
-force and moment coefficients. The :class:`rocketpy.GenericSurface` class is a
-parent class for all generic surfaces. The :class:`rocketpy.LinearGenericSurface`
-class is a child class of :class:`rocketpy.GenericSurface` and is used to model
-aerodynamic forces based on linear force and moment coefficients.
+force and moment coefficients. The :class:`rocketpy.GenericSurface` receives the
+coefficients as functions of the angle of attack, side slip angle, Mach number,
+Reynolds number, pitch rate, yaw rate, and roll rate.
 
-Both classes base their coeffcient on the definition of the aerodynamic frame
+The :class:`rocketpy.LinearGenericSurface` class model aerodynamic forces based
+the force and moment coefficients derivatives. The coefficients are derivatives
+of the force and moment coefficients with respect to the angle of attack, side
+slip angle, Mach number, Reynolds number, pitch rate, yaw rate, and roll rate.
+
+These classes allows the user to be less dependent on the built-in aerodynamic
+surfaces and to define their own aerodynamic coefficients.
+
+Both classes base their coefficient on the definition of the aerodynamic frame
 of reference.
 
 Aerodynamic Frame
@@ -85,6 +92,7 @@ Where:
 
 - :math:`\bar{q}` is the dynamic pressure.
 - :math:`A_{ref}` is the reference area used to calculate the coefficients.
+   Commonly the rocket's cross-sectional area is used as the reference area.
 
 The moment coefficients can be defined as:
 
@@ -100,6 +108,7 @@ And the moments from the coefficients are defined as:
 Where:
 
 - :math:`L_{ref}` is the reference length used to calculate the coefficients.
+  Commonly the rocket's diameter is used as the reference length.
 
 
 Aerodynamic angles
@@ -107,11 +116,11 @@ Aerodynamic angles
 
 There aerodynamic angles are defined in two different ways in RocketPy:
 
-- As the angle of attack (:math:`\alpha`) and the side slip 
-  angle (:math:`\beta`), which are defined in the image above. These are used
+- As the angle of attack (:math:`\alpha`) and the side slip \
+  angle (:math:`\beta`), which are defined in the image above. These are used \
   in the calculation of the generic surface forces and moments.
-- As the total angle of attack (:math:`\alpha_{\text{tot}}`), defined as the
-  angle between the total velocity vector and the rocket's centerline. This is
+- As the total angle of attack (:math:`\alpha_{\text{tot}}`), defined as the \
+  angle between the total velocity vector and the rocket's centerline. This is \
   used in the calculation of the standard aerodynamic surface forces and moments.
 
 The partial angles are calculated as:
@@ -139,7 +148,7 @@ The total angle of attack is calculated as:
 Generic Surface Class
 ---------------------
 
-The :class:`rocketpy.GenericSurface` class is used to define a aerodynamic
+The :class:`rocketpy.GenericSurface` class is used to define an aerodynamic
 surface based on force and moment coefficients. A generic surface is defined
 as follows:
 
@@ -151,10 +160,13 @@ as follows:
 .. code-block:: python
 
    from rocketpy import GenericSurface
+   
+   radius = 0.0635
+   
    generic_surface = GenericSurface(
-      reference_area=np.pi * 0.0635**2,
-      reference_length=2 * 0.0635,
-      coeffcients={
+      reference_area=np.pi * radius**2,
+      reference_length=2 * radius,
+      coefficients={
          "cL": "cL.csv",
          "cQ": "cQ.csv",
          "cD": "cD.csv",
@@ -165,7 +177,7 @@ as follows:
       name="Generic Surface",
    )
 
-The ``coeffcients`` argument is a dictionary containing the coefficients of the
+The ``coefficients`` argument is a dictionary containing the coefficients of the
 generic surface. The keys of the dictionary are the coefficient names, and the
 values are the coefficients. The possible coefficient names are:
 
@@ -224,7 +236,7 @@ These coefficients can be defined as a callable such as:
 In which any algorithm can be implemented to calculate the coefficient values.
 
 Otherwise, the coefficients can be defined as a ``.csv`` file. The file must
-contain a header with at least one of the following columns representin the
+contain a header with at least one of the following columns representing the
 independent variables:
 
 - ``alpha``: Angle of attack.
@@ -280,13 +292,13 @@ The position of the generic surface is defined in the User Defined coordinate
 System, see :ref:`rocketaxes` for more information.
 
 .. tip::
-   If defining the coeffcients of the entire rocket is desired, only a single
+   If defining the coefficients of the entire rocket is desired, only a single
    generic surface can be added to the rocket, positioned at the center of dry 
    mass. This will be equivalent to defining the coefficients of the entire
    rocket.
 
 .. attention::
-   If there generic is positioned **not** at the center of dry mass, the
+   If there generic surface is positioned **not** at the center of dry mass, the
    forces generated by the force coefficients (cL, cQ, cD) will generate a
    moment around the center of dry mass. This moment will be calculated and
    added to the moment generated by the moment coefficients (cm, cn, cl).
@@ -298,7 +310,7 @@ Linear Generic Surface Class
 ----------------------------
 
 The :class:`rocketpy.LinearGenericSurface` class is used to define a aerodynamic
-surface based on the forces and moments coeffcient derivatives. A linear generic
+surface based on the forces and moments coefficient derivatives. A linear generic
 surface will receive the derivatives of each coefficient with respect to the
 independent variables. The derivatives are defined as:
 
@@ -368,7 +380,7 @@ shown below:
       linear_generic_surface = LinearGenericSurface(
          reference_area=np.pi * 0.0635**2,
          reference_length=2 * 0.0635,
-         coeffcients={
+         coefficients={
             "cL_0": "cL_0.csv",
             "cL_alpha": "cL_alpha.csv",
             "cL_beta": "cL_beta.csv",

@@ -17,5 +17,5 @@ Rocket Usage
     :maxdepth: 3
     :caption: Generic Surfaces and Custom Aerodynamic Coefficients
     
-    Generic Surfaces and Custom Aerodynamic Coefficients <aerodynamic_frame_coeffs.rst>
+    Generic Surfaces and Custom Aerodynamic Coefficients <generic_surface.rst>
     
