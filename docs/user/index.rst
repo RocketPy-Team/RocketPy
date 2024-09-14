@@ -15,7 +15,6 @@ RocketPy's User Guide
    Positions and Coordinate Systems <positions.rst>
    Motors <motors/motors.rst>
    Rocket <rocket/rocket.rst>
-   Environment <environment.rst>
 
 .. toctree::
    :maxdepth: 2

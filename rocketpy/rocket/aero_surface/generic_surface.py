@@ -36,8 +36,7 @@ class GenericSurface:
 
         See Also
         --------
-        For more information on how to create a custom aerodynamic surface,
-        check TODO: ADD LINK TO DOCUMENTATION
+        :ref:`genericsurfaces`.
 
         Parameters
         ----------
@@ -260,6 +259,8 @@ class GenericSurface:
             Tuple containing angular velocities around the x, y, z axes.
         reynolds : float
             Reynolds number.
+        omega: tuple of float
+            Tuple containing angular velocities around the x, y, z axes.
 
         Returns
         -------
