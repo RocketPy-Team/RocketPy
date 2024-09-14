@@ -378,11 +378,6 @@ class Fins(AeroSurface):
     ):  # pylint: disable=arguments-differ
         """Computes the forces and moments acting on the aerodynamic surface.
 
-        Parameters
-        ----------
-        stream_speed : int, float
-            Speed of the flow stream in the body frame.
-
         """
         R1, R2, R3, M1, M2, _ = super().compute_forces_and_moments(
             stream_velocity,

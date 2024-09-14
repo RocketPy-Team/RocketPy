@@ -153,12 +153,12 @@ class GenericSurface:
         ValueError
             Raises a value error if the input coefficient has an invalid key
         """
-        for key in input_coefficients.keys():
-            if key not in default_coefficients.keys():
-                raise ValueError(
-                    "Invalid coefficient name used in key! Check the "
-                    + "documentation for valid names."
-                )
+        invalid_keys = set(input_coefficients) - set(default_coefficients)
+        if invalid_keys:
+            raise ValueError(
+                f"Invalid coefficient name(s) used in key(s): {', '.join(invalid_keys)}. "
+                "Check the documentation for valid names."
+            )
 
     def _compute_from_coefficients(
         self,
@@ -256,10 +256,10 @@ class GenericSurface:
             Air density.
         cp : Vector
             Center of pressure coordinates in the body frame.
+        omega: tuple[float, float, float]
+            Tuple containing angular velocities around the x, y, z axes.
         reynolds : float
             Reynolds number.
-        omega: tuple of float
-            Tuple containing angular velocities around the x, y, z axes.
 
         Returns
         -------
