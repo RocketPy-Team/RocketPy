@@ -12,4 +12,10 @@ Rocket Usage
     :caption: Rocket Class Axes Definitions
 
     Rocket Class Axes Definitions <rocket_axes.rst>
+
+.. toctree::
+    :maxdepth: 3
+    :caption: Generic Surfaces and Custom Aerodynamic Coefficients
+    
+    Generic Surfaces and Custom Aerodynamic Coefficients <aerodynamic_frame_coeffs.rst>
     
