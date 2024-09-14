@@ -1806,10 +1806,10 @@ class Flight:  # pylint: disable=too-many-public-methods
             # TODO: Reynolds is only used in generic surfaces. This calculation
             # should be moved to the surface class for efficiency
             comp_reynolds = (
-                self.env.density.get_value_opt(z)
+                self.env.density.get_value_opt(comp_z)
                 * comp_stream_speed
                 * aero_surface.reference_length
-                / self.env.dynamic_viscosity.get_value_opt(z)
+                / self.env.dynamic_viscosity.get_value_opt(comp_z)
             )
             # Forces and moments
             X, Y, Z, M, N, L = aero_surface.compute_forces_and_moments(
