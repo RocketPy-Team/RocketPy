@@ -16,6 +16,11 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import integrate, linalg, optimize
+from scipy.interpolate import (
+    LinearNDInterpolator,
+    NearestNDInterpolator,
+    RBFInterpolator,
+)
 
 # Numpy 1.x compatibility,
 # TODO: remove these lines when all dependencies support numpy>=2.0.0
@@ -32,6 +37,7 @@ INTERPOLATION_TYPES = {
     "akima": 2,
     "spline": 3,
     "shepard": 4,
+    "rbf": 5,
 }
 EXTRAPOLATION_TYPES = {"zero": 0, "natural": 1, "constant": 2}
 
@@ -224,6 +230,8 @@ class Function:  # pylint: disable=too-many-public-methods
         else:
             # Evaluate dimension
             self.__dom_dim__ = source.shape[1] - 1
+            self._domain = source[:, :-1]
+            self._image = source[:, -1]
 
             # set x and y. If Function is 2D, also set z
             if self.__dom_dim__ == 1:
@@ -330,22 +338,29 @@ class Function:  # pylint: disable=too-many-public-methods
 
     def __set_interpolation_func(self):  # pylint: disable=too-many-statements
         """Defines interpolation function used by the Function. Each
-        interpolation method has its own function with exception of shepard,
-        which has its interpolation/extrapolation function defined in
-        ``Function.__interpolate_shepard__``. The function is stored in
-        the attribute _interpolation_func."""
+        interpolation method has its own function`.
+        The function is stored in the attribute _interpolation_func."""
         interpolation = INTERPOLATION_TYPES[self.__interpolation__]
         if interpolation == 0:  # linear
+            if self.__dom_dim__ == 1:
 
-            def linear_interpolation(
-                x, x_min, x_max, x_data, y_data, coeffs
-            ):  # pylint: disable=unused-argument
-                x_interval = bisect_left(x_data, x)
-                x_left = x_data[x_interval - 1]
-                y_left = y_data[x_interval - 1]
-                dx = float(x_data[x_interval] - x_left)
-                dy = float(y_data[x_interval] - y_left)
-                return (x - x_left) * (dy / dx) + y_left
+                def linear_interpolation(
+                    x, x_min, x_max, x_data, y_data, coeffs
+                ):  # pylint: disable=unused-argument
+                    x_interval = bisect_left(x_data, x)
+                    x_left = x_data[x_interval - 1]
+                    y_left = y_data[x_interval - 1]
+                    dx = float(x_data[x_interval] - x_left)
+                    dy = float(y_data[x_interval] - y_left)
+                    return (x - x_left) * (dy / dx) + y_left
+
+            else:
+                interpolator = LinearNDInterpolator(self._domain, self._image)
+
+                def linear_interpolation(
+                    x, x_min, x_max, x_data, y_data, coeffs
+                ):  # pylint: disable=unused-argument
+                    return interpolator(x)
 
             self._interpolation_func = linear_interpolation
 
@@ -383,8 +398,41 @@ class Function:  # pylint: disable=too-many-public-methods
 
             self._interpolation_func = spline_interpolation
 
-        elif interpolation == 4:  # shepard does not use interpolation function
-            self._interpolation_func = None
+        elif interpolation == 4:  # shepard
+
+            # pylint: disable=unused-argument
+            def shepard_interpolation(x, x_min, x_max, x_data, y_data, _):
+                arg_qty, arg_dim = x.shape
+                result = np.empty(arg_qty)
+                x = x.reshape((arg_qty, 1, arg_dim))
+                sub_matrix = x_data - x
+                distances_squared = np.sum(sub_matrix**2, axis=2)
+
+                # Remove zero distances from further calculations
+                zero_distances = np.where(distances_squared == 0)
+                valid_indexes = np.ones(arg_qty, dtype=bool)
+                valid_indexes[zero_distances[0]] = False
+
+                weights = distances_squared[valid_indexes] ** (-1.5)
+                numerator_sum = np.sum(y_data * weights, axis=1)
+                denominator_sum = np.sum(weights, axis=1)
+                result[valid_indexes] = numerator_sum / denominator_sum
+                result[~valid_indexes] = y_data[zero_distances[1]]
+
+                return result
+
+            self._interpolation_func = shepard_interpolation
+
+        elif interpolation == 5:  # RBF
+
+            interpolator = RBFInterpolator(self._domain, self._image, neighbors=100)
+
+            def rbf_interpolation(
+                x, x_min, x_max, x_data, y_data, coeffs
+            ):  # pylint: disable=unused-argument
+                return interpolator(x)
+
+            self._interpolation_func = rbf_interpolation
 
     def __set_extrapolation_func(self):  # pylint: disable=too-many-statements
         """Defines extrapolation function used by the Function. Each
@@ -393,10 +441,7 @@ class Function:  # pylint: disable=too-many-public-methods
         interpolation = INTERPOLATION_TYPES[self.__interpolation__]
         extrapolation = EXTRAPOLATION_TYPES[self.__extrapolation__]
 
-        if interpolation == 4:  # shepard does not use extrapolation function
-            self._extrapolation_func = None
-
-        elif extrapolation == 0:  # zero
+        if extrapolation == 0:  # zero
 
             def zero_extrapolation(
                 x, x_min, x_max, x_data, y_data, coeffs
@@ -407,15 +452,27 @@ class Function:  # pylint: disable=too-many-public-methods
         elif extrapolation == 1:  # natural
             if interpolation == 0:  # linear
 
-                def natural_extrapolation(
-                    x, x_min, x_max, x_data, y_data, coeffs
-                ):  # pylint: disable=unused-argument
-                    x_interval = 1 if x < x_min else -1
-                    x_left = x_data[x_interval - 1]
-                    y_left = y_data[x_interval - 1]
-                    dx = float(x_data[x_interval] - x_left)
-                    dy = float(y_data[x_interval] - y_left)
-                    return (x - x_left) * (dy / dx) + y_left
+                if self.__dom_dim__ == 1:
+
+                    def natural_extrapolation(
+                        x, x_min, x_max, x_data, y_data, coeffs
+                    ):  # pylint: disable=unused-argument
+                        x_interval = 1 if x < x_min else -1
+                        x_left = x_data[x_interval - 1]
+                        y_left = y_data[x_interval - 1]
+                        dx = float(x_data[x_interval] - x_left)
+                        dy = float(y_data[x_interval] - y_left)
+                        return (x - x_left) * (dy / dx) + y_left
+
+                else:
+                    interpolator = RBFInterpolator(
+                        self._domain, self._image, neighbors=100
+                    )
+
+                    def natural_extrapolation(
+                        x, x_min, x_max, x_data, y_data, coeffs
+                    ):  # pylint: disable=unused-argument
+                        return interpolator(x)
 
             elif interpolation == 1:  # polynomial
 
@@ -445,13 +502,55 @@ class Function:  # pylint: disable=too-many-public-methods
                         x = x - x_data[-2]
                     return a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
 
+            elif interpolation == 4:  # shepard
+
+                # pylint: disable=unused-argument
+                def natural_extrapolation(x, x_min, x_max, x_data, y_data, _):
+                    arg_qty, arg_dim = x.shape
+                    result = np.empty(arg_qty)
+                    x = x.reshape((arg_qty, 1, arg_dim))
+                    sub_matrix = x_data - x
+                    distances_squared = np.sum(sub_matrix**2, axis=2)
+
+                    # Remove zero distances from further calculations
+                    zero_distances = np.where(distances_squared == 0)
+                    valid_indexes = np.ones(arg_qty, dtype=bool)
+                    valid_indexes[zero_distances[0]] = False
+
+                    weights = distances_squared[valid_indexes] ** (-1.5)
+                    numerator_sum = np.sum(y_data * weights, axis=1)
+                    denominator_sum = np.sum(weights, axis=1)
+                    result[valid_indexes] = numerator_sum / denominator_sum
+                    result[~valid_indexes] = y_data[zero_distances[1]]
+
+                    return result
+
+            elif interpolation == 5:  # RBF
+
+                interpolator = RBFInterpolator(self._domain, self._image, neighbors=100)
+
+                def natural_extrapolation(
+                    x, x_min, x_max, x_data, y_data, coeffs
+                ):  # pylint: disable=unused-argument
+                    return interpolator(x)
+
             self._extrapolation_func = natural_extrapolation
         elif extrapolation == 2:  # constant
 
-            def constant_extrapolation(
-                x, x_min, x_max, x_data, y_data, coeffs
-            ):  # pylint: disable=unused-argument
-                return y_data[0] if x < x_min else y_data[-1]
+            if self.__dom_dim__ == 1:
+
+                def constant_extrapolation(
+                    x, x_min, x_max, x_data, y_data, coeffs
+                ):  # pylint: disable=unused-argument
+                    return y_data[0] if x < x_min else y_data[-1]
+
+            else:
+
+                extrapolator = NearestNDInterpolator(self._domain, self._image)
+
+                def constant_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):
+                    # pylint: disable=unused-argument
+                    return extrapolator(x)
 
             self._extrapolation_func = constant_extrapolation
 
@@ -496,10 +595,41 @@ class Function:  # pylint: disable=too-many-public-methods
         return y
 
     def __get_value_opt_nd(self, *args):
-        """Evaluate the Function at a single point (x, y, z). This method is
-        used when the Function is N-D."""
-        # always use shepard for N-D functions
-        return self.__interpolate_shepard__(args)
+        """Evaluate the Function in a vectorized fashion for ND domains.
+
+        Parameters
+        ----------
+        args : tuple
+            Values where the Function is to be evaluated.
+
+        Returns
+        -------
+        result : scalar, ndarray
+            Value of the Function at the specified points.
+        """
+        args = np.column_stack(args)
+        arg_qty = len(args)
+        result = np.empty(arg_qty)
+
+        min_domain = self._domain.T.min(axis=1)
+        max_domain = self._domain.T.max(axis=1)
+
+        lower, upper = args < min_domain, args > max_domain
+        extrap = np.logical_or(lower.any(axis=1), upper.any(axis=1))
+
+        if extrap.any():
+            result[extrap] = self._extrapolation_func(
+                args[extrap], min_domain, max_domain, self._domain, self._image, None
+            )
+        if (~extrap).any():
+            result[~extrap] = self._interpolation_func(
+                args[~extrap], min_domain, max_domain, self._domain, self._image, None
+            )
+
+        if arg_qty == 1:
+            return float(result[0])
+
+        return result
 
     def set_discrete(
         self,
@@ -898,7 +1028,7 @@ class Function:  # pylint: disable=too-many-public-methods
                 if all(isinstance(arg, Iterable) for arg in args):
                     return [self.source(*arg) for arg in zip(*args)]
 
-        elif self.__dom_dim__ > 1:  # deals with nd functions and shepard interp
+        elif self.__dom_dim__ > 1:  # deals with nd functions
             return self.get_value_opt(*args)
 
         # Returns value for other interpolation type
@@ -1764,47 +1894,6 @@ class Function:  # pylint: disable=too-many-public-methods
             result = np.array([yl, yr, dl, dr]).T
             coeffs[4 * i : 4 * i + 4] = np.linalg.solve(matrix, result)
         self.__akima_coefficients__ = coeffs
-
-    def __interpolate_shepard__(self, args):
-        """Calculates the shepard interpolation from the given arguments.
-        The shepard interpolation is computed by a inverse distance weighting
-        in a vectorized manner.
-
-        Parameters
-        ----------
-        args : scalar, list
-            Values where the Function is to be evaluated.
-
-        Returns
-        -------
-        result : scalar, list
-            The result of the interpolation.
-        """
-        x_data = self.source[:, 0:-1]  # Support for N-Dimensions
-        y_data = self.source[:, -1]
-
-        arg_stack = np.column_stack(args)
-        arg_qty, arg_dim = arg_stack.shape
-        result = np.zeros(arg_qty)
-
-        # Reshape to vectorize calculations
-        x = arg_stack.reshape(arg_qty, 1, arg_dim)
-
-        sub_matrix = x_data - x
-        distances_squared = np.sum(sub_matrix**2, axis=2)
-
-        # Remove zero distances from further calculations
-        zero_distances = np.where(distances_squared == 0)
-        valid_indexes = np.ones(arg_qty, dtype=bool)
-        valid_indexes[zero_distances[0]] = False
-
-        weights = distances_squared[valid_indexes] ** (-1.5)
-        numerator_sum = np.sum(y_data * weights, axis=1)
-        denominator_sum = np.sum(weights, axis=1)
-        result[valid_indexes] = numerator_sum / denominator_sum
-        result[~valid_indexes] = y_data[zero_distances[1]]
-
-        return result if len(result) > 1 else result[0]
 
     def __neg__(self):
         """Negates the Function object. The result has the same effect as
@@ -3238,14 +3327,17 @@ class Function:  # pylint: disable=too-many-public-methods
                 interpolation = "spline"
         ## multiple dimensions
         elif self.__dom_dim__ > 1:
-            if interpolation not in [None, "shepard"]:
+            if interpolation is None:
+                interpolation = "shepard"
+            if interpolation not in ["shepard", "linear", "rbf"]:
                 warnings.warn(
                     (
-                        "Interpolation method set to 'shepard'. Only 'shepard' "
-                        "interpolation is supported for multiple dimensions."
+                        "Interpolation method set to 'shepard'. The methods "
+                        "'linear' and 'shepard' are supported for multiple "
+                        "dimensions."
                     ),
                 )
-            interpolation = "shepard"
+                interpolation = "shepard"
         return interpolation
 
     def __validate_extrapolation(self, extrapolation):
@@ -3261,12 +3353,19 @@ class Function:  # pylint: disable=too-many-public-methods
 
         ## multiple dimensions
         elif self.__dom_dim__ > 1:
-            if extrapolation not in [None, "natural"]:
+            if extrapolation is None:
+                extrapolation = "natural"
+            if extrapolation == "natural" and self.__interpolation__ == "linear":
+                warnings.warn(
+                    "Extrapolation 'natural' is not supported for multidimensional "
+                    "linear interpolation. 'rbf' will be used to extrapolate."
+                )
+            elif extrapolation not in ["constant", "natural", "zero"]:
                 warnings.warn(
                     "Extrapolation method set to 'natural'. Other methods "
                     "are not supported yet."
                 )
-            extrapolation = "natural"
+                extrapolation = "natural"
         return extrapolation
 
 
