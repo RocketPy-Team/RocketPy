@@ -32,7 +32,9 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
-- DOC : Cavour Flight Example [#682](https://github.com/RocketPy-Team/RocketPy/pull/682)
+- ENH: Fix Orientation Param of Inertial Sensors [#688](https://github.com/RocketPy-Team/RocketPy/pull/688)
+- ENH: Adds Sensors classes [#683](https://github.com/RocketPy-Team/RocketPy/pull/683)
+- DOC: Cavour Flight Example [#682](https://github.com/RocketPy-Team/RocketPy/pull/682)
 - DOC: Halcyon Flight Example [#681](https://github.com/RocketPy-Team/RocketPy/pull/681)
 - ENH: Adds GenericMotor.load_from_eng_file() method [#676](https://github.com/RocketPy-Team/RocketPy/pull/676)
 - ENH: Introducing local sensitivity analysis [#575](https://github.com/RocketPy-Team/RocketPy/pull/575)

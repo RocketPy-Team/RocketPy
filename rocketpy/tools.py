@@ -27,7 +27,7 @@ INSTALL_MAPPING = {"IPython": "ipython"}
 
 def tuple_handler(value):
     """Transforms the input value into a tuple that
-    represents a range. If the input is an input or float,
+    represents a range. If the input is an int or float,
     the output is a tuple from zero to the input value. If
     the input is a tuple or list, the output is a tuple with
     the same range.
@@ -354,11 +354,15 @@ def inverted_haversine(lat0, lon0, distance, bearing, earth_radius=6.3781e6):
     # Apply inverted Haversine formula
     lat1_rad = math.asin(
         math.sin(lat0_rad) * math.cos(distance / earth_radius)
-        + math.cos(lat0_rad) * math.sin(distance / earth_radius) * math.cos(bearing)
+        + math.cos(lat0_rad)
+        * math.sin(distance / earth_radius)
+        * math.cos(math.radians(bearing))
     )
 
     lon1_rad = lon0_rad + math.atan2(
-        math.sin(bearing) * math.sin(distance / earth_radius) * math.cos(lat0_rad),
+        math.sin(math.radians(bearing))
+        * math.sin(distance / earth_radius)
+        * math.cos(lat0_rad),
         math.cos(distance / earth_radius) - math.sin(lat0_rad) * math.sin(lat1_rad),
     )
 
@@ -1083,18 +1087,40 @@ def quaternions_to_nutation(e1, e2):
     return (180 / np.pi) * 2 * np.arcsin(-((e1**2 + e2**2) ** 0.5))
 
 
-def euler_angles_to_euler_parameters(phi, theta, psi):
-    """Convert 3-1-3 Euler Angles to Euler Parameters (quaternions).
+def normalize_quaternions(quaternions):
+    """Normalizes the quaternions (Euler parameters) to have unit magnitude.
+
+    Parameters
+    ----------
+    quaternions : tuple
+        Tuple containing the Euler parameters e0, e1, e2, e3
+
+    Returns
+    -------
+    tuple
+        Tuple containing the Euler parameters e0, e1, e2, e3
+    """
+    q_w, q_x, q_y, q_z = quaternions
+    q_norm = (q_w**2 + q_x**2 + q_y**2 + q_z**2) ** 0.5
+    if q_norm == 0:
+        return 1, 0, 0, 0
+    return q_w / q_norm, q_x / q_norm, q_y / q_norm, q_z / q_norm
+
+
+def euler313_to_quaternions(phi, theta, psi):
+    """Convert 3-1-3 Euler angles to Euler parameters (quaternions).
 
     Parameters
     ----------
     phi : float
-        Rotation angle around the z-axis (in radians). Represents the precession angle.
+        Rotation angle around the z-axis (in radians). Represents the precession
+        angle or the roll angle.
     theta : float
-        Rotation angle around the x-axis (in radians). Represents the nutation angle.
+        Rotation angle around the x-axis (in radians). Represents the nutation
+        angle or the pitch angle.
     psi : float
-        Rotation angle around the z-axis (in radians). Represents the spin angle.
-
+        Rotation angle around the z-axis (in radians). Represents the spin angle
+        or the roll angle.
 
     Returns
     -------
@@ -1105,18 +1131,16 @@ def euler_angles_to_euler_parameters(phi, theta, psi):
     ----------
     https://www.astro.rug.nl/software/kapteyn-beta/_downloads/attitude.pdf
     """
-    e0 = np.cos(phi / 2) * np.cos(theta / 2) * np.cos(psi / 2) - np.sin(
-        phi / 2
-    ) * np.cos(theta / 2) * np.sin(psi / 2)
-    e1 = np.cos(phi / 2) * np.cos(psi / 2) * np.sin(theta / 2) + np.sin(
-        phi / 2
-    ) * np.sin(theta / 2) * np.sin(psi / 2)
-    e2 = np.cos(phi / 2) * np.sin(theta / 2) * np.sin(psi / 2) - np.sin(
-        phi / 2
-    ) * np.cos(psi / 2) * np.sin(theta / 2)
-    e3 = np.cos(phi / 2) * np.cos(theta / 2) * np.sin(psi / 2) + np.cos(
-        theta / 2
-    ) * np.cos(psi / 2) * np.sin(phi / 2)
+    cphi = np.cos(phi / 2)
+    sphi = np.sin(phi / 2)
+    ctheta = np.cos(theta / 2)
+    stheta = np.sin(theta / 2)
+    cpsi = np.cos(psi / 2)
+    spsi = np.sin(psi / 2)
+    e0 = cphi * ctheta * cpsi - sphi * ctheta * spsi
+    e1 = cphi * cpsi * stheta + sphi * stheta * spsi
+    e2 = cphi * stheta * spsi - sphi * cpsi * stheta
+    e3 = cphi * ctheta * spsi + ctheta * cpsi * sphi
     return e0, e1, e2, e3
 
 

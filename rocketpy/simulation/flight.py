@@ -1,4 +1,5 @@
 # pylint: disable=too-many-lines
+import json
 import math
 import warnings
 from copy import deepcopy
@@ -14,7 +15,7 @@ from ..plots.flight_plots import _FlightPlots
 from ..prints.flight_prints import _FlightPrints
 from ..tools import (
     calculate_cubic_hermite_coefficients,
-    euler_angles_to_euler_parameters,
+    euler313_to_quaternions,
     find_closest,
     find_root_linear_interpolation,
     find_roots_cubic_function,
@@ -664,18 +665,20 @@ class Flight:  # pylint: disable=too-many-public-methods
             # Initialize phase time nodes
             phase.time_nodes = self.TimeNodes()
             # Add first time node to the time_nodes list
-            phase.time_nodes.add_node(phase.t, [], [])
+            phase.time_nodes.add_node(phase.t, [], [], [])
             # Add non-overshootable parachute time nodes
             if self.time_overshoot is False:
-                # TODO: move parachutes to controllers
                 phase.time_nodes.add_parachutes(
                     self.parachutes, phase.t, phase.time_bound
+                )
+                phase.time_nodes.add_sensors(
+                    self.rocket.sensors, phase.t, phase.time_bound
                 )
                 phase.time_nodes.add_controllers(
                     self._controllers, phase.t, phase.time_bound
                 )
             # Add last time node to the time_nodes list
-            phase.time_nodes.add_node(phase.time_bound, [], [])
+            phase.time_nodes.add_node(phase.time_bound, [], [], [])
             # Organize time nodes with sort() and merge()
             phase.time_nodes.sort()
             phase.time_nodes.merge()
@@ -702,8 +705,34 @@ class Flight:  # pylint: disable=too-many-public-methods
                 for callback in node.callbacks:
                     callback(self)
 
+                if self.sensors:
+                    # u_dot for all sensors
+                    u_dot = phase.derivative(self.t, self.y_sol)
+                    for sensor, position in node._component_sensors:
+                        relative_position = position - self.rocket._csys * Vector(
+                            [0, 0, self.rocket.center_of_dry_mass_position]
+                        )
+                        sensor.measure(
+                            self.t,
+                            u=self.y_sol,
+                            u_dot=u_dot,
+                            relative_position=relative_position,
+                            environment=self.env,
+                            gravity=self.env.gravity.get_value_opt(
+                                self.solution[-1][3]
+                            ),
+                            pressure=self.env.pressure,
+                            earth_radius=self.env.earth_radius,
+                            initial_coordinates=(self.env.latitude, self.env.longitude),
+                        )
+
                 for controller in node._controllers:
-                    controller(self.t, self.y_sol, self.solution)
+                    controller(
+                        self.t,
+                        self.y_sol,
+                        self.solution,
+                        self.sensors,
+                    )
 
                 for parachute in node.parachutes:
                     # Calculate and save pressure signal
@@ -713,7 +742,10 @@ class Flight:  # pylint: disable=too-many-public-methods
                         )
                     )
                     if parachute.triggerfunc(
-                        noisy_pressure, height_above_ground_level, self.y_sol
+                        noisy_pressure,
+                        height_above_ground_level,
+                        self.y_sol,
+                        self.sensors,
                     ):
                         # Remove parachute from flight parachutes
                         self.parachutes.remove(parachute)
@@ -743,7 +775,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                         )
                         # Prepare to leave loops and start new flight phase
                         phase.time_nodes.flush_after(node_index)
-                        phase.time_nodes.add_node(self.t, [], [])
+                        phase.time_nodes.add_node(self.t, [], [], [])
                         phase.solver.status = "finished"
                         # Save parachute event
                         self.parachute_events.append([self.t, parachute])
@@ -835,7 +867,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                         )
                         # Prepare to leave loops and start new flight phase
                         phase.time_nodes.flush_after(node_index)
-                        phase.time_nodes.add_node(self.t, [], [])
+                        phase.time_nodes.add_node(self.t, [], [], [])
                         phase.solver.status = "finished"
 
                     # Check for apogee event
@@ -863,7 +895,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                             self.flight_phases.add_phase(self.t)
                             # Prepare to leave loops and start new flight phase
                             phase.time_nodes.flush_after(node_index)
-                            phase.time_nodes.add_node(self.t, [], [])
+                            phase.time_nodes.add_node(self.t, [], [], [])
                             phase.solver.status = "finished"
                         elif len(self.solution) > 2:
                             # adding the apogee state to solution increases accuracy
@@ -910,7 +942,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                         self.flight_phases.add_phase(self.t)
                         # Prepare to leave loops and start new flight phase
                         phase.time_nodes.flush_after(node_index)
-                        phase.time_nodes.add_node(self.t, [], [])
+                        phase.time_nodes.add_node(self.t, [], [], [])
                         phase.solver.status = "finished"
 
                     # List and feed overshootable time nodes
@@ -922,7 +954,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                             self.parachutes, self.solution[-2][0], self.t
                         )
                         # Add last time node (always skipped)
-                        overshootable_nodes.add_node(self.t, [], [])
+                        overshootable_nodes.add_node(self.t, [], [], [])
                         if len(overshootable_nodes) > 1:
                             # Sort and merge equal overshootable time nodes
                             overshootable_nodes.sort()
@@ -956,6 +988,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                                         noisy_pressure,
                                         height_above_ground_level,
                                         overshootable_node.y_sol,
+                                        self.sensors,
                                     ):
                                         # Remove parachute from flight parachutes
                                         self.parachutes.remove(parachute)
@@ -996,7 +1029,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                                             overshootable_index
                                         )
                                         phase.time_nodes.flush_after(node_index)
-                                        phase.time_nodes.add_node(self.t, [], [])
+                                        phase.time_nodes.add_node(self.t, [], [], [])
                                         phase.solver.status = "finished"
                                         # Save parachute event
                                         self.parachute_events.append(
@@ -1012,6 +1045,8 @@ class Flight:  # pylint: disable=too-many-public-methods
         if self._controllers:
             # cache post process variables
             self.__evaluate_post_process = np.array(self.__post_processed_variables)
+        if self.sensors:
+            self.__cache_sensor_data()
         if verbose:
             print(f"\n>>> Simulation Completed at Time: {self.t:3.4f} s")
 
@@ -1091,7 +1126,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                 pass
 
             # 3-1-3 Euler Angles to Euler Parameters
-            e0_init, e1_init, e2_init, e3_init = euler_angles_to_euler_parameters(
+            e0_init, e1_init, e2_init, e3_init = euler313_to_quaternions(
                 self.phi_init, self.theta_init, self.psi_init
             )
             # Store initial conditions
@@ -1130,7 +1165,7 @@ class Flight:  # pylint: disable=too-many-public-methods
             self.out_of_rail_time = self.initial_solution[0]
             self.out_of_rail_time_index = 0
             self.initial_derivative = self.u_dot_generalized
-        if self._controllers:
+        if self._controllers or self.sensors:
             # Handle post process during simulation, get initial accel/forces
             self.initial_derivative(
                 self.t_initial, self.initial_solution[1:], post_processing=True
@@ -1155,18 +1190,35 @@ class Flight:  # pylint: disable=too-many-public-methods
             self.u_dot_generalized = self.u_dot
 
     def __init_controllers(self):
-        """Initialize controllers"""
+        """Initialize controllers and sensors"""
         self._controllers = self.rocket._controllers[:]
-        if self._controllers:
+        self.sensors = self.rocket.sensors.get_components()
+        if self._controllers or self.sensors:
             if self.time_overshoot:
                 self.time_overshoot = False
                 warnings.warn(
-                    "time_overshoot has been set to False due to the "
-                    "presence of controllers. "
+                    "time_overshoot has been set to False due to the presence "
+                    "of controllers or sensors. "
                 )
             # reset controllable object to initial state (only airbrakes for now)
             for air_brakes in self.rocket.air_brakes:
                 air_brakes._reset()
+
+        self.sensor_data = {}
+        for sensor in self.sensors:
+            sensor._reset(self.rocket)  # resets noise and measurement list
+            self.sensor_data[sensor] = []
+
+    def __cache_sensor_data(self):
+        """Cache sensor data for simulations with sensors."""
+        sensor_data = {}
+        sensors = []
+        for sensor in self.sensors:
+            # skip sensors that are used more then once in the rocket
+            if sensor not in sensors:
+                sensors.append(sensor)
+                sensor_data[sensor] = sensor.measured_data[:]
+        self.sensor_data = sensor_data
 
     @cached_property
     def effective_1rl(self):
@@ -1412,16 +1464,18 @@ class Flight:  # pylint: disable=too-many-public-methods
         a32 = 2 * (e2 * e3 + e0 * e1)
         a33 = 1 - 2 * (e1**2 + e2**2)
         # Transformation matrix: (123) -> (XYZ)
-        K = [[a11, a12, a13], [a21, a22, a23], [a31, a32, a33]]
+        K = Matrix([[a11, a12, a13], [a21, a22, a23], [a31, a32, a33]])
+        Kt = K.transpose
 
         # Calculate Forces and Moments
         # Get freestream speed
         wind_velocity_x = self.env.wind_velocity_x.get_value_opt(z)
         wind_velocity_y = self.env.wind_velocity_y.get_value_opt(z)
+        speed_of_sound = self.env.speed_of_sound.get_value_opt(z)
         free_stream_speed = (
             (wind_velocity_x - vx) ** 2 + (wind_velocity_y - vy) ** 2 + (vz) ** 2
         ) ** 0.5
-        free_stream_mach = free_stream_speed / self.env.speed_of_sound.get_value_opt(z)
+        free_stream_mach = free_stream_speed / speed_of_sound
 
         # Determine aerodynamics forces
         # Determine Drag Force
@@ -1455,76 +1509,47 @@ class Flight:  # pylint: disable=too-many-public-methods
         vy_b = a12 * vx + a22 * vy + a32 * vz
         vz_b = a13 * vx + a23 * vy + a33 * vz
         # Calculate lift and moment for each component of the rocket
-        for aero_surface, position in self.rocket.aerodynamic_surfaces:
-            comp_cp = (
-                position - self.rocket.center_of_dry_mass_position
-            ) * self.rocket._csys - aero_surface.cpz
-            reference_area = aero_surface.reference_area
-            reference_length = aero_surface.reference_length
+        velocity_in_body_frame = Vector([vx_b, vy_b, vz_b])
+        w = Vector([omega1, omega2, omega3])
+        for aero_surface, _ in self.rocket.aerodynamic_surfaces:
+            # Component cp relative to CDM in body frame
+            comp_cp = self.rocket.surfaces_cp_to_cdm[aero_surface]
             # Component absolute velocity in body frame
-            comp_vx_b = vx_b + comp_cp * omega2
-            comp_vy_b = vy_b - comp_cp * omega1
-            comp_vz_b = vz_b
-            # Wind velocity at component
-            comp_z = z + comp_cp
+            comp_vb = velocity_in_body_frame + (w ^ comp_cp)
+            # Wind velocity at component altitude
+            comp_z = z + (K @ comp_cp).z
             comp_wind_vx = self.env.wind_velocity_x.get_value_opt(comp_z)
             comp_wind_vy = self.env.wind_velocity_y.get_value_opt(comp_z)
             # Component freestream velocity in body frame
-            comp_wind_vx_b = a11 * comp_wind_vx + a21 * comp_wind_vy
-            comp_wind_vy_b = a12 * comp_wind_vx + a22 * comp_wind_vy
-            comp_wind_vz_b = a13 * comp_wind_vx + a23 * comp_wind_vy
-            comp_stream_vx_b = comp_wind_vx_b - comp_vx_b
-            comp_stream_vy_b = comp_wind_vy_b - comp_vy_b
-            comp_stream_vz_b = comp_wind_vz_b - comp_vz_b
-            comp_stream_speed = (
-                comp_stream_vx_b**2 + comp_stream_vy_b**2 + comp_stream_vz_b**2
-            ) ** 0.5
-            # Component attack angle and lift force
-            comp_attack_angle = 0
-            comp_lift, comp_lift_xb, comp_lift_yb = 0, 0, 0
-            if comp_stream_vx_b**2 + comp_stream_vy_b**2 != 0:
-                # normalize component stream velocity in body frame
-                comp_stream_vz_bn = comp_stream_vz_b / comp_stream_speed
-                if -1 * comp_stream_vz_bn < 1:
-                    comp_attack_angle = np.arccos(-comp_stream_vz_bn)
-                    c_lift = aero_surface.cl.get_value_opt(
-                        comp_attack_angle, free_stream_mach
-                    )
-                    # component lift force magnitude
-                    comp_lift = (
-                        0.5 * rho * (comp_stream_speed**2) * reference_area * c_lift
-                    )
-                    # component lift force components
-                    lift_dir_norm = (comp_stream_vx_b**2 + comp_stream_vy_b**2) ** 0.5
-                    comp_lift_xb = comp_lift * (comp_stream_vx_b / lift_dir_norm)
-                    comp_lift_yb = comp_lift * (comp_stream_vy_b / lift_dir_norm)
-                    # add to total lift force
-                    R1 += comp_lift_xb
-                    R2 += comp_lift_yb
-                    # Add to total moment
-                    M1 -= (comp_cp) * comp_lift_yb
-                    M2 += (comp_cp) * comp_lift_xb
-            # Calculates Roll Moment
-            try:
-                clf_delta, cld_omega, cant_angle_rad = aero_surface.roll_parameters
-                M3_forcing = (
-                    (1 / 2 * rho * free_stream_speed**2)
-                    * reference_area
-                    * reference_length
-                    * clf_delta.get_value_opt(free_stream_mach)
-                    * cant_angle_rad
-                )
-                M3_damping = (
-                    (1 / 2 * rho * free_stream_speed)
-                    * reference_area
-                    * (reference_length) ** 2
-                    * cld_omega.get_value_opt(free_stream_mach)
-                    * omega3
-                    / 2
-                )
-                M3 += M3_forcing - M3_damping
-            except AttributeError:
-                pass
+            comp_wind_vb = Kt @ Vector([comp_wind_vx, comp_wind_vy, 0])
+            comp_stream_velocity = comp_wind_vb - comp_vb
+            comp_stream_speed = abs(comp_stream_velocity)
+            comp_stream_mach = comp_stream_speed / speed_of_sound
+            # Reynolds at component altitude
+            # TODO: Reynolds is only used in generic surfaces. This calculation
+            # should be moved to the surface class for efficiency
+            comp_reynolds = (
+                self.env.density.get_value_opt(comp_z)
+                * comp_stream_speed
+                * aero_surface.reference_length
+                / self.env.dynamic_viscosity.get_value_opt(comp_z)
+            )
+            # Forces and moments
+            X, Y, Z, M, N, L = aero_surface.compute_forces_and_moments(
+                comp_stream_velocity,
+                comp_stream_speed,
+                comp_stream_mach,
+                rho,
+                comp_cp,
+                w,
+                comp_reynolds,
+            )
+            R1 += X
+            R2 += Y
+            R3 += Z
+            M1 += M
+            M2 += N
+            M3 += L
         # Off center moment
         M3 += self.rocket.cp_eccentricity_x * R2 - self.rocket.cp_eccentricity_y * R1
 
@@ -1611,7 +1636,7 @@ class Flight:  # pylint: disable=too-many-public-methods
             (R3 - b * propellant_mass_at_t * (alpha2 - omega1 * omega3) + thrust)
             / total_mass_at_t,
         ]
-        ax, ay, az = np.dot(K, L)
+        ax, ay, az = K @ Vector(L)
         az -= self.env.gravity.get_value_opt(z)  # Include gravity
 
         # Create u_dot
@@ -1755,10 +1780,10 @@ class Flight:  # pylint: disable=too-many-public-methods
             # TODO: Reynolds is only used in generic surfaces. This calculation
             # should be moved to the surface class for efficiency
             comp_reynolds = (
-                self.env.density.get_value_opt(z)
+                self.env.density.get_value_opt(comp_z)
                 * comp_stream_speed
                 * aero_surface.reference_length
-                / self.env.dynamic_viscosity.get_value_opt(z)
+                / self.env.dynamic_viscosity.get_value_opt(comp_z)
             )
             # Forces and moments
             X, Y, Z, M, N, L = aero_surface.compute_forces_and_moments(
@@ -1767,7 +1792,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                 comp_stream_mach,
                 rho,
                 comp_cp,
-                omega,
+                w,
                 comp_reynolds,
             )
             R1 += X
@@ -3211,6 +3236,47 @@ class Flight:  # pylint: disable=too-many-public-methods
             encoding="utf-8",
         )
 
+    def export_sensor_data(self, file_name, sensor=None):
+        """Exports sensors data to a file. The file format can be either .csv or
+        .json.
+
+        Parameters
+        ----------
+        file_name : str
+            The file name or path of the exported file. Example: flight_data.csv
+            Do not use forbidden characters, such as / in Linux/Unix and
+            `<, >, :, ", /, \\, | ?, *` in Windows.
+        sensor : Sensor, string, optional
+            The sensor to export data from. Can be given as a Sensor object or
+            as a string with the sensor name. If None, all sensors data will be
+            exported. Default is None.
+        """
+        if sensor is None:
+            data_dict = {}
+            for used_sensor, measured_data in self.sensor_data.items():
+                data_dict[used_sensor.name] = measured_data
+        else:
+            # export data of only that sensor
+            data_dict = {}
+
+            if not isinstance(sensor, str):
+                data_dict[sensor.name] = self.sensor_data[sensor]
+            else:  # sensor is a string
+                matching_sensors = [s for s in self.sensor_data if s.name == sensor]
+
+                if len(matching_sensors) > 1:
+                    data_dict[sensor] = []
+                    for s in matching_sensors:
+                        data_dict[s.name].append(self.sensor_data[s])
+                elif len(matching_sensors) == 1:
+                    data_dict[sensor] = self.sensor_data[matching_sensors[0]]
+                else:
+                    raise ValueError("Sensor not found in the Flight.sensor_data.")
+
+        with open(file_name, "w") as file:
+            json.dump(data_dict, file)
+        print("Sensor data exported to: ", file_name)
+
     def export_kml(  # TODO: should be moved out of this class.
         self,
         file_name="trajectory.kml",
@@ -3534,15 +3600,15 @@ class Flight:  # pylint: disable=too-many-public-methods
         def add(self, time_node):
             self.list.append(time_node)
 
-        def add_node(self, t, parachutes, callbacks):
-            self.list.append(self.TimeNode(t, parachutes, callbacks))
+        def add_node(self, t, parachutes, controllers, sensors):
+            self.list.append(self.TimeNode(t, parachutes, controllers, sensors))
 
         def add_parachutes(self, parachutes, t_init, t_end):
             for parachute in parachutes:
                 # Calculate start of sampling time nodes
                 sampling_interval = 1 / parachute.sampling_rate
                 parachute_node_list = [
-                    self.TimeNode(i * sampling_interval, [parachute], [])
+                    self.TimeNode(i * sampling_interval, [parachute], [], [])
                     for i in range(
                         math.ceil(t_init / sampling_interval),
                         math.floor(t_end / sampling_interval) + 1,
@@ -3555,13 +3621,29 @@ class Flight:  # pylint: disable=too-many-public-methods
                 # Calculate start of sampling time nodes
                 controller_time_step = 1 / controller.sampling_rate
                 controller_node_list = [
-                    self.TimeNode(i * controller_time_step, [], [controller])
+                    self.TimeNode(i * controller_time_step, [], [controller], [])
                     for i in range(
                         math.ceil(t_init / controller_time_step),
                         math.floor(t_end / controller_time_step) + 1,
                     )
                 ]
                 self.list += controller_node_list
+
+        def add_sensors(self, sensors, t_init, t_end):
+            # Iterate over sensors
+            for sensor_component_tuple in sensors:
+                # Calculate start of sampling time nodes
+                sensor_time_step = 1 / sensor_component_tuple.component.sampling_rate
+                sensor_node_list = [
+                    self.TimeNode(
+                        i * sensor_time_step, [], [], [sensor_component_tuple]
+                    )
+                    for i in range(
+                        math.ceil(t_init / sensor_time_step),
+                        math.floor(t_end / sensor_time_step) + 1,
+                    )
+                ]
+                self.list += sensor_node_list
 
         def sort(self):
             self.list.sort()
@@ -3580,6 +3662,8 @@ class Flight:  # pylint: disable=too-many-public-methods
                     tmp_dict[time].parachutes += node.parachutes
                     tmp_dict[time]._controllers += node._controllers
                     tmp_dict[time].callbacks += node.callbacks
+                    tmp_dict[time]._component_sensors += node._component_sensors
+                    tmp_dict[time]._controllers += node._controllers
                 except KeyError:
                     # If the node does not exist, add it to the dictionary
                     tmp_dict[time] = node
@@ -3595,7 +3679,7 @@ class Flight:  # pylint: disable=too-many-public-methods
             exclusively within the TimeNodes class.
             """
 
-            def __init__(self, t, parachutes, controllers):
+            def __init__(self, t, parachutes, controllers, sensors):
                 """Create a TimeNode object.
 
                 Parameters
@@ -3608,18 +3692,23 @@ class Flight:  # pylint: disable=too-many-public-methods
                 controllers : list[_Controller]
                     List containing all the controllers that should be evaluated
                     at this time node.
+                sensors : list[ComponentSensor]
+                    List containing all the sensors that should be evaluated
+                    at this time node.
                 """
                 self.t = t
                 self.parachutes = parachutes
                 self.callbacks = []
                 self._controllers = controllers
+                self._component_sensors = sensors
 
             def __repr__(self):
                 return (
                     f"<TimeNode("
                     f"t: {self.t}, "
                     f"parachutes: {len(self.parachutes)}, "
-                    f"controllers: {len(self._controllers)})>"
+                    f"controllers: {len(self._controllers)}, "
+                    f"sensors: {len(self._component_sensors)})>"
                 )
 
             def __lt__(self, other):

@@ -11,7 +11,7 @@ class LinearGenericSurface(GenericSurface):
         self,
         reference_area,
         reference_length,
-        coefficients="all_null",
+        coefficients,
         center_of_pressure=(0, 0, 0),
         name="Generic Linear Surface",
     ):
@@ -40,8 +40,8 @@ class LinearGenericSurface(GenericSurface):
             Reference length of the aerodynamic surface. Has the unit of meters.
             Commonly defined as the rocket's diameter.
         coefficients: dict, optional
-            List of coefficients. Default is "all_null", which creates a
-            dict with every coefficient set to 0. The valid coefficients are:\n
+            List of coefficients. If a coefficient is omitted, it is set to 0.
+            The valid coefficients are:\n
             cL_0: callable, str, optional
                 Coefficient of lift at zero angle of attack. Default is 0.\n
             cL_alpha: callable, str, optional

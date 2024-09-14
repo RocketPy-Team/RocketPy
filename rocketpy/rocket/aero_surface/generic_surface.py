@@ -1,3 +1,4 @@
+import copy
 import csv
 import math
 
@@ -17,7 +18,7 @@ class GenericSurface:
         self,
         reference_area,
         reference_length,
-        coefficients="all_null",
+        coefficients,
         center_of_pressure=(0, 0, 0),
         name="Generic Surface",
     ):
@@ -45,9 +46,9 @@ class GenericSurface:
         reference_length : int, float
             Reference length of the aerodynamic surface. Has the unit of meters.
             Commonly defined as the rocket's diameter.
-        coefficients: dict, optional
-            List of coefficients. Default is "all_null", which creates a
-            dict with every coefficient set to 0. The valid coefficients are:\n
+        coefficients: dict
+            List of coefficients. If a coefficient is omitted, it is set to 0.
+            The valid coefficients are:\n
             cL: str, callable, optional
                 Lift coefficient. Can be a path to a CSV file or a callable.
                 Default is 0.\n
@@ -84,6 +85,7 @@ class GenericSurface:
         self.name = name
 
         default_coefficients = self._get_default_coefficients()
+        self._check_coefficients(coefficients, default_coefficients)
         coefficients = self._complete_coefficients(coefficients, default_coefficients)
         for coeff, coeff_value in coefficients.items():
             value = self._process_input(coeff_value, coeff)
@@ -109,29 +111,53 @@ class GenericSurface:
         return default_coefficients
 
     def _complete_coefficients(self, input_coefficients, default_coefficients):
-        """Completes coefficients dictionary from user input in __init__
+        """Creates a copy of the input coefficients dict and fill it with missing
+        keys with default values
 
         Parameters
         ----------
         input_coefficients : str, dict
             Coefficients dictionary passed by the user. If the user only specifies some
-            of the coefficients, the
+            of the coefficients, the remaining are completed with class default
+            values
+        default_coefficients : dict
+            Default coefficients of the class
 
         Returns
         -------
-        coefficients: dict
-            Coefficients dictionary used to setup coefficients attributes
+        coefficients : dict
+            Coefficients dictionary used to setup coefficient attributes
         """
-
-        if input_coefficients == "all_null":
-            coefficients = default_coefficients
-        else:  # complete user dictionary with null values for the coefficients
-            coefficients = input_coefficients
-            for coeff, value in default_coefficients.items():
-                if coeff not in coefficients.keys():
-                    coefficients[coeff] = value
+        coefficients = copy.deepcopy(input_coefficients)
+        for coeff, value in default_coefficients.items():
+            if coeff not in coefficients.keys():
+                coefficients[coeff] = value
 
         return coefficients
+
+    def _check_coefficients(self, input_coefficients, default_coefficients):
+        """Check if input coefficients have only valid keys
+
+        Parameters
+        ----------
+        input_coefficients : str, dict
+            Coefficients dictionary passed by the user. If the user only specifies some
+            of the coefficients, the remaining are completed with class default
+            values
+        default_coefficients : dict
+            Default coefficients of the class
+
+        Raises
+        ------
+        ValueError
+            Raises a value error if the input coefficient has an invalid key
+        """
+        invalid_keys = set(input_coefficients) - set(default_coefficients)
+        if invalid_keys:
+            raise ValueError(
+                f"Invalid coefficient name(s) used in key(s): {', '.join(invalid_keys)}. "
+                "Check the documentation for valid names."
+            )
 
     def _compute_from_coefficients(
         self,
@@ -229,6 +255,8 @@ class GenericSurface:
             Air density.
         cp : Vector
             Center of pressure coordinates in the body frame.
+        omega: tuple[float, float, float]
+            Tuple containing angular velocities around the x, y, z axes.
         reynolds : float
             Reynolds number.
         omega: tuple of float

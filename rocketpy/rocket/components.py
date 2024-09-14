@@ -23,6 +23,11 @@ class Components:
         self.component_tuple = namedtuple("component_tuple", "component position")
         self._components = []
 
+        # List of components and their positions to avoid extra for loops in
+        # simulation time
+        self.__component_list = []
+        self.__position_list = []
+
     def __repr__(self):
         """Return a string representation of the Components instance."""
         components_str = "\n".join(
@@ -61,6 +66,8 @@ class Components:
         -------
         None
         """
+        self.__component_list.append(component)
+        self.__position_list.append(position)
         self._components.append(self.component_tuple(component, position))
 
     def get_by_type(self, component_type):
@@ -108,10 +115,10 @@ class Components:
 
         Returns
         -------
-        list
+        list[Component]
             A list of all the components in the list of components.
         """
-        return [c.component for c in self._components]
+        return self.__component_list
 
     def get_positions(self):
         """Return a list of all the positions of the components in the list of
@@ -123,7 +130,7 @@ class Components:
             A list of all the positions of the components in the list of
             components.
         """
-        return [c.position for c in self._components]
+        return self.__position_list
 
     def remove(self, component):
         """Remove a component from the list of components. If more than one
