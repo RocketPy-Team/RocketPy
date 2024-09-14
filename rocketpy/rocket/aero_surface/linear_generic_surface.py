@@ -29,8 +29,7 @@ class LinearGenericSurface(GenericSurface):
 
         See Also
         --------
-        For more information on how to create a custom aerodynamic surface,
-        check TODO: ADD LINK TO DOCUMENTATION
+        :ref:`genericsurfaces`.
 
         Parameters
         ----------
