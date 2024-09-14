@@ -8,6 +8,7 @@ Roll equations for high-powered rockets
 
 Nomenclature
 ============
+
 - :math:`A_{r}` - Reference area
 - :math:`(C_{N\alpha})_{0}` - Normal force coefficient derivative of a 2D airfoil
 - :math:`(C_{N\alpha})_{1}` - Normal force coefficient derivative of one fin
@@ -37,17 +38,17 @@ Introduction
 ============
 
 Calculating the rotational movement of a high powered rocket entails
-calculating the *Roll Moment*. Here all formulas and consideration for
-the implementation of the Roll Moment in *RocketPy* are shown and
+calculating the **Roll Moment**. Here all formulas and consideration for
+the implementation of the Roll Moment on **RocketPy** are shown and
 explained.
 
 The main cause for a rocket roll movement are certain asymmetries in its
 construction. The most noteworthy of this possible asymmetries is the
-fin cant angle (:math:`\delta`), which can be seen in Figure `1 <#fig:cant_angle>`__, 
-and will be considered for the calculations.
+fin cant angle (:math:`\delta`), which can be seen in the next Figure and will
+be considered for the calculations.
 
 .. image:: ../../static/roll_equations/cant_angle.jpg
-   :name: fig:cant_angle
+   :name: fig-cant_angle
    :align: center
    :width: 500
  
@@ -60,7 +61,7 @@ According to the equation formulated by [Barrowman]_,
 the rotational moment around the rockets axis is governed by two main
 forces: one that causes the rolling movement and one that damps the
 movement. Each of these forces generates its own moment, the forcing
-moment :math:`M_{f}` and the damping moment :math:`M_d`. The final roll
+moment :math:`M_{f}` and the damping moment :math:`M_{d}`. The final roll
 moment can then be calculated with:
 
 .. math:: M_{roll} = M_{forcing} - M_{damping}
@@ -72,16 +73,17 @@ Roll Forcing
 axis. The calculations for this moment assumes :math:`\omega = 0` e
 :math:`\delta \neq 0`.
 
-Due to the symmetry of the fins - as can be seen in Figure
-`2 <#fig:force_comp>`__ - the forces cancel each other out so that the
-resulting force :math:`F_{R}` is equal to zero. However, the resulting
-moment :math:`M_{R} \neq 0`, that is, it constitutes a gyroscope binary.
+Due to the symmetry of the fins - as can be seen in the Figure below - the
+forces cancel each other out so that the resulting force :math:`F_{R}` is equal
+to zero. However, the resulting moment :math:`M_{R} \neq 0`, that is, it
+constitutes a gyroscope binary.
 
 .. image:: ../../static/roll_equations/forces_comp.jpg
-   :name: fig:force_comp
+   :name: fig-force_comp
    :align: center
    :width: 500
- 
+   :alt: Forces comparison
+
 .. 
 
 According to [Barrowman]_, equation (3-31), the roll
@@ -93,8 +95,8 @@ The author also defined the roll forcing moment coefficient as:
 
 .. math:: C_{lf} = \frac{M_f}{\overline{q} A_r L_r}
 
-The letter ":math:`f`" has been added to the name to differentiate
-*Forcing* from *Damping*. Note the similarity with the definition of
+The letter :math:`f` has been added to the name to differentiate
+**Forcing** from **Damping**. Note the similarity with the definition of
 drag coefficient (:math:`C_{d} = \frac{2F_{Drag}}{\rho V^2 A_{ref}}`).
 Finally, you can also calculate :math:`C_{lf}` as:
 
@@ -131,7 +133,7 @@ It is defined in the same way as roll forcing:
 
 From [Barrowman]_, the roll damping moment depends on the angle of attack of the
 tangential velocity of the fin panel at a certain span wise position :math:`\xi`,
-as can be seen in Figure `3 <#fig:figure3>`__.
+as can be seen in the Figure below. 
 
 .. image:: ../../static/roll_equations/fin_views.png
    :name: fig:figure3
@@ -164,7 +166,7 @@ be written as:
 
 .. math:: dM = - \frac{C_{N_{\alpha 0}} \, \overline{q} \, \omega}{v_0} \,\, c(\xi) \,\xi^2 \,  d\xi
 
-From `[9] <#9>`__ we know that:
+We know that:
 
 .. math:: d C_{ld} = \frac{C_{N_{\alpha 0}} \,  \, \omega}{v_0 \ A_r \, L_r} \,\, c(\xi) \,\xi^2 \, d\xi
 
@@ -256,8 +258,3 @@ Mach.
 ..    k = 1 + \frac{\sqrt{s^2-r_{t}^2}\Bigl(2r_{t}^2\ln\Bigl(\frac{2s\sqrt{s^2-r_{t}^2}+2s^2}{r_{t}}\Bigr)-2r_{t}^2\ln\Bigl(2s\Bigr)\Bigr)+2s^3-{\pi}r_{t}s^2-2r_{t}^2s+{\pi}r_{t}^3}
 ..        {(2r_{t}s^3-2r_{t}^3s) \cdot\Bigl(\dfrac{s^2}{3}+\dfrac{{\pi}r_{t}s}{4}\Bigr)}
 
-References
-==========
-.. [Barrowman]  Barrowman, James S.. (1967). *The practical calculation of the aerodynamic characteristics of slender finned vehicles*.
-
-.. [Niskanen] Niskanen, S. (2013). *Development of an Open Source model rocket simulation software*.

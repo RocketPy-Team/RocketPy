@@ -18,7 +18,6 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
     ----------
     flights : list
         A list of Flight objects to be compared.
-
     """
 
     def __init__(self, flights):
@@ -52,7 +51,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         """Function to process the x_lim key word argument. It is simply a
         logic to check if the string "apogee" is used as an item for the tuple,
         and if so, replace it with the maximum apogee time of all flights.
-        This garantes that we do not repeat the same code for each plot.
+        This guarantees that we do not repeat the same code for each plot.
 
         Parameters
         ----------
@@ -1132,7 +1131,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         - Mateus Stano: https://github.com/RocketPy-Team/Hackathon_2020/pull/123
         - Dyllon Preston: https://github.com/Dyllon-P/MBS-Template/blob/main/MBS.py
         Also, some of the credits go to Georgia Tech Experimental Rocketry Club
-        (GTXR) as well.
+        as well.
         The final function was created by the RocketPy Team.
 
         Parameters
@@ -1305,9 +1304,9 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         plane : string, optional
             The plane in which the trajectories will be plotted. The default
             is "xy". The options are:
-                - "xy": X-Y plane
-                - "xz": X-Z plane
-                - "yz": Y-Z plane
+            - "xy": X-Y plane
+            - "xz": X-Z plane
+            - "yz": Y-Z plane
         filename : string, optional
             If a string is passed, the figure will be saved in the path passed.
             The image format options are: .png, .jpg, .jpeg, .tiff, .bmp, .pdf,

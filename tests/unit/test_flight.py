@@ -1,3 +1,5 @@
+import json
+import os
 from unittest.mock import patch
 
 import matplotlib as plt
@@ -164,12 +166,53 @@ def test_out_of_rail_stability_margin(flight_calisto_custom_wind):
     assert np.isclose(res, 2.14, atol=0.1)
 
 
+def test_export_sensor_data(flight_calisto_with_sensors):
+    """Test the export of sensor data.
+
+    Parameters
+    ----------
+    flight_calisto_with_sensors : Flight
+        Pytest fixture for the flight of the calisto rocket with an ideal accelerometer and a gyroscope.
+    """
+    flight_calisto_with_sensors.export_sensor_data("test_sensor_data.json")
+    # read the json and parse as dict
+    filename = "test_sensor_data.json"
+    with open(filename, "r") as f:
+        data = f.read()
+        sensor_data = json.loads(data)
+    # convert list of tuples into list of lists to compare with the json
+    flight_calisto_with_sensors.sensors[0].measured_data[0] = [
+        list(measurement)
+        for measurement in flight_calisto_with_sensors.sensors[0].measured_data[0]
+    ]
+    flight_calisto_with_sensors.sensors[1].measured_data[1] = [
+        list(measurement)
+        for measurement in flight_calisto_with_sensors.sensors[1].measured_data[1]
+    ]
+    flight_calisto_with_sensors.sensors[2].measured_data = [
+        list(measurement)
+        for measurement in flight_calisto_with_sensors.sensors[2].measured_data
+    ]
+    assert (
+        sensor_data["Accelerometer"][0]
+        == flight_calisto_with_sensors.sensors[0].measured_data[0]
+    )
+    assert (
+        sensor_data["Accelerometer"][1]
+        == flight_calisto_with_sensors.sensors[1].measured_data[1]
+    )
+    assert (
+        sensor_data["Gyroscope"] == flight_calisto_with_sensors.sensors[2].measured_data
+    )
+    os.remove(filename)
+
+
 @pytest.mark.parametrize(
     "flight_time, expected_values",
     [
-        ("t_initial", (0.171780, -0.431091, 0)),
-        ("out_of_rail_time", (0.546945, -1.372586, 0)),
-        ("apogee_time", (-0.587317, -0.756234, 0)),
+        ("t_initial", (0.25886, -0.649623, 0)),
+        ("out_of_rail_time", (0.792028, -1.987634, 0)),
+        ("apogee_time", (-0.522875, -0.741825, 0)),
         ("t_final", (0, 0, 0)),
     ],
 )
@@ -207,8 +250,8 @@ def test_aerodynamic_moments(flight_calisto_custom_wind, flight_time, expected_v
     "flight_time, expected_values",
     [
         ("t_initial", (1.654150, 0.659142, -0.067103)),
-        ("out_of_rail_time", (5.052628, 2.01336, -1.75370)),
-        ("apogee_time", (2.352518, -1.826998, -0.878729)),
+        ("out_of_rail_time", (5.052628, 2.013361, -1.75370)),
+        ("apogee_time", (2.339424, -1.648934, -0.938867)),
         ("t_final", (0, 0, 159.2210)),
     ],
 )
@@ -249,9 +292,9 @@ def test_aerodynamic_forces(flight_calisto_custom_wind, flight_time, expected_va
         ("out_of_rail_time", (0, 2.248540, 25.700928)),
         (
             "apogee_time",
-            (-13.214438, 16.052063, -0.000421),
+            (-14.488364, 15.638049, -0.000191),
         ),
-        ("t_final", (5, 2, -5.66015)),
+        ("t_final", (5, 2, -5.660155)),
     ],
 )
 def test_velocities(flight_calisto_custom_wind, flight_time, expected_values):
@@ -288,7 +331,7 @@ def test_velocities(flight_calisto_custom_wind, flight_time, expected_values):
     [
         ("t_initial", (0, 0, 0)),
         ("out_of_rail_time", (0, 7.8067, 89.2315)),
-        ("apogee_time", (0.07532, -0.0581194, -9.614827)),
+        ("apogee_time", (0.07649, -0.053530, -9.620037)),
         ("t_final", (0, 0, 0.0019548)),
     ],
 )
@@ -337,10 +380,10 @@ def test_rail_buttons_forces(flight_calisto_custom_wind):
     """
     test = flight_calisto_custom_wind
     atol = 5e-3
-    assert pytest.approx(3.803078, abs=atol) == test.max_rail_button1_normal_force
-    assert pytest.approx(1.635804, abs=atol) == test.max_rail_button1_shear_force
-    assert pytest.approx(1.193331, abs=atol) == test.max_rail_button2_normal_force
-    assert pytest.approx(0.513283, abs=atol) == test.max_rail_button2_shear_force
+    assert pytest.approx(1.795539, abs=atol) == test.max_rail_button1_normal_force
+    assert pytest.approx(0.715483, abs=atol) == test.max_rail_button1_shear_force
+    assert pytest.approx(3.257089, abs=atol) == test.max_rail_button2_normal_force
+    assert pytest.approx(1.297878, abs=atol) == test.max_rail_button2_shear_force
 
 
 def test_max_values(flight_calisto_robust):

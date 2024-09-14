@@ -30,8 +30,13 @@ Alternatively, you can open the folder directly through your editor's interface.
 Preparing directory for code editing
 ====================================
 
-You may create a testing file in any directory, but you must remember that they should not be included in the commits and pull requests unless they are part of the proposed solution.
-With that in mind, we suggest you to create a folder with all testing files, so they can be added in the .gitignore file, which contains the name of all the files and folders that will not be added to the commits. To create the folder, type on the terminal:
+You may create a testing file in any directory, but you must remember that they
+should not be included in the commits and pull requests unless they are part of
+the proposed solution.
+With that in mind, we suggest you to create a folder with all testing files, so
+they can be added in the ``.gitignore`` file, which contains the name of all the
+files and folders that will not be added to the commits.
+To create the folder, type on the terminal:
 
 .. code-block:: console
 

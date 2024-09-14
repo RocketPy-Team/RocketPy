@@ -2,7 +2,7 @@ name: Scheduled Tests
 
 on:
   schedule:
-    - cron: "0 17 */14 * 5"  # every 2 weeks, always on a Friday at 17:00
+    - cron: "0 17 * * 5"  # at 05:00 PM, only on Friday
       timezone: "America/Sao_Paulo"
 
 defaults:
@@ -11,7 +11,6 @@ defaults:
 
 jobs:
   pytest:
-    if: github.ref == "refs/heads/master" || github.ref == "refs/heads/develop"
     runs-on: ubuntu-latest
     strategy:
       matrix:

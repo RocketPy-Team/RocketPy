@@ -231,9 +231,9 @@ class TankGeometry:
         Function
             Tank's first volume moment as a function of height.
 
-        References
-        ----------
-        .. [1] `<https://en.wikipedia.org/wiki/Moment_(physics)#Examples/>`_
+        See Also
+        --------
+        `<https://en.wikipedia.org/wiki/Moment_(physics)#Examples/>`_
         """
         height = self.area.identity_function()
 
@@ -269,9 +269,9 @@ class TankGeometry:
         Function
             Tank volume of inertia as a function of height.
 
-        References
-        ----------
-        .. [1] https://en.wikipedia.org/wiki/List_of_moments_of_inertia
+        See Also
+        --------
+        https://en.wikipedia.org/wiki/List_of_moments_of_inertia
         """
         height2 = self.radius.identity_function() ** 2
 

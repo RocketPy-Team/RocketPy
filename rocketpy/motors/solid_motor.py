@@ -303,16 +303,16 @@ class SolidMotor(Motor):
         None
         """
         super().__init__(
-            thrust_source,
-            dry_mass,
-            dry_inertia,
-            nozzle_radius,
-            center_of_dry_mass_position,
-            nozzle_position,
-            burn_time,
-            reshape_thrust_curve,
-            interpolation_method,
-            coordinate_system_orientation,
+            thrust_source=thrust_source,
+            dry_inertia=dry_inertia,
+            nozzle_radius=nozzle_radius,
+            center_of_dry_mass_position=center_of_dry_mass_position,
+            dry_mass=dry_mass,
+            nozzle_position=nozzle_position,
+            burn_time=burn_time,
+            reshape_thrust_curve=reshape_thrust_curve,
+            interpolation_method=interpolation_method,
+            coordinate_system_orientation=coordinate_system_orientation,
         )
         # Nozzle parameters
         self.throat_radius = throat_radius
@@ -642,9 +642,9 @@ class SolidMotor(Motor):
         The e_1 direction is assumed to be the direction perpendicular to the
         motor body axis.
 
-        References
-        ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        See Also
+        --------
+        https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
         grain_mass = self.propellant_mass / self.grain_number
         grain_number = self.grain_number
@@ -680,9 +680,9 @@ class SolidMotor(Motor):
         The e_2 direction is assumed to be the direction perpendicular to the
         motor body axis, and perpendicular to e_1.
 
-        References
-        ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        See Also
+        --------
+        https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
         return self.propellant_I_11
 
@@ -702,9 +702,9 @@ class SolidMotor(Motor):
         The e_3 direction is assumed to be the axial direction of the rocket
         motor.
 
-        References
-        ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        See Also
+        --------
+        https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
         I_33 = (
             (1 / 2.0)

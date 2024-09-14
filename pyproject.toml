@@ -52,6 +52,8 @@ env-analysis = [
 
 monte-carlo = [
     "imageio",
+    "statsmodels",
+    "prettytable",
 ]
 
 all = ["rocketpy[env-analysis]", "rocketpy[monte-carlo]"]

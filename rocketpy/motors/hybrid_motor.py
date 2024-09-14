@@ -302,16 +302,16 @@ class HybridMotor(Motor):
         None
         """
         super().__init__(
-            thrust_source,
-            dry_mass,
-            dry_inertia,
-            nozzle_radius,
-            center_of_dry_mass_position,
-            nozzle_position,
-            burn_time,
-            reshape_thrust_curve,
-            interpolation_method,
-            coordinate_system_orientation,
+            thrust_source=thrust_source,
+            dry_inertia=dry_inertia,
+            nozzle_radius=nozzle_radius,
+            center_of_dry_mass_position=center_of_dry_mass_position,
+            dry_mass=dry_mass,
+            nozzle_position=nozzle_position,
+            burn_time=burn_time,
+            reshape_thrust_curve=reshape_thrust_curve,
+            interpolation_method=interpolation_method,
+            coordinate_system_orientation=coordinate_system_orientation,
         )
         self.liquid = LiquidMotor(
             thrust_source,
@@ -451,7 +451,7 @@ class HybridMotor(Motor):
 
         References
         ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
 
         solid_mass = self.solid.propellant_mass
@@ -490,7 +490,7 @@ class HybridMotor(Motor):
 
         References
         ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
         return self.propellant_I_11
 
@@ -512,7 +512,7 @@ class HybridMotor(Motor):
 
         References
         ----------
-        .. [1] https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
         return self.solid.propellant_I_33 + self.liquid.propellant_I_33
 
@@ -609,11 +609,6 @@ class HybridMotor(Motor):
         self.plots.thrust()
 
     def all_info(self):
-        """Prints out all data and graphs available about the Motor.
-
-        Return
-        ------
-        None
-        """
+        """Prints out all data and graphs available about the Motor."""
         self.prints.all()
         self.plots.all()

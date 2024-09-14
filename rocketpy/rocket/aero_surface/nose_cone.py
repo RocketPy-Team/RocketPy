@@ -15,9 +15,9 @@ class NoseCone(AeroSurface):
 
     Note
     ----
-    The local coordinate system has the origin at the tip of the nose cone
-    and the Z axis along the longitudinal axis of symmetry, positive
-    downwards (top -> bottom).
+    Local coordinate system:
+        - the origin at the tip of the nose cone and
+        - the Z axis along the longitudinal axis of symmetry, positive downwards (top -> bottom).
 
     Attributes
     ----------

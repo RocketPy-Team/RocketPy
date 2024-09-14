@@ -9,6 +9,7 @@ between minor versions if necessary, although this will be always avoided.
 import functools
 import importlib
 import importlib.metadata
+import json
 import math
 import re
 import time
@@ -26,7 +27,7 @@ INSTALL_MAPPING = {"IPython": "ipython"}
 
 def tuple_handler(value):
     """Transforms the input value into a tuple that
-    represents a range. If the input is an input or float,
+    represents a range. If the input is an int or float,
     the output is a tuple from zero to the input value. If
     the input is a tuple or list, the output is a tuple with
     the same range.
@@ -353,11 +354,15 @@ def inverted_haversine(lat0, lon0, distance, bearing, earth_radius=6.3781e6):
     # Apply inverted Haversine formula
     lat1_rad = math.asin(
         math.sin(lat0_rad) * math.cos(distance / earth_radius)
-        + math.cos(lat0_rad) * math.sin(distance / earth_radius) * math.cos(bearing)
+        + math.cos(lat0_rad)
+        * math.sin(distance / earth_radius)
+        * math.cos(math.radians(bearing))
     )
 
     lon1_rad = lon0_rad + math.atan2(
-        math.sin(bearing) * math.sin(distance / earth_radius) * math.cos(lat0_rad),
+        math.sin(math.radians(bearing))
+        * math.sin(distance / earth_radius)
+        * math.cos(lat0_rad),
         math.cos(distance / earth_radius) - math.sin(lat0_rad) * math.sin(lat1_rad),
     )
 
@@ -379,10 +384,10 @@ def generate_monte_carlo_ellipses(results):
     results : dict
         A dictionary containing the results of the monte carlo analysis. It
         should contain the following keys:
-            - apogeeX: an array containing the x coordinates of the apogee
-            - apogeeY: an array containing the y coordinates of the apogee
-            - xImpact: an array containing the x coordinates of the impact
-            - yImpact: an array containing the y coordinates of the impact
+        - apogeeX: an array containing the x coordinates of the apogee
+        - apogeeY: an array containing the y coordinates of the apogee
+        - xImpact: an array containing the x coordinates of the impact
+        - yImpact: an array containing the y coordinates of the impact
 
     Returns
     -------
@@ -548,6 +553,115 @@ def generate_monte_carlo_ellipses_coordinates(
 
         outputs[index] = lat_lon_points
     return outputs
+
+
+def flatten_dict(x):
+    # Auxiliary function that flattens dictionary
+    # this is used mainly in the load_monte_carlo_data function
+    new_dict = {}
+    for key, value in x.items():
+        # the nested dictionary is inside a list
+        if isinstance(x[key], list):
+            # sometimes the object inside the list is another list
+            # we must skip these cases
+            if isinstance(value[0], dict):
+                inner_dict = flatten_dict(value[0])
+                inner_dict = {
+                    key + "_" + inner_key: inner_value
+                    for inner_key, inner_value in inner_dict.items()
+                }
+                new_dict.update(inner_dict)
+        else:
+            new_dict.update({key: value})
+
+    return new_dict
+
+
+def load_monte_carlo_data(
+    input_filename,
+    output_filename,
+    parameters_list,
+    target_variables_list,
+):
+    """Reads MonteCarlo simulation data file and builds parameters and flight
+    variables matrices
+
+    Parameters
+    ----------
+    input_filename : str
+        Input file exported by MonteCarlo class. Each line is a
+        sample unit described by a dictionary where keys are parameters names
+        and the values are the sampled parameters values.
+    output_filename : str
+        Output file exported by MonteCarlo.simulate function. Each line is a
+        sample unit described by a dictionary where keys are target variables
+        names and the values are the obtained values from the flight simulation.
+    parameters_list : list[str]
+        List of parameters whose values will be extracted.
+    target_variables_list : list[str]
+        List of target variables whose values will be extracted.
+
+    Returns
+    -------
+    parameters_matrix: np.matrix
+        Numpy matrix containing input parameters values. Each column correspond
+        to a parameter in the same order specified by 'parameters_list' input.
+    target_variables_matrix: np.matrix
+        Numpy matrix containing target variables values. Each column correspond
+        to a target variable in the same order specified by 'target_variables_list'
+        input.
+    """
+    number_of_samples_parameters = 0
+    number_of_samples_variables = 0
+
+    parameters_samples = {parameter: [] for parameter in parameters_list}
+    with open(input_filename, "r") as parameters_file:
+        for line in parameters_file.readlines():
+            number_of_samples_parameters += 1
+
+            parameters_dict = json.loads(line)
+            parameters_dict = flatten_dict(parameters_dict)
+            for parameter in parameters_list:
+                try:
+                    value = parameters_dict[parameter]
+                except KeyError as e:
+                    raise KeyError(
+                        f"Parameter {parameter} was not found in {input_filename}!"
+                    ) from e
+                parameters_samples[parameter].append(value)
+
+    target_variables_samples = {variable: [] for variable in target_variables_list}
+    with open(output_filename, "r") as target_variables_file:
+        for line in target_variables_file.readlines():
+            number_of_samples_variables += 1
+            target_variables_dict = json.loads(line)
+            for variable in target_variables_list:
+                try:
+                    value = target_variables_dict[variable]
+                except KeyError as e:
+                    raise KeyError(
+                        f"Variable {variable} was not found in {output_filename}!"
+                    ) from e
+                target_variables_samples[variable].append(value)
+
+    if number_of_samples_parameters != number_of_samples_variables:
+        raise ValueError(
+            "Number of samples for parameters does not match the number of samples for target variables!"
+        )
+
+    n_samples = number_of_samples_variables
+    n_parameters = len(parameters_list)
+    n_variables = len(target_variables_list)
+    parameters_matrix = np.empty((n_samples, n_parameters))
+    target_variables_matrix = np.empty((n_samples, n_variables))
+
+    for i, parameter in enumerate(parameters_list):
+        parameters_matrix[:, i] = parameters_samples[parameter]
+
+    for i, target_variable in enumerate(target_variables_list):
+        target_variables_matrix[:, i] = target_variables_samples[target_variable]
+
+    return parameters_matrix, target_variables_matrix
 
 
 def find_two_closest_integers(number):
@@ -888,16 +1002,14 @@ def parallel_axis_theorem_from_com(com_inertia_moment, mass, distance):
     float
         Moment of inertia relative to the new axis.
 
-    Reference
-    ---------
+    References
+    ----------
     https://en.wikipedia.org/wiki/Parallel_axis_theorem
     """
     return com_inertia_moment + mass * distance**2
 
 
 # Flight
-
-
 def quaternions_to_precession(e0, e1, e2, e3):
     """Calculates the Precession angle
 
@@ -911,11 +1023,17 @@ def quaternions_to_precession(e0, e1, e2, e3):
         Euler parameter 2, must be between -1 and 1
     e3 : float
         Euler parameter 3, must be between -1 and 1
+
     Returns
     -------
     float
         Euler Precession angle in degrees
+
+    References
+    ----------
+    Baruh, Haim. Analytical dynamics
     """
+    # minus sign in e2 and e1 is due to changing from 3-1-3 to 3-2-3 convention
     return (180 / np.pi) * (np.arctan2(e3, e0) + np.arctan2(-e2, -e1))
 
 
@@ -937,7 +1055,12 @@ def quaternions_to_spin(e0, e1, e2, e3):
     -------
     float
         Euler Spin angle in degrees
+
+    References
+    ----------
+    Baruh, Haim. Analytical dynamics
     """
+    # minus sign in e2 and e1 is due to changing from 3-1-3 to 3-2-3 convention
     return (180 / np.pi) * (np.arctan2(e3, e0) - np.arctan2(-e2, -e1))
 
 
@@ -950,12 +1073,75 @@ def quaternions_to_nutation(e1, e2):
         Euler parameter 1, must be between -1 and 1
     e2 : float
         Euler parameter 2, must be between -1 and 1
+
     Returns
     -------
     float
         Euler Nutation angle in degrees
+
+    References
+    ----------
+    Baruh, Haim. Analytical dynamics
     """
+    # we are changing from 3-1-3 to 3-2-3 conventions
     return (180 / np.pi) * 2 * np.arcsin(-((e1**2 + e2**2) ** 0.5))
+
+
+def normalize_quaternions(quaternions):
+    """Normalizes the quaternions (Euler parameters) to have unit magnitude.
+
+    Parameters
+    ----------
+    quaternions : tuple
+        Tuple containing the Euler parameters e0, e1, e2, e3
+
+    Returns
+    -------
+    tuple
+        Tuple containing the Euler parameters e0, e1, e2, e3
+    """
+    q_w, q_x, q_y, q_z = quaternions
+    q_norm = (q_w**2 + q_x**2 + q_y**2 + q_z**2) ** 0.5
+    if q_norm == 0:
+        return 1, 0, 0, 0
+    return q_w / q_norm, q_x / q_norm, q_y / q_norm, q_z / q_norm
+
+
+def euler313_to_quaternions(phi, theta, psi):
+    """Convert 3-1-3 Euler angles to Euler parameters (quaternions).
+
+    Parameters
+    ----------
+    phi : float
+        Rotation angle around the z-axis (in radians). Represents the precession
+        angle or the roll angle.
+    theta : float
+        Rotation angle around the x-axis (in radians). Represents the nutation
+        angle or the pitch angle.
+    psi : float
+        Rotation angle around the z-axis (in radians). Represents the spin angle
+        or the roll angle.
+
+    Returns
+    -------
+    tuple[float, float, float, float]
+        The Euler parameters or quaternions (e0, e1, e2, e3)
+
+    References
+    ----------
+    https://www.astro.rug.nl/software/kapteyn-beta/_downloads/attitude.pdf
+    """
+    cphi = np.cos(phi / 2)
+    sphi = np.sin(phi / 2)
+    ctheta = np.cos(theta / 2)
+    stheta = np.sin(theta / 2)
+    cpsi = np.cos(psi / 2)
+    spsi = np.sin(psi / 2)
+    e0 = cphi * ctheta * cpsi - sphi * ctheta * spsi
+    e1 = cphi * cpsi * stheta + sphi * stheta * spsi
+    e2 = cphi * stheta * spsi - sphi * cpsi * stheta
+    e3 = cphi * ctheta * spsi + ctheta * cpsi * sphi
+    return e0, e1, e2, e3
 
 
 if __name__ == "__main__":

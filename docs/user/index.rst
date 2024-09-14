@@ -14,7 +14,7 @@ RocketPy's User Guide
 
    Positions and Coordinate Systems <positions.rst>
    Motors <motors/motors.rst>
-   Rocket <rocket.rst>
+   Rocket <rocket/rocket.rst>
    Environment <environment.rst>
 
 .. toctree::
@@ -24,6 +24,7 @@ RocketPy's User Guide
    Compare Flights Class<compare_flights.rst>
    Deployable Payload <deployable.rst>
    Air Brakes Example <airbrakes.rst>
+   ../notebooks/sensors.ipynb
    ../matlab/matlab.rst
 
 .. toctree::
@@ -34,6 +35,7 @@ RocketPy's User Guide
    ../notebooks/monte_carlo_analysis/monte_carlo_class_usage.ipynb
    ../notebooks/monte_carlo_analysis/monte_carlo_analysis.ipynb
    ../notebooks/monte_carlo_analysis/parachute_drop_from_helicopter.ipynb
+   sensitivity.rst
 
 .. toctree::
    :maxdepth: 2

@@ -83,7 +83,7 @@ def calisto_nose_to_tail(cesaroni_m1670):
     calisto.set_rail_buttons(
         upper_button_position=-0.082,
         lower_button_position=0.618,
-        angular_position=45,
+        angular_position=0,
     )
     return calisto
 
@@ -177,7 +177,7 @@ def calisto_robust(
     calisto.set_rail_buttons(
         upper_button_position=0.082,
         lower_button_position=-0.618,
-        angular_position=45,
+        angular_position=0,
     )
     calisto.parachutes.append(calisto_main_chute)
     calisto.parachutes.append(calisto_drogue_chute)
@@ -241,6 +241,39 @@ def calisto_air_brakes_clamp_off(calisto_robust, controller_function):
         sampling_rate=10,
         clamp=False,
     )
+    return calisto
+
+
+@pytest.fixture
+def calisto_with_sensors(
+    calisto,
+    calisto_nose_cone,
+    calisto_tail,
+    calisto_trapezoidal_fins,
+    ideal_accelerometer,
+    ideal_gyroscope,
+    ideal_barometer,
+    ideal_gnss,
+):
+    """Create an object class of the Rocket class to be used in the tests. This
+    is the same Calisto rocket that was defined in the calisto fixture, but with
+    a set of ideal sensors added at the center of dry mass, meaning the readings
+    will be the same as the values saved on a Flight object.
+
+    Returns
+    -------
+    rocketpy.Rocket
+        An object of the Rocket class
+    """
+    calisto.add_surfaces(calisto_nose_cone, 1.160)
+    calisto.add_surfaces(calisto_tail, -1.313)
+    calisto.add_surfaces(calisto_trapezoidal_fins, -1.168)
+    # double sensors to test using same instance twice
+    calisto.add_sensor(ideal_accelerometer, -0.1180124376577797)
+    calisto.add_sensor(ideal_accelerometer, -0.1180124376577797)
+    calisto.add_sensor(ideal_gyroscope, -0.1180124376577797)
+    calisto.add_sensor(ideal_barometer, -0.1180124376577797)
+    calisto.add_sensor(ideal_gnss, -0.1180124376577797)
     return calisto
 
 
