@@ -1464,16 +1464,18 @@ class Flight:  # pylint: disable=too-many-public-methods
         a32 = 2 * (e2 * e3 + e0 * e1)
         a33 = 1 - 2 * (e1**2 + e2**2)
         # Transformation matrix: (123) -> (XYZ)
-        K = [[a11, a12, a13], [a21, a22, a23], [a31, a32, a33]]
+        K = Matrix([[a11, a12, a13], [a21, a22, a23], [a31, a32, a33]])
+        Kt = K.transpose
 
         # Calculate Forces and Moments
         # Get freestream speed
         wind_velocity_x = self.env.wind_velocity_x.get_value_opt(z)
         wind_velocity_y = self.env.wind_velocity_y.get_value_opt(z)
+        speed_of_sound = self.env.speed_of_sound.get_value_opt(z)
         free_stream_speed = (
             (wind_velocity_x - vx) ** 2 + (wind_velocity_y - vy) ** 2 + (vz) ** 2
         ) ** 0.5
-        free_stream_mach = free_stream_speed / self.env.speed_of_sound.get_value_opt(z)
+        free_stream_mach = free_stream_speed / speed_of_sound
 
         # Determine aerodynamics forces
         # Determine Drag Force
@@ -1507,76 +1509,47 @@ class Flight:  # pylint: disable=too-many-public-methods
         vy_b = a12 * vx + a22 * vy + a32 * vz
         vz_b = a13 * vx + a23 * vy + a33 * vz
         # Calculate lift and moment for each component of the rocket
-        for aero_surface, position in self.rocket.aerodynamic_surfaces:
-            comp_cp = (
-                position - self.rocket.center_of_dry_mass_position
-            ) * self.rocket._csys - aero_surface.cpz
-            reference_area = aero_surface.reference_area
-            reference_length = aero_surface.reference_length
+        velocity_in_body_frame = Vector([vx_b, vy_b, vz_b])
+        w = Vector([omega1, omega2, omega3])
+        for aero_surface, _ in self.rocket.aerodynamic_surfaces:
+            # Component cp relative to CDM in body frame
+            comp_cp = self.rocket.surfaces_cp_to_cdm[aero_surface]
             # Component absolute velocity in body frame
-            comp_vx_b = vx_b + comp_cp * omega2
-            comp_vy_b = vy_b - comp_cp * omega1
-            comp_vz_b = vz_b
-            # Wind velocity at component
-            comp_z = z + comp_cp
+            comp_vb = velocity_in_body_frame + (w ^ comp_cp)
+            # Wind velocity at component altitude
+            comp_z = z + (K @ comp_cp).z
             comp_wind_vx = self.env.wind_velocity_x.get_value_opt(comp_z)
             comp_wind_vy = self.env.wind_velocity_y.get_value_opt(comp_z)
             # Component freestream velocity in body frame
-            comp_wind_vx_b = a11 * comp_wind_vx + a21 * comp_wind_vy
-            comp_wind_vy_b = a12 * comp_wind_vx + a22 * comp_wind_vy
-            comp_wind_vz_b = a13 * comp_wind_vx + a23 * comp_wind_vy
-            comp_stream_vx_b = comp_wind_vx_b - comp_vx_b
-            comp_stream_vy_b = comp_wind_vy_b - comp_vy_b
-            comp_stream_vz_b = comp_wind_vz_b - comp_vz_b
-            comp_stream_speed = (
-                comp_stream_vx_b**2 + comp_stream_vy_b**2 + comp_stream_vz_b**2
-            ) ** 0.5
-            # Component attack angle and lift force
-            comp_attack_angle = 0
-            comp_lift, comp_lift_xb, comp_lift_yb = 0, 0, 0
-            if comp_stream_vx_b**2 + comp_stream_vy_b**2 != 0:
-                # normalize component stream velocity in body frame
-                comp_stream_vz_bn = comp_stream_vz_b / comp_stream_speed
-                if -1 * comp_stream_vz_bn < 1:
-                    comp_attack_angle = np.arccos(-comp_stream_vz_bn)
-                    c_lift = aero_surface.cl.get_value_opt(
-                        comp_attack_angle, free_stream_mach
-                    )
-                    # component lift force magnitude
-                    comp_lift = (
-                        0.5 * rho * (comp_stream_speed**2) * reference_area * c_lift
-                    )
-                    # component lift force components
-                    lift_dir_norm = (comp_stream_vx_b**2 + comp_stream_vy_b**2) ** 0.5
-                    comp_lift_xb = comp_lift * (comp_stream_vx_b / lift_dir_norm)
-                    comp_lift_yb = comp_lift * (comp_stream_vy_b / lift_dir_norm)
-                    # add to total lift force
-                    R1 += comp_lift_xb
-                    R2 += comp_lift_yb
-                    # Add to total moment
-                    M1 -= (comp_cp) * comp_lift_yb
-                    M2 += (comp_cp) * comp_lift_xb
-            # Calculates Roll Moment
-            try:
-                clf_delta, cld_omega, cant_angle_rad = aero_surface.roll_parameters
-                M3_forcing = (
-                    (1 / 2 * rho * free_stream_speed**2)
-                    * reference_area
-                    * reference_length
-                    * clf_delta.get_value_opt(free_stream_mach)
-                    * cant_angle_rad
-                )
-                M3_damping = (
-                    (1 / 2 * rho * free_stream_speed)
-                    * reference_area
-                    * (reference_length) ** 2
-                    * cld_omega.get_value_opt(free_stream_mach)
-                    * omega3
-                    / 2
-                )
-                M3 += M3_forcing - M3_damping
-            except AttributeError:
-                pass
+            comp_wind_vb = Kt @ Vector([comp_wind_vx, comp_wind_vy, 0])
+            comp_stream_velocity = comp_wind_vb - comp_vb
+            comp_stream_speed = abs(comp_stream_velocity)
+            comp_stream_mach = comp_stream_speed / speed_of_sound
+            # Reynolds at component altitude
+            # TODO: Reynolds is only used in generic surfaces. This calculation
+            # should be moved to the surface class for efficiency
+            comp_reynolds = (
+                self.env.density.get_value_opt(comp_z)
+                * comp_stream_speed
+                * aero_surface.reference_length
+                / self.env.dynamic_viscosity.get_value_opt(comp_z)
+            )
+            # Forces and moments
+            X, Y, Z, M, N, L = aero_surface.compute_forces_and_moments(
+                comp_stream_velocity,
+                comp_stream_speed,
+                comp_stream_mach,
+                rho,
+                comp_cp,
+                w,
+                comp_reynolds,
+            )
+            R1 += X
+            R2 += Y
+            R3 += Z
+            M1 += M
+            M2 += N
+            M3 += L
         # Off center moment
         M3 += self.rocket.cp_eccentricity_x * R2 - self.rocket.cp_eccentricity_y * R1
 
@@ -1663,7 +1636,7 @@ class Flight:  # pylint: disable=too-many-public-methods
             (R3 - b * propellant_mass_at_t * (alpha2 - omega1 * omega3) + thrust)
             / total_mass_at_t,
         ]
-        ax, ay, az = np.dot(K, L)
+        ax, ay, az = K @ Vector(L)
         az -= self.env.gravity.get_value_opt(z)  # Include gravity
 
         # Create u_dot
