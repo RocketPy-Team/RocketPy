@@ -6,7 +6,7 @@ import pytest
 from pytest import approx
 
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
-from rocketpy.tools import euler321_to_quaternions
+from rocketpy.tools import euler313_to_quaternions
 
 # calisto standard simulation no wind solution index 200
 TIME = 3.338513236767685
@@ -71,9 +71,9 @@ def test_rotation_matrix(noisy_rotated_accelerometer):
     # values from external source
     expected_matrix = np.array(
         [
-            [0.2500000, -0.0580127, 0.9665064],
-            [0.4330127, 0.8995190, -0.0580127],
-            [-0.8660254, 0.4330127, 0.2500000],
+            [-0.125, -0.6495190528383292, 0.7499999999999999],
+            [0.6495190528383292, -0.625, -0.43301270189221946],
+            [0.7499999999999999, 0.43301270189221946, 0.5000000000000001],
         ]
     )
     rotation_matrix = np.array(noisy_rotated_accelerometer.rotation_matrix.components)
@@ -287,7 +287,9 @@ def test_noisy_rotated_accelerometer(noisy_rotated_accelerometer, example_plain_
             [0.005, 0.005, 1],
         ]
     )
-    sensor_rotation = Matrix.transformation(euler321_to_quaternions(60, 60, 60))
+    sensor_rotation = Matrix.transformation(
+        euler313_to_quaternions(*np.deg2rad([60, 60, 60]))
+    )
     total_rotation = sensor_rotation @ cross_axis_sensitivity
     rocket_rotation = Matrix.transformation(U[6:10])
     # expected measurement without noise
@@ -328,7 +330,9 @@ def test_noisy_rotated_gyroscope(noisy_rotated_gyroscope, example_plain_env):
             [0.005, 0.005, 1],
         ]
     )
-    sensor_rotation = Matrix.transformation(euler321_to_quaternions(-60, -60, -60))
+    sensor_rotation = Matrix.transformation(
+        euler313_to_quaternions(*np.deg2rad([-60, -60, -60]))
+    )
     total_rotation = sensor_rotation @ cross_axis_sensitivity
     rocket_rotation = Matrix.transformation(U[6:10])
     # expected measurement without noise
