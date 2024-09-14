@@ -1,3 +1,5 @@
+.. _rocket_axes:
+
 Rocket Class Axes Definitions
 =============================
 

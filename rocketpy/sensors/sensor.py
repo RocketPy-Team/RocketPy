@@ -308,7 +308,7 @@ class InertialSensor(Sensor):
     name : str
         The name of the sensor.
     rotation_matrix : Matrix
-        The rotation matrix of the sensor from the sensor frame to the rocket
+        The rotation matrix of the sensor from the rocket frame to the sensor
         frame of reference.
     normal_vector : Vector
         The normal vector of the sensor in the rocket frame of reference.
@@ -345,22 +345,21 @@ class InertialSensor(Sensor):
         sampling_rate : float
             Sample rate of the sensor
         orientation : tuple, list, optional
-            Orientation of the sensor in the rocket. The orientation can be
-            given as:
-            - A list of length 3, where the elements are the Euler angles for
-              the rotation yaw (ψ), pitch (θ) and roll (φ) in radians. The
-              standard rotation sequence is z-y-x (3-2-1) is used, meaning the
-              sensor is first rotated by ψ around the x axis, then by θ around
-              the new y axis and finally by φ around the new z axis.
+            Orientation of the sensor in relation to the rocket frame of
+            reference (Body Axes Coordinate System). See :ref:'rocket_axes' for
+            more information.
+            If orientation is not given, the sensor axes will be aligned with
+            the rocket axis.
+            The orientation can be given as:
+            - A list or tuple of length 3, where the elements are the intrisic
+              rotation angles in radians. The rotation sequence z-x-z (3-1-3) is
+              used, meaning the sensor is first around the z axis (roll), then
+              around the new x axis (pitch) and finally around the new z axis
+              (roll).
             - A list of lists (matrix) of shape 3x3, representing the rotation
               matrix from the sensor frame to the rocket frame. The sensor frame
-              of reference is defined as to have z axis along the sensor's normal
-              vector pointing upwards, x and y axes perpendicular to the z axis
-              and each other.
-            The rocket frame of reference is defined as to have z axis
-            along the rocket's axis of symmetry pointing upwards, x and y axes
-            perpendicular to the z axis and each other. Default is (0, 0, 0),
-            meaning the sensor is aligned with the rocket's axis of symmetry.
+              of reference is defined as being initially aligned with the rocket
+              frame of reference.
         measurement_range : float, tuple, optional
             The measurement range of the sensor in the sensor units. If a float,
             the same range is applied both for positive and negative values. If
@@ -463,7 +462,7 @@ class InertialSensor(Sensor):
             self.rotation_matrix = Matrix(orientation)
         elif len(orientation) == 3:  # euler angles
             self.rotation_matrix = Matrix.transformation_euler_angles(
-                *orientation
+                *np.deg2rad(orientation)
             ).round(12)
         else:
             raise ValueError("Invalid orientation format")
