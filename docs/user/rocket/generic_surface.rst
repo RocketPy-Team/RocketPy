@@ -154,7 +154,7 @@ as follows:
 
 .. seealso::
    For more information on class initialization, see 
-   :class:`rocketpy.GeericSurface.__init__` 
+   :class:`rocketpy.GenericSurface.__init__` 
 
 
 .. code-block:: python
@@ -286,7 +286,7 @@ rocket's configuration:
    rocket = Rocket(
       ...
    )
-   rocket.add_generic_surface(generic_surface, position=(0,0,0))
+   rocket.add_surfaces(generic_surface, position=(0,0,0))
 
 The position of the generic surface is defined in the User Defined coordinate
 System, see :ref:`rocketaxes` for more information.
@@ -431,4 +431,6 @@ shown below:
             "cl_p": "cl_p.csv",
          },
       )
+      rocket.add_surfaces(linear_generic_surface, position=(0,0,0))
+
 
