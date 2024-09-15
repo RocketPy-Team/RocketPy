@@ -409,3 +409,19 @@ class _AirBrakesPlots(_AeroSurfacePlots):
         None
         """
         self.drag_coefficient_curve()
+
+
+class _GenericSurfacePlots(_AeroSurfacePlots):
+    """Class that contains all generic surface plots."""
+
+    def draw(self):
+        pass
+    
+
+
+class _LinearGenericSurfacePlots(_AeroSurfacePlots):
+    """Class that contains all linear generic surface plots."""
+
+    def draw(self):
+        pass
+    
