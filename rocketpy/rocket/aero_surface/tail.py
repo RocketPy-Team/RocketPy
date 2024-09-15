@@ -76,7 +76,7 @@ class Tail(AeroSurface):
         -------
         None
         """
-        super().__init__(name, np.pi * rocket_radius**2, 2 * rocket_radius)
+        super().__init__(name, np.pi * rocket_radius ** 2, 2 * rocket_radius)
 
         self._top_radius = top_radius
         self._bottom_radius = bottom_radius
@@ -189,7 +189,7 @@ class Tail(AeroSurface):
         """
         # Calculate cp position in local coordinates
         r = self.top_radius / self.bottom_radius
-        cpz = (self.length / 3) * (1 + (1 - r) / (1 - r**2))
+        cpz = (self.length / 3) * (1 + (1 - r) / (1 - r ** 2))
 
         # Store values as class attributes
         self.cpx = 0

@@ -260,11 +260,11 @@ class _TrapezoidalFinsPlots(_FinsPlots):
             / (3 * (self.aero_surface.root_chord + self.aero_surface.tip_chord))
         )
         yma_end = (
-            2 * self.aero_surface.root_chord**2
+            2 * self.aero_surface.root_chord ** 2
             + self.aero_surface.root_chord * self.aero_surface.sweep_length
             + 2 * self.aero_surface.root_chord * self.aero_surface.tip_chord
             + 2 * self.aero_surface.sweep_length * self.aero_surface.tip_chord
-            + 2 * self.aero_surface.tip_chord**2
+            + 2 * self.aero_surface.tip_chord ** 2
         ) / (3 * (self.aero_surface.root_chord + self.aero_surface.tip_chord))
         yma_line = plt.Line2D(
             (yma_start, yma_end),
@@ -416,7 +416,6 @@ class _GenericSurfacePlots(_AeroSurfacePlots):
 
     def draw(self):
         pass
-    
 
 
 class _LinearGenericSurfacePlots(_AeroSurfacePlots):
@@ -424,4 +423,3 @@ class _LinearGenericSurfacePlots(_AeroSurfacePlots):
 
     def draw(self):
         pass
-    

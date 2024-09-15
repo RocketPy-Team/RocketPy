@@ -695,9 +695,9 @@ class Flight:  # pylint: disable=too-many-public-methods
                 # and updating its internal state for the next integration step.
                 phase.solver.t_bound = node.time_bound
                 phase.solver._lsoda_solver._integrator.rwork[0] = phase.solver.t_bound
-                phase.solver._lsoda_solver._integrator.call_args[4] = (
-                    phase.solver._lsoda_solver._integrator.rwork
-                )
+                phase.solver._lsoda_solver._integrator.call_args[
+                    4
+                ] = phase.solver._lsoda_solver._integrator.rwork
                 phase.solver.status = "running"
 
                 # Feed required parachute and discrete controller triggers
@@ -736,10 +736,11 @@ class Flight:  # pylint: disable=too-many-public-methods
 
                 for parachute in node.parachutes:
                     # Calculate and save pressure signal
-                    noisy_pressure, height_above_ground_level = (
-                        self.__calculate_and_save_pressure_signals(
-                            parachute, node.t, self.y_sol[2]
-                        )
+                    (
+                        noisy_pressure,
+                        height_above_ground_level,
+                    ) = self.__calculate_and_save_pressure_signals(
+                        parachute, node.t, self.y_sol[2]
                     )
                     if parachute.triggerfunc(
                         noisy_pressure,
@@ -798,7 +799,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                         self.y_sol[0] ** 2
                         + self.y_sol[1] ** 2
                         + (self.y_sol[2] - self.env.elevation) ** 2
-                        >= self.effective_1rl**2
+                        >= self.effective_1rl ** 2
                     ):
                         # Check exactly when it went out using root finding
                         # Disconsider elevation
@@ -807,7 +808,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                         # Get points
                         y0 = (
                             sum(self.solution[-2][i] ** 2 for i in [1, 2, 3])
-                            - self.effective_1rl**2
+                            - self.effective_1rl ** 2
                         )
                         yp0 = 2 * sum(
                             self.solution[-2][i] * self.solution[-2][i + 3]
@@ -816,7 +817,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                         t1 = self.solution[-1][0] - self.solution[-2][0]
                         y1 = (
                             sum(self.solution[-1][i] ** 2 for i in [1, 2, 3])
-                            - self.effective_1rl**2
+                            - self.effective_1rl ** 2
                         )
                         yp1 = 2 * sum(
                             self.solution[-1][i] * self.solution[-1][i + 3]
@@ -975,12 +976,13 @@ class Flight:  # pylint: disable=too-many-public-methods
                                 )
                                 for parachute in overshootable_node.parachutes:
                                     # Calculate and save pressure signal
-                                    noisy_pressure, height_above_ground_level = (
-                                        self.__calculate_and_save_pressure_signals(
-                                            parachute,
-                                            overshootable_node.t,
-                                            overshootable_node.y_sol[2],
-                                        )
+                                    (
+                                        noisy_pressure,
+                                        height_above_ground_level,
+                                    ) = self.__calculate_and_save_pressure_signals(
+                                        parachute,
+                                        overshootable_node.t,
+                                        overshootable_node.y_sol[2],
                                     )
 
                                     # Check for parachute trigger
@@ -1323,16 +1325,16 @@ class Flight:  # pylint: disable=too-many-public-methods
         # Calculate Forces
         thrust = self.rocket.motor.thrust.get_value_opt(t)
         rho = self.env.density.get_value_opt(z)
-        R3 = -0.5 * rho * (free_stream_speed**2) * self.rocket.area * (drag_coeff)
+        R3 = -0.5 * rho * (free_stream_speed ** 2) * self.rocket.area * (drag_coeff)
 
         # Calculate Linear acceleration
         a3 = (R3 + thrust) / total_mass_at_t - (
-            e0**2 - e1**2 - e2**2 + e3**2
+            e0 ** 2 - e1 ** 2 - e2 ** 2 + e3 ** 2
         ) * self.env.gravity.get_value_opt(z)
         if a3 > 0:
             ax = 2 * (e1 * e3 + e0 * e2) * a3
             ay = 2 * (e2 * e3 - e0 * e1) * a3
-            az = (1 - 2 * (e1**2 + e2**2)) * a3
+            az = (1 - 2 * (e1 ** 2 + e2 ** 2)) * a3
         else:
             ax, ay, az = 0, 0, 0
 
@@ -1454,15 +1456,15 @@ class Flight:  # pylint: disable=too-many-public-methods
         c = self.rocket.nozzle_to_cdm
         nozzle_radius = self.rocket.motor.nozzle_radius
         # Prepare transformation matrix
-        a11 = 1 - 2 * (e2**2 + e3**2)
+        a11 = 1 - 2 * (e2 ** 2 + e3 ** 2)
         a12 = 2 * (e1 * e2 - e0 * e3)
         a13 = 2 * (e1 * e3 + e0 * e2)
         a21 = 2 * (e1 * e2 + e0 * e3)
-        a22 = 1 - 2 * (e1**2 + e3**2)
+        a22 = 1 - 2 * (e1 ** 2 + e3 ** 2)
         a23 = 2 * (e2 * e3 - e0 * e1)
         a31 = 2 * (e1 * e3 - e0 * e2)
         a32 = 2 * (e2 * e3 + e0 * e1)
-        a33 = 1 - 2 * (e1**2 + e2**2)
+        a33 = 1 - 2 * (e1 ** 2 + e2 ** 2)
         # Transformation matrix: (123) -> (XYZ)
         K = Matrix([[a11, a12, a13], [a21, a22, a23], [a31, a32, a33]])
         Kt = K.transpose
@@ -1484,7 +1486,7 @@ class Flight:  # pylint: disable=too-many-public-methods
         else:
             drag_coeff = self.rocket.power_off_drag.get_value_opt(free_stream_mach)
         rho = self.env.density.get_value_opt(z)
-        R3 = -0.5 * rho * (free_stream_speed**2) * self.rocket.area * drag_coeff
+        R3 = -0.5 * rho * (free_stream_speed ** 2) * self.rocket.area * drag_coeff
         for air_brakes in self.rocket.air_brakes:
             if air_brakes.deployment_level > 0:
                 air_brakes_cd = air_brakes.drag_coefficient.get_value_opt(
@@ -1493,7 +1495,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                 air_brakes_force = (
                     -0.5
                     * rho
-                    * (free_stream_speed**2)
+                    * (free_stream_speed ** 2)
                     * air_brakes.reference_area
                     * air_brakes_cd
                 )
@@ -1565,7 +1567,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                     + motor_I_33_at_t
                     - rocket_dry_I_11
                     - motor_I_11_at_t
-                    - mu * b**2
+                    - mu * b ** 2
                 )
                 + omega1
                 * (
@@ -1579,7 +1581,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                     * ((nozzle_radius / 2) ** 2 + (c - b * mu / rocket_dry_mass) ** 2)
                 )
             )
-        ) / (rocket_dry_I_11 + motor_I_11_at_t + mu * b**2)
+        ) / (rocket_dry_I_11 + motor_I_11_at_t + mu * b ** 2)
         alpha2 = (
             M2
             - (
@@ -1588,7 +1590,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                 * (
                     rocket_dry_I_11
                     + motor_I_11_at_t
-                    + mu * b**2
+                    + mu * b ** 2
                     - rocket_dry_I_33
                     - motor_I_33_at_t
                 )
@@ -1604,13 +1606,13 @@ class Flight:  # pylint: disable=too-many-public-methods
                     * ((nozzle_radius / 2) ** 2 + (c - b * mu / rocket_dry_mass) ** 2)
                 )
             )
-        ) / (rocket_dry_I_11 + motor_I_11_at_t + mu * b**2)
+        ) / (rocket_dry_I_11 + motor_I_11_at_t + mu * b ** 2)
         alpha3 = (
             M3
             - omega3
             * (
                 motor_I_33_derivative_at_t
-                - mass_flow_rate_at_t * (nozzle_radius**2) / 2
+                - mass_flow_rate_at_t * (nozzle_radius ** 2) / 2
             )
         ) / (rocket_dry_I_33 + motor_I_33_at_t)
         # Euler parameters derivative
@@ -1623,7 +1625,7 @@ class Flight:  # pylint: disable=too-many-public-methods
         L = [
             (
                 R1
-                - b * propellant_mass_at_t * (omega2**2 + omega3**2)
+                - b * propellant_mass_at_t * (omega2 ** 2 + omega3 ** 2)
                 - 2 * c * mass_flow_rate_at_t * omega2
             )
             / total_mass_at_t,
@@ -1742,7 +1744,7 @@ class Flight:  # pylint: disable=too-many-public-methods
             drag_coeff = self.rocket.power_on_drag.get_value_opt(free_stream_mach)
         else:
             drag_coeff = self.rocket.power_off_drag.get_value_opt(free_stream_mach)
-        R3 += -0.5 * rho * (free_stream_speed**2) * self.rocket.area * drag_coeff
+        R3 += -0.5 * rho * (free_stream_speed ** 2) * self.rocket.area * drag_coeff
         for air_brakes in self.rocket.air_brakes:
             if air_brakes.deployment_level > 0:
                 air_brakes_cd = air_brakes.drag_coefficient.get_value_opt(
@@ -1751,7 +1753,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                 air_brakes_force = (
                     -0.5
                     * rho
-                    * (free_stream_speed**2)
+                    * (free_stream_speed ** 2)
                     * air_brakes.reference_area
                     * air_brakes_cd
                 )
@@ -1918,13 +1920,15 @@ class Flight:  # pylint: disable=too-many-public-methods
         # Rdot = 0
 
         # Calculate added mass
-        ma = ka * rho * (4 / 3) * np.pi * R**3
+        ma = ka * rho * (4 / 3) * np.pi * R ** 3
 
         # Calculate freestream speed
         freestream_x = vx - wind_velocity_x
         freestream_y = vy - wind_velocity_y
         freestream_z = vz
-        free_stream_speed = (freestream_x**2 + freestream_y**2 + freestream_z**2) ** 0.5
+        free_stream_speed = (
+            freestream_x ** 2 + freestream_y ** 2 + freestream_z ** 2
+        ) ** 0.5
 
         # Determine drag force
         pseudo_drag = -0.5 * rho * cd_s * free_stream_speed
@@ -2196,7 +2200,7 @@ class Flight:  # pylint: disable=too-many-public-methods
     @funcify_method("Time (s)", "Speed - Velocity Magnitude (m/s)")
     def speed(self):
         """Rocket speed, or velocity magnitude, as a Function of time."""
-        return (self.vx**2 + self.vy**2 + self.vz**2) ** 0.5
+        return (self.vx ** 2 + self.vy ** 2 + self.vz ** 2) ** 0.5
 
     @property
     def out_of_rail_velocity(self):
@@ -2218,7 +2222,7 @@ class Flight:  # pylint: disable=too-many-public-methods
     @funcify_method("Time (s)", "acceleration Magnitude (m/s²)")
     def acceleration(self):
         """Rocket acceleration magnitude as a Function of time."""
-        return (self.ax**2 + self.ay**2 + self.az**2) ** 0.5
+        return (self.ax ** 2 + self.ay ** 2 + self.az ** 2) ** 0.5
 
     @cached_property
     def max_acceleration_power_on_time(self):
@@ -2272,7 +2276,7 @@ class Flight:  # pylint: disable=too-many-public-methods
     @funcify_method("Time (s)", "Horizontal Speed (m/s)")
     def horizontal_speed(self):
         """Rocket horizontal speed as a Function of time."""
-        return (self.vx**2 + self.vy**2) ** 0.5
+        return (self.vx ** 2 + self.vy ** 2) ** 0.5
 
     # Path Angle
     @funcify_method("Time (s)", "Path Angle (°)", "spline", "constant")
@@ -2306,13 +2310,13 @@ class Flight:  # pylint: disable=too-many-public-methods
         Same as row 3, column 3 of the rotation matrix that defines
         the conversion from the body frame to the inertial frame
         at each time step."""
-        return 1 - 2 * (self.e1**2 + self.e2**2)  # a33
+        return 1 - 2 * (self.e1 ** 2 + self.e2 ** 2)  # a33
 
     @funcify_method("Time (s)", "Attitude Angle (°)")
     def attitude_angle(self):
         """Rocket attitude angle as a Function of time."""
         horizontal_attitude_proj = (
-            self.attitude_vector_x**2 + self.attitude_vector_y**2
+            self.attitude_vector_x ** 2 + self.attitude_vector_y ** 2
         ) ** 0.5
         attitude_angle = (180 / np.pi) * np.arctan2(
             self.attitude_vector_z[:, 1], horizontal_attitude_proj[:, 1]
@@ -2341,9 +2345,9 @@ class Flight:  # pylint: disable=too-many-public-methods
         )
         attitude_lateral_plane_proj_z = self.attitude_vector_z[:, 1]
         attitude_lateral_plane_proj = (
-            attitude_lateral_plane_proj_x**2
-            + attitude_lateral_plane_proj_y**2
-            + attitude_lateral_plane_proj_z**2
+            attitude_lateral_plane_proj_x ** 2
+            + attitude_lateral_plane_proj_y ** 2
+            + attitude_lateral_plane_proj_z ** 2
         ) ** 0.5
         lateral_attitude_angle = (180 / np.pi) * np.arctan2(
             attitude_lateral_proj, attitude_lateral_plane_proj
@@ -2395,9 +2399,9 @@ class Flight:  # pylint: disable=too-many-public-methods
     def free_stream_speed(self):
         """Freestream speed as a Function of time."""
         free_stream_speed = (
-            self.stream_velocity_x**2
-            + self.stream_velocity_y**2
-            + self.stream_velocity_z**2
+            self.stream_velocity_x ** 2
+            + self.stream_velocity_y ** 2
+            + self.stream_velocity_z ** 2
         ) ** 0.5
         return free_stream_speed.get_source()
 
@@ -2490,7 +2494,7 @@ class Flight:  # pylint: disable=too-many-public-methods
     @funcify_method("Time (s)", "Dynamic Pressure (Pa)", "spline", "zero")
     def dynamic_pressure(self):
         """Dynamic pressure as a Function of time."""
-        return 0.5 * self.density * self.free_stream_speed**2
+        return 0.5 * self.density * self.free_stream_speed ** 2
 
     @cached_property
     def max_dynamic_pressure_time(self):
@@ -2507,7 +2511,7 @@ class Flight:  # pylint: disable=too-many-public-methods
     @funcify_method("Time (s)", "Total Pressure (Pa)", "spline", "zero")
     def total_pressure(self):
         """Total pressure as a Function of time."""
-        return self.pressure * (1 + 0.2 * self.mach_number**2) ** (3.5)
+        return self.pressure * (1 + 0.2 * self.mach_number ** 2) ** (3.5)
 
     @cached_property
     def max_total_pressure_time(self):
@@ -2529,7 +2533,7 @@ class Flight:  # pylint: disable=too-many-public-methods
     @funcify_method("Time (s)", "Aerodynamic Lift Force (N)", "spline", "zero")
     def aerodynamic_lift(self):
         """Aerodynamic lift force as a Function of time."""
-        return (self.R1**2 + self.R2**2) ** 0.5
+        return (self.R1 ** 2 + self.R2 ** 2) ** 0.5
 
     @funcify_method("Time (s)", "Aerodynamic Drag Force (N)", "spline", "zero")
     def aerodynamic_drag(self):
@@ -2539,7 +2543,7 @@ class Flight:  # pylint: disable=too-many-public-methods
     @funcify_method("Time (s)", "Aerodynamic Bending Moment (Nm)", "spline", "zero")
     def aerodynamic_bending_moment(self):
         """Aerodynamic bending moment as a Function of time."""
-        return (self.M1**2 + self.M2**2) ** 0.5
+        return (self.M1 ** 2 + self.M2 ** 2) ** 0.5
 
     @funcify_method("Time (s)", "Aerodynamic Spin Moment (Nm)", "spline", "zero")
     def aerodynamic_spin_moment(self):
@@ -2552,9 +2556,9 @@ class Flight:  # pylint: disable=too-many-public-methods
     def rotational_energy(self):
         """Rotational kinetic energy as a Function of time."""
         rotational_energy = 0.5 * (
-            self.rocket.I_11 * self.w1**2
-            + self.rocket.I_22 * self.w2**2
-            + self.rocket.I_33 * self.w3**2
+            self.rocket.I_11 * self.w1 ** 2
+            + self.rocket.I_22 * self.w2 ** 2
+            + self.rocket.I_33 * self.w3 ** 2
         )
         rotational_energy.set_discrete_based_on_model(self.w1)
         return rotational_energy
@@ -2565,7 +2569,7 @@ class Flight:  # pylint: disable=too-many-public-methods
         # Redefine total_mass time grid to allow for efficient Function algebra
         total_mass = deepcopy(self.rocket.total_mass)
         total_mass.set_discrete_based_on_model(self.vz)
-        translational_energy = 0.5 * total_mass * (self.speed**2)
+        translational_energy = 0.5 * total_mass * (self.speed ** 2)
         return translational_energy
 
     @funcify_method("Time (s)", "Kinetic Energy (J)", "spline", "zero")
@@ -3081,7 +3085,7 @@ class Flight:  # pylint: disable=too-many-public-methods
         w_v = (
             2 * v_f * math.cos(theta) / c
             + (
-                4 * v_f * v_f * math.cos(theta) * math.cos(theta) / (c**2)
+                4 * v_f * v_f * math.cos(theta) * math.cos(theta) / (c ** 2)
                 + 4 * 1 * v_f * v_f / c
             )
             ** 0.5
@@ -3493,7 +3497,9 @@ class Flight:  # pylint: disable=too-many-public-methods
             new_index = (
                 index - 1
                 if flight_phase.t < previous_phase.t
-                else index + 1 if flight_phase.t > next_phase.t else index
+                else index + 1
+                if flight_phase.t > next_phase.t
+                else index
             )
             flight_phase.t += adjust
             self.add(flight_phase, new_index)

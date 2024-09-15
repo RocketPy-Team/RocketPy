@@ -237,7 +237,7 @@ def test_wyoming_sounding_atmosphere(
             example_plain_env.set_atmospheric_model(type="wyoming_sounding", file=url)
             break
         except Exception:  # pylint: disable=broad-except
-            time.sleep(2**i)
+            time.sleep(2 ** i)
     assert example_plain_env.all_info() is None
     assert abs(example_plain_env.pressure(0) - 93600.0) < 1e-8
     assert (

@@ -1287,7 +1287,7 @@ class GenericMotor(Motor):
         """
         return (
             self.propellant_mass
-            * (3 * self.chamber_radius**2 + self.chamber_height**2)
+            * (3 * self.chamber_radius ** 2 + self.chamber_height ** 2)
             / 12
         )
 
@@ -1333,7 +1333,7 @@ class GenericMotor(Motor):
         ----------
         https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        return self.propellant_mass * self.chamber_radius**2 / 2
+        return self.propellant_mass * self.chamber_radius ** 2 / 2
 
     @funcify_method("Time (s)", "Inertia I_12 (kg m²)")
     def propellant_I_12(self):

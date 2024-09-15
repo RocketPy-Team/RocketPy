@@ -110,7 +110,7 @@ def controller_function():
             air_brakes.deployment_level = 0
         else:
             new_deployment_level = (
-                air_brakes.deployment_level + 0.1 * vz + 0.01 * previous_vz**2
+                air_brakes.deployment_level + 0.1 * vz + 0.01 * previous_vz ** 2
             )
             if new_deployment_level > air_brakes.deployment_level + 0.2 / sampling_rate:
                 new_deployment_level = air_brakes.deployment_level + 0.2 / sampling_rate
@@ -134,7 +134,7 @@ def lambda_quad_func():
     Function
         A lambda function based on a string.
     """
-    func = lambda x: x**2  # pylint: disable=unnecessary-lambda-assignment
+    func = lambda x: x ** 2  # pylint: disable=unnecessary-lambda-assignment
     return Function(
         source=func,
     )

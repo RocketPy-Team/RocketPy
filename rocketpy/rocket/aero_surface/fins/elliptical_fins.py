@@ -199,17 +199,17 @@ class EllipticalFins(Fins):
         # pylint: disable=invalid-name
         Af = (np.pi * self.root_chord / 2 * self.span) / 2  # Fin area
         gamma_c = 0  # Zero for elliptical fins
-        AR = 2 * self.span**2 / Af  # Fin aspect ratio
+        AR = 2 * self.span ** 2 / Af  # Fin aspect ratio
         Yma = (
-            self.span / (3 * np.pi) * np.sqrt(9 * np.pi**2 - 64)
+            self.span / (3 * np.pi) * np.sqrt(9 * np.pi ** 2 - 64)
         )  # Span wise coord of mean aero chord
         roll_geometrical_constant = (
             self.root_chord
             * self.span
             * (
-                3 * np.pi * self.span**2
+                3 * np.pi * self.span ** 2
                 + 32 * self.rocket_radius * self.span
-                + 12 * np.pi * self.rocket_radius**2
+                + 12 * np.pi * self.rocket_radius ** 2
             )
             / 48
         )
@@ -219,74 +219,75 @@ class EllipticalFins(Fins):
         lift_interference_factor = 1 + 1 / tau
         if self.span > self.rocket_radius:
             roll_damping_interference_factor = 1 + (
-                (self.rocket_radius**2)
+                (self.rocket_radius ** 2)
                 * (
                     2
-                    * (self.rocket_radius**2)
-                    * np.sqrt(self.span**2 - self.rocket_radius**2)
+                    * (self.rocket_radius ** 2)
+                    * np.sqrt(self.span ** 2 - self.rocket_radius ** 2)
                     * np.log(
                         (
                             2
                             * self.span
-                            * np.sqrt(self.span**2 - self.rocket_radius**2)
-                            + 2 * self.span**2
+                            * np.sqrt(self.span ** 2 - self.rocket_radius ** 2)
+                            + 2 * self.span ** 2
                         )
                         / self.rocket_radius
                     )
                     - 2
-                    * (self.rocket_radius**2)
-                    * np.sqrt(self.span**2 - self.rocket_radius**2)
+                    * (self.rocket_radius ** 2)
+                    * np.sqrt(self.span ** 2 - self.rocket_radius ** 2)
                     * np.log(2 * self.span)
-                    + 2 * self.span**3
-                    - np.pi * self.rocket_radius * self.span**2
-                    - 2 * (self.rocket_radius**2) * self.span
-                    + np.pi * self.rocket_radius**3
+                    + 2 * self.span ** 3
+                    - np.pi * self.rocket_radius * self.span ** 2
+                    - 2 * (self.rocket_radius ** 2) * self.span
+                    + np.pi * self.rocket_radius ** 3
                 )
             ) / (
                 2
-                * (self.span**2)
+                * (self.span ** 2)
                 * (self.span / 3 + np.pi * self.rocket_radius / 4)
-                * (self.span**2 - self.rocket_radius**2)
+                * (self.span ** 2 - self.rocket_radius ** 2)
             )
         elif self.span < self.rocket_radius:
             roll_damping_interference_factor = 1 - (
-                self.rocket_radius**2
+                self.rocket_radius ** 2
                 * (
-                    2 * self.span**3
-                    - np.pi * self.span**2 * self.rocket_radius
-                    - 2 * self.span * self.rocket_radius**2
-                    + np.pi * self.rocket_radius**3
+                    2 * self.span ** 3
+                    - np.pi * self.span ** 2 * self.rocket_radius
+                    - 2 * self.span * self.rocket_radius ** 2
+                    + np.pi * self.rocket_radius ** 3
                     + 2
-                    * self.rocket_radius**2
-                    * np.sqrt(-self.span**2 + self.rocket_radius**2)
+                    * self.rocket_radius ** 2
+                    * np.sqrt(-self.span ** 2 + self.rocket_radius ** 2)
                     * np.arctan(
-                        (self.span) / (np.sqrt(-self.span**2 + self.rocket_radius**2))
+                        (self.span)
+                        / (np.sqrt(-self.span ** 2 + self.rocket_radius ** 2))
                     )
                     - np.pi
-                    * self.rocket_radius**2
-                    * np.sqrt(-self.span**2 + self.rocket_radius**2)
+                    * self.rocket_radius ** 2
+                    * np.sqrt(-self.span ** 2 + self.rocket_radius ** 2)
                 )
             ) / (
                 2
                 * self.span
-                * (-self.span**2 + self.rocket_radius**2)
-                * (self.span**2 / 3 + np.pi * self.span * self.rocket_radius / 4)
+                * (-self.span ** 2 + self.rocket_radius ** 2)
+                * (self.span ** 2 / 3 + np.pi * self.span * self.rocket_radius / 4)
             )
         else:
             roll_damping_interference_factor = (28 - 3 * np.pi) / (4 + 3 * np.pi)
 
-        roll_forcing_interference_factor = (1 / np.pi**2) * (
-            (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
-            + ((np.pi * (tau**2 + 1) ** 2) / (tau**2 * (tau - 1) ** 2))
-            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
+        roll_forcing_interference_factor = (1 / np.pi ** 2) * (
+            (np.pi ** 2 / 4) * ((tau + 1) ** 2 / tau ** 2)
+            + ((np.pi * (tau ** 2 + 1) ** 2) / (tau ** 2 * (tau - 1) ** 2))
+            * np.arcsin((tau ** 2 - 1) / (tau ** 2 + 1))
             - (2 * np.pi * (tau + 1)) / (tau * (tau - 1))
-            + ((tau**2 + 1) ** 2)
-            / (tau**2 * (tau - 1) ** 2)
-            * (np.arcsin((tau**2 - 1) / (tau**2 + 1))) ** 2
+            + ((tau ** 2 + 1) ** 2)
+            / (tau ** 2 * (tau - 1) ** 2)
+            * (np.arcsin((tau ** 2 - 1) / (tau ** 2 + 1))) ** 2
             - (4 * (tau + 1))
             / (tau * (tau - 1))
-            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
-            + (8 / (tau - 1) ** 2) * np.log((tau**2 + 1) / (2 * tau))
+            * np.arcsin((tau ** 2 - 1) / (tau ** 2 + 1))
+            + (8 / (tau - 1) ** 2) * np.log((tau ** 2 + 1) / (2 * tau))
         )
 
         # Store values

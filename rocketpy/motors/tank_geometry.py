@@ -175,7 +175,7 @@ class TankGeometry:
         Function
             Tank cross sectional area as a function of height.
         """
-        return np.pi * self.radius**2
+        return np.pi * self.radius ** 2
 
     @funcify_method("Height (m)", "Volume (m³)", extrapolation="zero")
     def volume(self):
@@ -212,7 +212,7 @@ class TankGeometry:
             Tank height as a function of volume.
         """
         return self.volume.inverse_function(
-            lambda v: v / (np.pi * self.average_radius**2),
+            lambda v: v / (np.pi * self.average_radius ** 2),
         )
 
     @cache
@@ -278,7 +278,7 @@ class TankGeometry:
         # Tolerance of 1e-8 is used to avoid numerical errors
         upper = upper + 1e-12 if upper - lower < 1e-8 else upper
 
-        inertia = (self.area * (height2 + self.radius**2 / 4)).integral_function(
+        inertia = (self.area * (height2 + self.radius ** 2 / 4)).integral_function(
             lower, upper
         )
 
@@ -325,7 +325,7 @@ class TankGeometry:
         # Tolerance of 1e-8 is used to avoid numerical errors
         upper = upper + 1e-12 if upper - lower < 1e-8 else upper
 
-        inertia = (self.area * self.radius**2).integral_function(lower, upper) / 2
+        inertia = (self.area * self.radius ** 2).integral_function(lower, upper) / 2
 
         return inertia
 
@@ -402,10 +402,10 @@ class CylindricalTank(TankGeometry):
             upper_cap_range = (height / 2 - radius, height / 2)
 
             def bottom_cap_radius(h):
-                return abs(radius**2 - (h + (height / 2 - radius)) ** 2) ** 0.5
+                return abs(radius ** 2 - (h + (height / 2 - radius)) ** 2) ** 0.5
 
             def upper_cap_radius(h):
-                return abs(radius**2 - (h - (height / 2 - radius)) ** 2) ** 0.5
+                return abs(radius ** 2 - (h - (height / 2 - radius)) ** 2) ** 0.5
 
             self.add_geometry(bottom_cap_range, bottom_cap_radius)
             self.add_geometry(upper_cap_range, upper_cap_radius)
@@ -434,4 +434,4 @@ class SphericalTank(TankGeometry):
         """
         geometry_dict = geometry_dict or {}
         super().__init__(geometry_dict)
-        self.add_geometry((-radius, radius), lambda h: (radius**2 - h**2) ** 0.5)
+        self.add_geometry((-radius, radius), lambda h: (radius ** 2 - h ** 2) ** 0.5)

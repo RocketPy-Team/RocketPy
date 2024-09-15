@@ -49,7 +49,7 @@ def test_matrix_iter(components):
 
 @pytest.mark.parametrize("components", test_matrices)
 def test_matrix_call(components):
-    f = Function(lambda x: x**2)
+    f = Function(lambda x: x ** 2)
     matrix = Matrix(components)
     callable_matrix = matrix * f
     assert callable_matrix(1) == matrix
@@ -167,7 +167,7 @@ def test_matrix_matmul_vectors(A, B):
 @pytest.mark.parametrize("A", test_matrices)
 def test_matrix_pow(A, k):
     A = Matrix(A)
-    assert A**k == np.linalg.matrix_power(A, k)
+    assert A ** k == np.linalg.matrix_power(A, k)
 
 
 @pytest.mark.parametrize("matrix_components", test_matrices)
@@ -177,7 +177,7 @@ def test_matrix_eq(matrix_components):
     assert (matrix == 2 * matrix) is False
 
 
-@pytest.mark.parametrize("operation", [lambda i: i**2, lambda i: 1 / (i + 1.1)])
+@pytest.mark.parametrize("operation", [lambda i: i ** 2, lambda i: 1 / (i + 1.1)])
 @pytest.mark.parametrize("matrix_components", test_matrices)
 def test_matrix_element_wise(matrix_components, operation):
     matrix = Matrix(matrix_components)

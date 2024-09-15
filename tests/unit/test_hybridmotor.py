@@ -73,7 +73,7 @@ def test_hybrid_motor_thrust_parameters(hybrid_motor, spherical_oxidizer_tank):
     initial_grain_mass = (
         GRAIN_DENSITY
         * np.pi
-        * (GRAIN_OUTER_RADIUS**2 - GRAIN_INITIAL_INNER_RADIUS**2)
+        * (GRAIN_OUTER_RADIUS ** 2 - GRAIN_INITIAL_INNER_RADIUS ** 2)
         * GRAIN_INITIAL_HEIGHT
         * GRAIN_NUMBER
     )

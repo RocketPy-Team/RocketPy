@@ -68,7 +68,6 @@ class _SensorPrints(ABC):
 
 
 class _InertialSensorPrints(_SensorPrints):
-
     def orientation(self):
         """Prints the orientation of the sensor."""
         print("\nOrientation of the Sensor:\n")

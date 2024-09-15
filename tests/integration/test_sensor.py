@@ -64,7 +64,7 @@ class TestIdealSensors:
         flight_wx = np.array(self.flight.w1(time))
         flight_wy = np.array(self.flight.w2(time))
         flight_wz = np.array(self.flight.w3(time))
-        sim_w = np.sqrt(flight_wx**2 + flight_wy**2 + flight_wz**2)
+        sim_w = np.sqrt(flight_wx ** 2 + flight_wy ** 2 + flight_wz ** 2)
         assert np.allclose(w, sim_w, atol=1e-12)
 
     def test_barometer(self):

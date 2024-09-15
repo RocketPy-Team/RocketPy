@@ -41,7 +41,7 @@ def compute_cd_s_from_drop_test(
 
     """
 
-    return 2 * rocket_mass * g / ((terminal_velocity**2) * air_density)
+    return 2 * rocket_mass * g / ((terminal_velocity ** 2) * air_density)
 
 
 # TODO: Needs tests
@@ -280,7 +280,7 @@ def _flutter_mach_number(
 ):
     flutter_mach = (
         (shear_modulus * 2 * (aspect_ratio + 2) * (fin_thickness / root_chord) ** 3)
-        / (1.337 * (aspect_ratio**3) * (lambda_ + 1) * flight.pressure)
+        / (1.337 * (aspect_ratio ** 3) * (lambda_ + 1) * flight.pressure)
     ) ** 0.5
     flutter_mach.set_title("Fin Flutter Mach Number")
     flutter_mach.set_outputs("Mach")

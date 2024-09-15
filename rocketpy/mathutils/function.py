@@ -366,7 +366,7 @@ class Function:  # pylint: disable=too-many-public-methods
                 x_interval = bisect_left(x_data, x)
                 x_interval = x_interval if x_interval != 0 else 1
                 a = coeffs[4 * x_interval - 4 : 4 * x_interval]
-                return a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
+                return a[3] * x ** 3 + a[2] * x ** 2 + a[1] * x + a[0]
 
             self._interpolation_func = akima_interpolation
 
@@ -379,7 +379,7 @@ class Function:  # pylint: disable=too-many-public-methods
                 x_interval = max(x_interval, 1)
                 a = coeffs[:, x_interval - 1]
                 x = x - x_data[x_interval - 1]
-                return a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
+                return a[3] * x ** 3 + a[2] * x ** 2 + a[1] * x + a[0]
 
             self._interpolation_func = spline_interpolation
 
@@ -430,7 +430,7 @@ class Function:  # pylint: disable=too-many-public-methods
                     x, x_min, x_max, x_data, y_data, coeffs
                 ):  # pylint: disable=unused-argument
                     a = coeffs[:4] if x < x_min else coeffs[-4:]
-                    return a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
+                    return a[3] * x ** 3 + a[2] * x ** 2 + a[1] * x + a[0]
 
             elif interpolation == 3:  # spline
 
@@ -443,7 +443,7 @@ class Function:  # pylint: disable=too-many-public-methods
                     else:
                         a = coeffs[:, -1]
                         x = x - x_data[-2]
-                    return a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
+                    return a[3] * x ** 3 + a[2] * x ** 2 + a[1] * x + a[0]
 
             self._extrapolation_func = natural_extrapolation
         elif extrapolation == 2:  # constant
@@ -1705,7 +1705,7 @@ class Function:  # pylint: disable=too-many-public-methods
         # Create coefficient matrix1
         sys_coeffs = np.zeros((degree + 1, degree + 1))
         for i in range(degree + 1):
-            sys_coeffs[:, i] = x**i
+            sys_coeffs[:, i] = x ** i
         # Solve the system and store the resultant coefficients
         self.__polynomial_coefficients__ = np.linalg.solve(sys_coeffs, y)
 
@@ -1755,10 +1755,10 @@ class Function:  # pylint: disable=too-many-public-methods
             dl, dr = d[i], d[i + 1]
             matrix = np.array(
                 [
-                    [1, xl, xl**2, xl**3],
-                    [1, xr, xr**2, xr**3],
-                    [0, 1, 2 * xl, 3 * xl**2],
-                    [0, 1, 2 * xr, 3 * xr**2],
+                    [1, xl, xl ** 2, xl ** 3],
+                    [1, xr, xr ** 2, xr ** 3],
+                    [0, 1, 2 * xl, 3 * xl ** 2],
+                    [0, 1, 2 * xr, 3 * xr ** 2],
                 ]
             )
             result = np.array([yl, yr, dl, dr]).T
@@ -1791,7 +1791,7 @@ class Function:  # pylint: disable=too-many-public-methods
         x = arg_stack.reshape(arg_qty, 1, arg_dim)
 
         sub_matrix = x_data - x
-        distances_squared = np.sum(sub_matrix**2, axis=2)
+        distances_squared = np.sum(sub_matrix ** 2, axis=2)
 
         # Remove zero distances from further calculations
         zero_distances = np.where(distances_squared == 0)
@@ -2335,7 +2335,7 @@ class Function:  # pylint: disable=too-many-public-methods
                 and np.array_equal(self.x_array, other.x_array)
             ):
                 # Operate on grid values
-                ys = self.y_array**other.y_array
+                ys = self.y_array ** other.y_array
                 xs = self.x_array
                 source = np.concatenate(([xs], [ys])).transpose()
                 # Retrieve inputs, outputs and interpolation
@@ -2356,7 +2356,7 @@ class Function:  # pylint: disable=too-many-public-methods
                 # Check if Function object source is array or callable
                 if isinstance(self.source, np.ndarray):
                     # Operate on grid values
-                    ys = self.y_array**other
+                    ys = self.y_array ** other
                     xs = self.x_array
                     source = np.concatenate(([xs], [ys])).transpose()
                     # Retrieve inputs, outputs and interpolation
@@ -2394,7 +2394,7 @@ class Function:  # pylint: disable=too-many-public-methods
         if isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(other):
             if isinstance(self.source, np.ndarray):
                 # Operate on grid values
-                ys = other**self.y_array
+                ys = other ** self.y_array
                 xs = self.x_array
                 source = np.concatenate(([xs], [ys])).transpose()
                 # Retrieve inputs, outputs and interpolation
@@ -2489,15 +2489,15 @@ class Function:  # pylint: disable=too-many-public-methods
                     sub_b = a - x_data[0]
                     sub_a = min(b, x_data[0]) - x_data[0]
                     ans += (
-                        (c[3] * sub_a**4) / 4
-                        + (c[2] * sub_a**3 / 3)
-                        + (c[1] * sub_a**2 / 2)
+                        (c[3] * sub_a ** 4) / 4
+                        + (c[2] * sub_a ** 3 / 3)
+                        + (c[1] * sub_a ** 2 / 2)
                         + c[0] * sub_a
                     )
                     ans -= (
-                        (c[3] * sub_b**4) / 4
-                        + (c[2] * sub_b**3 / 3)
-                        + (c[1] * sub_b**2 / 2)
+                        (c[3] * sub_b ** 4) / 4
+                        + (c[2] * sub_b ** 3 / 3)
+                        + (c[1] * sub_b ** 2 / 2)
                         + c[0] * sub_b
                     )
                 else:
@@ -2521,15 +2521,15 @@ class Function:  # pylint: disable=too-many-public-methods
                     sub_b = x_data[i + 1] - x_data[i]
                 c = coeffs[:, i]
                 ans += (
-                    (c[3] * sub_b**4) / 4
-                    + (c[2] * sub_b**3 / 3)
-                    + (c[1] * sub_b**2 / 2)
+                    (c[3] * sub_b ** 4) / 4
+                    + (c[2] * sub_b ** 3 / 3)
+                    + (c[1] * sub_b ** 2 / 2)
                     + c[0] * sub_b
                 )
                 ans -= (
-                    (c[3] * sub_a**4) / 4
-                    + (c[2] * sub_a**3 / 3)
-                    + (c[1] * sub_a**2 / 2)
+                    (c[3] * sub_a ** 4) / 4
+                    + (c[2] * sub_a ** 3 / 3)
+                    + (c[1] * sub_a ** 2 / 2)
                     + c[0] * sub_a
                 )
                 i += 1
@@ -2542,15 +2542,15 @@ class Function:  # pylint: disable=too-many-public-methods
                     sub_a = max(x_data[-1], a) - x_data[-2]
                     sub_b = b - x_data[-2]
                     ans -= (
-                        (c[3] * sub_a**4) / 4
-                        + (c[2] * sub_a**3 / 3)
-                        + (c[1] * sub_a**2 / 2)
+                        (c[3] * sub_a ** 4) / 4
+                        + (c[2] * sub_a ** 3 / 3)
+                        + (c[1] * sub_a ** 2 / 2)
                         + c[0] * sub_a
                     )
                     ans += (
-                        (c[3] * sub_b**4) / 4
-                        + (c[2] * sub_b**3 / 3)
-                        + (c[1] * sub_b**2 / 2)
+                        (c[3] * sub_b ** 4) / 4
+                        + (c[2] * sub_b ** 3 / 3)
+                        + (c[1] * sub_b ** 2 / 2)
                         + c[0] * sub_b
                     )
                 else:
@@ -2606,7 +2606,7 @@ class Function:  # pylint: disable=too-many-public-methods
                 self.get_value_opt(x + dx)
                 - 2 * self.get_value_opt(x)
                 + self.get_value_opt(x - dx)
-            ) / dx**2
+            ) / dx ** 2
 
     def differentiate_complex_step(self, x, dx=1e-200, order=1):
         """Differentiate a Function object at a given point using the complex

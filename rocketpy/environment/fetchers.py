@@ -135,7 +135,7 @@ def fetch_gfs_file_return_dataset(max_attempts=10, base_delay=2):
             return dataset
         except OSError:
             attempt_count += 1
-            time.sleep(base_delay**attempt_count)
+            time.sleep(base_delay ** attempt_count)
 
     if dataset is None:
         raise RuntimeError(
@@ -182,7 +182,7 @@ def fetch_nam_file_return_dataset(max_attempts=10, base_delay=2):
             return dataset
         except OSError:
             attempt_count += 1
-            time.sleep(base_delay**attempt_count)
+            time.sleep(base_delay ** attempt_count)
 
     if dataset is None:
         raise RuntimeError("Unable to load latest weather data for NAM through " + file)
@@ -227,7 +227,7 @@ def fetch_rap_file_return_dataset(max_attempts=10, base_delay=2):
             return dataset
         except OSError:
             attempt_count += 1
-            time.sleep(base_delay**attempt_count)
+            time.sleep(base_delay ** attempt_count)
 
     if dataset is None:
         raise RuntimeError("Unable to load latest weather data for RAP through " + file)
@@ -281,7 +281,7 @@ def fetch_hiresw_file_return_dataset(max_attempts=10, base_delay=2):
             return dataset
         except OSError:
             attempt_count += 1
-            time.sleep(base_delay**attempt_count)
+            time.sleep(base_delay ** attempt_count)
 
     if dataset is None:
         raise RuntimeError(
@@ -385,7 +385,7 @@ def fetch_gefs_ensemble():
             return dataset
         except OSError:
             attempt_count += 1
-            time.sleep(2**attempt_count)
+            time.sleep(2 ** attempt_count)
     if not success:
         raise RuntimeError(
             "Unable to load latest weather data for GEFS through " + file
@@ -427,6 +427,6 @@ def fetch_cmc_ensemble():
             return dataset
         except OSError:
             attempt_count += 1
-            time.sleep(2**attempt_count)
+            time.sleep(2 ** attempt_count)
     if not success:
         raise RuntimeError("Unable to load latest weather data for CMC through " + file)

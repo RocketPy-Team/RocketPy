@@ -139,7 +139,7 @@ class Fins(AeroSurface):
         """
         # Compute auxiliary geometrical parameters
         d = 2 * rocket_radius
-        ref_area = np.pi * rocket_radius**2  # Reference area
+        ref_area = np.pi * rocket_radius ** 2  # Reference area
 
         super().__init__(name, ref_area, d)
 
@@ -335,7 +335,7 @@ class Fins(AeroSurface):
             * self.clalpha_single_fin
             * np.cos(self.cant_angle_rad)
             * self.roll_geometrical_constant
-            / (self.ref_area * self.d**2)
+            / (self.ref_area * self.d ** 2)
         )  # Function of mach number
         cld_omega.set_inputs("Mach")
         cld_omega.set_outputs("Roll moment damping coefficient derivative")
@@ -409,7 +409,7 @@ class Fins(AeroSurface):
         )
         clf_delta, cld_omega, cant_angle_rad = self.roll_parameters
         M3_forcing = (
-            (1 / 2 * rho * stream_speed**2)
+            (1 / 2 * rho * stream_speed ** 2)
             * self.reference_area
             * self.reference_length
             * clf_delta.get_value_opt(stream_mach)

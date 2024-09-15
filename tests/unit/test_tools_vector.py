@@ -32,7 +32,7 @@ def test_vector_iter(vector_components):
 
 @pytest.mark.parametrize("vector_components", test_vectors)
 def test_vector_call(vector_components):
-    f = Function(lambda x: x**2)
+    f = Function(lambda x: x ** 2)
     vector = Vector(vector_components)
     callable_vector = vector * f
     assert callable_vector(1) == vector
@@ -69,7 +69,7 @@ def test_vector_cross_matrix(vector_components):
 def test_vector_abs(vector_components):
     vector = Vector(vector_components)
     vector_magnitude = abs(vector)
-    assert vector_magnitude == sum(i**2 for i in vector_components) ** 0.5
+    assert vector_magnitude == sum(i ** 2 for i in vector_components) ** 0.5
 
 
 @pytest.mark.parametrize("vector_components", test_vectors)
@@ -163,7 +163,7 @@ def test_vector_is_orthogonal_to(vector_components):
     assert w.is_orthogonal_to(v) is True
 
 
-@pytest.mark.parametrize("operation", [lambda i: i**2, lambda i: 1 / i])
+@pytest.mark.parametrize("operation", [lambda i: i ** 2, lambda i: 1 / i])
 @pytest.mark.parametrize("u_c", [[1, 2, 3], [-np.pi, 1, np.e], [3 * 1j, -2j, 1j]])
 def test_vector_element_wise(u_c, operation):
     u = Vector(u_c)

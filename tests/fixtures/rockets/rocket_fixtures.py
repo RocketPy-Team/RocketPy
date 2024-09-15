@@ -302,7 +302,7 @@ def dimensionless_calisto(kg, m, dimensionless_cesaroni_m1670):
     example_rocket = Rocket(
         radius=0.0635 * m,
         mass=14.426 * kg,
-        inertia=(6.321 * (kg * m**2), 6.321 * (kg * m**2), 0.034 * (kg * m**2)),
+        inertia=(6.321 * (kg * m ** 2), 6.321 * (kg * m ** 2), 0.034 * (kg * m ** 2)),
         power_off_drag="data/calisto/powerOffDragCurve.csv",
         power_on_drag="data/calisto/powerOnDragCurve.csv",
         center_of_mass_without_motor=0 * m,
@@ -379,12 +379,12 @@ def prometheus_rocket(generic_motor_cesaroni_M1520):
     )
     prometheus.add_parachute(
         "Drogue",
-        cd_s=1.6 * np.pi * 0.3048**2,  # Cd = 1.6, D_chute = 24 in
+        cd_s=1.6 * np.pi * 0.3048 ** 2,  # Cd = 1.6, D_chute = 24 in
         trigger="apogee",
     )
     prometheus.add_parachute(
         "Main",
-        cd_s=2.2 * np.pi * 0.9144**2,  # Cd = 2.2, D_chute = 72 in
+        cd_s=2.2 * np.pi * 0.9144 ** 2,  # Cd = 2.2, D_chute = 72 in
         trigger=457.2,  # 1500 ft
     )
     return prometheus

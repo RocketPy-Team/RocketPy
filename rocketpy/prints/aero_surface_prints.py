@@ -72,7 +72,6 @@ class _NoseConePrints(_AeroSurfacePrints):
 
 
 class _FinsPrints(_AeroSurfacePrints):
-
     def geometry(self):
         print("Geometric information of the fin set:")
         print("-------------------------------------")
@@ -229,15 +228,16 @@ class _AirBrakesPrints(_AeroSurfacePrints):
     def all(self):
         pass
 
+
 class _GenericSurfacePrints(_AeroSurfacePrints):
     """Class that contains all generic surface prints."""
-    
+
     def geometry(self):
         print("Geometric information of the Surface:")
         print("----------------------------------")
         print(f"Reference Area: {self.generic_surface.reference_area:.3f} m")
         print(f"Reference length: {2*self.generic_surface.rocket_radius:.3f} m")
-    
+
     def all(self):
         """Prints all information of the generic surface.
 
@@ -248,6 +248,7 @@ class _GenericSurfacePrints(_AeroSurfacePrints):
         self.identity()
         self.geometry()
         self.lift()
+
 
 class _LinearGenericSurfacePrints(_AeroSurfacePrints):
     """Class that contains all linear generic surface prints."""
@@ -268,8 +269,3 @@ class _LinearGenericSurfacePrints(_AeroSurfacePrints):
         self.identity()
         self.geometry()
         self.lift()
-
-
-    
- 
-

@@ -202,7 +202,7 @@ class GenericSurface:
             (pitch, yaw, roll) in the body frame.
         """
         # Precompute common values
-        dyn_pressure_area = 0.5 * rho * stream_speed**2 * self.reference_area
+        dyn_pressure_area = 0.5 * rho * stream_speed ** 2 * self.reference_area
         dyn_pressure_area_length = dyn_pressure_area * self.reference_length
 
         # Compute aerodynamic forces

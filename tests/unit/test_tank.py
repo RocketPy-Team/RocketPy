@@ -64,7 +64,7 @@ def test_tank_total_volume(params, request):
     tank = request.getfixturevalue(tank)
 
     expected_total_volume = (
-        np.pi * radius**2 * (height - 2 * radius) + 4 / 3 * np.pi * radius**3
+        np.pi * radius ** 2 * (height - 2 * radius) + 4 / 3 * np.pi * radius ** 3
     )
 
     assert tank.geometry.total_volume == pytest.approx(expected_total_volume, abs=1e-6)
@@ -147,7 +147,7 @@ def test_mass_based_tank():
         Returns:
         float: The result of the hemisphere equation for the top endcap.
         """
-        return np.sqrt(0.0775**2 - (y - 0.7924) ** 2)
+        return np.sqrt(0.0775 ** 2 - (y - 0.7924) ** 2)
 
     def bottom_endcap(y):
         """Calculate the bottom endcap based on hemisphere equation.
@@ -158,7 +158,7 @@ def test_mass_based_tank():
         Returns:
         float: The result of the hemisphere equation for the bottom endcap.
         """
-        return np.sqrt(0.0775**2 - (0.0775 - y) ** 2)
+        return np.sqrt(0.0775 ** 2 - (0.0775 - y) ** 2)
 
     # Generate tank geometry {radius: height, ...}
     real_geometry = TankGeometry(
@@ -294,10 +294,10 @@ def test_level_based_tank():
     test_dir = "./data/berkeley/"
 
     def top_endcap(y):
-        return np.sqrt(0.0775**2 - (y - 0.692300000000001) ** 2)
+        return np.sqrt(0.0775 ** 2 - (y - 0.692300000000001) ** 2)
 
     def bottom_endcap(y):
-        return np.sqrt(0.0775**2 - (0.0775 - y) ** 2)
+        return np.sqrt(0.0775 ** 2 - (0.0775 - y) ** 2)
 
     tank_geometry = TankGeometry(
         {
@@ -487,14 +487,14 @@ def test_mfr_tank_basic():
 
         def ixy_gas(x):
             return (
-                1 / 4 * gas_mass(x) * r**2
+                1 / 4 * gas_mass(x) * r ** 2
                 + 1 / 12 * gas_mass(x) * (gas_height(x) - liquid_height(x)) ** 2
                 + gas_mass(x) * (gas_com(x) - acom(x)) ** 2
             )
 
         def ixy_liq(x):
             return (
-                1 / 4 * liquid_mass(x) * r**2
+                1 / 4 * liquid_mass(x) * r ** 2
                 + 1 / 12 * liquid_mass(x) * (liquid_height(x) - t.geometry.bottom) ** 2
                 + liquid_mass(x) * (liquid_com(x) - acom(x)) ** 2
             )
@@ -562,7 +562,7 @@ def cylinder_volume(radius, height):
     float
         The volume of the cylinder.
     """
-    return np.pi * radius**2 * height
+    return np.pi * radius ** 2 * height
 
 
 def lower_spherical_cap_volume(radius, height=None):
@@ -583,7 +583,7 @@ def lower_spherical_cap_volume(radius, height=None):
     """
     if height is None:
         height = radius
-    return np.pi / 3 * height**2 * (3 * radius - height)
+    return np.pi / 3 * height ** 2 * (3 * radius - height)
 
 
 def upper_spherical_cap_volume(radius, height=None):
@@ -604,7 +604,7 @@ def upper_spherical_cap_volume(radius, height=None):
     """
     if height is None:
         height = radius
-    return np.pi / 3 * height * (3 * radius**2 - height**2)
+    return np.pi / 3 * height * (3 * radius ** 2 - height ** 2)
 
 
 def tank_volume_function(tank_radius, tank_height, zero_height=0):
@@ -702,7 +702,11 @@ def upper_spherical_cap_centroid(radius, height=None):
     """
     if height is None:
         height = radius
-    return 0.75 * (height**3 - 2 * height * radius**2) / (height**2 - 3 * radius**2)
+    return (
+        0.75
+        * (height ** 3 - 2 * height * radius ** 2)
+        / (height ** 2 - 3 * radius ** 2)
+    )
 
 
 def tank_centroid_function(tank_radius, tank_height, zero_height=0):
@@ -793,10 +797,10 @@ def cylinder_inertia(radius, height, reference=0):
     """
     # Evaluate inertia and perform coordinate shift to the reference point
     inertia_x = cylinder_volume(radius, height) * (
-        radius**2 / 4 + height**2 / 12 + (height / 2 - reference) ** 2
+        radius ** 2 / 4 + height ** 2 / 12 + (height / 2 - reference) ** 2
     )
     inertia_y = inertia_x
-    inertia_z = cylinder_volume(radius, height) * radius**2 / 2
+    inertia_z = cylinder_volume(radius, height) * radius ** 2 / 2
 
     return np.array([inertia_x, inertia_y, inertia_z])
 
@@ -828,12 +832,12 @@ def lower_spherical_cap_inertia(radius, height=None, reference=0):
     inertia_x = lower_spherical_cap_volume(radius, height) * (
         (
             np.pi
-            * height**2
+            * height ** 2
             * (
-                -9 * height**3
-                + 45 * height**2 * radius
-                - 80 * height * radius**2
-                + 60 * radius**3
+                -9 * height ** 3
+                + 45 * height ** 2 * radius
+                - 80 * height * radius ** 2
+                + 60 * radius ** 3
             )
             / 60
         )
@@ -842,7 +846,10 @@ def lower_spherical_cap_inertia(radius, height=None, reference=0):
     )
     inertia_y = inertia_x
     inertia_z = lower_spherical_cap_volume(radius, height) * (
-        np.pi * height**3 * (3 * height**2 - 15 * height * radius + 20 * radius**2) / 30
+        np.pi
+        * height ** 3
+        * (3 * height ** 2 - 15 * height * radius + 20 * radius ** 2)
+        / 30
     )
     return np.array([inertia_x, inertia_y, inertia_z])
 
@@ -876,18 +883,18 @@ def upper_spherical_cap_inertia(radius, height=None, reference=0):
             (
                 np.pi
                 * height
-                * (-9 * height**4 + 10 * height**2 * radius**2 + 15 * radius**4)
+                * (-9 * height ** 4 + 10 * height ** 2 * radius ** 2 + 15 * radius ** 4)
             )
             / 60
         )
-        - centroid**2
+        - centroid ** 2
         + (centroid - reference) ** 2
     )
     inertia_y = inertia_x
     inertia_z = upper_spherical_cap_volume(radius, height) * (
         np.pi
         * height
-        * (3 * height**4 - 10 * height**2 * radius**2 + 15 * radius**4)
+        * (3 * height ** 4 - 10 * height ** 2 * radius ** 2 + 15 * radius ** 4)
         / 30
     )
     return np.array([inertia_x, inertia_y, inertia_z])

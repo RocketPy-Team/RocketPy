@@ -316,7 +316,7 @@ class SolidMotor(Motor):
         )
         # Nozzle parameters
         self.throat_radius = throat_radius
-        self.throat_area = np.pi * throat_radius**2
+        self.throat_area = np.pi * throat_radius ** 2
 
         # Grain parameters
         self.grains_center_of_mass_position = grains_center_of_mass_position
@@ -331,7 +331,7 @@ class SolidMotor(Motor):
         self.grain_initial_volume = (
             self.grain_initial_height
             * np.pi
-            * (self.grain_outer_radius**2 - self.grain_initial_inner_radius**2)
+            * (self.grain_outer_radius ** 2 - self.grain_initial_inner_radius ** 2)
         )
         self.grain_initial_mass = self.grain_density * self.grain_initial_volume
 
@@ -364,7 +364,7 @@ class SolidMotor(Motor):
             Propellant volume as a function of time.
         """
         cross_section_area = np.pi * (
-            self.grain_outer_radius**2 - self.grain_inner_radius**2
+            self.grain_outer_radius ** 2 - self.grain_inner_radius ** 2
         )
         return cross_section_area * self.grain_height
 
@@ -481,8 +481,8 @@ class SolidMotor(Motor):
                 2
                 * np.pi
                 * (
-                    grain_outer_radius**2
-                    - grain_inner_radius**2
+                    grain_outer_radius ** 2
+                    - grain_inner_radius ** 2
                     + grain_inner_radius * grain_height
                 )
             )
@@ -502,8 +502,8 @@ class SolidMotor(Motor):
                 2
                 * np.pi
                 * (
-                    grain_outer_radius**2
-                    - grain_inner_radius**2
+                    grain_outer_radius ** 2
+                    - grain_inner_radius ** 2
                     + grain_inner_radius * grain_height
                 )
                 ** 2
@@ -578,8 +578,8 @@ class SolidMotor(Motor):
             2
             * np.pi
             * (
-                self.grain_outer_radius**2
-                - self.grain_inner_radius**2
+                self.grain_outer_radius ** 2
+                - self.grain_inner_radius ** 2
                 + self.grain_inner_radius * self.grain_height
             )
             * self.grain_number
@@ -649,8 +649,8 @@ class SolidMotor(Motor):
         grain_mass = self.propellant_mass / self.grain_number
         grain_number = self.grain_number
         grain_inertia11 = grain_mass * (
-            (1 / 4) * (self.grain_outer_radius**2 + self.grain_inner_radius**2)
-            + (1 / 12) * self.grain_height**2
+            (1 / 4) * (self.grain_outer_radius ** 2 + self.grain_inner_radius ** 2)
+            + (1 / 12) * self.grain_height ** 2
         )
 
         # Calculate each grain's distance d to propellant center of mass
@@ -660,7 +660,7 @@ class SolidMotor(Motor):
         d = d * (self.grain_initial_height + self.grain_separation)
 
         # Calculate inertia for all grains
-        I_11 = grain_number * grain_inertia11 + grain_mass * np.sum(d**2)
+        I_11 = grain_number * grain_inertia11 + grain_mass * np.sum(d ** 2)
 
         return I_11
 
@@ -709,7 +709,7 @@ class SolidMotor(Motor):
         I_33 = (
             (1 / 2.0)
             * self.propellant_mass
-            * (self.grain_outer_radius**2 + self.grain_inner_radius**2)
+            * (self.grain_outer_radius ** 2 + self.grain_inner_radius ** 2)
         )
         return I_33
 
