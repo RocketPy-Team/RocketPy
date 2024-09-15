@@ -1,5 +1,7 @@
 from rocketpy.mathutils import Function
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
+from rocketpy.prints.aero_surface_prints import _LinearGenericSurfacePrints
+from rocketpy.plots.aero_surface_plots import _LinearGenericSurfacePlots
 
 
 class LinearGenericSurface(GenericSurface):
@@ -165,6 +167,9 @@ class LinearGenericSurface(GenericSurface):
         )
 
         self.compute_all_coefficients()
+
+        self.prints = _LinearGenericSurfacePrints(self)
+        self.plots = _LinearGenericSurfacePlots(self)
 
     def _get_default_coefficients(self):
         """Returns default coefficients
