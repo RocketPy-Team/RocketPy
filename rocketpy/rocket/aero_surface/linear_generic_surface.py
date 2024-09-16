@@ -1,7 +1,7 @@
 from rocketpy.mathutils import Function
-from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
-from rocketpy.prints.aero_surface_prints import _LinearGenericSurfacePrints
 from rocketpy.plots.aero_surface_plots import _LinearGenericSurfacePlots
+from rocketpy.prints.aero_surface_prints import _LinearGenericSurfacePrints
+from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 
 
 class LinearGenericSurface(GenericSurface):
@@ -355,7 +355,7 @@ class LinearGenericSurface(GenericSurface):
             (pitch, yaw, roll) in the body frame.
         """
         # Precompute common values
-        dyn_pressure_area = 0.5 * rho * stream_speed ** 2 * self.reference_area
+        dyn_pressure_area = 0.5 * rho * stream_speed**2 * self.reference_area
         dyn_pressure_area_damping = (
             dyn_pressure_area * self.reference_length / (2 * stream_speed)
         )
