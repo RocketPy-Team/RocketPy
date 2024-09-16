@@ -60,7 +60,7 @@ def test_integral_spline_interpolation(request, func, a, b):
     [
         (1, 0, 0),  # Test case 1: Function(1)
         (lambda x: x, 0, 1),  # Test case 2: Function(lambda x: x)
-        (lambda x: x ** 2, 1, 2),  # Test case 3: Function(lambda x: x**2)
+        (lambda x: x**2, 1, 2),  # Test case 3: Function(lambda x: x**2)
     ],
 )
 def test_differentiate(func_input, derivative_input, expected_derivative):
@@ -85,8 +85,8 @@ def test_differentiate(func_input, derivative_input, expected_derivative):
     [
         (1, 0, 0),  # Test case 1: Function(1)
         (lambda x: x, 0, 1),  # Test case 2: Function(lambda x: x)
-        (lambda x: x ** 2, 1, 2),  # Test case 3: Function(lambda x: x**2)
-        (lambda x: -(x ** 3), 2, -12),  # Test case 4: Function(lambda x: -x**3)
+        (lambda x: x**2, 1, 2),  # Test case 3: Function(lambda x: x**2)
+        (lambda x: -(x**3), 2, -12),  # Test case 4: Function(lambda x: -x**3)
     ],
 )
 def test_differentiate_complex_step(
@@ -124,7 +124,7 @@ def test_identity_function():
     Both with respect to return instances and expected behaviour.
     """
 
-    func = Function(lambda x: x ** 2)
+    func = Function(lambda x: x**2)
     assert isinstance(func.identity_function(), Function)
 
 
@@ -132,7 +132,7 @@ def test_derivative_function():
     """Tests the derivative_function method of the Function class.
     Both with respect to return instances and expected behaviour.
     """
-    square = Function(lambda x: x ** 2)
+    square = Function(lambda x: x**2)
     assert isinstance(square.derivative_function(), Function)
 
 
@@ -145,7 +145,7 @@ def test_integral():
     assert isinstance(zero_func.integral(2, 4, numerical=True), float)
     assert zero_func.integral(2, 4, numerical=True) == 0
 
-    square = Function(lambda x: x ** 2)
+    square = Function(lambda x: x**2)
     assert isinstance
     assert square.integral(2, 4, numerical=True) == -square.integral(
         4, 2, numerical=True
@@ -201,7 +201,7 @@ def test_get_value_opt(x, y, z):
 @pytest.mark.parametrize("samples", [2, 50, 1000])
 def test_set_discrete_mutator(samples):
     """Tests the set_discrete method of the Function class."""
-    func = Function(lambda x: x ** 3)
+    func = Function(lambda x: x**3)
     discretized_func = func.set_discrete(-10, 10, samples, mutate_self=True)
 
     assert isinstance(discretized_func, Function)
@@ -215,7 +215,7 @@ def test_set_discrete_non_mutator(samples):
     """Tests the set_discrete method of the Function class.
     The mutator argument is set to False.
     """
-    func = Function(lambda x: x ** 3)
+    func = Function(lambda x: x**3)
     discretized_func = func.set_discrete(-10, 10, samples, mutate_self=False)
 
     assert isinstance(discretized_func, Function)
@@ -228,7 +228,7 @@ def test_set_discrete_based_on_model_mutator(linear_func):
     """Tests the set_discrete_based_on_model method of the Function class.
     The mutator argument is set to True.
     """
-    func = Function(lambda x: x ** 3)
+    func = Function(lambda x: x**3)
     discretized_func = func.set_discrete_based_on_model(linear_func, mutate_self=True)
 
     assert isinstance(discretized_func, Function)
@@ -241,7 +241,7 @@ def test_set_discrete_based_on_model_non_mutator(linear_func):
     """Tests the set_discrete_based_on_model method of the Function class.
     The mutator argument is set to False.
     """
-    func = Function(lambda x: x ** 3)
+    func = Function(lambda x: x**3)
     discretized_func = func.set_discrete_based_on_model(linear_func, mutate_self=False)
 
     assert isinstance(discretized_func, Function)
@@ -282,7 +282,7 @@ def test_remove_outliers_iqr(x, y, expected_x, expected_y):
 
 def test_set_get_value_opt():
     """Test the set_value_opt and get_value_opt methods of the Function class."""
-    func = Function(lambda x: x ** 2)
+    func = Function(lambda x: x**2)
     func.source = np.array([[1, 1], [2, 4], [3, 9], [4, 16], [5, 25]])
     func.x_array = np.array([1, 2, 3, 4, 5])
     func.y_array = np.array([1, 4, 9, 16, 25])
@@ -460,7 +460,7 @@ def test_multivariate_dataset(a, b):
         (0, 1, 0),
         (0, 0, 1),
         (0.5, 0.5, 1 / 3),
-        (0.25, 0.25, 25 / (25 + 2 * 5 ** 0.5)),
+        (0.25, 0.25, 25 / (25 + 2 * 5**0.5)),
         ([0, 0.5], [0, 0.5], [1, 1 / 3]),
     ],
 )
@@ -502,6 +502,110 @@ def test_3d_shepard_interpolation(x, y, z, w_expected):
     assert np.isclose(w_expected, w, atol=1e-8).all()
 
 
+@pytest.mark.parametrize(
+    "x,y,z_expected",
+    [
+        (1, 0, 0),
+        (0, 1, 0),
+        (0, 0, 1),
+        (0.5, 0.5, 0),
+        (0.25, 0.25, 0.5),
+        ([0, 0.5], [0, 0.5], [1, 0]),
+    ],
+)
+def test_2d_rbf_interpolation(x, y, z_expected):
+    """Test the rbf interpolation method of the Function class."""
+    # Test plane x + y + z = 1
+    source = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
+    func = Function(
+        source=source, inputs=["x", "y"], outputs=["z"], interpolation="rbf"
+    )
+    z = func(x, y)
+    z_opt = func.get_value_opt(x, y)
+    assert np.isclose(z, z_opt, atol=1e-8).all()
+    assert np.isclose(z_expected, z, atol=1e-8).all()
+
+
+@pytest.mark.parametrize(
+    "x,y,z,w_expected",
+    [
+        (0, 0, 0, 1),
+        (1, 0, 0, 0),
+        (0, 1, 0, 0),
+        (0, 0, 1, 0),
+        (0.5, 0.5, 0.5, -0.5),
+        (0.25, 0.25, 0.25, 0.25),
+        ([0, 0.5], [0, 0.5], [0, 0.5], [1, -0.5]),
+    ],
+)
+def test_3d_rbf_interpolation(x, y, z, w_expected):
+    """Test the rbf interpolation method of the Function class."""
+    # Test plane x + y + z + w = 1
+    source = [(1, 0, 0, 0), (0, 1, 0, 0), (0, 0, 1, 0), (0, 0, 0, 1)]
+    func = Function(
+        source=source, inputs=["x", "y", "z"], outputs=["w"], interpolation="rbf"
+    )
+    w = func(x, y, z)
+    w_opt = func.get_value_opt(x, y, z)
+    assert np.isclose(w, w_opt, atol=1e-8).all()
+    assert np.isclose(w_expected, w, atol=1e-8).all()
+
+
+@pytest.mark.parametrize(
+    "x,y,z_expected",
+    [
+        (1, 0, 0),
+        (0, 1, 0),
+        (0, 0, 1),
+        (0.5, 0.5, 0),
+        (0.25, 0.25, 0.5),
+        ([0, 0.5], [0, 0.5], [1, 0]),
+    ],
+)
+def test_2d_linear_interpolation(x, y, z_expected):
+    """Test the linear interpolation method of the Function class."""
+    # Test plane x + y + z = 1
+    source = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
+    func = Function(
+        source=source, inputs=["x", "y"], outputs=["z"], interpolation="linear"
+    )
+    z = func(x, y)
+    z_opt = func.get_value_opt(x, y)
+    assert np.isclose(z, z_opt, atol=1e-8).all()
+    assert np.isclose(z_expected, z, atol=1e-8).all()
+
+
+@pytest.mark.parametrize(
+    "x,y,z,w_expected",
+    [
+        (1, 0, 0, 0),
+        (0, 1, 0, 0),
+        (0, 0, 1, 0),
+        (0, 0, 0, 1),
+        (0.5, 0.5, 0.5, -0.5),
+        (0.25, 0.25, 0.25, 0.25),
+        ([0, 0.25], [0, 0.25], [0, 0.25], [1, 0.25]),
+    ],
+)
+def test_3d_linear_interpolation(x, y, z, w_expected):
+    """Test the linear interpolation method of the Function class."""
+    # Test plane x + y + z + w = 1
+    source = [
+        (1, 0, 0, 0),
+        (0, 1, 0, 0),
+        (0, 0, 1, 0),
+        (0, 0, 0, 1),
+        (0.5, 0.5, 0.5, -0.5),
+    ]
+    func = Function(
+        source=source, inputs=["x", "y", "z"], outputs=["w"], interpolation="linear"
+    )
+    w = func(x, y, z)
+    w_opt = func.get_value_opt(x, y, z)
+    assert np.isclose(w, w_opt, atol=1e-8).all()
+    assert np.isclose(w_expected, w, atol=1e-8).all()
+
+
 @pytest.mark.parametrize("a", [-1, -0.5, 0, 0.5, 1])
 @pytest.mark.parametrize("b", [-1, -0.5, 0, 0.5, 1])
 def test_multivariate_function(a, b):
@@ -520,7 +624,7 @@ def test_set_discrete_2d():
     """Tests the set_discrete method of the Function for
     two dimensional domains.
     """
-    func = Function(lambda x, y: x ** 2 + y ** 2)
+    func = Function(lambda x, y: x**2 + y**2)
     discretized_func = func.set_discrete([-5, -7], [8, 10], [50, 100])
 
     assert isinstance(discretized_func, Function)
@@ -553,7 +657,7 @@ def test_set_discrete_based_on_2d_model(func_2d_from_csv):
     """Tests the set_discrete_based_on_model method with a 2d model
     Function.
     """
-    func = Function(lambda x, y: x ** 2 + y ** 2)
+    func = Function(lambda x, y: x**2 + y**2)
     discretized_func = func.set_discrete_based_on_model(func_2d_from_csv)
 
     assert isinstance(discretized_func, Function)
@@ -565,32 +669,12 @@ def test_set_discrete_based_on_2d_model(func_2d_from_csv):
     assert discretized_func.__extrapolation__ == func_2d_from_csv.__extrapolation__
 
 
-@pytest.mark.parametrize(
-    "x,y,z_expected",
-    [
-        (1, 0, 0),
-        (0, 1, 0),
-        (0, 0, 1),
-        (0.5, 0.5, 1 / 3),
-        (0.25, 0.25, 25 / (25 + 2 * 5 ** 0.5)),
-        ([0, 0.5], [0, 0.5], [1, 1 / 3]),
-    ],
-)
-def test_shepard_interpolation(x, y, z_expected):
-    """Test the shepard interpolation method of the Function class."""
-    # Test plane x + y + z = 1
-    source = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
-    func = Function(source=source, inputs=["x", "y"], outputs=["z"])
-    z = func(x, y)
-    assert np.isclose(z, z_expected, atol=1e-8).all()
-
-
 @pytest.mark.parametrize("other", [1, 0.1, np.int_(1), np.float64(0.1), np.array([1])])
 def test_sum_arithmetic_priority(other):
     """Test the arithmetic priority of the add operation of the Function class,
     specially comparing to the numpy array operations.
     """
-    func_lambda = Function(lambda x: x ** 2)
+    func_lambda = Function(lambda x: x**2)
     func_array = Function([(0, 0), (1, 1), (2, 4)])
 
     assert isinstance(func_lambda + func_array, Function)
@@ -606,7 +690,7 @@ def test_sub_arithmetic_priority(other):
     """Test the arithmetic priority of the sub operation of the Function class,
     specially comparing to the numpy array operations.
     """
-    func_lambda = Function(lambda x: x ** 2)
+    func_lambda = Function(lambda x: x**2)
     func_array = Function([(0, 0), (1, 1), (2, 4)])
 
     assert isinstance(func_lambda - func_array, Function)
@@ -622,7 +706,7 @@ def test_mul_arithmetic_priority(other):
     """Test the arithmetic priority of the mul operation of the Function class,
     specially comparing to the numpy array operations.
     """
-    func_lambda = Function(lambda x: x ** 2)
+    func_lambda = Function(lambda x: x**2)
     func_array = Function([(0, 0), (1, 1), (2, 4)])
 
     assert isinstance(func_lambda * func_array, Function)
@@ -638,7 +722,7 @@ def test_truediv_arithmetic_priority(other):
     """Test the arithmetic priority of the truediv operation of the Function class,
     specially comparing to the numpy array operations.
     """
-    func_lambda = Function(lambda x: x ** 2)
+    func_lambda = Function(lambda x: x**2)
     func_array = Function([(1, 1), (2, 4)])
 
     assert isinstance(func_lambda / func_array, Function)
@@ -654,15 +738,15 @@ def test_pow_arithmetic_priority(other):
     """Test the arithmetic priority of the pow operation of the Function class,
     specially comparing to the numpy array operations.
     """
-    func_lambda = Function(lambda x: x ** 2)
+    func_lambda = Function(lambda x: x**2)
     func_array = Function([(0, 0), (1, 1), (2, 4)])
 
-    assert isinstance(func_lambda ** func_array, Function)
-    assert isinstance(func_array ** func_lambda, Function)
-    assert isinstance(func_lambda ** other, Function)
-    assert isinstance(other ** func_lambda, Function)
-    assert isinstance(func_array ** other, Function)
-    assert isinstance(other ** func_array, Function)
+    assert isinstance(func_lambda**func_array, Function)
+    assert isinstance(func_array**func_lambda, Function)
+    assert isinstance(func_lambda**other, Function)
+    assert isinstance(other**func_lambda, Function)
+    assert isinstance(func_array**other, Function)
+    assert isinstance(other**func_array, Function)
 
 
 @pytest.mark.parametrize("alpha", [0.1, 0.5, 0.9])

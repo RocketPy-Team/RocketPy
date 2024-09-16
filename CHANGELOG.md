@@ -32,7 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
-- 
+- ENH: Expand Polation Options for ND Functions. [#691](https://github.com/RocketPy-Team/RocketPy/pull/691)
 
 ### Changed
 
