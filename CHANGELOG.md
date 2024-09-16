@@ -32,7 +32,20 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
-- ENH: Fix Orientation Param of Inertial Sensors [#688](https://github.com/RocketPy-Team/RocketPy/pull/688)
+- 
+
+### Changed
+
+- 
+
+### Fixed
+
+- 
+
+## [v1.5.0] - 2024-09-15
+
+### Added
+
 - ENH: Adds Sensors classes [#683](https://github.com/RocketPy-Team/RocketPy/pull/683)
 - DOC: Cavour Flight Example [#682](https://github.com/RocketPy-Team/RocketPy/pull/682)
 - DOC: Halcyon Flight Example [#681](https://github.com/RocketPy-Team/RocketPy/pull/681)
@@ -47,6 +60,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+- ENH: Fix Orientation Param of Inertial Sensors [#688](https://github.com/RocketPy-Team/RocketPy/pull/688)
 - BUG: Zero Mass Flow Rate in Liquid Motors breaks Exhaust Velocity [#677](https://github.com/RocketPy-Team/RocketPy/pull/677)
 - DOC: Fix documentation dependencies [#651](https://github.com/RocketPy-Team/RocketPy/pull/651)
 - DOC: Fix documentation warnings [#645](https://github.com/RocketPy-Team/RocketPy/pull/645)
