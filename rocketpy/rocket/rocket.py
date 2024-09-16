@@ -294,7 +294,7 @@ class Rocket:
         # Define rocket geometrical parameters in SI units
         self.center_of_mass_without_motor = center_of_mass_without_motor
         self.radius = radius
-        self.area = np.pi * self.radius ** 2
+        self.area = np.pi * self.radius**2
 
         # Eccentricity data initialization
         self.cm_eccentricity_x = 0
@@ -806,8 +806,8 @@ class Rocket:
         self.nozzle_gyration_tensor : Matrix
             Matrix containing the nozzle gyration tensor.
         """
-        S_noz_33 = 0.5 * self.motor.nozzle_radius ** 2
-        S_noz_11 = S_noz_22 = 0.5 * S_noz_33 + 0.25 * self.nozzle_to_cdm ** 2
+        S_noz_33 = 0.5 * self.motor.nozzle_radius**2
+        S_noz_11 = S_noz_22 = 0.5 * S_noz_33 + 0.25 * self.nozzle_to_cdm**2
         S_noz_12, S_noz_13, S_noz_23 = 0, 0, 0  # Due to axis symmetry
         self.nozzle_gyration_tensor = Matrix(
             [
@@ -975,7 +975,7 @@ class Rocket:
         surfaces : list, AeroSurface, NoseCone, TrapezoidalFins, EllipticalFins, Tail
             Aerodynamic surface to be added to the rocket. Can be a list of
             AeroSurface if more than one surface is to be added.
-        positions : int, float, list
+        positions : int, float, list, tuple, Vector
             Position, in m, of the aerodynamic surface's center of pressure
             relative to the user defined rocket coordinate system.
             If a list is passed, it will correspond to the position of each item
@@ -997,13 +997,17 @@ class Rocket:
         """
         try:
             for surface, position in zip(surfaces, positions):
-                if not isinstance(position, Vector):
+                if not isinstance(position, (Vector, tuple, list)):
                     position = Vector([0, 0, position])
+                else:
+                    position = Vector(position)
                 self.aerodynamic_surfaces.add(surface, position)
                 self.evaluate_single_surface_cp_to_cdm(surface, position)
         except TypeError:
-            if not isinstance(positions, Vector):
+            if not isinstance(positions, (Vector, tuple, list)):
                 positions = Vector([0, 0, positions])
+            else:
+                positions = Vector(positions)
             self.aerodynamic_surfaces.add(surfaces, positions)
             self.evaluate_single_surface_cp_to_cdm(surfaces, positions)
 
