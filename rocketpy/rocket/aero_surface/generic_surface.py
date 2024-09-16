@@ -202,7 +202,7 @@ class GenericSurface:
             (pitch, yaw, roll) in the body frame.
         """
         # Precompute common values
-        dyn_pressure_area = 0.5 * rho * stream_speed ** 2 * self.reference_area
+        dyn_pressure_area = 0.5 * rho * stream_speed**2 * self.reference_area
         dyn_pressure_area_length = dyn_pressure_area * self.reference_length
 
         # Compute aerodynamic forces
@@ -355,6 +355,8 @@ class GenericSurface:
                     'roll_rate',
                 ],
                 [coeff_name],
+                interpolation='linear',
+                extrapolation='natural',
             )
         else:
             raise TypeError(
@@ -414,7 +416,11 @@ class GenericSurface:
             raise ValueError(f"No independent variables found in {coeff_name} CSV.")
 
         # Initialize the CSV-based function
-        csv_func = Function(file_path, extrapolation='natural')
+        csv_func = Function(
+            file_path,
+            interpolation='linear',
+            extrapolation='natural',
+        )
 
         # Create a mask for the presence of each independent variable
         # save on self to avoid loss of scope
@@ -429,6 +435,10 @@ class GenericSurface:
 
         # Create the interpolation function
         func = Function(
-            wrapper, independent_vars, [coeff_name], extrapolation='natural'
+            wrapper,
+            independent_vars,
+            [coeff_name],
+            interpolation='linear',
+            extrapolation='natural',
         )
         return func
