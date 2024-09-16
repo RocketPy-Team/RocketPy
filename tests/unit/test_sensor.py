@@ -387,7 +387,7 @@ def test_noisy_gnss(noisy_gnss, example_plain_env):
     lat, lon = example_plain_env.latitude, example_plain_env.longitude
     earth_radius = example_plain_env.earth_radius
     x, y, z = (Matrix.transformation(U[6:10]) @ relative_position) + Vector(U[0:3])
-    drift = (x ** 2 + y ** 2) ** 0.5
+    drift = (x**2 + y**2) ** 0.5
     bearing = (2 * np.pi - np.arctan2(-x, y)) * (180 / np.pi)
     latitude = np.degrees(
         np.arcsin(

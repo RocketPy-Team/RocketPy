@@ -106,7 +106,7 @@ def calculate_wind_speed(u, v, w=0.0):
     >>> calculate_wind_speed(3, 4, 0)
     np.float64(5.0)
     """
-    return np.sqrt(u ** 2 + v ** 2 + w ** 2)
+    return np.sqrt(u**2 + v**2 + w**2)
 
 
 ## These functions are meant to be used with netcdf4 datasets
@@ -482,7 +482,7 @@ def geodesic_to_utm(
 
     # Evaluate reference parameters
     K0 = 1 - 1 / 2500
-    e2 = 2 * flattening - flattening ** 2
+    e2 = 2 * flattening - flattening**2
     e2lin = e2 / (1 - e2)
 
     # Evaluate auxiliary parameters
@@ -505,9 +505,9 @@ def geodesic_to_utm(
 
     # Evaluate new auxiliary parameters
     J = (1 - t + c) * ag * ag * ag / 6
-    K = (5 - 18 * t + t * t + 72 * c - 58 * e2lin) * (ag ** 5) / 120
+    K = (5 - 18 * t + t * t + 72 * c - 58 * e2lin) * (ag**5) / 120
     L = (5 - t + 9 * c + 4 * c * c) * ag * ag * ag * ag / 24
-    M = (61 - 58 * t + t * t + 600 * c - 330 * e2lin) * (ag ** 6) / 720
+    M = (61 - 58 * t + t * t + 600 * c - 330 * e2lin) * (ag**6) / 720
 
     # Evaluate the final coordinates
     x = 500000 + K0 * n * (ag + J + K)
@@ -542,7 +542,7 @@ def utm_to_geodesic(  # pylint: disable=too-many-locals,too-many-statements
 
     # Calculate reference values
     K0 = 1 - 1 / 2500
-    e2 = 2 * flattening - flattening ** 2
+    e2 = 2 * flattening - flattening**2
     e2lin = e2 / (1 - e2)
     e1 = (1 - (1 - e2) ** 0.5) / (1 + (1 - e2) ** 0.5)
 
@@ -566,18 +566,18 @@ def utm_to_geodesic(  # pylint: disable=too-many-locals,too-many-statements
     t1 = np.tan(lat1) ** 2
     n1 = semi_major_axis / ((1 - e2 * (np.sin(lat1) ** 2)) ** 0.5)
     quoc = (1 - e2 * np.sin(lat1) * np.sin(lat1)) ** 3
-    r1 = semi_major_axis * (1 - e2) / (quoc ** 0.5)
+    r1 = semi_major_axis * (1 - e2) / (quoc**0.5)
     d = (x - 500000) / (n1 * K0)
 
     # Calculate other auxiliary values
     aux_i = (5 + 3 * t1 + 10 * c1 - 4 * c1 * c1 - 9 * e2lin) * d * d * d * d / 24
     J = (
         (61 + 90 * t1 + 298 * c1 + 45 * t1 * t1 - 252 * e2lin - 3 * c1 * c1)
-        * (d ** 6)
+        * (d**6)
         / 720
     )
     K = d - (1 + 2 * t1 + c1) * d * d * d / 6
-    L = (5 - 2 * c1 + 28 * t1 - 3 * c1 * c1 + 8 * e2lin + 24 * t1 * t1) * (d ** 5) / 120
+    L = (5 - 2 * c1 + 28 * t1 - 3 * c1 * c1 + 8 * e2lin + 24 * t1 * t1) * (d**5) / 120
 
     # Finally calculate the coordinates in lat/lot
     lat = lat1 - (n1 * np.tan(lat1) / r1) * (d * d / 2 - aux_i + J)

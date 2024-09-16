@@ -65,7 +65,7 @@ def test_air_brakes_clamp_on(
     assert air_brakes_clamp_on.drag_coefficient.__dom_dim__ == 2
     assert (
         air_brakes_clamp_on.reference_area
-        == calisto_air_brakes_clamp_on.radius ** 2 * np.pi
+        == calisto_air_brakes_clamp_on.radius**2 * np.pi
     )
     air_brakes_clamp_on.deployment_level = 0.5
     assert air_brakes_clamp_on.deployment_level == 0.5
@@ -101,7 +101,7 @@ def test_air_brakes_clamp_off(  # pylint: disable=unused-argument
     assert air_brakes_clamp_off.drag_coefficient.__dom_dim__ == 2
     assert (
         air_brakes_clamp_off.reference_area
-        == calisto_air_brakes_clamp_off.radius ** 2 * np.pi
+        == calisto_air_brakes_clamp_off.radius**2 * np.pi
     )
 
     air_brakes_clamp_off.deployment_level = 0.5

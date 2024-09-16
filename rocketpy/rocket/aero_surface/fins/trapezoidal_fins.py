@@ -262,7 +262,7 @@ class TrapezoidalFins(Fins):
         # pylint: disable=invalid-name
         Yr = self.root_chord + self.tip_chord
         Af = Yr * self.span / 2  # Fin area
-        AR = 2 * self.span ** 2 / Af  # Fin aspect ratio
+        AR = 2 * self.span**2 / Af  # Fin aspect ratio
         gamma_c = np.arctan(
             (self.sweep_length + 0.5 * self.tip_chord - 0.5 * self.root_chord)
             / (self.span)
@@ -279,34 +279,31 @@ class TrapezoidalFins(Fins):
         # Parameters for Roll Moment.
         # Documented at: https://docs.rocketpy.org/en/latest/technical/
         roll_geometrical_constant = (
-            (self.root_chord + 3 * self.tip_chord) * self.span ** 3
+            (self.root_chord + 3 * self.tip_chord) * self.span**3
             + 4
             * (self.root_chord + 2 * self.tip_chord)
             * self.rocket_radius
-            * self.span ** 2
-            + 6
-            * (self.root_chord + self.tip_chord)
-            * self.span
-            * self.rocket_radius ** 2
+            * self.span**2
+            + 6 * (self.root_chord + self.tip_chord) * self.span * self.rocket_radius**2
         ) / 12
         roll_damping_interference_factor = 1 + (
             ((tau - lambda_) / (tau)) - ((1 - lambda_) / (tau - 1)) * np.log(tau)
         ) / (
             ((tau + 1) * (tau - lambda_)) / (2)
-            - ((1 - lambda_) * (tau ** 3 - 1)) / (3 * (tau - 1))
+            - ((1 - lambda_) * (tau**3 - 1)) / (3 * (tau - 1))
         )
-        roll_forcing_interference_factor = (1 / np.pi ** 2) * (
-            (np.pi ** 2 / 4) * ((tau + 1) ** 2 / tau ** 2)
-            + ((np.pi * (tau ** 2 + 1) ** 2) / (tau ** 2 * (tau - 1) ** 2))
-            * np.arcsin((tau ** 2 - 1) / (tau ** 2 + 1))
+        roll_forcing_interference_factor = (1 / np.pi**2) * (
+            (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
+            + ((np.pi * (tau**2 + 1) ** 2) / (tau**2 * (tau - 1) ** 2))
+            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
             - (2 * np.pi * (tau + 1)) / (tau * (tau - 1))
-            + ((tau ** 2 + 1) ** 2)
-            / (tau ** 2 * (tau - 1) ** 2)
-            * (np.arcsin((tau ** 2 - 1) / (tau ** 2 + 1))) ** 2
+            + ((tau**2 + 1) ** 2)
+            / (tau**2 * (tau - 1) ** 2)
+            * (np.arcsin((tau**2 - 1) / (tau**2 + 1))) ** 2
             - (4 * (tau + 1))
             / (tau * (tau - 1))
-            * np.arcsin((tau ** 2 - 1) / (tau ** 2 + 1))
-            + (8 / (tau - 1) ** 2) * np.log((tau ** 2 + 1) / (2 * tau))
+            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
+            + (8 / (tau - 1) ** 2) * np.log((tau**2 + 1) / (2 * tau))
         )
 
         # Store values

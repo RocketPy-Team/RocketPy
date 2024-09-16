@@ -82,8 +82,8 @@ def calculate_cubic_hermite_coefficients(x0, x1, y0, yp0, y1, yp1):
     dx = x1 - x0
     d = float(y0)
     c = float(yp0)
-    b = float((3 * y1 - yp1 * dx - 2 * c * dx - 3 * d) / (dx ** 2))
-    a = float(-(2 * y1 - yp1 * dx - c * dx - 2 * d) / (dx ** 3))
+    b = float((3 * y1 - yp1 * dx - 2 * c * dx - 3 * d) / (dx**2))
+    a = float(-(2 * y1 - yp1 * dx - c * dx - 2 * d) / (dx**3))
     return a, b, c, d
 
 
@@ -131,17 +131,17 @@ def find_roots_cubic_function(a, b, c, d):
     >>> x1.real, x2.real, x3.real
     (-1.0, 3.0, 1.0)
     """
-    delta_0 = b ** 2 - 3 * a * c
-    delta_1 = 2 * b ** 3 - 9 * a * b * c + 27 * d * a ** 2
-    c1 = ((delta_1 + (delta_1 ** 2 - 4 * delta_0 ** 3) ** (0.5)) / 2) ** (1 / 3)
+    delta_0 = b**2 - 3 * a * c
+    delta_1 = 2 * b**3 - 9 * a * b * c + 27 * d * a**2
+    c1 = ((delta_1 + (delta_1**2 - 4 * delta_0**3) ** (0.5)) / 2) ** (1 / 3)
 
     c2_0 = c1
     x1 = -(1 / (3 * a)) * (b + c2_0 + delta_0 / c2_0)
 
-    c2_1 = c1 * (-1 / 2 + 1j * (3 ** 0.5) / 2) ** 1
+    c2_1 = c1 * (-1 / 2 + 1j * (3**0.5) / 2) ** 1
     x2 = -(1 / (3 * a)) * (b + c2_1 + delta_0 / c2_1)
 
-    c2_2 = c1 * (-1 / 2 + 1j * (3 ** 0.5) / 2) ** 2
+    c2_2 = c1 * (-1 / 2 + 1j * (3**0.5) / 2) ** 2
     x3 = -(1 / (3 * a)) * (b + c2_2 + delta_0 / c2_2)
 
     return x1, x2, x3
@@ -542,7 +542,7 @@ def generate_monte_carlo_ellipses_coordinates(
         for point in points:
             x, y = point
             # Convert to distance and bearing
-            d = math.sqrt((x ** 2 + y ** 2))
+            d = math.sqrt((x**2 + y**2))
             bearing = math.atan2(
                 x, y
             )  # math.atan2 returns the angle in the range [-pi, pi]
@@ -688,7 +688,7 @@ def find_two_closest_integers(number):
     >>> find_two_closest_integers(150)
     (10, 15)
     """
-    number_sqrt = number ** 0.5
+    number_sqrt = number**0.5
     if isinstance(number_sqrt, int):
         return number_sqrt, number_sqrt
     else:
@@ -1006,7 +1006,7 @@ def parallel_axis_theorem_from_com(com_inertia_moment, mass, distance):
     ----------
     https://en.wikipedia.org/wiki/Parallel_axis_theorem
     """
-    return com_inertia_moment + mass * distance ** 2
+    return com_inertia_moment + mass * distance**2
 
 
 # Flight
@@ -1084,7 +1084,7 @@ def quaternions_to_nutation(e1, e2):
     Baruh, Haim. Analytical dynamics
     """
     # we are changing from 3-1-3 to 3-2-3 conventions
-    return (180 / np.pi) * 2 * np.arcsin(-((e1 ** 2 + e2 ** 2) ** 0.5))
+    return (180 / np.pi) * 2 * np.arcsin(-((e1**2 + e2**2) ** 0.5))
 
 
 def normalize_quaternions(quaternions):
@@ -1101,7 +1101,7 @@ def normalize_quaternions(quaternions):
         Tuple containing the Euler parameters e0, e1, e2, e3
     """
     q_w, q_x, q_y, q_z = quaternions
-    q_norm = (q_w ** 2 + q_x ** 2 + q_y ** 2 + q_z ** 2) ** 0.5
+    q_norm = (q_w**2 + q_x**2 + q_y**2 + q_z**2) ** 0.5
     if q_norm == 0:
         return 1, 0, 0, 0
     return q_w / q_norm, q_x / q_norm, q_y / q_norm, q_z / q_norm

@@ -15,7 +15,7 @@ GRAIN_INITIAL_INNER_RADIUS = 15 / 1000
 GRAIN_INITIAL_HEIGHT = 120 / 1000
 NOZZLE_RADIUS = 33 / 1000
 THROAT_RADIUS = 11 / 1000
-GRAIN_VOL = 0.12 * (np.pi * (0.033 ** 2 - 0.015 ** 2))
+GRAIN_VOL = 0.12 * (np.pi * (0.033**2 - 0.015**2))
 GRAIN_MASS = GRAIN_VOL * 1815 * 5
 
 
@@ -35,13 +35,13 @@ def test_motor(mock_show, cesaroni_m1670):  # pylint: disable=unused-argument
 
 def test_evaluate_inertia_11_asserts_extreme_values(cesaroni_m1670):
     grain_vol = GRAIN_INITIAL_HEIGHT * (
-        np.pi * (GRAIN_OUTER_RADIUS ** 2 - GRAIN_INITIAL_INNER_RADIUS ** 2)
+        np.pi * (GRAIN_OUTER_RADIUS**2 - GRAIN_INITIAL_INNER_RADIUS**2)
     )
     grain_mass = grain_vol * GRAIN_DENSITY
 
     grain_inertia_11_initial = grain_mass * (
-        (1 / 4) * (GRAIN_OUTER_RADIUS ** 2 + GRAIN_INITIAL_INNER_RADIUS ** 2)
-        + (1 / 12) * GRAIN_INITIAL_HEIGHT ** 2
+        (1 / 4) * (GRAIN_OUTER_RADIUS**2 + GRAIN_INITIAL_INNER_RADIUS**2)
+        + (1 / 12) * GRAIN_INITIAL_HEIGHT**2
     )
 
     initial_value = (GRAIN_NUMBER - 1) / 2
@@ -49,7 +49,7 @@ def test_evaluate_inertia_11_asserts_extreme_values(cesaroni_m1670):
     d = d * (GRAIN_INITIAL_HEIGHT + GRAIN_SEPARATION)
 
     inertia_11_initial = GRAIN_NUMBER * grain_inertia_11_initial + grain_mass * np.sum(
-        d ** 2
+        d**2
     )
 
     # not passing because I_33 is not discrete anymore
@@ -65,14 +65,12 @@ def test_evaluate_inertia_11_asserts_extreme_values(cesaroni_m1670):
 
 def test_evaluate_inertia_33_asserts_extreme_values(cesaroni_m1670):
     grain_vol = GRAIN_INITIAL_HEIGHT * (
-        np.pi * (GRAIN_OUTER_RADIUS ** 2 - GRAIN_INITIAL_INNER_RADIUS ** 2)
+        np.pi * (GRAIN_OUTER_RADIUS**2 - GRAIN_INITIAL_INNER_RADIUS**2)
     )
     grain_mass = grain_vol * GRAIN_DENSITY
 
     grain_I_33_initial = (
-        grain_mass
-        * (1 / 2.0)
-        * (GRAIN_INITIAL_INNER_RADIUS ** 2 + GRAIN_OUTER_RADIUS ** 2)
+        grain_mass * (1 / 2.0) * (GRAIN_INITIAL_INNER_RADIUS**2 + GRAIN_OUTER_RADIUS**2)
     )
 
     # not passing because I_33 is not discrete anymore
@@ -172,7 +170,7 @@ def tests_export_eng_asserts_exported_values_correct(cesaroni_m1670):
 
 def test_initialize_motor_asserts_dynamic_values(cesaroni_m1670):
     grain_vol = GRAIN_INITIAL_HEIGHT * (
-        np.pi * (GRAIN_OUTER_RADIUS ** 2 - GRAIN_INITIAL_INNER_RADIUS ** 2)
+        np.pi * (GRAIN_OUTER_RADIUS**2 - GRAIN_INITIAL_INNER_RADIUS**2)
     )
     grain_mass = grain_vol * GRAIN_DENSITY
 
@@ -218,7 +216,7 @@ def test_grain_geometry_progression_asserts_extreme_values(cesaroni_m1670):
 
 def test_mass_curve_asserts_extreme_values(cesaroni_m1670):
     grain_vol = GRAIN_INITIAL_HEIGHT * (
-        np.pi * (GRAIN_OUTER_RADIUS ** 2 - GRAIN_INITIAL_INNER_RADIUS ** 2)
+        np.pi * (GRAIN_OUTER_RADIUS**2 - GRAIN_INITIAL_INNER_RADIUS**2)
     )
     grain_mass = grain_vol * GRAIN_DENSITY
 
@@ -233,8 +231,8 @@ def test_burn_area_asserts_extreme_values(cesaroni_m1670):
         2
         * np.pi
         * (
-            GRAIN_OUTER_RADIUS ** 2
-            - GRAIN_INITIAL_INNER_RADIUS ** 2
+            GRAIN_OUTER_RADIUS**2
+            - GRAIN_INITIAL_INNER_RADIUS**2
             + GRAIN_INITIAL_INNER_RADIUS * GRAIN_INITIAL_HEIGHT
         )
         * GRAIN_NUMBER

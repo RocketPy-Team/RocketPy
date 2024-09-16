@@ -891,10 +891,10 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
             # Extract data from weather file
             indices = (time_index, lon_index, lat_index)
             for key, value in surface_file_dict.items():
-                dictionary[date_string][hour_string][
-                    key
-                ] = self.__extract_surface_data_value(
-                    surface_data, value, indices, lon_array, lat_array
+                dictionary[date_string][hour_string][key] = (
+                    self.__extract_surface_data_value(
+                        surface_data, value, indices, lon_array, lat_array
+                    )
                 )
 
         # Get elevation, time index does not matter, use last one
@@ -2040,7 +2040,7 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
                     vy = self.converted_surface_data[day][str(hour)][
                         "surface10m_wind_velocity_y"
                     ]
-                    wind_speed[hour][index] = (vx ** 2 + vy ** 2) ** 0.5
+                    wind_speed[hour][index] = (vx**2 + vy**2) ** 0.5
 
                     # Wind direction means where the wind is blowing from, 180 deg opposite from wind heading
                     direction = (180 + (np.arctan2(vy, vx) * 180 / np.pi)) % 360

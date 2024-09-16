@@ -39,11 +39,11 @@ class AeroSurface(ABC):
         """
 
         if mach < 0.8:
-            return np.sqrt(1 - mach ** 2)
+            return np.sqrt(1 - mach**2)
         elif mach < 1.1:
-            return np.sqrt(1 - 0.8 ** 2)
+            return np.sqrt(1 - 0.8**2)
         else:
-            return np.sqrt(mach ** 2 - 1)
+            return np.sqrt(mach**2 - 1)
 
     @abstractmethod
     def evaluate_center_of_pressure(self):
@@ -130,16 +130,16 @@ class AeroSurface(ABC):
         R1, R2, R3, M1, M2, M3 = 0, 0, 0, 0, 0, 0
         cpz = cp[2]
         stream_vx, stream_vy, stream_vz = stream_velocity
-        if stream_vx ** 2 + stream_vy ** 2 != 0:  # TODO: maybe try/except
+        if stream_vx**2 + stream_vy**2 != 0:  # TODO: maybe try/except
             # Normalize component stream velocity in body frame
             stream_vzn = stream_vz / stream_speed
             if -1 * stream_vzn < 1:
                 attack_angle = np.arccos(-stream_vzn)
                 c_lift = self.cl.get_value_opt(attack_angle, stream_mach)
                 # Component lift force magnitude
-                lift = 0.5 * rho * (stream_speed ** 2) * self.reference_area * c_lift
+                lift = 0.5 * rho * (stream_speed**2) * self.reference_area * c_lift
                 # Component lift force components
-                lift_dir_norm = (stream_vx ** 2 + stream_vy ** 2) ** 0.5
+                lift_dir_norm = (stream_vx**2 + stream_vy**2) ** 0.5
                 lift_xb = lift * (stream_vx / lift_dir_norm)
                 lift_yb = lift * (stream_vy / lift_dir_norm)
                 # Total lift force

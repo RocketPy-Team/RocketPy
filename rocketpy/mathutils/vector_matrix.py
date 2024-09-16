@@ -182,7 +182,7 @@ class Vector:
 
     def __abs__(self):
         """R3 vector norm, magnitude or absolute value."""
-        return (self.x ** 2 + self.y ** 2 + self.z ** 2) ** 0.5
+        return (self.x**2 + self.y**2 + self.z**2) ** 0.5
 
     def __neg__(self):
         """-1 times R3 vector self."""
@@ -1033,9 +1033,9 @@ class Matrix:
         q_w, q_x, q_y, q_z = normalize_quaternions(quaternion)
 
         # pre-compute common terms
-        q_x2 = q_x ** 2
-        q_y2 = q_y ** 2
-        q_z2 = q_z ** 2
+        q_x2 = q_x**2
+        q_y2 = q_y**2
+        q_z2 = q_z**2
         q_wx = q_w * q_x
         q_wy = q_w * q_y
         q_wz = q_w * q_z

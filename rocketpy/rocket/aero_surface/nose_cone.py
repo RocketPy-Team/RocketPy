@@ -129,7 +129,7 @@ class NoseCone(AeroSurface):
         None
         """
         rocket_radius = rocket_radius or base_radius
-        super().__init__(name, np.pi * rocket_radius ** 2, 2 * rocket_radius)
+        super().__init__(name, np.pi * rocket_radius**2, 2 * rocket_radius)
 
         self._rocket_radius = rocket_radius
         self._base_radius = base_radius
@@ -240,20 +240,20 @@ class NoseCone(AeroSurface):
                 lambda x: self.base_radius
                 * (theta(x) - np.sin(2 * theta(x)) / 2 + (np.sin(theta(x)) ** 3) / 3)
                 ** (0.5)
-                / (np.pi ** 0.5)
+                / (np.pi**0.5)
             )
 
         elif value in ["tangent", "tangentogive", "ogive"]:
-            rho = (self.base_radius ** 2 + self.length ** 2) / (2 * self.base_radius)
+            rho = (self.base_radius**2 + self.length**2) / (2 * self.base_radius)
             volume = np.pi * (
-                self.length * rho ** 2
-                - (self.length ** 3) / 3
-                - (rho - self.base_radius) * rho ** 2 * np.arcsin(self.length / rho)
+                self.length * rho**2
+                - (self.length**3) / 3
+                - (rho - self.base_radius) * rho**2 * np.arcsin(self.length / rho)
             )
-            area = np.pi * self.base_radius ** 2
+            area = np.pi * self.base_radius**2
             self.k = 1 - volume / (area * self.length)
             self.y_nosecone = Function(
-                lambda x: np.sqrt(rho ** 2 - (min(x - self.length, 0)) ** 2)
+                lambda x: np.sqrt(rho**2 - (min(x - self.length, 0)) ** 2)
                 + (self.base_radius - rho)
             )
 
@@ -273,7 +273,7 @@ class NoseCone(AeroSurface):
             self.y_nosecone = Function(
                 lambda x: self.base_radius
                 * (theta(x) - np.sin(2 * theta(x)) / 2) ** (0.5)
-                / (np.pi ** 0.5)
+                / (np.pi**0.5)
             )
         elif value == "parabolic":
             self.k = 0.5
@@ -388,7 +388,7 @@ class NoseCone(AeroSurface):
 
                 def test_circle(x):
                     # set up a circle at the starting position to test bluffness
-                    return np.sqrt(r_circle ** 2 - (x - r_circle) ** 2)
+                    return np.sqrt(r_circle**2 - (x - r_circle) ** 2)
 
                 # Check if bluffness circle is too small
                 if test_circle(1e-03) <= self.y_nosecone(1e-03):
@@ -411,7 +411,7 @@ class NoseCone(AeroSurface):
 
         # Calculate a function to create the circle at the correct position
         def create_circle(x):
-            return abs(r_circle ** 2 - (x - circle_center) ** 2) ** 0.5
+            return abs(r_circle**2 - (x - circle_center) ** 2) ** 0.5
 
         # Define a function for the final shape of the curve with a circle at the tip
         def final_shape(x):
@@ -447,7 +447,7 @@ class NoseCone(AeroSurface):
         """
         # Calculate clalpha
         self.clalpha = Function(
-            lambda mach: 2 * self.radius_ratio ** 2,
+            lambda mach: 2 * self.radius_ratio**2,
             "Mach",
             f"Lift coefficient derivative for {self.name}",
         )

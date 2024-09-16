@@ -94,7 +94,7 @@ class GnssReceiver(ScalarSensor):
         altitude = np.random.normal(z, self.altitude_accuracy)
 
         # Convert x and y to latitude and longitude
-        drift = (x ** 2 + y ** 2) ** 0.5
+        drift = (x**2 + y**2) ** 0.5
         bearing = (2 * math.pi - math.atan2(-x, y)) * (180 / math.pi)
 
         # Applies the haversine equation to find final lat/lon coordinates

@@ -354,7 +354,7 @@ class Tank(ABC):
         Ix_volume = Ix_volume @ self.liquid_height
 
         # Steiner theorem to account for center of mass
-        Ix_volume -= self.liquid_volume * self.liquid_center_of_mass ** 2
+        Ix_volume -= self.liquid_volume * self.liquid_center_of_mass**2
         Ix_volume += (
             self.liquid_volume * (self.liquid_center_of_mass - self.center_of_mass) ** 2
         )
@@ -380,7 +380,7 @@ class Tank(ABC):
         inertia_volume = upper_inertia_volume - lower_inertia_volume
 
         # Steiner theorem to account for center of mass
-        inertia_volume -= self.gas_volume * self.gas_center_of_mass ** 2
+        inertia_volume -= self.gas_volume * self.gas_center_of_mass**2
         inertia_volume += (
             self.gas_volume * (self.gas_center_of_mass - self.center_of_mass) ** 2
         )

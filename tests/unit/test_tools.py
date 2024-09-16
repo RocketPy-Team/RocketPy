@@ -38,7 +38,7 @@ def test_calculate_cubic_hermite_coefficients():
     assert np.isclose(c, 0)
     assert np.isclose(d, -1)
     assert np.allclose(
-        a * x ** 3 + b * x ** 2 + c * x + d,
+        a * x**3 + b * x**2 + c * x + d,
         y,
     )
 
@@ -51,9 +51,9 @@ def test_cardanos_root_finding():
     roots = list(find_roots_cubic_function(a=1, b=2, c=0, d=-1))
     roots.sort(key=lambda x: x.real)
 
-    assert np.isclose(roots[0].real, (-1 - 5 ** 0.5) / 2)
+    assert np.isclose(roots[0].real, (-1 - 5**0.5) / 2)
     assert np.isclose(roots[1].real, -1)
-    assert np.isclose(roots[2].real, (-1 + 5 ** 0.5) / 2)
+    assert np.isclose(roots[2].real, (-1 + 5**0.5) / 2)
 
     assert np.isclose(roots[0].imag, 0)
     assert np.isclose(roots[1].imag, 0)

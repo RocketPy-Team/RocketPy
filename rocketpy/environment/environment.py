@@ -362,7 +362,7 @@ class Environment:
 
     def __initialize_constants(self):
         """Sets some important constants and atmospheric variables."""
-        self.earth_radius = 6.3781 * (10 ** 6)
+        self.earth_radius = 6.3781 * (10**6)
         self.air_gas_constant = 287.05287  # in J/K/kg
         self.standard_g = 9.80665
         self.__weather_model_map = WeatherModelMapping()
@@ -563,7 +563,7 @@ class Environment:
 
     def __reset_wind_speed_function(self):
         # NOTE: assume wind_velocity_x and wind_velocity_y as Function objects
-        self.wind_speed = (self.wind_velocity_x ** 2 + self.wind_velocity_y ** 2) ** 0.5
+        self.wind_speed = (self.wind_velocity_x**2 + self.wind_velocity_y**2) ** 0.5
         self.wind_speed.set_inputs("Height Above Sea Level (m)")
         self.wind_speed.set_outputs("Wind Speed (m/s)")
         self.wind_speed.set_title("Wind Speed Profile")
@@ -850,7 +850,7 @@ class Environment:
         height_correction = (
             1
             - height * 2 / a * (1 + f + m_rot - 2 * f * sin_lat_sqrd)
-            + 3 * height ** 2 / a ** 2
+            + 3 * height**2 / a**2
         )
 
         return height_correction * gravity_somgl
@@ -2802,8 +2802,8 @@ class Environment:
         # Calculate the Earth Radius in meters
         e_radius = np.sqrt(
             (
-                (np.cos(lat) * (semi_major_axis ** 2)) ** 2
-                + (np.sin(lat) * (semi_minor_axis ** 2)) ** 2
+                (np.cos(lat) * (semi_major_axis**2)) ** 2
+                + (np.sin(lat) * (semi_minor_axis**2)) ** 2
             )
             / (
                 (np.cos(lat) * semi_major_axis) ** 2

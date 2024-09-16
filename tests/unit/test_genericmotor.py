@@ -108,11 +108,9 @@ def test_generic_motor_inertia(generic_motor):
     # Tests the inertia formulation from the propellant mass
     propellant_mass = generic_motor.propellant_mass.set_discrete(*BURN_TIME, 50).y_array
 
-    propellant_I_11 = propellant_mass * (
-        CHAMBER_RADIUS ** 2 / 4 + CHAMBER_HEIGHT ** 2 / 12
-    )
+    propellant_I_11 = propellant_mass * (CHAMBER_RADIUS**2 / 4 + CHAMBER_HEIGHT**2 / 12)
     propellant_I_22 = propellant_I_11
-    propellant_I_33 = propellant_mass * (CHAMBER_RADIUS ** 2 / 2)
+    propellant_I_33 = propellant_mass * (CHAMBER_RADIUS**2 / 2)
 
     # Centers of mass coincide, so no translation is needed
     I_11 = propellant_I_11 + DRY_INERTIA[0]

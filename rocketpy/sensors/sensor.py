@@ -534,12 +534,12 @@ class InertialSensor(Sensor):
         # white noise
         white_noise = Vector(
             [np.random.normal(0, self.noise_variance[i] ** 0.5) for i in range(3)]
-        ) & (self.noise_density * self.sampling_rate ** 0.5)
+        ) & (self.noise_density * self.sampling_rate**0.5)
 
         # random walk
         self._random_walk_drift = self._random_walk_drift + Vector(
             [np.random.normal(0, self.random_walk_variance[i] ** 0.5) for i in range(3)]
-        ) & (self.random_walk_density / self.sampling_rate ** 0.5)
+        ) & (self.random_walk_density / self.sampling_rate**0.5)
 
         # add noise
         value += white_noise + self._random_walk_drift + self.constant_bias
@@ -733,17 +733,17 @@ class ScalarSensor(Sensor):
         """
         # white noise
         white_noise = (
-            np.random.normal(0, self.noise_variance ** 0.5)
+            np.random.normal(0, self.noise_variance**0.5)
             * self.noise_density
-            * self.sampling_rate ** 0.5
+            * self.sampling_rate**0.5
         )
 
         # random walk
         self._random_walk_drift = (
             self._random_walk_drift
-            + np.random.normal(0, self.random_walk_variance ** 0.5)
+            + np.random.normal(0, self.random_walk_variance**0.5)
             * self.random_walk_density
-            / self.sampling_rate ** 0.5
+            / self.sampling_rate**0.5
         )
 
         # add noise
