@@ -1,4 +1,5 @@
 import warnings
+
 import numpy as np
 
 from rocketpy.plots.aero_surface_plots import _FreeFormFinsPlots

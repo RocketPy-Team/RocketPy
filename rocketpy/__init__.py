@@ -30,6 +30,7 @@ from .rocket import (
     Components,
     EllipticalFins,
     Fins,
+    FreeFormFins,
     GenericSurface,
     LinearGenericSurface,
     NoseCone,
@@ -38,7 +39,6 @@ from .rocket import (
     Rocket,
     Tail,
     TrapezoidalFins,
-    FreeFormFins,
 )
 from .sensitivity import SensitivityModel
 from .sensors import Accelerometer, Barometer, GnssReceiver, Gyroscope
