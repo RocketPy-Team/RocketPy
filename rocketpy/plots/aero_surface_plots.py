@@ -380,6 +380,67 @@ class _EllipticalFinsPlots(_FinsPlots):
         plt.show()
 
 
+class _FreeFormFinsPlots(_FinsPlots):
+    """Class that contains all free form fin plots."""
+
+    # pylint: disable=too-many-statements
+    def draw(self):
+        """Draw the fin shape along with some important information, including
+        the center line, the quarter line and the center of pressure position.
+
+        Returns
+        -------
+        None
+        """
+        # Color cycle [#348ABD, #A60628, #7A68A6, #467821, #D55E00, #CC79A7,
+        # #56B4E9, #009E73, #F0E442, #0072B2]
+
+        # Center of pressure
+        cp_point = [self.aero_surface.cpz, self.aero_surface.Yma]
+
+        # Mean Aerodynamic Chord
+        yma_line = plt.Line2D(
+            (
+                self.aero_surface.mac_lead,
+                self.aero_surface.mac_lead + self.aero_surface.mac_length,
+            ),
+            (self.aero_surface.Yma, self.aero_surface.Yma),
+            color="#467821",
+            linestyle="--",
+            label="Mean Aerodynamic Chord",
+        )
+
+        # Plotting
+        fig = plt.figure(figsize=(7, 4))
+        with plt.style.context("bmh"):
+            ax = fig.add_subplot(111)
+
+        # Fin
+        ax.scatter(
+            self.aero_surface.shape_vec[0],
+            self.aero_surface.shape_vec[1],
+            color="#A60628",
+        )
+        ax.plot(
+            self.aero_surface.shape_vec[0],
+            self.aero_surface.shape_vec[1],
+            color="#A60628",
+        )
+
+        ax.add_line(yma_line)
+        ax.scatter(*cp_point, label="Center of Pressure", color="red", s=100, zorder=10)
+        ax.scatter(*cp_point, facecolors="none", edgecolors="red", s=500, zorder=10)
+
+        # Plot settings
+        ax.set_xlabel("Root chord (m)")
+        ax.set_ylabel("Span (m)")
+        ax.set_title("Trapezoidal Fin Cross Section")
+        ax.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
+
+        plt.tight_layout()
+        plt.show()
+
+
 class _TailPlots(_AeroSurfacePlots):
     """Class that contains all tail plots."""
 

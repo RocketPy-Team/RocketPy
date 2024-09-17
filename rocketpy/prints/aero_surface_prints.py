@@ -183,6 +183,10 @@ class _EllipticalFinsPrints(_FinsPrints):
     """Class that contains all elliptical fins prints."""
 
 
+class _FreeFormFinsPrints(_FinsPrints):
+    """Class that contains all free form fins prints."""
+
+
 class _TailPrints(_AeroSurfacePrints):
     """Class that contains all tail prints."""
 
