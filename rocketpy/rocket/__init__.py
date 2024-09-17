@@ -10,6 +10,7 @@ from rocketpy.rocket.aero_surface import (
     RailButtons,
     Tail,
     TrapezoidalFins,
+    FreeFormFins,
 )
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
