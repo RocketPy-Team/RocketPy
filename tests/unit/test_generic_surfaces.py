@@ -16,7 +16,6 @@ REFERENCE_LENGTH = 1
         {"cL": Function(lambda x1, x2, x3, x4, x5, x6: 0)},
         {"cL": lambda x1: 0},
         {"cL": {}},
-        {"cL": "tmp_invalid_coefficients.csv"},
     ],
 )
 def test_invalid_initialization(coefficients):
@@ -32,8 +31,8 @@ def test_invalid_initialization(coefficients):
 
 
 def test_invalid_initialization_from_csv(filename_invalid_coeff):
-    """Checks if generic surfaces initializes correctly when
-    coefficients is set from a csv file"""
+    """Checks if generic surfaces raises errors when initialized incorrectly
+    from a csv file"""
     with pytest.raises(ValueError):
         GenericSurface(
             reference_area=REFERENCE_AREA,
@@ -55,8 +54,8 @@ def test_invalid_initialization_from_csv(filename_invalid_coeff):
     ],
 )
 def test_valid_initialization(coefficients):
-    """Checks if generic surface raises errors in initialization
-    when coefficient argument is valid"""
+    """Checks if generic surface initializes correctly when coefficient
+    argument is valid"""
 
     GenericSurface(
         reference_area=REFERENCE_AREA,
