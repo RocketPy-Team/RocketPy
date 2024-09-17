@@ -201,13 +201,16 @@ class FreeFormFins(Fins):
     def evaluate_geometrical_parameters(self):  # pylint: disable=too-many-statements
         """
         Calculates and saves the fin set's geometrical parameters such as the
-        fin area, aspect ratio, and parameters related to roll movement. This method
-        uses similar calculations to those in OpenRocket for free-form fin shapes.
+        fin area, aspect ratio, and parameters related to roll movement. This
+        method uses the same calculations to those in OpenRocket for free-form
+        fin shapes.
 
         Returns
         -------
         None
         """
+        # pylint: disable=invalid-name
+        # pylint: disable=too-many-locals
         # Calculate the fin area (Af) using the Shoelace theorem (polygon area formula)
         Af = 0
         for i in range(len(self.shape_points) - 1):
