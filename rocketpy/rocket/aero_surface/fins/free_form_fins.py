@@ -118,6 +118,8 @@ class FreeFormFins(Fins):
             List of tuples (x, y) containing the coordinates of the fin's
             geometry defining points. The point (0, 0) is the root leading edge.
             Positive x is rearwards, positive y is upwards (span direction).
+            The shape will be interpolated between the points, in the order
+            they are given. The last point connects to the first point.
         rocket_radius : int, float
             Reference radius to calculate lift coefficient, in meters.
         cant_angle : int, float, optional
