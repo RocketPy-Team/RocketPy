@@ -18,6 +18,7 @@ from rocketpy.rocket.aero_surface import (
     Tail,
     TrapezoidalFins,
 )
+from rocketpy.rocket.aero_surface.fins.free_form_fins import FreeFormFins
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
@@ -1319,6 +1320,83 @@ class Rocket:
         """
         radius = radius if radius is not None else self.radius
         fin_set = EllipticalFins(n, root_chord, span, radius, cant_angle, airfoil, name)
+        self.add_surfaces(fin_set, position)
+        return fin_set
+
+    def add_free_form_fins(
+        self,
+        n,
+        shape_points,
+        position,
+        cant_angle=0.0,
+        radius=None,
+        airfoil=None,
+        name="Fins",
+    ):
+        """Create a free form fin set, storing its parameters as part of the
+        aerodynamic_surfaces list. Its parameters are the axial position along
+        the rocket and its derivative of the coefficient of lift in respect to
+        angle of attack.
+
+        Parameters
+        ----------
+        n : int
+            Number of fins, from 2 to infinity.
+        shape_points : list
+            List of tuples (x, y) containing the coordinates of the fin's
+            geometry defining points. The point (0, 0) is the root leading edge.
+            Positive x is rearwards, positive y is upwards (span direction).
+        position : int, float
+            Fin set position relative to the rocket's coordinate system.
+            By fin set position, understand the point belonging to the root
+            chord which is highest in the rocket coordinate system (i.e.
+            the point closest to the nose cone tip).
+
+            See Also
+            --------
+            :ref:`positions`
+        cant_angle : int, float, optional
+            Fins cant angle with respect to the rocket centerline. Must
+            be given in degrees.
+        radius : int, float, optional
+            Reference fuselage radius where the fins are located. This is used
+            to calculate lift coefficient and to draw the rocket. If None,
+            which is default, the rocket radius will be used.
+        airfoil : tuple, optional
+            Default is null, in which case fins will be treated as flat plates.
+            Otherwise, if tuple, fins will be considered as airfoils. The
+            tuple's first item specifies the airfoil's lift coefficient
+            by angle of attack and must be either a .csv, .txt, ndarray
+            or callable. The .csv and .txt files can contain a single line
+            header and the first column must specify the angle of attack, while
+            the second column must specify the lift coefficient. The
+            ndarray should be as [(x0, y0), (x1, y1), (x2, y2), ...]
+            where x0 is the angle of attack and y0 is the lift coefficient.
+            If callable, it should take an angle of attack as input and
+            return the lift coefficient at that angle of attack.
+            The tuple's second item is the unit of the angle of attack,
+            accepting either "radians" or "degrees".
+
+        Returns
+        -------
+        fin_set : FreeFormFins
+            Fin set object created.
+        """
+
+        # Modify radius if not given, use rocket radius, otherwise use given.
+        radius = radius if radius is not None else self.radius
+
+        # Create a fin set as an object of TrapezoidalFins class
+        fin_set = FreeFormFins(
+            n,
+            shape_points,
+            radius,
+            cant_angle,
+            airfoil,
+            name,
+        )
+
+        # Add fin set to the list of aerodynamic surfaces
         self.add_surfaces(fin_set, position)
         return fin_set
 
