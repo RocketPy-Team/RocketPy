@@ -92,14 +92,17 @@ class Function:  # pylint: disable=too-many-public-methods
         interpolation : string, optional
             Interpolation method to be used if source type is ndarray.
             For 1-D functions, linear, polynomial, akima and spline are
-            supported. For N-D functions, only shepard is supported.
-            Default for 1-D functions is spline.
+            supported. For N-D functions, linear, shepard and rbf are
+            supported.
+            Default for 1-D functions is spline and for N-D functions is 
+            shepard.
         extrapolation : string, optional
             Extrapolation method to be used if source type is ndarray.
             Options are 'natural', which keeps interpolation, 'constant',
-            which returns the value of the function at the edge of the interval,
-            and 'zero', which returns zero for all points outside of source
-            range. Default for 1-D functions is constant.
+            which returns the value of the function at the nearest edge of
+            the domain, and 'zero', which returns zero for all points outside 
+            of source range. Default for 1-D functions is constant and for 
+            N-D functions is natural.
         title : string, optional
             Title to be displayed in the plots' figures. If none, the title will
             be constructed using the inputs and outputs arguments in the form
@@ -285,8 +288,10 @@ class Function:  # pylint: disable=too-many-public-methods
         method : string, optional
             Interpolation method to be used if source type is ndarray.
             For 1-D functions, linear, polynomial, akima and spline is
-            supported. For N-D functions, only shepard is supported.
-            Default is 'spline'.
+            supported. For N-D functions, linear, shepard and rbf are
+            supported.
+            Default for 1-D functions is spline and for N-D functions is
+            shepard.
 
         Returns
         -------
@@ -322,9 +327,10 @@ class Function:  # pylint: disable=too-many-public-methods
         extrapolation : string, optional
             Extrapolation method to be used if source type is ndarray.
             Options are 'natural', which keeps interpolation, 'constant',
-            which returns the value of the function at the edge of the interval,
-            and 'zero', which returns zero for all points outside of source
-            range. Default is 'constant'.
+            which returns the value of the function at the nearest edge of
+            the domain, and 'zero', which returns zero for all points outside
+            of source range. Default for 1-D functions is constant and for
+            N-D functions is natural.
 
         Returns
         -------
@@ -595,7 +601,7 @@ class Function:  # pylint: disable=too-many-public-methods
         return y
 
     def __get_value_opt_nd(self, *args):
-        """Evaluate the Function in a vectorized fashion for ND domains.
+        """Evaluate the Function in a vectorized fashion for N-D domains.
 
         Parameters
         ----------
@@ -660,15 +666,18 @@ class Function:  # pylint: disable=too-many-public-methods
             Number of samples to be taken from inside range. Default is 200.
         interpolation : string
             Interpolation method to be used if source type is ndarray.
-            For 1-D functions, linear, polynomial, akima and spline is
-            supported. For N-D functions, only shepard is supported.
-            Default is 'spline'.
+            For 1-D functions, linear, polynomial, akima and spline are
+            supported. For N-D functions, linear, shepard and rbf are
+            supported.
+            Default for 1-D functions is spline and for N-D functions is
+            shepard.
         extrapolation : string, optional
             Extrapolation method to be used if source type is ndarray.
             Options are 'natural', which keeps interpolation, 'constant',
-            which returns the value of the function at the edge of the interval,
-            and 'zero', which returns zero for all points outside of source
-            range. Default is 'constant'.
+            which returns the value of the function at the nearest edge of
+            the domain, and 'zero', which returns zero for all points outside
+            of source range. Default for 1-D functions is constant and for
+            N-D functions is natural.
         one_by_one : boolean, optional
             If True, evaluate Function in each sample point separately. If
             False, evaluates Function in vectorized form. Default is True.
@@ -3329,12 +3338,12 @@ class Function:  # pylint: disable=too-many-public-methods
         elif self.__dom_dim__ > 1:
             if interpolation is None:
                 interpolation = "shepard"
-            if interpolation not in ["shepard", "linear", "rbf"]:
+            if interpolation.lower() not in ["shepard", "linear", "rbf"]:
                 warnings.warn(
                     (
                         "Interpolation method set to 'shepard'. The methods "
-                        "'linear' and 'shepard' are supported for multiple "
-                        "dimensions."
+                        "'linear', 'shepard' and 'rbf' are supported for "
+                        "multiple dimensions."
                     ),
                 )
                 interpolation = "shepard"
@@ -3355,15 +3364,18 @@ class Function:  # pylint: disable=too-many-public-methods
         elif self.__dom_dim__ > 1:
             if extrapolation is None:
                 extrapolation = "natural"
-            if extrapolation == "natural" and self.__interpolation__ == "linear":
+            if (
+                extrapolation.lower() == "natural"
+                and self.__interpolation__ == "linear"
+            ):
                 warnings.warn(
                     "Extrapolation 'natural' is not supported for multidimensional "
                     "linear interpolation. 'rbf' will be used to extrapolate."
                 )
-            elif extrapolation not in ["constant", "natural", "zero"]:
+            elif extrapolation.lower() not in ["constant", "natural", "zero"]:
                 warnings.warn(
-                    "Extrapolation method set to 'natural'. Other methods "
-                    "are not supported yet."
+                    "Extrapolation method set to 'natural' because the "
+                    f"{extrapolation} method is not supported."
                 )
                 extrapolation = "natural"
         return extrapolation
