@@ -5,9 +5,7 @@ and more. This is a core class of our package, and should be maintained
 carefully as it may impact all the rest of the project.
 """
 
-import base64
 import warnings
-import zlib
 from bisect import bisect_left
 from collections.abc import Iterable
 from copy import deepcopy
@@ -15,7 +13,6 @@ from functools import cached_property
 from inspect import signature
 from pathlib import Path
 
-import dill
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import integrate, linalg, optimize
@@ -26,6 +23,8 @@ from scipy.interpolate import (
 )
 
 from ..plots.plot_helpers import show_or_save_plot
+
+from rocketpy._encoders import from_hex_decode, to_hex_encode
 
 # Numpy 1.x compatibility,
 # TODO: remove these lines when all dependencies support numpy>=2.0.0
@@ -714,9 +713,9 @@ class Function:  # pylint: disable=too-many-public-methods
         if func.__dom_dim__ == 1:
             xs = np.linspace(lower, upper, samples)
             ys = func.get_value(xs.tolist()) if one_by_one else func.get_value(xs)
-            func.set_source(np.concatenate(([xs], [ys])).transpose())
-            func.set_interpolation(interpolation)
-            func.set_extrapolation(extrapolation)
+            func.__interpolation__ = interpolation
+            func.__extrapolation__ = extrapolation
+            func.set_source(np.column_stack((xs, ys)))
         elif func.__dom_dim__ == 2:
             lower = 2 * [lower] if isinstance(lower, NUMERICAL_TYPES) else lower
             upper = 2 * [upper] if isinstance(upper, NUMERICAL_TYPES) else upper
@@ -3421,7 +3420,7 @@ class Function:  # pylint: disable=too-many-public-methods
                 extrapolation = "natural"
         return extrapolation
 
-    def to_dict(self):
+    def to_dict(self, include_outputs=False):  # pylint: disable=unused-argument
         """Serializes the Function instance to a dictionary.
 
         Returns
@@ -3432,7 +3431,7 @@ class Function:  # pylint: disable=too-many-public-methods
         source = self.source
 
         if callable(source):
-            source = zlib.compress(base64.b85encode(dill.dumps(source))).hex()
+            source = to_hex_encode(source)
 
         return {
             "source": source,
@@ -3454,9 +3453,7 @@ class Function:  # pylint: disable=too-many-public-methods
         """
         source = func_dict["source"]
         if func_dict["interpolation"] is None and func_dict["extrapolation"] is None:
-            source = dill.loads(
-                base64.b85decode(zlib.decompress(bytes.fromhex(source)))
-            )
+            source = from_hex_decode(source)
 
         return cls(
             source=source,

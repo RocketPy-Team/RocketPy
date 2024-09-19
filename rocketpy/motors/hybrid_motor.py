@@ -617,3 +617,68 @@ class HybridMotor(Motor):
         None
         """
         self.plots.draw(filename=filename)
+
+    def to_dict(self, include_outputs=False):
+        data = super().to_dict(include_outputs)
+        data.update(
+            {
+                "grain_number": self.grain_number,
+                "grain_density": self.grain_density,
+                "grain_outer_radius": self.grain_outer_radius,
+                "grain_initial_inner_radius": self.grain_initial_inner_radius,
+                "grain_initial_height": self.grain_initial_height,
+                "grain_separation": self.grain_separation,
+                "grains_center_of_mass_position": self.grains_center_of_mass_position,
+                "throat_radius": self.throat_radius,
+                "positioned_tanks": [
+                    {"tank": tank["tank"], "position": tank["position"]}
+                    for tank in self.positioned_tanks
+                ],
+            }
+        )
+
+        if include_outputs:
+            data.update(
+                {
+                    "grain_inner_radius": self.solid.grain_inner_radius,
+                    "grain_height": self.solid.grain_height,
+                    "burn_area": self.solid.burn_area,
+                    "burn_rate": self.solid.burn_rate,
+                }
+            )
+
+        return data
+
+    @classmethod
+    def from_dict(cls, data):
+        motor = cls(
+            thrust_source=data["thrust_source"],
+            burn_time=data["burn_time"],
+            nozzle_radius=data["nozzle_radius"],
+            dry_mass=data["dry_mass"],
+            center_of_dry_mass_position=data["center_of_dry_mass_position"],
+            dry_inertia=(
+                data["dry_I_11"],
+                data["dry_I_22"],
+                data["dry_I_33"],
+                data["dry_I_12"],
+                data["dry_I_13"],
+                data["dry_I_23"],
+            ),
+            interpolation_method=data["interpolate"],
+            coordinate_system_orientation=data["coordinate_system_orientation"],
+            grain_number=data["grain_number"],
+            grain_density=data["grain_density"],
+            grain_outer_radius=data["grain_outer_radius"],
+            grain_initial_inner_radius=data["grain_initial_inner_radius"],
+            grain_initial_height=data["grain_initial_height"],
+            grain_separation=data["grain_separation"],
+            grains_center_of_mass_position=data["grains_center_of_mass_position"],
+            nozzle_position=data["nozzle_position"],
+            throat_radius=data["throat_radius"],
+        )
+
+        for tank in data["positioned_tanks"]:
+            motor.add_tank(tank["tank"], tank["position"])
+
+        return motor

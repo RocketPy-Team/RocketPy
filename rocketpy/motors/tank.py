@@ -505,6 +505,36 @@ class Tank(ABC):
         self.prints.all()
         self.plots.all()
 
+    def to_dict(self, include_outputs=False):
+        data = {
+            "name": self.name,
+            "geometry": self.geometry,
+            "flux_time": self.flux_time,
+            "liquid": self.liquid,
+            "gas": self.gas,
+            "discretize": self.discretize,
+        }
+        if include_outputs:
+            data.update(
+                {
+                    "fluid_mass": self.fluid_mass,
+                    "net_mass_flow_rate": self.net_mass_flow_rate,
+                    "liquid_volume": self.liquid_volume,
+                    "gas_volume": self.gas_volume,
+                    "liquid_height": self.liquid_height,
+                    "gas_height": self.gas_height,
+                    "liquid_mass": self.liquid_mass,
+                    "gas_mass": self.gas_mass,
+                    "liquid_center_of_mass": self.liquid_center_of_mass,
+                    "gas_center_of_mass": self.gas_center_of_mass,
+                    "center_of_mass": self.center_of_mass,
+                    "liquid_inertia": self.liquid_inertia,
+                    "gas_inertia": self.gas_inertia,
+                    "inertia": self.inertia,
+                }
+            )
+        return data
+
 
 class MassFlowRateBasedTank(Tank):
     """Class to define a tank based on mass flow rates inputs. This class
@@ -843,10 +873,49 @@ class MassFlowRateBasedTank(Tank):
         """Discretizes the mass flow rate inputs according to the flux time and
         the discretize parameter.
         """
-        self.liquid_mass_flow_rate_in.set_discrete(*self.flux_time, self.discretize)
-        self.gas_mass_flow_rate_in.set_discrete(*self.flux_time, self.discretize)
-        self.liquid_mass_flow_rate_out.set_discrete(*self.flux_time, self.discretize)
-        self.gas_mass_flow_rate_out.set_discrete(*self.flux_time, self.discretize)
+        self.liquid_mass_flow_rate_in.set_discrete(
+            *self.flux_time, self.discretize, "linear"
+        )
+        self.gas_mass_flow_rate_in.set_discrete(
+            *self.flux_time, self.discretize, "linear"
+        )
+        self.liquid_mass_flow_rate_out.set_discrete(
+            *self.flux_time, self.discretize, "linear"
+        )
+        self.gas_mass_flow_rate_out.set_discrete(
+            *self.flux_time, self.discretize, "linear"
+        )
+
+    def to_dict(self, include_outputs=False):
+        data = super().to_dict(include_outputs)
+        data.update(
+            {
+                "initial_liquid_mass": self.initial_liquid_mass,
+                "initial_gas_mass": self.initial_gas_mass,
+                "liquid_mass_flow_rate_in": self.liquid_mass_flow_rate_in,
+                "gas_mass_flow_rate_in": self.gas_mass_flow_rate_in,
+                "liquid_mass_flow_rate_out": self.liquid_mass_flow_rate_out,
+                "gas_mass_flow_rate_out": self.gas_mass_flow_rate_out,
+            }
+        )
+        return data
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            name=data["name"],
+            geometry=data["geometry"],
+            flux_time=data["flux_time"],
+            liquid=data["liquid"],
+            gas=data["gas"],
+            initial_liquid_mass=data["initial_liquid_mass"],
+            initial_gas_mass=data["initial_gas_mass"],
+            liquid_mass_flow_rate_in=data["liquid_mass_flow_rate_in"],
+            gas_mass_flow_rate_in=data["gas_mass_flow_rate_in"],
+            liquid_mass_flow_rate_out=data["liquid_mass_flow_rate_out"],
+            gas_mass_flow_rate_out=data["gas_mass_flow_rate_out"],
+            discretize=data["discretize"],
+        )
 
 
 class UllageBasedTank(Tank):
@@ -1042,7 +1111,24 @@ class UllageBasedTank(Tank):
     def discretize_ullage(self):
         """Discretizes the ullage input according to the flux time and the
         discretize parameter."""
-        self.ullage.set_discrete(*self.flux_time, self.discretize)
+        self.ullage.set_discrete(*self.flux_time, self.discretize, "linear")
+
+    def to_dict(self, include_outputs=False):
+        data = super().to_dict(include_outputs)
+        data.update({"ullage": self.ullage})
+        return data
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            name=data["name"],
+            geometry=data["geometry"],
+            flux_time=data["flux_time"],
+            liquid=data["liquid"],
+            gas=data["gas"],
+            ullage=data["ullage"],
+            discretize=data["discretize"],
+        )
 
 
 class LevelBasedTank(Tank):
@@ -1253,7 +1339,24 @@ class LevelBasedTank(Tank):
         """Discretizes the liquid height input according to the flux time
         and the discretize parameter.
         """
-        self.liquid_level.set_discrete(*self.flux_time, self.discretize)
+        self.liquid_level.set_discrete(*self.flux_time, self.discretize, "linear")
+
+    def to_dict(self, include_outputs=False):
+        data = super().to_dict(include_outputs)
+        data.update({"liquid_height": self.liquid_level})
+        return data
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            name=data["name"],
+            geometry=data["geometry"],
+            flux_time=data["flux_time"],
+            liquid=data["liquid"],
+            gas=data["gas"],
+            liquid_height=data["liquid_height"],
+            discretize=data["discretize"],
+        )
 
 
 class MassBasedTank(Tank):
@@ -1494,5 +1597,28 @@ class MassBasedTank(Tank):
         """Discretizes the fluid mass inputs according to the flux time
         and the discretize parameter.
         """
-        self.liquid_mass.set_discrete(*self.flux_time, self.discretize)
-        self.gas_mass.set_discrete(*self.flux_time, self.discretize)
+        self.liquid_mass.set_discrete(*self.flux_time, self.discretize, "linear")
+        self.gas_mass.set_discrete(*self.flux_time, self.discretize, "linear")
+
+    def to_dict(self, include_outputs=False):
+        data = super().to_dict(include_outputs)
+        data.update(
+            {
+                "liquid_mass": self.liquid_mass,
+                "gas_mass": self.gas_mass,
+            }
+        )
+        return data
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            name=data["name"],
+            geometry=data["geometry"],
+            flux_time=data["flux_time"],
+            liquid=data["liquid"],
+            gas=data["gas"],
+            liquid_mass=data["liquid_mass"],
+            gas_mass=data["gas_mass"],
+            discretize=data["discretize"],
+        )

@@ -3416,6 +3416,96 @@ class Flight:
             yield i, node_list[i]
             i += 1
 
+    def to_dict(self, include_outputs=False):
+        data = {
+            "rocket": self.rocket,
+            "env": self.env,
+            "rail_length": self.rail_length,
+            "inclination": self.inclination,
+            "heading": self.heading,
+            "initial_solution": self.initial_solution,
+            "terminate_on_apogee": self.terminate_on_apogee,
+            "max_time": self.max_time,
+            "max_time_step": self.max_time_step,
+            "min_time_step": self.min_time_step,
+            "rtol": self.rtol,
+            "atol": self.atol,
+            "time_overshoot": self.time_overshoot,
+            "name": self.name,
+            "equations_of_motion": self.equations_of_motion,
+        }
+
+        if include_outputs:
+            data.update(
+                {
+                    "time": self.time,
+                    "out_of_rail_time": self.out_of_rail_time,
+                    "out_of_rail_velocity": self.out_of_rail_velocity,
+                    "out_of_rail_state": self.out_of_rail_state,
+                    "apogee": self.apogee,
+                    "apogee_time": self.apogee_time,
+                    "apogee_x": self.apogee_x,
+                    "apogee_y": self.apogee_y,
+                    "apogee_state": self.apogee_state,
+                    "x_impact": self.x_impact,
+                    "y_impact": self.y_impact,
+                    "impact_velocity": self.impact_velocity,
+                    "impact_state": self.impact_state,
+                    "x": self.x,
+                    "y": self.y,
+                    "z": self.z,
+                    "vx": self.vx,
+                    "vy": self.vy,
+                    "vz": self.vz,
+                    "e0": self.e0,
+                    "e1": self.e1,
+                    "e2": self.e2,
+                    "e3": self.e3,
+                    "w1": self.w1,
+                    "w2": self.w2,
+                    "w3": self.w3,
+                    "ax": self.ax,
+                    "ay": self.ay,
+                    "az": self.az,
+                    "alpha1": self.alpha1,
+                    "alpha2": self.alpha2,
+                    "alpha3": self.alpha3,
+                    "altitude": self.altitude,
+                    "mach_number": self.mach_number,
+                    "stream_velocity_x": self.stream_velocity_x,
+                    "stream_velocity_y": self.stream_velocity_y,
+                    "stream_velocity_z": self.stream_velocity_z,
+                    "free_stream_speed": self.free_stream_speed,
+                    "angle_of_attack": self.angle_of_attack,
+                    "static_margin": self.static_margin,
+                    "stability_margin": self.stability_margin,
+                    "latitude": self.latitude,
+                    "longitude": self.longitude,
+                }
+            )
+
+        return data
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            rocket=data["rocket"],
+            environment=data["env"],
+            rail_length=data["rail_length"],
+            inclination=data["inclination"],
+            heading=data["heading"],
+            initial_solution=None,
+            terminate_on_apogee=data["terminate_on_apogee"],
+            max_time=data["max_time"],
+            max_time_step=data["max_time_step"],
+            min_time_step=data["min_time_step"],
+            rtol=data["rtol"],
+            atol=data["atol"],
+            time_overshoot=data["time_overshoot"],
+            name=data["name"],
+            equations_of_motion=data["equations_of_motion"],
+        )
+
     class FlightPhases:
         """Class to handle flight phases. It is used to store the derivatives
         and callbacks for each flight phase. It is also used to handle the
