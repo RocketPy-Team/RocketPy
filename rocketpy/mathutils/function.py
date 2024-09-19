@@ -3239,6 +3239,15 @@ class Function:  # pylint: disable=too-many-public-methods
                 raise ValueError(
                     "Source must be a 2D array in the form [[x1, x2 ..., xn, y], ...]."
                 )
+
+            source_len, source_dim = source.shape
+
+            if source_len < source_dim:
+                raise ValueError(
+                    "Too few data points to define a domain. The number of rows "
+                    "must be greater than or equal to the number of columns."
+                )
+
             return source
 
         if isinstance(source, NUMERICAL_TYPES):
