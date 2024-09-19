@@ -1004,13 +1004,13 @@ class Function:  # pylint: disable=too-many-public-methods
         ...    [(0, 0, 0), (1, 1, 1), (1, 2, 2), (2, 4, 8), (3, 9, 27)]
         ... )
         >>> f4.get_value(1, 1)
-        np.float64(1.0)
+        1.0
         >>> f4.get_value(2, 4)
-        np.float64(8.0)
+        8.0
         >>> abs(f4.get_value(1, 1.5) - 1.5) < 1e-2  # the interpolation is not perfect
-        np.True_
+        True
         >>> f4.get_value(3, 9)
-        np.float64(27.0)
+        27.0
         """
         if len(args) != self.__dom_dim__:
             raise ValueError(
