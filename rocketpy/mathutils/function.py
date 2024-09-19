@@ -94,14 +94,14 @@ class Function:  # pylint: disable=too-many-public-methods
             For 1-D functions, linear, polynomial, akima and spline are
             supported. For N-D functions, linear, shepard and rbf are
             supported.
-            Default for 1-D functions is spline and for N-D functions is 
+            Default for 1-D functions is spline and for N-D functions is
             shepard.
         extrapolation : string, optional
             Extrapolation method to be used if source type is ndarray.
             Options are 'natural', which keeps interpolation, 'constant',
             which returns the value of the function at the nearest edge of
-            the domain, and 'zero', which returns zero for all points outside 
-            of source range. Default for 1-D functions is constant and for 
+            the domain, and 'zero', which returns zero for all points outside
+            of source range. Default for 1-D functions is constant and for
             N-D functions is natural.
         title : string, optional
             Title to be displayed in the plots' figures. If none, the title will
