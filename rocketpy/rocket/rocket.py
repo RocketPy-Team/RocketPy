@@ -1856,3 +1856,58 @@ class Rocket:
         """
         self.info()
         self.plots.all()
+
+    @classmethod
+    def from_dict(cls, data):
+        rocket = cls(
+            radius=data["radius"],
+            mass=data["mass"],
+            inertia=(
+                data["I_11_without_motor"],
+                data["I_22_without_motor"],
+                data["I_33_without_motor"],
+                data["I_12_without_motor"],
+                data["I_13_without_motor"],
+                data["I_23_without_motor"],
+            ),
+            power_off_drag=data["power_off_drag"],
+            power_on_drag=data["power_on_drag"],
+            center_of_mass_without_motor=data["center_of_mass_without_motor"],
+            coordinate_system_orientation=data["coordinate_system_orientation"],
+        )
+
+        if (motor := data["motor"]) is not None:
+            rocket.add_motor(
+                motor,
+                data["motor_position"],
+            )
+
+        for surface, position in data["aerodynamic_surfaces"]:
+            rocket.add_surfaces(surface, position)
+
+        for button, position in data["rail_buttons"]:
+            rocket.set_rail_buttons(
+                position + button.buttons_distance,
+                position,
+                button.angular_position,
+                button.rocket_radius,
+            )
+
+        for parachute in data["parachutes"]:
+            rocket.parachutes.append(parachute)
+
+        for air_brakes in data["air_brakes"]:
+            rocket.add_air_brakes(
+                air_brakes["drag_coefficient_curve"],
+                air_brakes["controller_function"],
+                air_brakes["sampling_rate"],
+                air_brakes["clamp"],
+                air_brakes["reference_area"],
+                air_brakes["initial_observed_variables"],
+                air_brakes["override_rocket_drag"],
+                air_brakes["return_controller"],
+                air_brakes["name"],
+                air_brakes["controller_name"],
+            )
+
+        return rocket

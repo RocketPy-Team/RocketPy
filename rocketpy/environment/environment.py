@@ -2853,6 +2853,70 @@ class Environment:
         arc_seconds = (remainder * 60 - arc_minutes) * 60
         return degrees, arc_minutes, arc_seconds
 
+    def to_dict(self):
+        return {
+            "gravity": self.gravity,
+            "date": self.date,
+            "latitude": self.latitude,
+            "longitude": self.longitude,
+            "elevation": self.elevation,
+            "datum": self.datum,
+            "timezone": self.timezone,
+            "_max_expected_height": self.max_expected_height,
+            "atmospheric_model_type": self.atmospheric_model_type,
+            "pressure": self.pressure,
+            "temperature": self.temperature,
+            "wind_velocity_x": self.wind_velocity_x,
+            "wind_velocity_y": self.wind_velocity_y,
+            "wind_heading": self.wind_heading,
+            "wind_direction": self.wind_direction,
+            "wind_speed": self.wind_speed,
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        environment = cls(
+            gravity=data["gravity"],
+            date=data["date"],
+            latitude=data["latitude"],
+            longitude=data["longitude"],
+            elevation=data["elevation"],
+            datum=data["datum"],
+            timezone=data["timezone"],
+            max_expected_height=data["_max_expected_height"],
+        )
+
+        atmospheric_model = data["atmospheric_model_type"]
+
+        if atmospheric_model == "standard_atmosphere":
+            environment.set_atmospheric_model("standard_atmosphere")
+        elif atmospheric_model == "custom_atmosphere":
+            environment.set_atmospheric_model(
+                type="custom_atmosphere",
+                pressure=data["pressure"],
+                temperature=data["temperature"],
+                wind_u=data["wind_velocity_x"],
+                wind_v=data["wind_velocity_y"],
+            )
+        else:
+            environment.__set_pressure_function(data["pressure"])
+            environment.__set_barometric_height_function(data["temperature"])
+            environment.__set_temperature_function(data["temperature"])
+            environment.__set_wind_velocity_x_function(data["wind_velocity_x"])
+            environment.__set_wind_velocity_y_function(data["wind_velocity_y"])
+            environment.__set_wind_heading_function(data["wind_heading"])
+            environment.__set_wind_direction_function(data["wind_direction"])
+            environment.__set_wind_speed_function(data["wind_speed"])
+            environment.elevation = data["elevation"]
+            environment.max_expected_height = data["_max_expected_height"]
+
+        if atmospheric_model != "ensemble":
+            environment.calculate_density_profile()
+            environment.calculate_speed_of_sound_profile()
+            environment.calculate_dynamic_viscosity()
+
+        return environment
+
 
 if __name__ == "__main__":
     import doctest

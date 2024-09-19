@@ -1481,6 +1481,30 @@ class GenericMotor(Motor):
         self.prints.all()
         self.plots.all()
 
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            thrust_source=data["thrust_source"],
+            burn_time=data["_burn_time"],
+            chamber_radius=data["chamber_radius"],
+            chamber_height=data["chamber_height"],
+            chamber_position=data["chamber_position"],
+            propellant_initial_mass=data["propellant_initial_mass"],
+            nozzle_radius=data["nozzle_radius"],
+            dry_mass=data["dry_mass"],
+            center_of_dry_mass_position=data["center_of_dry_mass_position"],
+            dry_inertia=(
+                data["dry_I_11"],
+                data["dry_I_22"],
+                data["dry_I_33"],
+                data["dry_I_12"],
+                data["dry_I_13"],
+                data["dry_I_23"],
+            ),
+            nozzle_position=data["nozzle_position"],
+            interpolation_method=data["interpolate"],
+        )
+
 
 class EmptyMotor:
     """Class that represents an empty motor with no mass and no thrust."""

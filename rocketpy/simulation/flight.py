@@ -3374,6 +3374,45 @@ class Flight:  # pylint: disable=too-many-public-methods
             yield i, node_list[i]
             i += 1
 
+    def to_dict(self):
+        return {
+            "rocket": self.rocket,
+            "env": self.env,
+            "rail_length": self.rail_length,
+            "inclination": self.inclination,
+            "heading": self.heading,
+            "initial_solution": self.initial_solution,
+            "terminate_on_apogee": self.terminate_on_apogee,
+            "max_time": self.max_time,
+            "max_time_step": self.max_time_step,
+            "min_time_step": self.min_time_step,
+            "rtol": self.rtol,
+            "atol": self.atol,
+            "time_overshoot": self.time_overshoot,
+            "name": self.name,
+            "equations_of_motion": self.equations_of_motion,
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            rocket=data["rocket"],
+            environment=data["env"],
+            rail_length=data["rail_length"],
+            inclination=data["inclination"],
+            heading=data["heading"],
+            initial_solution=None,
+            terminate_on_apogee=data["terminate_on_apogee"],
+            max_time=data["max_time"],
+            max_time_step=data["max_time_step"],
+            min_time_step=data["min_time_step"],
+            rtol=data["rtol"],
+            atol=data["atol"],
+            time_overshoot=data["time_overshoot"],
+            name=data["name"],
+            equations_of_motion=data["equations_of_motion"],
+        )
+
     class FlightPhases:
         """Class to handle flight phases. It is used to store the derivatives
         and callbacks for each flight phase. It is also used to handle the

@@ -204,3 +204,13 @@ class Tail(AeroSurface):
     def all_info(self):
         self.prints.all()
         self.plots.all()
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            top_radius=data["_top_radius"],
+            bottom_radius=data["_bottom_radius"],
+            length=data["_length"],
+            rocket_radius=data["_rocket_radius"],
+            name=data["name"],
+        )
