@@ -17,6 +17,7 @@ pytest_plugins = [
     "tests.fixtures.monte_carlo.monte_carlo_fixtures",
     "tests.fixtures.monte_carlo.stochastic_fixtures",
     "tests.fixtures.monte_carlo.stochastic_motors_fixtures",
+    "tests.fixtures.sensors.sensors_fixtures",
 ]
 
 

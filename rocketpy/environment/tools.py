@@ -532,7 +532,7 @@ def utm_to_geodesic(  # pylint: disable=too-many-locals,too-many-statements
     x, y, utm_zone, hemis, semi_major_axis=6378137.0, flattening=1 / 298.257223563
 ):
     # NOTE: already documented in the Environment class.
-    # TODO: deprecated the static method from the environment class, use only this one.
+    # TODO: deprecate the static method from the environment class, use only this one.
 
     if hemis == "N":
         y = y + 10000000
