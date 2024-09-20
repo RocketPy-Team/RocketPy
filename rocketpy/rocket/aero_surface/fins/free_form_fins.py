@@ -244,8 +244,8 @@ class FreeFormFins(Fins):
             x2, y2 = self.shape_points[p]
 
             # Compute corresponding points along the fin span (clamp to valid range)
-            prev_idx = int(y1 * 1.0001 / self.span * (points_per_line - 1))
-            curr_idx = int(y2 * 1.0001 / self.span * (points_per_line - 1))
+            prev_idx = int(y1 / self.span * (points_per_line - 1))
+            curr_idx = int(y2 / self.span * (points_per_line - 1))
             prev_idx = np.clip(prev_idx, 0, points_per_line - 1)
             curr_idx = np.clip(curr_idx, 0, points_per_line - 1)
 
