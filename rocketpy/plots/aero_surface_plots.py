@@ -434,7 +434,7 @@ class _FreeFormFinsPlots(_FinsPlots):
         # Plot settings
         ax.set_xlabel("Root chord (m)")
         ax.set_ylabel("Span (m)")
-        ax.set_title("Trapezoidal Fin Cross Section")
+        ax.set_title("Free Form Fin Cross Section")
         ax.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
 
         plt.tight_layout()
