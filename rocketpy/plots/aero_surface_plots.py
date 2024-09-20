@@ -426,6 +426,12 @@ class _FreeFormFinsPlots(_FinsPlots):
             self.aero_surface.shape_vec[1],
             color="#A60628",
         )
+        # line from the last point to the first point
+        ax.plot(
+            [self.aero_surface.shape_vec[0][-1], self.aero_surface.shape_vec[0][0]],
+            [self.aero_surface.shape_vec[1][-1], self.aero_surface.shape_vec[1][0]],
+            color="#A60628",
+        )
 
         ax.add_line(yma_line)
         ax.scatter(*cp_point, label="Center of Pressure", color="red", s=100, zorder=10)
