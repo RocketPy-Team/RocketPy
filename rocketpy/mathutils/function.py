@@ -101,8 +101,11 @@ class Function:  # pylint: disable=too-many-public-methods
             Options are 'natural', which keeps interpolation, 'constant',
             which returns the value of the function at the nearest edge of
             the domain, and 'zero', which returns zero for all points outside
-            of source range. Default for 1-D functions is constant and for
-            N-D functions is natural.
+            of source range.
+            Multidimensional 'natural' extrapolation for 'linear' interpolation
+            use a 'rbf' algorithm for smoother results.
+            Default for 1-D functions is constant and for N-D functions
+            is natural.
         title : string, optional
             Title to be displayed in the plots' figures. If none, the title will
             be constructed using the inputs and outputs arguments in the form
@@ -329,8 +332,11 @@ class Function:  # pylint: disable=too-many-public-methods
             Options are 'natural', which keeps interpolation, 'constant',
             which returns the value of the function at the nearest edge of
             the domain, and 'zero', which returns zero for all points outside
-            of source range. Default for 1-D functions is constant and for
-            N-D functions is natural.
+            of source range.
+            Multidimensional 'natural' extrapolation for 'linear' interpolation
+            use a 'rbf' algorithm for smoother results.
+            Default for 1-D functions is constant and for N-D functions
+            is natural.
 
         Returns
         -------
@@ -3373,15 +3379,7 @@ class Function:  # pylint: disable=too-many-public-methods
         elif self.__dom_dim__ > 1:
             if extrapolation is None:
                 extrapolation = "natural"
-            if (
-                extrapolation.lower() == "natural"
-                and self.__interpolation__ == "linear"
-            ):
-                warnings.warn(
-                    "Extrapolation 'natural' is not supported for multidimensional "
-                    "linear interpolation. 'rbf' will be used to extrapolate."
-                )
-            elif extrapolation.lower() not in ["constant", "natural", "zero"]:
+            if extrapolation.lower() not in ["constant", "natural", "zero"]:
                 warnings.warn(
                     "Extrapolation method set to 'natural' because the "
                     f"{extrapolation} method is not supported."
