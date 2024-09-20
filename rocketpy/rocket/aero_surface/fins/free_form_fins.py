@@ -37,26 +37,14 @@ class FreeFormFins(Fins):
         Second is the unit of the curve (radians or degrees).
     FreeFormFins.cant_angle : float
         Fins cant angle with respect to the rocket centerline, in degrees.
-    FreeFormFins.changing_attribute_dict : dict
-        Dictionary that stores the name and the values of the attributes that
-        may be changed during a simulation. Useful for control systems.
     FreeFormFins.cant_angle_rad : float
         Fins cant angle with respect to the rocket centerline, in radians.
     FreeFormFins.root_chord : float
         Fin root chord in meters.
-    FreeFormFins.tip_chord : float
-        Fin tip chord in meters.
     FreeFormFins.span : float
         Fin span in meters.
     FreeFormFins.name : string
         Name of fin set.
-    FreeFormFins.sweep_length : float
-        Fins sweep length in meters. By sweep length, understand the axial
-        distance between the fin root leading edge and the fin tip leading edge
-        measured parallel to the rocket centerline.
-    FreeFormFins.sweep_angle : float
-        Fins sweep angle with respect to the rocket centerline. Must
-        be given in degrees.
     FreeFormFins.d : float
         Reference diameter of the rocket, in meters.
     FreeFormFins.ref_area : float
