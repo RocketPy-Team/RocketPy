@@ -1388,7 +1388,6 @@ class Rocket:
         # Modify radius if not given, use rocket radius, otherwise use given.
         radius = radius if radius is not None else self.radius
 
-        # Create a fin set as an object of TrapezoidalFins class
         fin_set = FreeFormFins(
             n,
             shape_points,
