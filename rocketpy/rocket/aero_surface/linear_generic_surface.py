@@ -357,11 +357,16 @@ class LinearGenericSurface(GenericSurface):
         # Precompute common values
         dyn_pressure_area = 0.5 * rho * stream_speed**2 * self.reference_area
         dyn_pressure_area_damping = (
-            dyn_pressure_area * self.reference_length / (2 * stream_speed)
+            0.5 * rho * stream_speed * self.reference_area * self.reference_length / 2
         )
         dyn_pressure_area_length = dyn_pressure_area * self.reference_length
         dyn_pressure_area_length_damping = (
-            dyn_pressure_area_length * self.reference_length / (2 * stream_speed)
+            0.5
+            * rho
+            * stream_speed
+            * self.reference_area
+            * self.reference_length**2
+            / 2
         )
 
         # Compute aerodynamic forces
