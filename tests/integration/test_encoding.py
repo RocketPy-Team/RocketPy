@@ -77,7 +77,7 @@ def test_environment_encoder(environment_name, request):
 
     env_loaded = json.loads(json_encoded, cls=RocketPyDecoder)
 
-    test_heights = np.linspace(0, 10000, 4)
+    test_heights = np.linspace(0, 10000, 100)
 
     assert np.isclose(env_to_encode.elevation, env_loaded.elevation)
     assert np.isclose(env_to_encode.latitude, env_loaded.latitude)
@@ -100,3 +100,27 @@ def test_environment_encoder(environment_name, request):
     assert np.allclose(
         env_to_encode.density(test_heights), env_loaded.density(test_heights)
     )
+
+
+@pytest.mark.parametrize(
+    "rocket_name", ["calisto_robust", "calisto_liquid_modded", "calisto_hybrid_modded"]
+)
+def test_rocket_encoder(rocket_name, request):
+    """Test encoding a ``rocketpy.Rocket``.
+
+    Parameters
+    ----------
+    rocket_name : str
+        Name of the rocket fixture to encode.
+    request : pytest.FixtureRequest
+        Pytest request object.
+    """
+    rocket_to_encode = request.getfixturevalue(rocket_name)
+
+    json_encoded = json.dumps(rocket_to_encode, cls=RocketPyEncoder)
+
+    rocket_loaded = json.loads(json_encoded, cls=RocketPyDecoder)
+
+    # assert np.isclose(rocket_to_encode.rocket_mass, rocket_loaded.rocket_mass)
+    # assert np.isclose(rocket_to_encode.propellant_mass, rocket_loaded.propellant_mass)
+    # assert np.isclose(rocket_to_encode.dry_mass, rocket_loaded.dry_mass)

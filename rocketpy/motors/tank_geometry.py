@@ -361,6 +361,15 @@ class TankGeometry:
             }
         }
 
+    @classmethod
+    def from_dict(cls, data):
+        geometry_dict = {}
+        # Reconstruct tuple keys
+        for domain, radius_function in data["geometry"].items():
+            domain = tuple(map(float, domain.strip("()").split(", ")))
+            geometry_dict[domain] = radius_function
+        return cls(geometry_dict)
+
 
 class CylindricalTank(TankGeometry):
     """Class to define the geometry of a cylindrical tank. The cylinder has
@@ -429,6 +438,17 @@ class CylindricalTank(TankGeometry):
         else:
             raise ValueError("Tank already has caps.")
 
+    def to_dict(self):
+        return {
+            "radius": self.radius(0),
+            "height": self.height,
+            "spherical_caps": self.has_caps,
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(data["radius"], data["height"], data["spherical_caps"])
+
 
 class SphericalTank(TankGeometry):
     """Class to define the geometry of a spherical tank. The sphere zero
@@ -451,3 +471,10 @@ class SphericalTank(TankGeometry):
         geometry_dict = geometry_dict or {}
         super().__init__(geometry_dict)
         self.add_geometry((-radius, radius), lambda h: (radius**2 - h**2) ** 0.5)
+
+    def to_dict(self):
+        return {"radius": self.radius(0)}
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(data["radius"])

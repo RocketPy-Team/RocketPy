@@ -612,3 +612,35 @@ class HybridMotor(Motor):
         """Prints out all data and graphs available about the Motor."""
         self.prints.all()
         self.plots.all()
+
+    @classmethod
+    def from_dict(cls, data):
+        motor = cls(
+            thrust_source=data["thrust"],
+            burn_time=data["_burn_time"],
+            nozzle_radius=data["nozzle_radius"],
+            dry_mass=data["dry_mass"],
+            center_of_dry_mass_position=data["center_of_dry_mass_position"],
+            dry_inertia=(
+                data["dry_I_11"],
+                data["dry_I_22"],
+                data["dry_I_33"],
+                data["dry_I_12"],
+                data["dry_I_13"],
+                data["dry_I_23"],
+            ),
+            interpolation_method=data["interpolate"],
+            coordinate_system_orientation=data["coordinate_system_orientation"],
+            grain_number=data["grain_number"],
+            grain_density=data["grain_density"],
+            grain_outer_radius=data["grain_outer_radius"],
+            grain_initial_inner_radius=data["grain_initial_inner_radius"],
+            grain_initial_height=data["grain_initial_height"],
+            grain_separation=data["grain_separation"],
+            grains_center_of_mass_position=data["grains_center_of_mass_position"],
+            nozzle_position=data["nozzle_position"],
+            throat_radius=data["throat_radius"],
+        )
+
+        for tank in data["positioned_tanks"]:
+            motor.add_tank(tank["tank"], tank["position"])

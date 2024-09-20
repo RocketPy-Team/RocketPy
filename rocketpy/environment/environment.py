@@ -2865,6 +2865,7 @@ class Environment:
             "_max_expected_height": self.max_expected_height,
             "atmospheric_model_type": self.atmospheric_model_type,
             "pressure": self.pressure,
+            "barometric_height": self.barometric_height,
             "temperature": self.temperature,
             "wind_velocity_x": self.wind_velocity_x,
             "wind_velocity_y": self.wind_velocity_y,
@@ -2874,7 +2875,7 @@ class Environment:
         }
 
     @classmethod
-    def from_dict(cls, data):
+    def from_dict(cls, data):  # pylint: disable=too-many-statements
         environment = cls(
             gravity=data["gravity"],
             date=data["date"],
@@ -2885,7 +2886,6 @@ class Environment:
             timezone=data["timezone"],
             max_expected_height=data["_max_expected_height"],
         )
-
         atmospheric_model = data["atmospheric_model_type"]
 
         if atmospheric_model == "standard_atmosphere":
@@ -2900,7 +2900,7 @@ class Environment:
             )
         else:
             environment.__set_pressure_function(data["pressure"])
-            environment.__set_barometric_height_function(data["temperature"])
+            environment.__set_barometric_height_function(data["barometric_height"])
             environment.__set_temperature_function(data["temperature"])
             environment.__set_wind_velocity_x_function(data["wind_velocity_x"])
             environment.__set_wind_velocity_y_function(data["wind_velocity_y"])
@@ -2910,7 +2910,40 @@ class Environment:
             environment.elevation = data["elevation"]
             environment.max_expected_height = data["_max_expected_height"]
 
-        if atmospheric_model != "ensemble":
+            if atmospheric_model in ["windy", "forecast", "reanalysis", "ensemble"]:
+                environment.atmospheric_model_init_date = data[
+                    "atmospheric_model_init_date"
+                ]
+                environment.atmospheric_model_end_date = data[
+                    "atmospheric_model_end_date"
+                ]
+                environment.atmospheric_model_interval = data[
+                    "atmospheric_model_interval"
+                ]
+                environment.atmospheric_model_init_lat = data[
+                    "atmospheric_model_init_lat"
+                ]
+                environment.atmospheric_model_end_lat = data[
+                    "atmospheric_model_end_lat"
+                ]
+                environment.atmospheric_model_init_lon = data[
+                    "atmospheric_model_init_lon"
+                ]
+                environment.atmospheric_model_end_lon = data[
+                    "atmospheric_model_end_lon"
+                ]
+
+            if atmospheric_model == "ensemble":
+                environment.level_ensemble = data["level_ensemble"]
+                environment.height_ensemble = data["height_ensemble"]
+                environment.temperature_ensemble = data["temperature_ensemble"]
+                environment.wind_u_ensemble = data["wind_u_ensemble"]
+                environment.wind_v_ensemble = data["wind_v_ensemble"]
+                environment.wind_heading_ensemble = data["wind_heading_ensemble"]
+                environment.wind_direction_ensemble = data["wind_direction_ensemble"]
+                environment.wind_speed_ensemble = data["wind_speed_ensemble"]
+                environment.num_ensemble_members = data["num_ensemble_members"]
+
             environment.calculate_density_profile()
             environment.calculate_speed_of_sound_profile()
             environment.calculate_dynamic_viscosity()
