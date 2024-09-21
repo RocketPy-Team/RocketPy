@@ -322,7 +322,8 @@ class GenericSurface:
         Returns
         -------
         Function
-            Function object with 4 input arguments (alpha, beta, mach, reynolds).
+            Function object with 7 input arguments (alpha, beta, mach, reynolds,
+            pitch_rate, yaw_rate, roll_rate).
         """
         if isinstance(input_data, str):
             # Input is assumed to be a file path to a CSV
@@ -331,7 +332,7 @@ class GenericSurface:
             if input_data.__dom_dim__ != 7:
                 raise ValueError(
                     f"{coeff_name} function must have 7 input arguments"
-                    " (alpha, beta, mach, reynolds)."
+                    " (alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate)."
                 )
             return input_data
         elif callable(input_data):
@@ -339,7 +340,7 @@ class GenericSurface:
             if input_data.__code__.co_argcount != 7:
                 raise ValueError(
                     f"{coeff_name} function must have 7 input arguments"
-                    " (alpha, beta, mach, reynolds)."
+                    " (alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate)."
                 )
             return input_data
         elif input_data == 0:
