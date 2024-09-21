@@ -5,6 +5,7 @@ import numpy as np
 
 from rocketpy.motors import EmptyMotor, HybridMotor, LiquidMotor, SolidMotor
 from rocketpy.rocket.aero_surface import Fins, NoseCone, Tail
+from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 
 
 class _RocketPlots:
@@ -208,7 +209,7 @@ class _RocketPlots:
         reverse = csys == 1
         self.rocket.aerodynamic_surfaces.sort_by_position(reverse=reverse)
 
-        drawn_surfaces = self._draw_aerodynamic_surfaces(ax, vis_args)
+        drawn_surfaces = self._draw_aerodynamic_surfaces(ax, vis_args, plane)
         last_radius, last_x = self._draw_tubes(ax, drawn_surfaces, vis_args)
         self._draw_motor(last_radius, last_x, ax, vis_args)
         self._draw_rail_buttons(ax, vis_args)
@@ -224,7 +225,7 @@ class _RocketPlots:
         plt.tight_layout()
         plt.show()
 
-    def _draw_aerodynamic_surfaces(self, ax, vis_args):
+    def _draw_aerodynamic_surfaces(self, ax, vis_args, plane):
         """Draws the aerodynamic surfaces and saves the position of the points
         of interest for the tubes."""
         # List of drawn surfaces with the position of points of interest
@@ -244,6 +245,10 @@ class _RocketPlots:
                 self._draw_tail(ax, surface, position.z, drawn_surfaces, vis_args)
             elif isinstance(surface, Fins):
                 self._draw_fins(ax, surface, position.z, drawn_surfaces, vis_args)
+            elif isinstance(surface, GenericSurface):
+                self._draw_generic_surface(
+                    ax, surface, position, drawn_surfaces, vis_args, plane
+                )
         return drawn_surfaces
 
     def _draw_nose_cone(self, ax, surface, position, drawn_surfaces, vis_args):
@@ -335,6 +340,33 @@ class _RocketPlots:
             )
 
         drawn_surfaces.append((surface, position, surface.rocket_radius, x_rotated[-1]))
+
+    def _draw_generic_surface(
+        self, ax, surface, position, drawn_surfaces, vis_args, plane
+    ):
+        """Draws the generic surface and saves the position of the points of interest
+        for the tubes."""
+        if plane == "xz":
+            # z position of the sensor is the x position in the plot
+            x_pos = position[2]
+            # x position of the surface is the y position in the plot
+            y_pos = position[0]
+        elif plane == "yz":
+            # z position of the surface is the x position in the plot
+            x_pos = position[2]
+            # y position of the surface is the y position in the plot
+            y_pos = position[1]
+        else:
+            raise ValueError("Plane must be 'xz' or 'yz'.")
+
+        ax.scatter(
+            x_pos,
+            y_pos,
+            linewidth=2,
+            zorder=10,
+            label=surface.name,
+        )
+        drawn_surfaces.append((surface, position.z, self.rocket.radius, x_pos))
 
     def _draw_tubes(self, ax, drawn_surfaces, vis_args):
         """Draws the tubes between the aerodynamic surfaces."""
