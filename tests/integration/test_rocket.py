@@ -139,9 +139,6 @@ def test_aero_surfaces_infos(  # pylint: disable=unused-argument
     assert calisto_free_form_fins.all_info() is None
 
 
-import pytest
-
-
 @pytest.mark.parametrize(
     "attribute, tolerance",
     [
