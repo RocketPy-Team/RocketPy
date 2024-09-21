@@ -1,6 +1,7 @@
 import pytest
 
 from rocketpy import NoseCone, RailButtons, Tail, TrapezoidalFins
+from rocketpy.rocket.aero_surface.fins.free_form_fins import FreeFormFins
 
 
 @pytest.fixture
@@ -59,6 +60,23 @@ def calisto_trapezoidal_fins():
         sweep_length=None,
         sweep_angle=None,
         airfoil=None,
+    )
+
+
+@pytest.fixture
+def calisto_free_form_fins():
+    """The free form fins of the Calisto rocket.
+
+    Returns
+    -------
+    rocketpy.FreeFormFins
+        The free form fins of the Calisto rocket.
+    """
+    return FreeFormFins(
+        n=4,
+        shape_points=[(0, 0), (0.08, 0.1), (0.12, 0.1), (0.12, 0)],
+        rocket_radius=0.0635,
+        name="calisto_free_form_fins",
     )
 
 

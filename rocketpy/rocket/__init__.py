@@ -4,6 +4,7 @@ from rocketpy.rocket.aero_surface import (
     AirBrakes,
     EllipticalFins,
     Fins,
+    FreeFormFins,
     GenericSurface,
     LinearGenericSurface,
     NoseCone,

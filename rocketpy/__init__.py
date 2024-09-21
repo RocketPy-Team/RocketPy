@@ -30,6 +30,7 @@ from .rocket import (
     Components,
     EllipticalFins,
     Fins,
+    FreeFormFins,
     GenericSurface,
     LinearGenericSurface,
     NoseCone,
