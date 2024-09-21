@@ -4,7 +4,6 @@ from rocketpy.tools import import_optional_dependency
 
 
 class _SensitivityModelPrints:
-
     def __init__(self, model):
         self.model = model
 

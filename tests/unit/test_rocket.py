@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from rocketpy import Function, NoseCone, Rocket, SolidMotor
+from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.motors.motor import EmptyMotor, Motor
 
 
@@ -124,7 +125,7 @@ def test_add_trapezoidal_fins_sweep_angle(
     calisto_nose_cone,
 ):
     # Reference values from OpenRocket
-    calisto.aerodynamic_surfaces.add(calisto_nose_cone, 1.160)
+    calisto.add_surfaces(calisto_nose_cone, Vector([0, 0, 1.160]))
     fin_set = calisto.add_trapezoidal_fins(
         n=3,
         span=0.090,
@@ -164,7 +165,7 @@ def test_add_trapezoidal_fins_sweep_length(
     calisto_nose_cone,
 ):
     # Reference values from OpenRocket
-    calisto.aerodynamic_surfaces.add(calisto_nose_cone, 1.160)
+    calisto.add_surfaces(calisto_nose_cone, Vector([0, 0, 1.160]))
     fin_set = calisto.add_trapezoidal_fins(
         n=3,
         span=0.090,
@@ -379,7 +380,7 @@ def test_set_rail_button(calisto):
         == pytest.approx(0.7, 1e-12)
     )
     # assert buttons position on rocket
-    assert calisto.rail_buttons[0].position == -0.5
+    assert calisto.rail_buttons[0].position.z == -0.5
     # assert angular position
     assert (
         rail_buttons.angular_position
@@ -389,16 +390,7 @@ def test_set_rail_button(calisto):
     # assert upper button position
     assert calisto.rail_buttons[0].component.buttons_distance + calisto.rail_buttons[
         0
-    ].position == pytest.approx(0.2, 1e-12)
-
-
-def test_add_rail_button(calisto, calisto_rail_buttons):
-    calisto.add_surfaces(calisto_rail_buttons, -0.5)
-    assert calisto.rail_buttons[0].position == -0.5
-    upper_position = (
-        calisto_rail_buttons.buttons_distance + calisto.rail_buttons[0].position
-    )
-    assert upper_position == pytest.approx(0.2, 1e-12)
+    ].position.z == pytest.approx(0.2, 1e-12)
 
 
 def test_evaluate_total_mass(calisto_motorless):
@@ -641,8 +633,8 @@ def test_coordinate_system_orientation(
 
     rocket_tail_to_nose.add_motor(motor_nozzle_to_combustion_chamber, position=-1.373)
 
-    rocket_tail_to_nose.aerodynamic_surfaces.add(calisto_nose_cone, 1.160)
-    rocket_tail_to_nose.aerodynamic_surfaces.add(calisto_trapezoidal_fins, -1.168)
+    rocket_tail_to_nose.add_surfaces(calisto_nose_cone, 1.160)
+    rocket_tail_to_nose.add_surfaces(calisto_trapezoidal_fins, -1.168)
 
     static_margin_tail_to_nose = rocket_tail_to_nose.static_margin
 
@@ -658,8 +650,8 @@ def test_coordinate_system_orientation(
 
     rocket_nose_to_tail.add_motor(motor_combustion_chamber_to_nozzle, position=1.373)
 
-    rocket_nose_to_tail.aerodynamic_surfaces.add(calisto_nose_cone, -1.160)
-    rocket_nose_to_tail.aerodynamic_surfaces.add(calisto_trapezoidal_fins, 1.168)
+    rocket_nose_to_tail.add_surfaces(calisto_nose_cone, -1.160)
+    rocket_nose_to_tail.add_surfaces(calisto_trapezoidal_fins, 1.168)
 
     static_margin_nose_to_tail = rocket_nose_to_tail.static_margin
 

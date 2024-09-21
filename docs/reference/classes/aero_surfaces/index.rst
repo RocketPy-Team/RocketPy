@@ -13,3 +13,5 @@ AeroSurface Classes
    EllipticalFins
    RailButtons
    AirBrakes
+   GenericSurface
+   LinearGenericSurface

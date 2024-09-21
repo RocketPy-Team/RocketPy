@@ -736,10 +736,11 @@ class Flight:  # pylint: disable=too-many-public-methods
 
                 for parachute in node.parachutes:
                     # Calculate and save pressure signal
-                    noisy_pressure, height_above_ground_level = (
-                        self.__calculate_and_save_pressure_signals(
-                            parachute, node.t, self.y_sol[2]
-                        )
+                    (
+                        noisy_pressure,
+                        height_above_ground_level,
+                    ) = self.__calculate_and_save_pressure_signals(
+                        parachute, node.t, self.y_sol[2]
                     )
                     if parachute.triggerfunc(
                         noisy_pressure,
@@ -975,12 +976,13 @@ class Flight:  # pylint: disable=too-many-public-methods
                                 )
                                 for parachute in overshootable_node.parachutes:
                                     # Calculate and save pressure signal
-                                    noisy_pressure, height_above_ground_level = (
-                                        self.__calculate_and_save_pressure_signals(
-                                            parachute,
-                                            overshootable_node.t,
-                                            overshootable_node.y_sol[2],
-                                        )
+                                    (
+                                        noisy_pressure,
+                                        height_above_ground_level,
+                                    ) = self.__calculate_and_save_pressure_signals(
+                                        parachute,
+                                        overshootable_node.t,
+                                        overshootable_node.y_sol[2],
                                     )
 
                                     # Check for parachute trigger
@@ -1230,7 +1232,7 @@ class Flight:  # pylint: disable=too-many-public-methods
             rail_buttons = self.rocket.rail_buttons[0]
             upper_r_button = (
                 rail_buttons.component.buttons_distance * self.rocket._csys
-                + rail_buttons.position
+                + rail_buttons.position.z
             )
         except IndexError:  # No rail buttons defined
             upper_r_button = nozzle
@@ -1245,7 +1247,7 @@ class Flight:  # pylint: disable=too-many-public-methods
         nozzle = self.rocket.nozzle_position
         try:
             rail_buttons = self.rocket.rail_buttons[0]
-            lower_r_button = rail_buttons.position
+            lower_r_button = rail_buttons.position.z
         except IndexError:  # No rail buttons defined
             lower_r_button = nozzle
         effective_2rl = self.rail_length - abs(nozzle - lower_r_button)
@@ -1464,16 +1466,18 @@ class Flight:  # pylint: disable=too-many-public-methods
         a32 = 2 * (e2 * e3 + e0 * e1)
         a33 = 1 - 2 * (e1**2 + e2**2)
         # Transformation matrix: (123) -> (XYZ)
-        K = [[a11, a12, a13], [a21, a22, a23], [a31, a32, a33]]
+        K = Matrix([[a11, a12, a13], [a21, a22, a23], [a31, a32, a33]])
+        Kt = K.transpose
 
         # Calculate Forces and Moments
         # Get freestream speed
         wind_velocity_x = self.env.wind_velocity_x.get_value_opt(z)
         wind_velocity_y = self.env.wind_velocity_y.get_value_opt(z)
+        speed_of_sound = self.env.speed_of_sound.get_value_opt(z)
         free_stream_speed = (
             (wind_velocity_x - vx) ** 2 + (wind_velocity_y - vy) ** 2 + (vz) ** 2
         ) ** 0.5
-        free_stream_mach = free_stream_speed / self.env.speed_of_sound.get_value_opt(z)
+        free_stream_mach = free_stream_speed / speed_of_sound
 
         # Determine aerodynamics forces
         # Determine Drag Force
@@ -1507,76 +1511,47 @@ class Flight:  # pylint: disable=too-many-public-methods
         vy_b = a12 * vx + a22 * vy + a32 * vz
         vz_b = a13 * vx + a23 * vy + a33 * vz
         # Calculate lift and moment for each component of the rocket
-        for aero_surface, position in self.rocket.aerodynamic_surfaces:
-            comp_cp = (
-                position - self.rocket.center_of_dry_mass_position
-            ) * self.rocket._csys - aero_surface.cpz
-            reference_area = aero_surface.reference_area
-            reference_length = aero_surface.reference_length
+        velocity_in_body_frame = Vector([vx_b, vy_b, vz_b])
+        w = Vector([omega1, omega2, omega3])
+        for aero_surface, _ in self.rocket.aerodynamic_surfaces:
+            # Component cp relative to CDM in body frame
+            comp_cp = self.rocket.surfaces_cp_to_cdm[aero_surface]
             # Component absolute velocity in body frame
-            comp_vx_b = vx_b + comp_cp * omega2
-            comp_vy_b = vy_b - comp_cp * omega1
-            comp_vz_b = vz_b
-            # Wind velocity at component
-            comp_z = z + comp_cp
+            comp_vb = velocity_in_body_frame + (w ^ comp_cp)
+            # Wind velocity at component altitude
+            comp_z = z + (K @ comp_cp).z
             comp_wind_vx = self.env.wind_velocity_x.get_value_opt(comp_z)
             comp_wind_vy = self.env.wind_velocity_y.get_value_opt(comp_z)
             # Component freestream velocity in body frame
-            comp_wind_vx_b = a11 * comp_wind_vx + a21 * comp_wind_vy
-            comp_wind_vy_b = a12 * comp_wind_vx + a22 * comp_wind_vy
-            comp_wind_vz_b = a13 * comp_wind_vx + a23 * comp_wind_vy
-            comp_stream_vx_b = comp_wind_vx_b - comp_vx_b
-            comp_stream_vy_b = comp_wind_vy_b - comp_vy_b
-            comp_stream_vz_b = comp_wind_vz_b - comp_vz_b
-            comp_stream_speed = (
-                comp_stream_vx_b**2 + comp_stream_vy_b**2 + comp_stream_vz_b**2
-            ) ** 0.5
-            # Component attack angle and lift force
-            comp_attack_angle = 0
-            comp_lift, comp_lift_xb, comp_lift_yb = 0, 0, 0
-            if comp_stream_vx_b**2 + comp_stream_vy_b**2 != 0:
-                # normalize component stream velocity in body frame
-                comp_stream_vz_bn = comp_stream_vz_b / comp_stream_speed
-                if -1 * comp_stream_vz_bn < 1:
-                    comp_attack_angle = np.arccos(-comp_stream_vz_bn)
-                    c_lift = aero_surface.cl.get_value_opt(
-                        comp_attack_angle, free_stream_mach
-                    )
-                    # component lift force magnitude
-                    comp_lift = (
-                        0.5 * rho * (comp_stream_speed**2) * reference_area * c_lift
-                    )
-                    # component lift force components
-                    lift_dir_norm = (comp_stream_vx_b**2 + comp_stream_vy_b**2) ** 0.5
-                    comp_lift_xb = comp_lift * (comp_stream_vx_b / lift_dir_norm)
-                    comp_lift_yb = comp_lift * (comp_stream_vy_b / lift_dir_norm)
-                    # add to total lift force
-                    R1 += comp_lift_xb
-                    R2 += comp_lift_yb
-                    # Add to total moment
-                    M1 -= (comp_cp) * comp_lift_yb
-                    M2 += (comp_cp) * comp_lift_xb
-            # Calculates Roll Moment
-            try:
-                clf_delta, cld_omega, cant_angle_rad = aero_surface.roll_parameters
-                M3_forcing = (
-                    (1 / 2 * rho * free_stream_speed**2)
-                    * reference_area
-                    * reference_length
-                    * clf_delta.get_value_opt(free_stream_mach)
-                    * cant_angle_rad
-                )
-                M3_damping = (
-                    (1 / 2 * rho * free_stream_speed)
-                    * reference_area
-                    * (reference_length) ** 2
-                    * cld_omega.get_value_opt(free_stream_mach)
-                    * omega3
-                    / 2
-                )
-                M3 += M3_forcing - M3_damping
-            except AttributeError:
-                pass
+            comp_wind_vb = Kt @ Vector([comp_wind_vx, comp_wind_vy, 0])
+            comp_stream_velocity = comp_wind_vb - comp_vb
+            comp_stream_speed = abs(comp_stream_velocity)
+            comp_stream_mach = comp_stream_speed / speed_of_sound
+            # Reynolds at component altitude
+            # TODO: Reynolds is only used in generic surfaces. This calculation
+            # should be moved to the surface class for efficiency
+            comp_reynolds = (
+                self.env.density.get_value_opt(comp_z)
+                * comp_stream_speed
+                * aero_surface.reference_length
+                / self.env.dynamic_viscosity.get_value_opt(comp_z)
+            )
+            # Forces and moments
+            X, Y, Z, M, N, L = aero_surface.compute_forces_and_moments(
+                comp_stream_velocity,
+                comp_stream_speed,
+                comp_stream_mach,
+                rho,
+                comp_cp,
+                w,
+                comp_reynolds,
+            )
+            R1 += X
+            R2 += Y
+            R3 += Z
+            M1 += M
+            M2 += N
+            M3 += L
         # Off center moment
         M3 += self.rocket.cp_eccentricity_x * R2 - self.rocket.cp_eccentricity_y * R1
 
@@ -1663,7 +1638,7 @@ class Flight:  # pylint: disable=too-many-public-methods
             (R3 - b * propellant_mass_at_t * (alpha2 - omega1 * omega3) + thrust)
             / total_mass_at_t,
         ]
-        ax, ay, az = np.dot(K, L)
+        ax, ay, az = K @ Vector(L)
         az -= self.env.gravity.get_value_opt(z)  # Include gravity
 
         # Create u_dot
@@ -1788,13 +1763,9 @@ class Flight:  # pylint: disable=too-many-public-methods
         # Get rocket velocity in body frame
         velocity_in_body_frame = Kt @ v
         # Calculate lift and moment for each component of the rocket
-        for aero_surface, position in self.rocket.aerodynamic_surfaces:
-            comp_cpz = (
-                position - self.rocket.center_of_dry_mass_position
-            ) * self.rocket._csys - aero_surface.cpz
-            comp_cp = Vector([0, 0, comp_cpz])
-            reference_area = aero_surface.reference_area
-            reference_length = aero_surface.reference_length
+        for aero_surface, _ in self.rocket.aerodynamic_surfaces:
+            # Component cp relative to CDM in body frame
+            comp_cp = self.rocket.surfaces_cp_to_cdm[aero_surface]
             # Component absolute velocity in body frame
             comp_vb = velocity_in_body_frame + (w ^ comp_cp)
             # Wind velocity at component altitude
@@ -1804,55 +1775,33 @@ class Flight:  # pylint: disable=too-many-public-methods
             # Component freestream velocity in body frame
             comp_wind_vb = Kt @ Vector([comp_wind_vx, comp_wind_vy, 0])
             comp_stream_velocity = comp_wind_vb - comp_vb
-            comp_stream_vx_b, comp_stream_vy_b, comp_stream_vz_b = comp_stream_velocity
             comp_stream_speed = abs(comp_stream_velocity)
             comp_stream_mach = comp_stream_speed / speed_of_sound
-            # Component attack angle and lift force
-            comp_attack_angle = 0
-            comp_lift, comp_lift_xb, comp_lift_yb = 0, 0, 0
-            if comp_stream_vx_b**2 + comp_stream_vy_b**2 != 0:  # TODO: maybe try/except
-                # Normalize component stream velocity in body frame
-                comp_stream_vz_bn = comp_stream_vz_b / comp_stream_speed
-                if -1 * comp_stream_vz_bn < 1:
-                    comp_attack_angle = np.arccos(-comp_stream_vz_bn)
-                    c_lift = aero_surface.cl.get_value_opt(
-                        comp_attack_angle, comp_stream_mach
-                    )
-                    # Component lift force magnitude
-                    comp_lift = (
-                        0.5 * rho * (comp_stream_speed**2) * reference_area * c_lift
-                    )
-                    # Component lift force components
-                    lift_dir_norm = (comp_stream_vx_b**2 + comp_stream_vy_b**2) ** 0.5
-                    comp_lift_xb = comp_lift * (comp_stream_vx_b / lift_dir_norm)
-                    comp_lift_yb = comp_lift * (comp_stream_vy_b / lift_dir_norm)
-                    # Add to total lift force
-                    R1 += comp_lift_xb
-                    R2 += comp_lift_yb
-                    # Add to total moment
-                    M1 -= (comp_cpz) * comp_lift_yb
-                    M2 += (comp_cpz) * comp_lift_xb
-            # Calculates Roll Moment
-            try:
-                clf_delta, cld_omega, cant_angle_rad = aero_surface.roll_parameters
-                M3_forcing = (
-                    (1 / 2 * rho * comp_stream_speed**2)
-                    * reference_area
-                    * reference_length
-                    * clf_delta.get_value_opt(comp_stream_mach)
-                    * cant_angle_rad
-                )
-                M3_damping = (
-                    (1 / 2 * rho * comp_stream_speed)
-                    * reference_area
-                    * (reference_length) ** 2
-                    * cld_omega.get_value_opt(comp_stream_mach)
-                    * omega3
-                    / 2
-                )
-                M3 += M3_forcing - M3_damping
-            except AttributeError:
-                pass
+            # Reynolds at component altitude
+            # TODO: Reynolds is only used in generic surfaces. This calculation
+            # should be moved to the surface class for efficiency
+            comp_reynolds = (
+                self.env.density.get_value_opt(comp_z)
+                * comp_stream_speed
+                * aero_surface.reference_length
+                / self.env.dynamic_viscosity.get_value_opt(comp_z)
+            )
+            # Forces and moments
+            X, Y, Z, M, N, L = aero_surface.compute_forces_and_moments(
+                comp_stream_velocity,
+                comp_stream_speed,
+                comp_stream_mach,
+                rho,
+                comp_cp,
+                w,
+                comp_reynolds,
+            )
+            R1 += X
+            R2 += Y
+            R3 += Z
+            M1 += M
+            M2 += N
+            M3 += L
 
         # Off center moment
         thrust = self.rocket.motor.thrust.get_value_opt(t)
@@ -2058,37 +2007,44 @@ class Flight:  # pylint: disable=too-many-public-methods
     # Transform solution array into Functions
     @funcify_method("Time (s)", "X (m)", "spline", "constant")
     def x(self):
-        """Rocket x position as a Function of time."""
+        """Rocket x position relative to the launch pad as a Function of
+        time."""
         return self.solution_array[:, [0, 1]]
 
     @funcify_method("Time (s)", "Y (m)", "spline", "constant")
     def y(self):
-        """Rocket y position as a Function of time."""
+        """Rocket y position relative to the lauch pad as a Function of
+        time."""
         return self.solution_array[:, [0, 2]]
 
     @funcify_method("Time (s)", "Z (m)", "spline", "constant")
     def z(self):
-        """Rocket z position as a Function of time."""
+        """Rocket z position relative to the launch pad as a Function of
+        time."""
         return self.solution_array[:, [0, 3]]
 
     @funcify_method("Time (s)", "Altitude AGL (m)", "spline", "constant")
     def altitude(self):
-        """Rocket altitude above ground level as a Function of time."""
+        """Rocket altitude above ground level as a Function of time. Ground
+        level is defined by the environment elevation."""
         return self.z - self.env.elevation
 
     @funcify_method("Time (s)", "Vx (m/s)", "spline", "zero")
     def vx(self):
-        """Rocket x velocity as a Function of time."""
+        """Velocity of the rocket center of dry mass in the direction of
+        the rocket x-axis as a Function of time."""
         return self.solution_array[:, [0, 4]]
 
     @funcify_method("Time (s)", "Vy (m/s)", "spline", "zero")
     def vy(self):
-        """Rocket y velocity as a Function of time."""
+        """Velocity of the rocket center of dry mass in the direction of
+        the rocket y-axis as a Function of time."""
         return self.solution_array[:, [0, 5]]
 
     @funcify_method("Time (s)", "Vz (m/s)", "spline", "zero")
     def vz(self):
-        """Rocket z velocity as a Function of time."""
+        """Velocity of the rocket center of dry mass in the direction of
+        the rocket z-axis as a Function of time."""
         return self.solution_array[:, [0, 6]]
 
     @funcify_method("Time (s)", "e0", "spline", "constant")
@@ -2113,88 +2069,94 @@ class Flight:  # pylint: disable=too-many-public-methods
 
     @funcify_method("Time (s)", "ω1 (rad/s)", "spline", "zero")
     def w1(self):
-        """Rocket angular velocity ω1 as a Function of time."""
+        """Angular velocity of the rocket in the x-axis as a Function of time.
+        Sometimes referred to as pitch rate (q)."""
         return self.solution_array[:, [0, 11]]
 
     @funcify_method("Time (s)", "ω2 (rad/s)", "spline", "zero")
     def w2(self):
-        """Rocket angular velocity ω2 as a Function of time."""
+        """Angular velocity of the rocket in the y-axis as a Function of time.
+        Sometimes referred to as yaw rate (r)."""
         return self.solution_array[:, [0, 12]]
 
     @funcify_method("Time (s)", "ω3 (rad/s)", "spline", "zero")
     def w3(self):
-        """Rocket angular velocity ω3 as a Function of time."""
+        """Angular velocity of the rocket in the z-axis as a Function of time.
+        Sometimes referred to as roll rate (p)."""
         return self.solution_array[:, [0, 13]]
 
     # Process second type of outputs - accelerations components
     @funcify_method("Time (s)", "Ax (m/s²)", "spline", "zero")
     def ax(self):
-        """Rocket x acceleration as a Function of time."""
+        """Acceleration of the rocket center of dry mass in the direction of
+        the rocket x-axis as a Function of time."""
         return self.__evaluate_post_process[:, [0, 1]]
 
     @funcify_method("Time (s)", "Ay (m/s²)", "spline", "zero")
     def ay(self):
-        """Rocket y acceleration as a Function of time."""
+        """Acceleration of the rocket center of dry mass in the direction of
+        the rocket y-axis as a Function of time."""
         return self.__evaluate_post_process[:, [0, 2]]
 
     @funcify_method("Time (s)", "Az (m/s²)", "spline", "zero")
     def az(self):
-        """Rocket z acceleration as a Function of time."""
+        """Acceleration of the rocket center of dry mass in the direction of
+        the rocket z-axis as a Function of time."""
         return self.__evaluate_post_process[:, [0, 3]]
 
     @funcify_method("Time (s)", "α1 (rad/s²)", "spline", "zero")
     def alpha1(self):
-        """Rocket angular acceleration α1 as a Function of time."""
+        """Angular acceleration of the rocket in the x-axis as a Function of
+        time. Sometimes referred to as pitch acceleration."""
         return self.__evaluate_post_process[:, [0, 4]]
 
     @funcify_method("Time (s)", "α2 (rad/s²)", "spline", "zero")
     def alpha2(self):
-        """Rocket angular acceleration α2 as a Function of time."""
+        """Angular acceleration of the rocket in the y-axis as a Function of
+        time. Sometimes referred to as yaw acceleration."""
         return self.__evaluate_post_process[:, [0, 5]]
 
     @funcify_method("Time (s)", "α3 (rad/s²)", "spline", "zero")
     def alpha3(self):
-        """Rocket angular acceleration α3 as a Function of time."""
+        """Angular acceleration of the rocket in the z-axis as a Function of
+        time. Sometimes referred to as roll acceleration."""
         return self.__evaluate_post_process[:, [0, 6]]
 
     # Process third type of outputs - Temporary values
     @funcify_method("Time (s)", "R1 (N)", "spline", "zero")
     def R1(self):
-        """Aerodynamic force along the first axis that is perpendicular to the
-        rocket's axis of symmetry as a Function of time."""
+        """Aerodynamic force along the x-axis of the rocket as a Function of
+        time."""
         return self.__evaluate_post_process[:, [0, 7]]
 
     @funcify_method("Time (s)", "R2 (N)", "spline", "zero")
     def R2(self):
-        """Aerodynamic force along the second axis that is perpendicular to the
-        rocket's axis of symmetry as a Function of time."""
+        """Aerodynamic force along the y-axis of the rocket as a Function of
+        time."""
         return self.__evaluate_post_process[:, [0, 8]]
 
     @funcify_method("Time (s)", "R3 (N)", "spline", "zero")
     def R3(self):
-        """Aerodynamic force along the rocket's axis of symmetry as a
+        """Aerodynamic force along the z-axis (rocket's axis of symmetry) as a
         Function of time."""
         return self.__evaluate_post_process[:, [0, 9]]
 
-    @funcify_method("Time (s)", "M1 (Nm)", "spline", "zero")
+    @funcify_method("Time (s)", "M1 (Nm)", "linear", "zero")
     def M1(self):
-        """Aerodynamic bending moment in the same direction as the axis that is
-        perpendicular to the rocket's axis of symmetry as a Function of
-        time.
-        """
+        """Aerodynamic moment in the rocket x-axis as a Function of time.
+        Sometimes referred to as pitch moment."""
         return self.__evaluate_post_process[:, [0, 10]]
 
-    @funcify_method("Time (s)", "M2 (Nm)", "spline", "zero")
+    @funcify_method("Time (s)", "M2 (Nm)", "linear", "zero")
     def M2(self):
-        """Aerodynamic bending moment in the same direction as the axis that is
-        perpendicular to the rocket's axis of symmetry as a Function
-        of time."""
+        """Aerodynamic moment in the rocket y-axis as a Function of time.
+        Sometimes referred to as yaw moment."""
         return self.__evaluate_post_process[:, [0, 11]]
 
-    @funcify_method("Time (s)", "M3 (Nm)", "spline", "zero")
+    @funcify_method("Time (s)", "M3 (Nm)", "linear", "zero")
     def M3(self):
-        """Aerodynamic bending moment in the same direction as the rocket's
-        axis of symmetry as a Function of time."""
+        """Aerodynamic moment in the rocket z-axis as a Function of time.
+        Sometimes referred to as roll moment."""
         return self.__evaluate_post_process[:, [0, 12]]
 
     @funcify_method("Time (s)", "Pressure (Pa)", "spline", "constant")
@@ -2225,7 +2187,7 @@ class Flight:  # pylint: disable=too-many-public-methods
 
     @funcify_method("Time (s)", "Wind Velocity Y (North) (m/s)", "spline", "constant")
     def wind_velocity_y(self):
-        """Wind velocity in the y direction (north) as a Function of time."""
+        """Wind velocity in the Y direction (north) as a Function of time."""
         return [(t, self.env.wind_velocity_y.get_value_opt(z)) for t, z in self.z]
 
     # Process fourth type of output - values calculated from previous outputs
@@ -2325,17 +2287,26 @@ class Flight:  # pylint: disable=too-many-public-methods
     # Attitude Angle
     @funcify_method("Time (s)", "Attitude Vector X Component")
     def attitude_vector_x(self):
-        """Rocket attitude vector X component as a Function of time."""
+        """Rocket attitude vector X component as a Function of time.
+        Same as row 1, column 3 of the rotation matrix that defines
+        the conversion from the body frame to the inertial frame
+        at each time step."""
         return 2 * (self.e1 * self.e3 + self.e0 * self.e2)  # a13
 
     @funcify_method("Time (s)", "Attitude Vector Y Component")
     def attitude_vector_y(self):
-        """Rocket attitude vector Y component as a Function of time."""
+        """Rocket attitude vector Y component as a Function of time.
+        Same as row 2, column 3 of the rotation matrix that defines
+        the conversion from the body frame to the inertial frame
+        at each time step."""
         return 2 * (self.e2 * self.e3 - self.e0 * self.e1)  # a23
 
     @funcify_method("Time (s)", "Attitude Vector Z Component")
     def attitude_vector_z(self):
-        """Rocket attitude vector Z component as a Function of time."""
+        """Rocket attitude vector Z component as a Function of time.
+        Same as row 3, column 3 of the rotation matrix that defines
+        the conversion from the body frame to the inertial frame
+        at each time step."""
         return 1 - 2 * (self.e1**2 + self.e2**2)  # a33
 
     @funcify_method("Time (s)", "Attitude Angle (°)")
@@ -2536,6 +2507,7 @@ class Flight:  # pylint: disable=too-many-public-methods
     # Total Pressure
     @funcify_method("Time (s)", "Total Pressure (Pa)", "spline", "zero")
     def total_pressure(self):
+        """Total pressure as a Function of time."""
         return self.pressure * (1 + 0.2 * self.mach_number**2) ** (3.5)
 
     @cached_property
@@ -2552,6 +2524,9 @@ class Flight:  # pylint: disable=too-many-public-methods
     # Dynamics functions and variables
 
     #  Aerodynamic Lift and Drag
+    # TODO: These are not lift and drag, they are the aerodynamic forces in
+    # the rocket frame, meaning they are normal and axial forces. They should
+    # be renamed.
     @funcify_method("Time (s)", "Aerodynamic Lift Force (N)", "spline", "zero")
     def aerodynamic_lift(self):
         """Aerodynamic lift force as a Function of time."""
@@ -2576,6 +2551,7 @@ class Flight:  # pylint: disable=too-many-public-methods
     # Kinetic Energy
     @funcify_method("Time (s)", "Rotational Kinetic Energy (J)")
     def rotational_energy(self):
+        """Rotational kinetic energy as a Function of time."""
         rotational_energy = 0.5 * (
             self.rocket.I_11 * self.w1**2
             + self.rocket.I_22 * self.w2**2
@@ -2624,7 +2600,7 @@ class Flight:  # pylint: disable=too-many-public-methods
     # thrust Power
     @funcify_method("Time (s)", "thrust Power (W)", "spline", "zero")
     def thrust_power(self):
-        """thrust power as a Function of time."""
+        """Thrust power as a Function of time."""
         thrust = deepcopy(self.rocket.motor.thrust)
         thrust = thrust.set_discrete_based_on_model(self.speed)
         thrust_power = thrust * self.speed
@@ -2639,34 +2615,104 @@ class Flight:  # pylint: disable=too-many-public-methods
         return drag_power
 
     # Angle of Attack
+    @cached_property
+    def direction_cosine_matrixes(self):
+        """Direction cosine matrix representing the attitude of the body frame,
+        relative to the inertial frame, at each time step."""
+        # Stack the y_arrays from e0, e1, e2, and e3 along a new axis
+        stacked_arrays = np.stack(
+            [self.e0.y_array, self.e1.y_array, self.e2.y_array, self.e3.y_array],
+            axis=-1,
+        )
+
+        # Apply the transformation to the stacked arrays along the last axis
+        Kt = np.array([Matrix.transformation(row).transpose for row in stacked_arrays])
+
+        return Kt
+
+    @cached_property
+    def stream_velocity_body_frame(self):
+        """Stream velocity array at the center of dry mass in the body frame at
+        each time step."""
+        Kt = self.direction_cosine_matrixes
+        stream_velocity = np.array(
+            [
+                self.stream_velocity_x.y_array,
+                self.stream_velocity_y.y_array,
+                self.stream_velocity_z.y_array,
+            ]
+        ).transpose()
+        stream_velocity_body = np.squeeze(
+            np.matmul(Kt, stream_velocity[:, :, np.newaxis])
+        )
+        return stream_velocity_body
+
     @funcify_method("Time (s)", "Angle of Attack (°)", "spline", "constant")
     def angle_of_attack(self):
         """Angle of attack of the rocket with respect to the freestream
-        velocity vector."""
-        dot_product = [
-            -self.attitude_vector_x.get_value_opt(i)
-            * self.stream_velocity_x.get_value_opt(i)
-            - self.attitude_vector_y.get_value_opt(i)
-            * self.stream_velocity_y.get_value_opt(i)
-            - self.attitude_vector_z.get_value_opt(i)
-            * self.stream_velocity_z.get_value_opt(i)
-            for i in self.time
-        ]
+        velocity vector. Sometimes called total angle of attack. Defined as the
+        angle between the freestream velocity vector and the rocket's z-axis.
+        All in the Body Axes Coordinate System."""
+        # Define stream velocity z component in body frame
+        stream_vz_body = (
+            -self.attitude_vector_x.y_array * self.stream_velocity_x.y_array
+            - self.attitude_vector_y.y_array * self.stream_velocity_y.y_array
+            - self.attitude_vector_z.y_array * self.stream_velocity_z.y_array
+        )
         # Define freestream speed list
-        free_stream_speed = [self.free_stream_speed.get_value_opt(i) for i in self.time]
-        free_stream_speed = np.nan_to_num(free_stream_speed)
+        free_stream_speed = self.free_stream_speed.y_array
 
-        # Normalize dot product
-        dot_product_normalized = [
-            i / j if j > 1e-6 else 0 for i, j in zip(dot_product, free_stream_speed)
-        ]
-        dot_product_normalized = np.nan_to_num(dot_product_normalized)
-        dot_product_normalized = np.clip(dot_product_normalized, -1, 1)
+        stream_vz_body_normalized = np.divide(
+            stream_vz_body,
+            free_stream_speed,
+            out=np.zeros_like(stream_vz_body),
+            where=free_stream_speed > 1e-6,
+        )
+        stream_vz_body_normalized = np.clip(stream_vz_body_normalized, -1, 1)
 
         # Calculate angle of attack and convert to degrees
-        angle_of_attack = np.rad2deg(np.arccos(dot_product_normalized))
+        angle_of_attack = np.rad2deg(np.arccos(stream_vz_body_normalized))
+        angle_of_attack = np.nan_to_num(angle_of_attack)
 
         return np.column_stack([self.time, angle_of_attack])
+
+    @funcify_method("Time (s)", "Partial Angle of Attack (°)", "spline", "constant")
+    def partial_angle_of_attack(self):
+        """Partial angle of attack of the rocket with respect to the stream
+        velocity vector. By partial angle of attack, it is meant the angle
+        between the stream velocity vector in the y-z plane and the rocket's
+        z-axis. All in the Body Axes Coordinate System."""
+        # Stream velocity in standard aerodynamic frame
+        stream_velocity = -self.stream_velocity_body_frame
+        alpha = np.arctan2(
+            stream_velocity[:, 1],
+            stream_velocity[:, 2],
+        )  # y-z plane
+        return np.column_stack([self.time, np.rad2deg(alpha)])
+
+    @funcify_method("Time (s)", "Beta (°)", "spline", "constant")
+    def angle_of_sideslip(self):
+        """Angle of sideslip of the rocket with respect to the stream
+        velocity vector. Defined as the angle between the stream velocity
+        vector in the x-z plane and the rocket's z-axis. All in the Body
+        Axes Coordinate System."""
+        # Stream velocity in standard aerodynamic frame
+        stream_velocity = -self.stream_velocity_body_frame
+        beta = np.arctan2(
+            -stream_velocity[:, 0],
+            stream_velocity[:, 2],
+        )  # x-z plane
+        return np.column_stack([self.time, np.rad2deg(beta)])
+
+    @funcify_method("Time (s)", "Angle of Attack (°)", "spline", "constant")
+    def angle_of_attack2(self):
+        alpha = np.arctan(
+            np.sqrt(
+                np.tan(np.deg2rad(self.partial_angle_of_attack.y_array)) ** 2
+                + np.tan(np.deg2rad(self.angle_of_sideslip.y_array)) ** 2
+            )
+        )
+        return np.column_stack([self.time, np.rad2deg(alpha)])
 
     # Frequency response and stability variables
     @funcify_method("Frequency (Hz)", "ω1 Fourier Amplitude", "spline", "zero")
@@ -2886,9 +2932,10 @@ class Flight:  # pylint: disable=too-many-public-methods
         # Distance from Rail Button 1 (upper) to CM
         rail_buttons_tuple = self.rocket.rail_buttons[0]
         upper_button_position = (
-            rail_buttons_tuple.component.buttons_distance + rail_buttons_tuple.position
+            rail_buttons_tuple.component.buttons_distance
+            + rail_buttons_tuple.position.z
         )
-        lower_button_position = rail_buttons_tuple.position
+        lower_button_position = rail_buttons_tuple.position.z
         angular_position_rad = rail_buttons_tuple.component.angular_position_rad
         D1 = (
             upper_button_position - self.rocket.center_of_dry_mass_position
