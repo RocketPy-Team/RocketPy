@@ -1,9 +1,9 @@
 import numpy as np
 
-from .fin import Fin
-
 from rocketpy.plots.aero_surface_plots import _EllipticalFinPlots
 from rocketpy.prints.aero_surface_prints import _EllipticalFinPrints
+
+from .fin import Fin
 
 
 class EllipticalFin(Fin):

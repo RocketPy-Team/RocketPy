@@ -1,9 +1,10 @@
 import csv
 import math
 
-from rocketpy.mathutils.vector_matrix import Matrix, Vector
-from rocketpy.mathutils import Function
 import numpy as np
+
+from rocketpy.mathutils import Function
+from rocketpy.mathutils.vector_matrix import Matrix, Vector
 
 
 class GenericSurface:
@@ -16,9 +17,9 @@ class GenericSurface:
         self,
         reference_area,
         reference_length,
-        cL=0,
-        cQ=0,
-        cD=0,
+        cl_lift=0,
+        cq_side_force=0,
+        cd_drag=0,
         cm=0,
         cn=0,
         cl=0,
@@ -50,13 +51,13 @@ class GenericSurface:
         reference_length : int, float
             Reference length of the aerodynamic surface. Has the unit of meters.
             Commonly defined as the rocket's diameter.
-        cL : str, callable, optional
+        cl_lift : str, callable, optional
             Lift coefficient. Can be a path to a CSV file or a callable.
             Default is 0.
-        cQ : str, callable, optional
+        cq_side_force : str, callable, optional
             Side force coefficient. Can be a path to a CSV file or a callable.
             Default is 0.
-        cD : str, callable, optional
+        cd_drag : str, callable, optional
             Drag coefficient. Can be a path to a CSV file or a callable.
             Default is 0.
         cm : str, callable, optional
@@ -84,9 +85,9 @@ class GenericSurface:
         self.cpz = center_of_pressure[2]
         self.name = name
 
-        self.cL = self._process_input(cL, "cL")
-        self.cD = self._process_input(cD, "cD")
-        self.cQ = self._process_input(cQ, "cQ")
+        self.cl_lift = self._process_input(cl_lift, "cL")
+        self.cd_drag = self._process_input(cd_drag, "cD")
+        self.cq_side_force = self._process_input(cq_side_force, "cQ")
         self.cm = self._process_input(cm, "cm")
         self.cn = self._process_input(cn, "cn")
         self.cl = self._process_input(cl, "cl")
@@ -138,13 +139,13 @@ class GenericSurface:
         dyn_pressure_area_length = dyn_pressure_area * self.reference_length
 
         # Compute aerodynamic forces
-        lift = dyn_pressure_area * self.cL(
+        lift = dyn_pressure_area * self.cl_lift(
             alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
         )
-        side = dyn_pressure_area * self.cQ(
+        side = dyn_pressure_area * self.cq_side_force(
             alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
         )
-        drag = dyn_pressure_area * self.cD(
+        drag = dyn_pressure_area * self.cd_drag(
             alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
         )
 
@@ -319,7 +320,7 @@ class GenericSurface:
                 reader = csv.reader(file)
                 header = next(reader)
         except (FileNotFoundError, IOError) as e:
-            raise ValueError(f"Error reading {coeff_name} CSV file: {e}")
+            raise ValueError(f"Error reading {coeff_name} CSV file: {e}") from e
 
         if not header:
             raise ValueError(f"Invalid or empty CSV file for {coeff_name}.")

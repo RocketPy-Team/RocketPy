@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from rocketpy.motors import EmptyMotor, HybridMotor, LiquidMotor, SolidMotor
-from rocketpy.rocket.aero_surface import Fins, Fin, NoseCone, Tail
+from rocketpy.rocket.aero_surface import Fin, Fins, NoseCone, Tail
 
 
 class _RocketPlots:

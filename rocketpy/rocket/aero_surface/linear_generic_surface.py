@@ -1,5 +1,5 @@
-from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 from rocketpy.mathutils import Function
+from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 
 
 class LinearGenericSurface(GenericSurface):
@@ -11,24 +11,24 @@ class LinearGenericSurface(GenericSurface):
         self,
         reference_area,
         reference_length,
-        cL_0=0,
-        cL_alpha=0,
-        cL_beta=0,
-        cL_p=0,
-        cL_q=0,
-        cL_r=0,
-        cQ_0=0,
-        cQ_alpha=0,
-        cQ_beta=0,
-        cQ_p=0,
-        cQ_q=0,
-        cQ_r=0,
-        cD_0=0,
-        cD_alpha=0,
-        cD_beta=0,
-        cD_p=0,
-        cD_q=0,
-        cD_r=0,
+        cl_lift_0=0,
+        cl_lift_alpha=0,
+        cl_lift_beta=0,
+        cl_lift_p=0,
+        cl_lift_q=0,
+        cl_lift_r=0,
+        cq_pitch_0=0,
+        cq_pitch_alpha=0,
+        cq_pitch_beta=0,
+        cq_pitch_p=0,
+        cq_pitch_q=0,
+        cq_pitch_r=0,
+        cd_drag_0=0,
+        cd_drag_alpha=0,
+        cd_drag_beta=0,
+        cd_drag_p=0,
+        cd_drag_q=0,
+        cd_drag_r=0,
         cm_0=0,
         cm_alpha=0,
         cm_beta=0,
@@ -75,56 +75,56 @@ class LinearGenericSurface(GenericSurface):
         reference_length : int, float
             Reference length of the aerodynamic surface. Has the unit of meters.
             Commonly defined as the rocket's diameter.
-        cL_0 : callable, str, optional
+        cl_lift_0 : callable, str, optional
             Coefficient of lift at zero angle of attack. Default is 0.
-        cL_alpha : callable, str, optional
+        cl_lift_alpha : callable, str, optional
             Coefficient of lift derivative with respect to angle of attack.
             Default is 0.
-        cL_beta : callable, str, optional
+        cl_lift_beta : callable, str, optional
             Coefficient of lift derivative with respect to sideslip angle.
             Default is 0.
-        cL_p : callable, str, optional
+        cl_lift_p : callable, str, optional
             Coefficient of lift derivative with respect to roll rate.
             Default is 0.
-        cL_q : callable, str, optional
+        cl_lift_q : callable, str, optional
             Coefficient of lift derivative with respect to pitch rate.
             Default is 0.
-        cL_r : callable, str, optional
+        cl_lift_r : callable, str, optional
             Coefficient of lift derivative with respect to yaw rate.
             Default is 0.
-        cQ_0 : callable, str, optional
+        cq_pitch_0 : callable, str, optional
             Coefficient of pitch moment at zero angle of attack.
             Default is 0.
-        cQ_alpha : callable, str, optional
+        cq_pitch_alpha : callable, str, optional
             Coefficient of pitch moment derivative with respect to angle of
             attack. Default is 0.
-        cQ_beta : callable, str, optional
+        cq_pitch_beta : callable, str, optional
             Coefficient of pitch moment derivative with respect to sideslip
             angle. Default is 0.
-        cQ_p : callable, str, optional
+        cq_pitch_p : callable, str, optional
             Coefficient of pitch moment derivative with respect to roll rate.
             Default is 0.
-        cQ_q : callable, str, optional
+        cq_pitch_q : callable, str, optional
             Coefficient of pitch moment derivative with respect to pitch rate.
             Default is 0.
-        cQ_r : callable, str, optional
+        cq_pitch_r : callable, str, optional
             Coefficient of pitch moment derivative with respect to yaw rate.
             Default is 0.
-        cD_0 : callable, str, optional
+        cd_drag_0 : callable, str, optional
             Coefficient of drag at zero angle of attack. Default is 0.
-        cD_alpha : callable, str, optional
+        cd_drag_alpha : callable, str, optional
             Coefficient of drag derivative with respect to angle of attack.
             Default is 0.
-        cD_beta : callable, str, optional
+        cd_drag_beta : callable, str, optional
             Coefficient of drag derivative with respect to sideslip angle.
             Default is 0.
-        cD_p : callable, str, optional
+        cd_drag_p : callable, str, optional
             Coefficient of drag derivative with respect to roll rate.
             Default is 0.
-        cD_q : callable, str, optional
+        cd_drag_q : callable, str, optional
             Coefficient of drag derivative with respect to pitch rate.
             Default is 0.
-        cD_r : callable, str, optional
+        cd_drag_r : callable, str, optional
             Coefficient of drag derivative with respect to yaw rate.
             Default is 0.
         cm_0 : callable, str, optional
@@ -197,24 +197,24 @@ class LinearGenericSurface(GenericSurface):
         self.cpz = center_of_pressure[2]
         self.name = name
 
-        self.cL_0 = self._process_input(cL_0, "cL_0")
-        self.cL_alpha = self._process_input(cL_alpha, "cL_alpha")
-        self.cL_beta = self._process_input(cL_beta, "cL_beta")
-        self.cL_p = self._process_input(cL_p, "cL_p")
-        self.cL_q = self._process_input(cL_q, "cL_q")
-        self.cL_r = self._process_input(cL_r, "cL_r")
-        self.cQ_0 = self._process_input(cQ_0, "cQ_0")
-        self.cQ_alpha = self._process_input(cQ_alpha, "cQ_alpha")
-        self.cQ_beta = self._process_input(cQ_beta, "cQ_beta")
-        self.cQ_p = self._process_input(cQ_p, "cQ_p")
-        self.cQ_q = self._process_input(cQ_q, "cQ_q")
-        self.cQ_r = self._process_input(cQ_r, "cQ_r")
-        self.cD_0 = self._process_input(cD_0, "cD_0")
-        self.cD_alpha = self._process_input(cD_alpha, "cD_alpha")
-        self.cD_beta = self._process_input(cD_beta, "cD_beta")
-        self.cD_p = self._process_input(cD_p, "cD_p")
-        self.cD_q = self._process_input(cD_q, "cD_q")
-        self.cD_r = self._process_input(cD_r, "cD_r")
+        self.cl_lift_0 = self._process_input(cl_lift_0, "cl_lift_0")
+        self.cl_lift_alpha = self._process_input(cl_lift_alpha, "cl_lift_alpha")
+        self.cl_lift_beta = self._process_input(cl_lift_beta, "cl_lift_beta")
+        self.cl_lift_p = self._process_input(cl_lift_p, "cl_lift_p")
+        self.cl_lift_q = self._process_input(cl_lift_q, "cl_lift_q")
+        self.cl_lift_r = self._process_input(cl_lift_r, "cl_lift_r")
+        self.cq_pitch_0 = self._process_input(cq_pitch_0, "cq_pitch_0")
+        self.cq_pitch_alpha = self._process_input(cq_pitch_alpha, "cq_pitch_alpha")
+        self.cq_pitch_beta = self._process_input(cq_pitch_beta, "cq_pitch_beta")
+        self.cq_pitch_p = self._process_input(cq_pitch_p, "cq_pitch_p")
+        self.cq_pitch_q = self._process_input(cq_pitch_q, "cq_pitch_q")
+        self.cq_pitch_r = self._process_input(cq_pitch_r, "cq_pitch_r")
+        self.cd_drag_0 = self._process_input(cd_drag_0, "cd_drag_0")
+        self.cd_drag_alpha = self._process_input(cd_drag_alpha, "cd_drag_alpha")
+        self.cd_drag_beta = self._process_input(cd_drag_beta, "cd_drag_beta")
+        self.cd_drag_p = self._process_input(cd_drag_p, "cd_drag_p")
+        self.cd_drag_q = self._process_input(cd_drag_q, "cd_drag_q")
+        self.cd_drag_r = self._process_input(cd_drag_r, "cd_drag_r")
         self.cl_0 = self._process_input(cl_0, "cl_0")
         self.cl_alpha = self._process_input(cl_alpha, "cl_alpha")
         self.cl_beta = self._process_input(cl_beta, "cl_beta")
@@ -297,20 +297,26 @@ class LinearGenericSurface(GenericSurface):
 
     def compute_all_coefficients(self):
         """Compute all the aerodynamic coefficients from the derivatives."""
-        self.cLf = self.compute_forcing_coefficient(
-            self.cL_0, self.cL_alpha, self.cL_beta
+        self.c_l_lift_f = self.compute_forcing_coefficient(
+            self.cl_lift_0, self.cl_lift_alpha, self.cl_lift_beta
         )
-        self.cLd = self.compute_damping_coefficient(self.cL_p, self.cL_q, self.cL_r)
+        self.c_l_lift_d = self.compute_damping_coefficient(
+            self.cl_lift_p, self.cl_lift_q, self.cl_lift_r
+        )
 
-        self.cQf = self.compute_forcing_coefficient(
-            self.cQ_0, self.cQ_alpha, self.cQ_beta
+        self.c_q_pitch_f = self.compute_forcing_coefficient(
+            self.cq_pitch_0, self.cq_pitch_alpha, self.cq_pitch_beta
         )
-        self.cQd = self.compute_damping_coefficient(self.cQ_p, self.cQ_q, self.cQ_r)
+        self.c_q_pitch_d = self.compute_damping_coefficient(
+            self.cq_pitch_p, self.cq_pitch_q, self.cq_pitch_r
+        )
 
-        self.cDf = self.compute_forcing_coefficient(
-            self.cD_0, self.cD_alpha, self.cD_beta
+        self.c_d_drag_f = self.compute_forcing_coefficient(
+            self.cd_drag_0, self.cd_drag_alpha, self.cd_drag_beta
         )
-        self.cDd = self.compute_damping_coefficient(self.cD_p, self.cD_q, self.cD_r)
+        self.c_d_drag_d = self.compute_damping_coefficient(
+            self.cd_drag_p, self.cd_drag_q, self.cd_drag_r
+        )
 
         self.cmf = self.compute_forcing_coefficient(
             self.cm_0, self.cm_alpha, self.cm_beta
@@ -380,21 +386,21 @@ class LinearGenericSurface(GenericSurface):
         )
 
         # Compute aerodynamic forces
-        lift = dyn_pressure_area * self.cLf(
+        lift = dyn_pressure_area * self.c_l_lift_f(
             alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
-        ) - dyn_pressure_area_damping * self.cLd(
-            alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
-        )
-
-        side = dyn_pressure_area * self.cQf(
-            alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
-        ) - dyn_pressure_area_damping * self.cQd(
+        ) - dyn_pressure_area_damping * self.c_l_lift_d(
             alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
         )
 
-        drag = dyn_pressure_area * self.cDf(
+        side = dyn_pressure_area * self.c_q_pitch_f(
             alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
-        ) - dyn_pressure_area_damping * self.cDd(
+        ) - dyn_pressure_area_damping * self.c_q_pitch_d(
+            alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
+        )
+
+        drag = dyn_pressure_area * self.c_d_drag_f(
+            alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
+        ) - dyn_pressure_area_damping * self.c_d_drag_d(
             alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
         )
 

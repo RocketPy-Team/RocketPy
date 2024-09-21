@@ -1,5 +1,4 @@
 import math
-from abc import abstractmethod
 
 import numpy as np
 
@@ -405,8 +404,6 @@ class Fin(AeroSurface):
         omega1,
         omega2,
         omega3,
-        *args,
-        **kwargs,
     ):
         """Computes the forces and moments acting on the aerodynamic surface.
 
@@ -416,6 +413,9 @@ class Fin(AeroSurface):
             Speed of the flow stream in the body frame.
 
         """
+        self.omega1 = omega1
+        self.omega2 = omega2
+        self.omega3 = omega3
         R1, R2, R3, M1, M2, M3 = 0, 0, 0, 0, 0, 0
         # stream velocity in fin frame
         stream_vx_f, _, stream_vz_f = self._body_to_fin_aero @ stream_velocity
