@@ -342,7 +342,13 @@ class _RocketPlots:
         drawn_surfaces.append((surface, position, surface.rocket_radius, x_rotated[-1]))
 
     def _draw_generic_surface(
-        self, ax, surface, position, drawn_surfaces, vis_args, plane
+        self,
+        ax,
+        surface,
+        position,
+        drawn_surfaces,
+        vis_args,  # pylint: disable=unused-argument
+        plane,
     ):
         """Draws the generic surface and saves the position of the points of interest
         for the tubes."""
