@@ -2007,19 +2007,19 @@ class Flight:  # pylint: disable=too-many-public-methods
     # Transform solution array into Functions
     @funcify_method("Time (s)", "X (m)", "spline", "constant")
     def x(self):
-        """Rocket x position in relation to the launch pad as a Function of
+        """Rocket x position relative to the launch pad as a Function of
         time."""
         return self.solution_array[:, [0, 1]]
 
     @funcify_method("Time (s)", "Y (m)", "spline", "constant")
     def y(self):
-        """Rocket y position in relation to the lauch pad as a Function of
+        """Rocket y position relative to the lauch pad as a Function of
         time."""
         return self.solution_array[:, [0, 2]]
 
     @funcify_method("Time (s)", "Z (m)", "spline", "constant")
     def z(self):
-        """Rocket z position in relation to the launch pad as a Function of
+        """Rocket z position relative to the launch pad as a Function of
         time."""
         return self.solution_array[:, [0, 3]]
 
