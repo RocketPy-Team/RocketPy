@@ -13,7 +13,6 @@ from functools import cached_property
 from inspect import signature
 from pathlib import Path
 
-import dill
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import integrate, linalg, optimize

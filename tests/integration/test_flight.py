@@ -5,7 +5,7 @@ import matplotlib as plt
 import numpy as np
 import pytest
 
-from rocketpy import Environment, Flight
+from rocketpy import Flight
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
