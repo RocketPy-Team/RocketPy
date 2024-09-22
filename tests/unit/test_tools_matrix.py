@@ -244,6 +244,24 @@ def test_matrix_transformation():
     assert matrix @ Vector([0, 0, 1]) == Vector([0, -1, 0])
 
 
+def test_matrix_transformation_euler_angles():
+    roll = np.pi / 2
+    pitch = np.pi / 2
+    roll2 = np.pi / 2
+    matrix = Matrix.transformation_euler_angles(roll, pitch, roll2)
+    matrix = matrix.round(12)
+    # Check that the matrix is orthogonal
+    assert matrix @ matrix.transpose == Matrix.identity()
+    # Check that the matrix rotates the vector correctly
+    assert matrix @ Vector([0, 0, 1]) == Vector([1, 0, 0])
+
+
+def test_matrix_round():
+    matrix = [[2e-10, -2e-10, 0], [5.1234, -5.1234, 0], [0, 0, 9]]
+    matrix = Matrix(matrix).round(3)
+    assert matrix == Matrix([[0, 0, 0], [5.123, -5.123, 0], [0, 0, 9]])
+
+
 @pytest.mark.parametrize("components", test_matrices)
 def test_matrix_x_y_z(components):
     matrix = Matrix(components)

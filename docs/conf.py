@@ -27,7 +27,7 @@ copyright = "2024, RocketPy Team"
 author = "RocketPy Team"
 
 # The full version, including alpha/beta/rc tags
-release = "1.4.2"
+release = "1.5.0"
 
 
 # -- General configuration ---------------------------------------------------

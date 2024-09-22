@@ -33,20 +33,55 @@ Attention: The newest changes should be on top -->
 ### Added
 
 - ENH: Expansion of Encoders Implementation for Full Flights. [#679](https://github.com/RocketPy-Team/RocketPy/pull/679)
+- ENH: Generic Surfaces and Generic Linear Surfaces [#680](https://github.com/RocketPy-Team/RocketPy/pull/680)
+- ENH: Free-Form Fins [#694](https://github.com/RocketPy-Team/RocketPy/pull/694)
+- ENH: Expand Polation Options for ND Functions. [#691](https://github.com/RocketPy-Team/RocketPy/pull/691)
+
+### Changed
+
+-
+
+### Fixed
+
+- 
+
+## [v1.5.0] - 2024-09-15
+
+### Added
+
+- ENH: Adds Sensors classes [#683](https://github.com/RocketPy-Team/RocketPy/pull/683)
+- DOC: Cavour Flight Example [#682](https://github.com/RocketPy-Team/RocketPy/pull/682)
+- DOC: Halcyon Flight Example [#681](https://github.com/RocketPy-Team/RocketPy/pull/681)
+- ENH: Adds GenericMotor.load_from_eng_file() method [#676](https://github.com/RocketPy-Team/RocketPy/pull/676)
+- ENH: Introducing local sensitivity analysis [#575](https://github.com/RocketPy-Team/RocketPy/pull/575)
 - ENH: Add STFT function to Function class [#620](https://github.com/RocketPy-Team/RocketPy/pull/620) 
 - ENH: Rocket Axis Definition [#635](https://github.com/RocketPy-Team/RocketPy/pull/635)
 
 ### Changed
 
-- DOC: Fix documentation dependencies [#651](https://github.com/RocketPy-Team/RocketPy/pull/651)
-- DOC: Fix documentation warnings [#645](https://github.com/RocketPy-Team/RocketPy/pull/645)
 - DOC: New Environment class docs pages [#644](https://github.com/RocketPy-Team/RocketPy/pull/644)
 
 ### Fixed
 
+- ENH: Fix Orientation Param of Inertial Sensors [#688](https://github.com/RocketPy-Team/RocketPy/pull/688)
+- BUG: Zero Mass Flow Rate in Liquid Motors breaks Exhaust Velocity [#677](https://github.com/RocketPy-Team/RocketPy/pull/677)
+- DOC: Fix documentation dependencies [#651](https://github.com/RocketPy-Team/RocketPy/pull/651)
+- DOC: Fix documentation warnings [#645](https://github.com/RocketPy-Team/RocketPy/pull/645)
 - BUG: Rotational EOMs Not Relative To CDM [#674](https://github.com/RocketPy-Team/RocketPy/pull/674)
 - BUG: Pressure ISA Extrapolation as "linear" [#675](https://github.com/RocketPy-Team/RocketPy/pull/675)
 - BUG: fix the Frequency Response plot of Flight class [#653](https://github.com/RocketPy-Team/RocketPy/pull/653)
+
+## [v1.4.3] - 2024-09-11
+
+You can install this version by running `pip install rocketpy==1.4.3`
+
+### Changed
+
+- REL: Bump versioning to RocketPy v1.4.3 [#687](https://github.com/RocketPy-Team/RocketPy/pull/687)
+
+### Fixed
+
+- BUG: Rollback Prandtl-Glauert corrections for Tail and Nose. [#685](https://github.com/RocketPy-Team/RocketPy/pull/685)
 
 ## [v1.4.2] - 2024-08-03
 
