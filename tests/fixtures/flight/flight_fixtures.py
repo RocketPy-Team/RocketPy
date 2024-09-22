@@ -113,11 +113,10 @@ def flight_calisto_liquid_modded(calisto_liquid_modded, example_plain_env):
     return Flight(
         rocket=calisto_liquid_modded,
         environment=example_plain_env,
-        rail_length=5.2,
+        rail_length=5,
         inclination=85,
         heading=0,
-        time_overshoot=False,
-        terminate_on_apogee=True,
+        max_time_step=0.25,
     )
 
 
