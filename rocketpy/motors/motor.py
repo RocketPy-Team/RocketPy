@@ -1491,7 +1491,7 @@ class GenericMotor(Motor):
             chamber_position=data["chamber_position"],
             propellant_initial_mass=data["propellant_initial_mass"],
             nozzle_radius=data["nozzle_radius"],
-            dry_mass=data["dry_mass"],
+            dry_mass=data["_dry_mass"],
             center_of_dry_mass_position=data["center_of_dry_mass_position"],
             dry_inertia=(
                 data["dry_I_11"],

@@ -486,7 +486,7 @@ class LiquidMotor(Motor):
             thrust_source=data["thrust"],
             burn_time=data["_burn_time"],
             nozzle_radius=data["nozzle_radius"],
-            dry_mass=data["dry_mass"],
+            dry_mass=data["_dry_mass"],
             center_of_dry_mass_position=data["center_of_dry_mass_position"],
             dry_inertia=(
                 data["dry_I_11"],

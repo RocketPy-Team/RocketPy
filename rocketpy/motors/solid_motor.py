@@ -743,7 +743,7 @@ class SolidMotor(Motor):
     def from_dict(cls, data):
         return cls(
             thrust_source=data["thrust"],
-            dry_mass=data["dry_mass"],
+            dry_mass=data["_dry_mass"],
             dry_inertia=(
                 data["dry_I_11"],
                 data["dry_I_22"],

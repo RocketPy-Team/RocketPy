@@ -1857,6 +1857,17 @@ class Rocket:
         self.info()
         self.plots.all()
 
+    def to_dict(self):
+        data = vars(self)
+
+        data = {**data}
+
+        data.pop("prints")
+        data.pop("plots")
+        data.pop("surfaces_cp_to_cdm")
+
+        return data
+
     @classmethod
     def from_dict(cls, data):
         rocket = cls(
@@ -1887,8 +1898,8 @@ class Rocket:
 
         for button, position in data["rail_buttons"]:
             rocket.set_rail_buttons(
-                position + button.buttons_distance,
-                position,
+                position[2] + button.buttons_distance,
+                position[2],
                 button.angular_position,
                 button.rocket_radius,
             )
