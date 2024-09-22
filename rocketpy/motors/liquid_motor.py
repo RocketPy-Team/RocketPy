@@ -502,3 +502,5 @@ class LiquidMotor(Motor):
 
         for tank in data["positioned_tanks"]:
             motor.add_tank(tank["tank"], tank["position"])
+
+        return motor

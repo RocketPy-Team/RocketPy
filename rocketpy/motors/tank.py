@@ -1283,7 +1283,7 @@ class LevelBasedTank(Tank):
     def to_dict(self):
         return {
             **super().to_dict(),
-            "liquid_height": self.liquid_level,
+            "liquid_height": self.liquid_height,
         }
 
     @classmethod
