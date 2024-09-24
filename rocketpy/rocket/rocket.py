@@ -1342,7 +1342,7 @@ class Rocket:
         ----------
         n : int
             Number of fins, from 2 to infinity.
-        shape_points : list
+        shape_points : list[tuple[float, float]]
             List of tuples (x, y) containing the coordinates of the fin's
             geometry defining points. The point (0, 0) is the root leading edge.
             Positive x is rearwards, positive y is upwards (span direction).
