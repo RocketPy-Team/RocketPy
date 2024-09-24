@@ -114,7 +114,7 @@ Where:
 Aerodynamic angles
 ~~~~~~~~~~~~~~~~~~
 
-There aerodynamic angles are defined in two different ways in RocketPy:
+The aerodynamic angles are defined in two different ways in RocketPy:
 
 - As the angle of attack (:math:`\alpha`) and the side slip \
   angle (:math:`\beta`), which are defined in the image above. These are used \
