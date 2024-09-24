@@ -563,10 +563,10 @@ class Rocket:
             surface center of pressure to the rocket's center of mass.
         """
         for surface, position in self.aerodynamic_surfaces:
-            self.evaluate_single_surface_cp_to_cdm(surface, position)
+            self.__evaluate_single_surface_cp_to_cdm(surface, position)
         return self.surfaces_cp_to_cdm
 
-    def evaluate_single_surface_cp_to_cdm(self, surface, position):
+    def __evaluate_single_surface_cp_to_cdm(self, surface, position):
         """Calculates the relative position of each aerodynamic surface
         center of pressure to the rocket's center of dry mass in Body Axes
         Coordinate System."""
@@ -996,6 +996,7 @@ class Rocket:
         -------
         None
         """
+        # TODO: separate this method into smaller methods: https://github.com/RocketPy-Team/RocketPy/pull/696#discussion_r1771978422
         try:
             for surface, position in zip(surfaces, positions):
                 if not isinstance(position, (Vector, tuple, list)):
@@ -1003,14 +1004,14 @@ class Rocket:
                 else:
                     position = Vector(position)
                 self.aerodynamic_surfaces.add(surface, position)
-                self.evaluate_single_surface_cp_to_cdm(surface, position)
+                self.__evaluate_single_surface_cp_to_cdm(surface, position)
         except TypeError:
             if not isinstance(positions, (Vector, tuple, list)):
                 positions = Vector([0, 0, positions])
             else:
                 positions = Vector(positions)
             self.aerodynamic_surfaces.add(surfaces, positions)
-            self.evaluate_single_surface_cp_to_cdm(surfaces, positions)
+            self.__evaluate_single_surface_cp_to_cdm(surfaces, positions)
 
         self.evaluate_center_of_pressure()
         self.evaluate_stability_margin()
@@ -1175,7 +1176,7 @@ class Rocket:
         Parameters
         ----------
         n : int
-            Number of fins, from 2 to infinity.
+            Number of fins, must be greater than 2.
         span : int, float
             Fin span in meters.
         root_chord : int, float
@@ -1273,7 +1274,7 @@ class Rocket:
         Parameters
         ----------
         n : int
-            Number of fins, from 2 to infinity.
+            Number of fins, must be greater than 2.
         root_chord : int, float
             Fin root chord in meters.
         span : int, float
@@ -1341,8 +1342,8 @@ class Rocket:
         Parameters
         ----------
         n : int
-            Number of fins, from 2 to infinity.
-        shape_points : list[tuple[float, float]]
+            Number of fins, must be greater than 2.
+        shape_points : list
             List of tuples (x, y) containing the coordinates of the fin's
             geometry defining points. The point (0, 0) is the root leading edge.
             Positive x is rearwards, positive y is upwards (span direction).

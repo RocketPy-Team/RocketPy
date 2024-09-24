@@ -101,7 +101,7 @@ class FreeFormFins(Fins):
         Parameters
         ----------
         n : int
-            Number of fins, from 2 to infinity.
+            Number of fins, must be larger than 2.
         shape_points : list
             List of tuples (x, y) containing the coordinates of the fin's
             geometry defining points. The point (0, 0) is the root leading edge.

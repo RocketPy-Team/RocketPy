@@ -2704,16 +2704,6 @@ class Flight:  # pylint: disable=too-many-public-methods
         )  # x-z plane
         return np.column_stack([self.time, np.rad2deg(beta)])
 
-    @funcify_method("Time (s)", "Angle of Attack (°)", "spline", "constant")
-    def angle_of_attack2(self):
-        alpha = np.arctan(
-            np.sqrt(
-                np.tan(np.deg2rad(self.partial_angle_of_attack.y_array)) ** 2
-                + np.tan(np.deg2rad(self.angle_of_sideslip.y_array)) ** 2
-            )
-        )
-        return np.column_stack([self.time, np.rad2deg(alpha)])
-
     # Frequency response and stability variables
     @funcify_method("Frequency (Hz)", "ω1 Fourier Amplitude", "spline", "zero")
     def omega1_frequency_response(self):

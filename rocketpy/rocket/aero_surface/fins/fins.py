@@ -106,7 +106,7 @@ class Fins(AeroSurface):
         Parameters
         ----------
         n : int
-            Number of fins, from 2 to infinity.
+            Number of fins, must be larger than 2.
         root_chord : int, float
             Fin root chord in meters.
         span : int, float
