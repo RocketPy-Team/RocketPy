@@ -5,7 +5,7 @@ import matplotlib as plt
 import numpy as np
 import pytest
 
-from rocketpy import Environment, Flight
+from rocketpy import Flight
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
@@ -154,7 +154,7 @@ def test_export_pressures(flight_calisto_robust):
 
 @patch("matplotlib.pyplot.show")
 def test_hybrid_motor_flight(
-    mock_show, calisto_hybrid_modded
+    mock_show, flight_calisto_hybrid_modded
 ):  # pylint: disable=unused-argument
     """Test the flight of a rocket with a hybrid motor. This test only validates
     that a flight simulation can be performed with a hybrid motor; it does not
@@ -164,24 +164,15 @@ def test_hybrid_motor_flight(
     ----------
     mock_show : unittest.mock.MagicMock
         Mock object to replace matplotlib.pyplot.show
-    calisto_hybrid_modded : rocketpy.Rocket
-        Sample rocket to be simulated. See the conftest.py file for more info.
+    flight_calisto_hybrid_modded : rocketpy.Flight
+        Sample Flight to be tested. See the conftest.py file for more info.
     """
-    test_flight = Flight(
-        rocket=calisto_hybrid_modded,
-        environment=Environment(),
-        rail_length=5,
-        inclination=85,
-        heading=0,
-        max_time_step=0.25,
-    )
-
-    assert test_flight.all_info() is None
+    assert flight_calisto_hybrid_modded.all_info() is None
 
 
 @patch("matplotlib.pyplot.show")
 def test_liquid_motor_flight(
-    mock_show, calisto_liquid_modded
+    mock_show, flight_calisto_liquid_modded
 ):  # pylint: disable=unused-argument
     """Test the flight of a rocket with a liquid motor. This test only validates
     that a flight simulation can be performed with a liquid motor; it does not
@@ -191,19 +182,10 @@ def test_liquid_motor_flight(
     ----------
     mock_show : unittest.mock.MagicMock
         Mock object to replace matplotlib.pyplot.show
-    calisto_liquid_modded : rocketpy.Rocket
-        Sample Rocket to be simulated. See the conftest.py file for more info.
+    flight_calisto_liquid_modded : rocketpy.Flight
+        Sample Flight to be tested. See the conftest.py file for more info.
     """
-    test_flight = Flight(
-        rocket=calisto_liquid_modded,
-        environment=Environment(),
-        rail_length=5,
-        inclination=85,
-        heading=0,
-        max_time_step=0.25,
-    )
-
-    assert test_flight.all_info() is None
+    assert flight_calisto_liquid_modded.all_info() is None
 
 
 @pytest.mark.slow

@@ -2,6 +2,8 @@ from inspect import signature
 
 import numpy as np
 
+from rocketpy._encoders import from_hex_decode, to_hex_encode
+
 from ..mathutils.function import Function
 from ..prints.parachute_prints import _ParachutePrints
 
@@ -248,3 +250,47 @@ class Parachute:
         """Prints all information about the Parachute class."""
         self.info()
         # self.plots.all() # Parachutes still doesn't have plots
+
+    def to_dict(self):
+        trigger = self.trigger
+
+        if callable(self.trigger):
+            trigger = to_hex_encode(trigger)
+
+        return {
+            "name": self.name,
+            "cd_s": self.cd_s,
+            "trigger": trigger,
+            "sampling_rate": self.sampling_rate,
+            "lag": self.lag,
+            "noise": self.noise,
+            "noise_signal": [
+                [self.noise_signal[0][0], to_hex_encode(self.noise_signal[-1][1])]
+            ],
+            "noise_function": to_hex_encode(self.noise_function),
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        trigger = data["trigger"]
+
+        try:
+            trigger = from_hex_decode(trigger)
+        except (TypeError, ValueError):
+            pass
+
+        parachute = cls(
+            name=data["name"],
+            cd_s=data["cd_s"],
+            trigger=trigger,
+            sampling_rate=data["sampling_rate"],
+            lag=data["lag"],
+            noise=data["noise"],
+        )
+
+        parachute.noise_signal = [
+            [data["noise_signal"][0][0], from_hex_decode(data["noise_signal"][-1][1])]
+        ]
+        parachute.noise_function = from_hex_decode(data["noise_function"])
+
+        return parachute

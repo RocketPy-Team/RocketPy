@@ -367,12 +367,15 @@ class Environment:
         self.standard_g = 9.80665
         self.__weather_model_map = WeatherModelMapping()
         self.__atm_type_file_to_function_map = {
-            ("forecast", "GFS"): fetch_gfs_file_return_dataset,
-            ("forecast", "NAM"): fetch_nam_file_return_dataset,
-            ("forecast", "RAP"): fetch_rap_file_return_dataset,
-            ("forecast", "HIRESW"): fetch_hiresw_file_return_dataset,
-            ("ensemble", "GEFS"): fetch_gefs_ensemble,
-            # ("ensemble", "CMC"): fetch_cmc_ensemble,
+            "forecast": {
+                "GFS": fetch_gfs_file_return_dataset,
+                "NAM": fetch_nam_file_return_dataset,
+                "RAP": fetch_rap_file_return_dataset,
+                "HIRESW": fetch_hiresw_file_return_dataset,
+            },
+            "ensemble": {
+                "GEFS": fetch_gefs_ensemble,
+            },
         }
         self.__standard_atmosphere_layers = {
             "geopotential_height": [  # in geopotential m
@@ -1287,7 +1290,10 @@ class Environment:
             self.process_windy_atmosphere(file)
         elif type in ["forecast", "reanalysis", "ensemble"]:
             dictionary = self.__validate_dictionary(file, dictionary)
-            fetch_function = self.__atm_type_file_to_function_map.get((type, file))
+            try:
+                fetch_function = self.__atm_type_file_to_function_map[type][file]
+            except KeyError:
+                fetch_function = None
 
             # Fetches the dataset using OpenDAP protocol or uses the file path
             dataset = fetch_function() if fetch_function is not None else file
@@ -2846,6 +2852,103 @@ class Environment:
         arc_minutes = int(remainder * 60)
         arc_seconds = (remainder * 60 - arc_minutes) * 60
         return degrees, arc_minutes, arc_seconds
+
+    def to_dict(self):
+        return {
+            "gravity": self.gravity,
+            "date": self.date,
+            "latitude": self.latitude,
+            "longitude": self.longitude,
+            "elevation": self.elevation,
+            "datum": self.datum,
+            "timezone": self.timezone,
+            "_max_expected_height": self.max_expected_height,
+            "atmospheric_model_type": self.atmospheric_model_type,
+            "pressure": self.pressure,
+            "barometric_height": self.barometric_height,
+            "temperature": self.temperature,
+            "wind_velocity_x": self.wind_velocity_x,
+            "wind_velocity_y": self.wind_velocity_y,
+            "wind_heading": self.wind_heading,
+            "wind_direction": self.wind_direction,
+            "wind_speed": self.wind_speed,
+        }
+
+    @classmethod
+    def from_dict(cls, data):  # pylint: disable=too-many-statements
+        environment = cls(
+            gravity=data["gravity"],
+            date=data["date"],
+            latitude=data["latitude"],
+            longitude=data["longitude"],
+            elevation=data["elevation"],
+            datum=data["datum"],
+            timezone=data["timezone"],
+            max_expected_height=data["_max_expected_height"],
+        )
+        atmospheric_model = data["atmospheric_model_type"]
+
+        if atmospheric_model == "standard_atmosphere":
+            environment.set_atmospheric_model("standard_atmosphere")
+        elif atmospheric_model == "custom_atmosphere":
+            environment.set_atmospheric_model(
+                type="custom_atmosphere",
+                pressure=data["pressure"],
+                temperature=data["temperature"],
+                wind_u=data["wind_velocity_x"],
+                wind_v=data["wind_velocity_y"],
+            )
+        else:
+            environment.__set_pressure_function(data["pressure"])
+            environment.__set_barometric_height_function(data["barometric_height"])
+            environment.__set_temperature_function(data["temperature"])
+            environment.__set_wind_velocity_x_function(data["wind_velocity_x"])
+            environment.__set_wind_velocity_y_function(data["wind_velocity_y"])
+            environment.__set_wind_heading_function(data["wind_heading"])
+            environment.__set_wind_direction_function(data["wind_direction"])
+            environment.__set_wind_speed_function(data["wind_speed"])
+            environment.elevation = data["elevation"]
+            environment.max_expected_height = data["_max_expected_height"]
+
+            if atmospheric_model in ["windy", "forecast", "reanalysis", "ensemble"]:
+                environment.atmospheric_model_init_date = data[
+                    "atmospheric_model_init_date"
+                ]
+                environment.atmospheric_model_end_date = data[
+                    "atmospheric_model_end_date"
+                ]
+                environment.atmospheric_model_interval = data[
+                    "atmospheric_model_interval"
+                ]
+                environment.atmospheric_model_init_lat = data[
+                    "atmospheric_model_init_lat"
+                ]
+                environment.atmospheric_model_end_lat = data[
+                    "atmospheric_model_end_lat"
+                ]
+                environment.atmospheric_model_init_lon = data[
+                    "atmospheric_model_init_lon"
+                ]
+                environment.atmospheric_model_end_lon = data[
+                    "atmospheric_model_end_lon"
+                ]
+
+            if atmospheric_model == "ensemble":
+                environment.level_ensemble = data["level_ensemble"]
+                environment.height_ensemble = data["height_ensemble"]
+                environment.temperature_ensemble = data["temperature_ensemble"]
+                environment.wind_u_ensemble = data["wind_u_ensemble"]
+                environment.wind_v_ensemble = data["wind_v_ensemble"]
+                environment.wind_heading_ensemble = data["wind_heading_ensemble"]
+                environment.wind_direction_ensemble = data["wind_direction_ensemble"]
+                environment.wind_speed_ensemble = data["wind_speed_ensemble"]
+                environment.num_ensemble_members = data["num_ensemble_members"]
+
+            environment.calculate_density_profile()
+            environment.calculate_speed_of_sound_profile()
+            environment.calculate_dynamic_viscosity()
+
+        return environment
 
 
 if __name__ == "__main__":

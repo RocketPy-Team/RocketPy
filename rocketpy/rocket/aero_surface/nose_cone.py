@@ -515,3 +515,15 @@ class NoseCone(AeroSurface):
         """
         self.prints.all()
         self.plots.all()
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            length=data["_length"],
+            kind=data["_kind"],
+            base_radius=data["_base_radius"],
+            bluffness=data["_bluffness"],
+            rocket_radius=data["_rocket_radius"],
+            power=data["_power"],
+            name=data["name"],
+        )

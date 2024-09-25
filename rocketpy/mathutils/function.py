@@ -22,6 +22,8 @@ from scipy.interpolate import (
     RBFInterpolator,
 )
 
+from rocketpy._encoders import from_hex_decode, to_hex_encode
+
 # Numpy 1.x compatibility,
 # TODO: remove these lines when all dependencies support numpy>=2.0.0
 if np.lib.NumpyVersion(np.__version__) >= "2.0.0b1":
@@ -3386,6 +3388,50 @@ class Function:  # pylint: disable=too-many-public-methods
                 )
                 extrapolation = "natural"
         return extrapolation
+
+    def to_dict(self):
+        """Serializes the Function instance to a dictionary.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the Function's attributes.
+        """
+        source = self.source
+
+        if callable(source):
+            source = to_hex_encode(source)
+
+        return {
+            "source": source,
+            "title": self.title,
+            "inputs": self.__inputs__,
+            "outputs": self.__outputs__,
+            "interpolation": self.__interpolation__,
+            "extrapolation": self.__extrapolation__,
+        }
+
+    @classmethod
+    def from_dict(cls, func_dict):
+        """Creates a Function instance from a dictionary.
+
+        Parameters
+        ----------
+        func_dict
+            The JSON like Function dictionary.
+        """
+        source = func_dict["source"]
+        if func_dict["interpolation"] is None and func_dict["extrapolation"] is None:
+            source = from_hex_decode(source)
+
+        return cls(
+            source=source,
+            interpolation=func_dict["interpolation"],
+            extrapolation=func_dict["extrapolation"],
+            inputs=func_dict["inputs"],
+            outputs=func_dict["outputs"],
+            title=func_dict["title"],
+        )
 
 
 class PiecewiseFunction(Function):

@@ -347,3 +347,16 @@ class TrapezoidalFins(Fins):
     def all_info(self):
         self.prints.all()
         self.plots.all()
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            n=data["_n"],
+            root_chord=data["_root_chord"],
+            tip_chord=data["_tip_chord"],
+            span=data["_span"],
+            rocket_radius=data["_rocket_radius"],
+            cant_angle=data["_cant_angle"],
+            airfoil=data["_airfoil"],
+            name=data["name"],
+        )
