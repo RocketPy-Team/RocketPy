@@ -3,7 +3,6 @@ import numpy as np
 
 
 class _SensitivityModelPlots:
-
     def __init__(self, model):
         self.model = model
 

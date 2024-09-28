@@ -54,9 +54,14 @@ class _MonteCarloPlots:
                     "The image file was not found. Please check the path."
                 ) from e
 
-        impact_ellipses, apogee_ellipses, apogee_x, apogee_y, impact_x, impact_y = (
-            generate_monte_carlo_ellipses(self.monte_carlo.results)
-        )
+        (
+            impact_ellipses,
+            apogee_ellipses,
+            apogee_x,
+            apogee_y,
+            impact_x,
+            impact_y,
+        ) = generate_monte_carlo_ellipses(self.monte_carlo.results)
 
         # Create plot figure
         plt.figure(figsize=(8, 6), dpi=150)

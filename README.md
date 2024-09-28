@@ -329,6 +329,9 @@ RocketPy extends its gratitude to the following institutions for their support a
     <a href="https://github.com/Space-Enterprise-at-Berkeley">
         <img align=top alt="Space Enterprise at Berkeley Logo" src="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/institutional/space_enterprise_at_berkeley.jpeg" height="150px">
     </a>
+    <a href="https://www.instagram.com/faradayupv">
+        <img align=top alt="Faraday Rocketry UPV Logo" src="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/institutional/faraday_team_logo.jpg" height="150px">
+    </a>
 </div>
 
 ## Individual Contributors

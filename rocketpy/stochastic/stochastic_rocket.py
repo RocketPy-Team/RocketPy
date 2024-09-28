@@ -3,6 +3,7 @@
 import warnings
 from random import choice
 
+from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.motors.motor import EmptyMotor, GenericMotor, Motor
 from rocketpy.motors.solid_motor import SolidMotor
 from rocketpy.rocket.aero_surface import (
@@ -449,6 +450,9 @@ class StochasticRocket(StochasticModel):
     def _randomize_position(self, position):
         """Randomize a position provided as a tuple or list."""
         if isinstance(position, tuple):
+            if isinstance(position[0], Vector):
+                # TODO implement randomization for X and Y positions
+                return position[-1](position[0].z, position[1])
             return position[-1](position[0], position[1])
         elif isinstance(position, list):
             return choice(position) if position else position
@@ -496,7 +500,9 @@ class StochasticRocket(StochasticModel):
         self.last_rnd_dict["aerodynamic_surfaces"].append(
             stochastic_surface.last_rnd_dict
         )
-        self.last_rnd_dict["aerodynamic_surfaces"][-1]["position"] = position_rnd
+        self.last_rnd_dict["aerodynamic_surfaces"][-1]["position"] = Vector(
+            [0, 0, position_rnd]
+        )
         return surface, position_rnd
 
     def _create_rail_buttons(self, component_stochastic_rail_buttons):
