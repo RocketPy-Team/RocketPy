@@ -2376,7 +2376,7 @@ class Environment:
         """
         warnings.warn(
             "load_international_standard_atmosphere() is deprecated in version "
-            "1.5.0 and will be removed in version 1.7.0. This method is no longer "
+            "1.6.0 and will be removed in version 1.7.0. This method is no longer "
             "needed as the International Standard Atmosphere is already calculated "
             "when the Environment object is created.",
             DeprecationWarning,
