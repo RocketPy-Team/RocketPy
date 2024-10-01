@@ -3171,7 +3171,7 @@ class Function:  # pylint: disable=too-many-public-methods
                 )
             # Generate the data points using the callable
             x = np.linspace(lower, upper, samples)
-            data_points = np.column_stack((x, self.get_value_opt(x)))
+            data_points = np.column_stack((x, self(x)))
         else:
             # If the source is already an array, use it as is
             data_points = self.source
