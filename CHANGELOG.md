@@ -32,9 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
-- ENH: Generic Surfaces and Generic Linear Surfaces [#680](https://github.com/RocketPy-Team/RocketPy/pull/680)
-- ENH: Free-Form Fins [#694](https://github.com/RocketPy-Team/RocketPy/pull/694)
-- ENH: Expand Polation Options for ND Functions. [#691](https://github.com/RocketPy-Team/RocketPy/pull/691)
+- 
 
 ### Changed
 
@@ -43,6 +41,14 @@ Attention: The newest changes should be on top -->
 ### Fixed
 
 - 
+
+## [v1.6.0] - 2024-09-29
+
+### Added
+
+- ENH: Generic Surfaces and Generic Linear Surfaces [#680](https://github.com/RocketPy-Team/RocketPy/pull/680)
+- ENH: Free-Form Fins [#694](https://github.com/RocketPy-Team/RocketPy/pull/694)
+- ENH: Expand Polation Options for ND Functions. [#691](https://github.com/RocketPy-Team/RocketPy/pull/691)
 
 ## [v1.5.0] - 2024-09-15
 
