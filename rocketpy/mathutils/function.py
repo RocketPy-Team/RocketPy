@@ -3247,12 +3247,12 @@ class Function:  # pylint: disable=too-many-public-methods
                 )
 
             source_len, source_dim = source.shape
-
-            if source_len < source_dim:
-                raise ValueError(
-                    "Too few data points to define a domain. The number of rows "
-                    "must be greater than or equal to the number of columns."
-                )
+            if not source_len == 1:  # do not check for one point Functions
+                if source_len < source_dim:
+                    raise ValueError(
+                        "Too few data points to define a domain. The number of rows "
+                        "must be greater than or equal to the number of columns."
+                    )
 
             return source
 
