@@ -367,12 +367,15 @@ class Environment:
         self.standard_g = 9.80665
         self.__weather_model_map = WeatherModelMapping()
         self.__atm_type_file_to_function_map = {
-            ("forecast", "GFS"): fetch_gfs_file_return_dataset,
-            ("forecast", "NAM"): fetch_nam_file_return_dataset,
-            ("forecast", "RAP"): fetch_rap_file_return_dataset,
-            ("forecast", "HIRESW"): fetch_hiresw_file_return_dataset,
-            ("ensemble", "GEFS"): fetch_gefs_ensemble,
-            # ("ensemble", "CMC"): fetch_cmc_ensemble,
+            "forecast": {
+                "GFS": fetch_gfs_file_return_dataset,
+                "NAM": fetch_nam_file_return_dataset,
+                "RAP": fetch_rap_file_return_dataset,
+                "HIRESW": fetch_hiresw_file_return_dataset,
+            },
+            "ensemble": {
+                "GEFS": fetch_gefs_ensemble,
+            },
         }
         self.__standard_atmosphere_layers = {
             "geopotential_height": [  # in geopotential m
@@ -1287,7 +1290,10 @@ class Environment:
             self.process_windy_atmosphere(file)
         elif type in ["forecast", "reanalysis", "ensemble"]:
             dictionary = self.__validate_dictionary(file, dictionary)
-            fetch_function = self.__atm_type_file_to_function_map.get((type, file))
+            try:
+                fetch_function = self.__atm_type_file_to_function_map[type][file]
+            except KeyError:
+                fetch_function = None
 
             # Fetches the dataset using OpenDAP protocol or uses the file path
             dataset = fetch_function() if fetch_function is not None else file

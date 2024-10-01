@@ -345,6 +345,22 @@ class TankGeometry:
         self._geometry[domain] = Function(radius_function)
         self.radius = PiecewiseFunction(self._geometry, "Height (m)", "radius (m)")
 
+    def to_dict(self):
+        """
+        Returns a dictionary representation of the TankGeometry object.
+
+        Returns
+        -------
+        dict
+            Dictionary representation of the TankGeometry object.
+        """
+        return {
+            "geometry": {
+                str(domain): function.to_dict()
+                for domain, function in self._geometry.items()
+            }
+        }
+
 
 class CylindricalTank(TankGeometry):
     """Class to define the geometry of a cylindrical tank. The cylinder has
