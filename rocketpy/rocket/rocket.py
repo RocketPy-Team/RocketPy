@@ -966,6 +966,21 @@ class Rocket:
         self.evaluate_com_to_cdm_function()
         self.evaluate_nozzle_gyration_tensor()
 
+    def __add_single_surface(self, surface, position):
+        """Adds a single aerodynamic surface to the rocket. Makes checks for
+        rail buttons case, and position type.
+        """
+        position = (
+            Vector([0, 0, position])
+            if not isinstance(position, (Vector, tuple, list))
+            else Vector(position)
+        )
+        if isinstance(surface, RailButtons):
+            self.rail_buttons.add(surface, position)
+        else:
+            self.aerodynamic_surfaces.add(surface, position)
+        self.__evaluate_single_surface_cp_to_cdm(surface, position)
+
     def add_surfaces(self, surfaces, positions):
         """Adds one or more aerodynamic surfaces to the rocket. The aerodynamic
         surface must be an instance of a class that inherits from the
@@ -973,7 +988,7 @@ class Rocket:
 
         Parameters
         ----------
-        surfaces : list, AeroSurface, NoseCone, TrapezoidalFins, EllipticalFins, Tail
+        surfaces : list, AeroSurface, NoseCone, TrapezoidalFins, EllipticalFins, Tail, RailButtons
             Aerodynamic surface to be added to the rocket. Can be a list of
             AeroSurface if more than one surface is to be added.
         positions : int, float, list, tuple, Vector
@@ -996,22 +1011,11 @@ class Rocket:
         -------
         None
         """
-        # TODO: separate this method into smaller methods: https://github.com/RocketPy-Team/RocketPy/pull/696#discussion_r1771978422
         try:
             for surface, position in zip(surfaces, positions):
-                if not isinstance(position, (Vector, tuple, list)):
-                    position = Vector([0, 0, position])
-                else:
-                    position = Vector(position)
-                self.aerodynamic_surfaces.add(surface, position)
-                self.__evaluate_single_surface_cp_to_cdm(surface, position)
+                self.__add_single_surface(surface, position)
         except TypeError:
-            if not isinstance(positions, (Vector, tuple, list)):
-                positions = Vector([0, 0, positions])
-            else:
-                positions = Vector(positions)
-            self.aerodynamic_surfaces.add(surfaces, positions)
-            self.__evaluate_single_surface_cp_to_cdm(surfaces, positions)
+            self.__add_single_surface(surfaces, positions)
 
         self.evaluate_center_of_pressure()
         self.evaluate_stability_margin()
