@@ -976,6 +976,7 @@ class Rocket:
             else Vector(position)
         )
         if isinstance(surface, RailButtons):
+            self.rail_buttons = Components()
             self.rail_buttons.add(surface, position)
         else:
             self.aerodynamic_surfaces.add(surface, position)
