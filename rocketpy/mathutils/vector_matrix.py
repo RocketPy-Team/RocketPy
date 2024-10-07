@@ -418,6 +418,10 @@ class Vector:
         """Returns the k vector, [0, 0, 1]."""
         return Vector([0, 0, 1])
 
+    def to_dict(self):
+        """Returns the vector as a JSON compatible element."""
+        return list(self.components)
+
 
 class Matrix:
     """Pure Python 3x3 Matrix class for simple matrix-matrix and matrix-vector
