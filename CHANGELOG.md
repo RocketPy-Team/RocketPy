@@ -40,6 +40,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+- BUG: Rail Buttons Not Accepted in Add Surfaces [#701](https://github.com/RocketPy-Team/RocketPy/pull/701)
 - BUG: Vector encoding breaks MonteCarlo export. [#704](https://github.com/RocketPy-Team/RocketPy/pull/704)
 
 ## [v1.6.0] - 2024-09-29
