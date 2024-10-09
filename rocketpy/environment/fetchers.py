@@ -5,6 +5,7 @@ functions may be changed without notice in future feature releases.
 
 import re
 import time
+import warnings
 from datetime import datetime, timedelta, timezone
 
 import netCDF4
@@ -347,10 +348,12 @@ def fetch_noaaruc_sounding(file):
     ImportError
         If unable to load the specified file or the file content is too short.
     """
-    response = requests.get(file)
-    if response.status_code != 200 or len(response.text) < 10:
-        raise ImportError("Unable to load " + file + ".")
-    return response
+    warnings.warn(
+        "The NOAA RUC soundings are deprecated since September 30th, 2024. "
+        "This method will be removed in version 1.8.0.",
+        DeprecationWarning,
+    )
+    return file
 
 
 @exponential_backoff(max_attempts=5, base_delay=2, max_delay=60)

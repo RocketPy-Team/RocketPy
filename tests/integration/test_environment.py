@@ -98,20 +98,6 @@ def test_standard_atmosphere(
     assert example_plain_env.prints.print_earth_details() is None
 
 
-@patch("matplotlib.pyplot.show")
-def test_noaaruc_atmosphere(
-    mock_show, example_spaceport_env
-):  # pylint: disable=unused-argument
-    url = (
-        r"https://rucsoundings.noaa.gov/get_raobs.cgi?data_source=RAOB&latest="
-        r"latest&start_year=2019&start_month_name=Feb&start_mday=5&start_hour=12"
-        r"&start_min=0&n_hrs=1.0&fcst_len=shortest&airport=83779&text=Ascii"
-        r"%20text%20%28GSD%20format%29&hydrometeors=false&start=latest"
-    )
-    example_spaceport_env.set_atmospheric_model(type="NOAARucSounding", file=url)
-    assert example_spaceport_env.all_info() is None
-
-
 @pytest.mark.parametrize(
     "model_name",
     [

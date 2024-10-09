@@ -36,7 +36,7 @@ Attention: The newest changes should be on top -->
 
 ### Changed
 
--
+- DEP: deprecate NOAA's RuC sounding [#706](https://github.com/RocketPy-Team/RocketPy/pull/706)
 
 ### Fixed
 

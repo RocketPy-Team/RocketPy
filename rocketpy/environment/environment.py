@@ -16,7 +16,6 @@ from rocketpy.environment.fetchers import (
     fetch_gfs_file_return_dataset,
     fetch_hiresw_file_return_dataset,
     fetch_nam_file_return_dataset,
-    fetch_noaaruc_sounding,
     fetch_open_elevation,
     fetch_rap_file_return_dataset,
     fetch_wyoming_sounding,
@@ -142,11 +141,11 @@ class Environment:
     Environment.atmospheric_model_type : string
         Describes the atmospheric model which is being used. Can only assume the
         following values: ``standard_atmosphere``, ``custom_atmosphere``,
-        ``wyoming_sounding``, ``NOAARucSounding``, ``Forecast``, ``Reanalysis``,
+        ``wyoming_sounding``, ``Forecast``, ``Reanalysis``,
         ``Ensemble``.
     Environment.atmospheric_model_file : string
         Address of the file used for the atmospheric model being used. Only
-        defined for ``wyoming_sounding``, ``NOAARucSounding``, ``Forecast``,
+        defined for ``wyoming_sounding``, ``Forecast``,
         ``Reanalysis``, ``Ensemble``
     Environment.atmospheric_model_dict : dictionary
         Dictionary used to properly interpret ``netCDF`` and ``OPeNDAP`` files.
@@ -1053,24 +1052,6 @@ class Environment:
 
               .. _weather.uwyo: http://weather.uwyo.edu/upperair/sounding.html
 
-            - ``NOAARucSounding``: sets pressure, temperature, wind-u
-              and wind-v profiles and surface elevation obtained from
-              an upper air sounding given by the file parameter through
-              an URL. This URL should point to a data webpage obtained
-              through NOAA's Ruc Sounding servers, which can be accessed
-              in `rucsoundings`_. Selecting ROABs as the
-              initial data source, specifying the station through it's
-              WMO-ID and opting for the ASCII (GSD format) button, the
-              following example URL opens up:
-
-              https://rucsoundings.noaa.gov/get_raobs.cgi?data_source=RAOB&latest=latest&start_year=2019&start_month_name=Feb&start_mday=5&start_hour=12&start_min=0&n_hrs=1.0&fcst_len=shortest&airport=83779&text=Ascii%20text%20%28GSD%20format%29&hydrometeors=false&start=latest
-
-              Any ASCII GSD format page from this server can be read,
-              so information from virtual soundings such as GFS and NAM
-              can also be imported.
-
-              .. _rucsoundings: https://rucsoundings.noaa.gov/
-
             - ``windy_atmosphere``: sets pressure, temperature, wind-u and
               wind-v profiles and surface elevation obtained from the Windy API.
               See file argument to specify the model as either ``ECMWF``,
@@ -1279,8 +1260,6 @@ class Environment:
             self.process_standard_atmosphere()
         elif type == "wyoming_sounding":
             self.process_wyoming_sounding(file)
-        elif type == "noaarucsounding":
-            self.process_noaaruc_sounding(file)
         elif type == "custom_atmosphere":
             self.process_custom_atmosphere(pressure, temperature, wind_u, wind_v)
         elif type == "windy":
@@ -1689,107 +1668,18 @@ class Environment:
 
         See also
         --------
-        More details can be found at: https://rucsoundings.noaa.gov/.
+        This method is deprecated and will be fully deleted in version 1.8.0.
 
         Returns
         -------
         None
         """
-        # Request NOAA Ruc Sounding from file url
-        response = fetch_noaaruc_sounding(file)
-
-        # Split response into lines
-        lines = response.text.split("\n")
-
-        # Process GSD format (https://rucsoundings.noaa.gov/raob_format.html)
-
-        # Extract elevation data
-        for line in lines:
-            # Split line into columns
-            columns = re.split(" +", line)[1:]
-            if len(columns) > 0:
-                if columns[0] == "1" and columns[5] != "99999":
-                    # Save elevation
-                    self.elevation = float(columns[5])
-                else:
-                    # No elevation data available
-                    pass
-
-        pressure_array = []
-        barometric_height_array = []
-        temperature_array = []
-        wind_speed_array = []
-        wind_direction_array = []
-
-        for line in lines:
-            # Split line into columns
-            columns = re.split(" +", line)[1:]
-            if len(columns) < 6:
-                # skip lines with less than 6 columns
-                continue
-            if columns[0] in ["4", "5", "6", "7", "8", "9"]:
-                # Convert columns to floats
-                columns = np.array(columns, dtype=float)
-                # Select relevant columns
-                altitude, pressure, temperature, wind_direction, wind_speed = columns[
-                    [2, 1, 3, 5, 6]
-                ]
-                # Check for missing values
-                if altitude == 99999:
-                    continue
-                # Save values only if they are not missing
-                if pressure != 99999:
-                    pressure_array.append([altitude, pressure])
-                    barometric_height_array.append([pressure, altitude])
-                if temperature != 99999:
-                    temperature_array.append([altitude, temperature])
-                if wind_direction != 99999:
-                    wind_direction_array.append([altitude, wind_direction])
-                if wind_speed != 99999:
-                    wind_speed_array.append([altitude, wind_speed])
-
-        # Convert lists to arrays
-        pressure_array = np.array(pressure_array)
-        barometric_height_array = np.array(barometric_height_array)
-        temperature_array = np.array(temperature_array)
-        wind_speed_array = np.array(wind_speed_array)
-        wind_direction_array = np.array(wind_direction_array)
-
-        # Converts 10*hPa to Pa and save values
-        pressure_array[:, 1] = 10 * pressure_array[:, 1]
-        self.__set_pressure_function(pressure_array)
-        # Converts 10*hPa to Pa and save values
-        barometric_height_array[:, 0] = 10 * barometric_height_array[:, 0]
-        self.__set_barometric_height_function(barometric_height_array)
-
-        # Convert C to K and save values
-        temperature_array[:, 1] = temperature_array[:, 1] / 10 + 273.15
-        self.__set_temperature_function(temperature_array)
-
-        # Process wind-u and wind-v
-        # Converts Knots to m/s
-        wind_speed_array[:, 1] = wind_speed_array[:, 1] * 1.852 / 3.6
-        wind_heading_array = wind_direction_array[:, :] * 1
-        # Convert wind direction to wind heading
-        wind_heading_array[:, 1] = (wind_direction_array[:, 1] + 180) % 360
-        wind_u = wind_speed_array[:, :] * 1
-        wind_v = wind_speed_array[:, :] * 1
-        wind_u[:, 1] = wind_speed_array[:, 1] * np.sin(
-            np.deg2rad(wind_heading_array[:, 1])
+        warnings.warn(
+            "NOAA RUC models are no longer available. "
+            "This method is deprecated and will be fully deleted in version 1.8.0.",
+            DeprecationWarning,
         )
-        wind_v[:, 1] = wind_speed_array[:, 1] * np.cos(
-            np.deg2rad(wind_heading_array[:, 1])
-        )
-
-        # Save wind data
-        self.__set_wind_direction_function(wind_direction_array)
-        self.__set_wind_heading_function(wind_heading_array)
-        self.__set_wind_speed_function(wind_speed_array)
-        self.__set_wind_velocity_x_function(wind_u)
-        self.__set_wind_velocity_y_function(wind_v)
-
-        # Save maximum expected height
-        self.max_expected_height = pressure_array[-1, 0]
+        return file
 
     def process_forecast_reanalysis(
         self, file, dictionary
