@@ -419,7 +419,7 @@ class Environment:
         """Saves the elevation and the maximum expected height."""
         self.elevation = elevation
         self.set_elevation(elevation)
-        self._max_expected_height = max_expected_height
+        self.max_expected_height = max_expected_height
 
     def __initialize_date(self, date, timezone):
         """Saves the date and configure timezone."""
@@ -1411,7 +1411,7 @@ class Environment:
         None
         """
         # Initialize an estimate of the maximum expected atmospheric model height
-        max_expected_height = 1000
+        max_expected_height = self.max_expected_height or 1000
 
         # Save pressure profile
         if pressure is None:
