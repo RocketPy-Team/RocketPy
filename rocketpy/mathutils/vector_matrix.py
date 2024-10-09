@@ -418,6 +418,10 @@ class Vector:
         """Returns the k vector, [0, 0, 1]."""
         return Vector([0, 0, 1])
 
+    def to_dict(self):
+        """Returns the vector as a JSON compatible element."""
+        return list(self.components)
+
 
 class Matrix:
     """Pure Python 3x3 Matrix class for simple matrix-matrix and matrix-vector
@@ -997,6 +1001,10 @@ class Matrix:
             + f"       [{self.yx}, {self.yy}, {self.yz}],\n"
             + f"       [{self.zx}, {self.zy}, {self.zz}])"
         )
+
+    def to_dict(self):
+        """Returns the matrix as a JSON compatible element."""
+        return [list(row) for row in self.components]
 
     @staticmethod
     def identity():
