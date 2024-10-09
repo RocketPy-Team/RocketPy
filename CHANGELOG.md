@@ -40,6 +40,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+- BUG: Fix Environment.max_expected_height for custom atmosphere [#707](https://github.com/RocketPy-Team/RocketPy/pull/707)
 - BUG: Initialize _Controller Init Parameters [#703](https://github.com/RocketPy-Team/RocketPy/pull/703)
 - BUG: Rail Buttons Not Accepted in Add Surfaces [#701](https://github.com/RocketPy-Team/RocketPy/pull/701)
 - BUG: Vector encoding breaks MonteCarlo export. [#704](https://github.com/RocketPy-Team/RocketPy/pull/704)
