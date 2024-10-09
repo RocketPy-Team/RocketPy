@@ -1002,6 +1002,10 @@ class Matrix:
             + f"       [{self.zx}, {self.zy}, {self.zz}])"
         )
 
+    def to_dict(self):
+        """Returns the matrix as a JSON compatible element."""
+        return [list(row) for row in self.components]
+
     @staticmethod
     def identity():
         """Returns the 3x3 identity matrix."""
