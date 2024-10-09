@@ -33,7 +33,7 @@ RocketPy is the next-generation trajectory simulation solution for High-Power Ro
 
 2. **Accurate Weather Modeling**
    - Supports International Standard Atmosphere (1976)
-   - Custom atmospheric profiles and Soundings (Wyoming, NOAARuc)
+   - Custom atmospheric profiles and Soundings (Wyoming)
    - Weather forecasts, reanalysis, and ensembles for realistic scenarios
 
 3. **Aerodynamic Models**

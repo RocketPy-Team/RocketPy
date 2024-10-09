@@ -41,6 +41,17 @@ Initialize a new Environment instance:
 NOAA's Ruc Soundings
 --------------------
 
+.. important::
+
+    From September 30th, 2024, this model is no longer available since NOAA has \
+    discontinued the Ruc Soundings public service. The following message is \
+    displayed on the website: \
+    "On Monday, September 30, a number of legacy websites were permanently removed. \
+    These sites were no longer being maintained and did not meet security and \
+    design requirements mandated by NOAA. They were intended for research \
+    purposes and are not designed for operational use, such as for commercial \
+    purposes or the safety of life and property."
+
 Another option for upper air soundings is `NOAA's Ruc Soundings <https://rucsoundings.noaa.gov/>`_.
 This service allows users to download virtual soundings from numerical weather
 prediction models such as GFS, RAP, and NAM, and also real soundings from the

@@ -36,16 +36,20 @@ Attention: The newest changes should be on top -->
 
 ### Changed
 
--
+- DEP: deprecate NOAA's RuC sounding [#706](https://github.com/RocketPy-Team/RocketPy/pull/706)
 
 ### Fixed
 
+- BUG: Rail Buttons Not Accepted in Add Surfaces [#701](https://github.com/RocketPy-Team/RocketPy/pull/701)
 - BUG: Vector encoding breaks MonteCarlo export. [#704](https://github.com/RocketPy-Team/RocketPy/pull/704)
+- BUG: Single Point Functions Can Not Be Defined [#700](https://github.com/RocketPy-Team/RocketPy/pull/700)
+- BUG: savetxt Not Accepting lambda Functions [#698](https://github.com/RocketPy-Team/RocketPy/pull/698)
 
 ## [v1.6.0] - 2024-09-29
 
 ### Added
 
+- REL: v1.6.0 [#697](https://github.com/RocketPy-Team/RocketPy/pull/697)
 - ENH: Generic Surfaces and Generic Linear Surfaces [#680](https://github.com/RocketPy-Team/RocketPy/pull/680)
 - ENH: Free-Form Fins [#694](https://github.com/RocketPy-Team/RocketPy/pull/694)
 - ENH: Expand Polation Options for ND Functions. [#691](https://github.com/RocketPy-Team/RocketPy/pull/691)
