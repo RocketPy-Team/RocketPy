@@ -345,6 +345,38 @@ class Motor(ABC):
                     " argument must be specified."
                 )
 
+    @property
+    def dry_mass(self):
+        """Dry mass of the motor in kg.
+
+        Returns
+        -------
+        self.dry_mass : float
+            Motor dry mass in kg.
+        """
+        return self._dry_mass
+
+    @dry_mass.setter
+    def dry_mass(self, dry_mass):
+        """Sets dry mass of the motor in kg.
+
+        Parameters
+        ----------
+        dry_mass : float
+            Motor dry mass in kg.
+        """
+        if dry_mass is not None:
+            if isinstance(dry_mass, (int, float)):
+                self._dry_mass = dry_mass
+            else:
+                raise ValueError("Dry mass must be a number.")
+        elif self.description_eng_file:
+            self._dry_mass = float(self.description_eng_file[-2]) - float(
+                self.description_eng_file[-3]
+            )
+        else:
+            raise ValueError("Dry mass must be specified.")
+
     @cached_property
     def total_impulse(self):
         """Calculates and returns total impulse by numerical integration
