@@ -40,6 +40,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+- BUG: Initialize _Controller Init Parameters [#703](https://github.com/RocketPy-Team/RocketPy/pull/703)
 - BUG: Rail Buttons Not Accepted in Add Surfaces [#701](https://github.com/RocketPy-Team/RocketPy/pull/701)
 - BUG: Vector encoding breaks MonteCarlo export. [#704](https://github.com/RocketPy-Team/RocketPy/pull/704)
 - BUG: Single Point Functions Can Not Be Defined [#700](https://github.com/RocketPy-Team/RocketPy/pull/700)
