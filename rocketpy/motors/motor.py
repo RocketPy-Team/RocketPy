@@ -370,7 +370,7 @@ class Motor(ABC):
         dry_mass : float
             Motor dry mass in kg.
         """
-        if dry_mass:
+        if dry_mass is not None:
             if isinstance(dry_mass, (int, float)):
                 self._dry_mass = dry_mass
             else:
