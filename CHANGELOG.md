@@ -32,10 +32,20 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
-- 
+
 
 ### Changed
 
+
+
+### Fixed
+
+
+## [v1.6.1] - 2024-10-10
+
+### Changed
+
+- REL: v1.6.1 [#708](https://github.com/RocketPy-Team/RocketPy/pull/708)
 - DEP: deprecate NOAA's RuC sounding [#706](https://github.com/RocketPy-Team/RocketPy/pull/706)
 
 ### Fixed
