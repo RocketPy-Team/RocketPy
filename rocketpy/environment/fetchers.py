@@ -353,6 +353,7 @@ def fetch_noaaruc_sounding(file):
         "This method will be removed in version 1.8.0.",
         DeprecationWarning,
     )
+    return file
 
 
 @exponential_backoff(max_attempts=5, base_delay=2, max_delay=60)

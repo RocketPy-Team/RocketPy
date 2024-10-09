@@ -16,7 +16,6 @@ from rocketpy.environment.fetchers import (
     fetch_gfs_file_return_dataset,
     fetch_hiresw_file_return_dataset,
     fetch_nam_file_return_dataset,
-    fetch_noaaruc_sounding,
     fetch_open_elevation,
     fetch_rap_file_return_dataset,
     fetch_wyoming_sounding,
@@ -1680,6 +1679,7 @@ class Environment:
             "This method is deprecated and will be fully deleted in version 1.8.0.",
             DeprecationWarning,
         )
+        return file
 
     def process_forecast_reanalysis(
         self, file, dictionary
