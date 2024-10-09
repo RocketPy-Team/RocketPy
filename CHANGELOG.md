@@ -50,6 +50,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+- BUG: Fix Motor Zero Dry Mass Check [#710](https://github.com/RocketPy-Team/RocketPy/pull/710)
 - BUG: Fix Environment.max_expected_height for custom atmosphere [#707](https://github.com/RocketPy-Team/RocketPy/pull/707)
 - BUG: Initialize _Controller Init Parameters [#703](https://github.com/RocketPy-Team/RocketPy/pull/703)
 - BUG: Rail Buttons Not Accepted in Add Surfaces [#701](https://github.com/RocketPy-Team/RocketPy/pull/701)
