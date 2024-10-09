@@ -418,7 +418,7 @@ class Environment:
         """Saves the elevation and the maximum expected height."""
         self.elevation = elevation
         self.set_elevation(elevation)
-        self.max_expected_height = max_expected_height
+        self._max_expected_height = max_expected_height
 
     def __initialize_date(self, date, timezone):
         """Saves the date and configure timezone."""
@@ -1313,7 +1313,7 @@ class Environment:
         self.__set_wind_speed_function(0)
 
         # 80k meters is the limit of the standard atmosphere
-        self.max_expected_height = 80000
+        self._max_expected_height = 80000
 
     def process_custom_atmosphere(
         self, pressure=None, temperature=None, wind_u=0, wind_v=0
@@ -1434,7 +1434,7 @@ class Environment:
         self.__reset_wind_direction_function()
         self.__reset_wind_speed_function()
 
-        self.max_expected_height = max_expected_height
+        self._max_expected_height = max_expected_height
 
     def process_windy_atmosphere(
         self, model="ECMWF"
@@ -1509,7 +1509,7 @@ class Environment:
         self.__set_wind_speed_function(data_array[:, (1, 7)])
 
         # Save maximum expected height
-        self.max_expected_height = max(altitude_array[0], altitude_array[-1])
+        self._max_expected_height = max(altitude_array[0], altitude_array[-1])
 
         # Get elevation data from file
         self.elevation = float(response["header"]["elevation"])
@@ -1647,7 +1647,7 @@ class Environment:
         )
 
         # Save maximum expected height
-        self.max_expected_height = data_array[-1, 1]
+        self._max_expected_height = data_array[-1, 1]
 
     def process_noaaruc_sounding(self, file):  # pylint: disable=too-many-statements
         """Import and process the upper air sounding data from `NOAA
@@ -1899,7 +1899,7 @@ class Environment:
         self.__set_wind_speed_function(data_array[:, (1, 7)])
 
         # Save maximum expected height
-        self.max_expected_height = max(height[0], height[-1])
+        self._max_expected_height = max(height[0], height[-1])
 
         # Get elevation data from file
         if dictionary["surface_geopotential_height"] is not None:
@@ -2244,7 +2244,7 @@ class Environment:
         self.__set_wind_speed_function(data_array[:, (1, 7)])
 
         # Save other attributes
-        self.max_expected_height = max(height[0], height[-1])
+        self._max_expected_height = max(height[0], height[-1])
         self.ensemble_member = member
 
         # Update air density, speed of sound and dynamic viscosity
