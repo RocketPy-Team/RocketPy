@@ -80,7 +80,8 @@ class MonteCarlo:
     """
 
     def __init__(
-        self, filename, environment, rocket, flight, export_list=None
+        self, filename, environment, rocket, flight, export_list=None,
+            export_function=None
     ):  # pylint: disable=too-many-statements
         """
         Initialize a MonteCarlo object.
@@ -104,6 +105,11 @@ class MonteCarlo:
             `out_of_rail_stability_margin`, `out_of_rail_time`,
             `out_of_rail_velocity`, `max_mach_number`, `frontal_surface_wind`,
             `lateral_surface_wind`. Default is None.
+        export_function : callable, optional
+            A function which gets called at the end of a simulation to collect
+            additional data to be exported that isn't pre-defined. Takes the
+            Flight object as an argument and returns a dictionary. Default is None.
+
 
         Returns
         -------
@@ -132,6 +138,7 @@ class MonteCarlo:
         self._last_print_len = 0  # used to print on the same line
 
         self.export_list = self.__check_export_list(export_list)
+        self.export_function = export_function
 
         try:
             self.import_inputs()
@@ -358,6 +365,13 @@ class MonteCarlo:
             export_item: getattr(flight, export_item)
             for export_item in self.export_list
         }
+
+        if self.export_function is not None:
+            additional_exports = self.export_function(flight)
+            for key in additional_exports.keys():
+                if key in self.export_list:
+                    raise ValueError(f"Invalid export function, returns dict which overwrites key, '{key}'")
+            results = results | additional_exports
 
         input_file.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
         output_file.write(json.dumps(results, cls=RocketPyEncoder) + "\n")
@@ -654,9 +668,12 @@ class MonteCarlo:
         """
         self.processed_results = {}
         for result, values in self.results.items():
-            mean = np.mean(values)
-            stdev = np.std(values)
-            self.processed_results[result] = (mean, stdev)
+            try:
+                mean = np.mean(values)
+                stdev = np.std(values)
+                self.processed_results[result] = (mean, stdev)
+            except TypeError:
+                self.processed_results[result] = (None, None)
 
     # Import methods
 
