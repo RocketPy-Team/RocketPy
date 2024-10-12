@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 
 from ..tools import generate_monte_carlo_ellipses, import_optional_dependency
 
@@ -54,14 +55,27 @@ class _MonteCarloPlots:
                     "The image file was not found. Please check the path."
                 ) from e
 
-        (
-            impact_ellipses,
-            apogee_ellipses,
+        try:
+            apogee_x = np.array(self.monte_carlo.results["apogee_x"])
+            apogee_y = np.array(self.monte_carlo.results["apogee_y"])
+        except KeyError:
+            print("No apogee data found. Skipping apogee ellipses.")
+            apogee_x = np.array([])
+            apogee_y = np.array([])
+        try:
+            impact_x = np.array(self.monte_carlo.results["x_impact"])
+            impact_y = np.array(self.monte_carlo.results["y_impact"])
+        except KeyError:
+            print("No impact data found. Skipping impact ellipses.")
+            impact_x = np.array([])
+            impact_y = np.array([])
+
+        impact_ellipses, apogee_ellipses = generate_monte_carlo_ellipses(
             apogee_x,
             apogee_y,
             impact_x,
             impact_y,
-        ) = generate_monte_carlo_ellipses(self.monte_carlo.results)
+        )
 
         # Create plot figure
         plt.figure(figsize=(8, 6), dpi=150)
@@ -97,9 +111,7 @@ class _MonteCarloPlots:
             )
 
         plt.legend()
-        ax.set_title(
-            "1$\\sigma$, 2$\\sigma$ and 3$\\sigma$ Monte Carlo Ellipses: Apogee and Landing Points"
-        )
+        ax.set_title("1$\\sigma$, 2$\\sigma$ and 3$\\sigma$ Monte Carlo Ellipses")
         ax.set_ylabel("North (m)")
         ax.set_xlabel("East (m)")
 
