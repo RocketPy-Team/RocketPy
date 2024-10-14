@@ -84,8 +84,10 @@ class _Controller:
         None
         """
         self.interactive_objects = interactive_objects
+        self.base_controller_function = controller_function
         self.controller_function = self.__init_controller_function(controller_function)
         self.sampling_rate = sampling_rate
+        self.initial_observed_variables = initial_observed_variables
         self.name = name
         self.prints = _ControllerPrints(self)
 

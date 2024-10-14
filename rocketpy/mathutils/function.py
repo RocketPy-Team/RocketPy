@@ -3173,7 +3173,7 @@ class Function:  # pylint: disable=too-many-public-methods
                 )
             # Generate the data points using the callable
             x = np.linspace(lower, upper, samples)
-            data_points = np.column_stack((x, self.source(x)))
+            data_points = np.column_stack((x, self(x)))
         else:
             # If the source is already an array, use it as is
             data_points = self.source
@@ -3249,12 +3249,12 @@ class Function:  # pylint: disable=too-many-public-methods
                 )
 
             source_len, source_dim = source.shape
-
-            if source_len < source_dim:
-                raise ValueError(
-                    "Too few data points to define a domain. The number of rows "
-                    "must be greater than or equal to the number of columns."
-                )
+            if not source_len == 1:  # do not check for one point Functions
+                if source_len < source_dim:
+                    raise ValueError(
+                        "Too few data points to define a domain. The number of rows "
+                        "must be greater than or equal to the number of columns."
+                    )
 
             return source
 
