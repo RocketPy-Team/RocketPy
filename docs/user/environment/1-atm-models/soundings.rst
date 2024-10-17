@@ -70,7 +70,7 @@ We will use the same sounding station as we did for the Wyoming Soundings.
 
 Initialize a new Environment instance:
 
-.. jupyter-execute::
+.. code-block:: python
 
     url = r"https://rucsoundings.noaa.gov/get_raobs.cgi?data_source=RAOB&latest=latest&start_year=2019&start_month_name=Feb&start_mday=5&start_hour=12&start_min=0&n_hrs=1.0&fcst_len=shortest&airport=83779&text=Ascii%20text%20%28GSD%20format%29&hydrometeors=false&start=latest"
 

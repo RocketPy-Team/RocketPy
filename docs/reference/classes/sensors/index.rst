@@ -9,4 +9,4 @@ Sensor Classes
    Accelerometer Class <accelerometer>
    Barometer Class <barometer>
    Gyroscope Class <gyroscope>
-   GNSS Receiver Class <gnss>
+   GNSS Receiver Class <gnss_receiver>

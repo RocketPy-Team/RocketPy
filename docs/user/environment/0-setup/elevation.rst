@@ -35,7 +35,7 @@ It is integrated with RocketPy and can be used as follows.
 
 First, initialize a new Environment:
 
-.. jupyter-execute::
+.. code-block:: python
 
     env = Environment(
         date=(2019, 2, 10, 18),
@@ -45,13 +45,13 @@ First, initialize a new Environment:
 
 Then, set the elevation using Open-Elevation:
 
-.. jupyter-execute::
+.. code-block:: python
 
     env.set_elevation("Open-Elevation")
 
 To get information from the Environment, use the following method:
 
-.. jupyter-execute::
+.. code-block:: python
 
     env.prints.launch_site_details()
 
