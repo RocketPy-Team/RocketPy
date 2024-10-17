@@ -36,6 +36,8 @@ class _RocketPrints:
         print(f"Rocket Mass: {self.rocket.mass:.3f} kg (without motor)")
         print(f"Rocket Dry Mass: {self.rocket.dry_mass:.3f} kg (with unloaded motor)")
         print(f"Rocket Loaded Mass: {self.rocket.total_mass(0):.3f} kg")
+        mass_ratio = self.rocket.dry_mass / self.rocket.total_mass(0)
+        print(f"Rocket Structural to total mass ratio: {mass_ratio:.3f}")
         print(
             f"Rocket Inertia (with unloaded motor) 11: {self.rocket.dry_I_11:.3f} kg*m2"
         )
