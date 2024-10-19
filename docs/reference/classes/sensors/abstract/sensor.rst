@@ -1,5 +1,5 @@
 Sensor Class
 ------------
 
-.. autoclass:: rocketpy.sensors.Barometer
+.. autoclass:: rocketpy.sensors.Sensor
     :members:

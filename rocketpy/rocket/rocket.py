@@ -1739,7 +1739,7 @@ class Rocket:
 
         See Also
         --------
-        :ref:`rocketaxes`
+        :ref:`rocket_axes`
 
         Notes
         -----
@@ -1777,7 +1777,7 @@ class Rocket:
 
         See Also
         --------
-        :ref:`rocketaxes`
+        :ref:`rocket_axes`
         """
         self.cp_eccentricity_x = x
         self.cp_eccentricity_y = y
@@ -1807,7 +1807,7 @@ class Rocket:
 
         See Also
         --------
-        :ref:`rocketaxes`
+        :ref:`rocket_axes`
         """
         self.thrust_eccentricity_y = x
         self.thrust_eccentricity_x = y
