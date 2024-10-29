@@ -65,8 +65,7 @@ class _SolidMotorPrints:
         print(
             f"Total Propellant Mass: {self.solid_motor.propellant_initial_mass:.3f} kg"
         )
-        mass_ratio = self.solid_motor.dry_mass / self.solid_motor.total_mass(0)
-        print(f"Structural to total mass ratio: {mass_ratio:.3f}")
+        print(f"Structural to total mass ratio: {self.solid_motor.structural_mass_ratio:.3f}")
         average = self.solid_motor.exhaust_velocity.average(*self.solid_motor.burn_time)
         print(f"Average Propellant Exhaust Velocity: {average:.3f} m/s")
         print(f"Average Thrust: {self.solid_motor.average_thrust:.3f} N")

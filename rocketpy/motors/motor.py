@@ -49,6 +49,8 @@ class Motor(ABC):
     Motor.propellant_mass : Function
         Total propellant mass in kg as a function of time, including solid,
         liquid and gas phases.
+    Motor.structural_mass_ratio: float
+        Initial ratio between the dry mass and the total mass.
     Motor.total_mass_flow_rate : Function
         Time derivative of propellant total mass in kg/s as a function
         of time as obtained by the thrust source.
@@ -496,6 +498,19 @@ class Motor(ABC):
         float
             Propellant initial mass in kg.
         """
+
+    @property
+    def structural_mass_ratio(self):
+        """Calculates the structural mass ratio. The ratio is defined as
+        the dry mass divided by the initial total mass.
+
+        Returns
+        -------
+        float
+            Initial structural mass ratio.
+        """
+        initial_total_mass = self.dry_mass + self.propellant_initial_mass
+        return self.dry_mass / initial_total_mass
 
     @funcify_method("Time (s)", "Motor center of mass (m)")
     def center_of_mass(self):

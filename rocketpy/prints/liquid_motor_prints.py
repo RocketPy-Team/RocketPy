@@ -47,6 +47,7 @@ class _LiquidMotorPrints:
         print(
             f"Total Propellant Mass: {self.liquid_motor.propellant_initial_mass:.3f} kg"
         )
+        print(f"Structural to total mass ratio: {self.liquid_motor.structural_mass_ratio:.3f}")
         avg = self.liquid_motor.exhaust_velocity.average(*self.liquid_motor.burn_time)
         print(f"Average Propellant Exhaust Velocity: {avg:.3f} m/s")
         print(f"Average Thrust: {self.liquid_motor.average_thrust:.3f} N")
