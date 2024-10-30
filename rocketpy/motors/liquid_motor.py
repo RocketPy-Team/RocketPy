@@ -47,7 +47,7 @@ class LiquidMotor(Motor):
     LiquidMotor.propellant_mass : Function
         Total propellant mass in kg as a function of time, includes fuel
         and oxidizer.
-    Motor.structural_mass_ratio: float
+    LiquidMotor.structural_mass_ratio: float
         Initial ratio between the dry mass and the total mass.
     LiquidMotor.total_mass_flow_rate : Function
         Time derivative of propellant total mass in kg/s as a function
