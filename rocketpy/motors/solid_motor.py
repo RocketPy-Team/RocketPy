@@ -70,6 +70,8 @@ class SolidMotor(Motor):
         of propellant and dry mass.
     SolidMotor.propellant_mass : Function
         Total propellant mass in kg as a function of time.
+    Motor.structural_mass_ratio: float
+        Initial ratio between the dry mass and the total mass.
     SolidMotor.total_mass_flow_rate : Function
         Time derivative of propellant total mass in kg/s as a function
         of time as obtained by the thrust source.

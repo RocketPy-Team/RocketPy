@@ -89,6 +89,8 @@ class Rocket:
         Function of time expressing the total mass of the rocket,
         defined as the sum of the propellant mass and the rocket
         mass without propellant.
+    Rocket.structural_mass_ratio: float
+        Initial ratio between the dry mass and the total mass.
     Rocket.total_mass_flow_rate : Function
         Time derivative of rocket's total mass in kg/s as a function
         of time as obtained by the thrust source of the added motor.

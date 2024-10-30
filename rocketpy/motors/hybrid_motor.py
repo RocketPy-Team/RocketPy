@@ -72,6 +72,8 @@ class HybridMotor(Motor):
     HybridMotor.propellant_mass : Function
         Total propellant mass in kg as a function of time, this includes the
         mass of fluids in each tank and the mass of the solid grains.
+    Motor.structural_mass_ratio: float
+        Initial ratio between the dry mass and the total mass.
     HybridMotor.total_mass_flow_rate : Function
         Time derivative of propellant total mass in kg/s as a function
         of time as obtained by the thrust source.
