@@ -35,7 +35,7 @@ class _MotorPrints:
         print("Motor Details")
         print("Total Burning Time: " + str(self.motor.burn_out_time) + " s")
         print(f"Total Propellant Mass: {self.motor.propellant_initial_mass:.3f} kg")
-        print(f"Structural to total mass ratio: {self.motor.structural_mass_ratio:.3f}")
+        print(f"Structural Mass Ratio: {self.motor.structural_mass_ratio:.3f}")
         print(
             "Average Propellant Exhaust Velocity: "
             f"{self.motor.exhaust_velocity.average(*self.motor.burn_time):.3f} m/s"
