@@ -361,6 +361,7 @@ class Rocket:
 
         # calculate dynamic inertial quantities
         self.evaluate_dry_mass()
+        self.evaluate_structural_mass_ratio()
         self.evaluate_total_mass()
         self.evaluate_center_of_dry_mass()
         self.evaluate_center_of_mass()
@@ -432,6 +433,26 @@ class Rocket:
         self.dry_mass = self.mass + self.motor.dry_mass
 
         return self.dry_mass
+
+    def evaluate_structural_mass_ratio(self):
+        """Calculates and returns the rocket's structural mass ratio.
+        It is defined as the ratio between of the dry mass
+        (Motor + Rocket) and the initial total mass
+        (Motor + Propellant + Rocket).
+
+        Returns
+        -------
+        self.structural_mass_ratio: float
+            Initial structural mass ratio dry mass (Rocket + Motor) (kg)
+            divided by total mass (Rocket + Motor + Propellant) (kg).
+        """
+        # Make sure there is a motor associated with the rocket
+
+        self.structural_mass_ratio = self.dry_mass / (
+            self.dry_mass + self.motor.propellant_initial_mass
+        )
+
+        return self.structural_mass_ratio
 
     def evaluate_center_of_mass(self):
         """Evaluates rocket center of mass position relative to user defined
@@ -951,6 +972,7 @@ class Rocket:
         self.nozzle_position = self.motor.nozzle_position * _ + self.motor_position
         self.total_mass_flow_rate = self.motor.total_mass_flow_rate
         self.evaluate_dry_mass()
+        self.evaluate_structural_mass_ratio()
         self.evaluate_total_mass()
         self.evaluate_center_of_dry_mass()
         self.evaluate_nozzle_to_cdm()

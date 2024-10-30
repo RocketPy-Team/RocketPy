@@ -510,6 +510,8 @@ class Motor(ABC):
             Initial structural mass ratio.
         """
         initial_total_mass = self.dry_mass + self.propellant_initial_mass
+        if initial_total_mass == 0:
+            raise ValueError("Motor total mass is zero!")
         return self.dry_mass / initial_total_mass
 
     @funcify_method("Time (s)", "Motor center of mass (m)")
@@ -1517,6 +1519,7 @@ class EmptyMotor:
         self.nozzle_radius = 0
         self.thrust = Function(0, "Time (s)", "Thrust (N)")
         self.propellant_mass = Function(0, "Time (s)", "Propellant Mass (kg)")
+        self.propellant_initial_mass = 0
         self.total_mass = Function(0, "Time (s)", "Total Mass (kg)")
         self.total_mass_flow_rate = Function(
             0, "Time (s)", "Mass Depletion Rate (kg/s)"
