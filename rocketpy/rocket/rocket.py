@@ -448,7 +448,6 @@ class Rocket:
             Initial structural mass ratio dry mass (Rocket + Motor) (kg)
             divided by total mass (Rocket + Motor + Propellant) (kg).
         """
-        # Make sure there is a motor associated with the rocket
 
         self.structural_mass_ratio = self.dry_mass / (
             self.dry_mass + self.motor.propellant_initial_mass
