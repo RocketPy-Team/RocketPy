@@ -346,12 +346,13 @@ class InertialSensor(Sensor):
             Sample rate of the sensor
         orientation : tuple, list, optional
             Orientation of the sensor in relation to the rocket frame of
-            reference (Body Axes Coordinate System). See :ref:'rocket_axes' for
+            reference (Body Axes Coordinate System). See :ref:`rocket_axes` for
             more information.
             If orientation is not given, the sensor axes will be aligned with
             the rocket axis.
-            The orientation can be given as:
-            - A list or tuple of length 3, where the elements are the intrisic
+            The orientation can be given as either:
+
+            - A list or tuple of length 3, where the elements are the intrinsic
               rotation angles in radians. The rotation sequence z-x-z (3-1-3) is
               used, meaning the sensor is first around the z axis (roll), then
               around the new x axis (pitch) and finally around the new z axis

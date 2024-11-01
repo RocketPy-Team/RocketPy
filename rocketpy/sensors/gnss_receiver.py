@@ -72,6 +72,7 @@ class GnssReceiver(ScalarSensor):
             Current time in seconds.
         kwargs : dict
             Keyword arguments dictionary containing the following keys:
+
             - u : np.array
                 State vector of the rocket.
             - u_dot : np.array
