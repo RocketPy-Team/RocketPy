@@ -70,6 +70,9 @@ class _MonteCarloPlots:
             impact_x = np.array([])
             impact_y = np.array([])
 
+        if len(apogee_x) == 0 and len(impact_x) == 0:
+            raise ValueError("No apogee or impact data found. Cannot plot ellipses.")
+
         impact_ellipses, apogee_ellipses = generate_monte_carlo_ellipses(
             apogee_x,
             apogee_y,
