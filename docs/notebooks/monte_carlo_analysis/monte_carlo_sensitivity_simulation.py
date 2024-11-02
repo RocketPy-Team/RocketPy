@@ -81,7 +81,7 @@ env.set_atmospheric_model(type="Forecast", file="GFS")
 
 # Motor
 motor = SolidMotor(
-    thrust_source="../../../data/motors/Cesaroni_M1670.eng",
+    thrust_source="../../../data/motors/cesaroni/Cesaroni_M1670.eng",
     dry_mass=analysis_parameters["motors_dry_mass"]["mean"],
     nozzle_radius=analysis_parameters["motors_nozzle_radius"]["mean"],
     grain_density=analysis_parameters["motors_grain_density"]["mean"],
@@ -106,8 +106,8 @@ rocket = Rocket(
     radius=analysis_parameters["rocket_radius"]["mean"],
     mass=analysis_parameters["rocket_mass"]["mean"],
     inertia=(6.321, 6.321, 0.034),
-    power_off_drag="../../../data/calisto/powerOffDragCurve.csv",
-    power_on_drag="../../../data/calisto/powerOnDragCurve.csv",
+    power_off_drag="../../../data/rockets/calisto/powerOffDragCurve.csv",
+    power_on_drag="../../../data/rockets/calisto/powerOnDragCurve.csv",
     center_of_mass_without_motor=0,
     coordinate_system_orientation="tail_to_nose",
 )
@@ -129,7 +129,7 @@ fin_set = rocket.add_trapezoidal_fins(
     span=0.110,
     position=-1.04956,
     cant_angle=0.5,
-    airfoil=("../../../data/calisto/NACA0012-radians.csv", "radians"),
+    airfoil=("../../../data/airfoils/NACA0012-radians.txt", "radians"),
 )
 
 tail = rocket.add_tail(

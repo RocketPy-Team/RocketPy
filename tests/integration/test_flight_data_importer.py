@@ -13,7 +13,7 @@ def test_flight_importer_bella_lui():
         "z_(m)": "altitude",
         "v_(m/s)": "vz",
     }
-    path = "tests/fixtures/acceptance/EPFL_Bella_Lui/bella_lui_flight_data_filtered.csv"
+    path = "data/rockets/EPFL_Bella_Lui/bella_lui_flight_data_filtered.csv"
 
     fd = FlightDataImporter(
         name="Bella Lui, EPFL Rocket Team, 2020",
@@ -42,7 +42,7 @@ def test_flight_importer_ndrt():
         "Altitude_(Ft-AGL)": "altitude",
     }
     units = {"Altitude_(Ft-AGL)": "ft"}
-    path = "tests/fixtures/acceptance/NDRT_2020/ndrt_2020_flight_data.csv"
+    path = "data/rockets/NDRT_2020/ndrt_2020_flight_data.csv"
 
     fd = FlightDataImporter(
         name="NDRT Rocket team, 2020",
