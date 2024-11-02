@@ -32,7 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
-
+- ENH: add structural to total mass ratio for motor and rocket [#713](https://github.com/RocketPy-Team/RocketPy/pull/713)
 
 ### Changed
 
