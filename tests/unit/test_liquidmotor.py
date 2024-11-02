@@ -54,7 +54,9 @@ def test_liquid_motor_thrust_parameters(
     oxidizer_tank : rocketpy.Tank
         The expected oxidizer tank.
     """
-    expected_thrust = np.loadtxt("data/SEBLM/test124_Thrust_Curve.csv", delimiter=",")
+    expected_thrust = np.loadtxt(
+        "data/rockets/berkeley/test124_Thrust_Curve.csv", delimiter=","
+    )
     expected_mass_flow = (
         pressurant_tank.net_mass_flow_rate
         + fuel_tank.net_mass_flow_rate
@@ -107,15 +109,21 @@ def test_liquid_motor_mass_volume(
     test_oxidizer_tank = liquid_motor.positioned_tanks[2]["tank"]
 
     # Test is Function dependent for discretization validation
-    expected_pressurant_mass = Function("data/SEBLM/pressurantMassFiltered.csv")
+    expected_pressurant_mass = Function(
+        "data/rockets/berkeley/pressurantMassFiltered.csv"
+    )
     expected_pressurant_volume = expected_pressurant_mass / pressurant_fluid.density
-    expected_fuel_volume = Function("data/SEBLM/test124_Propane_Volume.csv") * 1e-3
+    expected_fuel_volume = (
+        Function("data/rockets/berkeley/test124_Propane_Volume.csv") * 1e-3
+    )
     expected_fuel_mass = (
         expected_fuel_volume * fuel_fluid.density
         + (-expected_fuel_volume + fuel_tank.geometry.total_volume)
         * fuel_pressurant.density
     )
-    expected_oxidizer_volume = Function("data/SEBLM/test124_Lox_Volume.csv") * 1e-3
+    expected_oxidizer_volume = (
+        Function("data/rockets/berkeley/test124_Lox_Volume.csv") * 1e-3
+    )
     expected_oxidizer_mass = (
         expected_oxidizer_volume * oxidizer_fluid.density
         + (-expected_oxidizer_volume + oxidizer_tank.geometry.total_volume)

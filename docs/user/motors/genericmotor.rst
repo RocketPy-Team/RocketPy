@@ -41,7 +41,7 @@ See more details in the
 
     # Define the motor parameters
     motor = GenericMotor(
-      thrust_source = "../data/motors/Cesaroni_M1670.eng",
+      thrust_source = "../data/motors/cesaroni/Cesaroni_M1670.eng",
       burn_time = 3.9,
       chamber_radius = 33 / 100,
       chamber_height = 600 / 1000,
@@ -73,9 +73,9 @@ The ``GenericMotor`` class has a method called ``load_from_eng_file`` that allow
 the user to build a GenericMotor object by providing just the path to an .eng file.
 
 The parameters available in the method are the same as the ones used in the
-constructor of the GenericMotor class. But the method will automatically read 
-the .eng file and extract the required information if the user does not 
-provide it. In this case, the following assumptions about the most 
+constructor of the GenericMotor class. But the method will automatically read
+the .eng file and extract the required information if the user does not
+provide it. In this case, the following assumptions about the most
 relevant parameters are made:
 
 - The ``chamber_radius`` is assumed to be the same as the motor diameter in the .eng file;
@@ -93,7 +93,7 @@ As an example, we can demonstrate:
 
 
     # Load the motor from an .eng file
-    motor = GenericMotor.load_from_eng_file("../data/motors/Cesaroni_M1670.eng")
+    motor = GenericMotor.load_from_eng_file("../data/motors/cesaroni/Cesaroni_M1670.eng")
 
     # Print the motor information
     motor.info()
