@@ -5,6 +5,7 @@ from rocketpy.tools import (
     calculate_cubic_hermite_coefficients,
     euler313_to_quaternions,
     find_roots_cubic_function,
+    haversine,
 )
 
 
@@ -58,3 +59,16 @@ def test_cardanos_root_finding():
     assert np.isclose(roots[0].imag, 0)
     assert np.isclose(roots[1].imag, 0)
     assert np.isclose(roots[2].imag, 0)
+
+
+@pytest.mark.parametrize(
+    "lat0, lon0, lat1, lon1, expected_distance",
+    [
+        (0, 0, 0, 0, 0),
+        (45, 45, 45, 45, 0),
+        (-23.508958, -46.720080, -23.522939, -46.558253, 16591.438),
+    ],
+)  # These values were calculated with google earth
+def test_haversine(lat0, lon0, lat1, lon1, expected_distance):
+    distance = haversine(lat0, lon0, lat1, lon1)
+    assert np.isclose(distance, expected_distance, rtol=1e-2)
