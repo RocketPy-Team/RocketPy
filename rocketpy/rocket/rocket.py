@@ -453,7 +453,9 @@ class Rocket:
                 self.dry_mass + self.motor.propellant_initial_mass
             )
         except ZeroDivisionError as e:
-            raise ValueError("Total rocket mass (dry + propellant) cannot be zero") from e
+            raise ValueError(
+                "Total rocket mass (dry + propellant) cannot be zero"
+            ) from e
         return self.structural_mass_ratio
 
     def evaluate_center_of_mass(self):

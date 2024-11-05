@@ -513,7 +513,9 @@ class Motor(ABC):
         try:
             return self.dry_mass / initial_total_mass
         except ZeroDivisionError as e:
-            raise ValueError("Total motor mass (dry + propellant) cannot be zero") from e
+            raise ValueError(
+                "Total motor mass (dry + propellant) cannot be zero"
+            ) from e
 
     @funcify_method("Time (s)", "Motor center of mass (m)")
     def center_of_mass(self):
