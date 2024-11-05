@@ -448,11 +448,12 @@ class Rocket:
             Initial structural mass ratio dry mass (Rocket + Motor) (kg)
             divided by total mass (Rocket + Motor + Propellant) (kg).
         """
-
-        self.structural_mass_ratio = self.dry_mass / (
-            self.dry_mass + self.motor.propellant_initial_mass
-        )
-
+        try:
+            self.structural_mass_ratio = self.dry_mass / (
+                self.dry_mass + self.motor.propellant_initial_mass
+            )
+        except ZeroDivisionError as e:
+            raise ValueError("Total rocket mass (dry + propellant) cannot be zero") from e
         return self.structural_mass_ratio
 
     def evaluate_center_of_mass(self):

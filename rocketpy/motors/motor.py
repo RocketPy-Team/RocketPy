@@ -510,9 +510,10 @@ class Motor(ABC):
             Initial structural mass ratio.
         """
         initial_total_mass = self.dry_mass + self.propellant_initial_mass
-        if initial_total_mass == 0:
-            raise ValueError("Motor total mass is zero!")
-        return self.dry_mass / initial_total_mass
+        try:
+            return self.dry_mass / initial_total_mass
+        except ZeroDivisionError as e:
+            raise ValueError("Total motor mass (dry + propellant) cannot be zero") from e
 
     @funcify_method("Time (s)", "Motor center of mass (m)")
     def center_of_mass(self):
