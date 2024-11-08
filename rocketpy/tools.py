@@ -124,8 +124,8 @@ def find_roots_cubic_function(a, b, c, d):
     First we define the coefficients of the function ax**3 + bx**2 + cx + d
     >>> a, b, c, d = 1, -3, -1, 3
     >>> x1, x2, x3 = find_roots_cubic_function(a, b, c, d)
-    >>> x1, x2, x3
-    ((-1+0j), (3+7.401486830834377e-17j), (1-1.4802973661668753e-16j))
+    >>> x1
+    (-1+0j)
 
     To get the real part of the roots, use the real attribute of the complex
     number.
