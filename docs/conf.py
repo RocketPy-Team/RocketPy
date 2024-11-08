@@ -124,12 +124,6 @@ html_theme_options = {
     "navbar_end": ["theme-switcher", "navbar-icon-links.html"],
     "icon_links": [
         {
-            "name": "GitHub",
-            "url": "https://github.com/RocketPy-Team/RocketPy/",
-            "icon": "fa-brands fa-square-github",
-            "type": "fontawesome",
-        },
-        {
             "name": "LinkedIn",
             "url": "https://www.linkedin.com/company/rocketpy/",
             "icon": "fa-brands fa-linkedin",
