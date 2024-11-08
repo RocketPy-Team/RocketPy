@@ -13,6 +13,10 @@ class RocketPyEncoder(json.JSONEncoder):
     """Custom JSON encoder for RocketPy objects. It defines how to encode
     different types of objects to a JSON supported format."""
 
+    def __init__(self, *args, **kwargs):
+        self.include_outputs = kwargs.pop("include_outputs", True)
+        super().__init__(*args, **kwargs)
+
     def default(self, o):
         if isinstance(
             o,
@@ -40,24 +44,17 @@ class RocketPyEncoder(json.JSONEncoder):
         elif hasattr(o, "__iter__") and not isinstance(o, str):
             return list(o)
         elif hasattr(o, "to_dict"):
-            encoding = o.to_dict()
+            encoding = o.to_dict(self.include_outputs)
+            encoding = remove_circular_references(encoding)
 
             encoding["signature"] = get_class_signature(o)
 
             return encoding
 
         elif hasattr(o, "__dict__"):
-            exception_set = {"prints", "plots"}
-            encoding = {
-                key: value
-                for key, value in o.__dict__.items()
-                if key not in exception_set
-            }
+            encoding = remove_circular_references(o.__dict__)
 
-            if "rocketpy" in o.__class__.__module__ and not any(
-                subclass in o.__class__.__name__
-                for subclass in ["FlightPhase", "TimeNode"]
-            ):
+            if "rocketpy" in o.__class__.__module__:
                 encoding["signature"] = get_class_signature(o)
 
             return encoding
@@ -90,24 +87,72 @@ class RocketPyDecoder(json.JSONDecoder):
                     }
 
                     return class_(**kwargs)
-            except ImportError:  # AttributeException
+            except (ImportError, AttributeError):
                 return obj
         else:
             return obj
 
 
 def get_class_signature(obj):
-    class_ = obj.__class__
+    """Returns the signature of a class in the form of a string.
+    The signature is an importable string that can be used to import
+    the class by its module.
 
-    return f"{class_.__module__}.{class_.__name__}"
+    Parameters
+    ----------
+    obj : object
+        Object to get the signature from.
+
+    Returns
+    -------
+    str
+        Signature of the class.
+    """
+    class_ = obj.__class__
+    name = getattr(class_, '__qualname__', class_.__name__)
+
+    return {"module": class_.__module__, "name": name}
 
 
 def get_class_from_signature(signature):
-    module_name, class_name = signature.rsplit(".", 1)
+    """Returns the class by importing its signature.
 
-    module = import_module(module_name)
+    Parameters
+    ----------
+    signature : str
+        Signature of the class.
 
-    return getattr(module, class_name)
+    Returns
+    -------
+    type
+        Class defined by the signature.
+    """
+    module = import_module(signature["module"])
+    inner_class = None
+
+    for class_ in signature["name"].split("."):
+        inner_class = getattr(module, class_)
+
+    return inner_class
+
+
+def remove_circular_references(obj_dict):
+    """Removes circular references from a dictionary.
+
+    Parameters
+    ----------
+    obj_dict : dict
+        Dictionary to remove circular references from.
+
+    Returns
+    -------
+    dict
+        Dictionary without circular references.
+    """
+    obj_dict.pop("prints", None)
+    obj_dict.pop("plots", None)
+
+    return obj_dict
 
 
 def to_hex_encode(obj, encoder=base64.b85encode):

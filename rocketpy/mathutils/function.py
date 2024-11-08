@@ -711,9 +711,9 @@ class Function:  # pylint: disable=too-many-public-methods
         if func.__dom_dim__ == 1:
             xs = np.linspace(lower, upper, samples)
             ys = func.get_value(xs.tolist()) if one_by_one else func.get_value(xs)
-            func.set_source(np.concatenate(([xs], [ys])).transpose())
-            func.set_interpolation(interpolation)
-            func.set_extrapolation(extrapolation)
+            func.__interpolation__ = interpolation
+            func.__extrapolation__ = extrapolation
+            func.set_source(np.column_stack((xs, ys)))
         elif func.__dom_dim__ == 2:
             lower = 2 * [lower] if isinstance(lower, NUMERICAL_TYPES) else lower
             upper = 2 * [upper] if isinstance(upper, NUMERICAL_TYPES) else upper
@@ -3389,7 +3389,7 @@ class Function:  # pylint: disable=too-many-public-methods
                 extrapolation = "natural"
         return extrapolation
 
-    def to_dict(self):
+    def to_dict(self, _):
         """Serializes the Function instance to a dictionary.
 
         Returns

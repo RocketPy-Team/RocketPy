@@ -60,3 +60,10 @@ class Fluid:
         """
 
         return f"Fluid: {self.name}"
+
+    def to_dict(self, _):
+        return {"name": self.name, "density": self.density}
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(data["name"], data["density"])

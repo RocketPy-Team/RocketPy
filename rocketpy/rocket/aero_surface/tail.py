@@ -205,12 +205,33 @@ class Tail(AeroSurface):
         self.prints.all()
         self.plots.all()
 
+    def to_dict(self, include_outputs=True):
+        data = {
+            "top_radius": self._top_radius,
+            "bottom_radius": self._bottom_radius,
+            "length": self._length,
+            "rocket_radius": self._rocket_radius,
+            "name": self.name,
+        }
+
+        if include_outputs:
+            data.update(
+                {
+                    "cp": self.cp,
+                    "cl": self.clalpha,
+                    "slant_length": self.slant_length,
+                    "surface_area": self.surface_area,
+                }
+            )
+
+        return data
+
     @classmethod
     def from_dict(cls, data):
         return cls(
-            top_radius=data["_top_radius"],
-            bottom_radius=data["_bottom_radius"],
-            length=data["_length"],
-            rocket_radius=data["_rocket_radius"],
+            top_radius=data["top_radius"],
+            bottom_radius=data["bottom_radius"],
+            length=data["length"],
+            rocket_radius=data["rocket_radius"],
             name=data["name"],
         )

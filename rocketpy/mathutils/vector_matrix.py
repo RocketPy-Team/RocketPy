@@ -403,6 +403,10 @@ class Vector:
         """Returns the zero vector."""
         return Vector([0, 0, 0])
 
+    def to_dict(self, _):
+        """Returns the vector as a JSON compatible element."""
+        return list(self.components)
+
     @staticmethod
     def i():
         """Returns the i vector, [1, 0, 0]."""
@@ -418,9 +422,10 @@ class Vector:
         """Returns the k vector, [0, 0, 1]."""
         return Vector([0, 0, 1])
 
-    def to_dict(self):
-        """Returns the vector as a JSON compatible element."""
-        return list(self.components)
+    @classmethod
+    def from_dict(cls, data):
+        """Creates a Vector instance from a dictionary."""
+        return cls(data)
 
 
 class Matrix:
@@ -1002,7 +1007,7 @@ class Matrix:
             + f"       [{self.zx}, {self.zy}, {self.zz}])"
         )
 
-    def to_dict(self):
+    def to_dict(self, _):
         """Returns the matrix as a JSON compatible element."""
         return [list(row) for row in self.components]
 
@@ -1091,6 +1096,11 @@ class Matrix:
             The transformation matrix from frame B to frame A.
         """
         return Matrix.transformation(euler313_to_quaternions(roll, pitch, roll2))
+
+    @classmethod
+    def from_dict(cls, data):
+        """Creates a Matrix instance from a dictionary."""
+        return cls(data)
 
 
 if __name__ == "__main__":

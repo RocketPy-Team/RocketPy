@@ -345,21 +345,23 @@ class TankGeometry:
         self._geometry[domain] = Function(radius_function)
         self.radius = PiecewiseFunction(self._geometry, "Height (m)", "radius (m)")
 
-    def to_dict(self):
-        """
-        Returns a dictionary representation of the TankGeometry object.
-
-        Returns
-        -------
-        dict
-            Dictionary representation of the TankGeometry object.
-        """
-        return {
+    def to_dict(self, include_outputs=True):
+        data = {
             "geometry": {
-                str(domain): function.to_dict()
-                for domain, function in self._geometry.items()
+                str(domain): function for domain, function in self._geometry.items()
             }
         }
+
+        if include_outputs:
+            data["outputs"] = {
+                "average_radius": self.average_radius,
+                "bottom": self.bottom,
+                "top": self.top,
+                "total_height": self.total_height,
+                "total_volume": self.total_volume,
+            }
+
+        return data
 
     @classmethod
     def from_dict(cls, data):
@@ -398,6 +400,7 @@ class CylindricalTank(TankGeometry):
         """
         geometry_dict = geometry_dict or {}
         super().__init__(geometry_dict)
+        self.__input_radius = radius
         self.height = height
         self.has_caps = False
         if spherical_caps:
@@ -417,11 +420,11 @@ class CylindricalTank(TankGeometry):
             "Warning: Adding spherical caps to the tank will not modify the "
             + f"total height of the tank {self.height} m. "
             + "Its cylindrical portion height will be reduced to "
-            + f"{self.height - 2*self.radius(0)} m."
+            + f"{self.height - 2*self.__input_radius} m."
         )
 
         if not self.has_caps:
-            radius = self.radius(0)
+            radius = self.__input_radius
             height = self.height
             bottom_cap_range = (-height / 2, -height / 2 + radius)
             upper_cap_range = (height / 2 - radius, height / 2)
@@ -438,12 +441,17 @@ class CylindricalTank(TankGeometry):
         else:
             raise ValueError("Tank already has caps.")
 
-    def to_dict(self):
-        return {
-            "radius": self.radius(0),
+    def to_dict(self, include_outputs=True):
+        data = {
+            "radius": self.__input_radius,
             "height": self.height,
             "spherical_caps": self.has_caps,
         }
+
+        if include_outputs:
+            data.update(super().to_dict(include_outputs))
+
+        return data
 
     @classmethod
     def from_dict(cls, data):
@@ -470,10 +478,16 @@ class SphericalTank(TankGeometry):
         """
         geometry_dict = geometry_dict or {}
         super().__init__(geometry_dict)
+        self.__input_radius = radius
         self.add_geometry((-radius, radius), lambda h: (radius**2 - h**2) ** 0.5)
 
-    def to_dict(self):
-        return {"radius": self.radius(0)}
+    def to_dict(self, include_outputs=True):
+        data = {"radius": self.__input_radius}
+
+        if include_outputs:
+            data.update(super().to_dict(include_outputs))
+
+        return data
 
     @classmethod
     def from_dict(cls, data):

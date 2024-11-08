@@ -426,6 +426,30 @@ class Fins(AeroSurface):
         M3 = M3_forcing - M3_damping
         return R1, R2, R3, M1, M2, M3
 
+    def to_dict(self, include_outputs=True):
+        data = {
+            "n": self.n,
+            "root_chord": self.root_chord,
+            "span": self.span,
+            "rocket_radius": self.rocket_radius,
+            "cant_angle": self.cant_angle,
+            "airfoil": self.airfoil,
+            "name": self.name,
+        }
+
+        if include_outputs:
+            data.update(
+                {
+                    "cp": self.cp,
+                    "cl": self.cl,
+                    "roll_parameters": self.roll_parameters,
+                    "d": self.d,
+                    "ref_area": self.ref_area,
+                }
+            )
+
+        return data
+
     def draw(self):
         """Draw the fin shape along with some important information, including
         the center line, the quarter line and the center of pressure position.

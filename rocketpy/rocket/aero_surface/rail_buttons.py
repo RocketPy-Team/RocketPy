@@ -100,6 +100,23 @@ class RailButtons(AeroSurface):
         None
         """
 
+    def to_dict(self, _):
+        return {
+            "buttons_distance": self.buttons_distance,
+            "angular_position": self.angular_position,
+            "name": self.name,
+            "rocket_radius": self.rocket_radius,
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            data["buttons_distance"],
+            data["angular_position"],
+            data["name"],
+            data["rocket_radius"],
+        )
+
     def info(self):
         """Prints out all the information about the Rail Buttons.
 

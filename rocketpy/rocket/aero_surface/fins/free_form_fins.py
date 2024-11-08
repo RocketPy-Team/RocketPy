@@ -359,6 +359,39 @@ class FreeFormFins(Fins):
         x_array, y_array = zip(*self.shape_points)
         self.shape_vec = [np.array(x_array), np.array(y_array)]
 
+    def to_dict(self, include_outputs=True):
+        data = super().to_dict(include_outputs)
+        data["shape_points"] = self.shape_points
+
+        if include_outputs:
+            data.update(
+                {
+                    "Af": self.Af,
+                    "AR": self.AR,
+                    "gamma_c": self.gamma_c,
+                    "Yma": self.Yma,
+                    "mac_length": self.mac_length,
+                    "mac_lead": self.mac_lead,
+                    "roll_geometrical_constant": self.roll_geometrical_constant,
+                    "tau": self.tau,
+                    "lift_interference_factor": self.lift_interference_factor,
+                    "roll_forcing_interference_factor": self.roll_forcing_interference_factor,
+                    "roll_damping_interference_factor": self.roll_damping_interference_factor,
+                }
+            )
+        return data
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            data["n"],
+            data["shape_points"],
+            data["rocket_radius"],
+            data["cant_angle"],
+            data["airfoil"],
+            data["name"],
+        )
+
     def info(self):
         self.prints.geometry()
         self.prints.lift()

@@ -123,7 +123,7 @@ def spherical_oxidizer_tank(oxidizer_fluid, oxidizer_pressurant):
     -------
     rocketpy.UllageBasedTank
     """
-    geometry = SphericalTank(0.05)
+    geometry = SphericalTank(0.051)
     liquid_level = Function(lambda t: 0.1 * np.exp(-t / 2) - 0.05)
     oxidizer_tank = LevelBasedTank(
         name="Lox Tank",
