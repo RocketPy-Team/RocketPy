@@ -89,6 +89,8 @@ class Rocket:
         Function of time expressing the total mass of the rocket,
         defined as the sum of the propellant mass and the rocket
         mass without propellant.
+    Rocket.structural_mass_ratio: float
+        Initial ratio between the dry mass and the total mass.
     Rocket.total_mass_flow_rate : Function
         Time derivative of rocket's total mass in kg/s as a function
         of time as obtained by the thrust source of the added motor.
@@ -361,6 +363,7 @@ class Rocket:
 
         # calculate dynamic inertial quantities
         self.evaluate_dry_mass()
+        self.evaluate_structural_mass_ratio()
         self.evaluate_total_mass()
         self.evaluate_center_of_dry_mass()
         self.evaluate_center_of_mass()
@@ -432,6 +435,28 @@ class Rocket:
         self.dry_mass = self.mass + self.motor.dry_mass
 
         return self.dry_mass
+
+    def evaluate_structural_mass_ratio(self):
+        """Calculates and returns the rocket's structural mass ratio.
+        It is defined as the ratio between of the dry mass
+        (Motor + Rocket) and the initial total mass
+        (Motor + Propellant + Rocket).
+
+        Returns
+        -------
+        self.structural_mass_ratio: float
+            Initial structural mass ratio dry mass (Rocket + Motor) (kg)
+            divided by total mass (Rocket + Motor + Propellant) (kg).
+        """
+        try:
+            self.structural_mass_ratio = self.dry_mass / (
+                self.dry_mass + self.motor.propellant_initial_mass
+            )
+        except ZeroDivisionError as e:
+            raise ValueError(
+                "Total rocket mass (dry + propellant) cannot be zero"
+            ) from e
+        return self.structural_mass_ratio
 
     def evaluate_center_of_mass(self):
         """Evaluates rocket center of mass position relative to user defined
@@ -563,10 +588,10 @@ class Rocket:
             surface center of pressure to the rocket's center of mass.
         """
         for surface, position in self.aerodynamic_surfaces:
-            self.evaluate_single_surface_cp_to_cdm(surface, position)
+            self.__evaluate_single_surface_cp_to_cdm(surface, position)
         return self.surfaces_cp_to_cdm
 
-    def evaluate_single_surface_cp_to_cdm(self, surface, position):
+    def __evaluate_single_surface_cp_to_cdm(self, surface, position):
         """Calculates the relative position of each aerodynamic surface
         center of pressure to the rocket's center of dry mass in Body Axes
         Coordinate System."""
@@ -951,6 +976,7 @@ class Rocket:
         self.nozzle_position = self.motor.nozzle_position * _ + self.motor_position
         self.total_mass_flow_rate = self.motor.total_mass_flow_rate
         self.evaluate_dry_mass()
+        self.evaluate_structural_mass_ratio()
         self.evaluate_total_mass()
         self.evaluate_center_of_dry_mass()
         self.evaluate_nozzle_to_cdm()
@@ -966,6 +992,22 @@ class Rocket:
         self.evaluate_com_to_cdm_function()
         self.evaluate_nozzle_gyration_tensor()
 
+    def __add_single_surface(self, surface, position):
+        """Adds a single aerodynamic surface to the rocket. Makes checks for
+        rail buttons case, and position type.
+        """
+        position = (
+            Vector([0, 0, position])
+            if not isinstance(position, (Vector, tuple, list))
+            else Vector(position)
+        )
+        if isinstance(surface, RailButtons):
+            self.rail_buttons = Components()
+            self.rail_buttons.add(surface, position)
+        else:
+            self.aerodynamic_surfaces.add(surface, position)
+        self.__evaluate_single_surface_cp_to_cdm(surface, position)
+
     def add_surfaces(self, surfaces, positions):
         """Adds one or more aerodynamic surfaces to the rocket. The aerodynamic
         surface must be an instance of a class that inherits from the
@@ -973,7 +1015,7 @@ class Rocket:
 
         Parameters
         ----------
-        surfaces : list, AeroSurface, NoseCone, TrapezoidalFins, EllipticalFins, Tail
+        surfaces : list, AeroSurface, NoseCone, TrapezoidalFins, EllipticalFins, Tail, RailButtons
             Aerodynamic surface to be added to the rocket. Can be a list of
             AeroSurface if more than one surface is to be added.
         positions : int, float, list, tuple, Vector
@@ -998,19 +1040,9 @@ class Rocket:
         """
         try:
             for surface, position in zip(surfaces, positions):
-                if not isinstance(position, (Vector, tuple, list)):
-                    position = Vector([0, 0, position])
-                else:
-                    position = Vector(position)
-                self.aerodynamic_surfaces.add(surface, position)
-                self.evaluate_single_surface_cp_to_cdm(surface, position)
+                self.__add_single_surface(surface, position)
         except TypeError:
-            if not isinstance(positions, (Vector, tuple, list)):
-                positions = Vector([0, 0, positions])
-            else:
-                positions = Vector(positions)
-            self.aerodynamic_surfaces.add(surfaces, positions)
-            self.evaluate_single_surface_cp_to_cdm(surfaces, positions)
+            self.__add_single_surface(surfaces, positions)
 
         self.evaluate_center_of_pressure()
         self.evaluate_stability_margin()
@@ -1175,7 +1207,7 @@ class Rocket:
         Parameters
         ----------
         n : int
-            Number of fins, from 2 to infinity.
+            Number of fins, must be greater than 2.
         span : int, float
             Fin span in meters.
         root_chord : int, float
@@ -1273,7 +1305,7 @@ class Rocket:
         Parameters
         ----------
         n : int
-            Number of fins, from 2 to infinity.
+            Number of fins, must be greater than 2.
         root_chord : int, float
             Fin root chord in meters.
         span : int, float
@@ -1341,7 +1373,7 @@ class Rocket:
         Parameters
         ----------
         n : int
-            Number of fins, from 2 to infinity.
+            Number of fins, must be greater than 2.
         shape_points : list
             List of tuples (x, y) containing the coordinates of the fin's
             geometry defining points. The point (0, 0) is the root leading edge.
@@ -1733,7 +1765,7 @@ class Rocket:
 
         See Also
         --------
-        :ref:`rocketaxes`
+        :ref:`rocket_axes`
 
         Notes
         -----
@@ -1771,7 +1803,7 @@ class Rocket:
 
         See Also
         --------
-        :ref:`rocketaxes`
+        :ref:`rocket_axes`
         """
         self.cp_eccentricity_x = x
         self.cp_eccentricity_y = y
@@ -1801,7 +1833,7 @@ class Rocket:
 
         See Also
         --------
-        :ref:`rocketaxes`
+        :ref:`rocket_axes`
         """
         self.thrust_eccentricity_y = x
         self.thrust_eccentricity_x = y

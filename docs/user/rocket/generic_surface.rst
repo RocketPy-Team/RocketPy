@@ -114,7 +114,7 @@ Where:
 Aerodynamic angles
 ~~~~~~~~~~~~~~~~~~
 
-There aerodynamic angles are defined in two different ways in RocketPy:
+The aerodynamic angles are defined in two different ways in RocketPy:
 
 - As the angle of attack (:math:`\alpha`) and the side slip \
   angle (:math:`\beta`), which are defined in the image above. These are used \
@@ -289,7 +289,7 @@ rocket's configuration:
    rocket.add_surfaces(generic_surface, position=(0,0,0))
 
 The position of the generic surface is defined in the User Defined coordinate
-System, see :ref:`rocketaxes` for more information.
+System, see :ref:`rocket_axes` for more information.
 
 .. tip::
    If defining the coefficients of the entire rocket is desired, only a single
