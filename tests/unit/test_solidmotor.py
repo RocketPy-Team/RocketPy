@@ -93,7 +93,7 @@ def tests_import_eng_asserts_read_values_correctly(cesaroni_m1670):
     cesaroni_m1670_shifted : rocketpy.SolidMotor
         The SolidMotor object to be used in the tests.
     """
-    comments, description, data_points = cesaroni_m1670.import_eng(
+    _, description, data_points = cesaroni_m1670.import_eng(
         "data/motors/cesaroni/Cesaroni_M1670.eng"
     )
 
