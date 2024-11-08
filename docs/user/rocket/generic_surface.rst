@@ -289,7 +289,7 @@ rocket's configuration:
    rocket.add_surfaces(generic_surface, position=(0,0,0))
 
 The position of the generic surface is defined in the User Defined coordinate
-System, see :ref:`rocketaxes` for more information.
+System, see :ref:`rocket_axes` for more information.
 
 .. tip::
    If defining the coefficients of the entire rocket is desired, only a single

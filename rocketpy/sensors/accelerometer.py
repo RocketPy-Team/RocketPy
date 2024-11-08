@@ -88,7 +88,8 @@ class Accelerometer(InertialSensor):
             Sample rate of the sensor in Hz.
         orientation : tuple, list, optional
             Orientation of the sensor in the rocket. The orientation can be
-            given as:
+            given as either:
+
             - A list of length 3, where the elements are the Euler angles for
               the rotation yaw (ψ), pitch (θ) and roll (φ) in radians. The
               standard rotation sequence is z-y-x (3-2-1) is used, meaning the
@@ -99,6 +100,7 @@ class Accelerometer(InertialSensor):
               of reference is defined as to have z axis along the sensor's normal
               vector pointing upwards, x and y axes perpendicular to the z axis
               and each other.
+
             The rocket frame of reference is defined as to have z axis
             along the rocket's axis of symmetry pointing upwards, x and y axes
             perpendicular to the z axis and each other. A rotation around the x
@@ -204,6 +206,7 @@ class Accelerometer(InertialSensor):
             Current time in seconds.
         kwargs : dict
             Keyword arguments dictionary containing the following keys:
+
             - u : np.array
                 State vector of the rocket.
             - u_dot : np.array
