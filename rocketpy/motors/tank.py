@@ -1171,7 +1171,7 @@ class LevelBasedTank(Tank):
         Function
             Volume of the gas as a function of time.
         """
-        # TODO: there's a bug on the gas_center_of_mass is I don't discretize here
+        # TODO: there's a bug on the gas_center_of_mass if I don't discretize here
         func = Function(self.geometry.total_volume).set_discrete_based_on_model(
             self.liquid_volume
         )

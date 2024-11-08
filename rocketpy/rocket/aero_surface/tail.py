@@ -163,13 +163,8 @@ class Tail(AeroSurface):
         None
         """
         # Calculate clalpha
-        # clalpha is currently a constant, meaning it is independent of Mach
-        # number. This is only valid for subsonic speeds.
-        # It must be set as a Function because it will be called and treated
-        # as a function of mach in the simulation.
         self.clalpha = Function(
             lambda mach: 2
-            / self._beta(mach)
             * (
                 (self.bottom_radius / self.rocket_radius) ** 2
                 - (self.top_radius / self.rocket_radius) ** 2

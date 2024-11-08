@@ -33,7 +33,7 @@ RocketPy is the next-generation trajectory simulation solution for High-Power Ro
 
 2. **Accurate Weather Modeling**
    - Supports International Standard Atmosphere (1976)
-   - Custom atmospheric profiles and Soundings (Wyoming, NOAARuc)
+   - Custom atmospheric profiles and Soundings (Wyoming)
    - Weather forecasts, reanalysis, and ensembles for realistic scenarios
 
 3. **Aerodynamic Models**
@@ -328,6 +328,9 @@ RocketPy extends its gratitude to the following institutions for their support a
     </a>
     <a href="https://github.com/Space-Enterprise-at-Berkeley">
         <img align=top alt="Space Enterprise at Berkeley Logo" src="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/institutional/space_enterprise_at_berkeley.jpeg" height="150px">
+    </a>
+    <a href="https://www.instagram.com/faradayupv">
+        <img align=top alt="Faraday Rocketry UPV Logo" src="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/institutional/faraday_team_logo.jpg" height="150px">
     </a>
 </div>
 
