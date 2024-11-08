@@ -32,11 +32,25 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+-
+
+### Changed
+
+-
+
+### Fixed
+
+-
+
+## [v1.6.2] - 2024-11-08
+
+### Added
+
 - ENH: add structural to total mass ratio for motor and rocket [#713](https://github.com/RocketPy-Team/RocketPy/pull/713)
 
 ### Changed
 
-
+- REL: bumps up rocketpy version to v1.6.2 [#724](https://github.com/RocketPy-Team/RocketPy/pull/724)
 
 ### Fixed
 

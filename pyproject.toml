@@ -1,6 +1,6 @@
 [project]
 name = "rocketpy"
-version = "1.6.1"
+version = "1.6.2"
 description="Advanced 6-DOF trajectory simulation for High-Power Rocketry."
 dynamic = ["dependencies"]
 readme = "README.md"
@@ -30,8 +30,8 @@ packages = { find = { where = ["."], include = ["rocketpy*"] } }
 dependencies = { file = ["requirements.txt"] }
 
 [project.optional-dependencies]
-tests = [ 
-    "pytest", 
+tests = [
+    "pytest",
     "pytest-coverage",
     "black[jupyter]",
     "flake8-black",
@@ -42,12 +42,12 @@ tests = [
     "isort"
 ]
 
-env-analysis = [ 
-    "windrose>=1.6.8", 
-    "timezonefinder", 
-    "jsonpickle", 
-    "ipython", 
-    "ipywidgets>=7.6.3" 
+env-analysis = [
+    "windrose>=1.6.8",
+    "timezonefinder",
+    "jsonpickle",
+    "ipython",
+    "ipywidgets>=7.6.3"
 ]
 
 monte-carlo = [
@@ -59,7 +59,7 @@ monte-carlo = [
 all = ["rocketpy[env-analysis]", "rocketpy[monte-carlo]"]
 
 [tool.black]
-line-length = 88 
+line-length = 88
 include = '\.py$|\.ipynb$'
 skip-string-normalization = true
 
