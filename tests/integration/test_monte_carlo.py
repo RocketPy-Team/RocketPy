@@ -105,7 +105,7 @@ def test_monte_carlo_export_ellipses_to_kml(monte_carlo_calisto_pre_loaded):
             filename="monte_carlo_class_example.kml",
             origin_lat=32.990254,
             origin_lon=-106.974998,
-            type="impact",
+            type="all",
         )
         is None
     )

@@ -5,9 +5,9 @@ import numpy as np
 
 from rocketpy.motors import EmptyMotor, HybridMotor, LiquidMotor, SolidMotor
 from rocketpy.rocket.aero_surface import Fins, NoseCone, Tail
+from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 
 from .plot_helpers import show_or_save_plot
-from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 
 
 class _RocketPlots:

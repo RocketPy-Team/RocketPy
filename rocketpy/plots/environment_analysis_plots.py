@@ -124,7 +124,7 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
         plt.legend()
         show_or_save_plot(filename)
 
-    def surface10m_wind_speed_distribution(self, wind_speed_limit=False):
+    def surface10m_wind_speed_distribution(self, wind_speed_limit=False, filename=None):
         """Get all values of sustained surface wind speed (for every date and
         hour available) and plot a single distribution. Expected result is a
         Weibull distribution. The wind speed limit is plotted as a vertical line.
@@ -1369,8 +1369,7 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
         fig.supylabel("Probability")
         show_or_save_plot(filename)
 
-        return None
-
+    # pylint: disable=too-many-statements
     def animate_surface_wind_speed_distribution(self, wind_speed_limit=False):
         """Animation of how the sustained surface wind speed distribution varies
         throughout the day. Each frame is a histogram of the wind speed distribution

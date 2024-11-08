@@ -402,16 +402,24 @@ class _EllipticalFinsPlots(_FinsPlots):
         ax.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
 
         plt.tight_layout()
-        plt.show()
+        show_or_save_plot(filename)
 
 
 class _FreeFormFinsPlots(_FinsPlots):
     """Class that contains all free form fin plots."""
 
     # pylint: disable=too-many-statements
-    def draw(self):
-        """Draw the fin shape along with some important information, including
-        the center line, the quarter line and the center of pressure position.
+    def draw(self, filename=None):
+        """Draw the fin shape along with some important information.
+        These being: the center line and the center of pressure position.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -469,7 +477,7 @@ class _FreeFormFinsPlots(_FinsPlots):
         ax.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
 
         plt.tight_layout()
-        plt.show()
+        show_or_save_plot(filename)
 
 
 class _TailPlots(_AeroSurfacePlots):
@@ -506,12 +514,12 @@ class _AirBrakesPlots(_AeroSurfacePlots):
 class _GenericSurfacePlots(_AeroSurfacePlots):
     """Class that contains all generic surface plots."""
 
-    def draw(self):
+    def draw(self, filename=None):
         pass
 
 
 class _LinearGenericSurfacePlots(_AeroSurfacePlots):
     """Class that contains all linear generic surface plots."""
 
-    def draw(self):
+    def draw(self, filename=None):
         pass

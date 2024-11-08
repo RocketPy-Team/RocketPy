@@ -47,6 +47,8 @@ class LiquidMotor(Motor):
     LiquidMotor.propellant_mass : Function
         Total propellant mass in kg as a function of time, includes fuel
         and oxidizer.
+    LiquidMotor.structural_mass_ratio: float
+        Initial ratio between the dry mass and the total mass.
     LiquidMotor.total_mass_flow_rate : Function
         Time derivative of propellant total mass in kg/s as a function
         of time as obtained by the tanks mass flow.
@@ -477,18 +479,3 @@ class LiquidMotor(Motor):
         None
         """
         self.plots.draw(filename)
-
-    def info(self):
-        """Prints out basic data about the Motor."""
-        self.prints.all()
-        self.plots.thrust()
-
-    def all_info(self):
-        """Prints out all data and graphs available about the Motor.
-
-        Return
-        ------
-        None
-        """
-        self.prints.all()
-        self.plots.all()
