@@ -29,7 +29,7 @@ the "optional parameters", and the "additional parameters".
 Let's take a look at their nuances:
 
 .. note::
-    In Python, we use the terms "argument", "parameter", and "initialization parameter" 
+    In Python, we use the terms "argument", "parameter", and "initialization parameter"
     interchangeably to refer to the values passed to a function or class during initialization.
 
     For the sake of clarity, we will use the term "argument" from now on.
@@ -86,7 +86,7 @@ passed in a few different ways:
 4. **As a list of values**: \
     The values will be randomly chosen from this list and \
     used as the parameter value during the simulation. You cannot assign standard \
-    deviations when using lists, nor can you assign different distribution types. 
+    deviations when using lists, nor can you assign different distribution types.
 
 .. note::
     In statistics, the terms "Normal" and "Gaussian" refer to the same type of \
@@ -113,7 +113,7 @@ Consider the ``StochasticSolidMotor`` object:
     from rocketpy import SolidMotor, StochasticSolidMotor
 
     motor = SolidMotor(
-        thrust_source="../data/motors/Cesaroni_M1670.eng",
+        thrust_source="../data/motors/cesaroni/Cesaroni_M1670.eng",
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
         nozzle_radius=33 / 1000,
@@ -151,9 +151,9 @@ Consider the ``StochasticSolidMotor`` object:
 Interpreting the Output
 """""""""""""""""""""""
 
-To illustrate the example above, you can notice that: 
+To illustrate the example above, you can notice that:
 
-- The ``burn_start_time`` argument was specified as a tuple of 3 items (0, 0.1, "binomial"), meaning the nominal value is 0, the standard deviation is 0.1, and the distribution type is binomial. You can check that it was correctly set being reading the ``burn_start_time: 0.00000 ± 0.10000 (numpy.random.binomial)`` line in the output. 
+- The ``burn_start_time`` argument was specified as a tuple of 3 items (0, 0.1, "binomial"), meaning the nominal value is 0, the standard deviation is 0.1, and the distribution type is binomial. You can check that it was correctly set being reading the ``burn_start_time: 0.00000 ± 0.10000 (numpy.random.binomial)`` line in the output.
 - ``total_impulse`` was given as a tuple of 2 numbers (6500, 100), indicating a nominal value of 6500 and a standard deviation of 1000, with the default distribution being normal, which is the default distribution type.
 
 .. note::
@@ -163,7 +163,7 @@ To illustrate the example above, you can notice that:
 Sampling a Stochastic Object
 """"""""""""""""""""""""""""
 
-Continuing with the example, you can use the ``stochastic_motor`` object to generate 
+Continuing with the example, you can use the ``stochastic_motor`` object to generate
 a random `SolidMotor` object considering the uncertainties defined in the initialization.
 
 .. jupyter-execute::
@@ -173,7 +173,7 @@ a random `SolidMotor` object considering the uncertainties defined in the initia
 
 This will create a new ``SolidMotor`` object in memory and assign it to the
 variable ``sampled_motor``. This behaves exactly like a ``SolidMotor`` object, but
-considering that each parameter was randomly sampled from the defined distributions. 
+considering that each parameter was randomly sampled from the defined distributions.
 We can compare the nominal values of the ``motor`` object with the sampled values
 of the ``sampled_motor`` object:
 
@@ -216,7 +216,7 @@ Here are some practical methods:
     estimation values for uncertainties. For example, for aerodynamic coefficients, \
     you can find typical values in textbooks or research papers, these usually \
     come from wind tunnel tests. A good resource to base your uncertainties is the \
-    `RocketPy article <https://doi.org/10.1061/(ASCE)AS.1943-5525.0001331>`_.  
+    `RocketPy article <https://doi.org/10.1061/(ASCE)AS.1943-5525.0001331>`_.
 
 5. **Rule of Thumb**: \
     In the absence of specific data, you can use general rules \
@@ -242,8 +242,8 @@ Conclusion
 The ``Stochastic`` classes in RocketPy provide a powerful way to introduce and
 manage uncertainties in your simulations. By defining distributions for each
 input parameter, you can perform more realistic and robust Monte Carlo simulations,
-better reflecting the inherent uncertainties in rocketry. 
+better reflecting the inherent uncertainties in rocketry.
 
-.. note:: 
+.. note::
     See the ``MonteCarlo`` class documentation for more information on how to run \
     Monte Carlo simulations with stochastic objects.

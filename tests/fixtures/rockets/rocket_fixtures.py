@@ -19,8 +19,8 @@ def calisto_motorless():
         radius=0.0635,
         mass=14.426,
         inertia=(6.321, 6.321, 0.034),
-        power_off_drag="data/calisto/powerOffDragCurve.csv",
-        power_on_drag="data/calisto/powerOnDragCurve.csv",
+        power_off_drag="data/rockets/calisto/powerOffDragCurve.csv",
+        power_on_drag="data/rockets/calisto/powerOnDragCurve.csv",
         center_of_mass_without_motor=0,
         coordinate_system_orientation="tail_to_nose",
     )
@@ -74,8 +74,8 @@ def calisto_nose_to_tail(cesaroni_m1670):
         radius=0.0635,
         mass=14.426,
         inertia=(6.321, 6.321, 0.034),
-        power_off_drag="data/calisto/powerOffDragCurve.csv",
-        power_on_drag="data/calisto/powerOnDragCurve.csv",
+        power_off_drag="data/rockets/calisto/powerOffDragCurve.csv",
+        power_on_drag="data/rockets/calisto/powerOnDragCurve.csv",
         center_of_mass_without_motor=0,
         coordinate_system_orientation="nose_to_tail",
     )
@@ -206,7 +206,7 @@ def calisto_air_brakes_clamp_on(calisto_robust, controller_function):
     # remove parachutes
     calisto.parachutes = []
     calisto.add_air_brakes(
-        drag_coefficient_curve="data/calisto/air_brakes_cd.csv",
+        drag_coefficient_curve="data/rockets/calisto/air_brakes_cd.csv",
         controller_function=controller_function,
         sampling_rate=10,
         clamp=True,
@@ -236,7 +236,7 @@ def calisto_air_brakes_clamp_off(calisto_robust, controller_function):
     # remove parachutes
     calisto.parachutes = []
     calisto.add_air_brakes(
-        drag_coefficient_curve="data/calisto/air_brakes_cd.csv",
+        drag_coefficient_curve="data/rockets/calisto/air_brakes_cd.csv",
         controller_function=controller_function,
         sampling_rate=10,
         clamp=False,
@@ -303,8 +303,8 @@ def dimensionless_calisto(kg, m, dimensionless_cesaroni_m1670):
         radius=0.0635 * m,
         mass=14.426 * kg,
         inertia=(6.321 * (kg * m**2), 6.321 * (kg * m**2), 0.034 * (kg * m**2)),
-        power_off_drag="data/calisto/powerOffDragCurve.csv",
-        power_on_drag="data/calisto/powerOnDragCurve.csv",
+        power_off_drag="data/rockets/calisto/powerOffDragCurve.csv",
+        power_on_drag="data/rockets/calisto/powerOnDragCurve.csv",
         center_of_mass_without_motor=0 * m,
         coordinate_system_orientation="tail_to_nose",
     )

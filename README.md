@@ -185,7 +185,7 @@ A sample Motor object can be created by the following code:
 
 ```python
 Pro75M1670 = SolidMotor(
-    thrust_source="data/motors/Cesaroni_M1670.eng",
+    thrust_source="data/motors/cesaroni/Cesaroni_M1670.eng",
     dry_mass=1.815,
     dry_inertia=(0.125, 0.125, 0.002),
     center_of_dry_mass_position=0.317,
@@ -218,8 +218,8 @@ calisto = Rocket(
     radius=0.0635,
     mass=14.426,  # without motor
     inertia=(6.321, 6.321, 0.034),
-    power_off_drag="data/calisto/powerOffDragCurve.csv",
-    power_on_drag="data/calisto/powerOnDragCurve.csv",
+    power_off_drag="data/rockets/calisto/powerOffDragCurve.csv",
+    power_on_drag="data/rockets/calisto/powerOnDragCurve.csv",
     center_of_mass_without_motor=0,
     coordinate_system_orientation="tail_to_nose",
 )
