@@ -67,7 +67,7 @@ First, lets define everything we need for the simulation up to the rocket:
         span=0.110,
         position=-1.04956,
         cant_angle=0.5,
-        airfoil=("../data/rockets/calisto/NACA0012-radians.csv","radians"),
+        airfoil=("../data/airfoils/NACA0012-radians.txt","radians"),
     )
 
     tail = calisto.add_tail(

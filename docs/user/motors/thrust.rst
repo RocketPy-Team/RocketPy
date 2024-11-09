@@ -59,7 +59,7 @@ That can be done as follows:
 .. jupyter-execute::
 
     solid_csv = SolidMotor(
-        thrust_source="../data/motors/keron/thrustCurve.csv",
+        thrust_source="../data/motors/projeto-jupiter/keron_thrust_curve.csv",
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
         center_of_dry_mass_position=0.317,
@@ -180,7 +180,7 @@ seconds to 10 and the new total impulse to be 6000 Ns.
     :emphasize-lines: 5
 
     solid_reshaped = SolidMotor(
-        thrust_source="../data/motors/keron/thrustCurve.csv",
+        thrust_source="../data/motors/projeto-jupiter/keron_thrust_curve.csv",
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
         reshape_thrust_curve=[10, 6000],

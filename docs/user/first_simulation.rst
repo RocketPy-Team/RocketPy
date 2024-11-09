@@ -258,7 +258,7 @@ Here we create a rocket with a nose cone, four fins and a tail:
         span=0.110,
         position=-1.04956,
         cant_angle=0.5,
-        airfoil=("../data/rockets/calisto/NACA0012-radians.csv","radians"),
+        airfoil=("../data/airfoils/NACA0012-radians.txt","radians"),
     )
 
     tail = calisto.add_tail(
