@@ -170,12 +170,12 @@ def test_mass_based_tank():
     )
 
     # Import liquid mass data
-    lox_masses = "./data/berkeley/Test135LoxMass.csv"
-    example_liquid_masses = "./data/berkeley/ExampleTankLiquidMassData.csv"
+    lox_masses = "./data/rockets/berkeley/Test135LoxMass.csv"
+    example_liquid_masses = "./data/rockets/berkeley/ExampleTankLiquidMassData.csv"
 
     # Import gas mass data
-    gas_masses = "./data/berkeley/Test135GasMass.csv"
-    example_gas_masses = "./data/berkeley/ExampleTankGasMassData.csv"
+    gas_masses = "./data/rockets/berkeley/Test135GasMass.csv"
+    example_gas_masses = "./data/rockets/berkeley/ExampleTankGasMassData.csv"
 
     # Generate tanks based on Berkeley SEB team's real tank geometries
     real_tank_lox = MassBasedTank(
@@ -291,7 +291,7 @@ def test_level_based_tank():
     lox = Fluid(name="LOx", density=1141.7)
     n2 = Fluid(name="Nitrogen Gas", density=51.75)
 
-    test_dir = "./data/berkeley/"
+    test_dir = "./data/rockets/berkeley/"
 
     def top_endcap(y):
         return np.sqrt(0.0775**2 - (y - 0.692300000000001) ** 2)

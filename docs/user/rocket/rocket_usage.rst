@@ -31,8 +31,8 @@ and radius:
         radius=127 / 2000,
         mass=14.426,
         inertia=(6.321, 6.321, 0.034),
-        power_off_drag="../data/calisto/powerOffDragCurve.csv",
-        power_on_drag="../data/calisto/powerOnDragCurve.csv",
+        power_off_drag="../data/rockets/calisto/powerOffDragCurve.csv",
+        power_on_drag="../data/rockets/calisto/powerOnDragCurve.csv",
         center_of_mass_without_motor=0,
         coordinate_system_orientation="tail_to_nose",
     )
@@ -41,24 +41,24 @@ and radius:
     Pay special attention to the following:
 
     - ``mass`` is the rocket's mass, **without the motor**, in kg.
-    - All ``inertia`` values are given in relation to the rocket's center of 
+    - All ``inertia`` values are given in relation to the rocket's center of
       mass without motor.
     - ``inertia`` is defined as a tuple of the form ``(I11, I22, I33)``.
       Where ``I11`` and ``I22`` are the inertia of the mass around the
       perpendicular axes to the rocket, and ``I33`` is the inertia around the
-      rocket center axis. 
-    - Alternatively, ``inertia`` can be defined as a tuple of the form 
+      rocket center axis.
+    - Alternatively, ``inertia`` can be defined as a tuple of the form
       ``(I11, I22, I33, I12, I13, I23)``. Where ``I12``, ``I13`` and ``I23``
       are the component of the inertia tensor in the directions ``12``, ``13``
       and ``23`` respectively.
-    - ``center_of_mass_without_motor`` and 
+    - ``center_of_mass_without_motor`` and
       ``coordinate_system_orientation`` are :ref:`position <positions>`
-      parameters. They must be treated with care. See the 
+      parameters. They must be treated with care. See the
       :doc:`Positions and Coordinate Systems </user/positions>` section for more
       information.
 
 .. seealso::
-    For more information on the :class:`rocketpy.Rocket` class initialization, see 
+    For more information on the :class:`rocketpy.Rocket` class initialization, see
     :class:`rocketpy.Rocket.__init__` section.
 
 Drag Curves
@@ -73,7 +73,7 @@ gases, the drag coefficient is lower than when the motor is off.
     same drag curve for both cases.
 
 These curves are used to calculate the drag coefficient of the rocket at any
-given time. 
+given time.
 
 The drag curves can be defined in two ways:
 
@@ -82,13 +82,13 @@ The drag curves can be defined in two ways:
    number.
 
 Curves defined in CSV files must have the first column as the Mach number
-and the second column as the drag coefficient. 
+and the second column as the drag coefficient.
 Here is an example of a drag curve file:
 
 .. code-block::
 
     0.0, 0.0
-    0.1, 0.4018816 
+    0.1, 0.4018816
     0.2, 0.38821269
     0.3, 0.38150576
     0.4, 0.37946785
@@ -102,9 +102,9 @@ Here is an example of a drag curve file:
 .. tip::
     Getting a drag curve can be a challenging task. To get really accurate
     drag curves, you can use CFD software or wind tunnel data.
-    
+
     However, if you do not have access to these, you can always use
-    `RASAero II <https://www.rasaero.com/>`_ software. In there you need 
+    `RASAero II <https://www.rasaero.com/>`_ software. In there you need
     only define the geometry of the rocket and access *AeroPlots*.
 
 2. Adding a Motor
@@ -150,7 +150,7 @@ With the motor defined, you can add it to the rocket:
 
     from rocketpy import SolidMotor
     example_motor =  SolidMotor(
-        thrust_source="../data/motors/Cesaroni_M1670.eng",
+        thrust_source="../data/motors/cesaroni/Cesaroni_M1670.eng",
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
         nozzle_radius=33 / 1000,
@@ -185,7 +185,7 @@ The third step is to add aerodynamic surfaces (i.e. nose cone, fins and tail)
 to the rocket. These surfaces are used to calculate the rocket's aerodynamic
 forces and moments.
 
-Differently from the motor, the aerodynamic surfaces do not need to be 
+Differently from the motor, the aerodynamic surfaces do not need to be
 defined before being added to the rocket. They can be defined and added
 to the rocket in one step:
 
@@ -202,7 +202,7 @@ to the rocket in one step:
         span=0.110,
         position=-1.04956,
         cant_angle=0.5,
-        airfoil=("../data/calisto/NACA0012-radians.csv","radians"),
+        airfoil=("../data/airfoils/NACA0012-radians.txt","radians"),
     )
 
     tail = calisto.add_tail(
@@ -239,7 +239,7 @@ have an optional parameter called ``airfoil``. This parameter allows you to
 specify an airfoil profile for the fins.
 
 The ``airfoil`` parameter can be ``None``, in which case fins will be treated as
-flat plates. Otherwise, it can be a tuple of the form ``(path, units)``. 
+flat plates. Otherwise, it can be a tuple of the form ``(path, units)``.
 
 The ``path`` is the path to the airfoil CSV file in which the first column is
 the angle of attack and the second column is the lift coefficient.
@@ -272,7 +272,7 @@ An example of a valid CSV file for a *NACA0012* airfoil is:
 
 .. tip::
 
-    You can find airfoil CSV files in 
+    You can find airfoil CSV files in
     `Airfoil Tools <http://airfoiltools.com/>`_
 
 4. Adding Parachutes
@@ -281,7 +281,7 @@ An example of a valid CSV file for a *NACA0012* airfoil is:
 The fourth step is to add parachutes to the rocket. For that, we need:
 
 - The parachute drag coefficient times reference area for parachute ``cd_s``
-- The parachute trigger ``trigger``. More details on 
+- The parachute trigger ``trigger``. More details on
   :ref:`Trigger Details <triggerdetails>`.
 - The parachute trigger system sampling rate ``sampling_rate``.
 
@@ -315,7 +315,7 @@ apogee and another that will be deployed at 800 meters above ground level:
 
 .. seealso::
 
-    For more information on adding parachutes, see 
+    For more information on adding parachutes, see
     :class:`rocketpy.Rocket.add_parachute`
 
 
@@ -325,7 +325,7 @@ Parachute Trigger Details
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The parachute trigger is a very important parameter. It is used to determine
-when the parachute will be deployed. It can be either a number, a string 
+when the parachute will be deployed. It can be either a number, a string
 ``"apogee"``, or a callable.
 
 If it is a number, it is the altitude at which the parachute will be deployed.
@@ -351,7 +351,7 @@ use it to deploy the parachute at any time.
 
 The following example shows how to define a callable trigger function that will
 deploy the drogue parachute when the vertical velocity is negative (apogee)
-and will deploy the main parachute when the vertical velocity is negative 
+and will deploy the main parachute when the vertical velocity is negative
 (post-apogee) and the height above ground level is less than 800 meters:
 
 .. jupyter-input::
@@ -376,11 +376,11 @@ and will deploy the main parachute when the vertical velocity is negative
 ----------------------
 
 In RocketPy, any rail guides are simulated as *rail buttons*. The rail buttons
-are defined by their positions. 
+are defined by their positions.
 
 .. note::
 
-    Rail buttons are optional for the simulation, but are very important to 
+    Rail buttons are optional for the simulation, but are very important to
     have realistic out of rail speeds and behavior.
 
 Here is an example of how to set rail buttons:
@@ -400,7 +400,7 @@ Here is an example of how to set rail buttons:
 
 .. seealso::
 
-    For more information on setting rail buttons, see 
+    For more information on setting rail buttons, see
     :class:`rocketpy.Rocket.set_rail_buttons`
 
 6. See Results
@@ -417,9 +417,9 @@ First, lets guarantee that the rocket is stable, by plotting the static margin:
 
 .. danger::
 
-    Always check the static margin of your rocket. 
-    
-    If it is **negative**, your rocket is **unstable** and the simulation 
+    Always check the static margin of your rocket.
+
+    If it is **negative**, your rocket is **unstable** and the simulation
     will most likely **fail**.
 
     If it is unreasonably **high**, your rocket is **super stable** and the
@@ -470,7 +470,7 @@ You can also get the derivative of the inertia tensor at a given time using the
 Implications from these results
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The inertia tensor reveals important information about the rocket's symmetry 
+The inertia tensor reveals important information about the rocket's symmetry
 and ease of rotation:
 
 1. **Axis Symmetry**: If I\ :sub:`11` and I\ :sub:`22` are equal, the rocket is symmetric around the axes perpendicular to the rocket's center axis. In our defined rocket, I\ :sub:`11` and I\ :sub:`22` are indeed equal, indicating that our rocket is axisymmetric.

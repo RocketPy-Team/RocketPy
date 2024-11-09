@@ -23,7 +23,7 @@ def stochastic_solid_motor(cesaroni_m1670):
     return StochasticSolidMotor(
         solid_motor=cesaroni_m1670,
         thrust_source=[
-            "data/motors/Cesaroni_M1670.eng",
+            "data/motors/cesaroni/Cesaroni_M1670.eng",
             [[0, 6000], [1, 6000], [2, 6000], [3, 6000], [4, 6000]],
             Function([[0, 6000], [1, 6000], [2, 6000], [3, 6000], [4, 6000]]),
         ],

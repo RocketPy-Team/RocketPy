@@ -100,7 +100,7 @@ def pressurant_tank(pressurant_fluid):
         geometry=geometry,
         liquid_mass=0,
         flux_time=(8, 20),
-        gas_mass="data/SEBLM/pressurantMassFiltered.csv",
+        gas_mass="data/rockets/berkeley/pressurantMassFiltered.csv",
         gas=pressurant_fluid,
         liquid=pressurant_fluid,
     )
@@ -127,7 +127,7 @@ def fuel_tank(fuel_fluid, fuel_pressurant):
     """
     geometry = CylindricalTank(0.0744, 0.8068, spherical_caps=True)
     ullage = (
-        -Function("data/SEBLM/test124_Propane_Volume.csv") * 1e-3
+        -Function("data/rockets/berkeley/test124_Propane_Volume.csv") * 1e-3
         + geometry.total_volume
     )
     fuel_tank = UllageBasedTank(
@@ -161,7 +161,8 @@ def oxidizer_tank(oxidizer_fluid, oxidizer_pressurant):
     """
     geometry = CylindricalTank(0.0744, 0.8068, spherical_caps=True)
     ullage = (
-        -Function("data/SEBLM/test124_Lox_Volume.csv") * 1e-3 + geometry.total_volume
+        -Function("data/rockets/berkeley/test124_Lox_Volume.csv") * 1e-3
+        + geometry.total_volume
     )
     oxidizer_tank = UllageBasedTank(
         name="Lox Tank",
@@ -193,7 +194,7 @@ def liquid_motor(pressurant_tank, fuel_tank, oxidizer_tank):
     rocketpy.LiquidMotor
     """
     liquid_motor = LiquidMotor(
-        thrust_source="data/SEBLM/test124_Thrust_Curve.csv",
+        thrust_source="data/rockets/berkeley/test124_Thrust_Curve.csv",
         burn_time=(8, 20),
         dry_mass=10,
         dry_inertia=(5, 5, 0.2),

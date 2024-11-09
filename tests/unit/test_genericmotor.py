@@ -156,7 +156,9 @@ def test_load_from_eng_file(generic_motor):
     exhaust_velocity = 1943.357
 
     # creating motor from .eng file
-    generic_motor = generic_motor.load_from_eng_file("data/motors/Cesaroni_M1670.eng")
+    generic_motor = generic_motor.load_from_eng_file(
+        "data/motors/cesaroni/Cesaroni_M1670.eng"
+    )
 
     # testing relevant parameters
     assert generic_motor.burn_time == burn_time
@@ -174,7 +176,7 @@ def test_load_from_eng_file(generic_motor):
     assert generic_motor.nozzle_radius == pytest.approx(nozzle_radius)
 
     # testing thrust curve
-    _, _, points = Motor.import_eng("data/motors/Cesaroni_M1670.eng")
+    _, _, points = Motor.import_eng("data/motors/cesaroni/Cesaroni_M1670.eng")
     assert generic_motor.thrust.y_array == pytest.approx(
         Function(points, "Time (s)", "Thrust (N)", "linear", "zero").y_array
     )
