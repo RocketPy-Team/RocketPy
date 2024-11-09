@@ -1,4 +1,3 @@
-import warnings
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -23,17 +22,17 @@ def show_or_save_plot(filename=None):
     if filename is None:
         plt.show()
     else:
-        # Warn if file ending is not supported
         file_ending = Path(filename).suffix
-        if file_ending not in get_matplotlib_supported_file_endings():
-            warnings.warn(
-                f"Warning: Unsupported file ending '{file_ending}'!", ValueError
+        supported_endings = get_matplotlib_supported_file_endings()
+        if file_ending not in supported_endings:
+            raise ValueError(
+                f"Unsupported file ending '{file_ending}'."
+                f"Supported file endings are: {supported_endings}."
             )
 
         # Before export, ensure the folder the file should go into exists
         Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
-        # Save the plot
         plt.savefig(filename, dpi=SAVEFIG_DPI)
         plt.close()
 
@@ -54,15 +53,15 @@ def show_or_save_fig(fig: Figure, filename=None):
     if filename is None:
         fig.show()
     else:
-        # Warn if file ending is not supported
         file_ending = Path(filename).suffix
-        if file_ending not in get_matplotlib_supported_file_endings():
-            warnings.warn(
-                f"Warning: Unsupported file ending '{file_ending}'!", ValueError
+        supported_endings = get_matplotlib_supported_file_endings()
+        if file_ending not in supported_endings:
+            raise ValueError(
+                f"Unsupported file ending '{file_ending}'."
+                f"Supported file endings are: {supported_endings}."
             )
 
         # Before export, ensure the folder the file should go into exists
         Path(filename).parent.mkdir(parents=True, exist_ok=True)
 
-        # Save the figure
         fig.savefig(filename, dpi=SAVEFIG_DPI)
