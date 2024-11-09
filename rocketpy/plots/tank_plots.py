@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Polygon
 
+from .plot_helpers import show_or_save_plot
+
 
 class _TankPlots:
     """Class that holds plot methods for Tank class.
@@ -67,8 +69,16 @@ class _TankPlots:
         # Don't set any plot config here. Use the draw methods for that
         return tank
 
-    def draw(self):
+    def draw(self, filename=None):
         """Draws the tank geometry.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -89,6 +99,7 @@ class _TankPlots:
         y_max = self.geometry.radius.y_array.max()
         ax.set_xlim(-1.2 * x_max, 1.2 * x_max)
         ax.set_ylim(-1.5 * y_max, 1.5 * y_max)
+        show_or_save_plot(filename)
 
     def all(self):
         """Prints out all graphs available about the Tank. It simply calls
