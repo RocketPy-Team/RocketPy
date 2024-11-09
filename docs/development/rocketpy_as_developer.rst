@@ -16,13 +16,13 @@ Go into the cloned repository folder by typing on a terminal
 Open your preference editor by typing on a terminal
 
 .. code-block:: console
-    
+
     <editor name> .
 
 For example, to open VS Code type on terminal
 
 .. code-block:: console
-    
+
     code .
 
 Alternatively, you can open the folder directly through your editor's interface.
@@ -45,7 +45,7 @@ To create the folder, type on the terminal:
 And, to add it on .gitignore, type:
 
 .. code-block:: console
-    
+
     echo <folder name>/ >> .gitignore
 
 It is important to remember that all the files inside this folder will not be included in any commit so, if it is important to the solution, do not add them inside it.
@@ -57,7 +57,7 @@ Importing the RocketPy files
 ----------------------------
 
 First, create a python (or .ipynb) file to make the simulation.
-To ensure you are using the local files and not the files as a python package (if you installed the library via pip for example), add 
+To ensure you are using the local files and not the files as a python package (if you installed the library via pip for example), add
 
 .. code-block:: python
 
@@ -66,7 +66,7 @@ To ensure you are using the local files and not the files as a python package (i
 Alternatively you can use the following command to pip install the local library:
 
 .. code-block:: console
-    
+
     import sys
     sys.path.append('../') # if you are using a notebook
     sys.path.append('../rocketpy') # if you are using a script
@@ -74,7 +74,7 @@ Alternatively you can use the following command to pip install the local library
 Import the classes that will be used, in case:
 
 .. code-block:: python
-    
+
     from rocketpy import Environment, SolidMotor, Rocket, Flight, Function
 
 If it is the first time you are using rocketpy and you do not have all required libraries installed, you could use the command:
@@ -99,7 +99,7 @@ It contains information about the local pressure profile, temperature, speed of 
 
     env = Environment(latitude=32.990254, longitude=-106.974998, elevation=1400)
 
-RocketPy can use local files via the Ensemble method or meteorological forecasts through OpenDAP protocol. 
+RocketPy can use local files via the Ensemble method or meteorological forecasts through OpenDAP protocol.
 To work with environment files, it will be very important ensuring tha that you have the netCDF4 library installed.
 Assuming we are using forecast, first we set the simulated data with:
 
@@ -122,14 +122,14 @@ Weather forecast data can be visualized through two info methods.
 Creating the motor that boosts the rocket
 -----------------------------------------
 
-Now we need to create the motor. 
+Now we need to create the motor.
 For example, we will use a solid motor called Pro75M1670, but other configurations are also possible.
 The motor class contains information about the thrust curve and uses some geometric parameters to calculate the mass variation over time, as well as the total thrust and other important outputs.
 
 .. code-block:: python
 
     Pro75M1670 = SolidMotor(
-        thrust_source="../data/motors/Cesaroni_M1670.eng", #copy here the path to the thrust source file
+        thrust_source="../data/motors/cesaroni/Cesaroni_M1670.eng", #copy here the path to the thrust source file
         burn_time=3.9,
         grain_number=5,
         grain_separation=5 / 1000,
@@ -160,8 +160,8 @@ The first step is to initialize the class with the vital data:
         mass=19.197 - 2.956,
         inertia_i=6.60,
         inertia_z=0.0351,
-        power_off_drag="../../data/calisto/powerOffDragCurve.csv",
-        power_on_drag="../../data/calisto/powerOnDragCurve.csv",
+        power_off_drag="../../data/rockets/calisto/powerOffDragCurve.csv",
+        power_on_drag="../../data/rockets/calisto/powerOnDragCurve.csv",
         center_of_dry_mass_position=0,
         coordinate_system_orientation="tail_to_nose",
     )
@@ -171,7 +171,7 @@ The first step is to initialize the class with the vital data:
 Then the rail buttons must be set:
 
 .. code-block:: python
-    
+
     calisto.set_rail_buttons(0.2, -0.5)
 
 In sequence, the aerodynamic surfaces must be set.

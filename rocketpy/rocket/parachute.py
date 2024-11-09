@@ -35,7 +35,8 @@ class Parachute:
            order as they are added to the rocket.
 
         The function should return ``True`` if the parachute ejection system
-        should be triggered and False otherwise.
+        should be triggered and False otherwise. The function will be called
+        according to the specified sampling rate.
 
         - A float value, representing an absolute height in meters. In this
         case, the parachute will be ejected when the rocket reaches this height
@@ -44,8 +45,7 @@ class Parachute:
         - The string "apogee" which triggers the parachute at apogee, i.e.,
         when the rocket reaches its highest point and starts descending.
 
-        Note: The function will be called according to the sampling rate
-        specified.
+
     Parachute.triggerfunc : function
         Trigger function created from the trigger used to evaluate the trigger
         condition for the parachute ejection system. It is a callable function

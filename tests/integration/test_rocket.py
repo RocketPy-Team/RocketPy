@@ -24,7 +24,7 @@ def test_airfoil(
         root_chord=0.120,
         tip_chord=0.040,
         position=-1.168,
-        airfoil=("tests/fixtures/airfoils/NACA0012-radians.txt", "radians"),
+        airfoil=("data/airfoils/NACA0012-radians.txt", "radians"),
         name="NACA0012",
     )
     test_rocket.add_trapezoidal_fins(
@@ -33,7 +33,7 @@ def test_airfoil(
         root_chord=0.120,
         tip_chord=0.040,
         position=-1.168,
-        airfoil=("tests/fixtures/airfoils/e473-10e6-degrees.csv", "degrees"),
+        airfoil=("data/airfoils/e473-10e6-degrees.csv", "degrees"),
         name="E473",
     )
     calisto.parachutes.append(calisto_main_chute)
