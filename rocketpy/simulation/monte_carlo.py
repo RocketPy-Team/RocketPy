@@ -870,10 +870,10 @@ class MonteCarlo:
 
         for i, points in enumerate(kml_data):
             if i < len(impact_ellipses):
-                name = f"Impact Ellipse {i+1}"
+                name = f"Impact Ellipse {i + 1}"
                 ellipse_color = colors[0]  # default is blue
             else:
-                name = f"Apogee Ellipse {i +1- len(impact_ellipses)}"
+                name = f"Apogee Ellipse {i + 1 - len(impact_ellipses)}"
                 ellipse_color = colors[1]  # default is green
 
             mult_ell = kml.newmultigeometry(name=name)
