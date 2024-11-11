@@ -65,14 +65,14 @@ def test_bella_lui_rocket_data_asserts_acceptance():
     )
     env.set_atmospheric_model(
         type="Reanalysis",
-        file="tests/fixtures/acceptance/EPFL_Bella_Lui/bella_lui_weather_data_ERA5.nc",
+        file="data/weather/bella_lui_weather_data_ERA5.nc",
         dictionary="ECMWF",
     )
     env.max_expected_height = 2000
 
     # Motor Information
     K828FJ = SolidMotor(
-        thrust_source="tests/fixtures/acceptance/EPFL_Bella_Lui/bella_lui_motor_AeroTech_K828FJ.eng",
+        thrust_source="data/motors/aerotech/AeroTech_K828FJ.eng",
         burn_time=parameters.get("burn_time")[0],
         dry_mass=1,
         dry_inertia=(0, 0, 0),
@@ -186,7 +186,7 @@ def test_bella_lui_rocket_data_asserts_acceptance():
 
     # Comparison with Real Data
     flight_data = np.loadtxt(
-        "tests/fixtures/acceptance/EPFL_Bella_Lui/bella_lui_flight_data_filtered.csv",
+        "data/rockets/EPFL_Bella_Lui/bella_lui_flight_data_filtered.csv",
         skiprows=1,
         delimiter=",",
         usecols=(2, 3, 4),

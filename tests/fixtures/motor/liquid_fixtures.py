@@ -86,7 +86,7 @@ def liquid_motor(pressurant_tank, fuel_tank, oxidizer_tank):
     rocketpy.LiquidMotor
     """
     liquid_motor = LiquidMotor(
-        thrust_source="data/SEBLM/test124_Thrust_Curve.csv",
+        thrust_source="data/rockets/berkeley/test124_Thrust_Curve.csv",
         burn_time=(8, 20),
         dry_mass=10,
         dry_inertia=(5, 5, 0.2),

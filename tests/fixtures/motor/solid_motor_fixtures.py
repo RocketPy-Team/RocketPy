@@ -18,7 +18,7 @@ def cesaroni_m1670():  # old name: solid_motor
         A simple object of the SolidMotor class
     """
     example_motor = SolidMotor(
-        thrust_source="data/motors/Cesaroni_M1670.eng",
+        thrust_source="data/motors/cesaroni/Cesaroni_M1670.eng",
         burn_time=3.9,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
@@ -52,7 +52,7 @@ def cesaroni_m1670_shifted():  # old name: solid_motor
         A simple object of the SolidMotor class
     """
     example_motor = SolidMotor(
-        thrust_source="tests/fixtures/motor/Cesaroni_M1670_shifted.eng",
+        thrust_source="data/motors/cesaroni/Cesaroni_M1670_shifted.eng",
         burn_time=3.9,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
@@ -94,7 +94,7 @@ def dimensionless_cesaroni_m1670(kg, m):  # old name: dimensionless_motor
         An object of the SolidMotor class
     """
     example_motor = SolidMotor(
-        thrust_source="data/motors/Cesaroni_M1670.eng",
+        thrust_source="data/motors/cesaroni/Cesaroni_M1670.eng",
         burn_time=3.9,
         dry_mass=1.815 * kg,
         dry_inertia=(

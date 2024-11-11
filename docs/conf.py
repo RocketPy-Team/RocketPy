@@ -27,7 +27,7 @@ copyright = "2024, RocketPy Team"
 author = "RocketPy Team"
 
 # The full version, including alpha/beta/rc tags
-release = "1.6.1"
+release = "1.6.2"
 
 
 # -- General configuration ---------------------------------------------------
@@ -123,12 +123,6 @@ html_theme_options = {
     "github_url": "https://github.com/RocketPy-Team/RocketPy",
     "navbar_end": ["theme-switcher", "navbar-icon-links.html"],
     "icon_links": [
-        {
-            "name": "GitHub",
-            "url": "https://github.com/RocketPy-Team/RocketPy/",
-            "icon": "fa-brands fa-square-github",
-            "type": "fontawesome",
-        },
         {
             "name": "LinkedIn",
             "url": "https://www.linkedin.com/company/rocketpy/",

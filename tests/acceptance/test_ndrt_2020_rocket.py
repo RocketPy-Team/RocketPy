@@ -73,14 +73,14 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
     )
     env.set_atmospheric_model(
         type="Reanalysis",
-        file="tests/fixtures/acceptance/NDRT_2020/ndrt_2020_weather_data_ERA5.nc",
+        file="data/weather/ndrt_2020_weather_data_ERA5.nc",
         dictionary="ECMWF",
     )
     env.max_expected_height = 2000
 
     # motor information
     L1395 = SolidMotor(
-        thrust_source="tests/fixtures/acceptance/NDRT_2020/ndrt_2020_motor_Cesaroni_4895L1395-P.eng",
+        thrust_source="data/motors/cesaroni/Cesaroni_4895L1395-P.eng",
         burn_time=parameters.get("burn_time")[0],
         dry_mass=1,
         dry_inertia=(0, 0, 0),
@@ -179,9 +179,7 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
     df_ndrt_rocketpy["Altitude"] -= env.elevation
 
     # Reading data from the flightData (sensors: Raven)
-    df_ndrt_raven = pd.read_csv(
-        "tests/fixtures/acceptance/NDRT_2020/ndrt_2020_flight_data.csv"
-    )
+    df_ndrt_raven = pd.read_csv("data/rockets/NDRT_2020/ndrt_2020_flight_data.csv")
     # convert feet to meters
     df_ndrt_raven[" Altitude (m-AGL)"] = df_ndrt_raven[" Altitude (Ft-AGL)"] / 3.28084
     # Calculate the vertical velocity as a derivative of the altitude
