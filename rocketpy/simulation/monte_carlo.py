@@ -372,7 +372,14 @@ class MonteCarlo:
         }
 
         if self.export_function is not None:
-            additional_exports = self.export_function(flight)
+            try:
+                additional_exports = self.export_function(flight)
+            except Exception as e:
+                raise ValueError(
+                    "An error was encountered running your custom export function. "
+                    "Check for errors in 'export_function' definition."
+                ) from e
+
             for key in additional_exports.keys():
                 if key in self.export_list:
                     raise ValueError(
