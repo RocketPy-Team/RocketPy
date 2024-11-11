@@ -80,8 +80,13 @@ class MonteCarlo:
     """
 
     def __init__(
-        self, filename, environment, rocket, flight, export_list=None,
-            export_function=None
+        self,
+        filename,
+        environment,
+        rocket,
+        flight,
+        export_list=None,
+        export_function=None,
     ):  # pylint: disable=too-many-statements
         """
         Initialize a MonteCarlo object.
@@ -370,7 +375,9 @@ class MonteCarlo:
             additional_exports = self.export_function(flight)
             for key in additional_exports.keys():
                 if key in self.export_list:
-                    raise ValueError(f"Invalid export function, returns dict which overwrites key, '{key}'")
+                    raise ValueError(
+                        f"Invalid export function, returns dict which overwrites key, '{key}'"
+                    )
             results = results | additional_exports
 
         input_file.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
@@ -669,9 +676,12 @@ class MonteCarlo:
         self.processed_results = {}
         for result, values in self.results.items():
             try:
-                mean = np.mean(values)
-                stdev = np.std(values)
-                self.processed_results[result] = (mean, stdev)
+                if isinstance(values[0], float):
+                    mean = np.mean(values)
+                    stdev = np.std(values)
+                    self.processed_results[result] = (mean, stdev)
+                else:
+                    self.processed_results[result] = (None, None)
             except TypeError:
                 self.processed_results[result] = (None, None)
 
