@@ -111,3 +111,56 @@ def test_monte_carlo_export_ellipses_to_kml(monte_carlo_calisto_pre_loaded):
     )
 
     os.remove("monte_carlo_class_example.kml")
+
+
+@pytest.mark.slow
+def test_monte_carlo_callback(monte_carlo_calisto):
+    """Tests the export_function argument of the MonteCarlo class.
+
+    Parameters
+    ----------
+    monte_carlo_calisto : MonteCarlo
+        The MonteCarlo object, this is a pytest fixture.
+    """
+
+    def valid_export_function(flight):
+        custom_export_dict = {
+            "name": flight.name,
+            "density_t0": flight.env.density(0),
+        }
+        return custom_export_dict
+
+    monte_carlo_calisto.export_function = valid_export_function
+    # NOTE: this is really slow, it runs 10 flight simulations
+    monte_carlo_calisto.simulate(number_of_simulations=10, append=False)
+
+    # tests if print works when we have None in summary
+    monte_carlo_calisto.info()
+
+    # tests if logical errors in export functions raise errors
+    def export_function_with_logical_error(flight):
+        custom_export_dict = {
+            "date": flight.env.date,
+            "density_t0": flight.env.density(0) / "0",
+        }
+        return custom_export_dict
+
+    monte_carlo_calisto.export_function = export_function_with_logical_error
+    # NOTE: this is really slow, it runs 10 flight simulations
+    with pytest.raises(ValueError):
+        monte_carlo_calisto.simulate(number_of_simulations=10, append=False)
+
+    # tests if overwriting default exports raises errors
+    def export_function_with_overwriting_error(flight):
+        custom_export_dict = {
+            "apogee": flight.apogee,
+        }
+        return custom_export_dict
+
+    monte_carlo_calisto.export_function = export_function_with_overwriting_error
+    with pytest.raises(ValueError):
+        monte_carlo_calisto.simulate(number_of_simulations=10, append=False)
+
+    os.remove("monte_carlo_test.errors.txt")
+    os.remove("monte_carlo_test.outputs.txt")
+    os.remove("monte_carlo_test.inputs.txt")
