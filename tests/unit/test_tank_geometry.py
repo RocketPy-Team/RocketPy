@@ -39,8 +39,8 @@ def test_tank_bounds(params, request):
 
     expected_total_height = expected_height
 
-    assert np.isclose(geometry.radius(0), expected_radius, atol=1e-6)
-    assert np.isclose(geometry.total_height, expected_total_height, atol=1e-6)
+    assert np.isclose(geometry.radius(0), expected_radius)
+    assert np.isclose(geometry.total_height, expected_total_height)
 
 
 @parametrize_fixtures
@@ -52,8 +52,8 @@ def test_tank_coordinates(params, request):
     expected_bottom = -height / 2
     expected_top = height / 2
 
-    assert np.isclose(geometry.bottom, expected_bottom, atol=1e-6)
-    assert np.isclose(geometry.top, expected_top, atol=1e-6)
+    assert np.isclose(geometry.bottom, expected_bottom)
+    assert np.isclose(geometry.top, expected_top)
 
 
 @parametrize_fixtures
@@ -68,7 +68,7 @@ def test_tank_total_volume(params, request):
         np.pi * radius**2 * (height - 2 * radius) + 4 / 3 * np.pi * radius**3
     )
 
-    assert np.isclose(geometry.total_volume, expected_total_volume, atol=1e-6)
+    assert np.isclose(geometry.total_volume, expected_total_volume)
 
 
 @parametrize_fixtures
@@ -79,12 +79,11 @@ def test_tank_volume(params, request):
     geometry, *_, file_path = params
     geometry = request.getfixturevalue(geometry)
 
-    expected_data = np.loadtxt(file_path, delimiter=",", skiprows=1)
+    heights, expected_volumes = np.loadtxt(
+        file_path, delimiter=",", skiprows=1, usecols=(0, 1), unpack=True
+    )
 
-    heights = expected_data[:, 0]
-    expected_volumes = expected_data[:, 1]
-
-    assert np.allclose(expected_volumes, geometry.volume(heights), atol=1e-6)
+    assert np.allclose(expected_volumes, geometry.volume(heights))
 
 
 @parametrize_fixtures
@@ -95,19 +94,15 @@ def test_tank_centroid(params, request):
     geometry, *_, file_path = params
     geometry = request.getfixturevalue(geometry)
 
-    expected_data = np.loadtxt(file_path, delimiter=",", skiprows=1)
+    heights, expected_volumes, expected_centroids = np.loadtxt(
+        file_path, delimiter=",", skiprows=1, usecols=(0, 1, 2), unpack=True
+    )
 
-    heights = expected_data[:, 0]
-    expected_volumes = expected_data[:, 1]
-    expected_centroids = expected_data[:, 2]
-
-    for i, h in enumerate(heights[1:], 1):  # Avoid empty geometry
-        # Loss of accuracy when volume is close to zero
-        assert np.isclose(
-            expected_centroids[i],
-            geometry.volume_moment(geometry.bottom, h)(h) / expected_volumes[i],
-            atol=1e-3,
-        )
+    # For higher accuracy: geometry.volume_moment(geometry.bottom, h)(h)
+    assert np.allclose(
+        expected_centroids * expected_volumes,
+        geometry.volume_moment(geometry.bottom, geometry.top)(heights),
+    )
 
 
 @parametrize_fixtures
@@ -118,14 +113,14 @@ def test_tank_inertia(params, request):
     geometry, *_, file_path = params
     geometry = request.getfixturevalue(geometry)
 
-    expected_data = np.loadtxt(file_path, delimiter=",", skiprows=1)
+    heights, expected_inertia = np.loadtxt(
+        file_path, delimiter=",", skiprows=1, usecols=(0, 3), unpack=True
+    )
 
-    heights = expected_data[:, 0]
-    expected_inertia = expected_data[:, 3]
-
-    for i, h in enumerate(heights):  # Avoid empty geometry
-        assert np.isclose(
-            expected_inertia[i],
-            geometry.Ix_volume(geometry.bottom, h)(h),
-            atol=1e-5,
-        )
+    # For higher accuracy: geometry.Ix_volume(geometry.bottom, h)(h)
+    assert np.allclose(
+        expected_inertia[1:],
+        geometry.Ix_volume(geometry.bottom, geometry.top)(heights[1:]),
+        rtol=1e-5,
+        atol=1e-9,
+    )
