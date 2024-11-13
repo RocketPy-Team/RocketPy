@@ -36,7 +36,7 @@ Attention: The newest changes should be on top -->
 
 ### Changed
 
--
+- BUG: Sideslip Angle and Damping Coefficient Calculation [#729](https://github.com/RocketPy-Team/RocketPy/pull/729)
 
 ### Fixed
 
