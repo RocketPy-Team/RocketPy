@@ -494,6 +494,17 @@ class Tank(ABC):
         """
         self.plots.draw(filename)
 
+    def info(self):
+        """Prints out a summary of the tank properties."""
+        self.prints.all()
+
+    def all_info(self):
+        """Prints out detailed information and plots of the tank
+        properties.
+        """
+        self.prints.all()
+        self.plots.all()
+
 
 class MassFlowRateBasedTank(Tank):
     """Class to define a tank based on mass flow rates inputs. This class

@@ -27,8 +27,8 @@ import pytest
 def test_tank_all_info(mock_show, fixture_name, request):
     tank = request.getfixturevalue(fixture_name)
 
-    assert tank.prints.all() is None
-    assert tank.plots.all() is None
+    assert tank.info() is None
+    assert tank.all_info() is None
 
     assert (tank.gas_height <= tank.geometry.top).all
     assert (tank.liquid_height <= tank.geometry.top).all
