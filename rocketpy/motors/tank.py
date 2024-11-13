@@ -23,7 +23,7 @@ class Tank(ABC):
         Name of the tank.
     Tank.geometry : TankGeometry
         Geometry of the tank.
-    Tank.flux_time : float, tuple of float, optional
+    Tank.flux_time : float, tuple of float
         Tank flux time in seconds.
     Tank.liquid : Fluid
         Liquid inside the tank as a Fluid object.
@@ -84,13 +84,14 @@ class Tank(ABC):
             Name of the tank.
         geometry : TankGeometry
             Geometry of the tank.
-        flux_time : float, tuple of float, optional
-            Tank flux time in seconds. It is the time range in which the tank
-            flux is being analyzed. In general, during this time, the tank is
-            being filled or emptied.If a float is given, the flux time is
-            assumed to be between 0 and the given float, in seconds. If a tuple
-            of float is given, the flux time is assumed to be between the first
-            and second elements of the tuple.
+        flux_time : float, tuple of float
+            Tank flux time in seconds. Time interval that the fluid flux is
+            being analyzed. If a float is given, the flux time is assumed to
+            be between 0 and the given float, in seconds. If a tuple of float
+            is given, the flux time is assumed to be between the first and
+            second elements of the tuple.
+            Before the start time, the tank properties are kept at their
+            initial state. After the final time, their final state is kept.
         gas : Fluid
             Gas inside the tank as a Fluid object.
         liquid : Fluid
@@ -514,14 +515,14 @@ class MassFlowRateBasedTank(Tank):
             Name of the tank.
         geometry : TankGeometry
             Geometry of the tank.
-        flux_time : float, tuple of float, optional
-            Tank flux time in seconds. It is the time range in which the tank
-            flux is being analyzed. In general, during this time, the tank is
-            being filled or emptied.
-            If a float is given, the flux time is assumed to be between 0 and
-            the given float, in seconds. If a tuple of float is given, the flux
-            time is assumed to be between the first and second elements of the
-            tuple.
+        flux_time : float, tuple of float
+            Tank flux time in seconds. Time interval that the fluid flux is
+            being analyzed. If a float is given, the flux time is assumed to
+            be between 0 and the given float, in seconds. If a tuple of float
+            is given, the flux time is assumed to be between the first and
+            second elements of the tuple.
+            Before the start time, the tank properties are kept at their
+            initial state. After the final time, their final state is kept.
         liquid : Fluid
             Liquid inside the tank as a Fluid object.
         gas : Fluid
@@ -853,13 +854,14 @@ class UllageBasedTank(Tank):
             Name of the tank.
         geometry : TankGeometry
             Geometry of the tank.
-        flux_time : float, tuple of float, optional
-            Tank flux time in seconds. It is the time range in which the tank
-            flux is being analyzed. In general, during this time, the tank is
-            being filled or emptied. If a float is given, the flux time is
-            assumed to be between 0 and the given float, in seconds. If a tuple
-            of float is given, the flux time is assumed to be between the first
-            and second elements of the tuple.
+        flux_time : float, tuple of float
+            Tank flux time in seconds. Time interval that the fluid flux is
+            being analyzed. If a float is given, the flux time is assumed to
+            be between 0 and the given float, in seconds. If a tuple of float
+            is given, the flux time is assumed to be between the first and
+            second elements of the tuple.
+            Before the start time, the tank properties are kept at their
+            initial state. After the final time, their final state is kept.
         liquid : Fluid
             Liquid inside the tank as a Fluid object.
         gas : Fluid
@@ -1048,13 +1050,14 @@ class LevelBasedTank(Tank):
             Name of the tank.
         geometry : TankGeometry
             Geometry of the tank.
-        flux_time : float, tuple of float, optional
-            Tank flux time in seconds. It is the time range in which the tank
-            flux is being analyzed. In general, during this time, the tank is
-            being filled or emptied. If a float is given, the flux time is
-            assumed to be between 0 and the given float, in seconds. If a tuple
-            of float is given, the flux time is assumed to be between the first
-            and second elements of the tuple.
+        flux_time : float, tuple of float
+            Tank flux time in seconds. Time interval that the fluid flux is
+            being analyzed. If a float is given, the flux time is assumed to
+            be between 0 and the given float, in seconds. If a tuple of float
+            is given, the flux time is assumed to be between the first and
+            second elements of the tuple.
+            Before the start time, the tank properties are kept at their
+            initial state. After the final time, their final state is kept.
         liquid : Fluid
             Liquid inside the tank as a Fluid object.
         gas : Fluid
@@ -1257,13 +1260,14 @@ class MassBasedTank(Tank):
             Name of the tank.
         geometry : TankGeometry
             Geometry of the tank.
-        flux_time : float, tuple of float, optional
-            Tank flux time in seconds. It is the time range in which the tank
-            flux is being analyzed. In general, during this time, the tank is
-            being filled or emptied. If a float is given, the flux time is
-            assumed to be between 0 and the given float, in seconds. If a tuple
-            of float is given, the flux time is assumed to be between the first
-            and second elements of the tuple.
+        flux_time : float, tuple of float
+            Tank flux time in seconds. Time interval that the fluid flux is
+            being analyzed. If a float is given, the flux time is assumed to
+            be between 0 and the given float, in seconds. If a tuple of float
+            is given, the flux time is assumed to be between the first and
+            second elements of the tuple.
+            Before the start time, the tank properties are kept at their
+            initial state. After the final time, their final state is kept.
         liquid : Fluid
             Liquid inside the tank as a Fluid object.
         gas : Fluid
