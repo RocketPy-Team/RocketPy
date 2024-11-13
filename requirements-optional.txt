@@ -4,3 +4,5 @@ ipywidgets>=7.6.3
 jsonpickle
 timezonefinder
 imageio
+statsmodels
+prettytable

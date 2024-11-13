@@ -5,6 +5,9 @@ import numpy as np
 
 from rocketpy.motors import EmptyMotor, HybridMotor, LiquidMotor, SolidMotor
 from rocketpy.rocket.aero_surface import Fins, NoseCone, Tail
+from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
+
+from .plot_helpers import show_or_save_plot
 
 
 class _RocketPlots:
@@ -51,15 +54,23 @@ class _RocketPlots:
 
         self.rocket.reduced_mass()
 
-    def static_margin(self):
+    def static_margin(self, filename=None):
         """Plots static margin of the rocket as a function of time.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
         None
         """
 
-        self.rocket.static_margin()
+        self.rocket.static_margin(filename=filename)
 
     def stability_margin(self):
         """Plots static margin of the rocket as a function of time.
@@ -112,8 +123,16 @@ class _RocketPlots:
         self.rocket.power_off_drag()
 
     # pylint: disable=too-many-statements
-    def drag_curves(self):
+    def drag_curves(self, filename=None):
         """Plots power off and on drag curves of the rocket as a function of time.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -149,7 +168,7 @@ class _RocketPlots:
         ax.axvspan(0.8, 1.2, alpha=0.3, color="gray", label="Transonic Region")
         ax.legend(loc="best", shadow=True)
         plt.grid(True)
-        plt.show()
+        show_or_save_plot(filename)
 
     def thrust_to_weight(self):
         """
@@ -160,7 +179,7 @@ class _RocketPlots:
             lower=0, upper=self.rocket.motor.burn_out_time
         )
 
-    def draw(self, vis_args=None):
+    def draw(self, vis_args=None, plane="xz", filename=None):
         """Draws the rocket in a matplotlib figure.
 
         Parameters
@@ -184,6 +203,14 @@ class _RocketPlots:
 
             A full list of color names can be found at: \
             https://matplotlib.org/stable/gallery/color/named_colors
+        plane : str, optional
+            Plane in which the rocket will be drawn. Default is 'xz'. Other
+            options is 'yz'. Used only for sensors representation.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
         """
         if vis_args is None:
             vis_args = {
@@ -197,21 +224,20 @@ class _RocketPlots:
                 "line_width": 1.0,
             }
 
-        # Create the figure and axis
-        _, ax = plt.subplots(figsize=(8, 6), facecolor="#EEEEEE")
+        _, ax = plt.subplots(figsize=(8, 6), facecolor=vis_args["background"])
         ax.set_aspect("equal")
-        ax.set_facecolor(vis_args["background"])
         ax.grid(True, linestyle="--", linewidth=0.5)
 
         csys = self.rocket._csys
         reverse = csys == 1
         self.rocket.aerodynamic_surfaces.sort_by_position(reverse=reverse)
 
-        drawn_surfaces = self._draw_aerodynamic_surfaces(ax, vis_args)
+        drawn_surfaces = self._draw_aerodynamic_surfaces(ax, vis_args, plane)
         last_radius, last_x = self._draw_tubes(ax, drawn_surfaces, vis_args)
         self._draw_motor(last_radius, last_x, ax, vis_args)
         self._draw_rail_buttons(ax, vis_args)
         self._draw_center_of_mass_and_pressure(ax)
+        self._draw_sensors(ax, self.rocket.sensors, plane)
 
         plt.title("Rocket Representation")
         plt.xlim()
@@ -220,9 +246,9 @@ class _RocketPlots:
         plt.ylabel("Radius (m)")
         plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
         plt.tight_layout()
-        plt.show()
+        show_or_save_plot(filename)
 
-    def _draw_aerodynamic_surfaces(self, ax, vis_args):
+    def _draw_aerodynamic_surfaces(self, ax, vis_args, plane):
         """Draws the aerodynamic surfaces and saves the position of the points
         of interest for the tubes."""
         # List of drawn surfaces with the position of points of interest
@@ -237,11 +263,15 @@ class _RocketPlots:
 
         for surface, position in self.rocket.aerodynamic_surfaces:
             if isinstance(surface, NoseCone):
-                self._draw_nose_cone(ax, surface, position, drawn_surfaces, vis_args)
+                self._draw_nose_cone(ax, surface, position.z, drawn_surfaces, vis_args)
             elif isinstance(surface, Tail):
-                self._draw_tail(ax, surface, position, drawn_surfaces, vis_args)
+                self._draw_tail(ax, surface, position.z, drawn_surfaces, vis_args)
             elif isinstance(surface, Fins):
-                self._draw_fins(ax, surface, position, drawn_surfaces, vis_args)
+                self._draw_fins(ax, surface, position.z, drawn_surfaces, vis_args)
+            elif isinstance(surface, GenericSurface):
+                self._draw_generic_surface(
+                    ax, surface, position, drawn_surfaces, vis_args, plane
+                )
         return drawn_surfaces
 
     def _draw_nose_cone(self, ax, surface, position, drawn_surfaces, vis_args):
@@ -334,6 +364,39 @@ class _RocketPlots:
 
         drawn_surfaces.append((surface, position, surface.rocket_radius, x_rotated[-1]))
 
+    def _draw_generic_surface(
+        self,
+        ax,
+        surface,
+        position,
+        drawn_surfaces,
+        vis_args,  # pylint: disable=unused-argument
+        plane,
+    ):
+        """Draws the generic surface and saves the position of the points of interest
+        for the tubes."""
+        if plane == "xz":
+            # z position of the sensor is the x position in the plot
+            x_pos = position[2]
+            # x position of the surface is the y position in the plot
+            y_pos = position[0]
+        elif plane == "yz":
+            # z position of the surface is the x position in the plot
+            x_pos = position[2]
+            # y position of the surface is the y position in the plot
+            y_pos = position[1]
+        else:
+            raise ValueError("Plane must be 'xz' or 'yz'.")
+
+        ax.scatter(
+            x_pos,
+            y_pos,
+            linewidth=2,
+            zorder=10,
+            label=surface.name,
+        )
+        drawn_surfaces.append((surface, position.z, self.rocket.radius, x_pos))
+
     def _draw_tubes(self, ax, drawn_surfaces, vis_args):
         """Draws the tubes between the aerodynamic surfaces."""
         for i, d_surface in enumerate(drawn_surfaces):
@@ -380,7 +443,7 @@ class _RocketPlots:
         )
 
         # Get motor patches translated to the correct position
-        motor_patches = self._generate_motor_patches(total_csys, ax, vis_args)
+        motor_patches = self._generate_motor_patches(total_csys, ax)
 
         # Draw patches
         if not isinstance(self.rocket.motor, EmptyMotor):
@@ -401,7 +464,7 @@ class _RocketPlots:
         self._draw_nozzle_tube(last_radius, last_x, nozzle_position, ax, vis_args)
 
     def _generate_motor_patches(
-        self, total_csys, ax, vis_args
+        self, total_csys, ax
     ):  # pylint: disable=unused-argument
         """Generates motor patches for drawing"""
         motor_patches = []
@@ -526,8 +589,8 @@ class _RocketPlots:
         """Draws the rail buttons of the rocket."""
         try:
             buttons, pos = self.rocket.rail_buttons[0]
-            lower = pos
-            upper = pos + buttons.buttons_distance * self.rocket._csys
+            lower = pos.z
+            upper = lower + buttons.buttons_distance * self.rocket._csys
             ax.scatter(
                 lower, -self.rocket.radius, marker="s", color=vis_args["buttons"], s=15
             )
@@ -547,6 +610,57 @@ class _RocketPlots:
         ax.scatter(
             cp, 0, label="Static Center of Pressure", color="red", s=10, zorder=10
         )
+
+    def _draw_sensors(self, ax, sensors, plane):
+        """Draw the sensor as a small thick line at the position of the sensor,
+        with a vector pointing in the direction normal of the sensor. Get the
+        normal vector from the sensor orientation matrix."""
+        colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+        for i, sensor_pos in enumerate(sensors):
+            sensor = sensor_pos[0]
+            pos = sensor_pos[1]
+            if plane == "xz":
+                # z position of the sensor is the x position in the plot
+                x_pos = pos[2]
+                normal_x = sensor.normal_vector.z
+                # x position of the sensor is the y position in the plot
+                y_pos = pos[0]
+                normal_y = sensor.normal_vector.x
+            elif plane == "yz":
+                # z position of the sensor is the x position in the plot
+                x_pos = pos[2]
+                normal_x = sensor.normal_vector.z
+                # y position of the sensor is the y position in the plot
+                y_pos = pos[1]
+                normal_y = sensor.normal_vector.y
+            else:
+                raise ValueError("Plane must be 'xz' or 'yz'.")
+
+            # line length is 2/5 of the rocket radius
+            line_length = self.rocket.radius / 2.5
+
+            ax.plot(
+                [x_pos, x_pos],
+                [y_pos + line_length, y_pos - line_length],
+                linewidth=2,
+                color=colors[(i + 1) % len(colors)],
+                zorder=10,
+                label=sensor.name,
+            )
+            if abs(sensor.normal_vector) != 0:
+                ax.quiver(
+                    x_pos,
+                    y_pos,
+                    normal_x,
+                    normal_y,
+                    color=colors[(i + 1) % len(colors)],
+                    scale_units="xy",
+                    angles="xy",
+                    minshaft=2,
+                    headwidth=2,
+                    headlength=4,
+                    zorder=10,
+                )
 
     def all(self):
         """Prints out all graphs available about the Rocket. It simply calls

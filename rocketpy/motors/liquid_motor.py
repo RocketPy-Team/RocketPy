@@ -47,6 +47,8 @@ class LiquidMotor(Motor):
     LiquidMotor.propellant_mass : Function
         Total propellant mass in kg as a function of time, includes fuel
         and oxidizer.
+    LiquidMotor.structural_mass_ratio: float
+        Initial ratio between the dry mass and the total mass.
     LiquidMotor.total_mass_flow_rate : Function
         Time derivative of propellant total mass in kg/s as a function
         of time as obtained by the tanks mass flow.
@@ -230,16 +232,16 @@ class LiquidMotor(Motor):
             "nozzle_to_combustion_chamber".
         """
         super().__init__(
-            thrust_source,
-            dry_mass,
-            dry_inertia,
-            nozzle_radius,
-            center_of_dry_mass_position,
-            nozzle_position,
-            burn_time,
-            reshape_thrust_curve,
-            interpolation_method,
-            coordinate_system_orientation,
+            thrust_source=thrust_source,
+            dry_inertia=dry_inertia,
+            nozzle_radius=nozzle_radius,
+            center_of_dry_mass_position=center_of_dry_mass_position,
+            dry_mass=dry_mass,
+            nozzle_position=nozzle_position,
+            burn_time=burn_time,
+            reshape_thrust_curve=reshape_thrust_curve,
+            interpolation_method=interpolation_method,
+            coordinate_system_orientation=coordinate_system_orientation,
         )
 
         self.positioned_tanks = []
@@ -266,16 +268,16 @@ class LiquidMotor(Motor):
         """
         times, thrusts = self.thrust.source[:, 0], self.thrust.source[:, 1]
         mass_flow_rates = self.mass_flow_rate(times)
+        exhaust_velocity = np.zeros_like(mass_flow_rates)
 
         # Compute exhaust velocity only for non-zero mass flow rates
         valid_indices = mass_flow_rates != 0
-        valid_times = times[valid_indices]
-        valid_thrusts = thrusts[valid_indices]
-        valid_mass_flow_rates = mass_flow_rates[valid_indices]
 
-        ext_vel = -valid_thrusts / valid_mass_flow_rates
+        exhaust_velocity[valid_indices] = (
+            -thrusts[valid_indices] / mass_flow_rates[valid_indices]
+        )
 
-        return np.column_stack([valid_times, ext_vel])
+        return np.column_stack([times, exhaust_velocity])
 
     @funcify_method("Time (s)", "Propellant Mass (kg)")
     def propellant_mass(self):
@@ -461,21 +463,19 @@ class LiquidMotor(Motor):
         self.positioned_tanks.append({"tank": tank, "position": position})
         reset_funcified_methods(self)
 
-    def draw(self):
-        """Draw a representation of the LiquidMotor."""
-        self.plots.draw()
+    def draw(self, filename=None):
+        """Draw a representation of the LiquidMotor.
 
-    def info(self):
-        """Prints out basic data about the Motor."""
-        self.prints.all()
-        self.plots.thrust()
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
-    def all_info(self):
-        """Prints out all data and graphs available about the Motor.
-
-        Return
-        ------
+        Returns
+        -------
         None
         """
-        self.prints.all()
-        self.plots.all()
+        self.plots.draw(filename)

@@ -93,8 +93,9 @@ The predefined ``CylindricalTank`` class is easy to use and is defined as such:
 
 .. note::
   The ``spherical_caps`` parameter is optional and defaults to ``False``. If set
-  to ``True``, the tank will be defined as a cylinder with flat caps.
-  If True, the tank will have spherical caps.
+  to ``True``, the tank will have spherical caps at the top and bottom with the
+  same radius as the cylindrical part. If set to ``False``, the tank will
+  be defined as a cylinder with flat caps.
 
 The predefined ``SphericalTank`` is defined with:
 

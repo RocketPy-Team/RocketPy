@@ -7,17 +7,17 @@
 <br>
 
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/RocketPy-Team/rocketpy/blob/master/docs/notebooks/getting_started_colab.ipynb)
-[![PyPI](https://img.shields.io/pypi/v/rocketpy?color=g)](https://pypi.org/project/rocketpy/)
 [![Documentation Status](https://readthedocs.org/projects/rocketpyalpha/badge/?version=latest)](https://docs.rocketpy.org/en/latest/?badge=latest)
+[![PyPI](https://img.shields.io/pypi/v/rocketpy?color=g)](https://pypi.org/project/rocketpy/)
+![Conda Version](https://img.shields.io/conda/v/conda-forge/rocketpy?color=g)
 [![codecov](https://codecov.io/gh/RocketPy-Team/RocketPy/graph/badge.svg?token=Ecc3bsHFeP)](https://codecov.io/gh/RocketPy-Team/RocketPy)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Contributors](https://img.shields.io/github/contributors/RocketPy-Team/rocketpy)](https://github.com/RocketPy-Team/RocketPy/graphs/contributors)
-[![Chat on Discord](https://img.shields.io/discord/765037887016140840?logo=discord)](https://discord.gg/b6xYnNh)
 [![Sponsor RocketPy](https://img.shields.io/static/v1?label=Sponsor&message=%E2%9D%A4&logo=GitHub&color=%23fe8e86)](https://github.com/sponsors/RocketPy-Team)
+[![Chat on Discord](https://img.shields.io/discord/765037887016140840?logo=discord)](https://discord.gg/b6xYnNh)
 [![Instagram](https://img.shields.io/badge/Instagram-E4405F?style=flat&logo=instagram&logoColor=white)](https://www.instagram.com/rocketpyteam)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/company/rocketpy)
 [![DOI](https://img.shields.io/badge/DOI-10.1061%2F%28ASCE%29AS.1943--5525.0001331-blue.svg)](http://dx.doi.org/10.1061/%28ASCE%29AS.1943-5525.0001331)
-
-<br>
 
 # RocketPy
 
@@ -33,7 +33,7 @@ RocketPy is the next-generation trajectory simulation solution for High-Power Ro
 
 2. **Accurate Weather Modeling**
    - Supports International Standard Atmosphere (1976)
-   - Custom atmospheric profiles and Soundings (Wyoming, NOAARuc)
+   - Custom atmospheric profiles and Soundings (Wyoming)
    - Weather forecasts, reanalysis, and ensembles for realistic scenarios
 
 3. **Aerodynamic Models**
@@ -79,6 +79,9 @@ Flight data and rocket parameters used in this comparison were kindly provided b
 |   NDRT launch vehicle   | Apogee altitude (m)    | 1,310.44  | 1,320.37  |   **-0.75 %**   |
 |   NDRT launch vehicle   | Apogee time (s)        |    16.77  |    17.10  |   **-1.90 %**   |
 |   NDRT launch vehicle   | Maximum velocity (m/s) |   172.86  |   168.95  |   **2.31 %**    |
+
+Over years of development and testing, RocketPy has been validated across an expanding range of flight scenarios.
+For more information on these validated flights, visit our [Flight Examples](https://docs.rocketpy.org/en/latest/examples/index.html) page in the documentation.
 
 # Documentation
 
@@ -161,7 +164,7 @@ env = Environment(
     latitude=32.990254,
     longitude=-106.974998,
     elevation=1400,
-) 
+)
 
 tomorrow = datetime.date.today() + datetime.timedelta(days=1)
 
@@ -182,7 +185,7 @@ A sample Motor object can be created by the following code:
 
 ```python
 Pro75M1670 = SolidMotor(
-    thrust_source="data/motors/Cesaroni_M1670.eng",
+    thrust_source="data/motors/cesaroni/Cesaroni_M1670.eng",
     dry_mass=1.815,
     dry_inertia=(0.125, 0.125, 0.002),
     center_of_dry_mass_position=0.317,
@@ -215,8 +218,8 @@ calisto = Rocket(
     radius=0.0635,
     mass=14.426,  # without motor
     inertia=(6.321, 6.321, 0.034),
-    power_off_drag="data/calisto/powerOffDragCurve.csv",
-    power_on_drag="data/calisto/powerOnDragCurve.csv",
+    power_off_drag="data/rockets/calisto/powerOffDragCurve.csv",
+    power_on_drag="data/rockets/calisto/powerOnDragCurve.csv",
     center_of_mass_without_motor=0,
     coordinate_system_orientation="tail_to_nose",
 )
@@ -329,6 +332,9 @@ RocketPy extends its gratitude to the following institutions for their support a
     <a href="https://github.com/Space-Enterprise-at-Berkeley">
         <img align=top alt="Space Enterprise at Berkeley Logo" src="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/institutional/space_enterprise_at_berkeley.jpeg" height="150px">
     </a>
+    <a href="https://www.instagram.com/faradayupv">
+        <img align=top alt="Faraday Rocketry UPV Logo" src="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/institutional/faraday_team_logo.jpg" height="150px">
+    </a>
 </div>
 
 ## Individual Contributors
@@ -349,7 +355,7 @@ You can also become a [sponsor](https://github.com/sponsors/RocketPy-Team) and h
 
 If you are actively using RocketPy in one of your projects, reaching out to our core team via [Discord](https://discord.gg/b6xYnNh) and providing feedback can help improve RocketPy a lot!
 
-And if you are interested in going one step further, please read [CONTRIBUTING.md](https://github.com/RocketPy-Team/RocketPy/blob/master/CONTRIBUTING.md) for details on our code of conduct and learn more about how you can contribute to the development of this next-gen trajectory simulation solution for rocketry.
+And if you are interested in going one step further, please read the [development documentation](https://docs.rocketpy.org/en/latest/development/index.html) to learn more about how you can contribute to the development of this next-gen trajectory simulation solution for rocketry.
 
 ## License
 

@@ -477,9 +477,22 @@ class Tank(ABC):
             elif (height < bottom_tolerance).any():
                 underfill_height_exception(name, height)
 
-    def draw(self):
-        """Draws the tank geometry."""
-        self.plots.draw()
+    def draw(self, filename=None):
+        """Draws the tank geometry.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
+
+        Returns
+        -------
+        None
+        """
+        self.plots.draw(filename)
 
 
 class MassFlowRateBasedTank(Tank):
@@ -1163,7 +1176,7 @@ class LevelBasedTank(Tank):
         Function
             Volume of the gas as a function of time.
         """
-        # TODO: there's a bug on the gas_center_of_mass is I don't discretize here
+        # TODO: there's a bug on the gas_center_of_mass if I don't discretize here
         func = Function(self.geometry.total_volume).set_discrete_based_on_model(
             self.liquid_volume
         )

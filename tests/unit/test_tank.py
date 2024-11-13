@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import scipy.integrate as spi
 
-BASE_PATH = Path("./data/berkeley/")
+BASE_PATH = Path("./data/rockets/berkeley/")
 
 
 @pytest.mark.parametrize(

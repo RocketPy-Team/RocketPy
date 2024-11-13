@@ -1,3 +1,6 @@
+from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
+
+
 class _RocketPrints:
     """Class that holds prints methods for Rocket class.
 
@@ -33,6 +36,7 @@ class _RocketPrints:
         print(f"Rocket Mass: {self.rocket.mass:.3f} kg (without motor)")
         print(f"Rocket Dry Mass: {self.rocket.dry_mass:.3f} kg (with unloaded motor)")
         print(f"Rocket Loaded Mass: {self.rocket.total_mass(0):.3f} kg")
+        print(f"Rocket Structural Mass Ratio: {self.rocket.structural_mass_ratio:.3f}")
         print(
             f"Rocket Inertia (with unloaded motor) 11: {self.rocket.dry_I_11:.3f} kg*m2"
         )
@@ -98,7 +102,9 @@ class _RocketPrints:
         None
         """
         print("\nAerodynamics Lift Coefficient Derivatives\n")
-        for surface, position in self.rocket.aerodynamic_surfaces:
+        for surface, _ in self.rocket.aerodynamic_surfaces:
+            if isinstance(surface, GenericSurface):
+                continue
             name = surface.name
             # ref_factor corrects lift for different reference areas
             ref_factor = (surface.rocket_radius / self.rocket.radius) ** 2
@@ -113,7 +119,7 @@ class _RocketPrints:
             cpz = surface.cp[2]  # relative to the user defined coordinate system
             print(
                 f"{name} Center of Pressure position: "
-                f"{position - self.rocket._csys * cpz:.3f} m"
+                f"{position.z - self.rocket._csys * cpz:.3f} m"
             )
         print("\nStability\n")
         print(

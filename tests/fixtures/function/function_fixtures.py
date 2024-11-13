@@ -62,7 +62,7 @@ def func_from_csv():
         A function based on a csv file.
     """
     func = Function(
-        source="tests/fixtures/airfoils/e473-10e6-degrees.csv",
+        source="data/airfoils/e473-10e6-degrees.csv",
     )
     return func
 

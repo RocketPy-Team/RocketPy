@@ -215,8 +215,8 @@ def real_mass_based_tank_seblm(lox_fluid_seblm, nitrogen_fluid_seblm):
         name="Real Tank",
         geometry=geometry,
         flux_time=(0, 15.583),
-        liquid_mass="./data/berkeley/Test135LoxMass.csv",
-        gas_mass="./data/berkeley/Test135GasMass.csv",
+        liquid_mass="./data/rockets/berkeley/Test135LoxMass.csv",
+        gas_mass="./data/rockets/berkeley/Test135GasMass.csv",
         liquid=lox_fluid_seblm,
         gas=nitrogen_fluid_seblm,
         discretize=200,
@@ -247,8 +247,8 @@ def example_mass_based_tank_seblm(lox_fluid_seblm, nitrogen_fluid_seblm):
         name="Example Tank",
         geometry=geometry,
         flux_time=(0, 10),
-        liquid_mass="./data/berkeley/ExampleTankLiquidMassData.csv",
-        gas_mass="./data/berkeley/ExampleTankGasMassData.csv",
+        liquid_mass="./data/rockets/berkeley/ExampleTankLiquidMassData.csv",
+        gas_mass="./data/rockets/berkeley/ExampleTankGasMassData.csv",
         liquid=lox_fluid_seblm,
         gas=nitrogen_fluid_seblm,
         discretize=None,
@@ -287,7 +287,7 @@ def real_level_based_tank_seblm(lox_fluid_seblm, nitrogen_fluid_seblm):
         flux_time=(0, 15.583),
         gas=nitrogen_fluid_seblm,
         liquid=lox_fluid_seblm,
-        liquid_height="./data/berkeley/loxUllage.csv",
+        liquid_height="./data/rockets/berkeley/loxUllage.csv",
         discretize=None,
     )
 
@@ -351,7 +351,7 @@ def pressurant_tank(pressurant_fluid, pressurant_tank_geometry):
         geometry=pressurant_tank_geometry,
         liquid_mass=0,
         flux_time=(8, 20),
-        gas_mass="data/SEBLM/pressurantMassFiltered.csv",
+        gas_mass="data/rockets/berkeley/pressurantMassFiltered.csv",
         gas=pressurant_fluid,
         liquid=pressurant_fluid,
     )
@@ -379,7 +379,7 @@ def fuel_tank(fuel_fluid, fuel_pressurant, propellant_tank_geometry):
     rocketpy.UllageBasedTank
     """
     ullage = (
-        -Function("data/SEBLM/test124_Propane_Volume.csv") * 1e-3
+        -Function("data/rockets/berkeley/test124_Propane_Volume.csv") * 1e-3
         + propellant_tank_geometry.total_volume
     )
     fuel_tank = UllageBasedTank(
@@ -414,7 +414,7 @@ def oxidizer_tank(oxidizer_fluid, oxidizer_pressurant, propellant_tank_geometry)
     rocketpy.UllageBasedTank
     """
     ullage = (
-        -Function("data/SEBLM/test124_Lox_Volume.csv") * 1e-3
+        -Function("data/rockets/berkeley/test124_Lox_Volume.csv") * 1e-3
         + propellant_tank_geometry.total_volume
     )
     oxidizer_tank = UllageBasedTank(

@@ -1,11 +1,11 @@
 Air Brakes
 ==========
 
-Air brakes are commonly used in rocketry to slow down a rocket's ascent. They 
+Air brakes are commonly used in rocketry to slow down a rocket's ascent. They
 are usually deployed to make sure that the rocket reaches a certain altitude.
 
 Lets make a simple air brakes example. We will use the same model as in the
-:ref:`First Simulation <firstsimulation>` example, but we will add a simple air 
+:ref:`First Simulation <firstsimulation>` example, but we will add a simple air
 brakes model.
 
 Setting Up The Simulation
@@ -20,7 +20,7 @@ First, lets define everything we need for the simulation up to the rocket:
     env = Environment(latitude=32.990254, longitude=-106.974998, elevation=1400)
 
     Pro75M1670 = SolidMotor(
-        thrust_source="../data/motors/Cesaroni_M1670.eng",
+        thrust_source="../data/motors/cesaroni/Cesaroni_M1670.eng",
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
         nozzle_radius=33 / 1000,
@@ -42,8 +42,8 @@ First, lets define everything we need for the simulation up to the rocket:
         radius=127 / 2000,
         mass=14.426,
         inertia=(6.321, 6.321, 0.034),
-        power_off_drag="../data/calisto/powerOffDragCurve.csv",
-        power_on_drag="../data/calisto/powerOnDragCurve.csv",
+        power_off_drag="../data/rockets/calisto/powerOffDragCurve.csv",
+        power_on_drag="../data/rockets/calisto/powerOnDragCurve.csv",
         center_of_mass_without_motor=0,
         coordinate_system_orientation="tail_to_nose",
     )
@@ -67,7 +67,7 @@ First, lets define everything we need for the simulation up to the rocket:
         span=0.110,
         position=-1.04956,
         cant_angle=0.5,
-        airfoil=("../data/calisto/NACA0012-radians.csv","radians"),
+        airfoil=("../data/airfoils/NACA0012-radians.txt","radians"),
     )
 
     tail = calisto.add_tail(
@@ -81,7 +81,7 @@ Now we can get started!
 
 To create an air brakes model, we essentially need to define the following:
 
-- The air brakes' **drag coefficient** as a function of the air brakes' 
+- The air brakes' **drag coefficient** as a function of the air brakes'
   **deployment level** and of the **Mach number**. This can be done through
   a ``CSV`` file which must have three columns: the first column is the air brakes'
   **deployment level**, the second column is the **Mach number**, and the third
@@ -89,14 +89,14 @@ To create an air brakes model, we essentially need to define the following:
   specific deployment level and Mach number.
 
 - The **controller function**, which takes in as argument information about the
-  simulation up to the current time step, and the ``AirBrakes`` instance being 
+  simulation up to the current time step, and the ``AirBrakes`` instance being
   defined, and sets the desired air brakes' deployment level. The air brakes'
-  deployment level must be between 0 and 1, and is set using the 
-  ``deployment_level`` attribute. Inside this function, any controller logic, 
+  deployment level must be between 0 and 1, and is set using the
+  ``deployment_level`` attribute. Inside this function, any controller logic,
   filters, and apogee prediction can be implemented.
 
 - The **sampling rate** of the controller function, in seconds. This is the time
-  between each call of the controller function, in simulation time. Must be 
+  between each call of the controller function, in simulation time. Must be
   given in Hertz.
 
 Defining the Controller Function
@@ -110,31 +110,31 @@ order:
 1. ``time`` (float): The current simulation time in seconds.
 2. ``sampling_rate`` (float): The rate at which the controller
    function is called, measured in Hertz (Hz).
-3. ``state`` (list): The state vector of the simulation. The state 
+3. ``state`` (list): The state vector of the simulation. The state
    is a list containing the following values, in this order:
 
    - ``x``: The x position of the rocket, in meters.
    - ``y``: The y position of the rocket, in meters.
    - ``z``: The z position of the rocket, in meters.
-   - ``v_x``: The x component of the velocity of the rocket, in meters per 
+   - ``v_x``: The x component of the velocity of the rocket, in meters per
      second.
-   - ``v_y``: The y component of the velocity of the rocket, in meters per 
+   - ``v_y``: The y component of the velocity of the rocket, in meters per
      second.
-   - ``v_z``: The z component of the velocity of the rocket, in meters per 
+   - ``v_z``: The z component of the velocity of the rocket, in meters per
      second.
-   - ``e0``: The first component of the quaternion representing the rotation 
+   - ``e0``: The first component of the quaternion representing the rotation
      of the rocket.
-   - ``e1``: The second component of the quaternion representing the rotation 
+   - ``e1``: The second component of the quaternion representing the rotation
      of the rocket.
-   - ``e2``: The third component of the quaternion representing the rotation 
+   - ``e2``: The third component of the quaternion representing the rotation
      of the rocket.
-   - ``e3``: The fourth component of the quaternion representing the rotation 
+   - ``e3``: The fourth component of the quaternion representing the rotation
      of the rocket.
-   - ``w_x``: The x component of the angular velocity of the rocket, in 
+   - ``w_x``: The x component of the angular velocity of the rocket, in
      radians per second.
-   - ``w_y``: The y component of the angular velocity of the rocket, in 
+   - ``w_y``: The y component of the angular velocity of the rocket, in
      radians per second.
-   - ``w_z``: The z component of the angular velocity of the rocket, in 
+   - ``w_z``: The z component of the angular velocity of the rocket, in
      radians per second.
 
 4. ``state_history`` (list): A record of the rocket's state at each
@@ -149,14 +149,14 @@ order:
    initial value in the first step of the simulation of this list is
    provided by the ``initial_observed_variables`` argument.
 6. ``air_brakes`` (AirBrakes): The ``AirBrakes`` instance being controlled.
-    
+
 Our example ``controller_function`` will deploy the air brakes when the rocket
 reaches 1500 meters above the ground. The deployment level will be function of the
 vertical velocity at the current time step and of the vertical velocity at the
 previous time step.
 
-Also, the controller function will check for the burnout of the rocket's motor 
-and only deploy the air brakes if the rocket has reached burnout. 
+Also, the controller function will check for the burnout of the rocket's motor
+and only deploy the air brakes if the rocket has reached burnout.
 
 Then, a limitation for the opening/closing speed of the air brakes will be set.
 The air brakes deployment level will not be able to change faster than 20% per
@@ -173,10 +173,10 @@ Lets define the controller function:
         altitude_ASL = state[2]
         altitude_AGL = altitude_ASL - env.elevation
         vx, vy, vz = state[3], state[4], state[5]
-        
+
         # Get winds in x and y directions
         wind_x, wind_y = env.wind_velocity_x(altitude_ASL), env.wind_velocity_y(altitude_ASL)
-        
+
         # Calculate Mach number
         free_stream_speed = (
             (wind_x - vx) ** 2 + (wind_y - vy) ** 2 + (vz) ** 2
@@ -232,25 +232,25 @@ Lets define the controller function:
       This means that the deployment level will never be set to a value lower than
       0 or higher than 1. If you want to disable this feature, set ``clamp`` to
       ``False`` when defining the air brakes.
-    
-    - Anything can be returned by the ``controller_function``. The returned 
+
+    - Anything can be returned by the ``controller_function``. The returned
       values will be saved in the ``observed_variables`` list at every time step
       and can then be accessed by the ``controller_function`` at the next time
       step. The saved values can also be accessed after the simulation is
       finished. This is useful for debugging and for plotting the results.
 
     - The ``controller_function`` can also be defined in a separate file and
-      imported into the simulation script. This includes importing a ``c`` or 
+      imported into the simulation script. This includes importing a ``c`` or
       ``cpp`` code into Python.
 
 
 Defining the Drag Coefficient
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Now lets define the drag coefficient as a function of the air brakes' deployment 
-level and of the Mach number. We will import the data from a CSV file. 
+Now lets define the drag coefficient as a function of the air brakes' deployment
+level and of the Mach number. We will import the data from a CSV file.
 
-The CSV file must have three columns: the first column must be the air brakes' 
+The CSV file must have three columns: the first column must be the air brakes'
 deployment level, the second column must be the Mach number, and the third column
 must be the drag coefficient.
 
@@ -261,9 +261,9 @@ drag coefficient.
 
 .. note::
 
-    At deployment level 0, the drag coefficient will always be set to 0, 
-    regardless of the input curve. This means that the simulation considers that 
-    at a deployment level of 0, the air brakes are completely retracted and do not 
+    At deployment level 0, the drag coefficient will always be set to 0,
+    regardless of the input curve. This means that the simulation considers that
+    at a deployment level of 0, the air brakes are completely retracted and do not
     contribute to the drag of the rocket.
 
 Part of the data from the CSV can be seen in the code block below.
@@ -297,30 +297,30 @@ Part of the data from the CSV can be seen in the code block below.
     1.0, 0.7, 0.21
     1.0, 0.8, 0.218
 
-.. note:: 
-  The air brakes' drag coefficient curve can represent either the air brakes 
-  alone or both the air brakes and the rocket. This is determined by the 
-  ``override_rocket_drag`` argument. If set to True, the drag 
-  coefficient curve will include both the air brakes and the rocket. If set to 
+.. note::
+  The air brakes' drag coefficient curve can represent either the air brakes
+  alone or both the air brakes and the rocket. This is determined by the
+  ``override_rocket_drag`` argument. If set to True, the drag
+  coefficient curve will include both the air brakes and the rocket. If set to
   False, the curve will exclusively represent the air brakes.
 
   When the curve represents only the air brakes, its drag coefficient will be
-  added to the rocket's existing drag coefficient. Conversely, if the curve 
-  represents both the air brakes and the rocket, the drag coefficient will be 
-  set to match that of the curve. This feature is particularly useful when you 
-  have a drag coefficient curve for the entire rocket with the air brakes 
-  deployed, such as data from a wind tunnel test, and you want to incorporate 
+  added to the rocket's existing drag coefficient. Conversely, if the curve
+  represents both the air brakes and the rocket, the drag coefficient will be
+  set to match that of the curve. This feature is particularly useful when you
+  have a drag coefficient curve for the entire rocket with the air brakes
+  deployed, such as data from a wind tunnel test, and you want to incorporate
   it into the simulation.
 
 Adding the Air Brakes to the Rocket
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Now we can add the air brakes to the rocket. 
+Now we can add the air brakes to the rocket.
 
 We will set the ``reference_area`` to ``None``. This means that the reference
-area for the calculation of the drag force from the coefficient will be the 
+area for the calculation of the drag force from the coefficient will be the
 rocket's reference area (the area of the cross section of the rocket). If we
-wanted to set a different reference area, we would set ``reference_area`` to 
+wanted to set a different reference area, we would set ``reference_area`` to
 the desired value.
 
 Also, we will set ``clamp`` to ``True``. This means that the deployment level will
@@ -332,7 +332,7 @@ controller function. If you want to disable this feature, set ``clamp`` to
 .. jupyter-execute::
 
     air_brakes = calisto.add_air_brakes(
-        drag_coefficient_curve="../data/calisto/air_brakes_cd.csv",
+        drag_coefficient_curve="../data/rockets/calisto/air_brakes_cd.csv",
         controller_function=controller_function,
         sampling_rate=10,
         reference_area=None,
@@ -345,15 +345,15 @@ controller function. If you want to disable this feature, set ``clamp`` to
     air_brakes.all_info()
 
 .. note::
-    
-    The ``initial_observed_variables`` argument is optional. It is used as 
-    the initial value for the ``observed_variables`` list passed on the 
-    ``controller_function`` at the first time step. If not given, the 
-    ``observed_variables`` list will be initialized as an empty list. 
+
+    The ``initial_observed_variables`` argument is optional. It is used as
+    the initial value for the ``observed_variables`` list passed on the
+    ``controller_function`` at the first time step. If not given, the
+    ``observed_variables`` list will be initialized as an empty list.
 
 .. seealso::
 
-    For more information on the :class:`rocketpy.AirBrakes` class 
+    For more information on the :class:`rocketpy.AirBrakes` class
     initialization, see  :class:`rocketpy.AirBrakes.__init__` section.
 
 Simulating a Flight
@@ -362,12 +362,12 @@ Simulating a Flight
 .. important::
 
     To simulate the air brakes successfully, we must set ``time_overshoot`` to
-    ``False``. This way the simulation will run at the time step defined by our 
-    controller sampling rate. Be aware that this will make the simulation run 
+    ``False``. This way the simulation will run at the time step defined by our
+    controller sampling rate. Be aware that this will make the simulation run
     **much** slower.
 
-We will be terminating the simulation at apogee, by setting 
-``terminate_at_apogee`` to ``True``. This way the simulation will stop when the 
+We will be terminating the simulation at apogee, by setting
+``terminate_at_apogee`` to ``True``. This way the simulation will stop when the
 rocket reaches apogee, and we will save some time.
 
 .. jupyter-execute::
@@ -385,13 +385,13 @@ rocket reaches apogee, and we will save some time.
 Analyzing the Results
 ---------------------
 
-Now we can create some plots to analyze the results. We rely on the 
+Now we can create some plots to analyze the results. We rely on the
 ``observed_variables`` list to get the data we want to plot. Since we returned
 the ``time``, ``deployment_level`` and the ``drag_coefficient`` in the
 ``controller_function``, the ``observed_variables`` list will contain these
 values at every time step.
 
-We can retrieve the ``observed_variables`` list by calling the 
+We can retrieve the ``observed_variables`` list by calling the
 ``get_controller_observed_variables`` method of the ``Flight`` instance.
 Then we can plot the data we want.
 
@@ -426,7 +426,7 @@ Then we can plot the data we want.
 
 .. seealso::
 
-    For more information on the :class:`rocketpy.AirBrakes` class attributes, 
+    For more information on the :class:`rocketpy.AirBrakes` class attributes,
     see :class:`rocketpy.AirBrakes` section.
 
 And of course, we should check some of the simulation results:
