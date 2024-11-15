@@ -62,22 +62,22 @@ class LinearGenericSurface(GenericSurface):
                 Coefficient of lift derivative with respect to yaw rate.
                 Default is 0.\n
             cQ_0: callable, str, optional
-                Coefficient of pitch moment at zero angle of attack.
+                Coefficient of side force at zero angle of attack.
                 Default is 0.\n
             cQ_alpha: callable, str, optional
-                Coefficient of pitch moment derivative with respect to angle of
+                Coefficient of side force derivative with respect to angle of
                 attack. Default is 0.\n
             cQ_beta: callable, str, optional
-                Coefficient of pitch moment derivative with respect to sideslip
+                Coefficient of side force derivative with respect to sideslip
                 angle. Default is 0.\n
             cQ_p: callable, str, optional
-                Coefficient of pitch moment derivative with respect to roll rate.
+                Coefficient of side force derivative with respect to roll rate.
                 Default is 0.\n
             cQ_q: callable, str, optional
-                Coefficient of pitch moment derivative with respect to pitch rate.
+                Coefficient of side force derivative with respect to pitch rate.
                 Default is 0.\n
             cQ_r: callable, str, optional
-                Coefficient of pitch moment derivative with respect to yaw rate.
+                Coefficient of side force derivative with respect to yaw rate.
                 Default is 0.\n
             cD_0: callable, str, optional
                 Coefficient of drag at zero angle of attack. Default is 0.\n
@@ -258,11 +258,11 @@ class LinearGenericSurface(GenericSurface):
         ):
             return (
                 c_p(alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate)
-                * pitch_rate
-                + c_q(alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate)
-                * yaw_rate
-                + c_r(alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate)
                 * roll_rate
+                + c_q(alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate)
+                * pitch_rate
+                + c_r(alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate)
+                * yaw_rate
             )
 
         return Function(
@@ -372,38 +372,38 @@ class LinearGenericSurface(GenericSurface):
         # Compute aerodynamic forces
         lift = dyn_pressure_area * self.cLf(
             alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
-        ) - dyn_pressure_area_damping * self.cLd(
+        ) + dyn_pressure_area_damping * self.cLd(
             alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
         )
 
         side = dyn_pressure_area * self.cQf(
             alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
-        ) - dyn_pressure_area_damping * self.cQd(
+        ) + dyn_pressure_area_damping * self.cQd(
             alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
         )
 
         drag = dyn_pressure_area * self.cDf(
             alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
-        ) - dyn_pressure_area_damping * self.cDd(
+        ) + dyn_pressure_area_damping * self.cDd(
             alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
         )
 
         # Compute aerodynamic moments
         pitch = dyn_pressure_area_length * self.cmf(
             alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
-        ) - dyn_pressure_area_length_damping * self.cmd(
+        ) + dyn_pressure_area_length_damping * self.cmd(
             alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
         )
 
         yaw = dyn_pressure_area_length * self.cnf(
             alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
-        ) - dyn_pressure_area_length_damping * self.cnd(
+        ) + dyn_pressure_area_length_damping * self.cnd(
             alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
         )
 
         roll = dyn_pressure_area_length * self.clf(
             alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
-        ) - dyn_pressure_area_length_damping * self.cld(
+        ) + dyn_pressure_area_length_damping * self.cld(
             alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
         )
 
