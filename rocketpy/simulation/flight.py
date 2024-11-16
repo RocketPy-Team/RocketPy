@@ -2699,7 +2699,7 @@ class Flight:  # pylint: disable=too-many-public-methods
         # Stream velocity in standard aerodynamic frame
         stream_velocity = -self.stream_velocity_body_frame
         beta = np.arctan2(
-            -stream_velocity[:, 0],
+            stream_velocity[:, 0],
             stream_velocity[:, 2],
         )  # x-z plane
         return np.column_stack([self.time, np.rad2deg(beta)])
