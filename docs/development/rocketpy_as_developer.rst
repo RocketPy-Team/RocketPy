@@ -27,6 +27,13 @@ For example, to open VS Code type on terminal
 
 Alternatively, you can open the folder directly through your editor's interface.
 
+.. tip::
+
+    Although it is not mandatory, we recommend using VS Code as your editor, as \
+    most (to not say all) of the RocketPy developers use it. Therefore it is easier \
+    to help you if you are using the same editor.
+
+
 Preparing directory for code editing
 ====================================
 
@@ -129,7 +136,7 @@ The motor class contains information about the thrust curve and uses some geomet
 .. code-block:: python
 
     Pro75M1670 = SolidMotor(
-        thrust_source="../data/motors/cesaroni/Cesaroni_M1670.eng", #copy here the path to the thrust source file
+        thrust_source="../data/motors/cesaroni/Cesaroni_M1670.eng",  # NOTE: update the path to the thrust source file
         burn_time=3.9,
         grain_number=5,
         grain_separation=5 / 1000,
