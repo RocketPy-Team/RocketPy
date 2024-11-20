@@ -32,6 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- DOC: GENESIS Flight Example [#734](https://github.com/RocketPy-Team/RocketPy/pull/734)
 - ENH: Implement optional plot saving [#597](https://github.com/RocketPy-Team/RocketPy/pull/597)
 
 ### Changed
