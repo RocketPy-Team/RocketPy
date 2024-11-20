@@ -1,0 +1,4 @@
+Solving git conflicts
+=====================
+
+...

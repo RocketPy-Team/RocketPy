@@ -7,12 +7,13 @@ There are a few guidelines we would like to share with you to make the as
 smooth as possible:
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
-   Setting Up the repository <setting_up.rst>
+   setting_up.rst
    Running RocketPy as a Developer <rocketpy_as_developer.rst>
    Your First Pull Request (PR) <first_pr.rst>
+   Solving git conflicts <conflicts.rst>
    Style Guide <style_guide>
    Testing Guidelines <testing.rst>
    RocketPy with Docker <docker.rst>

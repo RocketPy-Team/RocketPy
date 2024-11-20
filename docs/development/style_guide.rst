@@ -13,7 +13,7 @@ We mostly follow the standard Python style conventions as described here:
 Naming Conventions
 ^^^^^^^^^^^^^^^^^^
 RocketPy was, unfortunately, initially coded using
-`Camel Case <https://en.wikipedia.org/wiki/Camel_case>`_.
+`camelCase <https://en.wikipedia.org/wiki/Camel_case>`_.
 However, PEP8 specifies the following::
 
     Function names should be lowercase, with words separated by underscores as \
@@ -22,15 +22,18 @@ However, PEP8 specifies the following::
 
     mixedCase is allowed only in contexts where that is already the prevailing style (e.g. threading.py), to retain backwards compatibility.
 
-Therefore, `Snake Case <https://en.wikipedia.org/wiki/Snake_case>`_ is preferred.
-For this reason, RocketPy has being fully converted from `CamelCase` to `snake_case` as of version ``1.0.0``.
-New contributions should strive to follow `snake_case` case as well.
+Therefore, `snake_case <https://en.wikipedia.org/wiki/Snake_case>`_ is preferred.
+For this reason, RocketPy has being fully converted from ``CamelCase`` to ``snake_case`` as of version ``1.0.0``.
+
+.. important::
+
+    New contributions should only follow ``snake_case`` naming conventions.
 
 Furthermore, when it comes to naming new variables, functions, classes or
 anything in RocketPy, always try to use descriptive names.
 
-As an example, instead of using `a` or `alpha` as a variable for a rocket's
-angle of attack, `angle_of_attack` is preferred.
+As an example, instead of using ``a`` or ``alpha`` as a variable for a rocket's
+angle of attack, ``angle_of_attack`` is preferred.
 Such descriptive names make the code significantly easier to understand, review
 and maintain.
 
@@ -64,8 +67,8 @@ Running these commands before submitting a pull request is also highly recommend
     make pylint
 
 These commands will check for any code style issues in the codebase.
-The `flake8` command will throw a report directly to the console, while the
-`pylint` command will create a `.pylint_report.txt` file in the root directory,
+The ``flake8`` command will throw a report directly to the console, while the
+``pylint`` command will create a ``.pylint_report.txt`` file in the root directory,
 which you can open to see the report.
 
 
@@ -113,7 +116,12 @@ Here are a couple of example branch names:
 Once you are ready to create a Pull Request for your branch, we advise you to merge with the ``develop`` branch instead of the default ``master`` branch.
 This way, we keep the ``master`` branch stable and use the ``develop`` branch to test out new features!
 
-If you have any doubts, just open an issue! And don't forget that these are recommendations. Don't let them keep you from contributing.
+.. important::
+
+    If you have any doubts, just open an issue or ask in our Discord server. \
+    And don't forget that these are recommendations. \
+    Don't let them keep you from contributing.
+
 
 Commit Messages
 ^^^^^^^^^^^^^^^
@@ -130,9 +138,8 @@ Commit messages should be clear and follow a few basic rules.  Example::
 
 Describing the motivation for a change, the nature of a bug for bug fixes or
 some details on what an enhancement does are also good to include in a commit
-message.  Messages should be understandable without looking at the code
-changes.  A commit message like ``MNT: fixed another one`` is an example of
-what not to do; the reader has to go look for context elsewhere.
+message.
+Messages should be understandable without looking at the code changes.
 
 Standard acronyms to start the commit message with are::
 
@@ -147,3 +154,16 @@ Standard acronyms to start the commit message with are::
    STY: style fix (whitespace, PEP8)
    TST: addition or modification of tests
    REL: related to releasing RocketPy
+
+.. note::
+
+    A commit message like ``MNT: fixed another one`` is an example of what not to do; \
+    the reader has to go look for context elsewhere.
+
+Pull Requests
+^^^^^^^^^^^^^
+
+When opening a Pull Request, the name of the PR should be clear and concise.
+
+
+

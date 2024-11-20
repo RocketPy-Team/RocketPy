@@ -8,8 +8,7 @@ Picking an issue
 ----------------
 
 Before you start coding, you should pick an issue to work on. You can find a
-list of issues in the `Issues`_ tab on GitHub.
-.. _Issues: https://github.com/RocketPy-Team/RocketPy/issues
+list of issues in the `Issues` tab on GitHub (https://github.com/RocketPy-Team/RocketPy/issues).
 If you are new hear, it is really recommended that you talk to maintainers
 before starting to work on an issue.
 That way you avoid working on something that is already being worked on or
@@ -20,12 +19,29 @@ a new issue to discuss it with the maintainers before submitting a PR.
 
 Once the issue is assigned to you, you can start working on it.
 
+.. note::
 
+    In order to open an issue at our repo, you must have a GitHub account. \
+    In case you do not want to open an account yet, you can contact the maintainers \
+    through our Discord server. But keep in mind that you you need an account to \
+    open a Pull Request (PR).
 
 Creating a new branch
 ---------------------
 
-At your local machine, ...
+At your local machine,
+
+.. code-block:: console
+
+    git checkout -b <branch_name>
+
+
+.. tip::
+
+    VS Code has a built-in integration with git, this allows you to run git commands \
+    quite easily through the editor's interface. For example, you could search for \
+    "git checkout" in the command palette and run the command from there.
+
 
 Opening the PR
 --------------
@@ -55,16 +71,51 @@ Please correct any issues that may arise from the CI checks.
 
 .. note::
 
-    All the commands we run in the CI pipeline can also be run locally. It is important \
-    that you run the checks locally before pushing your changes to the repository.
+    All the commands we run in the CI pipeline can also be run locally. It is \
+    important that you run the checks locally before pushing your changes to \
+    the repository.
 
 The CHANGELOG file
 ------------------
 
-We keep track of the changes in the `CHANGELOG.md` file. When you open a PR, you should add a new entry to the `Unreleased` section of the file. This entry should simply be the title of your PR.
+We keep track of the changes in the ``CHANGELOG.md`` file.
+When you open a PR, you should add a new entry to the "Unreleased" section of the file. This entry should simply be the title of your PR.
 
 .. note::
 
     In the future we would like to automate the CHANGELOG update, but for now \
     it is a manual process, unfortunately.
 
+
+The review process
+------------------
+
+After you open a PR, the maintainers will review your code.
+This review process is a way to ensure that the code is in line with the project's goals and that it is well written and documented.
+
+The maintainers may ask you to make changes to your code.
+You should address these changes or explain why you think they are not necessary.
+
+This is the best time to learn from the maintainers and improve your coding skills.
+
+In case you do not address the comments in a timely manner, the maintainers may
+either close the PR or make the changes themselves.
+
+
+Merging the PR
+--------------
+
+There are 3 different ways of merging a PR:
+
+1. **Create a merge commit**: this is the default option on GitHub.
+2. **Squash and merge**: this option will squash all your commits into a single one. This is useful when you have many commits and you want to keep the history clean, therefore this is the recommended option.
+3. **Rebase and merge**: this option will add your commits directly to the target branch, without creating a merge commit. This is useful to keep the history linear. However, this
+
+.. note::
+
+    Overall, you will not have permission to merge your PR. The maintainers will \
+    take care of that for you. This is here just for you to understand the process.
+
+All in all, there is no right or wrong way to merge a PR.
+The maintainers will decide which option is the best for the project.
+What you should care tough is about conflicting changes, let's talk about that next.

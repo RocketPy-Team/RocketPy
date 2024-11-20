@@ -2,7 +2,11 @@
 Introduction to RocketPy
 ========================
 
-This tutorial part shows how to open rocketpy files and run a simple simulation.
+This tutorial section shows how to open rocketpy files and run a simple simulation
+in a local environment.
+It is intended for developers who want to contribute to the project or for users
+who want to run simulations with the library.
+
 
 Opening rocketpy folder
 =======================
@@ -51,11 +55,29 @@ To create the folder, type on the terminal:
 
 And, to add it on .gitignore, type:
 
-.. code-block:: console
+.. tabs::
 
-    echo <folder name>/ >> .gitignore
+    .. tab:: Windows
 
-It is important to remember that all the files inside this folder will not be included in any commit so, if it is important to the solution, do not add them inside it.
+        .. code-block:: console
+
+            echo <folder name>/ >> .gitignore
+
+    .. tab:: Linux
+
+        .. code-block:: console
+
+            echo "<folder name>/" >> .gitignore
+
+    .. tab:: MacOS
+
+        .. code-block:: console
+
+            echo "<folder name>/" >> .gitignore
+
+
+It is important to remember that all the files inside this folder will not be
+included in any commit so, if it is important to the solution, do not add them inside it.
 
 Running a simulation with RocketPy
 ==================================
@@ -78,13 +100,13 @@ Alternatively you can use the following command to pip install the local library
     sys.path.append('../') # if you are using a notebook
     sys.path.append('../rocketpy') # if you are using a script
 
-Import the classes that will be used, in case:
+Import the classes that will be used, in this case:
 
 .. code-block:: python
 
     from rocketpy import Environment, SolidMotor, Rocket, Flight, Function
 
-If it is the first time you are using rocketpy and you do not have all required libraries installed, you could use the command:
+If this is the first time you are using rocketpy and you do not have all required libraries installed, you could use the command:
 
 .. code-block:: python
 
@@ -281,4 +303,3 @@ For example, to access Flight class parameters, you can use:
     help(Flight)
 
 More documentation materials can be found at `read the docs <https://docs.rocketpy.org/en/latest/?badge=latest>`_.
-It can also be found on RocketPy's GitHub page on the badge "docs".

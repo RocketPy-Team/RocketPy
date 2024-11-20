@@ -40,6 +40,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "sphinx.ext.mathjax",
+    "sphinx_tabs.tabs",
     "sphinx_copybutton",
     "sphinx_design",
     "jupyter_sphinx",
