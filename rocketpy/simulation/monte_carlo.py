@@ -512,7 +512,7 @@ class MonteCarlo:
                 if key in self.export_list:
                     raise ValueError(
                         "Invalid 'data_collector' key! "
-                        f"Variable names overwrites standard key '{key}'."
+                        f"Variable names overwrites 'export_list' key '{key}'."
                     )
                 if not callable(callback):
                     raise ValueError(
@@ -709,12 +709,9 @@ class MonteCarlo:
         self.processed_results = {}
         for result, values in self.results.items():
             try:
-                if isinstance(values[0], float):
-                    mean = np.mean(values)
-                    stdev = np.std(values)
-                    self.processed_results[result] = (mean, stdev)
-                else:
-                    self.processed_results[result] = (None, None)
+                mean = np.mean(values)
+                stdev = np.std(values)
+                self.processed_results[result] = (mean, stdev)
             except TypeError:
                 self.processed_results[result] = (None, None)
 
