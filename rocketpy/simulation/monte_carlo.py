@@ -48,6 +48,9 @@ class MonteCarlo:
         The stochastic flight object to be iterated over.
     export_list : list
         The list of variables to export at each simulation.
+    data_collector : dict
+        A dictionary whose keys are the names of the additional
+        exported variables and the values are callback functions.
     inputs_log : list
         List of dictionaries with the inputs used in each simulation.
     outputs_log : list
@@ -112,8 +115,15 @@ class MonteCarlo:
             `lateral_surface_wind`. Default is None.
         data_collector : dict, optional
             A dictionary whose keys are the names of the exported variables
-            and the values are callback functions. The callback functions receive
-            a Flight object and returns a value of that variable.
+            and the values are callback functions. The keys (variable names) must not
+            overwrite the default names on 'export_list'. The callback functions receive
+            a Flight object and returns a value of that variable. For instance
+
+            .. code-block:: python
+                custom_data_collector = {
+                    "max_acceleration": lambda flight: max(flight.acceleration(flight.time)),
+                    "date": lambda flight: flight.env.date,
+                }
 
         Returns
         -------
