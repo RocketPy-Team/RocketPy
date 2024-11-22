@@ -32,6 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- ENH: Callback function for collecting additional data from Monte Carlo sims [#702](https://github.com/RocketPy-Team/RocketPy/pull/702)
 - ENH: Implement optional plot saving [#597](https://github.com/RocketPy-Team/RocketPy/pull/597)
 
 ### Changed
