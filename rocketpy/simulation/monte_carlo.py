@@ -86,7 +86,7 @@ class MonteCarlo:
         rocket,
         flight,
         export_list=None,
-        export_function=None,
+        data_collector=None,
     ):  # pylint: disable=too-many-statements
         """
         Initialize a MonteCarlo object.
@@ -110,11 +110,10 @@ class MonteCarlo:
             `out_of_rail_stability_margin`, `out_of_rail_time`,
             `out_of_rail_velocity`, `max_mach_number`, `frontal_surface_wind`,
             `lateral_surface_wind`. Default is None.
-        export_function : callable, optional
-            A function which gets called at the end of a simulation to collect
-            additional data to be exported that isn't pre-defined. Takes the
-            Flight object as an argument and returns a dictionary. Default is None.
-
+        data_collector : dict, optional
+            A dictionary whose keys are the names of the exported variables
+            and the values are callback functions. The callback functions receive
+            a Flight object and returns a value of that variable.
 
         Returns
         -------
@@ -143,7 +142,8 @@ class MonteCarlo:
         self._last_print_len = 0  # used to print on the same line
 
         self.export_list = self.__check_export_list(export_list)
-        self.export_function = export_function
+        self._check_data_collector(data_collector)
+        self.data_collector = data_collector
 
         try:
             self.import_inputs()
@@ -371,20 +371,15 @@ class MonteCarlo:
             for export_item in self.export_list
         }
 
-        if self.export_function is not None:
-            try:
-                additional_exports = self.export_function(flight)
-            except Exception as e:
-                raise ValueError(
-                    "An error was encountered running your custom export function. "
-                    "Check for errors in 'export_function' definition."
-                ) from e
-
-            for key in additional_exports.keys():
-                if key in self.export_list:
+        if self.data_collector is not None:
+            additional_exports = {}
+            for key, callback in self.data_collector.items():
+                try:
+                    additional_exports[key] = callback(flight)
+                except Exception as e:
                     raise ValueError(
-                        f"Invalid export function, returns dict which overwrites key, '{key}'"
-                    )
+                        f"An error was encountered running 'data_collector' callback {key}. "
+                    ) from e
             results = results | additional_exports
 
         input_file.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
@@ -493,6 +488,37 @@ class MonteCarlo:
             export_list = standard_output
 
         return export_list
+
+    def _check_data_collector(self, data_collector):
+        """Check if data collector provided is a valid
+
+        Parameters
+        ----------
+        data_collector : dict
+            A dictionary whose keys are the names of the exported variables
+            and the values are callback functions that receive a Flight object
+            and returns a value of that variable
+        """
+
+        if data_collector is not None:
+
+            if not isinstance(data_collector, dict):
+                raise ValueError(
+                    "Invalid 'data_collector' argument! "
+                    "It must be a dict of callback functions."
+                )
+
+            for key, callback in data_collector.items():
+                if key in self.export_list:
+                    raise ValueError(
+                        "Invalid 'data_collector' key! "
+                        f"Variable names overwrites standard key '{key}'."
+                    )
+                if not callable(callback):
+                    raise ValueError(
+                        f"Invalid value in 'data_collector' for key '{key}'! "
+                        "Values must be python callables (callback functions)."
+                    )
 
     def __reprint(self, msg, end="\n", flush=False):
         """
