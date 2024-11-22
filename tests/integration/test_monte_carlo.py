@@ -115,7 +115,7 @@ def test_monte_carlo_export_ellipses_to_kml(monte_carlo_calisto_pre_loaded):
 
 @pytest.mark.slow
 def test_monte_carlo_callback(monte_carlo_calisto):
-    """Tests the export_function argument of the MonteCarlo class.
+    """Tests the data_collector argument of the MonteCarlo class.
 
     Parameters
     ----------
@@ -123,41 +123,43 @@ def test_monte_carlo_callback(monte_carlo_calisto):
         The MonteCarlo object, this is a pytest fixture.
     """
 
-    def valid_export_function(flight):
-        custom_export_dict = {
-            "name": flight.name,
-            "density_t0": flight.env.density(0),
-        }
-        return custom_export_dict
+    # define valid data collector
+    valid_data_collector = {
+        "name": lambda flight: flight.name,
+        "density_t0": lambda flight: flight.env.density(0),
+    }
 
-    monte_carlo_calisto.export_function = valid_export_function
+    monte_carlo_calisto.data_collector = valid_data_collector
     # NOTE: this is really slow, it runs 10 flight simulations
     monte_carlo_calisto.simulate(number_of_simulations=10, append=False)
 
     # tests if print works when we have None in summary
     monte_carlo_calisto.info()
 
-    # tests if logical errors in export functions raise errors
-    def export_function_with_logical_error(flight):
-        custom_export_dict = {
-            "date": flight.env.date,
-            "density_t0": flight.env.density(0) / "0",
-        }
-        return custom_export_dict
+    ## tests if an error is raised for invalid data_collector definitions
+    # invalid type
+    def invalid_data_collector(flight):
+        return flight.name
 
-    monte_carlo_calisto.export_function = export_function_with_logical_error
-    # NOTE: this is really slow, it runs 10 flight simulations
     with pytest.raises(ValueError):
-        monte_carlo_calisto.simulate(number_of_simulations=10, append=False)
+        monte_carlo_calisto._check_data_collector(invalid_data_collector)
 
-    # tests if overwriting default exports raises errors
-    def export_function_with_overwriting_error(flight):
-        custom_export_dict = {
-            "apogee": flight.apogee,
-        }
-        return custom_export_dict
+    # invalid key overwrite
+    invalid_data_collector = {"apogee": lambda flight: flight.apogee}
+    with pytest.raises(ValueError):
+        monte_carlo_calisto._check_data_collector(invalid_data_collector)
 
-    monte_carlo_calisto.export_function = export_function_with_overwriting_error
+    # invalid callback definition
+    invalid_data_collector = {"name": "Calisto"}  # callbacks must be callables!
+    with pytest.raises(ValueError):
+        monte_carlo_calisto._check_data_collector(invalid_data_collector)
+
+    # invalid logic (division by zero)
+    invalid_data_collector = {
+        "density_t0": lambda flight: flight.env.density(0) / "0",
+    }
+    monte_carlo_calisto.data_collector = invalid_data_collector
+    # NOTE: this is really slow, it runs 10 flight simulations
     with pytest.raises(ValueError):
         monte_carlo_calisto.simulate(number_of_simulations=10, append=False)
 
