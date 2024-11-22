@@ -32,6 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- DOC: Camoes Flight Example [#733](https://github.com/RocketPy-Team/RocketPy/pull/733)
 - ENH: Implement optional plot saving [#597](https://github.com/RocketPy-Team/RocketPy/pull/597)
 
 ### Changed
