@@ -48,6 +48,9 @@ class MonteCarlo:
         The stochastic flight object to be iterated over.
     export_list : list
         The list of variables to export at each simulation.
+    data_collector : dict
+        A dictionary whose keys are the names of the additional
+        exported variables and the values are callback functions.
     inputs_log : list
         List of dictionaries with the inputs used in each simulation.
     outputs_log : list
@@ -80,7 +83,13 @@ class MonteCarlo:
     """
 
     def __init__(
-        self, filename, environment, rocket, flight, export_list=None
+        self,
+        filename,
+        environment,
+        rocket,
+        flight,
+        export_list=None,
+        data_collector=None,
     ):  # pylint: disable=too-many-statements
         """
         Initialize a MonteCarlo object.
@@ -104,6 +113,17 @@ class MonteCarlo:
             `out_of_rail_stability_margin`, `out_of_rail_time`,
             `out_of_rail_velocity`, `max_mach_number`, `frontal_surface_wind`,
             `lateral_surface_wind`. Default is None.
+        data_collector : dict, optional
+            A dictionary whose keys are the names of the exported variables
+            and the values are callback functions. The keys (variable names) must not
+            overwrite the default names on 'export_list'. The callback functions receive
+            a Flight object and returns a value of that variable. For instance
+
+            .. code-block:: python
+                custom_data_collector = {
+                    "max_acceleration": lambda flight: max(flight.acceleration(flight.time)),
+                    "date": lambda flight: flight.env.date,
+                }
 
         Returns
         -------
@@ -132,6 +152,8 @@ class MonteCarlo:
         self._last_print_len = 0  # used to print on the same line
 
         self.export_list = self.__check_export_list(export_list)
+        self._check_data_collector(data_collector)
+        self.data_collector = data_collector
 
         try:
             self.import_inputs()
@@ -359,6 +381,17 @@ class MonteCarlo:
             for export_item in self.export_list
         }
 
+        if self.data_collector is not None:
+            additional_exports = {}
+            for key, callback in self.data_collector.items():
+                try:
+                    additional_exports[key] = callback(flight)
+                except Exception as e:
+                    raise ValueError(
+                        f"An error was encountered running 'data_collector' callback {key}. "
+                    ) from e
+            results = results | additional_exports
+
         input_file.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
         output_file.write(json.dumps(results, cls=RocketPyEncoder) + "\n")
 
@@ -465,6 +498,37 @@ class MonteCarlo:
             export_list = standard_output
 
         return export_list
+
+    def _check_data_collector(self, data_collector):
+        """Check if data collector provided is a valid
+
+        Parameters
+        ----------
+        data_collector : dict
+            A dictionary whose keys are the names of the exported variables
+            and the values are callback functions that receive a Flight object
+            and returns a value of that variable
+        """
+
+        if data_collector is not None:
+
+            if not isinstance(data_collector, dict):
+                raise ValueError(
+                    "Invalid 'data_collector' argument! "
+                    "It must be a dict of callback functions."
+                )
+
+            for key, callback in data_collector.items():
+                if key in self.export_list:
+                    raise ValueError(
+                        "Invalid 'data_collector' key! "
+                        f"Variable names overwrites 'export_list' key '{key}'."
+                    )
+                if not callable(callback):
+                    raise ValueError(
+                        f"Invalid value in 'data_collector' for key '{key}'! "
+                        "Values must be python callables (callback functions)."
+                    )
 
     def __reprint(self, msg, end="\n", flush=False):
         """
@@ -654,9 +718,12 @@ class MonteCarlo:
         """
         self.processed_results = {}
         for result, values in self.results.items():
-            mean = np.mean(values)
-            stdev = np.std(values)
-            self.processed_results[result] = (mean, stdev)
+            try:
+                mean = np.mean(values)
+                stdev = np.std(values)
+                self.processed_results[result] = (mean, stdev)
+            except TypeError:
+                self.processed_results[result] = (None, None)
 
     # Import methods
 
