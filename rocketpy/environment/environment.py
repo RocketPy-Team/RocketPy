@@ -1746,6 +1746,8 @@ class Environment:
         # Read weather file
         if isinstance(file, str):
             data = netCDF4.Dataset(file)
+            if dictionary["time"] not in data.variables.keys():
+                dictionary = self.__weather_model_map.get("ECMWF_v0")
         else:
             data = file
 

@@ -27,6 +27,18 @@ class WeatherModelMapping:
         "u_wind": "ugrdprs",
         "v_wind": "vgrdprs",
     }
+    ECMWF_v0 = {
+        "time": "time",
+        "latitude": "latitude",
+        "longitude": "longitude",
+        "level": "level",
+        "temperature": "t",
+        "surface_geopotential_height": None,
+        "geopotential_height": None,
+        "geopotential": "z",
+        "u_wind": "u",
+        "v_wind": "v",
+    }
     ECMWF = {
         "time": "valid_time",
         "latitude": "latitude",
@@ -108,6 +120,7 @@ class WeatherModelMapping:
         self.all_dictionaries = {
             "GFS": self.GFS,
             "NAM": self.NAM,
+            "ECMWF_v0": self.ECMWF_v0,
             "ECMWF": self.ECMWF,
             "NOAA": self.NOAA,
             "RAP": self.RAP,
