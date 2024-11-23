@@ -22,7 +22,8 @@ apogee of some rockets.
       "NDRT (2020)": (1296.77, 1316.75),
       "Prometheus (2022)": (4190.05, 3898.37),
       "Cavour (2023)": (2818.90, 2789),
-      "Camoes (2023): (3003.28, 3015)"
+      "Genesis (2023)": (3076.45, 2916),
+      "Camoes (2023): (3003.28, 3015)",
       "Juno III (2023)": (3026.05, 3213),
       "Halcyon (2023)": (3212.775, 3450),
    }
@@ -77,5 +78,6 @@ In the next sections you will find the simulations of the rockets listed above.
    prometheus_2022_flight_sim.ipynb
    halcyon_flight_sim.ipynb
    cavour_flight_sim.ipynb
+   genesis_flight_sim.ipynb
    camoes_flight_sim.ipynb
 
