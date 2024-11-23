@@ -28,10 +28,10 @@ class WeatherModelMapping:
         "v_wind": "vgrdprs",
     }
     ECMWF = {
-        "time": "time",
+        "time": "valid_time",
         "latitude": "latitude",
         "longitude": "longitude",
-        "level": "level",
+        "level": "pressure_level",
         "temperature": "t",
         "surface_geopotential_height": None,
         "geopotential_height": None,
