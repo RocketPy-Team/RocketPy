@@ -33,6 +33,8 @@ Attention: The newest changes should be on top -->
 ### Added
 
 - DOC: GENESIS Flight Example [#734](https://github.com/RocketPy-Team/RocketPy/pull/734)
+- DOC: Camoes Flight Example [#733](https://github.com/RocketPy-Team/RocketPy/pull/733)
+- ENH: Callback function for collecting additional data from Monte Carlo sims [#702](https://github.com/RocketPy-Team/RocketPy/pull/702)
 - ENH: Implement optional plot saving [#597](https://github.com/RocketPy-Team/RocketPy/pull/597)
 
 ### Changed
@@ -41,7 +43,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
--
+- BUG: Sideslip Angle and Damping Coefficient Calculation [#729](https://github.com/RocketPy-Team/RocketPy/pull/729)
 
 ## [v1.6.2] - 2024-11-08
 
