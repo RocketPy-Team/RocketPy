@@ -24,4 +24,7 @@ class _MonteCarloPrints:
         print(f"{'Parameter':>25} {'Mean':>15} {'Std. Dev.':>15}")
         print("-" * 60)
         for key, value in self.monte_carlo.processed_results.items():
-            print(f"{key:>25} {value[0]:>15.3f} {value[1]:>15.3f}")
+            try:
+                print(f"{key:>25} {value[0]:>15.3f} {value[1]:>15.3f}")
+            except TypeError:
+                print(f"{key:>25} {str(value[0]):>15} {str(value[1]):>15}")

@@ -15,6 +15,7 @@ import re
 import time
 from bisect import bisect_left
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pytz
 from cftime import num2pydate
@@ -1147,6 +1148,23 @@ def euler313_to_quaternions(phi, theta, psi):
     e2 = cphi * stheta * spsi - sphi * cpsi * stheta
     e3 = cphi * ctheta * spsi + ctheta * cpsi * sphi
     return e0, e1, e2, e3
+
+
+def get_matplotlib_supported_file_endings():
+    """Gets the file endings supported by matplotlib.
+
+    Returns
+    -------
+    list[str]
+        List of file endings prepended with a dot
+    """
+    # Get matplotlib's supported file ending and return them (without descriptions, hence only keys)
+    filetypes = plt.gcf().canvas.get_supported_filetypes().keys()
+
+    # Ensure the dot is included in the filetype endings
+    filetypes = ["." + filetype for filetype in filetypes]
+
+    return filetypes
 
 
 if __name__ == "__main__":
