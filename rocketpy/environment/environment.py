@@ -1884,9 +1884,9 @@ class Environment:
             temper,
             wind_u,
             wind_v,
-            wind_speed,
             wind_heading,
             wind_direction,
+            wind_speed,
         )
         # Save atmospheric data
         self.__set_pressure_function(data_array[:, (1, 0)])
