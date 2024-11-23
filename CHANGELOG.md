@@ -43,6 +43,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+- BUG: forecast and reanalysis models - move wind_speed to correct position [#735](https://github.com/RocketPy-Team/RocketPy/pull/735)
 - BUG: Sideslip Angle and Damping Coefficient Calculation [#729](https://github.com/RocketPy-Team/RocketPy/pull/729)
 
 ## [v1.6.2] - 2024-11-08
