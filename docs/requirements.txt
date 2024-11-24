@@ -195,6 +195,8 @@ sphinx==7.3.7
     #   pydata-sphinx-theme
     #   sphinx-copybutton
     #   sphinx-design
+sphinx_tabs==3.4.7
+    # via -r requirements.in
 sphinx-copybutton==0.5.2
     # via -r requirements.in
 sphinx-design==0.5.0
