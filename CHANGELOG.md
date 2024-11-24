@@ -32,7 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
--
+- ENH: Allow for Alternative and Custom ODE Solvers. [#748](https://github.com/RocketPy-Team/RocketPy/pull/748)
 
 ### Changed
 
