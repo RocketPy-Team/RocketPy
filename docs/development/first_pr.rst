@@ -9,7 +9,7 @@ Picking an issue
 
 Before you start coding, you should pick an issue to work on. You can find a
 list of issues in the `Issues` tab on GitHub (https://github.com/RocketPy-Team/RocketPy/issues).
-If you are new hear, it is really recommended that you talk to maintainers
+If you are new here, it is really recommended that you talk to maintainers
 before starting to work on an issue.
 That way you avoid working on something that is already being worked on or
 something that is not in line with the project's goals.
@@ -29,12 +29,17 @@ Once the issue is assigned to you, you can start working on it.
 Creating a new branch
 ---------------------
 
-At your local machine,
+At your local machine, make sure you already have `git <https://git-scm.com/>`_ \
+installed and set up.
+In order to create a new branch, you should run the following command in your
+preferred terminal:
 
 .. code-block:: console
 
     git checkout -b <branch_name>
 
+This command will create a new branch named ``branch_name`` from the current branch you are in.
+Your branch name should follow the guidelines described in :doc:`/development/style_guide`.
 
 .. tip::
 
@@ -51,7 +56,6 @@ When you open a PR, you should:
 * Use labels to help maintainers understand what the PR is about.
 * Link any issue that may be closed when the PR is merged.
 
-
 Remember, the PR is yours, not ours! You should keep track of it and update it as needed.
 
 
@@ -62,9 +66,9 @@ There are several automation on our repository to help us maintain the code qual
 
 Currently, our CI pipeline runs the following checks:
 
-* **Linting**: we run `flake8`, `pylint`, `black` and `isort` on top of your latest commit in order to check for code style issues. To understand more about these tools, please read ...
-* **Testing**: we run the tests defined in the `tests` folder to make sure your changes do not break any existing functionality. The tests will be executed 6 times, each time with a different Python version (the oldest and newest supported version) and with three different operating systems (Windows, Linux and MacOS).
-* **Coverage**: based on the tests results, we also check the code coverage. There is an automation to check if the code coverage increased or decreased with your PR. It also points
+* **Linting**: we run `flake8`, `pylint`, `black` and `isort` on top of your latest commit in order to check for code style issues. To understand more about these tools, please read the :doc:`/development/pro_tips` section.
+* **Testing**: we run the tests defined in the `tests` folder to make sure your changes do not break any existing functionality. The tests will be executed 6 times, each time with a different Python version (the oldest and newest supported versions) and with three different operating systems (Windows, Linux and MacOS).
+* **Coverage**: based on the tests results, we also check the code coverage results from our test suite. There is an automation to check if the code coverage increased or decreased with your PR. It also points to potential introduced lines of code that should be tested.
 
 Once you open your PR or commit and push to your branch, the CI will be initialized.
 Please correct any issues that may arise from the CI checks.
@@ -79,7 +83,8 @@ The CHANGELOG file
 ------------------
 
 We keep track of the changes in the ``CHANGELOG.md`` file.
-When you open a PR, you should add a new entry to the "Unreleased" section of the file. This entry should simply be the title of your PR.
+When you open a PR, you should add a new entry to the "Unreleased" section of the file. 
+This entry should simply be the title of your PR.
 
 .. note::
 
@@ -109,7 +114,7 @@ There are 3 different ways of merging a PR:
 
 1. **Create a merge commit**: this is the default option on GitHub.
 2. **Squash and merge**: this option will squash all your commits into a single one. This is useful when you have many commits and you want to keep the history clean, therefore this is the recommended option.
-3. **Rebase and merge**: this option will add your commits directly to the target branch, without creating a merge commit. This is useful to keep the history linear. However, this
+3. **Rebase and merge**: this option will add your commits directly to the target branch, without creating a merge commit. This is useful to keep the history linear, however it also requires handling potential conflicts one at a time, which can be a bit more complex.
 
 .. note::
 
@@ -118,4 +123,4 @@ There are 3 different ways of merging a PR:
 
 All in all, there is no right or wrong way to merge a PR.
 The maintainers will decide which option is the best for the project.
-What you should care tough is about conflicting changes, let's talk about that next.
+What you should care tough is about conflicting changes, let's talk about that next in :doc:`/development/conflicts`.
