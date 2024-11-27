@@ -123,4 +123,4 @@ There are 3 different ways of merging a PR:
 
 All in all, there is no right or wrong way to merge a PR.
 The maintainers will decide which option is the best for the project.
-What you should care tough is about conflicting changes, let's talk about that next in :doc:`/development/conflicts`.
+What you should care though is about conflicting changes, let's talk about that next in :doc:`/development/conflicts`.

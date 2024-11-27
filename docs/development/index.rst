@@ -3,8 +3,8 @@ Contributing to RocketPy
 
 Here you will find information on how to contribute to our code base.
 RocketPy is an open-source project and we welcome contributions from everyone.
-There are a few guidelines we would like to share with you to make the as
-smooth as possible:
+There are a few guidelines we would like to share with you to make your 
+contribution as smooth as possible:
 
 .. toctree::
    :maxdepth: 1

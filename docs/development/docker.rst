@@ -14,7 +14,7 @@ using docker are:
    worrying about dependencies.
 2. **Portability**: run RocketPy on any operational system that supports
    docker, including the 3 main operational systems (Windows, Linux and Mac).
-3. **Reproducibility**: ensure that tour code is working regardless of the
+3. **Reproducibility**: ensure that our code is working regardless of the
    operational system.
 
 Using docker will be specially important when you are not sure if the code

@@ -90,7 +90,7 @@ The documentation is automatically built and hosted by `ReadTheDocs`.
 Every time a commit is pushed to selected branches of the repository (such as `master` and `develop`), 
 `ReadTheDocs` will build the documentation and host it automatically. 
 
-However, custom branches need to manually added. If you need to have your branch
+However, custom branches need to be manually added. If you need to have your branch
 available on `ReadTheDocs`, ask to a maintainer for help.
 
 The connection between the GitHub repository and the `ReadTheDocs` project is

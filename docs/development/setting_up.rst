@@ -54,6 +54,8 @@ Installation
 
 We highly recommend creating a python virtual environment first.
 However, we will not describe how to do this here, since this is a common task.
+Run the commands below inside Rocketpy folder to install the library and
+development requirements:
 
 .. code-block:: console
 
