@@ -208,6 +208,7 @@ def fin_flutter_analysis(
     flight,
     see_prints=True,
     see_graphs=True,
+    *,
     filename=None,
 ):
     """Calculate and plot the Fin Flutter velocity using the pressure profile
@@ -320,7 +321,7 @@ def _flutter_safety_factor(flight, flutter_mach):
     return safety_factor
 
 
-def _flutter_plots(flight, flutter_mach, safety_factor, filename=None):
+def _flutter_plots(flight, flutter_mach, safety_factor, *, filename=None):
     """Plot the Fin Flutter Mach Number and the Safety Factor for the flutter.
 
     Parameters

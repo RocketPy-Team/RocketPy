@@ -25,7 +25,7 @@ class _AeroSurfacePlots(ABC):
         self.aero_surface = aero_surface
 
     @abstractmethod
-    def draw(self, filename=None):
+    def draw(self, *, filename=None):
         pass
 
     def lift(self):
@@ -54,7 +54,7 @@ class _NoseConePlots(_AeroSurfacePlots):
     """Class that contains all nosecone plots. This class inherits from the
     _AeroSurfacePlots class."""
 
-    def draw(self, filename=None):
+    def draw(self, *, filename=None):
         """Draw the nosecone shape along with some important information,
         including the center line and the center of pressure position.
 
@@ -140,7 +140,7 @@ class _FinsPlots(_AeroSurfacePlots):
     _AeroSurfacePlots class."""
 
     @abstractmethod
-    def draw(self, filename=None):
+    def draw(self, *, filename=None):
         pass
 
     def airfoil(self):
@@ -201,7 +201,7 @@ class _TrapezoidalFinsPlots(_FinsPlots):
     """Class that contains all trapezoidal fin plots."""
 
     # pylint: disable=too-many-statements
-    def draw(self, filename=None):
+    def draw(self, *, filename=None):
         """Draw the fin shape along with some important information, including
         the center line, the quarter line and the center of pressure position.
 
@@ -330,7 +330,7 @@ class _EllipticalFinsPlots(_FinsPlots):
     """Class that contains all elliptical fin plots."""
 
     # pylint: disable=too-many-statements
-    def draw(self, filename=None):
+    def draw(self, *, filename=None):
         """Draw the fin shape along with some important information.
         These being: the center line and the center of pressure position.
 
@@ -409,7 +409,7 @@ class _FreeFormFinsPlots(_FinsPlots):
     """Class that contains all free form fin plots."""
 
     # pylint: disable=too-many-statements
-    def draw(self, filename=None):
+    def draw(self, *, filename=None):
         """Draw the fin shape along with some important information.
         These being: the center line and the center of pressure position.
 
@@ -483,7 +483,7 @@ class _FreeFormFinsPlots(_FinsPlots):
 class _TailPlots(_AeroSurfacePlots):
     """Class that contains all tail plots."""
 
-    def draw(self, filename=None):
+    def draw(self, *, filename=None):
         # This will de done in the future
         pass
 
@@ -498,7 +498,7 @@ class _AirBrakesPlots(_AeroSurfacePlots):
         else:
             return self.aero_surface.drag_coefficient.plot()
 
-    def draw(self, filename=None):
+    def draw(self, *, filename=None):
         raise NotImplementedError
 
     def all(self):
@@ -514,12 +514,12 @@ class _AirBrakesPlots(_AeroSurfacePlots):
 class _GenericSurfacePlots(_AeroSurfacePlots):
     """Class that contains all generic surface plots."""
 
-    def draw(self, filename=None):
+    def draw(self, *, filename=None):
         pass
 
 
 class _LinearGenericSurfacePlots(_AeroSurfacePlots):
     """Class that contains all linear generic surface plots."""
 
-    def draw(self, filename=None):
+    def draw(self, *, filename=None):
         pass

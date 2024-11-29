@@ -69,7 +69,7 @@ class _TankPlots:
         # Don't set any plot config here. Use the draw methods for that
         return tank
 
-    def draw(self, filename=None):
+    def draw(self, *, filename=None):
         """Draws the tank geometry.
 
         Parameters

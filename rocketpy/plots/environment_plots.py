@@ -173,7 +173,7 @@ class _EnvironmentPlots:
 
         return ax
 
-    def gravity_model(self, filename=None):
+    def gravity_model(self, *, filename=None):
         """Plots the gravity model graph that represents the gravitational
         acceleration as a function of height.
 
@@ -204,7 +204,7 @@ class _EnvironmentPlots:
 
         show_or_save_plot(filename)
 
-    def atmospheric_model(self, filename=None):
+    def atmospheric_model(self, *, filename=None):
         """Plots all atmospheric model graphs available. This includes wind
         speed and wind direction, density and speed of sound, wind u and wind v,
         and pressure and temperature.
@@ -245,7 +245,7 @@ class _EnvironmentPlots:
         show_or_save_plot(filename)
 
     # pylint: disable=too-many-statements
-    def ensemble_member_comparison(self, filename=None):
+    def ensemble_member_comparison(self, *, filename=None):
         """Plots ensemble member comparisons. It requires that the environment
         model has been set as Ensemble.
 
@@ -352,7 +352,7 @@ class _EnvironmentPlots:
         # Clean up
         self.environment.select_ensemble_member(current_member)
 
-    def info(self, filename=None):
+    def info(self, *, filename=None):
         """Plots a summary of the atmospheric model, including wind speed and
         wind direction, density and speed of sound. This is important for the
         Environment.info() method.

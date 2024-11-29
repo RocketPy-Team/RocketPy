@@ -1083,7 +1083,7 @@ class Motor(ABC):
             # Write last line
             file.write(f"{self.thrust.source[-1, 0]:.4f} {0:.3f}\n")
 
-    def info(self, filename=None):
+    def info(self, *, filename=None):
         """Prints out a summary of the data and graphs available about the
         Motor.
 

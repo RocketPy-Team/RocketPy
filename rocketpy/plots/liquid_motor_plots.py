@@ -14,7 +14,7 @@ class _LiquidMotorPlots(_MotorPlots):
 
     """
 
-    def draw(self, filename=None):
+    def draw(self, *, filename=None):
         """Draw a representation of the LiquidMotor.
 
         Parameters

@@ -1498,6 +1498,7 @@ class Function:  # pylint: disable=too-many-public-methods
         force_points=False,
         return_object=False,
         equal_axis=False,
+        *,
         filename=None,
     ):
         """Plot 1-Dimensional Function, from a lower limit to an upper limit,
@@ -1597,6 +1598,7 @@ class Function:  # pylint: disable=too-many-public-methods
         disp_type="surface",
         alpha=0.6,
         cmap="viridis",
+        *,
         filename=None,
     ):
         """Plot 2-Dimensional Function, from a lower limit to an upper limit,
@@ -1729,6 +1731,7 @@ class Function:  # pylint: disable=too-many-public-methods
         force_points=False,
         return_object=False,
         show=True,
+        *,
         filename=None,
     ):
         """Plots N 1-Dimensional Functions in the same plot, from a lower
