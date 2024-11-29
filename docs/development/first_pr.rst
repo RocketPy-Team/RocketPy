@@ -51,6 +51,14 @@ Your branch name should follow the guidelines described in :doc:`/development/st
 Opening the PR
 --------------
 
+After you finish your work, you are more than welcome opening a PR to the RocketPy repository.
+Here are some checks to do before opening a PR:
+
+* Check if the test suite is passing.
+* Format your code using ``black`` and ``isort``.
+
+Check the :doc:`/development/pro_tips` section for more information on how to run these commands.
+
 When you open a PR, you should:
 
 * Use labels to help maintainers understand what the PR is about.
@@ -58,6 +66,10 @@ When you open a PR, you should:
 
 Remember, the PR is yours, not ours! You should keep track of it and update it as needed.
 
+.. important::
+
+    See the :doc:`/development/style_guide` for more information on how to name and \
+    describe your PR.
 
 Continuous Integration (CI)
 ---------------------------

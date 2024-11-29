@@ -25,7 +25,7 @@ It creates a new commit that marks the merging of the two branches together.
 
 **Rebase**
 
-The `rebase` operation integrates changes from one branch into another by replaying \
+The `rebase` operation integrates changes from one branch into another by reapplying \
 the commits on top of the target branch. It results in a more linear history.
 
 * Produces a cleaner, linear commit history.
@@ -81,8 +81,12 @@ When to Use Merge or Rebase
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Generally, the maintainers will inform you which operation to use when merging your PR. \
-Notice that there is no wrong way to merge branches, but it is important to avoid letting \
-conflicts accumulate, since they can become harder to resolve.
+Notice that there is no wrong way to merge branches, but ``rebase`` is usually preferred \
+to keep a more linear history. 
+
+Furthermore, it is important to avoid letting conflicts accumulate, since they can become \
+harder to resolve. It is recommended to update your feature branch frequently with the latest \
+changes from the branch it was branched off.
 
 Solving Conflicts
 -----------------
@@ -111,7 +115,7 @@ When a conflict occurs, VS Code will open the *Merge Editor* to help you resolve
 2. The *Merge Editor* will show the conflicting sections side by side.
 3. Click on the `Accept Current Change` or `Accept Incoming Change` buttons to keep the desired changes, sometimes both changes will be kept or even a manual edit will be necessary.
 
-More details on VS Code interface ans conflict solver can be found in `VS Code Docs <https://code.visualstudio.com/docs/sourcecontrol/overview#_3way-merge-editor>`_.
+More details on VS Code interface and conflict solver can be found in `VS Code Docs <https://code.visualstudio.com/docs/sourcecontrol/overview#_3way-merge-editor>`_.
 After resolving the conflicts, save the files, make sure all conflicts are resolved, and then \
 commit the changes.
 

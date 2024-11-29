@@ -35,8 +35,8 @@ There are different ways to do this, but most of them will involve the following
     git clone
 
 
-...
-
+After cloning the repository, you will have a copy of the RocketPy repository on your \ 
+local machine and, by default, you will be on the ``master`` branch. 
 
 .. tip::
 
@@ -47,6 +47,26 @@ There are different ways to do this, but most of them will involve the following
     When you clone a repository, you are creating a connection between your local \
     repository and the remote repository. This connection allows you to push and \
     pull changes between the two repositories.
+
+Navigating through the project
+------------------------------
+
+In order to work on your local repository, you will need to open the directory where you \ 
+cloned it. We recommend using VS Code as your editor, but you can use any editor you prefer.
+If you are using VS Code, you can open the project by running the following command:
+
+.. code-block:: console
+
+    code <path/to/your/folder>
+
+After opening the project for the first time, you will be at the ``master`` branch.
+To switch to another branch, such as the ``develop`` branch, you will need to fetch \
+it from the remote repository and then checkout to it.
+
+.. code-block:: console
+
+    git fetch origin develop
+    git checkout develop
 
 
 Installation
@@ -63,27 +83,6 @@ development requirements:
     pip install -r requirements-optional.txt  # install optional requirements
     pip install -r requirements-tests.txt  # install test/dev requirements
 
-
-Navigating through the project
-------------------------------
-
-Opening your editor:
-
-.. code-block:: console
-
-    code <path/to/your/folder>
-
-Moving to a different branch:
-
-.. code-block:: console
-
-    git checkout ...
-
-
-Running a flight simulation
----------------------------
-
-Please see the other page... (link the other page)
 
 Running the tests
 -----------------

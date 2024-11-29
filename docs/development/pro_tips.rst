@@ -56,7 +56,7 @@ Code assistance
 Artificial Intelligence (AI) assistance has becoming more and more common in
 software development.
 Some editors have AI assistance built-in.
-Famous options are GitHub Copilot, and
+Famous options are GitHub Copilot, JetBrains AI and TabNine.
 
 At this repo, the use of AI tools is welcome, we don't have any restrictions
 against it.

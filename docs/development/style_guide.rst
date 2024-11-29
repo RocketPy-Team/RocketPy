@@ -63,6 +63,7 @@ Running these commands before submitting a pull request is also highly recommend
 
 .. code-block:: bash
 
+    make format
     make flake8
     make pylint
 
@@ -70,8 +71,6 @@ These commands will check for any code style issues in the codebase.
 The ``flake8`` command will throw a report directly to the console, while the
 ``pylint`` command will create a ``.pylint_report.txt`` file in the root directory,
 which you can open to see the report.
-
-
 
 Documentation Style
 -------------------
@@ -164,6 +163,17 @@ Pull Requests
 ^^^^^^^^^^^^^
 
 When opening a Pull Request, the name of the PR should be clear and concise.
+Similarly to the commit messages, the PR name should start with an acronym indicating the type of PR
+and then a brief description of the changes.
+
+Here is an example of a good PR name:
+
+- ``BUG: fix the Frequency Response plot of the Flight class``
+
+The PR description explain the changes and motivation behind them. There is a template \
+available when opening a PR that can be used to guide you through the process of both \
+describing the changes and making sure all the necessary steps were taken. Of course, \
+you can always modify the template or add more information if you think it is necessary.
 
 
 
