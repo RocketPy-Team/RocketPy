@@ -35,6 +35,7 @@ Attention: The newest changes should be on top -->
 
 ### Changed
 
+- MNT: Refactor Tank's testing Assertion with CAD data. [#678](https://github.com/RocketPy-Team/RocketPy/pull/678)
 
 ### Fixed
 
