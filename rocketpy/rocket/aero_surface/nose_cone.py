@@ -502,7 +502,7 @@ class NoseCone(AeroSurface):
         -------
         None
         """
-        self.plots.draw(filename)
+        self.plots.draw(filename=filename)
 
     def info(self):
         """Prints and plots summarized information of the nose cone.

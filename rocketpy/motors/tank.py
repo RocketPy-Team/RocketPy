@@ -491,7 +491,7 @@ class Tank(ABC):
         -------
         None
         """
-        self.plots.draw(filename)
+        self.plots.draw(filename=filename)
 
 
 class MassFlowRateBasedTank(Tank):
