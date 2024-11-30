@@ -273,7 +273,7 @@ class GenericSurface:
 
         # Angles of attack and sideslip
         alpha = np.arctan2(stream_velocity[1], stream_velocity[2])
-        beta = np.arctan2(-stream_velocity[0], stream_velocity[2])
+        beta = np.arctan2(stream_velocity[0], stream_velocity[2])
 
         # Compute aerodynamic forces and moments
         lift, side, drag, pitch, yaw, roll = self._compute_from_coefficients(
@@ -283,9 +283,9 @@ class GenericSurface:
             beta,
             stream_mach,
             reynolds,
-            omega[0],
-            omega[1],
-            omega[2],
+            omega[0],  # q
+            omega[1],  # r
+            omega[2],  # p
         )
 
         # Conversion from aerodynamic frame to body frame

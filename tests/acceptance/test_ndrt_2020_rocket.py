@@ -1,11 +1,19 @@
 import numpy as np
 import pandas as pd
+import pytest
 from scipy.signal import savgol_filter
 
 from rocketpy import Environment, Flight, Rocket, SolidMotor
 
 
-def test_ndrt_2020_rocket_data_asserts_acceptance():
+@pytest.mark.parametrize(
+    "env_file",
+    [
+        "data/weather/ndrt_2020_weather_data_ERA5.nc",
+        "data/weather/ndrt_2020_weather_data_ERA5_new.nc",
+    ],
+)
+def test_ndrt_2020_rocket_data_asserts_acceptance(env_file):
     # Notre Dame Rocket Team 2020 Flight
     # Launched at 19045-18879 Avery Rd, Three Oaks, MI 49128
     # Permission to use flight data given by Brooke Mumma, 2020
@@ -73,7 +81,7 @@ def test_ndrt_2020_rocket_data_asserts_acceptance():
     )
     env.set_atmospheric_model(
         type="Reanalysis",
-        file="data/weather/ndrt_2020_weather_data_ERA5.nc",
+        file=env_file,
         dictionary="ECMWF",
     )
     env.max_expected_height = 2000
