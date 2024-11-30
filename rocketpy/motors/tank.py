@@ -476,7 +476,7 @@ class Tank(ABC):
             elif (height < bottom_tolerance).any():
                 underfill_height_exception(name, height)
 
-    def draw(self, filename=None):
+    def draw(self, *, filename=None):
         """Draws the tank geometry.
 
         Parameters

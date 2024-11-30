@@ -601,7 +601,7 @@ class HybridMotor(Motor):
         )
         reset_funcified_methods(self)
 
-    def draw(self, filename=None):
+    def draw(self, *, filename=None):
         """Draws a representation of the HybridMotor.
 
         Parameters

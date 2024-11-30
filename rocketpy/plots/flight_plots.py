@@ -54,7 +54,7 @@ class _FlightPlots:
         else:
             return -1
 
-    def trajectory_3d(self, filename=None):  # pylint: disable=too-many-statements
+    def trajectory_3d(self, *, filename=None):  # pylint: disable=too-many-statements
         """Plot a 3D graph of the trajectory
 
         Parameters
@@ -134,7 +134,7 @@ class _FlightPlots:
         show_or_save_plot(filename)
 
     def linear_kinematics_data(
-        self, filename=None
+        self, *, filename=None
     ):  # pylint: disable=too-many-statements
         """Prints out all Kinematics graphs available about the Flight
 
@@ -215,7 +215,7 @@ class _FlightPlots:
         plt.subplots_adjust(hspace=0.5)
         show_or_save_plot(filename)
 
-    def attitude_data(self, filename=None):  # pylint: disable=too-many-statements
+    def attitude_data(self, *, filename=None):  # pylint: disable=too-many-statements
         """Prints out all Angular position graphs available about the Flight
 
         Parameters
@@ -273,7 +273,7 @@ class _FlightPlots:
         plt.subplots_adjust(hspace=0.5)
         show_or_save_plot(filename)
 
-    def flight_path_angle_data(self, filename=None):
+    def flight_path_angle_data(self, *, filename=None):
         """Prints out Flight path and Rocket Attitude angle graphs available
         about the Flight
 
@@ -324,7 +324,7 @@ class _FlightPlots:
         show_or_save_plot(filename)
 
     def angular_kinematics_data(
-        self, filename=None
+        self, *, filename=None
     ):  # pylint: disable=too-many-statements
         """Prints out all Angular velocity and acceleration graphs available
         about the Flight
@@ -399,7 +399,9 @@ class _FlightPlots:
         plt.subplots_adjust(hspace=0.5)
         show_or_save_plot(filename)
 
-    def rail_buttons_forces(self, filename=None):  # pylint: disable=too-many-statements
+    def rail_buttons_forces(
+        self, *, filename=None
+    ):  # pylint: disable=too-many-statements
         """Prints out all Rail Buttons Forces graphs available about the Flight.
 
         Parameters
@@ -490,7 +492,9 @@ class _FlightPlots:
             plt.subplots_adjust(hspace=0.5)
             show_or_save_plot(filename)
 
-    def aerodynamic_forces(self, filename=None):  # pylint: disable=too-many-statements
+    def aerodynamic_forces(
+        self, *, filename=None
+    ):  # pylint: disable=too-many-statements
         """Prints out all Forces and Moments graphs available about the Flight
 
         Parameters
@@ -578,7 +582,7 @@ class _FlightPlots:
         plt.subplots_adjust(hspace=0.5)
         show_or_save_plot(filename)
 
-    def energy_data(self, filename=None):  # pylint: disable=too-many-statements
+    def energy_data(self, *, filename=None):  # pylint: disable=too-many-statements
         """Prints out all Energy components graphs available about the Flight
 
         Parameters
@@ -698,7 +702,7 @@ class _FlightPlots:
         show_or_save_plot(filename)
 
     def fluid_mechanics_data(
-        self, filename=None
+        self, *, filename=None
     ):  # pylint: disable=too-many-statements
         """Prints out a summary of the Fluid Mechanics graphs available about
         the Flight
@@ -798,7 +802,7 @@ class _FlightPlots:
         show_or_save_plot(filename)
 
     def stability_and_control_data(
-        self, filename=None
+        self, *, filename=None
     ):  # pylint: disable=too-many-statements
         """Prints out Rocket Stability and Control parameters graphs available
         about the Flight
@@ -887,7 +891,7 @@ class _FlightPlots:
         plt.subplots_adjust(hspace=0.5)
         show_or_save_plot(filename)
 
-    def pressure_rocket_altitude(self, filename=None):
+    def pressure_rocket_altitude(self, *, filename=None):
         """Plots out pressure at rocket's altitude.
 
         Parameters
