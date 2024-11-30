@@ -486,7 +486,7 @@ class NoseCone(AeroSurface):
         self.cp = (self.cpx, self.cpy, self.cpz)
         return self.cp
 
-    def draw(self, filename=None):
+    def draw(self, *, filename=None):
         """Draw the nosecone shape along with some important information,
         including the center of pressure position.
 

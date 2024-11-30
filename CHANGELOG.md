@@ -40,9 +40,11 @@ Attention: The newest changes should be on top -->
 ### Changed
 
 - MNT: Refactor Tank's testing Assertion with CAD data. [#678](https://github.com/RocketPy-Team/RocketPy/pull/678)
+- MNT: Place filename save parameter to the end. [#739](https://github.com/RocketPy-Team/RocketPy/pull/739)
 
 ### Fixed
 
+- BUG: Allow multiple sets of stochastic fins [#737](https://github.com/RocketPy-Team/RocketPy/pull/737)
 - BUG: forecast and reanalysis models - Update ECMWF dictionary values [#736](https://github.com/RocketPy-Team/RocketPy/pull/736)
 - BUG: forecast and reanalysis models - move wind_speed to correct position [#735](https://github.com/RocketPy-Team/RocketPy/pull/735)
 - BUG: Sideslip Angle and Damping Coefficient Calculation [#729](https://github.com/RocketPy-Team/RocketPy/pull/729)

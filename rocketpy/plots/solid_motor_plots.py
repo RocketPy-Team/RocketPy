@@ -113,7 +113,7 @@ class _SolidMotorPlots(_MotorPlots):
 
         self.motor.Kn.plot(lower=lower_limit, upper=upper_limit)
 
-    def draw(self, filename=None):
+    def draw(self, *, filename=None):
         """Draw a representation of the SolidMotor.
 
         Parameters

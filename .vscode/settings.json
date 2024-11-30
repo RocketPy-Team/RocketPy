@@ -5,12 +5,14 @@
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
     "autoDocstring.docstringFormat": "numpy",
-    "cSpell.enableFiletypes": [
-        "python",
-        "jupyter",
-        "markdown",
-        "restructuredtext"
-    ],
+    "cSpell.enabledFileTypes": {
+        "plaintext": true,
+        "python": true,
+        "jupyter": true,
+        "markdown": true,
+        "tex": true,
+        "rst": true
+    },
     "cSpell.language": "en-US",
     "cSpell.words": [
         "Abdulklech",

@@ -6,6 +6,8 @@ import numpy as np
 from ..plot_helpers import show_or_save_fig, show_or_save_plot
 from .compare import Compare
 
+# TODO: needs to refactor this class to use the show_or_save_plot
+
 
 class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
     """A class to compare the results of multiple flights.

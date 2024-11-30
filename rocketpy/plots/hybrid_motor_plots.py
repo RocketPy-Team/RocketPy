@@ -14,7 +14,7 @@ class _HybridMotorPlots(_MotorPlots):
 
     """
 
-    def grain_inner_radius(self, lower_limit=None, upper_limit=None, filename=None):
+    def grain_inner_radius(self, lower_limit=None, upper_limit=None, *, filename=None):
         """Plots grain_inner_radius of the hybrid_motor as a function of time.
 
         Parameters
@@ -40,7 +40,7 @@ class _HybridMotorPlots(_MotorPlots):
             lower=lower_limit, upper=upper_limit, filename=filename
         )
 
-    def grain_height(self, lower_limit=None, upper_limit=None, filename=None):
+    def grain_height(self, lower_limit=None, upper_limit=None, *, filename=None):
         """Plots grain_height of the hybrid_motor as a function of time.
 
         Parameters
@@ -66,7 +66,7 @@ class _HybridMotorPlots(_MotorPlots):
             lower=lower_limit, upper=upper_limit, filename=filename
         )
 
-    def burn_rate(self, lower_limit=None, upper_limit=None, filename=None):
+    def burn_rate(self, lower_limit=None, upper_limit=None, *, filename=None):
         """Plots burn_rate of the hybrid_motor as a function of time.
 
         Parameters
@@ -92,7 +92,7 @@ class _HybridMotorPlots(_MotorPlots):
             lower=lower_limit, upper=upper_limit, filename=filename
         )
 
-    def burn_area(self, lower_limit=None, upper_limit=None, filename=None):
+    def burn_area(self, lower_limit=None, upper_limit=None, *, filename=None):
         """Plots burn_area of the hybrid_motor as a function of time.
 
         Parameters
@@ -118,7 +118,7 @@ class _HybridMotorPlots(_MotorPlots):
             lower=lower_limit, upper=upper_limit, filename=filename
         )
 
-    def Kn(self, lower_limit=None, upper_limit=None, filename=None):
+    def Kn(self, lower_limit=None, upper_limit=None, *, filename=None):
         """Plots Kn of the hybrid_motor as a function of time.
 
         Parameters
@@ -144,7 +144,7 @@ class _HybridMotorPlots(_MotorPlots):
             lower=lower_limit, upper=upper_limit, filename=filename
         )
 
-    def draw(self, filename=None):
+    def draw(self, *, filename=None):
         """Draw a representation of the HybridMotor.
 
         Parameters
