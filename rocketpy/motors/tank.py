@@ -492,7 +492,7 @@ class Tank(ABC):
         -------
         None
         """
-        self.plots.draw(filename)
+        self.plots.draw(filename=filename)
 
     def info(self):
         """Prints out a summary of the tank properties."""

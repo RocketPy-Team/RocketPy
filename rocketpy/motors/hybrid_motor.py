@@ -616,4 +616,4 @@ class HybridMotor(Motor):
         -------
         None
         """
-        self.plots.draw(filename)
+        self.plots.draw(filename=filename)
