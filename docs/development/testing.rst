@@ -1,3 +1,5 @@
+.. _testing_guidelines:
+
 Testing Guidelines
 ==================
 
@@ -102,13 +104,13 @@ The following example illustrates the AAA pattern:
         assert example_plain_env.latitude == latitude
         assert example_plain_env.longitude == longitude
 
-This pattern is a general guideline, of course specific tests cases might 
+This pattern is a general guideline, of course specific tests cases might
 modify it to better fit the specific needs of the test.
 
 .. note::
 
-    Parameterization is a powerful feature of ``pytest.mark.parametrize`` that allows 
-    you to run the same test with different inputs. This is highly recommended when 
+    Parameterization is a powerful feature of ``pytest.mark.parametrize`` that allows
+    you to run the same test with different inputs. This is highly recommended when
     there multiple testing scenarios for the same method.
 
 Directory Structure
@@ -348,6 +350,6 @@ documenting purposes, such as below:
         [[-10.  10.]]
         """
 
-This is not common practice, but it is optional and can be done, specially to provide 
-an usage example for the function under testing. RocketPy however encourages the use 
+This is not common practice, but it is optional and can be done, specially to provide
+an usage example for the function under testing. RocketPy however encourages the use
 of other means to test its software, as described.

@@ -8,7 +8,7 @@ Picking an issue
 ----------------
 
 Before you start coding, you should pick an issue to work on. You can find a
-list of issues in the `Issues` tab on GitHub (https://github.com/RocketPy-Team/RocketPy/issues).
+list of issues in the ``Issues`` tab on GitHub (https://github.com/RocketPy-Team/RocketPy/issues).
 If you are new here, it is really recommended that you talk to maintainers
 before starting to work on an issue.
 That way you avoid working on something that is already being worked on or
@@ -61,6 +61,8 @@ Check the :doc:`/development/pro_tips` section for more information on how to ru
 
 When you open a PR, you should:
 
+* Provide a clear and concise title.
+* Fill the PR description following the standard template.
 * Use labels to help maintainers understand what the PR is about.
 * Link any issue that may be closed when the PR is merged.
 
@@ -75,17 +77,16 @@ Continuous Integration (CI)
 ---------------------------
 
 There are several automation on our repository to help us maintain the code quality.
-
 Currently, our CI pipeline runs the following checks:
 
-* **Linting**: we run `flake8`, `pylint`, `black` and `isort` on top of your latest commit in order to check for code style issues. To understand more about these tools, please read the :doc:`/development/pro_tips` section.
-* **Testing**: we run the tests defined in the `tests` folder to make sure your changes do not break any existing functionality. The tests will be executed 6 times, each time with a different Python version (the oldest and newest supported versions) and with three different operating systems (Windows, Linux and MacOS).
+* **Linting**: we run ``flake8``, ``pylint``, ``black`` and ``isort`` on top of your latest commit in order to check for code style issues. To understand more about these tools, please read the :doc:`/development/pro_tips` section.
+* **Testing**: we run the tests defined in the ``tests`` folder to make sure your changes do not break any existing functionality. The tests will be executed 6 times, each time with a different Python version (the oldest and newest supported versions) and with three different operating systems (Windows, Linux and MacOS).
 * **Coverage**: based on the tests results, we also check the code coverage results from our test suite. There is an automation to check if the code coverage increased or decreased with your PR. It also points to potential introduced lines of code that should be tested.
 
 Once you open your PR or commit and push to your branch, the CI will be initialized.
 Please correct any issues that may arise from the CI checks.
 
-.. note::
+.. important::
 
     All the commands we run in the CI pipeline can also be run locally. It is \
     important that you run the checks locally before pushing your changes to \
@@ -95,7 +96,7 @@ The CHANGELOG file
 ------------------
 
 We keep track of the changes in the ``CHANGELOG.md`` file.
-When you open a PR, you should add a new entry to the "Unreleased" section of the file. 
+When you open a PR, you should add a new entry to the "Unreleased" section of the file.
 This entry should simply be the title of your PR.
 
 .. note::
@@ -108,11 +109,11 @@ The review process
 ------------------
 
 After you open a PR, the maintainers will review your code.
-This review process is a way to ensure that the code is in line with the project's goals and that it is well written and documented.
+This review process is a way to ensure that the code is in line with the
+project's goals and that it is well written and documented.
 
 The maintainers may ask you to make changes to your code.
 You should address these changes or explain why you think they are not necessary.
-
 This is the best time to learn from the maintainers and improve your coding skills.
 
 In case you do not address the comments in a timely manner, the maintainers may
