@@ -1,3 +1,5 @@
+.. _testing_guidelines:
+
 Testing Guidelines
 ==================
 
@@ -67,6 +69,49 @@ of the same test:
 Do not get caught by the size of that docstring. The only requirements it has to satisfy is
 that the docstring contains precise information on the expected behaviour and/or behaviour
 to be tested.
+
+Testing Structure
+-----------------
+
+In order to keep the tests easily readable and maintainable, RocketPy encourages
+the use of the AAA pattern (Arrange, Act, Assert) for structuring the tests.
+
+* **Arrange:** Set up the necessary preconditions and inputs (often done by *Fixtures* as it will be described below);
+* **Act:** Execute the code under test;
+* **Assert:** Verify that the code under test behaves as expected.
+
+The following example illustrates the AAA pattern:
+
+.. code-block:: python
+
+    @pytest.mark.parametrize(
+        "latitude, longitude", [(-21.960641, -47.482122), (0, 0), (21.960641, 47.482122)]
+    ) # Arrange: Done by the fixtures and the parameters of the test
+    def test_location_set_location_saves_location(latitude, longitude, example_plain_env):
+        """Tests location is saved correctly in the environment obj.
+
+        Parameters
+        ----------
+        example_plain_env : rocketpy.Environment
+        latitude: float
+            The latitude in decimal degrees.
+        longitude: float
+            The longitude in decimal degrees.
+        """
+        # Act: Set the location
+        example_plain_env.set_location(latitude, longitude)
+        # Assert: Check if the location was saved correctly
+        assert example_plain_env.latitude == latitude
+        assert example_plain_env.longitude == longitude
+
+This pattern is a general guideline, of course specific tests cases might
+modify it to better fit the specific needs of the test.
+
+.. note::
+
+    Parameterization is a powerful feature of ``pytest.mark.parametrize`` that allows
+    you to run the same test with different inputs. This is highly recommended when
+    there multiple testing scenarios for the same method.
 
 Directory Structure
 -------------------
@@ -234,7 +279,7 @@ This test contains two fundamental traits which defines it as an integration tes
 The motivation behind lies in the fact that it interacts and calls too many methods, being too broad
 to be considered an unit test.
 
-Please be aware that Integration tests are not solely classfied when interacting with external dependencies,
+Please be aware that Integration tests are not solely classified when interacting with external dependencies,
 but also encompass verifying the interaction between classes or too many methods at once, such as ``all_info()``.
 
 Further clarification: Even if the test contains traits of unit tests and use dependencies which are stable, such as
@@ -305,5 +350,6 @@ documenting purposes, such as below:
         [[-10.  10.]]
         """
 
-This is not common practice, but it is optional and can be done. RocketPy however encourages
-the use of other means to test its software, as described.
+This is not common practice, but it is optional and can be done, specially to provide
+an usage example for the function under testing. RocketPy however encourages the use
+of other means to test its software, as described.
