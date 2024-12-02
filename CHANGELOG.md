@@ -32,6 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- ENH: create a dataset of pre-registered motors. See #664 [#744](https://github.com/RocketPy-Team/RocketPy/pull/744)
 - DOC: GENESIS Flight Example [#734](https://github.com/RocketPy-Team/RocketPy/pull/734)
 - DOC: Camoes Flight Example [#733](https://github.com/RocketPy-Team/RocketPy/pull/733)
 - ENH: Callback function for collecting additional data from Monte Carlo sims [#702](https://github.com/RocketPy-Team/RocketPy/pull/702)
