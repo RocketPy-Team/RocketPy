@@ -688,7 +688,7 @@ class Environment:
             "Ensemble",
         ]:
             self.set_atmospheric_model(
-                self.atmospheric_model_file, self.atmospheric_model_dict
+                self.atmospheric_model_type, self.atmospheric_model_file, self.atmospheric_model_dict
             )
 
     def set_location(self, latitude, longitude):
@@ -726,7 +726,7 @@ class Environment:
             "Ensemble",
         ]:
             self.set_atmospheric_model(
-                self.atmospheric_model_file, self.atmospheric_model_dict
+                self.atmospheric_model_type, self.atmospheric_model_file, self.atmospheric_model_dict
             )
 
     def set_gravity_model(self, gravity=None):

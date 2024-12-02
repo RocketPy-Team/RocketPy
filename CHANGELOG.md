@@ -39,6 +39,8 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+- BUG: Correctly update atmospheric conditions after changing date and location [#743](https://github.com/RocketPy-Team/RocketPy/pull/743)
+
 
 ## [v1.7.0] - 2024-11-30
 
