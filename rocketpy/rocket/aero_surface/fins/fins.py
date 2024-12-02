@@ -442,4 +442,4 @@ class Fins(AeroSurface):
         -------
         None
         """
-        self.plots.draw(filename)
+        self.plots.draw(filename=filename)

@@ -478,4 +478,4 @@ class LiquidMotor(Motor):
         -------
         None
         """
-        self.plots.draw(filename)
+        self.plots.draw(filename=filename)

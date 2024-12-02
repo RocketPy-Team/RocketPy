@@ -120,6 +120,7 @@ class MonteCarlo:
             a Flight object and returns a value of that variable. For instance
 
             .. code-block:: python
+
                 custom_data_collector = {
                     "max_acceleration": lambda flight: max(flight.acceleration(flight.time)),
                     "date": lambda flight: flight.env.date,
