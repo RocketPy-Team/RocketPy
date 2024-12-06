@@ -589,8 +589,8 @@ class Flight:  # pylint: disable=too-many-public-methods
             The system is assumed to be a point-mass system located at the
             center of mass. Currently, the aerodynamic forces are solved at
             the specified location but translated to the center of mass without
-            adding the transferring momements. Additionally, neither 
-            the angular componenets such as omegas aren't evaluated as well
+            adding the transferring moments. Additionally, neither 
+            the angular components such as omegas aren't evaluated as well
             nor like moment of inertias are not taken into account. The 
             structure of functions for 3 DOF is kept very similar to 
             the original 6 DOF model for identifying missing components
@@ -1425,17 +1425,13 @@ class Flight:  # pylint: disable=too-many-public-methods
             # Motor burning
             # Retrieve important motor quantities
             # Mass
-            mass_flow_rate_at_t = self.rocket.motor.mass_flow_rate.get_value_opt(t)
             propellant_mass_at_t = self.rocket.motor.propellant_mass.get_value_opt(t)
             # Thrust
             thrust = self.rocket.motor.thrust.get_value_opt(t)
-            # Off center moment
-            M1 += 0 * thrust
-            M2 -= 0 * thrust
         else:
             # Motor stopped
             # Mass
-            mass_flow_rate_at_t, propellant_mass_at_t = 0, 0
+            propellant_mass_at_t = 0
             # thrust
             thrust = 0
 
@@ -1909,27 +1905,6 @@ class Flight:  # pylint: disable=too-many-public-methods
         # Retrieve necessary quantities
         ## Rocket mass
         total_mass = self.rocket.total_mass.get_value_opt(t)
-        total_mass_dot = self.rocket.total_mass_flow_rate.get_value_opt(t)
-        total_mass_ddot = self.rocket.total_mass_flow_rate.differentiate_complex_step(t)
-        ## CM position vector and time derivatives relative to CDM in body frame
-        r_CM_z = self.rocket.com_to_cdm_function
-        r_CM_t = r_CM_z.get_value_opt(t)
-        r_CM = Vector([0, 0, r_CM_t])
-        r_CM_dot = Vector([0, 0, r_CM_z.differentiate_complex_step(t)])
-        r_CM_ddot = Vector([0, 0, r_CM_z.differentiate(t, order=2)])
-        ## Nozzle position vector
-        r_NOZ = Vector([0, 0, self.rocket.nozzle_to_cdm])
-        ## Nozzle gyration tensor
-        S_nozzle = self.rocket.nozzle_gyration_tensor
-        ## Inertia tensor
-        inertia_tensor = 0
-        ## Inertia tensor time derivative in the body frame
-        I_dot = 0
-
-        # Calculate the Inertia tensor relative to CM
-        H = 0
-        I_CM = 0
-
         # Prepare transformation matrices
         K = Matrix.transformation(e)
         Kt = K.transpose
@@ -1994,7 +1969,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                 / self.env.dynamic_viscosity.get_value_opt(comp_z)
             )
             # Forces and moments
-            X, Y, Z = aero_surface.compute_forces_and_moments(
+            X, Y, Z, M, N, L = aero_surface.compute_forces_and_moments(
                 comp_stream_velocity,
                 comp_stream_speed,
                 comp_stream_mach,
@@ -2025,7 +2000,7 @@ class Flight:  # pylint: disable=too-many-public-methods
         )
 
         # Angular velocity derivative
-        w_dot = 0
+        w_dot = [0, 0, 0]
 
         # Velocity vector derivative
         v_dot = K @ (T20 / total_mass)
@@ -2046,7 +2021,7 @@ class Flight:  # pylint: disable=too-many-public-methods
 
         if post_processing:
             self.__post_processed_variables.append(
-                [t, *v_dot, *w_dot, R1, R2, R3, M1, M2, M3]
+                [t, *v_dot, *w_dot, R1, R2, R3, 0, 0, 0]
             )
 
         return u_dot
