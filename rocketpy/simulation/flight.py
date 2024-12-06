@@ -506,7 +506,7 @@ class Flight:  # pylint: disable=too-many-public-methods
         verbose=False,
         name="Flight",
         equations_of_motion="standard",
-        simulation_mode="3 DOF",
+        simulation_mode="6 DOF",
     ):
         """Run a trajectory simulation.
 
@@ -582,7 +582,19 @@ class Flight:  # pylint: disable=too-many-public-methods
             more restricted set of equations of motion that only works for
             solid propulsion rockets. Such equations were used in RocketPy v0
             and are kept here for backwards compatibility.
-
+        simulation_mode : str, optional
+            Type of equations of motion to use. Can be "3 DOF" or
+            "6 DOF". Default is "6 DOF". 3 DOF is a restricted set of equations 
+            of motion that only solves the 3 translational degree of freedom.
+            The system is assumed to be a point-mass system located at the
+            center of mass. Currently, the aerodynamic forces are solved at
+            the specified location but translated to the center of mass without
+            adding the transferring momements. Additionally, neither 
+            the angular componenets such as omegas aren't evaluated as well
+            nor like moment of inertias are not taken into account. The 
+            structure of functions for 3 DOF is kept very similar to 
+            the original 6 DOF model for identifying missing components
+            and easy read. 
         Returns
         -------
         None
@@ -1377,6 +1389,7 @@ class Flight:  # pylint: disable=too-many-public-methods
         """
         # Hey! We will finish this function later, now we just can use u_dot
         return self.u_dot_generalized(t, u, post_processing=post_processing)
+    
     def u_dot_3dof(
         self, t, u, post_processing=False
     ):  # pylint: disable=too-many-locals,too-many-statements
@@ -1411,15 +1424,6 @@ class Flight:  # pylint: disable=too-many-public-methods
         if t < self.rocket.motor.burn_out_time:
             # Motor burning
             # Retrieve important motor quantities
-            # Inertias
-            motor_I_33_at_t = 0
-            motor_I_11_at_t = 0
-            motor_I_33_derivative_at_t = self.rocket.motor.I_33.differentiate(
-                t, dx=1e-6
-            )
-            motor_I_11_derivative_at_t = self.rocket.motor.I_11.differentiate(
-                t, dx=1e-6
-            )
             # Mass
             mass_flow_rate_at_t = self.rocket.motor.mass_flow_rate.get_value_opt(t)
             propellant_mass_at_t = self.rocket.motor.propellant_mass.get_value_opt(t)
@@ -1430,35 +1434,18 @@ class Flight:  # pylint: disable=too-many-public-methods
             M2 -= 0 * thrust
         else:
             # Motor stopped
-            # Inertias
-            (
-                motor_I_33_at_t,
-                motor_I_11_at_t,
-                motor_I_33_derivative_at_t,
-                motor_I_11_derivative_at_t,
-            ) = (0, 0, 0, 0)
             # Mass
             mass_flow_rate_at_t, propellant_mass_at_t = 0, 0
             # thrust
             thrust = 0
 
         # Retrieve important quantities
-        # Inertias
-        rocket_dry_I_33 = 0
-        rocket_dry_I_11 = 0
         # Mass
         rocket_dry_mass = self.rocket.dry_mass  # already with motor's dry mass
         total_mass_at_t = propellant_mass_at_t + rocket_dry_mass
         mu = (propellant_mass_at_t * rocket_dry_mass) / (
             propellant_mass_at_t + rocket_dry_mass
         )
-        # Geometry
-        # b = -self.rocket.distance_rocket_propellant
-        b = (
-            0
-        )
-        c = 0
-        nozzle_radius = self.rocket.motor.nozzle_radius
         # Prepare transformation matrix
         a11 = 1 - 2 * (e2**2 + e3**2)
         a12 = 2 * (e1 * e2 - e0 * e3)
@@ -1507,9 +1494,6 @@ class Flight:  # pylint: disable=too-many-public-methods
                     R3 = air_brakes_force  # Substitutes rocket drag coefficient
                 else:
                     R3 += air_brakes_force
-        # Off center moment
-        M1 += 0 * R3
-        M2 -= 0 * R3
         # Get rocket velocity in body frame
         vx_b = a11 * vx + a21 * vy + a31 * vz
         vy_b = a12 * vx + a22 * vy + a32 * vz
@@ -1553,38 +1537,19 @@ class Flight:  # pylint: disable=too-many-public-methods
             R1 += X
             R2 += Y
             R3 += Z
-            M1 += 0
-            M2 += 0
-            M3 += 0
-        # Off center moment
-        M3 += 0 * R2 - 0 * R1
-
-        # Calculate derivatives
-        # Angular acceleration
-        alpha1 = 0
-        alpha2 = 0
-        alpha3 = 0
-        # Euler parameters derivative
-        e0dot = 0.5 * (-omega1 * e1 - omega2 * e2 - omega3 * e3)
-        e1dot = 0.5 * (omega1 * e0 + omega3 * e2 - omega2 * e3)
-        e2dot = 0.5 * (omega2 * e0 - omega3 * e1 + omega1 * e3)
-        e3dot = 0.5 * (omega3 * e0 + omega2 * e1 - omega1 * e2)
-
         # Linear acceleration
         L = [
             (
                 R1
-                - b * propellant_mass_at_t * (omega2**2 + omega3**2)
-                - 2 * c * mass_flow_rate_at_t * omega2
+
             )
             / total_mass_at_t,
             (
                 R2
-                + b * propellant_mass_at_t * (alpha3 + omega1 * omega2)
-                + 2 * c * mass_flow_rate_at_t * omega1
+
             )
             / total_mass_at_t,
-            (R3 - b * propellant_mass_at_t * (alpha2 - omega1 * omega3) + thrust)
+            (R3 + thrust)
             / total_mass_at_t,
         ]
         ax, ay, az = K @ Vector(L)
@@ -1598,18 +1563,18 @@ class Flight:  # pylint: disable=too-many-public-methods
             ax,
             ay,
             az,
-            e0dot,
-            e1dot,
-            e2dot,
-            e3dot,
-            alpha1,
-            alpha2,
-            alpha3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
         ]
 
         if post_processing:
             self.__post_processed_variables.append(
-                [t, ax, ay, az, alpha1, alpha2, alpha3, R1, R2, R3, M1, M2, M3]
+                [t, ax, ay, az, 0, 0, 0, R1, R2, R3, 0, 0, 0]
             )
         return u_dot
 
@@ -1939,7 +1904,7 @@ class Flight:  # pylint: disable=too-many-public-methods
         # r = Vector([x, y, z])               # CDM position vector
         v = Vector([vx, vy, vz])  # CDM velocity vector
         e = [e0, e1, e2, e3]  # Euler parameters/quaternions
-        w = Vector([0, 0, 0])  # Angular velocity vector
+        w = Vector([omega1, omega2, omega3])  # Angular velocity vector
 
         # Retrieve necessary quantities
         ## Rocket mass
@@ -2050,43 +2015,27 @@ class Flight:  # pylint: disable=too-many-public-methods
             [0, 0, -total_mass * self.env.gravity.get_value_opt(z)]
         )
 
-        T00 = total_mass * r_CM
-        T03 = 2 * total_mass_dot * (r_NOZ - r_CM) - 2 * total_mass * r_CM_dot
         T04 = (
             Vector([0, 0, thrust])
-            - total_mass * r_CM_ddot
-            - 2 * total_mass_dot * r_CM_dot
-            + total_mass_ddot * (r_NOZ - r_CM)
         )
-        T05 = total_mass_dot * S_nozzle - I_dot
 
-        T20 = (
-            ((w ^ T00) ^ w)
-            + (w ^ T03)
-            + T04
+        T20 = (T04
             + weight_in_body_frame
             + Vector([R1, R2, R3])
         )
 
-        T21 = (
-            ((inertia_tensor @ w) ^ w)
-            + T05 @ w
-            - (weight_in_body_frame ^ r_CM)
-            + Vector([M1, M2, M3])
-        )
-
         # Angular velocity derivative
-        w_dot = I_CM.inverse @ (T21 + (T20 ^ r_CM))
+        w_dot = 0
 
         # Velocity vector derivative
-        v_dot = K @ (T20 / total_mass - (r_CM ^ w_dot))
+        v_dot = K @ (T20 / total_mass)
 
         # Euler parameters derivative
         e_dot = [
-            0.5 * (-omega1 * e1 - omega2 * e2 - omega3 * e3),
-            0.5 * (omega1 * e0 + omega3 * e2 - omega2 * e3),
-            0.5 * (omega2 * e0 - omega3 * e1 + omega1 * e3),
-            0.5 * (omega3 * e0 + omega2 * e1 - omega1 * e2),
+            0,
+            0,
+            0,
+            0,
         ]
 
         # Position vector derivative
@@ -2109,7 +2058,7 @@ class Flight:  # pylint: disable=too-many-public-methods
         rocket is flying in 6 DOF motion in space and significant mass variation
         effects exist. Typical flight phases include powered ascent after launch
         rail.
-
+    
         Parameters
         ----------
         t : float
