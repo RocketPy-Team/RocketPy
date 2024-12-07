@@ -35,8 +35,11 @@ Attention: The newest changes should be on top -->
 
 ### Changed
 
+- MNT: Refactor Tank's testing Assertion with CAD data. [#678](https://github.com/RocketPy-Team/RocketPy/pull/678)
 
 ### Fixed
+
+- BUG: Correctly update atmospheric conditions after changing date and location [#743](https://github.com/RocketPy-Team/RocketPy/pull/743)
 
 
 ## [v1.7.0] - 2024-11-30
