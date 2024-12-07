@@ -8,6 +8,7 @@ from rocketpy import (
     LevelBasedTank,
     MassBasedTank,
     MassFlowRateBasedTank,
+    SphericalTank,
     TankGeometry,
     UllageBasedTank,
 )
@@ -430,9 +431,7 @@ def oxidizer_tank(oxidizer_fluid, oxidizer_pressurant, propellant_tank_geometry)
 
 
 @pytest.fixture
-def spherical_oxidizer_tank(
-    oxidizer_fluid, oxidizer_pressurant, spherical_oxidizer_geometry
-):
+def spherical_oxidizer_tank(oxidizer_fluid, oxidizer_pressurant):
     """An example of a oxidizer spherical tank.
 
     Parameters
@@ -447,12 +446,11 @@ def spherical_oxidizer_tank(
     -------
     rocketpy.LevelBasedTank
     """
-    geometry = SphericalTank(0.051)
     liquid_level = Function(lambda t: 0.1 * np.exp(-t / 2) - 0.05)
     oxidizer_tank = LevelBasedTank(
         name="Lox Tank",
         flux_time=10,
-        geometry=spherical_oxidizer_geometry,
+        geometry=SphericalTank(0.0501),
         liquid=oxidizer_fluid,
         gas=oxidizer_pressurant,
         liquid_height=liquid_level,

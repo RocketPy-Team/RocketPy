@@ -1,12 +1,12 @@
 """Defines a custom JSON encoder for RocketPy objects."""
 
-import base64
 import json
 from datetime import datetime
 from importlib import import_module
 
-import dill
 import numpy as np
+
+from rocketpy.mathutils.function import Function
 
 
 class RocketPyEncoder(json.JSONEncoder):
@@ -15,6 +15,7 @@ class RocketPyEncoder(json.JSONEncoder):
 
     def __init__(self, *args, **kwargs):
         self.include_outputs = kwargs.pop("include_outputs", False)
+        self.include_function_data = kwargs.pop("include_function_data", True)
         super().__init__(*args, **kwargs)
 
     def default(self, o):
@@ -43,6 +44,13 @@ class RocketPyEncoder(json.JSONEncoder):
             return [o.year, o.month, o.day, o.hour]
         elif hasattr(o, "__iter__") and not isinstance(o, str):
             return list(o)
+        elif isinstance(o, Function):
+            if not self.include_function_data:
+                return str(o)
+            else:
+                encoding = o.to_dict(self.include_outputs)
+                encoding["signature"] = get_class_signature(o)
+                return encoding
         elif hasattr(o, "to_dict"):
             encoding = o.to_dict(self.include_outputs)
             encoding = remove_circular_references(encoding)
@@ -155,39 +163,3 @@ def remove_circular_references(obj_dict):
     obj_dict.pop("plots", None)
 
     return obj_dict
-
-
-def to_hex_encode(obj, encoder=base64.b85encode):
-    """Converts an object to hex representation using dill.
-
-    Parameters
-    ----------
-    obj : object
-        Object to be converted to hex.
-    encoder : callable, optional
-        Function to encode the bytes. Default is base64.b85encode.
-
-    Returns
-    -------
-    bytes
-        Object converted to bytes.
-    """
-    return encoder(dill.dumps(obj)).hex()
-
-
-def from_hex_decode(obj_bytes, decoder=base64.b85decode):
-    """Converts an object from hex representation using dill.
-
-    Parameters
-    ----------
-    obj_bytes : str
-        Hex string to be converted to object.
-    decoder : callable, optional
-        Function to decode the bytes. Default is base64.b85decode.
-
-    Returns
-    -------
-    object
-        Object converted from bytes.
-    """
-    return dill.loads(decoder(bytes.fromhex(obj_bytes)))

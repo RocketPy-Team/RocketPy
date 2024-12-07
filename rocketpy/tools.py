@@ -6,6 +6,7 @@ expanded to suit the needs of other modules and may present breaking changes
 between minor versions if necessary, although this will be always avoided.
 """
 
+import base64
 import functools
 import importlib
 import importlib.metadata
@@ -15,6 +16,7 @@ import re
 import time
 from bisect import bisect_left
 
+import dill
 import matplotlib.pyplot as plt
 import numpy as np
 import pytz
@@ -1165,6 +1167,42 @@ def get_matplotlib_supported_file_endings():
     filetypes = ["." + filetype for filetype in filetypes]
 
     return filetypes
+
+
+def to_hex_encode(obj, encoder=base64.b85encode):
+    """Converts an object to hex representation using dill.
+
+    Parameters
+    ----------
+    obj : object
+        Object to be converted to hex.
+    encoder : callable, optional
+        Function to encode the bytes. Default is base64.b85encode.
+
+    Returns
+    -------
+    bytes
+        Object converted to bytes.
+    """
+    return encoder(dill.dumps(obj)).hex()
+
+
+def from_hex_decode(obj_bytes, decoder=base64.b85decode):
+    """Converts an object from hex representation using dill.
+
+    Parameters
+    ----------
+    obj_bytes : str
+        Hex string to be converted to object.
+    decoder : callable, optional
+        Function to decode the bytes. Default is base64.b85decode.
+
+    Returns
+    -------
+    object
+        Object converted from bytes.
+    """
+    return dill.loads(decoder(bytes.fromhex(obj_bytes)))
 
 
 if __name__ == "__main__":

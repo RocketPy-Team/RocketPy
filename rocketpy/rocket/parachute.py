@@ -2,7 +2,7 @@ from inspect import signature
 
 import numpy as np
 
-from rocketpy._encoders import from_hex_decode, to_hex_encode
+from rocketpy.tools import from_hex_decode, to_hex_encode
 
 from ..mathutils.function import Function
 from ..prints.parachute_prints import _ParachutePrints

@@ -22,9 +22,9 @@ from scipy.interpolate import (
     RBFInterpolator,
 )
 
-from ..plots.plot_helpers import show_or_save_plot
+from rocketpy.tools import from_hex_decode, to_hex_encode
 
-from rocketpy._encoders import from_hex_decode, to_hex_encode
+from ..plots.plot_helpers import show_or_save_plot
 
 # Numpy 1.x compatibility,
 # TODO: remove these lines when all dependencies support numpy>=2.0.0

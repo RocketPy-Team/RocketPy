@@ -2766,7 +2766,6 @@ class Environment:
             "max_expected_height": self.max_expected_height,
             "atmospheric_model_type": self.atmospheric_model_type,
             "pressure": self.pressure,
-            "barometric_height": self.barometric_height,
             "temperature": self.temperature,
             "wind_velocity_x": self.wind_velocity_x,
             "wind_velocity_y": self.wind_velocity_y,
@@ -2777,6 +2776,7 @@ class Environment:
 
         if include_outputs:
             env_dict["density"] = self.density
+            env_dict["barometric_height"] = self.barometric_height
             env_dict["speed_of_sound"] = self.speed_of_sound
             env_dict["dynamic_viscosity"] = self.dynamic_viscosity
 
@@ -2808,7 +2808,6 @@ class Environment:
             )
         else:
             env.__set_pressure_function(data["pressure"])
-            env.__set_barometric_height_function(data["barometric_height"])
             env.__set_temperature_function(data["temperature"])
             env.__set_wind_velocity_x_function(data["wind_velocity_x"])
             env.__set_wind_velocity_y_function(data["wind_velocity_y"])
@@ -2818,7 +2817,7 @@ class Environment:
             env.elevation = data["elevation"]
             env.max_expected_height = data["max_expected_height"]
 
-            if atmospheric_model in ["windy", "forecast", "reanalysis", "ensemble"]:
+            if atmospheric_model in ("windy", "forecast", "reanalysis", "ensemble"):
                 env.atmospheric_model_init_date = data["atmospheric_model_init_date"]
                 env.atmospheric_model_end_date = data["atmospheric_model_end_date"]
                 env.atmospheric_model_interval = data["atmospheric_model_interval"]
@@ -2838,6 +2837,7 @@ class Environment:
                 env.wind_speed_ensemble = data["wind_speed_ensemble"]
                 env.num_ensemble_members = data["num_ensemble_members"]
 
+            env.__reset_barometric_height_function()
             env.calculate_density_profile()
             env.calculate_speed_of_sound_profile()
             env.calculate_dynamic_viscosity()

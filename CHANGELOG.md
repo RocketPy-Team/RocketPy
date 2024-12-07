@@ -41,6 +41,7 @@ Attention: The newest changes should be on top -->
 - ENH: Expansion of Encoders Implementation for Full Flights. [#679](https://github.com/RocketPy-Team/RocketPy/pull/679)
 
 
+
 ### Changed
 
 - MNT: move piecewise functions to separate file [#746](https://github.com/RocketPy-Team/RocketPy/pull/746)
