@@ -1213,18 +1213,7 @@ class Flight:
         self.t = self.solution[-1][0]
         self.y_sol = self.solution[-1][1:]
 
-        if isinstance(self.ode_solver, OdeSolver):
-            self._solver = self.ode_solver
-        else:
-            try:
-                self._solver = ODE_SOLVER_MAP[self.ode_solver]
-            except KeyError as e:
-                raise ValueError(
-                    f"Invalid ``ode_solver`` input: {self.ode_solver}. "
-                    f"Available options are: {', '.join(ODE_SOLVER_MAP.keys())}"
-                ) from e
-
-        self.__is_lsoda = hasattr(self._solver, "_lsoda_solver")
+        self.__set_ode_solver(self.ode_solver)
 
     def __init_equations_of_motion(self):
         """Initialize equations of motion."""
@@ -1262,6 +1251,28 @@ class Flight:
                 sensors.append(sensor)
                 sensor_data[sensor] = sensor.measured_data[:]
         self.sensor_data = sensor_data
+
+    def __set_ode_solver(self, solver):
+        """Sets the ODE solver to be used in the simulation.
+
+        Parameters
+        ----------
+        solver : str, ``scipy.integrate.OdeSolver``
+            Integration method to use to solve the equations of motion ODE,
+            or a custom ``scipy.integrate.OdeSolver``.
+        """
+        if isinstance(solver, OdeSolver):
+            self._solver = solver
+        else:
+            try:
+                self._solver = ODE_SOLVER_MAP[solver]
+            except KeyError as e:
+                raise ValueError(
+                    f"Invalid ``ode_solver`` input: {solver}. "
+                    f"Available options are: {', '.join(ODE_SOLVER_MAP.keys())}"
+                ) from e
+
+        self.__is_lsoda = hasattr(self._solver, "_lsoda_solver")
 
     @cached_property
     def effective_1rl(self):
