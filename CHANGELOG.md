@@ -46,6 +46,7 @@ Attention: The newest changes should be on top -->
 
 ## [v1.7.1] - 2024-12-07
 
+
 ### Changed
 
 - REL: update version to 1.7.1 in configuration files [#750](https://github.com/RocketPy-Team/RocketPy/pull/750)
