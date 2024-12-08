@@ -32,6 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- DOC: add Defiance flight example [#742](https://github.com/RocketPy-Team/RocketPy/pull/742)
 - ENH: Allow for Alternative and Custom ODE Solvers. [#748](https://github.com/RocketPy-Team/RocketPy/pull/748)
 
 ### Changed
