@@ -25,10 +25,11 @@ apogee of some rockets.
       "Genesis (2023)": (3076.45, 2916),
       "Camoes (2023)": (3003.28, 3015),
       "Juno III (2023)": (3026.05, 3213),
-      "Halcyon (2023)": (3212.775, 3450),
+      "Halcyon (2023)": (3212.78, 3450),
+      "Defiance Mk.IV (2024)": (9238.01, 9308.32),
    }
 
-   max_apogee = 4500
+   max_apogee = 10000
 
    # Extract data
    simulated = [sim for sim, meas in results.values()]
@@ -80,4 +81,5 @@ In the next sections you will find the simulations of the rockets listed above.
    cavour_flight_sim.ipynb
    genesis_flight_sim.ipynb
    camoes_flight_sim.ipynb
+   defiance_flight_sim.ipynb
 
