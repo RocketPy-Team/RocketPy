@@ -32,7 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
--
+- DOC: Lince Flight Example [#734](https://github.com/RocketPy-Team/RocketPy/pull/734)
 
 ### Changed
 
