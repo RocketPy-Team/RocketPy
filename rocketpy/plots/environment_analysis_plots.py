@@ -74,7 +74,7 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
 
     # Surface level plots
 
-    def wind_gust_distribution(self, filename=None):
+    def wind_gust_distribution(self, *, filename=None):
         """Get all values of wind gust speed (for every date and hour available)
         and plot a single distribution. Expected result is a Weibull distribution,
         however, the result is not always a perfect fit, and sometimes it may
@@ -124,7 +124,9 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
         plt.legend()
         show_or_save_plot(filename)
 
-    def surface10m_wind_speed_distribution(self, wind_speed_limit=False, filename=None):
+    def surface10m_wind_speed_distribution(
+        self, wind_speed_limit=False, *, filename=None
+    ):
         """Get all values of sustained surface wind speed (for every date and
         hour available) and plot a single distribution. Expected result is a
         Weibull distribution. The wind speed limit is plotted as a vertical line.
@@ -190,6 +192,7 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
 
     def average_surface_temperature_evolution(
         self,
+        *,
         filename=None,
     ):  # pylint: disable=too-many-statements
         """Plots average temperature progression throughout the day, including
@@ -265,7 +268,7 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
         show_or_save_plot(filename)
 
     def average_surface10m_wind_speed_evolution(
-        self, wind_speed_limit=False, filename=None
+        self, wind_speed_limit=False, *, filename=None
     ):  # pylint: disable=too-many-statements
         """Plots average surface wind speed progression throughout the day,
         including sigma contours.
@@ -366,6 +369,7 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
 
     def average_surface100m_wind_speed_evolution(
         self,
+        *,
         filename=None,
     ):  # pylint: disable=too-many-statements
         """Plots average surface wind speed progression throughout the day, including
@@ -449,7 +453,7 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
 
     # Average profiles plots (pressure level data)
 
-    def average_wind_speed_profile(self, clear_range_limits=False, filename=None):
+    def average_wind_speed_profile(self, clear_range_limits=False, *, filename=None):
         """Average wind speed for all datetimes available. The plot also includes
         sigma contours.
 
@@ -554,7 +558,9 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
         )
         show_or_save_plot(filename)
 
-    def average_wind_velocity_xy_profile(self, clear_range_limits=False, filename=None):
+    def average_wind_velocity_xy_profile(
+        self, clear_range_limits=False, *, filename=None
+    ):
         """Average wind X and wind Y for all datetimes available. The X component
         is the wind speed in the direction of East, and the Y component is the
         wind speed in the direction of North.
@@ -621,7 +627,7 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
         plt.grid()
         show_or_save_plot(filename)
 
-    def average_wind_heading_profile(self, clear_range_limits=False, filename=None):
+    def average_wind_heading_profile(self, clear_range_limits=False, *, filename=None):
         """Average wind heading for all datetimes available.
 
         Parameters
@@ -679,7 +685,7 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
         plt.legend()
         show_or_save_plot(filename)
 
-    def average_pressure_profile(self, clear_range_limits=False, filename=None):
+    def average_pressure_profile(self, clear_range_limits=False, *, filename=None):
         """Average pressure profile for all datetimes available. The plot also
         includes sigma contours.
 
@@ -772,7 +778,7 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
         )
         show_or_save_plot(filename)
 
-    def average_temperature_profile(self, clear_range_limits=False, filename=None):
+    def average_temperature_profile(self, clear_range_limits=False, *, filename=None):
         """Average temperature profile for all datetimes available. The plot
         also includes sigma contours.
 
@@ -918,7 +924,7 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
         ax.yaxis.set_major_formatter(mtick.PercentFormatter(decimals=0))
         return ax
 
-    def average_wind_rose_specific_hour(self, hour, fig=None, filename=None):
+    def average_wind_rose_specific_hour(self, hour, fig=None, *, filename=None):
         """Plot a specific hour of the average windrose
 
         Parameters
@@ -952,7 +958,7 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
         show_or_save_plot(filename)
 
     def average_wind_rose_grid(
-        self, filename=None
+        self, *, filename=None
     ):  # pylint: disable=too-many-statements
         """Plot wind roses for all hours of a day, in a grid like plot.
 
@@ -1088,7 +1094,7 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
     # More plots and animations
 
     def wind_gust_distribution_grid(
-        self, filename=None
+        self, *, filename=None
     ):  # pylint: disable=too-many-statements
         """Plots shown in the animation of how the wind gust distribution varies
         throughout the day.
@@ -1264,7 +1270,7 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
         return HTML(animation.to_jshtml())
 
     def surface_wind_speed_distribution_grid(
-        self, wind_speed_limit=False, filename=None
+        self, wind_speed_limit=False, *, filename=None
     ):  # pylint: disable=too-many-statements
         """Plots shown in the animation of how the sustained surface wind speed
         distribution varies throughout the day. The plots are histograms of the
@@ -1493,7 +1499,7 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
         return HTML(animation.to_jshtml())
 
     def wind_speed_profile_grid(
-        self, clear_range_limits=False, filename=None
+        self, clear_range_limits=False, *, filename=None
     ):  # pylint: disable=too-many-statements
         """Creates a grid of plots with the wind profile over the average day.
         Each subplot represents a different hour of the day.
@@ -1592,7 +1598,7 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
         show_or_save_plot(filename)
 
     def wind_heading_profile_grid(
-        self, clear_range_limits=False, filename=None
+        self, clear_range_limits=False, *, filename=None
     ):  # pylint: disable=too-many-statements
         """Creates a grid of plots with the wind heading profile over the
         average day. Each subplot represents a different hour of the day.

@@ -29,7 +29,7 @@ class _MotorPlots:
         """
         self.motor = motor
 
-    def thrust(self, lower_limit=None, upper_limit=None, filename=None):
+    def thrust(self, lower_limit=None, upper_limit=None, *, filename=None):
         """Plots thrust of the motor as a function of time.
 
         Parameters
@@ -52,7 +52,7 @@ class _MotorPlots:
         """
         self.motor.thrust.plot(lower=lower_limit, upper=upper_limit, filename=filename)
 
-    def total_mass(self, lower_limit=None, upper_limit=None, filename=None):
+    def total_mass(self, lower_limit=None, upper_limit=None, *, filename=None):
         """Plots total_mass of the motor as a function of time.
 
         Parameters
@@ -77,7 +77,7 @@ class _MotorPlots:
             lower=lower_limit, upper=upper_limit, filename=filename
         )
 
-    def propellant_mass(self, lower_limit=None, upper_limit=None, filename=None):
+    def propellant_mass(self, lower_limit=None, upper_limit=None, *, filename=None):
         """Plots propellant_mass of the motor as a function of time.
 
         Parameters
@@ -102,7 +102,7 @@ class _MotorPlots:
             lower=lower_limit, upper=upper_limit, filename=filename
         )
 
-    def center_of_mass(self, lower_limit=None, upper_limit=None, filename=None):
+    def center_of_mass(self, lower_limit=None, upper_limit=None, *, filename=None):
         """Plots center_of_mass of the motor as a function of time.
 
         Parameters
@@ -127,7 +127,7 @@ class _MotorPlots:
             lower=lower_limit, upper=upper_limit, filename=filename
         )
 
-    def mass_flow_rate(self, lower_limit=None, upper_limit=None, filename=None):
+    def mass_flow_rate(self, lower_limit=None, upper_limit=None, *, filename=None):
         """Plots mass_flow_rate of the motor as a function of time.
 
         Parameters
@@ -152,7 +152,7 @@ class _MotorPlots:
             lower=lower_limit, upper=upper_limit, filename=filename
         )
 
-    def exhaust_velocity(self, lower_limit=None, upper_limit=None, filename=None):
+    def exhaust_velocity(self, lower_limit=None, upper_limit=None, *, filename=None):
         """Plots exhaust_velocity of the motor as a function of time.
 
         Parameters
@@ -178,7 +178,7 @@ class _MotorPlots:
         )
 
     def inertia_tensor(
-        self, lower_limit=None, upper_limit=None, show_products=False, filename=None
+        self, lower_limit=None, upper_limit=None, show_products=False, *, filename=None
     ):
         """Plots all inertia tensors (I_11, I_22, I_33, I_12, I_13, I_23)
         of the motor as a function of time in a single chart.

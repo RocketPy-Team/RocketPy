@@ -24,7 +24,7 @@ Global Ensemble Forecast System (GEFS)
 The ``GEFS`` model is a global ensemble forecast model ...
 
 
-.. jupyter-execute::
+.. code-block:: python
 
     from datetime import date, timedelta
     from rocketpy import Environment
@@ -45,7 +45,7 @@ The ``GEFS`` model is a global ensemble forecast model ...
 .. forecasts are kept away stored.
 .. Changing this is as easy as the following line of code.
 
-.. jupyter-execute::
+.. code-block:: python
 
     env_gefs.select_ensemble_member(3) # selects the 3rd forecast member
 
@@ -56,7 +56,7 @@ A very useful thing is to compare the forecast of all ensemble members, as well
 as confirming how many are there.
 All of this can be done by calling the :meth:`rocketpy.Environment.all_info` method.
 
-.. jupyter-execute::
+.. code-block:: python
 
     env_gefs.all_info()
 

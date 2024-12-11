@@ -463,7 +463,7 @@ class LiquidMotor(Motor):
         self.positioned_tanks.append({"tank": tank, "position": position})
         reset_funcified_methods(self)
 
-    def draw(self, filename=None):
+    def draw(self, *, filename=None):
         """Draw a representation of the LiquidMotor.
 
         Parameters
@@ -478,4 +478,4 @@ class LiquidMotor(Motor):
         -------
         None
         """
-        self.plots.draw(filename)
+        self.plots.draw(filename=filename)

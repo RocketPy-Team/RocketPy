@@ -1,3 +1,5 @@
+.. _motors_usage:
+
 Motors Usage
 ============
 
@@ -12,13 +14,13 @@ Motors Usage
     :caption: Solid Motors
 
     Solid Motor Usage <solidmotor.rst>
-    
+
 .. toctree::
     :maxdepth: 3
     :caption: Hybrid Motors
 
     Hybrid Motor Usage <hybridmotor.rst>
-    
+
 .. toctree::
     :maxdepth: 3
     :caption: Liquid Motors
@@ -30,7 +32,7 @@ Motors Usage
     :caption: Generic Motors
 
     Generic Motor Usage <genericmotor.rst>
-    
+
 .. toctree::
     :maxdepth: 3
     :caption: Tanks and Fluid

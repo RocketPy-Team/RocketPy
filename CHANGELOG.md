@@ -32,7 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
-- ENH: Implement optional plot saving [#597](https://github.com/RocketPy-Team/RocketPy/pull/597)
+-
 
 ### Changed
 
@@ -40,7 +40,42 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+-
+
+## [v1.7.1] - 2024-12-07
+
+### Changed
+
+- REL: update version to 1.7.1 in configuration files [#750](https://github.com/RocketPy-Team/RocketPy/pull/750)
+- MNT: Refactor Tank's testing Assertion with CAD data. [#678](https://github.com/RocketPy-Team/RocketPy/pull/678)
+
+### Fixed
+
+- BUG: Correctly update atmospheric conditions after changing date and location [#743](https://github.com/RocketPy-Team/RocketPy/pull/743)
+
+
+## [v1.7.0] - 2024-11-30
+
+### Added
+
+- DOC: GENESIS Flight Example [#734](https://github.com/RocketPy-Team/RocketPy/pull/734)
+- DOC: Camoes Flight Example [#733](https://github.com/RocketPy-Team/RocketPy/pull/733)
+- ENH: Callback function for collecting additional data from Monte Carlo sims [#702](https://github.com/RocketPy-Team/RocketPy/pull/702)
+- ENH: Implement optional plot saving [#597](https://github.com/RocketPy-Team/RocketPy/pull/597)
+
+### Changed
+
+- REL: update version to 1.7.0 in configuration files [#741](https://github.com/RocketPy-Team/RocketPy/pull/741)
+- MNT: Place filename save parameter to the end. [#739](https://github.com/RocketPy-Team/RocketPy/pull/739)
+- DOC: improvements to developers documentation [#732](https://github.com/RocketPy-Team/RocketPy/pull/732)
+
+### Fixed
+
+- BUG: Allow multiple sets of stochastic fins [#737](https://github.com/RocketPy-Team/RocketPy/pull/737)
+- BUG: forecast and reanalysis models - Update ECMWF dictionary values [#736](https://github.com/RocketPy-Team/RocketPy/pull/736)
+- BUG: forecast and reanalysis models - move wind_speed to correct position [#735](https://github.com/RocketPy-Team/RocketPy/pull/735)
 - BUG: Sideslip Angle and Damping Coefficient Calculation [#729](https://github.com/RocketPy-Team/RocketPy/pull/729)
+- DOC: fixed documentation about spherical caps [#728](https://github.com/RocketPy-Team/RocketPy/pull/728)
 
 ## [v1.6.2] - 2024-11-08
 

@@ -5,12 +5,14 @@
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
     "autoDocstring.docstringFormat": "numpy",
-    "cSpell.enableFiletypes": [
-        "python",
-        "jupyter",
-        "markdown",
-        "restructuredtext"
-    ],
+    "cSpell.enabledFileTypes": {
+        "plaintext": true,
+        "python": true,
+        "jupyter": true,
+        "markdown": true,
+        "tex": true,
+        "rst": true
+    },
     "cSpell.language": "en-US",
     "cSpell.words": [
         "Abdulklech",
@@ -231,6 +233,7 @@
         "polystyle",
         "powerseries",
         "Prandtl",
+        "pressurant",
         "prettytable",
         "Projeto",
         "prometheus",
@@ -263,6 +266,7 @@
         "SBMT",
         "scilimits",
         "searchsorted",
+        "seblm",
         "seealso",
         "setrail",
         "simplekml",

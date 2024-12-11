@@ -6,3 +6,4 @@ ipykernel==6.29.4
 pandas==2.2.2
 lxml_html_clean==0.1.1
 sphinx-copybutton==0.5.2
+sphinx-tabs==3.4.7

@@ -54,7 +54,7 @@ class _RocketPlots:
 
         self.rocket.reduced_mass()
 
-    def static_margin(self, filename=None):
+    def static_margin(self, *, filename=None):
         """Plots static margin of the rocket as a function of time.
 
         Parameters
@@ -123,7 +123,7 @@ class _RocketPlots:
         self.rocket.power_off_drag()
 
     # pylint: disable=too-many-statements
-    def drag_curves(self, filename=None):
+    def drag_curves(self, *, filename=None):
         """Plots power off and on drag curves of the rocket as a function of time.
 
         Parameters
@@ -179,7 +179,7 @@ class _RocketPlots:
             lower=0, upper=self.rocket.motor.burn_out_time
         )
 
-    def draw(self, vis_args=None, plane="xz", filename=None):
+    def draw(self, vis_args=None, plane="xz", *, filename=None):
         """Draws the rocket in a matplotlib figure.
 
         Parameters

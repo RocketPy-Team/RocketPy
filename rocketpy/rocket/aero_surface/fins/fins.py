@@ -426,7 +426,7 @@ class Fins(AeroSurface):
         M3 = M3_forcing - M3_damping
         return R1, R2, R3, M1, M2, M3
 
-    def draw(self, filename=None):
+    def draw(self, *, filename=None):
         """Draw the fin shape along with some important information, including
         the center line, the quarter line and the center of pressure position.
 
@@ -442,4 +442,4 @@ class Fins(AeroSurface):
         -------
         None
         """
-        self.plots.draw(filename)
+        self.plots.draw(filename=filename)
