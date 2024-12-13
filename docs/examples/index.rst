@@ -23,10 +23,12 @@ apogee of some rockets.
       "Prometheus (2022)": (4190.05, 3898.37),
       "Cavour (2023)": (2818.90, 2789),
       "Genesis (2023)": (3076.45, 2916),
+      "Halcyon (2023)": (3212.78, 3450),
       "Camoes (2023)": (3003.28, 3015),
       "Juno III (2023)": (3026.05, 3213),
-      "Halcyon (2023)": (3212.78, 3450),
+      "Lince (2023)" (3284.12, 3587),
       "Defiance Mk.IV (2024)": (9238.01, 9308.32),
+
    }
 
    max_apogee = 10000
@@ -81,5 +83,7 @@ In the next sections you will find the simulations of the rockets listed above.
    cavour_flight_sim.ipynb
    genesis_flight_sim.ipynb
    camoes_flight_sim.ipynb
+   lince_flight_sim.ipynb
    defiance_flight_sim.ipynb
+
 
