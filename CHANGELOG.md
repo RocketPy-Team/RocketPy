@@ -32,11 +32,26 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+-
 
 ### Changed
 
+-
 
 ### Fixed
+
+-
+
+## [v1.7.1] - 2024-12-07
+
+### Changed
+
+- REL: update version to 1.7.1 in configuration files [#750](https://github.com/RocketPy-Team/RocketPy/pull/750)
+- MNT: Refactor Tank's testing Assertion with CAD data. [#678](https://github.com/RocketPy-Team/RocketPy/pull/678)
+
+### Fixed
+
+- BUG: Correctly update atmospheric conditions after changing date and location [#743](https://github.com/RocketPy-Team/RocketPy/pull/743)
 
 
 ## [v1.7.0] - 2024-11-30
