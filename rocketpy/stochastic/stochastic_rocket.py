@@ -442,8 +442,7 @@ class StochasticRocket(StochasticModel):
                     for surface in surfaces:
                         if surface.component == validated_object.obj:
                             return surface.position
-                        else:
-                            raise AssertionError(error_msg)
+                    raise AssertionError(error_msg)
 
             return get_surface_position
 

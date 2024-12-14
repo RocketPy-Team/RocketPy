@@ -70,6 +70,8 @@ class SolidMotor(Motor):
         of propellant and dry mass.
     SolidMotor.propellant_mass : Function
         Total propellant mass in kg as a function of time.
+    SolidMotor.structural_mass_ratio: float
+        Initial ratio between the dry mass and the total mass.
     SolidMotor.total_mass_flow_rate : Function
         Time derivative of propellant total mass in kg/s as a function
         of time as obtained by the thrust source.
@@ -725,16 +727,19 @@ class SolidMotor(Motor):
     def propellant_I_23(self):
         return 0
 
-    def draw(self):
-        """Draw a representation of the SolidMotor."""
-        self.plots.draw()
+    def draw(self, *, filename=None):
+        """Draw a representation of the SolidMotor.
 
-    def info(self):
-        """Prints out basic data about the SolidMotor."""
-        self.prints.all()
-        self.plots.thrust()
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
-    def all_info(self):
-        """Prints out all data and graphs available about the SolidMotor."""
-        self.prints.all()
-        self.plots.all()
+        Returns
+        -------
+        None
+        """
+        self.plots.draw(filename=filename)

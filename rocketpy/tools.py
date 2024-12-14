@@ -15,6 +15,7 @@ import re
 import time
 from bisect import bisect_left
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pytz
 from cftime import num2pydate
@@ -123,8 +124,8 @@ def find_roots_cubic_function(a, b, c, d):
     First we define the coefficients of the function ax**3 + bx**2 + cx + d
     >>> a, b, c, d = 1, -3, -1, 3
     >>> x1, x2, x3 = find_roots_cubic_function(a, b, c, d)
-    >>> x1, x2, x3
-    ((-1+0j), (3+7.401486830834377e-17j), (1-1.4802973661668753e-16j))
+    >>> x1
+    (-1+0j)
 
     To get the real part of the roots, use the real attribute of the complex
     number.
@@ -344,7 +345,6 @@ def inverted_haversine(lat0, lon0, distance, bearing, earth_radius=6.3781e6):
         New latitude coordinate, in degrees.
     lon1 : float
         New longitude coordinate, in degrees.
-
     """
 
     # Convert coordinates to radians
@@ -374,126 +374,127 @@ def inverted_haversine(lat0, lon0, distance, bearing, earth_radius=6.3781e6):
 
 
 # Functions for monte carlo analysis
-# pylint: disable=too-many-statements
-def generate_monte_carlo_ellipses(results):
-    """A function to create apogee and impact ellipses from the monte carlo
-    analysis results.
+def sort_eigenvalues(cov):
+    # Calculate eigenvalues and eigenvectors
+    vals, vecs = np.linalg.eigh(cov)
+    # Order eigenvalues and eigenvectors in descending order
+    order = vals.argsort()[::-1]
+    return vals[order], vecs[:, order]
+
+
+def calculate_confidence_ellipse(list_x, list_y, n_std=3):
+    """Given a list of x and y coordinates, calculate the confidence ellipse
+    parameters (theta, width, height) for a given number of standard deviations.
+    """
+    covariance_matrix = np.cov(list_x, list_y)
+    eigenvalues, eigenvectors = sort_eigenvalues(covariance_matrix)
+    theta = np.degrees(np.arctan2(*eigenvectors[:, 0][::-1]))
+    width, height = 2 * n_std * np.sqrt(eigenvalues)
+    return theta, width, height
+
+
+def create_matplotlib_ellipse(x, y, w, h, theta, rgb, opacity):
+    """Create a matplotlib.patches.Ellipse object.
 
     Parameters
     ----------
-    results : dict
-        A dictionary containing the results of the monte carlo analysis. It
-        should contain the following keys:
-        - apogeeX: an array containing the x coordinates of the apogee
-        - apogeeY: an array containing the y coordinates of the apogee
-        - xImpact: an array containing the x coordinates of the impact
-        - yImpact: an array containing the y coordinates of the impact
+    x : list or np.array
+        List of x coordinates.
+    y : list or np.array
+        List of y coordinates.
+    w : float
+        Width of the ellipse.
+    h : float
+        Height of the ellipse.
+    theta : float
+        Angle of the ellipse.
+    rgb : tuple
+        Tuple containing the color of the ellipse in RGB format. For example,
+        (0, 0, 1) will create a blue ellipse.
 
     Returns
     -------
-    apogee_ellipse : list[Ellipse]
-        A list of ellipse objects representing the apogee ellipses.
-    impact_ellipse : list[Ellipse]
-        A list of ellipse objects representing the impact ellipses.
-    apogeeX : np.array
-        An array containing the x coordinates of the apogee ellipse.
-    apogeeY : np.array
-        An array containing the y coordinates of the apogee ellipse.
-    impactX : np.array
-        An array containing the x coordinates of the impact ellipse.
-    impactY : np.array
-        An array containing the y coordinates of the impact ellipse.
+    matplotlib.patches.Ellipse
+        One matplotlib.patches.Ellipse objects.
     """
 
-    # Retrieve monte carlo data por apogee and impact XY position
-    try:
-        apogee_x = np.array(results["apogee_x"])
-        apogee_y = np.array(results["apogee_y"])
-    except KeyError:
-        print("No apogee data found. Skipping apogee ellipses.")
-        apogee_x = np.array([])
-        apogee_y = np.array([])
-    try:
-        impact_x = np.array(results["x_impact"])
-        impact_y = np.array(results["y_impact"])
-    except KeyError:
-        print("No impact data found. Skipping impact ellipses.")
-        impact_x = np.array([])
-        impact_y = np.array([])
+    ell = Ellipse(
+        xy=(np.mean(x), np.mean(y)),
+        width=w,
+        height=h,
+        angle=theta,
+        color="black",
+    )
+    ell.set_facecolor(rgb)
+    ell.set_alpha(opacity)
+    return ell
 
-    # Define function to calculate Eigenvalues
-    def eigsorted(cov):
-        # Calculate eigenvalues and eigenvectors
-        vals, vecs = np.linalg.eigh(cov)
-        # Order eigenvalues and eigenvectors in descending order
-        order = vals.argsort()[::-1]
-        return vals[order], vecs[:, order]
 
-    def calculate_ellipses(list_x, list_y):
-        # Calculate covariance matrix
-        cov = np.cov(list_x, list_y)
-        # Calculate eigenvalues and eigenvectors
-        vals, vecs = eigsorted(cov)
-        # Calculate ellipse angle and width/height
-        theta = np.degrees(np.arctan2(*vecs[:, 0][::-1]))
-        w, h = 2 * np.sqrt(vals)
-        return theta, w, h
+def generate_monte_carlo_ellipses(
+    apogee_x=np.array([]),
+    apogee_y=np.array([]),
+    impact_x=np.array([]),
+    impact_y=np.array([]),
+    n_apogee=[1, 2, 3],
+    n_impact=[1, 2, 3],
+    apogee_rgb=(0, 1, 0),
+    impact_rgb=(0, 0, 1),
+    opacity=0.2,
+):  # pylint: disable=dangerous-default-value
+    """Function to generate Monte Carlo ellipses for apogee and impact points.
 
-    def create_ellipse_objects(x, y, n, w, h, theta, rgb):
-        """Create a list of matplotlib.patches.Ellipse objects.
+    Parameters
+    ----------
+    apogee_x : np.ndarray, optional
+        Array of x-coordinates for apogee points, by default np.array([])
+    apogee_y : np.ndarray, optional
+        Array of y-coordinates for apogee points, by default np.array([])
+    impact_x : np.ndarray, optional
+        Array of x-coordinates for impact points, by default np.array([])
+    impact_y : np.ndarray, optional
+        Array of y-coordinates for impact points, by default np.array([])
+    n_apogee : list, optional
+        List of integers representing the number of standard deviations for
+        apogee ellipses, by default [1, 2, 3]
+    n_impact : list, optional
+        List of integers representing the number of standard deviations for
+        impact ellipses, by default [1, 2, 3]
+    apogee_rgb : tuple, optional
+        RGB color tuple for apogee ellipses, by default (0, 1, 0).
+    impact_rgb : tuple, optional
+        RGB color tuple for impact ellipses, by default (0, 0, 1).
+    opacity : float, optional
+        The alpha parameter for the solid face of the ellipses, by default 0.2
 
-        Parameters
-        ----------
-        x : list or np.array
-            List of x coordinates.
-        y : list or np.array
-            List of y coordinates.
-        n : int
-            Number of ellipses to create. It represents the number of confidence
-            intervals to be used. For example, n=3 will create 3 ellipses with
-            1, 2 and 3 standard deviations.
-        w : float
-            Width of the ellipse.
-        h : float
-            Height of the ellipse.
-        theta : float
-            Angle of the ellipse.
-        rgb : tuple
-            Tuple containing the color of the ellipse in RGB format. For example,
-            (0, 0, 1) will create a blue ellipse.
-
-        Returns
-        -------
-        list
-            List of matplotlib.patches.Ellipse objects.
-        """
-        ell_list = [None] * n
-        for j in range(n):
-            ell = Ellipse(
-                xy=(np.mean(x), np.mean(y)),
-                width=w,
-                height=h,
-                angle=theta,
-                color="black",
-            )
-            ell.set_facecolor(rgb)
-            ell_list[j] = ell
-        return ell_list
+    Returns
+    -------
+    tuple[list[matplotlib.patches.Ellipse], list[matplotlib.patches.Ellipse]]
+        A tuple containing two lists:
+        - List of matplotlib.patches.Ellipse objects for apogee ellipses.
+        - List of matplotlib.patches.Ellipse objects for impact ellipses.
+    """
 
     # Calculate error ellipses for impact and apogee
-    impact_theta, impact_w, impact_h = calculate_ellipses(impact_x, impact_y)
-    apogee_theta, apogee_w, apogee_h = calculate_ellipses(apogee_x, apogee_y)
+    apogee_ellipses = []
+    for i in n_apogee:
+        theta, width, height = calculate_confidence_ellipse(apogee_x, apogee_y, n_std=i)
+        apogee_ellipses.append(
+            create_matplotlib_ellipse(
+                apogee_x, apogee_y, width, height, theta, apogee_rgb, opacity
+            )
+        )
 
     # Draw error ellipses for impact
-    impact_ellipses = create_ellipse_objects(
-        impact_x, impact_y, 3, impact_w, impact_h, impact_theta, (0, 0, 1, 0.2)
-    )
+    impact_ellipses = []
+    for i in n_impact:
+        theta, width, height = calculate_confidence_ellipse(impact_x, impact_y, n_std=i)
+        impact_ellipses.append(
+            create_matplotlib_ellipse(
+                impact_x, impact_y, width, height, theta, impact_rgb, opacity
+            )
+        )
 
-    apogee_ellipses = create_ellipse_objects(
-        apogee_x, apogee_y, 3, apogee_w, apogee_h, apogee_theta, (0, 1, 0, 0.2)
-    )
-
-    return impact_ellipses, apogee_ellipses, apogee_x, apogee_y, impact_x, impact_y
+    return impact_ellipses, apogee_ellipses
 
 
 def generate_monte_carlo_ellipses_coordinates(
@@ -504,7 +505,7 @@ def generate_monte_carlo_ellipses_coordinates(
 
     Parameters
     ----------
-    ellipses : list
+    ellipses : list[matplotlib.patches.Ellipse]
         List of matplotlib.patches.Ellipse objects.
     origin_lat : float
         Latitude of the origin of the coordinate system.
@@ -515,44 +516,49 @@ def generate_monte_carlo_ellipses_coordinates(
 
     Returns
     -------
-    list
+    list[list[tuple[float, float]]]
         List of lists of tuples containing the latitude and longitude of each
         point in each ellipse.
     """
-    outputs = [None] * len(ellipses)
+    return [
+        __convert_to_lat_lon(
+            __generate_ellipse_points(ell, resolution), origin_lat, origin_lon
+        )
+        for ell in ellipses
+    ]
 
-    for index, ell in enumerate(ellipses):
-        # Get ellipse path points
-        center = ell.get_center()
-        width = ell.get_width()
-        height = ell.get_height()
-        angle = np.deg2rad(ell.get_angle())
-        points = lat_lon_points = [None] * resolution
 
-        # Generate ellipse path points (in a Cartesian coordinate system)
-        for i in range(resolution):
-            x = width / 2 * math.cos(2 * np.pi * i / resolution)
-            y = height / 2 * math.sin(2 * np.pi * i / resolution)
-            x_rot = center[0] + x * math.cos(angle) - y * math.sin(angle)
-            y_rot = center[1] + x * math.sin(angle) + y * math.cos(angle)
-            points[i] = (x_rot, y_rot)
-        points = np.array(points)
+def __convert_to_lat_lon(points: list, origin_lat: float, origin_lon: float):
+    return [
+        inverted_haversine(
+            origin_lat,
+            origin_lon,
+            math.sqrt(x**2 + y**2),
+            math.degrees(math.atan2(x, y)),
+            earth_radius=6.3781e6,
+        )
+        for x, y in points
+    ]
 
-        # Convert path points to lat/lon
-        for point in points:
-            x, y = point
-            # Convert to distance and bearing
-            d = math.sqrt((x**2 + y**2))
-            bearing = math.atan2(
-                x, y
-            )  # math.atan2 returns the angle in the range [-pi, pi]
 
-            lat_lon_points[i] = inverted_haversine(
-                origin_lat, origin_lon, d, bearing, earth_radius=6.3781e6
-            )
+def __generate_ellipse_points(ellipse, resolution: int):
+    center = ellipse.get_center()
+    width = ellipse.get_width()
+    height = ellipse.get_height()
+    angle = np.deg2rad(ellipse.get_angle())
 
-        outputs[index] = lat_lon_points
-    return outputs
+    points = [
+        (
+            center[0]
+            + (width / 2 * math.cos(2 * np.pi * i / resolution)) * math.cos(angle)
+            - (height / 2 * math.sin(2 * np.pi * i / resolution)) * math.sin(angle),
+            center[1]
+            + (width / 2 * math.cos(2 * np.pi * i / resolution)) * math.sin(angle)
+            + (height / 2 * math.sin(2 * np.pi * i / resolution)) * math.cos(angle),
+        )
+        for i in range(resolution)
+    ]
+    return np.array(points)
 
 
 def flatten_dict(x):
@@ -582,7 +588,7 @@ def load_monte_carlo_data(
     output_filename,
     parameters_list,
     target_variables_list,
-):
+):  # pylint: disable=too-many-statements
     """Reads MonteCarlo simulation data file and builds parameters and flight
     variables matrices
 
@@ -1142,6 +1148,23 @@ def euler313_to_quaternions(phi, theta, psi):
     e2 = cphi * stheta * spsi - sphi * cpsi * stheta
     e3 = cphi * ctheta * spsi + ctheta * cpsi * sphi
     return e0, e1, e2, e3
+
+
+def get_matplotlib_supported_file_endings():
+    """Gets the file endings supported by matplotlib.
+
+    Returns
+    -------
+    list[str]
+        List of file endings prepended with a dot
+    """
+    # Get matplotlib's supported file ending and return them (without descriptions, hence only keys)
+    filetypes = plt.gcf().canvas.get_supported_filetypes().keys()
+
+    # Ensure the dot is included in the filetype endings
+    filetypes = ["." + filetype for filetype in filetypes]
+
+    return filetypes
 
 
 if __name__ == "__main__":

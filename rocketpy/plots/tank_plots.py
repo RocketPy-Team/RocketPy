@@ -2,6 +2,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Polygon
 
+from rocketpy.mathutils.function import Function
+
+from .plot_helpers import show_or_save_plot
+
 
 class _TankPlots:
     """Class that holds plot methods for Tank class.
@@ -28,6 +32,7 @@ class _TankPlots:
 
         self.tank = tank
         self.name = tank.name
+        self.flux_time = tank.flux_time
         self.geometry = tank.geometry
 
     def _generate_tank(self, translate=(0, 0), csys=1):
@@ -67,8 +72,16 @@ class _TankPlots:
         # Don't set any plot config here. Use the draw methods for that
         return tank
 
-    def draw(self):
+    def draw(self, *, filename=None):
         """Draws the tank geometry.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -89,6 +102,83 @@ class _TankPlots:
         y_max = self.geometry.radius.y_array.max()
         ax.set_xlim(-1.2 * x_max, 1.2 * x_max)
         ax.set_ylim(-1.5 * y_max, 1.5 * y_max)
+        show_or_save_plot(filename)
+
+    def fluid_volume(self, filename=None):
+        """Plots both the liquid and gas fluid volumes.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
+        """
+        _, ax = Function.compare_plots(
+            [self.tank.liquid_volume, self.tank.gas_volume],
+            *self.flux_time,
+            title="Fluid Volume (m^3) x Time (s)",
+            xlabel="Time (s)",
+            ylabel="Volume (m^3)",
+            show=False,
+            return_object=True,
+        )
+        ax.legend(["Liquid", "Gas"])
+        show_or_save_plot(filename)
+
+    def fluid_height(self, filename=None):
+        """Plots both the liquid and gas fluid height.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
+        """
+        _, ax = Function.compare_plots(
+            [self.tank.liquid_height, self.tank.gas_height],
+            *self.flux_time,
+            title="Fluid Height (m) x Time (s)",
+            xlabel="Time (s)",
+            ylabel="Height (m)",
+            show=False,
+            return_object=True,
+        )
+        ax.legend(["Liquid", "Gas"])
+        show_or_save_plot(filename)
+
+    def fluid_center_of_mass(self, filename=None):
+        """Plots the gas, liquid and combined center of mass.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
+        """
+        _, ax = Function.compare_plots(
+            [
+                self.tank.liquid_center_of_mass,
+                self.tank.gas_center_of_mass,
+                self.tank.center_of_mass,
+            ],
+            *self.flux_time,
+            title="Fluid Center of Mass (m) x Time (s)",
+            xlabel="Time (s)",
+            ylabel="Center of Mass (m)",
+            show=False,
+            return_object=True,
+        )
+        # Change style of lines
+        ax.lines[0].set_linestyle("--")
+        ax.lines[1].set_linestyle("-.")
+        ax.legend(["Liquid", "Gas", "Total"])
+        show_or_save_plot(filename)
 
     def all(self):
         """Prints out all graphs available about the Tank. It simply calls
@@ -98,3 +188,10 @@ class _TankPlots:
         -------
         None
         """
+        self.draw()
+        self.tank.fluid_mass.plot(*self.flux_time)
+        self.tank.net_mass_flow_rate.plot(*self.flux_time)
+        self.fluid_height()
+        self.fluid_volume()
+        self.fluid_center_of_mass()
+        self.tank.inertia.plot(*self.flux_time)

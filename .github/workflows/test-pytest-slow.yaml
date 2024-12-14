@@ -4,6 +4,14 @@ on:
   schedule:
     - cron: "0 17 * * 5"  # at 05:00 PM, only on Friday
       timezone: "America/Sao_Paulo"
+  push:
+    branches:
+      - main
+    paths:
+      - "**.py"
+      - ".github/**"
+      - "pyproject.toml"
+      - "requirements*"
 
 defaults:
   run:
@@ -15,7 +23,7 @@ jobs:
     strategy:
       matrix:
         fail-fast: false
-        python-version: [3.9, 3.12]
+        python-version: [3.9, 3.13]
 
     env:
       OS: ${{ matrix.os }}

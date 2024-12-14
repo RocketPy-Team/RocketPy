@@ -688,7 +688,9 @@ class Environment:
             "Ensemble",
         ]:
             self.set_atmospheric_model(
-                self.atmospheric_model_file, self.atmospheric_model_dict
+                type=self.atmospheric_model_type,
+                file=self.atmospheric_model_file,
+                dictionary=self.atmospheric_model_dict,
             )
 
     def set_location(self, latitude, longitude):
@@ -726,7 +728,9 @@ class Environment:
             "Ensemble",
         ]:
             self.set_atmospheric_model(
-                self.atmospheric_model_file, self.atmospheric_model_dict
+                type=self.atmospheric_model_type,
+                file=self.atmospheric_model_file,
+                dictionary=self.atmospheric_model_dict,
             )
 
     def set_gravity_model(self, gravity=None):
@@ -1746,6 +1750,8 @@ class Environment:
         # Read weather file
         if isinstance(file, str):
             data = netCDF4.Dataset(file)
+            if dictionary["time"] not in data.variables.keys():
+                dictionary = self.__weather_model_map.get("ECMWF_v0")
         else:
             data = file
 
@@ -1884,9 +1890,9 @@ class Environment:
             temper,
             wind_u,
             wind_v,
-            wind_speed,
             wind_heading,
             wind_direction,
+            wind_speed,
         )
         # Save atmospheric data
         self.__set_pressure_function(data_array[:, (1, 0)])
@@ -1910,7 +1916,12 @@ class Environment:
         # Compute info data
         self.atmospheric_model_init_date = get_initial_date_from_time_array(time_array)
         self.atmospheric_model_end_date = get_final_date_from_time_array(time_array)
-        self.atmospheric_model_interval = get_interval_date_from_time_array(time_array)
+        if self.atmospheric_model_init_date != self.atmospheric_model_end_date:
+            self.atmospheric_model_interval = get_interval_date_from_time_array(
+                time_array
+            )
+        else:
+            self.atmospheric_model_interval = 0
         self.atmospheric_model_init_lat = lat_list[0]
         self.atmospheric_model_end_lat = lat_list[-1]
         self.atmospheric_model_init_lon = lon_list[0]

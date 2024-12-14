@@ -1,14 +1,16 @@
+.. _testing_guidelines:
+
 Testing Guidelines
 ==================
 
 This page describes the testing philosophy used throughout RocketPy's
-development with pytest. That includes the definition 
+development with pytest. That includes the definition
 and some technical discussion regarding:
 
 * Testing philosophy and style
 * Testing naming conventions
 * Directory structure
-* Unit tests definition 
+* Unit tests definition
 * Integration tests definition
 * Acceptance tests definition
 
@@ -21,7 +23,7 @@ First of all, it is worth noting the role of tests within the framework of Rocke
 
 * Unit tests are the minimum requirement for a feature to be accepted.
 
-That is, for each feature must correspond a testing unit which properly documents and tests the newly implemented feature. 
+That is, for each feature must correspond a testing unit which properly documents and tests the newly implemented feature.
 In even more practical terms that means the Pull Request containing the feature should include an unit test together with it.
 
 Testing Naming Conventions
@@ -48,7 +50,7 @@ RocketPy Team agreed upon following the testing convention where it's name exact
 * ``test_methodname_stateundertest``
 * ``test_methodname_expectedbehaviour``
 
-However, in any case, it is of utmost importance that the expected behaviour or state to be tested 
+However, in any case, it is of utmost importance that the expected behaviour or state to be tested
 **should be included within the docstring of the test**, just as illustrated below by the docstring
 of the same test:
 
@@ -66,7 +68,50 @@ of the same test:
 
 Do not get caught by the size of that docstring. The only requirements it has to satisfy is
 that the docstring contains precise information on the expected behaviour and/or behaviour
-to be tested. 
+to be tested.
+
+Testing Structure
+-----------------
+
+In order to keep the tests easily readable and maintainable, RocketPy encourages
+the use of the AAA pattern (Arrange, Act, Assert) for structuring the tests.
+
+* **Arrange:** Set up the necessary preconditions and inputs (often done by *Fixtures* as it will be described below);
+* **Act:** Execute the code under test;
+* **Assert:** Verify that the code under test behaves as expected.
+
+The following example illustrates the AAA pattern:
+
+.. code-block:: python
+
+    @pytest.mark.parametrize(
+        "latitude, longitude", [(-21.960641, -47.482122), (0, 0), (21.960641, 47.482122)]
+    ) # Arrange: Done by the fixtures and the parameters of the test
+    def test_location_set_location_saves_location(latitude, longitude, example_plain_env):
+        """Tests location is saved correctly in the environment obj.
+
+        Parameters
+        ----------
+        example_plain_env : rocketpy.Environment
+        latitude: float
+            The latitude in decimal degrees.
+        longitude: float
+            The longitude in decimal degrees.
+        """
+        # Act: Set the location
+        example_plain_env.set_location(latitude, longitude)
+        # Assert: Check if the location was saved correctly
+        assert example_plain_env.latitude == latitude
+        assert example_plain_env.longitude == longitude
+
+This pattern is a general guideline, of course specific tests cases might
+modify it to better fit the specific needs of the test.
+
+.. note::
+
+    Parameterization is a powerful feature of ``pytest.mark.parametrize`` that allows
+    you to run the same test with different inputs. This is highly recommended when
+    there multiple testing scenarios for the same method.
 
 Directory Structure
 -------------------
@@ -93,14 +138,14 @@ RocketPy organizes its tests as follows:
             └── stochastic_file_2.py
 
 As one might guess, each kind of test should be included within it's correspondent kind of test. For instance, if one is writing
-an unit testing module called ``test_flight.py``, it should be included within the ``unit`` folder. The same holds for other tests. 
+an unit testing module called ``test_flight.py``, it should be included within the ``unit`` folder. The same holds for other tests.
 For a more detailed treatment of the directory containing the fixtures, read the next section.
 
 Fixtures
 --------
 
 Fixtures play a significant role within testing. In RocketPy it is no different. In fact, so many features are needed
-to properly test the code that the RocketPy Team decided to organize them a little different then one might find in 
+to properly test the code that the RocketPy Team decided to organize them a little different then one might find in
 small projects. The directory is structured as follows:
 
 ::
@@ -123,10 +168,10 @@ small projects. The directory is structured as follows:
 
 Rocketpy Team opted for this kind of structure since it allowed for a more convenient way of organizing
 fixtures. Additionally, it serves the purpose of putting the tests in a position where only strictly needed
-fixtures are imported. 
+fixtures are imported.
 
-**Important:** If a new module containing fixtures is to be created, do not forget to look for the 
-``conftest.py`` file within the tests folder to include your newly created module. 
+**Important:** If a new module containing fixtures is to be created, do not forget to look for the
+``conftest.py`` file within the tests folder to include your newly created module.
 
 To finish, let's take a quick look inside the tests directory structure. Consider the **motor**
 folder containing its fixtures:
@@ -150,7 +195,7 @@ Unit tests definition
 ---------------------
 
 Within a complex code such as RocketPy, some definitions or agreements need to be reviewed or sophisticated
-to make sense within a projec. In RocketPy, unit tests are/can be **sociable**, which **still** means that:
+to make sense within a project. In RocketPy, unit tests are/can be **sociable**, which **still** means that:
 
 * (Speed) They have to be **fast**.
 * (Isolated behavior) They focus on a **small part** of the system. Here we define unit in the method-level.
@@ -158,8 +203,8 @@ to make sense within a projec. In RocketPy, unit tests are/can be **sociable**, 
 *However*, as already said, they are/can be sociable:
 
 * (Sociable) The tested unit relies on other units to fulfill its behavior.
- 
-The classification depends on whether the test isolates the unit under test from its dependencies or allows them 
+
+The classification depends on whether the test isolates the unit under test from its dependencies or allows them
 to interact naturally. In practical terms, consider the test:
 
 .. code-block:: python
@@ -175,16 +220,16 @@ to interact naturally. In practical terms, consider the test:
         """
         assert isinstance(calisto_motorless.evaluate_total_mass(), Function)
 
-This test is **sociable** because it relies on the actual Rocket instance and tests its real behavior without 
-isolating the Rocket class from its potential interactions with other classes or methods within its implementation. 
-It checks the real implementation of ``evaluate_total_mass`` rather than a mocked or stubbed version, ensuring that 
+This test is **sociable** because it relies on the actual Rocket instance and tests its real behavior without
+isolating the Rocket class from its potential interactions with other classes or methods within its implementation.
+It checks the real implementation of ``evaluate_total_mass`` rather than a mocked or stubbed version, ensuring that
 the functionality being tested is part of the integrated system.
 
 Please note that writing an unit test which is solitary is allowed, however: make sure to back it up with proper contract
-tests when applicable. 
+tests when applicable.
 
 The classification regarding solitary and sociable tests was clarified due to the specific needs developers
-naturally encountered within the software, while also hoping that since the developers had the need to further 
+naturally encountered within the software, while also hoping that since the developers had the need to further
 identify them, external contributors would probably fall into the same problem.
 
 Integration tests definition
@@ -234,29 +279,29 @@ This test contains two fundamental traits which defines it as an integration tes
 The motivation behind lies in the fact that it interacts and calls too many methods, being too broad
 to be considered an unit test.
 
-Please be aware that Integration tests are not solely classfied when interacting with external dependencies,
-but also encompass verifying the interaction between classes or too many methods at once, such as ``all_info()``. 
+Please be aware that Integration tests are not solely classified when interacting with external dependencies,
+but also encompass verifying the interaction between classes or too many methods at once, such as ``all_info()``.
 
 Further clarification: Even if the test contains traits of unit tests and use dependencies which are stable, such as
-.csv or .eng files contained within the project or any other external dependencies which are easy to access 
-and do not make the test slow, **then your test is still an integration test, since those are strongly I/O related.** 
+.csv or .eng files contained within the project or any other external dependencies which are easy to access
+and do not make the test slow, **then your test is still an integration test, since those are strongly I/O related.**
 
 Acceptance tests definition
 ---------------------------
 
 Acceptance tests configure the final phase of the testing lifecycle within RocketPy. These tests are designed to
-account for user-centered scenarios where usually real flights and configurations are setup and launched. 
+account for user-centered scenarios where usually real flights and configurations are setup and launched.
 
-This phase of testing presents the task of letting the developers know if the system still satisfies well enough the 
+This phase of testing presents the task of letting the developers know if the system still satisfies well enough the
 requirements of normal use of the software, including for instance:
 
 * Error free use of the software within the setup of a real launch.
 * Assertions regarding the accuracy of simulations. Thresholds are put and should be checked. RocketPy Paper results are a good reference.
-* Usually include prior knowledge of real flight data. 
+* Usually include prior knowledge of real flight data.
 
 In practical terms, acceptance tests come through the form of a notebook where a certain flight is tested.
-It is an important feature and also defining feature of the acceptance tests that thresholds are compared 
-to real flight data allowing for true comparison. 
+It is an important feature and also defining feature of the acceptance tests that thresholds are compared
+to real flight data allowing for true comparison.
 
 Docstrings
 ----------
@@ -305,5 +350,6 @@ documenting purposes, such as below:
         [[-10.  10.]]
         """
 
-This is not common practice, but it is optional and can be done. RocketPy however encourages
-the use of other means to test its software, as described.
+This is not common practice, but it is optional and can be done, specially to provide
+an usage example for the function under testing. RocketPy however encourages the use
+of other means to test its software, as described.

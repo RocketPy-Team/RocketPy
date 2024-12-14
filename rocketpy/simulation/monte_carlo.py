@@ -48,6 +48,9 @@ class MonteCarlo:
         The stochastic flight object to be iterated over.
     export_list : list
         The list of variables to export at each simulation.
+    data_collector : dict
+        A dictionary whose keys are the names of the additional
+        exported variables and the values are callback functions.
     inputs_log : list
         List of dictionaries with the inputs used in each simulation.
     outputs_log : list
@@ -80,7 +83,13 @@ class MonteCarlo:
     """
 
     def __init__(
-        self, filename, environment, rocket, flight, export_list=None
+        self,
+        filename,
+        environment,
+        rocket,
+        flight,
+        export_list=None,
+        data_collector=None,
     ):  # pylint: disable=too-many-statements
         """
         Initialize a MonteCarlo object.
@@ -104,6 +113,18 @@ class MonteCarlo:
             `out_of_rail_stability_margin`, `out_of_rail_time`,
             `out_of_rail_velocity`, `max_mach_number`, `frontal_surface_wind`,
             `lateral_surface_wind`. Default is None.
+        data_collector : dict, optional
+            A dictionary whose keys are the names of the exported variables
+            and the values are callback functions. The keys (variable names) must not
+            overwrite the default names on 'export_list'. The callback functions receive
+            a Flight object and returns a value of that variable. For instance
+
+            .. code-block:: python
+
+                custom_data_collector = {
+                    "max_acceleration": lambda flight: max(flight.acceleration(flight.time)),
+                    "date": lambda flight: flight.env.date,
+                }
 
         Returns
         -------
@@ -132,6 +153,8 @@ class MonteCarlo:
         self._last_print_len = 0  # used to print on the same line
 
         self.export_list = self.__check_export_list(export_list)
+        self._check_data_collector(data_collector)
+        self.data_collector = data_collector
 
         try:
             self.import_inputs()
@@ -359,6 +382,17 @@ class MonteCarlo:
             for export_item in self.export_list
         }
 
+        if self.data_collector is not None:
+            additional_exports = {}
+            for key, callback in self.data_collector.items():
+                try:
+                    additional_exports[key] = callback(flight)
+                except Exception as e:
+                    raise ValueError(
+                        f"An error was encountered running 'data_collector' callback {key}. "
+                    ) from e
+            results = results | additional_exports
+
         input_file.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
         output_file.write(json.dumps(results, cls=RocketPyEncoder) + "\n")
 
@@ -465,6 +499,37 @@ class MonteCarlo:
             export_list = standard_output
 
         return export_list
+
+    def _check_data_collector(self, data_collector):
+        """Check if data collector provided is a valid
+
+        Parameters
+        ----------
+        data_collector : dict
+            A dictionary whose keys are the names of the exported variables
+            and the values are callback functions that receive a Flight object
+            and returns a value of that variable
+        """
+
+        if data_collector is not None:
+
+            if not isinstance(data_collector, dict):
+                raise ValueError(
+                    "Invalid 'data_collector' argument! "
+                    "It must be a dict of callback functions."
+                )
+
+            for key, callback in data_collector.items():
+                if key in self.export_list:
+                    raise ValueError(
+                        "Invalid 'data_collector' key! "
+                        f"Variable names overwrites 'export_list' key '{key}'."
+                    )
+                if not callable(callback):
+                    raise ValueError(
+                        f"Invalid value in 'data_collector' for key '{key}'! "
+                        "Values must be python callables (callback functions)."
+                    )
 
     def __reprint(self, msg, end="\n", flush=False):
         """
@@ -654,9 +719,12 @@ class MonteCarlo:
         """
         self.processed_results = {}
         for result, values in self.results.items():
-            mean = np.mean(values)
-            stdev = np.std(values)
-            self.processed_results[result] = (mean, stdev)
+            try:
+                mean = np.mean(values)
+                stdev = np.std(values)
+                self.processed_results[result] = (mean, stdev)
+            except TypeError:
+                self.processed_results[result] = (None, None)
 
     # Import methods
 
@@ -772,7 +840,7 @@ class MonteCarlo:
         origin_lon,
         type="all",  # TODO: Don't use "type" as a parameter name, it's a reserved word  # pylint: disable=redefined-builtin
         resolution=100,
-        color="ff0000ff",
+        colors=("ffff0000", "ff00ff00"),  # impact, apogee
     ):
         """
         Generates a KML file with the ellipses on the impact point, which can be
@@ -793,9 +861,11 @@ class MonteCarlo:
             Number of points to be used to draw the ellipse. Default is 100. You
             can increase this number to make the ellipse smoother, but it will
             increase the file size. It is recommended to keep it below 1000.
-        color : str, optional
-            Color of the ellipse. Default is 'ff0000ff', which is red. Kml files
-            use an 8 digit HEX color format, see its docs.
+        colors : tuple[str, str], optional
+            Colors of the ellipses. Default is ['ffff0000', 'ff00ff00'], which
+            are blue and green, respectively. The first element is the color of
+            the impact ellipses, and the second element is the color of the
+            apogee. The colors are in hexadecimal format (aabbggrr).
 
         Returns
         -------
@@ -812,49 +882,87 @@ class MonteCarlo:
             large distances offsets, as the atmospheric conditions may change.
         """
         # TODO: The lat and lon should be optional arguments, we can get it from the env
-        (
-            impact_ellipses,
-            apogee_ellipses,
-            *_,
-        ) = generate_monte_carlo_ellipses(self.results)
+        # Retrieve monte carlo data por apogee and impact XY position
+        if type not in ["all", "impact", "apogee"]:
+            raise ValueError("Invalid type. Options are 'all', 'impact' and 'apogee'")
+
+        apogee_x = np.array([])
+        apogee_y = np.array([])
+        impact_x = np.array([])
+        impact_y = np.array([])
+        if type in ["all", "apogee"]:
+            try:
+                apogee_x = np.array(self.results["apogee_x"])
+                apogee_y = np.array(self.results["apogee_y"])
+            except KeyError as e:
+                raise KeyError("No apogee data found. Skipping apogee ellipses.") from e
+
+        if type in ["all", "impact"]:
+            try:
+                impact_x = np.array(self.results["x_impact"])
+                impact_y = np.array(self.results["y_impact"])
+            except KeyError as e:
+                raise KeyError("No impact data found. Skipping impact ellipses.") from e
+
+        (apogee_ellipses, impact_ellipses) = generate_monte_carlo_ellipses(
+            impact_x,
+            impact_y,
+            apogee_x,
+            apogee_y,
+        )
+
         outputs = []
 
         if type in ["all", "impact"]:
-            outputs = outputs + generate_monte_carlo_ellipses_coordinates(
-                impact_ellipses, origin_lat, origin_lon, resolution=resolution
+            outputs.extend(
+                generate_monte_carlo_ellipses_coordinates(
+                    impact_ellipses, origin_lat, origin_lon, resolution=resolution
+                )
             )
 
         if type in ["all", "apogee"]:
-            outputs = outputs + generate_monte_carlo_ellipses_coordinates(
-                apogee_ellipses, origin_lat, origin_lon, resolution=resolution
+            outputs.extend(
+                generate_monte_carlo_ellipses_coordinates(
+                    apogee_ellipses, origin_lat, origin_lon, resolution=resolution
+                )
             )
 
-        # TODO: Non-iterable value output is used in an iterating context PylintE1133:
-        kml_data = [[(coord[1], coord[0]) for coord in output] for output in outputs]
+        if all(isinstance(output, list) for output in outputs):
+            kml_data = [
+                [(coord[1], coord[0]) for coord in output] for output in outputs
+            ]
+        else:
+            raise ValueError("Each element in outputs must be a list")
 
         kml = simplekml.Kml()
 
-        for i in range(len(outputs)):
-            if (type == "all" and i < 3) or (type == "impact"):
-                ellipse_name = "Impact \u03C3" + str(i + 1)
-            elif type == "all" and i >= 3:
-                ellipse_name = "Apogee \u03C3" + str(i - 2)
+        for i, points in enumerate(kml_data):
+            if i < len(impact_ellipses):
+                name = f"Impact Ellipse {i + 1}"
+                ellipse_color = colors[0]  # default is blue
             else:
-                ellipse_name = "Apogee \u03C3" + str(i + 1)
+                name = f"Apogee Ellipse {i + 1 - len(impact_ellipses)}"
+                ellipse_color = colors[1]  # default is green
 
-            mult_ell = kml.newmultigeometry(name=ellipse_name)
+            mult_ell = kml.newmultigeometry(name=name)
             mult_ell.newpolygon(
-                outerboundaryis=kml_data[i],
-                name="Ellipse " + str(i),
+                outerboundaryis=points,
+                name=name,
             )
             # Setting ellipse style
             mult_ell.tessellate = 1
             mult_ell.visibility = 1
-            mult_ell.style.linestyle.color = color
+            mult_ell.style.linestyle.color = ellipse_color
             mult_ell.style.linestyle.width = 3
             mult_ell.style.polystyle.color = simplekml.Color.changealphaint(
-                100, simplekml.Color.blue
+                80, ellipse_color
             )
+
+        kml.newpoint(
+            name="Launch Pad",
+            coords=[(origin_lon, origin_lat)],
+            description="Flight initial position",
+        )
 
         kml.save(filename)
 

@@ -49,6 +49,8 @@ class Motor(ABC):
     Motor.propellant_mass : Function
         Total propellant mass in kg as a function of time, including solid,
         liquid and gas phases.
+    Motor.structural_mass_ratio: float
+        Initial ratio between the dry mass and the total mass.
     Motor.total_mass_flow_rate : Function
         Time derivative of propellant total mass in kg/s as a function
         of time as obtained by the thrust source.
@@ -370,7 +372,7 @@ class Motor(ABC):
         dry_mass : float
             Motor dry mass in kg.
         """
-        if dry_mass:
+        if dry_mass is not None:
             if isinstance(dry_mass, (int, float)):
                 self._dry_mass = dry_mass
             else:
@@ -496,6 +498,24 @@ class Motor(ABC):
         float
             Propellant initial mass in kg.
         """
+
+    @property
+    def structural_mass_ratio(self):
+        """Calculates the structural mass ratio. The ratio is defined as
+        the dry mass divided by the initial total mass.
+
+        Returns
+        -------
+        float
+            Initial structural mass ratio.
+        """
+        initial_total_mass = self.dry_mass + self.propellant_initial_mass
+        try:
+            return self.dry_mass / initial_total_mass
+        except ZeroDivisionError as e:
+            raise ValueError(
+                "Total motor mass (dry + propellant) cannot be zero"
+            ) from e
 
     @funcify_method("Time (s)", "Motor center of mass (m)")
     def center_of_mass(self):
@@ -1063,15 +1083,26 @@ class Motor(ABC):
             # Write last line
             file.write(f"{self.thrust.source[-1, 0]:.4f} {0:.3f}\n")
 
-    def info(self):
+    def info(self, *, filename=None):
         """Prints out a summary of the data and graphs available about the
         Motor.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
+
+        Returns
+        -------
+        None
         """
         # Print motor details
         self.prints.all()
-        self.plots.thrust()
+        self.plots.thrust(filename=filename)
 
-    @abstractmethod
     def all_info(self):
         """Prints out all data and graphs available about the Motor."""
         self.prints.all()
@@ -1502,6 +1533,7 @@ class EmptyMotor:
         self.nozzle_radius = 0
         self.thrust = Function(0, "Time (s)", "Thrust (N)")
         self.propellant_mass = Function(0, "Time (s)", "Propellant Mass (kg)")
+        self.propellant_initial_mass = 0
         self.total_mass = Function(0, "Time (s)", "Total Mass (kg)")
         self.total_mass_flow_rate = Function(
             0, "Time (s)", "Mass Depletion Rate (kg/s)"

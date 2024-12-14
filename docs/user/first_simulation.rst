@@ -42,7 +42,7 @@ RocketPy is structured into four main classes, each one with its own purpose:
 By using these four classes, we can create a complete simulation of a rocket
 flight.
 
-The following image shows how the four main classes interact with each other to 
+The following image shows how the four main classes interact with each other to
 generate a rocket flight simulation:
 
 .. image:: ../static/Fluxogram-Page-2.svg
@@ -81,7 +81,7 @@ The ``Environment`` class is used to store data related to the weather and the
 wind conditions of the launch site. The weather conditions are imported from
 weather organizations such as NOAA and ECMWF.
 
-To define a Environment object, we need to first specify some information 
+To define a Environment object, we need to first specify some information
 regarding the launch site:
 
 .. jupyter-execute::
@@ -90,10 +90,10 @@ regarding the launch site:
 
 | This roughly corresponds to the location of Spaceport America, New Mexico.
 
-Next, we need to specify the atmospheric model to be used. In this example, 
+Next, we need to specify the atmospheric model to be used. In this example,
 we will get GFS forecasts data from tomorrow.
 
-First we must set the date of the simulation. The date must be given in a tuple 
+First we must set the date of the simulation. The date must be given in a tuple
 with the following format: ``(year, month, day, hour)``.
 The hour is given in UTC time. Here we use the datetime library to get the date
 of tomorrow:
@@ -115,14 +115,14 @@ of tomorrow:
     env.set_atmospheric_model(type="Forecast", file="GFS")
 
 .. seealso::
-    
-    To learn more about the different types of atmospheric models and 
+
+    To learn more about the different types of atmospheric models and
     a better description of the initialization parameters, see
-    `Environment Usage <https://colab.research.google.com/github/RocketPy-Team/rocketpy/blob/master/docs/notebooks/environment/environment_class_usage.html>`_. 
+    `Environment Usage <https://colab.research.google.com/github/RocketPy-Team/rocketpy/blob/master/docs/notebooks/environment/environment_class_usage.html>`_.
 
 We can see what the weather will look like by calling the ``info`` method:
 
-.. jupyter-execute:: 
+.. jupyter-execute::
 
     env.info()
 
@@ -130,7 +130,7 @@ Defining a Motor
 ----------------
 
 RocketPy can simulate **Solid**, **Hybrid** and **Liquid** motors. Each type of
-motor has its own class: :class:`rocketpy.SolidMotor`, 
+motor has its own class: :class:`rocketpy.SolidMotor`,
 :class:`rocketpy.HybridMotor` and :class:`rocketpy.LiquidMotor`.
 
 .. seealso::
@@ -166,10 +166,10 @@ motor has its own class: :class:`rocketpy.SolidMotor`,
 In this example, we will use a SolidMotor. To define a ``SolidMotor``, we need
 to specify several parameters:
 
-.. jupyter-execute:: 
+.. jupyter-execute::
 
     Pro75M1670 = SolidMotor(
-        thrust_source="../data/motors/Cesaroni_M1670.eng",
+        thrust_source="../data/motors/cesaroni/Cesaroni_M1670.eng",
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
         nozzle_radius=33 / 1000,
@@ -218,8 +218,8 @@ To create a ``Rocket`` object, we need to specify some parameters.
         radius=127 / 2000,
         mass=14.426,
         inertia=(6.321, 6.321, 0.034),
-        power_off_drag="../data/calisto/powerOffDragCurve.csv",
-        power_on_drag="../data/calisto/powerOnDragCurve.csv",
+        power_off_drag="../data/rockets/calisto/powerOffDragCurve.csv",
+        power_on_drag="../data/rockets/calisto/powerOnDragCurve.csv",
         center_of_mass_without_motor=0,
         coordinate_system_orientation="tail_to_nose",
     )
@@ -230,7 +230,7 @@ Next, we need to add a ``Motor`` object to the ``Rocket`` object:
 
     calisto.add_motor(Pro75M1670, position=-1.255)
 
-We can also add rail guides to the rocket. These are not necessary for a 
+We can also add rail guides to the rocket. These are not necessary for a
 simulation, but they are useful for a more realistic out of rail velocity and
 stability calculation.
 
@@ -258,7 +258,7 @@ Here we create a rocket with a nose cone, four fins and a tail:
         span=0.110,
         position=-1.04956,
         cant_angle=0.5,
-        airfoil=("../data/calisto/NACA0012-radians.csv","radians"),
+        airfoil=("../data/airfoils/NACA0012-radians.txt","radians"),
     )
 
     tail = calisto.add_tail(
@@ -290,14 +290,14 @@ Finally, we can add any number of Parachutes to the ``Rocket`` object.
 We can then see if the rocket is stable by plotting the static margin:
 
 .. jupyter-execute::
-    
+
     calisto.plots.static_margin()
 
 .. danger::
 
-    Always check the static margin of your rocket. 
-    
-    If it is **negative**, your rocket is **unstable** and the simulation 
+    Always check the static margin of your rocket.
+
+    If it is **negative**, your rocket is **unstable** and the simulation
     will most likely **fail**.
 
     If it is unreasonably **high**, your rocket is **super stable** and the
@@ -314,7 +314,7 @@ must be correct. The ``Rocket`` class can help you with the ``draw`` method:
 Running the Simulation
 ----------------------
 
-To simulate a flight, we need to create a ``Flight`` object. 
+To simulate a flight, we need to create a ``Flight`` object.
 This object will run the simulation and store the results.
 
 To do this, we need to specify the environment in which the
@@ -337,9 +337,9 @@ object, we can use ``test_flight.prints``.
 
 Also, each class has its own methods to quickly access all the information, for
 example, the ``test_flight.all_info()`` for visualizing all the plots and
-the ``test_flight.info()`` for a summary of the numerical results. 
+the ``test_flight.info()`` for a summary of the numerical results.
 
-Bellow we describe how to access and manipulate the results of the simulation. 
+Bellow we describe how to access and manipulate the results of the simulation.
 
 Accessing numerical results
 ---------------------------
@@ -420,7 +420,7 @@ Plotting the Results
 
     All the methods that are used in this section can be accessed at once by
     running ``test_flight.all_info()``. The output will be equivalent to
-    running block by block the following methods. 
+    running block by block the following methods.
 
 Using the ``test_flight.plots`` module, we can access multiple results of the
 simulation. For example, we can plot the rocket's trajectory. Moreover, we can
@@ -439,7 +439,7 @@ Velocity and acceleration
 
 The velocity and acceleration in 3 directions can be accessed using the
 following method. The reference frame used for these plots is the absolute
-reference frame, which is the reference frame of the launch site. 
+reference frame, which is the reference frame of the launch site.
 The acceleration might have a hard drop when the motor stops burning.
 
 .. jupyter-execute::
@@ -471,7 +471,7 @@ Rocket's Orientation or Attitude
 Rocket's orientation in RocketPy is done through Euler Parameters or Quaternions.
 Additionally, RocketPy uses the quaternions to calculate the Euler Angles
 (Precession, nutation and spin) and their changes. All these information can be
-accessed through the following method: 
+accessed through the following method:
 
 .. jupyter-execute::
 
@@ -535,8 +535,8 @@ Fluid Mechanics Related Parameters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 RocketPy computes the Mach Number, Reynolds Number, total and dynamic pressure
-felt by the rocket and the rocket's angle of attack, all available through the 
-following method: 
+felt by the rocket and the rocket's angle of attack, all available through the
+following method:
 
 .. jupyter-execute::
 
@@ -576,14 +576,14 @@ We can export the trajectory to ``.kml`` to visualize it in Google Earth:
 Manipulating results
 --------------------
 
-There are several methods to access the results. For example, we can plot the 
+There are several methods to access the results. For example, we can plot the
 speed of the rocket until the first parachute is deployed:
 
 .. jupyter-execute::
 
     test_flight.speed.plot(0, test_flight.apogee_time)
 
-Or get the array of the speed of the entire flight, in the form 
+Or get the array of the speed of the entire flight, in the form
 of ``[[time, speed], ...]``:
 
 .. jupyter-execute::
@@ -592,7 +592,7 @@ of ``[[time, speed], ...]``:
 
 .. seealso::
 
-    The ``Flight`` object has several attributes containing every result of the 
+    The ``Flight`` object has several attributes containing every result of the
     simulation. To see all the attributes of the ``Flight`` object, see
     :class:`rocketpy.Flight`. These attributes are usually instances of the
     :class:`rocketpy.Function` class, see the :ref:`Function Class Usage <functionusage>` for more information.
@@ -610,7 +610,7 @@ The main method that is used to export data is the :meth:`rocketpy.Flight.export
 
     test_flight.export_data(
         "calisto_flight_data.csv",
-        "angle_of_attack", 
+        "angle_of_attack",
         "mach_number",
     )
 
@@ -628,7 +628,7 @@ The main method that is used to export data is the :meth:`rocketpy.Flight.export
 
     test_flight.export_data(
         "calisto_flight_data.csv",
-        "angle_of_attack", 
+        "angle_of_attack",
         "mach_number",
         time_step=1.0,
     )
@@ -648,11 +648,50 @@ Finally, the :meth:`rocketpy.Flight.export_data` method also provides a convenie
 .. jupyter-execute::
     :hide-code:
     :hide-output:
-    
+
     # Sample file cleanup
     import os
     os.remove("calisto_flight_data.csv")
-    
+
+
+Saving and Storing Plots
+------------------------
+
+Here we show how to save the plots and drawings generated by RocketPy.
+For instance, we can save our rocket drawing as a ``.png`` file:
+
+.. jupyter-execute::
+
+    calisto.draw(filename="calisto_drawing.png")
+
+Also, if you want to save a specific rocketpy plot, every RocketPy 
+attribute of type :class:`rocketpy.Function` is capable of saving its plot
+as an image file. For example, we can save our rocket's speed plot and the
+trajectory plot as ``.jpg`` files:
+
+.. jupyter-execute::
+
+    test_flight.speed.plot(filename="speed_plot.jpg")
+    test_flight.plots.trajectory_3d(filename="trajectory_plot.jpg")
+
+The supported file formats are ``.eps``, ``.jpg``, ``.jpeg``, ``.pdf``,
+``.pgf``, ``.png``, ``.ps``, ``.raw``, ``.rgba``, ``.svg``, ``.svgz``,
+``.tif``, ``.tiff`` and ``.webp``. More details on manipulating data and
+results can be found in the :ref:`Function Class Usage <functionusage>`.
+
+.. note::
+
+    The ``filename`` argument is optional. If not provided, the plot will be
+    shown instead. If the provided filename is in a directory that does not
+    exist, the directory will be created.
+
+.. jupyter-execute::
+    :hide-code:
+    :hide-output:
+
+    os.remove("calisto_drawing.png")
+    os.remove("speed_plot.jpg")
+    os.remove("trajectory_plot.jpg")
 
 Further Analysis
 ----------------
@@ -662,14 +701,14 @@ analysis. Here we will show some examples, but much more can be done!
 
 .. seealso::
     *RocketPy* can be used to perform a Monte Carlo Dispersion Analysis.
-    See 
-    `Monte Carlo Simulations <https://colab.research.google.com/github/RocketPy-Team/rocketpy/blob/master/docs/notebooks/monte_carlo_analysis/monte_carlo_analysis.html>`_ 
+    See
+    `Monte Carlo Simulations <https://colab.research.google.com/github/RocketPy-Team/rocketpy/blob/master/docs/notebooks/monte_carlo_analysis/monte_carlo_analysis.html>`_
     for more information.
 
 Apogee as a Function of Mass
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This one is a classic! We always need to know how much our rocket's apogee 
+This one is a classic! We always need to know how much our rocket's apogee
 will change when our payload gets heavier.
 
 
@@ -686,13 +725,13 @@ Out of Rail Speed as a Function of Mass
 
 Lets make a really important plot. Out of rail speed is the speed
 our rocket has when it is leaving the launch rail. This is crucial to make sure
-it can fly safely after leaving the rail. 
+it can fly safely after leaving the rail.
 
 A common rule of thumb is that our rocket's out of rail speed should be 4 times
 the wind speed so that it does not stall and become unstable.
 
 .. jupyter-execute::
-        
+
     from rocketpy.utilities import liftoff_speed_by_mass
 
     liftoff_speed_by_mass(
@@ -707,7 +746,7 @@ static margins result in different dynamic behavior, which also depends on the
 rocket's rotational inertial.
 
 Let's make use of RocketPy's helper class called Function to explore how the
-dynamic stability of Calisto varies if we change the fins span by a certain 
+dynamic stability of Calisto varies if we change the fins span by a certain
 factor.
 
 .. jupyter-execute::

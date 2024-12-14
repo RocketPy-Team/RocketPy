@@ -69,6 +69,32 @@ def oxidizer_fluid():
 
 
 @pytest.fixture
+def lox_fluid_seblm():
+    """A liquid oxygen fixture whose density comes
+    from testing data.
+
+    Returns
+    -------
+    rocketpy.Fluid
+        An object of the Fluid class.
+    """
+    return Fluid(name="O2", density=1141.7)
+
+
+@pytest.fixture
+def nitrogen_fluid_seblm():
+    """A nitrogen gas fixture whose density comes
+    from testing data.
+
+    Returns
+    -------
+    rocketpy.Fluid
+        An object of the Fluid class.
+    """
+    return Fluid(name="N2", density=51.75)
+
+
+@pytest.fixture
 def liquid_motor(pressurant_tank, fuel_tank, oxidizer_tank):
     """An example of a liquid motor with pressurant, fuel and oxidizer tanks.
 
@@ -86,7 +112,7 @@ def liquid_motor(pressurant_tank, fuel_tank, oxidizer_tank):
     rocketpy.LiquidMotor
     """
     liquid_motor = LiquidMotor(
-        thrust_source="data/SEBLM/test124_Thrust_Curve.csv",
+        thrust_source="data/rockets/berkeley/test124_Thrust_Curve.csv",
         burn_time=(8, 20),
         dry_mass=10,
         dry_inertia=(5, 5, 0.2),

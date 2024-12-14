@@ -32,14 +32,67 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- ENH: create a dataset of pre-registered motors. See #664 [#744](https://github.com/RocketPy-Team/RocketPy/pull/744)
+- DOC: add Defiance flight example [#742](https://github.com/RocketPy-Team/RocketPy/pull/742)
+- ENH: Allow for Alternative and Custom ODE Solvers. [#748](https://github.com/RocketPy-Team/RocketPy/pull/748)
+
+### Changed
+
+-
+
+### Fixed
+
+-
+
+## [v1.7.1] - 2024-12-07
 
 
 ### Changed
 
-
+- REL: update version to 1.7.1 in configuration files [#750](https://github.com/RocketPy-Team/RocketPy/pull/750)
+- MNT: Refactor Tank's testing Assertion with CAD data. [#678](https://github.com/RocketPy-Team/RocketPy/pull/678)
 
 ### Fixed
 
+- BUG: Correctly update atmospheric conditions after changing date and location [#743](https://github.com/RocketPy-Team/RocketPy/pull/743)
+
+
+## [v1.7.0] - 2024-11-30
+
+### Added
+
+- DOC: GENESIS Flight Example [#734](https://github.com/RocketPy-Team/RocketPy/pull/734)
+- DOC: Camoes Flight Example [#733](https://github.com/RocketPy-Team/RocketPy/pull/733)
+- ENH: Callback function for collecting additional data from Monte Carlo sims [#702](https://github.com/RocketPy-Team/RocketPy/pull/702)
+- ENH: Implement optional plot saving [#597](https://github.com/RocketPy-Team/RocketPy/pull/597)
+
+### Changed
+
+- REL: update version to 1.7.0 in configuration files [#741](https://github.com/RocketPy-Team/RocketPy/pull/741)
+- MNT: Place filename save parameter to the end. [#739](https://github.com/RocketPy-Team/RocketPy/pull/739)
+- DOC: improvements to developers documentation [#732](https://github.com/RocketPy-Team/RocketPy/pull/732)
+
+### Fixed
+
+- BUG: Allow multiple sets of stochastic fins [#737](https://github.com/RocketPy-Team/RocketPy/pull/737)
+- BUG: forecast and reanalysis models - Update ECMWF dictionary values [#736](https://github.com/RocketPy-Team/RocketPy/pull/736)
+- BUG: forecast and reanalysis models - move wind_speed to correct position [#735](https://github.com/RocketPy-Team/RocketPy/pull/735)
+- BUG: Sideslip Angle and Damping Coefficient Calculation [#729](https://github.com/RocketPy-Team/RocketPy/pull/729)
+- DOC: fixed documentation about spherical caps [#728](https://github.com/RocketPy-Team/RocketPy/pull/728)
+
+## [v1.6.2] - 2024-11-08
+
+### Added
+
+- ENH: add structural to total mass ratio for motor and rocket [#713](https://github.com/RocketPy-Team/RocketPy/pull/713)
+
+### Changed
+
+- REL: bumps up rocketpy version to v1.6.2 [#724](https://github.com/RocketPy-Team/RocketPy/pull/724)
+
+### Fixed
+
+- BUG: fix export ellipses to kml function [#712](https://github.com/RocketPy-Team/RocketPy/pull/712)
 
 ## [v1.6.1] - 2024-10-10
 
@@ -50,6 +103,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+- BUG: Fix Motor Zero Dry Mass Check [#710](https://github.com/RocketPy-Team/RocketPy/pull/710)
 - BUG: Fix Environment.max_expected_height for custom atmosphere [#707](https://github.com/RocketPy-Team/RocketPy/pull/707)
 - BUG: Initialize _Controller Init Parameters [#703](https://github.com/RocketPy-Team/RocketPy/pull/703)
 - BUG: Rail Buttons Not Accepted in Add Surfaces [#701](https://github.com/RocketPy-Team/RocketPy/pull/701)
@@ -75,7 +129,7 @@ Attention: The newest changes should be on top -->
 - DOC: Halcyon Flight Example [#681](https://github.com/RocketPy-Team/RocketPy/pull/681)
 - ENH: Adds GenericMotor.load_from_eng_file() method [#676](https://github.com/RocketPy-Team/RocketPy/pull/676)
 - ENH: Introducing local sensitivity analysis [#575](https://github.com/RocketPy-Team/RocketPy/pull/575)
-- ENH: Add STFT function to Function class [#620](https://github.com/RocketPy-Team/RocketPy/pull/620) 
+- ENH: Add STFT function to Function class [#620](https://github.com/RocketPy-Team/RocketPy/pull/620)
 - ENH: Rocket Axis Definition [#635](https://github.com/RocketPy-Team/RocketPy/pull/635)
 
 ### Changed
@@ -178,7 +232,7 @@ You can install this version by running `pip install rocketpy==1.3.0`
 - MNT: refactor u_dot parachute method [#596](https://github.com/RocketPy-Team/RocketPy/pull/596)
 - BLD: Change setup.py to pyproject.toml [#589](https://github.com/RocketPy-Team/RocketPy/pull/589)
 - DEP: delete deprecated rocketpy.tools.cached_property [#587](https://github.com/RocketPy-Team/RocketPy/pull/587)
-- ENH: Flight simulation speed up [#581](https://github.com/RocketPy-Team/RocketPy/pull/581) 
+- ENH: Flight simulation speed up [#581](https://github.com/RocketPy-Team/RocketPy/pull/581)
 - MNT: Modularize Rocket Draw [#580](https://github.com/RocketPy-Team/RocketPy/pull/580)
 - DOC: Improvements of Environment docstring phrasing [#565](https://github.com/RocketPy-Team/RocketPy/pull/565)
 - MNT: Refactor flight prints module [#579](https://github.com/RocketPy-Team/RocketPy/pull/579)
@@ -195,7 +249,7 @@ You can install this version by running `pip install rocketpy==1.3.0`
 - BUG: Fix minor type hinting problems [#598](https://github.com/RocketPy-Team/RocketPy/pull/598)
 - BUG: Optional Dependencies Naming in pyproject.toml. [#592](https://github.com/RocketPy-Team/RocketPy/pull/592)
 - BUG: Swap rocket.total_mass.differentiate for motor.total_mass_flow rate [#585](https://github.com/RocketPy-Team/RocketPy/pull/585)
-- BUG: export_eng 'Motor' method would not work for liquid motors. [#559](https://github.com/RocketPy-Team/RocketPy/pull/559) 
+- BUG: export_eng 'Motor' method would not work for liquid motors. [#559](https://github.com/RocketPy-Team/RocketPy/pull/559)
 
 ## [v1.2.2] - 2024-03-22
 
@@ -225,7 +279,7 @@ You can install this version by running `pip install rocketpy==1.2.0`
 - DOC: add juno3 flight example [#513](https://github.com/RocketPy-Team/RocketPy/pull/513)
 - ENH: add Function.low_pass_filter method [#508](https://github.com/RocketPy-Team/RocketPy/pull/508)
 - ENH: Air Brakes [#426](https://github.com/RocketPy-Team/RocketPy/pull/426)
-- 
+-
 
 ### Changed
 
