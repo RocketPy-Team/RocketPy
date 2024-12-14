@@ -1,5 +1,7 @@
 import numpy as np
+
 from rocketpy.mathutils.function import Function
+
 
 class PiecewiseFunction(Function):
     """Class for creating piecewise functions. These kind of functions are
