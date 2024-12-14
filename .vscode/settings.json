@@ -245,6 +245,7 @@
         "pytest",
         "pytz",
         "quantile",
+        "Radau",
         "Rdot",
         "referece",
         "relativetoground",
