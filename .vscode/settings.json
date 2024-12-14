@@ -327,5 +327,8 @@
         "zlabel",
         "zlim",
         "zorder"
-    ]
+    ],
+    "files.associations": {
+        "plyconfig.json": "jsonc"
+    }
 }

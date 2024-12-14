@@ -149,7 +149,8 @@ class _MonteCarloPlots:
 
     def all(self, keys=None):
         """
-        Plot the histograms of the Monte Carlo simulation results.
+        Plot the histograms with Boxplots & density plots 
+        of the Monte Carlo simulation results.
 
         Parameters
         ----------
@@ -175,8 +176,19 @@ class _MonteCarloPlots:
             raise ValueError("The 'keys' argument must be a string, list, or tuple.")
 
         for key in keys:
-            plt.figure()
-            plt.hist(self.monte_carlo.results[key])
-            plt.title(f"Histogram of {key}")
-            plt.ylabel("Number of Occurrences")
+            figure, plt = plt.subplots(3,1,sharex=True,gridspec_kw={'height_ratios':[1,3]})
+            
+            plt[0].boxplot(self.monte_carlo.results[key],vert=False)
+            plt[0].ytick([])
+
+            plt[1].hist(self.monte_carlo.results[key])
+            plt[1].title(f"Histogram of {key}")
+            plt[1].ylabel("Number of Occurrences")
+            
+            plt[2].hist(self.monte_carlo.results[key], density=True)
+            plt[2].title(f" Density {key}")
+            plt[2].ylabel("Probability Density")
+            kde = kde.gaussian_kde(self.monte_carlo.results[key])
+            x_array = np.linspace(min(self.monte_carlo.results[key]), max(self.monte_carlo.results[key]), 100) 
+            plt[2].plot(x_array, kde(x_array), label='KDE')
             plt.show()
