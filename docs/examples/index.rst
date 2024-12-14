@@ -20,12 +20,13 @@ apogee of some rockets.
       "Valetudo (2019)": (825.39, 860),
       "Bella Lui (2020)": (460.50, 458.97),
       "NDRT (2020)": (1296.77, 1316.75),
+      "Andromeda (2022)":(3614.95,3415),
       "Prometheus (2022)": (4190.05, 3898.37),
       "Cavour (2023)": (2818.90, 2789),
-      "Genesis (2023)": (3076.45, 2916),
       "Camoes (2023)": (3003.28, 3015),
-      "Juno III (2023)": (3026.05, 3213),
+      "Genesis (2023)": (3076.45, 2916),
       "Halcyon (2023)": (3212.78, 3450),
+      "Juno III (2023)": (3026.05, 3213),
       "Defiance Mk.IV (2024)": (9238.01, 9308.32),
    }
 
@@ -76,6 +77,7 @@ In the next sections you will find the simulations of the rockets listed above.
    valetudo_flight_sim.ipynb
    SEB_liquid_motor.ipynb
    juno3_flight_sim.ipynb
+   andromeda_flight_sim.ipynb
    prometheus_2022_flight_sim.ipynb
    halcyon_flight_sim.ipynb
    cavour_flight_sim.ipynb
