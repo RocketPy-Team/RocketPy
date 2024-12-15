@@ -32,6 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- DOC: Andromeda Flight Example [#754](https://github.com/RocketPy-Team/RocketPy/pull/754)
 - ENH: create a dataset of pre-registered motors. See #664 [#744](https://github.com/RocketPy-Team/RocketPy/pull/744)
 - DOC: add Defiance flight example [#742](https://github.com/RocketPy-Team/RocketPy/pull/742)
 - ENH: Allow for Alternative and Custom ODE Solvers. [#748](https://github.com/RocketPy-Team/RocketPy/pull/748)
