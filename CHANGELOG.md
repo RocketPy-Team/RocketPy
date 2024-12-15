@@ -41,7 +41,7 @@ Attention: The newest changes should be on top -->
 
 ### Changed
 
--
+- DOC: flight comparison improvements [#755](https://github.com/RocketPy-Team/RocketPy/pull/755)
 
 ### Fixed
 
