@@ -872,11 +872,11 @@ class Flight:
                             for t_root in t_roots
                             if 0 < t_root.real < t1 and abs(t_root.imag) < 0.001
                         ]
-                        if len(valid_t_root) > 1:
+                        if len(valid_t_root) > 1:  # pragma: no cover
                             raise ValueError(
                                 "Multiple roots found when solving for rail exit time."
                             )
-                        if len(valid_t_root) == 0:
+                        if len(valid_t_root) == 0:  # pragma: no cover
                             raise ValueError(
                                 "No valid roots found when solving for rail exit time."
                             )
@@ -3531,7 +3531,7 @@ class Flight:
         def __repr__(self):
             return str(self.list)
 
-        def display_warning(self, *messages):
+        def display_warning(self, *messages):  # pragma: no cover
             """A simple function to print a warning message."""
             print("WARNING:", *messages)
 

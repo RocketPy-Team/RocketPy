@@ -459,8 +459,7 @@ class Environment:
                 flattening=self.ellipsoid.flattening,
                 semi_major_axis=self.ellipsoid.semi_major_axis,
             )
-        else:
-            # pragma: no cover
+        else:  # pragma: no cover
             warnings.warn(
                 "UTM coordinates are not available for latitudes "
                 "above 84 or below -80 degrees. The UTM conversions will fail."
@@ -715,8 +714,8 @@ class Environment:
 
         if not isinstance(latitude, NUMERICAL_TYPES) and isinstance(
             longitude, NUMERICAL_TYPES
-        ):
-            # pragma: no cover
+        ):  # pragma: no cover
+
             raise TypeError("Latitude and Longitude must be numbers!")
 
         # Store latitude and longitude
@@ -812,8 +811,8 @@ class Environment:
 
     @max_expected_height.setter
     def max_expected_height(self, value):
-        if value < self.elevation:
-            raise ValueError(  # pragma: no cover
+        if value < self.elevation:  # pragma: no cover
+            raise ValueError(
                 "Max expected height cannot be lower than the surface elevation"
             )
         self._max_expected_height = value
@@ -952,8 +951,8 @@ class Environment:
             Elevation provided by the topographic data, in meters.
         """
         # TODO: refactor this method.  pylint: disable=too-many-statements
-        if self.topographic_profile_activated is False:
-            raise ValueError(  # pragma: no cover
+        if self.topographic_profile_activated is False:  # pragma: no cover
+            raise ValueError(
                 "You must define a Topographic profile first, please use the "
                 "Environment.set_topographic_profile() method first."
             )
@@ -1285,8 +1284,8 @@ class Environment:
                 self.process_forecast_reanalysis(dataset, dictionary)
             else:
                 self.process_ensemble(dataset, dictionary)
-        else:
-            raise ValueError(f"Unknown model type '{type}'.")  # pragma: no cover
+        else:  # pragma: no cover
+            raise ValueError(f"Unknown model type '{type}'.")
 
         if type not in ["ensemble"]:
             # Ensemble already computed these values
@@ -2845,7 +2844,7 @@ class Environment:
         return env
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     import doctest
 
     results = doctest.testmod()

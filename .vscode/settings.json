@@ -262,6 +262,7 @@
         "rtol",
         "rtype",
         "rucsoundings",
+        "runslow",
         "rwork",
         "savetxt",
         "savgol",

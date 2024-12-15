@@ -1481,7 +1481,7 @@ class Function:  # pylint: disable=too-many-public-methods
             else:
                 print("Error: Only functions with 1D or 2D domains can be plotted.")
 
-    def plot1D(self, *args, **kwargs):
+    def plot1D(self, *args, **kwargs):  # pragma: no cover
         """Deprecated method, use Function.plot_1d instead."""
         warnings.warn(
             "The `Function.plot1D` method is set to be deprecated and fully "
@@ -1581,7 +1581,7 @@ class Function:  # pylint: disable=too-many-public-methods
         if return_object:
             return fig, ax
 
-    def plot2D(self, *args, **kwargs):
+    def plot2D(self, *args, **kwargs):  # pragma: no cover
         """Deprecated method, use Function.plot_2d instead."""
         warnings.warn(
             "The `Function.plot2D` method is set to be deprecated and fully "
@@ -2772,7 +2772,7 @@ class Function:  # pylint: disable=too-many-public-methods
         """
         if order == 1:
             return float(self.get_value_opt(x + dx * 1j).imag / dx)
-        else:
+        else:  # pragma: no cover
             raise NotImplementedError(
                 "Only 1st order derivatives are supported yet. Set order=1."
             )
@@ -3264,7 +3264,7 @@ class Function:  # pylint: disable=too-many-public-methods
                         self.__inputs__ = header[:-1]
                     if self.__outputs__ is None:
                         self.__outputs__ = [header[-1]]
-            except Exception as e:
+            except Exception as e:  # pragma: no cover
                 raise ValueError(
                     "Could not read the csv or txt file to create Function source."
                 ) from e
@@ -3611,7 +3611,7 @@ def reset_funcified_methods(instance):
             instance.__dict__.pop(key)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     import doctest
 
     results = doctest.testmod()

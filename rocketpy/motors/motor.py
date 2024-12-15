@@ -247,7 +247,7 @@ class Motor(ABC):
             self._csys = 1
         elif coordinate_system_orientation == "combustion_chamber_to_nozzle":
             self._csys = -1
-        else:
+        else:  # pragma: no cover
             raise ValueError(
                 "Invalid coordinate system orientation. Options are "
                 "'nozzle_to_combustion_chamber' and 'combustion_chamber_to_nozzle'."
@@ -346,7 +346,7 @@ class Motor(ABC):
         else:
             if not callable(self.thrust.source):
                 self._burn_time = (self.thrust.x_array[0], self.thrust.x_array[-1])
-            else:
+            else:  # pragma: no cover
                 raise ValueError(
                     "When using a float or callable as thrust source, a burn_time"
                     " argument must be specified."
