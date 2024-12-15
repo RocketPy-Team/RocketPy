@@ -46,19 +46,20 @@ class PiecewiseFunction(Function):
         if outputs is None:
             outputs = ["Scalar"]
 
-        input_data = []
-        output_data = []
-        for interval in sorted(source.keys()):
-            grid = np.linspace(interval[0], interval[1], datapoints)
+        input_data = np.array([])
+        output_data = np.array([])
+        for lower, upper in sorted(source.keys()):
+            grid = np.linspace(lower, upper, datapoints)
 
             # since intervals are disjoint and sorted, we only need to check
             # if the first point is already included
-            if interval[0] in input_data:
-                grid = np.delete(grid, 0)
+            if input_data.size != 0:
+                if lower == input_data[-1]:
+                    grid = np.delete(grid, 0)
             input_data = np.concatenate((input_data, grid))
 
-            f = Function(source[interval])
-            output_data = np.concatenate((output_data, f(grid)))
+            f = Function(source[(lower, upper)])
+            output_data = np.concatenate((output_data, f.get_value(grid)))
 
         return Function(
             np.concatenate(([input_data], [output_data])).T,
@@ -86,8 +87,8 @@ class PiecewiseFunction(Function):
             if not isinstance(key, tuple):
                 raise TypeError("keys of source must be tuples")
         # Check if all domains are disjoint
-        for interval1 in source.keys():
-            for interval2 in source.keys():
-                if interval1 != interval2:
-                    if interval1[0] < interval2[1] and interval1[1] > interval2[0]:
+        for lower1, upper1 in source.keys():
+            for lower2, upper2 in source.keys():
+                if (lower1, upper1) != (lower2, upper2):
+                    if lower1 < upper2 and upper1 > lower2:
                         raise ValueError("domains must be disjoint")
