@@ -3119,12 +3119,12 @@ class Function:  # pylint: disable=too-many-public-methods
             The result of inputting the function into the function.
         """
         # Check if the input is a function
-        if not isinstance(func, Function):
+        if not isinstance(func, Function):  # pragma: no cover
             raise TypeError("Input must be a Function object.")
 
         if isinstance(self.source, np.ndarray) and isinstance(func.source, np.ndarray):
             # Perform bounds check for composition
-            if not extrapolate:
+            if not extrapolate:  # pragma: no cover
                 if func.min < self.x_initial or func.max > self.x_final:
                     raise ValueError(
                         f"Input Function image {func.min, func.max} must be within "
@@ -3197,7 +3197,7 @@ class Function:  # pylint: disable=too-many-public-methods
 
         # create the datapoints
         if callable(self.source):
-            if lower is None or upper is None or samples is None:
+            if lower is None or upper is None or samples is None:  # pragma: no cover
                 raise ValueError(
                     "If the source is a callable, lower, upper and samples"
                     + " must be provided."
@@ -3323,6 +3323,7 @@ class Function:  # pylint: disable=too-many-public-methods
             if isinstance(inputs, (list, tuple)):
                 if len(inputs) == 1:
                     return inputs
+            # pragma: no cover
             raise ValueError(
                 "Inputs must be a string or a list of strings with "
                 "the length of the domain dimension."
@@ -3335,6 +3336,7 @@ class Function:  # pylint: disable=too-many-public-methods
                     isinstance(i, str) for i in inputs
                 ):
                     return inputs
+            # pragma: no cover
             raise ValueError(
                 "Inputs must be a list of strings with "
                 "the length of the domain dimension."

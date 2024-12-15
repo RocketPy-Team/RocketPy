@@ -317,7 +317,7 @@ class NoseCone(AeroSurface):
                 raise ValueError(
                     "Parameter 'bluffness' must be None or 0 when using a nose cone kind 'powerseries'."
                 )
-        if value is not None and not (0 <= value <= 1):  # pragma: no cover
+        if value is not None and not 0 <= value <= 1:  # pragma: no cover
             raise ValueError(
                 f"Bluffness ratio of {value} is out of range. "
                 "It must be between 0 and 1."

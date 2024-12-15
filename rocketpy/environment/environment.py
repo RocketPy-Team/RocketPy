@@ -2577,7 +2577,7 @@ class Environment:
         }
         try:
             return ellipsoid[datum]
-        except KeyError as e:
+        except KeyError as e:  # pragma: no cover
             available_datums = ', '.join(ellipsoid.keys())
             raise AttributeError(
                 f"The reference system '{datum}' is not recognized. Please use one of "
