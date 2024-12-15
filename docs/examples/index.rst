@@ -11,7 +11,7 @@ apogee of some rockets.
 .. jupyter-execute::
    :hide-code:
 
-   import matplotlib.pyplot as plt
+   import plotly.graph_objects as go
 
    results = {
       # "Name (Year)": (simulated, measured) m
@@ -39,28 +39,40 @@ apogee of some rockets.
    labels = list(results.keys())
 
    # Create the plot
-   fig, ax = plt.subplots(figsize=(9, 9))
-   ax.scatter(simulated, measured)
-   ax.grid(True, alpha=0.3)
+   fig = go.Figure()
 
    # Add the x = y line
-   ax.plot([0, max_apogee], [0, max_apogee], linestyle='--', color='black', alpha=0.6)
+   fig.add_trace(go.Scatter(
+      x=[0, max_apogee],
+      y=[0, max_apogee],
+      mode='lines',
+      line=dict(dash='dash', color='black'),
+      showlegend=False
+   ))
 
-   # Add text labels
-   for i, label in enumerate(labels):
-      ax.text(simulated[i], measured[i], label, ha='center', va='bottom', fontsize=8)
+   # Add scatter plot
+   fig.add_trace(go.Scatter(
+      x=simulated,
+      y=measured,
+      mode='markers',
+      text=labels,
+      textposition='top center',
+      marker=dict(size=10),
+      showlegend=False
+   ))
 
    # Set titles and labels
-   ax.set_title("Simulated x Measured Apogee")
-   ax.set_xlabel("Simulated Apogee (m)")
-   ax.set_ylabel("Measured Apogee (m)")
+   fig.update_layout(
+      title="Simulated x Measured Apogee",
+      xaxis_title="Simulated Apogee (m)",
+      yaxis_title="Measured Apogee (m)",
+      xaxis=dict(range=[0, max_apogee]),
+      yaxis=dict(range=[0, max_apogee]),
+      width=650,
+      height=650
+   )
 
-   # Set aspect ratio to 1:1
-   ax.set_aspect('equal', adjustable='box')
-   ax.set_xlim(0, max_apogee)
-   ax.set_ylim(0, max_apogee)
-
-   plt.show()
+   fig.show()
 
 In the next sections you will find the simulations of the rockets listed above.
 
