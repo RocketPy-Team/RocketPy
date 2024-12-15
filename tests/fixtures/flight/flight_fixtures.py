@@ -148,6 +148,21 @@ def flight_calisto_hybrid_modded(calisto_hybrid_modded, example_plain_env):
     )
 
 
+def flight_calisto_robust_solid_eom(calisto_robust, example_spaceport_env):
+    """Similar to flight_calisto_robust, but with the equations of motion set to
+    "solid_propulsion".
+    """
+    return Flight(
+        environment=example_spaceport_env,
+        rocket=calisto_robust,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=False,
+        equations_of_motion="solid_propulsion",
+    )
+
+
 @pytest.fixture
 def flight_calisto_custom_wind(calisto_robust, example_spaceport_env):
     """A rocketpy.Flight object of the Calisto rocket. This uses the calisto
