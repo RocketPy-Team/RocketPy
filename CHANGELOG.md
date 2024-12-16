@@ -32,6 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- DOC: EREBUS Flight Example [#757](https://github.com/RocketPy-Team/RocketPy/pull/757))
 - DOC: Lince Flight Example [#752](https://github.com/RocketPy-Team/RocketPy/pull/752)
 - DOC: Andromeda Flight Example [#754](https://github.com/RocketPy-Team/RocketPy/pull/754)
 - ENH: create a dataset of pre-registered motors. See #664 [#744](https://github.com/RocketPy-Team/RocketPy/pull/744)
@@ -42,6 +43,7 @@ Attention: The newest changes should be on top -->
 ### Changed
 
 - MNT: move piecewise functions to separate file [#746](https://github.com/RocketPy-Team/RocketPy/pull/746)
+- DOC: flight comparison improvements [#755](https://github.com/RocketPy-Team/RocketPy/pull/755)
 
 ### Fixed
 
