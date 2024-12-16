@@ -42,6 +42,7 @@ Attention: The newest changes should be on top -->
 
 ### Changed
 
+- MNT: move piecewise functions to separate file [#746](https://github.com/RocketPy-Team/RocketPy/pull/746)
 - DOC: flight comparison improvements [#755](https://github.com/RocketPy-Team/RocketPy/pull/755)
 
 ### Fixed
