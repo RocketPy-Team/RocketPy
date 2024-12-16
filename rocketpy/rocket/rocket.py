@@ -1,10 +1,11 @@
+import math
 import warnings
 
 import numpy as np
 
 from rocketpy.control.controller import _Controller
 from rocketpy.mathutils.function import Function
-from rocketpy.mathutils.vector_matrix import Matrix
+from rocketpy.mathutils.vector_matrix import Matrix, Vector
 from rocketpy.motors.motor import EmptyMotor
 from rocketpy.plots.rocket_plots import _RocketPlots
 from rocketpy.prints.rocket_prints import _RocketPrints
@@ -17,6 +18,8 @@ from rocketpy.rocket.aero_surface import (
     Tail,
     TrapezoidalFins,
 )
+from rocketpy.rocket.aero_surface.fins.free_form_fins import FreeFormFins
+from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
 from rocketpy.tools import parallel_axis_theorem_from_com
@@ -86,6 +89,8 @@ class Rocket:
         Function of time expressing the total mass of the rocket,
         defined as the sum of the propellant mass and the rocket
         mass without propellant.
+    Rocket.structural_mass_ratio: float
+        Initial ratio between the dry mass and the total mass.
     Rocket.total_mass_flow_rate : Function
         Time derivative of rocket's total mass in kg/s as a function
         of time as obtained by the thrust source of the added motor.
@@ -107,6 +112,11 @@ class Rocket:
     Rocket.aerodynamic_surfaces : list
         Collection of aerodynamic surfaces of the rocket. Holds Nose cones,
         Fin sets, and Tails.
+    Rocket.surfaces_cp_to_cdm : dict
+        Dictionary containing the relative position of each aerodynamic surface
+        center of pressure to the rocket's center of mass. The key is the
+        aerodynamic surface object and the value is the relative position Vector
+        in meters.
     Rocket.parachutes : list
         Collection of parachutes of the rocket.
     Rocket.air_brakes : list
@@ -290,22 +300,20 @@ class Rocket:
         self.area = np.pi * self.radius**2
 
         # Eccentricity data initialization
+        self.cm_eccentricity_x = 0
+        self.cm_eccentricity_y = 0
         self.cp_eccentricity_x = 0
         self.cp_eccentricity_y = 0
         self.thrust_eccentricity_y = 0
         self.thrust_eccentricity_x = 0
 
-        # Parachute, Aerodynamic and Rail buttons data initialization
+        # Parachute, Aerodynamic, Buttons, Controllers, Sensor data initialization
         self.parachutes = []
-
-        # Controllers data initialization
         self._controllers = []
-
-        # AirBrakes data initialization
         self.air_brakes = []
-
-        # Aerodynamic data initialization
+        self.sensors = Components()
         self.aerodynamic_surfaces = Components()
+        self.surfaces_cp_to_cdm = {}
         self.rail_buttons = Components()
 
         self.cp_position = Function(
@@ -355,6 +363,7 @@ class Rocket:
 
         # calculate dynamic inertial quantities
         self.evaluate_dry_mass()
+        self.evaluate_structural_mass_ratio()
         self.evaluate_total_mass()
         self.evaluate_center_of_dry_mass()
         self.evaluate_center_of_mass()
@@ -426,6 +435,28 @@ class Rocket:
         self.dry_mass = self.mass + self.motor.dry_mass
 
         return self.dry_mass
+
+    def evaluate_structural_mass_ratio(self):
+        """Calculates and returns the rocket's structural mass ratio.
+        It is defined as the ratio between of the dry mass
+        (Motor + Rocket) and the initial total mass
+        (Motor + Propellant + Rocket).
+
+        Returns
+        -------
+        self.structural_mass_ratio: float
+            Initial structural mass ratio dry mass (Rocket + Motor) (kg)
+            divided by total mass (Rocket + Motor + Propellant) (kg).
+        """
+        try:
+            self.structural_mass_ratio = self.dry_mass / (
+                self.dry_mass + self.motor.propellant_initial_mass
+            )
+        except ZeroDivisionError as e:
+            raise ValueError(
+                "Total rocket mass (dry + propellant) cannot be zero"
+            ) from e
+        return self.structural_mass_ratio
 
     def evaluate_center_of_mass(self):
         """Evaluates rocket center of mass position relative to user defined
@@ -530,17 +561,49 @@ class Rocket:
         # Calculate total lift coefficient derivative and center of pressure
         if len(self.aerodynamic_surfaces) > 0:
             for aero_surface, position in self.aerodynamic_surfaces:
+                if isinstance(aero_surface, GenericSurface):
+                    continue
                 # ref_factor corrects lift for different reference areas
                 ref_factor = (aero_surface.rocket_radius / self.radius) ** 2
                 self.total_lift_coeff_der += ref_factor * aero_surface.clalpha
                 self.cp_position += (
                     ref_factor
                     * aero_surface.clalpha
-                    * (position - self._csys * aero_surface.cpz)
+                    * (position.z - self._csys * aero_surface.cpz)
                 )
-            self.cp_position /= self.total_lift_coeff_der
-
+            # Avoid errors when only generic surfaces are added
+            if self.total_lift_coeff_der.get_value(0) != 0:
+                self.cp_position /= self.total_lift_coeff_der
         return self.cp_position
+
+    def evaluate_surfaces_cp_to_cdm(self):
+        """Calculates the relative position of each aerodynamic surface center
+        of pressure to the rocket's center of dry mass in Body Axes Coordinate
+        System.
+
+        Returns
+        -------
+        self.surfaces_cp_to_cdm : dict
+            Dictionary mapping the relative position of each aerodynamic
+            surface center of pressure to the rocket's center of mass.
+        """
+        for surface, position in self.aerodynamic_surfaces:
+            self.__evaluate_single_surface_cp_to_cdm(surface, position)
+        return self.surfaces_cp_to_cdm
+
+    def __evaluate_single_surface_cp_to_cdm(self, surface, position):
+        """Calculates the relative position of each aerodynamic surface
+        center of pressure to the rocket's center of dry mass in Body Axes
+        Coordinate System."""
+        pos = Vector(
+            [
+                (position.x - self.cm_eccentricity_x) * self._csys - surface.cpx,
+                (position.y - self.cm_eccentricity_y) - surface.cpy,
+                (position.z - self.center_of_dry_mass_position) * self._csys
+                - surface.cpz,
+            ]
+        )
+        self.surfaces_cp_to_cdm[surface] = pos
 
     def evaluate_stability_margin(self):
         """Calculates the stability margin of the rocket as a function of mach
@@ -596,7 +659,7 @@ class Rocket:
 
     def evaluate_dry_inertias(self):
         """Calculates and returns the rocket's dry inertias relative to
-        the rocket's center of mass. The inertias are saved and returned
+        the rocket's center of dry mass. The inertias are saved and returned
         in units of kg*m². This does not consider propellant mass but does take
         into account the motor dry mass.
 
@@ -605,27 +668,27 @@ class Rocket:
         self.dry_I_11 : float
             Float value corresponding to rocket inertia tensor 11
             component, which corresponds to the inertia relative to the
-            e_1 axis, centered at the instantaneous center of mass.
+            e_1 axis, centered at the center of dry mass.
         self.dry_I_22 : float
             Float value corresponding to rocket inertia tensor 22
             component, which corresponds to the inertia relative to the
-            e_2 axis, centered at the instantaneous center of mass.
+            e_2 axis, centered at the center of dry mass.
         self.dry_I_33 : float
             Float value corresponding to rocket inertia tensor 33
             component, which corresponds to the inertia relative to the
-            e_3 axis, centered at the instantaneous center of mass.
+            e_3 axis, centered at the center of dry mass.
         self.dry_I_12 : float
             Float value corresponding to rocket inertia tensor 12
             component, which corresponds to the inertia relative to the
-            e_1 and e_2 axes, centered at the instantaneous center of mass.
+            e_1 and e_2 axes, centered at the center of dry mass.
         self.dry_I_13 : float
             Float value corresponding to rocket inertia tensor 13
             component, which corresponds to the inertia relative to the
-            e_1 and e_3 axes, centered at the instantaneous center of mass.
+            e_1 and e_3 axes, centered at the center of dry mass.
         self.dry_I_23 : float
             Float value corresponding to rocket inertia tensor 23
             component, which corresponds to the inertia relative to the
-            e_2 and e_3 axes, centered at the instantaneous center of mass.
+            e_2 and e_3 axes, centered at the center of dry mass.
 
         Notes
         -----
@@ -681,7 +744,7 @@ class Rocket:
 
     def evaluate_inertias(self):
         """Calculates and returns the rocket's inertias relative to
-        the rocket's center of mass. The inertias are saved and returned
+        the rocket's center of dry mass. The inertias are saved and returned
         in units of kg*m².
 
         Returns
@@ -689,15 +752,15 @@ class Rocket:
         self.I_11 : float
             Float value corresponding to rocket inertia tensor 11
             component, which corresponds to the inertia relative to the
-            e_1 axis, centered at the instantaneous center of mass.
+            e_1 axis, centered at the center of dry mass.
         self.I_22 : float
             Float value corresponding to rocket inertia tensor 22
             component, which corresponds to the inertia relative to the
-            e_2 axis, centered at the instantaneous center of mass.
+            e_2 axis, centered at the center of dry mass.
         self.I_33 : float
             Float value corresponding to rocket inertia tensor 33
             component, which corresponds to the inertia relative to the
-            e_3 axis, centered at the instantaneous center of mass.
+            e_3 axis, centered at the center of dry mass.
 
         Notes
         -----
@@ -714,25 +777,25 @@ class Rocket:
         """
         # Get masses
         prop_mass = self.motor.propellant_mass  # Propellant mass as a function of time
-        dry_mass = self.dry_mass  # Constant rocket mass with motor, without propellant
 
         # Compute axes distances
-        CM_to_CDM = self.center_of_mass - self.center_of_dry_mass_position
-        CM_to_CPM = self.center_of_mass - self.center_of_propellant_position
+        CDM_to_CPM = (
+            self.center_of_dry_mass_position - self.center_of_propellant_position
+        )
 
         # Compute inertias
-        self.I_11 = parallel_axis_theorem_from_com(
-            self.dry_I_11, dry_mass, CM_to_CDM
-        ) + parallel_axis_theorem_from_com(self.motor.I_11, prop_mass, CM_to_CPM)
+        self.I_11 = self.dry_I_11 + parallel_axis_theorem_from_com(
+            self.motor.propellant_I_11, prop_mass, CDM_to_CPM
+        )
 
-        self.I_22 = parallel_axis_theorem_from_com(
-            self.dry_I_22, dry_mass, CM_to_CDM
-        ) + parallel_axis_theorem_from_com(self.motor.I_22, prop_mass, CM_to_CPM)
+        self.I_22 = self.dry_I_22 + parallel_axis_theorem_from_com(
+            self.motor.propellant_I_22, prop_mass, CDM_to_CPM
+        )
 
-        self.I_33 = self.dry_I_33 + self.motor.I_33
-        self.I_12 = self.dry_I_12 + self.motor.I_12
-        self.I_13 = self.dry_I_13 + self.motor.I_13
-        self.I_23 = self.dry_I_23 + self.motor.I_23
+        self.I_33 = self.dry_I_33 + self.motor.propellant_I_33
+        self.I_12 = self.dry_I_12 + self.motor.propellant_I_12
+        self.I_13 = self.dry_I_13 + self.motor.propellant_I_13
+        self.I_23 = self.dry_I_23 + self.motor.propellant_I_23
 
         # Return inertias
         return (
@@ -814,7 +877,7 @@ class Rocket:
 
     def get_inertia_tensor_at_time(self, t):
         """Returns a Matrix representing the inertia tensor of the rocket with
-        respect to the rocket's center of mass at a given time. It evaluates
+        respect to the rocket's center of dry mass at a given time. It evaluates
         each inertia tensor component at the given time and returns a Matrix
         with the computed values.
 
@@ -844,8 +907,8 @@ class Rocket:
 
     def get_inertia_tensor_derivative_at_time(self, t):
         """Returns a Matrix representing the time derivative of the inertia
-        tensor of the rocket with respect to the rocket's center of mass at a
-        given time. It evaluates each inertia tensor component's derivative at
+        tensor of the rocket with respect to the rocket's center of dry mass at
+        a given time. It evaluates each inertia tensor component's derivative at
         the given time and returns a Matrix with the computed values.
 
         Parameters
@@ -913,6 +976,7 @@ class Rocket:
         self.nozzle_position = self.motor.nozzle_position * _ + self.motor_position
         self.total_mass_flow_rate = self.motor.total_mass_flow_rate
         self.evaluate_dry_mass()
+        self.evaluate_structural_mass_ratio()
         self.evaluate_total_mass()
         self.evaluate_center_of_dry_mass()
         self.evaluate_nozzle_to_cdm()
@@ -922,10 +986,27 @@ class Rocket:
         self.evaluate_reduced_mass()
         self.evaluate_thrust_to_weight()
         self.evaluate_center_of_pressure()
+        self.evaluate_surfaces_cp_to_cdm()
         self.evaluate_stability_margin()
         self.evaluate_static_margin()
         self.evaluate_com_to_cdm_function()
         self.evaluate_nozzle_gyration_tensor()
+
+    def __add_single_surface(self, surface, position):
+        """Adds a single aerodynamic surface to the rocket. Makes checks for
+        rail buttons case, and position type.
+        """
+        position = (
+            Vector([0, 0, position])
+            if not isinstance(position, (Vector, tuple, list))
+            else Vector(position)
+        )
+        if isinstance(surface, RailButtons):
+            self.rail_buttons = Components()
+            self.rail_buttons.add(surface, position)
+        else:
+            self.aerodynamic_surfaces.add(surface, position)
+        self.__evaluate_single_surface_cp_to_cdm(surface, position)
 
     def add_surfaces(self, surfaces, positions):
         """Adds one or more aerodynamic surfaces to the rocket. The aerodynamic
@@ -934,10 +1015,10 @@ class Rocket:
 
         Parameters
         ----------
-        surfaces : list, AeroSurface, NoseCone, TrapezoidalFins, EllipticalFins, Tail
+        surfaces : list, AeroSurface, NoseCone, TrapezoidalFins, EllipticalFins, Tail, RailButtons
             Aerodynamic surface to be added to the rocket. Can be a list of
             AeroSurface if more than one surface is to be added.
-        positions : int, float, list
+        positions : int, float, list, tuple, Vector
             Position, in m, of the aerodynamic surface's center of pressure
             relative to the user defined rocket coordinate system.
             If a list is passed, it will correspond to the position of each item
@@ -957,16 +1038,11 @@ class Rocket:
         -------
         None
         """
-        if not isinstance(surfaces, list):
-            surfaces = [surfaces]
-            positions = [positions]
-
-        for surface, position in zip(surfaces, positions):
-            if isinstance(surface, RailButtons):
-                surface.rocket_radius = surface.rocket_radius or self.radius
-                self.rail_buttons.add(surface, position)
-            else:
-                self.aerodynamic_surfaces.add(surface, position)
+        try:
+            for surface, position in zip(surfaces, positions):
+                self.__add_single_surface(surface, position)
+        except TypeError:
+            self.__add_single_surface(surfaces, positions)
 
         self.evaluate_center_of_pressure()
         self.evaluate_stability_margin()
@@ -1131,7 +1207,7 @@ class Rocket:
         Parameters
         ----------
         n : int
-            Number of fins, from 2 to infinity.
+            Number of fins, must be greater than 2.
         span : int, float
             Fin span in meters.
         root_chord : int, float
@@ -1229,7 +1305,7 @@ class Rocket:
         Parameters
         ----------
         n : int
-            Number of fins, from 2 to infinity.
+            Number of fins, must be greater than 2.
         root_chord : int, float
             Fin root chord in meters.
         span : int, float
@@ -1276,6 +1352,84 @@ class Rocket:
         """
         radius = radius if radius is not None else self.radius
         fin_set = EllipticalFins(n, root_chord, span, radius, cant_angle, airfoil, name)
+        self.add_surfaces(fin_set, position)
+        return fin_set
+
+    def add_free_form_fins(
+        self,
+        n,
+        shape_points,
+        position,
+        cant_angle=0.0,
+        radius=None,
+        airfoil=None,
+        name="Fins",
+    ):
+        """Create a free form fin set, storing its parameters as part of the
+        aerodynamic_surfaces list. Its parameters are the axial position along
+        the rocket and its derivative of the coefficient of lift in respect to
+        angle of attack.
+
+        Parameters
+        ----------
+        n : int
+            Number of fins, must be greater than 2.
+        shape_points : list
+            List of tuples (x, y) containing the coordinates of the fin's
+            geometry defining points. The point (0, 0) is the root leading edge.
+            Positive x is rearwards, positive y is upwards (span direction).
+            The shape will be interpolated between the points, in the order
+            they are given. The last point connects to the first point.
+        position : int, float
+            Fin set position relative to the rocket's coordinate system.
+            By fin set position, understand the point belonging to the root
+            chord which is highest in the rocket coordinate system (i.e.
+            the point closest to the nose cone tip).
+
+            See Also
+            --------
+            :ref:`positions`
+        cant_angle : int, float, optional
+            Fins cant angle with respect to the rocket centerline. Must
+            be given in degrees.
+        radius : int, float, optional
+            Reference fuselage radius where the fins are located. This is used
+            to calculate lift coefficient and to draw the rocket. If None,
+            which is default, the rocket radius will be used.
+        airfoil : tuple, optional
+            Default is null, in which case fins will be treated as flat plates.
+            Otherwise, if tuple, fins will be considered as airfoils. The
+            tuple's first item specifies the airfoil's lift coefficient
+            by angle of attack and must be either a .csv, .txt, ndarray
+            or callable. The .csv and .txt files can contain a single line
+            header and the first column must specify the angle of attack, while
+            the second column must specify the lift coefficient. The
+            ndarray should be as [(x0, y0), (x1, y1), (x2, y2), ...]
+            where x0 is the angle of attack and y0 is the lift coefficient.
+            If callable, it should take an angle of attack as input and
+            return the lift coefficient at that angle of attack.
+            The tuple's second item is the unit of the angle of attack,
+            accepting either "radians" or "degrees".
+
+        Returns
+        -------
+        fin_set : FreeFormFins
+            Fin set object created.
+        """
+
+        # Modify radius if not given, use rocket radius, otherwise use given.
+        radius = radius if radius is not None else self.radius
+
+        fin_set = FreeFormFins(
+            n,
+            shape_points,
+            radius,
+            cant_angle,
+            airfoil,
+            name,
+        )
+
+        # Add fin set to the list of aerodynamic surfaces
         self.add_surfaces(fin_set, position)
         return fin_set
 
@@ -1352,6 +1506,34 @@ class Rocket:
         self.parachutes.append(parachute)
         return self.parachutes[-1]
 
+    def add_sensor(self, sensor, position):
+        """Adds a sensor to the rocket.
+
+        Parameters
+        ----------
+        sensor : Sensor
+            Sensor to be added to the rocket.
+        position : int, float, tuple, list, Vector
+            Position of the sensor. If a Vector, tuple or list is passed, it
+            must be in the format (x, y, z) where x, y, and z are defined in the
+            rocket's user defined coordinate system. If a single value is
+            passed, it is assumed to be along the z-axis (centerline) of the
+            rocket's user defined coordinate system and angular_position and
+            radius must be given.
+
+        Returns
+        -------
+        None
+        """
+        if isinstance(position, (float, int)):
+            position = (0, 0, position)
+        position = Vector(position)
+        self.sensors.add(sensor, position)
+        try:
+            sensor._attached_rockets[self] += 1
+        except KeyError:
+            sensor._attached_rockets[self] = 1
+
     def add_air_brakes(
         self,
         drag_coefficient_curve,
@@ -1419,6 +1601,11 @@ class Rocket:
             6. `interactive_objects` (list): A list containing the objects that
                the controller function can interact with. The objects are
                listed in the same order as they are provided in the
+               `interactive_objects`
+            7. `sensors` (list): A list of sensors that are attached to the
+                rocket. The most recent measurements of the sensors are provided
+                with the ``sensor.measurement`` attribute. The sensors are
+                listed in the same order as they are added to the rocket
                ``interactive_objects``
 
             This function will be called during the simulation at the specified
@@ -1536,13 +1723,22 @@ class Rocket:
         rail_buttons : RailButtons
             RailButtons object created
         """
+        radius = radius or self.radius
         buttons_distance = abs(upper_button_position - lower_button_position)
         rail_buttons = RailButtons(
-            buttons_distance=buttons_distance, angular_position=angular_position
+            buttons_distance=buttons_distance,
+            angular_position=angular_position,
+            rocket_radius=radius,
         )
         self.rail_buttons = Components()
-        rail_buttons.rocket_radius = radius or self.radius
-        self.rail_buttons.add(rail_buttons, lower_button_position)
+        position = Vector(
+            [
+                radius * -math.sin(math.radians(angular_position)),
+                radius * math.cos(math.radians(angular_position)),
+                lower_button_position,
+            ]
+        )
+        self.rail_buttons.add(rail_buttons, position)
         return rail_buttons
 
     def add_cm_eccentricity(self, x, y):
@@ -1555,25 +1751,31 @@ class Rocket:
         ----------
         x : float
             Distance in meters by which the CM is to be translated in
-            the x direction relative to geometrical center line.
+            the x direction relative to geometrical center line. The x axis
+            is defined according to the body axes coordinate system.
         y : float
             Distance in meters by which the CM is to be translated in
-            the y direction relative to geometrical center line.
+            the y direction relative to geometrical center line. The y axis
+            is defined according to the body axes coordinate system.
 
         Returns
         -------
         self : Rocket
             Object of the Rocket class.
 
+        See Also
+        --------
+        :ref:`rocket_axes`
+
         Notes
         -----
         Should not be used together with add_cp_eccentricity and
         add_thrust_eccentricity.
         """
-        self.cp_eccentricity_x = -x
-        self.cp_eccentricity_y = -y
-        self.thrust_eccentricity_y = -x
-        self.thrust_eccentricity_x = -y
+        self.cm_eccentricity_x = x
+        self.cm_eccentricity_y = y
+        self.add_cp_eccentricity(-x, -y)
+        self.add_thrust_eccentricity(-x, -y)
         return self
 
     def add_cp_eccentricity(self, x, y):
@@ -1586,14 +1788,22 @@ class Rocket:
         x : float
             Distance in meters by which the CP is to be translated in
             the x direction relative to the center of mass axial line.
+            The x axis is defined according to the body axes coordinate
+            system.
         y : float
             Distance in meters by which the CP is to be translated in
             the y direction relative to the center of mass axial line.
+            The y axis is defined according to the body axes coordinate
+            system.
 
         Returns
         -------
         self : Rocket
             Object of the Rocket class.
+
+        See Also
+        --------
+        :ref:`rocket_axes`
         """
         self.cp_eccentricity_x = x
         self.cp_eccentricity_y = y
@@ -1608,22 +1818,28 @@ class Rocket:
         x : float
             Distance in meters by which the line of action of the
             thrust force is to be translated in the x direction
-            relative to the center of mass axial line.
+            relative to the center of mass axial line. The x axis
+            is defined according to the body axes coordinate system.
         y : float
             Distance in meters by which the line of action of the
             thrust force is to be translated in the x direction
-            relative to the center of mass axial line.
+            relative to the center of mass axial line. The y axis
+            is defined according to the body axes coordinate system.
 
         Returns
         -------
         self : Rocket
             Object of the Rocket class.
+
+        See Also
+        --------
+        :ref:`rocket_axes`
         """
         self.thrust_eccentricity_y = x
         self.thrust_eccentricity_x = y
         return self
 
-    def draw(self, vis_args=None):
+    def draw(self, vis_args=None, plane="xz", *, filename=None):
         """Draws the rocket in a matplotlib figure.
 
         Parameters
@@ -1647,8 +1863,16 @@ class Rocket:
 
             A full list of color names can be found at:
             https://matplotlib.org/stable/gallery/color/named_colors
+        plane : str, optional
+            Plane in which the rocket will be drawn. Default is 'xz'. Other
+            options is 'yz'. Used only for sensors representation.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
         """
-        self.plots.draw(vis_args)
+        self.plots.draw(vis_args, plane, filename=filename)
 
     def info(self):
         """Prints out a summary of the data and graphs available about

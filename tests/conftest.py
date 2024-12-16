@@ -9,6 +9,7 @@ pytest_plugins = [
     "tests.fixtures.motor.hybrid_fixtures",
     "tests.fixtures.motor.solid_motor_fixtures",
     "tests.fixtures.motor.tanks_fixtures",
+    "tests.fixtures.motor.tank_geometry_fixtures",
     "tests.fixtures.motor.generic_motor_fixtures",
     "tests.fixtures.parachutes.parachute_fixtures",
     "tests.fixtures.rockets.rocket_fixtures",
@@ -17,6 +18,9 @@ pytest_plugins = [
     "tests.fixtures.monte_carlo.monte_carlo_fixtures",
     "tests.fixtures.monte_carlo.stochastic_fixtures",
     "tests.fixtures.monte_carlo.stochastic_motors_fixtures",
+    "tests.fixtures.sensors.sensors_fixtures",
+    "tests.fixtures.generic_surfaces.generic_surfaces_fixtures",
+    "tests.fixtures.generic_surfaces.linear_generic_surfaces_fixtures",
 ]
 
 

@@ -446,12 +446,8 @@ class NoseCone(AeroSurface):
         None
         """
         # Calculate clalpha
-        # clalpha is currently a constant, meaning it is independent of Mach
-        # number. This is only valid for subsonic speeds.
-        # It must be set as a Function because it will be called and treated
-        # as a function of mach in the simulation.
         self.clalpha = Function(
-            lambda mach: 2 / self._beta(mach) * self.radius_ratio**2,
+            lambda mach: 2 * self.radius_ratio**2,
             "Mach",
             f"Lift coefficient derivative for {self.name}",
         )
@@ -490,15 +486,23 @@ class NoseCone(AeroSurface):
         self.cp = (self.cpx, self.cpy, self.cpz)
         return self.cp
 
-    def draw(self):
-        """Draw the fin shape along with some important information, including
-        the center line, the quarter line and the center of pressure position.
+    def draw(self, *, filename=None):
+        """Draw the nosecone shape along with some important information,
+        including the center of pressure position.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
         None
         """
-        self.plots.draw()
+        self.plots.draw(filename=filename)
 
     def info(self):
         """Prints and plots summarized information of the nose cone.

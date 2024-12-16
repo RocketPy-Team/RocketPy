@@ -15,7 +15,6 @@ latest documentation.
 
 import json
 import os
-import queue
 import traceback
 import warnings
 from pathlib import Path
@@ -53,6 +52,9 @@ class MonteCarlo:
         The stochastic flight object to be iterated over.
     export_list : list
         The list of variables to export at each simulation.
+    data_collector : dict
+        A dictionary whose keys are the names of the additional
+        exported variables and the values are callback functions.
     inputs_log : list
         List of dictionaries with the inputs used in each simulation.
     outputs_log : list
@@ -91,6 +93,7 @@ class MonteCarlo:
         rocket,
         flight,
         export_list=None,
+        data_collector=None,
     ):  # pylint: disable=too-many-statements
         """
         Initialize a MonteCarlo object.
@@ -114,6 +117,18 @@ class MonteCarlo:
             `out_of_rail_stability_margin`, `out_of_rail_time`,
             `out_of_rail_velocity`, `max_mach_number`, `frontal_surface_wind`,
             `lateral_surface_wind`. Default is None.
+        data_collector : dict, optional
+            A dictionary whose keys are the names of the exported variables
+            and the values are callback functions. The keys (variable names) must not
+            overwrite the default names on 'export_list'. The callback functions receive
+            a Flight object and returns a value of that variable. For instance
+
+            .. code-block:: python
+
+                custom_data_collector = {
+                    "max_acceleration": lambda flight: max(flight.acceleration(flight.time)),
+                    "date": lambda flight: flight.env.date,
+                }
 
         Returns
         -------
@@ -140,6 +155,8 @@ class MonteCarlo:
         self.plots = _MonteCarloPlots(self)
 
         self.export_list = self.__check_export_list(export_list)
+        self._check_data_collector(data_collector)
+        self.data_collector = data_collector
 
         self.import_inputs(self.filename.with_suffix(".inputs.txt"))
         self.import_outputs(self.filename.with_suffix(".outputs.txt"))
@@ -252,11 +269,14 @@ class MonteCarlo:
             while sim_monitor.keep_simulating():
                 sim_monitor.increment()
 
-                inputs_dict, outputs_dict = self.__run_single_simulation(
-                    sim_monitor.count,
-                )
+                flight = self.__run_single_simulation()
+                inputs_json = self.__evaluate_flight_inputs(sim_monitor.count)
+                outputs_json = self.__evaluate_flight_outputs(flight, sim_monitor.count)
 
-                self.__export_flight_data(inputs_dict, outputs_dict)
+                with open(self.input_file, "a", encoding="utf-8") as f:
+                    f.write(inputs_json)
+                with open(self.output_file, "a", encoding="utf-8") as f:
+                    f.write(outputs_json)
 
                 sim_monitor.print_update_status(sim_monitor.count)
 
@@ -264,15 +284,13 @@ class MonteCarlo:
 
         except KeyboardInterrupt:
             _SimMonitor.reprint("Keyboard Interrupt, files saved.")
-            with open(self._error_file, "a", encoding="utf-8") as file:
-                file.write(inputs_dict)
+            with open(self._error_file, "a", encoding="utf-8") as f:
+                f.write(inputs_json)
 
         except Exception as error:
-            _SimMonitor.reprint(
-                f"Error on iteration {self.__sim_monitor.count}: {error}"
-            )
-            with open(self._error_file, "a", encoding="utf-8") as file:
-                file.write(inputs_dict)
+            _SimMonitor.reprint(f"Error on iteration {sim_monitor.count}: {error}")
+            with open(self._error_file, "a", encoding="utf-8") as f:
+                f.write(inputs_json)
             raise error
 
     # pylint: disable=too-many-statements
@@ -301,11 +319,8 @@ class MonteCarlo:
         multiprocess, managers = _import_multiprocess()
 
         with _create_multiprocess_manager(multiprocess, managers) as manager:
-            export_queue = manager.Queue()
             mutex = manager.Lock()
-            consumer_stop_event = manager.Event()
             simulation_error_event = manager.Event()
-
             sim_monitor = manager._SimMonitor(
                 initial_count=self._initial_sim_idx,
                 n_simulations=self.number_of_simulations,
@@ -313,13 +328,7 @@ class MonteCarlo:
             )
 
             processes = []
-            seeds = np.random.SeedSequence().spawn(n_workers - 1)
-
-            sim_consumer = multiprocess.Process(
-                target=self.__sim_consumer,
-                args=(export_queue, mutex, consumer_stop_event, simulation_error_event),
-            )
-            sim_consumer.start()
+            seeds = np.random.SeedSequence().spawn(n_workers)
 
             for seed in seeds:
                 sim_producer = multiprocess.Process(
@@ -327,7 +336,6 @@ class MonteCarlo:
                     args=(
                         seed,
                         sim_monitor,
-                        export_queue,
                         mutex,
                         simulation_error_event,
                     ),
@@ -338,9 +346,6 @@ class MonteCarlo:
             try:
                 for sim_producer in processes:
                     sim_producer.join()
-
-                consumer_stop_event.set()
-                sim_consumer.join()
 
                 # Handle error from the child processes
                 if simulation_error_event.is_set():
@@ -360,12 +365,10 @@ class MonteCarlo:
                 for sim_producer in processes:
                     sim_producer.join()
 
-                sim_consumer.join()
-
                 if not isinstance(error, KeyboardInterrupt):
                     raise error
 
-    def __sim_producer(self, seed, sim_monitor, export_queue, mutex, error_event):
+    def __sim_producer(self, seed, sim_monitor, mutex, error_event):
         """Simulation producer to be used in parallel by multiprocessing.
 
         Parameters
@@ -374,8 +377,6 @@ class MonteCarlo:
             The seed to set the random number generator.
         sim_monitor : _SimMonitor
             The simulation monitor object to keep track of the simulations.
-        export_queue : multiprocess.Queue
-            The queue to export the results.
         mutex : multiprocess.Lock
             The mutex to lock access to critical regions.
         error_event : multiprocess.Event
@@ -390,90 +391,50 @@ class MonteCarlo:
             while sim_monitor.keep_simulating():
                 sim_idx = sim_monitor.increment() - 1
 
-                inputs_dict, outputs_dict = self.__run_single_simulation(sim_idx)
-
-                export_queue.put((inputs_dict, outputs_dict))
+                flight = self.__run_single_simulation()
+                inputs_json = self.__evaluate_flight_inputs(sim_idx)
+                outputs_json = self.__evaluate_flight_outputs(flight, sim_idx)
 
                 try:
                     mutex.acquire()
-                    sim_monitor.print_update_status(sim_idx)
-
                     if error_event.is_set():
                         sim_monitor.reprint(
                             "Simulation Interrupt, files from simulation "
                             f"{sim_idx} saved."
                         )
-                        with open(self.error_file, "a", encoding="utf-8") as file:
-                            file.write(inputs_dict)
+                        with open(self.error_file, "a", encoding="utf-8") as f:
+                            f.write(inputs_json)
 
                         break
+
+                    with open(self.input_file, "a", encoding="utf-8") as f:
+                        f.write(inputs_json)
+                    with open(self.output_file, "a", encoding="utf-8") as f:
+                        f.write(outputs_json)
+
+                    sim_monitor.print_update_status(sim_idx)
                 finally:
                     mutex.release()
 
         except Exception:  # pylint: disable=broad-except
             mutex.acquire()
-            with open(self.error_file, "a", encoding="utf-8") as file:
-                file.write(inputs_dict)
+            with open(self.error_file, "a", encoding="utf-8") as f:
+                f.write(inputs_json)
 
             sim_monitor.reprint(f"Error on iteration {sim_idx}:")
             sim_monitor.reprint(traceback.format_exc())
             error_event.set()
             mutex.release()
 
-    def __sim_consumer(
-        self,
-        export_queue,
-        mutex,
-        stop_event,
-        error_event,
-    ):
-        """Simulation consumer to be used in parallel by multiprocessing.
-        It consumes the results from the queue and writes them to the files.
-        If no results are received for 30 seconds, a TimeoutError is raised.
-
-        Parameters
-        ----------
-        export_queue : multiprocess.Queue
-            The queue to export the results.
-        mutex : multiprocess.Lock
-            The mutex to lock access to critical regions.
-        stop_event : multiprocess.Event
-            The event indicating that the simulations are done.
-        error_event : multiprocess.Event
-            The event indicating that an error occurred during the simulation.
-        """
-        trials = 0
-
-        while not error_event.is_set():
-            try:
-                mutex.acquire()
-                inputs_dict, outputs_dict = export_queue.get(timeout=3)
-
-                self.__export_flight_data(inputs_dict, outputs_dict)
-
-            except queue.Empty as exc:
-                if stop_event.is_set():
-                    break
-
-                trials += 1
-
-                if trials > 10:
-                    raise TimeoutError(
-                        "No simulations were received for 30 seconds."
-                    ) from exc
-
-            finally:
-                mutex.release()
-
-    def __run_single_simulation(self, sim_idx):
+    def __run_single_simulation(self):
         """Runs a single simulation and returns the inputs and outputs.
 
-        Parameters
-        ----------
-        sim_idx : int
-            The index of the simulation.
+        Returns
+        -------
+        Flight
+            The flight object of the simulation.
         """
-        monte_carlo_flight = Flight(
+        return Flight(
             rocket=self.rocket.create_object(),
             environment=self.environment.create_object(),
             rail_length=self.flight._randomize_rail_length(),
@@ -483,6 +444,19 @@ class MonteCarlo:
             terminate_on_apogee=self.flight.terminate_on_apogee,
         )
 
+    def __evaluate_flight_inputs(self, sim_idx):
+        """Evaluates the inputs of a single flight simulation.
+
+        Parameters
+        ----------
+        sim_idx : int
+            The index of the simulation.
+
+        Returns
+        -------
+        str
+            A JSON compatible dictionary with the inputs of the simulation.
+        """
         inputs_dict = dict(
             item
             for d in [
@@ -493,37 +467,41 @@ class MonteCarlo:
             for item in d.items()
         )
         inputs_dict["index"] = sim_idx
+        return json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n"
 
+    def __evaluate_flight_outputs(self, flight, sim_idx):
+        """Evaluates the outputs of a single flight simulation.
+
+        Parameters
+        ----------
+        flight : Flight
+            The flight object to be evaluated.
+        sim_idx : int
+            The index of the simulation.
+
+        Returns
+        -------
+        str
+            A JSON compatible dictionary with the outputs of the simulation.
+        """
         outputs_dict = {
-            export_item: getattr(monte_carlo_flight, export_item)
+            export_item: getattr(flight, export_item)
             for export_item in self.export_list
         }
         outputs_dict["index"] = sim_idx
 
-        encoded_inputs = json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n"
-        encoded_outputs = json.dumps(outputs_dict, cls=RocketPyEncoder) + "\n"
+        if self.data_collector is not None:
+            additional_exports = {}
+            for key, callback in self.data_collector.items():
+                try:
+                    additional_exports[key] = callback(flight)
+                except Exception as e:
+                    raise ValueError(
+                        f"An error was encountered running 'data_collector' callback {key}. "
+                    ) from e
+            outputs_dict = outputs_dict | additional_exports
 
-        return encoded_inputs, encoded_outputs
-
-    def __export_flight_data(self, inputs_dict, outputs_dict):
-        """
-        Exports the flight data to the respective files.
-
-        Parameters
-        ----------
-        inputs_dict : dict
-            Dictionary with the inputs of the simulation.
-        outputs_dict : dict
-            Dictionary with the outputs of the simulation.
-
-        Returns
-        -------
-        None
-        """
-        with open(self.input_file, "a", encoding="utf-8") as file:
-            file.write(inputs_dict)
-        with open(self.output_file, "a", encoding="utf-8") as file:
-            file.write(outputs_dict)
+        return json.dumps(outputs_dict, cls=RocketPyEncoder) + "\n"
 
     def __terminate_simulation(self):
         """
@@ -644,7 +622,36 @@ class MonteCarlo:
 
         return export_list
 
-    # Properties and setters
+    def _check_data_collector(self, data_collector):
+        """Check if data collector provided is a valid
+
+        Parameters
+        ----------
+        data_collector : dict
+            A dictionary whose keys are the names of the exported variables
+            and the values are callback functions that receive a Flight object
+            and returns a value of that variable
+        """
+
+        if data_collector is not None:
+
+            if not isinstance(data_collector, dict):
+                raise ValueError(
+                    "Invalid 'data_collector' argument! "
+                    "It must be a dict of callback functions."
+                )
+
+            for key, callback in data_collector.items():
+                if key in self.export_list:
+                    raise ValueError(
+                        "Invalid 'data_collector' key! "
+                        f"Variable names overwrites 'export_list' key '{key}'."
+                    )
+                if not callable(callback):
+                    raise ValueError(
+                        f"Invalid value in 'data_collector' for key '{key}'! "
+                        "Values must be python callables (callback functions)."
+                    )
 
     @property
     def input_file(self):
@@ -805,9 +812,12 @@ class MonteCarlo:
         """
         self.processed_results = {}
         for result, values in self.results.items():
-            mean = np.mean(values)
-            stdev = np.std(values)
-            self.processed_results[result] = (mean, stdev)
+            try:
+                mean = np.mean(values)
+                stdev = np.std(values)
+                self.processed_results[result] = (mean, stdev)
+            except TypeError:
+                self.processed_results[result] = (None, None)
 
     # Import methods
 
@@ -922,7 +932,7 @@ class MonteCarlo:
         origin_lon,
         type="all",  # TODO: Don't use "type" as a parameter name, it's a reserved word  # pylint: disable=redefined-builtin
         resolution=100,
-        color="ff0000ff",
+        colors=("ffff0000", "ff00ff00"),  # impact, apogee
     ):
         """
         Generates a KML file with the ellipses on the impact point, which can be
@@ -943,9 +953,11 @@ class MonteCarlo:
             Number of points to be used to draw the ellipse. Default is 100. You
             can increase this number to make the ellipse smoother, but it will
             increase the file size. It is recommended to keep it below 1000.
-        color : str, optional
-            Color of the ellipse. Default is 'ff0000ff', which is red. Kml files
-            use an 8 digit HEX color format, see its docs.
+        colors : tuple[str, str], optional
+            Colors of the ellipses. Default is ['ffff0000', 'ff00ff00'], which
+            are blue and green, respectively. The first element is the color of
+            the impact ellipses, and the second element is the color of the
+            apogee. The colors are in hexadecimal format (aabbggrr).
 
         Returns
         -------
@@ -962,49 +974,87 @@ class MonteCarlo:
             large distances offsets, as the atmospheric conditions may change.
         """
         # TODO: The lat and lon should be optional arguments, we can get it from the env
-        (
-            impact_ellipses,
-            apogee_ellipses,
-            *_,
-        ) = generate_monte_carlo_ellipses(self.results)
+        # Retrieve monte carlo data por apogee and impact XY position
+        if type not in ["all", "impact", "apogee"]:
+            raise ValueError("Invalid type. Options are 'all', 'impact' and 'apogee'")
+
+        apogee_x = np.array([])
+        apogee_y = np.array([])
+        impact_x = np.array([])
+        impact_y = np.array([])
+        if type in ["all", "apogee"]:
+            try:
+                apogee_x = np.array(self.results["apogee_x"])
+                apogee_y = np.array(self.results["apogee_y"])
+            except KeyError as e:
+                raise KeyError("No apogee data found. Skipping apogee ellipses.") from e
+
+        if type in ["all", "impact"]:
+            try:
+                impact_x = np.array(self.results["x_impact"])
+                impact_y = np.array(self.results["y_impact"])
+            except KeyError as e:
+                raise KeyError("No impact data found. Skipping impact ellipses.") from e
+
+        (apogee_ellipses, impact_ellipses) = generate_monte_carlo_ellipses(
+            impact_x,
+            impact_y,
+            apogee_x,
+            apogee_y,
+        )
+
         outputs = []
 
         if type in ["all", "impact"]:
-            outputs = outputs + generate_monte_carlo_ellipses_coordinates(
-                impact_ellipses, origin_lat, origin_lon, resolution=resolution
+            outputs.extend(
+                generate_monte_carlo_ellipses_coordinates(
+                    impact_ellipses, origin_lat, origin_lon, resolution=resolution
+                )
             )
 
         if type in ["all", "apogee"]:
-            outputs = outputs + generate_monte_carlo_ellipses_coordinates(
-                apogee_ellipses, origin_lat, origin_lon, resolution=resolution
+            outputs.extend(
+                generate_monte_carlo_ellipses_coordinates(
+                    apogee_ellipses, origin_lat, origin_lon, resolution=resolution
+                )
             )
 
-        # TODO: Non-iterable value output is used in an iterating context PylintE1133:
-        kml_data = [[(coord[1], coord[0]) for coord in output] for output in outputs]
+        if all(isinstance(output, list) for output in outputs):
+            kml_data = [
+                [(coord[1], coord[0]) for coord in output] for output in outputs
+            ]
+        else:
+            raise ValueError("Each element in outputs must be a list")
 
         kml = simplekml.Kml()
 
-        for i in range(len(outputs)):
-            if (type == "all" and i < 3) or (type == "impact"):
-                ellipse_name = "Impact \u03C3" + str(i + 1)
-            elif type == "all" and i >= 3:
-                ellipse_name = "Apogee \u03C3" + str(i - 2)
+        for i, points in enumerate(kml_data):
+            if i < len(impact_ellipses):
+                name = f"Impact Ellipse {i + 1}"
+                ellipse_color = colors[0]  # default is blue
             else:
-                ellipse_name = "Apogee \u03C3" + str(i + 1)
+                name = f"Apogee Ellipse {i + 1 - len(impact_ellipses)}"
+                ellipse_color = colors[1]  # default is green
 
-            mult_ell = kml.newmultigeometry(name=ellipse_name)
+            mult_ell = kml.newmultigeometry(name=name)
             mult_ell.newpolygon(
-                outerboundaryis=kml_data[i],
-                name="Ellipse " + str(i),
+                outerboundaryis=points,
+                name=name,
             )
             # Setting ellipse style
             mult_ell.tessellate = 1
             mult_ell.visibility = 1
-            mult_ell.style.linestyle.color = color
+            mult_ell.style.linestyle.color = ellipse_color
             mult_ell.style.linestyle.width = 3
             mult_ell.style.polystyle.color = simplekml.Color.changealphaint(
-                100, simplekml.Color.blue
+                80, ellipse_color
             )
+
+        kml.newpoint(
+            name="Launch Pad",
+            coords=[(origin_lon, origin_lat)],
+            description="Flight initial position",
+        )
 
         kml.save(filename)
 

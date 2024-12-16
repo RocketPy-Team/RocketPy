@@ -27,7 +27,7 @@ copyright = "2024, RocketPy Team"
 author = "RocketPy Team"
 
 # The full version, including alpha/beta/rc tags
-release = "1.4.2"
+release = "1.7.1"
 
 
 # -- General configuration ---------------------------------------------------
@@ -40,6 +40,7 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "sphinx.ext.mathjax",
+    "sphinx_tabs.tabs",
     "sphinx_copybutton",
     "sphinx_design",
     "jupyter_sphinx",
@@ -123,12 +124,6 @@ html_theme_options = {
     "github_url": "https://github.com/RocketPy-Team/RocketPy",
     "navbar_end": ["theme-switcher", "navbar-icon-links.html"],
     "icon_links": [
-        {
-            "name": "GitHub",
-            "url": "https://github.com/RocketPy-Team/RocketPy/",
-            "icon": "fa-brands fa-square-github",
-            "type": "fontawesome",
-        },
         {
             "name": "LinkedIn",
             "url": "https://www.linkedin.com/company/rocketpy/",

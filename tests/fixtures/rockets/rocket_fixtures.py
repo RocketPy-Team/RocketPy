@@ -19,8 +19,8 @@ def calisto_motorless():
         radius=0.0635,
         mass=14.426,
         inertia=(6.321, 6.321, 0.034),
-        power_off_drag="data/calisto/powerOffDragCurve.csv",
-        power_on_drag="data/calisto/powerOnDragCurve.csv",
+        power_off_drag="data/rockets/calisto/powerOffDragCurve.csv",
+        power_on_drag="data/rockets/calisto/powerOnDragCurve.csv",
         center_of_mass_without_motor=0,
         coordinate_system_orientation="tail_to_nose",
     )
@@ -74,8 +74,8 @@ def calisto_nose_to_tail(cesaroni_m1670):
         radius=0.0635,
         mass=14.426,
         inertia=(6.321, 6.321, 0.034),
-        power_off_drag="data/calisto/powerOffDragCurve.csv",
-        power_on_drag="data/calisto/powerOnDragCurve.csv",
+        power_off_drag="data/rockets/calisto/powerOffDragCurve.csv",
+        power_on_drag="data/rockets/calisto/powerOnDragCurve.csv",
         center_of_mass_without_motor=0,
         coordinate_system_orientation="nose_to_tail",
     )
@@ -206,7 +206,7 @@ def calisto_air_brakes_clamp_on(calisto_robust, controller_function):
     # remove parachutes
     calisto.parachutes = []
     calisto.add_air_brakes(
-        drag_coefficient_curve="data/calisto/air_brakes_cd.csv",
+        drag_coefficient_curve="data/rockets/calisto/air_brakes_cd.csv",
         controller_function=controller_function,
         sampling_rate=10,
         clamp=True,
@@ -236,11 +236,44 @@ def calisto_air_brakes_clamp_off(calisto_robust, controller_function):
     # remove parachutes
     calisto.parachutes = []
     calisto.add_air_brakes(
-        drag_coefficient_curve="data/calisto/air_brakes_cd.csv",
+        drag_coefficient_curve="data/rockets/calisto/air_brakes_cd.csv",
         controller_function=controller_function,
         sampling_rate=10,
         clamp=False,
     )
+    return calisto
+
+
+@pytest.fixture
+def calisto_with_sensors(
+    calisto,
+    calisto_nose_cone,
+    calisto_tail,
+    calisto_trapezoidal_fins,
+    ideal_accelerometer,
+    ideal_gyroscope,
+    ideal_barometer,
+    ideal_gnss,
+):
+    """Create an object class of the Rocket class to be used in the tests. This
+    is the same Calisto rocket that was defined in the calisto fixture, but with
+    a set of ideal sensors added at the center of dry mass, meaning the readings
+    will be the same as the values saved on a Flight object.
+
+    Returns
+    -------
+    rocketpy.Rocket
+        An object of the Rocket class
+    """
+    calisto.add_surfaces(calisto_nose_cone, 1.160)
+    calisto.add_surfaces(calisto_tail, -1.313)
+    calisto.add_surfaces(calisto_trapezoidal_fins, -1.168)
+    # double sensors to test using same instance twice
+    calisto.add_sensor(ideal_accelerometer, -0.1180124376577797)
+    calisto.add_sensor(ideal_accelerometer, -0.1180124376577797)
+    calisto.add_sensor(ideal_gyroscope, -0.1180124376577797)
+    calisto.add_sensor(ideal_barometer, -0.1180124376577797)
+    calisto.add_sensor(ideal_gnss, -0.1180124376577797)
     return calisto
 
 
@@ -270,8 +303,8 @@ def dimensionless_calisto(kg, m, dimensionless_cesaroni_m1670):
         radius=0.0635 * m,
         mass=14.426 * kg,
         inertia=(6.321 * (kg * m**2), 6.321 * (kg * m**2), 0.034 * (kg * m**2)),
-        power_off_drag="data/calisto/powerOffDragCurve.csv",
-        power_on_drag="data/calisto/powerOnDragCurve.csv",
+        power_off_drag="data/rockets/calisto/powerOffDragCurve.csv",
+        power_on_drag="data/rockets/calisto/powerOnDragCurve.csv",
         center_of_mass_without_motor=0 * m,
         coordinate_system_orientation="tail_to_nose",
     )
