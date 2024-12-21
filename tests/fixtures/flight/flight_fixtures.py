@@ -94,6 +94,61 @@ def flight_calisto_robust(calisto_robust, example_spaceport_env):
 
 
 @pytest.fixture
+def flight_calisto_liquid_modded(calisto_liquid_modded, example_plain_env):
+    """A rocketpy.Flight object of the Calisto rocket modded for a liquid
+    motor. The environment is the simplest possible, with no parameters set.
+
+    Parameters
+    ----------
+    calisto_liquid_modded : rocketpy.Rocket
+        An object of the Rocket class. This is a pytest fixture too.
+    example_plain_env : rocketpy.Environment
+        An object of the Environment class. This is a pytest fixture too.
+
+    Returns
+    -------
+    rocketpy.Flight
+        A rocketpy.Flight object.
+    """
+    return Flight(
+        rocket=calisto_liquid_modded,
+        environment=example_plain_env,
+        rail_length=5,
+        inclination=85,
+        heading=0,
+        max_time_step=0.25,
+    )
+
+
+@pytest.fixture
+def flight_calisto_hybrid_modded(calisto_hybrid_modded, example_plain_env):
+    """A rocketpy.Flight object of the Calisto rocket modded for a hybrid
+    motor. The environment is the simplest possible, with no parameters set.
+
+    Parameters
+    ----------
+    calisto_hybrid_modded : rocketpy.Rocket
+        An object of the Rocket class. This is a pytest fixture too.
+    example_plain_env : rocketpy.Environment
+        An object of the Environment class. This is a pytest fixture too.
+
+    Returns
+    -------
+    rocketpy.Flight
+        A rocketpy.Flight object.
+    """
+    return Flight(
+        rocket=calisto_hybrid_modded,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        time_overshoot=False,
+        terminate_on_apogee=True,
+    )
+
+
+@pytest.fixture
 def flight_calisto_custom_wind(calisto_robust, example_spaceport_env):
     """A rocketpy.Flight object of the Calisto rocket. This uses the calisto
     with the aerodynamic surfaces and parachutes. The environment is a bit more

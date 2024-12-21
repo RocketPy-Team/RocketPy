@@ -22,6 +22,8 @@ from scipy.interpolate import (
     RBFInterpolator,
 )
 
+from rocketpy.tools import from_hex_decode, to_hex_encode
+
 from ..plots.plot_helpers import show_or_save_plot
 
 # Numpy 1.x compatibility,
@@ -711,9 +713,9 @@ class Function:  # pylint: disable=too-many-public-methods
         if func.__dom_dim__ == 1:
             xs = np.linspace(lower, upper, samples)
             ys = func.get_value(xs.tolist()) if one_by_one else func.get_value(xs)
-            func.set_source(np.concatenate(([xs], [ys])).transpose())
-            func.set_interpolation(interpolation)
-            func.set_extrapolation(extrapolation)
+            func.__interpolation__ = interpolation
+            func.__extrapolation__ = extrapolation
+            func.set_source(np.column_stack((xs, ys)))
         elif func.__dom_dim__ == 2:
             lower = 2 * [lower] if isinstance(lower, NUMERICAL_TYPES) else lower
             upper = 2 * [upper] if isinstance(upper, NUMERICAL_TYPES) else upper
@@ -3417,6 +3419,50 @@ class Function:  # pylint: disable=too-many-public-methods
                 )
                 extrapolation = "natural"
         return extrapolation
+
+    def to_dict(self, include_outputs=False):  # pylint: disable=unused-argument
+        """Serializes the Function instance to a dictionary.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the Function's attributes.
+        """
+        source = self.source
+
+        if callable(source):
+            source = to_hex_encode(source)
+
+        return {
+            "source": source,
+            "title": self.title,
+            "inputs": self.__inputs__,
+            "outputs": self.__outputs__,
+            "interpolation": self.__interpolation__,
+            "extrapolation": self.__extrapolation__,
+        }
+
+    @classmethod
+    def from_dict(cls, func_dict):
+        """Creates a Function instance from a dictionary.
+
+        Parameters
+        ----------
+        func_dict
+            The JSON like Function dictionary.
+        """
+        source = func_dict["source"]
+        if func_dict["interpolation"] is None and func_dict["extrapolation"] is None:
+            source = from_hex_decode(source)
+
+        return cls(
+            source=source,
+            interpolation=func_dict["interpolation"],
+            extrapolation=func_dict["extrapolation"],
+            inputs=func_dict["inputs"],
+            outputs=func_dict["outputs"],
+            title=func_dict["title"],
+        )
 
 
 def funcify_method(*args, **kwargs):  # pylint: disable=too-many-statements

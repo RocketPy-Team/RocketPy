@@ -366,12 +366,15 @@ class Environment:
         self.standard_g = 9.80665
         self.__weather_model_map = WeatherModelMapping()
         self.__atm_type_file_to_function_map = {
-            ("forecast", "GFS"): fetch_gfs_file_return_dataset,
-            ("forecast", "NAM"): fetch_nam_file_return_dataset,
-            ("forecast", "RAP"): fetch_rap_file_return_dataset,
-            ("forecast", "HIRESW"): fetch_hiresw_file_return_dataset,
-            ("ensemble", "GEFS"): fetch_gefs_ensemble,
-            # ("ensemble", "CMC"): fetch_cmc_ensemble,
+            "forecast": {
+                "GFS": fetch_gfs_file_return_dataset,
+                "NAM": fetch_nam_file_return_dataset,
+                "RAP": fetch_rap_file_return_dataset,
+                "HIRESW": fetch_hiresw_file_return_dataset,
+            },
+            "ensemble": {
+                "GEFS": fetch_gefs_ensemble,
+            },
         }
         self.__standard_atmosphere_layers = {
             "geopotential_height": [  # in geopotential m
@@ -1270,7 +1273,10 @@ class Environment:
             self.process_windy_atmosphere(file)
         elif type in ["forecast", "reanalysis", "ensemble"]:
             dictionary = self.__validate_dictionary(file, dictionary)
-            fetch_function = self.__atm_type_file_to_function_map.get((type, file))
+            try:
+                fetch_function = self.__atm_type_file_to_function_map[type][file]
+            except KeyError:
+                fetch_function = None
 
             # Fetches the dataset using OpenDAP protocol or uses the file path
             dataset = fetch_function() if fetch_function is not None else file
@@ -2747,6 +2753,96 @@ class Environment:
         arc_minutes = int(remainder * 60)
         arc_seconds = (remainder * 60 - arc_minutes) * 60
         return degrees, arc_minutes, arc_seconds
+
+    def to_dict(self, include_outputs=False):
+        env_dict = {
+            "gravity": self.gravity,
+            "date": self.date,
+            "latitude": self.latitude,
+            "longitude": self.longitude,
+            "elevation": self.elevation,
+            "datum": self.datum,
+            "timezone": self.timezone,
+            "max_expected_height": self.max_expected_height,
+            "atmospheric_model_type": self.atmospheric_model_type,
+            "pressure": self.pressure,
+            "temperature": self.temperature,
+            "wind_velocity_x": self.wind_velocity_x,
+            "wind_velocity_y": self.wind_velocity_y,
+            "wind_heading": self.wind_heading,
+            "wind_direction": self.wind_direction,
+            "wind_speed": self.wind_speed,
+        }
+
+        if include_outputs:
+            env_dict["density"] = self.density
+            env_dict["barometric_height"] = self.barometric_height
+            env_dict["speed_of_sound"] = self.speed_of_sound
+            env_dict["dynamic_viscosity"] = self.dynamic_viscosity
+
+        return env_dict
+
+    @classmethod
+    def from_dict(cls, data):  # pylint: disable=too-many-statements
+        env = cls(
+            gravity=data["gravity"],
+            date=data["date"],
+            latitude=data["latitude"],
+            longitude=data["longitude"],
+            elevation=data["elevation"],
+            datum=data["datum"],
+            timezone=data["timezone"],
+            max_expected_height=data["max_expected_height"],
+        )
+        atmospheric_model = data["atmospheric_model_type"]
+
+        if atmospheric_model == "standard_atmosphere":
+            env.set_atmospheric_model("standard_atmosphere")
+        elif atmospheric_model == "custom_atmosphere":
+            env.set_atmospheric_model(
+                type="custom_atmosphere",
+                pressure=data["pressure"],
+                temperature=data["temperature"],
+                wind_u=data["wind_velocity_x"],
+                wind_v=data["wind_velocity_y"],
+            )
+        else:
+            env.__set_pressure_function(data["pressure"])
+            env.__set_temperature_function(data["temperature"])
+            env.__set_wind_velocity_x_function(data["wind_velocity_x"])
+            env.__set_wind_velocity_y_function(data["wind_velocity_y"])
+            env.__set_wind_heading_function(data["wind_heading"])
+            env.__set_wind_direction_function(data["wind_direction"])
+            env.__set_wind_speed_function(data["wind_speed"])
+            env.elevation = data["elevation"]
+            env.max_expected_height = data["max_expected_height"]
+
+            if atmospheric_model in ("windy", "forecast", "reanalysis", "ensemble"):
+                env.atmospheric_model_init_date = data["atmospheric_model_init_date"]
+                env.atmospheric_model_end_date = data["atmospheric_model_end_date"]
+                env.atmospheric_model_interval = data["atmospheric_model_interval"]
+                env.atmospheric_model_init_lat = data["atmospheric_model_init_lat"]
+                env.atmospheric_model_end_lat = data["atmospheric_model_end_lat"]
+                env.atmospheric_model_init_lon = data["atmospheric_model_init_lon"]
+                env.atmospheric_model_end_lon = data["atmospheric_model_end_lon"]
+
+            if atmospheric_model == "ensemble":
+                env.level_ensemble = data["level_ensemble"]
+                env.height_ensemble = data["height_ensemble"]
+                env.temperature_ensemble = data["temperature_ensemble"]
+                env.wind_u_ensemble = data["wind_u_ensemble"]
+                env.wind_v_ensemble = data["wind_v_ensemble"]
+                env.wind_heading_ensemble = data["wind_heading_ensemble"]
+                env.wind_direction_ensemble = data["wind_direction_ensemble"]
+                env.wind_speed_ensemble = data["wind_speed_ensemble"]
+                env.num_ensemble_members = data["num_ensemble_members"]
+
+            env.__reset_barometric_height_function()
+            env.calculate_density_profile()
+            env.calculate_speed_of_sound_profile()
+            env.calculate_dynamic_viscosity()
+
+        return env
 
 
 if __name__ == "__main__":
