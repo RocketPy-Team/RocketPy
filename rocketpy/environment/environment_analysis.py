@@ -423,7 +423,10 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
             or lat_index > len(lat_array) - 1
         ):
             raise ValueError(
-                f"Latitude and longitude pair {(self.latitude, self.longitude)} is outside the grid available in the given file, which is defined by {(lat_array[0], lon_array[0])} and {(lat_array[-1], lon_array[-1])}."
+                f"Latitude and longitude pair {(self.latitude, self.longitude)} "
+                "is outside the grid available in the given file, which "
+                f"is defined by {(lat_array[0], lon_array[0])} and "
+                f"{(lat_array[-1], lon_array[-1])}."
             )
 
     def __localize_input_dates(self):

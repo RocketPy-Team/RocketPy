@@ -1893,3 +1893,116 @@ class Rocket:
         """
         self.info()
         self.plots.all()
+
+    def to_dict(self, include_outputs=False):
+        rocket_dict = {
+            "radius": self.radius,
+            "mass": self.mass,
+            "I_11_without_motor": self.I_11_without_motor,
+            "I_22_without_motor": self.I_22_without_motor,
+            "I_33_without_motor": self.I_33_without_motor,
+            "I_12_without_motor": self.I_12_without_motor,
+            "I_13_without_motor": self.I_13_without_motor,
+            "I_23_without_motor": self.I_23_without_motor,
+            "power_off_drag": self.power_off_drag,
+            "power_on_drag": self.power_on_drag,
+            "center_of_mass_without_motor": self.center_of_mass_without_motor,
+            "coordinate_system_orientation": self.coordinate_system_orientation,
+            "motor": self.motor,
+            "motor_position": self.motor_position,
+            "aerodynamic_surfaces": self.aerodynamic_surfaces,
+            "rail_buttons": self.rail_buttons,
+            "parachutes": self.parachutes,
+            "air_brakes": self.air_brakes,
+            "_controllers": self._controllers,
+            "sensors": self.sensors,
+        }
+
+        if include_outputs:
+            rocket_dict["area"] = self.area
+            rocket_dict["center_of_dry_mass_position"] = (
+                self.center_of_dry_mass_position
+            )
+            rocket_dict["center_of_mass_without_motor"] = (
+                self.center_of_mass_without_motor
+            )
+            rocket_dict["motor_center_of_mass_position"] = (
+                self.motor_center_of_mass_position
+            )
+            rocket_dict["motor_center_of_dry_mass_position"] = (
+                self.motor_center_of_dry_mass_position
+            )
+            rocket_dict["center_of_mass"] = self.center_of_mass
+            rocket_dict["reduced_mass"] = self.reduced_mass
+            rocket_dict["total_mass"] = self.total_mass
+            rocket_dict["total_mass_flow_rate"] = self.total_mass_flow_rate
+            rocket_dict["thrust_to_weight"] = self.thrust_to_weight
+            rocket_dict["cp_eccentricity_x"] = self.cp_eccentricity_x
+            rocket_dict["cp_eccentricity_y"] = self.cp_eccentricity_y
+            rocket_dict["thrust_eccentricity_x"] = self.thrust_eccentricity_x
+            rocket_dict["thrust_eccentricity_y"] = self.thrust_eccentricity_y
+            rocket_dict["cp_position"] = self.cp_position
+            rocket_dict["stability_margin"] = self.stability_margin
+            rocket_dict["static_margin"] = self.static_margin
+            rocket_dict["nozzle_position"] = self.nozzle_position
+            rocket_dict["nozzle_to_cdm"] = self.nozzle_to_cdm
+            rocket_dict["nozzle_gyration_tensor"] = self.nozzle_gyration_tensor
+            rocket_dict["center_of_propellant_position"] = (
+                self.center_of_propellant_position
+            )
+
+        return rocket_dict
+
+    @classmethod
+    def from_dict(cls, data):
+        rocket = cls(
+            radius=data["radius"],
+            mass=data["mass"],
+            inertia=(
+                data["I_11_without_motor"],
+                data["I_22_without_motor"],
+                data["I_33_without_motor"],
+                data["I_12_without_motor"],
+                data["I_13_without_motor"],
+                data["I_23_without_motor"],
+            ),
+            power_off_drag=data["power_off_drag"],
+            power_on_drag=data["power_on_drag"],
+            center_of_mass_without_motor=data["center_of_mass_without_motor"],
+            coordinate_system_orientation=data["coordinate_system_orientation"],
+        )
+
+        if (motor := data["motor"]) is not None:
+            rocket.add_motor(
+                motor=motor,
+                position=data["motor_position"],
+            )
+
+        for surface, position in data["aerodynamic_surfaces"]:
+            rocket.add_surfaces(surfaces=surface, positions=position)
+
+        for button, position in data["rail_buttons"]:
+            rocket.set_rail_buttons(
+                upper_button_position=position[2] + button.buttons_distance,
+                lower_button_position=position[2],
+                angular_position=button.angular_position,
+                radius=button.rocket_radius,
+            )
+
+        for parachute in data["parachutes"]:
+            rocket.parachutes.append(parachute)
+
+        for air_brakes in data["air_brakes"]:
+            rocket.add_air_brakes(
+                drag_coefficient_curve=air_brakes["drag_coefficient_curve"],
+                controller_function=air_brakes["controller_function"],
+                sampling_rate=air_brakes["sampling_rate"],
+                clamp=air_brakes["clamp"],
+                reference_area=air_brakes["reference_area"],
+                initial_observed_variables=air_brakes["initial_observed_variables"],
+                override_rocket_drag=air_brakes["override_rocket_drag"],
+                name=air_brakes["name"],
+                controller_name=air_brakes["controller_name"],
+            )
+
+        return rocket
