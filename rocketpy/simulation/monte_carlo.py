@@ -722,9 +722,12 @@ class MonteCarlo:
             try:
                 mean = np.mean(values)
                 stdev = np.std(values)
-                self.processed_results[result] = (mean, stdev)
+                pi_low = np.quantile(values, 0.025)
+                pi_high = np.quantile(values, 0.975)
+                median = np.median(values)
+                self.processed_results[result] = (mean, median, stdev, pi_low, pi_high)
             except TypeError:
-                self.processed_results[result] = (None, None)
+                self.processed_results[result] = (None, None, None, None, None)
 
     # Import methods
 
