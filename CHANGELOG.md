@@ -48,6 +48,7 @@ Attention: The newest changes should be on top -->
 
 - REL: update version to 1.7.1 in configuration files [#750](https://github.com/RocketPy-Team/RocketPy/pull/750)
 - MNT: Refactor Tank's testing Assertion with CAD data. [#678](https://github.com/RocketPy-Team/RocketPy/pull/678)
+ENH: Display more information in MonteCarlo prints and plots [#760](https://github.com/RocketPy-Team/RocketPy/pull/760)
 
 ### Fixed
 
