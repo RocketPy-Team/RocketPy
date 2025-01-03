@@ -35,5 +35,5 @@ class _MonteCarloPrints:
                 )
             except TypeError:
                 print(
-                    f"{key:>25} {str(value[0]):>15} {str(value[1]):>15} {'N/A':>15} {'N/A':>15}"
+                    f"{key:>25} {'N/A':>15} {'N/A':>15} {'N/A':>15} {'N/A':>15} {'N/A':>15}"
                 )

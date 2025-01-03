@@ -178,13 +178,14 @@ class _MonteCarloPlots:
 
             # Plot boxplot
             ax1.boxplot(self.monte_carlo.results[key], vert=False)
-            ax1.set_xlabel(key)
             ax1.set_title(f"Box Plot of {key}")
+            ax1.set_yticks([])
 
             # Plot histogram
             ax2.hist(self.monte_carlo.results[key])
             ax2.set_title(f"Histogram of {key}")
             ax2.set_ylabel("Number of Occurrences")
+            ax1.set_xticks([])
 
             plt.tight_layout()
             plt.show()
