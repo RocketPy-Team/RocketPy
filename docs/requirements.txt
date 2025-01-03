@@ -46,6 +46,8 @@ docutils==0.20.1
     #   sphinx-tabs
 entrypoints==0.4
     # via nbconvert
+exceptiongroup==1.2.2
+    # via ipython
 executing==2.0.1
     # via stack-data
 fastjsonschema==2.19.1
@@ -131,6 +133,7 @@ packaging==24.0
     # via
     #   ipykernel
     #   nbconvert
+    #   plotly
     #   pydata-sphinx-theme
     #   sphinx
 pandas==2.2.2
@@ -143,6 +146,8 @@ pexpect==4.9.0
     # via ipython
 platformdirs==4.2.2
     # via jupyter-core
+plotly==5.24.1
+    # via -r requirements.in
 prompt-toolkit==3.0.43
     # via ipython
 psutil==5.9.8
@@ -218,8 +223,12 @@ sphinxcontrib-serializinghtml==1.1.10
     # via sphinx
 stack-data==0.6.3
     # via ipython
+tenacity==9.0.0
+    # via plotly
 tinycss2==1.3.0
     # via nbconvert
+tomli==2.2.1
+    # via sphinx
 tornado==6.4
     # via
     #   ipykernel
@@ -238,7 +247,9 @@ traitlets==5.14.3
     #   nbformat
     #   nbsphinx
 typing-extensions==4.12.0
-    # via pydata-sphinx-theme
+    # via
+    #   ipython
+    #   pydata-sphinx-theme
 tzdata==2024.1
     # via pandas
 urllib3==2.2.1

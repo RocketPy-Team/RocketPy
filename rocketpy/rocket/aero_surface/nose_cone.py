@@ -523,3 +523,32 @@ class NoseCone(AeroSurface):
         """
         self.prints.all()
         self.plots.all()
+
+    def to_dict(self, include_outputs=False):
+        data = {
+            "_length": self._length,
+            "_kind": self._kind,
+            "_base_radius": self._base_radius,
+            "_bluffness": self._bluffness,
+            "_rocket_radius": self._rocket_radius,
+            "_power": self._power,
+            "name": self.name,
+        }
+        if include_outputs:
+            data["cp"] = self.cp
+            data["clalpha"] = self.clalpha
+            data["cl"] = self.cl
+
+        return data
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            length=data["_length"],
+            kind=data["_kind"],
+            base_radius=data["_base_radius"],
+            bluffness=data["_bluffness"],
+            rocket_radius=data["_rocket_radius"],
+            power=data["_power"],
+            name=data["name"],
+        )

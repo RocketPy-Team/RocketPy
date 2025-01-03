@@ -173,7 +173,7 @@ class MonteCarlo:
 
     # pylint: disable=consider-using-with
     def simulate(
-        self, number_of_simulations, append=False
+        self, number_of_simulations, append=False, **kwargs
     ):  # pylint: disable=too-many-statements
         """
         Runs the Monte Carlo simulation and saves all data.
@@ -185,6 +185,17 @@ class MonteCarlo:
         append : bool, optional
             If True, the results will be appended to the existing files. If
             False, the files will be overwritten. Default is False.
+        kwargs : dict
+            Custom arguments for simulation export of the ``inputs`` file. Options
+            are:
+
+                * ``include_outputs``: whether to also include outputs data of the
+                  simulation. Default is ``False``.
+
+                * ``include_function_data``: whether to include ``rocketpy.Function``
+                  results into the export. Default is ``True``.
+
+            See ``rocketpy._encoders.RocketPyEncoder`` for more information.
 
         Returns
         -------
@@ -204,6 +215,7 @@ class MonteCarlo:
         overwritten. Make sure to save the files with the results before
         running the simulation again with `append=False`.
         """
+        self._export_config = kwargs
         # Create data files for inputs, outputs and error logging
         open_mode = "a" if append else "w"
         input_file = open(self._input_file, open_mode, encoding="utf-8")
@@ -224,11 +236,21 @@ class MonteCarlo:
                 self.__run_single_simulation(input_file, output_file)
         except KeyboardInterrupt:
             print("Keyboard Interrupt, files saved.")
-            error_file.write(json.dumps(self._inputs_dict, cls=RocketPyEncoder) + "\n")
+            error_file.write(
+                json.dumps(
+                    self._inputs_dict, cls=RocketPyEncoder, **self._export_config
+                )
+                + "\n"
+            )
             self.__close_files(input_file, output_file, error_file)
         except Exception as error:
             print(f"Error on iteration {self.__iteration_count}: {error}")
-            error_file.write(json.dumps(self._inputs_dict, cls=RocketPyEncoder) + "\n")
+            error_file.write(
+                json.dumps(
+                    self._inputs_dict, cls=RocketPyEncoder, **self._export_config
+                )
+                + "\n"
+            )
             self.__close_files(input_file, output_file, error_file)
             raise error
         finally:
@@ -393,8 +415,12 @@ class MonteCarlo:
                     ) from e
             results = results | additional_exports
 
-        input_file.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
-        output_file.write(json.dumps(results, cls=RocketPyEncoder) + "\n")
+        input_file.write(
+            json.dumps(inputs_dict, cls=RocketPyEncoder, **self._export_config) + "\n"
+        )
+        output_file.write(
+            json.dumps(results, cls=RocketPyEncoder, **self._export_config) + "\n"
+        )
 
     def __check_export_list(self, export_list):
         """

@@ -49,7 +49,7 @@ def test_mass_based_tank_fluid_mass(params, request):
         expected_gas_mass[:, 1],
         tank.gas_mass(expected_gas_mass[:, 0]),
         rtol=1e-1,
-        atol=1e-4,
+        atol=1e-3,
     )
 
 

@@ -347,3 +347,39 @@ class TrapezoidalFins(Fins):
     def all_info(self):
         self.prints.all()
         self.plots.all()
+
+    def to_dict(self, include_outputs=False):
+        data = super().to_dict(include_outputs)
+        data["tip_chord"] = self.tip_chord
+
+        if include_outputs:
+            data.update(
+                {
+                    "sweep_length": self.sweep_length,
+                    "sweep_angle": self.sweep_angle,
+                    "shape_vec": self.shape_vec,
+                    "Af": self.Af,
+                    "AR": self.AR,
+                    "gamma_c": self.gamma_c,
+                    "Yma": self.Yma,
+                    "roll_geometrical_constant": self.roll_geometrical_constant,
+                    "tau": self.tau,
+                    "lift_interference_factor": self.lift_interference_factor,
+                    "roll_damping_interference_factor": self.roll_damping_interference_factor,
+                    "roll_forcing_interference_factor": self.roll_forcing_interference_factor,
+                }
+            )
+        return data
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            n=data["n"],
+            root_chord=data["root_chord"],
+            tip_chord=data["tip_chord"],
+            span=data["span"],
+            rocket_radius=data["rocket_radius"],
+            cant_angle=data["cant_angle"],
+            airfoil=data["airfoil"],
+            name=data["name"],
+        )
