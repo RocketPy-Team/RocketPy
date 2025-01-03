@@ -174,7 +174,7 @@ class _MonteCarloPlots:
         else:
             raise ValueError("The 'keys' argument must be a string, list, or tuple.")
         for key in keys:
-            fig, (ax1, ax2) = plt.subplots(2, 1, height_ratios=[1, 3], figsize=(8, 8))
+            _, (ax1, ax2) = plt.subplots(2, 1, height_ratios=[1, 3], figsize=(8, 8))
 
             # Plot boxplot
             ax1.boxplot(self.monte_carlo.results[key], vert=False)

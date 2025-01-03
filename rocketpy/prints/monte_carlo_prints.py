@@ -1,6 +1,3 @@
-import numpy as np
-
-
 class _MonteCarloPrints:
     """Class to print the monte carlo analysis results."""
 
