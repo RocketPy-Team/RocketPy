@@ -174,7 +174,13 @@ class _MonteCarloPlots:
         else:
             raise ValueError("The 'keys' argument must be a string, list, or tuple.")
         for key in keys:
-            _, (ax1, ax2) = plt.subplots(2, 1, height_ratios=[1, 3], figsize=(8, 8))
+            # Create figure with GridSpec
+            fig = plt.figure(figsize=(8, 8))
+            gs = fig.add_gridspec(2, 1, height_ratios=[1, 3])
+
+            # Create subplots using gridspec
+            ax1 = fig.add_subplot(gs[0])
+            ax2 = fig.add_subplot(gs[1])
 
             # Plot boxplot
             ax1.boxplot(self.monte_carlo.results[key], vert=False)
