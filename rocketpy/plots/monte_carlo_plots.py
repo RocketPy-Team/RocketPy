@@ -173,10 +173,25 @@ class _MonteCarloPlots:
                 )
         else:
             raise ValueError("The 'keys' argument must be a string, list, or tuple.")
-
         for key in keys:
-            plt.figure()
-            plt.hist(self.monte_carlo.results[key])
-            plt.title(f"Histogram of {key}")
-            plt.ylabel("Number of Occurrences")
+            # Create figure with GridSpec
+            fig = plt.figure(figsize=(8, 8))
+            gs = fig.add_gridspec(2, 1, height_ratios=[1, 3])
+
+            # Create subplots using gridspec
+            ax1 = fig.add_subplot(gs[0])
+            ax2 = fig.add_subplot(gs[1])
+
+            # Plot boxplot
+            ax1.boxplot(self.monte_carlo.results[key], vert=False)
+            ax1.set_title(f"Box Plot of {key}")
+            ax1.set_yticks([])
+
+            # Plot histogram
+            ax2.hist(self.monte_carlo.results[key])
+            ax2.set_title(f"Histogram of {key}")
+            ax2.set_ylabel("Number of Occurrences")
+            ax1.set_xticks([])
+
+            plt.tight_layout()
             plt.show()
