@@ -94,6 +94,22 @@ def flight_calisto_robust(calisto_robust, example_spaceport_env):
 
 
 @pytest.fixture
+def flight_calisto_robust_solid_eom(calisto_robust, example_spaceport_env):
+    """Similar to flight_calisto_robust, but with the equations of motion set to
+    "solid_propulsion".
+    """
+    return Flight(
+        environment=example_spaceport_env,
+        rocket=calisto_robust,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=False,
+        equations_of_motion="solid_propulsion",
+    )
+
+
+@pytest.fixture
 def flight_calisto_liquid_modded(calisto_liquid_modded, example_plain_env):
     """A rocketpy.Flight object of the Calisto rocket modded for a liquid
     motor. The environment is the simplest possible, with no parameters set.
