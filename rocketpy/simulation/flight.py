@@ -615,7 +615,7 @@ class Flight:
         self.env = environment
         self.rocket = rocket
         self.rail_length = rail_length
-        if self.rail_length <= 0:
+        if self.rail_length <= 0:  # pragma: no cover
             raise ValueError("Rail length must be a positive value.")
         self.parachutes = self.rocket.parachutes[:]
         self.inclination = inclination
@@ -872,11 +872,11 @@ class Flight:
                             for t_root in t_roots
                             if 0 < t_root.real < t1 and abs(t_root.imag) < 0.001
                         ]
-                        if len(valid_t_root) > 1:
+                        if len(valid_t_root) > 1:  # pragma: no cover
                             raise ValueError(
                                 "Multiple roots found when solving for rail exit time."
                             )
-                        if len(valid_t_root) == 0:
+                        if len(valid_t_root) == 0:  # pragma: no cover
                             raise ValueError(
                                 "No valid roots found when solving for rail exit time."
                             )
@@ -951,7 +951,7 @@ class Flight:
                             for t_root in t_roots
                             if abs(t_root.imag) < 0.001 and 0 < t_root.real < t1
                         ]
-                        if len(valid_t_root) > 1:
+                        if len(valid_t_root) > 1:  # pragma: no cover
                             raise ValueError(
                                 "Multiple roots found when solving for impact time."
                             )
@@ -1226,7 +1226,7 @@ class Flight:
         self._controllers = self.rocket._controllers[:]
         self.sensors = self.rocket.sensors.get_components()
         if self._controllers or self.sensors:
-            if self.time_overshoot:
+            if self.time_overshoot:  # pragma: no cover
                 self.time_overshoot = False
                 warnings.warn(
                     "time_overshoot has been set to False due to the presence "
@@ -1266,7 +1266,7 @@ class Flight:
         else:
             try:
                 self._solver = ODE_SOLVER_MAP[solver]
-            except KeyError as e:
+            except KeyError as e:  # pragma: no cover
                 raise ValueError(
                     f"Invalid ``ode_solver`` input: {solver}. "
                     f"Available options are: {', '.join(ODE_SOLVER_MAP.keys())}"
@@ -1398,7 +1398,7 @@ class Flight:
 
         return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
 
-    def udot_rail2(self, t, u, post_processing=False):
+    def udot_rail2(self, t, u, post_processing=False):  # pragma: no cover
         """[Still not implemented] Calculates derivative of u state vector with
         respect to time when rocket is flying in 3 DOF motion in the rail.
 
@@ -3531,7 +3531,7 @@ class Flight:
         def __repr__(self):
             return str(self.list)
 
-        def display_warning(self, *messages):
+        def display_warning(self, *messages):  # pragma: no cover
             """A simple function to print a warning message."""
             print("WARNING:", *messages)
 

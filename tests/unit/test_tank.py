@@ -1,9 +1,12 @@
 from math import isclose
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
 import pytest
 import scipy.integrate as spi
+
+from rocketpy.motors import TankGeometry
 
 BASE_PATH = Path("./data/rockets/berkeley/")
 
@@ -355,3 +358,8 @@ def test_mass_flow_rate_tank_inertia(
         atol=1e-3,
         rtol=1e-2,
     )
+
+
+@patch("matplotlib.pyplot.show")
+def test_tank_geometry_plots_info(mock_show):  # pylint: disable=unused-argument
+    assert TankGeometry({(0, 5): 1}).plots.all() is None

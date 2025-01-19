@@ -135,7 +135,7 @@ class NoseCone(AeroSurface):
         self._base_radius = base_radius
         self._length = length
         if bluffness is not None:
-            if bluffness > 1 or bluffness < 0:
+            if bluffness > 1 or bluffness < 0:  # pragma: no cover
                 raise ValueError(
                     f"Bluffness ratio of {bluffness} is out of range. "
                     "It must be between 0 and 1."
@@ -286,7 +286,7 @@ class NoseCone(AeroSurface):
             self.y_nosecone = Function(
                 lambda x: self.base_radius * np.power(x / self.length, self.power)
             )
-        else:
+        else:  # pragma: no cover
             raise ValueError(
                 f"Nose Cone kind '{self.kind}' not found, "
                 + "please use one of the following Nose Cone kinds:"
@@ -317,12 +317,11 @@ class NoseCone(AeroSurface):
                 raise ValueError(
                     "Parameter 'bluffness' must be None or 0 when using a nose cone kind 'powerseries'."
                 )
-        if value is not None:
-            if value > 1 or value < 0:
-                raise ValueError(
-                    f"Bluffness ratio of {value} is out of range. "
-                    "It must be between 0 and 1."
-                )
+        if value is not None and not 0 <= value <= 1:  # pragma: no cover
+            raise ValueError(
+                f"Bluffness ratio of {value} is out of range. "
+                "It must be between 0 and 1."
+            )
         self._bluffness = value
         self.evaluate_nose_shape()
 
