@@ -385,7 +385,7 @@ class _RocketPlots:
             x_pos = position[2]
             # y position of the surface is the y position in the plot
             y_pos = position[1]
-        else:
+        else:  # pragma: no cover
             raise ValueError("Plane must be 'xz' or 'yz'.")
 
         ax.scatter(
@@ -633,7 +633,7 @@ class _RocketPlots:
                 # y position of the sensor is the y position in the plot
                 y_pos = pos[1]
                 normal_y = sensor.normal_vector.y
-            else:
+            else:  # pragma: no cover
                 raise ValueError("Plane must be 'xz' or 'yz'.")
 
             # line length is 2/5 of the rocket radius

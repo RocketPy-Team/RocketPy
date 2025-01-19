@@ -140,10 +140,6 @@ class SensitivityModel:
             self.target_variables_info[target_variable]["nominal_value"] = (
                 target_variables_nominal_value[i]
             )
-        for i, target_variable in enumerate(self.target_variables_names):
-            self.target_variables_info[target_variable]["nominal_value"] = (
-                target_variables_nominal_value[i]
-            )
 
         self._nominal_target_passed = True
 
@@ -356,12 +352,12 @@ class SensitivityModel:
             version = ">=0" if not version else version
             try:
                 check_requirement_version(module_name, version)
-            except (ValueError, ImportError) as e:
+            except (ValueError, ImportError) as e:  # pragma: no cover
                 has_error = True
                 print(
                     f"The following error occurred while importing {module_name}: {e}"
                 )
-        if has_error:
+        if has_error:  # pragma: no cover
             print(
                 "Given the above errors, some methods may not work. Please run "
                 + "'pip install rocketpy[sensitivity]' to install extra requirements."

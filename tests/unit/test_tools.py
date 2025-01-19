@@ -6,6 +6,7 @@ from rocketpy.tools import (
     euler313_to_quaternions,
     find_roots_cubic_function,
     haversine,
+    tuple_handler,
 )
 
 
@@ -72,3 +73,30 @@ def test_cardanos_root_finding():
 def test_haversine(lat0, lon0, lat1, lon1, expected_distance):
     distance = haversine(lat0, lon0, lat1, lon1)
     assert np.isclose(distance, expected_distance, rtol=1e-2)
+
+
+@pytest.mark.parametrize(
+    "input_value, expected_output",
+    [
+        (5, (0, 5)),
+        (3.5, (0, 3.5)),
+        ([7], (0, 7)),
+        ((8,), (0, 8)),
+        ([2, 4], (2, 4)),
+        ((1, 3), (1, 3)),
+    ],
+)
+def test_tuple_handler(input_value, expected_output):
+    assert tuple_handler(input_value) == expected_output
+
+
+@pytest.mark.parametrize(
+    "input_value, expected_exception",
+    [
+        ([1, 2, 3], ValueError),
+        ((4, 5, 6), ValueError),
+    ],
+)
+def test_tuple_handler_exceptions(input_value, expected_exception):
+    with pytest.raises(expected_exception):
+        tuple_handler(input_value)

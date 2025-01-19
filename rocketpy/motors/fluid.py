@@ -30,9 +30,9 @@ class Fluid:
             If the density is not a positive number.
         """
 
-        if not isinstance(self.name, str):
+        if not isinstance(self.name, str):  # pragma: no cover
             raise ValueError("The name must be a string.")
-        if self.density < 0:
+        if self.density < 0:  # pragma: no cover
             raise ValueError("The density must be a positive number.")
 
         # Initialize plots and prints object

@@ -1,7 +1,13 @@
 import pytest
 
-from rocketpy import NoseCone, RailButtons, Tail, TrapezoidalFins
-from rocketpy.rocket.aero_surface.fins.free_form_fins import FreeFormFins
+from rocketpy.rocket.aero_surface import (
+    EllipticalFins,
+    FreeFormFins,
+    NoseCone,
+    RailButtons,
+    Tail,
+    TrapezoidalFins,
+)
 
 
 @pytest.fixture
@@ -93,4 +99,17 @@ def calisto_rail_buttons():
         buttons_distance=0.7,
         angular_position=45,
         name="Rail Buttons",
+    )
+
+
+@pytest.fixture
+def elliptical_fin_set():
+    return EllipticalFins(
+        n=4,
+        span=0.100,
+        root_chord=0.120,
+        rocket_radius=0.0635,
+        cant_angle=0,
+        airfoil=None,
+        name="Test Elliptical Fins",
     )

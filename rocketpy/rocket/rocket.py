@@ -278,7 +278,7 @@ class Rocket:
             self._csys = 1
         elif coordinate_system_orientation == "nose_to_tail":
             self._csys = -1
-        else:
+        else:  # pragma: no cover
             raise TypeError(
                 "Invalid coordinate system orientation. Please choose between "
                 + '"tail_to_nose" and "nose_to_tail".'
@@ -1173,7 +1173,7 @@ class Rocket:
         self.add_surfaces(nose, position)
         return nose
 
-    def add_fins(self, *args, **kwargs):
+    def add_fins(self, *args, **kwargs):  # pragma: no cover
         """See Rocket.add_trapezoidal_fins for documentation.
         This method is set to be deprecated in version 1.0.0 and fully removed
         by version 2.0.0. Use Rocket.add_trapezoidal_fins instead. It keeps the

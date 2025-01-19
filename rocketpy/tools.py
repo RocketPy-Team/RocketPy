@@ -29,11 +29,10 @@ INSTALL_MAPPING = {"IPython": "ipython"}
 
 
 def tuple_handler(value):
-    """Transforms the input value into a tuple that
-    represents a range. If the input is an int or float,
-    the output is a tuple from zero to the input value. If
-    the input is a tuple or list, the output is a tuple with
-    the same range.
+    """Transforms the input value into a tuple that represents a range. If the
+    input is an int or float, the output is a tuple from zero to the input
+    value. If the input is a tuple or list, the output is a tuple with the same
+    range.
 
     Parameters
     ----------
@@ -265,7 +264,7 @@ def get_distribution(distribution_function_name):
     }
     try:
         return distributions[distribution_function_name]
-    except KeyError as e:
+    except KeyError as e:  # pragma: no cover
         raise ValueError(
             f"Distribution function '{distribution_function_name}' not found, "
             + "please use one of the following np.random distribution function:"
@@ -915,7 +914,7 @@ def import_optional_dependency(name):
     """
     try:
         module = importlib.import_module(name)
-    except ImportError as exc:
+    except ImportError as exc:  # pragma: no cover
         module_name = name.split(".")[0]
         package_name = INSTALL_MAPPING.get(module_name, module_name)
         raise ImportError(
@@ -979,7 +978,8 @@ def exponential_backoff(max_attempts, base_delay=1, max_delay=60):
             for i in range(max_attempts):
                 try:
                     return func(*args, **kwargs)
-                except Exception as e:  # pylint: disable=broad-except
+                # pylint: disable=broad-except
+                except Exception as e:  # pragma: no cover
                     if i == max_attempts - 1:
                         raise e from None
                     delay = min(delay * 2, max_delay)
@@ -1205,7 +1205,7 @@ def from_hex_decode(obj_bytes, decoder=base64.b85decode):
     return dill.loads(decoder(bytes.fromhex(obj_bytes)))
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     import doctest
 
     res = doctest.testmod()

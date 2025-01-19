@@ -10,9 +10,12 @@ from rocketpy import Flight
 plt.rcParams.update({"figure.max_open_warning": 0})
 
 
+@pytest.mark.parametrize(
+    "flight_fixture", ["flight_calisto_robust", "flight_calisto_robust_solid_eom"]
+)
 @patch("matplotlib.pyplot.show")
 # pylint: disable=unused-argument
-def test_all_info(mock_show, flight_calisto_robust):
+def test_all_info(mock_show, request, flight_fixture):
     """Test that the flight class is working as intended. This basically calls
     the all_info() method and checks if it returns None. It is not testing if
     the values are correct, but whether the method is working without errors.
@@ -21,11 +24,13 @@ def test_all_info(mock_show, flight_calisto_robust):
     ----------
     mock_show : unittest.mock.MagicMock
         Mock object to replace matplotlib.pyplot.show
-    flight_calisto_robust : rocketpy.Flight
-        Flight object to be tested. See the conftest.py file for more info
-        regarding this pytest fixture.
+    request : _pytest.fixtures.FixtureRequest
+        Request object to access the fixture dynamically.
+    flight_fixture : str
+        Name of the flight fixture to be tested.
     """
-    assert flight_calisto_robust.all_info() is None
+    flight = request.getfixturevalue(flight_fixture)
+    assert flight.all_info() is None
 
 
 @pytest.mark.slow

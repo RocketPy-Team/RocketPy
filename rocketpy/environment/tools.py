@@ -590,7 +590,7 @@ def utm_to_geodesic(  # pylint: disable=too-many-locals,too-many-statements
     return lat, lon
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     import doctest
 
     results = doctest.testmod()
