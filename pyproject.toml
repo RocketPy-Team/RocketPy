@@ -89,3 +89,31 @@ ignore = [
 exclude = [
     '.git,__pycache__',
 ]
+
+
+[tool.ruff]
+target-version = "py39"
+line-length = 88
+indent-width = 4
+
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+ignore = [
+    "F401", # too many errors on __init__.py files (imported but unused)
+]
+
+[tool.ruff.format]
+
+# NOTE: ruff formatter is still not working properly with black.
+
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = false
+docstring-code-line-length = "dynamic"
+
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"

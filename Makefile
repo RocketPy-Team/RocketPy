@@ -36,6 +36,9 @@ lint: flake8 pylint
 flake8:
 	flake8 rocketpy/ tests/
 
+ruff:
+	ruff check rocketpy/ tests/ --output-file=.ruff-report.txt
+
 pylint:
 	-pylint rocketpy/ tests/ --output=.pylint-report.txt
 

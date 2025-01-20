@@ -240,6 +240,7 @@
         "Projeto",
         "prometheus",
         "pydata",
+        "pydocstyle",
         "pylint",
         "pylintrc",
         "PYPI",

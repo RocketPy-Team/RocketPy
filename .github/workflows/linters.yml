@@ -28,7 +28,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install .[all]
         pip install .[tests]
-        pip install pylint isort black
+        pip install pylint isort black ruff
     - name: Run isort
       run: isort --check-only rocketpy/ tests/ docs/ --profile black
     - name: Run black
@@ -36,6 +36,8 @@ jobs:
       with:
         options: "--check rocketpy/ tests/ docs/"
         jupyter: true
+    - name: Run ruff
+      run: ruff check rocketpy/ tests/
     - name: Run pylint
       run: |
         pylint rocketpy/ tests/
