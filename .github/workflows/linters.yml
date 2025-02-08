@@ -29,8 +29,10 @@ jobs:
         pip install .[all]
         pip install .[tests]
         pip install pylint ruff
-    - name: Run ruff
+    - name: Ruff (lint)
       run: ruff check --output-format=github .
-    - name: Run pylint
+    - name: Ruff (format)
+      run: ruff format --check .
+    - name: Pylint
       run: |
         pylint rocketpy/ tests/ docs/
