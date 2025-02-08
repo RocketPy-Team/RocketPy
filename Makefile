@@ -30,10 +30,10 @@ format:
 lint: ruff-lint pylint
 
 ruff-lint:
-	ruff check rocketpy/ tests/ --output-file=.ruff-report.txt
+	ruff check rocketpy/ tests/ docs/ --output-file=.ruff-report.txt
 
 pylint:
-	-pylint rocketpy/ tests/ --output=.pylint-report.txt
+	-pylint rocketpy/ tests/ docs/ --output=.pylint-report.txt
 
 build-docs:
 	cd docs && $(PYTHON) -m pip install -r requirements.txt && make html
