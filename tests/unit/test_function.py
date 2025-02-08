@@ -790,7 +790,6 @@ def test_low_pass_filter(alpha):
 
 
 def test_average_function_ndarray():
-
     dummy_function = Function(
         source=[
             [0, 0],
@@ -815,7 +814,6 @@ def test_average_function_ndarray():
 
 
 def test_average_function_callable():
-
     dummy_function = Function(lambda x: 2)
     avg_function = dummy_function.average_function(lower=0)
 

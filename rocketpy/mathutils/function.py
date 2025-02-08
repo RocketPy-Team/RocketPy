@@ -1,5 +1,5 @@
 # pylint: disable=too-many-lines
-""" The mathutils/function.py is a rocketpy module totally dedicated to function
+"""The mathutils/function.py is a rocketpy module totally dedicated to function
 operations, including interpolation, extrapolation, integration, differentiation
 and more. This is a core class of our package, and should be maintained
 carefully as it may impact all the rest of the project.
@@ -415,7 +415,6 @@ class Function:  # pylint: disable=too-many-public-methods
             self._interpolation_func = spline_interpolation
 
         elif interpolation == 4:  # shepard
-
             # pylint: disable=unused-argument
             def shepard_interpolation(x, x_min, x_max, x_data, y_data, _):
                 arg_qty, arg_dim = x.shape
@@ -440,7 +439,6 @@ class Function:  # pylint: disable=too-many-public-methods
             self._interpolation_func = shepard_interpolation
 
         elif interpolation == 5:  # RBF
-
             interpolator = RBFInterpolator(self._domain, self._image, neighbors=100)
 
             def rbf_interpolation(
@@ -467,7 +465,6 @@ class Function:  # pylint: disable=too-many-public-methods
             self._extrapolation_func = zero_extrapolation
         elif extrapolation == 1:  # natural
             if interpolation == 0:  # linear
-
                 if self.__dom_dim__ == 1:
 
                     def natural_extrapolation(
@@ -519,7 +516,6 @@ class Function:  # pylint: disable=too-many-public-methods
                     return a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
 
             elif interpolation == 4:  # shepard
-
                 # pylint: disable=unused-argument
                 def natural_extrapolation(x, x_min, x_max, x_data, y_data, _):
                     arg_qty, arg_dim = x.shape
@@ -542,7 +538,6 @@ class Function:  # pylint: disable=too-many-public-methods
                     return result
 
             elif interpolation == 5:  # RBF
-
                 interpolator = RBFInterpolator(self._domain, self._image, neighbors=100)
 
                 def natural_extrapolation(
@@ -552,7 +547,6 @@ class Function:  # pylint: disable=too-many-public-methods
 
             self._extrapolation_func = natural_extrapolation
         elif extrapolation == 2:  # constant
-
             if self.__dom_dim__ == 1:
 
                 def constant_extrapolation(
@@ -561,7 +555,6 @@ class Function:  # pylint: disable=too-many-public-methods
                     return y_data[0] if x < x_min else y_data[-1]
 
             else:
-
                 extrapolator = NearestNDInterpolator(self._domain, self._image)
 
                 def constant_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):

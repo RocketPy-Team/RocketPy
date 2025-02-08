@@ -538,7 +538,6 @@ class MonteCarlo:
         """
 
         if data_collector is not None:
-
             if not isinstance(data_collector, dict):
                 raise ValueError(
                     "Invalid 'data_collector' argument! "

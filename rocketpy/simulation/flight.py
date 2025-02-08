@@ -25,12 +25,12 @@ from ..tools import (
 )
 
 ODE_SOLVER_MAP = {
-    'RK23': RK23,
-    'RK45': RK45,
-    'DOP853': DOP853,
-    'Radau': Radau,
-    'BDF': BDF,
-    'LSODA': LSODA,
+    "RK23": RK23,
+    "RK45": RK45,
+    "DOP853": DOP853,
+    "Radau": Radau,
+    "BDF": BDF,
+    "LSODA": LSODA,
 }
 
 

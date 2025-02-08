@@ -715,7 +715,6 @@ class Environment:
         if not isinstance(latitude, NUMERICAL_TYPES) and isinstance(
             longitude, NUMERICAL_TYPES
         ):  # pragma: no cover
-
             raise TypeError("Latitude and Longitude must be numbers!")
 
         # Store latitude and longitude
@@ -2578,7 +2577,7 @@ class Environment:
         try:
             return ellipsoid[datum]
         except KeyError as e:  # pragma: no cover
-            available_datums = ', '.join(ellipsoid.keys())
+            available_datums = ", ".join(ellipsoid.keys())
             raise AttributeError(
                 f"The reference system '{datum}' is not recognized. Please use one of "
                 f"the following recognized datum: {available_datums}"

@@ -347,17 +347,17 @@ class GenericSurface:
             return Function(
                 lambda alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate: 0,
                 [
-                    'alpha',
-                    'beta',
-                    'mach',
-                    'reynolds',
-                    'pitch_rate',
-                    'yaw_rate',
-                    'roll_rate',
+                    "alpha",
+                    "beta",
+                    "mach",
+                    "reynolds",
+                    "pitch_rate",
+                    "yaw_rate",
+                    "roll_rate",
                 ],
                 [coeff_name],
-                interpolation='linear',
-                extrapolation='natural',
+                interpolation="linear",
+                extrapolation="natural",
             )
         else:
             raise TypeError(
@@ -384,7 +384,7 @@ class GenericSurface:
             pitch_rate, yaw_rate, roll_rate).
         """
         try:
-            with open(file_path, mode='r') as file:
+            with open(file_path, mode="r") as file:
                 reader = csv.reader(file)
                 header = next(reader)
         except (FileNotFoundError, IOError) as e:
@@ -395,13 +395,13 @@ class GenericSurface:
 
         # TODO make header strings flexible (e.g. 'alpha', 'Alpha', 'ALPHA')
         independent_vars = [
-            'alpha',
-            'beta',
-            'mach',
-            'reynolds',
-            'pitch_rate',
-            'yaw_rate',
-            'roll_rate',
+            "alpha",
+            "beta",
+            "mach",
+            "reynolds",
+            "pitch_rate",
+            "yaw_rate",
+            "roll_rate",
         ]
         present_columns = [col for col in independent_vars if col in header]
 
@@ -419,8 +419,8 @@ class GenericSurface:
         # Initialize the CSV-based function
         csv_func = Function(
             file_path,
-            interpolation='linear',
-            extrapolation='natural',
+            interpolation="linear",
+            extrapolation="natural",
         )
 
         # Create a mask for the presence of each independent variable
@@ -439,7 +439,7 @@ class GenericSurface:
             wrapper,
             independent_vars,
             [coeff_name],
-            interpolation='linear',
-            extrapolation='natural',
+            interpolation="linear",
+            extrapolation="natural",
         )
         return func

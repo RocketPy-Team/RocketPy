@@ -1,4 +1,4 @@
-""""This module contains auxiliary functions for helping with the Environment
+"""This module contains auxiliary functions for helping with the Environment
 classes operations. The functions mainly deal with wind calculations and
 interpolation of data from netCDF4 datasets. As this is a recent addition to
 the library (introduced in version 1.5.0), some functions may be modified in the
