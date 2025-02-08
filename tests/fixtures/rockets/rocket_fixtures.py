@@ -52,17 +52,19 @@ def calisto(calisto_motorless, cesaroni_m1670):  # old name: rocket
 
 
 @pytest.fixture
-def calisto_nose_to_tail(cesaroni_m1670):
+def calisto_nose_to_tail(
+    cesaroni_m1670,
+    calisto_nose_cone,
+    calisto_tail,
+    calisto_trapezoidal_fins,
+    calisto_main_chute,
+    calisto_drogue_chute,
+):
     """Create a simple object of the Rocket class to be used in the tests. This
     is the same as the calisto fixture, but with the coordinate system
     orientation set to "nose_to_tail" instead of "tail_to_nose". This allows to
     check if the coordinate system orientation is being handled correctly in
     the code.
-
-    Parameters
-    ----------
-    cesaroni_m1670 : rocketpy.SolidMotor
-        An object of the SolidMotor class. This is a pytest fixture too.
 
     Returns
     -------
@@ -85,17 +87,22 @@ def calisto_nose_to_tail(cesaroni_m1670):
         lower_button_position=0.618,
         angular_position=0,
     )
+    calisto.add_surfaces(calisto_nose_cone, -1.160)
+    calisto.add_surfaces(calisto_tail, 1.313)
+    calisto.add_surfaces(calisto_trapezoidal_fins, 1.168)
+    calisto.parachutes.append(calisto_main_chute)
+    calisto.parachutes.append(calisto_drogue_chute)
     return calisto
 
 
 @pytest.fixture
-def calisto_liquid_modded(calisto_motorless, liquid_motor):
+def calisto_liquid_modded(calisto_robust, liquid_motor):
     """Create a simple object of the Rocket class to be used in the tests. This
     is an example of the Calisto rocket with a liquid motor.
 
     Parameters
     ----------
-    calisto_motorless : rocketpy.Rocket
+    calisto_robust : rocketpy.Rocket
         An object of the Rocket class. This is a pytest fixture too.
     liquid_motor : rocketpy.LiquidMotor
 
@@ -104,30 +111,24 @@ def calisto_liquid_modded(calisto_motorless, liquid_motor):
     rocketpy.Rocket
         A simple object of the Rocket class
     """
-    calisto = calisto_motorless
-    calisto.add_motor(liquid_motor, position=-1.373)
-    return calisto
+    # Position set to avoid negative Static Margin
+    calisto_robust.add_motor(liquid_motor, position=0)
+    return calisto_robust
 
 
 @pytest.fixture
-def calisto_hybrid_modded(calisto_motorless, hybrid_motor):
+def calisto_hybrid_modded(calisto_robust, hybrid_motor):
     """Create a simple object of the Rocket class to be used in the tests. This
     is an example of the Calisto rocket with a hybrid motor.
-
-    Parameters
-    ----------
-    calisto_motorless : rocketpy.Rocket
-        An object of the Rocket class. This is a pytest fixture too.
-    hybrid_motor : rocketpy.HybridMotor
 
     Returns
     -------
     rocketpy.Rocket
         A simple object of the Rocket class
     """
-    calisto = calisto_motorless
-    calisto.add_motor(hybrid_motor, position=-1.373)
-    return calisto
+    # Position set to avoid negative Static Margin
+    calisto_robust.add_motor(hybrid_motor, position=0)
+    return calisto_robust
 
 
 @pytest.fixture
@@ -388,3 +389,58 @@ def prometheus_rocket(generic_motor_cesaroni_M1520):
         trigger=457.2,  # 1500 ft
     )
     return prometheus
+
+
+@pytest.fixture
+def ndrt_2020_rocket(cesaroni_l1395):
+    rocket = Rocket(
+        radius=0.1015,
+        mass=18.998,
+        inertia=(
+            73.316,
+            73.316,
+            0.15982,
+        ),
+        power_off_drag=0.44,
+        power_on_drag=0.44,
+        center_of_mass_without_motor=1.3,
+        coordinate_system_orientation="nose_to_tail",
+    )
+    rocket.set_rail_buttons(1.5, 2, 45)
+    rocket.add_motor(cesaroni_l1395, 3.391)
+    rocket.add_nose(
+        length=0.610,
+        kind="tangent",
+        position=0,
+    )
+    rocket.add_trapezoidal_fins(
+        3,
+        span=0.165,
+        root_chord=0.152,
+        tip_chord=0.0762,
+        position=3.050,
+    )
+    rocket.add_tail(
+        top_radius=0.1015,
+        bottom_radius=0.0775,
+        length=0.127,
+        position=1.2,
+    )
+
+    rocket.add_parachute(
+        "Drogue",
+        cd_s=1.5 * np.pi * (24 * 25.4 / 1000) * (24 * 25.4 / 1000) / 4,
+        trigger="apogee",
+        sampling_rate=105,
+        lag=1,
+        noise=(0, 8.3, 0.5),
+    )
+    rocket.add_parachute(
+        "Main",
+        cd_s=2.2 * np.pi * (120 * 25.4 / 1000) * (120 * 25.4 / 1000) / 4,
+        trigger=167.64,  # 550 ft
+        sampling_rate=105,
+        lag=1,
+        noise=(0, 8.3, 0.5),
+    )
+    return rocket

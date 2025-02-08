@@ -489,7 +489,7 @@ def test_empty_motor_flight(mock_show, example_plain_env, calisto_motorless):  #
     assert flight.all_info() is None
 
 
-def test_freestream_speed_at_apogee(example_plain_env, calisto):
+def test_freestream_speed_at_apogee(example_plain_env, calisto_robust):
     """
     Asserts that a rocket at apogee has a free stream speed of 0.0 m/s in all
     directions given that the environment doesn't have any wind.
@@ -499,7 +499,7 @@ def test_freestream_speed_at_apogee(example_plain_env, calisto):
     soft_atol = 1e-6
     test_flight = Flight(
         environment=example_plain_env,
-        rocket=calisto,
+        rocket=calisto_robust,
         rail_length=5.2,
         inclination=90,
         heading=0,

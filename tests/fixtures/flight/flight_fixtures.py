@@ -4,7 +4,7 @@ from rocketpy import Flight
 
 
 @pytest.fixture
-def flight_calisto(calisto, example_plain_env):  # old name: flight
+def flight_calisto(calisto_robust, example_plain_env):  # old name: flight
     """A rocketpy.Flight object of the Calisto rocket. This uses the calisto
     without the aerodynamic surfaces and parachutes. The environment is the
     simplest possible, with no parameters set.
@@ -24,7 +24,7 @@ def flight_calisto(calisto, example_plain_env):  # old name: flight
     """
     return Flight(
         environment=example_plain_env,
-        rocket=calisto,
+        rocket=calisto_robust,
         rail_length=5.2,
         inclination=85,
         heading=0,

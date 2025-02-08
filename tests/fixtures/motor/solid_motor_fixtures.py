@@ -7,6 +7,29 @@ from rocketpy import SolidMotor
 
 
 @pytest.fixture
+def cesaroni_l1395():
+    return SolidMotor(
+        thrust_source="data/motors/cesaroni/Cesaroni_4895L1395-P.eng",
+        burn_time=(0, 3.433),
+        dry_mass=1.848,
+        dry_inertia=(0, 0, 0),
+        center_of_dry_mass_position=-0.35,
+        grains_center_of_mass_position=-0.35,
+        grain_number=5,
+        grain_separation=0.003,
+        grain_density=1519.708,
+        grain_outer_radius=0.033,
+        grain_initial_inner_radius=15 / 1000,
+        grain_initial_height=120 / 1000,
+        nozzle_radius=0.02475,
+        throat_radius=0.01075,
+        interpolation_method="linear",
+        nozzle_position=0,
+        coordinate_system_orientation="combustion_chamber_to_nozzle",
+    )
+
+
+@pytest.fixture
 def cesaroni_m1670():  # old name: solid_motor
     """Create a simple object of the SolidMotor class to be used in the tests.
     This is the same motor that has been used in the getting started guide for
