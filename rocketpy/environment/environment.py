@@ -27,9 +27,6 @@ from rocketpy.environment.tools import (
     find_latitude_index,
     find_longitude_index,
     find_time_index,
-)
-from rocketpy.environment.tools import geodesic_to_utm as geodesic_to_utm_tools
-from rocketpy.environment.tools import (
     get_elevation_data_from_dataset,
     get_final_date_from_time_array,
     get_initial_date_from_time_array,
@@ -37,6 +34,7 @@ from rocketpy.environment.tools import (
     get_pressure_levels_from_file,
     mask_and_clean_dataset,
 )
+from rocketpy.environment.tools import geodesic_to_utm as geodesic_to_utm_tools
 from rocketpy.environment.tools import utm_to_geodesic as utm_to_geodesic_tools
 from rocketpy.environment.weather_model_mapping import WeatherModelMapping
 from rocketpy.mathutils.function import NUMERICAL_TYPES, Function, funcify_method
@@ -1444,9 +1442,7 @@ class Environment:
 
         self._max_expected_height = max_expected_height
 
-    def process_windy_atmosphere(
-        self, model="ECMWF"
-    ):  # pylint: disable=too-many-statements
+    def process_windy_atmosphere(self, model="ECMWF"):  # pylint: disable=too-many-statements
         """Process data from Windy.com to retrieve atmospheric forecast data.
 
         Parameters
@@ -1689,9 +1685,7 @@ class Environment:
         )
         return file
 
-    def process_forecast_reanalysis(
-        self, file, dictionary
-    ):  # pylint: disable=too-many-locals,too-many-statements
+    def process_forecast_reanalysis(self, file, dictionary):  # pylint: disable=too-many-locals,too-many-statements
         """Import and process atmospheric data from weather forecasts
         and reanalysis given as ``netCDF`` or ``OPeNDAP`` files.
         Sets pressure, temperature, wind-u and wind-v
@@ -1947,9 +1941,7 @@ class Environment:
         # Close weather data
         data.close()
 
-    def process_ensemble(
-        self, file, dictionary
-    ):  # pylint: disable=too-many-locals,too-many-statements
+    def process_ensemble(self, file, dictionary):  # pylint: disable=too-many-locals,too-many-statements
         """Import and process atmospheric data from weather ensembles
         given as ``netCDF`` or ``OPeNDAP`` files. Sets pressure, temperature,
         wind-u and wind-v profiles and surface elevation obtained from a weather

@@ -172,9 +172,7 @@ class MonteCarlo:
             self._error_file = f"{filename}.errors.txt"
 
     # pylint: disable=consider-using-with
-    def simulate(
-        self, number_of_simulations, append=False, **kwargs
-    ):  # pylint: disable=too-many-statements
+    def simulate(self, number_of_simulations, append=False, **kwargs):  # pylint: disable=too-many-statements
         """
         Runs the Monte Carlo simulation and saves all data.
 

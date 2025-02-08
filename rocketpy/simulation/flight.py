@@ -1036,7 +1036,8 @@ class Flight:
                                             i += 1
                                         # Create flight phase for time after inflation
                                         callbacks = [
-                                            lambda self, parachute_cd_s=parachute.cd_s: setattr(
+                                            lambda self,
+                                            parachute_cd_s=parachute.cd_s: setattr(
                                                 self, "parachute_cd_s", parachute_cd_s
                                             )
                                         ]
@@ -1422,9 +1423,7 @@ class Flight:
         # Hey! We will finish this function later, now we just can use u_dot
         return self.u_dot_generalized(t, u, post_processing=post_processing)
 
-    def u_dot(
-        self, t, u, post_processing=False
-    ):  # pylint: disable=too-many-locals,too-many-statements
+    def u_dot(self, t, u, post_processing=False):  # pylint: disable=too-many-locals,too-many-statements
         """Calculates derivative of u state vector with respect to time
         when rocket is flying in 6 DOF motion during ascent out of rail
         and descent without parachute.
@@ -1717,9 +1716,7 @@ class Flight:
 
         return u_dot
 
-    def u_dot_generalized(
-        self, t, u, post_processing=False
-    ):  # pylint: disable=too-many-locals,too-many-statements
+    def u_dot_generalized(self, t, u, post_processing=False):  # pylint: disable=too-many-locals,too-many-statements
         """Calculates derivative of u state vector with respect to time when the
         rocket is flying in 6 DOF motion in space and significant mass variation
         effects exist. Typical flight phases include powered ascent after launch
@@ -3626,7 +3623,9 @@ class Flight:
             new_index = (
                 index - 1
                 if flight_phase.t < previous_phase.t
-                else index + 1 if flight_phase.t > next_phase.t else index
+                else index + 1
+                if flight_phase.t > next_phase.t
+                else index
             )
             flight_phase.t += adjust
             self.add(flight_phase, new_index)

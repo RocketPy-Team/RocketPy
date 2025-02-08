@@ -23,20 +23,13 @@ install:
 	pip install -r requirements-optional.txt
 	pip install -e .
 
-format: isort black
+format:
+	ruff check --select I --fix rocketpy/ tests/ docs/
+	ruff format rocketpy/ tests/ docs/
 
-isort:
-	isort --profile black rocketpy/ tests/ docs/
+lint: ruff-lint pylint
 
-black:
-	black rocketpy/ tests/ docs/
-
-lint: flake8 pylint
-
-flake8:
-	flake8 rocketpy/ tests/
-
-ruff:
+ruff-lint:
 	ruff check rocketpy/ tests/ --output-file=.ruff-report.txt
 
 pylint:

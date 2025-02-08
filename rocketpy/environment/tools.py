@@ -442,9 +442,7 @@ def get_interval_date_from_time_array(time_array, units=None):
 # Geodesic conversions functions
 
 
-def geodesic_to_utm(
-    lat, lon, semi_major_axis=6378137.0, flattening=1 / 298.257223563
-):  # pylint: disable=too-many-locals,too-many-statements
+def geodesic_to_utm(lat, lon, semi_major_axis=6378137.0, flattening=1 / 298.257223563):  # pylint: disable=too-many-locals,too-many-statements
     # NOTE: already documented in the Environment class.
     # TODO: deprecated the static method from the environment class, use only this one.
 

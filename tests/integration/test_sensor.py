@@ -89,9 +89,7 @@ class TestIdealSensors:
 
 @pytest.mark.parametrize("plane", ["xz", "yz"])
 @patch("matplotlib.pyplot.show")
-def test_draw(
-    mock_show, calisto_with_sensors, plane
-):  # pylint: disable=unused-argument
+def test_draw(mock_show, calisto_with_sensors, plane):  # pylint: disable=unused-argument
     """Test the drawing of the sensors."""
     calisto_with_sensors.draw(plane=plane)
 
