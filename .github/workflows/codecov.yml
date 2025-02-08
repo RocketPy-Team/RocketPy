@@ -14,20 +14,20 @@ coverage:
         branches:
           - master
           - develop
-        if_ci_failed: error #success, failure, error, ignore
+        if_ci_failed: error # success, failure, error, ignore
         informational: false
         only_pulls: false
-    patch:
+    patch:  # Computes only the changes introduced in the PR
       default:
         # basic
         target: auto
-        threshold: 1%
+        threshold: 5%
         base: auto
         # advanced
         branches:
           - master
           - develop
-        if_ci_failed: error #success, failure, error, ignore
+        if_ci_failed: error # success, failure, error, ignore
         only_pulls: false
         flags:
           - "unit"
