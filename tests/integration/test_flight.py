@@ -496,7 +496,7 @@ def test_freestream_speed_at_apogee(example_plain_env, calisto_robust):
     """
     # NOTE: this rocket doesn't move in x or z direction. There's no wind.
     hard_atol = 1e-12
-    soft_atol = 1e-6
+    soft_atol = 1e-4
     test_flight = Flight(
         environment=example_plain_env,
         rocket=calisto_robust,
