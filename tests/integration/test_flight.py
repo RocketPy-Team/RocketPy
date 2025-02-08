@@ -6,6 +6,7 @@ import numpy as np
 import pytest
 
 from rocketpy import Flight
+from rocketpy.exceptions import UnstableRocketError
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
@@ -521,3 +522,15 @@ def test_freestream_speed_at_apogee(example_plain_env, calisto_robust):
         test_flight.free_stream_speed(test_flight.apogee_time), 0.0, atol=soft_atol
     )
     assert np.isclose(test_flight.apogee_freestream_speed, 0.0, atol=soft_atol)
+
+
+def test_unstable_flight_error(calisto, example_plain_env):
+    with pytest.raises(UnstableRocketError):
+        Flight(
+            rocket=calisto,
+            environment=example_plain_env,
+            rail_length=5.2,
+            inclination=85,
+            heading=0,
+            terminate_on_apogee=True,
+        )
