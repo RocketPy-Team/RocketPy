@@ -68,13 +68,15 @@ jobs:
         with:
           name: coverage
           path: coverage.xml
+          overwrite: true
+          if-no-files-found: error
 
   CodecovUpload:
     needs: Pytest
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@main
-      - name: Download all coverage reports
+      - name: Download latest coverage report
         uses: actions/download-artifact@main
       - name: Upload to Codecov
         uses: codecov/codecov-action@main
