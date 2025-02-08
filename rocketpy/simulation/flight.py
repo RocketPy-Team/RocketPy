@@ -9,6 +9,7 @@ import numpy as np
 import simplekml
 from scipy.integrate import BDF, DOP853, LSODA, RK23, RK45, OdeSolver, Radau
 
+from ..exceptions import UnstableRocketError
 from ..mathutils.function import Function, funcify_method
 from ..mathutils.vector_matrix import Matrix, Vector
 from ..plots.flight_plots import _FlightPlots
@@ -639,6 +640,7 @@ class Flight:
         self.__init_solution_monitors()
         self.__init_equations_of_motion()
         self.__init_solver_monitors()
+        self.__validate_rocket_static_margin()
 
         # Create known flight phases
         self.flight_phases = self.FlightPhases()
@@ -663,6 +665,15 @@ class Flight:
             f"heading = {self.heading},"
             f"name= {self.name})>"
         )
+
+    def __validate_rocket_static_margin(self):
+        """
+        Avoids running a flight simulation if the rocket stability margin is
+        negative. This is a common mistake that can lead to unstable flights,
+        which usually runs indefinitely.
+        """
+        if (s := self.rocket.static_margin(0)) < 0:
+            raise UnstableRocketError(s)
 
     # pylint: disable=too-many-nested-blocks, too-many-branches, too-many-locals,too-many-statements
     def __simulate(self, verbose):
