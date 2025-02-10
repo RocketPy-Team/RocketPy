@@ -99,3 +99,13 @@ def test_time_node_lt(flight_calisto):
     node2 = flight_calisto.TimeNodes.TimeNode(2.0, [], [], [])
     assert node1 < node2
     assert not node2 < node1
+
+
+def test_time_node_repr(flight_calisto):
+    node = flight_calisto.TimeNodes.TimeNode(1.0, [], [], [])
+    assert isinstance(repr(node), str)
+
+
+def test_time_nodes_repr(flight_calisto):
+    time_nodes = flight_calisto.TimeNodes()
+    assert isinstance(repr(time_nodes), str)

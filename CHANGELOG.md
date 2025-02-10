@@ -49,6 +49,27 @@ Attention: The newest changes should be on top -->
 
 -
 
+## [v1.8.0] - 2025-01-20
+
+To install this version, run `pip install rocketpy==1.8.0`
+
+### Added
+
+- DOC: EREBUS Flight Example [#757](https://github.com/RocketPy-Team/RocketPy/pull/757))
+- DOC: Lince Flight Example [#752](https://github.com/RocketPy-Team/RocketPy/pull/752)
+- DOC: Andromeda Flight Example [#754](https://github.com/RocketPy-Team/RocketPy/pull/754)
+- ENH: create a dataset of pre-registered motors. See #664 [#744](https://github.com/RocketPy-Team/RocketPy/pull/744)
+- DOC: add Defiance flight example [#742](https://github.com/RocketPy-Team/RocketPy/pull/742)
+- ENH: Allow for Alternative and Custom ODE Solvers. [#748](https://github.com/RocketPy-Team/RocketPy/pull/748)
+- ENH: Expansion of Encoders Implementation for Full Flights. [#679](https://github.com/RocketPy-Team/RocketPy/pull/679)
+
+### Changed
+
+- REL: bumps up rocketpy version to 1.8.0 [#762](https://github.com/RocketPy-Team/RocketPy/pull/762)
+- ENH: Display more information in MonteCarlo prints and plots [#760](https://github.com/RocketPy-Team/RocketPy/pull/760)
+- MNT: move piecewise functions to separate file [#746](https://github.com/RocketPy-Team/RocketPy/pull/746)
+- DOC: flight comparison improvements [#755](https://github.com/RocketPy-Team/RocketPy/pull/755)
+
 ## [v1.7.1] - 2024-12-07
 
 

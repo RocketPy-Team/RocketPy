@@ -168,7 +168,8 @@ class MonteCarlo:
         append=False,
         parallel=False,
         n_workers=None,
-    ):
+        **kwargs
+    ): # pylint: disable=too-many-statements
         """
         Runs the Monte Carlo simulation and saves all data.
 
@@ -186,6 +187,17 @@ class MonteCarlo:
             number of workers will be equal to the number of CPUs available.
             A minimum of 2 workers is required for parallel mode.
             Default is None.
+        kwargs : dict
+            Custom arguments for simulation export of the ``inputs`` file. Options
+            are:
+
+                * ``include_outputs``: whether to also include outputs data of the
+                  simulation. Default is ``False``.
+
+                * ``include_function_data``: whether to include ``rocketpy.Function``
+                  results into the export. Default is ``True``.
+
+            See ``rocketpy._encoders.RocketPyEncoder`` for more information.
 
         Returns
         -------
@@ -205,12 +217,44 @@ class MonteCarlo:
         overwritten. Make sure to save the files with the results before
         running the simulation again with `append=False`.
         """
+        self._export_config = kwargs
+        # Create data files for inputs, outputs and error logging
+        open_mode = "a" if append else "w"
+        input_file = open(self._input_file, open_mode, encoding="utf-8")
+        output_file = open(self._output_file, open_mode, encoding="utf-8")
+        error_file = open(self._error_file, open_mode, encoding="utf-8")
+
+        # initialize counters
         self.number_of_simulations = number_of_simulations
         self._initial_sim_idx = self.num_of_loaded_sims if append else 0
 
         _SimMonitor.reprint("Starting Monte Carlo analysis")
 
         self.__setup_files(append)
+        try:
+            while self.__iteration_count < self.number_of_simulations:
+                self.__run_single_simulation(input_file, output_file)
+        except KeyboardInterrupt:
+            print("Keyboard Interrupt, files saved.")
+            error_file.write(
+                json.dumps(
+                    self._inputs_dict, cls=RocketPyEncoder, **self._export_config
+                )
+                + "\n"
+            )
+            self.__close_files(input_file, output_file, error_file)
+        except Exception as error:
+            print(f"Error on iteration {self.__iteration_count}: {error}")
+            error_file.write(
+                json.dumps(
+                    self._inputs_dict, cls=RocketPyEncoder, **self._export_config
+                )
+                + "\n"
+            )
+            self.__close_files(input_file, output_file, error_file)
+            raise error
+        finally:
+            self.total_wall_time = time() - self.__start_time
 
         if parallel:
             self.__run_in_parallel(n_workers)
@@ -517,6 +561,12 @@ class MonteCarlo:
         self.error_file = self._error_file
 
         _SimMonitor.reprint(f"Results saved to {self._output_file}")
+        self.input_file.write(
+            json.dumps(self.inputs_dict, cls=RocketPyEncoder, **self._export_config) + "\n"
+        )
+        self.output_file.write(
+            json.dumps(self.results, cls=RocketPyEncoder, **self._export_config) + "\n"
+        )
 
     def __check_export_list(self, export_list):
         """
@@ -816,8 +866,16 @@ class MonteCarlo:
                 mean = np.mean(values)
                 stdev = np.std(values)
                 self.processed_results[result] = (mean, stdev)
+                pi_low = np.quantile(values, 0.025)
+                pi_high = np.quantile(values, 0.975)
+                median = np.median(values)
             except TypeError:
-                self.processed_results[result] = (None, None)
+                mean = None
+                stdev = None
+                pi_low = None
+                pi_high = None
+                median = None
+            self.processed_results[result] = (mean, median, stdev, pi_low, pi_high)
 
     # Import methods
 

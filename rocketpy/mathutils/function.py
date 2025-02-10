@@ -22,6 +22,8 @@ from scipy.interpolate import (
     RBFInterpolator,
 )
 
+from rocketpy.tools import from_hex_decode, to_hex_encode
+
 from ..plots.plot_helpers import show_or_save_plot
 
 # Numpy 1.x compatibility,
@@ -711,9 +713,9 @@ class Function:  # pylint: disable=too-many-public-methods
         if func.__dom_dim__ == 1:
             xs = np.linspace(lower, upper, samples)
             ys = func.get_value(xs.tolist()) if one_by_one else func.get_value(xs)
-            func.set_source(np.concatenate(([xs], [ys])).transpose())
-            func.set_interpolation(interpolation)
-            func.set_extrapolation(extrapolation)
+            func.__interpolation__ = interpolation
+            func.__extrapolation__ = extrapolation
+            func.set_source(np.column_stack((xs, ys)))
         elif func.__dom_dim__ == 2:
             lower = 2 * [lower] if isinstance(lower, NUMERICAL_TYPES) else lower
             upper = 2 * [upper] if isinstance(upper, NUMERICAL_TYPES) else upper
@@ -1479,7 +1481,7 @@ class Function:  # pylint: disable=too-many-public-methods
             else:
                 print("Error: Only functions with 1D or 2D domains can be plotted.")
 
-    def plot1D(self, *args, **kwargs):
+    def plot1D(self, *args, **kwargs):  # pragma: no cover
         """Deprecated method, use Function.plot_1d instead."""
         warnings.warn(
             "The `Function.plot1D` method is set to be deprecated and fully "
@@ -1579,7 +1581,7 @@ class Function:  # pylint: disable=too-many-public-methods
         if return_object:
             return fig, ax
 
-    def plot2D(self, *args, **kwargs):
+    def plot2D(self, *args, **kwargs):  # pragma: no cover
         """Deprecated method, use Function.plot_2d instead."""
         warnings.warn(
             "The `Function.plot2D` method is set to be deprecated and fully "
@@ -2770,7 +2772,7 @@ class Function:  # pylint: disable=too-many-public-methods
         """
         if order == 1:
             return float(self.get_value_opt(x + dx * 1j).imag / dx)
-        else:
+        else:  # pragma: no cover
             raise NotImplementedError(
                 "Only 1st order derivatives are supported yet. Set order=1."
             )
@@ -3117,12 +3119,12 @@ class Function:  # pylint: disable=too-many-public-methods
             The result of inputting the function into the function.
         """
         # Check if the input is a function
-        if not isinstance(func, Function):
+        if not isinstance(func, Function):  # pragma: no cover
             raise TypeError("Input must be a Function object.")
 
         if isinstance(self.source, np.ndarray) and isinstance(func.source, np.ndarray):
             # Perform bounds check for composition
-            if not extrapolate:
+            if not extrapolate:  # pragma: no cover
                 if func.min < self.x_initial or func.max > self.x_final:
                     raise ValueError(
                         f"Input Function image {func.min, func.max} must be within "
@@ -3195,7 +3197,7 @@ class Function:  # pylint: disable=too-many-public-methods
 
         # create the datapoints
         if callable(self.source):
-            if lower is None or upper is None or samples is None:
+            if lower is None or upper is None or samples is None:  # pragma: no cover
                 raise ValueError(
                     "If the source is a callable, lower, upper and samples"
                     + " must be provided."
@@ -3262,7 +3264,7 @@ class Function:  # pylint: disable=too-many-public-methods
                         self.__inputs__ = header[:-1]
                     if self.__outputs__ is None:
                         self.__outputs__ = [header[-1]]
-            except Exception as e:
+            except Exception as e:  # pragma: no cover
                 raise ValueError(
                     "Could not read the csv or txt file to create Function source."
                 ) from e
@@ -3321,6 +3323,7 @@ class Function:  # pylint: disable=too-many-public-methods
             if isinstance(inputs, (list, tuple)):
                 if len(inputs) == 1:
                     return inputs
+            # pragma: no cover
             raise ValueError(
                 "Inputs must be a string or a list of strings with "
                 "the length of the domain dimension."
@@ -3333,6 +3336,7 @@ class Function:  # pylint: disable=too-many-public-methods
                     isinstance(i, str) for i in inputs
                 ):
                     return inputs
+            # pragma: no cover
             raise ValueError(
                 "Inputs must be a list of strings with "
                 "the length of the domain dimension."
@@ -3417,6 +3421,50 @@ class Function:  # pylint: disable=too-many-public-methods
                 )
                 extrapolation = "natural"
         return extrapolation
+
+    def to_dict(self, include_outputs=False):  # pylint: disable=unused-argument
+        """Serializes the Function instance to a dictionary.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the Function's attributes.
+        """
+        source = self.source
+
+        if callable(source):
+            source = to_hex_encode(source)
+
+        return {
+            "source": source,
+            "title": self.title,
+            "inputs": self.__inputs__,
+            "outputs": self.__outputs__,
+            "interpolation": self.__interpolation__,
+            "extrapolation": self.__extrapolation__,
+        }
+
+    @classmethod
+    def from_dict(cls, func_dict):
+        """Creates a Function instance from a dictionary.
+
+        Parameters
+        ----------
+        func_dict
+            The JSON like Function dictionary.
+        """
+        source = func_dict["source"]
+        if func_dict["interpolation"] is None and func_dict["extrapolation"] is None:
+            source = from_hex_decode(source)
+
+        return cls(
+            source=source,
+            interpolation=func_dict["interpolation"],
+            extrapolation=func_dict["extrapolation"],
+            inputs=func_dict["inputs"],
+            outputs=func_dict["outputs"],
+            title=func_dict["title"],
+        )
 
 
 def funcify_method(*args, **kwargs):  # pylint: disable=too-many-statements
@@ -3565,7 +3613,7 @@ def reset_funcified_methods(instance):
             instance.__dict__.pop(key)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     import doctest
 
     results = doctest.testmod()
