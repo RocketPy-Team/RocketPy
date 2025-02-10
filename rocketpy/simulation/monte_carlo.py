@@ -168,8 +168,8 @@ class MonteCarlo:
         append=False,
         parallel=False,
         n_workers=None,
-        **kwargs
-    ): # pylint: disable=too-many-statements
+        **kwargs,
+    ):  # pylint: disable=too-many-statements
         """
         Runs the Monte Carlo simulation and saves all data.
 
@@ -562,7 +562,8 @@ class MonteCarlo:
 
         _SimMonitor.reprint(f"Results saved to {self._output_file}")
         self.input_file.write(
-            json.dumps(self.inputs_dict, cls=RocketPyEncoder, **self._export_config) + "\n"
+            json.dumps(self.inputs_dict, cls=RocketPyEncoder, **self._export_config)
+            + "\n"
         )
         self.output_file.write(
             json.dumps(self.results, cls=RocketPyEncoder, **self._export_config) + "\n"
