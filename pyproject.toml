@@ -51,7 +51,8 @@ env-analysis = [
 ]
 
 monte-carlo = [
-    "imageio",
+    "imageio", 
+    "multiprocess>=0.70",
     "statsmodels",
     "prettytable",
 ]

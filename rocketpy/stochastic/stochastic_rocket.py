@@ -144,6 +144,11 @@ class StochasticRocket(StochasticModel):
         # TODO: mention that these factors are validated differently
         self._validate_1d_array_like("power_off_drag", power_off_drag)
         self._validate_1d_array_like("power_on_drag", power_on_drag)
+        self.motors = Components()
+        self.aerodynamic_surfaces = Components()
+        self.rail_buttons = Components()
+        self.parachutes = []
+        self.__components_map = {}
         super().__init__(
             obj=rocket,
             radius=radius,
@@ -161,10 +166,53 @@ class StochasticRocket(StochasticModel):
             center_of_mass_without_motor=center_of_mass_without_motor,
             coordinate_system_orientation=None,
         )
-        self.motors = Components()
-        self.aerodynamic_surfaces = Components()
-        self.rail_buttons = Components()
-        self.parachutes = []
+
+    def _set_stochastic(self, seed=None):
+        """Set the stochastic attributes for Components, positions and
+        inputs.
+
+        Parameters
+        ----------
+        seed : int, optional
+            Seed for the random number generator.
+        """
+        super()._set_stochastic(seed)
+        self.aerodynamic_surfaces = self.__reset_components(
+            self.aerodynamic_surfaces, seed
+        )
+        self.motors = self.__reset_components(self.motors, seed)
+        self.rail_buttons = self.__reset_components(self.rail_buttons, seed)
+        for parachute in self.parachutes:
+            parachute._set_stochastic(seed)
+
+    def __reset_components(self, components, seed):
+        """Creates a new Components whose stochastic structures
+        and their positions are reset.
+
+        Parameters
+        ----------
+        components : Components
+            The components which contains the stochastic structure that
+            will be used to create the new components.
+        seed : int, optional
+            Seed for the random number generator.
+
+        Returns
+        -------
+        new_components : Components
+            A components whose stochastic structure and position match the
+            input component but are reset. Ideally, it should replace the
+            input component.
+        """
+        new_components = Components()
+        for stochastic_obj, _ in components:
+            stochastic_obj_position_info = self.__components_map[stochastic_obj]
+            stochastic_obj._set_stochastic(seed)
+            new_components.add(
+                stochastic_obj,
+                self._validate_position(stochastic_obj, stochastic_obj_position_info),
+            )
+        return new_components
 
     def add_motor(self, motor, position=None):
         """Adds a stochastic motor to the stochastic rocket. If a motor is
@@ -194,6 +242,7 @@ class StochasticRocket(StochasticModel):
                 motor = StochasticSolidMotor(solid_motor=motor)
             elif isinstance(motor, GenericMotor):
                 motor = StochasticGenericMotor(generic_motor=motor)
+        self.__components_map[motor] = position
         self.motors.add(motor, self._validate_position(motor, position))
 
     def _add_surfaces(self, surfaces, positions, type_, stochastic_type, error_message):
@@ -220,6 +269,7 @@ class StochasticRocket(StochasticModel):
             raise AssertionError(error_message)
         if isinstance(surfaces, type_):
             surfaces = stochastic_type(component=surfaces)
+        self.__components_map[surfaces] = positions
         self.aerodynamic_surfaces.add(
             surfaces, self._validate_position(surfaces, positions)
         )
@@ -333,6 +383,7 @@ class StochasticRocket(StochasticModel):
             )
         if isinstance(rail_buttons, RailButtons):
             rail_buttons = StochasticRailButtons(rail_buttons=rail_buttons)
+        self.__components_map[rail_buttons] = lower_button_position
         self.rail_buttons.add(
             rail_buttons, self._validate_position(rail_buttons, lower_button_position)
         )
@@ -357,7 +408,6 @@ class StochasticRocket(StochasticModel):
         ValueError
             If the position argument does not conform to the specified formats.
         """
-
         if isinstance(position, tuple):
             return self._validate_tuple(
                 "position",

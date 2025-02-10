@@ -69,6 +69,42 @@ def test_all_info_different_solvers(
     assert test_flight.all_info() is None
 
 
+@pytest.mark.slow
+@patch("matplotlib.pyplot.show")
+@pytest.mark.parametrize("solver_method", ["RK45", "DOP853", "Radau", "BDF"])
+# RK23 is unstable and requires a very low tolerance to work
+# pylint: disable=unused-argument
+def test_all_info_different_solvers(
+    mock_show, calisto_robust, example_spaceport_env, solver_method
+):
+    """Test that the flight class is working as intended with different solver
+    methods. This basically calls the all_info() method and checks if it returns
+    None. It is not testing if the values are correct, but whether the method is
+    working without errors.
+
+    Parameters
+    ----------
+    mock_show : unittest.mock.MagicMock
+        Mock object to replace matplotlib.pyplot.show
+    calisto_robust : rocketpy.Rocket
+        Rocket to be simulated. See the conftest.py file for more info.
+    example_spaceport_env : rocketpy.Environment
+        Environment to be simulated. See the conftest.py file for more info.
+    solver_method : str
+        The solver method to be used in the simulation.
+    """
+    test_flight = Flight(
+        environment=example_spaceport_env,
+        rocket=calisto_robust,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=False,
+        ode_solver=solver_method,
+    )
+    assert test_flight.all_info() is None
+
+
 class TestExportData:
     """Tests the export_data method of the Flight class."""
 
