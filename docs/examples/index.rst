@@ -21,6 +21,7 @@ apogee of some rockets.
       "Bella Lui (2020)": (460.50, 458.97),
       "NDRT (2020)": (1296.77, 1316.75),
       "Andromeda (2022)": (3614.95,3415),
+      "Astra (2022)": (3034.65, 3250), 
       "Erebus (2022)": (2750.90,3020),
       "Prometheus (2022)": (4190.05, 3898.37),
       "Cavour (2023)": (2818.90, 2789),
@@ -92,6 +93,7 @@ In the next sections you will find the simulations of the rockets listed above.
    SEB_liquid_motor.ipynb
    juno3_flight_sim.ipynb
    andromeda_flight_sim.ipynb
+   astra_flight_sim.ipynb
    prometheus_2022_flight_sim.ipynb
    erebus_flight_sim.ipynb
    halcyon_flight_sim.ipynb
