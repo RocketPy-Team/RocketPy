@@ -51,6 +51,7 @@ coverage.xml
 .pytest_cache/
 cover/
 .pylint-report.txt
+.ruff-report.txt
 
 # Translations
 *.mo

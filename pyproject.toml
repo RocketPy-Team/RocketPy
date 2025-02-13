@@ -6,7 +6,10 @@ dynamic = ["dependencies"]
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [
-  {name = "Giovani Hidalgo Ceotto", email = "ghceotto@gmail.com"}
+  {name = "Giovani Hidalgo Ceotto", email = "ghceotto@gmail.com"},
+  {name = "Guilherme Fernandes Alves", email = "guilherme_fernandes@usp.br"},
+  {name = "Mateus Stano Junqueira", email = "mateusstano@usp.br"},
+  {name = "Pedro Henrique Marinho Bressan", email = "phmbressan@usp.br"},
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -14,20 +17,27 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
+
 [project.urls]
 homepage = "https://rocketpy.org/"
 documentation = "https://docs.rocketpy.org/"
 repository = "https://github.com/RocketPy-Team/RocketPy"
+issues = "https://github.com/RocketPy-Team/RocketPy/issues"
+changelog = "https://github.com/RocketPy-Team/RocketPy/blob/master/CHANGELOG.md"
+
 
 [build-system]
 requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
+
 [tool.setuptools]
 packages = { find = { where = ["."], include = ["rocketpy*"] } }
 
+
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }
+
 
 [project.optional-dependencies]
 tests = [
@@ -58,34 +68,39 @@ monte-carlo = [
 
 all = ["rocketpy[env-analysis]", "rocketpy[monte-carlo]"]
 
-[tool.black]
-line-length = 88
-include = '\.py$|\.ipynb$'
-skip-string-normalization = true
-
-[tool.isort]
-profile = "black"
 
 [tool.coverage.report]
-# Regexes for lines to exclude from consideration
 exclude_also = [
-    #Don't complain about exceptions or warnings not being covered by tests
+    # Don't complain about exceptions or warnings not being covered by tests
     "warnings.warn*"
 ]
 
-[tool.flake8]
-max-line-length = 88
-max-module-lines = 3000
+
+[tool.ruff]
+target-version = "py39"
+line-length = 88
+indent-width = 4
+
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
 ignore = [
-    'W503', # conflicts with black (line break before binary operator)
-    'E203', # conflicts with black (whitespace before ':')
-    'E501', # ignored now because it is hard to fix the whole code (line too long)
-    'E266', # this is pointless (too many leading '#' for block comment)
-    'F401', # too many errors on __init__.py files (imported but unused)
-    'E722', # pylint already checks for bare except
-    'E226', # black does not adjust errors like this
-    'E731', # pylint already checks for this (lambda functions)
+    "F401", # too many errors on __init__.py files (imported but unused)
 ]
-exclude = [
-    '.git,__pycache__',
-]
+
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 88  # E501 reports lines that exceed the length of 88.
+
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+docstring-code-format = false
+docstring-code-line-length = "dynamic"
+
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"

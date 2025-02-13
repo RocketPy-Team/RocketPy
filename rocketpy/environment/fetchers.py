@@ -73,8 +73,7 @@ def fetch_atmospheric_data_from_windy(lat, lon, model):
         model = "".join([model[:4], model[4].upper(), model[5:]])
 
     url = (
-        f"https://node.windy.com/forecast/meteogram/{model}/{lat}/{lon}/"
-        "?step=undefined"
+        f"https://node.windy.com/forecast/meteogram/{model}/{lat}/{lon}/?step=undefined"
     )
 
     try:

@@ -46,7 +46,7 @@ fail-under=10
 #from-stdin=
 
 # Files or directories to be skipped. They should be base names, not paths.
-ignore=CVS, docs, data, 
+ignore=CVS, docs, data,
 
 # Add files or directories matching the regular expressions patterns to the
 # ignore-list. The regex matches against paths and can be in Posix or Windows
@@ -214,7 +214,7 @@ good-names=FlightPhases,
            HIRESW_dictionary,
            prop_I_11,
            Kt, # transformation matrix transposed
-           clalpha2D, 
+           clalpha2D,
            clalpha2D_incompressible,
            r_NOZ, # Nozzle position vector
            rocket_dry_I_33,
@@ -475,7 +475,7 @@ disable=raw-checker-failed,
         file-ignored,
         suppressed-message,
         useless-suppression,
-        deprecated-pragma, # because we have some peniding deprecations in the code. 
+        deprecated-pragma, # because we have some pending deprecations in the code.
         use-symbolic-message-instead,
         use-implicit-booleaness-not-comparison-to-string,
         use-implicit-booleaness-not-comparison-to-zero,
@@ -492,13 +492,14 @@ disable=raw-checker-failed,
         too-many-function-args, # gives false positives for Function calls
         method-hidden, # avoids some errors in tank_geometry and flight classes
         missing-timeout, # not a problem to use requests without timeout
-        protected-access, # we use private attriubutes out of the class (maybe we should fix this)
+        protected-access, # we use private attributes out of the class (maybe we should fix this)
         duplicate-code, # repeating code is a bad thing, but should we really care about it?
         line-too-long, # black already takes care of this
         missing-function-docstring, # this is too verbose.
         redefined-outer-name, # too verbose, and doesn't add much value
         method-cache-max-size-none,
         no-else-raise, # pointless
+        unnecessary-lambda-assignment, # ruff already checks this
 
 
 
