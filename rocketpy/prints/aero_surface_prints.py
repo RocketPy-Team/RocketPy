@@ -201,7 +201,7 @@ class _TailPrints(_AeroSurfacePrints):
         print("----------------------------------")
         print(f"Top radius: {self.aero_surface.top_radius:.3f} m")
         print(f"Bottom radius: {self.aero_surface.bottom_radius:.3f} m")
-        print(f"Reference radius: {2*self.aero_surface.rocket_radius:.3f} m")
+        print(f"Reference radius: {2 * self.aero_surface.rocket_radius:.3f} m")
         print(f"Length: {self.aero_surface.length:.3f} m")
         print(f"Slant length: {self.aero_surface.slant_length:.3f} m")
         print(f"Surface area: {self.aero_surface.surface_area:.6f} m²\n")
@@ -240,7 +240,7 @@ class _GenericSurfacePrints(_AeroSurfacePrints):
         print("Geometric information of the Surface:")
         print("----------------------------------")
         print(f"Reference Area: {self.generic_surface.reference_area:.3f} m")
-        print(f"Reference length: {2*self.generic_surface.rocket_radius:.3f} m")
+        print(f"Reference length: {2 * self.generic_surface.rocket_radius:.3f} m")
 
     def all(self):
         """Prints all information of the generic surface.
@@ -261,7 +261,7 @@ class _LinearGenericSurfacePrints(_AeroSurfacePrints):
         print("Geometric information of the Surface:")
         print("----------------------------------")
         print(f"Reference Area: {self.generic_surface.reference_area:.3f} m")
-        print(f"Reference length: {2*self.generic_surface.rocket_radius:.3f} m")
+        print(f"Reference length: {2 * self.generic_surface.rocket_radius:.3f} m")
 
     def all(self):
         """Prints all information of the linear generic surface.

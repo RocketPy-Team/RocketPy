@@ -1,5 +1,5 @@
 # pylint: disable=too-many-lines
-""" The mathutils/function.py is a rocketpy module totally dedicated to function
+"""The mathutils/function.py is a rocketpy module totally dedicated to function
 operations, including interpolation, extrapolation, integration, differentiation
 and more. This is a core class of our package, and should be maintained
 carefully as it may impact all the rest of the project.
@@ -360,9 +360,7 @@ class Function:  # pylint: disable=too-many-public-methods
         if interpolation == 0:  # linear
             if self.__dom_dim__ == 1:
 
-                def linear_interpolation(
-                    x, x_min, x_max, x_data, y_data, coeffs
-                ):  # pylint: disable=unused-argument
+                def linear_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                     x_interval = bisect_left(x_data, x)
                     x_left = x_data[x_interval - 1]
                     y_left = y_data[x_interval - 1]
@@ -373,27 +371,21 @@ class Function:  # pylint: disable=too-many-public-methods
             else:
                 interpolator = LinearNDInterpolator(self._domain, self._image)
 
-                def linear_interpolation(
-                    x, x_min, x_max, x_data, y_data, coeffs
-                ):  # pylint: disable=unused-argument
+                def linear_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                     return interpolator(x)
 
             self._interpolation_func = linear_interpolation
 
         elif interpolation == 1:  # polynomial
 
-            def polynomial_interpolation(
-                x, x_min, x_max, x_data, y_data, coeffs
-            ):  # pylint: disable=unused-argument
+            def polynomial_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                 return np.sum(coeffs * x ** np.arange(len(coeffs)))
 
             self._interpolation_func = polynomial_interpolation
 
         elif interpolation == 2:  # akima
 
-            def akima_interpolation(
-                x, x_min, x_max, x_data, y_data, coeffs
-            ):  # pylint: disable=unused-argument
+            def akima_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                 x_interval = bisect_left(x_data, x)
                 x_interval = x_interval if x_interval != 0 else 1
                 a = coeffs[4 * x_interval - 4 : 4 * x_interval]
@@ -403,9 +395,7 @@ class Function:  # pylint: disable=too-many-public-methods
 
         elif interpolation == 3:  # spline
 
-            def spline_interpolation(
-                x, x_min, x_max, x_data, y_data, coeffs
-            ):  # pylint: disable=unused-argument
+            def spline_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                 x_interval = bisect_left(x_data, x)
                 x_interval = max(x_interval, 1)
                 a = coeffs[:, x_interval - 1]
@@ -415,7 +405,6 @@ class Function:  # pylint: disable=too-many-public-methods
             self._interpolation_func = spline_interpolation
 
         elif interpolation == 4:  # shepard
-
             # pylint: disable=unused-argument
             def shepard_interpolation(x, x_min, x_max, x_data, y_data, _):
                 arg_qty, arg_dim = x.shape
@@ -440,12 +429,9 @@ class Function:  # pylint: disable=too-many-public-methods
             self._interpolation_func = shepard_interpolation
 
         elif interpolation == 5:  # RBF
-
             interpolator = RBFInterpolator(self._domain, self._image, neighbors=100)
 
-            def rbf_interpolation(
-                x, x_min, x_max, x_data, y_data, coeffs
-            ):  # pylint: disable=unused-argument
+            def rbf_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                 return interpolator(x)
 
             self._interpolation_func = rbf_interpolation
@@ -459,20 +445,15 @@ class Function:  # pylint: disable=too-many-public-methods
 
         if extrapolation == 0:  # zero
 
-            def zero_extrapolation(
-                x, x_min, x_max, x_data, y_data, coeffs
-            ):  # pylint: disable=unused-argument
+            def zero_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                 return 0
 
             self._extrapolation_func = zero_extrapolation
         elif extrapolation == 1:  # natural
             if interpolation == 0:  # linear
-
                 if self.__dom_dim__ == 1:
 
-                    def natural_extrapolation(
-                        x, x_min, x_max, x_data, y_data, coeffs
-                    ):  # pylint: disable=unused-argument
+                    def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                         x_interval = 1 if x < x_min else -1
                         x_left = x_data[x_interval - 1]
                         y_left = y_data[x_interval - 1]
@@ -485,31 +466,23 @@ class Function:  # pylint: disable=too-many-public-methods
                         self._domain, self._image, neighbors=100
                     )
 
-                    def natural_extrapolation(
-                        x, x_min, x_max, x_data, y_data, coeffs
-                    ):  # pylint: disable=unused-argument
+                    def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                         return interpolator(x)
 
             elif interpolation == 1:  # polynomial
 
-                def natural_extrapolation(
-                    x, x_min, x_max, x_data, y_data, coeffs
-                ):  # pylint: disable=unused-argument
+                def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                     return np.sum(coeffs * x ** np.arange(len(coeffs)))
 
             elif interpolation == 2:  # akima
 
-                def natural_extrapolation(
-                    x, x_min, x_max, x_data, y_data, coeffs
-                ):  # pylint: disable=unused-argument
+                def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                     a = coeffs[:4] if x < x_min else coeffs[-4:]
                     return a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
 
             elif interpolation == 3:  # spline
 
-                def natural_extrapolation(
-                    x, x_min, x_max, x_data, y_data, coeffs
-                ):  # pylint: disable=unused-argument
+                def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                     if x < x_min:
                         a = coeffs[:, 0]
                         x = x - x_data[0]
@@ -519,7 +492,6 @@ class Function:  # pylint: disable=too-many-public-methods
                     return a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
 
             elif interpolation == 4:  # shepard
-
                 # pylint: disable=unused-argument
                 def natural_extrapolation(x, x_min, x_max, x_data, y_data, _):
                     arg_qty, arg_dim = x.shape
@@ -542,26 +514,19 @@ class Function:  # pylint: disable=too-many-public-methods
                     return result
 
             elif interpolation == 5:  # RBF
-
                 interpolator = RBFInterpolator(self._domain, self._image, neighbors=100)
 
-                def natural_extrapolation(
-                    x, x_min, x_max, x_data, y_data, coeffs
-                ):  # pylint: disable=unused-argument
+                def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                     return interpolator(x)
 
             self._extrapolation_func = natural_extrapolation
         elif extrapolation == 2:  # constant
-
             if self.__dom_dim__ == 1:
 
-                def constant_extrapolation(
-                    x, x_min, x_max, x_data, y_data, coeffs
-                ):  # pylint: disable=unused-argument
+                def constant_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                     return y_data[0] if x < x_min else y_data[-1]
 
             else:
-
                 extrapolator = NearestNDInterpolator(self._domain, self._image)
 
                 def constant_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):

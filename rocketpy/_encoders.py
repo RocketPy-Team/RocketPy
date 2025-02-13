@@ -118,7 +118,7 @@ def get_class_signature(obj):
         Signature of the class.
     """
     class_ = obj.__class__
-    name = getattr(class_, '__qualname__', class_.__name__)
+    name = getattr(class_, "__qualname__", class_.__name__)
 
     return {"module": class_.__module__, "name": name}
 
