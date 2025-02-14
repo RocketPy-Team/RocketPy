@@ -32,7 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
--
+- DOC: ASTRA Flight Example [#770](https://github.com/RocketPy-Team/RocketPy/pull/770))
 
 ### Changed
 
