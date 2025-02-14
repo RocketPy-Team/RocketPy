@@ -147,7 +147,7 @@ class _EnvironmentAnalysisPrints:
     def precipitation(self):
         print("Precipitation Information")
         print(
-            f"Percentage of Days with Precipitation: {100*self.env_analysis.percentage_of_days_with_precipitation:.1f}%"
+            f"Percentage of Days with Precipitation: {100 * self.env_analysis.percentage_of_days_with_precipitation:.1f}%"
         )
         print(
             f"Maximum Precipitation in a day: {max(self.env_analysis.precipitation_per_day):.1f} {self.env_analysis.unit_system['precipitation']}"
@@ -165,7 +165,7 @@ class _EnvironmentAnalysisPrints:
             f"Minimum Cloud Base Height: {self.env_analysis.record_min_cloud_base_height:.2f} {self.env_analysis.unit_system['length']}"
         )
         print(
-            f"Percentage of Days Without Clouds: {100*self.env_analysis.percentage_of_days_with_no_cloud_coverage:.1f} %\n"
+            f"Percentage of Days Without Clouds: {100 * self.env_analysis.percentage_of_days_with_no_cloud_coverage:.1f} %\n"
         )
 
     def all(self):

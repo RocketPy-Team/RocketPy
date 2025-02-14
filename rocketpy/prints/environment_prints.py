@@ -158,9 +158,9 @@ class _EnvironmentPrints:
         semi_major_axis = self.environment.ellipsoid.semi_major_axis
         flattening = self.environment.ellipsoid.flattening
         semi_minor_axis = semi_major_axis * (1 - flattening)
-        print(f"Earth Radius at Launch site: {earth_radius/1000:.2f} km")
-        print(f"Semi-major Axis: {semi_major_axis/1000:.2f} km")
-        print(f"Semi-minor Axis: {semi_minor_axis/1000:.2f} km")
+        print(f"Earth Radius at Launch site: {earth_radius / 1000:.2f} km")
+        print(f"Semi-major Axis: {semi_major_axis / 1000:.2f} km")
+        print(f"Semi-minor Axis: {semi_minor_axis / 1000:.2f} km")
         print(f"Flattening: {flattening:.4f}\n")
 
     def all(self):

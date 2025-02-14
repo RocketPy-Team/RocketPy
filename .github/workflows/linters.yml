@@ -28,14 +28,11 @@ jobs:
         python -m pip install --upgrade pip
         pip install .[all]
         pip install .[tests]
-        pip install pylint isort black
-    - name: Run isort
-      run: isort --check-only rocketpy/ tests/ docs/ --profile black
-    - name: Run black
-      uses: psf/black@stable
-      with:
-        options: "--check rocketpy/ tests/ docs/"
-        jupyter: true
-    - name: Run pylint
+        pip install pylint ruff
+    - name: Ruff (lint)
+      run: ruff check --output-format=github .
+    - name: Ruff (format)
+      run: ruff format --check .
+    - name: Pylint
       run: |
-        pylint rocketpy/ tests/
+        pylint rocketpy/ tests/ docs/
