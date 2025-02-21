@@ -105,7 +105,8 @@ class MultivariateRejectionSampler:
                 f"the monte carlo input file {input_filename}!"
             ) from e
 
-        input_file.close()
+        finally:
+            input_file.close()
 
     def __load_output(self):
         """Loads output information from monte carlo in a SampleInformation
@@ -135,12 +136,14 @@ class MultivariateRejectionSampler:
                 "An error occurred while reading "
                 f"the monte carlo output file {output_filename}!"
             ) from e
+
+        finally:
+            output_file.close()
+
         if self.original_sample_size > sample_size_output:
             raise ValueError(
                 "Monte carlo output file has fewer lines than the input file!"
             )
-
-        output_file.close()
 
     def __validate_distribution_dict(self, distribution_dict):
         """Checks that the variables passed in the distribution dictionary were
@@ -197,9 +200,10 @@ class MultivariateRejectionSampler:
                 "output files"
             ) from e
 
-        mrs_input_file.close()
-        mrs_output_file.close()
-        mrs_error_file.close()
+        finally:
+            mrs_input_file.close()
+            mrs_output_file.close()
+            mrs_error_file.close()
 
     def __setup_probabilities(self, distribution_dict):
         """Computes the probability ratio, probability ratio supremum and acceptance
