@@ -57,12 +57,16 @@ class _MonteCarloPrints:
         original_parameters_set = set(self.monte_carlo.processed_results.keys())
         other_parameters_set = set(other_monte_carlo.processed_results.keys())
         intersection_set = original_parameters_set.intersection(other_parameters_set)
-        symmetric_diff_set = original_parameters_set.symmetric_difference(other_parameters_set)
+        symmetric_diff_set = original_parameters_set.symmetric_difference(
+            other_parameters_set
+        )
         print("Comparison of Monte Carlo Simulation by RocketPy")
         print("Original data Source: ", self.monte_carlo.filename)
         print("Comparison data Source: ", other_monte_carlo.filename)
         print("Original number of simulations: ", self.monte_carlo.num_of_loaded_sims)
-        print("Comparison number of simulations: ", other_monte_carlo.num_of_loaded_sims)
+        print(
+            "Comparison number of simulations: ", other_monte_carlo.num_of_loaded_sims
+        )
         if len(symmetric_diff_set) > 0:
             print(
                 f"The following parameters were not in both simulations: {symmetric_diff_set}\n"

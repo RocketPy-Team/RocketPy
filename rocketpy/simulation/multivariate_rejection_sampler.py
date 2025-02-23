@@ -119,7 +119,7 @@ class MultivariateRejectionSampler:
             output_file = open(output_filename, "r+", encoding="utf-8")
         except FileNotFoundError as e:
             raise FileNotFoundError(
-                f"Output file from monte carlo {output_filename} " "not found!"
+                f"Output file from monte carlo {output_filename} not found!"
             ) from e
 
         try:

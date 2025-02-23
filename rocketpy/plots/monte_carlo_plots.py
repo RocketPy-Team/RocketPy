@@ -233,15 +233,27 @@ class _MonteCarloPlots:
                 [other_monte_carlo.results[key], self.monte_carlo.results[key]],
                 vert=False,
                 tick_labels=["Other", "Original"],
-                patch_artist=True
+                patch_artist=True,
             )
-            for patch, color in zip(bp['boxes'], fill_colors):
+            for patch, color in zip(bp["boxes"], fill_colors):
                 patch.set_facecolor(color)
             ax1.set_title(f"Box Plot of {key}")
 
             # Plot histogram
-            ax2.hist(self.monte_carlo.results[key], alpha=0.5, color="blue", label="Original", density=True)
-            ax2.hist(other_monte_carlo.results[key], alpha=0.5, color="red", label="Other", density=True)
+            ax2.hist(
+                self.monte_carlo.results[key],
+                alpha=0.5,
+                color="blue",
+                label="Original",
+                density=True,
+            )
+            ax2.hist(
+                other_monte_carlo.results[key],
+                alpha=0.5,
+                color="red",
+                label="Other",
+                density=True,
+            )
             ax2.set_title(f"Histogram of {key}")
             ax2.set_ylabel("Density")
 
@@ -327,13 +339,15 @@ class _MonteCarloPlots:
         if len(original_apogee_x) == 0 and len(original_impact_x) == 0:
             raise ValueError("No apogee or impact data found. Cannot plot ellipses.")
 
-        original_impact_ellipses, original_apogee_ellipses = generate_monte_carlo_ellipses(
-            original_apogee_x,
-            original_apogee_y,
-            original_impact_x,
-            original_impact_y,
-            apogee_rgb=(0, 1, 0),
-            impact_rgb=(0, 0, 1)
+        original_impact_ellipses, original_apogee_ellipses = (
+            generate_monte_carlo_ellipses(
+                original_apogee_x,
+                original_apogee_y,
+                original_impact_x,
+                original_impact_y,
+                apogee_rgb=(0, 1, 0),
+                impact_rgb=(0, 0, 1),
+            )
         )
 
         other_impact_ellipses, other_apogee_ellipses = generate_monte_carlo_ellipses(
@@ -342,7 +356,7 @@ class _MonteCarloPlots:
             other_impact_x,
             other_impact_y,
             apogee_rgb=(174 / 255, 159 / 255, 15 / 255),
-            impact_rgb=(102 / 255, 23 / 255, 204 / 255)
+            impact_rgb=(102 / 255, 23 / 255, 204 / 255),
         )
 
         # Create plot figure
@@ -357,7 +371,12 @@ class _MonteCarloPlots:
 
         plt.scatter(0, 0, s=30, marker="*", color="black", label="Launch Point")
         plt.scatter(
-            original_apogee_x, original_apogee_y, s=5, marker="^", color="green", label="Original Apogee"
+            original_apogee_x,
+            original_apogee_y,
+            s=5,
+            marker="^",
+            color="green",
+            label="Original Apogee",
         )
         plt.scatter(
             original_impact_x,
@@ -375,7 +394,12 @@ class _MonteCarloPlots:
             ax.add_artist(ell)
 
         plt.scatter(
-            other_apogee_x, other_apogee_y, s=5, marker="^", color="#ae9f0f", label="Other Apogee"
+            other_apogee_x,
+            other_apogee_y,
+            s=5,
+            marker="^",
+            color="#ae9f0f",
+            label="Other Apogee",
         )
         plt.scatter(
             other_impact_x,
