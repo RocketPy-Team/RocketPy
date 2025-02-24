@@ -18,8 +18,7 @@ As discussed in :ref:`sensitivity-practical`, there are several sources of
 uncertainty that can affect the flight of a rocket, notably the weather and
 the measurements errors in design parameters. Still, it is desirable that the flight
 accomplishes its goal, for instance reaching a certain apogee, as well as staying under
-some safety restrictions, for instance that the landing point is outside of a given
-area.
+some safety restrictions, such as the landing point is outside of a given area.
 
 Monte Carlo simulation is a technique that allows us to quantify the uncertainty and
 give objective answers to those type of questions in terms of probabilities and 
@@ -31,15 +30,15 @@ simulations.
 Now, imagine that you ran and saved the monte carlo simulations. Later, you need new a 
 monte carlo simulation but with new probability distributions that are somewhat close 
 to the original simulation. The first straightforward option is to just re-run the 
-monte carlo with the new arguments, but this might be time consuming. The second option
+monte carlo with the new arguments, but this might be time consuming. A second option
 is to use a sub-sampler that leverages the existing simulation to produce a new sample
-that conforms to the new probability distributions. The second option avoids completely
+that conforms to the new probability distributions. The latter avoids completely
 the necessity of re-running the simulations and is, therefore, much faster.
 
 The Multivariate Rejection Sampler, or just MRS, is an algorithm that sub-samples the 
 original results based on weights proportional to the ratio of the new and old 
 probability distributions that have changed. The final result has a smaller sample size,
-but their distribution matches the one newly specified, and without having to re-run the
+but their distribution matches the one newly specified without having to re-run the
 the simulation.
 
 The time efficiency of the MRS is specially interesting in two scenarios: quick testing
@@ -208,11 +207,24 @@ Time Comparison
 ---------------
 
 Is the MRS really much faster than just re-running a Monte Carlo simulation?
-Let us take a look at some numbers.
+Let us take a look at some numbers. All tests ran in a Dell G15 5530, with 16 
+13th Gen Intel® Core™ i5-13450HX CPUs, 16Gb RAM, running ubuntu 22.04. Each function
+ran 10 times, and no parallelization was used. 
 
-Important Remarks
+To run the original monte carlo simulation with 1000 samples it took,
+on average, about 644 seconds, that is, 10 minutes and 44 seconds. For the MRS described
+here, it took, on average, 0.15 seconds, with an expected sample size of 117. To re-run
+the monte carlo simulations with 117 samples it took, on average, 76.3 seconds. Hence,
+the MRS was, on average, (76.3 / 0.15) ~ 500 times faster than re-running the monte 
+carlo simulations with the same sample size provided by the MRS. 
+
+A word of caution
 -----------------
 
-Talk about the sample size reduction. If the user needs a really robust
-monte carlo simulation with a lot of samples and there is a substantial reduction,
-then he might have to re-run the simulation.
+Albeit the MRS provides results way faster than running the simulation again, it
+might reduce the sample size drastically. If several variables undergo
+changes in their distribution and the more discrepant these are from the original 
+ones, the more pronounced will be this sample size reduction. If you need the monte 
+carlo simulations to have the same sample size as before or if the expected sample size
+from the MRS is too low for you current application, then it might be better suited to
+re-run the simulations.
