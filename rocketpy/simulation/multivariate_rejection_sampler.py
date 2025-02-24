@@ -69,6 +69,7 @@ class MultivariateRejectionSampler:
         self.__setup_input()
         self.__load_output()
 
+    # pylint: disable=consider-using-with
     def __setup_input(self):
         """Loads input information from monte carlo in a SampleInformation
         object
@@ -108,6 +109,7 @@ class MultivariateRejectionSampler:
         finally:
             input_file.close()
 
+    # pylint: disable=consider-using-with
     def __load_output(self):
         """Loads output information from monte carlo in a SampleInformation
         object.
@@ -158,6 +160,7 @@ class MultivariateRejectionSampler:
                     "not found in input file!"
                 )
 
+    # pylint: disable=consider-using-with
     def sample(self, distribution_dict):
         """Performs rejection sampling and saves data
 
