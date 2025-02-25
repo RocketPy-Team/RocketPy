@@ -24,7 +24,23 @@ from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
 from rocketpy.tools import parallel_axis_theorem_from_com
 
+class BaseRocket:
+    """Base class for a rocket model with minimal attributes and methods."""
+    def __init__(self, mass):
+        self.mass = mass
+        self.motor = None
+    def add_motor(self, motor):
+        self.motor = motor
+    def evaluate_total_mass(self):
+        if self.motor:
+            return self.mass + self.motor.total_mass
+        return self.mass
 
+class PointMassRocket(BaseRocket):
+    """Rocket modeled as a point mass for3-DOF simulations."""  
+    def __init__(self, mass, drag_coefficient=0):
+        super().__init__(mass)
+        self.drag_coefficient = drag_coefficient
 # pylint: disable=too-many-instance-attributes, too-many-public-methods, too-many-instance-attributes
 class Rocket:
     """Keeps rocket information.
