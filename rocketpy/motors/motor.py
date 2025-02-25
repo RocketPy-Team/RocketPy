@@ -247,7 +247,7 @@ class Motor(ABC):
             self._csys = 1
         elif coordinate_system_orientation == "combustion_chamber_to_nozzle":
             self._csys = -1
-        else:
+        else:  # pragma: no cover
             raise ValueError(
                 "Invalid coordinate system orientation. Options are "
                 "'nozzle_to_combustion_chamber' and 'combustion_chamber_to_nozzle'."
@@ -346,7 +346,7 @@ class Motor(ABC):
         else:
             if not callable(self.thrust.source):
                 self._burn_time = (self.thrust.x_array[0], self.thrust.x_array[-1])
-            else:
+            else:  # pragma: no cover
                 raise ValueError(
                     "When using a float or callable as thrust source, a burn_time"
                     " argument must be specified."
@@ -1083,6 +1083,60 @@ class Motor(ABC):
             # Write last line
             file.write(f"{self.thrust.source[-1, 0]:.4f} {0:.3f}\n")
 
+    def to_dict(self, include_outputs=False):
+        thrust_source = self.thrust_source
+
+        if isinstance(thrust_source, str):
+            thrust_source = self.thrust.source
+        elif callable(thrust_source) and not isinstance(thrust_source, Function):
+            thrust_source = Function(thrust_source)
+
+        data = {
+            "thrust_source": self.thrust,
+            "dry_I_11": self.dry_I_11,
+            "dry_I_22": self.dry_I_22,
+            "dry_I_33": self.dry_I_33,
+            "dry_I_12": self.dry_I_12,
+            "dry_I_13": self.dry_I_13,
+            "dry_I_23": self.dry_I_23,
+            "nozzle_radius": self.nozzle_radius,
+            "center_of_dry_mass_position": self.center_of_dry_mass_position,
+            "dry_mass": self.dry_mass,
+            "nozzle_position": self.nozzle_position,
+            "burn_time": self.burn_time,
+            "interpolate": self.interpolate,
+            "coordinate_system_orientation": self.coordinate_system_orientation,
+        }
+
+        if include_outputs:
+            data.update(
+                {
+                    "total_mass": self.total_mass,
+                    "propellant_mass": self.propellant_mass,
+                    "mass_flow_rate": self.mass_flow_rate,
+                    "center_of_mass": self.center_of_mass,
+                    "center_of_propellant_mass": self.center_of_propellant_mass,
+                    "total_impulse": self.total_impulse,
+                    "exhaust_velocity": self.exhaust_velocity,
+                    "propellant_initial_mass": self.propellant_initial_mass,
+                    "structural_mass_ratio": self.structural_mass_ratio,
+                    "I_11": self.I_11,
+                    "I_22": self.I_22,
+                    "I_33": self.I_33,
+                    "I_12": self.I_12,
+                    "I_13": self.I_13,
+                    "I_23": self.I_23,
+                    "propellant_I_11": self.propellant_I_11,
+                    "propellant_I_22": self.propellant_I_22,
+                    "propellant_I_33": self.propellant_I_33,
+                    "propellant_I_12": self.propellant_I_12,
+                    "propellant_I_13": self.propellant_I_13,
+                    "propellant_I_23": self.propellant_I_23,
+                }
+            )
+
+        return data
+
     def info(self, *, filename=None):
         """Prints out a summary of the data and graphs available about the
         Motor.
@@ -1511,6 +1565,42 @@ class GenericMotor(Motor):
         # Print motor details
         self.prints.all()
         self.plots.all()
+
+    def to_dict(self, include_outputs=False):
+        data = super().to_dict(include_outputs)
+        data.update(
+            {
+                "chamber_radius": self.chamber_radius,
+                "chamber_height": self.chamber_height,
+                "chamber_position": self.chamber_position,
+                "propellant_initial_mass": self.propellant_initial_mass,
+            }
+        )
+        return data
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            thrust_source=data["thrust_source"],
+            burn_time=data["burn_time"],
+            chamber_radius=data["chamber_radius"],
+            chamber_height=data["chamber_height"],
+            chamber_position=data["chamber_position"],
+            propellant_initial_mass=data["propellant_initial_mass"],
+            nozzle_radius=data["nozzle_radius"],
+            dry_mass=data["dry_mass"],
+            center_of_dry_mass_position=data["center_of_dry_mass_position"],
+            dry_inertia=(
+                data["dry_I_11"],
+                data["dry_I_22"],
+                data["dry_I_33"],
+                data["dry_I_12"],
+                data["dry_I_13"],
+                data["dry_I_23"],
+            ),
+            nozzle_position=data["nozzle_position"],
+            interpolation_method=data["interpolate"],
+        )
 
 
 class EmptyMotor:

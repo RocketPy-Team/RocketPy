@@ -172,9 +172,7 @@ class MonteCarlo:
             self._error_file = f"{filename}.errors.txt"
 
     # pylint: disable=consider-using-with
-    def simulate(
-        self, number_of_simulations, append=False
-    ):  # pylint: disable=too-many-statements
+    def simulate(self, number_of_simulations, append=False, **kwargs):  # pylint: disable=too-many-statements
         """
         Runs the Monte Carlo simulation and saves all data.
 
@@ -185,6 +183,17 @@ class MonteCarlo:
         append : bool, optional
             If True, the results will be appended to the existing files. If
             False, the files will be overwritten. Default is False.
+        kwargs : dict
+            Custom arguments for simulation export of the ``inputs`` file. Options
+            are:
+
+                * ``include_outputs``: whether to also include outputs data of the
+                  simulation. Default is ``False``.
+
+                * ``include_function_data``: whether to include ``rocketpy.Function``
+                  results into the export. Default is ``True``.
+
+            See ``rocketpy._encoders.RocketPyEncoder`` for more information.
 
         Returns
         -------
@@ -204,6 +213,7 @@ class MonteCarlo:
         overwritten. Make sure to save the files with the results before
         running the simulation again with `append=False`.
         """
+        self._export_config = kwargs
         # Create data files for inputs, outputs and error logging
         open_mode = "a" if append else "w"
         input_file = open(self._input_file, open_mode, encoding="utf-8")
@@ -224,11 +234,21 @@ class MonteCarlo:
                 self.__run_single_simulation(input_file, output_file)
         except KeyboardInterrupt:
             print("Keyboard Interrupt, files saved.")
-            error_file.write(json.dumps(self._inputs_dict, cls=RocketPyEncoder) + "\n")
+            error_file.write(
+                json.dumps(
+                    self._inputs_dict, cls=RocketPyEncoder, **self._export_config
+                )
+                + "\n"
+            )
             self.__close_files(input_file, output_file, error_file)
         except Exception as error:
             print(f"Error on iteration {self.__iteration_count}: {error}")
-            error_file.write(json.dumps(self._inputs_dict, cls=RocketPyEncoder) + "\n")
+            error_file.write(
+                json.dumps(
+                    self._inputs_dict, cls=RocketPyEncoder, **self._export_config
+                )
+                + "\n"
+            )
             self.__close_files(input_file, output_file, error_file)
             raise error
         finally:
@@ -393,8 +413,12 @@ class MonteCarlo:
                     ) from e
             results = results | additional_exports
 
-        input_file.write(json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n")
-        output_file.write(json.dumps(results, cls=RocketPyEncoder) + "\n")
+        input_file.write(
+            json.dumps(inputs_dict, cls=RocketPyEncoder, **self._export_config) + "\n"
+        )
+        output_file.write(
+            json.dumps(results, cls=RocketPyEncoder, **self._export_config) + "\n"
+        )
 
     def __check_export_list(self, export_list):
         """
@@ -512,7 +536,6 @@ class MonteCarlo:
         """
 
         if data_collector is not None:
-
             if not isinstance(data_collector, dict):
                 raise ValueError(
                     "Invalid 'data_collector' argument! "
@@ -723,8 +746,16 @@ class MonteCarlo:
                 mean = np.mean(values)
                 stdev = np.std(values)
                 self.processed_results[result] = (mean, stdev)
+                pi_low = np.quantile(values, 0.025)
+                pi_high = np.quantile(values, 0.975)
+                median = np.median(values)
             except TypeError:
-                self.processed_results[result] = (None, None)
+                mean = None
+                stdev = None
+                pi_low = None
+                pi_high = None
+                median = None
+            self.processed_results[result] = (mean, median, stdev, pi_low, pi_high)
 
     # Import methods
 

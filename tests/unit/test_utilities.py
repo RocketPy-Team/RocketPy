@@ -143,9 +143,7 @@ def test_flutter_prints(flight_calisto_custom_wind):
 
 
 @patch("matplotlib.pyplot.show")
-def test_flutter_plots(
-    mock_show, flight_calisto_custom_wind
-):  # pylint: disable=unused-argument
+def test_flutter_plots(mock_show, flight_calisto_custom_wind):  # pylint: disable=unused-argument
     """Tests the _flutter_plots function.
 
     Parameters
@@ -178,3 +176,34 @@ def test_get_instance_attributes(flight_calisto_robust):
             assert np.allclose(attr, value)
         else:
             assert attr == value
+
+
+@pytest.mark.parametrize(
+    "f, eps, expected",
+    [
+        ([1.0, 1.0, 1.0, 2.0, 3.0], 1e-6, 0),
+        ([1.0, 1.0, 1.0, 2.0, 3.0], 1e-1, 0),
+        ([1.0, 1.1, 1.2, 2.0, 3.0], 1e-1, None),
+        ([1.0, 1.0, 1.0, 1.0, 1.0], 1e-6, 0),
+        ([1.0, 1.0, 1.0, 1.0, 1.0], 1e-1, 0),
+        ([1.0, 1.0, 1.0], 1e-6, 0),
+        ([1.0, 1.0], 1e-6, None),
+        ([1.0], 1e-6, None),
+        ([], 1e-6, None),
+    ],
+)
+def test_check_constant(f, eps, expected):
+    """Test if the function `check_constant` returns the correct index or None
+    for different scenarios.
+
+    Parameters
+    ----------
+    f : list or array
+        A list or array of numerical values.
+    eps : float
+        The tolerance level for comparing the elements.
+    expected : int or None
+        The expected result of the function.
+    """
+    result = utilities.check_constant(f, eps)
+    assert result == expected

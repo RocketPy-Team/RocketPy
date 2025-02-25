@@ -423,7 +423,10 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
             or lat_index > len(lat_array) - 1
         ):
             raise ValueError(
-                f"Latitude and longitude pair {(self.latitude, self.longitude)} is outside the grid available in the given file, which is defined by {(lat_array[0], lon_array[0])} and {(lat_array[-1], lon_array[-1])}."
+                f"Latitude and longitude pair {(self.latitude, self.longitude)} "
+                "is outside the grid available in the given file, which "
+                f"is defined by {(lat_array[0], lon_array[0])} and "
+                f"{(lat_array[-1], lon_array[-1])}."
             )
 
     def __localize_input_dates(self):
@@ -748,9 +751,9 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
                 outputs="Wind Direction (Deg True)",
                 extrapolation="constant",
             )
-            dictionary[date_string][hour_string][
-                "wind_direction"
-            ] = wind_direction_function
+            dictionary[date_string][hour_string]["wind_direction"] = (
+                wind_direction_function
+            )
 
         return (dictionary, lat0, lat1, lon0, lon1)
 
@@ -993,11 +996,7 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
         converted_dict = copy.deepcopy(self.original_pressure_level_data)
 
         # Loop through dates
-        for (
-            date
-        ) in (
-            self.original_pressure_level_data
-        ):  # pylint: disable=consider-using-dict-items
+        for date in self.original_pressure_level_data:  # pylint: disable=consider-using-dict-items
             # Loop through hours
             for hour in self.original_pressure_level_data[date]:
                 # Loop through variables
@@ -1059,9 +1058,7 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
         converted_dict = copy.deepcopy(self.original_surface_data)
 
         # Loop through dates
-        for (
-            date
-        ) in self.original_surface_data:  # pylint: disable=consider-using-dict-items
+        for date in self.original_surface_data:  # pylint: disable=consider-using-dict-items
             # Loop through hours
             for hour in self.original_surface_data[date]:
                 # Loop through variables

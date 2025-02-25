@@ -5,13 +5,17 @@ import matplotlib as plt
 import numpy as np
 import pytest
 
-from rocketpy import Environment, Flight
+from rocketpy import Flight
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
 
+@pytest.mark.parametrize(
+    "flight_fixture", ["flight_calisto_robust", "flight_calisto_robust_solid_eom"]
+)
 @patch("matplotlib.pyplot.show")
-def test_all_info(mock_show, flight_calisto_robust):  # pylint: disable=unused-argument
+# pylint: disable=unused-argument
+def test_all_info(mock_show, request, flight_fixture):
     """Test that the flight class is working as intended. This basically calls
     the all_info() method and checks if it returns None. It is not testing if
     the values are correct, but whether the method is working without errors.
@@ -20,11 +24,49 @@ def test_all_info(mock_show, flight_calisto_robust):  # pylint: disable=unused-a
     ----------
     mock_show : unittest.mock.MagicMock
         Mock object to replace matplotlib.pyplot.show
-    flight_calisto_robust : rocketpy.Flight
-        Flight object to be tested. See the conftest.py file for more info
-        regarding this pytest fixture.
+    request : _pytest.fixtures.FixtureRequest
+        Request object to access the fixture dynamically.
+    flight_fixture : str
+        Name of the flight fixture to be tested.
     """
-    assert flight_calisto_robust.all_info() is None
+    flight = request.getfixturevalue(flight_fixture)
+    assert flight.all_info() is None
+
+
+@pytest.mark.slow
+@patch("matplotlib.pyplot.show")
+@pytest.mark.parametrize("solver_method", ["RK45", "DOP853", "Radau", "BDF"])
+# RK23 is unstable and requires a very low tolerance to work
+# pylint: disable=unused-argument
+def test_all_info_different_solvers(
+    mock_show, calisto_robust, example_spaceport_env, solver_method
+):
+    """Test that the flight class is working as intended with different solver
+    methods. This basically calls the all_info() method and checks if it returns
+    None. It is not testing if the values are correct, but whether the method is
+    working without errors.
+
+    Parameters
+    ----------
+    mock_show : unittest.mock.MagicMock
+        Mock object to replace matplotlib.pyplot.show
+    calisto_robust : rocketpy.Rocket
+        Rocket to be simulated. See the conftest.py file for more info.
+    example_spaceport_env : rocketpy.Environment
+        Environment to be simulated. See the conftest.py file for more info.
+    solver_method : str
+        The solver method to be used in the simulation.
+    """
+    test_flight = Flight(
+        environment=example_spaceport_env,
+        rocket=calisto_robust,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=False,
+        ode_solver=solver_method,
+    )
+    assert test_flight.all_info() is None
 
 
 class TestExportData:
@@ -153,9 +195,7 @@ def test_export_pressures(flight_calisto_robust):
 
 
 @patch("matplotlib.pyplot.show")
-def test_hybrid_motor_flight(
-    mock_show, calisto_hybrid_modded
-):  # pylint: disable=unused-argument
+def test_hybrid_motor_flight(mock_show, flight_calisto_hybrid_modded):  # pylint: disable=unused-argument
     """Test the flight of a rocket with a hybrid motor. This test only validates
     that a flight simulation can be performed with a hybrid motor; it does not
     validate the results.
@@ -164,25 +204,14 @@ def test_hybrid_motor_flight(
     ----------
     mock_show : unittest.mock.MagicMock
         Mock object to replace matplotlib.pyplot.show
-    calisto_hybrid_modded : rocketpy.Rocket
-        Sample rocket to be simulated. See the conftest.py file for more info.
+    flight_calisto_hybrid_modded : rocketpy.Flight
+        Sample Flight to be tested. See the conftest.py file for more info.
     """
-    test_flight = Flight(
-        rocket=calisto_hybrid_modded,
-        environment=Environment(),
-        rail_length=5,
-        inclination=85,
-        heading=0,
-        max_time_step=0.25,
-    )
-
-    assert test_flight.all_info() is None
+    assert flight_calisto_hybrid_modded.all_info() is None
 
 
 @patch("matplotlib.pyplot.show")
-def test_liquid_motor_flight(
-    mock_show, calisto_liquid_modded
-):  # pylint: disable=unused-argument
+def test_liquid_motor_flight(mock_show, flight_calisto_liquid_modded):  # pylint: disable=unused-argument
     """Test the flight of a rocket with a liquid motor. This test only validates
     that a flight simulation can be performed with a liquid motor; it does not
     validate the results.
@@ -191,26 +220,15 @@ def test_liquid_motor_flight(
     ----------
     mock_show : unittest.mock.MagicMock
         Mock object to replace matplotlib.pyplot.show
-    calisto_liquid_modded : rocketpy.Rocket
-        Sample Rocket to be simulated. See the conftest.py file for more info.
+    flight_calisto_liquid_modded : rocketpy.Flight
+        Sample Flight to be tested. See the conftest.py file for more info.
     """
-    test_flight = Flight(
-        rocket=calisto_liquid_modded,
-        environment=Environment(),
-        rail_length=5,
-        inclination=85,
-        heading=0,
-        max_time_step=0.25,
-    )
-
-    assert test_flight.all_info() is None
+    assert flight_calisto_liquid_modded.all_info() is None
 
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_time_overshoot(
-    mock_show, calisto_robust, example_spaceport_env
-):  # pylint: disable=unused-argument
+def test_time_overshoot(mock_show, calisto_robust, example_spaceport_env):  # pylint: disable=unused-argument
     """Test the time_overshoot parameter of the Flight class. This basically
     calls the all_info() method for a simulation without time_overshoot and
     checks if it returns None. It is not testing if the values are correct,
@@ -239,9 +257,7 @@ def test_time_overshoot(
 
 
 @patch("matplotlib.pyplot.show")
-def test_simpler_parachute_triggers(
-    mock_show, example_plain_env, calisto_robust
-):  # pylint: disable=unused-argument
+def test_simpler_parachute_triggers(mock_show, example_plain_env, calisto_robust):  # pylint: disable=unused-argument
     """Tests different types of parachute triggers. This is important to ensure
     the code is working as intended, since the parachute triggers can have very
     different format definitions. It will add 3 parachutes using different
@@ -383,9 +399,7 @@ def test_eccentricity_on_flight(  # pylint: disable=unused-argument
 
 
 @patch("matplotlib.pyplot.show")
-def test_air_brakes_flight(
-    mock_show, flight_calisto_air_brakes
-):  # pylint: disable=unused-argument
+def test_air_brakes_flight(mock_show, flight_calisto_air_brakes):  # pylint: disable=unused-argument
     """Test the flight of a rocket with air brakes. This test only validates
     that a flight simulation can be performed with air brakes; it does not
     validate the results.
@@ -405,9 +419,7 @@ def test_air_brakes_flight(
 
 
 @patch("matplotlib.pyplot.show")
-def test_initial_solution(
-    mock_show, example_plain_env, calisto_robust
-):  # pylint: disable=unused-argument
+def test_initial_solution(mock_show, example_plain_env, calisto_robust):  # pylint: disable=unused-argument
     """Tests the initial_solution option of the Flight class. This test simply
     simulates the flight using the initial_solution option and checks if the
     all_info method returns None.
@@ -452,9 +464,7 @@ def test_initial_solution(
 
 
 @patch("matplotlib.pyplot.show")
-def test_empty_motor_flight(
-    mock_show, example_plain_env, calisto_motorless
-):  # pylint: disable=unused-argument
+def test_empty_motor_flight(mock_show, example_plain_env, calisto_motorless):  # pylint: disable=unused-argument
     flight = Flight(
         rocket=calisto_motorless,
         environment=example_plain_env,

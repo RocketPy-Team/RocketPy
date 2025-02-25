@@ -7,7 +7,7 @@ from functools import cached_property
 
 import numpy as np
 import simplekml
-from scipy import integrate
+from scipy.integrate import BDF, DOP853, LSODA, RK23, RK45, OdeSolver, Radau
 
 from ..mathutils.function import Function, funcify_method
 from ..mathutils.vector_matrix import Matrix, Vector
@@ -24,8 +24,19 @@ from ..tools import (
     quaternions_to_spin,
 )
 
+ODE_SOLVER_MAP = {
+    "RK23": RK23,
+    "RK45": RK45,
+    "DOP853": DOP853,
+    "Radau": Radau,
+    "BDF": BDF,
+    "LSODA": LSODA,
+}
 
-class Flight:  # pylint: disable=too-many-public-methods
+
+# pylint: disable=too-many-public-methods
+# pylint: disable=too-many-instance-attributes
+class Flight:
     """Keeps all flight information and has a method to simulate flight.
 
     Attributes
@@ -507,6 +518,7 @@ class Flight:  # pylint: disable=too-many-public-methods
         name="Flight",
         equations_of_motion="standard",
         simulation_mode="6 DOF",
+        ode_solver="LSODA",
     ):
         """Run a trajectory simulation.
 
@@ -582,28 +594,29 @@ class Flight:  # pylint: disable=too-many-public-methods
             more restricted set of equations of motion that only works for
             solid propulsion rockets. Such equations were used in RocketPy v0
             and are kept here for backwards compatibility.
-        simulation_mode : str, optional
-            Type of equations of motion to use. Can be "3 DOF" or
-            "6 DOF". Default is "6 DOF". 3 DOF is a restricted set of equations 
-            of motion that only solves the 3 translational degree of freedom.
-            The system is assumed to be a point-mass system located at the
-            center of mass. Currently, the aerodynamic forces are solved at
-            the specified location but translated to the center of mass without
-            adding the transferring moments. Additionally, neither 
-            the angular components such as omegas aren't evaluated as well
-            nor like moment of inertias are not taken into account. The 
-            structure of functions for 3 DOF is kept very similar to 
-            the original 6 DOF model for identifying missing components
-            and easy read. 
+        ode_solver : str, ``scipy.integrate.OdeSolver``, optional
+            Integration method to use to solve the equations of motion ODE.
+            Available options are: 'RK23', 'RK45', 'DOP853', 'Radau', 'BDF',
+            'LSODA' from ``scipy.integrate.solve_ivp``.
+            Default is 'LSODA', which is recommended for most flights.
+            A custom ``scipy.integrate.OdeSolver`` can be passed as well.
+            For more information on the integration methods, see the scipy
+            documentation [1]_.
+
+
         Returns
         -------
         None
+
+        References
+        ----------
+        .. [1] https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.solve_ivp.html
         """
         # Save arguments
         self.env = environment
         self.rocket = rocket
         self.rail_length = rail_length
-        if self.rail_length <= 0:
+        if self.rail_length <= 0:  # pragma: no cover
             raise ValueError("Rail length must be a positive value.")
         self.parachutes = self.rocket.parachutes[:]
         self.inclination = inclination
@@ -619,6 +632,7 @@ class Flight:  # pylint: disable=too-many-public-methods
         self.name = name
         self.equations_of_motion = equations_of_motion
         self.simulation_mode = simulation_mode
+        self.ode_solver = ode_solver
 
         # Controller initialization
         self.__init_controllers()
@@ -665,15 +679,16 @@ class Flight:  # pylint: disable=too-many-public-methods
 
             # Create solver for this flight phase # TODO: allow different integrators
             self.function_evaluations.append(0)
-            phase.solver = integrate.LSODA(
+
+            phase.solver = self._solver(
                 phase.derivative,
                 t0=phase.t,
                 y0=self.y_sol,
                 t_bound=phase.time_bound,
-                min_step=self.min_time_step,
-                max_step=self.max_time_step,
                 rtol=self.rtol,
                 atol=self.atol,
+                max_step=self.max_time_step,
+                min_step=self.min_time_step,
             )
 
             # Initialize phase time nodes
@@ -705,13 +720,14 @@ class Flight:  # pylint: disable=too-many-public-methods
             for node_index, node in self.time_iterator(phase.time_nodes):
                 # Determine time bound for this time node
                 node.time_bound = phase.time_nodes[node_index + 1].t
-                # NOTE: Setting the time bound and status for the phase solver,
-                # and updating its internal state for the next integration step.
                 phase.solver.t_bound = node.time_bound
-                phase.solver._lsoda_solver._integrator.rwork[0] = phase.solver.t_bound
-                phase.solver._lsoda_solver._integrator.call_args[4] = (
-                    phase.solver._lsoda_solver._integrator.rwork
-                )
+                if self.__is_lsoda:
+                    phase.solver._lsoda_solver._integrator.rwork[0] = (
+                        phase.solver.t_bound
+                    )
+                    phase.solver._lsoda_solver._integrator.call_args[4] = (
+                        phase.solver._lsoda_solver._integrator.rwork
+                    )
                 phase.solver.status = "running"
 
                 # Feed required parachute and discrete controller triggers
@@ -858,11 +874,11 @@ class Flight:  # pylint: disable=too-many-public-methods
                             for t_root in t_roots
                             if 0 < t_root.real < t1 and abs(t_root.imag) < 0.001
                         ]
-                        if len(valid_t_root) > 1:
+                        if len(valid_t_root) > 1:  # pragma: no cover
                             raise ValueError(
                                 "Multiple roots found when solving for rail exit time."
                             )
-                        if len(valid_t_root) == 0:
+                        if len(valid_t_root) == 0:  # pragma: no cover
                             raise ValueError(
                                 "No valid roots found when solving for rail exit time."
                             )
@@ -937,7 +953,7 @@ class Flight:  # pylint: disable=too-many-public-methods
                             for t_root in t_roots
                             if abs(t_root.imag) < 0.001 and 0 < t_root.real < t1
                         ]
-                        if len(valid_t_root) > 1:
+                        if len(valid_t_root) > 1:  # pragma: no cover
                             raise ValueError(
                                 "Multiple roots found when solving for impact time."
                             )
@@ -1022,7 +1038,8 @@ class Flight:  # pylint: disable=too-many-public-methods
                                             i += 1
                                         # Create flight phase for time after inflation
                                         callbacks = [
-                                            lambda self, parachute_cd_s=parachute.cd_s: setattr(
+                                            lambda self,
+                                            parachute_cd_s=parachute.cd_s: setattr(
                                                 self, "parachute_cd_s", parachute_cd_s
                                             )
                                         ]
@@ -1199,6 +1216,8 @@ class Flight:  # pylint: disable=too-many-public-methods
         self.t = self.solution[-1][0]
         self.y_sol = self.solution[-1][1:]
 
+        self.__set_ode_solver(self.ode_solver)
+
     def __init_equations_of_motion(self):
         """Initialize equations of motion."""
         if self.equations_of_motion == "solid_propulsion" and self.simulation_mode == '6 DOF':
@@ -1216,7 +1235,7 @@ class Flight:  # pylint: disable=too-many-public-methods
         self._controllers = self.rocket._controllers[:]
         self.sensors = self.rocket.sensors.get_components()
         if self._controllers or self.sensors:
-            if self.time_overshoot:
+            if self.time_overshoot:  # pragma: no cover
                 self.time_overshoot = False
                 warnings.warn(
                     "time_overshoot has been set to False due to the presence "
@@ -1241,6 +1260,28 @@ class Flight:  # pylint: disable=too-many-public-methods
                 sensors.append(sensor)
                 sensor_data[sensor] = sensor.measured_data[:]
         self.sensor_data = sensor_data
+
+    def __set_ode_solver(self, solver):
+        """Sets the ODE solver to be used in the simulation.
+
+        Parameters
+        ----------
+        solver : str, ``scipy.integrate.OdeSolver``
+            Integration method to use to solve the equations of motion ODE,
+            or a custom ``scipy.integrate.OdeSolver``.
+        """
+        if isinstance(solver, OdeSolver):
+            self._solver = solver
+        else:
+            try:
+                self._solver = ODE_SOLVER_MAP[solver]
+            except KeyError as e:  # pragma: no cover
+                raise ValueError(
+                    f"Invalid ``ode_solver`` input: {solver}. "
+                    f"Available options are: {', '.join(ODE_SOLVER_MAP.keys())}"
+                ) from e
+
+        self.__is_lsoda = hasattr(self._solver, "_lsoda_solver")
 
     @cached_property
     def effective_1rl(self):
@@ -1366,7 +1407,7 @@ class Flight:  # pylint: disable=too-many-public-methods
 
         return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
 
-    def udot_rail2(self, t, u, post_processing=False):
+    def udot_rail2(self, t, u, post_processing=False):  # pragma: no cover
         """[Still not implemented] Calculates derivative of u state vector with
         respect to time when rocket is flying in 3 DOF motion in the rail.
 
@@ -1389,10 +1430,8 @@ class Flight:  # pylint: disable=too-many-public-methods
         """
         # Hey! We will finish this function later, now we just can use u_dot
         return self.u_dot_generalized(t, u, post_processing=post_processing)
-    
-    def u_dot_3dof(
-        self, t, u, post_processing=False
-    ):  # pylint: disable=too-many-locals,too-many-statements
+
+    def u_dot(self, t, u, post_processing=False):  # pylint: disable=too-many-locals,too-many-statements
         """Calculates derivative of u state vector with respect to time
         when rocket is flying in 6 DOF motion during ascent out of rail
         and descent without parachute.
@@ -1574,9 +1613,7 @@ class Flight:  # pylint: disable=too-many-public-methods
             )
         return u_dot
 
-    def u_dot(
-        self, t, u, post_processing=False
-    ):  # pylint: disable=too-many-locals,too-many-statements
+    def u_dot(self, t, u, post_processing=False):  # pylint: disable=too-many-locals,too-many-statements
         """Calculates derivative of u state vector with respect to time
         when rocket is flying in 6 DOF motion during ascent out of rail
         and descent without parachute.
@@ -2026,9 +2063,7 @@ class Flight:  # pylint: disable=too-many-public-methods
 
         return u_dot
 
-    def u_dot_generalized(
-        self, t, u, post_processing=False
-    ):  # pylint: disable=too-many-locals,too-many-statements
+    def u_dot_generalized(self, t, u, post_processing=False):  # pylint: disable=too-many-locals,too-many-statements
         """Calculates derivative of u state vector with respect to time when the
         rocket is flying in 6 DOF motion in space and significant mass variation
         effects exist. Typical flight phases include powered ascent after launch
@@ -3725,6 +3760,96 @@ class Flight:  # pylint: disable=too-many-public-methods
             yield i, node_list[i]
             i += 1
 
+    def to_dict(self, include_outputs=False):
+        data = {
+            "rocket": self.rocket,
+            "env": self.env,
+            "rail_length": self.rail_length,
+            "inclination": self.inclination,
+            "heading": self.heading,
+            "initial_solution": self.initial_solution,
+            "terminate_on_apogee": self.terminate_on_apogee,
+            "max_time": self.max_time,
+            "max_time_step": self.max_time_step,
+            "min_time_step": self.min_time_step,
+            "rtol": self.rtol,
+            "atol": self.atol,
+            "time_overshoot": self.time_overshoot,
+            "name": self.name,
+            "equations_of_motion": self.equations_of_motion,
+        }
+
+        if include_outputs:
+            data.update(
+                {
+                    "time": self.time,
+                    "out_of_rail_time": self.out_of_rail_time,
+                    "out_of_rail_velocity": self.out_of_rail_velocity,
+                    "out_of_rail_state": self.out_of_rail_state,
+                    "apogee": self.apogee,
+                    "apogee_time": self.apogee_time,
+                    "apogee_x": self.apogee_x,
+                    "apogee_y": self.apogee_y,
+                    "apogee_state": self.apogee_state,
+                    "x_impact": self.x_impact,
+                    "y_impact": self.y_impact,
+                    "impact_velocity": self.impact_velocity,
+                    "impact_state": self.impact_state,
+                    "x": self.x,
+                    "y": self.y,
+                    "z": self.z,
+                    "vx": self.vx,
+                    "vy": self.vy,
+                    "vz": self.vz,
+                    "e0": self.e0,
+                    "e1": self.e1,
+                    "e2": self.e2,
+                    "e3": self.e3,
+                    "w1": self.w1,
+                    "w2": self.w2,
+                    "w3": self.w3,
+                    "ax": self.ax,
+                    "ay": self.ay,
+                    "az": self.az,
+                    "alpha1": self.alpha1,
+                    "alpha2": self.alpha2,
+                    "alpha3": self.alpha3,
+                    "altitude": self.altitude,
+                    "mach_number": self.mach_number,
+                    "stream_velocity_x": self.stream_velocity_x,
+                    "stream_velocity_y": self.stream_velocity_y,
+                    "stream_velocity_z": self.stream_velocity_z,
+                    "free_stream_speed": self.free_stream_speed,
+                    "angle_of_attack": self.angle_of_attack,
+                    "static_margin": self.static_margin,
+                    "stability_margin": self.stability_margin,
+                    "latitude": self.latitude,
+                    "longitude": self.longitude,
+                }
+            )
+
+        return data
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            rocket=data["rocket"],
+            environment=data["env"],
+            rail_length=data["rail_length"],
+            inclination=data["inclination"],
+            heading=data["heading"],
+            initial_solution=None,
+            terminate_on_apogee=data["terminate_on_apogee"],
+            max_time=data["max_time"],
+            max_time_step=data["max_time_step"],
+            min_time_step=data["min_time_step"],
+            rtol=data["rtol"],
+            atol=data["atol"],
+            time_overshoot=data["time_overshoot"],
+            name=data["name"],
+            equations_of_motion=data["equations_of_motion"],
+        )
+
     class FlightPhases:
         """Class to handle flight phases. It is used to store the derivatives
         and callbacks for each flight phase. It is also used to handle the
@@ -3750,7 +3875,7 @@ class Flight:  # pylint: disable=too-many-public-methods
         def __repr__(self):
             return str(self.list)
 
-        def display_warning(self, *messages):
+        def display_warning(self, *messages):  # pragma: no cover
             """A simple function to print a warning message."""
             print("WARNING:", *messages)
 
@@ -3845,7 +3970,9 @@ class Flight:  # pylint: disable=too-many-public-methods
             new_index = (
                 index - 1
                 if flight_phase.t < previous_phase.t
-                else index + 1 if flight_phase.t > next_phase.t else index
+                else index + 1
+                if flight_phase.t > next_phase.t
+                else index
             )
             flight_phase.t += adjust
             self.add(flight_phase, new_index)

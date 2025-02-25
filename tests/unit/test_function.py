@@ -769,21 +769,123 @@ def test_low_pass_filter(alpha):
 
     # Check that the method works as intended and returns the right object with no issue
     assert isinstance(filtered_func, Function), "The returned type is not a Function"
-    assert np.array_equal(
-        filtered_func.source[0], source[0]
-    ), "The initial value is not the expected value"
-    assert len(filtered_func.source) == len(
-        source
-    ), "The filtered Function and the Function have different lengths"
-    assert (
-        filtered_func.__interpolation__ == func.__interpolation__
-    ), "The interpolation method was unexpectedly changed"
-    assert (
-        filtered_func.__extrapolation__ == func.__extrapolation__
-    ), "The extrapolation method was unexpectedly changed"
+    assert np.array_equal(filtered_func.source[0], source[0]), (
+        "The initial value is not the expected value"
+    )
+    assert len(filtered_func.source) == len(source), (
+        "The filtered Function and the Function have different lengths"
+    )
+    assert filtered_func.__interpolation__ == func.__interpolation__, (
+        "The interpolation method was unexpectedly changed"
+    )
+    assert filtered_func.__extrapolation__ == func.__extrapolation__, (
+        "The extrapolation method was unexpectedly changed"
+    )
     for i in range(1, len(source)):
         expected = alpha * source[i][1] + (1 - alpha) * filtered_func.source[i - 1][1]
         assert np.isclose(filtered_func.source[i][1], expected, atol=1e-6), (
             f"The filtered value at index {i} is not the expected value. "
             f"Expected: {expected}, Actual: {filtered_func.source[i][1]}"
         )
+
+
+def test_average_function_ndarray():
+    dummy_function = Function(
+        source=[
+            [0, 0],
+            [1, 1],
+            [2, 0],
+            [3, 1],
+            [4, 0],
+            [5, 1],
+            [6, 0],
+            [7, 1],
+            [8, 0],
+            [9, 1],
+        ],
+        inputs=["x"],
+        outputs=["y"],
+    )
+    avg_function = dummy_function.average_function()
+
+    assert isinstance(avg_function, Function)
+    assert np.isclose(avg_function(0), 0)
+    assert np.isclose(avg_function(9), 0.5)
+
+
+def test_average_function_callable():
+    dummy_function = Function(lambda x: 2)
+    avg_function = dummy_function.average_function(lower=0)
+
+    assert isinstance(avg_function, Function)
+    assert np.isclose(avg_function(1), 2)
+    assert np.isclose(avg_function(9), 2)
+
+
+@pytest.mark.parametrize(
+    "lower, upper, sampling_frequency, window_size, step_size, remove_dc, only_positive",
+    [
+        (0, 10, 100, 1, 0.5, True, True),
+        (0, 10, 100, 1, 0.5, True, False),
+        (0, 10, 100, 1, 0.5, False, True),
+        (0, 10, 100, 1, 0.5, False, False),
+        (0, 20, 200, 2, 1, True, True),
+    ],
+)
+def test_short_time_fft(
+    lower, upper, sampling_frequency, window_size, step_size, remove_dc, only_positive
+):
+    """Test the short_time_fft method of the Function class.
+
+    Parameters
+    ----------
+    lower : float
+        Lower bound of the time range.
+    upper : float
+        Upper bound of the time range.
+    sampling_frequency : float
+        Sampling frequency at which to perform the Fourier transform.
+    window_size : float
+        Size of the window for the STFT, in seconds.
+    step_size : float
+        Step size for the window, in seconds.
+    remove_dc : bool
+        If True, the DC component is removed from each window before
+        computing the Fourier transform.
+    only_positive: bool
+        If True, only the positive frequencies are returned.
+    """
+    # Generate a test signal
+    t = np.linspace(lower, upper, int((upper - lower) * sampling_frequency))
+    signal = np.sin(2 * np.pi * 5 * t)  # 5 Hz sine wave
+    func = Function(np.column_stack((t, signal)))
+
+    # Perform STFT
+    stft_results = func.short_time_fft(
+        lower=lower,
+        upper=upper,
+        sampling_frequency=sampling_frequency,
+        window_size=window_size,
+        step_size=step_size,
+        remove_dc=remove_dc,
+        only_positive=only_positive,
+    )
+
+    # Check the results
+    assert isinstance(stft_results, list)
+    assert all(isinstance(f, Function) for f in stft_results)
+
+    for f in stft_results:
+        assert f.get_inputs() == ["Frequency (Hz)"]
+        assert f.get_outputs() == ["Amplitude"]
+        assert f.get_interpolation_method() == "linear"
+        assert f.get_extrapolation_method() == "zero"
+
+        frequencies = f.source[:, 0]
+        # amplitudes = f.source[:, 1]
+
+        if only_positive:
+            assert np.all(frequencies >= 0)
+        else:
+            assert np.all(frequencies >= -sampling_frequency / 2)
+            assert np.all(frequencies <= sampling_frequency / 2)

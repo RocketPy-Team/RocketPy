@@ -89,9 +89,7 @@ class StochasticModel:
     def __repr__(self):
         return f"'{self.__class__.__name__}() object'"
 
-    def _validate_tuple(
-        self, input_name, input_value, getattr=getattr
-    ):  # pylint: disable=redefined-builtin
+    def _validate_tuple(self, input_name, input_value, getattr=getattr):  # pylint: disable=redefined-builtin
         """
         Validate tuple arguments.
 
@@ -119,18 +117,16 @@ class StochasticModel:
             2,
             3,
         ], f"'{input_name}': tuple must have length 2 or 3"
-        assert isinstance(
-            input_value[0], (int, float)
-        ), f"'{input_name}': First item of tuple must be an int or float"
+        assert isinstance(input_value[0], (int, float)), (
+            f"'{input_name}': First item of tuple must be an int or float"
+        )
 
         if len(input_value) == 2:
             return self._validate_tuple_length_two(input_name, input_value, getattr)
         if len(input_value) == 3:
             return self._validate_tuple_length_three(input_name, input_value, getattr)
 
-    def _validate_tuple_length_two(
-        self, input_name, input_value, getattr=getattr
-    ):  # pylint: disable=redefined-builtin
+    def _validate_tuple_length_two(self, input_name, input_value, getattr=getattr):  # pylint: disable=redefined-builtin
         """
         Validate tuples with length 2.
 
@@ -154,9 +150,9 @@ class StochasticModel:
         AssertionError
             If the input is not in a valid format.
         """
-        assert isinstance(
-            input_value[1], (int, float, str)
-        ), f"'{input_name}': second item of tuple must be an int, float, or string."
+        assert isinstance(input_value[1], (int, float, str)), (
+            f"'{input_name}': second item of tuple must be an int, float, or string."
+        )
 
         if isinstance(input_value[1], str):
             # if second item is a string, then it is assumed that the first item
@@ -172,9 +168,7 @@ class StochasticModel:
             # "normal".
             return (input_value[0], input_value[1], get_distribution("normal"))
 
-    def _validate_tuple_length_three(
-        self, input_name, input_value, getattr=getattr
-    ):  # pylint: disable=redefined-builtin,unused-argument
+    def _validate_tuple_length_three(self, input_name, input_value, getattr=getattr):  # pylint: disable=redefined-builtin,unused-argument
         """
         Validate tuples with length 3.
 
@@ -209,9 +203,7 @@ class StochasticModel:
         dist_func = get_distribution(input_value[2])
         return (input_value[0], input_value[1], dist_func)
 
-    def _validate_list(
-        self, input_name, input_value, getattr=getattr
-    ):  # pylint: disable=redefined-builtin
+    def _validate_list(self, input_name, input_value, getattr=getattr):  # pylint: disable=redefined-builtin
         """
         Validate list arguments.
 
@@ -239,9 +231,7 @@ class StochasticModel:
         else:
             return input_value
 
-    def _validate_scalar(
-        self, input_name, input_value, getattr=getattr
-    ):  # pylint: disable=redefined-builtin
+    def _validate_scalar(self, input_name, input_value, getattr=getattr):  # pylint: disable=redefined-builtin
         """
         Validate scalar arguments. If the input is a scalar, the nominal value
         will be taken from the object passed, and the standard deviation will be
@@ -360,9 +350,9 @@ class StochasticModel:
         AssertionError
             If the input is not in a valid format.
         """
-        assert all(
-            isinstance(item, (int, float)) for item in factor_list
-        ), f"'{input_name}`: Items in list must be either ints or floats"
+        assert all(isinstance(item, (int, float)) for item in factor_list), (
+            f"'{input_name}`: Items in list must be either ints or floats"
+        )
         return factor_list
 
     def _validate_1d_array_like(self, input_name, input_value):
@@ -439,9 +429,9 @@ class StochasticModel:
             ), "`airfoil` must be a list of tuples"
             for member in airfoil:
                 assert len(member) == 2, "`airfoil` tuples must have length 2"
-                assert isinstance(
-                    member[1], str
-                ), "`airfoil` tuples must have a string as the second item"
+                assert isinstance(member[1], str), (
+                    "`airfoil` tuples must have a string as the second item"
+                )
                 if isinstance(member[0], list):
                     if len(np.shape(member[0])) != 2 and np.shape(member[0])[1] != 2:
                         raise AssertionError("`airfoil` tuples must have shape (n,2)")

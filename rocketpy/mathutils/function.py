@@ -1,5 +1,5 @@
 # pylint: disable=too-many-lines
-""" The mathutils/function.py is a rocketpy module totally dedicated to function
+"""The mathutils/function.py is a rocketpy module totally dedicated to function
 operations, including interpolation, extrapolation, integration, differentiation
 and more. This is a core class of our package, and should be maintained
 carefully as it may impact all the rest of the project.
@@ -21,6 +21,8 @@ from scipy.interpolate import (
     NearestNDInterpolator,
     RBFInterpolator,
 )
+
+from rocketpy.tools import from_hex_decode, to_hex_encode
 
 from ..plots.plot_helpers import show_or_save_plot
 
@@ -358,9 +360,7 @@ class Function:  # pylint: disable=too-many-public-methods
         if interpolation == 0:  # linear
             if self.__dom_dim__ == 1:
 
-                def linear_interpolation(
-                    x, x_min, x_max, x_data, y_data, coeffs
-                ):  # pylint: disable=unused-argument
+                def linear_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                     x_interval = bisect_left(x_data, x)
                     x_left = x_data[x_interval - 1]
                     y_left = y_data[x_interval - 1]
@@ -371,27 +371,21 @@ class Function:  # pylint: disable=too-many-public-methods
             else:
                 interpolator = LinearNDInterpolator(self._domain, self._image)
 
-                def linear_interpolation(
-                    x, x_min, x_max, x_data, y_data, coeffs
-                ):  # pylint: disable=unused-argument
+                def linear_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                     return interpolator(x)
 
             self._interpolation_func = linear_interpolation
 
         elif interpolation == 1:  # polynomial
 
-            def polynomial_interpolation(
-                x, x_min, x_max, x_data, y_data, coeffs
-            ):  # pylint: disable=unused-argument
+            def polynomial_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                 return np.sum(coeffs * x ** np.arange(len(coeffs)))
 
             self._interpolation_func = polynomial_interpolation
 
         elif interpolation == 2:  # akima
 
-            def akima_interpolation(
-                x, x_min, x_max, x_data, y_data, coeffs
-            ):  # pylint: disable=unused-argument
+            def akima_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                 x_interval = bisect_left(x_data, x)
                 x_interval = x_interval if x_interval != 0 else 1
                 a = coeffs[4 * x_interval - 4 : 4 * x_interval]
@@ -401,9 +395,7 @@ class Function:  # pylint: disable=too-many-public-methods
 
         elif interpolation == 3:  # spline
 
-            def spline_interpolation(
-                x, x_min, x_max, x_data, y_data, coeffs
-            ):  # pylint: disable=unused-argument
+            def spline_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                 x_interval = bisect_left(x_data, x)
                 x_interval = max(x_interval, 1)
                 a = coeffs[:, x_interval - 1]
@@ -413,7 +405,6 @@ class Function:  # pylint: disable=too-many-public-methods
             self._interpolation_func = spline_interpolation
 
         elif interpolation == 4:  # shepard
-
             # pylint: disable=unused-argument
             def shepard_interpolation(x, x_min, x_max, x_data, y_data, _):
                 arg_qty, arg_dim = x.shape
@@ -438,12 +429,9 @@ class Function:  # pylint: disable=too-many-public-methods
             self._interpolation_func = shepard_interpolation
 
         elif interpolation == 5:  # RBF
-
             interpolator = RBFInterpolator(self._domain, self._image, neighbors=100)
 
-            def rbf_interpolation(
-                x, x_min, x_max, x_data, y_data, coeffs
-            ):  # pylint: disable=unused-argument
+            def rbf_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                 return interpolator(x)
 
             self._interpolation_func = rbf_interpolation
@@ -457,20 +445,15 @@ class Function:  # pylint: disable=too-many-public-methods
 
         if extrapolation == 0:  # zero
 
-            def zero_extrapolation(
-                x, x_min, x_max, x_data, y_data, coeffs
-            ):  # pylint: disable=unused-argument
+            def zero_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                 return 0
 
             self._extrapolation_func = zero_extrapolation
         elif extrapolation == 1:  # natural
             if interpolation == 0:  # linear
-
                 if self.__dom_dim__ == 1:
 
-                    def natural_extrapolation(
-                        x, x_min, x_max, x_data, y_data, coeffs
-                    ):  # pylint: disable=unused-argument
+                    def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                         x_interval = 1 if x < x_min else -1
                         x_left = x_data[x_interval - 1]
                         y_left = y_data[x_interval - 1]
@@ -483,31 +466,23 @@ class Function:  # pylint: disable=too-many-public-methods
                         self._domain, self._image, neighbors=100
                     )
 
-                    def natural_extrapolation(
-                        x, x_min, x_max, x_data, y_data, coeffs
-                    ):  # pylint: disable=unused-argument
+                    def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                         return interpolator(x)
 
             elif interpolation == 1:  # polynomial
 
-                def natural_extrapolation(
-                    x, x_min, x_max, x_data, y_data, coeffs
-                ):  # pylint: disable=unused-argument
+                def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                     return np.sum(coeffs * x ** np.arange(len(coeffs)))
 
             elif interpolation == 2:  # akima
 
-                def natural_extrapolation(
-                    x, x_min, x_max, x_data, y_data, coeffs
-                ):  # pylint: disable=unused-argument
+                def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                     a = coeffs[:4] if x < x_min else coeffs[-4:]
                     return a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
 
             elif interpolation == 3:  # spline
 
-                def natural_extrapolation(
-                    x, x_min, x_max, x_data, y_data, coeffs
-                ):  # pylint: disable=unused-argument
+                def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                     if x < x_min:
                         a = coeffs[:, 0]
                         x = x - x_data[0]
@@ -517,7 +492,6 @@ class Function:  # pylint: disable=too-many-public-methods
                     return a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
 
             elif interpolation == 4:  # shepard
-
                 # pylint: disable=unused-argument
                 def natural_extrapolation(x, x_min, x_max, x_data, y_data, _):
                     arg_qty, arg_dim = x.shape
@@ -540,26 +514,19 @@ class Function:  # pylint: disable=too-many-public-methods
                     return result
 
             elif interpolation == 5:  # RBF
-
                 interpolator = RBFInterpolator(self._domain, self._image, neighbors=100)
 
-                def natural_extrapolation(
-                    x, x_min, x_max, x_data, y_data, coeffs
-                ):  # pylint: disable=unused-argument
+                def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                     return interpolator(x)
 
             self._extrapolation_func = natural_extrapolation
         elif extrapolation == 2:  # constant
-
             if self.__dom_dim__ == 1:
 
-                def constant_extrapolation(
-                    x, x_min, x_max, x_data, y_data, coeffs
-                ):  # pylint: disable=unused-argument
+                def constant_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                     return y_data[0] if x < x_min else y_data[-1]
 
             else:
-
                 extrapolator = NearestNDInterpolator(self._domain, self._image)
 
                 def constant_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):
@@ -711,9 +678,9 @@ class Function:  # pylint: disable=too-many-public-methods
         if func.__dom_dim__ == 1:
             xs = np.linspace(lower, upper, samples)
             ys = func.get_value(xs.tolist()) if one_by_one else func.get_value(xs)
-            func.set_source(np.concatenate(([xs], [ys])).transpose())
-            func.set_interpolation(interpolation)
-            func.set_extrapolation(extrapolation)
+            func.__interpolation__ = interpolation
+            func.__extrapolation__ = extrapolation
+            func.set_source(np.column_stack((xs, ys)))
         elif func.__dom_dim__ == 2:
             lower = 2 * [lower] if isinstance(lower, NUMERICAL_TYPES) else lower
             upper = 2 * [upper] if isinstance(upper, NUMERICAL_TYPES) else upper
@@ -1479,7 +1446,7 @@ class Function:  # pylint: disable=too-many-public-methods
             else:
                 print("Error: Only functions with 1D or 2D domains can be plotted.")
 
-    def plot1D(self, *args, **kwargs):
+    def plot1D(self, *args, **kwargs):  # pragma: no cover
         """Deprecated method, use Function.plot_1d instead."""
         warnings.warn(
             "The `Function.plot1D` method is set to be deprecated and fully "
@@ -1579,7 +1546,7 @@ class Function:  # pylint: disable=too-many-public-methods
         if return_object:
             return fig, ax
 
-    def plot2D(self, *args, **kwargs):
+    def plot2D(self, *args, **kwargs):  # pragma: no cover
         """Deprecated method, use Function.plot_2d instead."""
         warnings.warn(
             "The `Function.plot2D` method is set to be deprecated and fully "
@@ -2770,7 +2737,7 @@ class Function:  # pylint: disable=too-many-public-methods
         """
         if order == 1:
             return float(self.get_value_opt(x + dx * 1j).imag / dx)
-        else:
+        else:  # pragma: no cover
             raise NotImplementedError(
                 "Only 1st order derivatives are supported yet. Set order=1."
             )
@@ -3117,12 +3084,12 @@ class Function:  # pylint: disable=too-many-public-methods
             The result of inputting the function into the function.
         """
         # Check if the input is a function
-        if not isinstance(func, Function):
+        if not isinstance(func, Function):  # pragma: no cover
             raise TypeError("Input must be a Function object.")
 
         if isinstance(self.source, np.ndarray) and isinstance(func.source, np.ndarray):
             # Perform bounds check for composition
-            if not extrapolate:
+            if not extrapolate:  # pragma: no cover
                 if func.min < self.x_initial or func.max > self.x_final:
                     raise ValueError(
                         f"Input Function image {func.min, func.max} must be within "
@@ -3195,7 +3162,7 @@ class Function:  # pylint: disable=too-many-public-methods
 
         # create the datapoints
         if callable(self.source):
-            if lower is None or upper is None or samples is None:
+            if lower is None or upper is None or samples is None:  # pragma: no cover
                 raise ValueError(
                     "If the source is a callable, lower, upper and samples"
                     + " must be provided."
@@ -3262,7 +3229,7 @@ class Function:  # pylint: disable=too-many-public-methods
                         self.__inputs__ = header[:-1]
                     if self.__outputs__ is None:
                         self.__outputs__ = [header[-1]]
-            except Exception as e:
+            except Exception as e:  # pragma: no cover
                 raise ValueError(
                     "Could not read the csv or txt file to create Function source."
                 ) from e
@@ -3321,6 +3288,7 @@ class Function:  # pylint: disable=too-many-public-methods
             if isinstance(inputs, (list, tuple)):
                 if len(inputs) == 1:
                     return inputs
+            # pragma: no cover
             raise ValueError(
                 "Inputs must be a string or a list of strings with "
                 "the length of the domain dimension."
@@ -3333,6 +3301,7 @@ class Function:  # pylint: disable=too-many-public-methods
                     isinstance(i, str) for i in inputs
                 ):
                     return inputs
+            # pragma: no cover
             raise ValueError(
                 "Inputs must be a list of strings with "
                 "the length of the domain dimension."
@@ -3418,107 +3387,48 @@ class Function:  # pylint: disable=too-many-public-methods
                 extrapolation = "natural"
         return extrapolation
 
+    def to_dict(self, include_outputs=False):  # pylint: disable=unused-argument
+        """Serializes the Function instance to a dictionary.
 
-class PiecewiseFunction(Function):
-    """Class for creating piecewise functions. These kind of functions are
-    defined by a dictionary of functions, where the keys are tuples that
-    represent the domain of the function. The domains must be disjoint.
-    """
-
-    def __new__(
-        cls,
-        source,
-        inputs=None,
-        outputs=None,
-        interpolation="spline",
-        extrapolation=None,
-        datapoints=100,
-    ):
+        Returns
+        -------
+        dict
+            A dictionary containing the Function's attributes.
         """
-        Creates a piecewise function from a dictionary of functions. The keys of
-        the dictionary must be tuples that represent the domain of the function.
-        The domains must be disjoint. The piecewise function will be evaluated
-        at datapoints points to create Function object.
+        source = self.source
+
+        if callable(source):
+            source = to_hex_encode(source)
+
+        return {
+            "source": source,
+            "title": self.title,
+            "inputs": self.__inputs__,
+            "outputs": self.__outputs__,
+            "interpolation": self.__interpolation__,
+            "extrapolation": self.__extrapolation__,
+        }
+
+    @classmethod
+    def from_dict(cls, func_dict):
+        """Creates a Function instance from a dictionary.
 
         Parameters
         ----------
-        source: dictionary
-            A dictionary of Function objects, where the keys are the domains.
-        inputs : list of strings
-            A list of strings that represent the inputs of the function.
-        outputs: list of strings
-            A list of strings that represent the outputs of the function.
-        interpolation: str
-            The type of interpolation to use. The default value is 'spline'.
-        extrapolation: str
-            The type of extrapolation to use. The default value is None.
-        datapoints: int
-            The number of points in which the piecewise function will be
-            evaluated to create a base function. The default value is 100.
+        func_dict
+            The JSON like Function dictionary.
         """
-        if inputs is None:
-            inputs = ["Scalar"]
-        if outputs is None:
-            outputs = ["Scalar"]
-        # Check if source is a dictionary
-        if not isinstance(source, dict):
-            raise TypeError("source must be a dictionary")
-        # Check if all keys are tuples
-        for key in source.keys():
-            if not isinstance(key, tuple):
-                raise TypeError("keys of source must be tuples")
-        # Check if all domains are disjoint
-        for key1 in source.keys():
-            for key2 in source.keys():
-                if key1 != key2:
-                    if key1[0] < key2[1] and key1[1] > key2[0]:
-                        raise ValueError("domains must be disjoint")
+        source = func_dict["source"]
+        if func_dict["interpolation"] is None and func_dict["extrapolation"] is None:
+            source = from_hex_decode(source)
 
-        # Crate Function
-        def calc_output(func, inputs):
-            """Receives a list of inputs value and a function, populates another
-            list with the results corresponding to the same results.
-
-            Parameters
-            ----------
-            func : Function
-                The Function object to be
-            inputs : list, tuple, np.array
-                The array of points to applied the func to.
-
-            Examples
-            --------
-            >>> inputs = [0, 1, 2, 3, 4, 5]
-            >>> def func(x):
-            ...     return x*10
-            >>> calc_output(func, inputs)
-            [0, 10, 20, 30, 40, 50]
-
-            Notes
-            -----
-            In the future, consider using the built-in map function from python.
-            """
-            output = np.zeros(len(inputs))
-            for j, value in enumerate(inputs):
-                output[j] = func.get_value_opt(value)
-            return output
-
-        input_data = []
-        output_data = []
-        for key in sorted(source.keys()):
-            i = np.linspace(key[0], key[1], datapoints)
-            i = i[~np.isin(i, input_data)]
-            input_data = np.concatenate((input_data, i))
-
-            f = Function(source[key])
-            output_data = np.concatenate((output_data, calc_output(f, i)))
-
-        return Function(
-            np.concatenate(([input_data], [output_data])).T,
-            inputs=inputs,
-            outputs=outputs,
-            interpolation=interpolation,
-            extrapolation=extrapolation,
+        return cls(
+            source=source,
+            interpolation=func_dict["interpolation"],
+            extrapolation=func_dict["extrapolation"],
+            inputs=func_dict["inputs"],
+            outputs=func_dict["outputs"],
+            title=func_dict["title"],
         )
 
 
@@ -3668,7 +3578,7 @@ def reset_funcified_methods(instance):
             instance.__dict__.pop(key)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     import doctest
 
     results = doctest.testmod()

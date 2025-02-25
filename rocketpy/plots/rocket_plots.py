@@ -385,7 +385,7 @@ class _RocketPlots:
             x_pos = position[2]
             # y position of the surface is the y position in the plot
             y_pos = position[1]
-        else:
+        else:  # pragma: no cover
             raise ValueError("Plane must be 'xz' or 'yz'.")
 
         ax.scatter(
@@ -463,9 +463,7 @@ class _RocketPlots:
 
         self._draw_nozzle_tube(last_radius, last_x, nozzle_position, ax, vis_args)
 
-    def _generate_motor_patches(
-        self, total_csys, ax
-    ):  # pylint: disable=unused-argument
+    def _generate_motor_patches(self, total_csys, ax):  # pylint: disable=unused-argument
         """Generates motor patches for drawing"""
         motor_patches = []
 
@@ -633,7 +631,7 @@ class _RocketPlots:
                 # y position of the sensor is the y position in the plot
                 y_pos = pos[1]
                 normal_y = sensor.normal_vector.y
-            else:
+            else:  # pragma: no cover
                 raise ValueError("Plane must be 'xz' or 'yz'.")
 
             # line length is 2/5 of the rocket radius
