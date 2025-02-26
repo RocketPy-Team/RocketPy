@@ -8,8 +8,8 @@ previous monte carlo simulation to obtain the results when one or more variables
 have a different probability distribution without having to re-run the simulation.
 
 We will show you how to use the  :class:`rocketpy.MultivariateRejectionSampler` 
-class to possibly save time. It is highly recommended that you read about the monte 
-carlo simulations.
+class to possibly save time. It is highly recommended that you read about the Monte 
+Carlo simulations.
 
 Motivation
 ----------
@@ -18,21 +18,21 @@ As discussed in :ref:`sensitivity-practical`, there are several sources of
 uncertainty that can affect the flight of a rocket, notably the weather and
 the measurements errors in design parameters. Still, it is desirable that the flight
 accomplishes its goal, for instance reaching a certain apogee, as well as staying under
-some safety restrictions, such as the landing point is outside of a given area.
+some safety restrictions, such as ensuring that the landing point is outside 
+of a given area.
 
 Monte Carlo simulation is a technique that allows us to quantify the uncertainty and
-give objective answers to those type of questions in terms of probabilities and 
+give objective answers to those types of questions in terms of probabilities and 
 statistics. It relies on running several simulations under different conditions 
 specified by probability distributions provided by the user. Hence, depending on the
-inputs and number of samples, it might take a while to run those monte carlo 
-simulations.
+inputs and number of samples, running these Monte Carlo simulations might take a while.
 
-Now, imagine that you ran and saved the monte carlo simulations. Later, you need new a 
-monte carlo simulation but with new probability distributions that are somewhat close 
+Now, imagine that you ran and saved the Monte Carlo simulations. Later, you need new a 
+Monte Carlo simulation with new probability distributions that are somewhat close 
 to the original simulation. The first straightforward option is to just re-run the 
 monte carlo with the new arguments, but this might be time consuming. A second option
 is to use a sub-sampler that leverages the existing simulation to produce a new sample
-that conforms to the new probability distributions. The latter avoids completely
+that conforms to the new probability distributions. The latter completely avoids
 the necessity of re-running the simulations and is, therefore, much faster.
 
 The Multivariate Rejection Sampler, or just MRS, is an algorithm that sub-samples the 
