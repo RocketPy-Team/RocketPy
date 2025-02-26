@@ -10,25 +10,29 @@ latest documentation.
 
 import json
 from dataclasses import dataclass
+from pathlib import Path
 from random import random
 
 from rocketpy._encoders import RocketPyEncoder
 
 
 @dataclass
+# pylint: disable=unsupported-binary-operation
 class SampleInformation:
     """Sample information used in the MRS"""
 
-    inputs_json: dict = None
-    outputs_json: dict = None
-    probability_ratio: float = None
-    acceptance_probability: float = None
+    inputs_json: dict | None = None
+    outputs_json: dict | None = None
+    probability_ratio: float | None = None
+    acceptance_probability: float | None = None
 
 
 class MultivariateRejectionSampler:
     """Class that performs Multivariate Rejection Sampling (MRS) from MonteCarlo
-    results. The class currently assumes that all input variables are independent
-    when performing the
+    results.
+
+    The class currently assumes that all input variables are sampled independently
+    when performing the Monte Carlo Simulation.
 
     Attributes
     ----------
@@ -55,8 +59,8 @@ class MultivariateRejectionSampler:
         -------
         None
         """
-        self.monte_carlo_filepath = monte_carlo_filepath
-        self.mrs_filepath = mrs_filepath
+        self.monte_carlo_filepath = Path(monte_carlo_filepath)
+        self.mrs_filepath = Path(mrs_filepath)
         self.distribution_dict = None
         self.original_sample_size = 0
         self.sup_ratio = 1
@@ -74,7 +78,7 @@ class MultivariateRejectionSampler:
         """Loads input information from monte carlo in a SampleInformation
         object
         """
-        input_filename = f"{self.monte_carlo_filepath}.inputs.txt"
+        input_filename = self.monte_carlo_filepath.with_suffix(".inputs.txt")
 
         try:
             input_file = open(input_filename, "r+", encoding="utf-8")
@@ -114,7 +118,7 @@ class MultivariateRejectionSampler:
         """Loads output information from monte carlo in a SampleInformation
         object.
         """
-        output_filename = f"{self.monte_carlo_filepath}.outputs.txt"
+        output_filename = self.monte_carlo_filepath.with_suffix(".outputs.txt")
         sample_size_output = 0  # sanity check
 
         try:
@@ -180,11 +184,15 @@ class MultivariateRejectionSampler:
 
         self.__validate_distribution_dict(distribution_dict)
 
-        mrs_input_file = open(f"{self.mrs_filepath}.inputs.txt", "w+", encoding="utf-8")
-        mrs_output_file = open(
-            f"{self.mrs_filepath}.outputs.txt", "w+", encoding="utf-8"
+        mrs_input_file = open(
+            self.mrs_filepath.with_suffix(".inputs.txt"), "w+", encoding="utf-8"
         )
-        mrs_error_file = open(f"{self.mrs_filepath}.errors.txt", "w+", encoding="utf-8")
+        mrs_output_file = open(
+            self.mrs_filepath.with_suffix(".outputs.txt"), "w+", encoding="utf-8"
+        )
+        mrs_error_file = open(
+            self.mrs_filepath.with_suffix(".errors.txt"), "w+", encoding="utf-8"
+        )
 
         self.__setup_probabilities(distribution_dict)
 
