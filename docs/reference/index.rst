@@ -20,6 +20,7 @@ This reference manual details functions, modules, methods and attributes include
    classes/EnvironmentAnalysis
    Monte Carlo Analysis <classes/monte_carlo/index> 
    Sensitivity Analysis <classes/Sensitivity>
+   Multivariate Rejection Sampler <classes/MultivariateRejectionSampler>
 
 .. toctree::
    :maxdepth: 2

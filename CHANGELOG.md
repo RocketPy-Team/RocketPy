@@ -33,6 +33,7 @@ Attention: The newest changes should be on top -->
 ### Added
 
 - DOC: ASTRA Flight Example [#770](https://github.com/RocketPy-Team/RocketPy/pull/770))
+- ENH: Implement Multivariate Rejection Sampling (MRS) [#738] (https://github.com/RocketPy-Team/RocketPy/pull/738) 
 
 ### Changed
 
