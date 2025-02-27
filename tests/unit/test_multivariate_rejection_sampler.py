@@ -8,6 +8,7 @@ from rocketpy import MultivariateRejectionSampler
 from rocketpy._encoders import RocketPyEncoder
 
 
+# pylint: disable=too-many-statements
 def test_mrs_initialization():
     """Tests if the MultivariateRejectionSampler initialization opens input and output
     files correctly, and if it raises errors correctly when the files are problematic.
