@@ -4,11 +4,11 @@ Multivariate Rejection Sampling
 ===============================
 
 Multivariate Rejection Sampling allows you to quickly subsample the results of a 
-previous monte carlo simulation to obtain the results when one or more variables 
+previous Monte Carlo simulation to obtain the results when one or more variables 
 have a different probability distribution without having to re-run the simulation.
 
 We will show you how to use the  :class:`rocketpy.MultivariateRejectionSampler` 
-class to possibly save time. It is highly recommended that you read about the Monte 
+class to possibly save time. It is highly recommended that you read about Monte 
 Carlo simulations.
 
 Motivation
@@ -28,7 +28,7 @@ specified by probability distributions provided by the user. Hence, depending on
 inputs and number of samples, running these Monte Carlo simulations might take a while.
 
 Now, imagine that you ran and saved the Monte Carlo simulations. Later, you need new a 
-Monte Carlo simulation with new probability distributions that are somewhat close 
+Monte Carlo simulation with different probability distributions that are somewhat close 
 to the original simulation. The first straightforward option is to just re-run the 
 monte carlo with the new arguments, but this might be time consuming. A second option
 is to use a sub-sampler that leverages the existing simulation to produce a new sample
@@ -38,13 +38,13 @@ the necessity of re-running the simulations and is, therefore, much faster.
 The Multivariate Rejection Sampler, or just MRS, is an algorithm that sub-samples the 
 original results based on weights proportional to the ratio of the new and old 
 probability distributions that have changed. The final result has a smaller sample size,
-but their distribution matches the one newly specified without having to re-run the
+but their distribution matches the one newly specified without having to re-run
 the simulation.
 
-The time efficiency of the MRS is specially interesting in two scenarios: quick testing
+The time efficiency of the MRS is especially interesting in two scenarios: quick testing
 and tight schedules. Imagine you have an initial design and ran a huge robust monte 
 carlo simulation but you are also interested in minor variations of the original 
-design. Instead of having to run an expensive monte carlo for each of theses variations,
+design. Instead of having to run an expensive monte carlo for each of these variations,
 you can just re-sample the original accordingly. For tight schedules, it is not
 unheard of cases where last minute changes have to be made to simulations. The MRS might
 then allow you to quickly have monte carlo results for the new configuration when a
@@ -63,7 +63,7 @@ class. We begin by importing it along with other utilities
     from scipy.stats import norm
 
 The reference monte carlo simulation used is the one from the 
-"monte_carlo_class_usage.ipynb" notebook with a 1000 samples. An
+"monte_carlo_class_usage.ipynb" notebook with a 1000 samples. A
 MultivariateRejectionSampler object is initialized by giving two file paths, one
 for the prefix of the original monte carlo simulation, and one for the output of the
 sub-samples. The code below defines these strings and initializes the MRS object
@@ -80,7 +80,7 @@ sub-samples. The code below defines these strings and initializes the MRS object
         mrs_filepath=mrs_filepath,
     )
 
-Running a monte carlo simulation requires you to specifies the distribution of 
+Running a monte carlo simulation requires you to specify the distribution of 
 all parameters that have uncertainty. The MRS, however, only needs the previous and new
 distributions of the parameters whose distribution changed. All other random parameters
 in the original monte carlo simulation retain their original distribution.
@@ -89,7 +89,7 @@ In the original simulation, the mass of the rocket had a normal distribution wit
 :math:`15.426` and standard deviation of :math:`0.5`. Assume that the mean of this
 distribution changed to :math:`15` and the standard deviation remained the same. To
 run the mrs, we create a dictionary whose keys are the name of the parameter and the 
-values is a 2-tuple: the first entry contains the pdf of the old distribution, and the
+value is a 2-tuple: the first entry contains the pdf of the old distribution, and the
 second entry contains the pdf of the new distribution. The code below shows how to
 create these distributions and the dictionary
 
@@ -208,7 +208,7 @@ Time Comparison
 
 Is the MRS really much faster than just re-running a Monte Carlo simulation?
 Let us take a look at some numbers. All tests ran in a Dell G15 5530, with 16 
-13th Gen Intel® Core™ i5-13450HX CPUs, 16Gb RAM, running ubuntu 22.04. Each function
+13th Gen Intel® Core™ i5-13450HX CPUs, 16GB RAM, running Ubuntu 22.04. Each function
 ran 10 times, and no parallelization was used. 
 
 To run the original monte carlo simulation with 1000 samples it took,
@@ -226,5 +226,5 @@ might reduce the sample size drastically. If several variables undergo
 changes in their distribution and the more discrepant these are from the original 
 ones, the more pronounced will be this sample size reduction. If you need the monte 
 carlo simulations to have the same sample size as before or if the expected sample size
-from the MRS is too low for you current application, then it might be better suited to
+from the MRS is too low for you current application, then it might be better to
 re-run the simulations.

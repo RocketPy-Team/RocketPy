@@ -12,19 +12,21 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 from random import random
+from typing import Union
 
 from rocketpy._encoders import RocketPyEncoder
 
 
 @dataclass
+# TODO: replace Union by "|" once python 3.9 is no longer supported
 # pylint: disable=unsupported-binary-operation
 class SampleInformation:
     """Sample information used in the MRS"""
 
-    inputs_json: dict | None = None
-    outputs_json: dict | None = None
-    probability_ratio: float | None = None
-    acceptance_probability: float | None = None
+    inputs_json: Union[dict, None] = None
+    outputs_json: Union[dict, None] = None
+    probability_ratio: Union[float, None] = None
+    acceptance_probability: Union[float, None] = None
 
 
 class MultivariateRejectionSampler:
