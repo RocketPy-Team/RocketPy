@@ -84,12 +84,21 @@ def test_monte_carlo_set_outputs_log(monte_carlo_calisto):
 def test_monte_carlo_prints(monte_carlo_calisto):
     """Tests the prints methods of the MonteCarlo class."""
     monte_carlo_calisto.info()
+    monte_carlo_calisto.compare_info(monte_carlo_calisto)
 
 
 @patch("matplotlib.pyplot.show")  # pylint: disable=unused-argument
 def test_monte_carlo_plots(mock_show, monte_carlo_calisto_pre_loaded):
     """Tests the plots methods of the MonteCarlo class."""
     assert monte_carlo_calisto_pre_loaded.all_info() is None
+    assert (
+        monte_carlo_calisto_pre_loaded.compare_plots(monte_carlo_calisto_pre_loaded)
+        is None
+    )
+    assert (
+        monte_carlo_calisto_pre_loaded.compare_ellipses(monte_carlo_calisto_pre_loaded)
+        is None
+    )
 
 
 def test_monte_carlo_export_ellipses_to_kml(monte_carlo_calisto_pre_loaded):
