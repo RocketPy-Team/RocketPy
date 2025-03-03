@@ -33,6 +33,7 @@ Attention: The newest changes should be on top -->
 ### Added
 
 - ENH: Parallel mode for monte-carlo simulations 2 [#768](https://github.com/RocketPy-Team/RocketPy/pull/768)
+- DOC: ASTRA Flight Example [#770](https://github.com/RocketPy-Team/RocketPy/pull/770))
 
 ### Changed
 
