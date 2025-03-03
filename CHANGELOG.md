@@ -40,7 +40,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
--
+- BUG: do not allow drawing rockets with no aerodynamic surface [#774](https://github.com/RocketPy-Team/RocketPy/pull/774)
 
 ## [v1.8.0] - 2025-01-20
 
