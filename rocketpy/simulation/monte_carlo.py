@@ -306,7 +306,6 @@ class MonteCarlo:
                 f.write(inputs_json)
             raise error
 
-    # pylint: disable=too-many-statements
     def __run_in_parallel(self, n_workers=None):
         """
         Runs the monte carlo simulation in parallel.
@@ -321,11 +320,7 @@ class MonteCarlo:
         -------
         None
         """
-        if n_workers is None or n_workers > os.cpu_count():
-            n_workers = os.cpu_count()
-
-        if n_workers < 2:
-            raise ValueError("Number of workers must be at least 2 for parallel mode.")
+        n_workers = self.__validate_number_of_workers(n_workers)
 
         _SimMonitor.reprint(f"Running Monte Carlo simulation with {n_workers} workers.")
 
@@ -381,7 +376,15 @@ class MonteCarlo:
                 if not isinstance(error, KeyboardInterrupt):
                     raise error
 
-    def __sim_producer(self, seed, sim_monitor, mutex, error_event):
+    def __validate_number_of_workers(self, n_workers):
+        if n_workers is None or n_workers > os.cpu_count():
+            n_workers = os.cpu_count()
+
+        if n_workers < 2:
+            raise ValueError("Number of workers must be at least 2 for parallel mode.")
+        return n_workers
+
+    def __sim_producer(self, seed, sim_monitor, mutex, error_event):  # pylint: disable=too-many-statements
         """Simulation producer to be used in parallel by multiprocessing.
 
         Parameters
@@ -1138,10 +1141,10 @@ def _create_multiprocess_manager(multiprocess, managers):
 
         def __init__(self):
             super().__init__()
-            self.register('Lock', multiprocess.Lock)
-            self.register('Queue', multiprocess.Queue)
-            self.register('Event', multiprocess.Event)
-            self.register('_SimMonitor', _SimMonitor)
+            self.register("Lock", multiprocess.Lock)
+            self.register("Queue", multiprocess.Queue)
+            self.register("Event", multiprocess.Event)
+            self.register("_SimMonitor", _SimMonitor)
 
     return MonteCarloManager()
 
