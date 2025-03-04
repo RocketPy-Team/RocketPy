@@ -1,4 +1,4 @@
-from rocketpy.mathutils import Function
+from rocketpy.mathutils import Function, funcify_method
 from rocketpy.motors.motor import Motor
 
 
@@ -37,41 +37,41 @@ class EmptyMotor(Motor):
         self.I_13 = Function(0)
         self.I_23 = Function(0)
 
-    @property
+    @funcify_method("Time (s)", "Center of Propellant Mass (kg)", "linear", "zero")
     def center_of_propellant_mass(self):
-        return Function(0, "Time (s)", "Center of Propellant Mass (kg)")
+        return 0
 
-    @property
+    @funcify_method("Time (s)", "Exhaust Velocity (m/s)", "linear", "zero")
     def exhaust_velocity(self):
-        return Function(0, "Time (s)", "Exhaust Velocity (m/s)")
+        return 0
 
     @property
     def propellant_initial_mass(self):
         return 0
 
-    @property
+    @funcify_method("Time (s)", "Propellant I_11 (kg m²)", "linear", "zero")
     def propellant_I_11(self):
-        return Function(0, "Time (s)", "Propellant I_11 (kg m²)")
+        return 0
 
-    @property
+    @funcify_method("Time (s)", "Propellant I_12 (kg m²)", "linear", "zero")
     def propellant_I_12(self):
-        return Function(0, "Time (s)", "Propellant I_12 (kg m²)")
+        return 0
 
-    @property
+    @funcify_method("Time (s)", "Propellant I_13 (kg m²)", "linear", "zero")
     def propellant_I_13(self):
-        return Function(0, "Time (s)", "Propellant I_13 (kg m²)")
+        return 0
 
-    @property
+    @funcify_method("Time (s)", "Propellant I_22 (kg m²)", "linear", "zero")
     def propellant_I_22(self):
-        return Function(0, "Time (s)", "Propellant I_22 (kg m²)")
+        return 0
 
-    @property
+    @funcify_method("Time (s)", "Propellant I_23 (kg m²)", "linear", "zero")
     def propellant_I_23(self):
-        return Function(0, "Time (s)", "Propellant I_23 (kg m²)")
+        return 0
 
-    @property
+    @funcify_method("Time (s)", "Propellant I_33 (kg m²)", "linear", "zero")
     def propellant_I_33(self):
-        return Function(0, "Time (s)", "Propellant I_33 (kg m²)")
+        return 0
 
     @property
     def structural_mass_ratio(self):
