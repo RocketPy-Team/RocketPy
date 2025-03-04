@@ -1162,6 +1162,7 @@ class Motor(ABC):
         self.prints.all()
         self.plots.all()
 
+
 # TODO: move this class to a separate file, needs a breaking change warning
 class GenericMotor(Motor):
     """Class that represents a simple motor defined mainly by its thrust curve.

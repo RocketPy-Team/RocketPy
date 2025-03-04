@@ -72,3 +72,7 @@ class EmptyMotor(Motor):
     @property
     def propellant_I_33(self):
         return Function(0, "Time (s)", "Propellant I_33 (kg m²)")
+
+    @property
+    def structural_mass_ratio(self):
+        return 0
