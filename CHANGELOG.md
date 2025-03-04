@@ -41,7 +41,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
--
+- BUG: update flight simulation logic to include burn start time [#778](https://github.com/RocketPy-Team/RocketPy/pull/778)
 
 ## [v1.8.0] - 2025-01-20
 
