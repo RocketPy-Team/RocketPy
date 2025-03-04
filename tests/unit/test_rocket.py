@@ -5,7 +5,8 @@ import pytest
 
 from rocketpy import Function, NoseCone, Rocket, SolidMotor
 from rocketpy.mathutils.vector_matrix import Vector
-from rocketpy.motors.motor import EmptyMotor, Motor
+from rocketpy.motors.empty_motor import EmptyMotor
+from rocketpy.motors.motor import Motor
 
 
 @patch("matplotlib.pyplot.show")

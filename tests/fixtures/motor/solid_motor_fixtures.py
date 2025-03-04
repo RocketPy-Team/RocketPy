@@ -122,7 +122,7 @@ def dimensionless_cesaroni_m1670(kg, m):  # old name: dimensionless_motor
 @pytest.fixture
 def dummy_empty_motor():
     # Create a motor with ZERO thrust and ZERO mass to keep the rocket's speed constant
-    # TODO: why don t we use these same values to create EmptyMotor class?
+    # TODO: Maybe we should simple use the new `EmptyMotor` class?
     return SolidMotor(
         thrust_source=1e-300,
         burn_time=1e-10,

@@ -24,16 +24,21 @@ install:
 	pip install -e .
 
 format:
-	ruff check --select I --fix rocketpy/ tests/ docs/
-	ruff format rocketpy/ tests/ docs/
+	@ruff check --select I --fix rocketpy/ tests/ docs/
+	@ruff format rocketpy/ tests/ docs/
+	@echo Ruff formatting completed.
 
 lint: ruff-lint pylint
 
 ruff-lint:
-	ruff check rocketpy/ tests/ docs/ --output-file=.ruff-report.txt
+	@echo Running ruff check...
+	@ruff check rocketpy/ tests/ docs/ --output-file=.ruff-report.txt
+	@echo Ruff report generated at ./.ruff-report.txt
 
 pylint:
-	-pylint rocketpy/ tests/ docs/ --output=.pylint-report.txt
+	@echo Running pylint check...
+	@pylint rocketpy/ tests/ docs/ --output=.pylint-report.txt
+	@echo Pylint report generated at ./.pylint-report.txt
 
 build-docs:
 	cd docs && $(PYTHON) -m pip install -r requirements.txt && make html
