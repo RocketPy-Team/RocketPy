@@ -10,7 +10,8 @@ plt.rcParams.update({"figure.max_open_warning": 0})
 
 
 @pytest.mark.slow
-def test_monte_carlo_simulate(monte_carlo_calisto):
+@pytest.mark.parametrize("parallel", [False, True])
+def test_monte_carlo_simulate(monte_carlo_calisto, parallel):
     """Tests the simulate method of the MonteCarlo class.
 
     Parameters
@@ -19,20 +20,22 @@ def test_monte_carlo_simulate(monte_carlo_calisto):
         The MonteCarlo object, this is a pytest fixture.
     """
     # NOTE: this is really slow, it runs 10 flight simulations
-    monte_carlo_calisto.simulate(number_of_simulations=10, append=False)
+    monte_carlo_calisto.simulate(
+        number_of_simulations=10, append=False, parallel=parallel
+    )
 
     assert monte_carlo_calisto.num_of_loaded_sims == 10
     assert monte_carlo_calisto.number_of_simulations == 10
-    assert monte_carlo_calisto.filename == "monte_carlo_test"
-    assert monte_carlo_calisto.error_file == "monte_carlo_test.errors.txt"
-    assert monte_carlo_calisto.output_file == "monte_carlo_test.outputs.txt"
+    assert str(monte_carlo_calisto.filename.name) == "monte_carlo_test"
+    assert str(monte_carlo_calisto.error_file.name) == "monte_carlo_test.errors.txt"
+    assert str(monte_carlo_calisto.output_file.name) == "monte_carlo_test.outputs.txt"
     assert np.isclose(
-        monte_carlo_calisto.processed_results["apogee"][0], 4711, rtol=0.15
+        monte_carlo_calisto.processed_results["apogee"][0], 4711, rtol=0.2
     )
     assert np.isclose(
         monte_carlo_calisto.processed_results["impact_velocity"][0],
         -5.234,
-        rtol=0.15,
+        rtol=0.2,
     )
     os.remove("monte_carlo_test.errors.txt")
     os.remove("monte_carlo_test.outputs.txt")

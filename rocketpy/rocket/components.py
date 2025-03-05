@@ -148,6 +148,8 @@ class Components:
         """
         for index, comp in enumerate(self._components):
             if comp.component == component:
+                self.__component_list.pop(index)
+                self.__position_list.pop(index)
                 self._components.pop(index)
                 break
         else:
@@ -168,6 +170,8 @@ class Components:
         component : Any
             The component removed from the list of components.
         """
+        self.__component_list.pop(index)
+        self.__position_list.pop(index)
         return self._components.pop(index)
 
     def clear(self):
@@ -177,6 +181,8 @@ class Components:
         -------
         None
         """
+        self.__component_list.clear()
+        self.__position_list.clear()
         self._components.clear()
 
     def sort_by_position(self, reverse=False):
