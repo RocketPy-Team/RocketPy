@@ -33,15 +33,16 @@ Attention: The newest changes should be on top -->
 ### Added
 
 - ENH: Parallel mode for monte-carlo simulations 2 [#768](https://github.com/RocketPy-Team/RocketPy/pull/768)
-- DOC: ASTRA Flight Example [#770](https://github.com/RocketPy-Team/RocketPy/pull/770))
+- DOC: ASTRA Flight Example [#770](https://github.com/RocketPy-Team/RocketPy/pull/770)
 
 ### Changed
 
--
+- MNT: EmptyMotor class inherits from Motor(ABC) [#779](https://github.com/RocketPy-Team/RocketPy/pull/779)
 
 ### Fixed
 
--
+- BUG: do not allow drawing rockets with no aerodynamic surface [#774](https://github.com/RocketPy-Team/RocketPy/pull/774)
+- BUG: update flight simulation logic to include burn start time [#778](https://github.com/RocketPy-Team/RocketPy/pull/778)
 
 ## [v1.8.0] - 2025-01-20
 

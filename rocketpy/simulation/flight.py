@@ -1451,7 +1451,7 @@ class Flight:
         # Determine lift force and moment
         R1, R2, M1, M2, M3 = 0, 0, 0, 0, 0
         # Determine current behavior
-        if t < self.rocket.motor.burn_out_time:
+        if self.rocket.motor.burn_start_time < t < self.rocket.motor.burn_out_time:
             # Motor burning
             # Retrieve important motor quantities
             # Inertias
@@ -1788,7 +1788,7 @@ class Flight:
         speed_of_sound = self.env.speed_of_sound.get_value_opt(z)
         free_stream_mach = free_stream_speed / speed_of_sound
 
-        if t < self.rocket.motor.burn_out_time:
+        if self.rocket.motor.burn_start_time < t < self.rocket.motor.burn_out_time:
             drag_coeff = self.rocket.power_on_drag.get_value_opt(free_stream_mach)
         else:
             drag_coeff = self.rocket.power_off_drag.get_value_opt(free_stream_mach)

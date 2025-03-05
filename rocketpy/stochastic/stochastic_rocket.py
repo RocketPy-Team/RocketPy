@@ -4,7 +4,8 @@ import warnings
 from random import choice
 
 from rocketpy.mathutils.vector_matrix import Vector
-from rocketpy.motors.motor import EmptyMotor, GenericMotor, Motor
+from rocketpy.motors.empty_motor import EmptyMotor
+from rocketpy.motors.motor import GenericMotor, Motor
 from rocketpy.motors.solid_motor import SolidMotor
 from rocketpy.rocket.aero_surface import (
     EllipticalFins,
