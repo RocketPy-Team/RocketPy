@@ -13,6 +13,8 @@ import requests
 
 from rocketpy.tools import exponential_backoff
 
+# NOTE: The 0.25 degree option is the most detailed available for the GFS model.
+
 
 @exponential_backoff(max_attempts=3, base_delay=1, max_delay=60)
 def fetch_open_elevation(lat, lon):
@@ -93,54 +95,135 @@ def fetch_atmospheric_data_from_windy(lat, lon, model):
     return response
 
 
-def fetch_gfs_file_return_dataset(max_attempts=10, base_delay=2):
-    """Fetches the latest GFS (Global Forecast System) dataset from the NOAA's
-    GrADS data server using the OpenDAP protocol.
+class GlobalForecastSystem:
+    GFS_BASE_URL = "https://nomads.ncep.noaa.gov/dods/gfs_0p25/"
 
-    Parameters
-    ----------
-    max_attempts : int, optional
-        The maximum number of attempts to fetch the dataset. Default is 10.
-    base_delay : int, optional
-        The base delay in seconds between attempts. Default is 2.
+    def __init__(self, verbose: bool = False):
+        self.verbose = verbose
 
-    Returns
-    -------
-    netCDF4.Dataset
-        The GFS dataset.
+    def __list_all_gfs_available_datasets(self):
+        """Lists all GFS datasets that are available on the NOAA's GrADS data server right now."""
 
-    Raises
-    ------
-    RuntimeError
-        If unable to load the latest weather data for GFS.
-    """
-    time_attempt = datetime.now(tz=timezone.utc)
-    attempt_count = 0
-    dataset = None
+        if self.verbose:
+            print("Listing all available GFS datasets...")
 
-    # TODO: the code below is trying to determine the hour of the latest available
-    # forecast by trial and error. This is not the best way to do it. We should
-    # actually check the NOAA website for the latest forecast time. Refactor needed.
-    while attempt_count < max_attempts:
-        time_attempt -= timedelta(hours=6)  # GFS updates every 6 hours
-        file_url = (
-            f"https://nomads.ncep.noaa.gov/dods/gfs_0p25/gfs"
-            f"{time_attempt.year:04d}{time_attempt.month:02d}"
-            f"{time_attempt.day:02d}/"
-            f"gfs_0p25_{6 * (time_attempt.hour // 6):02d}z"
-        )
+        response = requests.get(self.GFS_BASE_URL)
+
+        # Rate limit reached
+        if response.status_code == 302:
+            raise RuntimeError(
+                "You have probably reached the maximum number of requests to the NOAA servers. "
+                f"Please verify the request response: {response.text}"
+            )
+
+        # Other unmapped error
+        if response.status_code != 200:
+            raise RuntimeError(
+                "There's seems to be an issue with the NOAA servers. "
+                f"Please verify the last request: {response.text}"
+            )
+
+        available_dates_original = re.findall(r"gfs\d{8}", response.text)
+
+        if not available_dates_original:
+            raise RuntimeError(
+                "There's seems to be no available GFS datasets right now. "
+                f"Please verify the last request: {response.text}",
+            )
+
+        available_datasets = []
+
+        for date_str in available_dates_original:
+            res = self.__list_all_gfs_available_datasets_in_a_day(date_str)
+            available_datasets.extend(res)
+
+        if self.verbose:
+            print(f"Found {len(available_datasets)} available GFS datasets.")
+
+        return available_datasets
+
+    def __list_all_gfs_available_datasets_in_a_day(self, date_str):
         try:
-            # Attempts to create a dataset from the file using OpenDAP protocol.
-            dataset = netCDF4.Dataset(file_url)
-            return dataset
-        except OSError:
-            attempt_count += 1
-            time.sleep(base_delay**attempt_count)
+            response = requests.get(self.GFS_BASE_URL + date_str)
+            response.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            raise RuntimeError("Unable to reach NOAA servers.") from e
 
-    if dataset is None:
-        raise RuntimeError(
-            "Unable to load latest weather data for GFS through " + file_url
+        hours = re.findall(r"gfs_0p25_\d{2}z", response.text)
+        # Remove duplicates
+        hours = list(set(hours))
+        return [f"{date_str}/{hour}" for hour in hours]
+
+    @staticmethod
+    def find_latest_gfs_dataset(available_datasets: list[str]) -> str:
+        # TODO: add tests
+        # Examples: ['gfs20250223/gfs_0p25_00z',
+        # 'gfs20250223/gfs_0p25_06z',
+        # 'gfs20250223/gfs_0p25_18z',
+        # 'gfs20250223/gfs_0p25_12z',
+        # 'gfs20250223/gfs_0p25_00z']
+
+        if len(available_datasets) == 0:
+            raise RuntimeError("No available GFS datasets.")
+
+        return max(
+            available_datasets,
+            key=lambda e: datetime.strptime(e, "gfs%Y%m%d/gfs_0p25_%Hz"),
         )
+
+    def fetch_gfs_file_return_dataset(self, max_attempts=5, base_delay=2):
+        """Fetches the latest GFS (Global Forecast System) dataset from the NOAA's
+        GrADS data server using the OpenDAP protocol.
+
+        Parameters
+        ----------
+        max_attempts : int, optional
+            The maximum number of attempts to fetch the dataset. Default is 5. At
+            each attempt, the delay between attempts is multiplied by the base_delay
+        base_delay : int, optional
+            The base delay in seconds between attempts. Default is 2.
+
+        Returns
+        -------
+        netCDF4.Dataset
+            The GFS dataset.
+
+        Raises
+        ------
+        RuntimeError
+            If unable to load the latest weather data for GFS.
+        """
+        attempt_count = 0
+        dataset = None
+
+        if self.verbose:
+            print("Fetching latest GFS dataset...")
+
+        while attempt_count < max_attempts:
+            if self.verbose:
+                print("Fetching available GFS datasets...")
+            file_url = self.GFS_BASE_URL + self.find_latest_gfs_dataset(
+                self.__list_all_gfs_available_datasets()
+            )
+            if self.verbose:
+                print(f"Found latest GFS dataset: {file_url}")
+            try:
+                if self.verbose:
+                    print(
+                        "Attempts to create a dataset from the file using OpenDAP protocol."
+                    )
+                dataset = netCDF4.Dataset(file_url)
+                if self.verbose:
+                    print("Dataset created successfully.")
+                return dataset
+            except OSError:
+                attempt_count += 1
+                time.sleep(base_delay**attempt_count)
+
+        if dataset is None:
+            raise RuntimeError(
+                "Unable to load latest weather data for GFS through " + file_url
+            )
 
 
 def fetch_nam_file_return_dataset(max_attempts=10, base_delay=2):

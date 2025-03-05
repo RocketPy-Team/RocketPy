@@ -11,9 +11,9 @@ import numpy as np
 import pytz
 
 from rocketpy.environment.fetchers import (
+    GlobalForecastSystem,
     fetch_atmospheric_data_from_windy,
     fetch_gefs_ensemble,
-    fetch_gfs_file_return_dataset,
     fetch_hiresw_file_return_dataset,
     fetch_nam_file_return_dataset,
     fetch_open_elevation,
@@ -365,7 +365,9 @@ class Environment:
         self.__weather_model_map = WeatherModelMapping()
         self.__atm_type_file_to_function_map = {
             "forecast": {
-                "GFS": fetch_gfs_file_return_dataset,
+                "GFS": GlobalForecastSystem(
+                    verbose=False
+                ).fetch_gfs_file_return_dataset,
                 "NAM": fetch_nam_file_return_dataset,
                 "RAP": fetch_rap_file_return_dataset,
                 "HIRESW": fetch_hiresw_file_return_dataset,
