@@ -164,6 +164,8 @@ class also supports them. Let's see how to use it.
     )
     solid_lambda.info()
 
+.. _reshaping_thrust_curve:
+
 Reshaping and interpolating the thrust curve
 --------------------------------------------
 
