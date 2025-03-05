@@ -36,6 +36,7 @@ Attention: The newest changes should be on top -->
 
 ### Changed
 
+- MNT: add error handling for static margin calculation [#776](https://github.com/RocketPy-Team/RocketPy/pull/776)
 - MNT: EmptyMotor class inherits from Motor(ABC) [#779](https://github.com/RocketPy-Team/RocketPy/pull/779)
 
 ### Fixed

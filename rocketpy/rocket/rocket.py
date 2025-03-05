@@ -652,9 +652,17 @@ class Rocket:
         self.static_margin.set_inputs("Time (s)")
         self.static_margin.set_outputs("Static Margin (c)")
         self.static_margin.set_title("Static Margin")
-        self.static_margin.set_discrete(
-            lower=0, upper=self.motor.burn_out_time, samples=200
-        )
+
+        try:
+            self.static_margin.set_discrete(
+                lower=0, upper=self.motor.burn_out_time, samples=200
+            )
+        except ValueError as err:  # pragma: no cover
+            raise ValueError(
+                "Static margin calculation failed. "
+                "Verify the center of mass and center of pressure functions are "
+                "correctly defined within the time range from 0 to burn out time."
+            ) from err
         return self.static_margin
 
     def evaluate_dry_inertias(self):
