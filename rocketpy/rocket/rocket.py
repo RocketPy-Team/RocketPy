@@ -657,11 +657,11 @@ class Rocket:
             self.static_margin.set_discrete(
                 lower=0, upper=self.motor.burn_out_time, samples=200
             )
-        except ValueError as err:
+        except ValueError as err:  # pragma: no cover
             raise ValueError(
-                "For some reason the static margin could not be properly calculated. "
-                "Please check the center of mass and center of pressure functions "
-                "and verify if they are well defined in the 0s to the burn out time range."
+                "Static margin calculation failed. "
+                "Verify the center of mass and center of pressure functions are "
+                "correctly defined within the time range from 0 to burn out time."
             ) from err
         return self.static_margin
 
