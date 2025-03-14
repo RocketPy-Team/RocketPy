@@ -36,6 +36,7 @@ Attention: The newest changes should be on top -->
 
 ### Changed
 
+- DOCS: reshape docs (closes #659) [#781](https://github.com/RocketPy-Team/RocketPy/pull/781)
 - MNT: EmptyMotor class inherits from Motor(ABC) [#779](https://github.com/RocketPy-Team/RocketPy/pull/779)
 
 ### Fixed
