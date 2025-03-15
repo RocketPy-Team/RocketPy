@@ -719,13 +719,6 @@ class Flight:
                 # Determine time bound for this time node
                 node.time_bound = phase.time_nodes[node_index + 1].t
                 phase.solver.t_bound = node.time_bound
-                if self.__is_lsoda:
-                    phase.solver._lsoda_solver._integrator.rwork[0] = (
-                        phase.solver.t_bound
-                    )
-                    phase.solver._lsoda_solver._integrator.call_args[4] = (
-                        phase.solver._lsoda_solver._integrator.rwork
-                    )
                 phase.solver.status = "running"
 
                 # Feed required parachute and discrete controller triggers
@@ -1271,8 +1264,6 @@ class Flight:
                     f"Invalid ``ode_solver`` input: {solver}. "
                     f"Available options are: {', '.join(ODE_SOLVER_MAP.keys())}"
                 ) from e
-
-        self.__is_lsoda = hasattr(self._solver, "_lsoda_solver")
 
     @cached_property
     def effective_1rl(self):
