@@ -486,7 +486,7 @@ class StochasticModel:
                 )
             elif isinstance(value, tuple):
                 nominal_value, std_dev, dist_func = value
-                if dist_func == np.random.uniform:
+                if callable(dist_func) and dist_func.__name__ == "uniform":
                     mean = (std_dev + nominal_value) / 2
                     half_range = (std_dev - nominal_value) / 2
                     return (
