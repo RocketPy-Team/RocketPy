@@ -486,11 +486,20 @@ class StochasticModel:
                 )
             elif isinstance(value, tuple):
                 nominal_value, std_dev, dist_func = value
-                return (
-                    f"\t{attr.ljust(max_str_length)} "
-                    f"{nominal_value:.5f} ± "
-                    f"{std_dev:.5f} ({dist_func.__name__})"
-                )
+                if dist_func == np.random.uniform:
+                    mean = (std_dev + nominal_value) / 2
+                    semi_range = (std_dev - nominal_value) / 2
+                    return (
+                        f"\t{attr.ljust(max_str_length)} "
+                        f"{mean:.5f} ± "
+                        f"{semi_range:.5f} ({dist_func.__name__})"
+                    )
+                else:
+                    return (
+                        f"\t{attr.ljust(max_str_length)} "
+                        f"{nominal_value:.5f} ± "
+                        f"{std_dev:.5f} ({dist_func.__name__})"
+                    )
             return None
 
         attributes = {k: v for k, v in self.__dict__.items() if not k.startswith("_")}
