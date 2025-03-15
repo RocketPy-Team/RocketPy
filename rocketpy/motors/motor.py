@@ -878,7 +878,8 @@ class Motor(ABC):
     def reshape_thrust_curve(thrust, new_burn_time, total_impulse):
         """Transforms the thrust curve supplied by changing its total
         burn time and/or its total impulse, without altering the
-        general shape of the curve.
+        general shape of the curve. This method does not mutate the original
+        object, it only returns a new thrust curve.
 
         Parameters
         ----------
@@ -893,6 +894,10 @@ class Motor(ABC):
         -------
         Function
             Reshaped thrust curve.
+
+        Tip
+        ---
+        See the User Guide page for examples on how to use this method.
         """
         # Retrieve current thrust curve data points
         time_array, thrust_array = thrust.x_array, thrust.y_array
