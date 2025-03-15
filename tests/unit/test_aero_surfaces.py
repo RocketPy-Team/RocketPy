@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 
 from rocketpy import NoseCone
@@ -71,3 +73,65 @@ def test_powerseries_nosecones_setters(power, invalid_power, new_power):
     expected_k = (2 * new_power) / ((2 * new_power) + 1)
 
     assert pytest.approx(test_nosecone.k) == expected_k
+
+
+@patch("matplotlib.pyplot.show")
+def test_elliptical_fins_draw(mock_show, elliptical_fin_set):  # pylint: disable=unused-argument
+    assert elliptical_fin_set.plots.draw(filename=None) is None
+
+
+def test_nose_cone_info(calisto_nose_cone):
+    assert calisto_nose_cone.info() is None
+
+
+@patch("matplotlib.pyplot.show")
+def test_nose_cone_draw(mock_show, calisto_nose_cone):  # pylint: disable=unused-argument
+    assert calisto_nose_cone.draw(filename=None) is None
+
+
+def test_trapezoidal_fins_info(calisto_trapezoidal_fins):
+    assert calisto_trapezoidal_fins.info() is None
+
+
+def test_trapezoidal_fins_tip_chord_setter(calisto_trapezoidal_fins):
+    calisto_trapezoidal_fins.tip_chord = 0.1
+    assert calisto_trapezoidal_fins.tip_chord == 0.1
+
+
+def test_trapezoidal_fins_root_chord_setter(calisto_trapezoidal_fins):
+    calisto_trapezoidal_fins.root_chord = 0.1
+    assert calisto_trapezoidal_fins.root_chord == 0.1
+
+
+def test_trapezoidal_fins_sweep_angle_setter(calisto_trapezoidal_fins):
+    calisto_trapezoidal_fins.sweep_angle = 0.1
+    assert calisto_trapezoidal_fins.sweep_angle == 0.1
+
+
+def test_trapezoidal_fins_sweep_length_setter(calisto_trapezoidal_fins):
+    calisto_trapezoidal_fins.sweep_length = 0.1
+    assert calisto_trapezoidal_fins.sweep_length == 0.1
+
+
+def test_tail_info(calisto_tail):
+    assert calisto_tail.info() is None
+
+
+def test_tail_length_setter(calisto_tail):
+    calisto_tail.length = 0.1
+    assert calisto_tail.length == 0.1
+
+
+def test_tail_rocket_radius_setter(calisto_tail):
+    calisto_tail.rocket_radius = 0.1
+    assert calisto_tail.rocket_radius == 0.1
+
+
+def test_tail_bottom_radius_setter(calisto_tail):
+    calisto_tail.bottom_radius = 0.1
+    assert calisto_tail.bottom_radius == 0.1
+
+
+def test_tail_top_radius_setter(calisto_tail):
+    calisto_tail.top_radius = 0.1
+    assert calisto_tail.top_radius == 0.1

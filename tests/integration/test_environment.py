@@ -28,9 +28,7 @@ def test_set_elevation_open_elevation(
 
 
 @patch("matplotlib.pyplot.show")
-def test_era5_atmosphere(
-    mock_show, example_spaceport_env
-):  # pylint: disable=unused-argument
+def test_era5_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=unused-argument
     """Tests the Reanalysis model with the ERA5 file. It uses an example file
     available in the data/weather folder of the RocketPy repository.
 
@@ -51,9 +49,7 @@ def test_era5_atmosphere(
 
 
 @patch("matplotlib.pyplot.show")
-def test_custom_atmosphere(
-    mock_show, example_plain_env
-):  # pylint: disable=unused-argument
+def test_custom_atmosphere(mock_show, example_plain_env):  # pylint: disable=unused-argument
     """Tests the custom atmosphere model in the environment object.
 
     Parameters
@@ -78,9 +74,7 @@ def test_custom_atmosphere(
 
 
 @patch("matplotlib.pyplot.show")
-def test_standard_atmosphere(
-    mock_show, example_plain_env
-):  # pylint: disable=unused-argument
+def test_standard_atmosphere(mock_show, example_plain_env):  # pylint: disable=unused-argument
     """Tests the standard atmosphere model in the environment object.
 
     Parameters
@@ -96,20 +90,6 @@ def test_standard_atmosphere(
     assert abs(example_plain_env.pressure(0) - 101325.0) < 1e-8
     assert abs(example_plain_env.barometric_height(101325.0)) < 1e-2
     assert example_plain_env.prints.print_earth_details() is None
-
-
-@patch("matplotlib.pyplot.show")
-def test_noaaruc_atmosphere(
-    mock_show, example_spaceport_env
-):  # pylint: disable=unused-argument
-    url = (
-        r"https://rucsoundings.noaa.gov/get_raobs.cgi?data_source=RAOB&latest="
-        r"latest&start_year=2019&start_month_name=Feb&start_mday=5&start_hour=12"
-        r"&start_min=0&n_hrs=1.0&fcst_len=shortest&airport=83779&text=Ascii"
-        r"%20text%20%28GSD%20format%29&hydrometeors=false&start=latest"
-    )
-    example_spaceport_env.set_atmospheric_model(type="NOAARucSounding", file=url)
-    assert example_spaceport_env.all_info() is None
 
 
 @pytest.mark.parametrize(
@@ -146,9 +126,7 @@ def test_windy_atmosphere(example_euroc_env, model_name):
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_gfs_atmosphere(
-    mock_show, example_spaceport_env
-):  # pylint: disable=unused-argument
+def test_gfs_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=unused-argument
     """Tests the Forecast model with the GFS file. It does not test the values,
     instead the test checks if the method runs without errors.
 
@@ -165,9 +143,7 @@ def test_gfs_atmosphere(
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_nam_atmosphere(
-    mock_show, example_spaceport_env
-):  # pylint: disable=unused-argument
+def test_nam_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=unused-argument
     """Tests the Forecast model with the NAM file.
 
     Parameters
@@ -183,9 +159,7 @@ def test_nam_atmosphere(
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_rap_atmosphere(
-    mock_show, example_spaceport_env
-):  # pylint: disable=unused-argument
+def test_rap_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=unused-argument
     today = date.today()
     now = datetime.now(timezone.utc)
     example_spaceport_env.set_date((today.year, today.month, today.day, now.hour))
@@ -195,9 +169,7 @@ def test_rap_atmosphere(
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_gefs_atmosphere(
-    mock_show, example_spaceport_env
-):  # pylint: disable=unused-argument
+def test_gefs_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=unused-argument
     """Tests the Ensemble model with the GEFS file.
 
     Parameters
@@ -213,9 +185,7 @@ def test_gefs_atmosphere(
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_wyoming_sounding_atmosphere(
-    mock_show, example_plain_env
-):  # pylint: disable=unused-argument
+def test_wyoming_sounding_atmosphere(mock_show, example_plain_env):  # pylint: disable=unused-argument
     """Asserts whether the Wyoming sounding model in the environment
     object behaves as expected with respect to some attributes such
     as pressure, barometric_height, wind_velocity and temperature.
@@ -250,9 +220,7 @@ def test_wyoming_sounding_atmosphere(
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_hiresw_ensemble_atmosphere(
-    mock_show, example_spaceport_env
-):  # pylint: disable=unused-argument
+def test_hiresw_ensemble_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=unused-argument
     """Tests the Forecast model with the HIRESW file.
 
     Parameters
@@ -278,9 +246,7 @@ def test_hiresw_ensemble_atmosphere(
 
 @pytest.mark.skip(reason="CMC model is currently not working")
 @patch("matplotlib.pyplot.show")
-def test_cmc_atmosphere(
-    mock_show, example_spaceport_env
-):  # pylint: disable=unused-argument
+def test_cmc_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=unused-argument
     """Tests the Ensemble model with the CMC file.
 
     Parameters

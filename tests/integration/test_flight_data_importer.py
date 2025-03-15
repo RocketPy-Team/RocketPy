@@ -1,5 +1,4 @@
-"""Tests the FlightDataImporter class from rocketpy.simulation module.
-"""
+"""Tests the FlightDataImporter class from rocketpy.simulation module."""
 
 import numpy as np
 
@@ -13,7 +12,7 @@ def test_flight_importer_bella_lui():
         "z_(m)": "altitude",
         "v_(m/s)": "vz",
     }
-    path = "tests/fixtures/acceptance/EPFL_Bella_Lui/bella_lui_flight_data_filtered.csv"
+    path = "data/rockets/EPFL_Bella_Lui/bella_lui_flight_data_filtered.csv"
 
     fd = FlightDataImporter(
         name="Bella Lui, EPFL Rocket Team, 2020",
@@ -27,9 +26,9 @@ def test_flight_importer_bella_lui():
     )
     assert fd.name == "Bella Lui, EPFL Rocket Team, 2020"
     assert "time" in fd._columns[path], "Can't find 'time' column in fd._columns"
-    assert (
-        "altitude" in fd._columns[path]
-    ), "Can't find 'altitude' column in fd._columns"
+    assert "altitude" in fd._columns[path], (
+        "Can't find 'altitude' column in fd._columns"
+    )
     assert "vz" in fd._columns[path], "Can't find 'vz' column in fd._columns"
     assert np.isclose(fd.altitude(0), 0.201, atol=1e-4)
     assert np.isclose(fd.vz(0), 5.028, atol=1e-4)
@@ -42,7 +41,7 @@ def test_flight_importer_ndrt():
         "Altitude_(Ft-AGL)": "altitude",
     }
     units = {"Altitude_(Ft-AGL)": "ft"}
-    path = "tests/fixtures/acceptance/NDRT_2020/ndrt_2020_flight_data.csv"
+    path = "data/rockets/NDRT_2020/ndrt_2020_flight_data.csv"
 
     fd = FlightDataImporter(
         name="NDRT Rocket team, 2020",
@@ -52,7 +51,7 @@ def test_flight_importer_ndrt():
     )
     assert fd.name == "NDRT Rocket team, 2020"
     assert "time" in fd._columns[path], "Can't find 'time' column in fd._columns"
-    assert (
-        "altitude" in fd._columns[path]
-    ), "Can't find 'altitude' column in fd._columns"
+    assert "altitude" in fd._columns[path], (
+        "Can't find 'altitude' column in fd._columns"
+    )
     assert np.isclose(fd.altitude(0), 0)

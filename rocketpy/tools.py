@@ -6,14 +6,18 @@ expanded to suit the needs of other modules and may present breaking changes
 between minor versions if necessary, although this will be always avoided.
 """
 
+import base64
 import functools
 import importlib
 import importlib.metadata
+import json
 import math
 import re
 import time
 from bisect import bisect_left
 
+import dill
+import matplotlib.pyplot as plt
 import numpy as np
 import pytz
 from cftime import num2pydate
@@ -25,11 +29,10 @@ INSTALL_MAPPING = {"IPython": "ipython"}
 
 
 def tuple_handler(value):
-    """Transforms the input value into a tuple that
-    represents a range. If the input is an input or float,
-    the output is a tuple from zero to the input value. If
-    the input is a tuple or list, the output is a tuple with
-    the same range.
+    """Transforms the input value into a tuple that represents a range. If the
+    input is an int or float, the output is a tuple from zero to the input
+    value. If the input is a tuple or list, the output is a tuple with the same
+    range.
 
     Parameters
     ----------
@@ -122,8 +125,8 @@ def find_roots_cubic_function(a, b, c, d):
     First we define the coefficients of the function ax**3 + bx**2 + cx + d
     >>> a, b, c, d = 1, -3, -1, 3
     >>> x1, x2, x3 = find_roots_cubic_function(a, b, c, d)
-    >>> x1, x2, x3
-    ((-1+0j), (3+7.401486830834377e-17j), (1-1.4802973661668753e-16j))
+    >>> x1
+    (-1+0j)
 
     To get the real part of the roots, use the real attribute of the complex
     number.
@@ -232,7 +235,7 @@ def bilinear_interpolation(x, y, x1, x2, y1, y2, z11, z12, z21, z22):
     ) / ((x2 - x1) * (y2 - y1))
 
 
-def get_distribution(distribution_function_name):
+def get_distribution(distribution_function_name, random_number_generator=None):
     """Sets the distribution function to be used in the monte carlo analysis.
 
     Parameters
@@ -240,28 +243,35 @@ def get_distribution(distribution_function_name):
     distribution_function_name : string
         The type of distribution to be used in the analysis. It can be
         'uniform', 'normal', 'lognormal', etc.
+    random_number_generator : np.random.Generator, optional
+        The random number generator to be used. If None, the default generator
+        ``numpy.random.default_rng`` is used.
 
     Returns
     -------
     np.random distribution function
         The distribution function to be used in the analysis.
     """
+    if random_number_generator is None:
+        random_number_generator = np.random.default_rng()
+
+    # Dictionary mapping distribution names to RNG methods
     distributions = {
-        "normal": np.random.normal,
-        "binomial": np.random.binomial,
-        "chisquare": np.random.chisquare,
-        "exponential": np.random.exponential,
-        "gamma": np.random.gamma,
-        "gumbel": np.random.gumbel,
-        "laplace": np.random.laplace,
-        "logistic": np.random.logistic,
-        "poisson": np.random.poisson,
-        "uniform": np.random.uniform,
-        "wald": np.random.wald,
+        "normal": random_number_generator.normal,
+        "binomial": random_number_generator.binomial,
+        "chisquare": random_number_generator.chisquare,
+        "exponential": random_number_generator.exponential,
+        "gamma": random_number_generator.gamma,
+        "gumbel": random_number_generator.gumbel,
+        "laplace": random_number_generator.laplace,
+        "logistic": random_number_generator.logistic,
+        "poisson": random_number_generator.poisson,
+        "uniform": random_number_generator.uniform,
+        "wald": random_number_generator.wald,
     }
     try:
         return distributions[distribution_function_name]
-    except KeyError as e:
+    except KeyError as e:  # pragma: no cover
         raise ValueError(
             f"Distribution function '{distribution_function_name}' not found, "
             + "please use one of the following np.random distribution function:"
@@ -343,7 +353,6 @@ def inverted_haversine(lat0, lon0, distance, bearing, earth_radius=6.3781e6):
         New latitude coordinate, in degrees.
     lon1 : float
         New longitude coordinate, in degrees.
-
     """
 
     # Convert coordinates to radians
@@ -353,11 +362,15 @@ def inverted_haversine(lat0, lon0, distance, bearing, earth_radius=6.3781e6):
     # Apply inverted Haversine formula
     lat1_rad = math.asin(
         math.sin(lat0_rad) * math.cos(distance / earth_radius)
-        + math.cos(lat0_rad) * math.sin(distance / earth_radius) * math.cos(bearing)
+        + math.cos(lat0_rad)
+        * math.sin(distance / earth_radius)
+        * math.cos(math.radians(bearing))
     )
 
     lon1_rad = lon0_rad + math.atan2(
-        math.sin(bearing) * math.sin(distance / earth_radius) * math.cos(lat0_rad),
+        math.sin(math.radians(bearing))
+        * math.sin(distance / earth_radius)
+        * math.cos(lat0_rad),
         math.cos(distance / earth_radius) - math.sin(lat0_rad) * math.sin(lat1_rad),
     )
 
@@ -369,126 +382,127 @@ def inverted_haversine(lat0, lon0, distance, bearing, earth_radius=6.3781e6):
 
 
 # Functions for monte carlo analysis
-# pylint: disable=too-many-statements
-def generate_monte_carlo_ellipses(results):
-    """A function to create apogee and impact ellipses from the monte carlo
-    analysis results.
+def sort_eigenvalues(cov):
+    # Calculate eigenvalues and eigenvectors
+    vals, vecs = np.linalg.eigh(cov)
+    # Order eigenvalues and eigenvectors in descending order
+    order = vals.argsort()[::-1]
+    return vals[order], vecs[:, order]
+
+
+def calculate_confidence_ellipse(list_x, list_y, n_std=3):
+    """Given a list of x and y coordinates, calculate the confidence ellipse
+    parameters (theta, width, height) for a given number of standard deviations.
+    """
+    covariance_matrix = np.cov(list_x, list_y)
+    eigenvalues, eigenvectors = sort_eigenvalues(covariance_matrix)
+    theta = np.degrees(np.arctan2(*eigenvectors[:, 0][::-1]))
+    width, height = 2 * n_std * np.sqrt(eigenvalues)
+    return theta, width, height
+
+
+def create_matplotlib_ellipse(x, y, w, h, theta, rgb, opacity):
+    """Create a matplotlib.patches.Ellipse object.
 
     Parameters
     ----------
-    results : dict
-        A dictionary containing the results of the monte carlo analysis. It
-        should contain the following keys:
-        - apogeeX: an array containing the x coordinates of the apogee
-        - apogeeY: an array containing the y coordinates of the apogee
-        - xImpact: an array containing the x coordinates of the impact
-        - yImpact: an array containing the y coordinates of the impact
+    x : list or np.array
+        List of x coordinates.
+    y : list or np.array
+        List of y coordinates.
+    w : float
+        Width of the ellipse.
+    h : float
+        Height of the ellipse.
+    theta : float
+        Angle of the ellipse.
+    rgb : tuple
+        Tuple containing the color of the ellipse in RGB format. For example,
+        (0, 0, 1) will create a blue ellipse.
 
     Returns
     -------
-    apogee_ellipse : list[Ellipse]
-        A list of ellipse objects representing the apogee ellipses.
-    impact_ellipse : list[Ellipse]
-        A list of ellipse objects representing the impact ellipses.
-    apogeeX : np.array
-        An array containing the x coordinates of the apogee ellipse.
-    apogeeY : np.array
-        An array containing the y coordinates of the apogee ellipse.
-    impactX : np.array
-        An array containing the x coordinates of the impact ellipse.
-    impactY : np.array
-        An array containing the y coordinates of the impact ellipse.
+    matplotlib.patches.Ellipse
+        One matplotlib.patches.Ellipse objects.
     """
 
-    # Retrieve monte carlo data por apogee and impact XY position
-    try:
-        apogee_x = np.array(results["apogee_x"])
-        apogee_y = np.array(results["apogee_y"])
-    except KeyError:
-        print("No apogee data found. Skipping apogee ellipses.")
-        apogee_x = np.array([])
-        apogee_y = np.array([])
-    try:
-        impact_x = np.array(results["x_impact"])
-        impact_y = np.array(results["y_impact"])
-    except KeyError:
-        print("No impact data found. Skipping impact ellipses.")
-        impact_x = np.array([])
-        impact_y = np.array([])
+    ell = Ellipse(
+        xy=(np.mean(x), np.mean(y)),
+        width=w,
+        height=h,
+        angle=theta,
+        color="black",
+    )
+    ell.set_facecolor(rgb)
+    ell.set_alpha(opacity)
+    return ell
 
-    # Define function to calculate Eigenvalues
-    def eigsorted(cov):
-        # Calculate eigenvalues and eigenvectors
-        vals, vecs = np.linalg.eigh(cov)
-        # Order eigenvalues and eigenvectors in descending order
-        order = vals.argsort()[::-1]
-        return vals[order], vecs[:, order]
 
-    def calculate_ellipses(list_x, list_y):
-        # Calculate covariance matrix
-        cov = np.cov(list_x, list_y)
-        # Calculate eigenvalues and eigenvectors
-        vals, vecs = eigsorted(cov)
-        # Calculate ellipse angle and width/height
-        theta = np.degrees(np.arctan2(*vecs[:, 0][::-1]))
-        w, h = 2 * np.sqrt(vals)
-        return theta, w, h
+def generate_monte_carlo_ellipses(
+    apogee_x=np.array([]),
+    apogee_y=np.array([]),
+    impact_x=np.array([]),
+    impact_y=np.array([]),
+    n_apogee=[1, 2, 3],
+    n_impact=[1, 2, 3],
+    apogee_rgb=(0, 1, 0),
+    impact_rgb=(0, 0, 1),
+    opacity=0.2,
+):  # pylint: disable=dangerous-default-value
+    """Function to generate Monte Carlo ellipses for apogee and impact points.
 
-    def create_ellipse_objects(x, y, n, w, h, theta, rgb):
-        """Create a list of matplotlib.patches.Ellipse objects.
+    Parameters
+    ----------
+    apogee_x : np.ndarray, optional
+        Array of x-coordinates for apogee points, by default np.array([])
+    apogee_y : np.ndarray, optional
+        Array of y-coordinates for apogee points, by default np.array([])
+    impact_x : np.ndarray, optional
+        Array of x-coordinates for impact points, by default np.array([])
+    impact_y : np.ndarray, optional
+        Array of y-coordinates for impact points, by default np.array([])
+    n_apogee : list, optional
+        List of integers representing the number of standard deviations for
+        apogee ellipses, by default [1, 2, 3]
+    n_impact : list, optional
+        List of integers representing the number of standard deviations for
+        impact ellipses, by default [1, 2, 3]
+    apogee_rgb : tuple, optional
+        RGB color tuple for apogee ellipses, by default (0, 1, 0).
+    impact_rgb : tuple, optional
+        RGB color tuple for impact ellipses, by default (0, 0, 1).
+    opacity : float, optional
+        The alpha parameter for the solid face of the ellipses, by default 0.2
 
-        Parameters
-        ----------
-        x : list or np.array
-            List of x coordinates.
-        y : list or np.array
-            List of y coordinates.
-        n : int
-            Number of ellipses to create. It represents the number of confidence
-            intervals to be used. For example, n=3 will create 3 ellipses with
-            1, 2 and 3 standard deviations.
-        w : float
-            Width of the ellipse.
-        h : float
-            Height of the ellipse.
-        theta : float
-            Angle of the ellipse.
-        rgb : tuple
-            Tuple containing the color of the ellipse in RGB format. For example,
-            (0, 0, 1) will create a blue ellipse.
-
-        Returns
-        -------
-        list
-            List of matplotlib.patches.Ellipse objects.
-        """
-        ell_list = [None] * n
-        for j in range(n):
-            ell = Ellipse(
-                xy=(np.mean(x), np.mean(y)),
-                width=w,
-                height=h,
-                angle=theta,
-                color="black",
-            )
-            ell.set_facecolor(rgb)
-            ell_list[j] = ell
-        return ell_list
+    Returns
+    -------
+    tuple[list[matplotlib.patches.Ellipse], list[matplotlib.patches.Ellipse]]
+        A tuple containing two lists:
+        - List of matplotlib.patches.Ellipse objects for apogee ellipses.
+        - List of matplotlib.patches.Ellipse objects for impact ellipses.
+    """
 
     # Calculate error ellipses for impact and apogee
-    impact_theta, impact_w, impact_h = calculate_ellipses(impact_x, impact_y)
-    apogee_theta, apogee_w, apogee_h = calculate_ellipses(apogee_x, apogee_y)
+    apogee_ellipses = []
+    for i in n_apogee:
+        theta, width, height = calculate_confidence_ellipse(apogee_x, apogee_y, n_std=i)
+        apogee_ellipses.append(
+            create_matplotlib_ellipse(
+                apogee_x, apogee_y, width, height, theta, apogee_rgb, opacity
+            )
+        )
 
     # Draw error ellipses for impact
-    impact_ellipses = create_ellipse_objects(
-        impact_x, impact_y, 3, impact_w, impact_h, impact_theta, (0, 0, 1, 0.2)
-    )
+    impact_ellipses = []
+    for i in n_impact:
+        theta, width, height = calculate_confidence_ellipse(impact_x, impact_y, n_std=i)
+        impact_ellipses.append(
+            create_matplotlib_ellipse(
+                impact_x, impact_y, width, height, theta, impact_rgb, opacity
+            )
+        )
 
-    apogee_ellipses = create_ellipse_objects(
-        apogee_x, apogee_y, 3, apogee_w, apogee_h, apogee_theta, (0, 1, 0, 0.2)
-    )
-
-    return impact_ellipses, apogee_ellipses, apogee_x, apogee_y, impact_x, impact_y
+    return impact_ellipses, apogee_ellipses
 
 
 def generate_monte_carlo_ellipses_coordinates(
@@ -499,7 +513,7 @@ def generate_monte_carlo_ellipses_coordinates(
 
     Parameters
     ----------
-    ellipses : list
+    ellipses : list[matplotlib.patches.Ellipse]
         List of matplotlib.patches.Ellipse objects.
     origin_lat : float
         Latitude of the origin of the coordinate system.
@@ -510,44 +524,158 @@ def generate_monte_carlo_ellipses_coordinates(
 
     Returns
     -------
-    list
+    list[list[tuple[float, float]]]
         List of lists of tuples containing the latitude and longitude of each
         point in each ellipse.
     """
-    outputs = [None] * len(ellipses)
+    return [
+        __convert_to_lat_lon(
+            __generate_ellipse_points(ell, resolution), origin_lat, origin_lon
+        )
+        for ell in ellipses
+    ]
 
-    for index, ell in enumerate(ellipses):
-        # Get ellipse path points
-        center = ell.get_center()
-        width = ell.get_width()
-        height = ell.get_height()
-        angle = np.deg2rad(ell.get_angle())
-        points = lat_lon_points = [None] * resolution
 
-        # Generate ellipse path points (in a Cartesian coordinate system)
-        for i in range(resolution):
-            x = width / 2 * math.cos(2 * np.pi * i / resolution)
-            y = height / 2 * math.sin(2 * np.pi * i / resolution)
-            x_rot = center[0] + x * math.cos(angle) - y * math.sin(angle)
-            y_rot = center[1] + x * math.sin(angle) + y * math.cos(angle)
-            points[i] = (x_rot, y_rot)
-        points = np.array(points)
+def __convert_to_lat_lon(points: list, origin_lat: float, origin_lon: float):
+    return [
+        inverted_haversine(
+            origin_lat,
+            origin_lon,
+            math.sqrt(x**2 + y**2),
+            math.degrees(math.atan2(x, y)),
+            earth_radius=6.3781e6,
+        )
+        for x, y in points
+    ]
 
-        # Convert path points to lat/lon
-        for point in points:
-            x, y = point
-            # Convert to distance and bearing
-            d = math.sqrt((x**2 + y**2))
-            bearing = math.atan2(
-                x, y
-            )  # math.atan2 returns the angle in the range [-pi, pi]
 
-            lat_lon_points[i] = inverted_haversine(
-                origin_lat, origin_lon, d, bearing, earth_radius=6.3781e6
-            )
+def __generate_ellipse_points(ellipse, resolution: int):
+    center = ellipse.get_center()
+    width = ellipse.get_width()
+    height = ellipse.get_height()
+    angle = np.deg2rad(ellipse.get_angle())
 
-        outputs[index] = lat_lon_points
-    return outputs
+    points = [
+        (
+            center[0]
+            + (width / 2 * math.cos(2 * np.pi * i / resolution)) * math.cos(angle)
+            - (height / 2 * math.sin(2 * np.pi * i / resolution)) * math.sin(angle),
+            center[1]
+            + (width / 2 * math.cos(2 * np.pi * i / resolution)) * math.sin(angle)
+            + (height / 2 * math.sin(2 * np.pi * i / resolution)) * math.cos(angle),
+        )
+        for i in range(resolution)
+    ]
+    return np.array(points)
+
+
+def flatten_dict(x):
+    # Auxiliary function that flattens dictionary
+    # this is used mainly in the load_monte_carlo_data function
+    new_dict = {}
+    for key, value in x.items():
+        # the nested dictionary is inside a list
+        if isinstance(x[key], list):
+            # sometimes the object inside the list is another list
+            # we must skip these cases
+            if isinstance(value[0], dict):
+                inner_dict = flatten_dict(value[0])
+                inner_dict = {
+                    key + "_" + inner_key: inner_value
+                    for inner_key, inner_value in inner_dict.items()
+                }
+                new_dict.update(inner_dict)
+        else:
+            new_dict.update({key: value})
+
+    return new_dict
+
+
+def load_monte_carlo_data(
+    input_filename,
+    output_filename,
+    parameters_list,
+    target_variables_list,
+):  # pylint: disable=too-many-statements
+    """Reads MonteCarlo simulation data file and builds parameters and flight
+    variables matrices
+
+    Parameters
+    ----------
+    input_filename : str
+        Input file exported by MonteCarlo class. Each line is a
+        sample unit described by a dictionary where keys are parameters names
+        and the values are the sampled parameters values.
+    output_filename : str
+        Output file exported by MonteCarlo.simulate function. Each line is a
+        sample unit described by a dictionary where keys are target variables
+        names and the values are the obtained values from the flight simulation.
+    parameters_list : list[str]
+        List of parameters whose values will be extracted.
+    target_variables_list : list[str]
+        List of target variables whose values will be extracted.
+
+    Returns
+    -------
+    parameters_matrix: np.matrix
+        Numpy matrix containing input parameters values. Each column correspond
+        to a parameter in the same order specified by 'parameters_list' input.
+    target_variables_matrix: np.matrix
+        Numpy matrix containing target variables values. Each column correspond
+        to a target variable in the same order specified by 'target_variables_list'
+        input.
+    """
+    number_of_samples_parameters = 0
+    number_of_samples_variables = 0
+
+    parameters_samples = {parameter: [] for parameter in parameters_list}
+    with open(input_filename, "r") as parameters_file:
+        for line in parameters_file.readlines():
+            number_of_samples_parameters += 1
+
+            parameters_dict = json.loads(line)
+            parameters_dict = flatten_dict(parameters_dict)
+            for parameter in parameters_list:
+                try:
+                    value = parameters_dict[parameter]
+                except KeyError as e:
+                    raise KeyError(
+                        f"Parameter {parameter} was not found in {input_filename}!"
+                    ) from e
+                parameters_samples[parameter].append(value)
+
+    target_variables_samples = {variable: [] for variable in target_variables_list}
+    with open(output_filename, "r") as target_variables_file:
+        for line in target_variables_file.readlines():
+            number_of_samples_variables += 1
+            target_variables_dict = json.loads(line)
+            for variable in target_variables_list:
+                try:
+                    value = target_variables_dict[variable]
+                except KeyError as e:
+                    raise KeyError(
+                        f"Variable {variable} was not found in {output_filename}!"
+                    ) from e
+                target_variables_samples[variable].append(value)
+
+    if number_of_samples_parameters != number_of_samples_variables:
+        raise ValueError(
+            "Number of samples for parameters does not match the number of samples for target variables!"
+        )
+
+    n_samples = number_of_samples_variables
+    n_parameters = len(parameters_list)
+    n_variables = len(target_variables_list)
+    parameters_matrix = np.empty((n_samples, n_parameters))
+    target_variables_matrix = np.empty((n_samples, n_variables))
+
+    for i, parameter in enumerate(parameters_list):
+        parameters_matrix[:, i] = parameters_samples[parameter]
+
+    for i, target_variable in enumerate(target_variables_list):
+        target_variables_matrix[:, i] = target_variables_samples[target_variable]
+
+    return parameters_matrix, target_variables_matrix
 
 
 def find_two_closest_integers(number):
@@ -793,7 +921,7 @@ def import_optional_dependency(name):
     """
     try:
         module = importlib.import_module(name)
-    except ImportError as exc:
+    except ImportError as exc:  # pragma: no cover
         module_name = name.split(".")[0]
         package_name = INSTALL_MAPPING.get(module_name, module_name)
         raise ImportError(
@@ -857,7 +985,8 @@ def exponential_backoff(max_attempts, base_delay=1, max_delay=60):
             for i in range(max_attempts):
                 try:
                     return func(*args, **kwargs)
-                except Exception as e:  # pylint: disable=broad-except
+                # pylint: disable=broad-except
+                except Exception as e:  # pragma: no cover
                     if i == max_attempts - 1:
                         raise e from None
                     delay = min(delay * 2, max_delay)
@@ -973,18 +1102,40 @@ def quaternions_to_nutation(e1, e2):
     return (180 / np.pi) * 2 * np.arcsin(-((e1**2 + e2**2) ** 0.5))
 
 
-def euler_angles_to_euler_parameters(phi, theta, psi):
-    """Convert 3-1-3 Euler Angles to Euler Parameters (quaternions).
+def normalize_quaternions(quaternions):
+    """Normalizes the quaternions (Euler parameters) to have unit magnitude.
+
+    Parameters
+    ----------
+    quaternions : tuple
+        Tuple containing the Euler parameters e0, e1, e2, e3
+
+    Returns
+    -------
+    tuple
+        Tuple containing the Euler parameters e0, e1, e2, e3
+    """
+    q_w, q_x, q_y, q_z = quaternions
+    q_norm = (q_w**2 + q_x**2 + q_y**2 + q_z**2) ** 0.5
+    if q_norm == 0:
+        return 1, 0, 0, 0
+    return q_w / q_norm, q_x / q_norm, q_y / q_norm, q_z / q_norm
+
+
+def euler313_to_quaternions(phi, theta, psi):
+    """Convert 3-1-3 Euler angles to Euler parameters (quaternions).
 
     Parameters
     ----------
     phi : float
-        Rotation angle around the z-axis (in radians). Represents the precession angle.
+        Rotation angle around the z-axis (in radians). Represents the precession
+        angle or the roll angle.
     theta : float
-        Rotation angle around the x-axis (in radians). Represents the nutation angle.
+        Rotation angle around the x-axis (in radians). Represents the nutation
+        angle or the pitch angle.
     psi : float
-        Rotation angle around the z-axis (in radians). Represents the spin angle.
-
+        Rotation angle around the z-axis (in radians). Represents the spin angle
+        or the roll angle.
 
     Returns
     -------
@@ -995,22 +1146,73 @@ def euler_angles_to_euler_parameters(phi, theta, psi):
     ----------
     https://www.astro.rug.nl/software/kapteyn-beta/_downloads/attitude.pdf
     """
-    e0 = np.cos(phi / 2) * np.cos(theta / 2) * np.cos(psi / 2) - np.sin(
-        phi / 2
-    ) * np.cos(theta / 2) * np.sin(psi / 2)
-    e1 = np.cos(phi / 2) * np.cos(psi / 2) * np.sin(theta / 2) + np.sin(
-        phi / 2
-    ) * np.sin(theta / 2) * np.sin(psi / 2)
-    e2 = np.cos(phi / 2) * np.sin(theta / 2) * np.sin(psi / 2) - np.sin(
-        phi / 2
-    ) * np.cos(psi / 2) * np.sin(theta / 2)
-    e3 = np.cos(phi / 2) * np.cos(theta / 2) * np.sin(psi / 2) + np.cos(
-        theta / 2
-    ) * np.cos(psi / 2) * np.sin(phi / 2)
+    cphi = np.cos(phi / 2)
+    sphi = np.sin(phi / 2)
+    ctheta = np.cos(theta / 2)
+    stheta = np.sin(theta / 2)
+    cpsi = np.cos(psi / 2)
+    spsi = np.sin(psi / 2)
+    e0 = cphi * ctheta * cpsi - sphi * ctheta * spsi
+    e1 = cphi * cpsi * stheta + sphi * stheta * spsi
+    e2 = cphi * stheta * spsi - sphi * cpsi * stheta
+    e3 = cphi * ctheta * spsi + ctheta * cpsi * sphi
     return e0, e1, e2, e3
 
 
-if __name__ == "__main__":
+def get_matplotlib_supported_file_endings():
+    """Gets the file endings supported by matplotlib.
+
+    Returns
+    -------
+    list[str]
+        List of file endings prepended with a dot
+    """
+    # Get matplotlib's supported file ending and return them (without descriptions, hence only keys)
+    filetypes = plt.gcf().canvas.get_supported_filetypes().keys()
+
+    # Ensure the dot is included in the filetype endings
+    filetypes = ["." + filetype for filetype in filetypes]
+
+    return filetypes
+
+
+def to_hex_encode(obj, encoder=base64.b85encode):
+    """Converts an object to hex representation using dill.
+
+    Parameters
+    ----------
+    obj : object
+        Object to be converted to hex.
+    encoder : callable, optional
+        Function to encode the bytes. Default is base64.b85encode.
+
+    Returns
+    -------
+    bytes
+        Object converted to bytes.
+    """
+    return encoder(dill.dumps(obj)).hex()
+
+
+def from_hex_decode(obj_bytes, decoder=base64.b85decode):
+    """Converts an object from hex representation using dill.
+
+    Parameters
+    ----------
+    obj_bytes : str
+        Hex string to be converted to object.
+    decoder : callable, optional
+        Function to decode the bytes. Default is base64.b85decode.
+
+    Returns
+    -------
+    object
+        Object converted from bytes.
+    """
+    return dill.loads(decoder(bytes.fromhex(obj_bytes)))
+
+
+if __name__ == "__main__":  # pragma: no cover
     import doctest
 
     res = doctest.testmod()

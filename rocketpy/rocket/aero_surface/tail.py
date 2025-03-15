@@ -165,7 +165,6 @@ class Tail(AeroSurface):
         # Calculate clalpha
         self.clalpha = Function(
             lambda mach: 2
-            / self._beta(mach)
             * (
                 (self.bottom_radius / self.rocket_radius) ** 2
                 - (self.top_radius / self.rocket_radius) ** 2
@@ -205,3 +204,34 @@ class Tail(AeroSurface):
     def all_info(self):
         self.prints.all()
         self.plots.all()
+
+    def to_dict(self, include_outputs=False):
+        data = {
+            "top_radius": self._top_radius,
+            "bottom_radius": self._bottom_radius,
+            "length": self._length,
+            "rocket_radius": self._rocket_radius,
+            "name": self.name,
+        }
+
+        if include_outputs:
+            data.update(
+                {
+                    "cp": self.cp,
+                    "cl": self.clalpha,
+                    "slant_length": self.slant_length,
+                    "surface_area": self.surface_area,
+                }
+            )
+
+        return data
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            top_radius=data["top_radius"],
+            bottom_radius=data["bottom_radius"],
+            length=data["length"],
+            rocket_radius=data["rocket_radius"],
+            name=data["name"],
+        )

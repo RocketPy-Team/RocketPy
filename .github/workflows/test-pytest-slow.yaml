@@ -3,7 +3,14 @@ name: Scheduled Tests
 on:
   schedule:
     - cron: "0 17 * * 5"  # at 05:00 PM, only on Friday
-      timezone: "America/Sao_Paulo"
+  push:
+    branches:
+      - main
+    paths:
+      - "**.py"
+      - ".github/**"
+      - "pyproject.toml"
+      - "requirements*"
 
 defaults:
   run:
@@ -14,16 +21,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        fail-fast: false
-        python-version: [3.9, 3.12]
-
+        python-version: [3.9, 3.13]
     env:
-      OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@main
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@main
         with:
           python-version: ${{ matrix.python-version }}
 

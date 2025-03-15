@@ -2,10 +2,11 @@ from rocketpy.rocket.aero_surface.aero_surface import AeroSurface
 from rocketpy.rocket.aero_surface.air_brakes import AirBrakes
 from rocketpy.rocket.aero_surface.fins import (
     EllipticalFin,
-    EllipticalFins,
     Fin,
-    Fins,
     TrapezoidalFin,
+    EllipticalFins,
+    Fins,
+    FreeFormFins,
     TrapezoidalFins,
 )
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface

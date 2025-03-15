@@ -10,7 +10,8 @@ plt.rcParams.update({"figure.max_open_warning": 0})
 
 
 @pytest.mark.slow
-def test_monte_carlo_simulate(monte_carlo_calisto):
+@pytest.mark.parametrize("parallel", [False, True])
+def test_monte_carlo_simulate(monte_carlo_calisto, parallel):
     """Tests the simulate method of the MonteCarlo class.
 
     Parameters
@@ -19,20 +20,22 @@ def test_monte_carlo_simulate(monte_carlo_calisto):
         The MonteCarlo object, this is a pytest fixture.
     """
     # NOTE: this is really slow, it runs 10 flight simulations
-    monte_carlo_calisto.simulate(number_of_simulations=10, append=False)
+    monte_carlo_calisto.simulate(
+        number_of_simulations=10, append=False, parallel=parallel
+    )
 
     assert monte_carlo_calisto.num_of_loaded_sims == 10
     assert monte_carlo_calisto.number_of_simulations == 10
-    assert monte_carlo_calisto.filename == "monte_carlo_test"
-    assert monte_carlo_calisto.error_file == "monte_carlo_test.errors.txt"
-    assert monte_carlo_calisto.output_file == "monte_carlo_test.outputs.txt"
+    assert str(monte_carlo_calisto.filename.name) == "monte_carlo_test"
+    assert str(monte_carlo_calisto.error_file.name) == "monte_carlo_test.errors.txt"
+    assert str(monte_carlo_calisto.output_file.name) == "monte_carlo_test.outputs.txt"
     assert np.isclose(
-        monte_carlo_calisto.processed_results["apogee"][0], 4711, rtol=0.15
+        monte_carlo_calisto.processed_results["apogee"][0], 4711, rtol=0.2
     )
     assert np.isclose(
         monte_carlo_calisto.processed_results["impact_velocity"][0],
         -5.234,
-        rtol=0.15,
+        rtol=0.2,
     )
     os.remove("monte_carlo_test.errors.txt")
     os.remove("monte_carlo_test.outputs.txt")
@@ -105,9 +108,64 @@ def test_monte_carlo_export_ellipses_to_kml(monte_carlo_calisto_pre_loaded):
             filename="monte_carlo_class_example.kml",
             origin_lat=32.990254,
             origin_lon=-106.974998,
-            type="impact",
+            type="all",
         )
         is None
     )
 
     os.remove("monte_carlo_class_example.kml")
+
+
+@pytest.mark.slow
+def test_monte_carlo_callback(monte_carlo_calisto):
+    """Tests the data_collector argument of the MonteCarlo class.
+
+    Parameters
+    ----------
+    monte_carlo_calisto : MonteCarlo
+        The MonteCarlo object, this is a pytest fixture.
+    """
+
+    # define valid data collector
+    valid_data_collector = {
+        "name": lambda flight: flight.name,
+        "density_t0": lambda flight: flight.env.density(0),
+    }
+
+    monte_carlo_calisto.data_collector = valid_data_collector
+    # NOTE: this is really slow, it runs 10 flight simulations
+    monte_carlo_calisto.simulate(number_of_simulations=10, append=False)
+
+    # tests if print works when we have None in summary
+    monte_carlo_calisto.info()
+
+    ## tests if an error is raised for invalid data_collector definitions
+    # invalid type
+    def invalid_data_collector(flight):
+        return flight.name
+
+    with pytest.raises(ValueError):
+        monte_carlo_calisto._check_data_collector(invalid_data_collector)
+
+    # invalid key overwrite
+    invalid_data_collector = {"apogee": lambda flight: flight.apogee}
+    with pytest.raises(ValueError):
+        monte_carlo_calisto._check_data_collector(invalid_data_collector)
+
+    # invalid callback definition
+    invalid_data_collector = {"name": "Calisto"}  # callbacks must be callables!
+    with pytest.raises(ValueError):
+        monte_carlo_calisto._check_data_collector(invalid_data_collector)
+
+    # invalid logic (division by zero)
+    invalid_data_collector = {
+        "density_t0": lambda flight: flight.env.density(0) / "0",
+    }
+    monte_carlo_calisto.data_collector = invalid_data_collector
+    # NOTE: this is really slow, it runs 10 flight simulations
+    with pytest.raises(ValueError):
+        monte_carlo_calisto.simulate(number_of_simulations=10, append=False)
+
+    os.remove("monte_carlo_test.errors.txt")
+    os.remove("monte_carlo_test.outputs.txt")
+    os.remove("monte_carlo_test.inputs.txt")

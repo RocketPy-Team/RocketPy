@@ -138,7 +138,7 @@ def test_plots(  # pylint: disable=unused-argument
     assert func_2d_from_csv.plot(-1, 1) is None
     # Test compare_plots
     func2 = Function(
-        source="tests/fixtures/airfoils/e473-10e6-degrees.csv",
+        source="data/airfoils/e473-10e6-degrees.csv",
         inputs=["Scalar"],
         outputs=["Scalar"],
         interpolation="linear",
@@ -175,7 +175,6 @@ def test_multivariable_function_plot(mock_show):  # pylint: disable=unused-argum
     """Test the plot method of the Function class with a multivariable function."""
 
     def source(x, y):
-
         # Test plane f(x,y) = sin(x + y)
         return np.sin(x * y)
 

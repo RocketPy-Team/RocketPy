@@ -94,6 +94,77 @@ def flight_calisto_robust(calisto_robust, example_spaceport_env):
 
 
 @pytest.fixture
+def flight_calisto_robust_solid_eom(calisto_robust, example_spaceport_env):
+    """Similar to flight_calisto_robust, but with the equations of motion set to
+    "solid_propulsion".
+    """
+    return Flight(
+        environment=example_spaceport_env,
+        rocket=calisto_robust,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=False,
+        equations_of_motion="solid_propulsion",
+    )
+
+
+@pytest.fixture
+def flight_calisto_liquid_modded(calisto_liquid_modded, example_plain_env):
+    """A rocketpy.Flight object of the Calisto rocket modded for a liquid
+    motor. The environment is the simplest possible, with no parameters set.
+
+    Parameters
+    ----------
+    calisto_liquid_modded : rocketpy.Rocket
+        An object of the Rocket class. This is a pytest fixture too.
+    example_plain_env : rocketpy.Environment
+        An object of the Environment class. This is a pytest fixture too.
+
+    Returns
+    -------
+    rocketpy.Flight
+        A rocketpy.Flight object.
+    """
+    return Flight(
+        rocket=calisto_liquid_modded,
+        environment=example_plain_env,
+        rail_length=5,
+        inclination=85,
+        heading=0,
+        max_time_step=0.25,
+    )
+
+
+@pytest.fixture
+def flight_calisto_hybrid_modded(calisto_hybrid_modded, example_plain_env):
+    """A rocketpy.Flight object of the Calisto rocket modded for a hybrid
+    motor. The environment is the simplest possible, with no parameters set.
+
+    Parameters
+    ----------
+    calisto_hybrid_modded : rocketpy.Rocket
+        An object of the Rocket class. This is a pytest fixture too.
+    example_plain_env : rocketpy.Environment
+        An object of the Environment class. This is a pytest fixture too.
+
+    Returns
+    -------
+    rocketpy.Flight
+        A rocketpy.Flight object.
+    """
+    return Flight(
+        rocket=calisto_hybrid_modded,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        time_overshoot=False,
+        terminate_on_apogee=True,
+    )
+
+
+@pytest.fixture
 def flight_calisto_custom_wind(calisto_robust, example_spaceport_env):
     """A rocketpy.Flight object of the Calisto rocket. This uses the calisto
     with the aerodynamic surfaces and parachutes. The environment is a bit more
@@ -151,6 +222,36 @@ def flight_calisto_air_brakes(calisto_air_brakes_clamp_on, example_plain_env):
     """
     return Flight(
         rocket=calisto_air_brakes_clamp_on,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        time_overshoot=False,
+        terminate_on_apogee=True,
+    )
+
+
+@pytest.fixture
+def flight_calisto_with_sensors(calisto_with_sensors, example_plain_env):
+    """A rocketpy.Flight object of the Calisto rocket. This uses the calisto
+    with a set of ideal sensors. The environment is the simplest possible, with
+    no parameters set.
+
+    Parameters
+    ----------
+    calisto_with_sensors : rocketpy.Rocket
+        An object of the Rocket class.
+    example_plain_env : rocketpy.Environment
+        An object of the Environment class.
+
+    Returns
+    -------
+    rocketpy.Flight
+        A rocketpy.Flight object of the Calisto rocket in a more complex
+        condition.
+    """
+    return Flight(
+        rocket=calisto_with_sensors,
         environment=example_plain_env,
         rail_length=5.2,
         inclination=85,

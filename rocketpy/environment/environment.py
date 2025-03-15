@@ -16,7 +16,6 @@ from rocketpy.environment.fetchers import (
     fetch_gfs_file_return_dataset,
     fetch_hiresw_file_return_dataset,
     fetch_nam_file_return_dataset,
-    fetch_noaaruc_sounding,
     fetch_open_elevation,
     fetch_rap_file_return_dataset,
     fetch_wyoming_sounding,
@@ -28,9 +27,6 @@ from rocketpy.environment.tools import (
     find_latitude_index,
     find_longitude_index,
     find_time_index,
-)
-from rocketpy.environment.tools import geodesic_to_utm as geodesic_to_utm_tools
-from rocketpy.environment.tools import (
     get_elevation_data_from_dataset,
     get_final_date_from_time_array,
     get_initial_date_from_time_array,
@@ -38,6 +34,7 @@ from rocketpy.environment.tools import (
     get_pressure_levels_from_file,
     mask_and_clean_dataset,
 )
+from rocketpy.environment.tools import geodesic_to_utm as geodesic_to_utm_tools
 from rocketpy.environment.tools import utm_to_geodesic as utm_to_geodesic_tools
 from rocketpy.environment.weather_model_mapping import WeatherModelMapping
 from rocketpy.mathutils.function import NUMERICAL_TYPES, Function, funcify_method
@@ -142,11 +139,11 @@ class Environment:
     Environment.atmospheric_model_type : string
         Describes the atmospheric model which is being used. Can only assume the
         following values: ``standard_atmosphere``, ``custom_atmosphere``,
-        ``wyoming_sounding``, ``NOAARucSounding``, ``Forecast``, ``Reanalysis``,
+        ``wyoming_sounding``, ``Forecast``, ``Reanalysis``,
         ``Ensemble``.
     Environment.atmospheric_model_file : string
         Address of the file used for the atmospheric model being used. Only
-        defined for ``wyoming_sounding``, ``NOAARucSounding``, ``Forecast``,
+        defined for ``wyoming_sounding``, ``Forecast``,
         ``Reanalysis``, ``Ensemble``
     Environment.atmospheric_model_dict : dictionary
         Dictionary used to properly interpret ``netCDF`` and ``OPeNDAP`` files.
@@ -367,12 +364,15 @@ class Environment:
         self.standard_g = 9.80665
         self.__weather_model_map = WeatherModelMapping()
         self.__atm_type_file_to_function_map = {
-            ("forecast", "GFS"): fetch_gfs_file_return_dataset,
-            ("forecast", "NAM"): fetch_nam_file_return_dataset,
-            ("forecast", "RAP"): fetch_rap_file_return_dataset,
-            ("forecast", "HIRESW"): fetch_hiresw_file_return_dataset,
-            ("ensemble", "GEFS"): fetch_gefs_ensemble,
-            # ("ensemble", "CMC"): fetch_cmc_ensemble,
+            "forecast": {
+                "GFS": fetch_gfs_file_return_dataset,
+                "NAM": fetch_nam_file_return_dataset,
+                "RAP": fetch_rap_file_return_dataset,
+                "HIRESW": fetch_hiresw_file_return_dataset,
+            },
+            "ensemble": {
+                "GEFS": fetch_gefs_ensemble,
+            },
         }
         self.__standard_atmosphere_layers = {
             "geopotential_height": [  # in geopotential m
@@ -457,8 +457,7 @@ class Environment:
                 flattening=self.ellipsoid.flattening,
                 semi_major_axis=self.ellipsoid.semi_major_axis,
             )
-        else:
-            # pragma: no cover
+        else:  # pragma: no cover
             warnings.warn(
                 "UTM coordinates are not available for latitudes "
                 "above 84 or below -80 degrees. The UTM conversions will fail."
@@ -689,7 +688,9 @@ class Environment:
             "Ensemble",
         ]:
             self.set_atmospheric_model(
-                self.atmospheric_model_file, self.atmospheric_model_dict
+                type=self.atmospheric_model_type,
+                file=self.atmospheric_model_file,
+                dictionary=self.atmospheric_model_dict,
             )
 
     def set_location(self, latitude, longitude):
@@ -711,8 +712,7 @@ class Environment:
 
         if not isinstance(latitude, NUMERICAL_TYPES) and isinstance(
             longitude, NUMERICAL_TYPES
-        ):
-            # pragma: no cover
+        ):  # pragma: no cover
             raise TypeError("Latitude and Longitude must be numbers!")
 
         # Store latitude and longitude
@@ -727,7 +727,9 @@ class Environment:
             "Ensemble",
         ]:
             self.set_atmospheric_model(
-                self.atmospheric_model_file, self.atmospheric_model_dict
+                type=self.atmospheric_model_type,
+                file=self.atmospheric_model_file,
+                dictionary=self.atmospheric_model_dict,
             )
 
     def set_gravity_model(self, gravity=None):
@@ -806,8 +808,8 @@ class Environment:
 
     @max_expected_height.setter
     def max_expected_height(self, value):
-        if value < self.elevation:
-            raise ValueError(  # pragma: no cover
+        if value < self.elevation:  # pragma: no cover
+            raise ValueError(
                 "Max expected height cannot be lower than the surface elevation"
             )
         self._max_expected_height = value
@@ -946,8 +948,8 @@ class Environment:
             Elevation provided by the topographic data, in meters.
         """
         # TODO: refactor this method.  pylint: disable=too-many-statements
-        if self.topographic_profile_activated is False:
-            raise ValueError(  # pragma: no cover
+        if self.topographic_profile_activated is False:  # pragma: no cover
+            raise ValueError(
                 "You must define a Topographic profile first, please use the "
                 "Environment.set_topographic_profile() method first."
             )
@@ -1052,24 +1054,6 @@ class Environment:
               http://weather.uwyo.edu/cgi-bin/sounding?region=samer&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=02&FROM=0200&TO=0200&STNM=82599
 
               .. _weather.uwyo: http://weather.uwyo.edu/upperair/sounding.html
-
-            - ``NOAARucSounding``: sets pressure, temperature, wind-u
-              and wind-v profiles and surface elevation obtained from
-              an upper air sounding given by the file parameter through
-              an URL. This URL should point to a data webpage obtained
-              through NOAA's Ruc Sounding servers, which can be accessed
-              in `rucsoundings`_. Selecting ROABs as the
-              initial data source, specifying the station through it's
-              WMO-ID and opting for the ASCII (GSD format) button, the
-              following example URL opens up:
-
-              https://rucsoundings.noaa.gov/get_raobs.cgi?data_source=RAOB&latest=latest&start_year=2019&start_month_name=Feb&start_mday=5&start_hour=12&start_min=0&n_hrs=1.0&fcst_len=shortest&airport=83779&text=Ascii%20text%20%28GSD%20format%29&hydrometeors=false&start=latest
-
-              Any ASCII GSD format page from this server can be read,
-              so information from virtual soundings such as GFS and NAM
-              can also be imported.
-
-              .. _rucsoundings: https://rucsoundings.noaa.gov/
 
             - ``windy_atmosphere``: sets pressure, temperature, wind-u and
               wind-v profiles and surface elevation obtained from the Windy API.
@@ -1279,15 +1263,16 @@ class Environment:
             self.process_standard_atmosphere()
         elif type == "wyoming_sounding":
             self.process_wyoming_sounding(file)
-        elif type == "noaarucsounding":
-            self.process_noaaruc_sounding(file)
         elif type == "custom_atmosphere":
             self.process_custom_atmosphere(pressure, temperature, wind_u, wind_v)
         elif type == "windy":
             self.process_windy_atmosphere(file)
         elif type in ["forecast", "reanalysis", "ensemble"]:
             dictionary = self.__validate_dictionary(file, dictionary)
-            fetch_function = self.__atm_type_file_to_function_map.get((type, file))
+            try:
+                fetch_function = self.__atm_type_file_to_function_map[type][file]
+            except KeyError:
+                fetch_function = None
 
             # Fetches the dataset using OpenDAP protocol or uses the file path
             dataset = fetch_function() if fetch_function is not None else file
@@ -1296,8 +1281,8 @@ class Environment:
                 self.process_forecast_reanalysis(dataset, dictionary)
             else:
                 self.process_ensemble(dataset, dictionary)
-        else:
-            raise ValueError(f"Unknown model type '{type}'.")  # pragma: no cover
+        else:  # pragma: no cover
+            raise ValueError(f"Unknown model type '{type}'.")
 
         if type not in ["ensemble"]:
             # Ensemble already computed these values
@@ -1334,7 +1319,7 @@ class Environment:
         self.__set_wind_speed_function(0)
 
         # 80k meters is the limit of the standard atmosphere
-        self.max_expected_height = 80000
+        self._max_expected_height = 80000
 
     def process_custom_atmosphere(
         self, pressure=None, temperature=None, wind_u=0, wind_v=0
@@ -1411,7 +1396,7 @@ class Environment:
         None
         """
         # Initialize an estimate of the maximum expected atmospheric model height
-        max_expected_height = 1000
+        max_expected_height = self.max_expected_height or 1000
 
         # Save pressure profile
         if pressure is None:
@@ -1455,11 +1440,9 @@ class Environment:
         self.__reset_wind_direction_function()
         self.__reset_wind_speed_function()
 
-        self.max_expected_height = max_expected_height
+        self._max_expected_height = max_expected_height
 
-    def process_windy_atmosphere(
-        self, model="ECMWF"
-    ):  # pylint: disable=too-many-statements
+    def process_windy_atmosphere(self, model="ECMWF"):  # pylint: disable=too-many-statements
         """Process data from Windy.com to retrieve atmospheric forecast data.
 
         Parameters
@@ -1530,7 +1513,7 @@ class Environment:
         self.__set_wind_speed_function(data_array[:, (1, 7)])
 
         # Save maximum expected height
-        self.max_expected_height = max(altitude_array[0], altitude_array[-1])
+        self._max_expected_height = max(altitude_array[0], altitude_array[-1])
 
         # Get elevation data from file
         self.elevation = float(response["header"]["elevation"])
@@ -1668,7 +1651,7 @@ class Environment:
         )
 
         # Save maximum expected height
-        self.max_expected_height = data_array[-1, 1]
+        self._max_expected_height = data_array[-1, 1]
 
     def process_noaaruc_sounding(self, file):  # pylint: disable=too-many-statements
         """Import and process the upper air sounding data from `NOAA
@@ -1689,111 +1672,20 @@ class Environment:
 
         See also
         --------
-        More details can be found at: https://rucsoundings.noaa.gov/.
+        This method is deprecated and will be fully deleted in version 1.8.0.
 
         Returns
         -------
         None
         """
-        # Request NOAA Ruc Sounding from file url
-        response = fetch_noaaruc_sounding(file)
-
-        # Split response into lines
-        lines = response.text.split("\n")
-
-        # Process GSD format (https://rucsoundings.noaa.gov/raob_format.html)
-
-        # Extract elevation data
-        for line in lines:
-            # Split line into columns
-            columns = re.split(" +", line)[1:]
-            if len(columns) > 0:
-                if columns[0] == "1" and columns[5] != "99999":
-                    # Save elevation
-                    self.elevation = float(columns[5])
-                else:
-                    # No elevation data available
-                    pass
-
-        pressure_array = []
-        barometric_height_array = []
-        temperature_array = []
-        wind_speed_array = []
-        wind_direction_array = []
-
-        for line in lines:
-            # Split line into columns
-            columns = re.split(" +", line)[1:]
-            if len(columns) < 6:
-                # skip lines with less than 6 columns
-                continue
-            if columns[0] in ["4", "5", "6", "7", "8", "9"]:
-                # Convert columns to floats
-                columns = np.array(columns, dtype=float)
-                # Select relevant columns
-                altitude, pressure, temperature, wind_direction, wind_speed = columns[
-                    [2, 1, 3, 5, 6]
-                ]
-                # Check for missing values
-                if altitude == 99999:
-                    continue
-                # Save values only if they are not missing
-                if pressure != 99999:
-                    pressure_array.append([altitude, pressure])
-                    barometric_height_array.append([pressure, altitude])
-                if temperature != 99999:
-                    temperature_array.append([altitude, temperature])
-                if wind_direction != 99999:
-                    wind_direction_array.append([altitude, wind_direction])
-                if wind_speed != 99999:
-                    wind_speed_array.append([altitude, wind_speed])
-
-        # Convert lists to arrays
-        pressure_array = np.array(pressure_array)
-        barometric_height_array = np.array(barometric_height_array)
-        temperature_array = np.array(temperature_array)
-        wind_speed_array = np.array(wind_speed_array)
-        wind_direction_array = np.array(wind_direction_array)
-
-        # Converts 10*hPa to Pa and save values
-        pressure_array[:, 1] = 10 * pressure_array[:, 1]
-        self.__set_pressure_function(pressure_array)
-        # Converts 10*hPa to Pa and save values
-        barometric_height_array[:, 0] = 10 * barometric_height_array[:, 0]
-        self.__set_barometric_height_function(barometric_height_array)
-
-        # Convert C to K and save values
-        temperature_array[:, 1] = temperature_array[:, 1] / 10 + 273.15
-        self.__set_temperature_function(temperature_array)
-
-        # Process wind-u and wind-v
-        # Converts Knots to m/s
-        wind_speed_array[:, 1] = wind_speed_array[:, 1] * 1.852 / 3.6
-        wind_heading_array = wind_direction_array[:, :] * 1
-        # Convert wind direction to wind heading
-        wind_heading_array[:, 1] = (wind_direction_array[:, 1] + 180) % 360
-        wind_u = wind_speed_array[:, :] * 1
-        wind_v = wind_speed_array[:, :] * 1
-        wind_u[:, 1] = wind_speed_array[:, 1] * np.sin(
-            np.deg2rad(wind_heading_array[:, 1])
+        warnings.warn(
+            "NOAA RUC models are no longer available. "
+            "This method is deprecated and will be fully deleted in version 1.8.0.",
+            DeprecationWarning,
         )
-        wind_v[:, 1] = wind_speed_array[:, 1] * np.cos(
-            np.deg2rad(wind_heading_array[:, 1])
-        )
+        return file
 
-        # Save wind data
-        self.__set_wind_direction_function(wind_direction_array)
-        self.__set_wind_heading_function(wind_heading_array)
-        self.__set_wind_speed_function(wind_speed_array)
-        self.__set_wind_velocity_x_function(wind_u)
-        self.__set_wind_velocity_y_function(wind_v)
-
-        # Save maximum expected height
-        self.max_expected_height = pressure_array[-1, 0]
-
-    def process_forecast_reanalysis(
-        self, file, dictionary
-    ):  # pylint: disable=too-many-locals,too-many-statements
+    def process_forecast_reanalysis(self, file, dictionary):  # pylint: disable=too-many-locals,too-many-statements
         """Import and process atmospheric data from weather forecasts
         and reanalysis given as ``netCDF`` or ``OPeNDAP`` files.
         Sets pressure, temperature, wind-u and wind-v
@@ -1856,6 +1748,8 @@ class Environment:
         # Read weather file
         if isinstance(file, str):
             data = netCDF4.Dataset(file)
+            if dictionary["time"] not in data.variables.keys():
+                dictionary = self.__weather_model_map.get("ECMWF_v0")
         else:
             data = file
 
@@ -1994,9 +1888,9 @@ class Environment:
             temper,
             wind_u,
             wind_v,
-            wind_speed,
             wind_heading,
             wind_direction,
+            wind_speed,
         )
         # Save atmospheric data
         self.__set_pressure_function(data_array[:, (1, 0)])
@@ -2009,7 +1903,7 @@ class Environment:
         self.__set_wind_speed_function(data_array[:, (1, 7)])
 
         # Save maximum expected height
-        self.max_expected_height = max(height[0], height[-1])
+        self._max_expected_height = max(height[0], height[-1])
 
         # Get elevation data from file
         if dictionary["surface_geopotential_height"] is not None:
@@ -2020,7 +1914,12 @@ class Environment:
         # Compute info data
         self.atmospheric_model_init_date = get_initial_date_from_time_array(time_array)
         self.atmospheric_model_end_date = get_final_date_from_time_array(time_array)
-        self.atmospheric_model_interval = get_interval_date_from_time_array(time_array)
+        if self.atmospheric_model_init_date != self.atmospheric_model_end_date:
+            self.atmospheric_model_interval = get_interval_date_from_time_array(
+                time_array
+            )
+        else:
+            self.atmospheric_model_interval = 0
         self.atmospheric_model_init_lat = lat_list[0]
         self.atmospheric_model_end_lat = lat_list[-1]
         self.atmospheric_model_init_lon = lon_list[0]
@@ -2042,9 +1941,7 @@ class Environment:
         # Close weather data
         data.close()
 
-    def process_ensemble(
-        self, file, dictionary
-    ):  # pylint: disable=too-many-locals,too-many-statements
+    def process_ensemble(self, file, dictionary):  # pylint: disable=too-many-locals,too-many-statements
         """Import and process atmospheric data from weather ensembles
         given as ``netCDF`` or ``OPeNDAP`` files. Sets pressure, temperature,
         wind-u and wind-v profiles and surface elevation obtained from a weather
@@ -2354,7 +2251,7 @@ class Environment:
         self.__set_wind_speed_function(data_array[:, (1, 7)])
 
         # Save other attributes
-        self.max_expected_height = max(height[0], height[-1])
+        self._max_expected_height = max(height[0], height[-1])
         self.ensemble_member = member
 
         # Update air density, speed of sound and dynamic viscosity
@@ -2671,8 +2568,8 @@ class Environment:
         }
         try:
             return ellipsoid[datum]
-        except KeyError as e:
-            available_datums = ', '.join(ellipsoid.keys())
+        except KeyError as e:  # pragma: no cover
+            available_datums = ", ".join(ellipsoid.keys())
             raise AttributeError(
                 f"The reference system '{datum}' is not recognized. Please use one of "
                 f"the following recognized datum: {available_datums}"
@@ -2847,8 +2744,98 @@ class Environment:
         arc_seconds = (remainder * 60 - arc_minutes) * 60
         return degrees, arc_minutes, arc_seconds
 
+    def to_dict(self, include_outputs=False):
+        env_dict = {
+            "gravity": self.gravity,
+            "date": self.date,
+            "latitude": self.latitude,
+            "longitude": self.longitude,
+            "elevation": self.elevation,
+            "datum": self.datum,
+            "timezone": self.timezone,
+            "max_expected_height": self.max_expected_height,
+            "atmospheric_model_type": self.atmospheric_model_type,
+            "pressure": self.pressure,
+            "temperature": self.temperature,
+            "wind_velocity_x": self.wind_velocity_x,
+            "wind_velocity_y": self.wind_velocity_y,
+            "wind_heading": self.wind_heading,
+            "wind_direction": self.wind_direction,
+            "wind_speed": self.wind_speed,
+        }
 
-if __name__ == "__main__":
+        if include_outputs:
+            env_dict["density"] = self.density
+            env_dict["barometric_height"] = self.barometric_height
+            env_dict["speed_of_sound"] = self.speed_of_sound
+            env_dict["dynamic_viscosity"] = self.dynamic_viscosity
+
+        return env_dict
+
+    @classmethod
+    def from_dict(cls, data):  # pylint: disable=too-many-statements
+        env = cls(
+            gravity=data["gravity"],
+            date=data["date"],
+            latitude=data["latitude"],
+            longitude=data["longitude"],
+            elevation=data["elevation"],
+            datum=data["datum"],
+            timezone=data["timezone"],
+            max_expected_height=data["max_expected_height"],
+        )
+        atmospheric_model = data["atmospheric_model_type"]
+
+        if atmospheric_model == "standard_atmosphere":
+            env.set_atmospheric_model("standard_atmosphere")
+        elif atmospheric_model == "custom_atmosphere":
+            env.set_atmospheric_model(
+                type="custom_atmosphere",
+                pressure=data["pressure"],
+                temperature=data["temperature"],
+                wind_u=data["wind_velocity_x"],
+                wind_v=data["wind_velocity_y"],
+            )
+        else:
+            env.__set_pressure_function(data["pressure"])
+            env.__set_temperature_function(data["temperature"])
+            env.__set_wind_velocity_x_function(data["wind_velocity_x"])
+            env.__set_wind_velocity_y_function(data["wind_velocity_y"])
+            env.__set_wind_heading_function(data["wind_heading"])
+            env.__set_wind_direction_function(data["wind_direction"])
+            env.__set_wind_speed_function(data["wind_speed"])
+            env.elevation = data["elevation"]
+            env.max_expected_height = data["max_expected_height"]
+
+            if atmospheric_model in ("windy", "forecast", "reanalysis", "ensemble"):
+                env.atmospheric_model_init_date = data["atmospheric_model_init_date"]
+                env.atmospheric_model_end_date = data["atmospheric_model_end_date"]
+                env.atmospheric_model_interval = data["atmospheric_model_interval"]
+                env.atmospheric_model_init_lat = data["atmospheric_model_init_lat"]
+                env.atmospheric_model_end_lat = data["atmospheric_model_end_lat"]
+                env.atmospheric_model_init_lon = data["atmospheric_model_init_lon"]
+                env.atmospheric_model_end_lon = data["atmospheric_model_end_lon"]
+
+            if atmospheric_model == "ensemble":
+                env.level_ensemble = data["level_ensemble"]
+                env.height_ensemble = data["height_ensemble"]
+                env.temperature_ensemble = data["temperature_ensemble"]
+                env.wind_u_ensemble = data["wind_u_ensemble"]
+                env.wind_v_ensemble = data["wind_v_ensemble"]
+                env.wind_heading_ensemble = data["wind_heading_ensemble"]
+                env.wind_direction_ensemble = data["wind_direction_ensemble"]
+                env.wind_speed_ensemble = data["wind_speed_ensemble"]
+                env.num_ensemble_members = data["num_ensemble_members"]
+
+            env.__reset_barometric_height_function()
+            env.calculate_density_profile()
+            env.calculate_speed_of_sound_profile()
+            env.calculate_dynamic_viscosity()
+
+        return env
+
+
+if __name__ == "__main__":  # pragma: no cover
     import doctest
 
     results = doctest.testmod()

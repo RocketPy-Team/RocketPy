@@ -62,7 +62,7 @@ def func_from_csv():
         A function based on a csv file.
     """
     func = Function(
-        source="tests/fixtures/airfoils/e473-10e6-degrees.csv",
+        source="data/airfoils/e473-10e6-degrees.csv",
     )
     return func
 
@@ -134,7 +134,7 @@ def lambda_quad_func():
     Function
         A lambda function based on a string.
     """
-    func = lambda x: x**2  # pylint: disable=unnecessary-lambda-assignment
+    func = lambda x: x**2  # noqa: E731
     return Function(
         source=func,
     )

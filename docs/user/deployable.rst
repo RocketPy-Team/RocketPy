@@ -52,7 +52,7 @@ A solid rocket motor is used in this case, the Cesaroni Pro75 M1670.
 .. jupyter-execute::
 
       Pro75M1670 = SolidMotor(
-          thrust_source="../data/motors/Cesaroni_M1670.eng",
+          thrust_source="../data/motors/cesaroni/Cesaroni_M1670.eng",
           dry_mass=1.815,
           dry_inertia=(0.125, 0.125, 0.002),
           nozzle_radius=33 / 1000,
@@ -114,8 +114,8 @@ Then we define our rocket, including the payload mass.
           radius=127 / 2000,
           mass=rocket_mass + rocket_mass,
           inertia=(6.321, 6.321, 0.034),
-          power_off_drag="../data/calisto/powerOffDragCurve.csv",
-          power_on_drag="../data/calisto/powerOnDragCurve.csv",
+          power_off_drag="../data/rockets/calisto/powerOffDragCurve.csv",
+          power_on_drag="../data/rockets/calisto/powerOnDragCurve.csv",
           center_of_mass_without_motor=0,
           coordinate_system_orientation="tail_to_nose",
       )
@@ -174,8 +174,8 @@ Therefore we should be careful with the value of its mass.
           radius=127 / 2000,
           mass=rocket_mass,
           inertia=(6.321, 6.321, 0.034),
-          power_off_drag="../data/calisto/powerOffDragCurve.csv",
-          power_on_drag="../data/calisto/powerOnDragCurve.csv",
+          power_off_drag="../data/rockets/calisto/powerOffDragCurve.csv",
+          power_on_drag="../data/rockets/calisto/powerOnDragCurve.csv",
           center_of_mass_without_motor=0,
           coordinate_system_orientation="tail_to_nose",
       )

@@ -9,11 +9,11 @@ from scipy.integrate import solve_ivp
 
 from .environment.environment import Environment
 from .mathutils.function import Function
+from .plots.plot_helpers import show_or_save_plot
 from .rocket.aero_surface import TrapezoidalFins
 from .simulation.flight import Flight
 
 
-# TODO: Needs tests
 def compute_cd_s_from_drop_test(
     terminal_velocity, rocket_mass, air_density=1.225, g=9.80665
 ):
@@ -38,13 +38,34 @@ def compute_cd_s_from_drop_test(
     -------
     cd_s : float
         Number equal to drag coefficient times reference area for parachute.
-
     """
-
     return 2 * rocket_mass * g / ((terminal_velocity**2) * air_density)
 
 
-# TODO: Needs tests
+def check_constant(f, eps):
+    """
+    Check for three consecutive elements in the list that are approximately
+    equal within a tolerance.
+
+    Parameters
+    ----------
+    f : list or array
+        A list or array of numerical values.
+    eps : float
+        The tolerance level for comparing the elements.
+
+    Returns
+    -------
+    int or None
+        The index of the first element in the first sequence of three
+        consecutive elements that are approximately equal within the tolerance.
+        Returns None if no such sequence is found.
+    """
+    for i in range(len(f) - 2):
+        if abs(f[i + 2] - f[i + 1]) < eps and abs(f[i + 1] - f[i]) < eps:
+            return i
+
+
 def calculate_equilibrium_altitude(
     rocket_mass,
     cd_s,
@@ -89,7 +110,6 @@ def calculate_equilibrium_altitude(
         affect the final result if the value is not high enough. Increase the
         estimative in case the final solution is not founded.
 
-
     Returns
     -------
     altitude_function: Function
@@ -102,30 +122,8 @@ def calculate_equilibrium_altitude(
     """
     final_sol = {}
 
-    if v0 >= 0:
-        print("Please set a valid negative value for v0")
-        return None
-
-    # TODO: Improve docs
-    def check_constant(f, eps):
-        """_summary_
-
-        Parameters
-        ----------
-        f : array, list
-
-            _description_
-        eps : float
-            _description_
-
-        Returns
-        -------
-        int, None
-            _description_
-        """
-        for i in range(len(f) - 2):
-            if abs(f[i + 2] - f[i + 1]) < eps and abs(f[i + 1] - f[i]) < eps:
-                return i
+    if v0 >= 0:  # pragma: no cover
+        raise ValueError("Please set a valid negative value for v0")
 
     if env is None:
         environment = Environment(
@@ -137,21 +135,20 @@ def calculate_equilibrium_altitude(
     else:
         environment = env
 
-    # TODO: Improve docs
     def du(z, u):
-        """_summary_
+        """Returns the derivative of the velocity at a given altitude.
 
         Parameters
         ----------
         z : float
-            _description_
+            altitude, in meters, at a given time
         u : float
             velocity, in m/s, at a given z altitude
 
         Returns
         -------
         float
-            _description_
+            velocity at a given altitude
         """
         return (
             u[1],
@@ -202,7 +199,13 @@ def calculate_equilibrium_altitude(
 
 # pylint: disable=too-many-statements
 def fin_flutter_analysis(
-    fin_thickness, shear_modulus, flight, see_prints=True, see_graphs=True
+    fin_thickness,
+    shear_modulus,
+    flight,
+    see_prints=True,
+    see_graphs=True,
+    *,
+    filename=None,
 ):
     """Calculate and plot the Fin Flutter velocity using the pressure profile
     provided by the selected atmospheric model. It considers the Flutter
@@ -225,6 +228,11 @@ def fin_flutter_analysis(
     see_graphs : boolean, optional
         True if you want to see the graphs, False otherwise. If False, the
         function will return the vectors containing the data for the graphs.
+    filename : str | None, optional
+        The path the plot should be saved to. By default None, in which case the
+        plot will be shown instead of saved. Supported file endings are: eps,
+        jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp
+        (these are the formats supported by matplotlib).
 
     Return
     ------
@@ -246,7 +254,7 @@ def fin_flutter_analysis(
                 found_fin = True
             else:
                 warnings.warn("More than one fin set found. The last one will be used.")
-    if not found_fin:
+    if not found_fin:  # pragma: no cover
         raise AttributeError(
             "There is no TrapezoidalFins in the rocket, can't run Flutter Analysis."
         )
@@ -270,7 +278,7 @@ def fin_flutter_analysis(
             flight,
         )
     if see_graphs:
-        _flutter_plots(flight, flutter_mach, safety_factor)
+        _flutter_plots(flight, flutter_mach, safety_factor, filename)
     else:
         return flutter_mach, safety_factor
 
@@ -309,7 +317,7 @@ def _flutter_safety_factor(flight, flutter_mach):
     return safety_factor
 
 
-def _flutter_plots(flight, flutter_mach, safety_factor):
+def _flutter_plots(flight, flutter_mach, safety_factor, *, filename=None):
     """Plot the Fin Flutter Mach Number and the Safety Factor for the flutter.
 
     Parameters
@@ -322,6 +330,11 @@ def _flutter_plots(flight, flutter_mach, safety_factor):
     safety_factor : rocketpy.Function
         Function containing the Safety Factor for the fin flutter.
         See fin_flutter_analysis for more details.
+    filename : str | None, optional
+        The path the plot should be saved to. By default None, in which case the
+        plot will be shown instead of saved. Supported file endings are: eps,
+        jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and webp
+        (these are the formats supported by matplotlib).
 
     Returns
     -------
@@ -357,7 +370,7 @@ def _flutter_plots(flight, flutter_mach, safety_factor):
     ax2.grid()
 
     plt.subplots_adjust(hspace=0.5)
-    plt.show()
+    show_or_save_plot(filename)
 
 
 def _flutter_prints(
@@ -413,7 +426,7 @@ def _flutter_prints(
     print("\nFin's parameters")
     print(f"Surface area (S): {surface_area:.4f} m2")
     print(f"Aspect ratio (AR): {aspect_ratio:.3f}")
-    print(f"tip_chord/root_chord ratio = \u03BB = {lambda_:.3f}")
+    print(f"tip_chord/root_chord ratio = \u03bb = {lambda_:.3f}")
     print(f"Fin Thickness: {fin_thickness:.5f} m")
     print(f"Shear Modulus (G): {shear_modulus:.3e} Pa")
 
@@ -425,7 +438,7 @@ def _flutter_prints(
 
 
 # TODO: deprecate and delete this function. Never used and now we have Monte Carlo.
-def create_dispersion_dictionary(filename):
+def create_dispersion_dictionary(filename):  # pragma: no cover
     """Creates a dictionary with the rocket data provided by a .csv file.
     File should be organized in four columns: attribute_class, parameter_name,
     mean_value, standard_deviation. The first row should be the header.

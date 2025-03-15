@@ -5,6 +5,7 @@ functions may be changed without notice in future feature releases.
 
 import re
 import time
+import warnings
 from datetime import datetime, timedelta, timezone
 
 import netCDF4
@@ -72,18 +73,17 @@ def fetch_atmospheric_data_from_windy(lat, lon, model):
         model = "".join([model[:4], model[4].upper(), model[5:]])
 
     url = (
-        f"https://node.windy.com/forecast/meteogram/{model}/{lat}/{lon}/"
-        "?step=undefined"
+        f"https://node.windy.com/forecast/meteogram/{model}/{lat}/{lon}/?step=undefined"
     )
 
     try:
         response = requests.get(url).json()
-        if "data" not in response.keys():
+        if "data" not in response.keys():  # pragma: no cover
             raise ValueError(
                 f"Could not get a valid response for '{model}' from Windy. "
                 "Check if the coordinates are set inside the model's domain."
             )
-    except requests.exceptions.RequestException as e:
+    except requests.exceptions.RequestException as e:  # pragma: no cover
         if model == "iconEu":
             raise ValueError(
                 "Could not get a valid response for Icon-EU from Windy. "
@@ -314,8 +314,8 @@ def fetch_wyoming_sounding(file):
         If the response indicates the output format is invalid.
     """
     response = requests.get(file)
-    if response.status_code != 200:
-        raise ImportError(f"Unable to load {file}.")  # pragma: no cover
+    if response.status_code != 200:  # pragma: no cover
+        raise ImportError(f"Unable to load {file}.")
     if len(re.findall("Can't get .+ Observations at", response.text)):
         raise ValueError(
             re.findall("Can't get .+ Observations at .+", response.text)[0]
@@ -329,7 +329,7 @@ def fetch_wyoming_sounding(file):
 
 
 @exponential_backoff(max_attempts=5, base_delay=2, max_delay=60)
-def fetch_noaaruc_sounding(file):
+def fetch_noaaruc_sounding(file):  # pragma: no cover
     """Fetches sounding data from a specified file using the NOAA RUC soundings.
 
     Parameters
@@ -347,10 +347,12 @@ def fetch_noaaruc_sounding(file):
     ImportError
         If unable to load the specified file or the file content is too short.
     """
-    response = requests.get(file)
-    if response.status_code != 200 or len(response.text) < 10:
-        raise ImportError("Unable to load " + file + ".")
-    return response
+    warnings.warn(
+        "The NOAA RUC soundings are deprecated since September 30th, 2024. "
+        "This method will be removed in version 1.8.0.",
+        DeprecationWarning,
+    )
+    return file
 
 
 @exponential_backoff(max_attempts=5, base_delay=2, max_delay=60)

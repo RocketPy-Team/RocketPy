@@ -135,7 +135,7 @@ class NoseCone(AeroSurface):
         self._base_radius = base_radius
         self._length = length
         if bluffness is not None:
-            if bluffness > 1 or bluffness < 0:
+            if bluffness > 1 or bluffness < 0:  # pragma: no cover
                 raise ValueError(
                     f"Bluffness ratio of {bluffness} is out of range. "
                     "It must be between 0 and 1."
@@ -286,7 +286,7 @@ class NoseCone(AeroSurface):
             self.y_nosecone = Function(
                 lambda x: self.base_radius * np.power(x / self.length, self.power)
             )
-        else:
+        else:  # pragma: no cover
             raise ValueError(
                 f"Nose Cone kind '{self.kind}' not found, "
                 + "please use one of the following Nose Cone kinds:"
@@ -317,12 +317,11 @@ class NoseCone(AeroSurface):
                 raise ValueError(
                     "Parameter 'bluffness' must be None or 0 when using a nose cone kind 'powerseries'."
                 )
-        if value is not None:
-            if value > 1 or value < 0:
-                raise ValueError(
-                    f"Bluffness ratio of {value} is out of range. "
-                    "It must be between 0 and 1."
-                )
+        if value is not None and not 0 <= value <= 1:  # pragma: no cover
+            raise ValueError(
+                f"Bluffness ratio of {value} is out of range. "
+                "It must be between 0 and 1."
+            )
         self._bluffness = value
         self.evaluate_nose_shape()
 
@@ -447,7 +446,7 @@ class NoseCone(AeroSurface):
         """
         # Calculate clalpha
         self.clalpha = Function(
-            lambda mach: 2 / self._beta(mach) * self.radius_ratio**2,
+            lambda mach: 2 * self.radius_ratio**2,
             "Mach",
             f"Lift coefficient derivative for {self.name}",
         )
@@ -486,15 +485,23 @@ class NoseCone(AeroSurface):
         self.cp = (self.cpx, self.cpy, self.cpz)
         return self.cp
 
-    def draw(self):
-        """Draw the fin shape along with some important information, including
-        the center line, the quarter line and the center of pressure position.
+    def draw(self, *, filename=None):
+        """Draw the nosecone shape along with some important information,
+        including the center of pressure position.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
         None
         """
-        self.plots.draw()
+        self.plots.draw(filename=filename)
 
     def info(self):
         """Prints and plots summarized information of the nose cone.
@@ -515,3 +522,32 @@ class NoseCone(AeroSurface):
         """
         self.prints.all()
         self.plots.all()
+
+    def to_dict(self, include_outputs=False):
+        data = {
+            "_length": self._length,
+            "_kind": self._kind,
+            "_base_radius": self._base_radius,
+            "_bluffness": self._bluffness,
+            "_rocket_radius": self._rocket_radius,
+            "_power": self._power,
+            "name": self.name,
+        }
+        if include_outputs:
+            data["cp"] = self.cp
+            data["clalpha"] = self.clalpha
+            data["cl"] = self.cl
+
+        return data
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            length=data["_length"],
+            kind=data["_kind"],
+            base_radius=data["_base_radius"],
+            bluffness=data["_bluffness"],
+            rocket_radius=data["_rocket_radius"],
+            power=data["_power"],
+            name=data["name"],
+        )

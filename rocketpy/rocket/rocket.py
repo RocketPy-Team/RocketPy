@@ -6,7 +6,7 @@ import numpy as np
 from rocketpy.control.controller import _Controller
 from rocketpy.mathutils.function import Function
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
-from rocketpy.motors.motor import EmptyMotor
+from rocketpy.motors.empty_motor import EmptyMotor
 from rocketpy.plots.rocket_plots import _RocketPlots
 from rocketpy.prints.rocket_prints import _RocketPrints
 from rocketpy.rocket.aero_surface import (
@@ -21,6 +21,7 @@ from rocketpy.rocket.aero_surface import (
 from rocketpy.rocket.aero_surface.fins.elliptical_fin import EllipticalFin
 from rocketpy.rocket.aero_surface.fins.fin import Fin
 from rocketpy.rocket.aero_surface.fins.trapezoidal_fin import TrapezoidalFin
+from rocketpy.rocket.aero_surface.fins.free_form_fins import FreeFormFins
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
@@ -91,6 +92,8 @@ class Rocket:
         Function of time expressing the total mass of the rocket,
         defined as the sum of the propellant mass and the rocket
         mass without propellant.
+    Rocket.structural_mass_ratio: float
+        Initial ratio between the dry mass and the total mass.
     Rocket.total_mass_flow_rate : Function
         Time derivative of rocket's total mass in kg/s as a function
         of time as obtained by the thrust source of the added motor.
@@ -278,7 +281,7 @@ class Rocket:
             self._csys = 1
         elif coordinate_system_orientation == "nose_to_tail":
             self._csys = -1
-        else:
+        else:  # pragma: no cover
             raise TypeError(
                 "Invalid coordinate system orientation. Please choose between "
                 + '"tail_to_nose" and "nose_to_tail".'
@@ -307,16 +310,11 @@ class Rocket:
         self.thrust_eccentricity_y = 0
         self.thrust_eccentricity_x = 0
 
-        # Parachute, Aerodynamic and Rail buttons data initialization
+        # Parachute, Aerodynamic, Buttons, Controllers, Sensor data initialization
         self.parachutes = []
-
-        # Controllers data initialization
         self._controllers = []
-
-        # AirBrakes data initialization
         self.air_brakes = []
-
-        # Aerodynamic data initialization
+        self.sensors = Components()
         self.aerodynamic_surfaces = Components()
         self.surfaces_cp_to_cdm = {}
         self.rail_buttons = Components()
@@ -368,6 +366,7 @@ class Rocket:
 
         # calculate dynamic inertial quantities
         self.evaluate_dry_mass()
+        self.evaluate_structural_mass_ratio()
         self.evaluate_total_mass()
         self.evaluate_center_of_dry_mass()
         self.evaluate_center_of_mass()
@@ -439,6 +438,28 @@ class Rocket:
         self.dry_mass = self.mass + self.motor.dry_mass
 
         return self.dry_mass
+
+    def evaluate_structural_mass_ratio(self):
+        """Calculates and returns the rocket's structural mass ratio.
+        It is defined as the ratio between of the dry mass
+        (Motor + Rocket) and the initial total mass
+        (Motor + Propellant + Rocket).
+
+        Returns
+        -------
+        self.structural_mass_ratio: float
+            Initial structural mass ratio dry mass (Rocket + Motor) (kg)
+            divided by total mass (Rocket + Motor + Propellant) (kg).
+        """
+        try:
+            self.structural_mass_ratio = self.dry_mass / (
+                self.dry_mass + self.motor.propellant_initial_mass
+            )
+        except ZeroDivisionError as e:
+            raise ValueError(
+                "Total rocket mass (dry + propellant) cannot be zero"
+            ) from e
+        return self.structural_mass_ratio
 
     def evaluate_center_of_mass(self):
         """Evaluates rocket center of mass position relative to user defined
@@ -570,10 +591,10 @@ class Rocket:
             surface center of pressure to the rocket's center of mass.
         """
         for surface, position in self.aerodynamic_surfaces:
-            self.evaluate_single_surface_cp_to_cdm(surface, position)
+            self.__evaluate_single_surface_cp_to_cdm(surface, position)
         return self.surfaces_cp_to_cdm
 
-    def evaluate_single_surface_cp_to_cdm(self, surface, position):
+    def __evaluate_single_surface_cp_to_cdm(self, surface, position):
         """Calculates the relative position of each aerodynamic surface
         center of pressure to the rocket's center of dry mass in Body Axes
         Coordinate System."""
@@ -973,6 +994,7 @@ class Rocket:
         self.nozzle_position = self.motor.nozzle_position * _ + self.motor_position
         self.total_mass_flow_rate = self.motor.total_mass_flow_rate
         self.evaluate_dry_mass()
+        self.evaluate_structural_mass_ratio()
         self.evaluate_total_mass()
         self.evaluate_center_of_dry_mass()
         self.evaluate_nozzle_to_cdm()
@@ -988,6 +1010,22 @@ class Rocket:
         self.evaluate_com_to_cdm_function()
         self.evaluate_nozzle_gyration_tensor()
 
+    def __add_single_surface(self, surface, position):
+        """Adds a single aerodynamic surface to the rocket. Makes checks for
+        rail buttons case, and position type.
+        """
+        position = (
+            Vector([0, 0, position])
+            if not isinstance(position, (Vector, tuple, list))
+            else Vector(position)
+        )
+        if isinstance(surface, RailButtons):
+            self.rail_buttons = Components()
+            self.rail_buttons.add(surface, position)
+        else:
+            self.aerodynamic_surfaces.add(surface, position)
+        self.__evaluate_single_surface_cp_to_cdm(surface, position)
+
     def add_surfaces(self, surfaces, positions):
         """Adds one or more aerodynamic surfaces to the rocket. The aerodynamic
         surface must be an instance of a class that inherits from the
@@ -995,10 +1033,10 @@ class Rocket:
 
         Parameters
         ----------
-        surfaces : list, AeroSurface, NoseCone, TrapezoidalFins, EllipticalFins, Tail
+        surfaces : list, AeroSurface, NoseCone, TrapezoidalFins, EllipticalFins, Tail, RailButtons
             Aerodynamic surface to be added to the rocket. Can be a list of
             AeroSurface if more than one surface is to be added.
-        positions : int, float, list
+        positions : int, float, list, tuple, Vector
             Position, in m, of the aerodynamic surface's center of pressure
             relative to the user defined rocket coordinate system.
             If a list is passed, it will correspond to the position of each item
@@ -1020,15 +1058,9 @@ class Rocket:
         """
         try:
             for surface, position in zip(surfaces, positions):
-                if not isinstance(position, Vector):
-                    position = Vector([0, 0, position])
-                self.aerodynamic_surfaces.add(surface, position)
-                self.evaluate_single_surface_cp_to_cdm(surface, position)
+                self.__add_single_surface(surface, position)
         except TypeError:
-            if not isinstance(positions, Vector):
-                positions = Vector([0, 0, positions])
-            self.aerodynamic_surfaces.add(surfaces, positions)
-            self.evaluate_single_surface_cp_to_cdm(surfaces, positions)
+            self.__add_single_surface(surfaces, positions)
 
         self.evaluate_center_of_pressure()
         self.evaluate_stability_margin()
@@ -1159,7 +1191,7 @@ class Rocket:
         self.add_surfaces(nose, position)
         return nose
 
-    def add_fins(self, *args, **kwargs):
+    def add_fins(self, *args, **kwargs):  # pragma: no cover
         """See Rocket.add_trapezoidal_fins for documentation.
         This method is set to be deprecated in version 1.0.0 and fully removed
         by version 2.0.0. Use Rocket.add_trapezoidal_fins instead. It keeps the
@@ -1193,7 +1225,7 @@ class Rocket:
         Parameters
         ----------
         n : int
-            Number of fins, from 2 to infinity.
+            Number of fins, must be greater than 2.
         span : int, float
             Fin span in meters.
         root_chord : int, float
@@ -1291,7 +1323,7 @@ class Rocket:
         Parameters
         ----------
         n : int
-            Number of fins, from 2 to infinity.
+            Number of fins, must be greater than 2.
         root_chord : int, float
             Fin root chord in meters.
         span : int, float
@@ -1525,66 +1557,83 @@ class Rocket:
         self.add_surfaces(fin, position)
         return fin
 
-    def add_generic_surface(
+    def add_free_form_fins(
         self,
-        generic_surface,
+        n,
+        shape_points,
         position,
-        angular_position=None,
+        cant_angle=0.0,
         radius=None,
+        airfoil=None,
+        name="Fins",
     ):
-        """Adds a generic surface to the rocket. A generic surface is used to
-        model any aerodynamic surface that does not fit the predefined classes
-        such as NoseCone, TrapezoidalFins, EllipticalFins, Tail, etc.
+        """Create a free form fin set, storing its parameters as part of the
+        aerodynamic_surfaces list. Its parameters are the axial position along
+        the rocket and its derivative of the coefficient of lift in respect to
+        angle of attack.
 
         Parameters
         ----------
-        generic_surface : GenericSurface, LinearGenericSurface
-            Generic surface object to be added to the rocket. Must be an
-            instance of the GenericSurface or LinearGenericSurface class.
-        position : int, float, tuple, list
-            Position of the application point of the forces and moments of the
-            surface. If a tuple or list is passed, it must be in the format
-            (x, y, z) where x, y, and z are defined in the rocket's user
-            defined coordinate system. If a single value is passed, it is
-            assumed to be along the z-axis (centerline) of the rocket's user
-            defined coordinate system and angular_position and radius must be
-            given.
-        angular_position : int, float, optional
-            Angular position of the surface along the rocket's user defined
-            coordinate system. By angular position, understand the angle,
-            measured from the y-axis, that the surface is located. Positive
-            values are defined as a positive rotation around the z-axis. Only
-            used if position is a single value. Default is None.
+        n : int
+            Number of fins, must be greater than 2.
+        shape_points : list
+            List of tuples (x, y) containing the coordinates of the fin's
+            geometry defining points. The point (0, 0) is the root leading edge.
+            Positive x is rearwards, positive y is upwards (span direction).
+            The shape will be interpolated between the points, in the order
+            they are given. The last point connects to the first point.
+        position : int, float
+            Fin set position relative to the rocket's coordinate system.
+            By fin set position, understand the point belonging to the root
+            chord which is highest in the rocket coordinate system (i.e.
+            the point closest to the nose cone tip).
+
+            See Also
+            --------
+            :ref:`positions`
+        cant_angle : int, float, optional
+            Fins cant angle with respect to the rocket centerline. Must
+            be given in degrees.
         radius : int, float, optional
-            Fuselage radius where the surface is located. Only used if the
-            position is a single value. If None, which is default, the rocket
-            radius will be used.
+            Reference fuselage radius where the fins are located. This is used
+            to calculate lift coefficient and to draw the rocket. If None,
+            which is default, the rocket radius will be used.
+        airfoil : tuple, optional
+            Default is null, in which case fins will be treated as flat plates.
+            Otherwise, if tuple, fins will be considered as airfoils. The
+            tuple's first item specifies the airfoil's lift coefficient
+            by angle of attack and must be either a .csv, .txt, ndarray
+            or callable. The .csv and .txt files can contain a single line
+            header and the first column must specify the angle of attack, while
+            the second column must specify the lift coefficient. The
+            ndarray should be as [(x0, y0), (x1, y1), (x2, y2), ...]
+            where x0 is the angle of attack and y0 is the lift coefficient.
+            If callable, it should take an angle of attack as input and
+            return the lift coefficient at that angle of attack.
+            The tuple's second item is the unit of the angle of attack,
+            accepting either "radians" or "degrees".
 
         Returns
         -------
-        generic_surface : GenericSurface
-            Generic surface object created.
+        fin_set : FreeFormFins
+            Fin set object created.
         """
-        radius = radius if radius is not None else self.radius
-        if isinstance(position, (tuple, list)):
-            position = Vector(position)
-        else:
-            position = Vector(
-                [
-                    radius * -math.sin(math.radians(angular_position)),
-                    radius * math.cos(math.radians(angular_position)),
-                    position,
-                ]
-            )
-            self.add_surfaces(generic_surface, position)
 
-        warnings.warn(
-            "Generic surfaces do not affect the center of pressure position, "
-            "static margin or stability margin calculations. This does not "
-            "affect the simulation accuracy.",
-            UserWarning,
+        # Modify radius if not given, use rocket radius, otherwise use given.
+        radius = radius if radius is not None else self.radius
+
+        fin_set = FreeFormFins(
+            n,
+            shape_points,
+            radius,
+            cant_angle,
+            airfoil,
+            name,
         )
-        return generic_surface
+
+        # Add fin set to the list of aerodynamic surfaces
+        self.add_surfaces(fin_set, position)
+        return fin_set
 
     def add_parachute(
         self, name, cd_s, trigger, sampling_rate=100, lag=0, noise=(0, 0, 0)
@@ -1659,6 +1708,34 @@ class Rocket:
         self.parachutes.append(parachute)
         return self.parachutes[-1]
 
+    def add_sensor(self, sensor, position):
+        """Adds a sensor to the rocket.
+
+        Parameters
+        ----------
+        sensor : Sensor
+            Sensor to be added to the rocket.
+        position : int, float, tuple, list, Vector
+            Position of the sensor. If a Vector, tuple or list is passed, it
+            must be in the format (x, y, z) where x, y, and z are defined in the
+            rocket's user defined coordinate system. If a single value is
+            passed, it is assumed to be along the z-axis (centerline) of the
+            rocket's user defined coordinate system and angular_position and
+            radius must be given.
+
+        Returns
+        -------
+        None
+        """
+        if isinstance(position, (float, int)):
+            position = (0, 0, position)
+        position = Vector(position)
+        self.sensors.add(sensor, position)
+        try:
+            sensor._attached_rockets[self] += 1
+        except KeyError:
+            sensor._attached_rockets[self] = 1
+
     def add_air_brakes(
         self,
         drag_coefficient_curve,
@@ -1726,6 +1803,11 @@ class Rocket:
             6. `interactive_objects` (list): A list containing the objects that
                the controller function can interact with. The objects are
                listed in the same order as they are provided in the
+               `interactive_objects`
+            7. `sensors` (list): A list of sensors that are attached to the
+                rocket. The most recent measurements of the sensors are provided
+                with the ``sensor.measurement`` attribute. The sensors are
+                listed in the same order as they are added to the rocket
                ``interactive_objects``
 
             This function will be called during the simulation at the specified
@@ -1885,7 +1967,7 @@ class Rocket:
 
         See Also
         --------
-        :ref:`rocketaxes`
+        :ref:`rocket_axes`
 
         Notes
         -----
@@ -1923,7 +2005,7 @@ class Rocket:
 
         See Also
         --------
-        :ref:`rocketaxes`
+        :ref:`rocket_axes`
         """
         self.cp_eccentricity_x = x
         self.cp_eccentricity_y = y
@@ -1953,13 +2035,13 @@ class Rocket:
 
         See Also
         --------
-        :ref:`rocketaxes`
+        :ref:`rocket_axes`
         """
         self.thrust_eccentricity_y = x
         self.thrust_eccentricity_x = y
         return self
 
-    def draw(self, vis_args=None):
+    def draw(self, vis_args=None, plane="xz", *, filename=None):
         """Draws the rocket in a matplotlib figure.
 
         Parameters
@@ -1983,8 +2065,16 @@ class Rocket:
 
             A full list of color names can be found at:
             https://matplotlib.org/stable/gallery/color/named_colors
+        plane : str, optional
+            Plane in which the rocket will be drawn. Default is 'xz'. Other
+            options is 'yz'. Used only for sensors representation.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
         """
-        self.plots.draw(vis_args)
+        self.plots.draw(vis_args, plane, filename=filename)
 
     def info(self):
         """Prints out a summary of the data and graphs available about
@@ -2005,3 +2095,116 @@ class Rocket:
         """
         self.info()
         self.plots.all()
+
+    def to_dict(self, include_outputs=False):
+        rocket_dict = {
+            "radius": self.radius,
+            "mass": self.mass,
+            "I_11_without_motor": self.I_11_without_motor,
+            "I_22_without_motor": self.I_22_without_motor,
+            "I_33_without_motor": self.I_33_without_motor,
+            "I_12_without_motor": self.I_12_without_motor,
+            "I_13_without_motor": self.I_13_without_motor,
+            "I_23_without_motor": self.I_23_without_motor,
+            "power_off_drag": self.power_off_drag,
+            "power_on_drag": self.power_on_drag,
+            "center_of_mass_without_motor": self.center_of_mass_without_motor,
+            "coordinate_system_orientation": self.coordinate_system_orientation,
+            "motor": self.motor,
+            "motor_position": self.motor_position,
+            "aerodynamic_surfaces": self.aerodynamic_surfaces,
+            "rail_buttons": self.rail_buttons,
+            "parachutes": self.parachutes,
+            "air_brakes": self.air_brakes,
+            "_controllers": self._controllers,
+            "sensors": self.sensors,
+        }
+
+        if include_outputs:
+            rocket_dict["area"] = self.area
+            rocket_dict["center_of_dry_mass_position"] = (
+                self.center_of_dry_mass_position
+            )
+            rocket_dict["center_of_mass_without_motor"] = (
+                self.center_of_mass_without_motor
+            )
+            rocket_dict["motor_center_of_mass_position"] = (
+                self.motor_center_of_mass_position
+            )
+            rocket_dict["motor_center_of_dry_mass_position"] = (
+                self.motor_center_of_dry_mass_position
+            )
+            rocket_dict["center_of_mass"] = self.center_of_mass
+            rocket_dict["reduced_mass"] = self.reduced_mass
+            rocket_dict["total_mass"] = self.total_mass
+            rocket_dict["total_mass_flow_rate"] = self.total_mass_flow_rate
+            rocket_dict["thrust_to_weight"] = self.thrust_to_weight
+            rocket_dict["cp_eccentricity_x"] = self.cp_eccentricity_x
+            rocket_dict["cp_eccentricity_y"] = self.cp_eccentricity_y
+            rocket_dict["thrust_eccentricity_x"] = self.thrust_eccentricity_x
+            rocket_dict["thrust_eccentricity_y"] = self.thrust_eccentricity_y
+            rocket_dict["cp_position"] = self.cp_position
+            rocket_dict["stability_margin"] = self.stability_margin
+            rocket_dict["static_margin"] = self.static_margin
+            rocket_dict["nozzle_position"] = self.nozzle_position
+            rocket_dict["nozzle_to_cdm"] = self.nozzle_to_cdm
+            rocket_dict["nozzle_gyration_tensor"] = self.nozzle_gyration_tensor
+            rocket_dict["center_of_propellant_position"] = (
+                self.center_of_propellant_position
+            )
+
+        return rocket_dict
+
+    @classmethod
+    def from_dict(cls, data):
+        rocket = cls(
+            radius=data["radius"],
+            mass=data["mass"],
+            inertia=(
+                data["I_11_without_motor"],
+                data["I_22_without_motor"],
+                data["I_33_without_motor"],
+                data["I_12_without_motor"],
+                data["I_13_without_motor"],
+                data["I_23_without_motor"],
+            ),
+            power_off_drag=data["power_off_drag"],
+            power_on_drag=data["power_on_drag"],
+            center_of_mass_without_motor=data["center_of_mass_without_motor"],
+            coordinate_system_orientation=data["coordinate_system_orientation"],
+        )
+
+        if (motor := data["motor"]) is not None:
+            rocket.add_motor(
+                motor=motor,
+                position=data["motor_position"],
+            )
+
+        for surface, position in data["aerodynamic_surfaces"]:
+            rocket.add_surfaces(surfaces=surface, positions=position)
+
+        for button, position in data["rail_buttons"]:
+            rocket.set_rail_buttons(
+                upper_button_position=position[2] + button.buttons_distance,
+                lower_button_position=position[2],
+                angular_position=button.angular_position,
+                radius=button.rocket_radius,
+            )
+
+        for parachute in data["parachutes"]:
+            rocket.parachutes.append(parachute)
+
+        for air_brakes in data["air_brakes"]:
+            rocket.add_air_brakes(
+                drag_coefficient_curve=air_brakes["drag_coefficient_curve"],
+                controller_function=air_brakes["controller_function"],
+                sampling_rate=air_brakes["sampling_rate"],
+                clamp=air_brakes["clamp"],
+                reference_area=air_brakes["reference_area"],
+                initial_observed_variables=air_brakes["initial_observed_variables"],
+                override_rocket_drag=air_brakes["override_rocket_drag"],
+                name=air_brakes["name"],
+                controller_name=air_brakes["controller_name"],
+            )
+
+        return rocket

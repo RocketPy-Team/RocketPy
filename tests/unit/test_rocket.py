@@ -5,13 +5,12 @@ import pytest
 
 from rocketpy import Function, NoseCone, Rocket, SolidMotor
 from rocketpy.mathutils.vector_matrix import Vector
-from rocketpy.motors.motor import EmptyMotor, Motor
+from rocketpy.motors.empty_motor import EmptyMotor
+from rocketpy.motors.motor import Motor
 
 
 @patch("matplotlib.pyplot.show")
-def test_elliptical_fins(
-    mock_show, calisto_robust, calisto_trapezoidal_fins
-):  # pylint: disable=unused-argument
+def test_elliptical_fins(mock_show, calisto_robust, calisto_trapezoidal_fins):  # pylint: disable=unused-argument
     test_rocket = calisto_robust
     calisto_robust.aerodynamic_surfaces.remove(calisto_trapezoidal_fins)
     test_rocket.add_elliptical_fins(4, span=0.100, root_chord=0.120, position=-1.168)
@@ -298,7 +297,7 @@ def test_add_motor_coordinates(
         Expected position of the center of propellant after addition.
     """
     example_motor = SolidMotor(
-        thrust_source="data/motors/Cesaroni_M1670.eng",
+        thrust_source="data/motors/cesaroni/Cesaroni_M1670.eng",
         burn_time=3.9,
         dry_mass=0,
         dry_inertia=(0, 0, 0),
@@ -602,7 +601,7 @@ def test_coordinate_system_orientation(
     motor_nozzle_to_combustion_chamber = cesaroni_m1670
 
     motor_combustion_chamber_to_nozzle = SolidMotor(
-        thrust_source="data/motors/Cesaroni_M1670.eng",
+        thrust_source="data/motors/cesaroni/Cesaroni_M1670.eng",
         burn_time=3.9,
         dry_mass=1.815,
         dry_inertia=(0.125, 0.125, 0.002),
@@ -625,8 +624,8 @@ def test_coordinate_system_orientation(
         radius=0.0635,
         mass=14.426,
         inertia=(6.321, 6.321, 0.034),
-        power_off_drag="data/calisto/powerOffDragCurve.csv",
-        power_on_drag="data/calisto/powerOnDragCurve.csv",
+        power_off_drag="data/rockets/calisto/powerOffDragCurve.csv",
+        power_on_drag="data/rockets/calisto/powerOnDragCurve.csv",
         center_of_mass_without_motor=0,
         coordinate_system_orientation="tail_to_nose",
     )
@@ -642,8 +641,8 @@ def test_coordinate_system_orientation(
         radius=0.0635,
         mass=14.426,
         inertia=(6.321, 6.321, 0.034),
-        power_off_drag="data/calisto/powerOffDragCurve.csv",
-        power_on_drag="data/calisto/powerOnDragCurve.csv",
+        power_off_drag="data/rockets/calisto/powerOffDragCurve.csv",
+        power_on_drag="data/rockets/calisto/powerOnDragCurve.csv",
         center_of_mass_without_motor=0,
         coordinate_system_orientation="nose_to_tail",
     )

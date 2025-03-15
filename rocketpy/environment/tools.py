@@ -1,4 +1,4 @@
-""""This module contains auxiliary functions for helping with the Environment
+"""This module contains auxiliary functions for helping with the Environment
 classes operations. The functions mainly deal with wind calculations and
 interpolation of data from netCDF4 datasets. As this is a recent addition to
 the library (introduced in version 1.5.0), some functions may be modified in the
@@ -442,9 +442,7 @@ def get_interval_date_from_time_array(time_array, units=None):
 # Geodesic conversions functions
 
 
-def geodesic_to_utm(
-    lat, lon, semi_major_axis=6378137.0, flattening=1 / 298.257223563
-):  # pylint: disable=too-many-locals,too-many-statements
+def geodesic_to_utm(lat, lon, semi_major_axis=6378137.0, flattening=1 / 298.257223563):  # pylint: disable=too-many-locals,too-many-statements
     # NOTE: already documented in the Environment class.
     # TODO: deprecated the static method from the environment class, use only this one.
 
@@ -532,7 +530,7 @@ def utm_to_geodesic(  # pylint: disable=too-many-locals,too-many-statements
     x, y, utm_zone, hemis, semi_major_axis=6378137.0, flattening=1 / 298.257223563
 ):
     # NOTE: already documented in the Environment class.
-    # TODO: deprecated the static method from the environment class, use only this one.
+    # TODO: deprecate the static method from the environment class, use only this one.
 
     if hemis == "N":
         y = y + 10000000
@@ -590,7 +588,7 @@ def utm_to_geodesic(  # pylint: disable=too-many-locals,too-many-statements
     return lat, lon
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     import doctest
 
     results = doctest.testmod()

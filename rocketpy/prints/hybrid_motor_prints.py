@@ -39,10 +39,8 @@ class _HybridMotorPrints:
         print("Nozzle Details")
         print(f"Outlet Radius: {self.hybrid_motor.nozzle_radius} m")
         print(f"Throat Radius: {self.hybrid_motor.solid.throat_radius} m")
-        print(f"Outlet Area: {np.pi * self.hybrid_motor.nozzle_radius ** 2:.6f} m²")
-        print(
-            f"Throat Area: {np.pi * self.hybrid_motor.solid.throat_radius ** 2:.6f} m²"
-        )
+        print(f"Outlet Area: {np.pi * self.hybrid_motor.nozzle_radius**2:.6f} m²")
+        print(f"Throat Area: {np.pi * self.hybrid_motor.solid.throat_radius**2:.6f} m²")
         print(f"Position: {self.hybrid_motor.nozzle_position} m\n")
 
     def grain_details(self):
@@ -77,6 +75,7 @@ class _HybridMotorPrints:
         print(
             f"Total Propellant Mass: {self.hybrid_motor.propellant_initial_mass:.3f} kg"
         )
+        print(f"Structural Mass Ratio: {self.hybrid_motor.structural_mass_ratio:.3f}")
         avg = self.hybrid_motor.exhaust_velocity.average(*self.hybrid_motor.burn_time)
         print(f"Average Propellant Exhaust Velocity: {avg:.3f} m/s")
         print(f"Average Thrust: {self.hybrid_motor.average_thrust:.3f} N")

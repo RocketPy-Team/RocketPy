@@ -1,5 +1,5 @@
 # pylint: disable=too-many-lines
-""" The mathutils/function.py is a rocketpy module totally dedicated to function
+"""The mathutils/function.py is a rocketpy module totally dedicated to function
 operations, including interpolation, extrapolation, integration, differentiation
 and more. This is a core class of our package, and should be maintained
 carefully as it may impact all the rest of the project.
@@ -16,6 +16,15 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import integrate, linalg, optimize
+from scipy.interpolate import (
+    LinearNDInterpolator,
+    NearestNDInterpolator,
+    RBFInterpolator,
+)
+
+from rocketpy.tools import from_hex_decode, to_hex_encode
+
+from ..plots.plot_helpers import show_or_save_plot
 
 # Numpy 1.x compatibility,
 # TODO: remove these lines when all dependencies support numpy>=2.0.0
@@ -32,6 +41,7 @@ INTERPOLATION_TYPES = {
     "akima": 2,
     "spline": 3,
     "shepard": 4,
+    "rbf": 5,
 }
 EXTRAPOLATION_TYPES = {"zero": 0, "natural": 1, "constant": 2}
 
@@ -86,14 +96,20 @@ class Function:  # pylint: disable=too-many-public-methods
         interpolation : string, optional
             Interpolation method to be used if source type is ndarray.
             For 1-D functions, linear, polynomial, akima and spline are
-            supported. For N-D functions, only shepard is supported.
-            Default for 1-D functions is spline.
+            supported. For N-D functions, linear, shepard and rbf are
+            supported.
+            Default for 1-D functions is spline and for N-D functions is
+            shepard.
         extrapolation : string, optional
             Extrapolation method to be used if source type is ndarray.
             Options are 'natural', which keeps interpolation, 'constant',
-            which returns the value of the function at the edge of the interval,
-            and 'zero', which returns zero for all points outside of source
-            range. Default for 1-D functions is constant.
+            which returns the value of the function at the nearest edge of
+            the domain, and 'zero', which returns zero for all points outside
+            of source range.
+            Multidimensional 'natural' extrapolation for 'linear' interpolation
+            use a 'rbf' algorithm for smoother results.
+            Default for 1-D functions is constant and for N-D functions
+            is natural.
         title : string, optional
             Title to be displayed in the plots' figures. If none, the title will
             be constructed using the inputs and outputs arguments in the form
@@ -224,6 +240,8 @@ class Function:  # pylint: disable=too-many-public-methods
         else:
             # Evaluate dimension
             self.__dom_dim__ = source.shape[1] - 1
+            self._domain = source[:, :-1]
+            self._image = source[:, -1]
 
             # set x and y. If Function is 2D, also set z
             if self.__dom_dim__ == 1:
@@ -277,8 +295,10 @@ class Function:  # pylint: disable=too-many-public-methods
         method : string, optional
             Interpolation method to be used if source type is ndarray.
             For 1-D functions, linear, polynomial, akima and spline is
-            supported. For N-D functions, only shepard is supported.
-            Default is 'spline'.
+            supported. For N-D functions, linear, shepard and rbf are
+            supported.
+            Default for 1-D functions is spline and for N-D functions is
+            shepard.
 
         Returns
         -------
@@ -314,9 +334,13 @@ class Function:  # pylint: disable=too-many-public-methods
         extrapolation : string, optional
             Extrapolation method to be used if source type is ndarray.
             Options are 'natural', which keeps interpolation, 'constant',
-            which returns the value of the function at the edge of the interval,
-            and 'zero', which returns zero for all points outside of source
-            range. Default is 'constant'.
+            which returns the value of the function at the nearest edge of
+            the domain, and 'zero', which returns zero for all points outside
+            of source range.
+            Multidimensional 'natural' extrapolation for 'linear' interpolation
+            use a 'rbf' algorithm for smoother results.
+            Default for 1-D functions is constant and for N-D functions
+            is natural.
 
         Returns
         -------
@@ -330,39 +354,38 @@ class Function:  # pylint: disable=too-many-public-methods
 
     def __set_interpolation_func(self):  # pylint: disable=too-many-statements
         """Defines interpolation function used by the Function. Each
-        interpolation method has its own function with exception of shepard,
-        which has its interpolation/extrapolation function defined in
-        ``Function.__interpolate_shepard__``. The function is stored in
-        the attribute _interpolation_func."""
+        interpolation method has its own function`.
+        The function is stored in the attribute _interpolation_func."""
         interpolation = INTERPOLATION_TYPES[self.__interpolation__]
         if interpolation == 0:  # linear
+            if self.__dom_dim__ == 1:
 
-            def linear_interpolation(
-                x, x_min, x_max, x_data, y_data, coeffs
-            ):  # pylint: disable=unused-argument
-                x_interval = bisect_left(x_data, x)
-                x_left = x_data[x_interval - 1]
-                y_left = y_data[x_interval - 1]
-                dx = float(x_data[x_interval] - x_left)
-                dy = float(y_data[x_interval] - y_left)
-                return (x - x_left) * (dy / dx) + y_left
+                def linear_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
+                    x_interval = bisect_left(x_data, x)
+                    x_left = x_data[x_interval - 1]
+                    y_left = y_data[x_interval - 1]
+                    dx = float(x_data[x_interval] - x_left)
+                    dy = float(y_data[x_interval] - y_left)
+                    return (x - x_left) * (dy / dx) + y_left
+
+            else:
+                interpolator = LinearNDInterpolator(self._domain, self._image)
+
+                def linear_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
+                    return interpolator(x)
 
             self._interpolation_func = linear_interpolation
 
         elif interpolation == 1:  # polynomial
 
-            def polynomial_interpolation(
-                x, x_min, x_max, x_data, y_data, coeffs
-            ):  # pylint: disable=unused-argument
+            def polynomial_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                 return np.sum(coeffs * x ** np.arange(len(coeffs)))
 
             self._interpolation_func = polynomial_interpolation
 
         elif interpolation == 2:  # akima
 
-            def akima_interpolation(
-                x, x_min, x_max, x_data, y_data, coeffs
-            ):  # pylint: disable=unused-argument
+            def akima_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                 x_interval = bisect_left(x_data, x)
                 x_interval = x_interval if x_interval != 0 else 1
                 a = coeffs[4 * x_interval - 4 : 4 * x_interval]
@@ -372,9 +395,7 @@ class Function:  # pylint: disable=too-many-public-methods
 
         elif interpolation == 3:  # spline
 
-            def spline_interpolation(
-                x, x_min, x_max, x_data, y_data, coeffs
-            ):  # pylint: disable=unused-argument
+            def spline_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                 x_interval = bisect_left(x_data, x)
                 x_interval = max(x_interval, 1)
                 a = coeffs[:, x_interval - 1]
@@ -383,8 +404,37 @@ class Function:  # pylint: disable=too-many-public-methods
 
             self._interpolation_func = spline_interpolation
 
-        elif interpolation == 4:  # shepard does not use interpolation function
-            self._interpolation_func = None
+        elif interpolation == 4:  # shepard
+            # pylint: disable=unused-argument
+            def shepard_interpolation(x, x_min, x_max, x_data, y_data, _):
+                arg_qty, arg_dim = x.shape
+                result = np.empty(arg_qty)
+                x = x.reshape((arg_qty, 1, arg_dim))
+                sub_matrix = x_data - x
+                distances_squared = np.sum(sub_matrix**2, axis=2)
+
+                # Remove zero distances from further calculations
+                zero_distances = np.where(distances_squared == 0)
+                valid_indexes = np.ones(arg_qty, dtype=bool)
+                valid_indexes[zero_distances[0]] = False
+
+                weights = distances_squared[valid_indexes] ** (-1.5)
+                numerator_sum = np.sum(y_data * weights, axis=1)
+                denominator_sum = np.sum(weights, axis=1)
+                result[valid_indexes] = numerator_sum / denominator_sum
+                result[~valid_indexes] = y_data[zero_distances[1]]
+
+                return result
+
+            self._interpolation_func = shepard_interpolation
+
+        elif interpolation == 5:  # RBF
+            interpolator = RBFInterpolator(self._domain, self._image, neighbors=100)
+
+            def rbf_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
+                return interpolator(x)
+
+            self._interpolation_func = rbf_interpolation
 
     def __set_extrapolation_func(self):  # pylint: disable=too-many-statements
         """Defines extrapolation function used by the Function. Each
@@ -393,50 +443,46 @@ class Function:  # pylint: disable=too-many-public-methods
         interpolation = INTERPOLATION_TYPES[self.__interpolation__]
         extrapolation = EXTRAPOLATION_TYPES[self.__extrapolation__]
 
-        if interpolation == 4:  # shepard does not use extrapolation function
-            self._extrapolation_func = None
+        if extrapolation == 0:  # zero
 
-        elif extrapolation == 0:  # zero
-
-            def zero_extrapolation(
-                x, x_min, x_max, x_data, y_data, coeffs
-            ):  # pylint: disable=unused-argument
+            def zero_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                 return 0
 
             self._extrapolation_func = zero_extrapolation
         elif extrapolation == 1:  # natural
             if interpolation == 0:  # linear
+                if self.__dom_dim__ == 1:
 
-                def natural_extrapolation(
-                    x, x_min, x_max, x_data, y_data, coeffs
-                ):  # pylint: disable=unused-argument
-                    x_interval = 1 if x < x_min else -1
-                    x_left = x_data[x_interval - 1]
-                    y_left = y_data[x_interval - 1]
-                    dx = float(x_data[x_interval] - x_left)
-                    dy = float(y_data[x_interval] - y_left)
-                    return (x - x_left) * (dy / dx) + y_left
+                    def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
+                        x_interval = 1 if x < x_min else -1
+                        x_left = x_data[x_interval - 1]
+                        y_left = y_data[x_interval - 1]
+                        dx = float(x_data[x_interval] - x_left)
+                        dy = float(y_data[x_interval] - y_left)
+                        return (x - x_left) * (dy / dx) + y_left
+
+                else:
+                    interpolator = RBFInterpolator(
+                        self._domain, self._image, neighbors=100
+                    )
+
+                    def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
+                        return interpolator(x)
 
             elif interpolation == 1:  # polynomial
 
-                def natural_extrapolation(
-                    x, x_min, x_max, x_data, y_data, coeffs
-                ):  # pylint: disable=unused-argument
+                def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                     return np.sum(coeffs * x ** np.arange(len(coeffs)))
 
             elif interpolation == 2:  # akima
 
-                def natural_extrapolation(
-                    x, x_min, x_max, x_data, y_data, coeffs
-                ):  # pylint: disable=unused-argument
+                def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                     a = coeffs[:4] if x < x_min else coeffs[-4:]
                     return a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
 
             elif interpolation == 3:  # spline
 
-                def natural_extrapolation(
-                    x, x_min, x_max, x_data, y_data, coeffs
-                ):  # pylint: disable=unused-argument
+                def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                     if x < x_min:
                         a = coeffs[:, 0]
                         x = x - x_data[0]
@@ -445,13 +491,47 @@ class Function:  # pylint: disable=too-many-public-methods
                         x = x - x_data[-2]
                     return a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
 
+            elif interpolation == 4:  # shepard
+                # pylint: disable=unused-argument
+                def natural_extrapolation(x, x_min, x_max, x_data, y_data, _):
+                    arg_qty, arg_dim = x.shape
+                    result = np.empty(arg_qty)
+                    x = x.reshape((arg_qty, 1, arg_dim))
+                    sub_matrix = x_data - x
+                    distances_squared = np.sum(sub_matrix**2, axis=2)
+
+                    # Remove zero distances from further calculations
+                    zero_distances = np.where(distances_squared == 0)
+                    valid_indexes = np.ones(arg_qty, dtype=bool)
+                    valid_indexes[zero_distances[0]] = False
+
+                    weights = distances_squared[valid_indexes] ** (-1.5)
+                    numerator_sum = np.sum(y_data * weights, axis=1)
+                    denominator_sum = np.sum(weights, axis=1)
+                    result[valid_indexes] = numerator_sum / denominator_sum
+                    result[~valid_indexes] = y_data[zero_distances[1]]
+
+                    return result
+
+            elif interpolation == 5:  # RBF
+                interpolator = RBFInterpolator(self._domain, self._image, neighbors=100)
+
+                def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
+                    return interpolator(x)
+
             self._extrapolation_func = natural_extrapolation
         elif extrapolation == 2:  # constant
+            if self.__dom_dim__ == 1:
 
-            def constant_extrapolation(
-                x, x_min, x_max, x_data, y_data, coeffs
-            ):  # pylint: disable=unused-argument
-                return y_data[0] if x < x_min else y_data[-1]
+                def constant_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
+                    return y_data[0] if x < x_min else y_data[-1]
+
+            else:
+                extrapolator = NearestNDInterpolator(self._domain, self._image)
+
+                def constant_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):
+                    # pylint: disable=unused-argument
+                    return extrapolator(x)
 
             self._extrapolation_func = constant_extrapolation
 
@@ -496,10 +576,41 @@ class Function:  # pylint: disable=too-many-public-methods
         return y
 
     def __get_value_opt_nd(self, *args):
-        """Evaluate the Function at a single point (x, y, z). This method is
-        used when the Function is N-D."""
-        # always use shepard for N-D functions
-        return self.__interpolate_shepard__(args)
+        """Evaluate the Function in a vectorized fashion for N-D domains.
+
+        Parameters
+        ----------
+        args : tuple
+            Values where the Function is to be evaluated.
+
+        Returns
+        -------
+        result : scalar, ndarray
+            Value of the Function at the specified points.
+        """
+        args = np.column_stack(args)
+        arg_qty = len(args)
+        result = np.empty(arg_qty)
+
+        min_domain = self._domain.T.min(axis=1)
+        max_domain = self._domain.T.max(axis=1)
+
+        lower, upper = args < min_domain, args > max_domain
+        extrap = np.logical_or(lower.any(axis=1), upper.any(axis=1))
+
+        if extrap.any():
+            result[extrap] = self._extrapolation_func(
+                args[extrap], min_domain, max_domain, self._domain, self._image, None
+            )
+        if (~extrap).any():
+            result[~extrap] = self._interpolation_func(
+                args[~extrap], min_domain, max_domain, self._domain, self._image, None
+            )
+
+        if arg_qty == 1:
+            return float(result[0])
+
+        return result
 
     def set_discrete(
         self,
@@ -530,15 +641,18 @@ class Function:  # pylint: disable=too-many-public-methods
             Number of samples to be taken from inside range. Default is 200.
         interpolation : string
             Interpolation method to be used if source type is ndarray.
-            For 1-D functions, linear, polynomial, akima and spline is
-            supported. For N-D functions, only shepard is supported.
-            Default is 'spline'.
+            For 1-D functions, linear, polynomial, akima and spline are
+            supported. For N-D functions, linear, shepard and rbf are
+            supported.
+            Default for 1-D functions is spline and for N-D functions is
+            shepard.
         extrapolation : string, optional
             Extrapolation method to be used if source type is ndarray.
             Options are 'natural', which keeps interpolation, 'constant',
-            which returns the value of the function at the edge of the interval,
-            and 'zero', which returns zero for all points outside of source
-            range. Default is 'constant'.
+            which returns the value of the function at the nearest edge of
+            the domain, and 'zero', which returns zero for all points outside
+            of source range. Default for 1-D functions is constant and for
+            N-D functions is natural.
         one_by_one : boolean, optional
             If True, evaluate Function in each sample point separately. If
             False, evaluates Function in vectorized form. Default is True.
@@ -564,9 +678,9 @@ class Function:  # pylint: disable=too-many-public-methods
         if func.__dom_dim__ == 1:
             xs = np.linspace(lower, upper, samples)
             ys = func.get_value(xs.tolist()) if one_by_one else func.get_value(xs)
-            func.set_source(np.concatenate(([xs], [ys])).transpose())
-            func.set_interpolation(interpolation)
-            func.set_extrapolation(extrapolation)
+            func.__interpolation__ = interpolation
+            func.__extrapolation__ = extrapolation
+            func.set_source(np.column_stack((xs, ys)))
         elif func.__dom_dim__ == 2:
             lower = 2 * [lower] if isinstance(lower, NUMERICAL_TYPES) else lower
             upper = 2 * [upper] if isinstance(upper, NUMERICAL_TYPES) else upper
@@ -865,13 +979,13 @@ class Function:  # pylint: disable=too-many-public-methods
         ...    [(0, 0, 0), (1, 1, 1), (1, 2, 2), (2, 4, 8), (3, 9, 27)]
         ... )
         >>> f4.get_value(1, 1)
-        np.float64(1.0)
+        1.0
         >>> f4.get_value(2, 4)
-        np.float64(8.0)
+        8.0
         >>> abs(f4.get_value(1, 1.5) - 1.5) < 1e-2  # the interpolation is not perfect
-        np.True_
+        True
         >>> f4.get_value(3, 9)
-        np.float64(27.0)
+        27.0
         """
         if len(args) != self.__dom_dim__:
             raise ValueError(
@@ -898,7 +1012,7 @@ class Function:  # pylint: disable=too-many-public-methods
                 if all(isinstance(arg, Iterable) for arg in args):
                     return [self.source(*arg) for arg in zip(*args)]
 
-        elif self.__dom_dim__ > 1:  # deals with nd functions and shepard interp
+        elif self.__dom_dim__ > 1:  # deals with nd functions
             return self.get_value_opt(*args)
 
         # Returns value for other interpolation type
@@ -1233,7 +1347,7 @@ class Function:  # pylint: disable=too-many-public-methods
         )
 
     # Define all presentation methods
-    def __call__(self, *args):
+    def __call__(self, *args, filename=None):
         """Plot the Function if no argument is given. If an
         argument is given, return the value of the function at the desired
         point.
@@ -1247,13 +1361,18 @@ class Function:  # pylint: disable=too-many-public-methods
             evaluated at all points in the list and a list of floats will be
             returned. If the function is N-D, N arguments must be given, each
             one being an scalar or list.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
         ans : None, scalar, list
         """
         if len(args) == 0:
-            return self.plot()
+            return self.plot(filename=filename)
         else:
             return self.get_value(*args)
 
@@ -1314,8 +1433,11 @@ class Function:  # pylint: disable=too-many-public-methods
         Function.plot_2d if Function is 2-Dimensional and forward arguments
         and key-word arguments."""
         if isinstance(self, list):
+            # Extract filename from kwargs
+            filename = kwargs.get("filename", None)
+
             # Compare multiple plots
-            Function.compare_plots(self)
+            Function.compare_plots(self, filename)
         else:
             if self.__dom_dim__ == 1:
                 self.plot_1d(*args, **kwargs)
@@ -1324,7 +1446,7 @@ class Function:  # pylint: disable=too-many-public-methods
             else:
                 print("Error: Only functions with 1D or 2D domains can be plotted.")
 
-    def plot1D(self, *args, **kwargs):
+    def plot1D(self, *args, **kwargs):  # pragma: no cover
         """Deprecated method, use Function.plot_1d instead."""
         warnings.warn(
             "The `Function.plot1D` method is set to be deprecated and fully "
@@ -1343,6 +1465,8 @@ class Function:  # pylint: disable=too-many-public-methods
         force_points=False,
         return_object=False,
         equal_axis=False,
+        *,
+        filename=None,
     ):
         """Plot 1-Dimensional Function, from a lower limit to an upper limit,
         by sampling the Function several times in the interval. The title of
@@ -1373,6 +1497,11 @@ class Function:  # pylint: disable=too-many-public-methods
             Setting force_points to True will plot all points, as a scatter, in
             which the Function was evaluated in the dataset. Default value is
             False.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -1413,11 +1542,11 @@ class Function:  # pylint: disable=too-many-public-methods
         plt.title(self.title)
         plt.xlabel(self.__inputs__[0].title())
         plt.ylabel(self.__outputs__[0].title())
-        plt.show()
+        show_or_save_plot(filename)
         if return_object:
             return fig, ax
 
-    def plot2D(self, *args, **kwargs):
+    def plot2D(self, *args, **kwargs):  # pragma: no cover
         """Deprecated method, use Function.plot_2d instead."""
         warnings.warn(
             "The `Function.plot2D` method is set to be deprecated and fully "
@@ -1436,6 +1565,8 @@ class Function:  # pylint: disable=too-many-public-methods
         disp_type="surface",
         alpha=0.6,
         cmap="viridis",
+        *,
+        filename=None,
     ):
         """Plot 2-Dimensional Function, from a lower limit to an upper limit,
         by sampling the Function several times in the interval. The title of
@@ -1475,6 +1606,11 @@ class Function:  # pylint: disable=too-many-public-methods
         cmap : string, optional
             Colormap of plotted graph, which can be any of the color maps
             available in matplotlib. Default value is viridis.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -1547,7 +1683,7 @@ class Function:  # pylint: disable=too-many-public-methods
         axes.set_xlabel(self.__inputs__[0].title())
         axes.set_ylabel(self.__inputs__[1].title())
         axes.set_zlabel(self.__outputs__[0].title())
-        plt.show()
+        show_or_save_plot(filename)
 
     @staticmethod
     def compare_plots(  # pylint: disable=too-many-statements
@@ -1562,6 +1698,8 @@ class Function:  # pylint: disable=too-many-public-methods
         force_points=False,
         return_object=False,
         show=True,
+        *,
+        filename=None,
     ):
         """Plots N 1-Dimensional Functions in the same plot, from a lower
         limit to an upper limit, by sampling the Functions several times in
@@ -1606,6 +1744,11 @@ class Function:  # pylint: disable=too-many-public-methods
             False.
         show : bool, optional
             If True, shows the plot. Default value is True.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -1681,7 +1824,7 @@ class Function:  # pylint: disable=too-many-public-methods
         plt.ylabel(ylabel)
 
         if show:
-            plt.show()
+            show_or_save_plot(filename)
 
         if return_object:
             return fig, ax
@@ -1764,47 +1907,6 @@ class Function:  # pylint: disable=too-many-public-methods
             result = np.array([yl, yr, dl, dr]).T
             coeffs[4 * i : 4 * i + 4] = np.linalg.solve(matrix, result)
         self.__akima_coefficients__ = coeffs
-
-    def __interpolate_shepard__(self, args):
-        """Calculates the shepard interpolation from the given arguments.
-        The shepard interpolation is computed by a inverse distance weighting
-        in a vectorized manner.
-
-        Parameters
-        ----------
-        args : scalar, list
-            Values where the Function is to be evaluated.
-
-        Returns
-        -------
-        result : scalar, list
-            The result of the interpolation.
-        """
-        x_data = self.source[:, 0:-1]  # Support for N-Dimensions
-        y_data = self.source[:, -1]
-
-        arg_stack = np.column_stack(args)
-        arg_qty, arg_dim = arg_stack.shape
-        result = np.zeros(arg_qty)
-
-        # Reshape to vectorize calculations
-        x = arg_stack.reshape(arg_qty, 1, arg_dim)
-
-        sub_matrix = x_data - x
-        distances_squared = np.sum(sub_matrix**2, axis=2)
-
-        # Remove zero distances from further calculations
-        zero_distances = np.where(distances_squared == 0)
-        valid_indexes = np.ones(arg_qty, dtype=bool)
-        valid_indexes[zero_distances[0]] = False
-
-        weights = distances_squared[valid_indexes] ** (-1.5)
-        numerator_sum = np.sum(y_data * weights, axis=1)
-        denominator_sum = np.sum(weights, axis=1)
-        result[valid_indexes] = numerator_sum / denominator_sum
-        result[~valid_indexes] = y_data[zero_distances[1]]
-
-        return result if len(result) > 1 else result[0]
 
     def __neg__(self):
         """Negates the Function object. The result has the same effect as
@@ -2635,7 +2737,7 @@ class Function:  # pylint: disable=too-many-public-methods
         """
         if order == 1:
             return float(self.get_value_opt(x + dx * 1j).imag / dx)
-        else:
+        else:  # pragma: no cover
             raise NotImplementedError(
                 "Only 1st order derivatives are supported yet. Set order=1."
             )
@@ -2982,12 +3084,12 @@ class Function:  # pylint: disable=too-many-public-methods
             The result of inputting the function into the function.
         """
         # Check if the input is a function
-        if not isinstance(func, Function):
+        if not isinstance(func, Function):  # pragma: no cover
             raise TypeError("Input must be a Function object.")
 
         if isinstance(self.source, np.ndarray) and isinstance(func.source, np.ndarray):
             # Perform bounds check for composition
-            if not extrapolate:
+            if not extrapolate:  # pragma: no cover
                 if func.min < self.x_initial or func.max > self.x_final:
                     raise ValueError(
                         f"Input Function image {func.min, func.max} must be within "
@@ -3060,14 +3162,14 @@ class Function:  # pylint: disable=too-many-public-methods
 
         # create the datapoints
         if callable(self.source):
-            if lower is None or upper is None or samples is None:
+            if lower is None or upper is None or samples is None:  # pragma: no cover
                 raise ValueError(
                     "If the source is a callable, lower, upper and samples"
                     + " must be provided."
                 )
             # Generate the data points using the callable
             x = np.linspace(lower, upper, samples)
-            data_points = np.column_stack((x, self.source(x)))
+            data_points = np.column_stack((x, self(x)))
         else:
             # If the source is already an array, use it as is
             data_points = self.source
@@ -3127,7 +3229,7 @@ class Function:  # pylint: disable=too-many-public-methods
                         self.__inputs__ = header[:-1]
                     if self.__outputs__ is None:
                         self.__outputs__ = [header[-1]]
-            except Exception as e:
+            except Exception as e:  # pragma: no cover
                 raise ValueError(
                     "Could not read the csv or txt file to create Function source."
                 ) from e
@@ -3141,6 +3243,15 @@ class Function:  # pylint: disable=too-many-public-methods
                 raise ValueError(
                     "Source must be a 2D array in the form [[x1, x2 ..., xn, y], ...]."
                 )
+
+            source_len, source_dim = source.shape
+            if not source_len == 1:  # do not check for one point Functions
+                if source_len < source_dim:
+                    raise ValueError(
+                        "Too few data points to define a domain. The number of rows "
+                        "must be greater than or equal to the number of columns."
+                    )
+
             return source
 
         if isinstance(source, NUMERICAL_TYPES):
@@ -3177,6 +3288,7 @@ class Function:  # pylint: disable=too-many-public-methods
             if isinstance(inputs, (list, tuple)):
                 if len(inputs) == 1:
                     return inputs
+            # pragma: no cover
             raise ValueError(
                 "Inputs must be a string or a list of strings with "
                 "the length of the domain dimension."
@@ -3189,6 +3301,7 @@ class Function:  # pylint: disable=too-many-public-methods
                     isinstance(i, str) for i in inputs
                 ):
                     return inputs
+            # pragma: no cover
             raise ValueError(
                 "Inputs must be a list of strings with "
                 "the length of the domain dimension."
@@ -3238,14 +3351,17 @@ class Function:  # pylint: disable=too-many-public-methods
                 interpolation = "spline"
         ## multiple dimensions
         elif self.__dom_dim__ > 1:
-            if interpolation not in [None, "shepard"]:
+            if interpolation is None:
+                interpolation = "shepard"
+            if interpolation.lower() not in ["shepard", "linear", "rbf"]:
                 warnings.warn(
                     (
-                        "Interpolation method set to 'shepard'. Only 'shepard' "
-                        "interpolation is supported for multiple dimensions."
+                        "Interpolation method set to 'shepard'. The methods "
+                        "'linear', 'shepard' and 'rbf' are supported for "
+                        "multiple dimensions."
                     ),
                 )
-            interpolation = "shepard"
+                interpolation = "shepard"
         return interpolation
 
     def __validate_extrapolation(self, extrapolation):
@@ -3261,115 +3377,58 @@ class Function:  # pylint: disable=too-many-public-methods
 
         ## multiple dimensions
         elif self.__dom_dim__ > 1:
-            if extrapolation not in [None, "natural"]:
+            if extrapolation is None:
+                extrapolation = "natural"
+            if extrapolation.lower() not in ["constant", "natural", "zero"]:
                 warnings.warn(
-                    "Extrapolation method set to 'natural'. Other methods "
-                    "are not supported yet."
+                    "Extrapolation method set to 'natural' because the "
+                    f"{extrapolation} method is not supported."
                 )
-            extrapolation = "natural"
+                extrapolation = "natural"
         return extrapolation
 
+    def to_dict(self, include_outputs=False):  # pylint: disable=unused-argument
+        """Serializes the Function instance to a dictionary.
 
-class PiecewiseFunction(Function):
-    """Class for creating piecewise functions. These kind of functions are
-    defined by a dictionary of functions, where the keys are tuples that
-    represent the domain of the function. The domains must be disjoint.
-    """
-
-    def __new__(
-        cls,
-        source,
-        inputs=None,
-        outputs=None,
-        interpolation="spline",
-        extrapolation=None,
-        datapoints=100,
-    ):
+        Returns
+        -------
+        dict
+            A dictionary containing the Function's attributes.
         """
-        Creates a piecewise function from a dictionary of functions. The keys of
-        the dictionary must be tuples that represent the domain of the function.
-        The domains must be disjoint. The piecewise function will be evaluated
-        at datapoints points to create Function object.
+        source = self.source
+
+        if callable(source):
+            source = to_hex_encode(source)
+
+        return {
+            "source": source,
+            "title": self.title,
+            "inputs": self.__inputs__,
+            "outputs": self.__outputs__,
+            "interpolation": self.__interpolation__,
+            "extrapolation": self.__extrapolation__,
+        }
+
+    @classmethod
+    def from_dict(cls, func_dict):
+        """Creates a Function instance from a dictionary.
 
         Parameters
         ----------
-        source: dictionary
-            A dictionary of Function objects, where the keys are the domains.
-        inputs : list of strings
-            A list of strings that represent the inputs of the function.
-        outputs: list of strings
-            A list of strings that represent the outputs of the function.
-        interpolation: str
-            The type of interpolation to use. The default value is 'spline'.
-        extrapolation: str
-            The type of extrapolation to use. The default value is None.
-        datapoints: int
-            The number of points in which the piecewise function will be
-            evaluated to create a base function. The default value is 100.
+        func_dict
+            The JSON like Function dictionary.
         """
-        if inputs is None:
-            inputs = ["Scalar"]
-        if outputs is None:
-            outputs = ["Scalar"]
-        # Check if source is a dictionary
-        if not isinstance(source, dict):
-            raise TypeError("source must be a dictionary")
-        # Check if all keys are tuples
-        for key in source.keys():
-            if not isinstance(key, tuple):
-                raise TypeError("keys of source must be tuples")
-        # Check if all domains are disjoint
-        for key1 in source.keys():
-            for key2 in source.keys():
-                if key1 != key2:
-                    if key1[0] < key2[1] and key1[1] > key2[0]:
-                        raise ValueError("domains must be disjoint")
+        source = func_dict["source"]
+        if func_dict["interpolation"] is None and func_dict["extrapolation"] is None:
+            source = from_hex_decode(source)
 
-        # Crate Function
-        def calc_output(func, inputs):
-            """Receives a list of inputs value and a function, populates another
-            list with the results corresponding to the same results.
-
-            Parameters
-            ----------
-            func : Function
-                The Function object to be
-            inputs : list, tuple, np.array
-                The array of points to applied the func to.
-
-            Examples
-            --------
-            >>> inputs = [0, 1, 2, 3, 4, 5]
-            >>> def func(x):
-            ...     return x*10
-            >>> calc_output(func, inputs)
-            [0, 10, 20, 30, 40, 50]
-
-            Notes
-            -----
-            In the future, consider using the built-in map function from python.
-            """
-            output = np.zeros(len(inputs))
-            for j, value in enumerate(inputs):
-                output[j] = func.get_value_opt(value)
-            return output
-
-        input_data = []
-        output_data = []
-        for key in sorted(source.keys()):
-            i = np.linspace(key[0], key[1], datapoints)
-            i = i[~np.isin(i, input_data)]
-            input_data = np.concatenate((input_data, i))
-
-            f = Function(source[key])
-            output_data = np.concatenate((output_data, calc_output(f, i)))
-
-        return Function(
-            np.concatenate(([input_data], [output_data])).T,
-            inputs=inputs,
-            outputs=outputs,
-            interpolation=interpolation,
-            extrapolation=extrapolation,
+        return cls(
+            source=source,
+            interpolation=func_dict["interpolation"],
+            extrapolation=func_dict["extrapolation"],
+            inputs=func_dict["inputs"],
+            outputs=func_dict["outputs"],
+            title=func_dict["title"],
         )
 
 
@@ -3519,7 +3578,7 @@ def reset_funcified_methods(instance):
             instance.__dict__.pop(key)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     import doctest
 
     results = doctest.testmod()

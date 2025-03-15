@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 
 from ..tools import generate_monte_carlo_ellipses, import_optional_dependency
 
@@ -54,8 +55,29 @@ class _MonteCarloPlots:
                     "The image file was not found. Please check the path."
                 ) from e
 
-        impact_ellipses, apogee_ellipses, apogee_x, apogee_y, impact_x, impact_y = (
-            generate_monte_carlo_ellipses(self.monte_carlo.results)
+        try:
+            apogee_x = np.array(self.monte_carlo.results["apogee_x"])
+            apogee_y = np.array(self.monte_carlo.results["apogee_y"])
+        except KeyError:
+            print("No apogee data found. Skipping apogee ellipses.")
+            apogee_x = np.array([])
+            apogee_y = np.array([])
+        try:
+            impact_x = np.array(self.monte_carlo.results["x_impact"])
+            impact_y = np.array(self.monte_carlo.results["y_impact"])
+        except KeyError:
+            print("No impact data found. Skipping impact ellipses.")
+            impact_x = np.array([])
+            impact_y = np.array([])
+
+        if len(apogee_x) == 0 and len(impact_x) == 0:
+            raise ValueError("No apogee or impact data found. Cannot plot ellipses.")
+
+        impact_ellipses, apogee_ellipses = generate_monte_carlo_ellipses(
+            apogee_x,
+            apogee_y,
+            impact_x,
+            impact_y,
         )
 
         # Create plot figure
@@ -92,9 +114,7 @@ class _MonteCarloPlots:
             )
 
         plt.legend()
-        ax.set_title(
-            "1$\\sigma$, 2$\\sigma$ and 3$\\sigma$ Monte Carlo Ellipses: Apogee and Landing Points"
-        )
+        ax.set_title("1$\\sigma$, 2$\\sigma$ and 3$\\sigma$ Monte Carlo Ellipses")
         ax.set_ylabel("North (m)")
         ax.set_xlabel("East (m)")
 
@@ -153,10 +173,25 @@ class _MonteCarloPlots:
                 )
         else:
             raise ValueError("The 'keys' argument must be a string, list, or tuple.")
-
         for key in keys:
-            plt.figure()
-            plt.hist(self.monte_carlo.results[key])
-            plt.title(f"Histogram of {key}")
-            plt.ylabel("Number of Occurrences")
+            # Create figure with GridSpec
+            fig = plt.figure(figsize=(8, 8))
+            gs = fig.add_gridspec(2, 1, height_ratios=[1, 3])
+
+            # Create subplots using gridspec
+            ax1 = fig.add_subplot(gs[0])
+            ax2 = fig.add_subplot(gs[1])
+
+            # Plot boxplot
+            ax1.boxplot(self.monte_carlo.results[key], vert=False)
+            ax1.set_title(f"Box Plot of {key}")
+            ax1.set_yticks([])
+
+            # Plot histogram
+            ax2.hist(self.monte_carlo.results[key])
+            ax2.set_title(f"Histogram of {key}")
+            ax2.set_ylabel("Number of Occurrences")
+            ax1.set_xticks([])
+
+            plt.tight_layout()
             plt.show()

@@ -106,7 +106,7 @@ class Fins(AeroSurface):
         Parameters
         ----------
         n : int
-            Number of fins, from 2 to infinity.
+            Number of fins, must be larger than 2.
         root_chord : int, float
             Fin root chord in meters.
         span : int, float
@@ -373,21 +373,33 @@ class Fins(AeroSurface):
         stream_mach,
         rho,
         cp,
-        _,
-        omega1,
-        omega2,
-        omega3,
+        omega,
         *args,
-        **kwargs,
-    ):
+    ):  # pylint: disable=arguments-differ
         """Computes the forces and moments acting on the aerodynamic surface.
 
         Parameters
         ----------
-        stream_speed : int, float
-            Speed of the flow stream in the body frame.
+        stream_velocity : tuple of float
+            The velocity of the airflow relative to the surface.
+        stream_speed : float
+            The magnitude of the airflow speed.
+        stream_mach : float
+            The Mach number of the airflow.
+        rho : float
+            Air density.
+        cp : Vector
+            Center of pressure coordinates in the body frame.
+        omega: tuple[float, float, float]
+            Tuple containing angular velocities around the x, y, z axes.
 
+        Returns
+        -------
+        tuple of float
+            The aerodynamic forces (lift, side_force, drag) and moments
+            (pitch, yaw, roll) in the body frame.
         """
+
         R1, R2, R3, M1, M2, _ = super().compute_forces_and_moments(
             stream_velocity,
             stream_speed,
@@ -408,18 +420,50 @@ class Fins(AeroSurface):
             * self.reference_area
             * (self.reference_length) ** 2
             * cld_omega.get_value_opt(stream_mach)
-            * omega3
+            * omega[2]
             / 2
         )
         M3 = M3_forcing + M3_damping
         return R1, R2, R3, M1, M2, M3
 
-    def draw(self):
+    def to_dict(self, include_outputs=False):
+        data = {
+            "n": self.n,
+            "root_chord": self.root_chord,
+            "span": self.span,
+            "rocket_radius": self.rocket_radius,
+            "cant_angle": self.cant_angle,
+            "airfoil": self.airfoil,
+            "name": self.name,
+        }
+
+        if include_outputs:
+            data.update(
+                {
+                    "cp": self.cp,
+                    "cl": self.cl,
+                    "roll_parameters": self.roll_parameters,
+                    "d": self.d,
+                    "ref_area": self.ref_area,
+                }
+            )
+
+        return data
+
+    def draw(self, *, filename=None):
         """Draw the fin shape along with some important information, including
         the center line, the quarter line and the center of pressure position.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
 
         Returns
         -------
         None
         """
-        self.plots.draw()
+        self.plots.draw(filename=filename)

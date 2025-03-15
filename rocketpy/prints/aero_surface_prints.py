@@ -72,7 +72,6 @@ class _NoseConePrints(_AeroSurfacePrints):
 
 
 class _FinsPrints(_AeroSurfacePrints):
-
     def geometry(self):
         print("Geometric information of the fin set:")
         print("-------------------------------------")
@@ -288,6 +287,10 @@ class _EllipticalFinPrints(_FinPrints):
     """Class that contains all elliptical fin prints."""
 
 
+class _FreeFormFinsPrints(_FinsPrints):
+    """Class that contains all free form fins prints."""
+
+
 class _TailPrints(_AeroSurfacePrints):
     """Class that contains all tail prints."""
 
@@ -302,7 +305,7 @@ class _TailPrints(_AeroSurfacePrints):
         print("----------------------------------")
         print(f"Top radius: {self.aero_surface.top_radius:.3f} m")
         print(f"Bottom radius: {self.aero_surface.bottom_radius:.3f} m")
-        print(f"Reference radius: {2*self.aero_surface.rocket_radius:.3f} m")
+        print(f"Reference radius: {2 * self.aero_surface.rocket_radius:.3f} m")
         print(f"Length: {self.aero_surface.length:.3f} m")
         print(f"Slant length: {self.aero_surface.slant_length:.3f} m")
         print(f"Surface area: {self.aero_surface.surface_area:.6f} m²\n")
@@ -332,3 +335,45 @@ class _AirBrakesPrints(_AeroSurfacePrints):
 
     def all(self):
         pass
+
+
+class _GenericSurfacePrints(_AeroSurfacePrints):
+    """Class that contains all generic surface prints."""
+
+    def geometry(self):
+        print("Geometric information of the Surface:")
+        print("----------------------------------")
+        print(f"Reference Area: {self.generic_surface.reference_area:.3f} m")
+        print(f"Reference length: {2 * self.generic_surface.rocket_radius:.3f} m")
+
+    def all(self):
+        """Prints all information of the generic surface.
+
+        Returns
+        -------
+        None
+        """
+        self.identity()
+        self.geometry()
+        self.lift()
+
+
+class _LinearGenericSurfacePrints(_AeroSurfacePrints):
+    """Class that contains all linear generic surface prints."""
+
+    def geometry(self):
+        print("Geometric information of the Surface:")
+        print("----------------------------------")
+        print(f"Reference Area: {self.generic_surface.reference_area:.3f} m")
+        print(f"Reference length: {2 * self.generic_surface.rocket_radius:.3f} m")
+
+    def all(self):
+        """Prints all information of the linear generic surface.
+
+        Returns
+        -------
+        None
+        """
+        self.identity()
+        self.geometry()
+        self.lift()
