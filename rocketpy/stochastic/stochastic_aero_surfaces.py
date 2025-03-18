@@ -448,7 +448,7 @@ class StochasticAirBrakes(StochasticModel):
     object : AirBrakes
         AirBrakes object to be used for validation.
     drag_coefficient_curve : list, str
-        The drag coefficient curve of the air brakes can account for 
+        The drag coefficient curve of the air brakes can account for
         either the air brakes' drag alone or the combined drag of both
         the rocket and the air brakes.
     drag_coefficient_curve_factor : tuple, list, int, float
@@ -479,7 +479,7 @@ class StochasticAirBrakes(StochasticModel):
         reference_area=None,
         clamp=None,
         override_rocket_drag=None,
-        deployment_level=(0,0),
+        deployment_level=(0, 0),
     ):
         """Initializes the Stochastic AirBrakes class.
 
@@ -492,7 +492,7 @@ class StochasticAirBrakes(StochasticModel):
         air_brakes : AirBrakes
             AirBrakes object to be used for validation.
         drag_coefficient_curve : list, str, optional
-            The drag coefficient curve of the air brakes can account for 
+            The drag coefficient curve of the air brakes can account for
             either the air brakes' drag alone or the combined drag of both
             the rocket and the air brakes.
         drag_coefficient_curve_factor : tuple, list, int, float, optional
@@ -534,11 +534,11 @@ class StochasticAirBrakes(StochasticModel):
         """
         generated_dict = next(self.dict_generator())
         air_brakes = AirBrakes(
-            drag_coefficient_curve=generated_dict['drag_coefficient_curve'],
-            reference_area=generated_dict['reference_area'],
-            clamp=generated_dict['clamp'],
-            override_rocket_drag=generated_dict['override_rocket_drag'],
-            deployment_level=generated_dict['deployment_level'],
+            drag_coefficient_curve=generated_dict["drag_coefficient_curve"],
+            reference_area=generated_dict["reference_area"],
+            clamp=generated_dict["clamp"],
+            override_rocket_drag=generated_dict["override_rocket_drag"],
+            deployment_level=generated_dict["deployment_level"],
         )
-        air_brakes.drag_coefficient *= generated_dict['drag_coefficient_curve_factor']
+        air_brakes.drag_coefficient *= generated_dict["drag_coefficient_curve_factor"]
         return air_brakes

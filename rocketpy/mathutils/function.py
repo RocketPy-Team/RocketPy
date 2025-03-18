@@ -2264,7 +2264,9 @@ class Function:  # pylint: disable=too-many-public-methods
             ):
                 if not self_source_is_array:
                     return Function(lambda x: (self.get_value_opt(x) * other), inputs)
-                source = np.column_stack((self.x_array, np.multiply(self.y_array, other)))
+                source = np.column_stack(
+                    (self.x_array, np.multiply(self.y_array, other))
+                )
                 outputs = f"({self.__outputs__[0]}*{other})"
                 return Function(
                     source,
@@ -2284,15 +2286,21 @@ class Function:  # pylint: disable=too-many-public-methods
                 and np.array_equal(self.x_array, other.x_array)
                 and np.array_equal(self.y_array, other.y_array)
             ):
-                source = np.column_stack((self.x_array, self.y_array, self.z_array * other.z_array))
+                source = np.column_stack(
+                    (self.x_array, self.y_array, self.z_array * other.z_array)
+                )
                 outputs = f"({self.__outputs__[0]}*{other.__outputs__[0]})"
                 return Function(source, inputs, outputs, interp, extrap)
             elif isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(
                 other
             ):
                 if not self_source_is_array:
-                    return Function(lambda x,y: (self.get_value_opt(x,y) * other), inputs)
-                source = np.column_stack((self.x_array, self.y_array, np.multiply(self.z_array, other)))
+                    return Function(
+                        lambda x, y: (self.get_value_opt(x, y) * other), inputs
+                    )
+                source = np.column_stack(
+                    (self.x_array, self.y_array, np.multiply(self.z_array, other))
+                )
                 outputs = f"({self.__outputs__[0]}*{other})"
                 return Function(
                     source,
@@ -2302,7 +2310,9 @@ class Function:  # pylint: disable=too-many-public-methods
                     extrap,
                 )
             elif callable(other):
-                return Function(lambda x,y: (self.get_value_opt(x,y) * other(x)), inputs)
+                return Function(
+                    lambda x, y: (self.get_value_opt(x, y) * other(x)), inputs
+                )
             else:
                 raise TypeError("Unsupported type for multiplication")
 
