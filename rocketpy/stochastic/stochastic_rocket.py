@@ -398,7 +398,15 @@ class StochasticRocket(StochasticModel):
         air_brakes,
         controller
     ):
-        
+        """Adds an air brake to the stochastic rocket.
+
+        Parameters
+        ----------
+        air_brakes : StochasticAirBrakes or Airbrakes
+            The air brake to be added to the stochastic rocket.
+        controller : _Controller
+            Deterministic air brake controller.
+        """
         # checks if input is a StochasticAirbrakes type
         if not isinstance(air_brakes, (AirBrakes, StochasticAirBrakes)):
             raise TypeError(
