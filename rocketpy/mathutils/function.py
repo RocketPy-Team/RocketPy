@@ -2219,7 +2219,7 @@ class Function:  # pylint: disable=too-many-public-methods
         """
         return other + (-self)
 
-    def __mul__(self, other):
+    def __mul__(self, other):  # pylint: disable=too-many-statements
         """Multiplies a Function object and returns a new Function object
         which gives the result of the multiplication. Only implemented for 1D
         and 2D domains.

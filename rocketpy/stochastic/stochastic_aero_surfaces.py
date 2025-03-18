@@ -433,7 +433,7 @@ class StochasticRailButtons(StochasticModel):
         """
         generated_dict = next(self.dict_generator())
         return RailButtons(**generated_dict)
-    
+
 
 class StochasticAirBrakes(StochasticModel):
     """A Stochastic Air Brakes class that inherits from StochasticModel.
@@ -541,4 +541,4 @@ class StochasticAirBrakes(StochasticModel):
             deployment_level=generated_dict['deployment_level'],
         )
         air_brakes.drag_coefficient *= generated_dict['drag_coefficient_curve_factor']
-        return air_brakes 
+        return air_brakes

@@ -602,7 +602,7 @@ class StochasticRocket(StochasticModel):
             upper_button_position_rnd
         )
         return rail_buttons, lower_button_position_rnd, upper_button_position_rnd
-    
+
     def _create_air_brake(self, stochastic_air_brake):
         air_brake = stochastic_air_brake.create_object()
         self.last_rnd_dict["air_brakes"].append(stochastic_air_brake.last_rnd_dict)
