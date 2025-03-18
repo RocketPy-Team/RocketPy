@@ -1534,6 +1534,15 @@ class Rocket:
         except KeyError:
             sensor._attached_rockets[self] = 1
 
+    def set_air_brakes(
+        self,
+        air_brakes,
+        controller,
+    ):
+        
+        self.air_brakes.append(air_brakes)
+        self._add_controllers(controller)  
+
     def add_air_brakes(
         self,
         drag_coefficient_curve,
