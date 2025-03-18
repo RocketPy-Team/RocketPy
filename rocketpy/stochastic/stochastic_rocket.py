@@ -3,11 +3,13 @@
 import warnings
 from random import choice
 
+from rocketpy.control import _Controller
 from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.motors.empty_motor import EmptyMotor
 from rocketpy.motors.motor import GenericMotor, Motor
 from rocketpy.motors.solid_motor import SolidMotor
 from rocketpy.rocket.aero_surface import (
+    AirBrakes,
     EllipticalFins,
     NoseCone,
     RailButtons,
@@ -21,6 +23,7 @@ from rocketpy.stochastic.stochastic_generic_motor import StochasticGenericMotor
 from rocketpy.stochastic.stochastic_motor_model import StochasticMotorModel
 
 from .stochastic_aero_surfaces import (
+    StochasticAirBrakes,
     StochasticEllipticalFins,
     StochasticNoseCone,
     StochasticRailButtons,
@@ -148,6 +151,7 @@ class StochasticRocket(StochasticModel):
         self.motors = Components()
         self.aerodynamic_surfaces = Components()
         self.rail_buttons = Components()
+        self.air_brakes = []
         self.parachutes = []
         self.__components_map = {}
         super().__init__(
@@ -389,6 +393,36 @@ class StochasticRocket(StochasticModel):
             rail_buttons, self._validate_position(rail_buttons, lower_button_position)
         )
 
+    def add_air_brakes(
+        self,
+        air_brakes,
+        controller_function,
+        sampling_rate,
+        initial_observed_variables=None,
+        return_controller=False,
+        controller_name="AirBrakes Controller",
+    ):
+        
+        # checks if input is a StochasticAirbrakes type
+        if not isinstance(air_brakes, (AirBrakes, StochasticAirBrakes)):
+            raise TypeError(
+                "`air_brake` must be of AirBrakes or StochasticAirBrakes type"
+            )
+        if isinstance(air_brakes, AirBrakes):
+            air_brakes = StochasticAirBrakes(air_brakes=air_brakes)
+
+        self.air_brakes.append(air_brakes)
+        _controller = _Controller(
+            interactive_objects=air_brakes,
+            controller_function=controller_function,
+            sampling_rate=sampling_rate,
+            initial_observed_variables=initial_observed_variables,
+            name=controller_name,
+        )
+        self.air_brake_controller = _controller
+        if return_controller:
+            return _controller
+
     def _validate_position(self, validated_object, position):
         """Validate the position argument.
 
@@ -531,6 +565,7 @@ class StochasticRocket(StochasticModel):
         generated_dict["motors"] = []
         generated_dict["aerodynamic_surfaces"] = []
         generated_dict["rail_buttons"] = []
+        generated_dict["air_brakes"] = []
         generated_dict["parachutes"] = []
         self.last_rnd_dict = generated_dict
         yield generated_dict
@@ -572,6 +607,11 @@ class StochasticRocket(StochasticModel):
             upper_button_position_rnd
         )
         return rail_buttons, lower_button_position_rnd, upper_button_position_rnd
+    
+    def _create_air_brake(self, stochastic_air_brake):
+        air_brake = stochastic_air_brake.create_object()
+        self.last_rnd_dict["air_brakes"].append(stochastic_air_brake.last_rnd_dict)
+        return air_brake
 
     def _create_parachute(self, stochastic_parachute):
         parachute = stochastic_parachute.create_object()
@@ -616,6 +656,13 @@ class StochasticRocket(StochasticModel):
         for component_surface in self.aerodynamic_surfaces:
             surface, position_rnd = self._create_surface(component_surface)
             rocket.add_surfaces(surface, position_rnd)
+
+        for air_brake in self.air_brakes:
+            air_brake = self._create_air_brake(air_brake)
+            rocket.set_air_brakes(
+                air_brakes=air_brake,
+                controller=self.air_brake_controller,
+            )
 
         for component_rail_buttons in self.rail_buttons:
             (
