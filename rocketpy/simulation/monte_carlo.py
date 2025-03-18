@@ -458,6 +458,7 @@ class MonteCarlo:
             heading=self.flight._randomize_heading(),
             initial_solution=self.flight.initial_solution,
             terminate_on_apogee=self.flight.terminate_on_apogee,
+            time_overshoot=self.flight.time_overshoot,
         )
 
     def __evaluate_flight_inputs(self, sim_idx):

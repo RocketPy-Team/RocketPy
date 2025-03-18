@@ -29,6 +29,9 @@ class StochasticFlight(StochasticModel):
     terminate_on_apogee : bool
         Whether or not the flight should terminate on apogee. This attribute
         can not be randomized.
+    time_overshoot : bool
+        If False, the simulation will run at the time step defined by the controller
+        sampling rate. Be aware that this will make the simulation run much slower.
     """
 
     def __init__(
@@ -39,6 +42,7 @@ class StochasticFlight(StochasticModel):
         heading=None,
         initial_solution=None,
         terminate_on_apogee=None,
+        time_overshoot=None,
     ):
         """Initializes the Stochastic Flight class.
 
@@ -63,10 +67,17 @@ class StochasticFlight(StochasticModel):
         terminate_on_apogee : bool, optional
             Whether or not the flight should terminate on apogee. This attribute
             can not be randomized.
+        time_overshoot : bool
+            If False, the simulation will run at the time step defined by the controller
+            sampling rate. Be aware that this will make the simulation run much slower.
         """
         if terminate_on_apogee is not None:
             assert isinstance(terminate_on_apogee, bool), (
                 "`terminate_on_apogee` must be a boolean"
+            )
+        if time_overshoot is not None:
+            assert isinstance(time_overshoot, bool), (
+                "`time_overshoot` must be a boolean"
             )
         super().__init__(
             flight,
@@ -77,6 +88,7 @@ class StochasticFlight(StochasticModel):
 
         self.initial_solution = initial_solution
         self.terminate_on_apogee = terminate_on_apogee
+        self.time_overshoot = time_overshoot
 
     def _validate_initial_solution(self, initial_solution):
         if initial_solution is not None:
@@ -128,4 +140,5 @@ class StochasticFlight(StochasticModel):
             heading=generated_dict["heading"],
             initial_solution=self.initial_solution,
             terminate_on_apogee=self.terminate_on_apogee,
+            time_overshoot=self.time_overshoot,
         )
