@@ -396,11 +396,7 @@ class StochasticRocket(StochasticModel):
     def add_air_brakes(
         self,
         air_brakes,
-        controller_function,
-        sampling_rate,
-        initial_observed_variables=None,
-        return_controller=False,
-        controller_name="AirBrakes Controller",
+        controller
     ):
         
         # checks if input is a StochasticAirbrakes type
@@ -412,16 +408,7 @@ class StochasticRocket(StochasticModel):
             air_brakes = StochasticAirBrakes(air_brakes=air_brakes)
 
         self.air_brakes.append(air_brakes)
-        _controller = _Controller(
-            interactive_objects=air_brakes,
-            controller_function=controller_function,
-            sampling_rate=sampling_rate,
-            initial_observed_variables=initial_observed_variables,
-            name=controller_name,
-        )
-        self.air_brake_controller = _controller
-        if return_controller:
-            return _controller
+        self.air_brake_controller = controller
 
     def _validate_position(self, validated_object, position):
         """Validate the position argument.
@@ -659,9 +646,15 @@ class StochasticRocket(StochasticModel):
 
         for air_brake in self.air_brakes:
             air_brake = self._create_air_brake(air_brake)
+            _controller = _Controller(
+                interactive_objects=air_brake,
+                controller_function=self.air_brake_controller.base_controller_function,
+                sampling_rate=self.air_brake_controller.sampling_rate,
+                initial_observed_variables=self.air_brake_controller.initial_observed_variables,
+            )
             rocket.set_air_brakes(
                 air_brakes=air_brake,
-                controller=self.air_brake_controller,
+                controller=_controller,
             )
 
         for component_rail_buttons in self.rail_buttons:
