@@ -393,11 +393,7 @@ class StochasticRocket(StochasticModel):
             rail_buttons, self._validate_position(rail_buttons, lower_button_position)
         )
 
-    def add_air_brakes(
-        self,
-        air_brakes,
-        controller
-    ):
+    def add_air_brakes(self, air_brakes, controller):
         """Adds an air brake to the stochastic rocket.
 
         Parameters
