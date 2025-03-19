@@ -403,7 +403,6 @@ class StochasticRocket(StochasticModel):
         controller : _Controller
             Deterministic air brake controller.
         """
-        # checks if input is a StochasticAirbrakes type
         if not isinstance(air_brakes, (AirBrakes, StochasticAirBrakes)):
             raise TypeError(
                 "`air_brake` must be of AirBrakes or StochasticAirBrakes type"
