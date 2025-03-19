@@ -808,6 +808,7 @@ class SolidMotor(Motor):
             grain_separation=data["grain_separation"],
             grains_center_of_mass_position=data["grains_center_of_mass_position"],
             center_of_dry_mass_position=data["center_of_dry_mass_position"],
+            reference_pressure=data["reference_pressure"],
             nozzle_position=data["nozzle_position"],
             burn_time=data["burn_time"],
             throat_radius=data["throat_radius"],

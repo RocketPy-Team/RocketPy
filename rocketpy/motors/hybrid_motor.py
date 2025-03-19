@@ -29,6 +29,8 @@ class HybridMotor(Motor):
         "combustion_chamber_to_nozzle".
     HybridMotor.nozzle_radius : float
         Radius of motor nozzle outlet in meters.
+    HybridMotor.nozzle_area : float
+        Area of motor nozzle outlet in square meters.
     HybridMotor.nozzle_position : float
         Motor's nozzle outlet position in meters, specified in the motor's
         coordinate system. See
@@ -147,7 +149,11 @@ class HybridMotor(Motor):
         HybridMotor.propellant_I_22 and HybridMotor.propellant_I_33 for
         more information.
     HybridMotor.thrust : Function
-        Motor thrust force, in Newtons, as a function of time.
+        Motor thrust force obtained from thrust source, in Newtons, as a
+        function of time.
+    HybridMotor.vacuum_thrust : Function
+        Motor thrust force when the rocket is in a vacuum. In Newtons, as a
+        function of time.
     HybridMotor.total_impulse : float
         Total impulse of the thrust curve in N*s.
     HybridMotor.max_thrust : float
@@ -181,6 +187,9 @@ class HybridMotor(Motor):
         Method of interpolation used in case thrust curve is given
         by data set in .csv or .eng, or as an array. Options are 'spline'
         'akima' and 'linear'. Default is "linear".
+    HybridMotor.reference_pressure : int, float
+        Atmospheric pressure in Pa at which the thrust data was recorded.
+        It will allow to obtain the net thrust in the Flight class.
     """
 
     def __init__(  # pylint: disable=too-many-arguments
@@ -197,6 +206,7 @@ class HybridMotor(Motor):
         grain_separation,
         grains_center_of_mass_position,
         center_of_dry_mass_position,
+        reference_pressure=None,
         nozzle_position=0,
         burn_time=None,
         throat_radius=0.01,
@@ -258,6 +268,8 @@ class HybridMotor(Motor):
             The position, in meters, of the motor's center of mass with respect
             to the motor's coordinate system when it is devoid of propellant.
             See :doc:`Positions and Coordinate Systems </user/positions>`.
+        reference_pressure : int, float, optional
+            Atmospheric pressure in Pa at which the thrust data was recorded.
         nozzle_position : int, float, optional
             Motor's nozzle outlet position in meters, in the motor's coordinate
             system. See :doc:`Positions and Coordinate Systems </user/positions>`
@@ -308,6 +320,7 @@ class HybridMotor(Motor):
             dry_inertia=dry_inertia,
             nozzle_radius=nozzle_radius,
             center_of_dry_mass_position=center_of_dry_mass_position,
+            reference_pressure=reference_pressure,
             dry_mass=dry_mass,
             nozzle_position=nozzle_position,
             burn_time=burn_time,
@@ -321,6 +334,7 @@ class HybridMotor(Motor):
             dry_inertia,
             nozzle_radius,
             center_of_dry_mass_position,
+            reference_pressure,
             nozzle_position,
             burn_time,
             reshape_thrust_curve,
@@ -340,6 +354,7 @@ class HybridMotor(Motor):
             grain_separation,
             grains_center_of_mass_position,
             center_of_dry_mass_position,
+            reference_pressure,
             nozzle_position,
             burn_time,
             throat_radius,
@@ -657,6 +672,7 @@ class HybridMotor(Motor):
             nozzle_radius=data["nozzle_radius"],
             dry_mass=data["dry_mass"],
             center_of_dry_mass_position=data["center_of_dry_mass_position"],
+            reference_pressure=data["reference_pressure"],
             dry_inertia=(
                 data["dry_I_11"],
                 data["dry_I_22"],

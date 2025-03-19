@@ -29,6 +29,8 @@ class LiquidMotor(Motor):
         "combustion_chamber_to_nozzle".
     LiquidMotor.nozzle_radius : float
         Radius of motor nozzle outlet in meters.
+    LiquidMotor.nozzle_area : float
+        Area of motor nozzle outlet in square meters.
     LiquidMotor.nozzle_position : float
         Motor's nozzle outlet position in meters, specified in the motor's
         coordinate system. See
@@ -122,7 +124,11 @@ class LiquidMotor(Motor):
         LiquidMotor.propellant_I_22 and LiquidMotor.propellant_I_33 for
         more information.
     LiquidMotor.thrust : Function
-        Motor thrust force, in Newtons, as a function of time.
+        Motor thrust force obtained from thrust source, in Newtons, as a
+        function of time.
+    LiquidMotor.vacuum_thrust : Function
+        Motor thrust force when the rocket is in a vacuum. In Newtons, as a
+        function of time.
     LiquidMotor.total_impulse : float
         Total impulse of the thrust curve in N*s.
     LiquidMotor.max_thrust : float
@@ -143,6 +149,9 @@ class LiquidMotor(Motor):
         burn_out_time and the burn_start_time.
     LiquidMotor.exhaust_velocity : Function
         Propulsion gases exhaust velocity in m/s.
+    LiquidMotor.reference_pressure : int, float
+        Atmospheric pressure in Pa at which the thrust data was recorded.
+        It will allow to obtain the net thrust in the Flight class.
     """
 
     def __init__(
@@ -152,6 +161,7 @@ class LiquidMotor(Motor):
         dry_inertia,
         nozzle_radius,
         center_of_dry_mass_position,
+        reference_pressure=None,
         nozzle_position=0,
         burn_time=None,
         reshape_thrust_curve=False,
@@ -194,6 +204,8 @@ class LiquidMotor(Motor):
             The position, in meters, of the motor's center of mass with respect
             to the motor's coordinate system when it is devoid of propellant.
             See :doc:`Positions and Coordinate Systems </user/positions>`
+        reference_pressure : int, float, optional
+            Atmospheric pressure in Pa at which the thrust data was recorded.
         nozzle_position : float
             Motor's nozzle outlet position in meters, specified in the motor's
             coordinate system. See
@@ -236,6 +248,7 @@ class LiquidMotor(Motor):
             dry_inertia=dry_inertia,
             nozzle_radius=nozzle_radius,
             center_of_dry_mass_position=center_of_dry_mass_position,
+            reference_pressure=reference_pressure,
             dry_mass=dry_mass,
             nozzle_position=nozzle_position,
             burn_time=burn_time,
@@ -500,6 +513,7 @@ class LiquidMotor(Motor):
             nozzle_radius=data["nozzle_radius"],
             dry_mass=data["dry_mass"],
             center_of_dry_mass_position=data["center_of_dry_mass_position"],
+            reference_pressure=data["reference_pressure"],
             dry_inertia=(
                 data["dry_I_11"],
                 data["dry_I_22"],

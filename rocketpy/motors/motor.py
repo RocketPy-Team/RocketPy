@@ -1227,6 +1227,7 @@ class GenericMotor(Motor):
     therefore for more accurate results, use the ``SolidMotor``, ``HybridMotor``
     or ``LiquidMotor`` classes."""
 
+    # pylint: disable=too-many-arguments
     def __init__(
         self,
         thrust_source,
@@ -1236,6 +1237,7 @@ class GenericMotor(Motor):
         chamber_position,
         propellant_initial_mass,
         nozzle_radius,
+        reference_pressure=None,
         dry_mass=0,
         center_of_dry_mass_position=None,
         dry_inertia=(0, 0, 0),
@@ -1282,6 +1284,8 @@ class GenericMotor(Motor):
             to the motor's coordinate system when it is devoid of propellant.
             If not specified, automatically sourced as the chamber position.
             See :doc:`Positions and Coordinate Systems </user/positions>`
+        reference_pressure : int, float, optional
+            Atmospheric pressure in Pa at which the thrust data was recorded.
         dry_inertia : tuple, list
             Tuple or list containing the motor's dry mass inertia tensor
             components, in kg*m^2. This inertia is defined with respect to the
@@ -1338,6 +1342,7 @@ class GenericMotor(Motor):
             dry_inertia=dry_inertia,
             nozzle_radius=nozzle_radius,
             center_of_dry_mass_position=center_of_dry_mass_position,
+            reference_pressure=reference_pressure,
             dry_mass=dry_mass,
             nozzle_position=nozzle_position,
             burn_time=burn_time,
@@ -1500,6 +1505,7 @@ class GenericMotor(Motor):
         dry_mass=None,
         burn_time=None,
         center_of_dry_mass_position=None,
+        reference_pressure=None,
         dry_inertia=(0, 0, 0),
         nozzle_position=0,
         reshape_thrust_curve=False,
@@ -1541,6 +1547,8 @@ class GenericMotor(Motor):
             The position, in meters, of the motor's center of mass with respect
             to the motor's coordinate system when it is devoid of propellant.
             If not specified, automatically sourced as the chamber position.
+        reference_pressure : int, float, optional
+            Atmospheric pressure in Pa at which the thrust data was recorded.
         dry_inertia : tuple, list
             Tuple or list containing the motor's dry mass inertia tensor
         nozzle_position : int, float, optional
@@ -1608,6 +1616,7 @@ class GenericMotor(Motor):
             chamber_position=chamber_position,
             propellant_initial_mass=propellant_initial_mass,
             nozzle_radius=nozzle_radius,
+            reference_pressure=reference_pressure,
             dry_mass=dry_mass,
             center_of_dry_mass_position=center_of_dry_mass_position,
             dry_inertia=dry_inertia,
@@ -1645,6 +1654,7 @@ class GenericMotor(Motor):
             chamber_position=data["chamber_position"],
             propellant_initial_mass=data["propellant_initial_mass"],
             nozzle_radius=data["nozzle_radius"],
+            reference_pressure=data["reference_pressure"],
             dry_mass=data["dry_mass"],
             center_of_dry_mass_position=data["center_of_dry_mass_position"],
             dry_inertia=(
