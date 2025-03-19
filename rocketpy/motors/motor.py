@@ -315,7 +315,7 @@ class Motor(ABC):
 
         # Post process thrust
         self.thrust = Motor.clip_thrust(self.thrust, self.burn_time)
-        
+
         # Evaluate vacuum thrust
         if reference_pressure is None:
             vacuum_thrust_source = self.thrust.source
@@ -1058,7 +1058,7 @@ class Motor(ABC):
 
         # Return all extract content
         return comments, description, data_points
-    
+
     def get_vacuum_thrust(self,thrust_source,reference_pressure):
         """Calculate the vacuum thrust from the raw thrust and the reference  
         pressure at which the thrust data was recorded.  
@@ -1084,7 +1084,7 @@ class Motor(ABC):
             time = point[0]
             thrust = point[1]
             vacuum_thrust_source.append([time, thrust + thrust_reduction])
-        
+
         return vacuum_thrust_source
 
     def export_eng(self, file_name, motor_name):

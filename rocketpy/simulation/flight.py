@@ -1387,8 +1387,7 @@ class Flight:
             net_thrust = self.rocket.motor.thrust.get_value_opt(t)
         else:
             net_thrust = self.rocket.motor.vacuum_thrust.get_value_opt(t) - pressure * nozzle_area
-            if net_thrust < 0:
-                net_thrust = 0
+            net_thrust = max(net_thrust, 0)
         rho = self.env.density.get_value_opt(z)
         R3 = -0.5 * rho * (free_stream_speed**2) * self.rocket.area * (drag_coeff)
 
@@ -1486,8 +1485,7 @@ class Flight:
                 net_thrust = self.rocket.motor.thrust.get_value_opt(t)
             else:
                 net_thrust = self.rocket.motor.vacuum_thrust.get_value_opt(t) - pressure * nozzle_area
-                if net_thrust < 0:
-                    net_thrust = 0
+                net_thrust = max(net_thrust, 0)
             # Off center moment
             M1 += self.rocket.thrust_eccentricity_x * net_thrust
             M2 -= self.rocket.thrust_eccentricity_y * net_thrust
@@ -1877,10 +1875,9 @@ class Flight:
         nozzle_area = self.rocket.motor.nozzle_area
         if self.rocket.motor.reference_pressure is None:
             net_thrust = self.rocket.motor.thrust.get_value_opt(t)
-        else: 
+        else:
             net_thrust = self.rocket.motor.vacuum_thrust.get_value_opt(t) - pressure * nozzle_area
-            if net_thrust < 0:
-                net_thrust = 0
+            net_thrust = max(net_thrust, 0)
         M1 += (
             self.rocket.cp_eccentricity_y * R3
             + self.rocket.thrust_eccentricity_x * net_thrust
@@ -2234,7 +2231,7 @@ class Flight:
         """Aerodynamic moment in the rocket z-axis as a Function of time.
         Sometimes referred to as roll moment."""
         return self.__evaluate_post_process[:, [0, 12]]
-    
+
     @funcify_method("Time (s)", "Net Thrust (N)", "linear", "zero")
     def net_thrust(self):
         """Net thrust of the rocket as a Function of time. This is the
