@@ -28,6 +28,8 @@ class Motor(ABC):
         "combustion_chamber_to_nozzle".
     Motor.nozzle_radius : float
         Radius of motor nozzle outlet in meters.
+    Motor.nozzle_area : float
+        Area of motor nozzle outlet in square meters.
     Motor.nozzle_position : float
         Motor's nozzle outlet position in meters, specified in the motor's
         coordinate system. See :ref:`positions` for more information.
@@ -121,7 +123,11 @@ class Motor(ABC):
         e_3 axes in kg*m^2, as a function of time. See Motor.propellant_I_22
         and Motor.propellant_I_33 for more information.
     Motor.thrust : Function
-        Motor thrust force, in Newtons, as a function of time.
+        Motor thrust force obtained from the thrust source, in Newtons, as a
+        function of time.
+    Motor.vacuum_thrust : Function
+        Motor thrust force when the rocket is in a vacuum. In Newtons, as a 
+        function of time.
     Motor.total_impulse : float
         Total impulse of the thrust curve in N*s.
     Motor.max_thrust : float
@@ -146,6 +152,9 @@ class Motor(ABC):
         Method of interpolation used in case thrust curve is given
         by data set in .csv or .eng, or as an array. Options are 'spline'
         'akima' and 'linear'. Default is "linear".
+    Motor.reference_pressure : int, float
+        Atmospheric pressure in Pa at which the thrust data was recorded.
+        It will allow to obtain the net thrust in the Flight class.
     """
 
     # pylint: disable=too-many-statements
@@ -155,6 +164,7 @@ class Motor(ABC):
         dry_inertia,
         nozzle_radius,
         center_of_dry_mass_position,
+        reference_pressure=None,
         dry_mass=None,
         nozzle_position=0,
         burn_time=None,
@@ -199,6 +209,8 @@ class Motor(ABC):
             (I_11, I_22, I_33), where I_12 = I_13 = I_23 = 0.
         nozzle_radius : int, float, optional
             Motor's nozzle outlet radius in meters.
+        reference_pressure : int, float, optional
+            Atmospheric pressure in Pa at which the thrust data was recorded.
         burn_time: float, tuple of float, optional
             Motor's burn time.
             If a float is given, the burn time is assumed to be between 0 and
@@ -257,7 +269,9 @@ class Motor(ABC):
         self.interpolate = interpolation_method
         self.nozzle_position = nozzle_position
         self.nozzle_radius = nozzle_radius
+        self.nozzle_area = np.pi * nozzle_radius**2
         self.center_of_dry_mass_position = center_of_dry_mass_position
+        self.reference_pressure = reference_pressure
 
         # Inertia tensor setup
         inertia = (*dry_inertia, 0, 0, 0) if len(dry_inertia) == 3 else dry_inertia
@@ -301,15 +315,21 @@ class Motor(ABC):
 
         # Post process thrust
         self.thrust = Motor.clip_thrust(self.thrust, self.burn_time)
+        
+        # Evaluate vacuum thrust
+        if reference_pressure is None:
+            vacuum_thrust_source = self.thrust.source
+        else:
+            vacuum_thrust_source = self.get_vacuum_thrust(self.thrust.source,reference_pressure)
+        self.vacuum_thrust_source = vacuum_thrust_source
+        self.vacuum_thrust = Function(
+            vacuum_thrust_source, "Time (s)", "Vacuum Thrust (N)", self.interpolate, "zero"
+        )
 
         # Auxiliary quantities
         self.burn_start_time = self.burn_time[0]
         self.burn_out_time = self.burn_time[1]
         self.burn_duration = self.burn_time[1] - self.burn_time[0]
-
-        # Define motor attributes
-        self.nozzle_radius = nozzle_radius
-        self.nozzle_position = nozzle_position
 
         # Compute thrust metrics
         self.max_thrust = np.amax(self.thrust.y_array)
@@ -1038,6 +1058,34 @@ class Motor(ABC):
 
         # Return all extract content
         return comments, description, data_points
+    
+    def get_vacuum_thrust(self,thrust_source,reference_pressure):
+        """Calculate the vacuum thrust from the raw thrust and the reference  
+        pressure at which the thrust data was recorded.  
+
+        Parameters  
+        ----------  
+        thrust_source : list  
+            A list of points representing the thrust curve.
+        reference_pressure : int, float  
+            The atmospheric pressure at which the thrust data was recorded.  
+
+        Returns  
+        -------  
+        vacuum_thrust_source : list  
+            A list of points representing the vacuum thrust curve.  
+        """
+        # Initialize arrays
+        vacuum_thrust_source = []
+
+        # Reduction in thrust due to atmospheric pressure
+        thrust_reduction = reference_pressure * self.nozzle_area
+        for point in thrust_source:
+            time = point[0]
+            thrust = point[1]
+            vacuum_thrust_source.append([time, thrust + thrust_reduction])
+        
+        return vacuum_thrust_source
 
     def export_eng(self, file_name, motor_name):
         """Exports thrust curve data points and motor description to
@@ -1105,6 +1153,8 @@ class Motor(ABC):
             "dry_I_13": self.dry_I_13,
             "dry_I_23": self.dry_I_23,
             "nozzle_radius": self.nozzle_radius,
+            "nozzle_area": self.nozzle_area,
+            "reference_pressure": self.reference_pressure,
             "center_of_dry_mass_position": self.center_of_dry_mass_position,
             "dry_mass": self.dry_mass,
             "nozzle_position": self.nozzle_position,
@@ -1116,6 +1166,7 @@ class Motor(ABC):
         if include_outputs:
             data.update(
                 {
+                    "vacuum_thrust": self.vacuum_thrust,
                     "total_mass": self.total_mass,
                     "propellant_mass": self.propellant_mass,
                     "mass_flow_rate": self.mass_flow_rate,

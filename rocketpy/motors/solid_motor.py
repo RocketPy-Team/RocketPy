@@ -29,6 +29,8 @@ class SolidMotor(Motor):
         "combustion_chamber_to_nozzle".
     SolidMotor.nozzle_radius : float
         Radius of motor nozzle outlet in meters.
+    SolidMotor.nozzle_area : float
+        Area of motor nozzle outlet in square meters.
     SolidMotor.nozzle_position : float
         Motor's nozzle outlet position in meters, specified in the motor's
         coordinate system. See
@@ -147,7 +149,11 @@ class SolidMotor(Motor):
         See SolidMotor.propellant_I_22 and SolidMotor.propellant_I_33 for more
         information.
     SolidMotor.thrust : Function
-        Motor thrust force, in Newtons, as a function of time.
+        Motor thrust force obtained from thrust source, in Newtons, as a
+        function of time.
+    SolidMotor.vacuum_thrust : Function
+        Motor thrust force when the rocket is in a vacuum. In Newtons, as a 
+        function of time.
     SolidMotor.total_impulse : float
         Total impulse of the thrust curve in N*s.
     SolidMotor.max_thrust : float
@@ -181,6 +187,9 @@ class SolidMotor(Motor):
         Method of interpolation used in case thrust curve is given
         by data set in .csv or .eng, or as an array. Options are 'spline'
         'akima' and 'linear'. Default is "linear".
+    Solidmotor.reference_pressure : int, float
+        Atmospheric pressure in Pa at which the thrust data was recorded.
+        It will allow to obtain the net thrust in the Flight class.
     """
 
     # pylint: disable=too-many-arguments
@@ -198,6 +207,7 @@ class SolidMotor(Motor):
         grain_separation,
         grains_center_of_mass_position,
         center_of_dry_mass_position,
+        reference_pressure=None,
         nozzle_position=0.0,
         burn_time=None,
         throat_radius=0.01,
@@ -260,6 +270,8 @@ class SolidMotor(Motor):
             The position, in meters, of the motor's center of mass with respect
             to the motor's coordinate system when it is devoid of propellant.
             See :doc:`Positions and Coordinate Systems </user/positions>`.
+        reference_pressure : int, float, optional
+            Atmospheric pressure in Pa at which the thrust data was recorded.
         nozzle_position : int, float, optional
             Motor's nozzle outlet position in meters, in the motor's coordinate
             system. See :doc:`Positions and Coordinate Systems </user/positions>`
@@ -309,6 +321,7 @@ class SolidMotor(Motor):
             dry_inertia=dry_inertia,
             nozzle_radius=nozzle_radius,
             center_of_dry_mass_position=center_of_dry_mass_position,
+            reference_pressure=reference_pressure,
             dry_mass=dry_mass,
             nozzle_position=nozzle_position,
             burn_time=burn_time,
