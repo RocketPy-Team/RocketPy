@@ -44,6 +44,7 @@ Attention: The newest changes should be on top -->
 
 - BUG: do not allow drawing rockets with no aerodynamic surface [#774](https://github.com/RocketPy-Team/RocketPy/pull/774)
 - BUG: update flight simulation logic to include burn start time [#778](https://github.com/RocketPy-Team/RocketPy/pull/778)
+- BUG: fixed AGL altitude print for parachutes with lag [#788](https://github.com/RocketPy-Team/RocketPy/pull/788)
 
 ## [v1.8.0] - 2025-01-20
 
