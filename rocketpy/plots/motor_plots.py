@@ -212,21 +212,21 @@ class _MotorPlots:
         time = np.linspace(lower, upper, 100)
 
         _, ax = plt.subplots()
-        ax.plot(time, self.motor.I_11(time), label='I_11', linestyle='-')
-        ax.plot(time, self.motor.I_22(time), label='I_22', linestyle='--', linewidth=3)
-        ax.plot(time, self.motor.I_33(time), label='I_33', linestyle='-.')
+        ax.plot(time, self.motor.I_11(time), label="I_11", linestyle="-")
+        ax.plot(time, self.motor.I_22(time), label="I_22", linestyle="--", linewidth=3)
+        ax.plot(time, self.motor.I_33(time), label="I_33", linestyle="-.")
         if show_products:
-            ax.plot(time, self.motor.I_12(time), label='I_12', linestyle=':')
+            ax.plot(time, self.motor.I_12(time), label="I_12", linestyle=":")
             ax.plot(
-                time, self.motor.I_13(time), label='I_13', linestyle='-.', linewidth=2
+                time, self.motor.I_13(time), label="I_13", linestyle="-.", linewidth=2
             )
             ax.plot(
-                time, self.motor.I_23(time), label='I_23', linestyle='--', linewidth=3
+                time, self.motor.I_23(time), label="I_23", linestyle="--", linewidth=3
             )
 
-        ax.set_title('Inertia tensor over time')
-        ax.set_xlabel('Time (s)')
-        ax.set_ylabel('Inertia (kg*m^2)')
+        ax.set_title("Inertia tensor over time")
+        ax.set_xlabel("Time (s)")
+        ax.set_ylabel("Inertia (kg*m^2)")
         ax.legend()
         ax.grid(True)
 

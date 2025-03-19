@@ -175,7 +175,6 @@ def test_multivariable_function_plot(mock_show):  # pylint: disable=unused-argum
     """Test the plot method of the Function class with a multivariable function."""
 
     def source(x, y):
-
         # Test plane f(x,y) = sin(x + y)
         return np.sin(x * y)
 

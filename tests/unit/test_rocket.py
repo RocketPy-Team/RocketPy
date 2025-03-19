@@ -5,13 +5,12 @@ import pytest
 
 from rocketpy import Function, NoseCone, Rocket, SolidMotor
 from rocketpy.mathutils.vector_matrix import Vector
-from rocketpy.motors.motor import EmptyMotor, Motor
+from rocketpy.motors.empty_motor import EmptyMotor
+from rocketpy.motors.motor import Motor
 
 
 @patch("matplotlib.pyplot.show")
-def test_elliptical_fins(
-    mock_show, calisto_robust, calisto_trapezoidal_fins
-):  # pylint: disable=unused-argument
+def test_elliptical_fins(mock_show, calisto_robust, calisto_trapezoidal_fins):  # pylint: disable=unused-argument
     test_rocket = calisto_robust
     calisto_robust.aerodynamic_surfaces.remove(calisto_trapezoidal_fins)
     test_rocket.add_elliptical_fins(4, span=0.100, root_chord=0.120, position=-1.168)

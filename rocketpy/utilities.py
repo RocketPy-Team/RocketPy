@@ -426,7 +426,7 @@ def _flutter_prints(
     print("\nFin's parameters")
     print(f"Surface area (S): {surface_area:.4f} m2")
     print(f"Aspect ratio (AR): {aspect_ratio:.3f}")
-    print(f"tip_chord/root_chord ratio = \u03BB = {lambda_:.3f}")
+    print(f"tip_chord/root_chord ratio = \u03bb = {lambda_:.3f}")
     print(f"Fin Thickness: {fin_thickness:.5f} m")
     print(f"Shear Modulus (G): {shear_modulus:.3e} Pa")
 

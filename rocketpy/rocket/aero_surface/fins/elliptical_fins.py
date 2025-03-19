@@ -258,18 +258,18 @@ class EllipticalFins(Fins):
                     + np.pi * self.rocket_radius**3
                     + 2
                     * self.rocket_radius**2
-                    * np.sqrt(-self.span**2 + self.rocket_radius**2)
+                    * np.sqrt(-(self.span**2) + self.rocket_radius**2)
                     * np.arctan(
-                        (self.span) / (np.sqrt(-self.span**2 + self.rocket_radius**2))
+                        (self.span) / (np.sqrt(-(self.span**2) + self.rocket_radius**2))
                     )
                     - np.pi
                     * self.rocket_radius**2
-                    * np.sqrt(-self.span**2 + self.rocket_radius**2)
+                    * np.sqrt(-(self.span**2) + self.rocket_radius**2)
                 )
             ) / (
                 2
                 * self.span
-                * (-self.span**2 + self.rocket_radius**2)
+                * (-(self.span**2) + self.rocket_radius**2)
                 * (self.span**2 / 3 + np.pi * self.span * self.rocket_radius / 4)
             )
         else:

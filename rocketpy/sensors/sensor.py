@@ -237,11 +237,11 @@ class Sensor(ABC):
             if isinstance(self.measured_data[0], list):
                 print("Data saved to", end=" ")
                 for i, data in enumerate(self.measured_data):
-                    with open(filename + f"_{i+1}", "w") as f:
+                    with open(filename + f"_{i + 1}", "w") as f:
                         f.write(",".join(data_labels) + "\n")
                         for entry in data:
                             f.write(",".join(map(str, entry)) + "\n")
-                    print(filename + f"_{i+1},", end=" ")
+                    print(filename + f"_{i + 1},", end=" ")
             else:
                 with open(filename, "w") as f:
                     f.write(",".join(data_labels) + "\n")
@@ -258,9 +258,9 @@ class Sensor(ABC):
                     for entry in data:
                         for label, value in zip(data_labels, entry):
                             data_dict[label].append(value)
-                    with open(filename + f"_{i+1}", "w") as f:
+                    with open(filename + f"_{i + 1}", "w") as f:
                         json.dump(data_dict, f)
-                    print(filename + f"_{i+1},", end=" ")
+                    print(filename + f"_{i + 1},", end=" ")
             else:
                 data_dict = {label: [] for label in data_labels}
                 for entry in self.measured_data:
