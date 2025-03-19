@@ -165,13 +165,26 @@ def test_flutter_plots(mock_show, flight_calisto_custom_wind):  # pylint: disabl
     ), "An error occurred while running the utilities._flutter_plots function."
 
 
-def test_get_instance_attributes(flight_calisto_robust):
+def test_get_instance_attributes_with_robust_flight(flight_calisto_robust):
     """Tests if get_instance_attributes returns the expected results for a
     robust flight object."""
 
     attributes = utilities.get_instance_attributes(flight_calisto_robust)
     for key, value in attributes.items():
         attr = getattr(flight_calisto_robust, key)
+        if isinstance(attr, np.ndarray):
+            assert np.allclose(attr, value)
+        else:
+            assert attr == value
+
+
+def test_get_instance_attributes_with_flight_without_rail_buttons(flight_calisto):
+    """Tests if get_instance_attributes returns the expected results for a
+    flight object that contains a rocket object without rail buttons."""
+
+    attributes = utilities.get_instance_attributes(flight_calisto)
+    for key, value in attributes.items():
+        attr = getattr(flight_calisto, key)
         if isinstance(attr, np.ndarray):
             assert np.allclose(attr, value)
         else:
