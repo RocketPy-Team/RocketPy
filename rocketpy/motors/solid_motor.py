@@ -152,7 +152,7 @@ class SolidMotor(Motor):
         Motor thrust force obtained from thrust source, in Newtons, as a
         function of time.
     SolidMotor.vacuum_thrust : Function
-        Motor thrust force when the rocket is in a vacuum. In Newtons, as a 
+        Motor thrust force when the rocket is in a vacuum. In Newtons, as a
         function of time.
     SolidMotor.total_impulse : float
         Total impulse of the thrust curve in N*s.

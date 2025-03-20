@@ -362,7 +362,7 @@ class Flight:
         Rocket's engine net thrust as a function of time in Newton.
         This is the actual thrust force experienced by the rocket.
         It may be corrected with the atmospheric pressure if a reference
-        pressure is defined. Can be called or accessed as array. 
+        pressure is defined. Can be called or accessed as array.
     Flight.aerodynamic_lift : Function
         Resultant force perpendicular to rockets axis due to
         aerodynamic effects as a function of time. Units in N.
@@ -1386,7 +1386,10 @@ class Flight:
         if self.rocket.motor.reference_pressure is None:
             net_thrust = self.rocket.motor.thrust.get_value_opt(t)
         else:
-            net_thrust = self.rocket.motor.vacuum_thrust.get_value_opt(t) - pressure * nozzle_area
+            net_thrust = (
+                self.rocket.motor.vacuum_thrust.get_value_opt(t)
+                - pressure * nozzle_area
+            )
             net_thrust = max(net_thrust, 0)
         rho = self.env.density.get_value_opt(z)
         R3 = -0.5 * rho * (free_stream_speed**2) * self.rocket.area * (drag_coeff)
@@ -1484,7 +1487,10 @@ class Flight:
             if self.rocket.motor.reference_pressure is None:
                 net_thrust = self.rocket.motor.thrust.get_value_opt(t)
             else:
-                net_thrust = self.rocket.motor.vacuum_thrust.get_value_opt(t) - pressure * nozzle_area
+                net_thrust = (
+                    self.rocket.motor.vacuum_thrust.get_value_opt(t)
+                    - pressure * nozzle_area
+                )
                 net_thrust = max(net_thrust, 0)
             # Off center moment
             M1 += self.rocket.thrust_eccentricity_x * net_thrust
@@ -1729,7 +1735,22 @@ class Flight:
 
         if post_processing:
             self.__post_processed_variables.append(
-                [t, ax, ay, az, alpha1, alpha2, alpha3, R1, R2, R3, M1, M2, M3, net_thrust]
+                [
+                    t,
+                    ax,
+                    ay,
+                    az,
+                    alpha1,
+                    alpha2,
+                    alpha3,
+                    R1,
+                    R2,
+                    R3,
+                    M1,
+                    M2,
+                    M3,
+                    net_thrust,
+                ]
             )
 
         return u_dot
@@ -1876,7 +1897,10 @@ class Flight:
         if self.rocket.motor.reference_pressure is None:
             net_thrust = self.rocket.motor.thrust.get_value_opt(t)
         else:
-            net_thrust = self.rocket.motor.vacuum_thrust.get_value_opt(t) - pressure * nozzle_area
+            net_thrust = (
+                self.rocket.motor.vacuum_thrust.get_value_opt(t)
+                - pressure * nozzle_area
+            )
             net_thrust = max(net_thrust, 0)
         M1 += (
             self.rocket.cp_eccentricity_y * R3

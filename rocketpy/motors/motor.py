@@ -126,7 +126,7 @@ class Motor(ABC):
         Motor thrust force obtained from the thrust source, in Newtons, as a
         function of time.
     Motor.vacuum_thrust : Function
-        Motor thrust force when the rocket is in a vacuum. In Newtons, as a 
+        Motor thrust force when the rocket is in a vacuum. In Newtons, as a
         function of time.
     Motor.total_impulse : float
         Total impulse of the thrust curve in N*s.
@@ -320,10 +320,16 @@ class Motor(ABC):
         if reference_pressure is None:
             vacuum_thrust_source = self.thrust.source
         else:
-            vacuum_thrust_source = self.get_vacuum_thrust(self.thrust.source,reference_pressure)
+            vacuum_thrust_source = self.get_vacuum_thrust(
+                self.thrust.source, reference_pressure
+            )
         self.vacuum_thrust_source = vacuum_thrust_source
         self.vacuum_thrust = Function(
-            vacuum_thrust_source, "Time (s)", "Vacuum Thrust (N)", self.interpolate, "zero"
+            vacuum_thrust_source,
+            "Time (s)",
+            "Vacuum Thrust (N)",
+            self.interpolate,
+            "zero",
         )
 
         # Auxiliary quantities
@@ -1059,21 +1065,21 @@ class Motor(ABC):
         # Return all extract content
         return comments, description, data_points
 
-    def get_vacuum_thrust(self,thrust_source,reference_pressure):
-        """Calculate the vacuum thrust from the raw thrust and the reference  
-        pressure at which the thrust data was recorded.  
+    def get_vacuum_thrust(self, thrust_source, reference_pressure):
+        """Calculate the vacuum thrust from the raw thrust and the reference
+        pressure at which the thrust data was recorded.
 
-        Parameters  
-        ----------  
-        thrust_source : list  
+        Parameters
+        ----------
+        thrust_source : list
             A list of points representing the thrust curve.
-        reference_pressure : int, float  
-            The atmospheric pressure at which the thrust data was recorded.  
+        reference_pressure : int, float
+            The atmospheric pressure at which the thrust data was recorded.
 
-        Returns  
-        -------  
-        vacuum_thrust_source : list  
-            A list of points representing the vacuum thrust curve.  
+        Returns
+        -------
+        vacuum_thrust_source : list
+            A list of points representing the vacuum thrust curve.
         """
         # Initialize arrays
         vacuum_thrust_source = []
