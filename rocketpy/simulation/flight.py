@@ -2012,7 +2012,7 @@ class Flight:
 
         if post_processing:
             self.__post_processed_variables.append(
-                [t, ax, ay, az, 0, 0, 0, Dx, Dy, Dz, 0, 0, 0]
+                [t, ax, ay, az, 0, 0, 0, Dx, Dy, Dz, 0, 0, 0, 0]
             )
 
         return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
@@ -3087,7 +3087,7 @@ class Flight:
         np.array
             An array containing all post-processed variables evaluated at each
             time step. Each element of the array is a list containing:
-            [t, ax, ay, az, alpha1, alpha2, alpha3, R1, R2, R3, M1, M2, M3]
+            [t, ax, ay, az, alpha1, alpha2, alpha3, R1, R2, R3, M1, M2, M3, net_thrust]
         """
         self.__post_processed_variables = []
         for phase_index, phase in self.time_iterator(self.flight_phases):
