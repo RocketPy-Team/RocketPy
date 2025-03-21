@@ -39,7 +39,6 @@ Attention: The newest changes should be on top -->
 
 - DOCS: reshape docs (closes #659) [#781](https://github.com/RocketPy-Team/RocketPy/pull/781)
 - MNT: EmptyMotor class inherits from Motor(ABC) [#779](https://github.com/RocketPy-Team/RocketPy/pull/779)
-- DEV: add requirements-tests.txt on make install target [#791](https://github.com/RocketPy-Team/RocketPy/pull/791)
 
 ### Fixed
 
