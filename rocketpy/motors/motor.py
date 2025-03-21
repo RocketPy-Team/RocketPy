@@ -152,7 +152,7 @@ class Motor(ABC):
         Method of interpolation used in case thrust curve is given
         by data set in .csv or .eng, or as an array. Options are 'spline'
         'akima' and 'linear'. Default is "linear".
-    Motor.reference_pressure : int, float
+    Motor.reference_pressure : int, float, None
         Atmospheric pressure in Pa at which the thrust data was recorded.
         It will allow to obtain the net thrust in the Flight class.
     """
