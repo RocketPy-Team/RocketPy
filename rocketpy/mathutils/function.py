@@ -3492,7 +3492,7 @@ def funcify_method(*args, **kwargs):  # pylint: disable=too-many-statements
     >>> example.f
     'Function from R1 to R1 : (x) → (f(x))'
 
-    In order to reset the cache, just delete de attribute from the instance:
+    In order to reset the cache, just delete the attribute from the instance:
 
     >>> del example.f
 
