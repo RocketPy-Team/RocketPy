@@ -413,7 +413,7 @@ class StochasticRocket(StochasticModel):
         self.cp_eccentricity_x = self._validate_eccentricity("cp_eccentricity_x", x)
         self.cp_eccentricity_y = self._validate_eccentricity("cp_eccentricity_y", y)
         return self
-    
+
     def add_thrust_eccentricity(self, x=None, y=None):
         """Moves line of action of thrust forces to simulate a
         misalignment of the thrust vector and the center of dry mass.
@@ -436,10 +436,14 @@ class StochasticRocket(StochasticModel):
         self : StochasticRocket
             Object of the StochasticRocket class.
         """
-        self.thrust_eccentricity_x = self._validate_eccentricity("thrust_eccentricity_x", x)
-        self.thrust_eccentricity_y = self._validate_eccentricity("thrust_eccentricity_y", y)
+        self.thrust_eccentricity_x = self._validate_eccentricity(
+            "thrust_eccentricity_x", x
+        )
+        self.thrust_eccentricity_y = self._validate_eccentricity(
+            "thrust_eccentricity_y", y
+        )
         return self
-    
+
     def _validate_eccentricity(self, eccentricity, position):
         """Validate the eccentricity argument.
 
@@ -672,7 +676,7 @@ class StochasticRocket(StochasticModel):
         parachute = stochastic_parachute.create_object()
         self.last_rnd_dict["parachutes"].append(stochastic_parachute.last_rnd_dict)
         return parachute
-    
+
     def _create_eccentricities(self, stochastic_x, stochastic_y, eccentricity):
         x_rnd = self._randomize_position(stochastic_x)
         self.last_rnd_dict[eccentricity + "_x"] = x_rnd
@@ -711,24 +715,22 @@ class StochasticRocket(StochasticModel):
         rocket.power_off_drag *= generated_dict["power_off_drag_factor"]
         rocket.power_on_drag *= generated_dict["power_on_drag_factor"]
 
-        try:
+        if hasattr(self, "cp_eccentricity_x") and hasattr(self, "cp_eccentricity_y"):
             cp_ecc_x, cp_ecc_y = self._create_eccentricities(
                 self.cp_eccentricity_x,
                 self.cp_eccentricity_y,
                 "cp_eccentricity",
             )
-            rocket.add_cp_eccentricity(cp_ecc_x,cp_ecc_y)
-        except:
-            pass
-        try:
+            rocket.add_cp_eccentricity(cp_ecc_x, cp_ecc_y)
+        if hasattr(self, "thrust_eccentricity_x") and hasattr(
+            self, "thrust_eccentricity_y"
+        ):
             thrust_ecc_x, thrust_ecc_y = self._create_eccentricities(
                 self.thrust_eccentricity_x,
                 self.thrust_eccentricity_y,
                 "thrust_eccentricity",
             )
-            rocket.add_thrust_eccentricity(thrust_ecc_x,thrust_ecc_y)
-        except:
-            pass
+            rocket.add_thrust_eccentricity(thrust_ecc_x, thrust_ecc_y)
 
         for component_motor in self.motors:
             motor, position_rnd = self._create_motor(component_motor)
