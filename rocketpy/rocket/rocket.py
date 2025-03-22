@@ -1815,7 +1815,7 @@ class Rocket:
             is defined according to the body axes coordinate system.
         y : float
             Distance in meters by which the line of action of the
-            thrust force is to be translated in the x direction
+            thrust force is to be translated in the y direction
             relative to geometrical center line. The y axis
             is defined according to the body axes coordinate system.
 
@@ -1828,8 +1828,8 @@ class Rocket:
         --------
         :ref:`rocket_axes`
         """
-        self.thrust_eccentricity_y += x
-        self.thrust_eccentricity_x += y
+        self.thrust_eccentricity_x += x
+        self.thrust_eccentricity_y += y
         return self
 
     def draw(self, vis_args=None, plane="xz", *, filename=None):
