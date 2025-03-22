@@ -673,9 +673,11 @@ class StochasticRocket(StochasticModel):
         self.last_rnd_dict["parachutes"].append(stochastic_parachute.last_rnd_dict)
         return parachute
     
-    def _create_eccentricities(self, stochastic_x, stochastic_y):
+    def _create_eccentricities(self, stochastic_x, stochastic_y, eccentricity):
         x_rnd = self._randomize_position(stochastic_x)
+        self.last_rnd_dict[eccentricity + "_x"] = x_rnd
         y_rnd = self._randomize_position(stochastic_y)
+        self.last_rnd_dict[eccentricity + "_y"] = y_rnd
         return x_rnd, y_rnd
 
     def create_object(self):
@@ -710,12 +712,20 @@ class StochasticRocket(StochasticModel):
         rocket.power_on_drag *= generated_dict["power_on_drag_factor"]
 
         try:
-            cp_ecc_x, cp_ecc_y = self._create_eccentricities(self.cp_eccentricity_x,self.cp_eccentricity_y)
+            cp_ecc_x, cp_ecc_y = self._create_eccentricities(
+                self.cp_eccentricity_x,
+                self.cp_eccentricity_y,
+                "cp_eccentricity",
+            )
             rocket.add_cp_eccentricity(cp_ecc_x,cp_ecc_y)
         except:
             pass
         try:
-            thrust_ecc_x, thrust_ecc_y = self._create_eccentricities(self.thrust_eccentricity_x,self.thrust_eccentricity_y)
+            thrust_ecc_x, thrust_ecc_y = self._create_eccentricities(
+                self.thrust_eccentricity_x,
+                self.thrust_eccentricity_y,
+                "thrust_eccentricity",
+            )
             rocket.add_thrust_eccentricity(thrust_ecc_x,thrust_ecc_y)
         except:
             pass
