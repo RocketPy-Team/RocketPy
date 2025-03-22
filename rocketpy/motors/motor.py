@@ -164,13 +164,13 @@ class Motor(ABC):
         dry_inertia,
         nozzle_radius,
         center_of_dry_mass_position,
-        reference_pressure=None,
         dry_mass=None,
         nozzle_position=0,
         burn_time=None,
         reshape_thrust_curve=False,
         interpolation_method="linear",
         coordinate_system_orientation="nozzle_to_combustion_chamber",
+        reference_pressure=None,
     ):
         """Initialize Motor class, process thrust curve and geometrical
         parameters and store results.
@@ -209,8 +209,6 @@ class Motor(ABC):
             (I_11, I_22, I_33), where I_12 = I_13 = I_23 = 0.
         nozzle_radius : int, float, optional
             Motor's nozzle outlet radius in meters.
-        reference_pressure : int, float, optional
-            Atmospheric pressure in Pa at which the thrust data was recorded.
         burn_time: float, tuple of float, optional
             Motor's burn time.
             If a float is given, the burn time is assumed to be between 0 and
@@ -248,6 +246,8 @@ class Motor(ABC):
             positions specified. Options are "nozzle_to_combustion_chamber" and
             "combustion_chamber_to_nozzle". Default is
             "nozzle_to_combustion_chamber".
+        reference_pressure : int, float, optional
+            Atmospheric pressure in Pa at which the thrust data was recorded.
 
         Returns
         -------
@@ -1160,13 +1160,13 @@ class Motor(ABC):
             "dry_I_23": self.dry_I_23,
             "nozzle_radius": self.nozzle_radius,
             "nozzle_area": self.nozzle_area,
-            "reference_pressure": self.reference_pressure,
             "center_of_dry_mass_position": self.center_of_dry_mass_position,
             "dry_mass": self.dry_mass,
             "nozzle_position": self.nozzle_position,
             "burn_time": self.burn_time,
             "interpolate": self.interpolate,
             "coordinate_system_orientation": self.coordinate_system_orientation,
+            "reference_pressure": self.reference_pressure,
         }
 
         if include_outputs:
@@ -1243,7 +1243,6 @@ class GenericMotor(Motor):
         chamber_position,
         propellant_initial_mass,
         nozzle_radius,
-        reference_pressure=None,
         dry_mass=0,
         center_of_dry_mass_position=None,
         dry_inertia=(0, 0, 0),
@@ -1251,6 +1250,7 @@ class GenericMotor(Motor):
         reshape_thrust_curve=False,
         interpolation_method="linear",
         coordinate_system_orientation="nozzle_to_combustion_chamber",
+        reference_pressure=None,
     ):
         """Initialize GenericMotor class, process thrust curve and geometrical
         parameters and store results.
@@ -1290,8 +1290,6 @@ class GenericMotor(Motor):
             to the motor's coordinate system when it is devoid of propellant.
             If not specified, automatically sourced as the chamber position.
             See :doc:`Positions and Coordinate Systems </user/positions>`
-        reference_pressure : int, float, optional
-            Atmospheric pressure in Pa at which the thrust data was recorded.
         dry_inertia : tuple, list
             Tuple or list containing the motor's dry mass inertia tensor
             components, in kg*m^2. This inertia is defined with respect to the
@@ -1342,19 +1340,21 @@ class GenericMotor(Motor):
             positions specified. Options are "nozzle_to_combustion_chamber" and
             "combustion_chamber_to_nozzle". Default is
             "nozzle_to_combustion_chamber".
+        reference_pressure : int, float, optional
+            Atmospheric pressure in Pa at which the thrust data was recorded.
         """
         super().__init__(
             thrust_source=thrust_source,
             dry_inertia=dry_inertia,
             nozzle_radius=nozzle_radius,
             center_of_dry_mass_position=center_of_dry_mass_position,
-            reference_pressure=reference_pressure,
             dry_mass=dry_mass,
             nozzle_position=nozzle_position,
             burn_time=burn_time,
             reshape_thrust_curve=reshape_thrust_curve,
             interpolation_method=interpolation_method,
             coordinate_system_orientation=coordinate_system_orientation,
+            reference_pressure=reference_pressure,
         )
 
         self.chamber_radius = chamber_radius
@@ -1511,12 +1511,12 @@ class GenericMotor(Motor):
         dry_mass=None,
         burn_time=None,
         center_of_dry_mass_position=None,
-        reference_pressure=None,
         dry_inertia=(0, 0, 0),
         nozzle_position=0,
         reshape_thrust_curve=False,
         interpolation_method="linear",
         coordinate_system_orientation="nozzle_to_combustion_chamber",
+        reference_pressure=None,
     ):
         """Loads motor data from a .eng file and processes it.
 
@@ -1553,8 +1553,6 @@ class GenericMotor(Motor):
             The position, in meters, of the motor's center of mass with respect
             to the motor's coordinate system when it is devoid of propellant.
             If not specified, automatically sourced as the chamber position.
-        reference_pressure : int, float, optional
-            Atmospheric pressure in Pa at which the thrust data was recorded.
         dry_inertia : tuple, list
             Tuple or list containing the motor's dry mass inertia tensor
         nozzle_position : int, float, optional
@@ -1580,6 +1578,8 @@ class GenericMotor(Motor):
             positions specified. Options are "nozzle_to_combustion_chamber" and
             "combustion_chamber_to_nozzle". Default is
             "nozzle_to_combustion_chamber".
+        reference_pressure : int, float, optional
+            Atmospheric pressure in Pa at which the thrust data was recorded.
 
         Returns
         -------
@@ -1622,7 +1622,6 @@ class GenericMotor(Motor):
             chamber_position=chamber_position,
             propellant_initial_mass=propellant_initial_mass,
             nozzle_radius=nozzle_radius,
-            reference_pressure=reference_pressure,
             dry_mass=dry_mass,
             center_of_dry_mass_position=center_of_dry_mass_position,
             dry_inertia=dry_inertia,
@@ -1630,6 +1629,7 @@ class GenericMotor(Motor):
             reshape_thrust_curve=reshape_thrust_curve,
             interpolation_method=interpolation_method,
             coordinate_system_orientation=coordinate_system_orientation,
+            reference_pressure=reference_pressure,
         )
 
     def all_info(self):
@@ -1660,7 +1660,6 @@ class GenericMotor(Motor):
             chamber_position=data["chamber_position"],
             propellant_initial_mass=data["propellant_initial_mass"],
             nozzle_radius=data["nozzle_radius"],
-            reference_pressure=data["reference_pressure"],
             dry_mass=data["dry_mass"],
             center_of_dry_mass_position=data["center_of_dry_mass_position"],
             dry_inertia=(
@@ -1673,4 +1672,5 @@ class GenericMotor(Motor):
             ),
             nozzle_position=data["nozzle_position"],
             interpolation_method=data["interpolate"],
+            reference_pressure=data["reference_pressure"],
         )

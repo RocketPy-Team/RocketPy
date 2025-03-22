@@ -206,13 +206,13 @@ class HybridMotor(Motor):
         grain_separation,
         grains_center_of_mass_position,
         center_of_dry_mass_position,
-        reference_pressure=None,
         nozzle_position=0,
         burn_time=None,
         throat_radius=0.01,
         reshape_thrust_curve=False,
         interpolation_method="linear",
         coordinate_system_orientation="nozzle_to_combustion_chamber",
+        reference_pressure=None,
     ):
         """Initialize Motor class, process thrust curve and geometrical
         parameters and store results.
@@ -268,8 +268,6 @@ class HybridMotor(Motor):
             The position, in meters, of the motor's center of mass with respect
             to the motor's coordinate system when it is devoid of propellant.
             See :doc:`Positions and Coordinate Systems </user/positions>`.
-        reference_pressure : int, float, optional
-            Atmospheric pressure in Pa at which the thrust data was recorded.
         nozzle_position : int, float, optional
             Motor's nozzle outlet position in meters, in the motor's coordinate
             system. See :doc:`Positions and Coordinate Systems </user/positions>`
@@ -310,6 +308,8 @@ class HybridMotor(Motor):
             positions specified. Options are "nozzle_to_combustion_chamber" and
             "combustion_chamber_to_nozzle". Default is
             "nozzle_to_combustion_chamber".
+        reference_pressure : int, float, optional
+            Atmospheric pressure in Pa at which the thrust data was recorded.
 
         Returns
         -------
@@ -320,13 +320,13 @@ class HybridMotor(Motor):
             dry_inertia=dry_inertia,
             nozzle_radius=nozzle_radius,
             center_of_dry_mass_position=center_of_dry_mass_position,
-            reference_pressure=reference_pressure,
             dry_mass=dry_mass,
             nozzle_position=nozzle_position,
             burn_time=burn_time,
             reshape_thrust_curve=reshape_thrust_curve,
             interpolation_method=interpolation_method,
             coordinate_system_orientation=coordinate_system_orientation,
+            reference_pressure=reference_pressure,
         )
         self.liquid = LiquidMotor(
             thrust_source,
@@ -334,12 +334,12 @@ class HybridMotor(Motor):
             dry_inertia,
             nozzle_radius,
             center_of_dry_mass_position,
-            reference_pressure,
             nozzle_position,
             burn_time,
             reshape_thrust_curve,
             interpolation_method,
             coordinate_system_orientation,
+            reference_pressure,
         )
         self.solid = SolidMotor(
             thrust_source,
@@ -354,13 +354,13 @@ class HybridMotor(Motor):
             grain_separation,
             grains_center_of_mass_position,
             center_of_dry_mass_position,
-            reference_pressure,
             nozzle_position,
             burn_time,
             throat_radius,
             reshape_thrust_curve,
             interpolation_method,
             coordinate_system_orientation,
+            reference_pressure,
         )
 
         self.positioned_tanks = self.liquid.positioned_tanks
@@ -672,7 +672,6 @@ class HybridMotor(Motor):
             nozzle_radius=data["nozzle_radius"],
             dry_mass=data["dry_mass"],
             center_of_dry_mass_position=data["center_of_dry_mass_position"],
-            reference_pressure=data["reference_pressure"],
             dry_inertia=(
                 data["dry_I_11"],
                 data["dry_I_22"],
@@ -692,6 +691,7 @@ class HybridMotor(Motor):
             grains_center_of_mass_position=data["grains_center_of_mass_position"],
             nozzle_position=data["nozzle_position"],
             throat_radius=data["throat_radius"],
+            reference_pressure=data["reference_pressure"],
         )
 
         for tank in data["positioned_tanks"]:

@@ -13,13 +13,13 @@ class EmptyMotor(Motor):
             dry_inertia=(0, 0, 0),
             nozzle_radius=0,
             center_of_dry_mass_position=0,
-            reference_pressure=0,
             dry_mass=0,
             nozzle_position=0,
             burn_time=1,
             reshape_thrust_curve=False,
             interpolation_method="linear",
             coordinate_system_orientation="nozzle_to_combustion_chamber",
+            reference_pressure=0,
         )
 
         # Mass properties

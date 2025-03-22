@@ -161,12 +161,12 @@ class LiquidMotor(Motor):
         dry_inertia,
         nozzle_radius,
         center_of_dry_mass_position,
-        reference_pressure=None,
         nozzle_position=0,
         burn_time=None,
         reshape_thrust_curve=False,
         interpolation_method="linear",
         coordinate_system_orientation="nozzle_to_combustion_chamber",
+        reference_pressure=None,
     ):
         """Initialize LiquidMotor class, process thrust curve and geometrical
         parameters and store results.
@@ -204,8 +204,6 @@ class LiquidMotor(Motor):
             The position, in meters, of the motor's center of mass with respect
             to the motor's coordinate system when it is devoid of propellant.
             See :doc:`Positions and Coordinate Systems </user/positions>`
-        reference_pressure : int, float, optional
-            Atmospheric pressure in Pa at which the thrust data was recorded.
         nozzle_position : float
             Motor's nozzle outlet position in meters, specified in the motor's
             coordinate system. See
@@ -242,19 +240,21 @@ class LiquidMotor(Motor):
             positions specified. Options are "nozzle_to_combustion_chamber"
             and "combustion_chamber_to_nozzle". Default is
             "nozzle_to_combustion_chamber".
+        reference_pressure : int, float, optional
+            Atmospheric pressure in Pa at which the thrust data was recorded.
         """
         super().__init__(
             thrust_source=thrust_source,
             dry_inertia=dry_inertia,
             nozzle_radius=nozzle_radius,
             center_of_dry_mass_position=center_of_dry_mass_position,
-            reference_pressure=reference_pressure,
             dry_mass=dry_mass,
             nozzle_position=nozzle_position,
             burn_time=burn_time,
             reshape_thrust_curve=reshape_thrust_curve,
             interpolation_method=interpolation_method,
             coordinate_system_orientation=coordinate_system_orientation,
+            reference_pressure=reference_pressure,
         )
 
         self.positioned_tanks = []
@@ -513,7 +513,6 @@ class LiquidMotor(Motor):
             nozzle_radius=data["nozzle_radius"],
             dry_mass=data["dry_mass"],
             center_of_dry_mass_position=data["center_of_dry_mass_position"],
-            reference_pressure=data["reference_pressure"],
             dry_inertia=(
                 data["dry_I_11"],
                 data["dry_I_22"],
@@ -525,6 +524,7 @@ class LiquidMotor(Motor):
             nozzle_position=data["nozzle_position"],
             interpolation_method=data["interpolate"],
             coordinate_system_orientation=data["coordinate_system_orientation"],
+            reference_pressure=data["reference_pressure"],
         )
 
         for tank in data["positioned_tanks"]:
