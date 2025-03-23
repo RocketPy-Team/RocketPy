@@ -413,6 +413,105 @@ class StochasticRocket(StochasticModel):
         self.air_brakes.append(air_brakes)
         self.air_brake_controller = controller
 
+    def add_cp_eccentricity(self, x=None, y=None):
+        """Moves line of action of aerodynamic forces to simulate an
+        eccentricity in the position of the center of pressure relative
+        to the center of dry mass of the rocket.
+
+        Parameters
+        ----------
+        x : tuple, list, int, float, optional
+            Distance in meters by which the CP is to be translated in
+            the x direction relative to the center of dry mass axial line.
+            The x axis is defined according to the body axes coordinate system.
+        y : tuple, list, int, float, optional
+            Distance in meters by which the CP is to be translated in
+            the y direction relative to the center of dry mass axial line.
+            The y axis is defined according to the body axes coordinate system.
+
+        Returns
+        -------
+        self : StochasticRocket
+            Object of the StochasticRocket class.
+        """
+        self.cp_eccentricity_x = self._validate_eccentricity("cp_eccentricity_x", x)
+        self.cp_eccentricity_y = self._validate_eccentricity("cp_eccentricity_y", y)
+        return self
+
+    def add_thrust_eccentricity(self, x=None, y=None):
+        """Moves line of action of thrust forces to simulate a
+        misalignment of the thrust vector and the center of dry mass.
+
+        Parameters
+        ----------
+        x : tuple, list, int, float, optional
+            Distance in meters by which the line of action of the
+            thrust force is to be translated in the x direction
+            relative to the center of dry mass axial line. The x axis
+            is defined according to the body axes coordinate system.
+        y : tuple, list, int, float, optional
+            Distance in meters by which the line of action of the
+            thrust force is to be translated in the y direction
+            relative to the center of dry mass axial line. The y axis
+            is defined according to the body axes coordinate system.
+
+        Returns
+        -------
+        self : StochasticRocket
+            Object of the StochasticRocket class.
+        """
+        self.thrust_eccentricity_x = self._validate_eccentricity(
+            "thrust_eccentricity_x", x
+        )
+        self.thrust_eccentricity_y = self._validate_eccentricity(
+            "thrust_eccentricity_y", y
+        )
+        return self
+
+    def _validate_eccentricity(self, eccentricity, position):
+        """Validate the eccentricity argument.
+
+        Parameters
+        ----------
+        eccentricity : str
+            The eccentricity to which the position argument refers to.
+        position : tuple, list, int, float
+            The position argument to be validated.
+
+        Returns
+        -------
+        tuple or list
+            Validated position argument.
+
+        Raises
+        ------
+        ValueError
+            If the position argument does not conform to the specified formats.
+        """
+        if isinstance(position, tuple):
+            return self._validate_tuple(
+                eccentricity,
+                position,
+            )
+        elif isinstance(position, (int, float)):
+            return self._validate_scalar(
+                eccentricity,
+                position,
+            )
+        elif isinstance(position, list):
+            return self._validate_list(
+                eccentricity,
+                position,
+            )
+        elif position is None:
+            position = []
+            return self._validate_list(
+                eccentricity,
+                position,
+            )
+        else:
+            raise AssertionError("`position` must be a tuple, list, int, or float")
+
     def _validate_position(self, validated_object, position):
         """Validate the position argument.
 
@@ -608,6 +707,13 @@ class StochasticRocket(StochasticModel):
         self.last_rnd_dict["parachutes"].append(stochastic_parachute.last_rnd_dict)
         return parachute
 
+    def _create_eccentricities(self, stochastic_x, stochastic_y, eccentricity):
+        x_rnd = self._randomize_position(stochastic_x)
+        self.last_rnd_dict[eccentricity + "_x"] = x_rnd
+        y_rnd = self._randomize_position(stochastic_y)
+        self.last_rnd_dict[eccentricity + "_y"] = y_rnd
+        return x_rnd, y_rnd
+
     def create_object(self):
         """Creates and returns a Rocket object from the randomly generated input
         arguments.
@@ -638,6 +744,23 @@ class StochasticRocket(StochasticModel):
         )
         rocket.power_off_drag *= generated_dict["power_off_drag_factor"]
         rocket.power_on_drag *= generated_dict["power_on_drag_factor"]
+
+        if hasattr(self, "cp_eccentricity_x") and hasattr(self, "cp_eccentricity_y"):
+            cp_ecc_x, cp_ecc_y = self._create_eccentricities(
+                self.cp_eccentricity_x,
+                self.cp_eccentricity_y,
+                "cp_eccentricity",
+            )
+            rocket.add_cp_eccentricity(cp_ecc_x, cp_ecc_y)
+        if hasattr(self, "thrust_eccentricity_x") and hasattr(
+            self, "thrust_eccentricity_y"
+        ):
+            thrust_ecc_x, thrust_ecc_y = self._create_eccentricities(
+                self.thrust_eccentricity_x,
+                self.thrust_eccentricity_y,
+                "thrust_eccentricity",
+            )
+            rocket.add_thrust_eccentricity(thrust_ecc_x, thrust_ecc_y)
 
         for component_motor in self.motors:
             motor, position_rnd = self._create_motor(component_motor)

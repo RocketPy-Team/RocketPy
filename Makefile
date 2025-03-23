@@ -21,6 +21,7 @@ install:
 	$(PYTHON) -m pip install --upgrade pip
 	pip install -r requirements.txt
 	pip install -r requirements-optional.txt
+	pip install -r requirements-tests.txt
 	pip install -e .
 
 format:
