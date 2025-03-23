@@ -1469,8 +1469,8 @@ class Flight:
             # Thrust
             thrust = self.rocket.motor.thrust.get_value_opt(t)
             # Off center moment
-            M1 += self.rocket.thrust_eccentricity_x * thrust
-            M2 -= self.rocket.thrust_eccentricity_y * thrust
+            M1 += self.rocket.thrust_eccentricity_y * thrust
+            M2 -= self.rocket.thrust_eccentricity_x * thrust
         else:
             # Motor stopped
             # Inertias
@@ -1856,11 +1856,11 @@ class Flight:
         thrust = self.rocket.motor.thrust.get_value_opt(t)
         M1 += (
             self.rocket.cp_eccentricity_y * R3
-            + self.rocket.thrust_eccentricity_x * thrust
+            + self.rocket.thrust_eccentricity_y * thrust
         )
         M2 -= (
             self.rocket.cp_eccentricity_x * R3
-            - self.rocket.thrust_eccentricity_y * thrust
+            + self.rocket.thrust_eccentricity_x * thrust
         )
         M3 += self.rocket.cp_eccentricity_x * R2 - self.rocket.cp_eccentricity_y * R1
 
