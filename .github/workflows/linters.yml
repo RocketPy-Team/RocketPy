@@ -18,9 +18,9 @@ jobs:
       matrix:
         python-version: ["3.9"]
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@main
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@main
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
@@ -28,16 +28,11 @@ jobs:
         python -m pip install --upgrade pip
         pip install .[all]
         pip install .[tests]
-        pip install pylint isort flake8 black
-    - name: Run isort
-      run: isort --check-only rocketpy/ tests/ docs/ --profile black
-    - name: Run black
-      uses: psf/black@stable
-      with:
-        options: "--check rocketpy/ tests/ docs/"
-        jupyter: true
-    - name: Run flake8
-      run: flake8 rocketpy/ tests/
-    - name: Run pylint
+        pip install pylint ruff
+    - name: Ruff (lint)
+      run: ruff check --output-format=github .
+    - name: Ruff (format)
+      run: ruff format --check .
+    - name: Pylint
       run: |
-        pylint rocketpy/ tests/
+        pylint rocketpy/ tests/ docs/

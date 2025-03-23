@@ -184,5 +184,6 @@ class StochasticEnvironment(StochasticModel):
                     # get original attribute value and multiply by factor
                     attribute_name = f"_{key.replace('_factor', '')}"
                     value = getattr(self, attribute_name) * value
+                    key = f"{key.replace('_factor', '')}"
                 setattr(self.obj, key, value)
         return self.obj

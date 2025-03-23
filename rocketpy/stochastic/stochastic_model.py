@@ -40,7 +40,7 @@ class StochasticModel:
         "ensemble_member",
     ]
 
-    def __init__(self, obj, **kwargs):
+    def __init__(self, obj, seed=None, **kwargs):
         """
         Initialize the StochasticModel class with validated input arguments.
 
@@ -48,6 +48,9 @@ class StochasticModel:
         ----------
         obj : object
             The main object of the class.
+        seed : int, optional
+            Seed for the random number generator. The default is None so that
+            a new ``numpy.random.Generator`` object is created.
         **kwargs : dict
             Dictionary of input arguments for the class. Valid argument types
             include tuples, lists, ints, floats, or None. Arguments will be
@@ -63,9 +66,24 @@ class StochasticModel:
 
         self.obj = obj
         self.last_rnd_dict = {}
+        self.__stochastic_dict = kwargs
+        self._set_stochastic(seed)
+
+    def _set_stochastic(self, seed=None):
+        """Set the stochastic attributes from the input dictionary.
+        This method is useful to reset or reseed the attributes of the instance.
+
+        Parameters
+        ----------
+        seed : int, optional
+            Seed for the random number generator.
+        """
+        self.__random_number_generator = np.random.default_rng(seed)
+        self.last_rnd_dict = {}
 
         # TODO: This code block is too complex. Refactor it.
-        for input_name, input_value in kwargs.items():
+        # TODO: Resetting a instance should not require re-validation.
+        for input_name, input_value in self.__stochastic_dict.items():
             if input_name not in self.exception_list:
                 attr_value = None
                 if input_value is not None:
@@ -89,9 +107,7 @@ class StochasticModel:
     def __repr__(self):
         return f"'{self.__class__.__name__}() object'"
 
-    def _validate_tuple(
-        self, input_name, input_value, getattr=getattr
-    ):  # pylint: disable=redefined-builtin
+    def _validate_tuple(self, input_name, input_value, getattr=getattr):  # pylint: disable=redefined-builtin
         """
         Validate tuple arguments.
 
@@ -119,18 +135,16 @@ class StochasticModel:
             2,
             3,
         ], f"'{input_name}': tuple must have length 2 or 3"
-        assert isinstance(
-            input_value[0], (int, float)
-        ), f"'{input_name}': First item of tuple must be an int or float"
+        assert isinstance(input_value[0], (int, float)), (
+            f"'{input_name}': First item of tuple must be an int or float"
+        )
 
         if len(input_value) == 2:
             return self._validate_tuple_length_two(input_name, input_value, getattr)
         if len(input_value) == 3:
             return self._validate_tuple_length_three(input_name, input_value, getattr)
 
-    def _validate_tuple_length_two(
-        self, input_name, input_value, getattr=getattr
-    ):  # pylint: disable=redefined-builtin
+    def _validate_tuple_length_two(self, input_name, input_value, getattr=getattr):  # pylint: disable=redefined-builtin
         """
         Validate tuples with length 2.
 
@@ -154,27 +168,29 @@ class StochasticModel:
         AssertionError
             If the input is not in a valid format.
         """
-        assert isinstance(
-            input_value[1], (int, float, str)
-        ), f"'{input_name}': second item of tuple must be an int, float, or string."
+        assert isinstance(input_value[1], (int, float, str)), (
+            f"'{input_name}': second item of tuple must be an int, float, or string."
+        )
 
         if isinstance(input_value[1], str):
             # if second item is a string, then it is assumed that the first item
             # is the standard deviation, and the second item is the distribution
             # function. In this case, the nominal value will be taken from the
             # object passed.
-            dist_func = get_distribution(input_value[1])
+            dist_func = get_distribution(input_value[1], self.__random_number_generator)
             return (getattr(self.obj, input_name), input_value[0], dist_func)
         else:
             # if second item is an int or float, then it is assumed that the
             # first item is the nominal value and the second item is the
             # standard deviation. The distribution function will be set to
             # "normal".
-            return (input_value[0], input_value[1], get_distribution("normal"))
+            return (
+                input_value[0],
+                input_value[1],
+                get_distribution("normal", self.__random_number_generator),
+            )
 
-    def _validate_tuple_length_three(
-        self, input_name, input_value, getattr=getattr
-    ):  # pylint: disable=redefined-builtin,unused-argument
+    def _validate_tuple_length_three(self, input_name, input_value, getattr=getattr):  # pylint: disable=redefined-builtin,unused-argument
         """
         Validate tuples with length 3.
 
@@ -206,12 +222,10 @@ class StochasticModel:
             f"'{input_name}': Third item of tuple must be a string containing the "
             "name of a valid numpy.random distribution function."
         )
-        dist_func = get_distribution(input_value[2])
+        dist_func = get_distribution(input_value[2], self.__random_number_generator)
         return (input_value[0], input_value[1], dist_func)
 
-    def _validate_list(
-        self, input_name, input_value, getattr=getattr
-    ):  # pylint: disable=redefined-builtin
+    def _validate_list(self, input_name, input_value, getattr=getattr):  # pylint: disable=redefined-builtin
         """
         Validate list arguments.
 
@@ -239,9 +253,7 @@ class StochasticModel:
         else:
             return input_value
 
-    def _validate_scalar(
-        self, input_name, input_value, getattr=getattr
-    ):  # pylint: disable=redefined-builtin
+    def _validate_scalar(self, input_name, input_value, getattr=getattr):  # pylint: disable=redefined-builtin
         """
         Validate scalar arguments. If the input is a scalar, the nominal value
         will be taken from the object passed, and the standard deviation will be
@@ -265,7 +277,7 @@ class StochasticModel:
         return (
             getattr(self.obj, input_name),
             input_value,
-            get_distribution("normal"),
+            get_distribution("normal", self.__random_number_generator),
         )
 
     def _validate_factors(self, input_name, input_value):
@@ -330,13 +342,19 @@ class StochasticModel:
         )
 
         if len(factor_tuple) == 2:
-            return (factor_tuple[0], factor_tuple[1], get_distribution("normal"))
+            return (
+                factor_tuple[0],
+                factor_tuple[1],
+                get_distribution("normal", self.__random_number_generator),
+            )
         elif len(factor_tuple) == 3:
             assert isinstance(factor_tuple[2], str), (
                 f"'{input_name}`: Third item of tuple must be a string containing "
                 "the name of a valid numpy.random distribution function"
             )
-            dist_func = get_distribution(factor_tuple[2])
+            dist_func = get_distribution(
+                factor_tuple[2], self.__random_number_generator
+            )
             return (factor_tuple[0], factor_tuple[1], dist_func)
 
     def _validate_list_factor(self, input_name, factor_list):
@@ -360,9 +378,9 @@ class StochasticModel:
         AssertionError
             If the input is not in a valid format.
         """
-        assert all(
-            isinstance(item, (int, float)) for item in factor_list
-        ), f"'{input_name}`: Items in list must be either ints or floats"
+        assert all(isinstance(item, (int, float)) for item in factor_list), (
+            f"'{input_name}`: Items in list must be either ints or floats"
+        )
         return factor_list
 
     def _validate_1d_array_like(self, input_name, input_value):
@@ -439,9 +457,9 @@ class StochasticModel:
             ), "`airfoil` must be a list of tuples"
             for member in airfoil:
                 assert len(member) == 2, "`airfoil` tuples must have length 2"
-                assert isinstance(
-                    member[1], str
-                ), "`airfoil` tuples must have a string as the second item"
+                assert isinstance(member[1], str), (
+                    "`airfoil` tuples must have a string as the second item"
+                )
                 if isinstance(member[0], list):
                     if len(np.shape(member[0])) != 2 and np.shape(member[0])[1] != 2:
                         raise AssertionError("`airfoil` tuples must have shape (n,2)")
@@ -496,11 +514,19 @@ class StochasticModel:
                 )
             elif isinstance(value, tuple):
                 nominal_value, std_dev, dist_func = value
-                return (
-                    f"\t{attr.ljust(max_str_length)} "
-                    f"{nominal_value:.5f} ± "
-                    f"{std_dev:.5f} ({dist_func.__name__})"
-                )
+                if callable(dist_func) and dist_func.__name__ == "uniform":
+                    lower_bound = nominal_value
+                    upper_bound = std_dev
+                    return (
+                        f"\t{attr.ljust(max_str_length)} "
+                        f"{lower_bound:.5f}, {upper_bound:.5f} ({dist_func.__name__})"
+                    )
+                else:
+                    return (
+                        f"\t{attr.ljust(max_str_length)} "
+                        f"{nominal_value:.5f} ± "
+                        f"{std_dev:.5f} ({dist_func.__name__})"
+                    )
             return None
 
         attributes = {k: v for k, v in self.__dict__.items() if not k.startswith("_")}

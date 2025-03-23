@@ -6,6 +6,7 @@ associated with each input parameter.
 """
 
 from .stochastic_aero_surfaces import (
+    StochasticAirBrakes,
     StochasticEllipticalFins,
     StochasticNoseCone,
     StochasticRailButtons,

@@ -212,6 +212,9 @@ class _RocketPlots:
             eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
             and webp (these are the formats supported by matplotlib).
         """
+
+        self.__validate_aerodynamic_surfaces()
+
         if vis_args is None:
             vis_args = {
                 "background": "#EEEEEE",
@@ -247,6 +250,12 @@ class _RocketPlots:
         plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
         plt.tight_layout()
         show_or_save_plot(filename)
+
+    def __validate_aerodynamic_surfaces(self):
+        if not self.rocket.aerodynamic_surfaces:
+            raise ValueError(
+                "The rocket must have at least one aerodynamic surface to be drawn."
+            )
 
     def _draw_aerodynamic_surfaces(self, ax, vis_args, plane):
         """Draws the aerodynamic surfaces and saves the position of the points
@@ -399,6 +408,8 @@ class _RocketPlots:
 
     def _draw_tubes(self, ax, drawn_surfaces, vis_args):
         """Draws the tubes between the aerodynamic surfaces."""
+        radius = 0
+        last_x = 0
         for i, d_surface in enumerate(drawn_surfaces):
             # Draw the tubes, from the end of the first surface to the beginning
             # of the next surface, with the radius of the rocket at that point
@@ -463,9 +474,7 @@ class _RocketPlots:
 
         self._draw_nozzle_tube(last_radius, last_x, nozzle_position, ax, vis_args)
 
-    def _generate_motor_patches(
-        self, total_csys, ax
-    ):  # pylint: disable=unused-argument
+    def _generate_motor_patches(self, total_csys, ax):  # pylint: disable=unused-argument
         """Generates motor patches for drawing"""
         motor_patches = []
 
@@ -672,9 +681,10 @@ class _RocketPlots:
         """
 
         # Rocket draw
-        print("\nRocket Draw")
-        print("-" * 40)
-        self.draw()
+        if len(self.rocket.aerodynamic_surfaces) > 0:
+            print("\nRocket Draw")
+            print("-" * 40)
+            self.draw()
 
         # Mass Plots
         print("\nMass Plots")

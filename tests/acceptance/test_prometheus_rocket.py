@@ -67,4 +67,4 @@ def test_prometheus_rocket_data_asserts_acceptance(
     a_error = abs(real_apogee - rocketpy_apogee)
     r_error = a_error / real_apogee
 
-    assert r_error < apogee_threshold, f"Apogee relative error is {r_error*100:.2f}%"
+    assert r_error < apogee_threshold, f"Apogee relative error is {r_error * 100:.2f}%"

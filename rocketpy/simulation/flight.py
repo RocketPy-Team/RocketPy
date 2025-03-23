@@ -25,12 +25,12 @@ from ..tools import (
 )
 
 ODE_SOLVER_MAP = {
-    'RK23': RK23,
-    'RK45': RK45,
-    'DOP853': DOP853,
-    'Radau': Radau,
-    'BDF': BDF,
-    'LSODA': LSODA,
+    "RK23": RK23,
+    "RK45": RK45,
+    "DOP853": DOP853,
+    "Radau": Radau,
+    "BDF": BDF,
+    "LSODA": LSODA,
 }
 
 
@@ -1036,7 +1036,8 @@ class Flight:
                                             i += 1
                                         # Create flight phase for time after inflation
                                         callbacks = [
-                                            lambda self, parachute_cd_s=parachute.cd_s: setattr(
+                                            lambda self,
+                                            parachute_cd_s=parachute.cd_s: setattr(
                                                 self, "parachute_cd_s", parachute_cd_s
                                             )
                                         ]
@@ -1422,9 +1423,7 @@ class Flight:
         # Hey! We will finish this function later, now we just can use u_dot
         return self.u_dot_generalized(t, u, post_processing=post_processing)
 
-    def u_dot(
-        self, t, u, post_processing=False
-    ):  # pylint: disable=too-many-locals,too-many-statements
+    def u_dot(self, t, u, post_processing=False):  # pylint: disable=too-many-locals,too-many-statements
         """Calculates derivative of u state vector with respect to time
         when rocket is flying in 6 DOF motion during ascent out of rail
         and descent without parachute.
@@ -1452,7 +1451,7 @@ class Flight:
         # Determine lift force and moment
         R1, R2, M1, M2, M3 = 0, 0, 0, 0, 0
         # Determine current behavior
-        if t < self.rocket.motor.burn_out_time:
+        if self.rocket.motor.burn_start_time < t < self.rocket.motor.burn_out_time:
             # Motor burning
             # Retrieve important motor quantities
             # Inertias
@@ -1470,8 +1469,8 @@ class Flight:
             # Thrust
             thrust = self.rocket.motor.thrust.get_value_opt(t)
             # Off center moment
-            M1 += self.rocket.thrust_eccentricity_x * thrust
-            M2 -= self.rocket.thrust_eccentricity_y * thrust
+            M1 += self.rocket.thrust_eccentricity_y * thrust
+            M2 -= self.rocket.thrust_eccentricity_x * thrust
         else:
             # Motor stopped
             # Inertias
@@ -1717,9 +1716,7 @@ class Flight:
 
         return u_dot
 
-    def u_dot_generalized(
-        self, t, u, post_processing=False
-    ):  # pylint: disable=too-many-locals,too-many-statements
+    def u_dot_generalized(self, t, u, post_processing=False):  # pylint: disable=too-many-locals,too-many-statements
         """Calculates derivative of u state vector with respect to time when the
         rocket is flying in 6 DOF motion in space and significant mass variation
         effects exist. Typical flight phases include powered ascent after launch
@@ -1791,7 +1788,7 @@ class Flight:
         speed_of_sound = self.env.speed_of_sound.get_value_opt(z)
         free_stream_mach = free_stream_speed / speed_of_sound
 
-        if t < self.rocket.motor.burn_out_time:
+        if self.rocket.motor.burn_start_time < t < self.rocket.motor.burn_out_time:
             drag_coeff = self.rocket.power_on_drag.get_value_opt(free_stream_mach)
         else:
             drag_coeff = self.rocket.power_off_drag.get_value_opt(free_stream_mach)
@@ -1859,11 +1856,11 @@ class Flight:
         thrust = self.rocket.motor.thrust.get_value_opt(t)
         M1 += (
             self.rocket.cp_eccentricity_y * R3
-            + self.rocket.thrust_eccentricity_x * thrust
+            + self.rocket.thrust_eccentricity_y * thrust
         )
         M2 -= (
             self.rocket.cp_eccentricity_x * R3
-            - self.rocket.thrust_eccentricity_y * thrust
+            + self.rocket.thrust_eccentricity_x * thrust
         )
         M3 += self.rocket.cp_eccentricity_x * R2 - self.rocket.cp_eccentricity_y * R1
 
@@ -2957,7 +2954,7 @@ class Flight:
             Rail Button 2 force in the 2 direction
         """
         # First check for no rail phase or rail buttons
-        null_force = []
+        null_force = Function(0)
         if self.out_of_rail_time_index == 0:  # No rail phase, no rail button forces
             warnings.warn(
                 "Trying to calculate rail button forces without a rail phase defined."
@@ -3626,7 +3623,9 @@ class Flight:
             new_index = (
                 index - 1
                 if flight_phase.t < previous_phase.t
-                else index + 1 if flight_phase.t > next_phase.t else index
+                else index + 1
+                if flight_phase.t > next_phase.t
+                else index
             )
             flight_phase.t += adjust
             self.add(flight_phase, new_index)
