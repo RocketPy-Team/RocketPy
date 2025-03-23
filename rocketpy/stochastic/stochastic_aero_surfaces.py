@@ -452,7 +452,8 @@ class StochasticAirBrakes(StochasticModel):
         either the air brakes' drag alone or the combined drag of both
         the rocket and the air brakes.
     drag_coefficient_curve_factor : tuple, list, int, float
-        The drag curve factor of the air brakes.
+        The drag curve factor of the air brakes. This value scales the
+        drag coefficient curve to introduce stochastic variability.
     reference_area : tuple, list, int, float
         Reference area used to non-dimensionalize the drag coefficients.
     clamp : bool
@@ -496,7 +497,8 @@ class StochasticAirBrakes(StochasticModel):
             either the air brakes' drag alone or the combined drag of both
             the rocket and the air brakes.
         drag_coefficient_curve_factor : tuple, list, int, float, optional
-            The drag curve factor of the air brakes.
+            The drag curve factor of the air brakes. This value scales the
+            drag coefficient curve to introduce stochastic variability.
         reference_area : tuple, list, int, float, optional
             Reference area used to non-dimensionalize the drag coefficients.
         clamp : bool, optional
