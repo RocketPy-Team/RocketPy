@@ -76,9 +76,8 @@ class StochasticFlight(StochasticModel):
                 "`terminate_on_apogee` must be a boolean"
             )
         if time_overshoot is not None:
-            assert isinstance(time_overshoot, bool), (
-                "`time_overshoot` must be a boolean"
-            )
+            if not isinstance(time_overshoot, bool):
+                raise TypeError("`time_overshoot` must be a boolean")
         super().__init__(
             flight,
             rail_length=rail_length,
