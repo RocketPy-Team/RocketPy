@@ -655,10 +655,8 @@ class StochasticRocket(StochasticModel):
                 sampling_rate=self.air_brake_controller.sampling_rate,
                 initial_observed_variables=self.air_brake_controller.initial_observed_variables,
             )
-            rocket.set_air_brakes(
-                air_brakes=air_brake,
-                controller=_controller,
-            )
+            rocket.air_brakes.append(air_brake)
+            rocket._add_controllers(_controller)
 
         for component_rail_buttons in self.rail_buttons:
             (
