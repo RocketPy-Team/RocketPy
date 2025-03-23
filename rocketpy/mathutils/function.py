@@ -2238,7 +2238,7 @@ class Function:  # pylint: disable=too-many-public-methods
         Returns
         -------
         result : Function
-            A Function object which gives the result of self(x,y)*other(x,y).
+            A Function object which gives the result of self(x)*other(x) or self(x,y)*other(x,y).
         """
         self_source_is_array = isinstance(self.source, np.ndarray)
         other_source_is_array = (
