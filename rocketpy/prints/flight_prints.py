@@ -245,7 +245,7 @@ class _FlightPrints:
             print(f"\tFreestream speed at inflation: {speed:.3f} m/s")
             print(
                 f"\tAltitude at inflation: {altitude:.3f} m (ASL) | "
-                f"{self.flight.altitude(trigger_time):.3f} m (AGL)"
+                f"{self.flight.altitude(open_time):.3f} m (AGL)"
             )
 
     def impact_conditions(self):
