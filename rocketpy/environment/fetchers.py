@@ -5,7 +5,6 @@ functions may be changed without notice in future feature releases.
 
 import re
 import time
-import warnings
 from datetime import datetime, timedelta, timezone
 
 import netCDF4
