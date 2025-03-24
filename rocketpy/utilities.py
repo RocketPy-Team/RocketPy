@@ -437,7 +437,6 @@ def _flutter_prints(
     print(f"Altitude of minimum Safety Factor: {altitude_min_sf:.3f} m (AGL)\n")
 
 
-# TODO: deprecate and delete this function. Never used and now we have Monte Carlo.
 def create_dispersion_dictionary(filename):  # pragma: no cover
     """Creates a dictionary with the rocket data provided by a .csv file.
     File should be organized in four columns: attribute_class, parameter_name,
@@ -492,6 +491,10 @@ def create_dispersion_dictionary(filename):  # pragma: no cover
                     }
             }
     """
+    warnings.warn(
+        "This function is deprecated and will be removed in v1.10.0.",
+        DeprecationWarning,
+    )
     try:
         file = np.genfromtxt(
             filename, usecols=(1, 2, 3), skip_header=1, delimiter=";", dtype=str
