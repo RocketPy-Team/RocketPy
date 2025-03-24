@@ -88,40 +88,6 @@ class _RocketPlots:
             alpha=1,
         )
 
-    def power_on_drag(self):
-        """Plots power on drag of the rocket as a function of time.
-
-        Returns
-        -------
-        None
-        """
-
-        warnings.warn(
-            "The method 'power_on_drag' is deprecated as of version "
-            + "1.2 and will be removed in version 1.4 "
-            + "Use 'plots.drag_curves' instead.",
-            DeprecationWarning,
-        )
-
-        self.rocket.power_on_drag()
-
-    def power_off_drag(self):
-        """Plots power off drag of the rocket as a function of time.
-
-        Returns
-        -------
-        None
-        """
-
-        warnings.warn(
-            "The method 'power_off_drag' is deprecated as of version "
-            + "1.2 and will be removed in version 1.4 "
-            + "Use 'plots.drag_curves' instead.",
-            DeprecationWarning,
-        )
-
-        self.rocket.power_off_drag()
-
     # pylint: disable=too-many-statements
     def drag_curves(self, *, filename=None):
         """Plots power off and on drag curves of the rocket as a function of time.

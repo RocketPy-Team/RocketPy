@@ -1653,38 +1653,6 @@ class Environment:
         # Save maximum expected height
         self._max_expected_height = data_array[-1, 1]
 
-    def process_noaaruc_sounding(self, file):  # pylint: disable=too-many-statements
-        """Import and process the upper air sounding data from `NOAA
-        Ruc Soundings` database (https://rucsoundings.noaa.gov/) given as
-        ASCII GSD format pages passed by its url to the file parameter. Sets
-        pressure, temperature, wind-u, wind-v profiles and surface elevation.
-
-        Parameters
-        ----------
-        file : string
-            URL of an upper air sounding data output from `NOAA Ruc Soundings`
-            in ASCII GSD format.
-
-            Example:
-
-            https://rucsoundings.noaa.gov/get_raobs.cgi?data_source=RAOB&latest=latest&start_year=2019&start_month_name=Feb&start_mday=5&start_hour=12&start_min=0&n_hrs=1.0&fcst_len=shortest&airport=83779&text=Ascii%20text%20%28GSD%20format%29&hydrometeors=false&start=latest
-
-
-        See also
-        --------
-        This method is deprecated and will be fully deleted in version 1.8.0.
-
-        Returns
-        -------
-        None
-        """
-        warnings.warn(
-            "NOAA RUC models are no longer available. "
-            "This method is deprecated and will be fully deleted in version 1.8.0.",
-            DeprecationWarning,
-        )
-        return file
-
     def process_forecast_reanalysis(self, file, dictionary):  # pylint: disable=too-many-locals,too-many-statements
         """Import and process atmospheric data from weather forecasts
         and reanalysis given as ``netCDF`` or ``OPeNDAP`` files.
@@ -2258,26 +2226,6 @@ class Environment:
         self.calculate_density_profile()
         self.calculate_speed_of_sound_profile()
         self.calculate_dynamic_viscosity()
-
-    def load_international_standard_atmosphere(self):  # pragma: no cover
-        """Defines the pressure and temperature profile functions set
-        by `ISO 2533` for the International Standard atmosphere and saves
-        them as ``Environment.pressure_ISA`` and ``Environment.temperature_ISA``.
-
-        Notes
-        -----
-        This method is **deprecated** and will be removed in version 1.6.0. You
-        can access :meth:`rocketpy.Environment.pressure_ISA` and
-        :meth:`rocketpy.Environment.temperature_ISA` directly without the need
-        to call this method.
-        """
-        warnings.warn(
-            "load_international_standard_atmosphere() is deprecated in version "
-            "1.5.0 and will be removed in version 1.7.0. This method is no longer "
-            "needed as the International Standard Atmosphere is already calculated "
-            "when the Environment object is created.",
-            DeprecationWarning,
-        )
 
     @funcify_method("Height Above Sea Level (m)", "Pressure (Pa)", "spline", "natural")
     def pressure_ISA(self):
