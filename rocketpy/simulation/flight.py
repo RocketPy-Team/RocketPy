@@ -3092,7 +3092,7 @@ class Flight:
         """
         # pylint: disable=unused-argument
         warnings.warn(
-            "The method post_process is deprecated and will be removed in a future release. "
+            "The method post_process is deprecated and will be removed in v1.10. "
             "All attributes that need to be post processed are computed just in time.",
             DeprecationWarning,
         )
