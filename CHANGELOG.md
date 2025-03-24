@@ -32,6 +32,17 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+
+### Changed
+
+
+### Fixed
+
+
+## v1.9.0 - 2025-03-24
+
+### Added
+
 - ENH: Parallel mode for monte-carlo simulations 2 [#768](https://github.com/RocketPy-Team/RocketPy/pull/768)
 - DOC: ASTRA Flight Example [#770](https://github.com/RocketPy-Team/RocketPy/pull/770)
 - ENH: Add Eccentricity to Stochastic Simulations [#792](https://github.com/RocketPy-Team/RocketPy/pull/792)
