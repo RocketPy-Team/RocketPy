@@ -2619,6 +2619,11 @@ class Environment:
         EW : string
             Returns "W" for western hemisphere and "E" for eastern hemisphere
         """
+        warnings.warn(
+            "This function is deprecated and will be removed in v1.10.0. "
+            "Please use the new method `tools.geodesic_to_utm` instead.",
+            DeprecationWarning,
+        )
         return geodesic_to_utm_tools(lat, lon, semi_major_axis, flattening)
 
     @staticmethod
@@ -2656,6 +2661,11 @@ class Environment:
         lon : float
             latitude of the analyzed point
         """
+        warnings.warn(
+            "This function is deprecated and will be removed in v1.10.0. "
+            "Please use the new method `tools.utm_to_geodesic` instead.",
+            DeprecationWarning,
+        )
         return utm_to_geodesic_tools(x, y, utm_zone, hemis, semi_major_axis, flattening)
 
     @staticmethod

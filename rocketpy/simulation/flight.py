@@ -3091,7 +3091,11 @@ class Flight:
         None
         """
         # pylint: disable=unused-argument
-        # TODO: add a deprecation warning maybe?
+        warnings.warn(
+            "The method post_process is deprecated and will be removed in a future release. "
+            "All attributes that need to be post processed are computed just in time.",
+            DeprecationWarning,
+        )
         self.post_processed = True
 
     def calculate_stall_wind_velocity(self, stall_angle):  # TODO: move to utilities
