@@ -586,8 +586,8 @@ class Environment:
         self.wind_direction.set_title("Wind Direction Profile")
     
     def __set_earth_rotation_vector(self):
-        """Calculates and stores the Earth's angular velocity vector in the local
-        reference frame, which is essential for evaluating inertial forces.
+        """Calculates and stores the Earth's angular velocity vector in the Flight
+        Coordinate System, which is essential for evaluating inertial forces.
         """
         # Sidereal day
         T = 86164.1   # seconds
@@ -595,7 +595,7 @@ class Environment:
         # Earth's angular velocity magnitude
         wE = 2*np.pi/T
 
-        # Vector in the local reference frame
+        # Vector in the Flight Coordinate System
         lat = np.radians(self.latitude)
         wL = [0, wE * np.cos(lat), wE * np.sin(lat)]
 
