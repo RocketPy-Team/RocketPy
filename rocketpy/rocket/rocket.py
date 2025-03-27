@@ -1181,7 +1181,7 @@ class Rocket:
         warnings.warn(
             "This method is set to be deprecated in version 1.0.0 and fully "
             "removed by version 2.0.0. Use Rocket.add_trapezoidal_fins instead",
-            PendingDeprecationWarning,
+            DeprecationWarning,
         )
         return self.add_trapezoidal_fins(*args, **kwargs)
 
