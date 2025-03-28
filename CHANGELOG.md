@@ -32,6 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- ENH: Implement Multivariate Rejection Sampling (MRS) [#738] (https://github.com/RocketPy-Team/RocketPy/pull/738) 
 
 ### Changed
 
