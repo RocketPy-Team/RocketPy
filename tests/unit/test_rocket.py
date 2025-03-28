@@ -5,7 +5,8 @@ import pytest
 
 from rocketpy import Function, NoseCone, Rocket, SolidMotor
 from rocketpy.mathutils.vector_matrix import Vector
-from rocketpy.motors.motor import EmptyMotor, Motor
+from rocketpy.motors.empty_motor import EmptyMotor
+from rocketpy.motors.motor import Motor
 
 
 @patch("matplotlib.pyplot.show")
@@ -330,15 +331,15 @@ def test_add_cm_eccentricity_assert_properties_set(calisto):
     assert calisto.cp_eccentricity_x == -4
     assert calisto.cp_eccentricity_y == -5
 
-    assert calisto.thrust_eccentricity_y == -4
-    assert calisto.thrust_eccentricity_x == -5
+    assert calisto.thrust_eccentricity_x == -4
+    assert calisto.thrust_eccentricity_y == -5
 
 
 def test_add_thrust_eccentricity_assert_properties_set(calisto):
     calisto.add_thrust_eccentricity(x=4, y=5)
 
-    assert calisto.thrust_eccentricity_y == 4
-    assert calisto.thrust_eccentricity_x == 5
+    assert calisto.thrust_eccentricity_x == 4
+    assert calisto.thrust_eccentricity_y == 5
 
 
 def test_add_cp_eccentricity_assert_properties_set(calisto):
