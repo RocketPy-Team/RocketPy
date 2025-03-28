@@ -40,7 +40,7 @@ def test_flight_save_load(flight_name, include_outputs, request):
         )
 
     with open("flight.json", "r") as f:
-        flight_loaded = json.load(f, cls=RocketPyDecoder)
+        flight_loaded = json.load(f, cls=RocketPyDecoder, resimulate=True)
 
     assert np.isclose(flight_to_save.t_initial, flight_loaded.t_initial)
     assert np.isclose(flight_to_save.out_of_rail_time, flight_loaded.out_of_rail_time)
@@ -69,7 +69,7 @@ def test_function_encoder(function_name, request):
 
     json_encoded = json.dumps(function_to_encode, cls=RocketPyEncoder)
 
-    function_loaded = json.loads(json_encoded, cls=RocketPyDecoder)
+    function_loaded = json.loads(json_encoded, cls=RocketPyDecoder, resimulate=True)
 
     assert isinstance(function_loaded, type(function_to_encode))
     assert np.isclose(function_to_encode(0), function_loaded(0))
@@ -92,7 +92,7 @@ def test_environment_encoder(environment_name, request):
 
     json_encoded = json.dumps(env_to_encode, cls=RocketPyEncoder)
 
-    env_loaded = json.loads(json_encoded, cls=RocketPyDecoder)
+    env_loaded = json.loads(json_encoded, cls=RocketPyDecoder, resimulate=True)
 
     test_heights = np.linspace(0, 10000, 100)
 
@@ -136,7 +136,7 @@ def test_motor_encoder(motor_name, request):
 
     json_encoded = json.dumps(motor_to_encode, cls=RocketPyEncoder)
 
-    motor_loaded = json.loads(json_encoded, cls=RocketPyDecoder)
+    motor_loaded = json.loads(json_encoded, cls=RocketPyDecoder, resimulate=True)
 
     sample_times = np.linspace(*motor_to_encode.burn_time, 100)
 
@@ -172,7 +172,7 @@ def test_rocket_encoder(rocket_name, request):
 
     json_encoded = json.dumps(rocket_to_encode, cls=RocketPyEncoder)
 
-    rocket_loaded = json.loads(json_encoded, cls=RocketPyDecoder)
+    rocket_loaded = json.loads(json_encoded, cls=RocketPyDecoder, resimulate=True)
 
     sample_times = np.linspace(*rocket_to_encode.motor.burn_time, 100)
 

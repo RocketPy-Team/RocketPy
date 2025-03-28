@@ -2,7 +2,11 @@ import ast
 import inspect
 import traceback
 import warnings
+import json
+import os
 
+from importlib.metadata import version
+from datetime import date
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.integrate import solve_ivp
@@ -12,6 +16,7 @@ from .mathutils.function import Function
 from .plots.plot_helpers import show_or_save_plot
 from .rocket.aero_surface import TrapezoidalFins
 from .simulation.flight import Flight
+from ._encoders import RocketPyEncoder, RocketPyDecoder
 
 
 def compute_cd_s_from_drop_test(
@@ -685,3 +690,63 @@ def get_instance_attributes(instance):
         if not inspect.ismethod(member[1]) and not member[0].startswith("__"):
             attributes_dict[member[0]] = member[1]
     return attributes_dict
+
+
+def save_to_rpy(flight: Flight, filename: str, include_output = False):
+    """Saves a .rpy file into the given path, containing key simulation informations to reproduce the results.
+
+    Parameters
+    ----------
+    flight : rocketpy.Flight
+        Flight object containing the rocket's flight data
+    filename : str
+        Path where the file will be saved in
+    include_output : bool, optional
+        If True, the function will include extra outputs into the file, by default False
+        
+    Returns
+    -------
+    None
+    """
+    file = os.path.splitext(filename)[0] + ".rpy"
+    with open(file, "w") as f:
+        data = {"date": str(date.today()), "version": version("rocketpy")}
+        print(flight)
+        data["simulation"] = flight
+        print(data)
+        print(flight.rocket)
+        json.dump(
+            data,
+            f,
+            cls=RocketPyEncoder,
+            indent=2,
+            include_outputs=include_output,
+        )
+
+
+def load_from_rpy(filename: str, resimulate = False):
+    """Loads the saved data from the .rpy into a Flight object.
+
+    Parameters
+    ----------
+    filename : str
+        Path where the file to be loaded is
+    resimulate : bool, optional
+        If True, the function will resimulate the object Flight, by default False
+        
+    Returns
+    -------
+    rocketpy.Flight
+        Flight object containing simulation information from the .rpy file
+    """
+    ext = os.path.splitext(os.path.basename(filename))[1]
+    if ext == ".rpy":
+        with open(filename, "r") as f:
+            data = json.load(f)
+            if data["version"] < version("rocketpy"):
+                warnings.warn("The file was saved in an older version of RocketPy than the one in the current environment")
+            simulation = json.dumps(data["simulation"])
+            flight = json.loads(simulation, cls=RocketPyDecoder, resimulate=resimulate)
+        return flight
+    else:
+        raise ValueError(f"Invalid file extension: {ext}. Allowed: .rpy")
