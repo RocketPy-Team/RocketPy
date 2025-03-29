@@ -1383,7 +1383,8 @@ class Flight:
         # Calculate Forces
         pressure = self.env.pressure.get_value_opt(z)
         net_thrust = max(
-            self.rocket.motor.thrust.get_value_opt(t) + self.rocket.motor.pressure_thrust(pressure),
+            self.rocket.motor.thrust.get_value_opt(t)
+            + self.rocket.motor.pressure_thrust(pressure),
             0,
         )
         rho = self.env.density.get_value_opt(z)
@@ -1479,7 +1480,8 @@ class Flight:
             propellant_mass_at_t = self.rocket.motor.propellant_mass.get_value_opt(t)
             # Thrust
             net_thrust = max(
-                self.rocket.motor.thrust.get_value_opt(t) + self.rocket.motor.pressure_thrust(pressure),
+                self.rocket.motor.thrust.get_value_opt(t)
+                + self.rocket.motor.pressure_thrust(pressure),
                 0,
             )
             # Off center moment
@@ -1818,8 +1820,15 @@ class Flight:
         free_stream_mach = free_stream_speed / speed_of_sound
 
         if self.rocket.motor.burn_start_time < t < self.rocket.motor.burn_out_time:
+            pressure = self.env.pressure.get_value_opt(z)
+            net_thrust = max(
+                self.rocket.motor.thrust.get_value_opt(t)
+                + self.rocket.motor.pressure_thrust(pressure),
+                0,
+            )
             drag_coeff = self.rocket.power_on_drag.get_value_opt(free_stream_mach)
         else:
+            net_thrust = 0
             drag_coeff = self.rocket.power_off_drag.get_value_opt(free_stream_mach)
         R3 += -0.5 * rho * (free_stream_speed**2) * self.rocket.area * drag_coeff
         for air_brakes in self.rocket.air_brakes:
@@ -1882,11 +1891,6 @@ class Flight:
             M3 += L
 
         # Off center moment
-        pressure = self.env.pressure.get_value_opt(z)
-        net_thrust = max(
-            self.rocket.motor.thrust.get_value_opt(t) + self.rocket.motor.pressure_thrust(pressure),
-            0,
-        )
         M1 += (
             self.rocket.cp_eccentricity_y * R3
             + self.rocket.thrust_eccentricity_y * net_thrust
