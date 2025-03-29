@@ -1103,7 +1103,7 @@ class MonteCarlo:
         self.info()
         self.plots.ellipses()
         self.plots.all()
-    
+
     def compare_info(self, other_monte_carlo):
         """
         Prints the comparison of the information  of the Monte Carlo simulation

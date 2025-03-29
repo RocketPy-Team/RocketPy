@@ -103,14 +103,15 @@ create these distributions and the dictionary
 
 Finally, we execute the `sample` method, as shown below
 
+.. jupyter-execute::  
+  :hide-code:  
+  :hide-output:  
+
+  np.random.seed(seed=42)  
+
 .. jupyter-execute::
 
-    np.random.seed(seed=42)
     mrs.sample(distribution_dict=distribution_dict)
-
-.. note::
-    We set the numpy's seed just for reproduction. When actually using the MRS,
-    skip setting the seed!
 
 And that is it! The MRS has saved a file that has the same structure as the results of
 a monte carlo simulation but now the mass has been sampled from the newly stated 
@@ -218,6 +219,43 @@ the monte carlo simulations with 117 samples it took, on average, 76.3 seconds. 
 the MRS was, on average, (76.3 / 0.15) ~ 500 times faster than re-running the monte 
 carlo simulations with the same sample size provided by the MRS. 
 
+
+Sampling from nested parameters
+-------------------------------
+
+To sample from parameters that are nested in inner levels, use a key name
+formed by the name of the key of the outer level concatenated with a "_" and
+the key of the inner level. For instance, to change the distribution 
+from the "total_impulse" parameter, which is nested within the "motors" 
+parameter dictionary, we have to use the key name "motors_total_impulse". 
+
+
+.. jupyter-execute::
+
+    old_total_impulse_pdf = norm(6500, 1000).pdf
+    new_total_impulse_pdf = norm(5500, 1000).pdf
+    distribution_dict = {
+        "motors_total_impulse": (old_total_impulse_pdf, new_total_impulse_pdf),
+    }
+    mrs.sample(distribution_dict=distribution_dict)
+
+Finally, if there are multiple named nested structures, we need to use a key 
+name formed by outer level concatenated with "_", the structure name, "_" and the
+inner parameter name. For instance, if we want to change the distribution of
+the 'root_chord' of the 'Fins', we have to pass as key
+'aerodynamic_surfaces_Fins_root_chord'
+
+.. jupyter-execute::
+
+    old_root_chord_pdf = norm(0.12, 0.001).pdf
+    new_root_chord_pdf = norm(0.119, 0.002).pdf
+    distribution_dict = {
+        "aerodynamic_surfaces_Fins_root_chord": (
+            old_root_chord_pdf, new_root_chord_pdf
+        ),
+    }
+    mrs.sample(distribution_dict=distribution_dict)
+
 A word of caution
 -----------------
 
@@ -228,3 +266,13 @@ ones, the more pronounced will be this sample size reduction. If you need the mo
 carlo simulations to have the same sample size as before or if the expected sample size
 from the MRS is too low for you current application, then it might be better to
 re-run the simulations.
+
+References
+----------
+
+[1] CEOTTO, Giovani H., SCHMITT, Rodrigo N., ALVES, Guilherme F., et al. RocketPy: six 
+degree-of-freedom rocket trajectory simulator. Journal of Aerospace Engineering, 2021, 
+vol. 34, no 6, p. 04021093.
+
+[2] CASELLA, George, ROBERT, Christian P., et WELLS, Martin T. Generalized accept-reject 
+sampling schemes. Lecture notes-monograph series, 2004, p. 342-347.

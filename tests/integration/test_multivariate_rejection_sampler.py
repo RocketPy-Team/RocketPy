@@ -13,6 +13,19 @@ from rocketpy import MultivariateRejectionSampler
             "tests/fixtures/monte_carlo/example",
             {"mass": (norm(15.5, 1).pdf, norm(15.2, 1).pdf)},
         ),
+        (
+            "tests/fixtures/monte_carlo/example",
+            {"motors_total_impulse": (norm(6000, 1000).pdf, norm(6500, 1000).pdf)},
+        ),
+        (
+            "tests/fixtures/monte_carlo/example",
+            {
+                "parachutes_calisto_drogue_chute_lag": (
+                    norm(1.5, 0.25).pdf,
+                    norm(1.2, 0.25).pdf,
+                )
+            },
+        ),
     ],
 )
 def test_mrs_sample_integration(monte_carlo_filepath, distribution_dict):

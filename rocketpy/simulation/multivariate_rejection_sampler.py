@@ -15,15 +15,35 @@ from random import random
 from typing import Union
 
 from rocketpy._encoders import RocketPyEncoder
+from rocketpy.tools import flatten_dict
 
 
 @dataclass
 # TODO: replace Union by "|" once python 3.9 is no longer supported
 # pylint: disable=unsupported-binary-operation
 class SampleInformation:
-    """Sample information used in the MRS"""
+    """Sample information used in the MRS
+
+    Attributes
+    ----------
+    inputs_json : dict or None
+        Dictionary containing the original information of the inputs file.
+    flatted_inputs_json : dict or None
+        Dictionary containing the information of the inputs file in a
+        flat format to allow re-sampling based on nested data.
+    outputs_json : dict or None
+        Dictionary containing the original information of the outputs file.
+    probability_ratio : float or None
+        Probability ratio of the new proposed distribution and the previous
+        distribution evaluated at the unit sample data.
+    acceptance_probability : float or None
+        The final acceptance probability that the given sample will be
+        re-sampled. It is given by the ratio of the probability ratio
+        and the supremum of all probability ratios.
+    """
 
     inputs_json: Union[dict, None] = None
+    flatted_inputs_json: Union[dict, None] = None
     outputs_json: Union[dict, None] = None
     probability_ratio: Union[float, None] = None
     acceptance_probability: Union[float, None] = None
@@ -93,18 +113,14 @@ class MultivariateRejectionSampler:
             for line in input_file.readlines():
                 sample_info = SampleInformation()
                 line_json = json.loads(line)
+                flatted_line_json = flatten_dict(line_json)
                 sample_info.inputs_json = line_json
+                sample_info.flatted_inputs_json = flatted_line_json
                 self.all_sample_list.append(sample_info)
 
                 # sets and validates input variables names
                 if not self.input_variables_names:
-                    self.input_variables_names = set(line_json.keys())
-                else:
-                    if self.input_variables_names != set(line_json.keys()):
-                        raise ValueError(
-                            "Input file from Monte Carlo contains different "
-                            "variables for different lines"
-                        )
+                    self.input_variables_names = set(flatted_line_json.keys())
                 self.original_sample_size += 1
         except Exception as e:
             raise ValueError(
@@ -264,7 +280,7 @@ class MultivariateRejectionSampler:
         probability_ratio = 1
         try:
             for variable in distribution_dict.keys():
-                value = sample.inputs_json[variable]
+                value = sample.flatted_inputs_json[variable]
                 old_pdf = distribution_dict[variable][0]
                 new_pdf = distribution_dict[variable][1]
                 probability_ratio *= new_pdf(value) / old_pdf(value)

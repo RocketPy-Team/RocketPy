@@ -280,8 +280,6 @@ class _MonteCarloPlots:
             MonteCarlo object which the current one will be compared to.
         image : str, optional
             Path to the background image, usually a map of the launch site.
-        actual_landing_point : tuple, optional
-            Actual landing point of the rocket in (x, y) meters.
         perimeter_size : int, optional
             Size of the perimeter to be plotted. Default is 3000.
         xlim : tuple, optional
@@ -345,8 +343,8 @@ class _MonteCarloPlots:
                 original_apogee_y,
                 original_impact_x,
                 original_impact_y,
-                apogee_rgb=(0, 1, 0),
-                impact_rgb=(0, 0, 1),
+                apogee_rgb=(0.0117647, 0.1490196, 0.9882352),
+                impact_rgb=(0.9882352, 0.0117647, 0.6392156),
             )
         )
 
@@ -355,8 +353,8 @@ class _MonteCarloPlots:
             other_apogee_y,
             other_impact_x,
             other_impact_y,
-            apogee_rgb=(174 / 255, 159 / 255, 15 / 255),
-            impact_rgb=(102 / 255, 23 / 255, 204 / 255),
+            apogee_rgb=(0.9882352, 0.8509803, 0.0117647),
+            impact_rgb=(0.0117647, 0.9882352, 0.3607843),
         )
 
         # Create plot figure
@@ -375,7 +373,7 @@ class _MonteCarloPlots:
             original_apogee_y,
             s=5,
             marker="^",
-            color="green",
+            color="#0326FC",
             label="Original Apogee",
         )
         plt.scatter(
@@ -383,7 +381,7 @@ class _MonteCarloPlots:
             original_impact_y,
             s=5,
             marker="v",
-            color="blue",
+            color="#FC03A3",
             label="Original Landing Point",
         )
 
@@ -398,7 +396,7 @@ class _MonteCarloPlots:
             other_apogee_y,
             s=5,
             marker="^",
-            color="#ae9f0f",
+            color="#FCD903",
             label="Other Apogee",
         )
         plt.scatter(
@@ -406,7 +404,7 @@ class _MonteCarloPlots:
             other_impact_y,
             s=5,
             marker="v",
-            color="#6617cc",
+            color="#03FC5C",
             label="Other Landing Point",
         )
 

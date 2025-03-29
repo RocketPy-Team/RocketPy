@@ -18,12 +18,12 @@ def test_mrs_initialization():
     # Tests if the input and output files opens correctly when the input is valid
     valid_mc_filepath_prefix = "valid_mc"
     valid_inputs = [
-        {"a": 1, "b": 2},
-        {"a": 3, "b": 4},
+        {"a": 1, "b": 2, "c": [{"d": 1}]},
+        {"a": 3, "b": 4, "c": [{"d": 1}]},
     ]
     valid_outputs = [
-        {"d": 10, "b": 20},
-        {"d": 30, "b": 40},
+        {"e": 10, "f": 20},
+        {"e": 30, "f": 40},
     ]
     with open(valid_mc_filepath_prefix + ".inputs.txt", "w+") as file:
         for json_input in valid_inputs:
@@ -36,19 +36,6 @@ def test_mrs_initialization():
     # tests if it raises an error when the file does not exist
     with pytest.raises(FileNotFoundError):
         MultivariateRejectionSampler("non_existent_mc_prefix", mrs_prefix)
-
-    # tests if it raises an error when the input file contains different
-    # variables in different lines
-    invalid_mc_filepath_prefix = "invalid_mc"
-    invalid_inputs = [
-        {"a": 1, "b": 2},
-        {"c": 3, "b": 4},
-    ]
-    with open(invalid_mc_filepath_prefix + ".inputs.txt", "w+") as file:
-        for json_input in invalid_inputs:
-            file.write(json.dumps(json_input, cls=RocketPyEncoder) + "\n")
-    with pytest.raises(ValueError):
-        MultivariateRejectionSampler(invalid_mc_filepath_prefix, mrs_prefix)
 
     # tests if it raises an error when the input and output file contains
     # different number of samples
