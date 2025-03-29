@@ -1483,8 +1483,8 @@ class Flight:
                 0,
             )
             # Off center moment
-            M1 += self.rocket.thrust_eccentricity_x * net_thrust
-            M2 -= self.rocket.thrust_eccentricity_y * net_thrust
+            M1 += self.rocket.thrust_eccentricity_y * thrust
+            M2 -= self.rocket.thrust_eccentricity_x * thrust
         else:
             # Motor stopped
             # Inertias
@@ -1889,11 +1889,11 @@ class Flight:
         )
         M1 += (
             self.rocket.cp_eccentricity_y * R3
-            + self.rocket.thrust_eccentricity_x * net_thrust
+            + self.rocket.thrust_eccentricity_y * thrust
         )
         M2 -= (
             self.rocket.cp_eccentricity_x * R3
-            - self.rocket.thrust_eccentricity_y * net_thrust
+            + self.rocket.thrust_eccentricity_x * thrust
         )
         M3 += self.rocket.cp_eccentricity_x * R2 - self.rocket.cp_eccentricity_y * R1
 
@@ -2991,7 +2991,7 @@ class Flight:
             Rail Button 2 force in the 2 direction
         """
         # First check for no rail phase or rail buttons
-        null_force = []
+        null_force = Function(0)
         if self.out_of_rail_time_index == 0:  # No rail phase, no rail button forces
             warnings.warn(
                 "Trying to calculate rail button forces without a rail phase defined."
@@ -3128,7 +3128,11 @@ class Flight:
         None
         """
         # pylint: disable=unused-argument
-        # TODO: add a deprecation warning maybe?
+        warnings.warn(
+            "The method post_process is deprecated and will be removed in v1.10. "
+            "All attributes that need to be post processed are computed just in time.",
+            DeprecationWarning,
+        )
         self.post_processed = True
 
     def calculate_stall_wind_velocity(self, stall_angle):  # TODO: move to utilities
