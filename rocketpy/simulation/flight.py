@@ -1383,7 +1383,7 @@ class Flight:
         # Calculate Forces
         pressure = self.env.pressure.get_value_opt(z)
         net_thrust = max(
-            self.motor.thrust.get_value_opt(t) + self.motor.pressure_thrust(pressure),
+            self.rocket.motor.thrust.get_value_opt(t) + self.rocket.motor.pressure_thrust(pressure),
             0,
         )
         rho = self.env.density.get_value_opt(z)
@@ -1479,12 +1479,12 @@ class Flight:
             propellant_mass_at_t = self.rocket.motor.propellant_mass.get_value_opt(t)
             # Thrust
             net_thrust = max(
-                self.motor.thrust.get_value_opt(t) + self.motor.pressure_thrust(pressure),
+                self.rocket.motor.thrust.get_value_opt(t) + self.rocket.motor.pressure_thrust(pressure),
                 0,
             )
             # Off center moment
-            M1 += self.rocket.thrust_eccentricity_y * thrust
-            M2 -= self.rocket.thrust_eccentricity_x * thrust
+            M1 += self.rocket.thrust_eccentricity_y * net_thrust
+            M2 -= self.rocket.thrust_eccentricity_x * net_thrust
         else:
             # Motor stopped
             # Inertias
@@ -1884,16 +1884,16 @@ class Flight:
         # Off center moment
         pressure = self.env.pressure.get_value_opt(z)
         net_thrust = max(
-            self.motor.thrust.get_value_opt(t) + self.motor.pressure_thrust(pressure),
+            self.rocket.motor.thrust.get_value_opt(t) + self.rocket.motor.pressure_thrust(pressure),
             0,
         )
         M1 += (
             self.rocket.cp_eccentricity_y * R3
-            + self.rocket.thrust_eccentricity_y * thrust
+            + self.rocket.thrust_eccentricity_y * net_thrust
         )
         M2 -= (
             self.rocket.cp_eccentricity_x * R3
-            + self.rocket.thrust_eccentricity_x * thrust
+            + self.rocket.thrust_eccentricity_x * net_thrust
         )
         M3 += self.rocket.cp_eccentricity_x * R2 - self.rocket.cp_eccentricity_y * R1
 
