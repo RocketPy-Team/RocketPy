@@ -316,22 +316,6 @@ class Motor(ABC):
         # Post process thrust
         self.thrust = Motor.clip_thrust(self.thrust, self.burn_time)
 
-        # Evaluate vacuum thrust
-        if reference_pressure is None:
-            vacuum_thrust_source = self.thrust.source
-        else:
-            vacuum_thrust_source = self.get_vacuum_thrust(
-                self.thrust.source, reference_pressure
-            )
-        self.vacuum_thrust_source = vacuum_thrust_source
-        self.vacuum_thrust = Function(
-            vacuum_thrust_source,
-            "Time (s)",
-            "Vacuum Thrust (N)",
-            self.interpolate,
-            "zero",
-        )
-
         # Auxiliary quantities
         self.burn_start_time = self.burn_time[0]
         self.burn_out_time = self.burn_time[1]
@@ -1065,33 +1049,40 @@ class Motor(ABC):
         # Return all extract content
         return comments, description, data_points
 
-    def get_vacuum_thrust(self, thrust_source, reference_pressure):
+    @cached_property
+    def vacuum_thrust(self):
         """Calculate the vacuum thrust from the raw thrust and the reference
         pressure at which the thrust data was recorded.
 
+        Returns
+        -------
+        vacuum_thrust : Function
+            The rocket's thrust in a vaccum.
+        """
+        if self.reference_pressure is None:
+            print("Reference pressure is not set, cannot calculate vacuum thrust")
+            return self.thrust
+
+        return self.thrust + self.reference_pressure * self.nozzle_area
+
+    def pressure_thrust(self, pressure):
+        """Computes the contribution to thrust due to the pressure difference
+        between the nozzle exit and the atmospheric pressure.
+
         Parameters
         ----------
-        thrust_source : list
-            A list of points representing the thrust curve.
-        reference_pressure : int, float
-            The atmospheric pressure at which the thrust data was recorded.
+        pressure : float
+            Atmospheric pressure in Pa.
 
         Returns
         -------
-        vacuum_thrust_source : list
-            A list of points representing the vacuum thrust curve.
+        pressure_thrust : float
+            Thrust component resulting from the pressure difference.
         """
-        # Initialize arrays
-        vacuum_thrust_source = []
+        if self.reference_pressure is None:
+            return 0
 
-        # Reduction in thrust due to atmospheric pressure
-        thrust_reduction = reference_pressure * self.nozzle_area
-        for point in thrust_source:
-            time = point[0]
-            thrust = point[1]
-            vacuum_thrust_source.append([time, thrust + thrust_reduction])
-
-        return vacuum_thrust_source
+        return (self.reference_pressure - pressure) * self.nozzle_area
 
     def export_eng(self, file_name, motor_name):
         """Exports thrust curve data points and motor description to

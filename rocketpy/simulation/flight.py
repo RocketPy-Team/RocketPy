@@ -1382,15 +1382,10 @@ class Flight:
 
         # Calculate Forces
         pressure = self.env.pressure.get_value_opt(z)
-        nozzle_area = self.rocket.motor.nozzle_area
-        if self.rocket.motor.reference_pressure is None:
-            net_thrust = self.rocket.motor.thrust.get_value_opt(t)
-        else:
-            net_thrust = (
-                self.rocket.motor.vacuum_thrust.get_value_opt(t)
-                - pressure * nozzle_area
-            )
-            net_thrust = max(net_thrust, 0)
+        net_thrust = max(
+            self.motor.thrust.get_value_opt(t) + self.motor.pressure_thrust(pressure),
+            0,
+        )
         rho = self.env.density.get_value_opt(z)
         R3 = -0.5 * rho * (free_stream_speed**2) * self.rocket.area * (drag_coeff)
 
@@ -1466,7 +1461,6 @@ class Flight:
         R1, R2, M1, M2, M3 = 0, 0, 0, 0, 0
         # Thrust correction parameters
         pressure = self.env.pressure.get_value_opt(z)
-        nozzle_area = self.rocket.motor.nozzle_area
         # Determine current behavior
         if self.rocket.motor.burn_start_time < t < self.rocket.motor.burn_out_time:
             # Motor burning
@@ -1484,14 +1478,10 @@ class Flight:
             mass_flow_rate_at_t = self.rocket.motor.mass_flow_rate.get_value_opt(t)
             propellant_mass_at_t = self.rocket.motor.propellant_mass.get_value_opt(t)
             # Thrust
-            if self.rocket.motor.reference_pressure is None:
-                net_thrust = self.rocket.motor.thrust.get_value_opt(t)
-            else:
-                net_thrust = (
-                    self.rocket.motor.vacuum_thrust.get_value_opt(t)
-                    - pressure * nozzle_area
-                )
-                net_thrust = max(net_thrust, 0)
+            net_thrust = max(
+                self.motor.thrust.get_value_opt(t) + self.motor.pressure_thrust(pressure),
+                0,
+            )
             # Off center moment
             M1 += self.rocket.thrust_eccentricity_x * net_thrust
             M2 -= self.rocket.thrust_eccentricity_y * net_thrust
@@ -1893,15 +1883,10 @@ class Flight:
 
         # Off center moment
         pressure = self.env.pressure.get_value_opt(z)
-        nozzle_area = self.rocket.motor.nozzle_area
-        if self.rocket.motor.reference_pressure is None:
-            net_thrust = self.rocket.motor.thrust.get_value_opt(t)
-        else:
-            net_thrust = (
-                self.rocket.motor.vacuum_thrust.get_value_opt(t)
-                - pressure * nozzle_area
-            )
-            net_thrust = max(net_thrust, 0)
+        net_thrust = max(
+            self.motor.thrust.get_value_opt(t) + self.motor.pressure_thrust(pressure),
+            0,
+        )
         M1 += (
             self.rocket.cp_eccentricity_y * R3
             + self.rocket.thrust_eccentricity_x * net_thrust
