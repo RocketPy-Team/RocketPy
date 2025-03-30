@@ -32,6 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- ENH: Introduce Net Thrust with pressure corrections [#789](https://github.com/RocketPy-Team/RocketPy/pull/789)
 
 ### Changed
 
