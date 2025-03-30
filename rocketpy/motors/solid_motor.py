@@ -29,6 +29,8 @@ class SolidMotor(Motor):
         "combustion_chamber_to_nozzle".
     SolidMotor.nozzle_radius : float
         Radius of motor nozzle outlet in meters.
+    SolidMotor.nozzle_area : float
+        Area of motor nozzle outlet in square meters.
     SolidMotor.nozzle_position : float
         Motor's nozzle outlet position in meters, specified in the motor's
         coordinate system. See
@@ -147,7 +149,11 @@ class SolidMotor(Motor):
         See SolidMotor.propellant_I_22 and SolidMotor.propellant_I_33 for more
         information.
     SolidMotor.thrust : Function
-        Motor thrust force, in Newtons, as a function of time.
+        Motor thrust force obtained from thrust source, in Newtons, as a
+        function of time.
+    SolidMotor.vacuum_thrust : Function
+        Motor thrust force when the rocket is in a vacuum. In Newtons, as a
+        function of time.
     SolidMotor.total_impulse : float
         Total impulse of the thrust curve in N*s.
     SolidMotor.max_thrust : float
@@ -181,6 +187,9 @@ class SolidMotor(Motor):
         Method of interpolation used in case thrust curve is given
         by data set in .csv or .eng, or as an array. Options are 'spline'
         'akima' and 'linear'. Default is "linear".
+    SolidMotor.reference_pressure : int, float
+        Atmospheric pressure in Pa at which the thrust data was recorded.
+        It will allow to obtain the net thrust in the Flight class.
     """
 
     # pylint: disable=too-many-arguments
@@ -204,6 +213,7 @@ class SolidMotor(Motor):
         reshape_thrust_curve=False,
         interpolation_method="linear",
         coordinate_system_orientation="nozzle_to_combustion_chamber",
+        reference_pressure=None,
     ):
         """Initialize Motor class, process thrust curve and geometrical
         parameters and store results.
@@ -299,6 +309,8 @@ class SolidMotor(Motor):
             positions specified. Options are "nozzle_to_combustion_chamber" and
             "combustion_chamber_to_nozzle". Default is
             "nozzle_to_combustion_chamber".
+        reference_pressure : int, float, optional
+            Atmospheric pressure in Pa at which the thrust data was recorded.
 
         Returns
         -------
@@ -315,6 +327,7 @@ class SolidMotor(Motor):
             reshape_thrust_curve=reshape_thrust_curve,
             interpolation_method=interpolation_method,
             coordinate_system_orientation=coordinate_system_orientation,
+            reference_pressure=reference_pressure,
         )
         # Nozzle parameters
         self.throat_radius = throat_radius
@@ -800,4 +813,5 @@ class SolidMotor(Motor):
             throat_radius=data["throat_radius"],
             interpolation_method=data["interpolate"],
             coordinate_system_orientation=data["coordinate_system_orientation"],
+            reference_pressure=data["reference_pressure"],
         )

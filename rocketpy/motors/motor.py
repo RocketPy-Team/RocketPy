@@ -28,6 +28,8 @@ class Motor(ABC):
         "combustion_chamber_to_nozzle".
     Motor.nozzle_radius : float
         Radius of motor nozzle outlet in meters.
+    Motor.nozzle_area : float
+        Area of motor nozzle outlet in square meters.
     Motor.nozzle_position : float
         Motor's nozzle outlet position in meters, specified in the motor's
         coordinate system. See :ref:`positions` for more information.
@@ -121,7 +123,11 @@ class Motor(ABC):
         e_3 axes in kg*m^2, as a function of time. See Motor.propellant_I_22
         and Motor.propellant_I_33 for more information.
     Motor.thrust : Function
-        Motor thrust force, in Newtons, as a function of time.
+        Motor thrust force obtained from the thrust source, in Newtons, as a
+        function of time.
+    Motor.vacuum_thrust : Function
+        Motor thrust force when the rocket is in a vacuum. In Newtons, as a
+        function of time.
     Motor.total_impulse : float
         Total impulse of the thrust curve in N*s.
     Motor.max_thrust : float
@@ -146,6 +152,9 @@ class Motor(ABC):
         Method of interpolation used in case thrust curve is given
         by data set in .csv or .eng, or as an array. Options are 'spline'
         'akima' and 'linear'. Default is "linear".
+    Motor.reference_pressure : int, float, None
+        Atmospheric pressure in Pa at which the thrust data was recorded.
+        It will allow to obtain the net thrust in the Flight class.
     """
 
     # pylint: disable=too-many-statements
@@ -161,6 +170,7 @@ class Motor(ABC):
         reshape_thrust_curve=False,
         interpolation_method="linear",
         coordinate_system_orientation="nozzle_to_combustion_chamber",
+        reference_pressure=None,
     ):
         """Initialize Motor class, process thrust curve and geometrical
         parameters and store results.
@@ -236,6 +246,8 @@ class Motor(ABC):
             positions specified. Options are "nozzle_to_combustion_chamber" and
             "combustion_chamber_to_nozzle". Default is
             "nozzle_to_combustion_chamber".
+        reference_pressure : int, float, optional
+            Atmospheric pressure in Pa at which the thrust data was recorded.
 
         Returns
         -------
@@ -257,7 +269,9 @@ class Motor(ABC):
         self.interpolate = interpolation_method
         self.nozzle_position = nozzle_position
         self.nozzle_radius = nozzle_radius
+        self.nozzle_area = np.pi * nozzle_radius**2
         self.center_of_dry_mass_position = center_of_dry_mass_position
+        self.reference_pressure = reference_pressure
 
         # Inertia tensor setup
         inertia = (*dry_inertia, 0, 0, 0) if len(dry_inertia) == 3 else dry_inertia
@@ -306,10 +320,6 @@ class Motor(ABC):
         self.burn_start_time = self.burn_time[0]
         self.burn_out_time = self.burn_time[1]
         self.burn_duration = self.burn_time[1] - self.burn_time[0]
-
-        # Define motor attributes
-        self.nozzle_radius = nozzle_radius
-        self.nozzle_position = nozzle_position
 
         # Compute thrust metrics
         self.max_thrust = np.amax(self.thrust.y_array)
@@ -1039,6 +1049,41 @@ class Motor(ABC):
         # Return all extract content
         return comments, description, data_points
 
+    @cached_property
+    def vacuum_thrust(self):
+        """Calculate the vacuum thrust from the raw thrust and the reference
+        pressure at which the thrust data was recorded.
+
+        Returns
+        -------
+        vacuum_thrust : Function
+            The rocket's thrust in a vaccum.
+        """
+        if self.reference_pressure is None:
+            print("Reference pressure is not set, cannot calculate vacuum thrust")
+            return self.thrust
+
+        return self.thrust + self.reference_pressure * self.nozzle_area
+
+    def pressure_thrust(self, pressure):
+        """Computes the contribution to thrust due to the pressure difference
+        between the nozzle exit and the atmospheric pressure.
+
+        Parameters
+        ----------
+        pressure : float
+            Atmospheric pressure in Pa.
+
+        Returns
+        -------
+        pressure_thrust : float
+            Thrust component resulting from the pressure difference.
+        """
+        if self.reference_pressure is None:
+            return 0
+
+        return (self.reference_pressure - pressure) * self.nozzle_area
+
     def export_eng(self, file_name, motor_name):
         """Exports thrust curve data points and motor description to
         .eng file format. A description of the format can be found
@@ -1105,17 +1150,20 @@ class Motor(ABC):
             "dry_I_13": self.dry_I_13,
             "dry_I_23": self.dry_I_23,
             "nozzle_radius": self.nozzle_radius,
+            "nozzle_area": self.nozzle_area,
             "center_of_dry_mass_position": self.center_of_dry_mass_position,
             "dry_mass": self.dry_mass,
             "nozzle_position": self.nozzle_position,
             "burn_time": self.burn_time,
             "interpolate": self.interpolate,
             "coordinate_system_orientation": self.coordinate_system_orientation,
+            "reference_pressure": self.reference_pressure,
         }
 
         if include_outputs:
             data.update(
                 {
+                    "vacuum_thrust": self.vacuum_thrust,
                     "total_mass": self.total_mass,
                     "propellant_mass": self.propellant_mass,
                     "mass_flow_rate": self.mass_flow_rate,
@@ -1176,6 +1224,7 @@ class GenericMotor(Motor):
     therefore for more accurate results, use the ``SolidMotor``, ``HybridMotor``
     or ``LiquidMotor`` classes."""
 
+    # pylint: disable=too-many-arguments
     def __init__(
         self,
         thrust_source,
@@ -1192,6 +1241,7 @@ class GenericMotor(Motor):
         reshape_thrust_curve=False,
         interpolation_method="linear",
         coordinate_system_orientation="nozzle_to_combustion_chamber",
+        reference_pressure=None,
     ):
         """Initialize GenericMotor class, process thrust curve and geometrical
         parameters and store results.
@@ -1281,6 +1331,8 @@ class GenericMotor(Motor):
             positions specified. Options are "nozzle_to_combustion_chamber" and
             "combustion_chamber_to_nozzle". Default is
             "nozzle_to_combustion_chamber".
+        reference_pressure : int, float, optional
+            Atmospheric pressure in Pa at which the thrust data was recorded.
         """
         super().__init__(
             thrust_source=thrust_source,
@@ -1293,6 +1345,7 @@ class GenericMotor(Motor):
             reshape_thrust_curve=reshape_thrust_curve,
             interpolation_method=interpolation_method,
             coordinate_system_orientation=coordinate_system_orientation,
+            reference_pressure=reference_pressure,
         )
 
         self.chamber_radius = chamber_radius
@@ -1454,6 +1507,7 @@ class GenericMotor(Motor):
         reshape_thrust_curve=False,
         interpolation_method="linear",
         coordinate_system_orientation="nozzle_to_combustion_chamber",
+        reference_pressure=None,
     ):
         """Loads motor data from a .eng file and processes it.
 
@@ -1515,6 +1569,8 @@ class GenericMotor(Motor):
             positions specified. Options are "nozzle_to_combustion_chamber" and
             "combustion_chamber_to_nozzle". Default is
             "nozzle_to_combustion_chamber".
+        reference_pressure : int, float, optional
+            Atmospheric pressure in Pa at which the thrust data was recorded.
 
         Returns
         -------
@@ -1564,6 +1620,7 @@ class GenericMotor(Motor):
             reshape_thrust_curve=reshape_thrust_curve,
             interpolation_method=interpolation_method,
             coordinate_system_orientation=coordinate_system_orientation,
+            reference_pressure=reference_pressure,
         )
 
     def all_info(self):
@@ -1606,4 +1663,5 @@ class GenericMotor(Motor):
             ),
             nozzle_position=data["nozzle_position"],
             interpolation_method=data["interpolate"],
+            reference_pressure=data["reference_pressure"],
         )

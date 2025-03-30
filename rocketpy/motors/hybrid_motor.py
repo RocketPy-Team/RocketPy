@@ -29,6 +29,8 @@ class HybridMotor(Motor):
         "combustion_chamber_to_nozzle".
     HybridMotor.nozzle_radius : float
         Radius of motor nozzle outlet in meters.
+    HybridMotor.nozzle_area : float
+        Area of motor nozzle outlet in square meters.
     HybridMotor.nozzle_position : float
         Motor's nozzle outlet position in meters, specified in the motor's
         coordinate system. See
@@ -147,7 +149,11 @@ class HybridMotor(Motor):
         HybridMotor.propellant_I_22 and HybridMotor.propellant_I_33 for
         more information.
     HybridMotor.thrust : Function
-        Motor thrust force, in Newtons, as a function of time.
+        Motor thrust force obtained from thrust source, in Newtons, as a
+        function of time.
+    HybridMotor.vacuum_thrust : Function
+        Motor thrust force when the rocket is in a vacuum. In Newtons, as a
+        function of time.
     HybridMotor.total_impulse : float
         Total impulse of the thrust curve in N*s.
     HybridMotor.max_thrust : float
@@ -181,6 +187,9 @@ class HybridMotor(Motor):
         Method of interpolation used in case thrust curve is given
         by data set in .csv or .eng, or as an array. Options are 'spline'
         'akima' and 'linear'. Default is "linear".
+    HybridMotor.reference_pressure : int, float
+        Atmospheric pressure in Pa at which the thrust data was recorded.
+        It will allow to obtain the net thrust in the Flight class.
     """
 
     def __init__(  # pylint: disable=too-many-arguments
@@ -203,6 +212,7 @@ class HybridMotor(Motor):
         reshape_thrust_curve=False,
         interpolation_method="linear",
         coordinate_system_orientation="nozzle_to_combustion_chamber",
+        reference_pressure=None,
     ):
         """Initialize Motor class, process thrust curve and geometrical
         parameters and store results.
@@ -298,6 +308,8 @@ class HybridMotor(Motor):
             positions specified. Options are "nozzle_to_combustion_chamber" and
             "combustion_chamber_to_nozzle". Default is
             "nozzle_to_combustion_chamber".
+        reference_pressure : int, float, optional
+            Atmospheric pressure in Pa at which the thrust data was recorded.
 
         Returns
         -------
@@ -314,6 +326,7 @@ class HybridMotor(Motor):
             reshape_thrust_curve=reshape_thrust_curve,
             interpolation_method=interpolation_method,
             coordinate_system_orientation=coordinate_system_orientation,
+            reference_pressure=reference_pressure,
         )
         self.liquid = LiquidMotor(
             thrust_source,
@@ -326,6 +339,7 @@ class HybridMotor(Motor):
             reshape_thrust_curve,
             interpolation_method,
             coordinate_system_orientation,
+            reference_pressure,
         )
         self.solid = SolidMotor(
             thrust_source,
@@ -346,6 +360,7 @@ class HybridMotor(Motor):
             reshape_thrust_curve,
             interpolation_method,
             coordinate_system_orientation,
+            reference_pressure,
         )
 
         self.positioned_tanks = self.liquid.positioned_tanks
@@ -676,6 +691,7 @@ class HybridMotor(Motor):
             grains_center_of_mass_position=data["grains_center_of_mass_position"],
             nozzle_position=data["nozzle_position"],
             throat_radius=data["throat_radius"],
+            reference_pressure=data["reference_pressure"],
         )
 
         for tank in data["positioned_tanks"]:
