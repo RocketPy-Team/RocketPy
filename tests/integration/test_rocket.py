@@ -45,7 +45,9 @@ def test_airfoil(
 
 
 @patch("matplotlib.pyplot.show")
-def test_air_brakes_clamp_on(mock_show, calisto_air_brakes_clamp_on):  # pylint: disable=unused-argument
+def test_air_brakes_clamp_on(
+    mock_show, calisto_air_brakes_clamp_on
+):  # pylint: disable=unused-argument
     """Test the air brakes class with clamp on configuration. This test checks
     the basic attributes and the deployment_level setter. It also checks the
     all_info method.
