@@ -209,11 +209,6 @@ class _MonteCarloPlots:
         -------
         None
         """
-        # TODO: understand why this validation is failing
-        # if not isinstance(other_monte_carlo, MonteCarlo):
-        #     raise TypeError(
-        #         "Argument 'other_monte_carlo' must be an MonteCarlo object!"
-        #     )
         original_parameters_set = set(self.monte_carlo.processed_results.keys())
         other_parameters_set = set(other_monte_carlo.processed_results.keys())
         intersection_set = original_parameters_set.intersection(other_parameters_set)
@@ -294,12 +289,6 @@ class _MonteCarloPlots:
         -------
         None
         """
-        # TODO: understand why this validation is failing
-        # if not isinstance(other_monte_carlo, MonteCarlo):
-        #     raise TypeError(
-        #         "Argument 'other_monte_carlo' must be an MonteCarlo object!"
-        #     )
-
         imageio = import_optional_dependency("imageio")
 
         # Import background map
