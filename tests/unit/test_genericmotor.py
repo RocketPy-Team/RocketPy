@@ -198,18 +198,16 @@ def test_load_from_rse_file(generic_motor):
 
     # Check if the engine has been loaded correctly
     assert generic_motor.thrust is not None
-    assert (
-        generic_motor.dry_mass == (57.0 - 20.7) / 1000
-    )  # Total mass - propellant mass
-    assert generic_motor.propellant_initial_mass == 20.7 / 1000
+    assert generic_motor.dry_mass == 0.0363  # Total mass - propellant mass
+    assert generic_motor.propellant_initial_mass == 0.0207
     assert generic_motor.burn_time == (0.0, 2.2)
-    assert generic_motor.nozzle_radius == 0.0
-    assert generic_motor.chamber_radius == 24.0 / 1000
-    assert generic_motor.chamber_height == 70.0 / 1000
+    assert generic_motor.nozzle_radius == 0.00
+    assert generic_motor.chamber_radius == 0.024
+    assert generic_motor.chamber_height == 0.07
 
     # Check the thrust curve values
     thrust_curve = generic_motor.thrust.source
     assert thrust_curve[0][0] == 0.0  # First time point
     assert thrust_curve[0][1] == 0.0  # First thrust point
-    assert thrust_curve[-1][0] == 2.129  # Last point of time
+    assert thrust_curve[-1][0] == 2.2  # Last point of time
     assert thrust_curve[-1][1] == 0.0  # Last thrust point

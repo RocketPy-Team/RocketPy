@@ -1046,7 +1046,7 @@ class Motor(ABC):
             "diameter": float(engine.attrib.get("dia", 0)) / 1000,
             "length": float(engine.attrib.get("len", 0)) / 1000,
             "throat_diameter": float(engine.attrib.get("throatDia", 0)) / 1000,
-            "exit_diameter": float(engine.attrib.get("len", 0)) / 1000,
+            "exit_diameter": float(engine.attrib.get("exitDia", 0)) / 1000,
             "total_mass": float(engine.attrib.get("initWt", 0)) / 1000,
             "propellant_mass": float(engine.attrib.get("propWt", 0)) / 1000,
             "average_thrust": float(engine.attrib.get("avgThrust", 0)),
@@ -1749,7 +1749,7 @@ class GenericMotor(Motor):
         # handle eng parameters
         if not chamber_radius:
             chamber_radius = description["description"][
-                "throat_diameter"
+                "diameter"
             ]  # get motor diameter in meters
 
         if not chamber_height:
