@@ -1,6 +1,6 @@
 import re
-import xml.etree.ElementTree as ET
 import warnings
+import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
 from functools import cached_property
 from os import path
