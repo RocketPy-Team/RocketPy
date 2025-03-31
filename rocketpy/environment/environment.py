@@ -586,23 +586,23 @@ class Environment:
         self.wind_direction.set_inputs("Height Above Sea Level (m)")
         self.wind_direction.set_outputs("Wind Direction (Deg True)")
         self.wind_direction.set_title("Wind Direction Profile")
-    
+
     def __set_earth_rotation_vector(self):
         """Calculates and stores the Earth's angular velocity vector in the Flight
         Coordinate System, which is essential for evaluating inertial forces.
         """
         # Sidereal day
-        T = 86164.1   # seconds
+        T = 86164.1  # seconds
 
         # Earth's angular velocity magnitude
-        wE = 2*np.pi/T
+        w_earth = 2 * np.pi / T
 
         # Vector in the Flight Coordinate System
         lat = np.radians(self.latitude)
-        wL = [0, wE * np.cos(lat), wE * np.sin(lat)]
+        w_local = [0, w_earth * np.cos(lat), w_earth * np.sin(lat)]
 
         # Store the attribute
-        self.earth_rotation_vector = wL
+        self.earth_rotation_vector = w_local
 
     # Validators (used to verify an attribute is being set correctly.)
 
