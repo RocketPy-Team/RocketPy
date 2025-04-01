@@ -692,8 +692,9 @@ def get_instance_attributes(instance):
     return attributes_dict
 
 
-def save_to_rpy(flight: Flight, filename: str, include_output = False):
-    """Saves a .rpy file into the given path, containing key simulation informations to reproduce the results.
+def save_to_rpy(flight: Flight, filename: str, include_outputs = False):
+    """Saves a .rpy file into the given path, containing key simulation 
+    informations to reproduce the results.
 
     Parameters
     ----------
@@ -702,7 +703,8 @@ def save_to_rpy(flight: Flight, filename: str, include_output = False):
     filename : str
         Path where the file will be saved in
     include_output : bool, optional
-        If True, the function will include extra outputs into the file, by default False
+        If True, the function will include extra outputs into the file,
+        by default False
         
     Returns
     -------
@@ -720,7 +722,7 @@ def save_to_rpy(flight: Flight, filename: str, include_output = False):
             f,
             cls=RocketPyEncoder,
             indent=2,
-            include_outputs=include_output,
+            include_outputs=include_outputs,
         )
 
 
@@ -732,7 +734,8 @@ def load_from_rpy(filename: str, resimulate = False):
     filename : str
         Path where the file to be loaded is
     resimulate : bool, optional
-        If True, the function will resimulate the object Flight, by default False
+        If True, the function will resimulate the object Flight,
+        by default False
         
     Returns
     -------
@@ -743,10 +746,15 @@ def load_from_rpy(filename: str, resimulate = False):
     if ext == ".rpy":
         with open(filename, "r") as f:
             data = json.load(f)
-            if data["version"] < version("rocketpy"):
-                warnings.warn("The file was saved in an older version of RocketPy than the one in the current environment")
+            if data["version"] > version("rocketpy"):
+                warnings.warn("The file was saved in an updated version of",
+                              f"RocketPy (v{data["version"]}), the current",
+                              f"imported module is v{version('rocketpy')}")
             simulation = json.dumps(data["simulation"])
-            flight = json.loads(simulation, cls=RocketPyDecoder, resimulate=resimulate)
+            flight = json.loads(
+                simulation,
+                cls=RocketPyDecoder,
+                resimulate=resimulate)
         return flight
     else:
         raise ValueError(f"Invalid file extension: {ext}. Allowed: .rpy")
