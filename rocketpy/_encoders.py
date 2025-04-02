@@ -91,44 +91,8 @@ class RocketPyDecoder(json.JSONDecoder):
                     new_flight = class_.__new__(class_)
                     new_flight.prints = _FlightPrints(new_flight)
                     new_flight.plots = _FlightPlots(new_flight)
-                    new_flight.rocket = obj["rocket"]
-                    new_flight.env = obj["env"]
-                    new_flight.rail_length = obj["rail_length"]
-                    new_flight.inclination = obj["inclination"]
-                    new_flight.heading = obj["heading"]
-                    new_flight.terminate_on_apogee = obj["terminate_on_apogee"]
-                    new_flight.max_time = obj["max_time"]
-                    new_flight.max_time_step = obj["max_time_step"]
-                    new_flight.min_time_step = obj["min_time_step"]
-                    new_flight.rtol = obj["rtol"]
-                    new_flight.atol = obj["atol"]
-                    new_flight.time_overshoot = obj["time_overshoot"]
-                    new_flight.name = obj["name"]
-                    new_flight.solution = obj["solution"]
-                    new_flight.out_of_rail_time = obj["out_of_rail_time"]
-                    new_flight.apogee_time = obj["apogee_time"]
-                    new_flight.apogee = obj["apogee"]
-                    new_flight.parachute_events = obj["parachute_events"]
-                    new_flight.impact_state = obj["impact_state"]
-                    new_flight.impact_velocity = obj["impact_velocity"]
-                    new_flight.x_impact = obj["x_impact"]
-                    new_flight.y_impact = obj["y_impact"]
-                    new_flight.t_final = obj["t_final"]
-                    new_flight.flight_phases = obj["flight_phases"]
-                    new_flight.ax = obj["ax"]
-                    new_flight.ay = obj["ay"]
-                    new_flight.az = obj["az"]
-                    new_flight.out_of_rail_time_index = obj["out_of_rail_time_index"]
-                    new_flight.function_evaluations = obj["function_evaluations"]
-                    new_flight.alpha1 = obj["alpha1"]
-                    new_flight.alpha2 = obj["alpha2"]
-                    new_flight.alpha3 = obj["alpha3"]
-                    new_flight.R1 = obj["R1"]
-                    new_flight.R2 = obj["R2"]
-                    new_flight.R3 = obj["R3"]
-                    new_flight.M1= obj["M1"]
-                    new_flight.M2 = obj["M2"]
-                    new_flight.M3 = obj["M3"]
+                    for attr_name, attr in obj.items():
+                        setattr(new_flight, attr_name, attr)
                     return new_flight
                 elif hasattr(class_, "from_dict"):
                     return class_.from_dict(obj)
