@@ -3433,31 +3433,32 @@ class Flight:
             "time_overshoot": self.time_overshoot,
             "name": self.name,
             "equations_of_motion": self.equations_of_motion,
-            "solution": self.solution, ##
-            "out_of_rail_time": self.out_of_rail_time, #
-            "apogee_time": self.apogee_time, #
-            "apogee": self.apogee, #
-            "parachute_events": self.parachute_events, ##
-            "impact_state": self.impact_state, #
-            "impact_velocity": self.impact_velocity, #
-            "x_impact": self.x_impact, #
-            "y_impact": self.y_impact, #
-            "t_final": self.t_final, ##
-            "flight_phases": self.flight_phases, ##
-            "ax": self.ax, #
-            "ay": self.ay, #
-            "az": self.az, #
-            "out_of_rail_time_index": self.out_of_rail_time_index, ##
-            "function_evaluations": self.function_evaluations, ##
-            "alpha1": self.alpha1, #
-            "alpha2": self.alpha2, #
-            "alpha3": self.alpha3, #
-            "R1": self.R1, ##
-            "R2": self.R2, ##
-            "R3": self.R3, ##
-            "M1": self.M1, ##
-            "M2": self.M2, ##
-            "M3": self.M3, ##
+            # The following outputs are essential to run all_info method
+            "solution": self.solution,
+            "out_of_rail_time": self.out_of_rail_time,
+            "apogee_time": self.apogee_time,
+            "apogee": self.apogee,
+            "parachute_events": self.parachute_events,
+            "impact_state": self.impact_state,
+            "impact_velocity": self.impact_velocity,
+            "x_impact": self.x_impact,
+            "y_impact": self.y_impact,
+            "t_final": self.t_final,
+            "flight_phases": self.flight_phases,
+            "ax": self.ax,
+            "ay": self.ay,
+            "az": self.az,
+            "out_of_rail_time_index": self.out_of_rail_time_index,
+            "function_evaluations": self.function_evaluations,
+            "alpha1": self.alpha1,
+            "alpha2": self.alpha2,
+            "alpha3": self.alpha3,
+            "R1": self.R1,
+            "R2": self.R2,
+            "R3": self.R3,
+            "M1": self.M1,
+            "M2": self.M2,
+            "M3": self.M3,
         }
 
         if include_outputs:
