@@ -6,7 +6,7 @@ import numpy as np
 from rocketpy.control.controller import _Controller
 from rocketpy.mathutils.function import Function
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
-from rocketpy.motors.motor import EmptyMotor
+from rocketpy.motors.empty_motor import EmptyMotor
 from rocketpy.plots.rocket_plots import _RocketPlots
 from rocketpy.prints.rocket_prints import _RocketPrints
 from rocketpy.rocket.aero_surface import (
@@ -1181,7 +1181,7 @@ class Rocket:
         warnings.warn(
             "This method is set to be deprecated in version 1.0.0 and fully "
             "removed by version 2.0.0. Use Rocket.add_trapezoidal_fins instead",
-            PendingDeprecationWarning,
+            DeprecationWarning,
         )
         return self.add_trapezoidal_fins(*args, **kwargs)
 
@@ -1744,8 +1744,8 @@ class Rocket:
     def add_cm_eccentricity(self, x, y):
         """Moves line of action of aerodynamic and thrust forces by
         equal translation amount to simulate an eccentricity in the
-        position of the center of mass of the rocket relative to its
-        geometrical center line.
+        position of the center of dry mass of the rocket relative to
+        its geometrical center line.
 
         Parameters
         ----------
@@ -1781,20 +1781,18 @@ class Rocket:
     def add_cp_eccentricity(self, x, y):
         """Moves line of action of aerodynamic forces to simulate an
         eccentricity in the position of the center of pressure relative
-        to the center of mass of the rocket.
+        to the center of dry mass of the rocket.
 
         Parameters
         ----------
         x : float
             Distance in meters by which the CP is to be translated in
-            the x direction relative to the center of mass axial line.
-            The x axis is defined according to the body axes coordinate
-            system.
+            the x direction relative to the center of dry mass axial line.
+            The x axis is defined according to the body axes coordinate system.
         y : float
             Distance in meters by which the CP is to be translated in
-            the y direction relative to the center of mass axial line.
-            The y axis is defined according to the body axes coordinate
-            system.
+            the y direction relative to the center of dry mass axial line.
+            The y axis is defined according to the body axes coordinate system.
 
         Returns
         -------
@@ -1811,19 +1809,19 @@ class Rocket:
 
     def add_thrust_eccentricity(self, x, y):
         """Moves line of action of thrust forces to simulate a
-        misalignment of the thrust vector and the center of mass.
+        misalignment of the thrust vector and the center of dry mass.
 
         Parameters
         ----------
         x : float
             Distance in meters by which the line of action of the
             thrust force is to be translated in the x direction
-            relative to the center of mass axial line. The x axis
+            relative to the center of dry mass axial line. The x axis
             is defined according to the body axes coordinate system.
         y : float
             Distance in meters by which the line of action of the
-            thrust force is to be translated in the x direction
-            relative to the center of mass axial line. The y axis
+            thrust force is to be translated in the y direction
+            relative to the center of dry mass axial line. The y axis
             is defined according to the body axes coordinate system.
 
         Returns
@@ -1835,8 +1833,8 @@ class Rocket:
         --------
         :ref:`rocket_axes`
         """
-        self.thrust_eccentricity_y = x
-        self.thrust_eccentricity_x = y
+        self.thrust_eccentricity_x = x
+        self.thrust_eccentricity_y = y
         return self
 
     def draw(self, vis_args=None, plane="xz", *, filename=None):

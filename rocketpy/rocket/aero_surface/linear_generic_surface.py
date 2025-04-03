@@ -238,15 +238,15 @@ class LinearGenericSurface(GenericSurface):
         return Function(
             total_coefficient,
             [
-                'alpha',
-                'beta',
-                'mach',
-                'reynolds',
-                'pitch_rate',
-                'yaw_rate',
-                'roll_rate',
+                "alpha",
+                "beta",
+                "mach",
+                "reynolds",
+                "pitch_rate",
+                "yaw_rate",
+                "roll_rate",
             ],
-            ['coefficient'],
+            ["coefficient"],
         )
 
     def compute_damping_coefficient(self, c_p, c_q, c_r):
@@ -268,15 +268,15 @@ class LinearGenericSurface(GenericSurface):
         return Function(
             total_coefficient,
             [
-                'alpha',
-                'beta',
-                'mach',
-                'reynolds',
-                'pitch_rate',
-                'yaw_rate',
-                'roll_rate',
+                "alpha",
+                "beta",
+                "mach",
+                "reynolds",
+                "pitch_rate",
+                "yaw_rate",
+                "roll_rate",
             ],
-            ['coefficient'],
+            ["coefficient"],
         )
 
     def compute_all_coefficients(self):

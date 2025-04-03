@@ -34,7 +34,6 @@ Attention: The newest changes should be on top -->
 
 - ENH: Create a rocketpy file to store flight simulations [#800](https://github.com/RocketPy-Team/RocketPy/pull/800)
 
-
 ### Changed
 
 

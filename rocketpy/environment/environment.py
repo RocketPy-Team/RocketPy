@@ -27,9 +27,6 @@ from rocketpy.environment.tools import (
     find_latitude_index,
     find_longitude_index,
     find_time_index,
-)
-from rocketpy.environment.tools import geodesic_to_utm as geodesic_to_utm_tools
-from rocketpy.environment.tools import (
     get_elevation_data_from_dataset,
     get_final_date_from_time_array,
     get_initial_date_from_time_array,
@@ -37,6 +34,7 @@ from rocketpy.environment.tools import (
     get_pressure_levels_from_file,
     mask_and_clean_dataset,
 )
+from rocketpy.environment.tools import geodesic_to_utm as geodesic_to_utm_tools
 from rocketpy.environment.tools import utm_to_geodesic as utm_to_geodesic_tools
 from rocketpy.environment.weather_model_mapping import WeatherModelMapping
 from rocketpy.mathutils.function import NUMERICAL_TYPES, Function, funcify_method
@@ -715,7 +713,6 @@ class Environment:
         if not isinstance(latitude, NUMERICAL_TYPES) and isinstance(
             longitude, NUMERICAL_TYPES
         ):  # pragma: no cover
-
             raise TypeError("Latitude and Longitude must be numbers!")
 
         # Store latitude and longitude
@@ -1445,9 +1442,7 @@ class Environment:
 
         self._max_expected_height = max_expected_height
 
-    def process_windy_atmosphere(
-        self, model="ECMWF"
-    ):  # pylint: disable=too-many-statements
+    def process_windy_atmosphere(self, model="ECMWF"):  # pylint: disable=too-many-statements
         """Process data from Windy.com to retrieve atmospheric forecast data.
 
         Parameters
@@ -1658,41 +1653,7 @@ class Environment:
         # Save maximum expected height
         self._max_expected_height = data_array[-1, 1]
 
-    def process_noaaruc_sounding(self, file):  # pylint: disable=too-many-statements
-        """Import and process the upper air sounding data from `NOAA
-        Ruc Soundings` database (https://rucsoundings.noaa.gov/) given as
-        ASCII GSD format pages passed by its url to the file parameter. Sets
-        pressure, temperature, wind-u, wind-v profiles and surface elevation.
-
-        Parameters
-        ----------
-        file : string
-            URL of an upper air sounding data output from `NOAA Ruc Soundings`
-            in ASCII GSD format.
-
-            Example:
-
-            https://rucsoundings.noaa.gov/get_raobs.cgi?data_source=RAOB&latest=latest&start_year=2019&start_month_name=Feb&start_mday=5&start_hour=12&start_min=0&n_hrs=1.0&fcst_len=shortest&airport=83779&text=Ascii%20text%20%28GSD%20format%29&hydrometeors=false&start=latest
-
-
-        See also
-        --------
-        This method is deprecated and will be fully deleted in version 1.8.0.
-
-        Returns
-        -------
-        None
-        """
-        warnings.warn(
-            "NOAA RUC models are no longer available. "
-            "This method is deprecated and will be fully deleted in version 1.8.0.",
-            DeprecationWarning,
-        )
-        return file
-
-    def process_forecast_reanalysis(
-        self, file, dictionary
-    ):  # pylint: disable=too-many-locals,too-many-statements
+    def process_forecast_reanalysis(self, file, dictionary):  # pylint: disable=too-many-locals,too-many-statements
         """Import and process atmospheric data from weather forecasts
         and reanalysis given as ``netCDF`` or ``OPeNDAP`` files.
         Sets pressure, temperature, wind-u and wind-v
@@ -1948,9 +1909,7 @@ class Environment:
         # Close weather data
         data.close()
 
-    def process_ensemble(
-        self, file, dictionary
-    ):  # pylint: disable=too-many-locals,too-many-statements
+    def process_ensemble(self, file, dictionary):  # pylint: disable=too-many-locals,too-many-statements
         """Import and process atmospheric data from weather ensembles
         given as ``netCDF`` or ``OPeNDAP`` files. Sets pressure, temperature,
         wind-u and wind-v profiles and surface elevation obtained from a weather
@@ -2268,26 +2227,6 @@ class Environment:
         self.calculate_speed_of_sound_profile()
         self.calculate_dynamic_viscosity()
 
-    def load_international_standard_atmosphere(self):  # pragma: no cover
-        """Defines the pressure and temperature profile functions set
-        by `ISO 2533` for the International Standard atmosphere and saves
-        them as ``Environment.pressure_ISA`` and ``Environment.temperature_ISA``.
-
-        Notes
-        -----
-        This method is **deprecated** and will be removed in version 1.6.0. You
-        can access :meth:`rocketpy.Environment.pressure_ISA` and
-        :meth:`rocketpy.Environment.temperature_ISA` directly without the need
-        to call this method.
-        """
-        warnings.warn(
-            "load_international_standard_atmosphere() is deprecated in version "
-            "1.5.0 and will be removed in version 1.7.0. This method is no longer "
-            "needed as the International Standard Atmosphere is already calculated "
-            "when the Environment object is created.",
-            DeprecationWarning,
-        )
-
     @funcify_method("Height Above Sea Level (m)", "Pressure (Pa)", "spline", "natural")
     def pressure_ISA(self):
         """Pressure, in Pa, as a function of height above sea level as defined
@@ -2578,7 +2517,7 @@ class Environment:
         try:
             return ellipsoid[datum]
         except KeyError as e:  # pragma: no cover
-            available_datums = ', '.join(ellipsoid.keys())
+            available_datums = ", ".join(ellipsoid.keys())
             raise AttributeError(
                 f"The reference system '{datum}' is not recognized. Please use one of "
                 f"the following recognized datum: {available_datums}"
@@ -2628,6 +2567,11 @@ class Environment:
         EW : string
             Returns "W" for western hemisphere and "E" for eastern hemisphere
         """
+        warnings.warn(
+            "This function is deprecated and will be removed in v1.10.0. "
+            "Please use the new method `tools.geodesic_to_utm` instead.",
+            DeprecationWarning,
+        )
         return geodesic_to_utm_tools(lat, lon, semi_major_axis, flattening)
 
     @staticmethod
@@ -2665,6 +2609,11 @@ class Environment:
         lon : float
             latitude of the analyzed point
         """
+        warnings.warn(
+            "This function is deprecated and will be removed in v1.10.0. "
+            "Please use the new method `tools.utm_to_geodesic` instead.",
+            DeprecationWarning,
+        )
         return utm_to_geodesic_tools(x, y, utm_zone, hemis, semi_major_axis, flattening)
 
     @staticmethod

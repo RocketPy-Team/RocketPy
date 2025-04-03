@@ -1,4 +1,4 @@
-""""This module contains auxiliary functions for helping with the Environment
+"""This module contains auxiliary functions for helping with the Environment
 classes operations. The functions mainly deal with wind calculations and
 interpolation of data from netCDF4 datasets. As this is a recent addition to
 the library (introduced in version 1.5.0), some functions may be modified in the
@@ -442,12 +442,45 @@ def get_interval_date_from_time_array(time_array, units=None):
 # Geodesic conversions functions
 
 
-def geodesic_to_utm(
-    lat, lon, semi_major_axis=6378137.0, flattening=1 / 298.257223563
-):  # pylint: disable=too-many-locals,too-many-statements
-    # NOTE: already documented in the Environment class.
-    # TODO: deprecated the static method from the environment class, use only this one.
+def geodesic_to_utm(lat, lon, semi_major_axis=6378137.0, flattening=1 / 298.257223563):  # pylint: disable=too-many-locals,too-many-statements
+    """Function which converts geodetic coordinates, i.e. lat/lon, to UTM
+    projection coordinates. Can be used only for latitudes between -80.00°
+    and 84.00°
 
+    Parameters
+    ----------
+    lat : float
+        The latitude coordinates of the point of analysis, must be contained
+        between -80.00° and 84.00°
+    lon : float
+        The longitude coordinates of the point of analysis, must be
+        contained between -180.00° and 180.00°
+    semi_major_axis : float
+        The semi-major axis of the ellipsoid used to represent the Earth,
+        must be given in meters (default is 6,378,137.0 m, which corresponds
+        to the WGS84 ellipsoid)
+    flattening : float
+        The flattening of the ellipsoid used to represent the Earth, usually
+        between 1/250 and 1/150 (default is 1/298.257223563, which
+        corresponds to the WGS84 ellipsoid)
+
+    Returns
+    -------
+    x : float
+        East coordinate, always positive
+    y : float
+        North coordinate, always positive
+    utm_zone : int
+        The number of the UTM zone of the point of analysis, can vary
+        between 1 and 60
+    utm_letter : string
+        The letter of the UTM zone of the point of analysis, can vary
+        between C and X, omitting the letters "I" and "O"
+    hemis : string
+        Returns "S" for southern hemisphere and "N" for Northern hemisphere
+    EW : string
+        Returns "W" for western hemisphere and "E" for eastern hemisphere
+    """
     # Calculate the central meridian of UTM zone
     if lon != 0:
         signal = lon / abs(lon)
@@ -531,9 +564,37 @@ def geodesic_to_utm(
 def utm_to_geodesic(  # pylint: disable=too-many-locals,too-many-statements
     x, y, utm_zone, hemis, semi_major_axis=6378137.0, flattening=1 / 298.257223563
 ):
-    # NOTE: already documented in the Environment class.
-    # TODO: deprecate the static method from the environment class, use only this one.
+    """Function to convert UTM coordinates to geodesic coordinates
+    (i.e. latitude and longitude).
 
+    Parameters
+    ----------
+    x : float
+        East UTM coordinate in meters
+    y : float
+        North UTM coordinate in meters
+    utm_zone : int
+        The number of the UTM zone of the point of analysis, can vary
+        between 1 and 60
+    hemis : string
+        Equals to "S" for southern hemisphere and "N" for Northern
+        hemisphere
+    semi_major_axis : float
+        The semi-major axis of the ellipsoid used to represent the Earth,
+        must be given in meters (default is 6,378,137.0 m, which corresponds
+        to the WGS84 ellipsoid)
+    flattening : float
+        The flattening of the ellipsoid used to represent the Earth, usually
+        between 1/250 and 1/150 (default is 1/298.257223563, which
+        corresponds to the WGS84 ellipsoid)
+
+    Returns
+    -------
+    lat : float
+        latitude of the analyzed point
+    lon : float
+        latitude of the analyzed point
+    """
     if hemis == "N":
         y = y + 10000000
 
