@@ -224,7 +224,7 @@ def test_check_constant(f, eps, expected):
 
 
 def test_save_to_rpy(flight_calisto_robust):
-    """Tests if the save_to_rpy function correctly saves the data to the 
+    """Tests if the save_to_rpy function correctly saves the data to the
     correct file.
 
     Parameters
@@ -234,14 +234,17 @@ def test_save_to_rpy(flight_calisto_robust):
         in the conftest.py file.
     """
     utilities.save_to_rpy(flight_calisto_robust, "flight_calisto_robust.rpy")
-    assert (os.path.splitext(os.path.basename("flight_calisto_robust.rpy"))
-            == ("flight_calisto_robust", ".rpy"))
+    assert os.path.splitext(os.path.basename("flight_calisto_robust.rpy")) == (
+        "flight_calisto_robust",
+        ".rpy",
+    )
     assert os.path.getsize("flight_calisto_robust.rpy") > 0
     os.remove("flight_calisto_robust.rpy")
 
+
 @patch("matplotlib.pyplot.show")
 def test_load_from_rpy(mock_show):  # pylint: disable=unused-argument
-    """Tests if the load_from_rpy function correctly loads the data into a 
+    """Tests if the load_from_rpy function correctly loads the data into a
     flight object.
 
     Parameters
@@ -250,6 +253,8 @@ def test_load_from_rpy(mock_show):  # pylint: disable=unused-argument
         Mock of the matplotlib.pyplot.show function. This is here so the plots
         are not shown during the tests.
     """
-    loaded_flight = utilities.load_from_rpy("tests/fixtures/utilities/flight_calisto_robust.rpy")
+    loaded_flight = utilities.load_from_rpy(
+        "tests/fixtures/utilities/flight_calisto_robust.rpy"
+    )
     assert loaded_flight.info() is None
     assert loaded_flight.all_info() is None

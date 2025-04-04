@@ -696,8 +696,8 @@ def get_instance_attributes(instance):
     return attributes_dict
 
 
-def save_to_rpy(flight: Flight, filename: str | Path, include_outputs = False):
-    """Saves a .rpy file into the given path, containing key simulation 
+def save_to_rpy(flight: Flight, filename: str | Path, include_outputs=False):
+    """Saves a .rpy file into the given path, containing key simulation
     informations to reproduce the results.
 
     Parameters
@@ -709,7 +709,7 @@ def save_to_rpy(flight: Flight, filename: str | Path, include_outputs = False):
     include_output : bool, optional
         If True, the function will include extra outputs into the file,
         by default False
-        
+
     Returns
     -------
     None
@@ -730,7 +730,7 @@ def save_to_rpy(flight: Flight, filename: str | Path, include_outputs = False):
         )
 
 
-def load_from_rpy(filename: str, resimulate = False):
+def load_from_rpy(filename: str, resimulate=False):
     """Loads the saved data from a .rpy file into a Flight object.
 
     Parameters
@@ -740,7 +740,7 @@ def load_from_rpy(filename: str, resimulate = False):
     resimulate : bool, optional
         If True, the function will resimulate the Flight object,
         by default False
-        
+
     Returns
     -------
     rocketpy.Flight
@@ -753,12 +753,11 @@ def load_from_rpy(filename: str, resimulate = False):
     with open(filename, "r") as f:
         data = json.load(f)
         if data["version"] > version("rocketpy"):
-            warnings.warn("The file was saved in an updated version of",
-                        f"RocketPy (v{data["version"]}), the current",
-                        f"imported module is v{version('rocketpy')}")
+            warnings.warn(
+                "The file was saved in an updated version of",
+                f"RocketPy (v{data['version']}), the current",
+                f"imported module is v{version('rocketpy')}",
+            )
         simulation = json.dumps(data["simulation"])
-        flight = json.loads(
-            simulation,
-            cls=RocketPyDecoder,
-            resimulate=resimulate)
+        flight = json.loads(simulation, cls=RocketPyDecoder, resimulate=resimulate)
     return flight
