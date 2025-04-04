@@ -19,8 +19,6 @@ from rocketpy.tools import flatten_dict
 
 
 @dataclass
-# TODO: replace Union by "|" once python 3.9 is no longer supported
-# pylint: disable=unsupported-binary-operation
 class SampleInformation:
     """Sample information used in the MRS
 
