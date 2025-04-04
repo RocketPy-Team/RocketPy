@@ -696,7 +696,7 @@ def get_instance_attributes(instance):
     return attributes_dict
 
 
-def save_to_rpy(flight: Flight, filename: str | Path, include_outputs=False):
+def save_to_rpy(flight: Flight, filename: str, include_outputs=False):
     """Saves a .rpy file into the given path, containing key simulation
     informations to reproduce the results.
 
@@ -704,7 +704,7 @@ def save_to_rpy(flight: Flight, filename: str | Path, include_outputs=False):
     ----------
     flight : rocketpy.Flight
         Flight object containing the rocket's flight data
-    filename : str | Path
+    filename : str
         Path where the file will be saved in
     include_output : bool, optional
         If True, the function will include extra outputs into the file,
