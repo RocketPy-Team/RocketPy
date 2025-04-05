@@ -719,8 +719,6 @@ def save_to_rpy(flight: Flight, filename: str, include_outputs=False):
     with open(file, "w") as f:
         data = {"date": str(date.today()), "version": version("rocketpy")}
         data["simulation"] = flight
-        print(data)
-        print(flight.rocket)
         json.dump(
             data,
             f,
