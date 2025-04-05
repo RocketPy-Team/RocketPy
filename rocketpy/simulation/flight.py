@@ -1743,7 +1743,7 @@ class Flight:
         _, _, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
 
         # Create necessary vectors
-        # r = Vector([x, y, z])               # CDM position vector
+        # r = Vector([x, y, z])  # CDM position vector
         v = Vector([vx, vy, vz])  # CDM velocity vector
         e = [e0, e1, e2, e3]  # Euler parameters/quaternions
         w = Vector([omega1, omega2, omega3])  # Angular velocity vector
@@ -1896,8 +1896,9 @@ class Flight:
         # Angular velocity derivative
         w_dot = I_CM.inverse @ (T21 + (T20 ^ r_CM))
 
-        # Velocity vector derivative
-        v_dot = K @ (T20 / total_mass - (r_CM ^ w_dot))
+        # Velocity vector derivative + Coriolis acceleration
+        w_earth = Kt @ Vector(self.env.earth_rotation_vector)
+        v_dot = K @ (T20 / total_mass - (r_CM ^ w_dot)) - 2 * (w_earth ^ v)
 
         # Euler parameters derivative
         e_dot = [
