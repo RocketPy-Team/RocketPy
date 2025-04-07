@@ -248,7 +248,7 @@ class Environment:
         Number of ensemble members. Only defined when using Ensembles.
     Environment.ensemble_member : int
         Current selected ensemble member. Only defined when using Ensembles.
-    Environment.earth_rotation_vector : list
+    Environment.earth_rotation_vector : list[float]
         Earth's angular velocity vector in the Flight Coordinate System.
 
     Notes
