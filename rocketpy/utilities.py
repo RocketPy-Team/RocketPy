@@ -706,7 +706,7 @@ def save_to_rpy(flight: Flight, filename: str, include_outputs=False):
         Flight object containing the rocket's flight data
     filename : str
         Path where the file will be saved in
-    include_output : bool, optional
+    include_outputs : bool, optional
         If True, the function will include extra outputs into the file,
         by default False
 
@@ -745,7 +745,7 @@ def load_from_rpy(filename: str, resimulate=False):
         Flight object containing simulation information from the .rpy file
     """
     ext = os.path.splitext(os.path.basename(filename))[1]
-    if ext != ".rpy":
+    if ext != ".rpy":  # pragma: no cover
         raise ValueError(f"Invalid file extension: {ext}. Allowed: .rpy")
 
     with open(filename, "r") as f:
