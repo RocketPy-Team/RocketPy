@@ -4,12 +4,12 @@ StochasticEllipticalFins, StochasticTail and StochasticRailButtons classes.
 """
 
 from rocketpy.rocket.aero_surface import (
+    AirBrakes,
     EllipticalFins,
     NoseCone,
     RailButtons,
     Tail,
     TrapezoidalFins,
-    AirBrakes,
 )
 
 from .stochastic_model import StochasticModel

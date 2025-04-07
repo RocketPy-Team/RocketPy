@@ -180,3 +180,34 @@ def test_load_from_eng_file(generic_motor):
     assert generic_motor.thrust.y_array == pytest.approx(
         Function(points, "Time (s)", "Thrust (N)", "linear", "zero").y_array
     )
+
+
+def test_load_from_rse_file(generic_motor):
+    """Tests the GenericMotor.load_from_rse_file method.
+
+    Parameters
+    ----------
+    generic_motor : rocketpy.GenericMotor
+        The GenericMotor object to be used in the tests.
+    """
+
+    # Test the load_from_rse_file method
+    generic_motor = generic_motor.load_from_rse_file(
+        "data/motors/rse_example/rse_motor_example_file.rse"
+    )
+
+    # Check if the engine has been loaded correctly
+    assert generic_motor.thrust is not None
+    assert generic_motor.dry_mass == 0.0363  # Total mass - propellant mass
+    assert generic_motor.propellant_initial_mass == 0.0207
+    assert generic_motor.burn_time == (0.0, 2.2)
+    assert generic_motor.nozzle_radius == 0.00
+    assert generic_motor.chamber_radius == 0.024
+    assert generic_motor.chamber_height == 0.07
+
+    # Check the thrust curve values
+    thrust_curve = generic_motor.thrust.source
+    assert thrust_curve[0][0] == 0.0  # First time point
+    assert thrust_curve[0][1] == 0.0  # First thrust point
+    assert thrust_curve[-1][0] == 2.2  # Last point of time
+    assert thrust_curve[-1][1] == 0.0  # Last thrust point
