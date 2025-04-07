@@ -33,6 +33,7 @@ Attention: The newest changes should be on top -->
 ### Added
 
 - ENH: Create a rocketpy file to store flight simulations [#800](https://github.com/RocketPy-Team/RocketPy/pull/800)
+- ENH: Support for the RSE file format has been added to the library [#798](https://github.com/RocketPy-Team/RocketPy/pull/798)
 
 ### Changed
 
