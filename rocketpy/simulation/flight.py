@@ -1693,7 +1693,6 @@ class Flight:
         az -= self.env.gravity.get_value_opt(z)  # Include gravity
 
         # Coriolis acceleration
-        print('u_dot')
         _, w_earth_y, w_earth_z = self.env.earth_rotation_vector
         ax -= 2  * (-a23*vy*w_earth_y + a22*vz*w_earth_y - a33*vy*w_earth_z + a32*vz*w_earth_z)
         ay -= 2 * (a23*vx*w_earth_y - a21*vz*w_earth_y + a33*vx*w_earth_z - a31*vz*w_earth_z)
