@@ -32,6 +32,19 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- ENH: Support for the RSE file format has been added to the library [#798](https://github.com/RocketPy-Team/RocketPy/pull/798)
+- ENH: Add the Coriolis Force to the Flight class [#799](https://github.com/RocketPy-Team/RocketPy/pull/799)
+
+### Changed
+
+
+### Fixed
+
+
+## v1.9.0 - 2025-03-24
+
+### Added
+
 - ENH: Parallel mode for monte-carlo simulations 2 [#768](https://github.com/RocketPy-Team/RocketPy/pull/768)
 - DOC: ASTRA Flight Example [#770](https://github.com/RocketPy-Team/RocketPy/pull/770)
 - ENH: Add Eccentricity to Stochastic Simulations [#792](https://github.com/RocketPy-Team/RocketPy/pull/792)
@@ -39,6 +52,7 @@ Attention: The newest changes should be on top -->
 
 ### Changed
 
+- DEP: Remove Pending Deprecations and Add Warnings Where Needed [#794](https://github.com/RocketPy-Team/RocketPy/pull/794)
 - DOCS: reshape docs (closes #659) [#781](https://github.com/RocketPy-Team/RocketPy/pull/781)
 - MNT: EmptyMotor class inherits from Motor(ABC) [#779](https://github.com/RocketPy-Team/RocketPy/pull/779)
 
