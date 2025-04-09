@@ -32,6 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- ENH: Support for the RSE file format has been added to the library [#798](https://github.com/RocketPy-Team/RocketPy/pull/798)
 - ENH: Introduce Net Thrust with pressure corrections [#789](https://github.com/RocketPy-Team/RocketPy/pull/789)
 
 ### Changed
