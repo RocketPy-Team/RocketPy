@@ -147,7 +147,10 @@ class Motor(ABC):
         Total motor burn duration, in seconds. It is the difference between
         the burn_out_time and the burn_start_time.
     Motor.exhaust_velocity : Function
-        Propulsion gases exhaust velocity in m/s.
+        Effective exhaust velocity of the propulsion gases in m/s. Computed
+        as the thrust divided by the mass flow rate. This corresponds to the
+        actual exhaust velocity only when the nozzle exit pressure equals the
+        atmospheric pressure.
     Motor.interpolate : string
         Method of interpolation used in case thrust curve is given
         by data set in .csv or .eng, or as an array. Options are 'spline'
@@ -409,7 +412,7 @@ class Motor(ABC):
     @property
     @abstractmethod
     def exhaust_velocity(self):
-        """Exhaust velocity of the motor gases.
+        """Effective exhaust velocity of the motor gases.
 
         Returns
         -------
@@ -428,6 +431,9 @@ class Motor(ABC):
         - The ``LiquidMotor`` class favors the more accurate data from the
           Tanks's mass flow rates. Therefore the exhaust velocity is generally
           variable, being the ratio of the motor thrust by the mass flow rate.
+
+        This corresponds to the actual exhaust velocity only when the nozzle
+        exit pressure equals the atmospheric pressure.
         """
 
     @funcify_method("Time (s)", "Total mass (kg)")
@@ -1060,14 +1066,18 @@ class Motor(ABC):
             The rocket's thrust in a vaccum.
         """
         if self.reference_pressure is None:
-            print("Reference pressure is not set, cannot calculate vacuum thrust")
+            warnings.warn(
+                "Reference pressure not set. Returning thrust instead.",
+                UserWarning,
+            )
             return self.thrust
 
         return self.thrust + self.reference_pressure * self.nozzle_area
 
     def pressure_thrust(self, pressure):
-        """Computes the contribution to thrust due to the pressure difference
-        between the nozzle exit and the atmospheric pressure.
+        """Computes the contribution to thrust due to the difference between
+        the atmospheric pressure and the reference pressure at which the
+        thrust data was recorded.
 
         Parameters
         ----------
@@ -1383,6 +1393,11 @@ class GenericMotor(Motor):
         -------
         self.exhaust_velocity : Function
             Gas exhaust velocity of the motor.
+
+        Notes
+        -----
+        This corresponds to the actual exhaust velocity only when the nozzle
+        exit pressure equals the atmospheric pressure.
         """
         return Function(
             self.total_impulse / self.propellant_initial_mass

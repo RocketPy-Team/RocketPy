@@ -173,7 +173,10 @@ class SolidMotor(Motor):
         Total motor burn duration, in seconds. It is the difference between the
         ``burn_out_time`` and the ``burn_start_time``.
     SolidMotor.exhaust_velocity : Function
-        Propulsion gases exhaust velocity, assumed constant, in m/s.
+        Effective exhaust velocity of the propulsion gases in m/s. Computed
+        as the thrust divided by the mass flow rate. This corresponds to the
+        actual exhaust velocity only when the nozzle exit pressure equals the
+        atmospheric pressure.
     SolidMotor.burn_area : Function
         Total burn area considering all grains, made out of inner
         cylindrical burn area and grain top and bottom faces. Expressed
@@ -392,6 +395,11 @@ class SolidMotor(Motor):
         -------
         self.exhaust_velocity : Function
             Gas exhaust velocity of the motor.
+
+        Notes
+        -----
+        This corresponds to the actual exhaust velocity only when the nozzle
+        exit pressure equals the atmospheric pressure.
         """
         return Function(
             self.total_impulse / self.propellant_initial_mass

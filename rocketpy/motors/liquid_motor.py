@@ -148,7 +148,10 @@ class LiquidMotor(Motor):
         Total motor burn duration, in seconds. It is the difference between the
         burn_out_time and the burn_start_time.
     LiquidMotor.exhaust_velocity : Function
-        Propulsion gases exhaust velocity in m/s.
+        Effective exhaust velocity of the propulsion gases in m/s. Computed
+        as the thrust divided by the mass flow rate. This corresponds to the
+        actual exhaust velocity only when the nozzle exit pressure equals the
+        atmospheric pressure.
     LiquidMotor.reference_pressure : int, float
         Atmospheric pressure in Pa at which the thrust data was recorded.
         It will allow to obtain the net thrust in the Flight class.
@@ -277,7 +280,8 @@ class LiquidMotor(Motor):
         -----
         The exhaust velocity is computed as the ratio of the thrust and the
         mass flow rate. Therefore, this will vary with time if the mass flow
-        rate varies with time.
+        rate varies with time. This corresponds to the actual exhaust velocity
+        only when the nozzle exit pressure equals the atmospheric pressure.
         """
         times, thrusts = self.thrust.source[:, 0], self.thrust.source[:, 1]
         mass_flow_rates = self.mass_flow_rate(times)
