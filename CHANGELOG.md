@@ -34,6 +34,7 @@ Attention: The newest changes should be on top -->
 
 - ENH: Create a rocketpy file to store flight simulations [#800](https://github.com/RocketPy-Team/RocketPy/pull/800)
 - ENH: Support for the RSE file format has been added to the library [#798](https://github.com/RocketPy-Team/RocketPy/pull/798)
+- ENH: Add the Coriolis Force to the Flight class [#799](https://github.com/RocketPy-Team/RocketPy/pull/799)
 
 ### Changed
 
