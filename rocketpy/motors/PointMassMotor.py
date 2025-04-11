@@ -17,7 +17,9 @@ class PointMassMotor(Motor):
         propellant_final_mass=None,
         burn_time=None,
         center_of_dry_mass_position=0,
+        reshape_thrust_curve=False,
         interpolation_method="linear",
+        coordinate_system_orientation="nozzle_to_combustion_chamber",
     ):
         """Initialize the PointMassMotor class.
         
@@ -50,20 +52,25 @@ class PointMassMotor(Motor):
             if any(param is None for param in [thrust_curve, propellant_initial_mass, burn_time]):
                 raise ValueError("thrust_curve, propellant_initial_mass, and burn_time are required when a thrust value is given.")
         
+        self._propellant_initial_mass = propellant_initial_mass
         super().__init__(
             thrust_source=thrust_source,
+            dry_inertia=(0, 0, 0),
+            nozzle_radius=0,
+        center_of_dry_mass_position=center_of_dry_mass_position,
             dry_mass=dry_mass,
-            center_of_dry_mass_position=center_of_dry_mass_position,
+            nozzle_position=0,
             burn_time=burn_time,
+            reshape_thrust_curve=reshape_thrust_curve,
             interpolation_method=interpolation_method,
-        )
-
+            coordinate_system_orientation=coordinate_system_orientation,
+        )       
     @funcify_method("Time (s)", "Thrust (N)")
     def thrust(self):
         """Returns the thrust of the motor as a function of time."""
         return self.thrust_source
 
-    @cached_property
+    @funcify_method("Time (s)", "Acceleration (m/s^2)")
     def total_mass(self):
         """Returns the constant total mass of the point mass motor."""
         return self.dry_mass
@@ -72,3 +79,34 @@ class PointMassMotor(Motor):
     def acceleration(self):
         """Computes the acceleration of the motor as thrust divided by mass."""
         return self.thrust() / self.total_mass
+
+    @funcify_method("Time (s)", "Propellant Mass (kg)")
+    def center_of_propellant_mass(self):
+        return 0
+
+    @funcify_method("Time (s)", "Exhaust Velocity (m/s)")
+    def exhaust_velocity(self):
+        return 2000  # m/s, estimated value
+
+    @funcify_method("Time (s)", "Propellant Mass (kg)")
+    def propellant_initial_mass(self):
+        return self._propellant_initial_mass
+
+    @funcify_method("Time (s)", "Propellant Mass (kg)")
+    def propellant_I_11(self): 
+        return 0
+    @funcify_method("Time (s)", "Propellant Mass (kg)")
+    def propellant_I_12(self): 
+        return 0
+    @funcify_method("Time (s)", "Propellant Mass (kg)")
+    def propellant_I_13(self): 
+        return 0
+    @funcify_method("Time (s)", "Propellant Mass (kg)")
+    def propellant_I_22(self): 
+        return 0
+    @funcify_method("Time (s)", "Propellant Mass (kg)")
+    def propellant_I_23(self): 
+        return 0
+    @funcify_method("Time (s)", "Propellant Mass (kg)")
+    def propellant_I_33(self): 
+        return 0

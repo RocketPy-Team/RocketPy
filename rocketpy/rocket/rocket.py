@@ -36,11 +36,54 @@ class BaseRocket:
             return self.mass + self.motor.total_mass
         return self.mass
 
+
 class PointMassRocket(BaseRocket):
-    """Rocket modeled as a point mass for3-DOF simulations."""  
+    """Rocket modeled as a point mass for 3-DOF simulations."""  
+    total_mass = None,
     def __init__(self, mass, drag_coefficient=0):
+
         super().__init__(mass)
+        self.parachutes = []
+        self._controllers = []
+        self.air_brakes = []
+        self.sensors = Components()
+        self.aerodynamic_surfaces = Components()
+        self.surfaces_cp_to_cdm = {}
+        self.rail_buttons = Components()
         self.drag_coefficient = drag_coefficient
+        self.parachutes = []
+    def add_parachute(
+        self, name, cd_s, trigger, sampling_rate=100, lag=0, noise=(0, 0, 0)
+    ):
+        parachute = Parachute(name, cd_s, trigger, sampling_rate, lag, noise)
+        self.parachutes.append(parachute)
+        self.total_mass= None,
+        self.evaluate_total_mass(),
+
+    def evaluate_total_mass(self):
+        """Calculates and returns the rocket's total mass. The total
+        mass is defined as the sum of the motor mass with propellant and the
+        rocket mass without propellant. The function returns an object
+        of the Function class and is defined as a function of time.
+
+        Returns
+        -------
+        self.total_mass : Function
+            Function of time expressing the total mass of the rocket,
+            defined as the sum of the propellant mass and the rocket
+            mass without propellant.
+        """
+        # Make sure there is a motor associated with the rocket
+        if self.motor is None:
+            print("Please associate this rocket with a motor!")
+            return False
+
+        self.total_mass = self.mass + self.motor.total_mass
+        self.total_mass.set_outputs("Total Mass (Rocket + Motor + Propellant) (kg)")
+        self.total_mass.set_title("Total Mass (Rocket + Motor + Propellant)")
+        return self.total_mass 
+        return self.parachutes[-1] 
+    
 # pylint: disable=too-many-instance-attributes, too-many-public-methods, too-many-instance-attributes
 class Rocket:
     """Keeps rocket information.
