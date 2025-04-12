@@ -295,7 +295,7 @@ class _MonteCarloPlots:
         if image is not None:
             try:
                 img = imageio.imread(image)
-            except FileNotFoundError as e:
+            except FileNotFoundError as e:  # pragma no cover
                 raise FileNotFoundError(
                     "The image file was not found. Please check the path."
                 ) from e
@@ -323,7 +323,9 @@ class _MonteCarloPlots:
             other_impact_x = np.array([])
             other_impact_y = np.array([])
 
-        if len(original_apogee_x) == 0 and len(original_impact_x) == 0:
+        if (
+            len(original_apogee_x) == 0 and len(original_impact_x) == 0
+        ):  # pragma no cover
             raise ValueError("No apogee or impact data found. Cannot plot ellipses.")
 
         original_impact_ellipses, original_apogee_ellipses = (
