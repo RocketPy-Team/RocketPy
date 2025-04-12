@@ -1104,6 +1104,48 @@ class MonteCarlo:
         self.plots.ellipses()
         self.plots.all()
 
+    def compare_info(self, other_monte_carlo):
+        """
+        Prints the comparison of the information  of the Monte Carlo simulation
+        against the information of another Monte Carlo simulation.
+        Parameters
+        ----------
+        other_monte_carlo : MonteCarlo
+            MonteCarlo object which the current one will be compared to.
+        Returns
+        -------
+        None
+        """
+        self.prints.print_comparison(other_monte_carlo)
+
+    def compare_plots(self, other_monte_carlo):
+        """
+        Plots the comparison of the information of the Monte Carlo simulation
+        against the information of another Monte Carlo simulation.
+        Parameters
+        ----------
+        other_monte_carlo : MonteCarlo
+            MonteCarlo object which the current one will be compared to.
+        Returns
+        -------
+        None
+        """
+        self.plots.plot_comparison(other_monte_carlo)
+
+    def compare_ellipses(self, other_monte_carlo, **kwargs):
+        """
+        Plots the comparison of the ellipses of the Monte Carlo simulation
+        against the ellipses of another Monte Carlo simulation.
+        Parameters
+        ----------
+        other_monte_carlo : MonteCarlo
+            MonteCarlo object which the current one will be compared to.
+        Returns
+        -------
+        None
+        """
+        self.plots.ellipses_comparison(other_monte_carlo, **kwargs)
+
 
 def _import_multiprocess():
     """Import the necessary modules and submodules for the
@@ -1182,6 +1224,7 @@ class _SimMonitor:
         -------
         None
         """
+
         average_time = (time() - self.start_time) / (self.count - self.initial_count)
         estimated_time = int((self.n_simulations - self.count) * average_time)
 
@@ -1220,6 +1263,7 @@ class _SimMonitor:
         -------
         None
         """
+
         padding = ""
 
         if len(msg) < _SimMonitor._last_print_len:
