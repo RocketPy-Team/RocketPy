@@ -1,23 +1,23 @@
 import ast
 import inspect
-import traceback
-import warnings
 import json
 import os
-
-from pathlib import Path
-from importlib.metadata import version
+import traceback
+import warnings
 from datetime import date
+from importlib.metadata import version
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.integrate import solve_ivp
 
+from ._encoders import RocketPyDecoder, RocketPyEncoder
 from .environment.environment import Environment
 from .mathutils.function import Function
 from .plots.plot_helpers import show_or_save_plot
 from .rocket.aero_surface import TrapezoidalFins
 from .simulation.flight import Flight
-from ._encoders import RocketPyEncoder, RocketPyDecoder
 
 
 def compute_cd_s_from_drop_test(

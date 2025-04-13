@@ -7,8 +7,8 @@ from importlib import import_module
 import numpy as np
 
 from rocketpy.mathutils.function import Function
-from rocketpy.prints.flight_prints import _FlightPrints
 from rocketpy.plots.flight_plots import _FlightPlots
+from rocketpy.prints.flight_prints import _FlightPrints
 
 
 class RocketPyEncoder(json.JSONEncoder):
