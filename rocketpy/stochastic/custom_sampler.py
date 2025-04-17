@@ -10,7 +10,7 @@ class CustomSampler(ABC):
 
     @abstractmethod
     def sample(self, n_samples=1):
-        """Generates n samples from the custom distribution
+        """Generates samples from the custom distribution
 
         Parameters
         ----------
@@ -19,7 +19,7 @@ class CustomSampler(ABC):
 
         Returns
         -------
-        sample_list : list
+        samples_list : list
             A list with n_samples elements, each of which is a valid sample
         """
 

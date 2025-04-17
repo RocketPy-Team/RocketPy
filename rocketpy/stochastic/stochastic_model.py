@@ -89,7 +89,9 @@ class StochasticModel:
                 attr_value = None
                 if input_value is not None:
                     if "factor" in input_name:
-                        attr_value = self._validate_factors(input_name, input_value)
+                        attr_value = self._validate_factors(
+                            input_name, input_value, seed
+                        )
                     elif input_name not in self.exception_list:
                         if isinstance(input_value, tuple):
                             attr_value = self._validate_tuple(input_name, input_value)
@@ -104,6 +106,7 @@ class StochasticModel:
                         else:
                             raise AssertionError(
                                 f"'{input_name}' must be a tuple, list, int, or float"
+                                "or a custom sampler"
                             )
                 else:
                     attr_value = [getattr(self.obj, input_name)]
@@ -285,7 +288,7 @@ class StochasticModel:
             get_distribution("normal", self.__random_number_generator),
         )
 
-    def _validate_factors(self, input_name, input_value):
+    def _validate_factors(self, input_name, input_value, seed):
         """
         Validate factor arguments.
 
@@ -313,8 +316,12 @@ class StochasticModel:
             return self._validate_tuple_factor(input_name, input_value)
         elif isinstance(input_value, list):
             return self._validate_list_factor(input_name, input_value)
+        elif isinstance(input_value, CustomSampler):
+            return self._validate_custom_sampler(input_name, input_value, seed)
         else:
-            raise AssertionError(f"`{input_name}`: must be either a tuple or list")
+            raise AssertionError(
+                f"`{input_name}`: must be either a tuple or listor a custom sampler"
+            )
 
     def _validate_tuple_factor(self, input_name, factor_tuple):
         """
@@ -463,7 +470,7 @@ class StochasticModel:
             sampler.reset_seed(seed)
         except RuntimeError as e:
             raise RuntimeError(
-                f"An error occurred in the 'reset_seed' of {input_name} CustomSampler"
+                f"An error occurred in the 'reset_seed' method of {input_name} CustomSampler"
             ) from e
 
         return sampler
@@ -531,7 +538,7 @@ class StochasticModel:
                     generated_dict[arg] = value.sample(n_samples=1)[0]
                 except RuntimeError as e:
                     raise RuntimeError(
-                        f"An error occurred in the 'sample' of {arg} CustomSampler"
+                        f"An error occurred in the 'sample' method of {arg} CustomSampler"
                     ) from e
         self.last_rnd_dict = generated_dict
         yield generated_dict

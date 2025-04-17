@@ -7,6 +7,7 @@ import pytest
         "stochastic_rail_buttons",
         "stochastic_main_parachute",
         "stochastic_environment",
+        "stochastic_environment_custom_sampler",
         "stochastic_tail",
         "stochastic_calisto",
     ],
