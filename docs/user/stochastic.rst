@@ -88,6 +88,11 @@ passed in a few different ways:
     used as the parameter value during the simulation. You cannot assign standard \
     deviations when using lists, nor can you assign different distribution types.
 
+5. **A CustomSampler object**: \
+    An object from a class that inherits from ``CustomSampler``. This object \
+    gives you the full control of how the samples are generated. See 
+    :ref:`custom_sampler` for more details.
+
 .. note::
     In statistics, the terms "Normal" and "Gaussian" refer to the same type of \
     distribution. This distribution is commonly used and is the default for the \
