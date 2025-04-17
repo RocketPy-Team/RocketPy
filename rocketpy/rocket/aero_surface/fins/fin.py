@@ -370,26 +370,30 @@ class Fin(AeroSurface):
         delta = self.cant_angle_rad
         # TODO check rotation for nose_to_tail csystems
         # Body to fin rotation matrix
-        R = Matrix(
+        R_phi = Matrix(
+            [[np.cos(phi), -np.sin(phi), 0], [np.sin(phi), np.cos(phi), 0], [0, 0, 1]]
+        )
+        self._fin_to_body_no_cant_angle = R_phi.transpose
+
+        R_delta = Matrix(
             [
-                [
-                    -np.cos(delta) * np.cos(phi),
-                    -np.cos(delta) * np.sin(phi),
-                    np.sin(delta),
-                ],
-                [-np.sin(phi), np.cos(phi), 0],
-                [
-                    np.sin(delta) * np.cos(phi),
-                    np.sin(delta) * np.sin(phi),
-                    -np.cos(delta),
-                ],
+                [np.cos(delta), 0, -np.sin(delta)],
+                [0, 1, 0],
+                [np.sin(delta), 0, np.cos(delta)],
             ]
         )
+
+        # self._body_to_fin = R
+        # self._fin_to_body = R.transpose
+
+        # Body to fin aerodynamic frame rotation matrix, need only invert the x and z axis # TODO aerodynamic frame???
+        self.Rr = Matrix([[-1, 0, 0], [0, 1, 0], [0, 0, -1]])
+        R = (R_delta @ R_phi @ self.Rr).round(10)
+
         self._body_to_fin = R
         self._fin_to_body = R.transpose
 
-        # Body to fin aerodynamic frame rotation matrix, need only invert the x and z axis
-        R = Matrix([[-1, 0, 0], [0, 1, 0], [0, 0, -1]]) @ R
+        # R = R @ Rr
         self._body_to_fin_aero = R
         self._fin_aero_to_body = R.transpose
 
