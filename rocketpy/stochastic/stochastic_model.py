@@ -8,6 +8,7 @@ from random import choice
 import numpy as np
 
 from rocketpy.mathutils.function import Function
+from rocketpy.stochastic.custom_sampler import CustomSampler
 
 from ..tools import get_distribution
 
@@ -88,7 +89,9 @@ class StochasticModel:
                 attr_value = None
                 if input_value is not None:
                     if "factor" in input_name:
-                        attr_value = self._validate_factors(input_name, input_value)
+                        attr_value = self._validate_factors(
+                            input_name, input_value, seed
+                        )
                     elif input_name not in self.exception_list:
                         if isinstance(input_value, tuple):
                             attr_value = self._validate_tuple(input_name, input_value)
@@ -96,9 +99,14 @@ class StochasticModel:
                             attr_value = self._validate_list(input_name, input_value)
                         elif isinstance(input_value, (int, float)):
                             attr_value = self._validate_scalar(input_name, input_value)
+                        elif isinstance(input_value, CustomSampler):
+                            attr_value = self._validate_custom_sampler(
+                                input_name, input_value, seed
+                            )
                         else:
                             raise AssertionError(
                                 f"'{input_name}' must be a tuple, list, int, or float"
+                                "or a custom sampler"
                             )
                 else:
                     attr_value = [getattr(self.obj, input_name)]
@@ -280,7 +288,7 @@ class StochasticModel:
             get_distribution("normal", self.__random_number_generator),
         )
 
-    def _validate_factors(self, input_name, input_value):
+    def _validate_factors(self, input_name, input_value, seed):
         """
         Validate factor arguments.
 
@@ -308,8 +316,12 @@ class StochasticModel:
             return self._validate_tuple_factor(input_name, input_value)
         elif isinstance(input_value, list):
             return self._validate_list_factor(input_name, input_value)
+        elif isinstance(input_value, CustomSampler):
+            return self._validate_custom_sampler(input_name, input_value, seed)
         else:
-            raise AssertionError(f"`{input_name}`: must be either a tuple or list")
+            raise AssertionError(
+                f"`{input_name}`: must be either a tuple or listor a custom sampler"
+            )
 
     def _validate_tuple_factor(self, input_name, factor_tuple):
         """
@@ -436,6 +448,33 @@ class StochasticModel:
                 isinstance(member, int) and member >= 0 for member in input_value
             ), f"`{input_name}` must be a list of positive integers"
 
+    def _validate_custom_sampler(self, input_name, sampler, seed=None):
+        """
+        Validate a custom sampler.
+
+        Parameters
+        ----------
+        input_name : str
+            Name of the input argument.
+        sampler : CustomSampler object
+            Custom sampler provided by the user
+        seed : int, optional
+            Seed for the random number generator. The default is None
+
+        Raises
+        ------
+        AssertionError
+            If the input is not in a valid format.
+        """
+        try:
+            sampler.reset_seed(seed)
+        except RuntimeError as e:
+            raise RuntimeError(
+                f"An error occurred in the 'reset_seed' method of {input_name} CustomSampler"
+            ) from e
+
+        return sampler
+
     def _validate_airfoil(self, airfoil):
         """
         Validate airfoil input.
@@ -490,9 +529,17 @@ class StochasticModel:
         generated_dict = {}
         for arg, value in self.__dict__.items():
             if isinstance(value, tuple):
-                generated_dict[arg] = value[-1](value[0], value[1])
+                dist_sampler = value[-1]
+                generated_dict[arg] = dist_sampler(value[0], value[1])
             elif isinstance(value, list):
                 generated_dict[arg] = choice(value) if value else value
+            elif isinstance(value, CustomSampler):
+                try:
+                    generated_dict[arg] = value.sample(n_samples=1)[0]
+                except RuntimeError as e:
+                    raise RuntimeError(
+                        f"An error occurred in the 'sample' method of {arg} CustomSampler"
+                    ) from e
         self.last_rnd_dict = generated_dict
         yield generated_dict
 
@@ -527,6 +574,12 @@ class StochasticModel:
                         f"{nominal_value:.5f} ± "
                         f"{std_dev:.5f} ({dist_func.__name__})"
                     )
+            elif isinstance(value, CustomSampler):
+                sampler_name = type(value).__name__
+                return (
+                    f"\t{attr.ljust(max_str_length)} "
+                    f"\t{sampler_name.ljust(max_str_length)} "
+                )
             return None
 
         attributes = {k: v for k, v in self.__dict__.items() if not k.startswith("_")}
@@ -550,6 +603,9 @@ class StochasticModel:
         list_attributes = [
             attr for attr, val in items if isinstance(val, list) and len(val) > 1
         ]
+        custom_attributes = [
+            attr for attr, val in items if isinstance(val, CustomSampler)
+        ]
 
         if constant_attributes:
             report.append("\nConstant Attributes:")
@@ -567,6 +623,11 @@ class StochasticModel:
             report.append("\nStochastic Attributes with choice of values:")
             report.extend(
                 format_attribute(attr, attributes[attr]) for attr in list_attributes
+            )
+        if custom_attributes:
+            report.append("\nStochastic Attributes with Custom user samplers:")
+            report.extend(
+                format_attribute(attr, attributes[attr]) for attr in custom_attributes
             )
 
         print("\n".join(filter(None, report)))

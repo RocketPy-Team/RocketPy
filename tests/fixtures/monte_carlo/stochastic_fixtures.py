@@ -44,6 +44,36 @@ def stochastic_environment(example_spaceport_env):
 
 
 @pytest.fixture
+def stochastic_environment_custom_sampler(example_spaceport_env, elevation_sampler):
+    """This fixture is used to create a stochastic environment object for the
+    Calisto flight using a custom sampler for the elevation.
+
+    Parameters
+    ----------
+    example_spaceport_env : Environment
+        This is another fixture.
+
+    elevation_sampler: CustomSampler
+        This is another fixture.
+
+    Returns
+    -------
+    StochasticEnvironment
+        The stochastic environment object
+    """
+    return StochasticEnvironment(
+        environment=example_spaceport_env,
+        elevation=elevation_sampler,
+        gravity=None,
+        latitude=None,
+        longitude=None,
+        ensemble_member=None,
+        wind_velocity_x_factor=(1.0, 0.033, "normal"),
+        wind_velocity_y_factor=(1.0, 0.033, "normal"),
+    )
+
+
+@pytest.fixture
 def stochastic_nose_cone(calisto_nose_cone):
     """This fixture is used to create a StochasticNoseCone object for the
     Calisto rocket.
