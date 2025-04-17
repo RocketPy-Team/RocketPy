@@ -4,11 +4,12 @@ import numpy as np
 
 from rocketpy.mathutils.function import Function
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
+from rocketpy.rocket.aero_surface.fins.base_fin import _BaseFin
 
 from ..aero_surface import AeroSurface
 
 
-class Fin(AeroSurface):
+class Fin(_BaseFin):
     """Abstract class that holds common methods for the individual fin classes.
     Cannot be instantiated.
 
@@ -133,29 +134,22 @@ class Fin(AeroSurface):
             accepting either "radians" or "degrees".
         name : str
             Name of fin.
-
-        Returns
-        -------
-        None
         """
-        # Compute auxiliary geometrical parameters
-        d = 2 * rocket_radius
-        ref_area = np.pi * rocket_radius**2  # Reference area
-
-        super().__init__(name, ref_area, d)
+        super().__init__(
+            name=name,
+            rocket_radius=rocket_radius,
+            root_chord=root_chord,
+            span=span,
+            airfoil=airfoil,
+            cant_angle=cant_angle,
+        )
 
         # Store values
-        self.name = name
-        self.d = d
-        self.ref_area = ref_area
-        self._rocket_radius = rocket_radius
-        self._airfoil = airfoil
-        self._root_chord = root_chord
-        self._span = span
-        self._cant_angle = -cant_angle
-        self._cant_angle_rad = math.radians(-cant_angle)
         self._angular_position = angular_position
         self._angular_position_rad = math.radians(angular_position)
+
+        self.M3dh = []  # Roll moment damping
+        self.cldwh = []  # Roll moment lift coefficient derivative
 
     @property
     def angular_position(self):
@@ -175,76 +169,6 @@ class Fin(AeroSurface):
         self._angular_position_rad = value
         self.evaluate_rotation_matrix()
 
-    @property
-    def root_chord(self):
-        return self._root_chord
-
-    @root_chord.setter
-    def root_chord(self, value):
-        self._root_chord = value
-        self.evaluate_geometrical_parameters()
-        self.evaluate_center_of_pressure()
-        self.evaluate_lift_coefficient()
-        self.evaluate_roll_parameters()
-
-    @property
-    def span(self):
-        return self._span
-
-    @span.setter
-    def span(self, value):
-        self._span = value
-        self.evaluate_geometrical_parameters()
-        self.evaluate_center_of_pressure()
-        self.evaluate_lift_coefficient()
-        self.evaluate_roll_parameters()
-
-    @property
-    def rocket_radius(self):
-        return self._rocket_radius
-
-    @rocket_radius.setter
-    def rocket_radius(self, value):
-        self._rocket_radius = value
-        self.evaluate_geometrical_parameters()
-        self.evaluate_center_of_pressure()
-        self.evaluate_lift_coefficient()
-        self.evaluate_roll_parameters()
-
-    @property
-    def cant_angle(self):
-        return -self._cant_angle
-
-    @cant_angle.setter
-    def cant_angle(self, value):
-        self._cant_angle = -value
-        self.cant_angle_rad = math.radians(-value)
-
-    @property
-    def cant_angle_rad(self):
-        return self._cant_angle_rad
-
-    @cant_angle_rad.setter
-    def cant_angle_rad(self, value):
-        self._cant_angle_rad = value
-        self.evaluate_geometrical_parameters()
-        self.evaluate_center_of_pressure()
-        self.evaluate_lift_coefficient()
-        self.evaluate_roll_parameters()
-        self.evaluate_rotation_matrix()
-
-    @property
-    def airfoil(self):
-        return self._airfoil
-
-    @airfoil.setter
-    def airfoil(self, value):
-        self._airfoil = value
-        self.evaluate_geometrical_parameters()
-        self.evaluate_center_of_pressure()
-        self.evaluate_lift_coefficient()
-        self.evaluate_roll_parameters()
-
     def evaluate_lift_coefficient(self):
         """Calculates and returns the fin set's lift coefficient.
         The lift coefficient is saved and returned. This function
@@ -256,53 +180,7 @@ class Fin(AeroSurface):
         -------
         None
         """
-        if not self.airfoil:
-            # Defines clalpha2D as 2*pi for planar fins
-            clalpha2D_incompressible = 2 * np.pi
-        else:
-            # Defines clalpha2D as the derivative of the lift coefficient curve
-            # for the specific airfoil
-            self.airfoil_cl = Function(
-                self.airfoil[0],
-                interpolation="linear",
-            )
-
-            # Differentiating at alpha = 0 to get cl_alpha
-            clalpha2D_incompressible = self.airfoil_cl.differentiate_complex_step(
-                x=1e-3, dx=1e-3
-            )
-
-            # Convert to radians if needed
-            if self.airfoil[1] == "degrees":
-                clalpha2D_incompressible *= 180 / np.pi
-
-        # Correcting for compressible flow (apply Prandtl-Glauert correction)
-        clalpha2D = Function(lambda mach: clalpha2D_incompressible / self._beta(mach))
-
-        # Diederich's Planform Correlation Parameter
-        planform_correlation_parameter = (
-            2 * np.pi * self.AR / (clalpha2D * np.cos(self.gamma_c))
-        )
-
-        # Lift coefficient derivative for a single fin
-        def lift_source(mach):
-            return (
-                clalpha2D(mach)
-                * self.lift_interference_factor
-                * planform_correlation_parameter(mach)
-                * (self.Af / self.ref_area)
-                * np.cos(self.gamma_c)
-            ) / (
-                2
-                + planform_correlation_parameter(mach)
-                * np.sqrt(1 + (2 / planform_correlation_parameter(mach)) ** 2)
-            )
-
-        self.clalpha_single_fin = Function(
-            lift_source,
-            "Mach",
-            "Lift coefficient derivative for a single fin",
-        )
+        self.evaluate_single_fin_lift_coefficient()
 
         self.clalpha = self.clalpha_single_fin
 
@@ -326,7 +204,12 @@ class Fin(AeroSurface):
             roll moment damping coefficient and the cant angle in
             radians
         """
-        clf_delta = Function(lambda mach: 0)
+        clf_delta = (
+            self.roll_forcing_interference_factor
+            * (self.Yma + self.rocket_radius)
+            * self.clalpha_single_fin
+            / self.reference_length
+        )  # TODO: should calculate this as well, should be same formula as fins
         clf_delta.set_inputs("Mach")
         clf_delta.set_outputs("Roll moment forcing coefficient derivative")
         cld_omega = -(
@@ -404,40 +287,50 @@ class Fin(AeroSurface):
         stream_mach,
         rho,
         cp,
-        _,
-        omega1,
-        omega2,
-        omega3,
-    ):
+        omega,
+        *args,
+    ):  # pylint: disable=arguments-differ
         """Computes the forces and moments acting on the aerodynamic surface.
 
         Parameters
         ----------
-        stream_speed : int, float
-            Speed of the flow stream in the body frame.
+        stream_velocity : tuple of float
+            The velocity of the airflow relative to the surface.
+        stream_speed : float
+            The magnitude of the airflow speed.
+        stream_mach : float
+            The Mach number of the airflow.
+        rho : float
+            Air density.
+        cp : Vector
+            Center of pressure coordinates in the body frame.
+        omega: tuple[float, float, float]
+            Tuple containing angular velocities around the x, y, z axes.
 
+        Returns
+        -------
+        tuple of float
+            The aerodynamic forces (lift, side_force, drag) and moments
+            (pitch, yaw, roll) in the body frame.
         """
-        self.omega1 = omega1
-        self.omega2 = omega2
-        self.omega3 = omega3
         R1, R2, R3, M1, M2, M3 = 0, 0, 0, 0, 0, 0
+
         # stream velocity in fin frame
-        stream_vx_f, _, stream_vz_f = self._body_to_fin_aero @ stream_velocity
-        if stream_vx_f != 0:
-            attack_angle = np.arctan(-stream_vx_f / stream_vz_f)
-            # Force in the X direction of the fin
-            X = (
-                0.5
-                * rho
-                * stream_speed**2
-                * self.reference_area
-                * self.cl(attack_angle, stream_mach)
-            )
-            M = cp.z * X
-            N = -(self.cp[1] + self.rocket_radius) * X
-            # Forces and moments in body frame
-            R1, R2, R3 = self._fin_aero_to_body @ Vector([X, 0, 0])
-            M1, M2, M3 = self._fin_aero_to_body @ Vector([0, M, N])
+        stream_velocity_f = self._body_to_fin_aero @ stream_velocity
+
+        attack_angle = np.arctan2(stream_velocity_f[0], stream_velocity_f[2])
+        # Force in the X direction of the fin
+        X = (
+            0.5
+            * rho
+            * stream_speed**2
+            * self.reference_area
+            * self.cl.get_value_opt(attack_angle, stream_mach)
+        )
+        # Force in body frame
+        R1, R2, R3 = self._fin_aero_to_body @ Vector([X, 0, 0])
+        # Moments
+        M1, M2, M3 = cp ^ Vector([R1, R2, R3])
 
         # Roll damping
         _, cld_omega, _ = self.roll_parameters
@@ -446,11 +339,91 @@ class Fin(AeroSurface):
             * self.reference_area
             * (self.reference_length) ** 2
             * cld_omega.get_value_opt(stream_mach)
-            * omega3
+            * omega[2]  # omega3
             / 2
         )
         M3 += M3_damping
         return R1, R2, R3, M1, M2, M3
+
+    def compute_forces_and_moments2(
+        self,
+        stream_velocity,
+        stream_speed,
+        stream_mach,
+        rho,
+        cp,
+        omega,
+        *args,
+    ):  # pylint: disable=arguments-differ
+        """Computes the forces and moments acting on the aerodynamic surface.
+
+        Parameters
+        ----------
+        stream_velocity : tuple of float
+            The velocity of the airflow relative to the surface.
+        stream_speed : float
+            The magnitude of the airflow speed.
+        stream_mach : float
+            The Mach number of the airflow.
+        rho : float
+            Air density.
+        cp : Vector
+            Center of pressure coordinates in the body frame.
+        omega: tuple[float, float, float]
+            Tuple containing angular velocities around the x, y, z axes.
+
+        Returns
+        -------
+        tuple of float
+            The aerodynamic forces (lift, side_force, drag) and moments
+            (pitch, yaw, roll) in the body frame.
+        """
+        R1, R2, R3, M1, M2, M3 = 0, 0, 0, 0, 0, 0
+
+        # stream velocity in fin frame
+        stream_velocity_f = self._body_to_fin_aero @ stream_velocity
+
+        attack_angle = np.arctan2(stream_velocity_f[0], stream_velocity_f[2])
+        # Force in the X direction of the fin
+        X = (
+            0.5
+            * rho
+            * stream_speed**2
+            * self.reference_area
+            * self.cl.get_value_opt(attack_angle, stream_mach)  # TODO getvalueopt
+        )
+        # Force in body frame
+        R1, R2, R3 = self._fin_aero_to_body @ Vector([X, 0, 0])
+
+        # Moments
+        M1, M2, M3 = cp ^ Vector([R1, R2, R3])
+
+        # Exclude M3 for
+        M3 = 0
+
+        # Roll
+        clf_delta, cld_omega, cant_angle_rad = self.roll_parameters
+        cant_angle_rad = -cant_angle_rad
+        M3_forcing = (
+            (1 / 2 * rho * stream_speed**2)
+            * self.reference_area
+            * self.reference_length
+            * clf_delta.get_value_opt(stream_mach)
+            * cant_angle_rad
+        )
+        M3_damping = (
+            (1 / 2 * rho * stream_speed)
+            * self.reference_area
+            * (self.reference_length) ** 2
+            * cld_omega.get_value_opt(stream_mach)
+            * omega[2]  # omega3
+            / 2
+        )
+        M3 = M3_forcing + M3_damping
+        return R1, R2, R3, M1, M2, M3
+
+    def to_dict(self):
+        pass  # TODO
 
     def draw(self):
         """Draw the fin shape along with some important information, including

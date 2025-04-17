@@ -1,11 +1,12 @@
 import numpy as np
 
 from rocketpy.mathutils.function import Function
+from rocketpy.rocket.aero_surface.fins.base_fin import _BaseFin
 
 from ..aero_surface import AeroSurface
 
 
-class Fins(AeroSurface):
+class Fins(_BaseFin):
     """Abstract class that holds common methods for the fin classes.
     Cannot be instantiated.
 
@@ -132,27 +133,18 @@ class Fins(AeroSurface):
             accepting either "radians" or "degrees".
         name : str
             Name of fin set.
-
-        Returns
-        -------
-        None
         """
-        # Compute auxiliary geometrical parameters
-        d = 2 * rocket_radius
-        ref_area = np.pi * rocket_radius**2  # Reference area
-
-        super().__init__(name, ref_area, d)
+        super().__init__(
+            name=name,
+            rocket_radius=rocket_radius,
+            root_chord=root_chord,
+            span=span,
+            airfoil=airfoil,
+            cant_angle=-cant_angle,
+        )
 
         # Store values
         self._n = n
-        self._rocket_radius = rocket_radius
-        self._airfoil = airfoil
-        self._cant_angle = cant_angle
-        self._root_chord = root_chord
-        self._span = span
-        self.name = name
-        self.d = d
-        self.ref_area = ref_area  # Reference area
 
     @property
     def n(self):
@@ -166,134 +158,24 @@ class Fins(AeroSurface):
         self.evaluate_lift_coefficient()
         self.evaluate_roll_parameters()
 
-    @property
-    def root_chord(self):
-        return self._root_chord
-
-    @root_chord.setter
-    def root_chord(self, value):
-        self._root_chord = value
-        self.evaluate_geometrical_parameters()
-        self.evaluate_center_of_pressure()
-        self.evaluate_lift_coefficient()
-        self.evaluate_roll_parameters()
-
-    @property
-    def span(self):
-        return self._span
-
-    @span.setter
-    def span(self, value):
-        self._span = value
-        self.evaluate_geometrical_parameters()
-        self.evaluate_center_of_pressure()
-        self.evaluate_lift_coefficient()
-        self.evaluate_roll_parameters()
-
-    @property
-    def rocket_radius(self):
-        return self._rocket_radius
-
-    @rocket_radius.setter
-    def rocket_radius(self, value):
-        self._rocket_radius = value
-        self.evaluate_geometrical_parameters()
-        self.evaluate_center_of_pressure()
-        self.evaluate_lift_coefficient()
-        self.evaluate_roll_parameters()
-
-    @property
-    def cant_angle(self):
-        return self._cant_angle
-
-    @cant_angle.setter
-    def cant_angle(self, value):
-        self._cant_angle = value
-        self.evaluate_geometrical_parameters()
-        self.evaluate_center_of_pressure()
-        self.evaluate_lift_coefficient()
-        self.evaluate_roll_parameters()
-
-    @property
-    def airfoil(self):
-        return self._airfoil
-
-    @airfoil.setter
-    def airfoil(self, value):
-        self._airfoil = value
-        self.evaluate_geometrical_parameters()
-        self.evaluate_center_of_pressure()
-        self.evaluate_lift_coefficient()
-        self.evaluate_roll_parameters()
-
     def evaluate_lift_coefficient(self):
         """Calculates and returns the fin set's lift coefficient.
         The lift coefficient is saved and returned. This function
         also calculates and saves the lift coefficient derivative
         for a single fin and the lift coefficient derivative for
         a number of n fins corrected for Fin-Body interference.
-
-        Returns
-        -------
-        None
         """
-        if not self.airfoil:
-            # Defines clalpha2D as 2*pi for planar fins
-            clalpha2D_incompressible = 2 * np.pi
-        else:
-            # Defines clalpha2D as the derivative of the lift coefficient curve
-            # for the specific airfoil
-            self.airfoil_cl = Function(
-                self.airfoil[0],
-                interpolation="linear",
-            )
-
-            # Differentiating at alpha = 0 to get cl_alpha
-            clalpha2D_incompressible = self.airfoil_cl.differentiate_complex_step(
-                x=1e-3, dx=1e-3
-            )
-
-            # Convert to radians if needed
-            if self.airfoil[1] == "degrees":
-                clalpha2D_incompressible *= 180 / np.pi
-
-        # Correcting for compressible flow (apply Prandtl-Glauert correction)
-        clalpha2D = Function(lambda mach: clalpha2D_incompressible / self._beta(mach))
-
-        # Diederich's Planform Correlation Parameter
-        planform_correlation_parameter = (
-            2 * np.pi * self.AR / (clalpha2D * np.cos(self.gamma_c))
-        )
-
-        # Lift coefficient derivative for a single fin
-        def lift_source(mach):
-            return (
-                clalpha2D(mach)
-                * planform_correlation_parameter(mach)
-                * (self.Af / self.ref_area)
-                * np.cos(self.gamma_c)
-            ) / (
-                2
-                + planform_correlation_parameter(mach)
-                * np.sqrt(1 + (2 / planform_correlation_parameter(mach)) ** 2)
-            )
-
-        self.clalpha_single_fin = Function(
-            lift_source,
-            "Mach",
-            "Lift coefficient derivative for a single fin",
-        )
+        self.evaluate_single_fin_lift_coefficient()
 
         # Lift coefficient derivative for n fins corrected with Fin-Body interference
         self.clalpha_multiple_fins = (
-            self.lift_interference_factor
-            * self.fin_num_correction(self.n)
-            * self.clalpha_single_fin
+            self.fin_num_correction(self.n) * self.clalpha_single_fin
         )  # Function of mach number
         self.clalpha_multiple_fins.set_inputs("Mach")
         self.clalpha_multiple_fins.set_outputs(
             f"Lift coefficient derivative for {self.n:.0f} fins"
         )
+
         self.clalpha = self.clalpha_multiple_fins
 
         # Cl = clalpha * alpha
@@ -316,15 +198,13 @@ class Fins(AeroSurface):
             roll moment damping coefficient and the cant angle in
             radians
         """
-
-        self.cant_angle_rad = np.radians(self.cant_angle)
-
         clf_delta = (
             self.roll_forcing_interference_factor
             * self.n
             * (self.Yma + self.rocket_radius)
             * self.clalpha_single_fin
-            / self.d
+            / self.reference_length
+            / 2  # TODO: explaing this / 2 in docs
         )  # Function of mach number
         clf_delta.set_inputs("Mach")
         clf_delta.set_outputs("Roll moment forcing coefficient derivative")
@@ -423,6 +303,8 @@ class Fins(AeroSurface):
             * omega[2]
             / 2
         )
+        self.M3dh.append(M3_damping)
+        self.cldwh.append(clf_delta.get_value_opt(stream_mach))
         M3 = M3_forcing + M3_damping
         return R1, R2, R3, M1, M2, M3
 
@@ -461,9 +343,5 @@ class Fins(AeroSurface):
             the plot will be shown instead of saved. Supported file endings are:
             eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
             and webp (these are the formats supported by matplotlib).
-
-        Returns
-        -------
-        None
         """
         self.plots.draw(filename=filename)
