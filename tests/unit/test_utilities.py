@@ -276,3 +276,18 @@ def test_list_motors_dataset():
 
     for motor in expected_motors:
         assert motor in motors
+
+
+def test_load_motor_from_dataset():
+    """Tests if the load_motor_from_dataset function correctly loads a motor from the dataset.
+
+    Parameters
+    ----------
+    motor_name : str
+        The name of the motor to be loaded.
+    """
+    motor_name = "AeroTech_HP-L1000W"
+    motor = utilities.load_motor_from_dataset(motor_name)
+
+    assert motor is not None
+    assert isinstance(motor, GenericMotor)
