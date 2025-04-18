@@ -19,6 +19,8 @@ from .mathutils.function import Function
 from .plots.plot_helpers import show_or_save_plot
 from .rocket.aero_surface import TrapezoidalFins
 from .simulation.flight import Flight
+from ._encoders import RocketPyEncoder, RocketPyDecoder
+from rocketpy.motors import GenericMotor
 
 
 def compute_cd_s_from_drop_test(
@@ -771,3 +773,35 @@ def list_motors_dataset():
         return [f.stem for f in motors_package.rglob("*.eng")]
     except ModuleNotFoundError:
         raise ImportError("The motors dataset was not found.")
+
+
+def load_motor_from_dataset(motor_name):
+    """
+    Loads a motor from the dataset in the data/motors/ folder in the .eng format.
+    The motor name should be the name of the file without the .eng extension.
+
+    Parameters
+    ----------
+    motor_name : str
+        The name of the motor to be loaded.
+
+    Returns
+    -------
+    rocketpy.GenericMotor
+        The loaded motor object.
+    """
+    motors_package = resources.files("data.motors")
+    found = list(motors_package.rglob(f"{motor_name}.eng"))
+
+    if len(found) == 0:
+        raise FileNotFoundError(
+            f"Motor '{motor_name}' not found in dataset. "
+            "Use list_motor_dataset() to see available names."
+        )
+    elif len(found) > 1:
+        raise RuntimeError(
+            f"Multiple files found for motor '{motor_name}'. Please ensure unique names."
+        )
+
+    with resources.as_file(found[0]) as f:
+        return GenericMotor.load_from_eng_file(str(f))
