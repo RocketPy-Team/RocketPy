@@ -189,11 +189,11 @@ class TrapezoidalFin(Fin):
             - self.root_chord * self.tip_chord / (self.root_chord + self.tip_chord)
         )
         self.cpx = 0
-        self.cpy = self.yma
+        self.cpy = self.Yma
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
 
-    def evaluate_geometrical_parameters(self):
+    def evaluate_geometrical_parameters(self):  # pylint: disable=too-many-statements
         """Calculates and saves fin set's geometrical parameters such as the
         fins' area, aspect ratio and parameters for roll movement.
 
@@ -201,25 +201,25 @@ class TrapezoidalFin(Fin):
         -------
         None
         """
-
-        yr = self.root_chord + self.tip_chord
-        fin_area = yr * self.span / 2  # Fin area
-        f_ar = 2 * self.span**2 / fin_area  # Fin aspect ratio
-        gamma_c = math.atan(
+        # pylint: disable=invalid-name
+        Yr = self.root_chord + self.tip_chord
+        Af = Yr * self.span / 2  # Fin area
+        AR = 2 * self.span**2 / Af  # Fin aspect ratio
+        gamma_c = np.arctan(
             (self.sweep_length + 0.5 * self.tip_chord - 0.5 * self.root_chord)
             / (self.span)
         )
-        yma = (
-            (self.span / 3) * (self.root_chord + 2 * self.tip_chord) / yr
+        Yma = (
+            (self.span / 3) * (self.root_chord + 2 * self.tip_chord) / Yr
         )  # Span wise coord of mean aero chord
 
         # Fin–body interference correction parameters
         tau = (self.span + self.rocket_radius) / self.rocket_radius
         lift_interference_factor = 1 + 1 / tau
-        chord_ratio_tr = self.tip_chord / self.root_chord
+        lambda_ = self.tip_chord / self.root_chord
 
         # Parameters for Roll Moment.
-        # Documented at: https://github.com/RocketPy-Team/RocketPy/blob/master/docs/technical/aerodynamics/Roll_Equations.pdf
+        # Documented at: https://docs.rocketpy.org/en/latest/technical/
         roll_geometrical_constant = (
             (self.root_chord + 3 * self.tip_chord) * self.span**3
             + 4
@@ -229,36 +229,35 @@ class TrapezoidalFin(Fin):
             + 6 * (self.root_chord + self.tip_chord) * self.span * self.rocket_radius**2
         ) / 12
         roll_damping_interference_factor = 1 + (
-            ((tau - chord_ratio_tr) / (tau))
-            - ((1 - chord_ratio_tr) / (tau - 1)) * math.log(tau)
+            ((tau - lambda_) / (tau)) - ((1 - lambda_) / (tau - 1)) * np.log(tau)
         ) / (
-            ((tau + 1) * (tau - chord_ratio_tr)) / (2)
-            - ((1 - chord_ratio_tr) * (tau**3 - 1)) / (3 * (tau - 1))
+            ((tau + 1) * (tau - lambda_)) / (2)
+            - ((1 - lambda_) * (tau**3 - 1)) / (3 * (tau - 1))
         )
-        roll_forcing_interference_factor = (1 / math.pi**2) * (
-            (math.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
-            + ((math.pi * (tau**2 + 1) ** 2) / (tau**2 * (tau - 1) ** 2))
-            * math.asin((tau**2 - 1) / (tau**2 + 1))
-            - (2 * math.pi * (tau + 1)) / (tau * (tau - 1))
+        roll_forcing_interference_factor = (1 / np.pi**2) * (
+            (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
+            + ((np.pi * (tau**2 + 1) ** 2) / (tau**2 * (tau - 1) ** 2))
+            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
+            - (2 * np.pi * (tau + 1)) / (tau * (tau - 1))
             + ((tau**2 + 1) ** 2)
             / (tau**2 * (tau - 1) ** 2)
-            * (math.asin((tau**2 - 1) / (tau**2 + 1))) ** 2
+            * (np.arcsin((tau**2 - 1) / (tau**2 + 1))) ** 2
             - (4 * (tau + 1))
             / (tau * (tau - 1))
-            * math.asin((tau**2 - 1) / (tau**2 + 1))
-            + (8 / (tau - 1) ** 2) * math.log((tau**2 + 1) / (2 * tau))
+            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
+            + (8 / (tau - 1) ** 2) * np.log((tau**2 + 1) / (2 * tau))
         )
 
         # Store values
-        self.yr = yr
-        self.fin_area = fin_area  # Fin area
-        self.f_ar = f_ar  # Aspect Ratio
+        self.Yr = Yr
+        self.Af = Af  # Fin area
+        self.AR = AR  # Aspect Ratio
         self.gamma_c = gamma_c  # Mid chord angle
-        self.yma = yma  # Span wise coord of mean aero chord
+        self.Yma = Yma  # Span wise coord of mean aero chord
         self.roll_geometrical_constant = roll_geometrical_constant
         self.tau = tau
         self.lift_interference_factor = lift_interference_factor
-        self.chord_ratio_tr = chord_ratio_tr
+        self.λ = lambda_  # pylint: disable=non-ascii-name
         self.roll_damping_interference_factor = roll_damping_interference_factor
         self.roll_forcing_interference_factor = roll_forcing_interference_factor
 
