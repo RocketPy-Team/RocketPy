@@ -106,7 +106,6 @@ class _BaseFin(AeroSurface):
         self.evaluate_center_of_pressure()
         self.evaluate_lift_coefficient()
         self.evaluate_roll_parameters()
-        self.evaluate_rotation_matrix()
 
     @property
     def airfoil(self):
@@ -155,7 +154,6 @@ class _BaseFin(AeroSurface):
         def lift_source(mach):
             return (
                 clalpha2D(mach)
-                * self.lift_interference_factor
                 * planform_correlation_parameter(mach)
                 * (self.Af / self.ref_area)
                 * np.cos(self.gamma_c)
@@ -177,10 +175,6 @@ class _BaseFin(AeroSurface):
 
     @abstractmethod
     def evaluate_roll_parameters(self):
-        pass
-
-    @abstractmethod
-    def compute_forces_and_moments(self):
         pass
 
     @abstractmethod

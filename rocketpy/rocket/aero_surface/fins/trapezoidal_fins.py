@@ -5,7 +5,6 @@ from rocketpy.prints.aero_surface_prints import _TrapezoidalFinsPrints
 from rocketpy.rocket.aero_surface.fins._trapezoidal_mixin import _TrapezoidalMixin
 
 from .fins import Fins
-from .geometry_utils import compute_sweep_length
 
 
 class TrapezoidalFins(_TrapezoidalMixin, Fins):

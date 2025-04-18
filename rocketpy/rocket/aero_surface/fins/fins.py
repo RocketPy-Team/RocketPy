@@ -304,8 +304,6 @@ class Fins(_BaseFin):
             * omega[2]
             / 2
         )
-        self.M3dh.append(M3_damping)
-        self.cldwh.append(clf_delta.get_value_opt(stream_mach))
         M3 = M3_forcing + M3_damping
         return R1, R2, R3, M1, M2, M3
 

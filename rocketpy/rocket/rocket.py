@@ -19,9 +19,8 @@ from rocketpy.rocket.aero_surface import (
     TrapezoidalFins,
 )
 from rocketpy.rocket.aero_surface.fins.elliptical_fin import EllipticalFin
-from rocketpy.rocket.aero_surface.fins.fin import Fin
-from rocketpy.rocket.aero_surface.fins.trapezoidal_fin import TrapezoidalFin
 from rocketpy.rocket.aero_surface.fins.free_form_fins import FreeFormFins
+from rocketpy.rocket.aero_surface.fins.trapezoidal_fin import TrapezoidalFin
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute

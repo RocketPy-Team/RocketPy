@@ -152,6 +152,28 @@ class Fin(_BaseFin):
         self.cldwh = []  # Roll moment lift coefficient derivative
 
     @property
+    def cant_angle(self):
+        return self._cant_angle
+
+    @cant_angle.setter
+    def cant_angle(self, value):
+        self._cant_angle = value
+        self.cant_angle_rad = math.radians(value)
+
+    @property
+    def cant_angle_rad(self):
+        return self._cant_angle_rad
+
+    @cant_angle_rad.setter
+    def cant_angle_rad(self, value):
+        self._cant_angle_rad = value
+        self.evaluate_geometrical_parameters()
+        self.evaluate_center_of_pressure()
+        self.evaluate_lift_coefficient()
+        self.evaluate_roll_parameters()
+        self.evaluate_rotation_matrix()
+
+    @property
     def angular_position(self):
         return self._angular_position
 
@@ -186,7 +208,7 @@ class Fin(_BaseFin):
 
         # Cl = clalpha * alpha
         self.cl = Function(
-            lambda alpha, mach: alpha * self.clalpha_single_fin(mach),
+            lambda alpha, mach: alpha * self.clalpha(mach),
             ["Alpha (rad)", "Mach"],
             "Lift coefficient",
         )
@@ -205,13 +227,10 @@ class Fin(_BaseFin):
             radians
         """
         clf_delta = (
-            self.roll_forcing_interference_factor
-            * (self.Yma + self.rocket_radius)
-            * self.clalpha_single_fin
-            / self.reference_length
-        )  # TODO: should calculate this as well, should be same formula as fins
-        clf_delta.set_inputs("Mach")
-        clf_delta.set_outputs("Roll moment forcing coefficient derivative")
+            0  # TODO: should calculate this as well, should be same formula as fins
+        )
+        # clf_delta.set_inputs("Mach")
+        # clf_delta.set_outputs("Roll moment forcing coefficient derivative")
         cld_omega = -(
             2
             * self.roll_damping_interference_factor
@@ -229,7 +248,6 @@ class Fin(_BaseFin):
         """Calculates and returns the rotation matrix from the rocket body frame
         to the fin frame.
 
-        TODO: paste this description where it is relevant
         Note
         ----
         Local coordinate system:
@@ -251,13 +269,17 @@ class Fin(_BaseFin):
         """
         phi = self.angular_position_rad
         delta = self.cant_angle_rad
-        # TODO check rotation for nose_to_tail csystems
-        # Body to fin rotation matrix
-        R_phi = Matrix(
-            [[np.cos(phi), -np.sin(phi), 0], [np.sin(phi), np.cos(phi), 0], [0, 0, 1]]
-        )
-        self._fin_to_body_no_cant_angle = R_phi.transpose
 
+        # Rotation about body Z by angular position
+        R_phi = Matrix(
+            [
+                [np.cos(phi), -np.sin(phi), 0],
+                [np.sin(phi), np.cos(phi), 0],
+                [0, 0, 1],
+            ]
+        )
+
+        # Cant rotation about body Y
         R_delta = Matrix(
             [
                 [np.cos(delta), 0, -np.sin(delta)],
@@ -266,19 +288,23 @@ class Fin(_BaseFin):
             ]
         )
 
-        # self._body_to_fin = R
-        # self._fin_to_body = R.transpose
+        # 180 flip about Y to align fin leading/trailing edge
+        R_pi = Matrix(
+            [
+                [-1, 0, 0],
+                [0, 1, 0],
+                [0, 0, -1],
+            ]
+        )
 
-        # Body to fin aerodynamic frame rotation matrix, need only invert the x and z axis # TODO aerodynamic frame???
-        self.Rr = Matrix([[-1, 0, 0], [0, 1, 0], [0, 0, -1]])
-        R = (R_delta @ R_phi @ self.Rr).round(10)
+        # Uncanted body to fin, then apply cant
+        R_uncanted = R_phi @ R_pi
+        R_body_to_fin = R_delta @ R_uncanted
 
-        self._body_to_fin = R
-        self._fin_to_body = R.transpose
-
-        # R = R @ Rr
-        self._body_to_fin_aero = R
-        self._fin_aero_to_body = R.transpose
+        # Store for downstream transforms
+        self._rotation_fin_to_body_uncanted = R_uncanted.transpose
+        self._rotation_body_to_fin = R_body_to_fin
+        self._rotation_fin_to_body = R_body_to_fin.transpose
 
     def compute_forces_and_moments(
         self,
@@ -316,7 +342,7 @@ class Fin(_BaseFin):
         R1, R2, R3, M1, M2, M3 = 0, 0, 0, 0, 0, 0
 
         # stream velocity in fin frame
-        stream_velocity_f = self._body_to_fin_aero @ stream_velocity
+        stream_velocity_f = self._rotation_body_to_fin @ stream_velocity
 
         attack_angle = np.arctan2(stream_velocity_f[0], stream_velocity_f[2])
         # Force in the X direction of the fin
@@ -328,9 +354,11 @@ class Fin(_BaseFin):
             * self.cl.get_value_opt(attack_angle, stream_mach)
         )
         # Force in body frame
-        R1, R2, R3 = self._fin_aero_to_body @ Vector([X, 0, 0])
+        R1, R2, R3 = self._rotation_fin_to_body @ Vector([X, 0, 0])
         # Moments
         M1, M2, M3 = cp ^ Vector([R1, R2, R3])
+        # Apply roll interference factor, disregarding lift interference factor
+        M3 *= self.roll_forcing_interference_factor / self.lift_interference_factor
 
         # Roll damping
         _, cld_omega, _ = self.roll_parameters
@@ -345,92 +373,19 @@ class Fin(_BaseFin):
         M3 += M3_damping
         return R1, R2, R3, M1, M2, M3
 
-    def compute_forces_and_moments2(
-        self,
-        stream_velocity,
-        stream_speed,
-        stream_mach,
-        rho,
-        cp,
-        omega,
-        *args,
-    ):  # pylint: disable=arguments-differ
-        """Computes the forces and moments acting on the aerodynamic surface.
-
-        Parameters
-        ----------
-        stream_velocity : tuple of float
-            The velocity of the airflow relative to the surface.
-        stream_speed : float
-            The magnitude of the airflow speed.
-        stream_mach : float
-            The Mach number of the airflow.
-        rho : float
-            Air density.
-        cp : Vector
-            Center of pressure coordinates in the body frame.
-        omega: tuple[float, float, float]
-            Tuple containing angular velocities around the x, y, z axes.
-
-        Returns
-        -------
-        tuple of float
-            The aerodynamic forces (lift, side_force, drag) and moments
-            (pitch, yaw, roll) in the body frame.
-        """
-        R1, R2, R3, M1, M2, M3 = 0, 0, 0, 0, 0, 0
-
-        # stream velocity in fin frame
-        stream_velocity_f = self._body_to_fin_aero @ stream_velocity
-
-        attack_angle = np.arctan2(stream_velocity_f[0], stream_velocity_f[2])
-        # Force in the X direction of the fin
-        X = (
-            0.5
-            * rho
-            * stream_speed**2
-            * self.reference_area
-            * self.cl.get_value_opt(attack_angle, stream_mach)  # TODO getvalueopt
-        )
-        # Force in body frame
-        R1, R2, R3 = self._fin_aero_to_body @ Vector([X, 0, 0])
-
-        # Moments
-        M1, M2, M3 = cp ^ Vector([R1, R2, R3])
-
-        # Exclude M3 for
-        M3 = 0
-
-        # Roll
-        clf_delta, cld_omega, cant_angle_rad = self.roll_parameters
-        cant_angle_rad = -cant_angle_rad
-        M3_forcing = (
-            (1 / 2 * rho * stream_speed**2)
-            * self.reference_area
-            * self.reference_length
-            * clf_delta.get_value_opt(stream_mach)
-            * cant_angle_rad
-        )
-        M3_damping = (
-            (1 / 2 * rho * stream_speed)
-            * self.reference_area
-            * (self.reference_length) ** 2
-            * cld_omega.get_value_opt(stream_mach)
-            * omega[2]  # omega3
-            / 2
-        )
-        M3 = M3_forcing + M3_damping
-        return R1, R2, R3, M1, M2, M3
-
     def to_dict(self):
         pass  # TODO
 
-    def draw(self):
+    def draw(self, *, filename=None):
         """Draw the fin shape along with some important information, including
         the center line, the quarter line and the center of pressure position.
 
-        Returns
-        -------
-        None
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
         """
-        self.plots.draw()
+        self.plots.draw(filename=filename)
