@@ -182,7 +182,7 @@ class Fin(_BaseFin):
         """
         self.evaluate_single_fin_lift_coefficient()
 
-        self.clalpha = self.clalpha_single_fin
+        self.clalpha = self.clalpha_single_fin * self.lift_interference_factor
 
         # Cl = clalpha * alpha
         self.cl = Function(

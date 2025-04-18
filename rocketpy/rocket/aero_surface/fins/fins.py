@@ -169,7 +169,9 @@ class Fins(_BaseFin):
 
         # Lift coefficient derivative for n fins corrected with Fin-Body interference
         self.clalpha_multiple_fins = (
-            self.fin_num_correction(self.n) * self.clalpha_single_fin
+            self.fin_num_correction(self.n)
+            * self.lift_interference_factor
+            * self.clalpha_single_fin
         )  # Function of mach number
         self.clalpha_multiple_fins.set_inputs("Mach")
         self.clalpha_multiple_fins.set_outputs(
@@ -200,11 +202,10 @@ class Fins(_BaseFin):
         """
         clf_delta = (
             self.roll_forcing_interference_factor
-            * self.n
+            * self.fin_num_correction(self.n)
             * (self.Yma + self.rocket_radius)
             * self.clalpha_single_fin
             / self.reference_length
-            / 2  # TODO: explaing this / 2 in docs
         )  # Function of mach number
         clf_delta.set_inputs("Mach")
         clf_delta.set_outputs("Roll moment forcing coefficient derivative")
