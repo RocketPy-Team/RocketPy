@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from rocketpy import Function, utilities
+from rocketpy import GenericMotor
 
 
 @pytest.mark.parametrize(
@@ -276,6 +277,9 @@ def test_list_motors_dataset():
 
     for motor in expected_motors:
         assert motor in motors
+
+
+import pdb
 
 
 def test_load_motor_from_dataset():
