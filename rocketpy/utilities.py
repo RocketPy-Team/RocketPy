@@ -11,6 +11,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.integrate import solve_ivp
+from importlib import resources
 
 from ._encoders import RocketPyDecoder, RocketPyEncoder
 from .environment.environment import Environment
@@ -759,3 +760,14 @@ def load_from_rpy(filename: str, resimulate=False):
         simulation = json.dumps(data["simulation"])
         flight = json.loads(simulation, cls=RocketPyDecoder, resimulate=resimulate)
     return flight
+
+
+def list_motors_dataset():
+    """
+    Lists all motors available in the data/ folder in the .eng format.
+    """
+    try:
+        motors_package = resources.files("data.motors")
+        return [f.stem for f in motors_package.rglob("*.eng")]
+    except ModuleNotFoundError:
+        raise ImportError("The motors dataset was not found.")
