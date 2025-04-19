@@ -87,7 +87,10 @@ class StochasticFlight(StochasticModel):
 
         self.initial_solution = initial_solution
         self.terminate_on_apogee = terminate_on_apogee
-        self.time_overshoot = time_overshoot
+        if time_overshoot is None:
+            self.time_overshoot = flight.time_overshoot
+        else:
+            self.time_overshoot = time_overshoot
 
     def _validate_initial_solution(self, initial_solution):
         if initial_solution is not None:
