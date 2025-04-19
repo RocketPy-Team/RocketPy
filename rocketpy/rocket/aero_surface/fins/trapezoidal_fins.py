@@ -170,43 +170,29 @@ class TrapezoidalFins(_TrapezoidalMixin, Fins):
             name,
         )
 
-        self.initialize(sweep_length, sweep_angle, root_chord, tip_chord, span)
+        self._initialize(sweep_length, sweep_angle, root_chord, tip_chord, span)
 
         self.prints = _TrapezoidalFinsPrints(self)
         self.plots = _TrapezoidalFinsPlots(self)
 
-    def to_dict(self, include_outputs=False):
-        data = super().to_dict(include_outputs)
-        data["tip_chord"] = self.tip_chord
+    def evaluate_center_of_pressure(self):
+        """Calculates and returns the center of pressure of the fin set in local
+        coordinates. The center of pressure position is saved and stored as a
+        tuple.
 
-        if include_outputs:
-            data.update(
-                {
-                    "sweep_length": self.sweep_length,
-                    "sweep_angle": self.sweep_angle,
-                    "shape_vec": self.shape_vec,
-                    "Af": self.Af,
-                    "AR": self.AR,
-                    "gamma_c": self.gamma_c,
-                    "Yma": self.Yma,
-                    "roll_geometrical_constant": self.roll_geometrical_constant,
-                    "tau": self.tau,
-                    "lift_interference_factor": self.lift_interference_factor,
-                    "roll_damping_interference_factor": self.roll_damping_interference_factor,
-                    "roll_forcing_interference_factor": self.roll_forcing_interference_factor,
-                }
-            )
-        return data
-
-    @classmethod
-    def from_dict(cls, data):
-        return cls(
-            n=data["n"],
-            root_chord=data["root_chord"],
-            tip_chord=data["tip_chord"],
-            span=data["span"],
-            rocket_radius=data["rocket_radius"],
-            cant_angle=data["cant_angle"],
-            airfoil=data["airfoil"],
-            name=data["name"],
+        Returns
+        -------
+        None
+        """
+        # Center of pressure position in local coordinates
+        cpz = (self.sweep_length / 3) * (
+            (self.root_chord + 2 * self.tip_chord) / (self.root_chord + self.tip_chord)
+        ) + (1 / 6) * (
+            self.root_chord
+            + self.tip_chord
+            - self.root_chord * self.tip_chord / (self.root_chord + self.tip_chord)
         )
+        self.cpx = 0
+        self.cpy = 0
+        self.cpz = cpz
+        self.cp = (self.cpx, self.cpy, self.cpz)

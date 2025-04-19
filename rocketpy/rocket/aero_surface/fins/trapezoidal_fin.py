@@ -112,8 +112,30 @@ class TrapezoidalFin(_TrapezoidalMixin, Fin):
             name,
         )
 
-        self.initialize(sweep_length, sweep_angle, root_chord, tip_chord, span)
+        self._initialize(sweep_length, sweep_angle, root_chord, tip_chord, span)
         self.evaluate_rotation_matrix()
 
         self.prints = _TrapezoidalFinPrints(self)
         self.plots = _TrapezoidalFinPlots(self)
+
+    def evaluate_center_of_pressure(self):
+        """Calculates and returns the center of pressure of the fin set in local
+        coordinates. The center of pressure position is saved and stored as a
+        tuple.
+
+        Returns
+        -------
+        None
+        """
+        # Center of pressure position in local coordinates
+        cpz = (self.sweep_length / 3) * (
+            (self.root_chord + 2 * self.tip_chord) / (self.root_chord + self.tip_chord)
+        ) + (1 / 6) * (
+            self.root_chord
+            + self.tip_chord
+            - self.root_chord * self.tip_chord / (self.root_chord + self.tip_chord)
+        )
+        self.cpx = 0
+        self.cpy = self.Yma
+        self.cpz = cpz
+        self.cp = (self.cpx, self.cpy, self.cpz)

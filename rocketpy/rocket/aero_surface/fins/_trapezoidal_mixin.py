@@ -3,7 +3,7 @@ import numpy as np
 
 class _TrapezoidalMixin:
     """Mixin class for trapezoidal fins.
-    This class contains methods and properties specific to trapezoidal fin shapes.
+    This class holds methods and properties specific to trapezoidal fin shapes.
     It is designed to be used in conjunction with other classes that define the
     overall behavior of the fins.
     """
@@ -45,7 +45,7 @@ class _TrapezoidalMixin:
         self.evaluate_lift_coefficient()
         self.evaluate_roll_parameters()
 
-    def initialize(self, sweep_length, sweep_angle, root_chord, tip_chord, span):
+    def _initialize(self, sweep_length, sweep_angle, root_chord, tip_chord, span):
         # Check if sweep angle or sweep length is given
         if sweep_length is not None and sweep_angle is not None:
             raise ValueError("Cannot use sweep_length and sweep_angle together")
@@ -64,28 +64,6 @@ class _TrapezoidalMixin:
         self.evaluate_center_of_pressure()
         self.evaluate_lift_coefficient()
         self.evaluate_roll_parameters()
-
-    def evaluate_center_of_pressure(self):
-        """Calculates and returns the center of pressure of the fin set in local
-        coordinates. The center of pressure position is saved and stored as a
-        tuple.
-
-        Returns
-        -------
-        None
-        """
-        # Center of pressure position in local coordinates
-        cpz = (self.sweep_length / 3) * (
-            (self.root_chord + 2 * self.tip_chord) / (self.root_chord + self.tip_chord)
-        ) + (1 / 6) * (
-            self.root_chord
-            + self.tip_chord
-            - self.root_chord * self.tip_chord / (self.root_chord + self.tip_chord)
-        )
-        self.cpx = 0
-        self.cpy = 0
-        self.cpz = cpz
-        self.cp = (self.cpx, self.cpy, self.cpz)
 
     def evaluate_geometrical_parameters(self):
         """Calculates and saves fin set's geometrical parameters such as the
@@ -183,3 +161,39 @@ class _TrapezoidalMixin:
     def all_info(self):
         self.prints.all()
         self.plots.all()
+
+    def to_dict(self, include_outputs=False):
+        data = super().to_dict(include_outputs)
+        data["tip_chord"] = self.tip_chord
+
+        if include_outputs:
+            data.update(
+                {
+                    "sweep_length": self.sweep_length,
+                    "sweep_angle": self.sweep_angle,
+                    "shape_vec": self.shape_vec,
+                    "Af": self.Af,
+                    "AR": self.AR,
+                    "gamma_c": self.gamma_c,
+                    "Yma": self.Yma,
+                    "roll_geometrical_constant": self.roll_geometrical_constant,
+                    "tau": self.tau,
+                    "lift_interference_factor": self.lift_interference_factor,
+                    "roll_damping_interference_factor": self.roll_damping_interference_factor,
+                    "roll_forcing_interference_factor": self.roll_forcing_interference_factor,
+                }
+            )
+        return data
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            n=data["n"],
+            root_chord=data["root_chord"],
+            tip_chord=data["tip_chord"],
+            span=data["span"],
+            rocket_radius=data["rocket_radius"],
+            cant_angle=data["cant_angle"],
+            airfoil=data["airfoil"],
+            name=data["name"],
+        )
