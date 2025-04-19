@@ -23,72 +23,72 @@ class Fin(_BaseFin):
 
     Attributes
     ----------
-    Fins.rocket_radius : float
+    Fin.rocket_radius : float
         The reference rocket radius used for lift coefficient normalization,
         in meters.
-    Fins.airfoil : tuple
+    Fin.airfoil : tuple
         Tuple of two items. First is the airfoil lift curve.
         Second is the unit of the curve (radians or degrees).
-    Fins.cant_angle : float
-        Fins cant angle with respect to the rocket centerline, in degrees.
-    Fins.changing_attribute_dict : dict
+    Fin.cant_angle : float
+        Fin cant angle with respect to the rocket centerline, in degrees.
+    Fin.changing_attribute_dict : dict
         Dictionary that stores the name and the values of the attributes that
         may be changed during a simulation. Useful for control systems.
-    Fins.cant_angle_rad : float
-        Fins cant angle with respect to the rocket centerline, in radians.
-    Fins.root_chord : float
+    Fin.cant_angle_rad : float
+        Fin cant angle with respect to the rocket centerline, in radians.
+    Fin.root_chord : float
         Fin root chord in meters.
-    Fins.tip_chord : float
+    Fin.tip_chord : float
         Fin tip chord in meters.
-    Fins.span : float
+    Fin.span : float
         Fin span in meters.
-    Fins.name : string
+    Fin.name : string
         Name of fin set.
-    Fins.sweep_length : float
-        Fins sweep length in meters. By sweep length, understand the axial
+    Fin.sweep_length : float
+        Fin sweep length in meters. By sweep length, understand the axial
         distance between the fin root leading edge and the fin tip leading edge
         measured parallel to the rocket centerline.
-    Fins.sweep_angle : float
-        Fins sweep angle with respect to the rocket centerline. Must
+    Fin.sweep_angle : float
+        Fin sweep angle with respect to the rocket centerline. Must
         be given in degrees.
-    Fins.d : float
+    Fin.d : float
         Reference diameter of the rocket. Has units of length and is given
         in meters.
-    Fins.ref_area : float
+    Fin.ref_area : float
         Reference area of the rocket.
-    Fins.Af : float
+    Fin.Af : float
         Area of the longitudinal section of each fin in the set.
-    Fins.AR : float
+    Fin.AR : float
         Aspect ratio of each fin in the set.
-    Fins.gamma_c : float
+    Fin.gamma_c : float
         Fin mid-chord sweep angle.
-    Fins.Yma : float
+    Fin.Yma : float
         Span wise position of the mean aerodynamic chord.
-    Fins.roll_geometrical_constant : float
+    Fin.roll_geometrical_constant : float
         Geometrical constant used in roll calculations.
-    Fins.tau : float
+    Fin.tau : float
         Geometrical relation used to simplify lift and roll calculations.
-    Fins.lift_interference_factor : float
+    Fin.lift_interference_factor : float
         Factor of Fin-Body interference in the lift coefficient.
-    Fins.cp : tuple
+    Fin.cp : tuple
         Tuple with the x, y and z local coordinates of the fin set center of
         pressure. Has units of length and is given in meters.
-    Fins.cpx : float
+    Fin.cpx : float
         Fin set local center of pressure x coordinate. Has units of length and
         is given in meters.
-    Fins.cpy : float
+    Fin.cpy : float
         Fin set local center of pressure y coordinate. Has units of length and
         is given in meters.
-    Fins.cpz : float
+    Fin.cpz : float
         Fin set local center of pressure z coordinate. Has units of length and
         is given in meters.
-    Fins.cl : Function
+    Fin.cl : Function
         Function which defines the lift coefficient as a function of the angle
         of attack and the Mach number. Takes as input the angle of attack in
         radians and the Mach number. Returns the lift coefficient.
-    Fins.clalpha : float
+    Fin.clalpha : float
         Lift coefficient slope. Has units of 1/rad.
-    Fins.roll_parameters : list
+    Fin.roll_parameters : list
         List containing the roll moment lift coefficient, the roll moment
         damping coefficient and the cant angle in radians.
     """
@@ -226,11 +226,7 @@ class Fin(_BaseFin):
             roll moment damping coefficient and the cant angle in
             radians
         """
-        clf_delta = (
-            0  # TODO: should calculate this as well, should be same formula as fins
-        )
-        # clf_delta.set_inputs("Mach")
-        # clf_delta.set_outputs("Roll moment forcing coefficient derivative")
+        clf_delta = 0  # Not used in this class
         cld_omega = -(
             2
             * self.roll_damping_interference_factor
@@ -373,8 +369,28 @@ class Fin(_BaseFin):
         M3 += M3_damping
         return R1, R2, R3, M1, M2, M3
 
-    def to_dict(self):
-        pass  # TODO
+    def to_dict(self, include_outputs=False):
+        data = {
+            "angular_position": self.angular_position,
+            "root_chord": self.root_chord,
+            "span": self.span,
+            "rocket_radius": self.rocket_radius,
+            "cant_angle": self.cant_angle,
+            "airfoil": self.airfoil,
+            "name": self.name,
+        }
+
+        if include_outputs:
+            data.update(
+                {
+                    "cp": self.cp,
+                    "cl": self.cl,
+                    "roll_parameters": self.roll_parameters,
+                    "d": self.d,
+                    "ref_area": self.ref_area,
+                }
+            )
+        return data
 
     def draw(self, *, filename=None):
         """Draw the fin shape along with some important information, including
