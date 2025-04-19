@@ -2,12 +2,14 @@ import numpy as np
 
 from rocketpy.plots.aero_surface_plots import _EllipticalFinPlots
 from rocketpy.prints.aero_surface_prints import _EllipticalFinPrints
+from rocketpy.rocket.aero_surface.fins._elliptical_mixin import _EllipticalMixin
+from rocketpy.rocket.aero_surface.fins.fin import Fin
 
-from .fin import Fin
 
+class EllipticalFin(_EllipticalMixin, Fin):
+    """Class that defines and holds information for an elliptical fin set.
 
-class EllipticalFin(Fin):
-    """Class that defines and holds information for an elliptical fin.
+    This class inherits from the Fins class.
 
     Note
     ----
@@ -19,10 +21,12 @@ class EllipticalFin(Fin):
 
     See Also
     --------
-    Fin
+    Fins
 
     Attributes
     ----------
+    EllipticalFin.n : int
+        Number of fins in fin set.
     EllipticalFin.rocket_radius : float
         The reference rocket radius used for lift coefficient normalization, in
         meters.
@@ -30,12 +34,12 @@ class EllipticalFin(Fin):
         Tuple of two items. First is the airfoil lift curve.
         Second is the unit of the curve (radians or degrees)
     EllipticalFin.cant_angle : float
-        Fin cant angle with respect to the rocket centerline, in degrees.
+        Fins cant angle with respect to the rocket centerline, in degrees.
     EllipticalFin.changing_attribute_dict : dict
         Dictionary that stores the name and the values of the attributes that
         may be changed during a simulation. Useful for control systems.
     EllipticalFin.cant_angle_rad : float
-        Fin cant angle with respect to the rocket centerline, in radians.
+        Fins cant angle with respect to the rocket centerline, in radians.
     EllipticalFin.root_chord : float
         Fin root chord in meters.
     EllipticalFin.span : float
@@ -43,11 +47,11 @@ class EllipticalFin(Fin):
     EllipticalFin.name : string
         Name of fin set.
     EllipticalFin.sweep_length : float
-        Fin sweep length in meters. By sweep length, understand the axial
+        Fins sweep length in meters. By sweep length, understand the axial
         distance between the fin root leading edge and the fin tip leading edge
         measured parallel to the rocket centerline.
     EllipticalFin.sweep_angle : float
-        Fin sweep angle with respect to the rocket centerline. Must
+        Fins sweep angle with respect to the rocket centerline. Must
         be given in degrees.
     EllipticalFin.d : float
         Reference diameter of the rocket, in meters.
@@ -89,18 +93,20 @@ class EllipticalFin(Fin):
 
     def __init__(
         self,
-        angular_position,
+        n,
         root_chord,
         span,
         rocket_radius,
         cant_angle=0,
         airfoil=None,
-        name="Fin",
+        name="Fins",
     ):
         """Initialize EllipticalFin class.
 
         Parameters
         ----------
+        n : int
+            Number of fins, must be larger than 2.
         root_chord : int, float
             Fin root chord in meters.
         span : int, float
@@ -108,10 +114,10 @@ class EllipticalFin(Fin):
         rocket_radius : int, float
             Reference radius to calculate lift coefficient, in meters.
         cant_angle : int, float, optional
-            Fin cant angle with respect to the rocket centerline. Must
+            Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
         sweep_length : int, float, optional
-            Fin sweep length in meters. By sweep length, understand the axial
+            Fins sweep length in meters. By sweep length, understand the axial
             distance between the fin root leading edge and the fin tip leading
             edge measured parallel to the rocket centerline. If not given, the
             sweep length is assumed to be equal the root chord minus the tip
@@ -119,14 +125,14 @@ class EllipticalFin(Fin):
             perpendicular to the rocket's axis. Cannot be used in conjunction
             with sweep_angle.
         sweep_angle : int, float, optional
-            Fin sweep angle with respect to the rocket centerline. Must
+            Fins sweep angle with respect to the rocket centerline. Must
             be given in degrees. If not given, the sweep angle is automatically
             calculated, in which case the fin is assumed to be a right trapezoid
             with its base perpendicular to the rocket's axis.
             Cannot be used in conjunction with sweep_length.
         airfoil : tuple, optional
-            Default is null, in which case fin will be treated as flat plates.
-            Otherwise, if tuple, fin will be considered as airfoils. The
+            Default is null, in which case fins will be treated as flat plates.
+            Otherwise, if tuple, fins will be considered as airfoils. The
             tuple's first item specifies the airfoil's lift coefficient
             by angle of attack and must be either a .csv, .txt, ndarray
             or callable. The .csv and .txt files can contain a single line
@@ -147,7 +153,7 @@ class EllipticalFin(Fin):
         """
 
         super().__init__(
-            angular_position,
+            n,
             root_chord,
             span,
             rocket_radius,
@@ -160,7 +166,6 @@ class EllipticalFin(Fin):
         self.evaluate_center_of_pressure()
         self.evaluate_lift_coefficient()
         self.evaluate_roll_parameters()
-        self.evaluate_rotation_matrix()
 
         self.prints = _EllipticalFinPrints(self)
         self.plots = _EllipticalFinPlots(self)
@@ -177,137 +182,36 @@ class EllipticalFin(Fin):
         # Center of pressure position in local coordinates
         cpz = 0.288 * self.root_chord
         self.cpx = 0
-        self.cpy = 0
+        self.cpy = self.Yma
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
 
-    def evaluate_geometrical_parameters(self):  # pylint: disable=too-many-statements
-        """Calculates and saves fin set's geometrical parameters such as the
-        fin' area, aspect ratio and parameters for roll movement.
-
-        Returns
-        -------
-        None
-        """
-
-        # Compute auxiliary geometrical parameters
-        # pylint: disable=invalid-name
-        Af = (np.pi * self.root_chord / 2 * self.span) / 2  # Fin area
-        gamma_c = 0  # Zero for elliptical fin
-        AR = 2 * self.span**2 / Af  # Fin aspect ratio
-        Yma = (
-            self.span / (3 * np.pi) * np.sqrt(9 * np.pi**2 - 64)
-        )  # Span wise coord of mean aero chord
-        roll_geometrical_constant = (
-            self.root_chord
-            * self.span
-            * (
-                3 * np.pi * self.span**2
-                + 32 * self.rocket_radius * self.span
-                + 12 * np.pi * self.rocket_radius**2
+    def to_dict(self, include_outputs=False):
+        data = super().to_dict(include_outputs)
+        if include_outputs:
+            data.update(
+                {
+                    "Af": self.Af,
+                    "AR": self.AR,
+                    "gamma_c": self.gamma_c,
+                    "Yma": self.Yma,
+                    "roll_geometrical_constant": self.roll_geometrical_constant,
+                    "tau": self.tau,
+                    "lift_interference_factor": self.lift_interference_factor,
+                    "roll_damping_interference_factor": self.roll_damping_interference_factor,
+                    "roll_forcing_interference_factor": self.roll_forcing_interference_factor,
+                }
             )
-            / 48
+        return data
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            n=data["n"],
+            root_chord=data["root_chord"],
+            span=data["span"],
+            rocket_radius=data["rocket_radius"],
+            cant_angle=data["cant_angle"],
+            airfoil=data["airfoil"],
+            name=data["name"],
         )
-
-        # Fin–body interference correction parameters
-        tau = (self.span + self.rocket_radius) / self.rocket_radius
-        lift_interference_factor = 1 + 1 / tau
-        if self.span > self.rocket_radius:
-            roll_damping_interference_factor = 1 + (
-                (self.rocket_radius**2)
-                * (
-                    2
-                    * (self.rocket_radius**2)
-                    * np.sqrt(self.span**2 - self.rocket_radius**2)
-                    * np.log(
-                        (
-                            2
-                            * self.span
-                            * np.sqrt(self.span**2 - self.rocket_radius**2)
-                            + 2 * self.span**2
-                        )
-                        / self.rocket_radius
-                    )
-                    - 2
-                    * (self.rocket_radius**2)
-                    * np.sqrt(self.span**2 - self.rocket_radius**2)
-                    * np.log(2 * self.span)
-                    + 2 * self.span**3
-                    - np.pi * self.rocket_radius * self.span**2
-                    - 2 * (self.rocket_radius**2) * self.span
-                    + np.pi * self.rocket_radius**3
-                )
-            ) / (
-                2
-                * (self.span**2)
-                * (self.span / 3 + np.pi * self.rocket_radius / 4)
-                * (self.span**2 - self.rocket_radius**2)
-            )
-        elif self.span < self.rocket_radius:
-            roll_damping_interference_factor = 1 - (
-                self.rocket_radius**2
-                * (
-                    2 * self.span**3
-                    - np.pi * self.span**2 * self.rocket_radius
-                    - 2 * self.span * self.rocket_radius**2
-                    + np.pi * self.rocket_radius**3
-                    + 2
-                    * self.rocket_radius**2
-                    * np.sqrt(-self.span**2 + self.rocket_radius**2)
-                    * np.arctan(
-                        (self.span) / (np.sqrt(-self.span**2 + self.rocket_radius**2))
-                    )
-                    - np.pi
-                    * self.rocket_radius**2
-                    * np.sqrt(-self.span**2 + self.rocket_radius**2)
-                )
-            ) / (
-                2
-                * self.span
-                * (-self.span**2 + self.rocket_radius**2)
-                * (self.span**2 / 3 + np.pi * self.span * self.rocket_radius / 4)
-            )
-        else:
-            roll_damping_interference_factor = (28 - 3 * np.pi) / (4 + 3 * np.pi)
-
-        roll_forcing_interference_factor = (1 / np.pi**2) * (
-            (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
-            + ((np.pi * (tau**2 + 1) ** 2) / (tau**2 * (tau - 1) ** 2))
-            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
-            - (2 * np.pi * (tau + 1)) / (tau * (tau - 1))
-            + ((tau**2 + 1) ** 2)
-            / (tau**2 * (tau - 1) ** 2)
-            * (np.arcsin((tau**2 - 1) / (tau**2 + 1))) ** 2
-            - (4 * (tau + 1))
-            / (tau * (tau - 1))
-            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
-            + (8 / (tau - 1) ** 2) * np.log((tau**2 + 1) / (2 * tau))
-        )
-
-        # Store values
-        # pylint: disable=invalid-name
-        self.Af = Af  # Fin area
-        self.AR = AR  # Fin aspect ratio
-        self.gamma_c = gamma_c  # Mid chord angle
-        self.Yma = Yma  # Span wise coord of mean aero chord
-        self.roll_geometrical_constant = roll_geometrical_constant
-        self.tau = tau
-        self.lift_interference_factor = lift_interference_factor
-        self.roll_damping_interference_factor = roll_damping_interference_factor
-        self.roll_forcing_interference_factor = roll_forcing_interference_factor
-
-        self.evaluate_shape()
-
-    def evaluate_shape(self):
-        angles = np.arange(0, 180, 5)
-        x_array = self.root_chord / 2 + self.root_chord / 2 * np.cos(np.radians(angles))
-        y_array = self.span * np.sin(np.radians(angles))
-        self.shape_vec = [x_array, y_array]
-
-    def info(self):
-        self.prints.geometry()
-        self.prints.lift()
-
-    def all_info(self):
-        self.prints.all()
-        self.plots.all()
