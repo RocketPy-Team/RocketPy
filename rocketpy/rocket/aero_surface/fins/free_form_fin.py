@@ -168,6 +168,6 @@ class FreeFormFins(_FreeFormMixin, Fins):
         # Center of pressure position in local coordinates
         cpz = self.mac_lead + 0.25 * self.mac_length
         self.cpx = 0
-        self.cpy = 0
+        self.cpy = self.Yma
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
