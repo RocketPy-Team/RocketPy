@@ -514,11 +514,19 @@ class StochasticModel:
                 )
             elif isinstance(value, tuple):
                 nominal_value, std_dev, dist_func = value
-                return (
-                    f"\t{attr.ljust(max_str_length)} "
-                    f"{nominal_value:.5f} ± "
-                    f"{std_dev:.5f} ({dist_func.__name__})"
-                )
+                if callable(dist_func) and dist_func.__name__ == "uniform":
+                    lower_bound = nominal_value
+                    upper_bound = std_dev
+                    return (
+                        f"\t{attr.ljust(max_str_length)} "
+                        f"{lower_bound:.5f}, {upper_bound:.5f} ({dist_func.__name__})"
+                    )
+                else:
+                    return (
+                        f"\t{attr.ljust(max_str_length)} "
+                        f"{nominal_value:.5f} ± "
+                        f"{std_dev:.5f} ({dist_func.__name__})"
+                    )
             return None
 
         attributes = {k: v for k, v in self.__dict__.items() if not k.startswith("_")}

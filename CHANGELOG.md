@@ -32,11 +32,29 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
-- ENH: Parallel mode for monte-carlo simulations 2 [#768](https://github.com/RocketPy-Team/RocketPy/pull/768)
-- DOC: ASTRA Flight Example [#770](https://github.com/RocketPy-Team/RocketPy/pull/770)
+- ENH: Implement Multivariate Rejection Sampling (MRS) [#738] (https://github.com/RocketPy-Team/RocketPy/pull/738) 
+- ENH: Create a rocketpy file to store flight simulations [#800](https://github.com/RocketPy-Team/RocketPy/pull/800)
+- ENH: Support for the RSE file format has been added to the library [#798](https://github.com/RocketPy-Team/RocketPy/pull/798)
+- ENH: Introduce Net Thrust with pressure corrections [#789](https://github.com/RocketPy-Team/RocketPy/pull/789)
 
 ### Changed
 
+
+### Fixed
+
+
+## v1.9.0 - 2025-03-24
+
+### Added
+
+- ENH: Parallel mode for monte-carlo simulations 2 [#768](https://github.com/RocketPy-Team/RocketPy/pull/768)
+- DOC: ASTRA Flight Example [#770](https://github.com/RocketPy-Team/RocketPy/pull/770)
+- ENH: Add Eccentricity to Stochastic Simulations [#792](https://github.com/RocketPy-Team/RocketPy/pull/792)
+- ENH: Introduce the StochasticAirBrakes class [#785](https://github.com/RocketPy-Team/RocketPy/pull/785)
+
+### Changed
+
+- DEP: Remove Pending Deprecations and Add Warnings Where Needed [#794](https://github.com/RocketPy-Team/RocketPy/pull/794)
 - DOCS: reshape docs (closes #659) [#781](https://github.com/RocketPy-Team/RocketPy/pull/781)
 - MNT: EmptyMotor class inherits from Motor(ABC) [#779](https://github.com/RocketPy-Team/RocketPy/pull/779)
 
@@ -44,6 +62,10 @@ Attention: The newest changes should be on top -->
 
 - BUG: do not allow drawing rockets with no aerodynamic surface [#774](https://github.com/RocketPy-Team/RocketPy/pull/774)
 - BUG: update flight simulation logic to include burn start time [#778](https://github.com/RocketPy-Team/RocketPy/pull/778)
+- BUG: fixes get_instance_attributes for Flight objects containing a Rocket object without rail buttons [#786](https://github.com/RocketPy-Team/RocketPy/pull/786)
+- BUG: fixed AGL altitude print for parachutes with lag [#788](https://github.com/RocketPy-Team/RocketPy/pull/788)
+- BUG: fix the wind velocity factors usage and better visualization of uniform distributions in Stochastic Classes [#783](https://github.com/RocketPy-Team/RocketPy/pull/783)
+
 
 ## [v1.8.0] - 2025-01-20
 

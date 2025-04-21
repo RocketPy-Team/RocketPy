@@ -7,7 +7,6 @@ import pytest
 from rocketpy._encoders import RocketPyDecoder, RocketPyEncoder
 
 
-@pytest.mark.slow
 @pytest.mark.parametrize(
     ["flight_name", "include_outputs"],
     [
@@ -18,7 +17,7 @@ from rocketpy._encoders import RocketPyDecoder, RocketPyEncoder
         ("flight_calisto_hybrid_modded", False),
     ],
 )
-def test_flight_save_load(flight_name, include_outputs, request):
+def test_flight_save_load_no_resimulate(flight_name, include_outputs, request):
     """Test encoding a ``rocketpy.Flight``.
 
     Parameters
@@ -40,7 +39,52 @@ def test_flight_save_load(flight_name, include_outputs, request):
         )
 
     with open("flight.json", "r") as f:
-        flight_loaded = json.load(f, cls=RocketPyDecoder)
+        flight_loaded = json.load(f, cls=RocketPyDecoder, resimulate=False)
+
+    assert np.isclose(flight_to_save.t_initial, flight_loaded.t_initial)
+    assert np.isclose(flight_to_save.out_of_rail_time, flight_loaded.out_of_rail_time)
+    assert np.isclose(flight_to_save.apogee_time, flight_loaded.apogee_time)
+
+    # Higher tolerance due to random parachute trigger
+    assert np.isclose(flight_to_save.t_final, flight_loaded.t_final, rtol=1e-3)
+
+    os.remove("flight.json")
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    ["flight_name", "include_outputs"],
+    [
+        ("flight_calisto", False),
+        ("flight_calisto", True),
+        ("flight_calisto_robust", True),
+        ("flight_calisto_liquid_modded", False),
+        ("flight_calisto_hybrid_modded", False),
+    ],
+)
+def test_flight_save_load_resimulate(flight_name, include_outputs, request):
+    """Test encoding a ``rocketpy.Flight``.
+
+    Parameters
+    ----------
+    flight_name : str
+        Name flight fixture to encode.
+    request : pytest.FixtureRequest
+        Pytest request object.
+    """
+    flight_to_save = request.getfixturevalue(flight_name)
+
+    with open("flight.json", "w") as f:
+        json.dump(
+            flight_to_save,
+            f,
+            cls=RocketPyEncoder,
+            indent=2,
+            include_outputs=include_outputs,
+        )
+
+    with open("flight.json", "r") as f:
+        flight_loaded = json.load(f, cls=RocketPyDecoder, resimulate=True)
 
     assert np.isclose(flight_to_save.t_initial, flight_loaded.t_initial)
     assert np.isclose(flight_to_save.out_of_rail_time, flight_loaded.out_of_rail_time)

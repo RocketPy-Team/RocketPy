@@ -569,26 +569,48 @@ def __generate_ellipse_points(ellipse, resolution: int):
     return np.array(points)
 
 
-def flatten_dict(x):
-    # Auxiliary function that flattens dictionary
-    # this is used mainly in the load_monte_carlo_data function
-    new_dict = {}
-    for key, value in x.items():
-        # the nested dictionary is inside a list
-        if isinstance(x[key], list):
-            # sometimes the object inside the list is another list
-            # we must skip these cases
-            if isinstance(value[0], dict):
-                inner_dict = flatten_dict(value[0])
-                inner_dict = {
-                    key + "_" + inner_key: inner_value
-                    for inner_key, inner_value in inner_dict.items()
-                }
-                new_dict.update(inner_dict)
-        else:
-            new_dict.update({key: value})
+def flatten_dict(original_dict):
+    """Flatten a dictionary for easy handling of nested variables
 
-    return new_dict
+    This function is mainly used for handling data in sensitivity analysis
+    and in the MRS.
+
+    Parameters
+    ----------
+    original_dict : dict
+        A dictionary possibly containing nested variables. This means that
+        a key might contain another dictionary inside of it.
+
+    Returns
+    -------
+    flatted_dict : dict
+        The flatted dictionary which, ideally, should not contain nested
+        variables. All nested information should be available directly in
+        the first level (access by key). Variables that were available
+        inside the first level retain their original key name. Variables
+        that were nested are created by appending the name of the outer
+        key used to access it concatenated with a '_' and the key name
+        of the variable.
+    """
+    flatted_dict = {}
+    for key, value in original_dict.items():
+        # the nested dictionary is inside a list
+        if isinstance(original_dict[key], list):
+            for inner_item in value:
+                if isinstance(inner_item, dict):
+                    inner_dict = flatten_dict(inner_item)
+                    sep_str = "_"
+                    if "name" in inner_dict:
+                        sep_str = "_" + inner_dict["name"] + "_"
+                    inner_dict = {
+                        key + sep_str + inner_key: inner_value
+                        for inner_key, inner_value in inner_dict.items()
+                    }
+                    flatted_dict.update(inner_dict)
+        else:
+            flatted_dict.update({key: value})
+
+    return flatted_dict
 
 
 def load_monte_carlo_data(

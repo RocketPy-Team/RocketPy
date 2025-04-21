@@ -1,6 +1,6 @@
 [project]
 name = "rocketpy"
-version = "1.8.0"
+version = "1.9.0"
 description="Advanced 6-DOF trajectory simulation for High-Power Rocketry."
 dynamic = ["dependencies"]
 readme = "README.md"
@@ -101,6 +101,7 @@ skip-magic-trailing-comma = false
 line-ending = "auto"
 docstring-code-format = false
 docstring-code-line-length = "dynamic"
+exclude = ["**/*.json", "**/*.rpy"]
 
 
 [tool.ruff.lint.pydocstyle]
