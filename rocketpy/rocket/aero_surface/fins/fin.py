@@ -367,6 +367,39 @@ class Fin(_BaseFin):
         M3 += M3_damping
         return R1, R2, R3, M1, M2, M3
 
+    def __compute_leading_edge_position(self, position, _csys):
+        """Computes the position of the fin leading edge in a rocket's user,
+        given its position in a rocket."""
+        # Point from deflection from cant angle in the plane perpendicular to
+        # the fuselage where the fin is located in the fin frame
+        p = Vector(
+            [
+                -self.root_chord / 2 * np.sin(self.cant_angle_rad),
+                0,
+                self.root_chord / 2 * (1 - np.cos(self.cant_angle_rad)),
+            ]
+        )
+        # Rotate the point to the body frame orientation
+        p = self._rotation_fin_to_body_uncanted @ p
+
+        # Rotate the point to the user-defined coordinate system
+        p = Vector([p.x * _csys, p.y, p.z * _csys])
+
+        # Calculate the position of the fin leading edge in the user frame
+        # as if no cant angle was applied
+        position = Vector(
+            [
+                -self.rocket_radius * math.sin(self.angular_position_rad) * _csys,
+                self.rocket_radius * math.cos(self.angular_position_rad),
+                position,
+            ]
+        )
+
+        # Translate the position of the fin leading edge to the position of the
+        # fin leading edge with cant angle
+        position += p
+        return position
+
     def to_dict(self, include_outputs=False):
         data = {
             "angular_position": self.angular_position,
