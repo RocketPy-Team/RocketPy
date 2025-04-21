@@ -39,6 +39,8 @@ Attention: The newest changes should be on top -->
 
 ### Changed
 
+- MNT: Use scipy standard interpolators in Function class. [#809](https://github.com/RocketPy-Team/RocketPy/pull/809)
+
 
 ### Fixed
 

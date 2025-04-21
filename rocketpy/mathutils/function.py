@@ -15,8 +15,11 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import integrate, linalg, optimize
+from scipy import integrate, optimize
 from scipy.interpolate import (
+    Akima1DInterpolator,
+    BarycentricInterpolator,
+    CubicSpline,
     LinearNDInterpolator,
     NearestNDInterpolator,
     RBFInterpolator,
@@ -312,17 +315,23 @@ class Function:  # pylint: disable=too-many-public-methods
 
     def __update_interpolation_coefficients(self, method):
         """Update interpolation coefficients for the given method."""
-        # Spline, akima and polynomial need data processing
-        # Shepard, and linear do not
-        if method == "polynomial":
-            self.__interpolate_polynomial__()
-            self._coeffs = self.__polynomial_coefficients__
+        if method == "spline" or method is None:
+            self._interpolator = CubicSpline(
+                self.x_array, self.y_array, bc_type="natural", extrapolate=True
+            )
+            self._coeffs = self._interpolator.c[::-1]
+            self.__spline_coefficients__ = self._coeffs
+        elif method == "linear":
+            self._coeffs = np.diff(self.y_array) / np.diff(self.x_array)
         elif method == "akima":
-            self.__interpolate_akima__()
-            self._coeffs = self.__akima_coefficients__
-        elif method == "spline" or method is None:
-            self.__interpolate_spline__()
-            self._coeffs = self.__spline_coefficients__
+            self._interpolator = Akima1DInterpolator(
+                self.x_array, self.y_array, extrapolate=True
+            )
+            self._coeffs = self._interpolator.c[::-1]
+            self.__akima_coefficients__ = self._coeffs
+        elif method == "polynomial":
+            self._interpolator = BarycentricInterpolator(self.x_array, self.y_array)
+            self._coeffs = []
         else:
             self._coeffs = []
 
@@ -361,12 +370,10 @@ class Function:  # pylint: disable=too-many-public-methods
             if self.__dom_dim__ == 1:
 
                 def linear_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
-                    x_interval = bisect_left(x_data, x)
+                    x_interval = bisect_left(x_data, x, lo=1, hi=len(x_data) - 1)
                     x_left = x_data[x_interval - 1]
                     y_left = y_data[x_interval - 1]
-                    dx = float(x_data[x_interval] - x_left)
-                    dy = float(y_data[x_interval] - y_left)
-                    return (x - x_left) * (dy / dx) + y_left
+                    return (x - x_left) * coeffs[x_interval - 1] + y_left
 
             else:
                 interpolator = LinearNDInterpolator(self._domain, self._image)
@@ -379,28 +386,21 @@ class Function:  # pylint: disable=too-many-public-methods
         elif interpolation == 1:  # polynomial
 
             def polynomial_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
-                return np.sum(coeffs * x ** np.arange(len(coeffs)))
+                return self._interpolator(x)
 
             self._interpolation_func = polynomial_interpolation
 
         elif interpolation == 2:  # akima
 
             def akima_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
-                x_interval = bisect_left(x_data, x)
-                x_interval = x_interval if x_interval != 0 else 1
-                a = coeffs[4 * x_interval - 4 : 4 * x_interval]
-                return a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
+                return self._interpolator(x)
 
             self._interpolation_func = akima_interpolation
 
         elif interpolation == 3:  # spline
 
             def spline_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
-                x_interval = bisect_left(x_data, x)
-                x_interval = max(x_interval, 1)
-                a = coeffs[:, x_interval - 1]
-                x = x - x_data[x_interval - 1]
-                return a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
+                return self._interpolator(x)
 
             self._interpolation_func = spline_interpolation
 
@@ -472,24 +472,17 @@ class Function:  # pylint: disable=too-many-public-methods
             elif interpolation == 1:  # polynomial
 
                 def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
-                    return np.sum(coeffs * x ** np.arange(len(coeffs)))
+                    return self._interpolator(x)
 
             elif interpolation == 2:  # akima
 
                 def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
-                    a = coeffs[:4] if x < x_min else coeffs[-4:]
-                    return a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
+                    return self._interpolator(x)
 
             elif interpolation == 3:  # spline
 
                 def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
-                    if x < x_min:
-                        a = coeffs[:, 0]
-                        x = x - x_data[0]
-                    else:
-                        a = coeffs[:, -1]
-                        x = x - x_data[-2]
-                    return a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
+                    return self._interpolator(x)
 
             elif interpolation == 4:  # shepard
                 # pylint: disable=unused-argument
@@ -1828,85 +1821,6 @@ class Function:  # pylint: disable=too-many-public-methods
 
         if return_object:
             return fig, ax
-
-    # Define all interpolation methods
-    def __interpolate_polynomial__(self):
-        """Calculate polynomial coefficients that fit the data exactly."""
-        # Find the degree of the polynomial interpolation
-        degree = self.source.shape[0] - 1
-        # Get x and y values for all supplied points.
-        x = self.x_array
-        y = self.y_array
-        # Check if interpolation requires large numbers
-        if np.amax(x) ** degree > 1e308:
-            warnings.warn(
-                "Polynomial interpolation of too many points can't be done."
-                " Once the degree is too high, numbers get too large."
-                " The process becomes inefficient. Using spline instead."
-            )
-            return self.set_interpolation("spline")
-        # Create coefficient matrix1
-        sys_coeffs = np.zeros((degree + 1, degree + 1))
-        for i in range(degree + 1):
-            sys_coeffs[:, i] = x**i
-        # Solve the system and store the resultant coefficients
-        self.__polynomial_coefficients__ = np.linalg.solve(sys_coeffs, y)
-
-    def __interpolate_spline__(self):
-        """Calculate natural spline coefficients that fit the data exactly."""
-        # Get x and y values for all supplied points
-        x, y = self.x_array, self.y_array
-        m_dim = len(x)
-        h = np.diff(x)
-        # Initialize the matrix
-        banded_matrix = np.zeros((3, m_dim))
-        banded_matrix[1, 0] = banded_matrix[1, m_dim - 1] = 1
-        # Construct the Ab banded matrix and B vector
-        vector_b = [0]
-        banded_matrix[2, :-2] = h[:-1]
-        banded_matrix[1, 1:-1] = 2 * (h[:-1] + h[1:])
-        banded_matrix[0, 2:] = h[1:]
-        vector_b.extend(3 * ((y[2:] - y[1:-1]) / h[1:] - (y[1:-1] - y[:-2]) / h[:-1]))
-        vector_b.append(0)
-        # Solve the system for c coefficients
-        c = linalg.solve_banded(
-            (1, 1), banded_matrix, vector_b, overwrite_ab=True, overwrite_b=True
-        )
-        # Calculate other coefficients
-        b = (y[1:] - y[:-1]) / h - h * (2 * c[:-1] + c[1:]) / 3
-        d = (c[1:] - c[:-1]) / (3 * h)
-        # Store coefficients
-        self.__spline_coefficients__ = np.vstack([y[:-1], b, c[:-1], d])
-
-    def __interpolate_akima__(self):
-        """Calculate akima spline coefficients that fit the data exactly"""
-        # Get x and y values for all supplied points
-        x, y = self.x_array, self.y_array
-        # Estimate derivatives at each point
-        d = [0] * len(x)
-        d[0] = (y[1] - y[0]) / (x[1] - x[0])
-        d[-1] = (y[-1] - y[-2]) / (x[-1] - x[-2])
-        for i in range(1, len(x) - 1):
-            w1, w2 = (x[i] - x[i - 1]), (x[i + 1] - x[i])
-            d1, d2 = ((y[i] - y[i - 1]) / w1), ((y[i + 1] - y[i]) / w2)
-            d[i] = (w1 * d2 + w2 * d1) / (w1 + w2)
-        # Calculate coefficients for each interval with system already solved
-        coeffs = [0] * 4 * (len(x) - 1)
-        for i in range(len(x) - 1):
-            xl, xr = x[i], x[i + 1]
-            yl, yr = y[i], y[i + 1]
-            dl, dr = d[i], d[i + 1]
-            matrix = np.array(
-                [
-                    [1, xl, xl**2, xl**3],
-                    [1, xr, xr**2, xr**3],
-                    [0, 1, 2 * xl, 3 * xl**2],
-                    [0, 1, 2 * xr, 3 * xr**2],
-                ]
-            )
-            result = np.array([yl, yr, dl, dr]).T
-            coeffs[4 * i : 4 * i + 4] = np.linalg.solve(matrix, result)
-        self.__akima_coefficients__ = coeffs
 
     def __neg__(self):
         """Negates the Function object. The result has the same effect as
@@ -3273,6 +3187,17 @@ class Function:  # pylint: disable=too-many-public-methods
                     "Could not read the csv or txt file to create Function source."
                 ) from e
 
+        if isinstance(source, NUMERICAL_TYPES) or self.__is_single_element_array(
+            source
+        ):
+            # Convert number source into vectorized lambda function
+            temp = 1 * source
+
+            def source_function(_):
+                return temp
+
+            return source_function
+
         if isinstance(source, (list, np.ndarray)):
             # Triggers an error if source is not a list of numbers
             source = np.array(source, dtype=np.float64)
@@ -3292,15 +3217,6 @@ class Function:  # pylint: disable=too-many-public-methods
                     )
 
             return source
-
-        if isinstance(source, NUMERICAL_TYPES):
-            # Convert number source into vectorized lambda function
-            temp = 1 * source
-
-            def source_function(_):
-                return temp
-
-            return source_function
 
         # If source is a callable function
         return source

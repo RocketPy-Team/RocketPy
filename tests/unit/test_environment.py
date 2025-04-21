@@ -212,7 +212,7 @@ def test_environment_export_environment_exports_valid_environment_json(
     assert os.path.isfile("environment.json")
 
     # Check file content
-    assert exported_env["gravity"] == env.gravity(env.elevation)
+    assert exported_env["gravity"] == str(float(env.gravity(env.elevation)))
     assert exported_env["date"] == [
         env.datetime_date.year,
         env.datetime_date.month,
