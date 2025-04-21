@@ -41,6 +41,7 @@ Attention: The newest changes should be on top -->
 
 
 ### Fixed
+- BUG: Fix the handling of reference pressure for older rpy files. [#808](https://github.com/RocketPy-Team/RocketPy/pull/808)
 
 
 ## v1.9.0 - 2025-03-24

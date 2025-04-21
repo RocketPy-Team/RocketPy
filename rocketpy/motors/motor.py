@@ -1896,5 +1896,5 @@ class GenericMotor(Motor):
             ),
             nozzle_position=data["nozzle_position"],
             interpolation_method=data["interpolate"],
-            reference_pressure=data["reference_pressure"],
+            reference_pressure=data.get("reference_pressure"),
         )

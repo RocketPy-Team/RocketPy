@@ -699,7 +699,7 @@ class HybridMotor(Motor):
             grains_center_of_mass_position=data["grains_center_of_mass_position"],
             nozzle_position=data["nozzle_position"],
             throat_radius=data["throat_radius"],
-            reference_pressure=data["reference_pressure"],
+            reference_pressure=data.get("reference_pressure"),
         )
 
         for tank in data["positioned_tanks"]:
