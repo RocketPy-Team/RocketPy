@@ -148,9 +148,6 @@ class Fin(_BaseFin):
         self._angular_position = angular_position
         self._angular_position_rad = math.radians(angular_position)
 
-        self.M3dh = []  # Roll moment damping
-        self.cldwh = []  # Roll moment lift coefficient derivative
-
     @property
     def cant_angle(self):
         return self._cant_angle

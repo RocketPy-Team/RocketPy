@@ -5,6 +5,7 @@ from rocketpy.rocket.aero_surface.fins import (
     EllipticalFins,
     Fin,
     Fins,
+    FreeFormFin,
     FreeFormFins,
     TrapezoidalFin,
     TrapezoidalFins,

@@ -97,7 +97,7 @@ class _BaseFin(AeroSurface):
 
     @property
     def cant_angle_rad(self):
-        return self._cant_angle_rad  # TODO check this sign and why???
+        return self._cant_angle_rad
 
     @cant_angle_rad.setter
     def cant_angle_rad(self, value):
@@ -117,8 +117,6 @@ class _BaseFin(AeroSurface):
         self.evaluate_geometrical_parameters()
         self.evaluate_center_of_pressure()
         self.evaluate_lift_coefficient()
-        self.evaluate_roll_parameters()
-        self.evaluate_roll_parameters()
         self.evaluate_roll_parameters()
 
     def evaluate_single_fin_lift_coefficient(self):

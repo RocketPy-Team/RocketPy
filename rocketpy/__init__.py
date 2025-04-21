@@ -32,6 +32,7 @@ from .rocket import (
     EllipticalFins,
     Fin,
     Fins,
+    FreeFormFin,
     FreeFormFins,
     GenericSurface,
     LinearGenericSurface,

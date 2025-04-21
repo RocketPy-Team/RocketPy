@@ -172,7 +172,6 @@ class _FinsPrints(_AeroSurfacePrints):
 
 
 class _FinPrints(_AeroSurfacePrints):
-
     def geometry(self):
         print("Geometric information of the fin set:")
         print("-------------------------------------")
@@ -288,6 +287,10 @@ class _EllipticalFinPrints(_FinPrints):
 
 
 class _FreeFormFinsPrints(_FinsPrints):
+    """Class that contains all free form fins prints."""
+
+
+class _FreeFormFinPrints(_FinPrints):
     """Class that contains all free form fins prints."""
 
 

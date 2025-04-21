@@ -2,14 +2,14 @@ import warnings
 
 import numpy as np
 
-from rocketpy.plots.aero_surface_plots import _FreeFormFinsPlots
-from rocketpy.prints.aero_surface_prints import _FreeFormFinsPrints
+from rocketpy.plots.aero_surface_plots import _FreeFormFinPlots
+from rocketpy.prints.aero_surface_prints import _FreeFormFinPrints
 from rocketpy.rocket.aero_surface.fins._free_form_mixin import _FreeFormMixin
 
 from .fins import Fins
 
 
-class FreeFormFins(_FreeFormMixin, Fins):
+class FreeFormFin(_FreeFormMixin, Fins):
     """Class that defines and holds information for a free form fin set.
 
     This class inherits from the Fins class.
@@ -28,63 +28,63 @@ class FreeFormFins(_FreeFormMixin, Fins):
 
     Attributes
     ----------
-    FreeFormFins.n : int
+    FreeFormFin.n : int
         Number of fins in fin set.
-    FreeFormFins.rocket_radius : float
+    FreeFormFin.rocket_radius : float
         The reference rocket radius used for lift coefficient normalization, in
         meters.
-    FreeFormFins.airfoil : tuple
+    FreeFormFin.airfoil : tuple
         Tuple of two items. First is the airfoil lift curve.
         Second is the unit of the curve (radians or degrees).
-    FreeFormFins.cant_angle : float
+    FreeFormFin.cant_angle : float
         Fins cant angle with respect to the rocket centerline, in degrees.
-    FreeFormFins.cant_angle_rad : float
+    FreeFormFin.cant_angle_rad : float
         Fins cant angle with respect to the rocket centerline, in radians.
-    FreeFormFins.root_chord : float
+    FreeFormFin.root_chord : float
         Fin root chord in meters.
-    FreeFormFins.span : float
+    FreeFormFin.span : float
         Fin span in meters.
-    FreeFormFins.name : string
+    FreeFormFin.name : string
         Name of fin set.
-    FreeFormFins.d : float
+    FreeFormFin.d : float
         Reference diameter of the rocket, in meters.
-    FreeFormFins.ref_area : float
+    FreeFormFin.ref_area : float
         Reference area of the rocket, in m².
-    FreeFormFins.Af : float
+    FreeFormFin.Af : float
         Area of the longitudinal section of each fin in the set.
-    FreeFormFins.AR : float
+    FreeFormFin.AR : float
         Aspect ratio of each fin in the set
-    FreeFormFins.gamma_c : float
+    FreeFormFin.gamma_c : float
         Fin mid-chord sweep angle.
-    FreeFormFins.Yma : float
+    FreeFormFin.Yma : float
         Span wise position of the mean aerodynamic chord.
-    FreeFormFins.roll_geometrical_constant : float
+    FreeFormFin.roll_geometrical_constant : float
         Geometrical constant used in roll calculations.
-    FreeFormFins.tau : float
+    FreeFormFin.tau : float
         Geometrical relation used to simplify lift and roll calculations.
-    FreeFormFins.lift_interference_factor : float
+    FreeFormFin.lift_interference_factor : float
         Factor of Fin-Body interference in the lift coefficient.
-    FreeFormFins.cp : tuple
+    FreeFormFin.cp : tuple
         Tuple with the x, y and z local coordinates of the fin set center of
         pressure. Has units of length and is given in meters.
-    FreeFormFins.cpx : float
+    FreeFormFin.cpx : float
         Fin set local center of pressure x coordinate. Has units of length and
         is given in meters.
-    FreeFormFins.cpy : float
+    FreeFormFin.cpy : float
         Fin set local center of pressure y coordinate. Has units of length and
         is given in meters.
-    FreeFormFins.cpz : float
+    FreeFormFin.cpz : float
         Fin set local center of pressure z coordinate. Has units of length and
         is given in meters.
-    FreeFormFins.cl : Function
+    FreeFormFin.cl : Function
         Function which defines the lift coefficient as a function of the angle
         of attack and the Mach number. Takes as input the angle of attack in
         radians and the Mach number. Returns the lift coefficient.
-    FreeFormFins.clalpha : float
+    FreeFormFin.clalpha : float
         Lift coefficient slope. Has units of 1/rad.
-    FreeFormFins.mac_length : float
+    FreeFormFin.mac_length : float
         Mean aerodynamic chord length of the fin set.
-    FreeFormFins.mac_lead : float
+    FreeFormFin.mac_lead : float
         Mean aerodynamic chord leading edge x coordinate.
     """
 
@@ -97,7 +97,7 @@ class FreeFormFins(_FreeFormMixin, Fins):
         airfoil=None,
         name="Fins",
     ):
-        """Initialize FreeFormFins class.
+        """Initialize FreeFormFin class.
 
         Parameters
         ----------
@@ -153,8 +153,8 @@ class FreeFormFins(_FreeFormMixin, Fins):
         self.evaluate_lift_coefficient()
         self.evaluate_roll_parameters()
 
-        self.prints = _FreeFormFinsPrints(self)
-        self.plots = _FreeFormFinsPlots(self)
+        self.prints = _FreeFormFinPrints(self)
+        self.plots = _FreeFormFinPlots(self)
 
     def evaluate_center_of_pressure(self):
         """Calculates and returns the center of pressure of the fin set in local

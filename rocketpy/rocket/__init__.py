@@ -6,6 +6,7 @@ from rocketpy.rocket.aero_surface import (
     EllipticalFins,
     Fin,
     Fins,
+    FreeFormFin,
     FreeFormFins,
     GenericSurface,
     LinearGenericSurface,
