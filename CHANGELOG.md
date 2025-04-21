@@ -42,7 +42,7 @@ Attention: The newest changes should be on top -->
 
 
 ### Fixed
-
+- BUG: Non-overshootable simulations error on time parsing. [#807](https://github.com/RocketPy-Team/RocketPy/pull/807)
 
 ## v1.9.0 - 2025-03-24
 
