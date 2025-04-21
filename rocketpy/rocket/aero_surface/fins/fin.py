@@ -298,6 +298,7 @@ class Fin(_BaseFin):
         self._rotation_fin_to_body_uncanted = R_uncanted.transpose
         self._rotation_body_to_fin = R_body_to_fin
         self._rotation_fin_to_body = R_body_to_fin.transpose
+        self._rotation_surface_to_body = self._rotation_fin_to_body
 
     def compute_forces_and_moments(
         self,

@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
+from rocketpy.mathutils.vector_matrix import Matrix
+
 
 class AeroSurface(ABC):
     """Abstract class used to define aerodynamic surfaces."""
@@ -14,6 +16,14 @@ class AeroSurface(ABC):
         self.cpx = 0
         self.cpy = 0
         self.cpz = 0
+
+        self._rotation_surface_to_body = Matrix(
+            [
+                [-1, 0, 0],
+                [0, 1, 0],
+                [0, 0, -1],
+            ]
+        )
 
     @staticmethod
     def _beta(mach):
