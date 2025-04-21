@@ -94,6 +94,20 @@ def flight_calisto_robust(calisto_robust, example_spaceport_env):
 
 
 @pytest.fixture
+def flight_calisto_nose_to_tail_robust(
+    calisto_nose_to_tail_robust, example_spaceport_env
+):
+    return Flight(
+        environment=example_spaceport_env,
+        rocket=calisto_nose_to_tail_robust,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=False,
+    )
+
+
+@pytest.fixture
 def flight_calisto_robust_solid_eom(calisto_robust, example_spaceport_env):
     """Similar to flight_calisto_robust, but with the equations of motion set to
     "solid_propulsion".

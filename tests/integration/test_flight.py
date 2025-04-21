@@ -521,3 +521,57 @@ def test_freestream_speed_at_apogee(example_plain_env, calisto):
         test_flight.free_stream_speed(test_flight.apogee_time), 0.0, atol=soft_atol
     )
     assert np.isclose(test_flight.apogee_freestream_speed, 0.0, atol=soft_atol)
+
+
+def test_rocket_csys_equivalence(
+    flight_calisto_robust, flight_calisto_nose_to_tail_robust
+):
+    """Test the equivalence of the rocket coordinate systems between two
+    different flight simulations.
+
+    Parameters
+    ----------
+    flight_calisto_robust : rocketpy.Flight
+        Flight object to be tested. See the conftest.py file for more info.
+    flight_calisto_nose_to_tail_robust : rocketpy.Flight
+        Flight object to be tested. See the conftest.py file for more info.
+    """
+    assert np.allclose(
+        flight_calisto_robust.x[:, 0], flight_calisto_nose_to_tail_robust.x[:, 0]
+    )
+    assert np.allclose(
+        flight_calisto_robust.y[:, 0], flight_calisto_nose_to_tail_robust.y[:, 0]
+    )
+    assert np.allclose(
+        flight_calisto_robust.z[:, 0], flight_calisto_nose_to_tail_robust.z[:, 0]
+    )
+    assert np.allclose(
+        flight_calisto_robust.vx[:, 0], flight_calisto_nose_to_tail_robust.vx[:, 0]
+    )
+    assert np.allclose(
+        flight_calisto_robust.vy[:, 0], flight_calisto_nose_to_tail_robust.vy[:, 0]
+    )
+    assert np.allclose(
+        flight_calisto_robust.vz[:, 0], flight_calisto_nose_to_tail_robust.vz[:, 0]
+    )
+    assert np.allclose(
+        flight_calisto_robust.e0[:, 0], flight_calisto_nose_to_tail_robust.e0[:, 0]
+    )
+    assert np.allclose(
+        flight_calisto_robust.e1[:, 0], flight_calisto_nose_to_tail_robust.e1[:, 0]
+    )
+    assert np.allclose(
+        flight_calisto_robust.e2[:, 0], flight_calisto_nose_to_tail_robust.e2[:, 0]
+    )
+    assert np.allclose(
+        flight_calisto_robust.e3[:, 0], flight_calisto_nose_to_tail_robust.e3[:, 0]
+    )
+    assert np.allclose(
+        flight_calisto_robust.w1[:, 0], flight_calisto_nose_to_tail_robust.w1[:, 0]
+    )
+    assert np.allclose(
+        flight_calisto_robust.w2[:, 0], flight_calisto_nose_to_tail_robust.w2[:, 0]
+    )
+    assert np.allclose(
+        flight_calisto_robust.w3[:, 0], flight_calisto_nose_to_tail_robust.w3[:, 0]
+    )
