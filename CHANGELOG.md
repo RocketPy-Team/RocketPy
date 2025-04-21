@@ -39,6 +39,7 @@ Attention: The newest changes should be on top -->
 
 ### Changed
 
+- BUG: Wrong Phi Initialization For nose_to_tail Rockets [#809](https://github.com/RocketPy-Team/RocketPy/pull/809)
 
 ### Fixed
 
