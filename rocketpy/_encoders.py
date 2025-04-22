@@ -7,8 +7,8 @@ from importlib import import_module
 import numpy as np
 
 from rocketpy.mathutils.function import Function
-from rocketpy.prints.flight_prints import _FlightPrints
 from rocketpy.plots.flight_plots import _FlightPlots
+from rocketpy.prints.flight_prints import _FlightPrints
 
 
 class RocketPyEncoder(json.JSONEncoder):
@@ -91,50 +91,7 @@ class RocketPyDecoder(json.JSONDecoder):
                     new_flight = class_.__new__(class_)
                     new_flight.prints = _FlightPrints(new_flight)
                     new_flight.plots = _FlightPlots(new_flight)
-                    attributes = (
-                        "rocket",
-                        "env",
-                        "rail_length",
-                        "inclination",
-                        "heading",
-                        "initial_solution",
-                        "terminate_on_apogee",
-                        "max_time",
-                        "max_time_step",
-                        "min_time_step",
-                        "rtol",
-                        "atol",
-                        "time_overshoot",
-                        "name",
-                        "solution",
-                        "out_of_rail_time",
-                        "apogee_time",
-                        "apogee",
-                        "parachute_events",
-                        "impact_state",
-                        "impact_velocity",
-                        "x_impact",
-                        "y_impact",
-                        "t_final",
-                        "flight_phases",
-                        "ax",
-                        "ay",
-                        "az",
-                        "out_of_rail_time_index",
-                        "function_evaluations",
-                        "alpha1",
-                        "alpha2",
-                        "alpha3",
-                        "R1",
-                        "R2",
-                        "R3",
-                        "M1",
-                        "M2",
-                        "M3",
-                    )
-                    for attribute in attributes:
-                        setattr(new_flight, attribute, obj[attribute])
-                    new_flight.t_initial = new_flight.initial_solution[0]
+                    set_minimal_flight_attributes(new_flight, obj)
                     return new_flight
                 elif hasattr(class_, "from_dict"):
                     return class_.from_dict(obj)
@@ -151,6 +108,63 @@ class RocketPyDecoder(json.JSONDecoder):
                 return obj
         else:
             return obj
+
+
+def set_minimal_flight_attributes(flight, obj):
+    attributes = (
+        "rocket",
+        "env",
+        "rail_length",
+        "inclination",
+        "heading",
+        "initial_solution",
+        "terminate_on_apogee",
+        "max_time",
+        "max_time_step",
+        "min_time_step",
+        "rtol",
+        "atol",
+        "time_overshoot",
+        "name",
+        "solution",
+        "out_of_rail_time",
+        "apogee_time",
+        "apogee",
+        "parachute_events",
+        "impact_state",
+        "impact_velocity",
+        "x_impact",
+        "y_impact",
+        "t_final",
+        "flight_phases",
+        "ax",
+        "ay",
+        "az",
+        "out_of_rail_time_index",
+        "function_evaluations",
+        "speed",
+        "alpha1",
+        "alpha2",
+        "alpha3",
+        "R1",
+        "R2",
+        "R3",
+        "M1",
+        "M2",
+        "M3",
+        "net_thrust",
+    )
+
+    for attribute in attributes:
+        try:
+            setattr(flight, attribute, obj[attribute])
+        except KeyError:
+            # Manual resolution of new attributes
+            if attribute == "net_thrust":
+                flight.net_thrust = obj["rocket"].motor.thrust
+                flight.net_thrust.set_discrete_based_on_model(flight.speed)
+
+    flight.t_initial = flight.initial_solution[0]
 
 
 def get_class_signature(obj):
