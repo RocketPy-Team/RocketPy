@@ -1279,8 +1279,8 @@ class Flight:
                     f"Invalid ``ode_solver`` input: {solver}. "
                     f"Available options are: {', '.join(ODE_SOLVER_MAP.keys())}"
                 ) from e
-
-        self.__is_lsoda = hasattr(self._solver, "_lsoda_solver")
+            
+        self.__is_lsoda = issubclass(self._solver, LSODA)
 
     @cached_property
     def effective_1rl(self):
