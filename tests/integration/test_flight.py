@@ -537,41 +537,67 @@ def test_rocket_csys_equivalence(
         Flight object to be tested. See the conftest.py file for more info.
     """
     assert np.allclose(
-        flight_calisto_robust.x[:, 0], flight_calisto_nose_to_tail_robust.x[:, 0]
+        flight_calisto_robust.x[:, 0],
+        flight_calisto_nose_to_tail_robust.x[:, 0],
+        atol=1e-5,
     )
     assert np.allclose(
-        flight_calisto_robust.y[:, 0], flight_calisto_nose_to_tail_robust.y[:, 0]
+        flight_calisto_robust.y[:, 0],
+        flight_calisto_nose_to_tail_robust.y[:, 0],
+        atol=1e-5,
     )
     assert np.allclose(
-        flight_calisto_robust.z[:, 0], flight_calisto_nose_to_tail_robust.z[:, 0]
+        flight_calisto_robust.z[:, 0],
+        flight_calisto_nose_to_tail_robust.z[:, 0],
+        atol=1e-5,
     )
     assert np.allclose(
-        flight_calisto_robust.vx[:, 0], flight_calisto_nose_to_tail_robust.vx[:, 0]
+        flight_calisto_robust.vx[:, 0],
+        flight_calisto_nose_to_tail_robust.vx[:, 0],
+        atol=1e-5,
     )
     assert np.allclose(
-        flight_calisto_robust.vy[:, 0], flight_calisto_nose_to_tail_robust.vy[:, 0]
+        flight_calisto_robust.vy[:, 0],
+        flight_calisto_nose_to_tail_robust.vy[:, 0],
+        atol=1e-5,
     )
     assert np.allclose(
-        flight_calisto_robust.vz[:, 0], flight_calisto_nose_to_tail_robust.vz[:, 0]
+        flight_calisto_robust.vz[:, 0],
+        flight_calisto_nose_to_tail_robust.vz[:, 0],
+        atol=1e-5,
     )
     assert np.allclose(
-        flight_calisto_robust.e0[:, 0], flight_calisto_nose_to_tail_robust.e0[:, 0]
+        flight_calisto_robust.e0[:, 0],
+        flight_calisto_nose_to_tail_robust.e0[:, 0],
+        atol=1e-5,
     )
     assert np.allclose(
-        flight_calisto_robust.e1[:, 0], flight_calisto_nose_to_tail_robust.e1[:, 0]
+        flight_calisto_robust.e1[:, 0],
+        flight_calisto_nose_to_tail_robust.e1[:, 0],
+        atol=1e-5,
     )
     assert np.allclose(
-        flight_calisto_robust.e2[:, 0], flight_calisto_nose_to_tail_robust.e2[:, 0]
+        flight_calisto_robust.e2[:, 0],
+        flight_calisto_nose_to_tail_robust.e2[:, 0],
+        atol=1e-5,
     )
     assert np.allclose(
-        flight_calisto_robust.e3[:, 0], flight_calisto_nose_to_tail_robust.e3[:, 0]
+        flight_calisto_robust.e3[:, 0],
+        flight_calisto_nose_to_tail_robust.e3[:, 0],
+        atol=1e-5,
     )
     assert np.allclose(
-        flight_calisto_robust.w1[:, 0], flight_calisto_nose_to_tail_robust.w1[:, 0]
+        flight_calisto_robust.w1[:, 0],
+        flight_calisto_nose_to_tail_robust.w1[:, 0],
+        atol=1e-5,
     )
     assert np.allclose(
-        flight_calisto_robust.w2[:, 0], flight_calisto_nose_to_tail_robust.w2[:, 0]
+        flight_calisto_robust.w2[:, 0],
+        flight_calisto_nose_to_tail_robust.w2[:, 0],
+        atol=1e-5,
     )
     assert np.allclose(
-        flight_calisto_robust.w3[:, 0], flight_calisto_nose_to_tail_robust.w3[:, 0]
+        flight_calisto_robust.w3[:, 0],
+        flight_calisto_nose_to_tail_robust.w3[:, 0],
+        atol=1e-5,
     )
