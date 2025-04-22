@@ -1156,7 +1156,9 @@ class Flight:
             try:
                 self.phi_init += (
                     self.rocket.rail_buttons[0].component.angular_position_rad
-                    * self.rocket._csys
+                    if self.rocket._csys == 1
+                    else 2 * np.pi
+                    - self.rocket.rail_buttons[0].component.angular_position_rad
                 )
             except IndexError:
                 pass
@@ -1277,7 +1279,7 @@ class Flight:
                     f"Invalid ``ode_solver`` input: {solver}. "
                     f"Available options are: {', '.join(ODE_SOLVER_MAP.keys())}"
                 ) from e
-            
+
         self.__is_lsoda = issubclass(self._solver, LSODA)
 
     @cached_property
