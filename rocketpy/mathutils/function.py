@@ -5,6 +5,7 @@ and more. This is a core class of our package, and should be maintained
 carefully as it may impact all the rest of the project.
 """
 
+import operator
 import warnings
 from bisect import bisect_left
 from collections.abc import Iterable
@@ -863,7 +864,7 @@ class Function:  # pylint: disable=too-many-public-methods
         >>> v.get_inputs(), v.get_outputs()
         (['t'], ['v'])
         >>> kinetic_energy
-        'Function from R1 to R1 : (x) → (Scalar)'
+        'Function from R1 to R1 : (t) → (Scalar)'
         >>> kinetic_energy.reset(inputs='t', outputs='Kinetic Energy');
         'Function from R1 to R1 : (t) → (Kinetic Energy)'
 
@@ -1918,7 +1919,8 @@ class Function:  # pylint: disable=too-many-public-methods
             The negated Function object.
         """
         if isinstance(self.source, np.ndarray):
-            neg_source = np.column_stack((self.x_array, -self.y_array))
+            neg_source = self.source.copy()
+            neg_source[:, -1] = -neg_source[:, -1]
             return Function(
                 neg_source,
                 self.__inputs__,
@@ -1927,13 +1929,22 @@ class Function:  # pylint: disable=too-many-public-methods
                 self.__extrapolation__,
             )
         else:
-            return Function(
-                lambda x: -self.source(x),
-                self.__inputs__,
-                self.__outputs__,
-                self.__interpolation__,
-                self.__extrapolation__,
-            )
+            if self.__dom_dim__ == 1:
+                return Function(
+                    lambda x: -self.source(x),
+                    self.__inputs__,
+                    self.__outputs__,
+                )
+            else:
+                param_names = [f"x{i}" for i in range(len(self.__inputs__))]
+                param_str = ", ".join(param_names)
+                func_str = f"lambda {param_str}: -func({param_str})"
+                return Function(
+                    # pylint: disable=eval-used
+                    eval(func_str, {"func": self.source}),
+                    self.__inputs__,
+                    self.__outputs__,
+                )
 
     def __ge__(self, other):
         """Greater than or equal to comparison operator. It can be used to
@@ -2108,56 +2119,51 @@ class Function:  # pylint: disable=too-many-public-methods
         result : Function
             A Function object which gives the result of self(x)+other(x).
         """
-        # If other is Function try...
-        try:
-            # Check if Function objects source is array or callable
-            # Check if Function objects have the same domain discretization
-            if (
-                isinstance(other.source, np.ndarray)
-                and isinstance(self.source, np.ndarray)
-                and self.__dom_dim__ == other.__dom_dim__
-                and np.array_equal(self.x_array, other.x_array)
-            ):
-                # Operate on grid values
-                ys = self.y_array + other.y_array
-                xs = self.x_array
-                source = np.concatenate(([xs], [ys])).transpose()
-                # Retrieve inputs, outputs and interpolation
-                inputs = self.__inputs__[:]
-                outputs = self.__outputs__[0] + " + " + other.__outputs__[0]
-                outputs = "(" + outputs + ")"
-                interpolation = self.__interpolation__
-                extrapolation = self.__extrapolation__
-                # Create new Function object
-                return Function(source, inputs, outputs, interpolation, extrapolation)
+        self_array = isinstance(self.source, np.ndarray)
+        other_is_func = isinstance(other, Function)
+        other_array = isinstance(other.source, np.ndarray) if other_is_func else False
+        inputs = self.__inputs__[:]
+        interp = self.__interpolation__
+        extrap = self.__extrapolation__
+        dom_dim = self.__dom_dim__
+
+        if self_array and other_array and np.array_equal(self._domain, other._domain):
+            source = np.column_stack((self._domain, self._image + other._image))
+            outputs = f"({self.__outputs__[0]}+{other.__outputs__[0]})"
+            return Function(source, inputs, outputs, interp, extrap)
+        elif isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(
+            other
+        ):
+            if self_array:
+                source = np.column_stack((self._domain, np.add(self._image, other)))
+                outputs = f"({self.__outputs__[0]}+{other})"
+                return Function(source, inputs, outputs, interp, extrap)
             else:
-                return Function(lambda x: (self.get_value_opt(x) + other(x)))
-        # If other is Float except...
-        except AttributeError:
-            if isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(
-                other
-            ):
-                # Check if Function object source is array or callable
-                if isinstance(self.source, np.ndarray):
-                    # Operate on grid values
-                    ys = self.y_array + other
-                    xs = self.x_array
-                    source = np.concatenate(([xs], [ys])).transpose()
-                    # Retrieve inputs, outputs and interpolation
-                    inputs = self.__inputs__[:]
-                    outputs = self.__outputs__[0] + " + " + str(other)
-                    outputs = "(" + outputs + ")"
-                    interpolation = self.__interpolation__
-                    extrapolation = self.__extrapolation__
-                    # Create new Function object
-                    return Function(
-                        source, inputs, outputs, interpolation, extrapolation
+                return Function(
+                    self.__make_arith_lambda(
+                        operator.add, self.get_value_opt, other, dom_dim
+                    ),
+                    inputs,
+                )
+        elif callable(other):
+            if other_is_func:
+                other_dim = other.__dom_dim__
+                other = other.get_value_opt if other_array else other.source
+            else:
+                other_dim = len(signature(other).parameters)
+
+            if dom_dim == 1 or other_dim == 1 or dom_dim == other_dim:
+                return Function(
+                    self.__make_arith_lambda(
+                        operator.add, self.get_value_opt, other, dom_dim, other_dim
                     )
-                else:
-                    return Function(lambda x: (self.get_value_opt(x) + other))
-            # Or if it is just a callable
-            elif callable(other):
-                return Function(lambda x: (self.get_value_opt(x) + other(x)))
+                )
+            else:
+                raise TypeError(
+                    f"The number of parameters in the function to be added ({other_dim}) "
+                    f"does not match the number of parameters of the Function ({dom_dim})."
+                )
+        raise TypeError("Unsupported type for addition")
 
     def __radd__(self, other):
         """Sums 'other' and a Function object and returns a new Function
@@ -2176,7 +2182,7 @@ class Function:  # pylint: disable=too-many-public-methods
         """
         return self + other
 
-    def __sub__(self, other):
+    def __sub__(self, other):  # pylint: disable=too-many-statements
         """Subtracts from a Function object and returns a new Function object
         which gives the result of the subtraction. Only implemented for 1D
         domains.
@@ -2197,10 +2203,53 @@ class Function:  # pylint: disable=too-many-public-methods
         result : Function
             A Function object which gives the result of self(x)-other(x).
         """
-        try:
-            return self + (-other)
-        except TypeError:
-            return Function(lambda x: (self.get_value_opt(x) - other(x)))
+        self_array = isinstance(self.source, np.ndarray)
+        other_is_func = isinstance(other, Function)
+        other_array = isinstance(other.source, np.ndarray) if other_is_func else False
+        inputs = self.__inputs__[:]
+        interp = self.__interpolation__
+        extrap = self.__extrapolation__
+        dom_dim = self.__dom_dim__
+
+        if self_array and other_array and np.array_equal(self._domain, other._domain):
+            source = np.column_stack((self._domain, self._image - other._image))
+            outputs = f"({self.__outputs__[0]}-{other.__outputs__[0]})"
+            return Function(source, inputs, outputs, interp, extrap)
+        elif isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(
+            other
+        ):
+            if self_array:
+                source = np.column_stack(
+                    (self._domain, np.subtract(self._image, other))
+                )
+                outputs = f"({self.__outputs__[0]}-{other})"
+                return Function(source, inputs, outputs, interp, extrap)
+            else:
+                return Function(
+                    self.__make_arith_lambda(
+                        operator.sub, self.get_value_opt, other, dom_dim
+                    ),
+                    inputs,
+                )
+        elif callable(other):
+            if other_is_func:
+                other_dim = other.__dom_dim__
+                other = other.get_value_opt if other_array else other.source
+            else:
+                other_dim = len(signature(other).parameters)
+
+            if dom_dim == 1 or other_dim == 1 or dom_dim == other_dim:
+                return Function(
+                    self.__make_arith_lambda(
+                        operator.sub, self.get_value_opt, other, dom_dim, other_dim
+                    )
+                )
+            else:
+                raise TypeError(
+                    f"The number of parameters in the function to be subtracted ({other_dim}) "
+                    f"does not match the number of parameters of the Function ({dom_dim})."
+                )
+        raise TypeError("Unsupported type for subtraction")
 
     def __rsub__(self, other):
         """Subtracts a Function object from 'other' and returns a new Function
@@ -2221,8 +2270,7 @@ class Function:  # pylint: disable=too-many-public-methods
 
     def __mul__(self, other):  # pylint: disable=too-many-statements
         """Multiplies a Function object and returns a new Function object
-        which gives the result of the multiplication. Only implemented for 1D
-        and 2D domains.
+        which gives the result of the multiplication.
 
         Parameters
         ----------
@@ -2238,83 +2286,55 @@ class Function:  # pylint: disable=too-many-public-methods
         Returns
         -------
         result : Function
-            A Function object which gives the result of self(x)*other(x) or self(x,y)*other(x,y).
+            A Function object which gives the result of self(x)*other(x).
         """
-        self_source_is_array = isinstance(self.source, np.ndarray)
-        other_source_is_array = (
-            isinstance(other.source, np.ndarray)
-            if isinstance(other, Function)
-            else False
-        )
+        self_array = isinstance(self.source, np.ndarray)
+        other_is_func = isinstance(other, Function)
+        other_array = isinstance(other.source, np.ndarray) if other_is_func else False
         inputs = self.__inputs__[:]
         interp = self.__interpolation__
         extrap = self.__extrapolation__
+        dom_dim = self.__dom_dim__
 
-        if self.__dom_dim__ == 1:
-            if (
-                self_source_is_array
-                and other_source_is_array
-                and np.array_equal(self.x_array, other.x_array)
-            ):
-                source = np.column_stack((self.x_array, self.y_array * other.y_array))
-                outputs = f"({self.__outputs__[0]}*{other.__outputs__[0]})"
-                return Function(source, inputs, outputs, interp, extrap)
-            elif isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(
-                other
-            ):
-                if not self_source_is_array:
-                    return Function(lambda x: (self.get_value_opt(x) * other), inputs)
+        if self_array and other_array and np.array_equal(self._domain, other._domain):
+            source = np.column_stack((self._domain, self._image * other._image))
+            outputs = f"({self.__outputs__[0]}*{other.__outputs__[0]})"
+            return Function(source, inputs, outputs, interp, extrap)
+        elif isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(
+            other
+        ):
+            if self_array:
                 source = np.column_stack(
-                    (self.x_array, np.multiply(self.y_array, other))
+                    (self._domain, np.multiply(self._image, other))
                 )
                 outputs = f"({self.__outputs__[0]}*{other})"
-                return Function(
-                    source,
-                    inputs,
-                    outputs,
-                    interp,
-                    extrap,
-                )
-            elif callable(other):
-                return Function(lambda x: (self.get_value_opt(x) * other(x)), inputs)
-            else:
-                raise TypeError("Unsupported type for multiplication")
-        elif self.__dom_dim__ == 2:
-            if (
-                self_source_is_array
-                and other_source_is_array
-                and np.array_equal(self.x_array, other.x_array)
-                and np.array_equal(self.y_array, other.y_array)
-            ):
-                source = np.column_stack(
-                    (self.x_array, self.y_array, self.z_array * other.z_array)
-                )
-                outputs = f"({self.__outputs__[0]}*{other.__outputs__[0]})"
                 return Function(source, inputs, outputs, interp, extrap)
-            elif isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(
-                other
-            ):
-                if not self_source_is_array:
-                    return Function(
-                        lambda x, y: (self.get_value_opt(x, y) * other), inputs
+            else:
+                return Function(
+                    self.__make_arith_lambda(
+                        operator.mul, self.get_value_opt, other, dom_dim
+                    ),
+                    inputs,
+                )
+        elif callable(other):
+            if other_is_func:
+                other_dim = other.__dom_dim__
+                other = other.get_value_opt if other_array else other.source
+            else:
+                other_dim = len(signature(other).parameters)
+
+            if dom_dim == 1 or other_dim == 1 or dom_dim == other_dim:
+                return Function(
+                    self.__make_arith_lambda(
+                        operator.mul, self.get_value_opt, other, dom_dim, other_dim
                     )
-                source = np.column_stack(
-                    (self.x_array, self.y_array, np.multiply(self.z_array, other))
-                )
-                outputs = f"({self.__outputs__[0]}*{other})"
-                return Function(
-                    source,
-                    inputs,
-                    outputs,
-                    interp,
-                    extrap,
-                )
-            elif callable(other):
-                return Function(
-                    lambda x, y: (self.get_value_opt(x, y) * other(x)), inputs
                 )
             else:
-                raise TypeError("Unsupported type for multiplication")
+                raise TypeError(
+                    f"The number of parameters in the function to be multiplied ({other_dim}) "
+                    f"does not match the number of parameters of the Function ({dom_dim})."
+                )
+        raise TypeError("Unsupported type for multiplication")
 
     def __rmul__(self, other):
         """Multiplies 'other' by a Function object and returns a new Function
@@ -2354,58 +2374,57 @@ class Function:  # pylint: disable=too-many-public-methods
         result : Function
             A Function object which gives the result of self(x)/other(x).
         """
-        # If other is Function try...
-        try:
-            # Check if Function objects source is array or callable
-            # Check if Function objects have the same domain discretization
-            if (
-                isinstance(other.source, np.ndarray)
-                and isinstance(self.source, np.ndarray)
-                and self.__dom_dim__ == other.__dom_dim__
-                and np.array_equal(self.x_array, other.x_array)
-            ):
-                # operate on grid values
+        self_array = isinstance(self.source, np.ndarray)
+        other_is_func = isinstance(other, Function)
+        other_array = isinstance(other.source, np.ndarray) if other_is_func else False
+        inputs = self.__inputs__[:]
+        interp = self.__interpolation__
+        extrap = self.__extrapolation__
+        dom_dim = self.__dom_dim__
+
+        if self_array and other_array and np.array_equal(self._domain, other._domain):
+            with np.errstate(divide="ignore", invalid="ignore"):
+                ys = self._image / other._image
+                ys = np.nan_to_num(ys)
+            source = np.column_stack((self._domain, ys))
+            outputs = f"({self.__outputs__[0]}/{other.__outputs__[0]})"
+            return Function(source, inputs, outputs, interp, extrap)
+        elif isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(
+            other
+        ):
+            if self_array:
                 with np.errstate(divide="ignore", invalid="ignore"):
-                    ys = self.source[:, 1] / other.source[:, 1]
+                    ys = np.divide(self._image, other)
                     ys = np.nan_to_num(ys)
-                xs = self.source[:, 0]
-                source = np.concatenate(([xs], [ys])).transpose()
-                # retrieve inputs, outputs and interpolation
-                inputs = self.__inputs__[:]
-                outputs = self.__outputs__[0] + "/" + other.__outputs__[0]
-                outputs = "(" + outputs + ")"
-                interpolation = self.__interpolation__
-                extrapolation = self.__extrapolation__
-                # Create new Function object
-                return Function(source, inputs, outputs, interpolation, extrapolation)
+                source = np.column_stack((self._domain, ys))
+                outputs = f"({self.__outputs__[0]}/{other})"
+                return Function(source, inputs, outputs, interp, extrap)
             else:
-                return Function(lambda x: (self.get_value_opt(x) / other(x)))
-        # If other is Float except...
-        except AttributeError:
-            if isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(
-                other
-            ):
-                # Check if Function object source is array or callable
-                if isinstance(self.source, np.ndarray):
-                    # Operate on grid values
-                    ys = self.y_array / other
-                    xs = self.x_array
-                    source = np.concatenate(([xs], [ys])).transpose()
-                    # Retrieve inputs, outputs and interpolation
-                    inputs = self.__inputs__[:]
-                    outputs = self.__outputs__[0] + "/" + str(other)
-                    outputs = "(" + outputs + ")"
-                    interpolation = self.__interpolation__
-                    extrapolation = self.__extrapolation__
-                    # Create new Function object
-                    return Function(
-                        source, inputs, outputs, interpolation, extrapolation
+                return Function(
+                    self.__make_arith_lambda(
+                        operator.truediv, self.get_value_opt, other, dom_dim
+                    ),
+                    inputs,
+                )
+        elif callable(other):
+            if other_is_func:
+                other_dim = other.__dom_dim__
+                other = other.get_value_opt if other_array else other.source
+            else:
+                other_dim = len(signature(other).parameters)
+
+            if dom_dim == 1 or other_dim == 1 or dom_dim == other_dim:
+                return Function(
+                    self.__make_arith_lambda(
+                        operator.truediv, self.get_value_opt, other, dom_dim, other_dim
                     )
-                else:
-                    return Function(lambda x: (self.get_value_opt(x) / other))
-            # Or if it is just a callable
-            elif callable(other):
-                return Function(lambda x: (self.get_value_opt(x) / other(x)))
+                )
+            else:
+                raise TypeError(
+                    f"The number of parameters in the function to be divided ({other_dim}) "
+                    f"does not match the number of parameters of the Function ({dom_dim})."
+                )
+        raise TypeError("Unsupported type for division")
 
     def __rtruediv__(self, other):
         """Divides 'other' by a Function object and returns a new Function
@@ -2422,26 +2441,52 @@ class Function:  # pylint: disable=too-many-public-methods
         result : Function
             A Function object which gives the result of other(x)/self(x).
         """
-        # Check if Function object source is array and other is float
+        self_array = isinstance(self.source, np.ndarray)
+        inputs = self.__inputs__[:]
+        interp = self.__interpolation__
+        extrap = self.__extrapolation__
+        dom_dim = self.__dom_dim__
+
         if isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(other):
-            if isinstance(self.source, np.ndarray):
-                # Operate on grid values
-                ys = other / self.y_array
-                xs = self.x_array
-                source = np.concatenate(([xs], [ys])).transpose()
-                # Retrieve inputs, outputs and interpolation
-                inputs = self.__inputs__[:]
-                outputs = str(other) + "/" + self.__outputs__[0]
-                outputs = "(" + outputs + ")"
-                interpolation = self.__interpolation__
-                extrapolation = self.__extrapolation__
-                # Create new Function object
-                return Function(source, inputs, outputs, interpolation, extrapolation)
+            if self_array:
+                with np.errstate(divide="ignore", invalid="ignore"):
+                    ys = np.divide(other, self._image)
+                    ys = np.nan_to_num(ys)
+                source = np.column_stack((self._domain, ys))
+                outputs = f"({other}/{self.__outputs__[0]})"
+                return Function(source, inputs, outputs, interp, extrap)
             else:
-                return Function(lambda x: (other / self.get_value_opt(x)))
-        # Or if it is just a callable
+                return Function(
+                    self.__make_arith_lambda(
+                        operator.truediv,
+                        self.get_value_opt,
+                        other,
+                        dom_dim,
+                        reverse=True,
+                    ),
+                    inputs,
+                )
         elif callable(other):
-            return Function(lambda x: (other(x) / self.get_value_opt(x)))
+            other_dim = len(signature(other).parameters)
+
+            if dom_dim == 1 or other_dim == 1 or dom_dim == other_dim:
+                return Function(
+                    self.__make_arith_lambda(
+                        operator.truediv,
+                        self.get_value_opt,
+                        other,
+                        dom_dim,
+                        other_dim,
+                        reverse=True,
+                    )
+                )
+            else:
+                raise TypeError(
+                    f"The number of parameters in the function dividing by this Function ({other_dim}) "
+                    f"does not match the number of parameters of this Function ({dom_dim})."
+                )
+
+        raise TypeError("Unsupported type for division")
 
     def __pow__(self, other):  # pylint: disable=too-many-statements
         """Raises a Function object to the power of 'other' and
@@ -2464,57 +2509,53 @@ class Function:  # pylint: disable=too-many-public-methods
         result : Function
             A Function object which gives the result of self(x)**other(x).
         """
-        # If other is Function try...
-        try:
-            # Check if Function objects source is array or callable
-            # Check if Function objects have the same domain discretization
-            if (
-                isinstance(other.source, np.ndarray)
-                and isinstance(self.source, np.ndarray)
-                and self.__dom_dim__ == other.__dom_dim__
-                and np.any(self.x_array - other.x_array) is False
-                and np.array_equal(self.x_array, other.x_array)
-            ):
-                # Operate on grid values
-                ys = self.y_array**other.y_array
-                xs = self.x_array
-                source = np.concatenate(([xs], [ys])).transpose()
-                # Retrieve inputs, outputs and interpolation
-                inputs = self.__inputs__[:]
-                outputs = self.__outputs__[0] + "**" + other.__outputs__[0]
-                outputs = "(" + outputs + ")"
-                interpolation = self.__interpolation__
-                extrapolation = self.__extrapolation__
-                # Create new Function object
-                return Function(source, inputs, outputs, interpolation, extrapolation)
+        self_array = isinstance(self.source, np.ndarray)
+        other_is_func = isinstance(other, Function)
+        other_array = isinstance(other.source, np.ndarray) if other_is_func else False
+        inputs = self.__inputs__[:]
+        interp = self.__interpolation__
+        extrap = self.__extrapolation__
+        dom_dim = self.__dom_dim__
+
+        if self_array and other_array and np.array_equal(self._domain, other._domain):
+            source = np.column_stack(
+                (self._domain, np.power(self._image, other._image))
+            )
+            outputs = f"({self.__outputs__[0]}**{other.__outputs__[0]})"
+            return Function(source, inputs, outputs, interp, extrap)
+        elif isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(
+            other
+        ):
+            if self_array:
+                source = np.column_stack((self._domain, np.power(self._image, other)))
+                outputs = f"({self.__outputs__[0]}**{other})"
+                return Function(source, inputs, outputs, interp, extrap)
             else:
-                return Function(lambda x: (self.get_value_opt(x) ** other(x)))
-        # If other is Float except...
-        except AttributeError:
-            if isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(
-                other
-            ):
-                # Check if Function object source is array or callable
-                if isinstance(self.source, np.ndarray):
-                    # Operate on grid values
-                    ys = self.y_array**other
-                    xs = self.x_array
-                    source = np.concatenate(([xs], [ys])).transpose()
-                    # Retrieve inputs, outputs and interpolation
-                    inputs = self.__inputs__[:]
-                    outputs = self.__outputs__[0] + "**" + str(other)
-                    outputs = "(" + outputs + ")"
-                    interpolation = self.__interpolation__
-                    extrapolation = self.__extrapolation__
-                    # Create new Function object
-                    return Function(
-                        source, inputs, outputs, interpolation, extrapolation
+                return Function(
+                    self.__make_arith_lambda(
+                        operator.pow, self.get_value_opt, other, dom_dim
+                    ),
+                    inputs,
+                )
+        elif callable(other):
+            if other_is_func:
+                other_dim = other.__dom_dim__
+                other = other.get_value_opt if other_array else other.source
+            else:
+                other_dim = len(signature(other).parameters)
+
+            if dom_dim == 1 or other_dim == 1 or dom_dim == other_dim:
+                return Function(
+                    self.__make_arith_lambda(
+                        operator.pow, self.get_value_opt, other, dom_dim, other_dim
                     )
-                else:
-                    return Function(lambda x: (self.get_value_opt(x) ** other))
-            # Or if it is just a callable
-            elif callable(other):
-                return Function(lambda x: (self.get_value_opt(x) ** other(x)))
+                )
+            else:
+                raise TypeError(
+                    f"The number of parameters in the function to be exponentiated by ({other_dim}) "
+                    f"does not match the number of parameters of the Function ({dom_dim})."
+                )
+        raise TypeError("Unsupported type for exponentiation")
 
     def __rpow__(self, other):
         """Raises 'other' to the power of a Function object and returns
@@ -2531,26 +2572,45 @@ class Function:  # pylint: disable=too-many-public-methods
         result : Function
             A Function object which gives the result of other(x)**self(x).
         """
-        # Check if Function object source is array and other is float
+        self_array = isinstance(self.source, np.ndarray)
+        inputs = self.__inputs__[:]
+        interp = self.__interpolation__
+        extrap = self.__extrapolation__
+        dom_dim = self.__dom_dim__
+
         if isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(other):
-            if isinstance(self.source, np.ndarray):
-                # Operate on grid values
-                ys = other**self.y_array
-                xs = self.x_array
-                source = np.concatenate(([xs], [ys])).transpose()
-                # Retrieve inputs, outputs and interpolation
-                inputs = self.__inputs__[:]
-                outputs = str(other) + "**" + self.__outputs__[0]
-                outputs = "(" + outputs + ")"
-                interpolation = self.__interpolation__
-                extrapolation = self.__extrapolation__
-                # Create new Function object
-                return Function(source, inputs, outputs, interpolation, extrapolation)
+            if self_array:
+                source = np.column_stack((self._domain, np.power(other, self._image)))
+                outputs = f"({other}**{self.__outputs__[0]})"
+                return Function(source, inputs, outputs, interp, extrap)
             else:
-                return Function(lambda x: (other ** self.get_value_opt(x)))
-        # Or if it is just a callable
+                return Function(
+                    self.__make_arith_lambda(
+                        operator.pow, self.get_value_opt, other, dom_dim, reverse=True
+                    ),
+                    inputs,
+                )
         elif callable(other):
-            return Function(lambda x: (other(x) ** self.get_value_opt(x)))
+            other_dim = len(signature(other).parameters)
+
+            if dom_dim == 1 or other_dim == 1 or dom_dim == other_dim:
+                return Function(
+                    self.__make_arith_lambda(
+                        operator.pow,
+                        self.get_value_opt,
+                        other,
+                        dom_dim,
+                        other_dim,
+                        reverse=True,
+                    ),
+                    inputs,
+                )
+            else:
+                raise TypeError(
+                    f"The number of parameters in the base function ({other_dim}) "
+                    f"does not match the number of parameters of the Function exponent ({dom_dim})."
+                )
+        raise TypeError("Unsupported type for exponentiation")
 
     def __matmul__(self, other):
         """Operator @ as an alias for composition. Therefore, this
@@ -2572,22 +2632,53 @@ class Function:  # pylint: disable=too-many-public-methods
         """
         return self.compose(other)
 
-    def __mod__(self, other):
+    def __mod__(self, other):  # pylint: disable=too-many-statements
         """Operator % as an alias for modulo operation."""
-        if callable(self.source):
-            return Function(lambda x: self.source(x) % other)
-        elif isinstance(self.source, np.ndarray) and isinstance(other, NUMERICAL_TYPES):
-            return Function(
-                np.column_stack((self.x_array, self.y_array % other)),
-                self.__inputs__,
-                self.__outputs__,
-                self.__interpolation__,
-                self.__extrapolation__,
-            )
-        raise NotImplementedError(
-            "Modulo operation not implemented for operands of type "
-            f"'{type(self)}' and '{type(other)}'."
-        )
+        self_array = isinstance(self.source, np.ndarray)
+        other_is_func = isinstance(other, Function)
+        other_array = isinstance(other.source, np.ndarray) if other_is_func else False
+        inputs = self.__inputs__[:]
+        interp = self.__interpolation__
+        extrap = self.__extrapolation__
+        dom_dim = self.__dom_dim__
+
+        if self_array and other_array and np.array_equal(self._domain, other._domain):
+            source = np.column_stack((self._domain, np.mod(self._image, other._image)))
+            outputs = f"({self.__outputs__[0]}%{other.__outputs__[0]})"
+            return Function(source, inputs, outputs, interp, extrap)
+        elif isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(
+            other
+        ):
+            if self_array:
+                source = np.column_stack((self._domain, np.mod(self._image, other)))
+                outputs = f"({self.__outputs__[0]}%{other})"
+                return Function(source, inputs, outputs, interp, extrap)
+            else:
+                return Function(
+                    self.__make_arith_lambda(
+                        operator.mod, self.get_value_opt, other, dom_dim
+                    ),
+                    inputs,
+                )
+        elif callable(other):
+            if other_is_func:
+                other_dim = other.__dom_dim__
+                other = other.get_value_opt if other_array else other.source
+            else:
+                other_dim = len(signature(other).parameters)
+
+            if dom_dim == 1 or other_dim == 1 or dom_dim == other_dim:
+                return Function(
+                    self.__make_arith_lambda(
+                        operator.mod, self.get_value_opt, other, dom_dim, other_dim
+                    )
+                )
+            else:
+                raise TypeError(
+                    f"The number of parameters in the function used as divisor ({other_dim}) "
+                    f"does not match the number of parameters of the Function ({dom_dim})."
+                )
+        raise TypeError("Unsupported type for modulo operation")
 
     def integral(self, a, b, numerical=False):  # pylint: disable=too-many-statements
         """Evaluate a definite integral of a 1-D Function in the interval
@@ -3469,6 +3560,60 @@ class Function:  # pylint: disable=too-many-public-methods
             outputs=func_dict["outputs"],
             title=func_dict["title"],
         )
+
+    @staticmethod
+    def __make_arith_lambda(
+        operator, func, other, func_dim, other_dim=0, reverse=False
+    ):
+        """Creates a lambda function for arithmetic operations
+        that can be used with the Function class. This is used to
+        operate between multidimensional sets of data.
+
+        Parameters
+        ----------
+        operator : function
+            The mathematical operation to be performed.
+        func : function
+            The first function to be operated on.
+        other : function
+            The second function to be operated on.
+        func_dim : int
+            The dimension of the first function (i.e. its number
+            of parameters).
+        other_dim : int, optional
+            The dimension of the second function (i.e. its number
+            of parameters). The default is 0, which is interpreted
+            as a scalar.
+        reverse : bool, optional
+            If True, the order of the functions is reversed in
+            the operation. The default is False.
+        """
+        if func_dim == 1 and other_dim == 1:
+            # Use of python lambda for speed
+            if reverse:
+                return lambda x: operator(other(x), func(x))
+            else:
+                return lambda x: operator(func(x), other(x))
+
+        max_dim = max(func_dim, other_dim)
+        params = [f"x{i}" for i in range(max_dim)]
+        param_str = ", ".join(params)
+
+        if other_dim == 0:
+            if reverse:
+                expr = f"lambda {param_str}: operator(other, func({param_str}))"
+            else:
+                expr = f"lambda {param_str}: operator(func({param_str}), other)"
+        else:
+            func_args = ", ".join(params[:func_dim])
+            other_args = ", ".join(params[:other_dim])
+            if reverse:
+                expr = f"lambda {param_str}: operator(other({other_args}), func({func_args}))"
+            else:
+                expr = f"lambda {param_str}: operator(func({func_args}), other({other_args}))"
+
+        # pylint: disable=eval-used
+        return eval(expr, {"func": func, "other": other, "operator": operator})
 
 
 def funcify_method(*args, **kwargs):  # pylint: disable=too-many-statements
