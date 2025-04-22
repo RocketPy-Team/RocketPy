@@ -821,5 +821,5 @@ class SolidMotor(Motor):
             throat_radius=data["throat_radius"],
             interpolation_method=data["interpolate"],
             coordinate_system_orientation=data["coordinate_system_orientation"],
-            reference_pressure=data["reference_pressure"],
+            reference_pressure=data.get("reference_pressure"),
         )

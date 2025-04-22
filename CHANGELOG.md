@@ -42,6 +42,8 @@ Attention: The newest changes should be on top -->
 
 
 ### Fixed
+
+- BUG: Fix the handling of reference pressure for older rpy files. [#808](https://github.com/RocketPy-Team/RocketPy/pull/808)
 - BUG: Non-overshootable simulations error on time parsing. [#807](https://github.com/RocketPy-Team/RocketPy/pull/807)
 - BUG: Wrong Phi Initialization For nose_to_tail Rockets [#809](https://github.com/RocketPy-Team/RocketPy/pull/809)
 
