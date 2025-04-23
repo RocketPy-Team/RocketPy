@@ -1948,7 +1948,7 @@ class Function:  # pylint: disable=too-many-public-methods
                     self.__outputs__,
                 )
             else:
-                param_names = [f"x{i}" for i in range(len(self.__inputs__))]
+                param_names = [f"x{i}" for i in range(self.__dom_dim__)]
                 param_str = ", ".join(param_names)
                 func_str = f"lambda {param_str}: -func({param_str})"
                 return Function(
@@ -2131,7 +2131,9 @@ class Function:  # pylint: disable=too-many-public-methods
             A Function object which gives the result of self(x)+other(x).
         """
         other_is_func = isinstance(other, Function)
-        other_array = other._source_type is SourceType.ARRAY if other_is_func else False
+        other_is_array = (
+            other._source_type is SourceType.ARRAY if other_is_func else False
+        )
         inputs = self.__inputs__[:]
         interp = self.__interpolation__
         extrap = self.__extrapolation__
@@ -2139,7 +2141,7 @@ class Function:  # pylint: disable=too-many-public-methods
 
         if (
             self._source_type is SourceType.ARRAY
-            and other_array
+            and other_is_array
             and np.array_equal(self._domain, other._domain)
         ):
             source = np.column_stack((self._domain, self._image + other._image))
@@ -2162,7 +2164,7 @@ class Function:  # pylint: disable=too-many-public-methods
         elif callable(other):
             if other_is_func:
                 other_dim = other.__dom_dim__
-                other = other.get_value_opt if other_array else other.source
+                other = other.get_value_opt if other_is_array else other.source
             else:
                 other_dim = len(signature(other).parameters)
 
@@ -2216,7 +2218,9 @@ class Function:  # pylint: disable=too-many-public-methods
             A Function object which gives the result of self(x)-other(x).
         """
         other_is_func = isinstance(other, Function)
-        other_array = other._source_type is SourceType.ARRAY if other_is_func else False
+        other_is_array = (
+            other._source_type is SourceType.ARRAY if other_is_func else False
+        )
         inputs = self.__inputs__[:]
         interp = self.__interpolation__
         extrap = self.__extrapolation__
@@ -2224,7 +2228,7 @@ class Function:  # pylint: disable=too-many-public-methods
 
         if (
             self._source_type is SourceType.ARRAY
-            and other_array
+            and other_is_array
             and np.array_equal(self._domain, other._domain)
         ):
             source = np.column_stack((self._domain, self._image - other._image))
@@ -2249,7 +2253,7 @@ class Function:  # pylint: disable=too-many-public-methods
         elif callable(other):
             if other_is_func:
                 other_dim = other.__dom_dim__
-                other = other.get_value_opt if other_array else other.source
+                other = other.get_value_opt if other_is_array else other.source
             else:
                 other_dim = len(signature(other).parameters)
 
@@ -2304,7 +2308,9 @@ class Function:  # pylint: disable=too-many-public-methods
             A Function object which gives the result of self(x)*other(x).
         """
         other_is_func = isinstance(other, Function)
-        other_array = other._source_type is SourceType.ARRAY if other_is_func else False
+        other_is_array = (
+            other._source_type is SourceType.ARRAY if other_is_func else False
+        )
         inputs = self.__inputs__[:]
         interp = self.__interpolation__
         extrap = self.__extrapolation__
@@ -2312,7 +2318,7 @@ class Function:  # pylint: disable=too-many-public-methods
 
         if (
             self._source_type is SourceType.ARRAY
-            and other_array
+            and other_is_array
             and np.array_equal(self._domain, other._domain)
         ):
             source = np.column_stack((self._domain, self._image * other._image))
@@ -2337,7 +2343,7 @@ class Function:  # pylint: disable=too-many-public-methods
         elif callable(other):
             if other_is_func:
                 other_dim = other.__dom_dim__
-                other = other.get_value_opt if other_array else other.source
+                other = other.get_value_opt if other_is_array else other.source
             else:
                 other_dim = len(signature(other).parameters)
 
@@ -2391,7 +2397,9 @@ class Function:  # pylint: disable=too-many-public-methods
             A Function object which gives the result of self(x)/other(x).
         """
         other_is_func = isinstance(other, Function)
-        other_array = other._source_type is SourceType.ARRAY if other_is_func else False
+        other_is_array = (
+            other._source_type is SourceType.ARRAY if other_is_func else False
+        )
         inputs = self.__inputs__[:]
         interp = self.__interpolation__
         extrap = self.__extrapolation__
@@ -2399,7 +2407,7 @@ class Function:  # pylint: disable=too-many-public-methods
 
         if (
             self._source_type is SourceType.ARRAY
-            and other_array
+            and other_is_array
             and np.array_equal(self._domain, other._domain)
         ):
             with np.errstate(divide="ignore", invalid="ignore"):
@@ -2428,7 +2436,7 @@ class Function:  # pylint: disable=too-many-public-methods
         elif callable(other):
             if other_is_func:
                 other_dim = other.__dom_dim__
-                other = other.get_value_opt if other_array else other.source
+                other = other.get_value_opt if other_is_array else other.source
             else:
                 other_dim = len(signature(other).parameters)
 
@@ -2526,7 +2534,9 @@ class Function:  # pylint: disable=too-many-public-methods
             A Function object which gives the result of self(x)**other(x).
         """
         other_is_func = isinstance(other, Function)
-        other_array = other._source_type is SourceType.ARRAY if other_is_func else False
+        other_is_array = (
+            other._source_type is SourceType.ARRAY if other_is_func else False
+        )
         inputs = self.__inputs__[:]
         interp = self.__interpolation__
         extrap = self.__extrapolation__
@@ -2534,7 +2544,7 @@ class Function:  # pylint: disable=too-many-public-methods
 
         if (
             self._source_type is SourceType.ARRAY
-            and other_array
+            and other_is_array
             and np.array_equal(self._domain, other._domain)
         ):
             source = np.column_stack(
@@ -2559,7 +2569,7 @@ class Function:  # pylint: disable=too-many-public-methods
         elif callable(other):
             if other_is_func:
                 other_dim = other.__dom_dim__
-                other = other.get_value_opt if other_array else other.source
+                other = other.get_value_opt if other_is_array else other.source
             else:
                 other_dim = len(signature(other).parameters)
 
@@ -2652,7 +2662,9 @@ class Function:  # pylint: disable=too-many-public-methods
     def __mod__(self, other):  # pylint: disable=too-many-statements
         """Operator % as an alias for modulo operation."""
         other_is_func = isinstance(other, Function)
-        other_array = other._source_type is SourceType.ARRAY if other_is_func else False
+        other_is_array = (
+            other._source_type is SourceType.ARRAY if other_is_func else False
+        )
         inputs = self.__inputs__[:]
         interp = self.__interpolation__
         extrap = self.__extrapolation__
@@ -2660,7 +2672,7 @@ class Function:  # pylint: disable=too-many-public-methods
 
         if (
             self._source_type is SourceType.ARRAY
-            and other_array
+            and other_is_array
             and np.array_equal(self._domain, other._domain)
         ):
             source = np.column_stack((self._domain, np.mod(self._image, other._image)))
@@ -2683,7 +2695,7 @@ class Function:  # pylint: disable=too-many-public-methods
         elif callable(other):
             if other_is_func:
                 other_dim = other.__dom_dim__
-                other = other.get_value_opt if other_array else other.source
+                other = other.get_value_opt if other_is_array else other.source
             else:
                 other_dim = len(signature(other).parameters)
 
