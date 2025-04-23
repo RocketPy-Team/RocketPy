@@ -358,6 +358,11 @@ class Flight:
         as array.
         Direction 3 is in the rocket's body axis and points in the
         direction of cylindrical symmetry.
+    Flight.net_thrust : Function
+        Rocket's engine net thrust as a function of time in Newton.
+        This is the actual thrust force experienced by the rocket.
+        It may be corrected with the atmospheric pressure if a reference
+        pressure is defined. Can be called or accessed as array.
     Flight.aerodynamic_lift : Function
         Resultant force perpendicular to rockets axis due to
         aerodynamic effects as a function of time. Units in N.
@@ -1151,7 +1156,9 @@ class Flight:
             try:
                 self.phi_init += (
                     self.rocket.rail_buttons[0].component.angular_position_rad
-                    * self.rocket._csys
+                    if self.rocket._csys == 1
+                    else 2 * np.pi
+                    - self.rocket.rail_buttons[0].component.angular_position_rad
                 )
             except IndexError:
                 pass
@@ -1273,7 +1280,7 @@ class Flight:
                     f"Available options are: {', '.join(ODE_SOLVER_MAP.keys())}"
                 ) from e
 
-        self.__is_lsoda = hasattr(self._solver, "_lsoda_solver")
+        self.__is_lsoda = issubclass(self._solver, LSODA)
 
     @cached_property
     def effective_1rl(self):
@@ -1376,12 +1383,17 @@ class Flight:
         drag_coeff = self.rocket.power_on_drag.get_value_opt(free_stream_mach)
 
         # Calculate Forces
-        thrust = self.rocket.motor.thrust.get_value_opt(t)
+        pressure = self.env.pressure.get_value_opt(z)
+        net_thrust = max(
+            self.rocket.motor.thrust.get_value_opt(t)
+            + self.rocket.motor.pressure_thrust(pressure),
+            0,
+        )
         rho = self.env.density.get_value_opt(z)
         R3 = -0.5 * rho * (free_stream_speed**2) * self.rocket.area * (drag_coeff)
 
         # Calculate Linear acceleration
-        a3 = (R3 + thrust) / total_mass_at_t - (
+        a3 = (R3 + net_thrust) / total_mass_at_t - (
             e0**2 - e1**2 - e2**2 + e3**2
         ) * self.env.gravity.get_value_opt(z)
         if a3 > 0:
@@ -1450,6 +1462,8 @@ class Flight:
         _, _, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
         # Determine lift force and moment
         R1, R2, M1, M2, M3 = 0, 0, 0, 0, 0
+        # Thrust correction parameters
+        pressure = self.env.pressure.get_value_opt(z)
         # Determine current behavior
         if self.rocket.motor.burn_start_time < t < self.rocket.motor.burn_out_time:
             # Motor burning
@@ -1467,10 +1481,14 @@ class Flight:
             mass_flow_rate_at_t = self.rocket.motor.mass_flow_rate.get_value_opt(t)
             propellant_mass_at_t = self.rocket.motor.propellant_mass.get_value_opt(t)
             # Thrust
-            thrust = self.rocket.motor.thrust.get_value_opt(t)
+            net_thrust = max(
+                self.rocket.motor.thrust.get_value_opt(t)
+                + self.rocket.motor.pressure_thrust(pressure),
+                0,
+            )
             # Off center moment
-            M1 += self.rocket.thrust_eccentricity_y * thrust
-            M2 -= self.rocket.thrust_eccentricity_x * thrust
+            M1 += self.rocket.thrust_eccentricity_y * net_thrust
+            M2 -= self.rocket.thrust_eccentricity_x * net_thrust
         else:
             # Motor stopped
             # Inertias
@@ -1483,7 +1501,7 @@ class Flight:
             # Mass
             mass_flow_rate_at_t, propellant_mass_at_t = 0, 0
             # thrust
-            thrust = 0
+            net_thrust = 0
 
         # Retrieve important quantities
         # Inertias
@@ -1686,7 +1704,7 @@ class Flight:
                 + 2 * c * mass_flow_rate_at_t * omega1
             )
             / total_mass_at_t,
-            (R3 - b * propellant_mass_at_t * (alpha2 - omega1 * omega3) + thrust)
+            (R3 - b * propellant_mass_at_t * (alpha2 - omega1 * omega3) + net_thrust)
             / total_mass_at_t,
         ]
         ax, ay, az = K @ Vector(L)
@@ -1732,7 +1750,22 @@ class Flight:
 
         if post_processing:
             self.__post_processed_variables.append(
-                [t, ax, ay, az, alpha1, alpha2, alpha3, R1, R2, R3, M1, M2, M3]
+                [
+                    t,
+                    ax,
+                    ay,
+                    az,
+                    alpha1,
+                    alpha2,
+                    alpha3,
+                    R1,
+                    R2,
+                    R3,
+                    M1,
+                    M2,
+                    M3,
+                    net_thrust,
+                ]
             )
 
         return u_dot
@@ -1810,8 +1843,15 @@ class Flight:
         free_stream_mach = free_stream_speed / speed_of_sound
 
         if self.rocket.motor.burn_start_time < t < self.rocket.motor.burn_out_time:
+            pressure = self.env.pressure.get_value_opt(z)
+            net_thrust = max(
+                self.rocket.motor.thrust.get_value_opt(t)
+                + self.rocket.motor.pressure_thrust(pressure),
+                0,
+            )
             drag_coeff = self.rocket.power_on_drag.get_value_opt(free_stream_mach)
         else:
+            net_thrust = 0
             drag_coeff = self.rocket.power_off_drag.get_value_opt(free_stream_mach)
         R3 += -0.5 * rho * (free_stream_speed**2) * self.rocket.area * drag_coeff
         for air_brakes in self.rocket.air_brakes:
@@ -1874,14 +1914,13 @@ class Flight:
             M3 += L
 
         # Off center moment
-        thrust = self.rocket.motor.thrust.get_value_opt(t)
         M1 += (
             self.rocket.cp_eccentricity_y * R3
-            + self.rocket.thrust_eccentricity_y * thrust
+            + self.rocket.thrust_eccentricity_y * net_thrust
         )
         M2 -= (
             self.rocket.cp_eccentricity_x * R3
-            + self.rocket.thrust_eccentricity_x * thrust
+            + self.rocket.thrust_eccentricity_x * net_thrust
         )
         M3 += self.rocket.cp_eccentricity_x * R2 - self.rocket.cp_eccentricity_y * R1
 
@@ -1892,7 +1931,7 @@ class Flight:
         T00 = total_mass * r_CM
         T03 = 2 * total_mass_dot * (r_NOZ - r_CM) - 2 * total_mass * r_CM_dot
         T04 = (
-            Vector([0, 0, thrust])
+            Vector([0, 0, net_thrust])
             - total_mass * r_CM_ddot
             - 2 * total_mass_dot * r_CM_dot
             + total_mass_ddot * (r_NOZ - r_CM)
@@ -1937,7 +1976,7 @@ class Flight:
 
         if post_processing:
             self.__post_processed_variables.append(
-                [t, *v_dot, *w_dot, R1, R2, R3, M1, M2, M3]
+                [t, *v_dot, *w_dot, R1, R2, R3, M1, M2, M3, net_thrust]
             )
 
         return u_dot
@@ -2010,7 +2049,7 @@ class Flight:
 
         if post_processing:
             self.__post_processed_variables.append(
-                [t, ax, ay, az, 0, 0, 0, Dx, Dy, Dz, 0, 0, 0]
+                [t, ax, ay, az, 0, 0, 0, Dx, Dy, Dz, 0, 0, 0, 0]
             )
 
         return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
@@ -2229,6 +2268,13 @@ class Flight:
         """Aerodynamic moment in the rocket z-axis as a Function of time.
         Sometimes referred to as roll moment."""
         return self.__evaluate_post_process[:, [0, 12]]
+
+    @funcify_method("Time (s)", "Net Thrust (N)", "linear", "zero")
+    def net_thrust(self):
+        """Net thrust of the rocket as a Function of time. This is the
+        actual thrust force experienced by the rocket. It may be corrected
+        with the atmospheric pressure if a reference pressure is defined."""
+        return self.__evaluate_post_process[:, [0, 13]]
 
     @funcify_method("Time (s)", "Pressure (Pa)", "spline", "constant")
     def pressure(self):
@@ -2669,13 +2715,10 @@ class Flight:
         return self.kinetic_energy + self.potential_energy
 
     # thrust Power
-    @funcify_method("Time (s)", "thrust Power (W)", "spline", "zero")
+    @funcify_method("Time (s)", "Thrust Power (W)", "spline", "zero")
     def thrust_power(self):
         """Thrust power as a Function of time."""
-        thrust = deepcopy(self.rocket.motor.thrust)
-        thrust = thrust.set_discrete_based_on_model(self.speed)
-        thrust_power = thrust * self.speed
-        return thrust_power
+        return self.net_thrust * self.speed
 
     # Drag Power
     @funcify_method("Time (s)", "Drag Power (W)", "spline", "zero")
@@ -3081,7 +3124,7 @@ class Flight:
         np.array
             An array containing all post-processed variables evaluated at each
             time step. Each element of the array is a list containing:
-            [t, ax, ay, az, alpha1, alpha2, alpha3, R1, R2, R3, M1, M2, M3]
+            [t, ax, ay, az, alpha1, alpha2, alpha3, R1, R2, R3, M1, M2, M3, net_thrust]
         """
         self.__post_processed_variables = []
         for phase_index, phase in self.time_iterator(self.flight_phases):
@@ -3456,24 +3499,43 @@ class Flight:
             "time_overshoot": self.time_overshoot,
             "name": self.name,
             "equations_of_motion": self.equations_of_motion,
+            # The following outputs are essential to run all_info method
+            "solution": self.solution,
+            "out_of_rail_time": self.out_of_rail_time,
+            "out_of_rail_time_index": self.out_of_rail_time_index,
+            "apogee_time": self.apogee_time,
+            "apogee": self.apogee,
+            "parachute_events": self.parachute_events,
+            "impact_state": self.impact_state,
+            "impact_velocity": self.impact_velocity,
+            "x_impact": self.x_impact,
+            "y_impact": self.y_impact,
+            "t_final": self.t_final,
+            "flight_phases": self.flight_phases,
+            "function_evaluations": self.function_evaluations,
+            "ax": self.ax,
+            "ay": self.ay,
+            "az": self.az,
+            "alpha1": self.alpha1,
+            "alpha2": self.alpha2,
+            "alpha3": self.alpha3,
+            "R1": self.R1,
+            "R2": self.R2,
+            "R3": self.R3,
+            "M1": self.M1,
+            "M2": self.M2,
+            "M3": self.M3,
         }
 
         if include_outputs:
             data.update(
                 {
                     "time": self.time,
-                    "out_of_rail_time": self.out_of_rail_time,
                     "out_of_rail_velocity": self.out_of_rail_velocity,
                     "out_of_rail_state": self.out_of_rail_state,
-                    "apogee": self.apogee,
-                    "apogee_time": self.apogee_time,
                     "apogee_x": self.apogee_x,
                     "apogee_y": self.apogee_y,
                     "apogee_state": self.apogee_state,
-                    "x_impact": self.x_impact,
-                    "y_impact": self.y_impact,
-                    "impact_velocity": self.impact_velocity,
-                    "impact_state": self.impact_state,
                     "x": self.x,
                     "y": self.y,
                     "z": self.z,
@@ -3487,12 +3549,6 @@ class Flight:
                     "w1": self.w1,
                     "w2": self.w2,
                     "w3": self.w3,
-                    "ax": self.ax,
-                    "ay": self.ay,
-                    "az": self.az,
-                    "alpha1": self.alpha1,
-                    "alpha2": self.alpha2,
-                    "alpha3": self.alpha3,
                     "altitude": self.altitude,
                     "mach_number": self.mach_number,
                     "stream_velocity_x": self.stream_velocity_x,

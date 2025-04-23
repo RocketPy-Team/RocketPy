@@ -35,7 +35,8 @@ RocketPy's User Guide
    ../notebooks/monte_carlo_analysis/monte_carlo_class_usage.ipynb
    ../notebooks/monte_carlo_analysis/monte_carlo_analysis.ipynb
    ../notebooks/monte_carlo_analysis/parachute_drop_from_helicopter.ipynb
-   sensitivity.rst
+   Sensitivity Analysis <sensitivity.rst>
+   Multivariate Rejection Sampler <mrs.rst>
 
 .. toctree::
    :maxdepth: 2
