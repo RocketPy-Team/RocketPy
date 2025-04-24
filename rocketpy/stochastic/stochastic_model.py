@@ -40,7 +40,7 @@ class StochasticModel:
         "ensemble_member",
     ]
 
-    def __init__(self, obj, **kwargs):
+    def __init__(self, obj, seed=None, **kwargs):
         """
         Initialize the StochasticModel class with validated input arguments.
 
@@ -48,6 +48,9 @@ class StochasticModel:
         ----------
         obj : object
             The main object of the class.
+        seed : int, optional
+            Seed for the random number generator. The default is None so that
+            a new ``numpy.random.Generator`` object is created.
         **kwargs : dict
             Dictionary of input arguments for the class. Valid argument types
             include tuples, lists, ints, floats, or None. Arguments will be
@@ -63,9 +66,24 @@ class StochasticModel:
 
         self.obj = obj
         self.last_rnd_dict = {}
+        self.__stochastic_dict = kwargs
+        self._set_stochastic(seed)
+
+    def _set_stochastic(self, seed=None):
+        """Set the stochastic attributes from the input dictionary.
+        This method is useful to reset or reseed the attributes of the instance.
+
+        Parameters
+        ----------
+        seed : int, optional
+            Seed for the random number generator.
+        """
+        self.__random_number_generator = np.random.default_rng(seed)
+        self.last_rnd_dict = {}
 
         # TODO: This code block is too complex. Refactor it.
-        for input_name, input_value in kwargs.items():
+        # TODO: Resetting a instance should not require re-validation.
+        for input_name, input_value in self.__stochastic_dict.items():
             if input_name not in self.exception_list:
                 attr_value = None
                 if input_value is not None:
@@ -159,14 +177,18 @@ class StochasticModel:
             # is the standard deviation, and the second item is the distribution
             # function. In this case, the nominal value will be taken from the
             # object passed.
-            dist_func = get_distribution(input_value[1])
+            dist_func = get_distribution(input_value[1], self.__random_number_generator)
             return (getattr(self.obj, input_name), input_value[0], dist_func)
         else:
             # if second item is an int or float, then it is assumed that the
             # first item is the nominal value and the second item is the
             # standard deviation. The distribution function will be set to
             # "normal".
-            return (input_value[0], input_value[1], get_distribution("normal"))
+            return (
+                input_value[0],
+                input_value[1],
+                get_distribution("normal", self.__random_number_generator),
+            )
 
     def _validate_tuple_length_three(self, input_name, input_value, getattr=getattr):  # pylint: disable=redefined-builtin,unused-argument
         """
@@ -200,7 +222,7 @@ class StochasticModel:
             f"'{input_name}': Third item of tuple must be a string containing the "
             "name of a valid numpy.random distribution function."
         )
-        dist_func = get_distribution(input_value[2])
+        dist_func = get_distribution(input_value[2], self.__random_number_generator)
         return (input_value[0], input_value[1], dist_func)
 
     def _validate_list(self, input_name, input_value, getattr=getattr):  # pylint: disable=redefined-builtin
@@ -255,7 +277,7 @@ class StochasticModel:
         return (
             getattr(self.obj, input_name),
             input_value,
-            get_distribution("normal"),
+            get_distribution("normal", self.__random_number_generator),
         )
 
     def _validate_factors(self, input_name, input_value):
@@ -320,13 +342,19 @@ class StochasticModel:
         )
 
         if len(factor_tuple) == 2:
-            return (factor_tuple[0], factor_tuple[1], get_distribution("normal"))
+            return (
+                factor_tuple[0],
+                factor_tuple[1],
+                get_distribution("normal", self.__random_number_generator),
+            )
         elif len(factor_tuple) == 3:
             assert isinstance(factor_tuple[2], str), (
                 f"'{input_name}`: Third item of tuple must be a string containing "
                 "the name of a valid numpy.random distribution function"
             )
-            dist_func = get_distribution(factor_tuple[2])
+            dist_func = get_distribution(
+                factor_tuple[2], self.__random_number_generator
+            )
             return (factor_tuple[0], factor_tuple[1], dist_func)
 
     def _validate_list_factor(self, input_name, factor_list):
@@ -486,11 +514,19 @@ class StochasticModel:
                 )
             elif isinstance(value, tuple):
                 nominal_value, std_dev, dist_func = value
-                return (
-                    f"\t{attr.ljust(max_str_length)} "
-                    f"{nominal_value:.5f} ± "
-                    f"{std_dev:.5f} ({dist_func.__name__})"
-                )
+                if callable(dist_func) and dist_func.__name__ == "uniform":
+                    lower_bound = nominal_value
+                    upper_bound = std_dev
+                    return (
+                        f"\t{attr.ljust(max_str_length)} "
+                        f"{lower_bound:.5f}, {upper_bound:.5f} ({dist_func.__name__})"
+                    )
+                else:
+                    return (
+                        f"\t{attr.ljust(max_str_length)} "
+                        f"{nominal_value:.5f} ± "
+                        f"{std_dev:.5f} ({dist_func.__name__})"
+                    )
             return None
 
         attributes = {k: v for k, v in self.__dict__.items() if not k.startswith("_")}

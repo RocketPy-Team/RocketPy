@@ -5,7 +5,6 @@ functions may be changed without notice in future feature releases.
 
 import re
 import time
-import warnings
 from datetime import datetime, timedelta, timezone
 
 import netCDF4
@@ -326,33 +325,6 @@ def fetch_wyoming_sounding(file):
             "Invalid OUTPUT: specified. Make sure the output is Text: List."
         )
     return response
-
-
-@exponential_backoff(max_attempts=5, base_delay=2, max_delay=60)
-def fetch_noaaruc_sounding(file):  # pragma: no cover
-    """Fetches sounding data from a specified file using the NOAA RUC soundings.
-
-    Parameters
-    ----------
-    file : str
-        The URL of the file to fetch.
-
-    Returns
-    -------
-    str
-        The content of the fetched file.
-
-    Raises
-    ------
-    ImportError
-        If unable to load the specified file or the file content is too short.
-    """
-    warnings.warn(
-        "The NOAA RUC soundings are deprecated since September 30th, 2024. "
-        "This method will be removed in version 1.8.0.",
-        DeprecationWarning,
-    )
-    return file
 
 
 @exponential_backoff(max_attempts=5, base_delay=2, max_delay=60)

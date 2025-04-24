@@ -3,10 +3,13 @@
 import warnings
 from random import choice
 
+from rocketpy.control import _Controller
 from rocketpy.mathutils.vector_matrix import Vector
-from rocketpy.motors.motor import EmptyMotor, GenericMotor, Motor
+from rocketpy.motors.empty_motor import EmptyMotor
+from rocketpy.motors.motor import GenericMotor, Motor
 from rocketpy.motors.solid_motor import SolidMotor
 from rocketpy.rocket.aero_surface import (
+    AirBrakes,
     EllipticalFins,
     NoseCone,
     RailButtons,
@@ -20,6 +23,7 @@ from rocketpy.stochastic.stochastic_generic_motor import StochasticGenericMotor
 from rocketpy.stochastic.stochastic_motor_model import StochasticMotorModel
 
 from .stochastic_aero_surfaces import (
+    StochasticAirBrakes,
     StochasticEllipticalFins,
     StochasticNoseCone,
     StochasticRailButtons,
@@ -144,6 +148,12 @@ class StochasticRocket(StochasticModel):
         # TODO: mention that these factors are validated differently
         self._validate_1d_array_like("power_off_drag", power_off_drag)
         self._validate_1d_array_like("power_on_drag", power_on_drag)
+        self.motors = Components()
+        self.aerodynamic_surfaces = Components()
+        self.rail_buttons = Components()
+        self.air_brakes = []
+        self.parachutes = []
+        self.__components_map = {}
         super().__init__(
             obj=rocket,
             radius=radius,
@@ -161,10 +171,53 @@ class StochasticRocket(StochasticModel):
             center_of_mass_without_motor=center_of_mass_without_motor,
             coordinate_system_orientation=None,
         )
-        self.motors = Components()
-        self.aerodynamic_surfaces = Components()
-        self.rail_buttons = Components()
-        self.parachutes = []
+
+    def _set_stochastic(self, seed=None):
+        """Set the stochastic attributes for Components, positions and
+        inputs.
+
+        Parameters
+        ----------
+        seed : int, optional
+            Seed for the random number generator.
+        """
+        super()._set_stochastic(seed)
+        self.aerodynamic_surfaces = self.__reset_components(
+            self.aerodynamic_surfaces, seed
+        )
+        self.motors = self.__reset_components(self.motors, seed)
+        self.rail_buttons = self.__reset_components(self.rail_buttons, seed)
+        for parachute in self.parachutes:
+            parachute._set_stochastic(seed)
+
+    def __reset_components(self, components, seed):
+        """Creates a new Components whose stochastic structures
+        and their positions are reset.
+
+        Parameters
+        ----------
+        components : Components
+            The components which contains the stochastic structure that
+            will be used to create the new components.
+        seed : int, optional
+            Seed for the random number generator.
+
+        Returns
+        -------
+        new_components : Components
+            A components whose stochastic structure and position match the
+            input component but are reset. Ideally, it should replace the
+            input component.
+        """
+        new_components = Components()
+        for stochastic_obj, _ in components:
+            stochastic_obj_position_info = self.__components_map[stochastic_obj]
+            stochastic_obj._set_stochastic(seed)
+            new_components.add(
+                stochastic_obj,
+                self._validate_position(stochastic_obj, stochastic_obj_position_info),
+            )
+        return new_components
 
     def add_motor(self, motor, position=None):
         """Adds a stochastic motor to the stochastic rocket. If a motor is
@@ -194,6 +247,7 @@ class StochasticRocket(StochasticModel):
                 motor = StochasticSolidMotor(solid_motor=motor)
             elif isinstance(motor, GenericMotor):
                 motor = StochasticGenericMotor(generic_motor=motor)
+        self.__components_map[motor] = position
         self.motors.add(motor, self._validate_position(motor, position))
 
     def _add_surfaces(self, surfaces, positions, type_, stochastic_type, error_message):
@@ -220,6 +274,7 @@ class StochasticRocket(StochasticModel):
             raise AssertionError(error_message)
         if isinstance(surfaces, type_):
             surfaces = stochastic_type(component=surfaces)
+        self.__components_map[surfaces] = positions
         self.aerodynamic_surfaces.add(
             surfaces, self._validate_position(surfaces, positions)
         )
@@ -333,9 +388,129 @@ class StochasticRocket(StochasticModel):
             )
         if isinstance(rail_buttons, RailButtons):
             rail_buttons = StochasticRailButtons(rail_buttons=rail_buttons)
+        self.__components_map[rail_buttons] = lower_button_position
         self.rail_buttons.add(
             rail_buttons, self._validate_position(rail_buttons, lower_button_position)
         )
+
+    def add_air_brakes(self, air_brakes, controller):
+        """Adds an air brake to the stochastic rocket.
+
+        Parameters
+        ----------
+        air_brakes : StochasticAirBrakes or Airbrakes
+            The air brake to be added to the stochastic rocket.
+        controller : _Controller
+            Deterministic air brake controller.
+        """
+        if not isinstance(air_brakes, (AirBrakes, StochasticAirBrakes)):
+            raise TypeError(
+                "`air_brake` must be of AirBrakes or StochasticAirBrakes type"
+            )
+        if isinstance(air_brakes, AirBrakes):
+            air_brakes = StochasticAirBrakes(air_brakes=air_brakes)
+
+        self.air_brakes.append(air_brakes)
+        self.air_brake_controller = controller
+
+    def add_cp_eccentricity(self, x=None, y=None):
+        """Moves line of action of aerodynamic forces to simulate an
+        eccentricity in the position of the center of pressure relative
+        to the center of dry mass of the rocket.
+
+        Parameters
+        ----------
+        x : tuple, list, int, float, optional
+            Distance in meters by which the CP is to be translated in
+            the x direction relative to the center of dry mass axial line.
+            The x axis is defined according to the body axes coordinate system.
+        y : tuple, list, int, float, optional
+            Distance in meters by which the CP is to be translated in
+            the y direction relative to the center of dry mass axial line.
+            The y axis is defined according to the body axes coordinate system.
+
+        Returns
+        -------
+        self : StochasticRocket
+            Object of the StochasticRocket class.
+        """
+        self.cp_eccentricity_x = self._validate_eccentricity("cp_eccentricity_x", x)
+        self.cp_eccentricity_y = self._validate_eccentricity("cp_eccentricity_y", y)
+        return self
+
+    def add_thrust_eccentricity(self, x=None, y=None):
+        """Moves line of action of thrust forces to simulate a
+        misalignment of the thrust vector and the center of dry mass.
+
+        Parameters
+        ----------
+        x : tuple, list, int, float, optional
+            Distance in meters by which the line of action of the
+            thrust force is to be translated in the x direction
+            relative to the center of dry mass axial line. The x axis
+            is defined according to the body axes coordinate system.
+        y : tuple, list, int, float, optional
+            Distance in meters by which the line of action of the
+            thrust force is to be translated in the y direction
+            relative to the center of dry mass axial line. The y axis
+            is defined according to the body axes coordinate system.
+
+        Returns
+        -------
+        self : StochasticRocket
+            Object of the StochasticRocket class.
+        """
+        self.thrust_eccentricity_x = self._validate_eccentricity(
+            "thrust_eccentricity_x", x
+        )
+        self.thrust_eccentricity_y = self._validate_eccentricity(
+            "thrust_eccentricity_y", y
+        )
+        return self
+
+    def _validate_eccentricity(self, eccentricity, position):
+        """Validate the eccentricity argument.
+
+        Parameters
+        ----------
+        eccentricity : str
+            The eccentricity to which the position argument refers to.
+        position : tuple, list, int, float
+            The position argument to be validated.
+
+        Returns
+        -------
+        tuple or list
+            Validated position argument.
+
+        Raises
+        ------
+        ValueError
+            If the position argument does not conform to the specified formats.
+        """
+        if isinstance(position, tuple):
+            return self._validate_tuple(
+                eccentricity,
+                position,
+            )
+        elif isinstance(position, (int, float)):
+            return self._validate_scalar(
+                eccentricity,
+                position,
+            )
+        elif isinstance(position, list):
+            return self._validate_list(
+                eccentricity,
+                position,
+            )
+        elif position is None:
+            position = []
+            return self._validate_list(
+                eccentricity,
+                position,
+            )
+        else:
+            raise AssertionError("`position` must be a tuple, list, int, or float")
 
     def _validate_position(self, validated_object, position):
         """Validate the position argument.
@@ -357,7 +532,6 @@ class StochasticRocket(StochasticModel):
         ValueError
             If the position argument does not conform to the specified formats.
         """
-
         if isinstance(position, tuple):
             return self._validate_tuple(
                 "position",
@@ -480,6 +654,7 @@ class StochasticRocket(StochasticModel):
         generated_dict["motors"] = []
         generated_dict["aerodynamic_surfaces"] = []
         generated_dict["rail_buttons"] = []
+        generated_dict["air_brakes"] = []
         generated_dict["parachutes"] = []
         self.last_rnd_dict = generated_dict
         yield generated_dict
@@ -522,10 +697,22 @@ class StochasticRocket(StochasticModel):
         )
         return rail_buttons, lower_button_position_rnd, upper_button_position_rnd
 
+    def _create_air_brake(self, stochastic_air_brake):
+        air_brake = stochastic_air_brake.create_object()
+        self.last_rnd_dict["air_brakes"].append(stochastic_air_brake.last_rnd_dict)
+        return air_brake
+
     def _create_parachute(self, stochastic_parachute):
         parachute = stochastic_parachute.create_object()
         self.last_rnd_dict["parachutes"].append(stochastic_parachute.last_rnd_dict)
         return parachute
+
+    def _create_eccentricities(self, stochastic_x, stochastic_y, eccentricity):
+        x_rnd = self._randomize_position(stochastic_x)
+        self.last_rnd_dict[eccentricity + "_x"] = x_rnd
+        y_rnd = self._randomize_position(stochastic_y)
+        self.last_rnd_dict[eccentricity + "_y"] = y_rnd
+        return x_rnd, y_rnd
 
     def create_object(self):
         """Creates and returns a Rocket object from the randomly generated input
@@ -558,6 +745,23 @@ class StochasticRocket(StochasticModel):
         rocket.power_off_drag *= generated_dict["power_off_drag_factor"]
         rocket.power_on_drag *= generated_dict["power_on_drag_factor"]
 
+        if hasattr(self, "cp_eccentricity_x") and hasattr(self, "cp_eccentricity_y"):
+            cp_ecc_x, cp_ecc_y = self._create_eccentricities(
+                self.cp_eccentricity_x,
+                self.cp_eccentricity_y,
+                "cp_eccentricity",
+            )
+            rocket.add_cp_eccentricity(cp_ecc_x, cp_ecc_y)
+        if hasattr(self, "thrust_eccentricity_x") and hasattr(
+            self, "thrust_eccentricity_y"
+        ):
+            thrust_ecc_x, thrust_ecc_y = self._create_eccentricities(
+                self.thrust_eccentricity_x,
+                self.thrust_eccentricity_y,
+                "thrust_eccentricity",
+            )
+            rocket.add_thrust_eccentricity(thrust_ecc_x, thrust_ecc_y)
+
         for component_motor in self.motors:
             motor, position_rnd = self._create_motor(component_motor)
             rocket.add_motor(motor, position_rnd)
@@ -565,6 +769,17 @@ class StochasticRocket(StochasticModel):
         for component_surface in self.aerodynamic_surfaces:
             surface, position_rnd = self._create_surface(component_surface)
             rocket.add_surfaces(surface, position_rnd)
+
+        for air_brake in self.air_brakes:
+            air_brake = self._create_air_brake(air_brake)
+            _controller = _Controller(
+                interactive_objects=air_brake,
+                controller_function=self.air_brake_controller.base_controller_function,
+                sampling_rate=self.air_brake_controller.sampling_rate,
+                initial_observed_variables=self.air_brake_controller.initial_observed_variables,
+            )
+            rocket.air_brakes.append(air_brake)
+            rocket._add_controllers(_controller)
 
         for component_rail_buttons in self.rail_buttons:
             (

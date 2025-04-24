@@ -9,6 +9,7 @@ from rocketpy.rocket.aero_surface import (
     RailButtons,
     Tail,
     TrapezoidalFins,
+    AirBrakes,
 )
 
 from .stochastic_model import StochasticModel
@@ -432,3 +433,114 @@ class StochasticRailButtons(StochasticModel):
         """
         generated_dict = next(self.dict_generator())
         return RailButtons(**generated_dict)
+
+
+class StochasticAirBrakes(StochasticModel):
+    """A Stochastic Air Brakes class that inherits from StochasticModel.
+
+    See Also
+    --------
+    :ref:`stochastic_model` and
+    :class:`AirBrakes <rocketpy.AirBrakes>`
+
+    Attributes
+    ----------
+    object : AirBrakes
+        AirBrakes object to be used for validation.
+    drag_coefficient_curve : list, str
+        The drag coefficient curve of the air brakes can account for
+        either the air brakes' drag alone or the combined drag of both
+        the rocket and the air brakes.
+    drag_coefficient_curve_factor : tuple, list, int, float
+        The drag curve factor of the air brakes. This value scales the
+        drag coefficient curve to introduce stochastic variability.
+    reference_area : tuple, list, int, float
+        Reference area used to non-dimensionalize the drag coefficients.
+    clamp : bool
+        If True, the simulation will clamp the deployment level to 0 or 1 if
+        the deployment level is out of bounds. If False, the simulation will
+        not clamp the deployment level and will instead raise a warning if
+        the deployment level is out of bounds.
+    override_rocket_drag : bool
+        If False, the air brakes drag coefficient will be added to the
+        rocket's power off drag coefficient curve. If True, during the
+        simulation, the rocket's power off drag will be ignored and the air
+        brakes drag coefficient will be used for the entire rocket instead.
+    deployment_level : tuple, list, int, float
+        Initial deployment level, ranging from 0 to 1.
+    name : list[str]
+        List with the air brakes object name. This attribute can't be randomized.
+    """
+
+    def __init__(
+        self,
+        air_brakes,
+        drag_coefficient_curve=None,
+        drag_coefficient_curve_factor=(1, 0),
+        reference_area=None,
+        clamp=None,
+        override_rocket_drag=None,
+        deployment_level=(0, 0),
+    ):
+        """Initializes the Stochastic AirBrakes class.
+
+        See Also
+        --------
+        :ref:`stochastic_model`
+
+        Parameters
+        ----------
+        air_brakes : AirBrakes
+            AirBrakes object to be used for validation.
+        drag_coefficient_curve : list, str, optional
+            The drag coefficient curve of the air brakes can account for
+            either the air brakes' drag alone or the combined drag of both
+            the rocket and the air brakes.
+        drag_coefficient_curve_factor : tuple, list, int, float, optional
+            The drag curve factor of the air brakes. This value scales the
+            drag coefficient curve to introduce stochastic variability.
+        reference_area : tuple, list, int, float, optional
+            Reference area used to non-dimensionalize the drag coefficients.
+        clamp : bool, optional
+            If True, the simulation will clamp the deployment level to 0 or 1 if
+            the deployment level is out of bounds. If False, the simulation will
+            not clamp the deployment level and will instead raise a warning if
+            the deployment level is out of bounds.
+        override_rocket_drag : bool, optional
+            If False, the air brakes drag coefficient will be added to the
+            rocket's power off drag coefficient curve. If True, during the
+            simulation, the rocket's power off drag will be ignored and the air
+            brakes drag coefficient will be used for the entire rocket instead.
+        deployment_level : tuple, list, int, float, optional
+            Initial deployment level, ranging from 0 to 1.
+        """
+        super().__init__(
+            air_brakes,
+            drag_coefficient_curve=drag_coefficient_curve,
+            drag_coefficient_curve_factor=drag_coefficient_curve_factor,
+            reference_area=reference_area,
+            clamp=clamp,
+            override_rocket_drag=override_rocket_drag,
+            deployment_level=deployment_level,
+            name=None,
+        )
+
+    def create_object(self):
+        """Creates and returns an AirBrakes object from the randomly generated
+        input arguments.
+
+        Returns
+        -------
+        air_brake : AirBrakes
+            AirBrakes object with the randomly generated input arguments.
+        """
+        generated_dict = next(self.dict_generator())
+        air_brakes = AirBrakes(
+            drag_coefficient_curve=generated_dict["drag_coefficient_curve"],
+            reference_area=generated_dict["reference_area"],
+            clamp=generated_dict["clamp"],
+            override_rocket_drag=generated_dict["override_rocket_drag"],
+            deployment_level=generated_dict["deployment_level"],
+        )
+        air_brakes.drag_coefficient *= generated_dict["drag_coefficient_curve_factor"]
+        return air_brakes
