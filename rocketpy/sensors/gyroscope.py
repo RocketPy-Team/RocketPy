@@ -1,6 +1,6 @@
 import numpy as np
 
-from ..mathutils.vector_matrix import Matrix, Vector
+from ..mathutils.vector_matrix import Vector
 from ..prints.sensors_prints import _GyroscopePrints
 from ..sensors.sensor import InertialSensor
 
