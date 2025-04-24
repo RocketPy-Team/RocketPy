@@ -242,11 +242,11 @@ class Flight:
         body frame as a function of time, in rad/s. Sometimes referred to as
         yaw acceleration.
     Flight.alpha2 : Function
-        Angular acceleration of the rocket in the x direction of the rocket's
+        Angular acceleration of the rocket in the y direction of the rocket's
         body frame as a function of time, in rad/s. Sometimes referred to as
         yaw acceleration.
     Flight.alpha3 : Function
-        Angular acceleration of the rocket in the x direction of the rocket's
+        Angular acceleration of the rocket in the z direction of the rocket's
         body frame as a function of time, in rad/s. Sometimes referred to as
         roll acceleration.
     Flight.speed : Function
@@ -2173,14 +2173,14 @@ class Flight:
 
     @funcify_method("Time (s)", "α2 (rad/s²)", "spline", "zero")
     def alpha2(self):
-        """Angular acceleration of the rocket in the x direction of the rocket's
+        """Angular acceleration of the rocket in the y direction of the rocket's
         body frame as a function of time, in rad/s. Sometimes referred to as
         yaw acceleration."""
         return self.__evaluate_post_process[:, [0, 5]]
 
     @funcify_method("Time (s)", "α3 (rad/s²)", "spline", "zero")
     def alpha3(self):
-        """Angular acceleration of the rocket in the x direction of the rocket's
+        """Angular acceleration of the rocket in the z direction of the rocket's
         body frame as a function of time, in rad/s. Sometimes referred to as
         roll acceleration."""
         return self.__evaluate_post_process[:, [0, 6]]
@@ -2212,13 +2212,13 @@ class Flight:
 
     @funcify_method("Time (s)", "M2 (Nm)", "linear", "zero")
     def M2(self):
-        """Aerodynamic moment acting along the x-axis of the rocket's body
+        """Aerodynamic moment acting along the y-axis of the rocket's body
         frame as a function of time. Expressed in Newtons (N)."""
         return self.__evaluate_post_process[:, [0, 11]]
 
     @funcify_method("Time (s)", "M3 (Nm)", "linear", "zero")
     def M3(self):
-        """Aerodynamic moment acting along the x-axis of the rocket's body
+        """Aerodynamic moment acting along the z-axis of the rocket's body
         frame as a function of time. Expressed in Newtons (N)."""
         return self.__evaluate_post_process[:, [0, 12]]
 
