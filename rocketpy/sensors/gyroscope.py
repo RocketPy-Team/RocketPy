@@ -226,10 +226,7 @@ class Gyroscope(InertialSensor):
         omega = Vector(u[10:13])
 
         # Transform to sensor frame
-        inertial_to_sensor = self._total_rotation_matrix @ Matrix.transformation(
-            u[6:10]
-        )
-        W = inertial_to_sensor @ omega
+        W = self._total_rotation_sensor_to_body @ omega
 
         # Apply noise + bias and quantize
         W = self.apply_noise(W)
