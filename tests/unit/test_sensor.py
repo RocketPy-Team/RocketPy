@@ -336,9 +336,8 @@ def test_noisy_rotated_gyroscope(noisy_rotated_gyroscope, example_plain_env):
         euler313_to_quaternions(*np.deg2rad([-60, -60, -60]))
     )
     total_rotation = sensor_rotation @ cross_axis_sensitivity
-    rocket_rotation = Matrix.transformation(U[6:10])
     # expected measurement without noise
-    wx, wy, wz = total_rotation @ (rocket_rotation @ omega)
+    wx, wy, wz = total_rotation @ omega
     # expected measurement with constant bias
     wx += 0.5
     wy += 0.5
