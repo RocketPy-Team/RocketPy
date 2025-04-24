@@ -204,6 +204,7 @@ class SolidMotor(Motor):
         reshape_thrust_curve=False,
         interpolation_method="linear",
         coordinate_system_orientation="nozzle_to_combustion_chamber",
+        only_radial_burn=False,
     ):
         """Initialize Motor class, process thrust curve and geometrical
         parameters and store results.
@@ -315,6 +316,7 @@ class SolidMotor(Motor):
             reshape_thrust_curve=reshape_thrust_curve,
             interpolation_method=interpolation_method,
             coordinate_system_orientation=coordinate_system_orientation,
+            only_radial_burn = only_radial_burn,
         )
         # Nozzle parameters
         self.throat_radius = throat_radius
@@ -339,6 +341,8 @@ class SolidMotor(Motor):
 
         self.evaluate_geometry()
 
+        # Burn surface definition
+        self.only_radial_burn = only_radial_burn
         # Initialize plots and prints object
         self.prints = _SolidMotorPrints(self)
         self.plots = _SolidMotorPlots(self)
@@ -479,15 +483,25 @@ class SolidMotor(Motor):
 
             # Compute state vector derivative
             grain_inner_radius, grain_height = y
-            burn_area = (
-                2
-                * np.pi
-                * (
-                    grain_outer_radius**2
-                    - grain_inner_radius**2
-                    + grain_inner_radius * grain_height
+            if self.only_radial_burn:
+                burn_area = (
+                    2
+                    * np.pi
+                    * (
+                        grain_inner_radius * grain_height
+                    )
                 )
-            )
+            else:
+                burn_area = (
+                    2
+                    * np.pi
+                    * (
+                        grain_outer_radius**2
+                        - grain_inner_radius**2
+                        + grain_inner_radius * grain_height
+                    )
+                )
+
             grain_inner_radius_derivative = -volume_diff / burn_area
             grain_height_derivative = -2 * grain_inner_radius_derivative
 
@@ -500,33 +514,64 @@ class SolidMotor(Motor):
 
             # Compute jacobian
             grain_inner_radius, grain_height = y
-            factor = volume_diff / (
-                2
-                * np.pi
-                * (
-                    grain_outer_radius**2
-                    - grain_inner_radius**2
-                    + grain_inner_radius * grain_height
+            if self.only_radial_burn:
+                factor = volume_diff / (
+                    2
+                    * np.pi
+                    * (
+                        grain_inner_radius * grain_height
+                    )
+                    ** 2
                 )
-                ** 2
-            )
-            inner_radius_derivative_wrt_inner_radius = factor * (
-                grain_height - 2 * grain_inner_radius
-            )
-            inner_radius_derivative_wrt_height = factor * grain_inner_radius
-            height_derivative_wrt_inner_radius = (
-                -2 * inner_radius_derivative_wrt_inner_radius
-            )
-            height_derivative_wrt_height = -2 * inner_radius_derivative_wrt_height
 
-            return [
-                [
-                    inner_radius_derivative_wrt_inner_radius,
-                    inner_radius_derivative_wrt_height,
-                ],
-                [height_derivative_wrt_inner_radius, height_derivative_wrt_height],
-            ]
+                inner_radius_derivative_wrt_inner_radius = factor * (
+                    grain_height - 2 * grain_inner_radius
+                )
+                inner_radius_derivative_wrt_height = factor * grain_inner_radius
+                height_derivative_wrt_inner_radius = 0
+                height_derivative_wrt_height = 0
 
+                return [
+                    [
+                        inner_radius_derivative_wrt_inner_radius,
+                        inner_radius_derivative_wrt_height,
+                    ],
+                    [height_derivative_wrt_inner_radius, height_derivative_wrt_height],
+
+
+                ]
+
+            else:
+                factor = volume_diff / (
+                    2
+                    * np.pi
+                    * (
+                        grain_outer_radius**2
+                        - grain_inner_radius**2
+                        + grain_inner_radius * grain_height
+                    )
+                    ** 2
+                )
+
+                inner_radius_derivative_wrt_inner_radius = factor * (
+                    grain_height - 2 * grain_inner_radius
+                )
+                inner_radius_derivative_wrt_height = factor * grain_inner_radius
+                height_derivative_wrt_inner_radius = (
+                    -2 * inner_radius_derivative_wrt_inner_radius
+                )
+                height_derivative_wrt_height = -2 * inner_radius_derivative_wrt_height
+
+                return [
+                    [
+                        inner_radius_derivative_wrt_inner_radius,
+                        inner_radius_derivative_wrt_height,
+                    ],
+                    [height_derivative_wrt_inner_radius, height_derivative_wrt_height],
+
+
+                ]
+                
         def terminate_burn(t, y):  # pylint: disable=unused-argument
             end_function = (self.grain_outer_radius - y[0]) * y[1]
             return end_function
@@ -576,16 +621,26 @@ class SolidMotor(Motor):
         burn_area : Function
             Function representing the burn area progression with the time.
         """
-        burn_area = (
-            2
-            * np.pi
-            * (
-                self.grain_outer_radius**2
-                - self.grain_inner_radius**2
-                + self.grain_inner_radius * self.grain_height
+        if self.only_radial_burn:
+            burn_area = (
+                2
+                * np.pi
+                * (
+                    self.grain_inner_radius * self.grain_height
+                )
+                * self.grain_number
             )
-            * self.grain_number
-        )
+        else:
+            burn_area = (
+                2
+                * np.pi
+                * (
+                    self.grain_outer_radius**2
+                    - self.grain_inner_radius**2
+                    + self.grain_inner_radius * self.grain_height
+                )
+                * self.grain_number
+            )
         return burn_area
 
     @funcify_method("Time (s)", "burn rate (m/s)")
