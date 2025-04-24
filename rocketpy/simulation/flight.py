@@ -2287,6 +2287,86 @@ class Flight:
 
     # Process fourth type of output - values calculated from previous outputs
 
+    # Frame conversions
+
+    @cached_property
+    def _stacked_velocity_body_frame(self):
+        """Stacked velocity array at the center of dry mass in the body frame
+        at each time step."""
+        Kt = self.direction_cosine_matrixes
+        v = np.array(
+            [
+                self.vx.y_array,
+                self.vy.y_array,
+                self.vz.y_array,
+            ]
+        ).transpose()
+        stacked_velocity_body_frame = np.squeeze(np.matmul(Kt, v[:, :, np.newaxis]))
+        return stacked_velocity_body_frame
+
+    @funcify_method("Time (s)", "Vx Body Frame (m/s)", "spline", "zero")
+    def vx_body_frame(self):
+        """Velocity of the rocket's center of dry mass along the x axis of the
+        body frame as a function of time."""
+        return np.array(
+            [self.time, self._stacked_velocity_body_frame[:, 0]]
+        ).transpose()
+
+    @funcify_method("Time (s)", "Vy Body Frame (m/s)", "spline", "zero")
+    def vy_body_frame(self):
+        """Velocity of the rocket's center of dry mass along the y axis of the
+        body frame as a function of time."""
+        return np.array(
+            [self.time, self._stacked_velocity_body_frame[:, 1]]
+        ).transpose()
+
+    @funcify_method("Time (s)", "Vz Body Frame (m/s)", "spline", "zero")
+    def vz_body_frame(self):
+        """Velocity of the rocket's center of dry mass along the z axis of the
+        body frame as a function of time."""
+        return np.array(
+            [self.time, self._stacked_velocity_body_frame[:, 2]]
+        ).transpose()
+
+    @cached_property
+    def _stacked_acceleration_body_frame(self):
+        """Stacked acceleration array at the center of dry mass in the body
+        frame at each time step."""
+        Kt = self.direction_cosine_matrixes
+        a = np.array(
+            [
+                self.ax.y_array,
+                self.ay.y_array,
+                self.az.y_array,
+            ]
+        ).transpose()
+        stacked_acceleration_body_frame = np.squeeze(np.matmul(Kt, a[:, :, np.newaxis]))
+        return stacked_acceleration_body_frame
+
+    @funcify_method("Time (s)", "Ax Body Frame (m/s²)", "spline", "zero")
+    def ax_body_frame(self):
+        """Acceleration of the rocket's center of dry mass along the x axis of the
+        body frame as a function of time."""
+        return np.array(
+            [self.time, self._stacked_acceleration_body_frame[:, 0]]
+        ).transpose()
+
+    @funcify_method("Time (s)", "Ay Body Frame (m/s²)", "spline", "zero")
+    def ay_body_frame(self):
+        """Acceleration of the rocket's center of dry mass along the y axis of the
+        body frame as a function of time."""
+        return np.array(
+            [self.time, self._stacked_acceleration_body_frame[:, 1]]
+        ).transpose()
+
+    @funcify_method("Time (s)", "Az Body Frame (m/s²)", "spline", "zero")
+    def az_body_frame(self):
+        """Acceleration of the rocket's center of dry mass along the z axis of the
+        body frame as a function of time."""
+        return np.array(
+            [self.time, self._stacked_acceleration_body_frame[:, 2]]
+        ).transpose()
+
     # Kinematics functions and values
     # Velocity Magnitude
     @funcify_method("Time (s)", "Speed - Velocity Magnitude (m/s)")
