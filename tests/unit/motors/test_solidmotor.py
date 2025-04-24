@@ -20,7 +20,21 @@ GRAIN_MASS = GRAIN_VOL * 1815 * 5
 
 
 @patch("matplotlib.pyplot.show")
-def test_motor(mock_show, cesaroni_m1670):  # pylint: disable=unused-argument
+def test_info(mock_show, cesaroni_m1670):  # pylint: disable=unused-argument
+    """Tests the SolidMotor.info() method.
+
+    Parameters
+    ----------
+    mock_show : mock
+        Mock of the matplotlib.pyplot.show function.
+    cesaroni_m1670 : rocketpy.SolidMotor
+        The SolidMotor object to be used in the tests.
+    """
+    assert cesaroni_m1670.info() is None
+
+
+@patch("matplotlib.pyplot.show")
+def test_all_info(mock_show, cesaroni_m1670):  # pylint: disable=unused-argument
     """Tests the SolidMotor.all_info() method.
 
     Parameters

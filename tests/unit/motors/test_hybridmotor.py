@@ -56,7 +56,7 @@ def test_hybrid_motor_basic_parameters(hybrid_motor):
     assert hybrid_motor.liquid.positioned_tanks[0]["position"] == 0.3
 
 
-def test_hybrid_motor_thrust_parameters(hybrid_motor, spherical_oxidizer_tank):
+def test_hybrid_motor_thrust_parameters(hybrid_motor, oxidizer_tank):
     """Tests the HybridMotor class thrust parameters.
 
     Parameters
@@ -77,13 +77,13 @@ def test_hybrid_motor_thrust_parameters(hybrid_motor, spherical_oxidizer_tank):
         * GRAIN_INITIAL_HEIGHT
         * GRAIN_NUMBER
     )
-    initial_oxidizer_mass = spherical_oxidizer_tank.fluid_mass(0)
+    initial_oxidizer_mass = oxidizer_tank.fluid_mass(0)
     initial_mass = initial_grain_mass + initial_oxidizer_mass
 
     expected_exhaust_velocity = expected_total_impulse / initial_mass
     expected_mass_flow_rate = -expected_thrust / expected_exhaust_velocity
     expected_grain_mass_flow_rate = (
-        expected_mass_flow_rate - spherical_oxidizer_tank.net_mass_flow_rate
+        expected_mass_flow_rate - oxidizer_tank.net_mass_flow_rate
     )
 
     assert pytest.approx(hybrid_motor.thrust.y_array) == expected_thrust.y_array
@@ -100,7 +100,7 @@ def test_hybrid_motor_thrust_parameters(hybrid_motor, spherical_oxidizer_tank):
         ) == expected_grain_mass_flow_rate(t)
 
 
-def test_hybrid_motor_center_of_mass(hybrid_motor, spherical_oxidizer_tank):
+def test_hybrid_motor_center_of_mass(hybrid_motor, oxidizer_tank):
     """Tests the HybridMotor class center of mass.
 
     Parameters
@@ -110,25 +110,25 @@ def test_hybrid_motor_center_of_mass(hybrid_motor, spherical_oxidizer_tank):
     spherical_oxidizer_tank : rocketpy.SphericalTank
         The SphericalTank object to be used in the tests.
     """
-    oxidizer_mass = spherical_oxidizer_tank.fluid_mass
+    oxidizer_mass = oxidizer_tank.fluid_mass
     grain_mass = hybrid_motor.solid.propellant_mass
 
     propellant_balance = grain_mass * GRAINS_CENTER_OF_MASS_POSITION + oxidizer_mass * (
-        OXIDIZER_TANK_POSITION + spherical_oxidizer_tank.center_of_mass
+        OXIDIZER_TANK_POSITION + oxidizer_tank.center_of_mass
     )
     balance = propellant_balance + DRY_MASS * CENTER_OF_DRY_MASS
 
     propellant_center_of_mass = propellant_balance / (grain_mass + oxidizer_mass)
     center_of_mass = balance / (grain_mass + oxidizer_mass + DRY_MASS)
 
-    for t in np.linspace(0, 100, 100):
+    for t in np.linspace(0, BURN_TIME, 100):
         assert pytest.approx(
             hybrid_motor.center_of_propellant_mass(t)
         ) == propellant_center_of_mass(t)
         assert pytest.approx(hybrid_motor.center_of_mass(t)) == center_of_mass(t)
 
 
-def test_hybrid_motor_inertia(hybrid_motor, spherical_oxidizer_tank):
+def test_hybrid_motor_inertia(hybrid_motor, oxidizer_tank):
     """Tests the HybridMotor class inertia.
 
     Parameters
@@ -138,8 +138,8 @@ def test_hybrid_motor_inertia(hybrid_motor, spherical_oxidizer_tank):
     spherical_oxidizer_tank : rocketpy.SphericalTank
         The SphericalTank object to be used in the tests.
     """
-    oxidizer_mass = spherical_oxidizer_tank.fluid_mass
-    oxidizer_inertia = spherical_oxidizer_tank.inertia
+    oxidizer_mass = oxidizer_tank.fluid_mass
+    oxidizer_inertia = oxidizer_tank.inertia
     grain_mass = hybrid_motor.solid.propellant_mass
     grain_inertia = hybrid_motor.solid.propellant_I_11
     propellant_mass = oxidizer_mass + grain_mass
@@ -153,7 +153,7 @@ def test_hybrid_motor_inertia(hybrid_motor, spherical_oxidizer_tank):
         oxidizer_mass
         * (
             OXIDIZER_TANK_POSITION
-            + spherical_oxidizer_tank.center_of_mass
+            + oxidizer_tank.center_of_mass
             - hybrid_motor.center_of_propellant_mass
         )
         ** 2
@@ -170,7 +170,7 @@ def test_hybrid_motor_inertia(hybrid_motor, spherical_oxidizer_tank):
         + DRY_MASS * (-hybrid_motor.center_of_mass + CENTER_OF_DRY_MASS) ** 2
     )
 
-    for t in np.linspace(0, 100, 100):
+    for t in np.linspace(0, BURN_TIME, 100):
         assert pytest.approx(hybrid_motor.propellant_I_11(t)) == propellant_inertia(t)
         assert pytest.approx(hybrid_motor.I_11(t)) == inertia(t)
 
