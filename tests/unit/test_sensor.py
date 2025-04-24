@@ -76,7 +76,7 @@ def test_rotation_matrix(noisy_rotated_accelerometer):
             [0.7499999999999999, 0.43301270189221946, 0.5000000000000001],
         ]
     )
-    rotation_matrix = np.array(noisy_rotated_accelerometer.rotation_sensor_to_body.components)
+    rotation_matrix = np.array(noisy_rotated_accelerometer.rotation_matrix.components)
     assert np.allclose(expected_matrix, rotation_matrix, atol=1e-8)
 
 

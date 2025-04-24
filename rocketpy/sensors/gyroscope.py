@@ -44,7 +44,7 @@ class Gyroscope(InertialSensor):
         The cross axis sensitivity of the sensor in percentage.
     name : str
         The name of the sensor.
-    rotation_sensor_to_body : Matrix
+    rotation_matrix : Matrix
         The rotation matrix of the sensor from the sensor frame to the rocket
         frame of reference.
     normal_vector : Vector
@@ -222,11 +222,14 @@ class Gyroscope(InertialSensor):
         u_dot = kwargs["u_dot"]
         relative_position = kwargs["relative_position"]
 
-        # Angular velocity of the rocket in the body frame
+        # Angular velocity of the rocket in the rocket frame
         omega = Vector(u[10:13])
 
         # Transform to sensor frame
-        W = self._total_rotation_sensor_to_body @ omega
+        inertial_to_sensor = self._total_rotation_matrix @ Matrix.transformation(
+            u[6:10]
+        )
+        W = inertial_to_sensor @ omega
 
         # Apply noise + bias and quantize
         W = self.apply_noise(W)
@@ -234,14 +237,18 @@ class Gyroscope(InertialSensor):
 
         # Apply acceleration sensitivity
         if self.acceleration_sensitivity != Vector.zeros():
-            W += self.apply_acceleration_sensitivity(omega, u_dot, relative_position)
+            W += self.apply_acceleration_sensitivity(
+                omega, u_dot, relative_position, inertial_to_sensor
+            )
 
         W = self.quantize(W)
 
         self.measurement = tuple([*W])
         self._save_data((time, *W))
 
-    def apply_acceleration_sensitivity(self, omega, u_dot, relative_position):
+    def apply_acceleration_sensitivity(
+        self, omega, u_dot, relative_position, rotation_matrix
+    ):
         """
         Apply acceleration sensitivity to the sensor measurement
 
@@ -253,6 +260,8 @@ class Gyroscope(InertialSensor):
             The time derivative of the state vector
         relative_position : Vector
             The vector from the rocket's center of mass to the sensor
+        rotation_matrix : Matrix
+            The rotation matrix from the rocket frame to the sensor frame
 
         Returns
         -------
@@ -262,7 +271,7 @@ class Gyroscope(InertialSensor):
         # Linear acceleration of rocket cdm in inertial frame
         inertial_acceleration = Vector(u_dot[3:6])
 
-        # Angular accel of rocket in body frame
+        # Angular velocity and accel of rocket
         omega_dot = Vector(u_dot[10:13])
 
         # Acceleration felt in sensor
@@ -272,7 +281,7 @@ class Gyroscope(InertialSensor):
             + Vector.cross(omega, Vector.cross(omega, relative_position))
         )
         # Transform to sensor frame
-        A = self._total_rotation_sensor_to_body @ A
+        A = rotation_matrix @ A
 
         return self.acceleration_sensitivity & A
 
