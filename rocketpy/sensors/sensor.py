@@ -460,23 +460,23 @@ class InertialSensor(Sensor):
 
         # rotation matrix and normal vector
         if any(isinstance(row, (tuple, list)) for row in orientation):  # matrix
-            self.rotation_matrix = Matrix(orientation)
+            self.rotation_sensor_to_body = Matrix(orientation)
         elif len(orientation) == 3:  # euler angles
-            self.rotation_matrix = Matrix.transformation_euler_angles(
+            self.rotation_sensor_to_body = Matrix.transformation_euler_angles(
                 *np.deg2rad(orientation)
             ).round(12)
         else:
             raise ValueError("Invalid orientation format")
         self.normal_vector = Vector(
             [
-                self.rotation_matrix[0][2],
-                self.rotation_matrix[1][2],
-                self.rotation_matrix[2][2],
+                self.rotation_sensor_to_body[0][2],
+                self.rotation_sensor_to_body[1][2],
+                self.rotation_sensor_to_body[2][2],
             ]
         ).unit_vector
 
         # cross axis sensitivity matrix
-        _cross_axis_matrix = 0.01 * Matrix(
+        cross_axis_matrix = 0.01 * Matrix(
             [
                 [100, self.cross_axis_sensitivity, self.cross_axis_sensitivity],
                 [self.cross_axis_sensitivity, 100, self.cross_axis_sensitivity],
@@ -485,7 +485,9 @@ class InertialSensor(Sensor):
         )
 
         # compute total rotation matrix given cross axis sensitivity
-        self._total_rotation_matrix = self.rotation_matrix @ _cross_axis_matrix
+        self._total_rotation_sensor_to_body = (
+            self.rotation_sensor_to_body @ cross_axis_matrix
+        )
 
     def _vectorize_input(self, value, name):
         if isinstance(value, (int, float)):
