@@ -528,7 +528,7 @@ class LiquidMotor(Motor):
             nozzle_position=data["nozzle_position"],
             interpolation_method=data["interpolate"],
             coordinate_system_orientation=data["coordinate_system_orientation"],
-            reference_pressure=data["reference_pressure"],
+            reference_pressure=data.get("reference_pressure"),
         )
 
         for tank in data["positioned_tanks"]:

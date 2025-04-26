@@ -281,6 +281,7 @@ class MonteCarlo:
         try:
             while sim_monitor.keep_simulating():
                 sim_monitor.increment()
+                inputs_json, outputs_json = "", ""
 
                 flight = self.__run_single_simulation()
                 inputs_json = self.__evaluate_flight_inputs(sim_monitor.count)
@@ -406,6 +407,7 @@ class MonteCarlo:
 
             while sim_monitor.keep_simulating():
                 sim_idx = sim_monitor.increment() - 1
+                inputs_json, outputs_json = "", ""
 
                 flight = self.__run_single_simulation()
                 inputs_json = self.__evaluate_flight_inputs(sim_idx)
@@ -484,7 +486,9 @@ class MonteCarlo:
             for item in d.items()
         )
         inputs_dict["index"] = sim_idx
-        return json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n"
+        return (
+            json.dumps(inputs_dict, cls=RocketPyEncoder, **self._export_config) + "\n"
+        )
 
     def __evaluate_flight_outputs(self, flight, sim_idx):
         """Evaluates the outputs of a single flight simulation.
@@ -518,7 +522,9 @@ class MonteCarlo:
                     ) from e
             outputs_dict = outputs_dict | additional_exports
 
-        return json.dumps(outputs_dict, cls=RocketPyEncoder) + "\n"
+        return (
+            json.dumps(outputs_dict, cls=RocketPyEncoder, **self._export_config) + "\n"
+        )
 
     def __terminate_simulation(self):
         """

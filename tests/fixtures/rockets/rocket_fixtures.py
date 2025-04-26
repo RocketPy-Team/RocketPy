@@ -185,6 +185,33 @@ def calisto_robust(
 
 
 @pytest.fixture
+def calisto_nose_to_tail_robust(
+    calisto_nose_to_tail,
+    calisto_nose_cone,
+    calisto_tail,
+    calisto_trapezoidal_fins,
+    calisto_main_chute,
+    calisto_drogue_chute,
+):
+    """Calisto with nose to tail coordinate system orientation. This is the same
+    as calisto_robust, but with the coordinate system orientation set to
+    "nose_to_tail"."""
+    csys = -1
+    # we follow this format: calisto.add_surfaces(surface, position)
+    calisto_nose_to_tail.add_surfaces(calisto_nose_cone, 1.160 * csys)
+    calisto_nose_to_tail.add_surfaces(calisto_tail, -1.313 * csys)
+    calisto_nose_to_tail.add_surfaces(calisto_trapezoidal_fins, -1.168 * csys)
+    calisto_nose_to_tail.set_rail_buttons(
+        upper_button_position=0.082 * csys,
+        lower_button_position=-0.618 * csys,
+        angular_position=360 - 0,
+    )
+    calisto_nose_to_tail.parachutes.append(calisto_main_chute)
+    calisto_nose_to_tail.parachutes.append(calisto_drogue_chute)
+    return calisto_nose_to_tail
+
+
+@pytest.fixture
 def calisto_air_brakes_clamp_on(calisto_robust, controller_function):
     """Create an object class of the Rocket class to be used in the tests. This
     is the same Calisto rocket that was defined in the calisto_robust fixture,

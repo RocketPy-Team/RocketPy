@@ -521,3 +521,37 @@ def test_freestream_speed_at_apogee(example_plain_env, calisto):
         test_flight.free_stream_speed(test_flight.apogee_time), 0.0, atol=soft_atol
     )
     assert np.isclose(test_flight.apogee_freestream_speed, 0.0, atol=soft_atol)
+
+
+def test_rocket_csys_equivalence(
+    flight_calisto_robust, flight_calisto_nose_to_tail_robust
+):
+    """Test the equivalence of the rocket coordinate systems between two
+    different flight simulations.
+
+    Parameters
+    ----------
+    flight_calisto_robust : rocketpy.Flight
+        Flight object to be tested. See the conftest.py file for more info.
+    flight_calisto_nose_to_tail_robust : rocketpy.Flight
+        Flight object to be tested. See the conftest.py file for more info.
+    """
+    assert np.isclose(
+        flight_calisto_robust.apogee, flight_calisto_nose_to_tail_robust.apogee
+    )
+    assert np.isclose(
+        flight_calisto_robust.apogee_time,
+        flight_calisto_nose_to_tail_robust.apogee_time,
+    )
+    assert np.isclose(
+        flight_calisto_robust.x_impact,
+        flight_calisto_nose_to_tail_robust.x_impact,
+    )
+    assert np.isclose(
+        flight_calisto_robust.y_impact,
+        flight_calisto_nose_to_tail_robust.y_impact,
+    )
+    assert np.allclose(
+        flight_calisto_robust.initial_solution,
+        flight_calisto_nose_to_tail_robust.initial_solution,
+    )
