@@ -300,6 +300,11 @@ class SolidMotor(Motor):
             positions specified. Options are "nozzle_to_combustion_chamber" and
             "combustion_chamber_to_nozzle". Default is
             "nozzle_to_combustion_chamber".
+        only_radial_burn : boolean, optional
+            If True, inhibits the grain from burning axially, only computing
+            radial burn. Otherwise, if False, allows the grain to also burn 
+            axially. May be useful for axially inhibited grains or hybrid motors.
+            Default is False.
 
         Returns
         -------
@@ -316,7 +321,6 @@ class SolidMotor(Motor):
             reshape_thrust_curve=reshape_thrust_curve,
             interpolation_method=interpolation_method,
             coordinate_system_orientation=coordinate_system_orientation,
-            only_radial_burn = only_radial_burn,
         )
         # Nozzle parameters
         self.throat_radius = throat_radius
@@ -484,13 +488,7 @@ class SolidMotor(Motor):
             # Compute state vector derivative
             grain_inner_radius, grain_height = y
             if self.only_radial_burn:
-                burn_area = (
-                    2
-                    * np.pi
-                    * (
-                        grain_inner_radius * grain_height
-                    )
-                )
+                burn_area = 2 * np.pi * (grain_inner_radius * grain_height)
             else:
                 burn_area = (
                     2
@@ -516,12 +514,7 @@ class SolidMotor(Motor):
             grain_inner_radius, grain_height = y
             if self.only_radial_burn:
                 factor = volume_diff / (
-                    2
-                    * np.pi
-                    * (
-                        grain_inner_radius * grain_height
-                    )
-                    ** 2
+                    2 * np.pi * (grain_inner_radius * grain_height) ** 2
                 )
 
                 inner_radius_derivative_wrt_inner_radius = factor * (
@@ -537,8 +530,6 @@ class SolidMotor(Motor):
                         inner_radius_derivative_wrt_height,
                     ],
                     [height_derivative_wrt_inner_radius, height_derivative_wrt_height],
-
-
                 ]
 
             else:
@@ -568,10 +559,8 @@ class SolidMotor(Motor):
                         inner_radius_derivative_wrt_height,
                     ],
                     [height_derivative_wrt_inner_radius, height_derivative_wrt_height],
-
-
                 ]
-                
+
         def terminate_burn(t, y):  # pylint: disable=unused-argument
             end_function = (self.grain_outer_radius - y[0]) * y[1]
             return end_function
@@ -625,9 +614,7 @@ class SolidMotor(Motor):
             burn_area = (
                 2
                 * np.pi
-                * (
-                    self.grain_inner_radius * self.grain_height
-                )
+                * (self.grain_inner_radius * self.grain_height)
                 * self.grain_number
             )
         else:
@@ -812,6 +799,7 @@ class SolidMotor(Motor):
                 "grain_initial_height": self.grain_initial_height,
                 "grain_separation": self.grain_separation,
                 "grains_center_of_mass_position": self.grains_center_of_mass_position,
+                "only_radial_burn": self.only_radial_burn,
             }
         )
 
@@ -855,4 +843,5 @@ class SolidMotor(Motor):
             throat_radius=data["throat_radius"],
             interpolation_method=data["interpolate"],
             coordinate_system_orientation=data["coordinate_system_orientation"],
+            only_radial_burn=data.get("only_radial_burn", False),
         )
