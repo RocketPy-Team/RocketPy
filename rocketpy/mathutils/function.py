@@ -2175,10 +2175,12 @@ class Function:  # pylint: disable=too-many-public-methods
                     )
                 )
             else:
+                # pragma: no cover
                 raise TypeError(
                     f"The number of parameters in the function to be added ({other_dim}) "
                     f"does not match the number of parameters of the Function ({dom_dim})."
                 )
+        # pragma: no cover
         raise TypeError("Unsupported type for addition")
 
     def __radd__(self, other):
@@ -2264,10 +2266,12 @@ class Function:  # pylint: disable=too-many-public-methods
                     )
                 )
             else:
+                # pragma: no cover
                 raise TypeError(
                     f"The number of parameters in the function to be subtracted ({other_dim}) "
                     f"does not match the number of parameters of the Function ({dom_dim})."
                 )
+        # pragma: no cover
         raise TypeError("Unsupported type for subtraction")
 
     def __rsub__(self, other):
@@ -2354,10 +2358,12 @@ class Function:  # pylint: disable=too-many-public-methods
                     )
                 )
             else:
+                # pragma: no cover
                 raise TypeError(
                     f"The number of parameters in the function to be multiplied ({other_dim}) "
                     f"does not match the number of parameters of the Function ({dom_dim})."
                 )
+        # pragma: no cover
         raise TypeError("Unsupported type for multiplication")
 
     def __rmul__(self, other):
@@ -2447,10 +2453,12 @@ class Function:  # pylint: disable=too-many-public-methods
                     )
                 )
             else:
+                # pragma: no cover
                 raise TypeError(
                     f"The number of parameters in the function to be divided ({other_dim}) "
                     f"does not match the number of parameters of the Function ({dom_dim})."
                 )
+        # pragma: no cover
         raise TypeError("Unsupported type for division")
 
     def __rtruediv__(self, other):
@@ -2506,11 +2514,12 @@ class Function:  # pylint: disable=too-many-public-methods
                     )
                 )
             else:
+                # pragma: no cover
                 raise TypeError(
                     f"The number of parameters in the function dividing by this Function ({other_dim}) "
                     f"does not match the number of parameters of this Function ({dom_dim})."
                 )
-
+        # pragma: no cover
         raise TypeError("Unsupported type for division")
 
     def __pow__(self, other):  # pylint: disable=too-many-statements
@@ -2580,10 +2589,12 @@ class Function:  # pylint: disable=too-many-public-methods
                     )
                 )
             else:
+                # pragma: no cover
                 raise TypeError(
                     f"The number of parameters in the function to be exponentiated by ({other_dim}) "
                     f"does not match the number of parameters of the Function ({dom_dim})."
                 )
+        # pragma: no cover
         raise TypeError("Unsupported type for exponentiation")
 
     def __rpow__(self, other):
@@ -2633,10 +2644,12 @@ class Function:  # pylint: disable=too-many-public-methods
                     inputs,
                 )
             else:
+                # pragma: no cover
                 raise TypeError(
                     f"The number of parameters in the base function ({other_dim}) "
                     f"does not match the number of parameters of the Function exponent ({dom_dim})."
                 )
+        # pragma: no cover
         raise TypeError("Unsupported type for exponentiation")
 
     def __matmul__(self, other):
@@ -2706,10 +2719,12 @@ class Function:  # pylint: disable=too-many-public-methods
                     )
                 )
             else:
+                # pragma: no cover
                 raise TypeError(
                     f"The number of parameters in the function used as divisor ({other_dim}) "
                     f"does not match the number of parameters of the Function ({dom_dim})."
                 )
+        # pragma: no cover
         raise TypeError("Unsupported type for modulo operation")
 
     def integral(self, a, b, numerical=False):  # pylint: disable=too-many-statements

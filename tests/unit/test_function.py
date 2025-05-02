@@ -284,10 +284,6 @@ def test_set_get_value_opt():
     """Test the set_value_opt and get_value_opt methods of the Function class."""
     func = Function(lambda x: x**2)
     func.set_source(np.array([[1, 1], [2, 4], [3, 9], [4, 16], [5, 25]]))
-    func.x_array = np.array([1, 2, 3, 4, 5])
-    func.y_array = np.array([1, 4, 9, 16, 25])
-    func.x_initial = 1
-    func.x_final = 5
     func.set_interpolation("linear")
     func.set_get_value_opt()
     assert func.get_value_opt(2.5) == 6.5
