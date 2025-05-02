@@ -283,11 +283,7 @@ def test_remove_outliers_iqr(x, y, expected_x, expected_y):
 def test_set_get_value_opt():
     """Test the set_value_opt and get_value_opt methods of the Function class."""
     func = Function(lambda x: x**2)
-    func.source = np.array([[1, 1], [2, 4], [3, 9], [4, 16], [5, 25]])
-    func.x_array = np.array([1, 2, 3, 4, 5])
-    func.y_array = np.array([1, 4, 9, 16, 25])
-    func.x_initial = 1
-    func.x_final = 5
+    func.set_source(np.array([[1, 1], [2, 4], [3, 9], [4, 16], [5, 25]]))
     func.set_interpolation("linear")
     func.set_get_value_opt()
     assert func.get_value_opt(2.5) == 6.5
@@ -747,6 +743,320 @@ def test_pow_arithmetic_priority(other):
     assert isinstance(other**func_lambda, Function)
     assert isinstance(func_array**other, Function)
     assert isinstance(other**func_array, Function)
+
+
+@pytest.mark.parametrize(
+    "other",
+    [
+        3.0,
+        np.float64(3.0),
+        np.array(3),
+        np.array([3]),
+        lambda _: 3,
+        Function(3.0),
+        Function([(0, 3), (1, 3), (2, 3)], interpolation="linear"),
+    ],
+)
+def test_2d_function_arithmetic_add(other):
+    """Test the add operation of the Function class with 2D functions."""
+    func_lambda = Function(lambda x: x**2)
+    func_array = Function([(0, 0), (1, 1), (2, 4)], interpolation="linear")
+
+    assert np.isclose((func_lambda + other)(2), 7)
+    assert np.isclose((func_array + other)(2), 7)
+    assert np.isclose((other + func_lambda)(2), 7)
+    assert np.isclose((other + func_array)(2), 7)
+
+
+@pytest.mark.parametrize(
+    "other",
+    [
+        3.0,
+        np.float64(3.0),
+        np.array(3),
+        np.array([3]),
+        lambda _: 3,
+        Function(3.0),
+        Function([(0, 3), (1, 3), (2, 3)], interpolation="linear"),
+    ],
+)
+def test_2d_function_arithmetic_sub(other):
+    """Test the sub operation of the Function class with 2D functions."""
+    func_lambda = Function(lambda x: x**2)
+    func_array = Function([(0, 0), (1, 1), (2, 4)], interpolation="linear")
+
+    assert np.isclose((func_lambda - other)(2), 1)
+    assert np.isclose((func_array - other)(2), 1)
+    assert np.isclose((other - func_lambda)(2), -1)
+    assert np.isclose((other - func_array)(2), -1)
+
+
+@pytest.mark.parametrize(
+    "other",
+    [
+        3.0,
+        np.float64(3.0),
+        np.array(3),
+        np.array([3]),
+        lambda _: 3,
+        Function(3.0),
+        Function([(0, 3), (1, 3), (2, 3)], interpolation="linear"),
+    ],
+)
+def test_2d_function_arithmetic_mul(other):
+    """Test the mul operation of the Function class with 2D functions."""
+    func_lambda = Function(lambda x: x**2)
+    func_array = Function([(0, 0), (1, 1), (2, 4)], interpolation="linear")
+
+    assert np.isclose((func_lambda * other)(2), 12)
+    assert np.isclose((func_array * other)(2), 12)
+    assert np.isclose((other * func_lambda)(2), 12)
+    assert np.isclose((other * func_array)(2), 12)
+
+
+@pytest.mark.parametrize(
+    "other",
+    [
+        3.0,
+        np.float64(3.0),
+        np.array(3),
+        np.array([3]),
+        lambda _: 3,
+        Function(3.0),
+        Function([(0, 3), (1, 3), (2, 3)], interpolation="linear"),
+    ],
+)
+def test_2d_function_arithmetic_div(other):
+    """Test the div operation of the Function class with 2D functions."""
+    func_lambda = Function(lambda x: x**2)
+    func_array = Function([(0, 0), (1, 1), (2, 4)], interpolation="linear")
+
+    assert np.isclose((func_lambda / other)(2), 4 / 3)
+    assert np.isclose((func_array / other)(2), 4 / 3)
+    assert np.isclose((other / func_lambda)(2), 0.75)
+    assert np.isclose((other / func_array)(2), 0.75)
+
+
+@pytest.mark.parametrize(
+    "other",
+    [
+        3.0,
+        np.float64(3.0),
+        np.array(3),
+        np.array([3]),
+        lambda _: 3,
+        Function(3.0),
+        Function([(0, 3), (1, 3), (2, 3)], interpolation="linear"),
+    ],
+)
+def test_2d_function_arithmetic_pow(other):
+    """Test the pow operation of the Function class with 2D functions."""
+    func_lambda = Function(lambda x: x**2)
+    func_array = Function([(0, 0), (1, 1), (2, 4)], interpolation="linear")
+
+    assert np.isclose((func_lambda**other)(2), 64)
+    assert np.isclose((func_array**other)(2), 64)
+    assert np.isclose((other**func_lambda)(2), 3**4)
+    assert np.isclose((other**func_array)(2), 3**4)
+
+
+@pytest.mark.parametrize(
+    "other",
+    [
+        3.0,
+        np.float64(3.0),
+        np.array(3),
+        np.array([3]),
+        lambda _: 3,
+        Function(3.0),
+        Function([(0, 3), (1, 3), (2, 3)], interpolation="linear"),
+    ],
+)
+def test_2d_function_arithmetic_mod(other):
+    """Test the mod operation of the Function class with 2D functions."""
+    func_lambda = Function(lambda x: x**2)
+    func_array = Function([(0, 0), (1, 1), (2, 4)], interpolation="linear")
+
+    assert np.isclose((func_lambda % other)(2), 1)
+    assert np.isclose((func_array % other)(2), 1)
+
+
+@pytest.mark.parametrize(
+    "other",
+    [
+        3.0,
+        np.float64(3.0),
+        np.array(3),
+        np.array([3]),
+        lambda _: 3,
+        Function(3.0),
+        Function([(0, 3), (1, 3), (2, 3)], interpolation="linear"),
+        Function(
+            [(0, 0, 0, 3), (1, 0, 0, 3), (0, 1, 0, 3), (0, 0, 1, 3), (1, 1, 1, 3)]
+        ),
+        lambda x, y, z: 3,
+        Function(lambda x, y, z: 3),
+    ],
+)
+def test_nd_function_arithmetic_add(other):
+    """Test the add operation of the Function class with ND functions."""
+    func_lambda = Function(lambda x, y, z: x + y + z)
+    func_array = Function(
+        [(0, 0, 0, 0), (1, 0, 0, 1), (0, 1, 0, 1), (0, 0, 1, 1), (1, 1, 1, 3)]
+    )
+
+    assert np.isclose((func_lambda + other)(1, 0, 0), 4)
+    assert np.isclose((func_array + other)(1, 0, 0), 4)
+    assert np.isclose((other + func_lambda)(1, 0, 0), 4)
+    assert np.isclose((other + func_array)(1, 0, 0), 4)
+
+
+@pytest.mark.parametrize(
+    "other",
+    [
+        3.0,
+        np.float64(3.0),
+        np.array(3),
+        np.array([3]),
+        lambda _: 3,
+        Function(3.0),
+        Function([(0, 3), (1, 3), (2, 3)], interpolation="linear"),
+        Function(
+            [(0, 0, 0, 3), (1, 0, 0, 3), (0, 1, 0, 3), (0, 0, 1, 3), (1, 1, 1, 3)]
+        ),
+        lambda x, y, z: 3,
+        Function(lambda x, y, z: 3),
+    ],
+)
+def test_nd_function_arithmetic_sub(other):
+    """Test the sub operation of the Function class with ND functions."""
+    func_lambda = Function(lambda x, y, z: x + y + z)
+    func_array = Function(
+        [(0, 0, 0, 0), (1, 0, 0, 1), (0, 1, 0, 1), (0, 0, 1, 1), (1, 1, 1, 3)]
+    )
+
+    assert np.isclose((func_lambda - other)(1, 0, 0), -2)
+    assert np.isclose((func_array - other)(1, 0, 0), -2)
+    assert np.isclose((other - func_lambda)(1, 0, 0), 2)
+    assert np.isclose((other - func_array)(1, 0, 0), 2)
+
+
+@pytest.mark.parametrize(
+    "other",
+    [
+        3.0,
+        np.float64(3.0),
+        np.array(3),
+        np.array([3]),
+        lambda _: 3,
+        Function(3.0),
+        Function([(0, 3), (1, 3), (2, 3)], interpolation="linear"),
+        Function(
+            [(0, 0, 0, 3), (1, 0, 0, 3), (0, 1, 0, 3), (0, 0, 1, 3), (1, 1, 1, 3)]
+        ),
+        lambda x, y, z: 3,
+        Function(lambda x, y, z: 3),
+    ],
+)
+def test_nd_function_arithmetic_mul(other):
+    """Test the mul operation of the Function class with ND functions."""
+    func_lambda = Function(lambda x, y, z: x + y + z)
+    func_array = Function(
+        [(0, 0, 0, 0), (1, 0, 0, 1), (0, 1, 0, 1), (0, 0, 1, 1), (1, 1, 1, 3)]
+    )
+
+    assert np.isclose((func_lambda * other)(1, 0, 0), 3)
+    assert np.isclose((func_array * other)(1, 0, 0), 3)
+    assert np.isclose((other * func_lambda)(1, 0, 0), 3)
+    assert np.isclose((other * func_array)(1, 0, 0), 3)
+
+
+@pytest.mark.parametrize(
+    "other",
+    [
+        3.0,
+        np.float64(3.0),
+        np.array(3),
+        np.array([3]),
+        lambda _: 3,
+        Function(3.0),
+        Function([(0, 3), (1, 3), (2, 3)], interpolation="linear"),
+        Function(
+            [(0, 0, 0, 3), (1, 0, 0, 3), (0, 1, 0, 3), (0, 0, 1, 3), (1, 1, 1, 3)]
+        ),
+        lambda x, y, z: 3,
+        Function(lambda x, y, z: 3),
+    ],
+)
+def test_nd_function_arithmetic_div(other):
+    """Test the div operation of the Function class with ND functions."""
+    func_lambda = Function(lambda x, y, z: x + y + z)
+    func_array = Function(
+        [(0, 0, 0, 0), (1, 0, 0, 1), (0, 1, 0, 1), (0, 0, 1, 1), (1, 1, 1, 3)]
+    )
+
+    assert np.isclose((func_lambda / other)(1, 0, 0), 1 / 3)
+    assert np.isclose((func_array / other)(1, 0, 0), 1 / 3)
+    assert np.isclose((other / func_lambda)(1, 0, 0), 3)
+    assert np.isclose((other / func_array)(1, 0, 0), 3)
+
+
+@pytest.mark.parametrize(
+    "other",
+    [
+        3.0,
+        np.float64(3.0),
+        np.array(3),
+        np.array([3]),
+        lambda _: 3,
+        Function(3.0),
+        Function([(0, 3), (1, 3), (2, 3)], interpolation="linear"),
+        Function(
+            [(0, 0, 0, 3), (1, 0, 0, 3), (0, 1, 0, 3), (0, 0, 1, 3), (1, 1, 1, 3)]
+        ),
+        lambda x, y, z: 3,
+        Function(lambda x, y, z: 3),
+    ],
+)
+def test_nd_function_arithmetic_pow(other):
+    """Test the pow operation of the Function class with ND functions."""
+    func_lambda = Function(lambda x, y, z: x + y + z)
+    func_array = Function(
+        [(0, 0, 0, 0), (1, 0, 0, 1), (0, 1, 0, 1), (0, 0, 1, 1), (1, 1, 1, 3)]
+    )
+
+    assert np.isclose((func_lambda**other)(1, 0, 0), 1)
+    assert np.isclose((func_array**other)(1, 0, 0), 1)
+    assert np.isclose((other**func_lambda)(1, 0, 0), 3)
+    assert np.isclose((other**func_array)(1, 0, 0), 3)
+
+
+@pytest.mark.parametrize(
+    "other",
+    [
+        3.0,
+        np.float64(3.0),
+        np.array(3),
+        np.array([3]),
+        lambda _: 3,
+        Function(3.0),
+        Function([(0, 3), (1, 3), (2, 3)], interpolation="linear"),
+        Function(
+            [(0, 0, 0, 3), (1, 0, 0, 3), (0, 1, 0, 3), (0, 0, 1, 3), (1, 1, 1, 3)]
+        ),
+        lambda x, y, z: 3,
+        Function(lambda x, y, z: 3),
+    ],
+)
+def test_nd_function_arithmetic_mod(other):
+    """Test the mod operation of the Function class with ND functions."""
+    func_lambda = Function(lambda x, y, z: x + y + z)
+    func_array = Function(
+        [(0, 0, 0, 0), (1, 0, 0, 1), (0, 1, 0, 1), (0, 0, 1, 1), (1, 1, 1, 3)]
+    )
+
+    assert np.isclose((func_lambda % other)(1, 0, 0), 1)
+    assert np.isclose((func_array % other)(1, 0, 0), 1)
 
 
 @pytest.mark.parametrize("alpha", [0.1, 0.5, 0.9])
