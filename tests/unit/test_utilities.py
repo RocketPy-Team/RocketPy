@@ -279,19 +279,15 @@ def test_list_motors_dataset():
         assert motor in motors
 
 
-import pdb
-
-
 def test_load_motor_from_dataset():
-    """Tests if the load_motor_from_dataset function correctly loads a motor from the dataset.
-
-    Parameters
-    ----------
-    motor_name : str
-        The name of the motor to be loaded.
-    """
+    """Tests if the load_motor_from_dataset function correctly loads a motor from the dataset."""
     motor_name = "AeroTech_HP-L1000W"
     motor = utilities.load_motor_from_dataset(motor_name)
 
     assert motor is not None
     assert isinstance(motor, GenericMotor)
+
+
+def test_show_motors_dataset():
+    """Tests if the show_motors_dataset function doesn't raise any error."""
+    utilities.show_motors_dataset()
