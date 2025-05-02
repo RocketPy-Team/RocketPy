@@ -815,3 +815,33 @@ def load_motor_from_dataset(motor_name):
 
     with resources.as_file(found[0]) as f:
         return GenericMotor.load_from_eng_file(str(f))
+
+
+def show_motors_dataset():
+    """
+    Prints the list of available pre-registered motors included in the rocketpy dataset.
+
+    Useful for quick inspection in terminal or notebooks.
+
+    To load a motor as a genericmotor object, use:
+        load_motor_from_dataset('motor_name')
+
+    Returns
+    -------
+    None
+        This function does not return anything. it simply prints the available motors.
+    """
+    motors = list_motors_dataset()
+    if not motors:
+        print("No motors were found in the dataset.")
+        return
+
+    print("Available motors in the dataset:\n")
+    for name in sorted(motors):
+        print(f"{name}")
+
+    print("\nTo inspect motor details, check the .eng files in the directory:")
+    print("rocketpy/datasets/motors/")
+
+    print("\nTo load a motor as a GenericMotor object, use:")
+    print("load_motor_from_dataset('motor_name')")
