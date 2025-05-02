@@ -838,7 +838,7 @@ def show_motors_dataset():
         print("No motors were found in the dataset.")
         return
 
-    print("Available motors in the dataset:\n")
+    print(f"There are {len(motors)} available motors in the dataset:\n")
     for name in sorted(motors):
         print(f"{name}")
 
