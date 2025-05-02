@@ -768,6 +768,8 @@ def list_motors_dataset():
     """
     Lists all motors available in the rocketpy/datasets/motors folder in the .eng format.
 
+    To load a specific motor, use 'load_motor_from_dataset(motor_name)'.
+
     Returns
     -------
     list
