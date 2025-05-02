@@ -766,10 +766,20 @@ def load_from_rpy(filename: str, resimulate=False):
 
 def list_motors_dataset():
     """
-    Lists all motors available in the data/ folder in the .eng format.
+    Lists all motors available in the rocketpy/datasets/motors folder in the .eng format.
+
+    Returns
+    -------
+    list
+        List of motor names available in the dataset.
+
+    Raises
+    ------
+    ImportError
+        If the motors dataset is not found.
     """
     try:
-        motors_package = resources.files("data.motors")
+        motors_package = resources.files("rocketpy.datasets.motors")
         return [f.stem for f in motors_package.rglob("*.eng")]
     except ModuleNotFoundError:
         raise ImportError("The motors dataset was not found.")
@@ -777,8 +787,8 @@ def list_motors_dataset():
 
 def load_motor_from_dataset(motor_name):
     """
-    Loads a motor from the dataset in the data/motors/ folder in the .eng format.
-    The motor name should be the name of the file without the .eng extension.
+    Loads a motor from the dataset in the rocketpy/datasets/motors folder in the .eng format.
+    To see all available motors, the list_motors_dataset() function is available.
 
     Parameters
     ----------
@@ -790,13 +800,13 @@ def load_motor_from_dataset(motor_name):
     rocketpy.GenericMotor
         The loaded motor object.
     """
-    motors_package = resources.files("data.motors")
+    motors_package = resources.files("rocketpy.datasets.motors")
     found = list(motors_package.rglob(f"{motor_name}.eng"))
 
     if len(found) == 0:
         raise FileNotFoundError(
             f"Motor '{motor_name}' not found in dataset. "
-            "Use list_motor_dataset() to see available names."
+            "Use list_motor_dataset() to see available motor names."
         )
     elif len(found) > 1:
         raise RuntimeError(
