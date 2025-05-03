@@ -302,7 +302,7 @@ class SolidMotor(Motor):
             "nozzle_to_combustion_chamber".
         only_radial_burn : boolean, optional
             If True, inhibits the grain from burning axially, only computing
-            radial burn. Otherwise, if False, allows the grain to also burn 
+            radial burn. Otherwise, if False, allows the grain to also burn
             axially. May be useful for axially inhibited grains or hybrid motors.
             Default is False.
 
@@ -343,10 +343,11 @@ class SolidMotor(Motor):
         )
         self.grain_initial_mass = self.grain_density * self.grain_initial_volume
 
-        self.evaluate_geometry()
-
         # Burn surface definition
         self.only_radial_burn = only_radial_burn
+
+        self.evaluate_geometry()
+
         # Initialize plots and prints object
         self.prints = _SolidMotorPrints(self)
         self.plots = _SolidMotorPlots(self)
@@ -489,6 +490,10 @@ class SolidMotor(Motor):
             grain_inner_radius, grain_height = y
             if self.only_radial_burn:
                 burn_area = 2 * np.pi * (grain_inner_radius * grain_height)
+
+                grain_inner_radius_derivative = -volume_diff / burn_area
+                grain_height_derivative = 0
+
             else:
                 burn_area = (
                     2
@@ -500,8 +505,8 @@ class SolidMotor(Motor):
                     )
                 )
 
-            grain_inner_radius_derivative = -volume_diff / burn_area
-            grain_height_derivative = -2 * grain_inner_radius_derivative
+                grain_inner_radius_derivative = -volume_diff / burn_area
+                grain_height_derivative = -2 * grain_inner_radius_derivative
 
             return [grain_inner_radius_derivative, grain_height_derivative]
 
@@ -520,7 +525,7 @@ class SolidMotor(Motor):
                 inner_radius_derivative_wrt_inner_radius = factor * (
                     grain_height - 2 * grain_inner_radius
                 )
-                inner_radius_derivative_wrt_height = factor * grain_inner_radius
+                inner_radius_derivative_wrt_height = 0
                 height_derivative_wrt_inner_radius = 0
                 height_derivative_wrt_height = 0
 
