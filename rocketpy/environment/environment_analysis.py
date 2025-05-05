@@ -2885,3 +2885,25 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
         file.write(encoded_class)
         file.close()
         print("Your Environment Analysis file was saved, check it out: " + filename)
+
+    def env(
+        self, gravity=None, date=None, datum="SIRGAS2000", max_expected_height=80000.0
+    ):
+        env = Environment(
+            gravity,
+            date,
+            self.latitude,
+            self.longitude,
+            self.converted_elevation,
+            datum,
+            self.preferred_timezone,
+            max_expected_height,
+        )
+        env.set_atmospheric_model(
+            type="custom_atmosphere",
+            pressure=list(zip(self.altitude_list, self.average_pressure_profile)),
+            temperature=list(zip(self.altitude_list, self.average_temperature_profile)),
+            wind_u=list(zip(self.altitude_list, self.average_wind_velocity_x_profile)),
+            wind_v=list(zip(self.altitude_list, self.average_wind_velocity_y_profile)),
+        )
+        return env
