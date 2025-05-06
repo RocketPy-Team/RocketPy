@@ -766,9 +766,7 @@ def load_from_rpy(filename: str, resimulate=False):
 
 def list_motors_dataset():
     """
-    Lists all motors available in the rocketpy/datasets/motors folder in the .eng format.
-
-    To load a specific motor, use 'load_motor_from_dataset(motor_name)'.
+    Lists all motors available in the .eng format in RocketPy's dataset, located in ``rocketpy/datasets/motors``.
 
     Returns
     -------
@@ -779,6 +777,10 @@ def list_motors_dataset():
     ------
     ImportError
         If the motors dataset is not found.
+
+    Notes
+    -----
+    To load a specific motor, use :func:`load_motor_from_dataset`.
     """
     try:
         motors_package = resources.files("rocketpy.datasets.motors")
@@ -789,8 +791,7 @@ def list_motors_dataset():
 
 def load_motor_from_dataset(motor_name):
     """
-    Loads a motor from the dataset in the rocketpy/datasets/motors folder in the .eng format.
-    To see all available motors, the list_motors_dataset() function is available.
+    Loads a motor from the pre-registered motors included in RocketPy's dataset, located in ``rocketpy/datasets/motors``.
 
     Parameters
     ----------
@@ -801,6 +802,10 @@ def load_motor_from_dataset(motor_name):
     -------
     rocketpy.GenericMotor
         The loaded motor object.
+
+    Notes
+    -----
+    To get a list of all available motors, use :func:`list_motors_dataset`.
     """
     motors_package = resources.files("rocketpy.datasets.motors")
     found = list(motors_package.rglob(f"{motor_name}.eng"))
@@ -821,17 +826,17 @@ def load_motor_from_dataset(motor_name):
 
 def show_motors_dataset():
     """
-    Prints the list of available pre-registered motors included in the rocketpy dataset.
-
+    Prints the list of available pre-registered motors included in RocketPy's dataset, located in ``rocketpy/datasets/motors``.
     Useful for quick inspection in terminal or notebooks.
-
-    To load a motor as a genericmotor object, use:
-        load_motor_from_dataset('motor_name')
 
     Returns
     -------
     None
         This function does not return anything. it simply prints the available motors.
+
+    Notes
+    -----
+    To load a specific motor, use :func:`load_motor_from_dataset`.
     """
     motors = list_motors_dataset()
     if not motors:
