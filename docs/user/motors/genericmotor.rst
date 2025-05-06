@@ -66,12 +66,13 @@ See more details in the
     accurate results, use the ``SolidMotor``, ``HybridMotor`` or ``LiquidMotor`` classes.
 
 
+.. _load_from_eng_file:
+
 The ``load_from_eng_file`` method
 ---------------------------------
 
 The ``GenericMotor`` class has a method called ``load_from_eng_file`` that allows
 the user to build a GenericMotor object by providing just the path to an .eng file.
-
 The parameters available in the method are the same as the ones used in the
 constructor of the GenericMotor class. But the method will automatically read
 the .eng file and extract the required information if the user does not
@@ -105,4 +106,64 @@ note that the user can still provide the parameters manually if needed.
 
   The ``load_from_eng_file`` method is a very useful tool for simulating motors \
   when the user does not have all the information required to build a ``SolidMotor`` yet.
+
+
+The ``list_motors_dataset`` function
+------------------------------------
+
+RocketPy includes a set of pre-registered solid rocket motors in the ``.eng`` format,
+which are stored in the ``rocketpy/datasets/motors/`` directory. These motors can be used
+directly to create ``GenericMotor`` objects, making it easier to get started with simulations
+without needing to search for external motor files.
+
+The ``list_motors_dataset`` function allows users to quickly inspect which pre-registered
+motors are currently available. It returns a list of motor names that can be used with
+the ``load_motor_from_dataset`` function.
+
+.. jupyter-execute::
+
+    from rocketpy.utilities import list_motors_dataset
+
+    # List all available motors in the dataset
+    motors = list_motors_dataset()
+    print(motors)
+
+
+The ``load_motor_from_dataset`` function
+----------------------------------------
+
+The ``load_motor_from_dataset`` function loads a pre-registered motor by name,
+returning a ``GenericMotor`` object. 
+
+Internally, it uses the ``load_from_eng_file``
+method from the ``GenericMotor`` class to parse the corresponding ``.eng`` file.
+Therefore, it applies the same assumptions described previously in the
+:ref:`load_from_eng_file <load_from_eng_file>` section. This includes default values for parameters such as
+``chamber_radius``, ``nozzle_radius``, and ``dry_mass``.
+
+.. jupyter-execute::
+
+    from rocketpy.utilities import load_motor_from_dataset
+
+    # Load a motor using its dataset name
+    motor = load_motor_from_dataset("Cesaroni_M1670")
+
+    # Print motor info
+    motor.info()
+
+
+The ``show_motors_dataset`` function
+-----------------------------------------
+
+The ``show_motors_dataset`` function is a utility that prints the list of
+available pre-registered motors directly to the terminal or notebook output,
+including how many motors are available.
+It is helpful for quick visual inspection when an explicit return value is not needed.
+
+.. jupyter-execute::
+
+    from rocketpy.utilities import show_motors_dataset
+
+    # Show the list of available motors (prints to output)
+    show_motors_dataset()
 
