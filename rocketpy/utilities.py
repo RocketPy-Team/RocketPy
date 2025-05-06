@@ -5,22 +5,21 @@ import os
 import traceback
 import warnings
 from datetime import date
+from importlib import resources
 from importlib.metadata import version
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.integrate import solve_ivp
-from importlib import resources
 
+from rocketpy.motors import GenericMotor
 from ._encoders import RocketPyDecoder, RocketPyEncoder
 from .environment.environment import Environment
 from .mathutils.function import Function
 from .plots.plot_helpers import show_or_save_plot
 from .rocket.aero_surface import TrapezoidalFins
 from .simulation.flight import Flight
-from ._encoders import RocketPyEncoder, RocketPyDecoder
-from rocketpy.motors import GenericMotor
 
 
 def compute_cd_s_from_drop_test(
@@ -785,8 +784,8 @@ def list_motors_dataset():
     try:
         motors_package = resources.files("rocketpy.datasets.motors")
         return [f.stem for f in motors_package.rglob("*.eng")]
-    except ModuleNotFoundError:
-        raise ImportError("The motors dataset was not found.")
+    except ModuleNotFoundError as exc:
+        raise ImportError("The motors dataset was not found.") from exc
 
 
 def load_motor_from_dataset(motor_name):
