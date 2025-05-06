@@ -5,6 +5,7 @@ import os
 import traceback
 import warnings
 from datetime import date
+from importlib import resources
 from importlib.metadata import version
 from pathlib import Path
 
@@ -12,6 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.integrate import solve_ivp
 
+from rocketpy.motors import GenericMotor
 from ._encoders import RocketPyDecoder, RocketPyEncoder
 from .environment.environment import Environment
 from .mathutils.function import Function
@@ -759,3 +761,93 @@ def load_from_rpy(filename: str, resimulate=False):
         simulation = json.dumps(data["simulation"])
         flight = json.loads(simulation, cls=RocketPyDecoder, resimulate=resimulate)
     return flight
+
+
+def list_motors_dataset():
+    """
+    Lists all motors available in the .eng format in RocketPy's dataset, located in ``rocketpy/datasets/motors``.
+
+    Returns
+    -------
+    list
+        List of motor names available in the dataset.
+
+    Raises
+    ------
+    ImportError
+        If the motors dataset is not found.
+
+    Notes
+    -----
+    To load a specific motor, use :func:`load_motor_from_dataset`.
+    """
+    try:
+        motors_package = resources.files("rocketpy.datasets.motors")
+        return [f.stem for f in motors_package.rglob("*.eng")]
+    except ModuleNotFoundError as exc:
+        raise ImportError("The motors dataset was not found.") from exc
+
+
+def load_motor_from_dataset(motor_name):
+    """
+    Loads a motor from the pre-registered motors included in RocketPy's dataset, located in ``rocketpy/datasets/motors``.
+
+    Parameters
+    ----------
+    motor_name : str
+        The name of the motor to be loaded.
+
+    Returns
+    -------
+    rocketpy.GenericMotor
+        The loaded motor object.
+
+    Notes
+    -----
+    To get a list of all available motors, use :func:`list_motors_dataset`.
+    """
+    motors_package = resources.files("rocketpy.datasets.motors")
+    found = list(motors_package.rglob(f"{motor_name}.eng"))
+
+    if len(found) == 0:
+        raise FileNotFoundError(
+            f"Motor '{motor_name}' not found in dataset. "
+            "Use list_motor_dataset() to see available motor names."
+        )
+    elif len(found) > 1:
+        raise RuntimeError(
+            f"Multiple files found for motor '{motor_name}'. Please ensure unique names."
+        )
+
+    with resources.as_file(found[0]) as f:
+        return GenericMotor.load_from_eng_file(str(f))
+
+
+def show_motors_dataset():
+    """
+    Prints the list of available pre-registered motors included in RocketPy's dataset, located in ``rocketpy/datasets/motors``.
+    Useful for quick inspection in terminal or notebooks.
+
+    Returns
+    -------
+    None
+        This function does not return anything. it simply prints the available motors.
+
+    Notes
+    -----
+    To load a specific motor, use :func:`load_motor_from_dataset`.
+    """
+    motors = list_motors_dataset()
+    if not motors:
+        print("No motors were found in the dataset.")
+        return
+
+    print(f"There are {len(motors)} available motors in the dataset:\n")
+    for name in sorted(motors):
+        print(f"{name}")
+
+    print("\nTo inspect motor details, check the .eng files in the directory:")
+    print("rocketpy/datasets/motors/")
+
+    print("\nTo load a motor as a GenericMotor object, use:")
+    print("load_motor_from_dataset('motor_name')")
