@@ -36,6 +36,7 @@ Attention: The newest changes should be on top -->
 - ENH: Create a rocketpy file to store flight simulations [#800](https://github.com/RocketPy-Team/RocketPy/pull/800)
 - ENH: Support for the RSE file format has been added to the library [#798](https://github.com/RocketPy-Team/RocketPy/pull/798)
 - ENH: Introduce Net Thrust with pressure corrections [#789](https://github.com/RocketPy-Team/RocketPy/pull/789)
+- ENH: Create a dataset of pre-registered motors [#814](https://github.com/RocketPy-Team/RocketPy/pull/814)
 
 ### Changed
 
