@@ -2885,3 +2885,59 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
         file.write(encoded_class)
         file.close()
         print("Your Environment Analysis file was saved, check it out: " + filename)
+
+    def get_environment_object(
+        self, gravity=None, date=None, datum="SIRGAS2000", max_expected_height=80000.0
+    ):
+        """Creates an Environment object with the data from the Environment Analysis instance.
+        It uses the average values from the data.
+
+        Parameters
+        ----------
+        gravity : int, float, callable, string, array, optional
+            Surface gravitational acceleration. Positive values point the
+            acceleration down. If None, the Somigliana formula is used.
+            See :meth:`Environment.set_gravity_model` for more information.
+        date : list or tuple, optional
+            List or tuple of length 4, stating (year, month, day, hour) in the
+            time zone used in the Environment Analysis instance.
+            Alternatively, can be a ``datetime`` object specifying launch
+            date and time. The dates are stored as follows:
+
+            - :attr:`Environment.local_date`: Local time of launch in
+              the time zone specified in the Environment Analysis instance.
+
+            - :attr:`Environment.datetime_date`: UTC time of launch.
+
+            Default is None.
+            See :meth:`Environment.set_date` for more information.
+        datum : string, optional
+            The desired reference ellipsoidal model, the following options are
+            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
+            is "SIRGAS2000".
+        max_expected_height : float, optional
+            Maximum altitude in meters to keep weather data. The altitude must
+            be above sea level (ASL). Especially useful for visualization. Can
+            be altered as desired by running ``max_expected_height = number``.
+        """
+        env = Environment(
+            gravity,
+            date,
+            self.latitude,
+            self.longitude,
+            self.converted_elevation,
+            datum,
+            self.preferred_timezone,
+            max_expected_height,
+        )
+        # Using linear regression to get a valid pressure profile
+        coefficients = np.polyfit(self.altitude_list, self.average_pressure_profile, 1)
+        pressure_profile = coefficients[0] + coefficients[1] * self.altitude_list
+        env.set_atmospheric_model(
+            type="custom_atmosphere",
+            pressure=list(zip(self.altitude_list, pressure_profile)),
+            temperature=list(zip(self.altitude_list, self.average_temperature_profile)),
+            wind_u=list(zip(self.altitude_list, self.average_wind_velocity_x_profile)),
+            wind_v=list(zip(self.altitude_list, self.average_wind_velocity_y_profile)),
+        )
+        return env
