@@ -2889,6 +2889,37 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
     def get_environment_object(
         self, gravity=None, date=None, datum="SIRGAS2000", max_expected_height=80000.0
     ):
+        """Creates an Environment object with the data from the Environment Analysis instance.
+        It uses the average values from the data.
+
+        Parameters
+        ----------
+        gravity : int, float, callable, string, array, optional
+            Surface gravitational acceleration. Positive values point the
+            acceleration down. If None, the Somigliana formula is used.
+            See :meth:`Environment.set_gravity_model` for more information.
+        date : list or tuple, optional
+            List or tuple of length 4, stating (year, month, day, hour) in the
+            time zone used in the Environment Analysis instance.
+            Alternatively, can be a ``datetime`` object specifying launch
+            date and time. The dates are stored as follows:
+
+            - :attr:`Environment.local_date`: Local time of launch in
+              the time zone specified in the Environment Analysis instance.
+
+            - :attr:`Environment.datetime_date`: UTC time of launch.
+
+            Default is None.
+            See :meth:`Environment.set_date` for more information.
+        datum : string, optional
+            The desired reference ellipsoidal model, the following options are
+            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
+            is "SIRGAS2000".
+        max_expected_height : float, optional
+            Maximum altitude in meters to keep weather data. The altitude must
+            be above sea level (ASL). Especially useful for visualization. Can
+            be altered as desired by running ``max_expected_height = number``.
+        """
         env = Environment(
             gravity,
             date,
