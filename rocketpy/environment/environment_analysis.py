@@ -2886,7 +2886,7 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
         file.close()
         print("Your Environment Analysis file was saved, check it out: " + filename)
 
-    def env(
+    def get_environment_object(
         self, gravity=None, date=None, datum="SIRGAS2000", max_expected_height=80000.0
     ):
         env = Environment(
@@ -2899,9 +2899,12 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
             self.preferred_timezone,
             max_expected_height,
         )
+        # Using linear regression to get a valid pressure profile
+        coefficients = np.polyfit(self.altitude_list, self.average_pressure_profile, 1)
+        pressure_profile = coefficients[0] + coefficients[1] * self.altitude_list
         env.set_atmospheric_model(
             type="custom_atmosphere",
-            pressure=list(zip(self.altitude_list, self.average_pressure_profile)),
+            pressure=list(zip(self.altitude_list, pressure_profile)),
             temperature=list(zip(self.altitude_list, self.average_temperature_profile)),
             wind_u=list(zip(self.altitude_list, self.average_wind_velocity_x_profile)),
             wind_v=list(zip(self.altitude_list, self.average_wind_velocity_y_profile)),
