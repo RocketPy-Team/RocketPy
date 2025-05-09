@@ -2920,24 +2920,40 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
             be above sea level (ASL). Especially useful for visualization. Can
             be altered as desired by running ``max_expected_height = number``.
         """
+        elevation_si = convert_units(
+            self.converted_elevation, self.unit_system["length"], "m"
+        )
+        altitude_si = convert_units(self.altitude_list, self.unit_system["length"], "m")
+        pressure_si = convert_units(
+            self.average_pressure_profile, self.unit_system["pressure"], "Pa"
+        )
+        temperature_si = convert_units(
+            self.average_temperature_profile, self.unit_system["temperature"], "K"
+        )
+        wind_velocity_x_si = convert_units(
+            self.average_wind_velocity_x_profile, self.unit_system["wind_speed"], "m/s"
+        )
+        wind_velocity_y_si = convert_units(
+            self.average_wind_velocity_y_profile, self.unit_system["wind_speed"], "m/s"
+        )
         env = Environment(
             gravity,
             date,
             self.latitude,
             self.longitude,
-            self.converted_elevation,
+            elevation_si,
             datum,
             self.preferred_timezone,
             max_expected_height,
         )
         # Using linear regression to get a valid pressure profile
-        coefficients = np.polyfit(self.altitude_list, self.average_pressure_profile, 1)
+        coefficients = np.polyfit(altitude_si, pressure_si, 1)
         pressure_profile = coefficients[0] + coefficients[1] * self.altitude_list
         env.set_atmospheric_model(
             type="custom_atmosphere",
-            pressure=list(zip(self.altitude_list, pressure_profile)),
-            temperature=list(zip(self.altitude_list, self.average_temperature_profile)),
-            wind_u=list(zip(self.altitude_list, self.average_wind_velocity_x_profile)),
-            wind_v=list(zip(self.altitude_list, self.average_wind_velocity_y_profile)),
+            pressure=list(zip(altitude_si, pressure_profile)),
+            temperature=list(zip(altitude_si, temperature_si)),
+            wind_u=list(zip(altitude_si, wind_velocity_x_si)),
+            wind_v=list(zip(altitude_si, wind_velocity_y_si)),
         )
         return env
