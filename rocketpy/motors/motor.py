@@ -878,7 +878,8 @@ class Motor(ABC):
     def reshape_thrust_curve(thrust, new_burn_time, total_impulse):
         """Transforms the thrust curve supplied by changing its total
         burn time and/or its total impulse, without altering the
-        general shape of the curve.
+        general shape of the curve. This method does not mutate the original
+        object, it only returns a new thrust curve.
 
         Parameters
         ----------
@@ -893,6 +894,10 @@ class Motor(ABC):
         -------
         Function
             Reshaped thrust curve.
+
+        Tip
+        ---
+        See the User Guide page for examples on how to use this method.
         """
         # Retrieve current thrust curve data points
         time_array, thrust_array = thrust.x_array, thrust.y_array
@@ -1163,6 +1168,7 @@ class Motor(ABC):
         self.plots.all()
 
 
+# TODO: move this class to a separate file, needs a breaking change warning
 class GenericMotor(Motor):
     """Class that represents a simple motor defined mainly by its thrust curve.
     There is no distinction between the propellant types (e.g. Solid, Liquid).
@@ -1601,56 +1607,3 @@ class GenericMotor(Motor):
             nozzle_position=data["nozzle_position"],
             interpolation_method=data["interpolate"],
         )
-
-
-class EmptyMotor:
-    """Class that represents an empty motor with no mass and no thrust."""
-
-    # TODO: This is a temporary solution. It should be replaced by a class that
-    # inherits from the abstract Motor class. Currently cannot be done easily.
-    # pylint: disable=too-many-statements
-    def __init__(self):
-        """Initializes an empty motor with no mass and no thrust.
-
-        Notes
-        -----
-        This class is a temporary solution to the problem of having a motor
-        with no mass and no thrust. It should be replaced by a class that
-        inherits from the abstract Motor class. Currently cannot be done easily.
-        """
-        self._csys = 1
-        self.dry_mass = 0
-        self.nozzle_radius = 0
-        self.thrust = Function(0, "Time (s)", "Thrust (N)")
-        self.propellant_mass = Function(0, "Time (s)", "Propellant Mass (kg)")
-        self.propellant_initial_mass = 0
-        self.total_mass = Function(0, "Time (s)", "Total Mass (kg)")
-        self.total_mass_flow_rate = Function(
-            0, "Time (s)", "Mass Depletion Rate (kg/s)"
-        )
-        self.burn_out_time = 1
-        self.nozzle_position = 0
-        self.nozzle_radius = 0
-        self.center_of_dry_mass_position = 0
-        self.center_of_propellant_mass = Function(
-            0, "Time (s)", "Center of Propellant Mass (kg)"
-        )
-        self.center_of_mass = Function(0, "Time (s)", "Center of Mass (kg)")
-        self.dry_I_11 = 0
-        self.dry_I_22 = 0
-        self.dry_I_33 = 0
-        self.dry_I_12 = 0
-        self.dry_I_13 = 0
-        self.dry_I_23 = 0
-        self.propellant_I_11 = Function(0, "Time (s)", "Propellant I_11 (kg m²)")
-        self.propellant_I_22 = Function(0, "Time (s)", "Propellant I_22 (kg m²)")
-        self.propellant_I_33 = Function(0, "Time (s)", "Propellant I_33 (kg m²)")
-        self.propellant_I_12 = Function(0, "Time (s)", "Propellant I_12 (kg m²)")
-        self.propellant_I_13 = Function(0, "Time (s)", "Propellant I_13 (kg m²)")
-        self.propellant_I_23 = Function(0, "Time (s)", "Propellant I_23 (kg m²)")
-        self.I_11 = Function(0)
-        self.I_22 = Function(0)
-        self.I_33 = Function(0)
-        self.I_12 = Function(0)
-        self.I_13 = Function(0)
-        self.I_23 = Function(0)

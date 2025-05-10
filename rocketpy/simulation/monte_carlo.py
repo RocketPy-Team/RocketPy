@@ -14,8 +14,11 @@ latest documentation.
 """
 
 import json
+import os
+import traceback
 import warnings
-from time import process_time, time
+from pathlib import Path
+from time import time
 
 import numpy as np
 import simplekml
@@ -27,6 +30,7 @@ from rocketpy.simulation.flight import Flight
 from rocketpy.tools import (
     generate_monte_carlo_ellipses,
     generate_monte_carlo_ellipses_coordinates,
+    import_optional_dependency,
 )
 
 # TODO: Create evolution plots to analyze convergence
@@ -136,7 +140,7 @@ class MonteCarlo:
             UserWarning,
         )
 
-        self.filename = filename
+        self.filename = Path(filename)
         self.environment = environment
         self.rocket = rocket
         self.flight = flight
@@ -149,30 +153,23 @@ class MonteCarlo:
         self.processed_results = {}
         self.prints = _MonteCarloPrints(self)
         self.plots = _MonteCarloPlots(self)
-        self._inputs_dict = {}
-        self._last_print_len = 0  # used to print on the same line
 
         self.export_list = self.__check_export_list(export_list)
         self._check_data_collector(data_collector)
         self.data_collector = data_collector
 
-        try:
-            self.import_inputs()
-        except FileNotFoundError:
-            self._input_file = f"{filename}.inputs.txt"
+        self.import_inputs(self.filename.with_suffix(".inputs.txt"))
+        self.import_outputs(self.filename.with_suffix(".outputs.txt"))
+        self.import_errors(self.filename.with_suffix(".errors.txt"))
 
-        try:
-            self.import_outputs()
-        except FileNotFoundError:
-            self._output_file = f"{filename}.outputs.txt"
-
-        try:
-            self.import_errors()
-        except FileNotFoundError:
-            self._error_file = f"{filename}.errors.txt"
-
-    # pylint: disable=consider-using-with
-    def simulate(self, number_of_simulations, append=False, **kwargs):  # pylint: disable=too-many-statements
+    def simulate(
+        self,
+        number_of_simulations,
+        append=False,
+        parallel=False,
+        n_workers=None,
+        **kwargs,
+    ):  # pylint: disable=too-many-statements
         """
         Runs the Monte Carlo simulation and saves all data.
 
@@ -183,6 +180,13 @@ class MonteCarlo:
         append : bool, optional
             If True, the results will be appended to the existing files. If
             False, the files will be overwritten. Default is False.
+        parallel : bool, optional
+            If True, the simulations will be run in parallel. Default is False.
+        n_workers : int, optional
+            Number of workers to be used if ``parallel=True``. If None, the
+            number of workers will be equal to the number of CPUs available.
+            A minimum of 2 workers is required for parallel mode.
+            Default is None.
         kwargs : dict
             Custom arguments for simulation export of the ``inputs`` file. Options
             are:
@@ -214,70 +218,239 @@ class MonteCarlo:
         running the simulation again with `append=False`.
         """
         self._export_config = kwargs
-        # Create data files for inputs, outputs and error logging
-        open_mode = "a" if append else "w"
-        input_file = open(self._input_file, open_mode, encoding="utf-8")
-        output_file = open(self._output_file, open_mode, encoding="utf-8")
-        error_file = open(self._error_file, open_mode, encoding="utf-8")
-
-        # initialize counters
         self.number_of_simulations = number_of_simulations
-        self.__iteration_count = self.num_of_loaded_sims if append else 0
-        self.__start_time = time()
-        self.__start_cpu_time = process_time()
+        self._initial_sim_idx = self.num_of_loaded_sims if append else 0
 
-        # Begin display
-        print("Starting Monte Carlo analysis", end="\r")
+        _SimMonitor.reprint("Starting Monte Carlo analysis")
 
-        try:
-            while self.__iteration_count < self.number_of_simulations:
-                self.__run_single_simulation(input_file, output_file)
-        except KeyboardInterrupt:
-            print("Keyboard Interrupt, files saved.")
-            error_file.write(
-                json.dumps(
-                    self._inputs_dict, cls=RocketPyEncoder, **self._export_config
-                )
-                + "\n"
-            )
-            self.__close_files(input_file, output_file, error_file)
-        except Exception as error:
-            print(f"Error on iteration {self.__iteration_count}: {error}")
-            error_file.write(
-                json.dumps(
-                    self._inputs_dict, cls=RocketPyEncoder, **self._export_config
-                )
-                + "\n"
-            )
-            self.__close_files(input_file, output_file, error_file)
-            raise error
-        finally:
-            self.total_cpu_time = process_time() - self.__start_cpu_time
-            self.total_wall_time = time() - self.__start_time
+        self.__setup_files(append)
 
-        self.__terminate_simulation(input_file, output_file, error_file)
+        if parallel:
+            self.__run_in_parallel(n_workers)
+        else:
+            self.__run_in_serial()
 
-    # Auxiliary methods
+        self.__terminate_simulation()
 
-    def __run_single_simulation(self, input_file, output_file):
+    def __setup_files(self, append):
         """
-        Runs a single simulation and saves the inputs and outputs to the
-        respective files.
+        Sets up the files for the simulation, creating them if necessary.
 
         Parameters
         ----------
-        input_file : str
-            The file object to write the inputs.
-        output_file : str
-            The file object to write the outputs.
+        append : bool
+            If ``True``, the results will be appended to the existing files. If
+            ``False``, the files will be overwritten.
 
         Returns
         -------
         None
         """
-        self.__iteration_count += 1
+        # Create data files for inputs, outputs and error logging
+        open_mode = "r+" if append else "w+"
 
-        monte_carlo_flight = Flight(
+        try:
+            with open(self._input_file, open_mode, encoding="utf-8") as input_file:
+                idx_i = len(input_file.readlines())
+            with open(self._output_file, open_mode, encoding="utf-8") as output_file:
+                idx_o = len(output_file.readlines())
+            with open(self._error_file, open_mode, encoding="utf-8"):
+                pass
+
+            if idx_i != idx_o and not append:
+                warnings.warn(
+                    "Input and output files are not synchronized", UserWarning
+                )
+
+        except OSError as error:
+            raise OSError(f"Error creating files: {error}") from error
+
+    def __run_in_serial(self):
+        """
+        Runs the monte carlo simulation in serial mode.
+
+        Returns
+        -------
+        None
+        """
+        sim_monitor = _SimMonitor(
+            initial_count=self._initial_sim_idx,
+            n_simulations=self.number_of_simulations,
+            start_time=time(),
+        )
+        try:
+            while sim_monitor.keep_simulating():
+                sim_monitor.increment()
+
+                flight = self.__run_single_simulation()
+                inputs_json = self.__evaluate_flight_inputs(sim_monitor.count)
+                outputs_json = self.__evaluate_flight_outputs(flight, sim_monitor.count)
+
+                with open(self.input_file, "a", encoding="utf-8") as f:
+                    f.write(inputs_json)
+                with open(self.output_file, "a", encoding="utf-8") as f:
+                    f.write(outputs_json)
+
+                sim_monitor.print_update_status(sim_monitor.count)
+
+            sim_monitor.print_final_status()
+
+        except KeyboardInterrupt:
+            _SimMonitor.reprint("Keyboard Interrupt, files saved.")
+            with open(self._error_file, "a", encoding="utf-8") as f:
+                f.write(inputs_json)
+
+        except Exception as error:
+            _SimMonitor.reprint(f"Error on iteration {sim_monitor.count}: {error}")
+            with open(self._error_file, "a", encoding="utf-8") as f:
+                f.write(inputs_json)
+            raise error
+
+    def __run_in_parallel(self, n_workers=None):
+        """
+        Runs the monte carlo simulation in parallel.
+
+        Parameters
+        ----------
+        n_workers: int, optional
+            Number of workers to be used. If None, the number of workers
+            will be equal to the number of CPUs available. Default is None.
+
+        Returns
+        -------
+        None
+        """
+        n_workers = self.__validate_number_of_workers(n_workers)
+
+        _SimMonitor.reprint(f"Running Monte Carlo simulation with {n_workers} workers.")
+
+        multiprocess, managers = _import_multiprocess()
+
+        with _create_multiprocess_manager(multiprocess, managers) as manager:
+            mutex = manager.Lock()
+            simulation_error_event = manager.Event()
+            sim_monitor = manager._SimMonitor(
+                initial_count=self._initial_sim_idx,
+                n_simulations=self.number_of_simulations,
+                start_time=time(),
+            )
+
+            processes = []
+            seeds = np.random.SeedSequence().spawn(n_workers)
+
+            for seed in seeds:
+                sim_producer = multiprocess.Process(
+                    target=self.__sim_producer,
+                    args=(
+                        seed,
+                        sim_monitor,
+                        mutex,
+                        simulation_error_event,
+                    ),
+                )
+                processes.append(sim_producer)
+                sim_producer.start()
+
+            try:
+                for sim_producer in processes:
+                    sim_producer.join()
+
+                # Handle error from the child processes
+                if simulation_error_event.is_set():
+                    raise RuntimeError(
+                        "An error occurred during the simulation. \n"
+                        f"Check the logs and error file {self.error_file} "
+                        "for more information."
+                    )
+
+                sim_monitor.print_final_status()
+
+            # Handle error from the main process
+            # pylint: disable=broad-except
+            except (Exception, KeyboardInterrupt) as error:
+                simulation_error_event.set()
+
+                for sim_producer in processes:
+                    sim_producer.join()
+
+                if not isinstance(error, KeyboardInterrupt):
+                    raise error
+
+    def __validate_number_of_workers(self, n_workers):
+        if n_workers is None or n_workers > os.cpu_count():
+            n_workers = os.cpu_count()
+
+        if n_workers < 2:
+            raise ValueError("Number of workers must be at least 2 for parallel mode.")
+        return n_workers
+
+    def __sim_producer(self, seed, sim_monitor, mutex, error_event):  # pylint: disable=too-many-statements
+        """Simulation producer to be used in parallel by multiprocessing.
+
+        Parameters
+        ----------
+        seed : int
+            The seed to set the random number generator.
+        sim_monitor : _SimMonitor
+            The simulation monitor object to keep track of the simulations.
+        mutex : multiprocess.Lock
+            The mutex to lock access to critical regions.
+        error_event : multiprocess.Event
+            Event signaling an error occurred during the simulation.
+        """
+        try:
+            # Ensure Processes generate different random numbers
+            self.environment._set_stochastic(seed)
+            self.rocket._set_stochastic(seed)
+            self.flight._set_stochastic(seed)
+
+            while sim_monitor.keep_simulating():
+                sim_idx = sim_monitor.increment() - 1
+
+                flight = self.__run_single_simulation()
+                inputs_json = self.__evaluate_flight_inputs(sim_idx)
+                outputs_json = self.__evaluate_flight_outputs(flight, sim_idx)
+
+                try:
+                    mutex.acquire()
+                    if error_event.is_set():
+                        sim_monitor.reprint(
+                            "Simulation Interrupt, files from simulation "
+                            f"{sim_idx} saved."
+                        )
+                        with open(self.error_file, "a", encoding="utf-8") as f:
+                            f.write(inputs_json)
+
+                        break
+
+                    with open(self.input_file, "a", encoding="utf-8") as f:
+                        f.write(inputs_json)
+                    with open(self.output_file, "a", encoding="utf-8") as f:
+                        f.write(outputs_json)
+
+                    sim_monitor.print_update_status(sim_idx)
+                finally:
+                    mutex.release()
+
+        except Exception:  # pylint: disable=broad-except
+            mutex.acquire()
+            with open(self.error_file, "a", encoding="utf-8") as f:
+                f.write(inputs_json)
+
+            sim_monitor.reprint(f"Error on iteration {sim_idx}:")
+            sim_monitor.reprint(traceback.format_exc())
+            error_event.set()
+            mutex.release()
+
+    def __run_single_simulation(self):
+        """Runs a single simulation and returns the inputs and outputs.
+
+        Returns
+        -------
+        Flight
+            The flight object of the simulation.
+        """
+        return Flight(
             rocket=self.rocket.create_object(),
             environment=self.environment.create_object(),
             rail_length=self.flight._randomize_rail_length(),
@@ -285,9 +458,23 @@ class MonteCarlo:
             heading=self.flight._randomize_heading(),
             initial_solution=self.flight.initial_solution,
             terminate_on_apogee=self.flight.terminate_on_apogee,
+            time_overshoot=self.flight.time_overshoot,
         )
 
-        self._inputs_dict = dict(
+    def __evaluate_flight_inputs(self, sim_idx):
+        """Evaluates the inputs of a single flight simulation.
+
+        Parameters
+        ----------
+        sim_idx : int
+            The index of the simulation.
+
+        Returns
+        -------
+        str
+            A JSON compatible dictionary with the inputs of the simulation.
+        """
+        inputs_dict = dict(
             item
             for d in [
                 self.environment.last_rnd_dict,
@@ -296,111 +483,29 @@ class MonteCarlo:
             ]
             for item in d.items()
         )
+        inputs_dict["index"] = sim_idx
+        return json.dumps(inputs_dict, cls=RocketPyEncoder) + "\n"
 
-        self.__export_flight_data(
-            flight=monte_carlo_flight,
-            inputs_dict=self._inputs_dict,
-            input_file=input_file,
-            output_file=output_file,
-        )
-
-        average_time = (process_time() - self.__start_cpu_time) / self.__iteration_count
-        estimated_time = int(
-            (self.number_of_simulations - self.__iteration_count) * average_time
-        )
-        self.__reprint(
-            f"Current iteration: {self.__iteration_count:06d} | "
-            f"Average Time per Iteration: {average_time:.3f} s | "
-            f"Estimated time left: {estimated_time} s",
-            end="\r",
-            flush=True,
-        )
-
-    def __close_files(self, input_file, output_file, error_file):
-        """
-        Closes all the files.
-
-        Parameters
-        ----------
-        input_file : str
-            The file object to write the inputs.
-        output_file : str
-            The file object to write the outputs.
-        error_file : str
-            The file object to write the errors.
-
-        Returns
-        -------
-        None
-        """
-        input_file.close()
-        output_file.close()
-        error_file.close()
-
-    def __terminate_simulation(self, input_file, output_file, error_file):
-        """
-        Terminates the simulation, closes the files and prints the results.
-
-        Parameters
-        ----------
-        input_file : str
-            The file object to write the inputs.
-        output_file : str
-            The file object to write the outputs.
-        error_file : str
-            The file object to write the errors.
-
-        Returns
-        -------
-        None
-        """
-        final_string = (
-            f"Completed {self.__iteration_count} iterations. Total CPU time: "
-            f"{process_time() - self.__start_cpu_time:.1f} s. Total wall time: "
-            f"{time() - self.__start_time:.1f} s\n"
-        )
-
-        self.__reprint(final_string + "Saving results.", flush=True)
-
-        # close files to guarantee saving
-        self.__close_files(input_file, output_file, error_file)
-
-        # resave the files on self and calculate post simulation attributes
-        self.input_file = f"{self.filename}.inputs.txt"
-        self.output_file = f"{self.filename}.outputs.txt"
-        self.error_file = f"{self.filename}.errors.txt"
-
-        print(f"Results saved to {self._output_file}")
-
-    def __export_flight_data(
-        self,
-        flight,
-        inputs_dict,
-        input_file,
-        output_file,
-    ):
-        """
-        Exports the flight data to the respective files.
+    def __evaluate_flight_outputs(self, flight, sim_idx):
+        """Evaluates the outputs of a single flight simulation.
 
         Parameters
         ----------
         flight : Flight
-            The Flight object containing the flight data.
-        inputs_dict : dict
-            Dictionary containing the inputs used in the simulation.
-        input_file : str
-            The file object to write the inputs.
-        output_file : str
-            The file object to write the outputs.
+            The flight object to be evaluated.
+        sim_idx : int
+            The index of the simulation.
 
         Returns
         -------
-        None
+        str
+            A JSON compatible dictionary with the outputs of the simulation.
         """
-        results = {
+        outputs_dict = {
             export_item: getattr(flight, export_item)
             for export_item in self.export_list
         }
+        outputs_dict["index"] = sim_idx
 
         if self.data_collector is not None:
             additional_exports = {}
@@ -411,14 +516,24 @@ class MonteCarlo:
                     raise ValueError(
                         f"An error was encountered running 'data_collector' callback {key}. "
                     ) from e
-            results = results | additional_exports
+            outputs_dict = outputs_dict | additional_exports
 
-        input_file.write(
-            json.dumps(inputs_dict, cls=RocketPyEncoder, **self._export_config) + "\n"
-        )
-        output_file.write(
-            json.dumps(results, cls=RocketPyEncoder, **self._export_config) + "\n"
-        )
+        return json.dumps(outputs_dict, cls=RocketPyEncoder) + "\n"
+
+    def __terminate_simulation(self):
+        """
+        Terminates the simulation, closes the files and prints the results.
+
+        Returns
+        -------
+        None
+        """
+        # resave the files on self and calculate post simulation attributes
+        self.input_file = self._input_file
+        self.output_file = self._output_file
+        self.error_file = self._error_file
+
+        _SimMonitor.reprint(f"Results saved to {self._output_file}")
 
     def __check_export_list(self, export_list):
         """
@@ -553,35 +668,6 @@ class MonteCarlo:
                         f"Invalid value in 'data_collector' for key '{key}'! "
                         "Values must be python callables (callback functions)."
                     )
-
-    def __reprint(self, msg, end="\n", flush=False):
-        """
-        Prints a message on the same line as the previous one and replaces the
-        previous message with the new one, deleting the extra characters from
-        the previous message.
-
-        Parameters
-        ----------
-        msg : str
-            Message to be printed.
-        end : str, optional
-            String appended after the message. Default is a new line.
-        flush : bool, optional
-            If True, the output is flushed. Default is False.
-
-        Returns
-        -------
-        None
-        """
-        len_msg = len(msg)
-        if len_msg < self._last_print_len:
-            msg += " " * (self._last_print_len - len_msg)
-        else:
-            self._last_print_len = len_msg
-
-        print(msg, end=end, flush=flush)
-
-    # Properties and setters
 
     @property
     def input_file(self):
@@ -779,16 +865,16 @@ class MonteCarlo:
         file without the need to run simulations. You can use previously saved
         files to process analyze the results or to continue a simulation.
         """
-        filepath = filename if filename else self.filename
+        filepath = filename if filename else self.filename.with_suffix(".outputs.txt")
 
         try:
-            with open(f"{filepath}.outputs.txt", "r+", encoding="utf-8"):
-                self.output_file = f"{filepath}.outputs.txt"
-        except FileNotFoundError:
             with open(filepath, "r+", encoding="utf-8"):
                 self.output_file = filepath
+        except FileNotFoundError:
+            with open(filepath, "w+", encoding="utf-8"):
+                self.output_file = filepath
 
-        print(
+        _SimMonitor.reprint(
             f"A total of {self.num_of_loaded_sims} simulations results were "
             f"loaded from the following output file: {self.output_file}\n"
         )
@@ -807,16 +893,16 @@ class MonteCarlo:
         -------
         None
         """
-        filepath = filename if filename else self.filename
+        filepath = filename if filename else self.filename.with_suffix(".inputs.txt")
 
         try:
-            with open(f"{filepath}.inputs.txt", "r+", encoding="utf-8"):
-                self.input_file = f"{filepath}.inputs.txt"
-        except FileNotFoundError:
             with open(filepath, "r+", encoding="utf-8"):
                 self.input_file = filepath
+        except FileNotFoundError:
+            with open(filepath, "w+", encoding="utf-8"):
+                self.input_file = filepath
 
-        print(f"The following input file was imported: {self.input_file}")
+        _SimMonitor.reprint(f"The following input file was imported: {self.input_file}")
 
     def import_errors(self, filename=None):
         """
@@ -832,15 +918,16 @@ class MonteCarlo:
         -------
         None
         """
-        filepath = filename if filename else self.filename
+        filepath = filename if filename else self.filename.with_suffix(".errors.txt")
 
         try:
-            with open(f"{filepath}.errors.txt", "r+", encoding="utf-8"):
-                self.error_file = f"{filepath}.errors.txt"
-        except FileNotFoundError:
             with open(filepath, "r+", encoding="utf-8"):
                 self.error_file = filepath
-        print(f"The following error file was imported: {self.error_file}")
+        except FileNotFoundError:
+            with open(filepath, "w+", encoding="utf-8"):
+                self.error_file = filepath
+
+        _SimMonitor.reprint(f"The following error file was imported: {self.error_file}")
 
     def import_results(self, filename=None):
         """
@@ -849,18 +936,16 @@ class MonteCarlo:
         Parameters
         ----------
         filename : str, optional
-            Name or directory path to the file to be imported. If none,
+            Name or directory path to the file to be imported. If ``None``,
             self.filename will be used.
 
         Returns
         -------
         None
         """
-        filepath = filename if filename else self.filename
-
-        self.import_outputs(filename=filepath)
-        self.import_inputs(filename=filepath)
-        self.import_errors(filename=filepath)
+        self.import_outputs(filename=filename)
+        self.import_inputs(filename=filename)
+        self.import_errors(filename=filename)
 
     # Export methods
 
@@ -1018,3 +1103,128 @@ class MonteCarlo:
         self.info()
         self.plots.ellipses()
         self.plots.all()
+
+
+def _import_multiprocess():
+    """Import the necessary modules and submodules for the
+    multiprocess library.
+
+    Returns
+    -------
+    tuple
+        Tuple containing the imported modules.
+    """
+    multiprocess = import_optional_dependency("multiprocess")
+    managers = import_optional_dependency("multiprocess.managers")
+
+    return multiprocess, managers
+
+
+def _create_multiprocess_manager(multiprocess, managers):
+    """Creates a manager for the multiprocess control of the
+    Monte Carlo simulation.
+
+    Parameters
+    ----------
+    multiprocess : module
+        Multiprocess module.
+    managers : module
+        Managing submodules of the multiprocess module.
+
+    Returns
+    -------
+    MonteCarloManager
+        Subclass of BaseManager with the necessary classes registered.
+    """
+
+    class MonteCarloManager(managers.BaseManager):
+        """Custom manager for shared objects in the Monte Carlo simulation."""
+
+        def __init__(self):
+            super().__init__()
+            self.register("Lock", multiprocess.Lock)
+            self.register("Queue", multiprocess.Queue)
+            self.register("Event", multiprocess.Event)
+            self.register("_SimMonitor", _SimMonitor)
+
+    return MonteCarloManager()
+
+
+class _SimMonitor:
+    """Class to monitor the simulation progress and display the status."""
+
+    _last_print_len = 0
+
+    def __init__(self, initial_count, n_simulations, start_time):
+        self.initial_count = initial_count
+        self.count = initial_count
+        self.n_simulations = n_simulations
+        self.start_time = start_time
+
+    def keep_simulating(self):
+        return self.count < self.n_simulations
+
+    def increment(self):
+        self.count += 1
+        return self.count
+
+    def print_update_status(self, sim_idx):
+        """Prints a message on the same line as the previous one and replaces
+        the previous message with the new one, deleting the extra characters
+        from the previous message.
+
+        Parameters
+        ----------
+        sim_idx : int
+            Index of the current simulation.
+
+        Returns
+        -------
+        None
+        """
+        average_time = (time() - self.start_time) / (self.count - self.initial_count)
+        estimated_time = int((self.n_simulations - self.count) * average_time)
+
+        msg = f"Current iteration: {sim_idx:06d}"
+        msg += f" | Average Time per Iteration: {average_time:.3f} s"
+        msg += f" | Estimated time left: {estimated_time} s"
+
+        _SimMonitor.reprint(msg, end="\r", flush=True)
+
+    def print_final_status(self):
+        """Prints the final status of the simulation."""
+        print()
+        msg = f"Completed {self.count - self.initial_count} iterations."
+        msg += f" In total, {self.count} simulations are exported.\n"
+        msg += f"Total wall time: {time() - self.start_time:.1f} s"
+
+        _SimMonitor.reprint(msg, end="\n", flush=True)
+
+    @staticmethod
+    def reprint(msg, end="\n", flush=True):
+        """
+        Prints a message on the same line as the previous one and replaces the
+        previous message with the new one, deleting the extra characters from
+        the previous message.
+
+        Parameters
+        ----------
+        msg : str
+            Message to be printed.
+        end : str, optional
+            String appended after the message. Default is a new line.
+        flush : bool, optional
+            If True, the output is flushed. Default is True.
+
+        Returns
+        -------
+        None
+        """
+        padding = ""
+
+        if len(msg) < _SimMonitor._last_print_len:
+            padding = " " * (_SimMonitor._last_print_len - len(msg))
+
+        print(msg + padding, end=end, flush=flush)
+
+        _SimMonitor._last_print_len = len(msg)

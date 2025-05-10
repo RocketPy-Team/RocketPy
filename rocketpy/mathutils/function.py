@@ -2219,10 +2219,10 @@ class Function:  # pylint: disable=too-many-public-methods
         """
         return other + (-self)
 
-    def __mul__(self, other):
+    def __mul__(self, other):  # pylint: disable=too-many-statements
         """Multiplies a Function object and returns a new Function object
         which gives the result of the multiplication. Only implemented for 1D
-        domains.
+        and 2D domains.
 
         Parameters
         ----------
@@ -2238,7 +2238,7 @@ class Function:  # pylint: disable=too-many-public-methods
         Returns
         -------
         result : Function
-            A Function object which gives the result of self(x)*other(x).
+            A Function object which gives the result of self(x)*other(x) or self(x,y)*other(x,y).
         """
         self_source_is_array = isinstance(self.source, np.ndarray)
         other_source_is_array = (
@@ -2250,37 +2250,76 @@ class Function:  # pylint: disable=too-many-public-methods
         interp = self.__interpolation__
         extrap = self.__extrapolation__
 
-        if (
-            self_source_is_array
-            and other_source_is_array
-            and np.array_equal(self.x_array, other.x_array)
-        ):
-            source = np.column_stack((self.x_array, self.y_array * other.y_array))
-            outputs = f"({self.__outputs__[0]}*{other.__outputs__[0]})"
-            return Function(source, inputs, outputs, interp, extrap)
-        elif isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(
-            other
-        ):
-            if not self_source_is_array:
-                return Function(lambda x: (self.get_value_opt(x) * other), inputs)
-            source = np.column_stack((self.x_array, np.multiply(self.y_array, other)))
-            outputs = f"({self.__outputs__[0]}*{other})"
-            return Function(
-                source,
-                inputs,
-                outputs,
-                interp,
-                extrap,
-            )
-        elif callable(other):
-            return Function(lambda x: (self.get_value_opt(x) * other(x)), inputs)
-        else:
-            raise TypeError("Unsupported type for multiplication")
+        if self.__dom_dim__ == 1:
+            if (
+                self_source_is_array
+                and other_source_is_array
+                and np.array_equal(self.x_array, other.x_array)
+            ):
+                source = np.column_stack((self.x_array, self.y_array * other.y_array))
+                outputs = f"({self.__outputs__[0]}*{other.__outputs__[0]})"
+                return Function(source, inputs, outputs, interp, extrap)
+            elif isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(
+                other
+            ):
+                if not self_source_is_array:
+                    return Function(lambda x: (self.get_value_opt(x) * other), inputs)
+                source = np.column_stack(
+                    (self.x_array, np.multiply(self.y_array, other))
+                )
+                outputs = f"({self.__outputs__[0]}*{other})"
+                return Function(
+                    source,
+                    inputs,
+                    outputs,
+                    interp,
+                    extrap,
+                )
+            elif callable(other):
+                return Function(lambda x: (self.get_value_opt(x) * other(x)), inputs)
+            else:
+                raise TypeError("Unsupported type for multiplication")
+        elif self.__dom_dim__ == 2:
+            if (
+                self_source_is_array
+                and other_source_is_array
+                and np.array_equal(self.x_array, other.x_array)
+                and np.array_equal(self.y_array, other.y_array)
+            ):
+                source = np.column_stack(
+                    (self.x_array, self.y_array, self.z_array * other.z_array)
+                )
+                outputs = f"({self.__outputs__[0]}*{other.__outputs__[0]})"
+                return Function(source, inputs, outputs, interp, extrap)
+            elif isinstance(other, NUMERICAL_TYPES) or self.__is_single_element_array(
+                other
+            ):
+                if not self_source_is_array:
+                    return Function(
+                        lambda x, y: (self.get_value_opt(x, y) * other), inputs
+                    )
+                source = np.column_stack(
+                    (self.x_array, self.y_array, np.multiply(self.z_array, other))
+                )
+                outputs = f"({self.__outputs__[0]}*{other})"
+                return Function(
+                    source,
+                    inputs,
+                    outputs,
+                    interp,
+                    extrap,
+                )
+            elif callable(other):
+                return Function(
+                    lambda x, y: (self.get_value_opt(x, y) * other(x)), inputs
+                )
+            else:
+                raise TypeError("Unsupported type for multiplication")
 
     def __rmul__(self, other):
         """Multiplies 'other' by a Function object and returns a new Function
         object which gives the result of the multiplication. Only implemented for
-        1D domains.
+        1D and 2D domains.
 
         Parameters
         ----------
@@ -2290,7 +2329,7 @@ class Function:  # pylint: disable=too-many-public-methods
         Returns
         -------
         result : Function
-            A Function object which gives the result of other(x)*self(x).
+            A Function object which gives the result of other(x,y)*self(x,y).
         """
         return self * other
 
@@ -3492,7 +3531,7 @@ def funcify_method(*args, **kwargs):  # pylint: disable=too-many-statements
     >>> example.f
     'Function from R1 to R1 : (x) → (f(x))'
 
-    In order to reset the cache, just delete de attribute from the instance:
+    In order to reset the cache, just delete the attribute from the instance:
 
     >>> del example.f
 
