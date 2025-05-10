@@ -92,21 +92,30 @@ class PointMassMotor(Motor):
     def propellant_initial_mass(self):
         return self._propellant_initial_mass
 
-    @funcify_method("Time (s)", "Propellant Mass (kg)")
-    def propellant_I_11(self): 
+    @property
+    def is_point_mass(self):
+        return True
+    
+    @funcify_method("Time (s)", "Inertia (kg·m²)")
+    def propellant_I_11(self):
+     return 0
+
+    @funcify_method("Time (s)", "Inertia (kg·m²)")
+    def propellant_I_12(self):
         return 0
-    @funcify_method("Time (s)", "Propellant Mass (kg)")
-    def propellant_I_12(self): 
+
+    @funcify_method("Time (s)", "Inertia (kg·m²)")
+    def propellant_I_13(self):
         return 0
-    @funcify_method("Time (s)", "Propellant Mass (kg)")
-    def propellant_I_13(self): 
+
+    @funcify_method("Time (s)", "Inertia (kg·m²)")
+    def propellant_I_22(self):
         return 0
-    @funcify_method("Time (s)", "Propellant Mass (kg)")
-    def propellant_I_22(self): 
+
+    @funcify_method("Time (s)", "Inertia (kg·m²)")
+    def propellant_I_23(self):
         return 0
-    @funcify_method("Time (s)", "Propellant Mass (kg)")
-    def propellant_I_23(self): 
-        return 0
-    @funcify_method("Time (s)", "Propellant Mass (kg)")
-    def propellant_I_33(self): 
+
+    @funcify_method("Time (s)", "Inertia (kg·m²)")
+    def propellant_I_33(self):
         return 0
