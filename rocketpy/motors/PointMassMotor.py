@@ -98,7 +98,7 @@ class PointMassMotor(Motor):
     
     @funcify_method("Time (s)", "Inertia (kg·m²)")
     def propellant_I_11(self):
-     return 0
+          return 0
 
     @funcify_method("Time (s)", "Inertia (kg·m²)")
     def propellant_I_12(self):
