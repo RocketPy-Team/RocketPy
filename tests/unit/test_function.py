@@ -250,38 +250,33 @@ def test_set_discrete_based_on_model_non_mutator(linear_func):
     assert callable(func.source)
 
 
-source_array = np.array([
-    [-2, -4, -6],
-    [-0.75, -1.5, -2.25],
-    [0, 0, 0],
-    [0, 1, 1],
-    [0.5, 1, 1.5],
-    [1.5, 1, 2.5],
-    [2, 4, 6]
-])
-cropped_array = np.array([
-    [-0.75, -1.5, -2.25],
-    [0, 0, 0],
-    [0, 1, 1],
-    [0.5, 1, 1.5]
-])
-clipped_array = np.array([
-    [0, 0, 0],
-    [0, 1, 1],
-    [0.5, 1, 1.5]
-])
+source_array = np.array(
+    [
+        [-2, -4, -6],
+        [-0.75, -1.5, -2.25],
+        [0, 0, 0],
+        [0, 1, 1],
+        [0.5, 1, 1.5],
+        [1.5, 1, 2.5],
+        [2, 4, 6],
+    ]
+)
+cropped_array = np.array([[-0.75, -1.5, -2.25], [0, 0, 0], [0, 1, 1], [0.5, 1, 1.5]])
+clipped_array = np.array([[0, 0, 0], [0, 1, 1], [0.5, 1, 1.5]])
+
+
 @pytest.mark.parametrize(
     "array3dsource, array3dcropped",
     [
         (source_array, cropped_array),
-    ]
+    ],
 )
-def test_crop_ndarray(array3dsource, array3dcropped):   # pylint: disable=unused-argument
+def test_crop_ndarray(array3dsource, array3dcropped):  # pylint: disable=unused-argument
     """Tests the functionality of crop method of the Function class.
     The source is initialized as a ndarray before cropping.
     """
     func = Function(array3dsource, inputs=["x1", "x2"], outputs="y")
-    cropped_func = func.crop([(-1, 1), (-2, 2)])    # pylint: disable=unused-argument
+    cropped_func = func.crop([(-1, 1), (-2, 2)])  # pylint: disable=unused-argument
 
     assert isinstance(func, Function)
     assert isinstance(cropped_func, Function)
@@ -293,7 +288,9 @@ def test_crop_function():
     """Tests the functionality of crop method of the Function class.
     The source is initialized as a function before cropping.
     """
-    func = Function(lambda x1, x2: np.sin(x1)*np.cos(x2), inputs=['x1', 'x2'], outputs='y')
+    func = Function(
+        lambda x1, x2: np.sin(x1) * np.cos(x2), inputs=["x1", "x2"], outputs="y"
+    )
     cropped_func = func.crop([(-1, 1), (-2, 2)])
 
     assert isinstance(func, Function)
@@ -319,14 +316,14 @@ def test_crop_constant():
     "array3dsource, array3dclipped",
     [
         (source_array, clipped_array),
-    ]
+    ],
 )
-def test_clip_ndarray(array3dsource, array3dclipped):   # pylint: disable=unused-argument
+def test_clip_ndarray(array3dsource, array3dclipped):  # pylint: disable=unused-argument
     """Tests the functionality of clip method of the Function class.
     The source is initialized as a ndarray before cropping.
     """
     func = Function(array3dsource, inputs=["x1", "x2"], outputs="y")
-    clipped_func = func.clip([(-2, 2)])    # pylint: disable=unused-argument
+    clipped_func = func.clip([(-2, 2)])  # pylint: disable=unused-argument
 
     assert isinstance(func, Function)
     assert isinstance(clipped_func, Function)
@@ -1189,18 +1186,18 @@ def test_low_pass_filter(alpha):
 
     # Check that the method works as intended and returns the right object with no issue
     assert isinstance(filtered_func, Function), "The returned type is not a Function"
-    assert np.array_equal(filtered_func.source[0], source[0]), (
-        "The initial value is not the expected value"
-    )
-    assert len(filtered_func.source) == len(source), (
-        "The filtered Function and the Function have different lengths"
-    )
-    assert filtered_func.__interpolation__ == func.__interpolation__, (
-        "The interpolation method was unexpectedly changed"
-    )
-    assert filtered_func.__extrapolation__ == func.__extrapolation__, (
-        "The extrapolation method was unexpectedly changed"
-    )
+    assert np.array_equal(
+        filtered_func.source[0], source[0]
+    ), "The initial value is not the expected value"
+    assert len(filtered_func.source) == len(
+        source
+    ), "The filtered Function and the Function have different lengths"
+    assert (
+        filtered_func.__interpolation__ == func.__interpolation__
+    ), "The interpolation method was unexpectedly changed"
+    assert (
+        filtered_func.__extrapolation__ == func.__extrapolation__
+    ), "The extrapolation method was unexpectedly changed"
     for i in range(1, len(source)):
         expected = alpha * source[i][1] + (1 - alpha) * filtered_func.source[i - 1][1]
         assert np.isclose(filtered_func.source[i][1], expected, atol=1e-6), (

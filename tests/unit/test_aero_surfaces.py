@@ -76,7 +76,9 @@ def test_powerseries_nosecones_setters(power, invalid_power, new_power):
 
 
 @patch("matplotlib.pyplot.show")
-def test_elliptical_fins_draw(mock_show, elliptical_fin_set):  # pylint: disable=unused-argument
+def test_elliptical_fins_draw(
+    mock_show, elliptical_fin_set
+):  # pylint: disable=unused-argument
     assert elliptical_fin_set.plots.draw(filename=None) is None
 
 
@@ -85,7 +87,9 @@ def test_nose_cone_info(calisto_nose_cone):
 
 
 @patch("matplotlib.pyplot.show")
-def test_nose_cone_draw(mock_show, calisto_nose_cone):  # pylint: disable=unused-argument
+def test_nose_cone_draw(
+    mock_show, calisto_nose_cone
+):  # pylint: disable=unused-argument
     assert calisto_nose_cone.draw(filename=None) is None
 
 

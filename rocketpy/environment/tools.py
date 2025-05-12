@@ -442,7 +442,9 @@ def get_interval_date_from_time_array(time_array, units=None):
 # Geodesic conversions functions
 
 
-def geodesic_to_utm(lat, lon, semi_major_axis=6378137.0, flattening=1 / 298.257223563):  # pylint: disable=too-many-locals,too-many-statements
+def geodesic_to_utm(
+    lat, lon, semi_major_axis=6378137.0, flattening=1 / 298.257223563
+):  # pylint: disable=too-many-locals,too-many-statements
     """Function which converts geodetic coordinates, i.e. lat/lon, to UTM
     projection coordinates. Can be used only for latitudes between -80.00°
     and 84.00°

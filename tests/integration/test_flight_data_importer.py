@@ -26,9 +26,9 @@ def test_flight_importer_bella_lui():
     )
     assert fd.name == "Bella Lui, EPFL Rocket Team, 2020"
     assert "time" in fd._columns[path], "Can't find 'time' column in fd._columns"
-    assert "altitude" in fd._columns[path], (
-        "Can't find 'altitude' column in fd._columns"
-    )
+    assert (
+        "altitude" in fd._columns[path]
+    ), "Can't find 'altitude' column in fd._columns"
     assert "vz" in fd._columns[path], "Can't find 'vz' column in fd._columns"
     assert np.isclose(fd.altitude(0), 0.201, atol=1e-4)
     assert np.isclose(fd.vz(0), 5.028, atol=1e-4)
@@ -51,7 +51,7 @@ def test_flight_importer_ndrt():
     )
     assert fd.name == "NDRT Rocket team, 2020"
     assert "time" in fd._columns[path], "Can't find 'time' column in fd._columns"
-    assert "altitude" in fd._columns[path], (
-        "Can't find 'altitude' column in fd._columns"
-    )
+    assert (
+        "altitude" in fd._columns[path]
+    ), "Can't find 'altitude' column in fd._columns"
     assert np.isclose(fd.altitude(0), 0)

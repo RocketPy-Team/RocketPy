@@ -153,7 +153,7 @@ class Function:  # pylint: disable=too-many-public-methods
         self.__extrapolation__ = extrapolation
         self.title = title
         self.__img_dim__ = 1  # always 1, here for backwards compatibility
-        self.__interval__ = None    # x interval for function if cropped
+        self.__interval__ = None  # x interval for function if cropped
 
         # args must be passed from self.
         self.set_source(self.source)
@@ -374,7 +374,9 @@ class Function:  # pylint: disable=too-many-public-methods
         if interpolation == 0:  # linear
             if self.__dom_dim__ == 1:
 
-                def linear_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
+                def linear_interpolation(
+                    x, x_min, x_max, x_data, y_data, coeffs
+                ):  # pylint: disable=unused-argument
                     x_interval = bisect_left(x_data, x)
                     x_left = x_data[x_interval - 1]
                     y_left = y_data[x_interval - 1]
@@ -385,21 +387,27 @@ class Function:  # pylint: disable=too-many-public-methods
             else:
                 interpolator = LinearNDInterpolator(self._domain, self._image)
 
-                def linear_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
+                def linear_interpolation(
+                    x, x_min, x_max, x_data, y_data, coeffs
+                ):  # pylint: disable=unused-argument
                     return interpolator(x)
 
             self._interpolation_func = linear_interpolation
 
         elif interpolation == 1:  # polynomial
 
-            def polynomial_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
+            def polynomial_interpolation(
+                x, x_min, x_max, x_data, y_data, coeffs
+            ):  # pylint: disable=unused-argument
                 return np.sum(coeffs * x ** np.arange(len(coeffs)))
 
             self._interpolation_func = polynomial_interpolation
 
         elif interpolation == 2:  # akima
 
-            def akima_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
+            def akima_interpolation(
+                x, x_min, x_max, x_data, y_data, coeffs
+            ):  # pylint: disable=unused-argument
                 x_interval = bisect_left(x_data, x)
                 x_interval = x_interval if x_interval != 0 else 1
                 a = coeffs[4 * x_interval - 4 : 4 * x_interval]
@@ -409,7 +417,9 @@ class Function:  # pylint: disable=too-many-public-methods
 
         elif interpolation == 3:  # spline
 
-            def spline_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
+            def spline_interpolation(
+                x, x_min, x_max, x_data, y_data, coeffs
+            ):  # pylint: disable=unused-argument
                 x_interval = bisect_left(x_data, x)
                 x_interval = max(x_interval, 1)
                 a = coeffs[:, x_interval - 1]
@@ -445,7 +455,9 @@ class Function:  # pylint: disable=too-many-public-methods
         elif interpolation == 5:  # RBF
             interpolator = RBFInterpolator(self._domain, self._image, neighbors=100)
 
-            def rbf_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
+            def rbf_interpolation(
+                x, x_min, x_max, x_data, y_data, coeffs
+            ):  # pylint: disable=unused-argument
                 return interpolator(x)
 
             self._interpolation_func = rbf_interpolation
@@ -459,7 +471,9 @@ class Function:  # pylint: disable=too-many-public-methods
 
         if extrapolation == 0:  # zero
 
-            def zero_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
+            def zero_extrapolation(
+                x, x_min, x_max, x_data, y_data, coeffs
+            ):  # pylint: disable=unused-argument
                 return 0
 
             self._extrapolation_func = zero_extrapolation
@@ -467,7 +481,9 @@ class Function:  # pylint: disable=too-many-public-methods
             if interpolation == 0:  # linear
                 if self.__dom_dim__ == 1:
 
-                    def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
+                    def natural_extrapolation(
+                        x, x_min, x_max, x_data, y_data, coeffs
+                    ):  # pylint: disable=unused-argument
                         x_interval = 1 if x < x_min else -1
                         x_left = x_data[x_interval - 1]
                         y_left = y_data[x_interval - 1]
@@ -480,23 +496,31 @@ class Function:  # pylint: disable=too-many-public-methods
                         self._domain, self._image, neighbors=100
                     )
 
-                    def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
+                    def natural_extrapolation(
+                        x, x_min, x_max, x_data, y_data, coeffs
+                    ):  # pylint: disable=unused-argument
                         return interpolator(x)
 
             elif interpolation == 1:  # polynomial
 
-                def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
+                def natural_extrapolation(
+                    x, x_min, x_max, x_data, y_data, coeffs
+                ):  # pylint: disable=unused-argument
                     return np.sum(coeffs * x ** np.arange(len(coeffs)))
 
             elif interpolation == 2:  # akima
 
-                def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
+                def natural_extrapolation(
+                    x, x_min, x_max, x_data, y_data, coeffs
+                ):  # pylint: disable=unused-argument
                     a = coeffs[:4] if x < x_min else coeffs[-4:]
                     return a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
 
             elif interpolation == 3:  # spline
 
-                def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
+                def natural_extrapolation(
+                    x, x_min, x_max, x_data, y_data, coeffs
+                ):  # pylint: disable=unused-argument
                     if x < x_min:
                         a = coeffs[:, 0]
                         x = x - x_data[0]
@@ -530,14 +554,18 @@ class Function:  # pylint: disable=too-many-public-methods
             elif interpolation == 5:  # RBF
                 interpolator = RBFInterpolator(self._domain, self._image, neighbors=100)
 
-                def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
+                def natural_extrapolation(
+                    x, x_min, x_max, x_data, y_data, coeffs
+                ):  # pylint: disable=unused-argument
                     return interpolator(x)
 
             self._extrapolation_func = natural_extrapolation
         elif extrapolation == 2:  # constant
             if self.__dom_dim__ == 1:
 
-                def constant_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
+                def constant_extrapolation(
+                    x, x_min, x_max, x_data, y_data, coeffs
+                ):  # pylint: disable=unused-argument
                     return y_data[0] if x < x_min else y_data[-1]
 
             else:
@@ -926,7 +954,7 @@ class Function:  # pylint: disable=too-many-public-methods
         Parameters
         ----------
         x_lim : list of values,
-            Range of values with lower and upper limits for input values to be 
+            Range of values with lower and upper limits for input values to be
             cropped within.
 
         Returns
@@ -979,7 +1007,11 @@ class Function:  # pylint: disable=too-many-public-methods
                     self.__interval__ = [x_lim[0]]
                 else:
                     self.__interval__ = [None]
-                if len(x_lim) >= 2 and x_lim[1] is not None and x_lim[1][0] < x_lim[1][1]:
+                if (
+                    len(x_lim) >= 2
+                    and x_lim[1] is not None
+                    and x_lim[1][0] < x_lim[1][1]
+                ):
                     self.__interval__.append(x_lim[1])
                 else:
                     self.__interval__.append(None)
@@ -988,7 +1020,7 @@ class Function:  # pylint: disable=too-many-public-methods
         self.set_source(self.source)
 
         return self
-    
+
     def clip(self, y_lim):
         """This method allows the user to limit the output values of the Function
         to a certain range and delete all set of input and output pairs outside
@@ -997,7 +1029,7 @@ class Function:  # pylint: disable=too-many-public-methods
         Parameters
         ----------
         y_lim : list of values,
-            Range of values with lower and upper limits for output values to be 
+            Range of values with lower and upper limits for output values to be
             clipped within.
 
         Returns
@@ -1043,7 +1075,8 @@ class Function:  # pylint: disable=too-many-public-methods
         try:
             self.set_source(self.source)
         except ValueError as e:
-            raise ValueError("Cannot clip function as function reduces to "
+            raise ValueError(
+                "Cannot clip function as function reduces to "
                 f"{len(self.source)} points (too few data points to define"
                 " a domain). Number of rows must be equal to number of "
                 "columns after applying clipping function."

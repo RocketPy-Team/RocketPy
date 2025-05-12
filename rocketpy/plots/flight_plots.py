@@ -133,7 +133,9 @@ class _FlightPlots:
         ax1.set_box_aspect(None, zoom=0.95)  # 95% for label adjustment
         show_or_save_plot(filename)
 
-    def linear_kinematics_data(self, *, filename=None):  # pylint: disable=too-many-statements
+    def linear_kinematics_data(
+        self, *, filename=None
+    ):  # pylint: disable=too-many-statements
         """Prints out all Kinematics graphs available about the Flight
 
         Parameters
@@ -321,7 +323,9 @@ class _FlightPlots:
         plt.subplots_adjust(hspace=0.5)
         show_or_save_plot(filename)
 
-    def angular_kinematics_data(self, *, filename=None):  # pylint: disable=too-many-statements
+    def angular_kinematics_data(
+        self, *, filename=None
+    ):  # pylint: disable=too-many-statements
         """Prints out all Angular velocity and acceleration graphs available
         about the Flight
 
@@ -395,7 +399,9 @@ class _FlightPlots:
         plt.subplots_adjust(hspace=0.5)
         show_or_save_plot(filename)
 
-    def rail_buttons_forces(self, *, filename=None):  # pylint: disable=too-many-statements
+    def rail_buttons_forces(
+        self, *, filename=None
+    ):  # pylint: disable=too-many-statements
         """Prints out all Rail Buttons Forces graphs available about the Flight.
 
         Parameters
@@ -486,7 +492,9 @@ class _FlightPlots:
             plt.subplots_adjust(hspace=0.5)
             show_or_save_plot(filename)
 
-    def aerodynamic_forces(self, *, filename=None):  # pylint: disable=too-many-statements
+    def aerodynamic_forces(
+        self, *, filename=None
+    ):  # pylint: disable=too-many-statements
         """Prints out all Forces and Moments graphs available about the Flight
 
         Parameters
@@ -693,7 +701,9 @@ class _FlightPlots:
         plt.subplots_adjust(hspace=1)
         show_or_save_plot(filename)
 
-    def fluid_mechanics_data(self, *, filename=None):  # pylint: disable=too-many-statements
+    def fluid_mechanics_data(
+        self, *, filename=None
+    ):  # pylint: disable=too-many-statements
         """Prints out a summary of the Fluid Mechanics graphs available about
         the Flight
 
@@ -791,7 +801,9 @@ class _FlightPlots:
         plt.subplots_adjust(hspace=0.5)
         show_or_save_plot(filename)
 
-    def stability_and_control_data(self, *, filename=None):  # pylint: disable=too-many-statements
+    def stability_and_control_data(
+        self, *, filename=None
+    ):  # pylint: disable=too-many-statements
         """Prints out Rocket Stability and Control parameters graphs available
         about the Flight
 

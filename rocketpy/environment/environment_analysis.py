@@ -751,9 +751,9 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
                 outputs="Wind Direction (Deg True)",
                 extrapolation="constant",
             )
-            dictionary[date_string][hour_string]["wind_direction"] = (
-                wind_direction_function
-            )
+            dictionary[date_string][hour_string][
+                "wind_direction"
+            ] = wind_direction_function
 
         return (dictionary, lat0, lat1, lon0, lon1)
 
@@ -996,7 +996,11 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
         converted_dict = copy.deepcopy(self.original_pressure_level_data)
 
         # Loop through dates
-        for date in self.original_pressure_level_data:  # pylint: disable=consider-using-dict-items
+        for (
+            date
+        ) in (
+            self.original_pressure_level_data
+        ):  # pylint: disable=consider-using-dict-items
             # Loop through hours
             for hour in self.original_pressure_level_data[date]:
                 # Loop through variables
@@ -1058,7 +1062,9 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
         converted_dict = copy.deepcopy(self.original_surface_data)
 
         # Loop through dates
-        for date in self.original_surface_data:  # pylint: disable=consider-using-dict-items
+        for (
+            date
+        ) in self.original_surface_data:  # pylint: disable=consider-using-dict-items
             # Loop through hours
             for hour in self.original_surface_data[date]:
                 # Loop through variables

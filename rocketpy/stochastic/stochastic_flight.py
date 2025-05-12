@@ -72,9 +72,9 @@ class StochasticFlight(StochasticModel):
             sampling rate. Be aware that this will make the simulation run much slower.
         """
         if terminate_on_apogee is not None:
-            assert isinstance(terminate_on_apogee, bool), (
-                "`terminate_on_apogee` must be a boolean"
-            )
+            assert isinstance(
+                terminate_on_apogee, bool
+            ), "`terminate_on_apogee` must be a boolean"
         if time_overshoot is not None:
             if not isinstance(time_overshoot, bool):
                 raise TypeError("`time_overshoot` must be a boolean")
@@ -101,9 +101,9 @@ class StochasticFlight(StochasticModel):
                     "vx_init, vy_init, vz_init, e0_init, e1_init, e2_init, "
                     "e3_init, w1Init, w2Init, w3Init"
                 )
-                assert all(isinstance(i, (int, float)) for i in initial_solution), (
-                    "`initial_solution` must be a tuple of numbers"
-                )
+                assert all(
+                    isinstance(i, (int, float)) for i in initial_solution
+                ), "`initial_solution` must be a tuple of numbers"
             else:
                 raise TypeError("`initial_solution` must be a tuple of numbers")
 

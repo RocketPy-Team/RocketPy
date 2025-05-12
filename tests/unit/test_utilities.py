@@ -144,7 +144,9 @@ def test_flutter_prints(flight_calisto_custom_wind):
 
 
 @patch("matplotlib.pyplot.show")
-def test_flutter_plots(mock_show, flight_calisto_custom_wind):  # pylint: disable=unused-argument
+def test_flutter_plots(
+    mock_show, flight_calisto_custom_wind
+):  # pylint: disable=unused-argument
     """Tests the _flutter_plots function.
 
     Parameters

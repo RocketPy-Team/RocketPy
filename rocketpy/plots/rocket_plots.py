@@ -438,7 +438,9 @@ class _RocketPlots:
 
         self._draw_nozzle_tube(last_radius, last_x, nozzle_position, ax, vis_args)
 
-    def _generate_motor_patches(self, total_csys, ax):  # pylint: disable=unused-argument
+    def _generate_motor_patches(
+        self, total_csys, ax
+    ):  # pylint: disable=unused-argument
         """Generates motor patches for drawing"""
         motor_patches = []
 
