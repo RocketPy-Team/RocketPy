@@ -1442,9 +1442,7 @@ class Environment:
 
         self._max_expected_height = max_expected_height
 
-    def process_windy_atmosphere(
-        self, model="ECMWF"
-    ):  # pylint: disable=too-many-statements
+    def process_windy_atmosphere(self, model="ECMWF"):  # pylint: disable=too-many-statements
         """Process data from Windy.com to retrieve atmospheric forecast data.
 
         Parameters
@@ -1655,9 +1653,7 @@ class Environment:
         # Save maximum expected height
         self._max_expected_height = data_array[-1, 1]
 
-    def process_forecast_reanalysis(
-        self, file, dictionary
-    ):  # pylint: disable=too-many-locals,too-many-statements
+    def process_forecast_reanalysis(self, file, dictionary):  # pylint: disable=too-many-locals,too-many-statements
         """Import and process atmospheric data from weather forecasts
         and reanalysis given as ``netCDF`` or ``OPeNDAP`` files.
         Sets pressure, temperature, wind-u and wind-v
@@ -1913,9 +1909,7 @@ class Environment:
         # Close weather data
         data.close()
 
-    def process_ensemble(
-        self, file, dictionary
-    ):  # pylint: disable=too-many-locals,too-many-statements
+    def process_ensemble(self, file, dictionary):  # pylint: disable=too-many-locals,too-many-statements
         """Import and process atmospheric data from weather ensembles
         given as ``netCDF`` or ``OPeNDAP`` files. Sets pressure, temperature,
         wind-u and wind-v profiles and surface elevation obtained from a weather

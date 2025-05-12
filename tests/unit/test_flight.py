@@ -512,9 +512,7 @@ def test_rail_length(calisto_robust, example_plain_env, rail_length, out_of_rail
 
 
 @patch("matplotlib.pyplot.show")
-def test_lat_lon_conversion_robust(
-    mock_show, example_spaceport_env, calisto_robust
-):  # pylint: disable=unused-argument
+def test_lat_lon_conversion_robust(mock_show, example_spaceport_env, calisto_robust):  # pylint: disable=unused-argument
     test_flight = Flight(
         rocket=calisto_robust,
         environment=example_spaceport_env,
@@ -531,9 +529,7 @@ def test_lat_lon_conversion_robust(
 
 
 @patch("matplotlib.pyplot.show")
-def test_lat_lon_conversion_from_origin(
-    mock_show, example_plain_env, calisto_robust
-):  # pylint: disable=unused-argument
+def test_lat_lon_conversion_from_origin(mock_show, example_plain_env, calisto_robust):  # pylint: disable=unused-argument
     "additional tests to capture incorrect behaviors during lat/lon conversions"
 
     test_flight = Flight(
