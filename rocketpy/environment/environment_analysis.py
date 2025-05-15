@@ -2924,8 +2924,15 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
             self.converted_elevation, self.unit_system["length"], "m"
         )
         altitude_si = convert_units(self.altitude_list, self.unit_system["length"], "m")
+        # Recalculating pressure profile using numpy.percentile
+        pressures = [
+            day_dict[hour]["pressure"](self.altitude_list)
+            for day_dict in self.converted_pressure_level_data.values()
+            for hour in day_dict.keys()
+        ]
+        pressure_profile = np.percentile(pressures, 50, axis=0)
         pressure_si = convert_units(
-            self.average_pressure_profile, self.unit_system["pressure"], "Pa"
+            pressure_profile, self.unit_system["pressure"], "Pa"
         )
         temperature_si = convert_units(
             self.average_temperature_profile, self.unit_system["temperature"], "K"
@@ -2946,12 +2953,9 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
             self.preferred_timezone,
             max_expected_height,
         )
-        # Using linear regression to get a valid pressure profile
-        coefficients = np.polyfit(altitude_si, pressure_si, 1)
-        pressure_profile = coefficients[0] + coefficients[1] * self.altitude_list
         env.set_atmospheric_model(
             type="custom_atmosphere",
-            pressure=list(zip(altitude_si, pressure_profile)),
+            pressure=list(zip(altitude_si, pressure_si)),
             temperature=list(zip(altitude_si, temperature_si)),
             wind_u=list(zip(altitude_si, wind_velocity_x_si)),
             wind_v=list(zip(altitude_si, wind_velocity_y_si)),
