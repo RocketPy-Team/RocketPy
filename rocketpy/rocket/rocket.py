@@ -1040,7 +1040,7 @@ class Rocket:
             For NoseCone type, position is the tip coordinate along the axis.
             For Fins type, position refers to the z-coordinate of the root
             chord leading-edge point closest to the nose cone, before any
-            can-angle offset is considered.
+            cant-angle offset is considered.
             For Tail type, position is relative to the point belonging to the
             tail which is highest in the rocket coordinate system.
             For RailButtons type, position is relative to the lower rail button.
