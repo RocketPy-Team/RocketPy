@@ -24,3 +24,4 @@ input parameters, enabling robust Monte Carlo simulations.
    stochastic_rocket
    stochastic_parachute
    stochastic_flight
+   custom_sampler
