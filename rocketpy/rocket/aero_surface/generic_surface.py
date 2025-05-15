@@ -208,13 +208,13 @@ class GenericSurface:
         dyn_pressure_area_length = dyn_pressure_area * self.reference_length
 
         # Compute aerodynamic forces
-        lift = dyn_pressure_area * self.cl_lift(
+        lift = dyn_pressure_area * self.cL(
             alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
         )
-        side = dyn_pressure_area * self.cq_side_force(
+        side = dyn_pressure_area * self.cQ(
             alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
         )
-        drag = dyn_pressure_area * self.cd_drag(
+        drag = dyn_pressure_area * self.cD(
             alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
         )
 

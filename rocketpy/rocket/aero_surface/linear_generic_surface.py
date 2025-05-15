@@ -285,20 +285,17 @@ class LinearGenericSurface(GenericSurface):
         self.cLf = self.compute_forcing_coefficient(
             self.cL_0, self.cL_alpha, self.cL_beta
         )
+        self.cLd = self.compute_damping_coefficient(self.cL_p, self.cL_q, self.cL_r)
 
-        self.c_q_pitch_f = self.compute_forcing_coefficient(
-            self.cq_pitch_0, self.cq_pitch_alpha, self.cq_pitch_beta
+        self.cQf = self.compute_forcing_coefficient(
+            self.cQ_0, self.cQ_alpha, self.cQ_beta
         )
-        self.c_q_pitch_d = self.compute_damping_coefficient(
-            self.cq_pitch_p, self.cq_pitch_q, self.cq_pitch_r
-        )
+        self.cQd = self.compute_damping_coefficient(self.cQ_p, self.cQ_q, self.cQ_r)
 
-        self.c_d_drag_f = self.compute_forcing_coefficient(
-            self.cd_drag_0, self.cd_drag_alpha, self.cd_drag_beta
+        self.cDf = self.compute_forcing_coefficient(
+            self.cD_0, self.cD_alpha, self.cD_beta
         )
-        self.c_d_drag_d = self.compute_damping_coefficient(
-            self.cd_drag_p, self.cd_drag_q, self.cd_drag_r
-        )
+        self.cDd = self.compute_damping_coefficient(self.cD_p, self.cD_q, self.cD_r)
 
         self.cmf = self.compute_forcing_coefficient(
             self.cm_0, self.cm_alpha, self.cm_beta
@@ -373,19 +370,19 @@ class LinearGenericSurface(GenericSurface):
         )
 
         # Compute aerodynamic forces
-        lift = dyn_pressure_area * self.c_l_lift_f(
+        lift = dyn_pressure_area * self.cLf(
             alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
         ) + dyn_pressure_area_damping * self.cLd(
             alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
         )
 
-        side = dyn_pressure_area * self.c_q_pitch_f(
+        side = dyn_pressure_area * self.cQf(
             alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
         ) + dyn_pressure_area_damping * self.cQd(
             alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
         )
 
-        drag = dyn_pressure_area * self.c_d_drag_f(
+        drag = dyn_pressure_area * self.cDf(
             alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
         ) + dyn_pressure_area_damping * self.cDd(
             alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate
