@@ -36,9 +36,6 @@ class TrapezoidalFins(_TrapezoidalMixin, Fins):
         Second is the unit of the curve (radians or degrees).
     TrapezoidalFins.cant_angle : float
         Fins cant angle with respect to the rocket centerline, in degrees.
-    TrapezoidalFins.changing_attribute_dict : dict
-        Dictionary that stores the name and the values of the attributes that
-        may be changed during a simulation. Useful for control systems.
     TrapezoidalFins.cant_angle_rad : float
         Fins cant angle with respect to the rocket centerline, in radians.
     TrapezoidalFins.root_chord : float

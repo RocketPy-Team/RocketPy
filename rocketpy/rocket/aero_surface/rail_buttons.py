@@ -16,7 +16,8 @@ class RailButtons(AeroSurface):
     RailButtons.angular_position : int, float
         Angular position of the rail buttons in degrees measured
         as the rotation around the symmetry axis of the rocket
-        relative to one of the other principal axis.
+        relative to one of the other principal axis. 
+        See :ref:`Angular Position Inputs <angular_position>`
     RailButtons.angular_position_rad : float
         Angular position of the rail buttons in radians.
     """

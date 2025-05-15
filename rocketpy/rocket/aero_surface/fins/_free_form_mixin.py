@@ -4,11 +4,9 @@ import numpy as np
 
 
 class _FreeFormMixin:
-    """Mixin class for free form fins.
-    This class holds methods and properties specific to free form fin shapes.
-    It is designed to be used in conjunction with other classes that define the
-    overall behavior of the fins.
-    """
+    """Mixin class for free form fins. This class holds methods and properties
+    specific to free form fin shapes. It is designed to be used in conjunction
+    with other classes that define the overall behavior of the fins."""
 
     def _initialize(self, shape_points):
         self.shape_points = shape_points
@@ -34,16 +32,10 @@ class _FreeFormMixin:
         )
 
     def evaluate_geometrical_parameters(self):  # pylint: disable=too-many-statements
-        """
-        Calculates and saves the fin set's geometrical parameters such as the
+        """Calculates and saves the fin set's geometrical parameters such as the
         fin area, aspect ratio, and parameters related to roll movement. This
         method uses the same calculations to those in OpenRocket for free-form
-        fin shapes.
-
-        Returns
-        -------
-        None
-        """
+        fin shapes."""
         # pylint: disable=invalid-name
         # pylint: disable=too-many-locals
         # Calculate the fin area (Af) using the Shoelace theorem (polygon area formula)

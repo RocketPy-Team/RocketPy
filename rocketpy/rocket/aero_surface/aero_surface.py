@@ -140,7 +140,7 @@ class AeroSurface(ABC):
         R1, R2, R3, M1, M2, M3 = 0, 0, 0, 0, 0, 0
         cpz = cp[2]
         stream_vx, stream_vy, stream_vz = stream_velocity
-        if stream_vx**2 + stream_vy**2 != 0:  # TODO: maybe try/except
+        if stream_vx**2 + stream_vy**2 != 0:
             # Normalize component stream velocity in body frame
             stream_vzn = stream_vz / stream_speed
             if -1 * stream_vzn < 1:

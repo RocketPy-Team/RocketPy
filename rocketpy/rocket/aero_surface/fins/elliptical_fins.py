@@ -36,9 +36,6 @@ class EllipticalFins(_EllipticalMixin, Fins):
         Second is the unit of the curve (radians or degrees)
     EllipticalFins.cant_angle : float
         Fins cant angle with respect to the rocket centerline, in degrees.
-    EllipticalFins.changing_attribute_dict : dict
-        Dictionary that stores the name and the values of the attributes that
-        may be changed during a simulation. Useful for control systems.
     EllipticalFins.cant_angle_rad : float
         Fins cant angle with respect to the rocket centerline, in radians.
     EllipticalFins.root_chord : float

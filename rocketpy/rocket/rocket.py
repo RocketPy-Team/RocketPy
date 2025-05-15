@@ -9,15 +9,9 @@ from rocketpy.mathutils.vector_matrix import Matrix, Vector
 from rocketpy.motors.empty_motor import EmptyMotor
 from rocketpy.plots.rocket_plots import _RocketPlots
 from rocketpy.prints.rocket_prints import _RocketPrints
-from rocketpy.rocket.aero_surface import (
-    AirBrakes,
-    EllipticalFins,
-    Fins,
-    NoseCone,
-    RailButtons,
-    Tail,
-    TrapezoidalFins,
-)
+from rocketpy.rocket.aero_surface import (AirBrakes, EllipticalFins, Fins,
+                                          NoseCone, RailButtons, Tail,
+                                          TrapezoidalFins)
 from rocketpy.rocket.aero_surface.fins.elliptical_fin import EllipticalFin
 from rocketpy.rocket.aero_surface.fins.free_form_fin import FreeFormFin
 from rocketpy.rocket.aero_surface.fins.free_form_fins import FreeFormFins
@@ -1035,10 +1029,12 @@ class Rocket:
             AeroSurface if more than one surface is to be added.
         positions : int, float, tuple, list, Vector
             Position(s) of the aerodynamic surface's reference point. Can be:
+            
             - a single number (int or float) giving the z-coordinate along
               the rocket axis.
             - a sequence of three numbers (x, y, z) representing the full
               position in the user-defined coordinate system.
+            
             If passing multiple surfaces, provide a list of positions matching
             each surface in order.
             For NoseCone type, position is the tip coordinate along the axis.
@@ -1564,8 +1560,7 @@ class Rocket:
             must be in the format (x, y, z) where x, y, and z are defined in the
             rocket's user defined coordinate system. If a single value is
             passed, it is assumed to be along the z-axis (centerline) of the
-            rocket's user defined coordinate system and angular_position and
-            radius must be given.
+            rocket's user defined coordinate system.
 
         Returns
         -------
@@ -1649,11 +1644,11 @@ class Rocket:
                listed in the same order as they are provided in the
                `interactive_objects`
             7. `sensors` (list): A list of sensors that are attached to the
-                rocket. The most recent measurements of the sensors are provided
-                with the ``sensor.measurement`` attribute. The sensors are
-                listed in the same order as they are added to the rocket
+               rocket. The most recent measurements of the sensors are provided
+               with the ``sensor.measurement`` attribute. The sensors are
+               listed in the same order as they are added to the rocket 
                ``interactive_objects``
-
+                
             This function will be called during the simulation at the specified
             sampling rate. The function should evaluate and change the observed
             objects as needed. The function should return None.
@@ -1756,7 +1751,7 @@ class Rocket:
             as the rotation around the symmetry axis of the rocket
             relative to one of the other principal axis.
             Default value is 45 degrees, generally used in rockets with
-            4 fins.
+            4 fins. See :ref:`Angular Position Inputs <angular_position>`
         radius : int, float, optional
             Fuselage radius where the rail buttons are located.
 

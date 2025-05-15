@@ -1,7 +1,3 @@
-import warnings
-
-import numpy as np
-
 from rocketpy.plots.aero_surface_plots import _FreeFormFinsPlots
 from rocketpy.prints.aero_surface_prints import _FreeFormFinsPrints
 from rocketpy.rocket.aero_surface.fins._free_form_mixin import _FreeFormMixin

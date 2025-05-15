@@ -1,18 +1,13 @@
-import warnings
-
-import numpy as np
-
 from rocketpy.plots.aero_surface_plots import _FreeFormFinPlots
 from rocketpy.prints.aero_surface_prints import _FreeFormFinPrints
 from rocketpy.rocket.aero_surface.fins._free_form_mixin import _FreeFormMixin
+from rocketpy.rocket.aero_surface.fins.fin import Fin
 
-from .fins import Fins
 
-
-class FreeFormFin(_FreeFormMixin, Fins):
+class FreeFormFin(_FreeFormMixin, Fin):
     """Class that defines and holds information for a free form fin set.
 
-    This class inherits from the Fins class.
+    This class inherits from the Fin class.
 
     Note
     ----
@@ -24,7 +19,7 @@ class FreeFormFin(_FreeFormMixin, Fins):
 
     See Also
     --------
-    Fins
+    Fin
 
     Attributes
     ----------
@@ -90,7 +85,7 @@ class FreeFormFin(_FreeFormMixin, Fins):
 
     def __init__(
         self,
-        n,
+        angular_position,
         shape_points,
         rocket_radius,
         cant_angle=0,
@@ -101,8 +96,10 @@ class FreeFormFin(_FreeFormMixin, Fins):
 
         Parameters
         ----------
-        n : int
-            Number of fins, must be larger than 2.
+        angular_position : float
+            Angular position of the fin in degrees measured as the rotation
+            around the symmetry axis of the rocket relative to one of the other
+            principal axis. See :ref:`Angular Position Inputs <angular_position>`
         shape_points : list
             List of tuples (x, y) containing the coordinates of the fin's
             geometry defining points. The point (0, 0) is the root leading edge.
@@ -139,7 +136,7 @@ class FreeFormFin(_FreeFormMixin, Fins):
         root_chord, span = self._initialize(shape_points)
 
         super().__init__(
-            n,
+            angular_position,
             root_chord,
             span,
             rocket_radius,

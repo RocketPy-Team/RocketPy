@@ -2,11 +2,9 @@ import numpy as np
 
 
 class _TrapezoidalMixin:
-    """Mixin class for trapezoidal fins.
-    This class holds methods and properties specific to trapezoidal fin shapes.
-    It is designed to be used in conjunction with other classes that define the
-    overall behavior of the fins.
-    """
+    """Mixin class for trapezoidal fins. This class holds methods and properties
+    specific to trapezoidal fin shapes. It is designed to be used in conjunction
+    with other classes that define the overall behavior of the fins."""
 
     @property
     def tip_chord(self):
@@ -67,12 +65,7 @@ class _TrapezoidalMixin:
 
     def evaluate_geometrical_parameters(self):
         """Calculates and saves fin set's geometrical parameters such as the
-        fins' area, aspect ratio and parameters for roll movement.
-
-        Returns
-        -------
-        None
-        """
+        fins' area, aspect ratio and parameters for roll movement."""
         # pylint: disable=invalid-name
         Yr = self.root_chord + self.tip_chord
         Af = Yr * self.span / 2  # Fin area

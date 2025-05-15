@@ -1,5 +1,3 @@
-import numpy as np
-
 from rocketpy.plots.aero_surface_plots import _EllipticalFinPlots
 from rocketpy.prints.aero_surface_prints import _EllipticalFinPrints
 from rocketpy.rocket.aero_surface.fins._elliptical_mixin import _EllipticalMixin
@@ -9,7 +7,7 @@ from rocketpy.rocket.aero_surface.fins.fin import Fin
 class EllipticalFin(_EllipticalMixin, Fin):
     """Class that defines and holds information for an elliptical fin set.
 
-    This class inherits from the Fins class.
+    This class inherits from the Fin class.
 
     Note
     ----
@@ -21,12 +19,10 @@ class EllipticalFin(_EllipticalMixin, Fin):
 
     See Also
     --------
-    Fins
+    Fin
 
     Attributes
     ----------
-    EllipticalFin.n : int
-        Number of fins in fin set.
     EllipticalFin.rocket_radius : float
         The reference rocket radius used for lift coefficient normalization, in
         meters.
@@ -35,9 +31,6 @@ class EllipticalFin(_EllipticalMixin, Fin):
         Second is the unit of the curve (radians or degrees)
     EllipticalFin.cant_angle : float
         Fins cant angle with respect to the rocket centerline, in degrees.
-    EllipticalFin.changing_attribute_dict : dict
-        Dictionary that stores the name and the values of the attributes that
-        may be changed during a simulation. Useful for control systems.
     EllipticalFin.cant_angle_rad : float
         Fins cant angle with respect to the rocket centerline, in radians.
     EllipticalFin.root_chord : float
@@ -93,7 +86,7 @@ class EllipticalFin(_EllipticalMixin, Fin):
 
     def __init__(
         self,
-        n,
+        angular_position,
         root_chord,
         span,
         rocket_radius,
@@ -105,8 +98,10 @@ class EllipticalFin(_EllipticalMixin, Fin):
 
         Parameters
         ----------
-        n : int
-            Number of fins, must be larger than 2.
+        angular_position : float
+            Angular position of the fin in degrees measured as the rotation
+            around the symmetry axis of the rocket relative to one of the other
+            principal axis. See :ref:`Angular Position Inputs <angular_position>`
         root_chord : int, float
             Fin root chord in meters.
         span : int, float
@@ -153,7 +148,7 @@ class EllipticalFin(_EllipticalMixin, Fin):
         """
 
         super().__init__(
-            n,
+            angular_position,
             root_chord,
             span,
             rocket_radius,

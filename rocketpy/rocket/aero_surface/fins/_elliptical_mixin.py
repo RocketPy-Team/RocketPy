@@ -2,20 +2,13 @@ import numpy as np
 
 
 class _EllipticalMixin:
-    """Mixin class for elliptical fins.
-    This class holds methods and properties specific to elliptical fin shapes.
-    It is designed to be used in conjunction with other classes that define the
-    overall behavior of the fins.
-    """
+    """Mixin class for elliptical fins. This class holds methods and properties
+    specific to elliptical fin shapes. It is designed to be used in conjunction
+    with other classes that define the overall behavior of the fins."""
 
     def evaluate_geometrical_parameters(self):  # pylint: disable=too-many-statements
         """Calculates and saves fin set's geometrical parameters such as the
-        fins' area, aspect ratio and parameters for roll movement.
-
-        Returns
-        -------
-        None
-        """
+        fins' area, aspect ratio and parameters for roll movement."""
 
         # Compute auxiliary geometrical parameters
         # pylint: disable=invalid-name

@@ -107,8 +107,10 @@ class Fin(_BaseFin):
 
         Parameters
         ----------
-        angular_position : int, float
-            Angular position of the fin in degrees.
+        angular_position : float
+            Angular position of the fin in degrees measured as the rotation
+            around the symmetry axis of the rocket relative to one of the other
+            principal axis. See :ref:`Angular Position Inputs <angular_position>`
         root_chord : int, float
             Fin root chord in meters.
         span : int, float
@@ -244,11 +246,12 @@ class Fin(_BaseFin):
         Note
         ----
         Local coordinate system:
+
         - Origin located at the leading edge of the root chord.
-        - Z axis along the longitudinal axis of the fin, positive downwards
-            (leading edge -> trailing edge).
+        - Z axis along the longitudinal axis of the fin, positive
+          downwards (leading edge -> trailing edge).
         - Y axis perpendicular to the Z axis, in the span direction,
-            positive upwards (root chord -> tip chord).
+          positive upwards (root chord -> tip chord).
         - X axis completes the right-handed coordinate system.
 
 
@@ -258,7 +261,7 @@ class Fin(_BaseFin):
 
         References
         ----------
-        [1] TODO link to docs
+        :ref:`Individual Fin Model <individual_fins>`
         """
         phi = self.angular_position_rad
         delta = self.cant_angle_rad
