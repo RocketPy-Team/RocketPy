@@ -11,7 +11,16 @@ AeroSurface Classes
    Fins
    TrapezoidalFins
    EllipticalFins
+   FreeFormFins
+   Fin
+   TrapezoidalFin
+   EllipticalFin
+   FreeFormFin
    RailButtons
    AirBrakes
    GenericSurface
    LinearGenericSurface
+   _EllipticalMixin
+   _TrapezoidalMixin
+   _FreeFormMixin
+   _BaseFin
