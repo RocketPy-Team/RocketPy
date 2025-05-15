@@ -4,9 +4,7 @@ import numpy as np
 
 from rocketpy.mathutils.function import Function
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
-from rocketpy.rocket.aero_surface.fins.base_fin import _BaseFin
-
-from ..aero_surface import AeroSurface
+from rocketpy.rocket.aero_surface.fins._base_fin import _BaseFin
 
 
 class Fin(_BaseFin):
@@ -225,7 +223,17 @@ class Fin(_BaseFin):
             roll moment damping coefficient and the cant angle in
             radians
         """
-        clf_delta = 0  # Not used in this class
+        clf_delta = (
+            self.roll_forcing_interference_factor
+            * (self.Yma + self.rocket_radius)
+            * self.clalpha_single_fin
+            / self.reference_length
+        )  # Function of mach number
+        clf_delta.set_inputs("Mach")
+        clf_delta.set_outputs("Roll moment forcing coefficient derivative")
+        clf_delta.set_title(
+            "Roll moment forcing coefficient derivative vs. Mach number"
+        )
         cld_omega = -(
             2
             * self.roll_damping_interference_factor
@@ -236,6 +244,9 @@ class Fin(_BaseFin):
         )  # Function of mach number
         cld_omega.set_inputs("Mach")
         cld_omega.set_outputs("Roll moment damping coefficient derivative")
+        cld_omega.set_title(
+            "Roll moment damping coefficient derivative vs. Mach number"
+        )
         self.roll_parameters = [clf_delta, cld_omega, self.cant_angle_rad]
         return self.roll_parameters
 

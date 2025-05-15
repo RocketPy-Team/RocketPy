@@ -128,6 +128,7 @@ class _BaseFin(AeroSurface):
             # for the specific airfoil
             self.airfoil_cl = Function(
                 self.airfoil[0],
+                title="Airfoil lift coefficient",
                 interpolation="linear",
             )
 

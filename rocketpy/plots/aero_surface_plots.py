@@ -164,7 +164,6 @@ class _FinsPlots(_AeroSurfacePlots):
         None
         """
         print("Roll parameters:")
-        # TODO: lacks a title in the plots
         self.aero_surface.roll_parameters[0]()
         self.aero_surface.roll_parameters[1]()
 
@@ -226,7 +225,6 @@ class _FinPlots(_AeroSurfacePlots):
         None
         """
         print("Roll parameters:")
-        # TODO: lacks a title in the plots
         self.aero_surface.roll_parameters[0]()
         self.aero_surface.roll_parameters[1]()
 
