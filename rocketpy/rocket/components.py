@@ -1,5 +1,5 @@
-from copy import deepcopy
 from collections import namedtuple
+from copy import deepcopy
 
 
 class Components:

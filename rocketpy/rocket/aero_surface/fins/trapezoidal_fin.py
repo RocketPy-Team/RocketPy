@@ -25,7 +25,7 @@ class TrapezoidalFin(_TrapezoidalMixin, Fin):
     Attributes
     ----------
     TrapezoidalFin.angular_position : float
-        Angular position of the fin set with respect to the rocket centerline, 
+        Angular position of the fin set with respect to the rocket centerline,
         in degrees.
     TrapezoidalFin.rocket_radius : float
         The reference rocket radius used for lift coefficient normalization, in
