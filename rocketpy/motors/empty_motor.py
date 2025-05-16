@@ -19,6 +19,7 @@ class EmptyMotor(Motor):
             reshape_thrust_curve=False,
             interpolation_method="linear",
             coordinate_system_orientation="nozzle_to_combustion_chamber",
+            reference_pressure=0,
         )
 
         # Mass properties

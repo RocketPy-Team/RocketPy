@@ -44,7 +44,7 @@ class Accelerometer(InertialSensor):
         The cross axis sensitivity of the sensor in percentage.
     name : str
         The name of the sensor.
-    rotation_matrix : Matrix
+    rotation_sensor_to_body : Matrix
         The rotation matrix of the sensor from the sensor frame to the rocket
         frame of reference.
     normal_vector : Vector
@@ -241,8 +241,9 @@ class Accelerometer(InertialSensor):
             + Vector.cross(omega, Vector.cross(omega, r))
         )
         # Transform to sensor frame
-        inertial_to_sensor = self._total_rotation_matrix @ Matrix.transformation(
-            u[6:10]
+        inertial_to_sensor = (
+            self._total_rotation_sensor_to_body
+            @ Matrix.transformation(u[6:10]).transpose
         )
         A = inertial_to_sensor @ A
 

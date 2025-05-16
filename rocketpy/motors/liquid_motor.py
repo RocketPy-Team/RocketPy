@@ -29,6 +29,8 @@ class LiquidMotor(Motor):
         "combustion_chamber_to_nozzle".
     LiquidMotor.nozzle_radius : float
         Radius of motor nozzle outlet in meters.
+    LiquidMotor.nozzle_area : float
+        Area of motor nozzle outlet in square meters.
     LiquidMotor.nozzle_position : float
         Motor's nozzle outlet position in meters, specified in the motor's
         coordinate system. See
@@ -122,7 +124,11 @@ class LiquidMotor(Motor):
         LiquidMotor.propellant_I_22 and LiquidMotor.propellant_I_33 for
         more information.
     LiquidMotor.thrust : Function
-        Motor thrust force, in Newtons, as a function of time.
+        Motor thrust force obtained from thrust source, in Newtons, as a
+        function of time.
+    LiquidMotor.vacuum_thrust : Function
+        Motor thrust force when the rocket is in a vacuum. In Newtons, as a
+        function of time.
     LiquidMotor.total_impulse : float
         Total impulse of the thrust curve in N*s.
     LiquidMotor.max_thrust : float
@@ -142,7 +148,13 @@ class LiquidMotor(Motor):
         Total motor burn duration, in seconds. It is the difference between the
         burn_out_time and the burn_start_time.
     LiquidMotor.exhaust_velocity : Function
-        Propulsion gases exhaust velocity in m/s.
+        Effective exhaust velocity of the propulsion gases in m/s. Computed
+        as the thrust divided by the mass flow rate. This corresponds to the
+        actual exhaust velocity only when the nozzle exit pressure equals the
+        atmospheric pressure.
+    LiquidMotor.reference_pressure : int, float
+        Atmospheric pressure in Pa at which the thrust data was recorded.
+        It will allow to obtain the net thrust in the Flight class.
     """
 
     def __init__(
@@ -157,6 +169,7 @@ class LiquidMotor(Motor):
         reshape_thrust_curve=False,
         interpolation_method="linear",
         coordinate_system_orientation="nozzle_to_combustion_chamber",
+        reference_pressure=None,
     ):
         """Initialize LiquidMotor class, process thrust curve and geometrical
         parameters and store results.
@@ -230,6 +243,8 @@ class LiquidMotor(Motor):
             positions specified. Options are "nozzle_to_combustion_chamber"
             and "combustion_chamber_to_nozzle". Default is
             "nozzle_to_combustion_chamber".
+        reference_pressure : int, float, optional
+            Atmospheric pressure in Pa at which the thrust data was recorded.
         """
         super().__init__(
             thrust_source=thrust_source,
@@ -242,6 +257,7 @@ class LiquidMotor(Motor):
             reshape_thrust_curve=reshape_thrust_curve,
             interpolation_method=interpolation_method,
             coordinate_system_orientation=coordinate_system_orientation,
+            reference_pressure=reference_pressure,
         )
 
         self.positioned_tanks = []
@@ -264,7 +280,8 @@ class LiquidMotor(Motor):
         -----
         The exhaust velocity is computed as the ratio of the thrust and the
         mass flow rate. Therefore, this will vary with time if the mass flow
-        rate varies with time.
+        rate varies with time. This corresponds to the actual exhaust velocity
+        only when the nozzle exit pressure equals the atmospheric pressure.
         """
         times, thrusts = self.thrust.source[:, 0], self.thrust.source[:, 1]
         mass_flow_rates = self.mass_flow_rate(times)
@@ -511,6 +528,7 @@ class LiquidMotor(Motor):
             nozzle_position=data["nozzle_position"],
             interpolation_method=data["interpolate"],
             coordinate_system_orientation=data["coordinate_system_orientation"],
+            reference_pressure=data.get("reference_pressure"),
         )
 
         for tank in data["positioned_tanks"]:
