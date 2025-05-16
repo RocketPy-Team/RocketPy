@@ -1,5 +1,6 @@
 import re
 import warnings
+import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
 from functools import cached_property
 from os import path
@@ -28,6 +29,8 @@ class Motor(ABC):
         "combustion_chamber_to_nozzle".
     Motor.nozzle_radius : float
         Radius of motor nozzle outlet in meters.
+    Motor.nozzle_area : float
+        Area of motor nozzle outlet in square meters.
     Motor.nozzle_position : float
         Motor's nozzle outlet position in meters, specified in the motor's
         coordinate system. See :ref:`positions` for more information.
@@ -121,7 +124,11 @@ class Motor(ABC):
         e_3 axes in kg*m^2, as a function of time. See Motor.propellant_I_22
         and Motor.propellant_I_33 for more information.
     Motor.thrust : Function
-        Motor thrust force, in Newtons, as a function of time.
+        Motor thrust force obtained from the thrust source, in Newtons, as a
+        function of time.
+    Motor.vacuum_thrust : Function
+        Motor thrust force when the rocket is in a vacuum. In Newtons, as a
+        function of time.
     Motor.total_impulse : float
         Total impulse of the thrust curve in N*s.
     Motor.max_thrust : float
@@ -141,11 +148,17 @@ class Motor(ABC):
         Total motor burn duration, in seconds. It is the difference between
         the burn_out_time and the burn_start_time.
     Motor.exhaust_velocity : Function
-        Propulsion gases exhaust velocity in m/s.
+        Effective exhaust velocity of the propulsion gases in m/s. Computed
+        as the thrust divided by the mass flow rate. This corresponds to the
+        actual exhaust velocity only when the nozzle exit pressure equals the
+        atmospheric pressure.
     Motor.interpolate : string
         Method of interpolation used in case thrust curve is given
         by data set in .csv or .eng, or as an array. Options are 'spline'
         'akima' and 'linear'. Default is "linear".
+    Motor.reference_pressure : int, float, None
+        Atmospheric pressure in Pa at which the thrust data was recorded.
+        It will allow to obtain the net thrust in the Flight class.
     """
 
     # pylint: disable=too-many-statements
@@ -161,6 +174,7 @@ class Motor(ABC):
         reshape_thrust_curve=False,
         interpolation_method="linear",
         coordinate_system_orientation="nozzle_to_combustion_chamber",
+        reference_pressure=None,
     ):
         """Initialize Motor class, process thrust curve and geometrical
         parameters and store results.
@@ -236,6 +250,8 @@ class Motor(ABC):
             positions specified. Options are "nozzle_to_combustion_chamber" and
             "combustion_chamber_to_nozzle". Default is
             "nozzle_to_combustion_chamber".
+        reference_pressure : int, float, optional
+            Atmospheric pressure in Pa at which the thrust data was recorded.
 
         Returns
         -------
@@ -257,7 +273,9 @@ class Motor(ABC):
         self.interpolate = interpolation_method
         self.nozzle_position = nozzle_position
         self.nozzle_radius = nozzle_radius
+        self.nozzle_area = np.pi * nozzle_radius**2
         self.center_of_dry_mass_position = center_of_dry_mass_position
+        self.reference_pressure = reference_pressure
 
         # Inertia tensor setup
         inertia = (*dry_inertia, 0, 0, 0) if len(dry_inertia) == 3 else dry_inertia
@@ -268,8 +286,9 @@ class Motor(ABC):
         self.dry_I_13 = inertia[4]
         self.dry_I_23 = inertia[5]
 
-        # Handle .eng file inputs
+        # Handle .eng or .rse file inputs
         self.description_eng_file = None
+        self.rse_motor_data = None
         if isinstance(thrust_source, str):
             if (
                 path.exists(thrust_source)
@@ -277,7 +296,12 @@ class Motor(ABC):
             ):
                 _, self.description_eng_file, points = Motor.import_eng(thrust_source)
                 thrust_source = points
-
+            elif (
+                path.exists(thrust_source)
+                and path.splitext(path.basename(thrust_source))[1] == ".rse"
+            ):
+                self.rse_motor_data, points = Motor.import_rse(thrust_source)
+                thrust_source = points
         # Evaluate raw thrust source
         self.thrust_source = thrust_source
         self.thrust = Function(
@@ -306,10 +330,6 @@ class Motor(ABC):
         self.burn_start_time = self.burn_time[0]
         self.burn_out_time = self.burn_time[1]
         self.burn_duration = self.burn_time[1] - self.burn_time[0]
-
-        # Define motor attributes
-        self.nozzle_radius = nozzle_radius
-        self.nozzle_position = nozzle_position
 
         # Compute thrust metrics
         self.max_thrust = np.amax(self.thrust.y_array)
@@ -381,6 +401,10 @@ class Motor(ABC):
             self._dry_mass = float(self.description_eng_file[-2]) - float(
                 self.description_eng_file[-3]
             )
+        elif self.rse_motor_data:
+            self._dry_mass = float(
+                self.rse_motor_data["description"]["total_mass"]
+            ) - float(self.rse_motor_data["description"]["propellant_mass"])
         else:
             raise ValueError("Dry mass must be specified.")
 
@@ -399,7 +423,7 @@ class Motor(ABC):
     @property
     @abstractmethod
     def exhaust_velocity(self):
-        """Exhaust velocity of the motor gases.
+        """Effective exhaust velocity of the motor gases.
 
         Returns
         -------
@@ -418,6 +442,9 @@ class Motor(ABC):
         - The ``LiquidMotor`` class favors the more accurate data from the
           Tanks's mass flow rates. Therefore the exhaust velocity is generally
           variable, being the ratio of the motor thrust by the mass flow rate.
+
+        This corresponds to the actual exhaust velocity only when the nozzle
+        exit pressure equals the atmospheric pressure.
         """
 
     @funcify_method("Time (s)", "Total mass (kg)")
@@ -991,6 +1018,83 @@ class Motor(ABC):
         )
 
     @staticmethod
+    def import_rse(file_name):
+        """
+        Reads motor data from a file and extracts comments, model, description, and data points.
+
+        Parameters
+        ----------
+        file_path : str
+            Path to the motor data file.
+
+        Returns
+        -------
+        dict
+            A dictionary containing the extracted data:
+            - comments: List of comments in the file.
+            - model: Dictionary with manufacturer, code, and type of the motor.
+            - description: Dictionary with performance data (dimensions, weights, thrust, etc.).
+            - data_points: List of temporal data points (time, thrust, mass, cg).
+        tuple
+            A tuple representing the thrust curve (time, thrust).
+        """
+
+        # Parse the XML file
+        tree = ET.parse(file_name)
+        root = tree.getroot()
+
+        # Extract comments
+        comments = []
+        for comment in root.iter():
+            if comment.tag.startswith("<!--"):
+                comments.append(comment.text.strip())
+
+        # Extract model data
+        engine = root.find(".//engine")
+        model = {
+            "manufacturer": engine.attrib.get("mfg"),
+            "code": engine.attrib.get("code"),
+            "type": engine.attrib.get("Type"),
+        }
+
+        # Extract description data
+        description = {
+            "diameter": float(engine.attrib.get("dia", 0)) / 1000,
+            "length": float(engine.attrib.get("len", 0)) / 1000,
+            "throat_diameter": float(engine.attrib.get("throatDia", 0)) / 1000,
+            "exit_diameter": float(engine.attrib.get("exitDia", 0)) / 1000,
+            "total_mass": float(engine.attrib.get("initWt", 0)) / 1000,
+            "propellant_mass": float(engine.attrib.get("propWt", 0)) / 1000,
+            "average_thrust": float(engine.attrib.get("avgThrust", 0)),
+            "peak_thrust": float(engine.attrib.get("peakThrust", 0)),
+            "total_impulse": float(engine.attrib.get("Itot", 0)),
+            "burn_time": float(engine.attrib.get("burn-time", 0)),
+            "isp": float(engine.attrib.get("Isp", 0)),
+            "mass_fraction": float(engine.attrib.get("massFrac", 0)) / 100,
+        }
+
+        # Extract data points
+        data_points = []
+        thrust_source = []
+        for eng_data in engine.find("data").findall("eng-data"):
+            time = float(eng_data.attrib.get("t", 0))
+            thrust = float(eng_data.attrib.get("f", 0))
+            mass = float(eng_data.attrib.get("m", 0))
+            cg = float(eng_data.attrib.get("cg", 0))
+            data_points.append({"time": time, "thrust": thrust, "mass": mass, "cg": cg})
+            thrust_source.append([time, thrust])
+
+        # Create the dictionary to return
+        rse_file_data = {
+            "comments": comments,
+            "model": model,
+            "description": description,
+            "data_points": data_points,
+        }
+
+        return rse_file_data, thrust_source
+
+    @staticmethod
     def import_eng(file_name):
         """Read content from .eng file and process it, in order to return the
         comments, description and data points.
@@ -1038,6 +1142,45 @@ class Motor(ABC):
 
         # Return all extract content
         return comments, description, data_points
+
+    @cached_property
+    def vacuum_thrust(self):
+        """Calculate the vacuum thrust from the raw thrust and the reference
+        pressure at which the thrust data was recorded.
+
+        Returns
+        -------
+        vacuum_thrust : Function
+            The rocket's thrust in a vaccum.
+        """
+        if self.reference_pressure is None:
+            warnings.warn(
+                "Reference pressure not set. Returning thrust instead.",
+                UserWarning,
+            )
+            return self.thrust
+
+        return self.thrust + self.reference_pressure * self.nozzle_area
+
+    def pressure_thrust(self, pressure):
+        """Computes the contribution to thrust due to the difference between
+        the atmospheric pressure and the reference pressure at which the
+        thrust data was recorded.
+
+        Parameters
+        ----------
+        pressure : float
+            Atmospheric pressure in Pa.
+
+        Returns
+        -------
+        pressure_thrust : float
+            Thrust component resulting from the pressure difference.
+        """
+        if self.reference_pressure is None:
+            return 0
+
+        return (self.reference_pressure - pressure) * self.nozzle_area
 
     def export_eng(self, file_name, motor_name):
         """Exports thrust curve data points and motor description to
@@ -1105,17 +1248,20 @@ class Motor(ABC):
             "dry_I_13": self.dry_I_13,
             "dry_I_23": self.dry_I_23,
             "nozzle_radius": self.nozzle_radius,
+            "nozzle_area": self.nozzle_area,
             "center_of_dry_mass_position": self.center_of_dry_mass_position,
             "dry_mass": self.dry_mass,
             "nozzle_position": self.nozzle_position,
             "burn_time": self.burn_time,
             "interpolate": self.interpolate,
             "coordinate_system_orientation": self.coordinate_system_orientation,
+            "reference_pressure": self.reference_pressure,
         }
 
         if include_outputs:
             data.update(
                 {
+                    "vacuum_thrust": self.vacuum_thrust,
                     "total_mass": self.total_mass,
                     "propellant_mass": self.propellant_mass,
                     "mass_flow_rate": self.mass_flow_rate,
@@ -1176,6 +1322,7 @@ class GenericMotor(Motor):
     therefore for more accurate results, use the ``SolidMotor``, ``HybridMotor``
     or ``LiquidMotor`` classes."""
 
+    # pylint: disable=too-many-arguments
     def __init__(
         self,
         thrust_source,
@@ -1192,6 +1339,7 @@ class GenericMotor(Motor):
         reshape_thrust_curve=False,
         interpolation_method="linear",
         coordinate_system_orientation="nozzle_to_combustion_chamber",
+        reference_pressure=None,
     ):
         """Initialize GenericMotor class, process thrust curve and geometrical
         parameters and store results.
@@ -1281,6 +1429,8 @@ class GenericMotor(Motor):
             positions specified. Options are "nozzle_to_combustion_chamber" and
             "combustion_chamber_to_nozzle". Default is
             "nozzle_to_combustion_chamber".
+        reference_pressure : int, float, optional
+            Atmospheric pressure in Pa at which the thrust data was recorded.
         """
         super().__init__(
             thrust_source=thrust_source,
@@ -1293,6 +1443,7 @@ class GenericMotor(Motor):
             reshape_thrust_curve=reshape_thrust_curve,
             interpolation_method=interpolation_method,
             coordinate_system_orientation=coordinate_system_orientation,
+            reference_pressure=reference_pressure,
         )
 
         self.chamber_radius = chamber_radius
@@ -1330,6 +1481,11 @@ class GenericMotor(Motor):
         -------
         self.exhaust_velocity : Function
             Gas exhaust velocity of the motor.
+
+        Notes
+        -----
+        This corresponds to the actual exhaust velocity only when the nozzle
+        exit pressure equals the atmospheric pressure.
         """
         return Function(
             self.total_impulse / self.propellant_initial_mass
@@ -1454,8 +1610,140 @@ class GenericMotor(Motor):
         reshape_thrust_curve=False,
         interpolation_method="linear",
         coordinate_system_orientation="nozzle_to_combustion_chamber",
+        reference_pressure=None,
     ):
         """Loads motor data from a .eng file and processes it.
+
+        Parameters
+        ----------
+        file_name : string
+            Name of the .eng file. E.g. 'test.eng'.
+        nozzle_radius : int, float
+            Motor's nozzle outlet radius in meters.
+        chamber_radius : int, float, optional
+            The radius of a overall cylindrical chamber of propellant in meters.
+        chamber_height : int, float, optional
+            The height of a overall cylindrical chamber of propellant in meters.
+        chamber_position : int, float, optional
+            The position, in meters, of the centroid (half height) of the motor's
+            overall cylindrical chamber of propellant with respect to the motor's
+            coordinate system.
+        propellant_initial_mass : int, float, optional
+            The initial mass of the propellant in the motor.
+        dry_mass : int, float, optional
+            Same as in Motor class. See the :class:`Motor <rocketpy.Motor>` docs
+        burn_time: float, tuple of float, optional
+            Motor's burn time.
+            If a float is given, the burn time is assumed to be between 0 and
+            the given float, in seconds.
+            If a tuple of float is given, the burn time is assumed to be between
+            the first and second elements of the tuple, in seconds.
+            If not specified, automatically sourced as the range between the
+            first and last-time step of the motor's thrust curve. This can only
+            be used if the motor's thrust is defined by a list of points, such
+            as a .csv file, a .eng file or a Function instance whose source is a
+            list.
+        center_of_dry_mass_position : int, float, optional
+            The position, in meters, of the motor's center of mass with respect
+            to the motor's coordinate system when it is devoid of propellant.
+            If not specified, automatically sourced as the chamber position.
+        dry_inertia : tuple, list
+            Tuple or list containing the motor's dry mass inertia tensor
+        nozzle_position : int, float, optional
+            Motor's nozzle outlet position in meters, in the motor's coordinate
+            system. Default is 0, in which case the origin of the
+            coordinate system is placed at the motor's nozzle outlet.
+        reshape_thrust_curve : boolean, tuple, optional
+            If False, the original thrust curve supplied is not altered. If a
+            tuple is given, whose first parameter is a new burn out time and
+            whose second parameter is a new total impulse in Ns, the thrust
+            curve is reshaped to match the new specifications. May be useful
+            for motors whose thrust curve shape is expected to remain similar
+            in case the impulse and burn time varies slightly. Default is
+            False. Note that the Motor burn_time parameter must include the new
+            reshaped burn time.
+        interpolation_method : string, optional
+            Method of interpolation to be used in case thrust curve is given
+        coordinate_system_orientation : string, optional
+            Orientation of the motor's coordinate system. The coordinate system
+            is defined by the motor's axis of symmetry. The origin of the
+            coordinate system may be placed anywhere along such axis, such as
+            at the nozzle area, and must be kept the same for all other
+            positions specified. Options are "nozzle_to_combustion_chamber" and
+            "combustion_chamber_to_nozzle". Default is
+            "nozzle_to_combustion_chamber".
+        reference_pressure : int, float, optional
+            Atmospheric pressure in Pa at which the thrust data was recorded.
+
+        Returns
+        -------
+        Generic Motor object
+        """
+        if isinstance(file_name, str):
+            if path.splitext(path.basename(file_name))[1] == ".eng":
+                _, description, thrust_source = Motor.import_eng(file_name)
+            else:
+                raise ValueError("File must be a .eng file.")
+        else:
+            raise ValueError("File name must be a string.")
+
+        thrust = Function(thrust_source, "Time (s)", "Thrust (N)", "linear", "zero")
+
+        # handle eng parameters
+        if not chamber_radius:
+            chamber_radius = (
+                float(description[1]) / 1000
+            )  # get motor diameter in meters
+
+        if not chamber_height:
+            chamber_height = float(description[2]) / 1000  # get motor length in meters
+
+        if not propellant_initial_mass:
+            propellant_initial_mass = float(description[-3])
+
+        if not dry_mass:
+            total_mass = float(description[-2])
+            dry_mass = total_mass - propellant_initial_mass
+
+        if not nozzle_radius:
+            nozzle_radius = 0.85 * chamber_radius
+
+        return GenericMotor(
+            thrust_source=thrust,
+            burn_time=burn_time,
+            chamber_radius=chamber_radius,
+            chamber_height=chamber_height,
+            chamber_position=chamber_position,
+            propellant_initial_mass=propellant_initial_mass,
+            nozzle_radius=nozzle_radius,
+            dry_mass=dry_mass,
+            center_of_dry_mass_position=center_of_dry_mass_position,
+            dry_inertia=dry_inertia,
+            nozzle_position=nozzle_position,
+            reshape_thrust_curve=reshape_thrust_curve,
+            interpolation_method=interpolation_method,
+            coordinate_system_orientation=coordinate_system_orientation,
+            reference_pressure=reference_pressure,
+        )
+
+    @staticmethod
+    def load_from_rse_file(
+        file_name,
+        nozzle_radius=None,
+        chamber_radius=None,
+        chamber_height=None,
+        chamber_position=0,
+        propellant_initial_mass=None,
+        dry_mass=None,
+        burn_time=None,
+        center_of_dry_mass_position=None,
+        dry_inertia=(0, 0, 0),
+        nozzle_position=0,
+        reshape_thrust_curve=False,
+        interpolation_method="linear",
+        coordinate_system_orientation="nozzle_to_combustion_chamber",
+    ):
+        """Loads motor data from a .rse file and processes it.
 
         Parameters
         ----------
@@ -1521,10 +1809,10 @@ class GenericMotor(Motor):
         Generic Motor object
         """
         if isinstance(file_name, str):
-            if path.splitext(path.basename(file_name))[1] == ".eng":
-                _, description, thrust_source = Motor.import_eng(file_name)
+            if path.splitext(path.basename(file_name))[1] == ".rse":
+                description, thrust_source = Motor.import_rse(file_name)
             else:
-                raise ValueError("File must be a .eng file.")
+                raise ValueError("File must be a .rse file.")
         else:
             raise ValueError("File name must be a string.")
 
@@ -1532,22 +1820,24 @@ class GenericMotor(Motor):
 
         # handle eng parameters
         if not chamber_radius:
-            chamber_radius = (
-                float(description[1]) / 1000
-            )  # get motor diameter in meters
+            chamber_radius = description["description"][
+                "diameter"
+            ]  # get motor diameter in meters
 
         if not chamber_height:
-            chamber_height = float(description[2]) / 1000  # get motor length in meters
+            chamber_height = description["description"][
+                "length"
+            ]  # get motor length in meters
 
         if not propellant_initial_mass:
-            propellant_initial_mass = float(description[-3])
+            propellant_initial_mass = description["description"]["propellant_mass"]
 
         if not dry_mass:
-            total_mass = float(description[-2])
+            total_mass = description["description"]["total_mass"]
             dry_mass = total_mass - propellant_initial_mass
 
         if not nozzle_radius:
-            nozzle_radius = 0.85 * chamber_radius
+            nozzle_radius = description["description"]["exit_diameter"]
 
         return GenericMotor(
             thrust_source=thrust,
@@ -1606,4 +1896,5 @@ class GenericMotor(Motor):
             ),
             nozzle_position=data["nozzle_position"],
             interpolation_method=data["interpolate"],
+            reference_pressure=data.get("reference_pressure"),
         )

@@ -42,8 +42,9 @@ from .rocket import (
 )
 from .sensitivity import SensitivityModel
 from .sensors import Accelerometer, Barometer, GnssReceiver, Gyroscope
-from .simulation import Flight, MonteCarlo
+from .simulation import Flight, MonteCarlo, MultivariateRejectionSampler
 from .stochastic import (
+    CustomSampler,
     StochasticAirBrakes,
     StochasticEllipticalFins,
     StochasticEnvironment,

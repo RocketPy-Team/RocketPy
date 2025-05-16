@@ -5,6 +5,7 @@ defined here represent one different rocketpy class plus the uncertainties
 associated with each input parameter.
 """
 
+from .custom_sampler import CustomSampler
 from .stochastic_aero_surfaces import (
     StochasticAirBrakes,
     StochasticEllipticalFins,
