@@ -61,4 +61,4 @@ def test_exports(mock_show, env_analysis):  # pylint: disable=unused-argument
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_create_environment_object(mock_show, env_analysis):  # pylint: disable=unused-argument
-    assert isinstance(env_analysis.get_environment_object(), Environment)
+    assert isinstance(env_analysis.create_environment_object(), Environment)
