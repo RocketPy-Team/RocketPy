@@ -31,6 +31,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 Attention: The newest changes should be on top -->
 
 ### Added
+
+
+### Changed
+
+
+### Fixed
+
+
+## [v1.10.0] - 2025-05-16
+
+### Added
 - ENH: Support for ND arithmetic in Function class. [#810] (https://github.com/RocketPy-Team/RocketPy/pull/810)
 - ENH: allow users to provide custom samplers [#803](https://github.com/RocketPy-Team/RocketPy/pull/803)
 - ENH: Implement Multivariate Rejection Sampling (MRS) [#738] (https://github.com/RocketPy-Team/RocketPy/pull/738) 
@@ -50,7 +61,7 @@ Attention: The newest changes should be on top -->
 - BUG: Wrong Phi Initialization For nose_to_tail Rockets [#809](https://github.com/RocketPy-Team/RocketPy/pull/809)
 - BUG: Fix StochasticFlight time_overshoot None bug [#805](https://github.com/RocketPy-Team/RocketPy/pull/805)
 
-## v1.9.0 - 2025-03-24
+## [v1.9.0] - 2025-03-24
 
 ### Added
 
