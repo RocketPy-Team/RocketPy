@@ -184,24 +184,6 @@ class EllipticalFins(_EllipticalMixin, Fins):
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
 
-    def to_dict(self, include_outputs=False):
-        data = super().to_dict(include_outputs)
-        if include_outputs:
-            data.update(
-                {
-                    "Af": self.Af,
-                    "AR": self.AR,
-                    "gamma_c": self.gamma_c,
-                    "Yma": self.Yma,
-                    "roll_geometrical_constant": self.roll_geometrical_constant,
-                    "tau": self.tau,
-                    "lift_interference_factor": self.lift_interference_factor,
-                    "roll_damping_interference_factor": self.roll_damping_interference_factor,
-                    "roll_forcing_interference_factor": self.roll_forcing_interference_factor,
-                }
-            )
-        return data
-
     @classmethod
     def from_dict(cls, data):
         return cls(

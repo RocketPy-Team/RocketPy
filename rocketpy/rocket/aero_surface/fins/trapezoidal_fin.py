@@ -182,3 +182,16 @@ class TrapezoidalFin(_TrapezoidalMixin, Fin):
         self.cpy = self.Yma
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            angular_position=data["angular_position"],
+            root_chord=data["root_chord"],
+            tip_chord=data["tip_chord"],
+            span=data["span"],
+            rocket_radius=data["rocket_radius"],
+            cant_angle=data["cant_angle"],
+            airfoil=data["airfoil"],
+            name=data["name"],
+        )

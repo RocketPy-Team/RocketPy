@@ -202,7 +202,7 @@ class EllipticalFin(_EllipticalMixin, Fin):
     @classmethod
     def from_dict(cls, data):
         return cls(
-            n=data["n"],
+            angular_position=data["angular_position"],
             root_chord=data["root_chord"],
             span=data["span"],
             rocket_radius=data["rocket_radius"],

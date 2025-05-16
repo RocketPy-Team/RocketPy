@@ -168,3 +168,14 @@ class FreeFormFin(_FreeFormMixin, Fin):
         self.cpy = self.Yma
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            angular_position=data["angular_position"],
+            shape_points=data["shape_points"],
+            rocket_radius=data["rocket_radius"],
+            cant_angle=data["cant_angle"],
+            airfoil=data["airfoil"],
+            name=data["name"],
+        )

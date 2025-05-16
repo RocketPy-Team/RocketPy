@@ -219,17 +219,6 @@ class _FreeFormMixin:
             )
         return data
 
-    @classmethod
-    def from_dict(cls, data):
-        return cls(
-            data["n"],
-            data["shape_points"],
-            data["rocket_radius"],
-            data["cant_angle"],
-            data["airfoil"],
-            data["name"],
-        )
-
     def info(self):
         self.prints.geometry()
         self.prints.lift()
