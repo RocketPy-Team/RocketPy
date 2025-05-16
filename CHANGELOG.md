@@ -37,6 +37,7 @@ Attention: The newest changes should be on top -->
 - ENH: Create a rocketpy file to store flight simulations [#800](https://github.com/RocketPy-Team/RocketPy/pull/800)
 - ENH: Support for the RSE file format has been added to the library [#798](https://github.com/RocketPy-Team/RocketPy/pull/798)
 - ENH: Introduce Net Thrust with pressure corrections [#789](https://github.com/RocketPy-Team/RocketPy/pull/789)
+- ENH: Environment object from EnvironmentAnalysis [#813](https://github.com/RocketPy-Team/RocketPy/pull/813)
 
 ### Changed
 
