@@ -153,6 +153,7 @@ class Function:  # pylint: disable=too-many-public-methods
         self.__extrapolation__ = extrapolation
         self.title = title
         self.__img_dim__ = 1  # always 1, here for backwards compatibility
+        self.__interval__ = None  # x interval for function if cropped
 
         # args must be passed from self.
         self.set_source(self.source)
@@ -627,8 +628,8 @@ class Function:  # pylint: disable=too-many-public-methods
 
     def set_discrete(
         self,
-        lower=0,
-        upper=10,
+        lower=None,
+        upper=None,
         samples=200,
         interpolation="spline",
         extrapolation="constant",
@@ -689,13 +690,33 @@ class Function:  # pylint: disable=too-many-public-methods
         func = deepcopy(self) if not mutate_self else self
 
         if func.__dom_dim__ == 1:
+            # Determine boundaries
+            domain = [0, 10]
+            if self.__interval__ is not None:
+                if self.__interval__[0] > domain[0]:
+                    domain[0] = self.__interval__[0]
+                if self.__interval__[1] > domain[1]:
+                    domain[1] = self.__interval__[1]
+            lower = domain[0] if lower is None else lower
+            upper = domain[1] if upper is None else upper
             xs = np.linspace(lower, upper, samples)
             ys = func.get_value(xs.tolist()) if one_by_one else func.get_value(xs)
             func.__interpolation__ = interpolation
             func.__extrapolation__ = extrapolation
             func.set_source(np.column_stack((xs, ys)))
         elif func.__dom_dim__ == 2:
+            # Determine boundaries
+            domain = [[0, 10], [0, 10]]
+            if self.__interval__ is not None:
+                for i in range(0, 2):
+                    if self.__interval__[i] is not None:
+                        if self.__interval__[i][0] > domain[i][0]:
+                            domain[i][0] = self.__interval__[i][0]
+                        if self.__interval__[i][1] < domain[i][1]:
+                            domain[i][1] = self.__interval__[i][1]
+            lower = [domain[0][0], domain[1][0]] if lower is None else lower
             lower = 2 * [lower] if isinstance(lower, NUMERICAL_TYPES) else lower
+            upper = [domain[0][1], domain[1][1]] if upper is None else upper
             upper = 2 * [upper] if isinstance(upper, NUMERICAL_TYPES) else upper
             sam = 2 * [samples] if isinstance(samples, NUMERICAL_TYPES) else samples
             # Create nodes to evaluate function
@@ -894,6 +915,144 @@ class Function:  # pylint: disable=too-many-public-methods
             self.set_extrapolation(extrapolation)
 
         self.set_title(title)
+
+        return self
+
+    def crop(self, x_lim):
+        """This method allows the user to limit the input values of the Function
+        to a certain range and delete all set of input and output pairs outside
+        the specified range of values.
+
+        Parameters
+        ----------
+        x_lim : list of values,
+            Range of values with lower and upper limits for input values to be
+            cropped within.
+
+        Returns
+        -------
+        self : Function
+
+        See also
+        --------
+        Function.clip
+
+        Examples
+        --------
+        >>> from rocketpy import Function
+        >>> f1 = Function(lambda x1, x2: np.sin(x1)*np.cos(x2), inputs=['x1', 'x2'], outputs='y')
+        >>> f1
+        Function from R2 to R1 : (x1, x2) → (y)
+        >>> f1.crop([(-1, 1), (-2, 2)])
+        >>> f1.plot()
+        >>> f2 = Function(lambda x1, x2: np.cos(x1)*np.sin(x2), inputs=['x1', 'x2'], outputs='y')
+        >>> f2
+        Function from R2 to R1 : (x1, x2) → (y)
+        >>> f2.crop([None, (-2, 2)])
+        >>> f2.plot()
+        """
+        if not isinstance(x_lim, list):
+            raise TypeError("x_lim must be a list of tuples.")
+        if len(x_lim) > self.__dom_dim__:
+            raise ValueError(
+                "x_lim must not exceed the length of the domain dimension."
+            )
+        if isinstance(self.source, np.ndarray):
+            if self.__dom_dim__ == 1:
+                self.source = self.source[
+                    (self.source[:, 0] >= x_lim[0][0])
+                    & (self.source[:, 0] <= x_lim[0][1])
+                ]
+            elif self.__dom_dim__ == 2:
+                self.source = self.source[
+                    (self.source[:, 0] >= x_lim[0][0])
+                    & (self.source[:, 0] <= x_lim[0][1])
+                    & (self.source[:, 1] >= x_lim[1][0])
+                    & (self.source[:, 1] <= x_lim[1][1])
+                ]
+        if self.__dom_dim__ == 1:
+            if x_lim[0][0] < x_lim[0][1]:
+                self.__interval__ = x_lim[0]
+        elif self.__dom_dim__ == 2:
+            if len(x_lim) != 0:
+                if x_lim[0] is not None and x_lim[0][0] < x_lim[0][1]:
+                    self.__interval__ = [x_lim[0]]
+                else:
+                    self.__interval__ = [None]
+                if (
+                    len(x_lim) >= 2
+                    and x_lim[1] is not None
+                    and x_lim[1][0] < x_lim[1][1]
+                ):
+                    self.__interval__.append(x_lim[1])
+                else:
+                    self.__interval__.append(None)
+            else:
+                raise IndexError("x_lim must be of index 2 for 2-D function")
+        self.set_source(self.source)
+
+        return self
+
+    def clip(self, y_lim):
+        """This method allows the user to limit the output values of the Function
+        to a certain range and delete all set of input and output pairs outside
+        the specified range of values.
+
+        Parameters
+        ----------
+        y_lim : list of values,
+            Range of values with lower and upper limits for output values to be
+            clipped within.
+
+        Returns
+        -------
+        self : Function
+
+        See also
+        --------
+        Function.crop
+
+        Examples
+        --------
+        >>> from rocketpy import Function
+        >>> f = Function(lambda x: x**2, inputs='x', outputs='y')
+        >>> f
+        Function from R1 to R1 : (x) → (y)
+        >>> f.clip([(-5, 5)])
+        """
+        if not isinstance(y_lim, list):
+            raise TypeError("y_lim must be a list of tuples.")
+        if len(y_lim) != len(self.__outputs__):
+            raise ValueError(
+                "y_lim must have the same length as the output dimensions."
+            )
+
+        if isinstance(self.source, np.ndarray):
+            self.source = self.source[
+                (self.source[:, self.__dom_dim__] >= y_lim[0][0])
+                & (self.source[:, self.__dom_dim__] <= y_lim[0][1])
+            ]
+        elif callable(self.source):
+            if isinstance(self.source, NUMERICAL_TYPES):
+                try:
+                    if self.source < y_lim[0][0]:
+                        raise ArithmeticError("Constant function outside range")
+                    if self.source > y_lim[0][1]:
+                        raise ArithmeticError("Constant function outside range")
+                except TypeError as e:
+                    raise TypeError("y_lim must be same type as function source") from e
+            else:
+                f = self.source
+                self.source = lambda x: max(y_lim[0][0], min(y_lim[0][1], f(x)))
+        try:
+            self.set_source(self.source)
+        except ValueError as e:
+            raise ValueError(
+                "Cannot clip function as function reduces to "
+                f"{len(self.source)} points (too few data points to define"
+                " a domain). Number of rows must be equal to number of "
+                "columns after applying clipping function."
+            ) from e
 
         return self
 
@@ -1525,8 +1684,14 @@ class Function:  # pylint: disable=too-many-public-methods
         ax = fig.axes
         if self._source_type is SourceType.CALLABLE:
             # Determine boundaries
-            lower = 0 if lower is None else lower
-            upper = 10 if upper is None else upper
+            domain = [0, 10]
+            if self.__interval__ is not None:
+                if self.__interval__[0] > domain[0]:
+                    domain[0] = self.__interval__[0]
+                if self.__interval__[1] > domain[1]:
+                    domain[1] = self.__interval__[1]
+            lower = domain[0] if lower is None else lower
+            upper = domain[1] if upper is None else upper
         else:
             # Determine boundaries
             x_data = self.x_array
@@ -1637,9 +1802,17 @@ class Function:  # pylint: disable=too-many-public-methods
         # Define a mesh and f values at mesh nodes for plotting
         if self._source_type is SourceType.CALLABLE:
             # Determine boundaries
-            lower = [0, 0] if lower is None else lower
+            domain = [[0, 10], [0, 10]]
+            if self.__interval__ is not None:
+                for i in range(0, 2):
+                    if self.__interval__[i] is not None:
+                        if self.__interval__[i][0] > domain[i][0]:
+                            domain[i][0] = self.__interval__[i][0]
+                        if self.__interval__[i][1] < domain[i][1]:
+                            domain[i][1] = self.__interval__[i][1]
+            lower = [domain[0][0], domain[1][0]] if lower is None else lower
             lower = 2 * [lower] if isinstance(lower, NUMERICAL_TYPES) else lower
-            upper = [10, 10] if upper is None else upper
+            upper = [domain[0][1], domain[1][1]] if upper is None else upper
             upper = 2 * [upper] if isinstance(upper, NUMERICAL_TYPES) else upper
         else:
             # Determine boundaries
