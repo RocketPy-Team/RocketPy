@@ -2886,7 +2886,7 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
         file.close()
         print("Your Environment Analysis file was saved, check it out: " + filename)
 
-    def get_environment_object(
+    def create_environment_object(
         self, gravity=None, date=None, datum="SIRGAS2000", max_expected_height=80000.0
     ):
         """Creates an Environment object with the data from the Environment Analysis instance.
