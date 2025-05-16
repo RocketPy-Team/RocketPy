@@ -10,6 +10,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+from packaging import version as packaging_version
 from scipy.integrate import solve_ivp
 
 from ._encoders import RocketPyDecoder, RocketPyEncoder
@@ -750,7 +751,9 @@ def load_from_rpy(filename: str, resimulate=False):
 
     with open(filename, "r") as f:
         data = json.load(f)
-        if data["version"] > version("rocketpy"):
+        if packaging_version.parse(data["version"]) > packaging_version.parse(
+            version("rocketpy")
+        ):
             warnings.warn(
                 "The file was saved in an updated version of",
                 f"RocketPy (v{data['version']}), the current",
