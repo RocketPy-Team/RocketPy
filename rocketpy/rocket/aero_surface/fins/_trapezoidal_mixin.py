@@ -177,4 +177,3 @@ class _TrapezoidalMixin:
                 }
             )
         return data
-
