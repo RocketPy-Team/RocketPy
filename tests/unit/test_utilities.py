@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 
 from rocketpy import Function, utilities
+from rocketpy import GenericMotor
 
 
 @pytest.mark.parametrize(
@@ -258,3 +259,35 @@ def test_load_from_rpy(mock_show):  # pylint: disable=unused-argument
     )
     assert loaded_flight.info() is None
     assert loaded_flight.all_info() is None
+
+
+def test_list_motors_dataset():
+    """Tests if the list_motors_dataset function correctly returns the expected names"""
+
+    motors = utilities.list_motors_dataset()
+    assert isinstance(motors, list)
+    assert len(motors) > 0
+
+    expected_motors = [
+        "AeroTech_HP-L1000W",
+        "AMW_1791K710-P",
+        "Cesaroni_1281K360-13A",
+        "Loki_K1127-LB",
+    ]
+
+    for motor in expected_motors:
+        assert motor in motors
+
+
+def test_load_motor_from_dataset():
+    """Tests if the load_motor_from_dataset function correctly loads a motor from the dataset."""
+    motor_name = "AeroTech_HP-L1000W"
+    motor = utilities.load_motor_from_dataset(motor_name)
+
+    assert motor is not None
+    assert isinstance(motor, GenericMotor)
+
+
+def test_show_motors_dataset():
+    """Tests if the show_motors_dataset function doesn't raise any error."""
+    utilities.show_motors_dataset()
