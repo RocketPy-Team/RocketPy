@@ -221,7 +221,7 @@ class _RocketPlots:
             raise ValueError(
                 "The rocket must have at least one aerodynamic surface to be drawn."
             )
-        if plane != "xz" and plane != "yz":
+        if plane not in ("xz", "yz"):
             raise ValueError("The plane must be 'xz' or 'yz'. The default is 'xz'.")
 
     def _draw_aerodynamic_surfaces(self, ax, vis_args, plane, surfaces):
@@ -410,6 +410,8 @@ class _RocketPlots:
             x_pos = position[2]
             # y position of the surface is the y position in the plot
             y_pos = position[1]
+        else:
+            raise ValueError("Plane must be 'xz' or 'yz'.")
 
         ax.scatter(
             x_pos,

@@ -381,7 +381,7 @@ class Fin(_BaseFin):
         M3 += M3_damping
         return R1, R2, R3, M1, M2, M3
 
-    def __compute_leading_edge_position(self, position, _csys):
+    def _compute_leading_edge_position(self, position, _csys):
         """Computes the position of the fin leading edge in a rocket's user,
         given its position in a rocket."""
         # Point from deflection from cant angle in the plane perpendicular to

@@ -3,8 +3,6 @@ import numpy as np
 from rocketpy.mathutils.function import Function
 from rocketpy.rocket.aero_surface.fins._base_fin import _BaseFin
 
-from ..aero_surface import AeroSurface
-
 
 class Fins(_BaseFin):
     """Abstract class that holds common methods for the fin classes.

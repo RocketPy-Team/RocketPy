@@ -1008,7 +1008,7 @@ class Rocket:
         if isinstance(surface, (TrapezoidalFin, EllipticalFin, FreeFormFin)):
             # TODO: this depends on cant angle, so it should somehow be
             # recalculated whenever the cant angle of the fin changes
-            position = surface._Fin__compute_leading_edge_position(position, self._csys)
+            position = surface._compute_leading_edge_position(position, self._csys)
         else:
             position = (
                 Vector([0, 0, position])

@@ -1,5 +1,3 @@
-import numpy as np
-
 from rocketpy.plots.aero_surface_plots import _TrapezoidalFinsPlots
 from rocketpy.prints.aero_surface_prints import _TrapezoidalFinsPrints
 from rocketpy.rocket.aero_surface.fins._trapezoidal_mixin import _TrapezoidalMixin

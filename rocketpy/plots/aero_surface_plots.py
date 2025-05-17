@@ -1,3 +1,5 @@
+# pylint: disable=too-many-statements
+
 from abc import ABC, abstractmethod
 
 import matplotlib.pyplot as plt
@@ -139,10 +141,6 @@ class _FinsPlots(_AeroSurfacePlots):
     """Abstract class that contains all fin plots. This class inherits from the
     _AeroSurfacePlots class."""
 
-    @abstractmethod
-    def draw(self, *, filename=None):
-        pass
-
     def airfoil(self):
         """Plots the airfoil information when the fin has an airfoil shape. If
         the fin does not have an airfoil shape, this method does nothing.
@@ -200,10 +198,6 @@ class _FinPlots(_AeroSurfacePlots):
     """Abstract class that contains all fin plots. This class inherits from the
     _AeroSurfacePlots class."""
 
-    @abstractmethod
-    def draw(self):
-        pass
-
     def airfoil(self):
         """Plots the airfoil information when the fin has an airfoil shape. If
         the fin does not have an airfoil shape, this method does nothing.
@@ -259,7 +253,6 @@ class _FinPlots(_AeroSurfacePlots):
 class _TrapezoidalFinsPlots(_FinsPlots):
     """Class that contains all trapezoidal fin plots."""
 
-    # pylint: disable=too-many-statements
     def draw(self, *, filename=None):
         """Draw the fin shape along with some important information, including
         the center line, the quarter line and the center of pressure position.
@@ -388,8 +381,7 @@ class _TrapezoidalFinsPlots(_FinsPlots):
 class _TrapezoidalFinPlots(_FinPlots):
     """Class that contains all trapezoidal fin plots."""
 
-    # pylint: disable=too-many-statements
-    def draw(self):
+    def draw(self, *, filename=None):
         """Draw the fin shape along with some important information, including
         the center line, the quarter line and the center of pressure position.
 
@@ -509,7 +501,6 @@ class _TrapezoidalFinPlots(_FinPlots):
 class _EllipticalFinsPlots(_FinsPlots):
     """Class that contains all elliptical fin plots."""
 
-    # pylint: disable=too-many-statements
     def draw(self, *, filename=None):
         """Draw the fin shape along with some important information.
         These being: the center line and the center of pressure position.
@@ -588,8 +579,7 @@ class _EllipticalFinsPlots(_FinsPlots):
 class _EllipticalFinPlots(_FinPlots):
     """Class that contains all elliptical fin plots."""
 
-    # pylint: disable=too-many-statements
-    def draw(self):
+    def draw(self, *, filename=None):
         """Draw the fin shape along with some important information.
         These being: the center line and the center of pressure position.
 
@@ -659,7 +649,6 @@ class _EllipticalFinPlots(_FinPlots):
 class _FreeFormFinsPlots(_FinsPlots):
     """Class that contains all free form fin plots."""
 
-    # pylint: disable=too-many-statements
     def draw(self, *, filename=None):
         """Draw the fin shape along with some important information.
         These being: the center line and the center of pressure position.
@@ -734,7 +723,6 @@ class _FreeFormFinsPlots(_FinsPlots):
 class _FreeFormFinPlots(_FinPlots):
     """Class that contains all free form fin plots."""
 
-    # pylint: disable=too-many-statements
     def draw(self, *, filename=None):
         """Draw the fin shape along with some important information.
         These being: the center line and the center of pressure position.
