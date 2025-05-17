@@ -1,14 +1,13 @@
-from rocketpy.plots.aero_surface_plots import _EllipticalFinsPlots
-from rocketpy.prints.aero_surface_prints import _EllipticalFinsPrints
-from rocketpy.rocket.aero_surface.fins._elliptical_mixin import _EllipticalMixin
+from rocketpy.plots.aero_surface_plots import _FreeFormFinPlots
+from rocketpy.prints.aero_surface_prints import _FreeFormFinPrints
+from rocketpy.rocket.aero_surface.fins._free_form_mixin import _FreeFormMixin
+from rocketpy.rocket.aero_surface.fins.fin import Fin
 
-from .fins import Fins
 
+class FreeFormFin(_FreeFormMixin, Fin):
+    """Class that defines and holds information for a free form fin set.
 
-class EllipticalFins(_EllipticalMixin, Fins):
-    """Class that defines and holds information for an elliptical fin set.
-
-    This class inherits from the Fins class.
+    This class inherits from the Fin class.
 
     Note
     ----
@@ -20,112 +19,99 @@ class EllipticalFins(_EllipticalMixin, Fins):
 
     See Also
     --------
-    Fins
+    Fin
 
     Attributes
     ----------
-    EllipticalFins.n : int
+    FreeFormFin.n : int
         Number of fins in fin set.
-    EllipticalFins.rocket_radius : float
+    FreeFormFin.rocket_radius : float
         The reference rocket radius used for lift coefficient normalization, in
         meters.
-    EllipticalFins.airfoil : tuple
+    FreeFormFin.airfoil : tuple
         Tuple of two items. First is the airfoil lift curve.
-        Second is the unit of the curve (radians or degrees)
-    EllipticalFins.cant_angle : float
+        Second is the unit of the curve (radians or degrees).
+    FreeFormFin.cant_angle : float
         Fins cant angle with respect to the rocket centerline, in degrees.
-    EllipticalFins.cant_angle_rad : float
+    FreeFormFin.cant_angle_rad : float
         Fins cant angle with respect to the rocket centerline, in radians.
-    EllipticalFins.root_chord : float
+    FreeFormFin.root_chord : float
         Fin root chord in meters.
-    EllipticalFins.span : float
+    FreeFormFin.span : float
         Fin span in meters.
-    EllipticalFins.name : string
+    FreeFormFin.name : string
         Name of fin set.
-    EllipticalFins.sweep_length : float
-        Fins sweep length in meters. By sweep length, understand the axial
-        distance between the fin root leading edge and the fin tip leading edge
-        measured parallel to the rocket centerline.
-    EllipticalFins.sweep_angle : float
-        Fins sweep angle with respect to the rocket centerline. Must
-        be given in degrees.
-    EllipticalFins.d : float
+    FreeFormFin.d : float
         Reference diameter of the rocket, in meters.
-    EllipticalFins.ref_area : float
-        Reference area of the rocket.
-    EllipticalFins.Af : float
+    FreeFormFin.ref_area : float
+        Reference area of the rocket, in m².
+    FreeFormFin.Af : float
         Area of the longitudinal section of each fin in the set.
-    EllipticalFins.AR : float
-        Aspect ratio of each fin in the set.
-    EllipticalFins.gamma_c : float
+    FreeFormFin.AR : float
+        Aspect ratio of each fin in the set
+    FreeFormFin.gamma_c : float
         Fin mid-chord sweep angle.
-    EllipticalFins.Yma : float
+    FreeFormFin.Yma : float
         Span wise position of the mean aerodynamic chord.
-    EllipticalFins.roll_geometrical_constant : float
+    FreeFormFin.roll_geometrical_constant : float
         Geometrical constant used in roll calculations.
-    EllipticalFins.tau : float
+    FreeFormFin.tau : float
         Geometrical relation used to simplify lift and roll calculations.
-    EllipticalFins.lift_interference_factor : float
+    FreeFormFin.lift_interference_factor : float
         Factor of Fin-Body interference in the lift coefficient.
-    EllipticalFins.cp : tuple
+    FreeFormFin.cp : tuple
         Tuple with the x, y and z local coordinates of the fin set center of
         pressure. Has units of length and is given in meters.
-    EllipticalFins.cpx : float
+    FreeFormFin.cpx : float
         Fin set local center of pressure x coordinate. Has units of length and
         is given in meters.
-    EllipticalFins.cpy : float
+    FreeFormFin.cpy : float
         Fin set local center of pressure y coordinate. Has units of length and
         is given in meters.
-    EllipticalFins.cpz : float
+    FreeFormFin.cpz : float
         Fin set local center of pressure z coordinate. Has units of length and
         is given in meters.
-    EllipticalFins.cl : Function
+    FreeFormFin.cl : Function
         Function which defines the lift coefficient as a function of the angle
         of attack and the Mach number. Takes as input the angle of attack in
         radians and the Mach number. Returns the lift coefficient.
-    EllipticalFins.clalpha : float
+    FreeFormFin.clalpha : float
         Lift coefficient slope. Has units of 1/rad.
+    FreeFormFin.mac_length : float
+        Mean aerodynamic chord length of the fin set.
+    FreeFormFin.mac_lead : float
+        Mean aerodynamic chord leading edge x coordinate.
     """
 
     def __init__(
         self,
-        n,
-        root_chord,
-        span,
+        angular_position,
+        shape_points,
         rocket_radius,
         cant_angle=0,
         airfoil=None,
         name="Fins",
     ):
-        """Initialize EllipticalFins class.
+        """Initialize FreeFormFin class.
 
         Parameters
         ----------
-        n : int
-            Number of fins, must be larger than 2.
-        root_chord : int, float
-            Fin root chord in meters.
-        span : int, float
-            Fin span in meters.
+        angular_position : float
+            Angular position of the fin in degrees measured as the rotation
+            around the symmetry axis of the rocket relative to one of the other
+            principal axis. See :ref:`Angular Position Inputs <angular_position>`
+        shape_points : list
+            List of tuples (x, y) containing the coordinates of the fin's
+            geometry defining points. The point (0, 0) is the root leading edge.
+            Positive x is rearwards, positive y is upwards (span direction).
+            The shape will be interpolated between the points, in the order
+            they are given. The last point connects to the first point, and
+            represents the trailing edge.
         rocket_radius : int, float
             Reference radius to calculate lift coefficient, in meters.
         cant_angle : int, float, optional
             Fins cant angle with respect to the rocket centerline. Must
             be given in degrees.
-        sweep_length : int, float, optional
-            Fins sweep length in meters. By sweep length, understand the axial
-            distance between the fin root leading edge and the fin tip leading
-            edge measured parallel to the rocket centerline. If not given, the
-            sweep length is assumed to be equal the root chord minus the tip
-            chord, in which case the fin is a right trapezoid with its base
-            perpendicular to the rocket's axis. Cannot be used in conjunction
-            with sweep_angle.
-        sweep_angle : int, float, optional
-            Fins sweep angle with respect to the rocket centerline. Must
-            be given in degrees. If not given, the sweep angle is automatically
-            calculated, in which case the fin is assumed to be a right trapezoid
-            with its base perpendicular to the rocket's axis.
-            Cannot be used in conjunction with sweep_length.
         airfoil : tuple, optional
             Default is null, in which case fins will be treated as flat plates.
             Otherwise, if tuple, fins will be considered as airfoils. The
@@ -147,9 +133,10 @@ class EllipticalFins(_EllipticalMixin, Fins):
         -------
         None
         """
+        root_chord, span = self._initialize(shape_points)
 
         super().__init__(
-            n,
+            angular_position,
             root_chord,
             span,
             rocket_radius,
@@ -163,8 +150,8 @@ class EllipticalFins(_EllipticalMixin, Fins):
         self.evaluate_lift_coefficient()
         self.evaluate_roll_parameters()
 
-        self.prints = _EllipticalFinsPrints(self)
-        self.plots = _EllipticalFinsPlots(self)
+        self.prints = _FreeFormFinPrints(self)
+        self.plots = _FreeFormFinPlots(self)
 
     def evaluate_center_of_pressure(self):
         """Calculates and returns the center of pressure of the fin set in local
@@ -176,18 +163,17 @@ class EllipticalFins(_EllipticalMixin, Fins):
         None
         """
         # Center of pressure position in local coordinates
-        cpz = 0.288 * self.root_chord
+        cpz = self.mac_lead + 0.25 * self.mac_length
         self.cpx = 0
-        self.cpy = 0
+        self.cpy = self.Yma
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
 
     @classmethod
     def from_dict(cls, data):
         return cls(
-            n=data["n"],
-            root_chord=data["root_chord"],
-            span=data["span"],
+            angular_position=data["angular_position"],
+            shape_points=data["shape_points"],
             rocket_radius=data["rocket_radius"],
             cant_angle=data["cant_angle"],
             airfoil=data["airfoil"],

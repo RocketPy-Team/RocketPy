@@ -1,14 +1,14 @@
-from rocketpy.plots.aero_surface_plots import _EllipticalFinsPlots
-from rocketpy.prints.aero_surface_prints import _EllipticalFinsPrints
-from rocketpy.rocket.aero_surface.fins._elliptical_mixin import _EllipticalMixin
+from rocketpy.plots.aero_surface_plots import _TrapezoidalFinPlots
+from rocketpy.prints.aero_surface_prints import _TrapezoidalFinPrints
+from rocketpy.rocket.aero_surface.fins._trapezoidal_mixin import _TrapezoidalMixin
 
-from .fins import Fins
+from .fin import Fin
 
 
-class EllipticalFins(_EllipticalMixin, Fins):
-    """Class that defines and holds information for an elliptical fin set.
+class TrapezoidalFin(_TrapezoidalMixin, Fin):
+    """A class used to represent a single trapezoidal fin.
 
-    This class inherits from the Fins class.
+    This class inherits from the Fin class.
 
     Note
     ----
@@ -20,91 +20,93 @@ class EllipticalFins(_EllipticalMixin, Fins):
 
     See Also
     --------
-    Fins
+    Fin : Parent class
 
     Attributes
     ----------
-    EllipticalFins.n : int
-        Number of fins in fin set.
-    EllipticalFins.rocket_radius : float
+    TrapezoidalFin.angular_position : float
+        Angular position of the fin set with respect to the rocket centerline,
+        in degrees.
+    TrapezoidalFin.rocket_radius : float
         The reference rocket radius used for lift coefficient normalization, in
         meters.
-    EllipticalFins.airfoil : tuple
+    TrapezoidalFin.airfoil : tuple
         Tuple of two items. First is the airfoil lift curve.
-        Second is the unit of the curve (radians or degrees)
-    EllipticalFins.cant_angle : float
+        Second is the unit of the curve (radians or degrees).
+    TrapezoidalFin.cant_angle : float
         Fins cant angle with respect to the rocket centerline, in degrees.
-    EllipticalFins.cant_angle_rad : float
+    TrapezoidalFin.cant_angle_rad : float
         Fins cant angle with respect to the rocket centerline, in radians.
-    EllipticalFins.root_chord : float
+    TrapezoidalFin.root_chord : float
         Fin root chord in meters.
-    EllipticalFins.span : float
+    TrapezoidalFin.tip_chord : float
+        Fin tip chord in meters.
+    TrapezoidalFin.span : float
         Fin span in meters.
-    EllipticalFins.name : string
+    TrapezoidalFin.name : string
         Name of fin set.
-    EllipticalFins.sweep_length : float
+    TrapezoidalFin.sweep_length : float
         Fins sweep length in meters. By sweep length, understand the axial
         distance between the fin root leading edge and the fin tip leading edge
         measured parallel to the rocket centerline.
-    EllipticalFins.sweep_angle : float
+    TrapezoidalFin.sweep_angle : float
         Fins sweep angle with respect to the rocket centerline. Must
         be given in degrees.
-    EllipticalFins.d : float
+    TrapezoidalFin.d : float
         Reference diameter of the rocket, in meters.
-    EllipticalFins.ref_area : float
-        Reference area of the rocket.
-    EllipticalFins.Af : float
+    TrapezoidalFins.fin_area : float
         Area of the longitudinal section of each fin in the set.
-    EllipticalFins.AR : float
-        Aspect ratio of each fin in the set.
-    EllipticalFins.gamma_c : float
+    TrapezoidalFins.f_ar : float
+        Aspect ratio of each fin in the set
+    TrapezoidalFin.gamma_c : float
         Fin mid-chord sweep angle.
-    EllipticalFins.Yma : float
+    TrapezoidalFin.yma : float
         Span wise position of the mean aerodynamic chord.
-    EllipticalFins.roll_geometrical_constant : float
+    TrapezoidalFin.roll_geometrical_constant : float
         Geometrical constant used in roll calculations.
-    EllipticalFins.tau : float
+    TrapezoidalFin.tau : float
         Geometrical relation used to simplify lift and roll calculations.
-    EllipticalFins.lift_interference_factor : float
+    TrapezoidalFin.lift_interference_factor : float
         Factor of Fin-Body interference in the lift coefficient.
-    EllipticalFins.cp : tuple
+    TrapezoidalFin.cp : tuple
         Tuple with the x, y and z local coordinates of the fin set center of
         pressure. Has units of length and is given in meters.
-    EllipticalFins.cpx : float
+    TrapezoidalFin.cpx : float
         Fin set local center of pressure x coordinate. Has units of length and
         is given in meters.
-    EllipticalFins.cpy : float
+    TrapezoidalFin.cpy : float
         Fin set local center of pressure y coordinate. Has units of length and
         is given in meters.
-    EllipticalFins.cpz : float
+    TrapezoidalFin.cpz : float
         Fin set local center of pressure z coordinate. Has units of length and
         is given in meters.
-    EllipticalFins.cl : Function
-        Function which defines the lift coefficient as a function of the angle
-        of attack and the Mach number. Takes as input the angle of attack in
-        radians and the Mach number. Returns the lift coefficient.
-    EllipticalFins.clalpha : float
-        Lift coefficient slope. Has units of 1/rad.
     """
 
     def __init__(
         self,
-        n,
+        angular_position,
         root_chord,
+        tip_chord,
         span,
         rocket_radius,
         cant_angle=0,
+        sweep_length=None,
+        sweep_angle=None,
         airfoil=None,
         name="Fins",
     ):
-        """Initialize EllipticalFins class.
+        """Initializes the TrapezoidalFin class.
 
         Parameters
         ----------
-        n : int
-            Number of fins, must be larger than 2.
+        angular_position : float
+            Angular position of the fin in degrees measured as the rotation
+            around the symmetry axis of the rocket relative to one of the other
+            principal axis. See :ref:`Angular Position Inputs <angular_position>`
         root_chord : int, float
             Fin root chord in meters.
+        tip_chord : int, float
+            Fin tip chord in meters.
         span : int, float
             Fin span in meters.
         rocket_radius : int, float
@@ -142,14 +144,9 @@ class EllipticalFins(_EllipticalMixin, Fins):
             accepting either "radians" or "degrees".
         name : str
             Name of fin set.
-
-        Returns
-        -------
-        None
         """
-
         super().__init__(
-            n,
+            angular_position,
             root_chord,
             span,
             rocket_radius,
@@ -158,13 +155,11 @@ class EllipticalFins(_EllipticalMixin, Fins):
             name,
         )
 
-        self.evaluate_geometrical_parameters()
-        self.evaluate_center_of_pressure()
-        self.evaluate_lift_coefficient()
-        self.evaluate_roll_parameters()
+        self._initialize(sweep_length, sweep_angle, root_chord, tip_chord, span)
+        self.evaluate_rotation_matrix()
 
-        self.prints = _EllipticalFinsPrints(self)
-        self.plots = _EllipticalFinsPlots(self)
+        self.prints = _TrapezoidalFinPrints(self)
+        self.plots = _TrapezoidalFinPlots(self)
 
     def evaluate_center_of_pressure(self):
         """Calculates and returns the center of pressure of the fin set in local
@@ -176,17 +171,24 @@ class EllipticalFins(_EllipticalMixin, Fins):
         None
         """
         # Center of pressure position in local coordinates
-        cpz = 0.288 * self.root_chord
+        cpz = (self.sweep_length / 3) * (
+            (self.root_chord + 2 * self.tip_chord) / (self.root_chord + self.tip_chord)
+        ) + (1 / 6) * (
+            self.root_chord
+            + self.tip_chord
+            - self.root_chord * self.tip_chord / (self.root_chord + self.tip_chord)
+        )
         self.cpx = 0
-        self.cpy = 0
+        self.cpy = self.Yma
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
 
     @classmethod
     def from_dict(cls, data):
         return cls(
-            n=data["n"],
+            angular_position=data["angular_position"],
             root_chord=data["root_chord"],
+            tip_chord=data["tip_chord"],
             span=data["span"],
             rocket_radius=data["rocket_radius"],
             cant_angle=data["cant_angle"],

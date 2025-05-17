@@ -28,8 +28,11 @@ from .rocket import (
     AeroSurface,
     AirBrakes,
     Components,
+    EllipticalFin,
     EllipticalFins,
+    Fin,
     Fins,
+    FreeFormFin,
     FreeFormFins,
     GenericSurface,
     LinearGenericSurface,
@@ -38,6 +41,7 @@ from .rocket import (
     RailButtons,
     Rocket,
     Tail,
+    TrapezoidalFin,
     TrapezoidalFins,
 )
 from .sensitivity import SensitivityModel

@@ -1,14 +1,13 @@
-from rocketpy.plots.aero_surface_plots import _EllipticalFinsPlots
-from rocketpy.prints.aero_surface_prints import _EllipticalFinsPrints
+from rocketpy.plots.aero_surface_plots import _EllipticalFinPlots
+from rocketpy.prints.aero_surface_prints import _EllipticalFinPrints
 from rocketpy.rocket.aero_surface.fins._elliptical_mixin import _EllipticalMixin
+from rocketpy.rocket.aero_surface.fins.fin import Fin
 
-from .fins import Fins
 
-
-class EllipticalFins(_EllipticalMixin, Fins):
+class EllipticalFin(_EllipticalMixin, Fin):
     """Class that defines and holds information for an elliptical fin set.
 
-    This class inherits from the Fins class.
+    This class inherits from the Fin class.
 
     Note
     ----
@@ -20,76 +19,74 @@ class EllipticalFins(_EllipticalMixin, Fins):
 
     See Also
     --------
-    Fins
+    Fin
 
     Attributes
     ----------
-    EllipticalFins.n : int
-        Number of fins in fin set.
-    EllipticalFins.rocket_radius : float
+    EllipticalFin.rocket_radius : float
         The reference rocket radius used for lift coefficient normalization, in
         meters.
-    EllipticalFins.airfoil : tuple
+    EllipticalFin.airfoil : tuple
         Tuple of two items. First is the airfoil lift curve.
         Second is the unit of the curve (radians or degrees)
-    EllipticalFins.cant_angle : float
+    EllipticalFin.cant_angle : float
         Fins cant angle with respect to the rocket centerline, in degrees.
-    EllipticalFins.cant_angle_rad : float
+    EllipticalFin.cant_angle_rad : float
         Fins cant angle with respect to the rocket centerline, in radians.
-    EllipticalFins.root_chord : float
+    EllipticalFin.root_chord : float
         Fin root chord in meters.
-    EllipticalFins.span : float
+    EllipticalFin.span : float
         Fin span in meters.
-    EllipticalFins.name : string
+    EllipticalFin.name : string
         Name of fin set.
-    EllipticalFins.sweep_length : float
+    EllipticalFin.sweep_length : float
         Fins sweep length in meters. By sweep length, understand the axial
         distance between the fin root leading edge and the fin tip leading edge
         measured parallel to the rocket centerline.
-    EllipticalFins.sweep_angle : float
+    EllipticalFin.sweep_angle : float
         Fins sweep angle with respect to the rocket centerline. Must
         be given in degrees.
-    EllipticalFins.d : float
+    EllipticalFin.d : float
         Reference diameter of the rocket, in meters.
-    EllipticalFins.ref_area : float
+    EllipticalFin.ref_area : float
         Reference area of the rocket.
-    EllipticalFins.Af : float
+    EllipticalFin.Af : float
         Area of the longitudinal section of each fin in the set.
-    EllipticalFins.AR : float
+    EllipticalFin.AR : float
         Aspect ratio of each fin in the set.
-    EllipticalFins.gamma_c : float
+    EllipticalFin.gamma_c : float
         Fin mid-chord sweep angle.
-    EllipticalFins.Yma : float
+    EllipticalFin.Yma : float
         Span wise position of the mean aerodynamic chord.
-    EllipticalFins.roll_geometrical_constant : float
+    EllipticalFin.roll_geometrical_constant : float
         Geometrical constant used in roll calculations.
-    EllipticalFins.tau : float
+    EllipticalFin.tau : float
         Geometrical relation used to simplify lift and roll calculations.
-    EllipticalFins.lift_interference_factor : float
+    EllipticalFin.lift_interference_factor : float
         Factor of Fin-Body interference in the lift coefficient.
-    EllipticalFins.cp : tuple
+    EllipticalFin.cp : tuple
         Tuple with the x, y and z local coordinates of the fin set center of
         pressure. Has units of length and is given in meters.
-    EllipticalFins.cpx : float
+    EllipticalFin.cpx : float
         Fin set local center of pressure x coordinate. Has units of length and
         is given in meters.
-    EllipticalFins.cpy : float
+    EllipticalFin.cpy : float
         Fin set local center of pressure y coordinate. Has units of length and
         is given in meters.
-    EllipticalFins.cpz : float
+    EllipticalFin.cpz : float
         Fin set local center of pressure z coordinate. Has units of length and
         is given in meters.
-    EllipticalFins.cl : Function
+    EllipticalFin.cl : Function
         Function which defines the lift coefficient as a function of the angle
         of attack and the Mach number. Takes as input the angle of attack in
         radians and the Mach number. Returns the lift coefficient.
-    EllipticalFins.clalpha : float
+    EllipticalFin.clalpha : float
         Lift coefficient slope. Has units of 1/rad.
     """
 
     def __init__(
         self,
-        n,
+        angular_position,
         root_chord,
         span,
         rocket_radius,
@@ -97,12 +94,14 @@ class EllipticalFins(_EllipticalMixin, Fins):
         airfoil=None,
         name="Fins",
     ):
-        """Initialize EllipticalFins class.
+        """Initialize EllipticalFin class.
 
         Parameters
         ----------
-        n : int
-            Number of fins, must be larger than 2.
+        angular_position : float
+            Angular position of the fin in degrees measured as the rotation
+            around the symmetry axis of the rocket relative to one of the other
+            principal axis. See :ref:`Angular Position Inputs <angular_position>`
         root_chord : int, float
             Fin root chord in meters.
         span : int, float
@@ -149,7 +148,7 @@ class EllipticalFins(_EllipticalMixin, Fins):
         """
 
         super().__init__(
-            n,
+            angular_position,
             root_chord,
             span,
             rocket_radius,
@@ -163,8 +162,8 @@ class EllipticalFins(_EllipticalMixin, Fins):
         self.evaluate_lift_coefficient()
         self.evaluate_roll_parameters()
 
-        self.prints = _EllipticalFinsPrints(self)
-        self.plots = _EllipticalFinsPlots(self)
+        self.prints = _EllipticalFinPrints(self)
+        self.plots = _EllipticalFinPlots(self)
 
     def evaluate_center_of_pressure(self):
         """Calculates and returns the center of pressure of the fin set in local
@@ -178,14 +177,32 @@ class EllipticalFins(_EllipticalMixin, Fins):
         # Center of pressure position in local coordinates
         cpz = 0.288 * self.root_chord
         self.cpx = 0
-        self.cpy = 0
+        self.cpy = self.Yma
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
+
+    def to_dict(self, include_outputs=False):
+        data = super().to_dict(include_outputs)
+        if include_outputs:
+            data.update(
+                {
+                    "Af": self.Af,
+                    "AR": self.AR,
+                    "gamma_c": self.gamma_c,
+                    "Yma": self.Yma,
+                    "roll_geometrical_constant": self.roll_geometrical_constant,
+                    "tau": self.tau,
+                    "lift_interference_factor": self.lift_interference_factor,
+                    "roll_damping_interference_factor": self.roll_damping_interference_factor,
+                    "roll_forcing_interference_factor": self.roll_forcing_interference_factor,
+                }
+            )
+        return data
 
     @classmethod
     def from_dict(cls, data):
         return cls(
-            n=data["n"],
+            angular_position=data["angular_position"],
             root_chord=data["root_chord"],
             span=data["span"],
             rocket_radius=data["rocket_radius"],

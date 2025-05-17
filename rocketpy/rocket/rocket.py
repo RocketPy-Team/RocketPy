@@ -18,7 +18,10 @@ from rocketpy.rocket.aero_surface import (
     Tail,
     TrapezoidalFins,
 )
+from rocketpy.rocket.aero_surface.fins.elliptical_fin import EllipticalFin
+from rocketpy.rocket.aero_surface.fins.free_form_fin import FreeFormFin
 from rocketpy.rocket.aero_surface.fins.free_form_fins import FreeFormFins
+from rocketpy.rocket.aero_surface.fins.trapezoidal_fin import TrapezoidalFin
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
@@ -595,14 +598,20 @@ class Rocket:
         """Calculates the relative position of each aerodynamic surface
         center of pressure to the rocket's center of dry mass in Body Axes
         Coordinate System."""
-        pos = Vector(
+        # position of the surfaces coordinate system origin in body frame
+        pos_origin = Vector(
             [
-                (position.x - self.cm_eccentricity_x) * self._csys - surface.cpx,
-                (position.y - self.cm_eccentricity_y) - surface.cpy,
-                (position.z - self.center_of_dry_mass_position) * self._csys
-                - surface.cpz,
+                (position.x - self.cm_eccentricity_x) * self._csys,
+                (position.y - self.cm_eccentricity_y),
+                (position.z - self.center_of_dry_mass_position) * self._csys,
             ]
         )
+        # position of the center of pressure in body frame
+        pos = (
+            surface._rotation_surface_to_body
+            @ Vector([surface.cpx, surface.cpy, surface.cpz])
+            + pos_origin
+        )  # TODO: this should be recomputed whenever cant angle changes for fin
         self.surfaces_cp_to_cdm[surface] = pos
 
     def evaluate_stability_margin(self):
@@ -996,11 +1005,17 @@ class Rocket:
         """Adds a single aerodynamic surface to the rocket. Makes checks for
         rail buttons case, and position type.
         """
-        position = (
-            Vector([0, 0, position])
-            if not isinstance(position, (Vector, tuple, list))
-            else Vector(position)
-        )
+        if isinstance(surface, (TrapezoidalFin, EllipticalFin, FreeFormFin)):
+            # TODO: this depends on cant angle, so it should somehow be
+            # recalculated whenever the cant angle of the fin changes
+            position = surface._compute_leading_edge_position(position, self._csys)
+        else:
+            position = (
+                Vector([0, 0, position])
+                if not isinstance(position, (Vector, tuple, list))
+                else Vector(position)
+            )
+
         if isinstance(surface, RailButtons):
             self.rail_buttons = Components()
             self.rail_buttons.add(surface, position)
@@ -1018,14 +1033,20 @@ class Rocket:
         surfaces : list, AeroSurface, NoseCone, TrapezoidalFins, EllipticalFins, Tail, RailButtons
             Aerodynamic surface to be added to the rocket. Can be a list of
             AeroSurface if more than one surface is to be added.
-        positions : int, float, list, tuple, Vector
-            Position, in m, of the aerodynamic surface's center of pressure
-            relative to the user defined rocket coordinate system.
-            If a list is passed, it will correspond to the position of each item
-            in the surfaces list.
-            For NoseCone type, position is relative to the nose cone tip.
-            For Fins type, position is relative to the point belonging to
-            the root chord which is highest in the rocket coordinate system.
+        positions : int, float, tuple, list, Vector
+            Position(s) of the aerodynamic surface's reference point. Can be:
+
+            - a single number (int or float) giving the z-coordinate along
+              the rocket axis.
+            - a sequence of three numbers (x, y, z) representing the full
+              position in the user-defined coordinate system.
+
+            If passing multiple surfaces, provide a list of positions matching
+            each surface in order.
+            For NoseCone type, position is the tip coordinate along the axis.
+            For Fins type, position refers to the z-coordinate of the root
+            chord leading-edge point closest to the nose cone, before any
+            cant-angle offset is considered.
             For Tail type, position is relative to the point belonging to the
             tail which is highest in the rocket coordinate system.
             For RailButtons type, position is relative to the lower rail button.
@@ -1038,10 +1059,18 @@ class Rocket:
         -------
         None
         """
-        try:
+        if isinstance(surfaces, list):
+            if isinstance(positions, list):
+                if len(surfaces) != len(positions):
+                    raise ValueError(
+                        "The number of surfaces and positions must be the same."
+                    )
+            else:
+                positions = [positions] * len(surfaces)
+
             for surface, position in zip(surfaces, positions):
                 self.__add_single_surface(surface, position)
-        except TypeError:
+        else:
             self.__add_single_surface(surfaces, positions)
 
         self.evaluate_center_of_pressure()
@@ -1215,10 +1244,10 @@ class Rocket:
         tip_chord : int, float
             Fin tip chord in meters.
         position : int, float
-            Fin set position relative to the rocket's coordinate system.
-            By fin set position, understand the point belonging to the root
-            chord which is highest in the rocket coordinate system (i.e.
-            the point closest to the nose cone tip).
+            Fin set position in the z coordinate of the user defined rocket
+            coordinate system. By fin set position, understand the point
+            belonging to the root chord which is highest in the rocket
+            coordinate system (i.e. the point closest to the nose cone tip).
 
             See Also
             --------
@@ -1264,6 +1293,12 @@ class Rocket:
         fin_set : TrapezoidalFins
             Fin set object created.
         """
+        if n <= 2:
+            raise ValueError(
+                "Number of fins must be greater than 2."
+                "If you want to add 2 or 1 fins, create a TrapezoidalFin object "
+                " and add it to the rocket using the add_surfaces method."
+            )
 
         # Modify radius if not given, use rocket radius, otherwise use given.
         radius = radius if radius is not None else self.radius
@@ -1311,10 +1346,10 @@ class Rocket:
         span : int, float
             Fin span in meters.
         position : int, float
-            Fin set position relative to the rocket's coordinate system. By fin
-            set position, understand the point belonging to the root chord which
-            is highest in the rocket coordinate system (i.e. the point
-            closest to the nose cone tip).
+            Fin set position in the z coordinate of the user defined rocket
+            coordinate system. By fin set position, understand the point
+            belonging to the root chord which is highest in the rocket
+            coordinate system (i.e. the point closest to the nose cone tip).
 
             See Also
             --------
@@ -1350,6 +1385,13 @@ class Rocket:
         fin_set : EllipticalFins
             Fin set object created.
         """
+        if n <= 2:
+            raise ValueError(
+                "Number of fins must be greater than 2."
+                "If you want to add 2 or 1 fins, create a EllipticalFin object "
+                " and add it to the rocket using the add_surfaces method."
+            )
+
         radius = radius if radius is not None else self.radius
         fin_set = EllipticalFins(n, root_chord, span, radius, cant_angle, airfoil, name)
         self.add_surfaces(fin_set, position)
@@ -1381,10 +1423,10 @@ class Rocket:
             The shape will be interpolated between the points, in the order
             they are given. The last point connects to the first point.
         position : int, float
-            Fin set position relative to the rocket's coordinate system.
-            By fin set position, understand the point belonging to the root
-            chord which is highest in the rocket coordinate system (i.e.
-            the point closest to the nose cone tip).
+            Fin set position in the z coordinate of the user defined rocket
+            coordinate system. By fin set position, understand the point
+            belonging to the root chord which is highest in the rocket
+            coordinate system (i.e. the point closest to the nose cone tip).
 
             See Also
             --------
@@ -1416,6 +1458,12 @@ class Rocket:
         fin_set : FreeFormFins
             Fin set object created.
         """
+        if n <= 2:
+            raise ValueError(
+                "Number of fins must be greater than 2."
+                "If you want to add 2 or 1 fins, create a FreeFormFin object "
+                " and add it to the rocket using the add_surfaces method."
+            )
 
         # Modify radius if not given, use rocket radius, otherwise use given.
         radius = radius if radius is not None else self.radius
@@ -1518,8 +1566,7 @@ class Rocket:
             must be in the format (x, y, z) where x, y, and z are defined in the
             rocket's user defined coordinate system. If a single value is
             passed, it is assumed to be along the z-axis (centerline) of the
-            rocket's user defined coordinate system and angular_position and
-            radius must be given.
+            rocket's user defined coordinate system.
 
         Returns
         -------
@@ -1603,9 +1650,9 @@ class Rocket:
                listed in the same order as they are provided in the
                `interactive_objects`
             7. `sensors` (list): A list of sensors that are attached to the
-                rocket. The most recent measurements of the sensors are provided
-                with the ``sensor.measurement`` attribute. The sensors are
-                listed in the same order as they are added to the rocket
+               rocket. The most recent measurements of the sensors are provided
+               with the ``sensor.measurement`` attribute. The sensors are
+               listed in the same order as they are added to the rocket
                ``interactive_objects``
 
             This function will be called during the simulation at the specified
@@ -1710,7 +1757,7 @@ class Rocket:
             as the rotation around the symmetry axis of the rocket
             relative to one of the other principal axis.
             Default value is 45 degrees, generally used in rockets with
-            4 fins.
+            4 fins. See :ref:`Angular Position Inputs <angular_position>`
         radius : int, float, optional
             Fuselage radius where the rail buttons are located.
 

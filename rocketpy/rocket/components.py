@@ -1,4 +1,5 @@
 from collections import namedtuple
+from copy import deepcopy
 
 
 class Components:
@@ -186,7 +187,7 @@ class Components:
         self._components.clear()
 
     def sort_by_position(self, reverse=False):
-        """Sort the list of components by z axis position.
+        """Returns a new Components object sorted components by z axis position.
 
         Parameters
         ----------
@@ -196,9 +197,12 @@ class Components:
 
         Returns
         -------
-        None
+        Components
+            A new Components object sorted by component position.
         """
-        self._components.sort(key=lambda x: x.position.z, reverse=reverse)
+        components = deepcopy(self)
+        components._components.sort(key=lambda x: x.position.z, reverse=reverse)
+        return components
 
     def to_dict(self, include_outputs=False):  # pylint: disable=unused-argument
         return {
