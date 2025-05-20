@@ -203,6 +203,7 @@ class HybridMotor(Motor):
         reshape_thrust_curve=False,
         interpolation_method="linear",
         coordinate_system_orientation="nozzle_to_combustion_chamber",
+        only_radial_burn=True,
     ):
         """Initialize Motor class, process thrust curve and geometrical
         parameters and store results.
@@ -346,6 +347,7 @@ class HybridMotor(Motor):
             reshape_thrust_curve,
             interpolation_method,
             coordinate_system_orientation,
+            only_radial_burn,
         )
 
         self.positioned_tanks = self.liquid.positioned_tanks

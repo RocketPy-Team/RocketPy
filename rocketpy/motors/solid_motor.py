@@ -302,7 +302,7 @@ class SolidMotor(Motor):
             "nozzle_to_combustion_chamber".
         only_radial_burn : boolean, optional
             If True, inhibits the grain from burning axially, only computing
-            radial burn. Otherwise, if False, allows the grain to also burn
+            radial burn. If False, allows the grain to also burn
             axially. May be useful for axially inhibited grains or hybrid motors.
             Default is False.
 
@@ -492,7 +492,7 @@ class SolidMotor(Motor):
                 burn_area = 2 * np.pi * (grain_inner_radius * grain_height)
 
                 grain_inner_radius_derivative = -volume_diff / burn_area
-                grain_height_derivative = 0
+                grain_height_derivative = 0  # Set to zero to disable axial burning
 
             else:
                 burn_area = (
@@ -528,6 +528,7 @@ class SolidMotor(Motor):
                 inner_radius_derivative_wrt_height = 0
                 height_derivative_wrt_inner_radius = 0
                 height_derivative_wrt_height = 0
+                # Height is a constant, so all the derivatives with respect to it are set to zero
 
                 return [
                     [
