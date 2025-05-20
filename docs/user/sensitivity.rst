@@ -85,8 +85,8 @@ value of that parameter, i.e. the measured value by the instrument, and the
         "motors_grain_initial_inner_radius": {"mean": 15 / 1000, "std": 0.375 / 1000},
         "motors_grain_outer_radius": {"mean": 33 / 1000, "std": 0.375 / 1000},
         # Parachutes
-        "parachutes_cd_s": {"mean": 10, "std": 0.1},
-        "parachutes_lag": {"mean": 1.5, "std": 0.1},
+        "parachutes_Main_cd_s": {"mean": 10, "std": 0.1},
+        "parachutes_Main_lag": {"mean": 1.5, "std": 0.1},
         # Flight
         "heading": {"mean": 53, "std": 2},
         "inclination": {"mean": 84.7, "std": 1},
