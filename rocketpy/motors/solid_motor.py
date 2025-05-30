@@ -217,6 +217,7 @@ class SolidMotor(Motor):
         interpolation_method="linear",
         coordinate_system_orientation="nozzle_to_combustion_chamber",
         reference_pressure=None,
+        only_radial_burn=False,
     ):
         """Initialize Motor class, process thrust curve and geometrical
         parameters and store results.
@@ -314,6 +315,11 @@ class SolidMotor(Motor):
             "nozzle_to_combustion_chamber".
         reference_pressure : int, float, optional
             Atmospheric pressure in Pa at which the thrust data was recorded.
+        only_radial_burn : boolean, optional
+            If True, inhibits the grain from burning axially, only computing
+            radial burn. If False, allows the grain to also burn
+            axially. May be useful for axially inhibited grains or hybrid motors.
+            Default is False.
 
         Returns
         -------
@@ -352,6 +358,9 @@ class SolidMotor(Motor):
             * (self.grain_outer_radius**2 - self.grain_initial_inner_radius**2)
         )
         self.grain_initial_mass = self.grain_density * self.grain_initial_volume
+
+        # Burn surface definition
+        self.only_radial_burn = only_radial_burn
 
         self.evaluate_geometry()
 
@@ -500,17 +509,25 @@ class SolidMotor(Motor):
 
             # Compute state vector derivative
             grain_inner_radius, grain_height = y
-            burn_area = (
-                2
-                * np.pi
-                * (
-                    grain_outer_radius**2
-                    - grain_inner_radius**2
-                    + grain_inner_radius * grain_height
+            if self.only_radial_burn:
+                burn_area = 2 * np.pi * (grain_inner_radius * grain_height)
+
+                grain_inner_radius_derivative = -volume_diff / burn_area
+                grain_height_derivative = 0  # Set to zero to disable axial burning
+
+            else:
+                burn_area = (
+                    2
+                    * np.pi
+                    * (
+                        grain_outer_radius**2
+                        - grain_inner_radius**2
+                        + grain_inner_radius * grain_height
+                    )
                 )
-            )
-            grain_inner_radius_derivative = -volume_diff / burn_area
-            grain_height_derivative = -2 * grain_inner_radius_derivative
+
+                grain_inner_radius_derivative = -volume_diff / burn_area
+                grain_height_derivative = -2 * grain_inner_radius_derivative
 
             return [grain_inner_radius_derivative, grain_height_derivative]
 
@@ -521,32 +538,55 @@ class SolidMotor(Motor):
 
             # Compute jacobian
             grain_inner_radius, grain_height = y
-            factor = volume_diff / (
-                2
-                * np.pi
-                * (
-                    grain_outer_radius**2
-                    - grain_inner_radius**2
-                    + grain_inner_radius * grain_height
+            if self.only_radial_burn:
+                factor = volume_diff / (
+                    2 * np.pi * (grain_inner_radius * grain_height) ** 2
                 )
-                ** 2
-            )
-            inner_radius_derivative_wrt_inner_radius = factor * (
-                grain_height - 2 * grain_inner_radius
-            )
-            inner_radius_derivative_wrt_height = factor * grain_inner_radius
-            height_derivative_wrt_inner_radius = (
-                -2 * inner_radius_derivative_wrt_inner_radius
-            )
-            height_derivative_wrt_height = -2 * inner_radius_derivative_wrt_height
 
-            return [
-                [
-                    inner_radius_derivative_wrt_inner_radius,
-                    inner_radius_derivative_wrt_height,
-                ],
-                [height_derivative_wrt_inner_radius, height_derivative_wrt_height],
-            ]
+                inner_radius_derivative_wrt_inner_radius = factor * (
+                    grain_height - 2 * grain_inner_radius
+                )
+                inner_radius_derivative_wrt_height = 0
+                height_derivative_wrt_inner_radius = 0
+                height_derivative_wrt_height = 0
+                # Height is a constant, so all the derivatives with respect to it are set to zero
+
+                return [
+                    [
+                        inner_radius_derivative_wrt_inner_radius,
+                        inner_radius_derivative_wrt_height,
+                    ],
+                    [height_derivative_wrt_inner_radius, height_derivative_wrt_height],
+                ]
+
+            else:
+                factor = volume_diff / (
+                    2
+                    * np.pi
+                    * (
+                        grain_outer_radius**2
+                        - grain_inner_radius**2
+                        + grain_inner_radius * grain_height
+                    )
+                    ** 2
+                )
+
+                inner_radius_derivative_wrt_inner_radius = factor * (
+                    grain_height - 2 * grain_inner_radius
+                )
+                inner_radius_derivative_wrt_height = factor * grain_inner_radius
+                height_derivative_wrt_inner_radius = (
+                    -2 * inner_radius_derivative_wrt_inner_radius
+                )
+                height_derivative_wrt_height = -2 * inner_radius_derivative_wrt_height
+
+                return [
+                    [
+                        inner_radius_derivative_wrt_inner_radius,
+                        inner_radius_derivative_wrt_height,
+                    ],
+                    [height_derivative_wrt_inner_radius, height_derivative_wrt_height],
+                ]
 
         def terminate_burn(t, y):  # pylint: disable=unused-argument
             end_function = (self.grain_outer_radius - y[0]) * y[1]
@@ -597,16 +637,24 @@ class SolidMotor(Motor):
         burn_area : Function
             Function representing the burn area progression with the time.
         """
-        burn_area = (
-            2
-            * np.pi
-            * (
-                self.grain_outer_radius**2
-                - self.grain_inner_radius**2
-                + self.grain_inner_radius * self.grain_height
+        if self.only_radial_burn:
+            burn_area = (
+                2
+                * np.pi
+                * (self.grain_inner_radius * self.grain_height)
+                * self.grain_number
             )
-            * self.grain_number
-        )
+        else:
+            burn_area = (
+                2
+                * np.pi
+                * (
+                    self.grain_outer_radius**2
+                    - self.grain_inner_radius**2
+                    + self.grain_inner_radius * self.grain_height
+                )
+                * self.grain_number
+            )
         return burn_area
 
     @funcify_method("Time (s)", "burn rate (m/s)")
@@ -778,6 +826,7 @@ class SolidMotor(Motor):
                 "grain_initial_height": self.grain_initial_height,
                 "grain_separation": self.grain_separation,
                 "grains_center_of_mass_position": self.grains_center_of_mass_position,
+                "only_radial_burn": self.only_radial_burn,
             }
         )
 
@@ -822,4 +871,5 @@ class SolidMotor(Motor):
             interpolation_method=data["interpolate"],
             coordinate_system_orientation=data["coordinate_system_orientation"],
             reference_pressure=data.get("reference_pressure"),
+            only_radial_burn=data.get("only_radial_burn", False),
         )
