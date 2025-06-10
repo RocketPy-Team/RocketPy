@@ -104,11 +104,14 @@ class Flight:
     Flight.z : Function
         Rocket's z coordinate (positive up) as a function of time.
     Flight.vx : Function
-        Rocket's X velocity as a function of time.
+        Velocity of the rocket's center of dry mass in the X (East) direction of
+        the inertial frame as a function of time.
     Flight.vy : Function
-        Rocket's Y velocity as a function of time.
+        Velocity of the rocket's center of dry mass in the Y (North) direction of
+        the inertial frame as a function of time.
     Flight.vz : Function
-        Rocket's Z velocity as a function of time.
+        Velocity of the rocket's center of dry mass in the Z (Up) direction of
+        the inertial frame as a function of time.
     Flight.e0 : Function
         Rocket's Euler parameter 0 as a function of time.
     Flight.e1 : Function
@@ -118,17 +121,17 @@ class Flight:
     Flight.e3 : Function
         Rocket's Euler parameter 3 as a function of time.
     Flight.w1 : Function
-        Rocket's angular velocity Omega 1 as a function of time.
-        Direction 1 is in the rocket's body axis and points perpendicular
-        to the rocket's axis of cylindrical symmetry.
+        Angular velocity of the rocket in the x direction of the rocket's
+        body frame as a function of time, in rad/s. Sometimes referred to as
+        pitch rate (q).
     Flight.w2 : Function
-        Rocket's angular velocity Omega 2 as a function of time.
-        Direction 2 is in the rocket's body axis and points perpendicular
-        to the rocket's axis of cylindrical symmetry and direction 1.
+        Angular velocity of the rocket in the y direction of the rocket's
+        body frame as a function of time, in rad/s. Sometimes referred to as
+        yaw rate (r).
     Flight.w3 : Function
-        Rocket's angular velocity Omega 3 as a function of time.
-        Direction 3 is in the rocket's body axis and points in the
-        direction of cylindrical symmetry.
+        Angular velocity of the rocket in the z direction of the rocket's
+        body frame as a function of time, in rad/s. Sometimes referred to as
+        roll rate (p).
     Flight.latitude: Function
         Rocket's latitude coordinates (positive North) as a function of time.
         The Equator has a latitude equal to 0, by convention.
@@ -209,49 +212,46 @@ class Flight:
         Stores and manages flight phases.
     Flight.wind_velocity_x : Function
         Wind velocity X (East) experienced by the rocket as a
-        function of time. Can be called or accessed as array.
+        function of time.
     Flight.wind_velocity_y : Function
         Wind velocity Y (North) experienced by the rocket as a
-        function of time. Can be called or accessed as array.
+        function of time.
     Flight.density : Function
         Air density experienced by the rocket as a function of
-        time. Can be called or accessed as array.
+        time.
     Flight.pressure : Function
         Air pressure experienced by the rocket as a function of
-        time. Can be called or accessed as array.
+        time.
     Flight.dynamic_viscosity : Function
         Air dynamic viscosity experienced by the rocket as a function of
-        time. Can be called or accessed as array.
+        time.
     Flight.speed_of_sound : Function
         Speed of Sound in air experienced by the rocket as a
-        function of time. Can be called or accessed as array.
+        function of time.
     Flight.ax : Function
-        Rocket's X (East) acceleration as a function of time, in m/s².
-        Can be called or accessed as array.
+        Acceleration of the rocket's center of dry mass along the X (East)
+        axis in the inertial frame as a function of time.
     Flight.ay : Function
-        Rocket's Y (North) acceleration as a function of time, in m/s².
-        Can be called or accessed as array.
+        Acceleration of the rocket's center of dry mass along the Y (North)
+        axis in the inertial frame as a function of time.
     Flight.az : Function
-        Rocket's Z (Up) acceleration as a function of time, in m/s².
-        Can be called or accessed as array.
+        Acceleration of the rocket's center of dry mass along the Z (Up)
+        axis in the inertial frame as a function of time.
     Flight.alpha1 : Function
-        Rocket's angular acceleration Alpha 1 as a function of time.
-        Direction 1 is in the rocket's body axis and points perpendicular
-        to the rocket's axis of cylindrical symmetry.
-        Units of rad/s². Can be called or accessed as array.
+        Angular acceleration of the rocket in the x direction of the rocket's
+        body frame as a function of time, in rad/s. Sometimes referred to as
+        yaw acceleration.
     Flight.alpha2 : Function
-        Rocket's angular acceleration Alpha 2 as a function of time.
-        Direction 2 is in the rocket's body axis and points perpendicular
-        to the rocket's axis of cylindrical symmetry and direction 1.
-        Units of rad/s². Can be called or accessed as array.
+        Angular acceleration of the rocket in the y direction of the rocket's
+        body frame as a function of time, in rad/s. Sometimes referred to as
+        yaw acceleration.
     Flight.alpha3 : Function
-        Rocket's angular acceleration Alpha 3 as a function of time.
-        Direction 3 is in the rocket's body axis and points in the
-        direction of cylindrical symmetry.
-        Units of rad/s². Can be called or accessed as array.
+        Angular acceleration of the rocket in the z direction of the rocket's
+        body frame as a function of time, in rad/s. Sometimes referred to as
+        roll acceleration.
     Flight.speed : Function
         Rocket velocity magnitude in m/s relative to ground as a
-        function of time. Can be called or accessed as array.
+        function of time.
     Flight.max_speed : float
         Maximum velocity magnitude in m/s reached by the rocket
         relative to ground during flight.
@@ -260,11 +260,10 @@ class Flight:
         magnitude relative to ground.
     Flight.horizontal_speed : Function
         Rocket's velocity magnitude in the horizontal (North-East)
-        plane in m/s as a function of time. Can be called or
-        accessed as array.
+        plane in m/s as a function of time.
     Flight.acceleration : Function
         Rocket acceleration magnitude in m/s² relative to ground as a
-        function of time. Can be called or accessed as array.
+        function of time.
     Flight.max_acceleration : float
         Maximum acceleration magnitude in m/s² reached by the rocket
         relative to ground during flight.
@@ -275,89 +274,65 @@ class Flight:
         Rocket's flight path angle, or the angle that the
         rocket's velocity makes with the horizontal (North-East)
         plane. Measured in degrees and expressed as a function
-        of time. Can be called or accessed as array.
+        of time.
     Flight.attitude_vector_x : Function
         Rocket's attitude vector, or the vector that points
         in the rocket's axis of symmetry, component in the X
         direction (East) as a function of time.
-        Can be called or accessed as array.
     Flight.attitude_vector_y : Function
         Rocket's attitude vector, or the vector that points
         in the rocket's axis of symmetry, component in the Y
         direction (East) as a function of time.
-        Can be called or accessed as array.
     Flight.attitude_vector_z : Function
         Rocket's attitude vector, or the vector that points
         in the rocket's axis of symmetry, component in the Z
         direction (East) as a function of time.
-        Can be called or accessed as array.
     Flight.attitude_angle : Function
         Rocket's attitude angle, or the angle that the
         rocket's axis of symmetry makes with the horizontal (North-East)
         plane. Measured in degrees and expressed as a function
-        of time. Can be called or accessed as array.
+        of time.
     Flight.lateral_attitude_angle : Function
         Rocket's lateral attitude angle, or the angle that the
         rocket's axis of symmetry makes with plane defined by
         the launch rail direction and the Z (up) axis.
         Measured in degrees and expressed as a function
-        of time. Can be called or accessed as array.
+        of time.
     Flight.phi : Function
         Rocket's Spin Euler Angle, φ, according to the 3-2-3 rotation
         system nomenclature (NASA Standard Aerospace). Measured in degrees and
-        expressed as a function of time. Can be called or accessed as array.
+        expressed as a function of time.
     Flight.theta : Function
         Rocket's Nutation Euler Angle, θ, according to the 3-2-3 rotation
         system nomenclature (NASA Standard Aerospace). Measured in degrees and
-        expressed as a function of time. Can be called or accessed as array.
+        expressed as a function of time.
     Flight.psi : Function
         Rocket's Precession Euler Angle, ψ, according to the 3-2-3 rotation
         system nomenclature (NASA Standard Aerospace). Measured in degrees and
-        expressed as a function of time. Can be called or accessed as array.
+        expressed as a function of time.
     Flight.R1 : Function
-        Resultant force perpendicular to rockets axis due to
-        aerodynamic forces as a function of time. Units in N.
-        Expressed as a function of time. Can be called or accessed
-        as array.
-        Direction 1 is in the rocket's body axis and points perpendicular
-        to the rocket's axis of cylindrical symmetry.
+        Aerodynamic force acting along the x-axis of the rocket's body frame
+        as a function of time. Expressed in Newtons (N).
     Flight.R2 : Function
-        Resultant force perpendicular to rockets axis due to
-        aerodynamic forces as a function of time. Units in N.
-        Expressed as a function of time. Can be called or accessed
-        as array.
-        Direction 2 is in the rocket's body axis and points perpendicular
-        to the rocket's axis of cylindrical symmetry and direction 1.
+        Aerodynamic force acting along the y-axis of the rocket's body frame
+        as a function of time. Expressed in Newtons (N).
     Flight.R3 : Function
-        Resultant force in rockets axis due to aerodynamic forces
-        as a function of time. Units in N. Usually just drag.
-        Expressed as a function of time. Can be called or accessed
-        as array.
-        Direction 3 is in the rocket's body axis and points in the
-        direction of cylindrical symmetry.
+        Aerodynamic force acting along the z-axis of the rocket's body frame
+        as a function of time. Expressed in Newtons (N).
     Flight.M1 : Function
-        Resultant moment (torque) perpendicular to rockets axis due to
-        aerodynamic forces and eccentricity as a function of time.
-        Units in N*m.
-        Expressed as a function of time. Can be called or accessed
-        as array.
-        Direction 1 is in the rocket's body axis and points perpendicular
-        to the rocket's axis of cylindrical symmetry.
+        Aerodynamic moment acting along the x-axis of the rocket's body
+        frame as a function of time. Expressed in Newtons (N).
     Flight.M2 : Function
-        Resultant moment (torque) perpendicular to rockets axis due to
-        aerodynamic forces and eccentricity as a function of time.
-        Units in N*m.
-        Expressed as a function of time. Can be called or accessed
-        as array.
-        Direction 2 is in the rocket's body axis and points perpendicular
-        to the rocket's axis of cylindrical symmetry and direction 1.
+        Aerodynamic moment acting along the y-axis of the rocket's body
+        frame as a function of time. Expressed in Newtons (N).
     Flight.M3 : Function
-        Resultant moment (torque) in rockets axis due to aerodynamic
-        forces and eccentricity as a function of time. Units in N*m.
-        Expressed as a function of time. Can be called or accessed
-        as array.
-        Direction 3 is in the rocket's body axis and points in the
-        direction of cylindrical symmetry.
+        Aerodynamic moment acting along the z-axis of the rocket's body
+        frame as a function of time. Expressed in Newtons (N).
+    Flight.net_thrust : Function
+        Rocket's engine net thrust as a function of time in Newton.
+        This is the actual thrust force experienced by the rocket.
+        It may be corrected with the atmospheric pressure if a reference
+        pressure is defined.
     Flight.aerodynamic_lift : Function
         Resultant force perpendicular to rockets axis due to
         aerodynamic effects as a function of time. Units in N.
@@ -380,25 +355,25 @@ class Flight:
         as array.
     Flight.rail_button1_normal_force : Function
         Upper rail button normal force in N as a function
-        of time. Can be called or accessed as array.
+        of time.
     Flight.max_rail_button1_normal_force : float
         Maximum upper rail button normal force experienced
         during rail flight phase in N.
     Flight.rail_button1_shear_force : Function
         Upper rail button shear force in N as a function
-        of time. Can be called or accessed as array.
+        of time.
     Flight.max_rail_button1_shear_force : float
         Maximum upper rail button shear force experienced
         during rail flight phase in N.
     Flight.rail_button2_normal_force : Function
         Lower rail button normal force in N as a function
-        of time. Can be called or accessed as array.
+        of time.
     Flight.max_rail_button2_normal_force : float
         Maximum lower rail button normal force experienced
         during rail flight phase in N.
     Flight.rail_button2_shear_force : Function
         Lower rail button shear force in N as a function
-        of time. Can be called or accessed as array.
+        of time.
     Flight.max_rail_button2_shear_force : float
         Maximum lower rail button shear force experienced
         during rail flight phase in N.
@@ -419,26 +394,26 @@ class Flight:
         Units in J.
     Flight.thrust_power : Function
         Rocket's engine thrust power output as a function
-        of time in Watts. Can be called or accessed as array.
+        of time in Watts.
     Flight.drag_power : Function
         Aerodynamic drag power output as a function
-        of time in Watts. Can be called or accessed as array.
+        of time in Watts.
     Flight.attitude_frequency_response : Function
         Fourier Frequency Analysis of the rocket's attitude angle.
-        Expressed as the absolute vale of the magnitude as a function
-        of frequency in Hz. Can be called or accessed as array.
+        Expressed as the absolute value of the magnitude as a function
+        of frequency in Hz.
     Flight.omega1_frequency_response : Function
         Fourier Frequency Analysis of the rocket's angular velocity omega 1.
-        Expressed as the absolute vale of the magnitude as a function
-        of frequency in Hz. Can be called or accessed as array.
+        Expressed as the absolute value of the magnitude as a function
+        of frequency in Hz.
     Flight.omega2_frequency_response : Function
         Fourier Frequency Analysis of the rocket's angular velocity omega 2.
-        Expressed as the absolute vale of the magnitude as a function
-        of frequency in Hz. Can be called or accessed as array.
+        Expressed as the absolute value of the magnitude as a function
+        of frequency in Hz.
     Flight.omega3_frequency_response : Function
         Fourier Frequency Analysis of the rocket's angular velocity omega 3.
-        Expressed as the absolute vale of the magnitude as a function
-        of frequency in Hz. Can be called or accessed as array.
+        Expressed as the absolute value of the magnitude as a function
+        of frequency in Hz.
     Flight.static_margin : Function
         Rocket's static margin during flight in calibers.
     Flight.stability_margin : Function
@@ -449,22 +424,21 @@ class Flight:
         Rocket's stability margin in calibers when it leaves the rail.
     Flight.stream_velocity_x : Function
         Freestream velocity x (East) component, in m/s, as a function of
-        time. Can be called or accessed as array.
+        time.
     Flight.stream_velocity_y : Function
         Freestream velocity y (North) component, in m/s, as a function of
-        time. Can be called or accessed as array.
+        time.
     Flight.stream_velocity_z : Function
         Freestream velocity z (up) component, in m/s, as a function of
-        time. Can be called or accessed as array.
+        time.
     Flight.free_stream_speed : Function
         Freestream velocity magnitude, in m/s, as a function of time.
-        Can be called or accessed as array.
     Flight.apogee_freestream_speed : float
         Freestream speed of the rocket at apogee in m/s.
     Flight.mach_number : Function
         Rocket's Mach number defined as its freestream speed
         divided by the speed of sound at its altitude. Expressed
-        as a function of time. Can be called or accessed as array.
+        as a function of time.
     Flight.max_mach_number : float
         Rocket's maximum Mach number experienced during flight.
     Flight.max_mach_number_time : float
@@ -472,7 +446,7 @@ class Flight:
     Flight.reynolds_number : Function
         Rocket's Reynolds number, using its diameter as reference
         length and free_stream_speed as reference velocity. Expressed
-        as a function of time. Can be called or accessed as array.
+        as a function of time.
     Flight.max_reynolds_number : float
         Rocket's maximum Reynolds number experienced during flight.
     Flight.max_reynolds_number_time : float
@@ -480,14 +454,14 @@ class Flight:
     Flight.dynamic_pressure : Function
         Dynamic pressure experienced by the rocket in Pa as a function
         of time, defined by 0.5*rho*V^2, where rho is air density and V
-        is the freestream speed. Can be called or accessed as array.
+        is the freestream speed.
     Flight.max_dynamic_pressure : float
         Maximum dynamic pressure, in Pa, experienced by the rocket.
     Flight.max_dynamic_pressure_time : float
         Time at which the rocket experiences maximum dynamic pressure.
     Flight.total_pressure : Function
         Total pressure experienced by the rocket in Pa as a function
-        of time. Can be called or accessed as array.
+        of time.
     Flight.max_total_pressure : float
         Maximum total pressure, in Pa, experienced by the rocket.
     Flight.max_total_pressure_time : float
@@ -1153,7 +1127,9 @@ class Flight:
             try:
                 self.phi_init += (
                     self.rocket.rail_buttons[0].component.angular_position_rad
-                    * self.rocket._csys
+                    if self.rocket._csys == 1
+                    else 2 * np.pi
+                    - self.rocket.rail_buttons[0].component.angular_position_rad
                 )
             except IndexError:
                 pass
@@ -1281,7 +1257,7 @@ class Flight:
                     f"Available options are: {', '.join(ODE_SOLVER_MAP.keys())}"
                 ) from e
 
-        self.__is_lsoda = hasattr(self._solver, "_lsoda_solver")
+        self.__is_lsoda = issubclass(self._solver, LSODA)
 
     @cached_property
     def effective_1rl(self):
@@ -1384,12 +1360,17 @@ class Flight:
         drag_coeff = self.rocket.power_on_drag.get_value_opt(free_stream_mach)
 
         # Calculate Forces
-        thrust = self.rocket.motor.thrust.get_value_opt(t)
+        pressure = self.env.pressure.get_value_opt(z)
+        net_thrust = max(
+            self.rocket.motor.thrust.get_value_opt(t)
+            + self.rocket.motor.pressure_thrust(pressure),
+            0,
+        )
         rho = self.env.density.get_value_opt(z)
         R3 = -0.5 * rho * (free_stream_speed**2) * self.rocket.area * (drag_coeff)
 
         # Calculate Linear acceleration
-        a3 = (R3 + thrust) / total_mass_at_t - (
+        a3 = (R3 + net_thrust) / total_mass_at_t - (
             e0**2 - e1**2 - e2**2 + e3**2
         ) * self.env.gravity.get_value_opt(z)
         if a3 > 0:
@@ -1459,6 +1440,8 @@ class Flight:
         # Determine lift force and moment
         omega1, omega2, omega3 = 0, 0, 0
         R1, R2, M1, M2, M3 = 0, 0, 0, 0, 0
+        # Thrust correction parameters
+        pressure = self.env.pressure.get_value_opt(z)
         # Determine current behavior
         if t < self.rocket.motor.burn_out_time:
             # Motor burning
@@ -1466,13 +1449,21 @@ class Flight:
             # Mass
             propellant_mass_at_t = self.rocket.motor.propellant_mass.get_value_opt(t)
             # Thrust
-            thrust = self.rocket.motor.thrust.get_value_opt(t)
+
+            net_thrust = max(
+                self.rocket.motor.thrust.get_value_opt(t)
+                + self.rocket.motor.pressure_thrust(pressure),
+                0,
+            )
+            # Off center moment
+            M1 += self.rocket.thrust_eccentricity_y * net_thrust
+            M2 -= self.rocket.thrust_eccentricity_x * net_thrust
         else:
             # Motor stopped
             # Mass
             propellant_mass_at_t = 0
             # thrust
-            thrust = 0
+            net_thrust = 0
 
         # Retrieve important quantities
         # Mass
@@ -1584,7 +1575,8 @@ class Flight:
 
             )
             / total_mass_at_t,
-            (R3 + thrust)
+
+            (R3 - b * propellant_mass_at_t * (alpha2 - omega1 * omega3) + net_thrust)
             / total_mass_at_t,
         ]
         ax, ay, az = K @ Vector(L)
@@ -1609,7 +1601,23 @@ class Flight:
 
         if post_processing:
             self.__post_processed_variables.append(
-                [t, ax, ay, az, 0, 0, 0, R1, R2, R3, 0, 0, 0]
+
+                [
+                    t,
+                    ax,
+                    ay,
+                    az,
+                    alpha1,
+                    alpha2,
+                    alpha3,
+                    R1,
+                    R2,
+                    R3,
+                    M1,
+                    M2,
+                    M3,
+                    net_thrust,
+                ]
             )
         return u_dot
 
@@ -1730,6 +1738,7 @@ class Flight:
         if post_processing:
             self.__post_processed_variables.append(
                 [t, *v_dot, *w_dot, R1, R2, R3, 0, 0, 0]
+
             )
 
         return u_dot
@@ -1807,8 +1816,15 @@ class Flight:
         free_stream_mach = free_stream_speed / speed_of_sound
 
         if self.rocket.motor.burn_start_time < t < self.rocket.motor.burn_out_time:
+            pressure = self.env.pressure.get_value_opt(z)
+            net_thrust = max(
+                self.rocket.motor.thrust.get_value_opt(t)
+                + self.rocket.motor.pressure_thrust(pressure),
+                0,
+            )
             drag_coeff = self.rocket.power_on_drag.get_value_opt(free_stream_mach)
         else:
+            net_thrust = 0
             drag_coeff = self.rocket.power_off_drag.get_value_opt(free_stream_mach)
         R3 += -0.5 * rho * (free_stream_speed**2) * self.rocket.area * drag_coeff
         for air_brakes in self.rocket.air_brakes:
@@ -1871,14 +1887,13 @@ class Flight:
             M3 += L
 
         # Off center moment
-        thrust = self.rocket.motor.thrust.get_value_opt(t)
         M1 += (
             self.rocket.cp_eccentricity_y * R3
-            + self.rocket.thrust_eccentricity_y * thrust
+            + self.rocket.thrust_eccentricity_y * net_thrust
         )
         M2 -= (
             self.rocket.cp_eccentricity_x * R3
-            + self.rocket.thrust_eccentricity_x * thrust
+            + self.rocket.thrust_eccentricity_x * net_thrust
         )
         M3 += self.rocket.cp_eccentricity_x * R2 - self.rocket.cp_eccentricity_y * R1
 
@@ -1889,7 +1904,7 @@ class Flight:
         T00 = total_mass * r_CM
         T03 = 2 * total_mass_dot * (r_NOZ - r_CM) - 2 * total_mass * r_CM_dot
         T04 = (
-            Vector([0, 0, thrust])
+            Vector([0, 0, net_thrust])
             - total_mass * r_CM_ddot
             - 2 * total_mass_dot * r_CM_dot
             + total_mass_ddot * (r_NOZ - r_CM)
@@ -1933,7 +1948,7 @@ class Flight:
 
         if post_processing:
             self.__post_processed_variables.append(
-                [t, *v_dot, *w_dot, R1, R2, R3, M1, M2, M3]
+                [t, *v_dot, *w_dot, R1, R2, R3, M1, M2, M3, net_thrust]
             )
 
         return u_dot
@@ -2006,7 +2021,7 @@ class Flight:
 
         if post_processing:
             self.__post_processed_variables.append(
-                [t, ax, ay, az, 0, 0, 0, Dx, Dy, Dz, 0, 0, 0]
+                [t, ax, ay, az, 0, 0, 0, Dx, Dy, Dz, 0, 0, 0, 0]
             )
 
         return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
@@ -2098,20 +2113,20 @@ class Flight:
 
     @funcify_method("Time (s)", "Vx (m/s)", "spline", "zero")
     def vx(self):
-        """Velocity of the rocket center of dry mass in the direction of
-        the rocket x-axis as a Function of time."""
+        """Velocity of the rocket's center of dry mass in the X (East) direction
+        of the inertial frame as a function of time."""
         return self.solution_array[:, [0, 4]]
 
     @funcify_method("Time (s)", "Vy (m/s)", "spline", "zero")
     def vy(self):
-        """Velocity of the rocket center of dry mass in the direction of
-        the rocket y-axis as a Function of time."""
+        """Velocity of the rocket's center of dry mass in the Y (North)
+        direction of the inertial frame as a function of time."""
         return self.solution_array[:, [0, 5]]
 
     @funcify_method("Time (s)", "Vz (m/s)", "spline", "zero")
     def vz(self):
-        """Velocity of the rocket center of dry mass in the direction of
-        the rocket z-axis as a Function of time."""
+        """Velocity of the rocket's center of dry mass in the Z (Up) direction of
+        the inertial frame as a function of time."""
         return self.solution_array[:, [0, 6]]
 
     @funcify_method("Time (s)", "e0", "spline", "constant")
@@ -2136,95 +2151,108 @@ class Flight:
 
     @funcify_method("Time (s)", "ω1 (rad/s)", "spline", "zero")
     def w1(self):
-        """Angular velocity of the rocket in the x-axis as a Function of time.
-        Sometimes referred to as pitch rate (q)."""
+        """Angular velocity of the rocket in the x direction of the rocket's
+        body frame as a function of time, in rad/s. Sometimes referred to as
+        pitch rate (q)."""
         return self.solution_array[:, [0, 11]]
 
     @funcify_method("Time (s)", "ω2 (rad/s)", "spline", "zero")
     def w2(self):
-        """Angular velocity of the rocket in the y-axis as a Function of time.
-        Sometimes referred to as yaw rate (r)."""
+        """Angular velocity of the rocket in the y direction of the rocket's
+        body frame as a function of time, in rad/s. Sometimes referred to as
+        yaw rate (r)."""
         return self.solution_array[:, [0, 12]]
 
     @funcify_method("Time (s)", "ω3 (rad/s)", "spline", "zero")
     def w3(self):
-        """Angular velocity of the rocket in the z-axis as a Function of time.
-        Sometimes referred to as roll rate (p)."""
+        """Angular velocity of the rocket in the z direction of the rocket's
+        body frame as a function of time, in rad/s. Sometimes referred to as
+        roll rate (p)."""
         return self.solution_array[:, [0, 13]]
 
     # Process second type of outputs - accelerations components
     @funcify_method("Time (s)", "Ax (m/s²)", "spline", "zero")
     def ax(self):
-        """Acceleration of the rocket center of dry mass in the direction of
-        the rocket x-axis as a Function of time."""
+        """Acceleration of the rocket's center of dry mass along the X (East)
+        axis in the inertial frame as a function of time."""
         return self.__evaluate_post_process[:, [0, 1]]
 
     @funcify_method("Time (s)", "Ay (m/s²)", "spline", "zero")
     def ay(self):
-        """Acceleration of the rocket center of dry mass in the direction of
-        the rocket y-axis as a Function of time."""
+        """Acceleration of the rocket's center of dry mass along the Y (North)
+        axis in the inertial frame as a function of time."""
         return self.__evaluate_post_process[:, [0, 2]]
 
     @funcify_method("Time (s)", "Az (m/s²)", "spline", "zero")
     def az(self):
-        """Acceleration of the rocket center of dry mass in the direction of
-        the rocket z-axis as a Function of time."""
+        """Acceleration of the rocket's center of dry mass along the Z (Up)
+        axis in the inertial frame as a function of time."""
         return self.__evaluate_post_process[:, [0, 3]]
 
     @funcify_method("Time (s)", "α1 (rad/s²)", "spline", "zero")
     def alpha1(self):
-        """Angular acceleration of the rocket in the x-axis as a Function of
-        time. Sometimes referred to as pitch acceleration."""
+        """Angular acceleration of the rocket in the x direction of the rocket's
+        body frame as a function of time, in rad/s. Sometimes referred to as
+        pitch acceleration."""
         return self.__evaluate_post_process[:, [0, 4]]
 
     @funcify_method("Time (s)", "α2 (rad/s²)", "spline", "zero")
     def alpha2(self):
-        """Angular acceleration of the rocket in the y-axis as a Function of
-        time. Sometimes referred to as yaw acceleration."""
+        """Angular acceleration of the rocket in the y direction of the rocket's
+        body frame as a function of time, in rad/s. Sometimes referred to as
+        yaw acceleration."""
         return self.__evaluate_post_process[:, [0, 5]]
 
     @funcify_method("Time (s)", "α3 (rad/s²)", "spline", "zero")
     def alpha3(self):
-        """Angular acceleration of the rocket in the z-axis as a Function of
-        time. Sometimes referred to as roll acceleration."""
+        """Angular acceleration of the rocket in the z direction of the rocket's
+        body frame as a function of time, in rad/s. Sometimes referred to as
+        roll acceleration."""
         return self.__evaluate_post_process[:, [0, 6]]
 
     # Process third type of outputs - Temporary values
     @funcify_method("Time (s)", "R1 (N)", "spline", "zero")
     def R1(self):
-        """Aerodynamic force along the x-axis of the rocket as a Function of
-        time."""
+        """Aerodynamic force acting along the x-axis of the rocket's body frame
+        as a function of time. Expressed in Newtons (N)."""
         return self.__evaluate_post_process[:, [0, 7]]
 
     @funcify_method("Time (s)", "R2 (N)", "spline", "zero")
     def R2(self):
-        """Aerodynamic force along the y-axis of the rocket as a Function of
-        time."""
+        """Aerodynamic force acting along the y-axis of the rocket's body frame
+        as a function of time. Expressed in Newtons (N)."""
         return self.__evaluate_post_process[:, [0, 8]]
 
     @funcify_method("Time (s)", "R3 (N)", "spline", "zero")
     def R3(self):
-        """Aerodynamic force along the z-axis (rocket's axis of symmetry) as a
-        Function of time."""
+        """Aerodynamic force acting along the z-axis of the rocket's body frame
+        as a function of time. Expressed in Newtons (N)."""
         return self.__evaluate_post_process[:, [0, 9]]
 
     @funcify_method("Time (s)", "M1 (Nm)", "linear", "zero")
     def M1(self):
-        """Aerodynamic moment in the rocket x-axis as a Function of time.
-        Sometimes referred to as pitch moment."""
+        """Aerodynamic moment acting along the x-axis of the rocket's body
+        frame as a function of time. Expressed in Newtons (N)."""
         return self.__evaluate_post_process[:, [0, 10]]
 
     @funcify_method("Time (s)", "M2 (Nm)", "linear", "zero")
     def M2(self):
-        """Aerodynamic moment in the rocket y-axis as a Function of time.
-        Sometimes referred to as yaw moment."""
+        """Aerodynamic moment acting along the y-axis of the rocket's body
+        frame as a function of time. Expressed in Newtons (N)."""
         return self.__evaluate_post_process[:, [0, 11]]
 
     @funcify_method("Time (s)", "M3 (Nm)", "linear", "zero")
     def M3(self):
-        """Aerodynamic moment in the rocket z-axis as a Function of time.
-        Sometimes referred to as roll moment."""
+        """Aerodynamic moment acting along the z-axis of the rocket's body
+        frame as a function of time. Expressed in Newtons (N)."""
         return self.__evaluate_post_process[:, [0, 12]]
+
+    @funcify_method("Time (s)", "Net Thrust (N)", "linear", "zero")
+    def net_thrust(self):
+        """Net thrust of the rocket as a Function of time. This is the
+        actual thrust force experienced by the rocket. It may be corrected
+        with the atmospheric pressure if a reference pressure is defined."""
+        return self.__evaluate_post_process[:, [0, 13]]
 
     @funcify_method("Time (s)", "Pressure (Pa)", "spline", "constant")
     def pressure(self):
@@ -2258,6 +2286,86 @@ class Flight:
         return [(t, self.env.wind_velocity_y.get_value_opt(z)) for t, z in self.z]
 
     # Process fourth type of output - values calculated from previous outputs
+
+    # Frame conversions
+
+    @cached_property
+    def _stacked_velocity_body_frame(self):
+        """Stacked velocity array at the center of dry mass in the body frame
+        at each time step."""
+        Kt = self.direction_cosine_matrixes
+        v = np.array(
+            [
+                self.vx.y_array,
+                self.vy.y_array,
+                self.vz.y_array,
+            ]
+        ).transpose()
+        stacked_velocity_body_frame = np.squeeze(np.matmul(Kt, v[:, :, np.newaxis]))
+        return stacked_velocity_body_frame
+
+    @funcify_method("Time (s)", "Vx Body Frame (m/s)", "spline", "zero")
+    def vx_body_frame(self):
+        """Velocity of the rocket's center of dry mass along the x axis of the
+        body frame as a function of time."""
+        return np.array(
+            [self.time, self._stacked_velocity_body_frame[:, 0]]
+        ).transpose()
+
+    @funcify_method("Time (s)", "Vy Body Frame (m/s)", "spline", "zero")
+    def vy_body_frame(self):
+        """Velocity of the rocket's center of dry mass along the y axis of the
+        body frame as a function of time."""
+        return np.array(
+            [self.time, self._stacked_velocity_body_frame[:, 1]]
+        ).transpose()
+
+    @funcify_method("Time (s)", "Vz Body Frame (m/s)", "spline", "zero")
+    def vz_body_frame(self):
+        """Velocity of the rocket's center of dry mass along the z axis of the
+        body frame as a function of time."""
+        return np.array(
+            [self.time, self._stacked_velocity_body_frame[:, 2]]
+        ).transpose()
+
+    @cached_property
+    def _stacked_acceleration_body_frame(self):
+        """Stacked acceleration array at the center of dry mass in the body
+        frame at each time step."""
+        Kt = self.direction_cosine_matrixes
+        a = np.array(
+            [
+                self.ax.y_array,
+                self.ay.y_array,
+                self.az.y_array,
+            ]
+        ).transpose()
+        stacked_acceleration_body_frame = np.squeeze(np.matmul(Kt, a[:, :, np.newaxis]))
+        return stacked_acceleration_body_frame
+
+    @funcify_method("Time (s)", "Ax Body Frame (m/s²)", "spline", "zero")
+    def ax_body_frame(self):
+        """Acceleration of the rocket's center of dry mass along the x axis of the
+        body frame as a function of time."""
+        return np.array(
+            [self.time, self._stacked_acceleration_body_frame[:, 0]]
+        ).transpose()
+
+    @funcify_method("Time (s)", "Ay Body Frame (m/s²)", "spline", "zero")
+    def ay_body_frame(self):
+        """Acceleration of the rocket's center of dry mass along the y axis of the
+        body frame as a function of time."""
+        return np.array(
+            [self.time, self._stacked_acceleration_body_frame[:, 1]]
+        ).transpose()
+
+    @funcify_method("Time (s)", "Az Body Frame (m/s²)", "spline", "zero")
+    def az_body_frame(self):
+        """Acceleration of the rocket's center of dry mass along the z axis of the
+        body frame as a function of time."""
+        return np.array(
+            [self.time, self._stacked_acceleration_body_frame[:, 2]]
+        ).transpose()
 
     # Kinematics functions and values
     # Velocity Magnitude
@@ -2665,13 +2773,10 @@ class Flight:
         return self.kinetic_energy + self.potential_energy
 
     # thrust Power
-    @funcify_method("Time (s)", "thrust Power (W)", "spline", "zero")
+    @funcify_method("Time (s)", "Thrust Power (W)", "spline", "zero")
     def thrust_power(self):
         """Thrust power as a Function of time."""
-        thrust = deepcopy(self.rocket.motor.thrust)
-        thrust = thrust.set_discrete_based_on_model(self.speed)
-        thrust_power = thrust * self.speed
-        return thrust_power
+        return self.net_thrust * self.speed
 
     # Drag Power
     @funcify_method("Time (s)", "Drag Power (W)", "spline", "zero")
@@ -3077,7 +3182,7 @@ class Flight:
         np.array
             An array containing all post-processed variables evaluated at each
             time step. Each element of the array is a list containing:
-            [t, ax, ay, az, alpha1, alpha2, alpha3, R1, R2, R3, M1, M2, M3]
+            [t, ax, ay, az, alpha1, alpha2, alpha3, R1, R2, R3, M1, M2, M3, net_thrust]
         """
         self.__post_processed_variables = []
         for phase_index, phase in self.time_iterator(self.flight_phases):
@@ -3452,24 +3557,43 @@ class Flight:
             "time_overshoot": self.time_overshoot,
             "name": self.name,
             "equations_of_motion": self.equations_of_motion,
+            # The following outputs are essential to run all_info method
+            "solution": self.solution,
+            "out_of_rail_time": self.out_of_rail_time,
+            "out_of_rail_time_index": self.out_of_rail_time_index,
+            "apogee_time": self.apogee_time,
+            "apogee": self.apogee,
+            "parachute_events": self.parachute_events,
+            "impact_state": self.impact_state,
+            "impact_velocity": self.impact_velocity,
+            "x_impact": self.x_impact,
+            "y_impact": self.y_impact,
+            "t_final": self.t_final,
+            "flight_phases": self.flight_phases,
+            "function_evaluations": self.function_evaluations,
+            "ax": self.ax,
+            "ay": self.ay,
+            "az": self.az,
+            "alpha1": self.alpha1,
+            "alpha2": self.alpha2,
+            "alpha3": self.alpha3,
+            "R1": self.R1,
+            "R2": self.R2,
+            "R3": self.R3,
+            "M1": self.M1,
+            "M2": self.M2,
+            "M3": self.M3,
         }
 
         if include_outputs:
             data.update(
                 {
                     "time": self.time,
-                    "out_of_rail_time": self.out_of_rail_time,
                     "out_of_rail_velocity": self.out_of_rail_velocity,
                     "out_of_rail_state": self.out_of_rail_state,
-                    "apogee": self.apogee,
-                    "apogee_time": self.apogee_time,
                     "apogee_x": self.apogee_x,
                     "apogee_y": self.apogee_y,
                     "apogee_state": self.apogee_state,
-                    "x_impact": self.x_impact,
-                    "y_impact": self.y_impact,
-                    "impact_velocity": self.impact_velocity,
-                    "impact_state": self.impact_state,
                     "x": self.x,
                     "y": self.y,
                     "z": self.z,
@@ -3483,12 +3607,6 @@ class Flight:
                     "w1": self.w1,
                     "w2": self.w2,
                     "w3": self.w3,
-                    "ax": self.ax,
-                    "ay": self.ay,
-                    "az": self.az,
-                    "alpha1": self.alpha1,
-                    "alpha2": self.alpha2,
-                    "alpha3": self.alpha3,
                     "altitude": self.altitude,
                     "mach_number": self.mach_number,
                     "stream_velocity_x": self.stream_velocity_x,

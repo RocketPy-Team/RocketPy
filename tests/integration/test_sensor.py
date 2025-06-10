@@ -45,11 +45,14 @@ class TestIdealSensors:
         """Test an ideal accelerometer."""
         accelerometer = self.flight.rocket.sensors[0].component
         time, ax, ay, az = zip(*accelerometer.measured_data[0])
-        a = np.sqrt(np.array(ax) ** 2 + np.array(ay) ** 2 + np.array(az) ** 2)
-        sim_accel = self.flight.acceleration(time)
+        sim_ax = self.flight.ax_body_frame(time)
+        sim_ay = self.flight.ay_body_frame(time)
+        sim_az = self.flight.az_body_frame(time)
 
-        # tolerance is bounded to numerical errors in the transformation matrixes
-        assert np.allclose(a, sim_accel, atol=1e-12)
+        assert np.allclose(ax, sim_ax, atol=1e-12)
+        assert np.allclose(ay, sim_ay, atol=1e-12)
+        assert np.allclose(az, sim_az, atol=1e-12)
+
         # check if both added accelerometer instances saved the same data
         assert (
             self.flight.sensors[0].measured_data[0]
@@ -60,12 +63,13 @@ class TestIdealSensors:
         """Test an ideal gyroscope."""
         gyroscope = self.flight.rocket.sensors[2].component
         time, wx, wy, wz = zip(*gyroscope.measured_data)
-        w = np.sqrt(np.array(wx) ** 2 + np.array(wy) ** 2 + np.array(wz) ** 2)
-        flight_wx = np.array(self.flight.w1(time))
-        flight_wy = np.array(self.flight.w2(time))
-        flight_wz = np.array(self.flight.w3(time))
-        sim_w = np.sqrt(flight_wx**2 + flight_wy**2 + flight_wz**2)
-        assert np.allclose(w, sim_w, atol=1e-12)
+        sim_wx = self.flight.w1(time)
+        sim_wy = self.flight.w2(time)
+        sim_wz = self.flight.w3(time)
+
+        assert np.allclose(wx, sim_wx, atol=1e-12)
+        assert np.allclose(wy, sim_wy, atol=1e-12)
+        assert np.allclose(wz, sim_wz, atol=1e-12)
 
     def test_barometer(self):
         """Test an ideal barometer."""

@@ -74,7 +74,7 @@ class _InertialSensorPrints(_SensorPrints):
         self._print_aligned("Orientation:", self.sensor.orientation)
         self._print_aligned("Normal Vector:", self.sensor.normal_vector)
         print("Rotation Matrix:")
-        for row in self.sensor.rotation_matrix:
+        for row in self.sensor.rotation_sensor_to_body:
             value = " ".join(f"{val:.2f}" for val in row)
             value = [float(val) for val in value.split()]
             self._print_aligned("", value)
