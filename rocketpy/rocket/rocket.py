@@ -24,7 +24,88 @@ from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
 from rocketpy.tools import parallel_axis_theorem_from_com
 
+class BaseRocket:
+    """Base class for a rocket model with minimal attributes and methods."""
+    def __init__(self, mass):
+        self.mass = mass
+        self.motor = None
+    def add_motor(self, motor):
+        self.motor = motor
+        self.evaluate_total_mass()
+    def evaluate_total_mass(self):
+        if self.motor:
+            return self.mass + self.motor.total_mass
+        return self.mass
 
+
+class PointMassRocket(BaseRocket):
+    """Rocket modeled as a point mass for 3-DOF simulations."""  
+
+    def __init__(self, mass, drag_coefficient=0.4, radius=0.05):
+        super().__init__(mass)
+        
+        # Basic configuration
+        self.drag_coefficient = drag_coefficient
+        self.radius = radius  # in meters
+        self.area = math.pi * self.radius**2
+
+        # Coordinate system configuration
+        self.coordinate_system_orientation = "tail_to_nose"
+        self.center_of_dry_mass_position = 0  # arbitrary for point mass
+        self.dry_mass = mass  # dry_mass = structure + dry motor, here it's same as base mass
+        self.nozzle_position = 0  # or another reference point like -1 * length/2
+
+        # Components
+        self.parachutes = []
+        self._controllers = []
+        self.air_brakes = []
+        self.sensors = Components()
+        self.aerodynamic_surfaces = Components()
+        self.rail_buttons = Components()
+        self.surfaces_cp_to_cdm = {}
+
+        # Drag models
+        self.power_on_drag = Function(
+            drag_coefficient,
+            "Mach Number",
+            "Power-On Drag Coefficient",
+            interpolation="constant"
+        )
+        self.power_off_drag = Function(
+            drag_coefficient * 1.2,
+            "Mach Number",
+            "Power-Off Drag Coefficient",
+            interpolation="constant"
+        )
+    def add_parachute(
+        self, name, cd_s, trigger, sampling_rate=100, lag=0, noise=(0, 0, 0)
+    ):
+        parachute = Parachute(name, cd_s, trigger, sampling_rate, lag, noise)
+        self.parachutes.append(parachute)
+        self.total_mass = None
+        self.evaluate_total_mass()
+        return self.parachutes[-1]
+
+    def evaluate_total_mass(self):
+        """Returns Function of total mass (dry + motor)."""
+        if self.motor is None:
+            print("Please associate this rocket with a motor!")
+            return False
+
+        motor_mass_func = (
+            self.motor.total_mass if hasattr(self.motor.total_mass, "get_value_opt")
+            else Function(lambda t: self.motor.total_mass)
+        )
+
+        self.total_mass = Function(
+            lambda t: self.mass + motor_mass_func(t),
+            inputs="Time (s)",
+            outputs="Total Mass (Rocket + Motor + Propellant) (kg)",
+            title="Total Mass (Rocket + Motor + Propellant)"
+        )
+        return self.total_mass
+
+    
 # pylint: disable=too-many-instance-attributes, too-many-public-methods, too-many-instance-attributes
 class Rocket:
     """Keeps rocket information.
