@@ -32,23 +32,36 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
-- BUG: Fix StochasticFlight time_overshoot None bug [#805] (https://github.com/RocketPy-Team/RocketPy/pull/805)
-- ENH: Implement Multivariate Rejection Sampling (MRS) [#738] (https://github.com/RocketPy-Team/RocketPy/pull/738) 
-- ENH: Create a rocketpy file to store flight simulations [#800](https://github.com/RocketPy-Team/RocketPy/pull/800)
-- ENH: Support for the RSE file format has been added to the library [#798](https://github.com/RocketPy-Team/RocketPy/pull/798)
-- ENH: Add the Coriolis Force to the Flight class [#799](https://github.com/RocketPy-Team/RocketPy/pull/799)
-- ENH: Introduce Net Thrust with pressure corrections [#789](https://github.com/RocketPy-Team/RocketPy/pull/789)
 
 ### Changed
 
 
 ### Fixed
 
+
+## [v1.10.0] - 2025-05-16
+
+### Added
+- ENH: Support for ND arithmetic in Function class. [#810] (https://github.com/RocketPy-Team/RocketPy/pull/810)
+- ENH: allow users to provide custom samplers [#803](https://github.com/RocketPy-Team/RocketPy/pull/803)
+- ENH: Implement Multivariate Rejection Sampling (MRS) [#738] (https://github.com/RocketPy-Team/RocketPy/pull/738) 
+- ENH: Create a rocketpy file to store flight simulations [#800](https://github.com/RocketPy-Team/RocketPy/pull/800)
+- ENH: Support for the RSE file format has been added to the library [#798](https://github.com/RocketPy-Team/RocketPy/pull/798)
+- ENH: Introduce Net Thrust with pressure corrections [#789](https://github.com/RocketPy-Team/RocketPy/pull/789)
+- ENH: Environment object from EnvironmentAnalysis [#813](https://github.com/RocketPy-Team/RocketPy/pull/813)
+
+### Changed
+
+
+### Fixed
+
+- BUG: Unecessary Gyroscope Rotation and Wrong Acceleremoter Rotation [#811](https://github.com/RocketPy-Team/RocketPy/pull/811)
 - BUG: Fix the handling of reference pressure for older rpy files. [#808](https://github.com/RocketPy-Team/RocketPy/pull/808)
 - BUG: Non-overshootable simulations error on time parsing. [#807](https://github.com/RocketPy-Team/RocketPy/pull/807)
 - BUG: Wrong Phi Initialization For nose_to_tail Rockets [#809](https://github.com/RocketPy-Team/RocketPy/pull/809)
+- BUG: Fix StochasticFlight time_overshoot None bug [#805](https://github.com/RocketPy-Team/RocketPy/pull/805)
 
-## v1.9.0 - 2025-03-24
+## [v1.9.0] - 2025-03-24
 
 ### Added
 
