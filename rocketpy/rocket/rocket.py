@@ -294,6 +294,12 @@ class Rocket:
         self.I_13_without_motor = inertia[4]
         self.I_23_without_motor = inertia[5]
 
+        # Initial Inertia Tensor determinant singularity check
+        if abs(inertia) == 0:
+            raise ValueError(
+                "The rocket inertia tensor is singular (determinant is zero). "
+            )
+
         # Define rocket geometrical parameters in SI units
         self.center_of_mass_without_motor = center_of_mass_without_motor
         self.radius = radius
