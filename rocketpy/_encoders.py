@@ -17,29 +17,13 @@ class RocketPyEncoder(json.JSONEncoder):
 
     def __init__(self, *args, **kwargs):
         self.include_outputs = kwargs.pop("include_outputs", False)
+        self.discretize = kwargs.pop("discretize", False)
         self.include_function_data = kwargs.pop("include_function_data", True)
         super().__init__(*args, **kwargs)
 
     def default(self, o):
-        if isinstance(
-            o,
-            (
-                np.int_,
-                np.intc,
-                np.intp,
-                np.int8,
-                np.int16,
-                np.int32,
-                np.int64,
-                np.uint8,
-                np.uint16,
-                np.uint32,
-                np.uint64,
-            ),
-        ):
-            return int(o)
-        elif isinstance(o, (np.float16, np.float32, np.float64)):
-            return float(o)
+        if isinstance(o, np.generic):
+            return o.item()
         elif isinstance(o, np.ndarray):
             return o.tolist()
         elif isinstance(o, datetime):
@@ -50,11 +34,15 @@ class RocketPyEncoder(json.JSONEncoder):
             if not self.include_function_data:
                 return str(o)
             else:
-                encoding = o.to_dict(self.include_outputs)
+                encoding = o.to_dict(
+                    include_outputs=self.include_outputs, discretize=self.discretize
+                )
                 encoding["signature"] = get_class_signature(o)
                 return encoding
         elif hasattr(o, "to_dict"):
-            encoding = o.to_dict(self.include_outputs)
+            encoding = o.to_dict(
+                include_outputs=self.include_outputs, discretize=self.discretize
+            )
             encoding = remove_circular_references(encoding)
 
             encoding["signature"] = get_class_signature(o)

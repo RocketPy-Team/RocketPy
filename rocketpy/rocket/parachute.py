@@ -251,7 +251,7 @@ class Parachute:
         self.info()
         # self.plots.all() # Parachutes still doesn't have plots
 
-    def to_dict(self, include_outputs=False):
+    def to_dict(self, **kwargs):
         trigger = self.trigger
 
         if callable(self.trigger) and not isinstance(self.trigger, Function):
@@ -266,7 +266,7 @@ class Parachute:
             "noise": self.noise,
         }
 
-        if include_outputs:
+        if kwargs.get("include_outputs", False):
             data["noise_signal"] = self.noise_signal
             data["noise_function"] = to_hex_encode(self.noise_function)
             data["noisy_pressure_signal"] = self.noisy_pressure_signal
