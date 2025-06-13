@@ -1925,10 +1925,6 @@ class Flight:
         # Angular velocity derivative
         w_dot = I_CM.inverse @ (T21 + (T20 ^ r_CM))
 
-        # Velocity vector derivative + Coriolis acceleration
-        w_earth = Kt @ Vector(self.env.earth_rotation_vector)
-        v_dot = K @ (T20 / total_mass - (r_CM ^ w_dot)) - 2 * (w_earth ^ v)
-
         # Euler parameters derivative
         e_dot = [
             0.5 * (-omega1 * e1 - omega2 * e2 - omega3 * e3),
@@ -1936,6 +1932,10 @@ class Flight:
             0.5 * (omega2 * e0 - omega3 * e1 + omega1 * e3),
             0.5 * (omega3 * e0 + omega2 * e1 - omega1 * e2),
         ]
+
+        # Velocity vector derivative + Coriolis acceleration
+        w_earth = Vector(self.env.earth_rotation_vector)
+        v_dot = K @ (T20 / total_mass - (r_CM ^ w_dot)) - 2 * (w_earth ^ v)
 
         # Position vector derivative
         r_dot = [vx, vy, vz]
