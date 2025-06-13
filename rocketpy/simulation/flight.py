@@ -1681,24 +1681,9 @@ class Flight:
 
         # Coriolis acceleration
         _, w_earth_y, w_earth_z = self.env.earth_rotation_vector
-        ax -= 2 * (
-            -a23 * vy * w_earth_y
-            + a22 * vz * w_earth_y
-            - a33 * vy * w_earth_z
-            + a32 * vz * w_earth_z
-        )
-        ay -= 2 * (
-            a23 * vx * w_earth_y
-            - a21 * vz * w_earth_y
-            + a33 * vx * w_earth_z
-            - a31 * vz * w_earth_z
-        )
-        az -= 2 * (
-            -a22 * vx * w_earth_y
-            + a21 * vy * w_earth_y
-            - a32 * vx * w_earth_z
-            + a31 * vy * w_earth_z
-        )
+        ax -= 2 * (vz * w_earth_y - vy * w_earth_z)
+        ay -= 2 * (vx * w_earth_z)
+        az -= 2 * (-vx * w_earth_y)
 
         # Create u_dot
         u_dot = [
