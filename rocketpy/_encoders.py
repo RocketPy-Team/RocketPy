@@ -13,12 +13,41 @@ from rocketpy.prints.flight_prints import _FlightPrints
 
 class RocketPyEncoder(json.JSONEncoder):
     """Custom JSON encoder for RocketPy objects. It defines how to encode
-    different types of objects to a JSON supported format."""
+    different types of objects to a JSON supported format.
+    """
 
     def __init__(self, *args, **kwargs):
+        """Initializes the encoder with parameter options.
+
+        Parameters
+        ----------
+        *args : tuple
+            Positional arguments to pass to the parent class.
+        **kwargs : dict
+            Keyword arguments to configure the encoder. The following
+            options are available:
+            - include_outputs: bool, whether to include simulation outputs.
+              Default is False.
+            - include_function_data: bool, whether to include Function
+              data in the encoding. If False, Functions will be encoded by their
+              ``__repr__``. This is useful for reducing the size of the outputs,
+              but it prevents full restoration of the object upon decoding.
+              Default is True.
+            - discretize: bool, whether to discretize Functions whose source
+              are callables. If True, the accuracy of the decoding may be reduced.
+              Default is False.
+            - pickle_callables: bool, whether to pickle callable objects. If
+              False, callable sources (such as user-defined functions, parachute
+              triggers or simulation callable outputs) will have their name
+              stored instead of the function itself. This is useful for
+              reducing the size of the outputs, but it prevents full restoration
+              of the object upon decoding.
+              Default is True.
+        """
         self.include_outputs = kwargs.pop("include_outputs", False)
-        self.discretize = kwargs.pop("discretize", False)
         self.include_function_data = kwargs.pop("include_function_data", True)
+        self.discretize = kwargs.pop("discretize", False)
+        self.pickle_callables = kwargs.pop("pickle_callables", True)
         super().__init__(*args, **kwargs)
 
     def default(self, o):
@@ -35,13 +64,17 @@ class RocketPyEncoder(json.JSONEncoder):
                 return str(o)
             else:
                 encoding = o.to_dict(
-                    include_outputs=self.include_outputs, discretize=self.discretize
+                    include_outputs=self.include_outputs,
+                    discretize=self.discretize,
+                    pickle_callables=self.pickle_callables,
                 )
                 encoding["signature"] = get_class_signature(o)
                 return encoding
         elif hasattr(o, "to_dict"):
             encoding = o.to_dict(
-                include_outputs=self.include_outputs, discretize=self.discretize
+                include_outputs=self.include_outputs,
+                discretize=self.discretize,
+                pickle_callables=self.pickle_callables,
             )
             encoding = remove_circular_references(encoding)
 

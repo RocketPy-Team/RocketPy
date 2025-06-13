@@ -252,10 +252,14 @@ class Parachute:
         # self.plots.all() # Parachutes still doesn't have plots
 
     def to_dict(self, **kwargs):
+        pickle_callables = kwargs.get("pickle_callables", True)
         trigger = self.trigger
 
         if callable(self.trigger) and not isinstance(self.trigger, Function):
-            trigger = to_hex_encode(trigger)
+            if pickle_callables:
+                trigger = to_hex_encode(trigger)
+            else:
+                trigger = trigger.__name__
 
         data = {
             "name": self.name,
@@ -268,7 +272,11 @@ class Parachute:
 
         if kwargs.get("include_outputs", False):
             data["noise_signal"] = self.noise_signal
-            data["noise_function"] = to_hex_encode(self.noise_function)
+            data["noise_function"] = (
+                to_hex_encode(self.noise_function)
+                if pickle_callables
+                else self.noise_function.__name__
+            )
             data["noisy_pressure_signal"] = self.noisy_pressure_signal
             data["clean_pressure_signal"] = self.clean_pressure_signal
 
