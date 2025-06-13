@@ -1679,6 +1679,12 @@ class Flight:
         ax, ay, az = K @ Vector(L)
         az -= self.env.gravity.get_value_opt(z)  # Include gravity
 
+        # Coriolis acceleration
+        _, w_earth_y, w_earth_z = self.env.earth_rotation_vector
+        ax -= 2 * (vz * w_earth_y - vy * w_earth_z)
+        ay -= 2 * (vx * w_earth_z)
+        az -= 2 * (-vx * w_earth_y)
+
         # Create u_dot
         u_dot = [
             vx,
@@ -1745,7 +1751,7 @@ class Flight:
         _, _, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
 
         # Create necessary vectors
-        # r = Vector([x, y, z])               # CDM position vector
+        # r = Vector([x, y, z])  # CDM position vector
         v = Vector([vx, vy, vz])  # CDM velocity vector
         e = [e0, e1, e2, e3]  # Euler parameters/quaternions
         w = Vector([omega1, omega2, omega3])  # Angular velocity vector
@@ -1904,9 +1910,6 @@ class Flight:
         # Angular velocity derivative
         w_dot = I_CM.inverse @ (T21 + (T20 ^ r_CM))
 
-        # Velocity vector derivative
-        v_dot = K @ (T20 / total_mass - (r_CM ^ w_dot))
-
         # Euler parameters derivative
         e_dot = [
             0.5 * (-omega1 * e1 - omega2 * e2 - omega3 * e3),
@@ -1914,6 +1917,10 @@ class Flight:
             0.5 * (omega2 * e0 - omega3 * e1 + omega1 * e3),
             0.5 * (omega3 * e0 + omega2 * e1 - omega1 * e2),
         ]
+
+        # Velocity vector derivative + Coriolis acceleration
+        w_earth = Vector(self.env.earth_rotation_vector)
+        v_dot = K @ (T20 / total_mass - (r_CM ^ w_dot)) - 2 * (w_earth ^ v)
 
         # Position vector derivative
         r_dot = [vx, vy, vz]
@@ -1993,6 +2000,12 @@ class Flight:
         ax = Dx / (mp + ma)
         ay = Dy / (mp + ma)
         az = (Dz - 9.8 * mp) / (mp + ma)
+
+        # Add coriolis acceleration
+        _, w_earth_y, w_earth_z = self.env.earth_rotation_vector
+        ax -= 2 * (vz * w_earth_y - vy * w_earth_z)
+        ay -= 2 * (vx * w_earth_z)
+        az -= 2 * (-vx * w_earth_y)
 
         if post_processing:
             self.__post_processed_variables.append(
