@@ -45,6 +45,7 @@ class RocketPyEncoder(json.JSONEncoder):
               Default is True.
         """
         self.include_outputs = kwargs.pop("include_outputs", False)
+        self.discretize = kwargs.pop("discretize", False)
         self.include_function_data = kwargs.pop("include_function_data", True)
         self.discretize = kwargs.pop("discretize", False)
         self.allow_pickle = kwargs.pop("allow_pickle", True)
