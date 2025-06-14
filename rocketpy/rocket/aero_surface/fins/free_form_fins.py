@@ -359,11 +359,11 @@ class FreeFormFins(Fins):
         x_array, y_array = zip(*self.shape_points)
         self.shape_vec = [np.array(x_array), np.array(y_array)]
 
-    def to_dict(self, include_outputs=False):
-        data = super().to_dict(include_outputs)
+    def to_dict(self, **kwargs):
+        data = super().to_dict(**kwargs)
         data["shape_points"] = self.shape_points
 
-        if include_outputs:
+        if kwargs.get("include_outputs", False):
             data.update(
                 {
                     "Af": self.Af,

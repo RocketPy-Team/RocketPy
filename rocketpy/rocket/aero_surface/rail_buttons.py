@@ -100,7 +100,7 @@ class RailButtons(AeroSurface):
         None
         """
 
-    def to_dict(self, include_outputs=False):  # pylint: disable=unused-argument
+    def to_dict(self, **kwargs):  # pylint: disable=unused-argument
         return {
             "buttons_distance": self.buttons_distance,
             "angular_position": self.angular_position,

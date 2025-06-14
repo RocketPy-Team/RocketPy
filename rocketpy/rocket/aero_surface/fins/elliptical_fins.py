@@ -317,9 +317,9 @@ class EllipticalFins(Fins):
         self.prints.all()
         self.plots.all()
 
-    def to_dict(self, include_outputs=False):
-        data = super().to_dict(include_outputs)
-        if include_outputs:
+    def to_dict(self, **kwargs):
+        data = super().to_dict(**kwargs)
+        if kwargs.get("include_outputs", False):
             data.update(
                 {
                     "Af": self.Af,

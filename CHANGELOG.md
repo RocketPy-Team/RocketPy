@@ -31,7 +31,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 Attention: The newest changes should be on top -->
 
 ### Added
-
+- ENH: Discretized and No-Pickle Encoding Options [#827] (https://github.com/RocketPy-Team/RocketPy/pull/827)
+  
 
 ### Changed
 

@@ -3515,7 +3515,7 @@ class Flight:
             yield i, node_list[i]
             i += 1
 
-    def to_dict(self, include_outputs=False):
+    def to_dict(self, **kwargs):
         data = {
             "rocket": self.rocket,
             "env": self.env,
@@ -3560,7 +3560,7 @@ class Flight:
             "M3": self.M3,
         }
 
-        if include_outputs:
+        if kwargs.get("include_outputs", False):
             data.update(
                 {
                     "time": self.time,

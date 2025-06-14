@@ -403,7 +403,7 @@ class Vector:
         """Returns the zero vector."""
         return Vector([0, 0, 0])
 
-    def to_dict(self, include_outputs=False):  # pylint: disable=unused-argument
+    def to_dict(self, **kwargs):  # pylint: disable=unused-argument
         """Returns the vector as a JSON compatible element."""
         return list(self.components)
 
@@ -1007,7 +1007,7 @@ class Matrix:
             + f"       [{self.zx}, {self.zy}, {self.zz}])"
         )
 
-    def to_dict(self, include_outputs=False):  # pylint: disable=unused-argument
+    def to_dict(self, **kwargs):  # pylint: disable=unused-argument
         """Returns the matrix as a JSON compatible element."""
         return [list(row) for row in self.components]
 
