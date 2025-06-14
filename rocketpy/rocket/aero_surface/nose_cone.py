@@ -539,7 +539,7 @@ class NoseCone(AeroSurface):
             if kwargs.get("discretize", False):
                 clalpha = clalpha.set_discrete(0, 2, 50)
                 cl = cl.set_discrete(
-                    (-np.pi / 12, 0), (np.pi / 12, 2), (50, 50), mutate_self=False
+                    (-np.pi / 12, 0), (np.pi / 12, 2), (10, 10), mutate_self=False
                 )
             data["cp"] = self.cp
             data["clalpha"] = clalpha

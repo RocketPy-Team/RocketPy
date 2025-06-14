@@ -441,7 +441,7 @@ class Fins(AeroSurface):
             cl = self.cl
             if kwargs.get("discretize", False):
                 cl = cl.set_discrete(
-                    (-np.pi / 12, 0), (np.pi / 12, 2), (50, 50), mutate_self=False
+                    (-np.pi / 12, 0), (np.pi / 12, 2), (10, 10), mutate_self=False
                 )
 
             data.update(
