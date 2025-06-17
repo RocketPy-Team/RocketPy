@@ -3055,14 +3055,16 @@ class Flight:
         null_force = Function(0)
         if self.out_of_rail_time_index == 0:  # No rail phase, no rail button forces
             warnings.warn(
-                "Trying to calculate rail button forces without a rail phase defined."
-                + "The rail button forces will be set to zero."
+                "Trying to calculate rail button forces without a rail phase defined. "
+                + "The rail button forces will be set to zero.",
+                UserWarning,
             )
             return null_force, null_force, null_force, null_force
         if len(self.rocket.rail_buttons) == 0:
             warnings.warn(
-                "Trying to calculate rail button forces without rail buttons defined."
-                + "The rail button forces will be set to zero."
+                "Trying to calculate rail button forces without rail buttons defined. "
+                + "The rail button forces will be set to zero.",
+                UserWarning,
             )
             return null_force, null_force, null_force, null_force
 
@@ -3173,28 +3175,6 @@ class Flight:
                     current_derivative(step[0], step[1:], post_processing=True)
 
         return np.array(self.__post_processed_variables)
-
-    def post_process(self, interpolation="spline", extrapolation="natural"):
-        """This method is **deprecated** and is only kept here for backwards
-        compatibility. All attributes that need to be post processed are
-        computed just in time.
-
-        Post-process all Flight information produced during
-        simulation. Includes the calculation of maximum values,
-        calculation of secondary values such as energy and conversion
-        of lists to Function objects to facilitate plotting.
-
-        Returns
-        -------
-        None
-        """
-        # pylint: disable=unused-argument
-        warnings.warn(
-            "The method post_process is deprecated and will be removed in v1.10. "
-            "All attributes that need to be post processed are computed just in time.",
-            DeprecationWarning,
-        )
-        self.post_processed = True
 
     def calculate_stall_wind_velocity(self, stall_angle):  # TODO: move to utilities
         """Function to calculate the maximum wind velocity before the angle of
