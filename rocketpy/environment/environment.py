@@ -35,7 +35,6 @@ from rocketpy.environment.tools import (
     mask_and_clean_dataset,
 )
 from rocketpy.environment.tools import geodesic_to_utm as geodesic_to_utm_tools
-from rocketpy.environment.tools import utm_to_geodesic as utm_to_geodesic_tools
 from rocketpy.environment.weather_model_mapping import WeatherModelMapping
 from rocketpy.mathutils.function import NUMERICAL_TYPES, Function, funcify_method
 from rocketpy.plots.environment_plots import _EnvironmentPlots
