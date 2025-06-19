@@ -102,6 +102,8 @@ class Parachute:
         sampling_rate,
         lag=0,
         noise=(0, 0, 0),
+        parachute_radius=1.5,
+        porosity=0.0432,
     ):
         """Initializes Parachute class.
 
@@ -161,6 +163,8 @@ class Parachute:
         self.sampling_rate = sampling_rate
         self.lag = lag
         self.noise = noise
+        self.parachute_radius = parachute_radius
+        self.porosity = porosity
         self.noise_signal = [[-1e-6, np.random.normal(noise[0], noise[1])]]
         self.noisy_pressure_signal = []
         self.clean_pressure_signal = []
@@ -264,6 +268,8 @@ class Parachute:
             "sampling_rate": self.sampling_rate,
             "lag": self.lag,
             "noise": self.noise,
+            "parachute_radius": self.parachute_radius,
+            "porosity": self.porosity,
         }
 
         if include_outputs:
@@ -290,6 +296,8 @@ class Parachute:
             sampling_rate=data["sampling_rate"],
             lag=data["lag"],
             noise=data["noise"],
+            parachute_radius=data["parachute_radius"],
+            porosity=data["porosity"],
         )
 
         return parachute
