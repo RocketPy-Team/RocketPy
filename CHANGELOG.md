@@ -35,6 +35,7 @@ Attention: The newest changes should be on top -->
 
 ### Changed
 
+- ENH: _MotorPrints inheritance - issue #460 [#828](https://github.com/RocketPy-Team/RocketPy/pull/828)
 
 ### Fixed
 
