@@ -155,8 +155,6 @@ class Flight:
         Current integration time.
     Flight.y : list
         Current integration state vector u.
-    Flight.post_processed : bool
-        Defines if solution data has been post processed.
     Flight.initial_solution : list
         List defines initial condition - [tInit, x_init,
         y_init, z_init, vx_init, vy_init, vz_init, e0_init, e1_init,
@@ -1102,7 +1100,6 @@ class Flight:
         self.impact_velocity = 0
         self.impact_state = np.array([0])
         self.parachute_events = []
-        self.post_processed = False
         self.__post_processed_variables = []
 
     def __init_flight_state(self):
