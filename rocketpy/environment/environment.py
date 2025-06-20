@@ -27,6 +27,7 @@ from rocketpy.environment.tools import (
     find_latitude_index,
     find_longitude_index,
     find_time_index,
+    geodesic_to_utm,
     get_elevation_data_from_dataset,
     get_final_date_from_time_array,
     get_initial_date_from_time_array,
@@ -34,8 +35,6 @@ from rocketpy.environment.tools import (
     get_pressure_levels_from_file,
     mask_and_clean_dataset,
 )
-from rocketpy.environment.tools import geodesic_to_utm as geodesic_to_utm_tools
-from rocketpy.environment.tools import utm_to_geodesic as utm_to_geodesic_tools
 from rocketpy.environment.weather_model_mapping import WeatherModelMapping
 from rocketpy.mathutils.function import NUMERICAL_TYPES, Function, funcify_method
 from rocketpy.plots.environment_plots import _EnvironmentPlots
@@ -451,7 +450,7 @@ class Environment:
                 self.initial_utm_letter,
                 self.initial_hemisphere,
                 self.initial_ew,
-            ) = self.geodesic_to_utm(
+            ) = geodesic_to_utm(
                 lat=self.latitude,
                 lon=self.longitude,
                 flattening=self.ellipsoid.flattening,
@@ -2523,98 +2522,7 @@ class Environment:
                 f"the following recognized datum: {available_datums}"
             ) from e
 
-    # Auxiliary functions - Geodesic Coordinates
-
-    @staticmethod
-    def geodesic_to_utm(
-        lat, lon, semi_major_axis=6378137.0, flattening=1 / 298.257223563
-    ):
-        """Function which converts geodetic coordinates, i.e. lat/lon, to UTM
-        projection coordinates. Can be used only for latitudes between -80.00°
-        and 84.00°
-
-        Parameters
-        ----------
-        lat : float
-            The latitude coordinates of the point of analysis, must be contained
-            between -80.00° and 84.00°
-        lon : float
-            The longitude coordinates of the point of analysis, must be
-            contained between -180.00° and 180.00°
-        semi_major_axis : float
-            The semi-major axis of the ellipsoid used to represent the Earth,
-            must be given in meters (default is 6,378,137.0 m, which corresponds
-            to the WGS84 ellipsoid)
-        flattening : float
-            The flattening of the ellipsoid used to represent the Earth, usually
-            between 1/250 and 1/150 (default is 1/298.257223563, which
-            corresponds to the WGS84 ellipsoid)
-
-        Returns
-        -------
-        x : float
-            East coordinate, always positive
-        y : float
-            North coordinate, always positive
-        utm_zone : int
-            The number of the UTM zone of the point of analysis, can vary
-            between 1 and 60
-        utm_letter : string
-            The letter of the UTM zone of the point of analysis, can vary
-            between C and X, omitting the letters "I" and "O"
-        hemis : string
-            Returns "S" for southern hemisphere and "N" for Northern hemisphere
-        EW : string
-            Returns "W" for western hemisphere and "E" for eastern hemisphere
-        """
-        warnings.warn(
-            "This function is deprecated and will be removed in v1.10.0. "
-            "Please use the new method `tools.geodesic_to_utm` instead.",
-            DeprecationWarning,
-        )
-        return geodesic_to_utm_tools(lat, lon, semi_major_axis, flattening)
-
-    @staticmethod
-    def utm_to_geodesic(
-        x, y, utm_zone, hemis, semi_major_axis=6378137.0, flattening=1 / 298.257223563
-    ):
-        """Function to convert UTM coordinates to geodesic coordinates
-        (i.e. latitude and longitude).
-
-        Parameters
-        ----------
-        x : float
-            East UTM coordinate in meters
-        y : float
-            North UTM coordinate in meters
-        utm_zone : int
-            The number of the UTM zone of the point of analysis, can vary
-            between 1 and 60
-        hemis : string
-            Equals to "S" for southern hemisphere and "N" for Northern
-            hemisphere
-        semi_major_axis : float
-            The semi-major axis of the ellipsoid used to represent the Earth,
-            must be given in meters (default is 6,378,137.0 m, which corresponds
-            to the WGS84 ellipsoid)
-        flattening : float
-            The flattening of the ellipsoid used to represent the Earth, usually
-            between 1/250 and 1/150 (default is 1/298.257223563, which
-            corresponds to the WGS84 ellipsoid)
-
-        Returns
-        -------
-        lat : float
-            latitude of the analyzed point
-        lon : float
-            latitude of the analyzed point
-        """
-        warnings.warn(
-            "This function is deprecated and will be removed in v1.10.0. "
-            "Please use the new method `tools.utm_to_geodesic` instead.",
-            DeprecationWarning,
-        )
-        return utm_to_geodesic_tools(x, y, utm_zone, hemis, semi_major_axis, flattening)
+    # Auxiliary functions
 
     @staticmethod
     def calculate_earth_radius(
