@@ -293,9 +293,12 @@ class Rocket:
         self.I_12_without_motor = inertia[3]
         self.I_13_without_motor = inertia[4]
         self.I_23_without_motor = inertia[5]
-
-        # Initial Inertia Tensor determinant singularity check
-        if abs(inertia) == 0:
+        inertia_matrix = Matrix([
+            [self.I_11_without_motor, self.I_12_without_motor, self.I_13_without_motor],
+            [self.I_12_without_motor, self.I_22_without_motor, self.I_23_without_motor],
+            [self.I_13_without_motor, self.I_23_without_motor, self.I_33_without_motor],
+        ])    # Initial Inertia Tensor determinant singularity check
+        if abs(inertia_matrix) == 0:
             raise ValueError(
                 "The rocket inertia tensor is singular (determinant is zero). "
             )
