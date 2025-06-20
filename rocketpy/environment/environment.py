@@ -27,6 +27,7 @@ from rocketpy.environment.tools import (
     find_latitude_index,
     find_longitude_index,
     find_time_index,
+    geodesic_to_utm,
     get_elevation_data_from_dataset,
     get_final_date_from_time_array,
     get_initial_date_from_time_array,
@@ -34,7 +35,6 @@ from rocketpy.environment.tools import (
     get_pressure_levels_from_file,
     mask_and_clean_dataset,
 )
-from rocketpy.environment.tools import geodesic_to_utm as geodesic_to_utm_tools
 from rocketpy.environment.weather_model_mapping import WeatherModelMapping
 from rocketpy.mathutils.function import NUMERICAL_TYPES, Function, funcify_method
 from rocketpy.plots.environment_plots import _EnvironmentPlots
@@ -450,7 +450,7 @@ class Environment:
                 self.initial_utm_letter,
                 self.initial_hemisphere,
                 self.initial_ew,
-            ) = geodesic_to_utm_tools(
+            ) = geodesic_to_utm(
                 lat=self.latitude,
                 lon=self.longitude,
                 flattening=self.ellipsoid.flattening,
