@@ -1,6 +1,6 @@
 numpy>=1.13
 scipy>=1.0
-matplotlib>=3.8.3  # Released Feb 14th 2024
+matplotlib>=3.10.0  # Released Dec 14th 2024
 netCDF4>=1.6.4
 requests
 pytz
