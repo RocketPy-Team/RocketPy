@@ -227,7 +227,7 @@ class _MonteCarloPlots:
             # Plot boxplot
             bp = ax1.boxplot(
                 [other_monte_carlo.results[key], self.monte_carlo.results[key]],
-                orientation="horizontal",
+                vert=False,
                 tick_labels=["Other", "Original"],
                 patch_artist=True,
             )
