@@ -131,7 +131,8 @@ class AirBrakes(AeroSurface):
                 warnings.warn(
                     f"Deployment level of {self.name} is smaller than 0 or "
                     + "larger than 1. Extrapolation for the drag coefficient "
-                    + "curve will be used."
+                    + "curve will be used.",
+                    UserWarning,
                 )
         self._deployment_level = value
 

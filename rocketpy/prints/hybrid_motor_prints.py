@@ -1,7 +1,9 @@
 import numpy as np
 
+from .motor_prints import _MotorPrints
 
-class _HybridMotorPrints:
+
+class _HybridMotorPrints(_MotorPrints):
     """Class that holds prints methods for HybridMotor class.
 
     Attributes
@@ -26,6 +28,7 @@ class _HybridMotorPrints:
         -------
         None
         """
+        super().__init__(hybrid_motor)
         self.hybrid_motor = hybrid_motor
 
     def nozzle_details(self):
@@ -62,28 +65,6 @@ class _HybridMotorPrints:
         print(f"Grain Height: {self.hybrid_motor.solid.grain_initial_height} m")
         print(f"Grain Volume: {self.hybrid_motor.solid.grain_initial_volume:.3f} m3")
         print(f"Grain Mass: {self.hybrid_motor.solid.grain_initial_mass:.3f} kg\n")
-
-    def motor_details(self):
-        """Prints out all data available about the HybridMotor.
-
-        Returns
-        -------
-        None
-        """
-        print("Motor Details")
-        print(f"Total Burning Time: {self.hybrid_motor.burn_duration} s")
-        print(
-            f"Total Propellant Mass: {self.hybrid_motor.propellant_initial_mass:.3f} kg"
-        )
-        print(f"Structural Mass Ratio: {self.hybrid_motor.structural_mass_ratio:.3f}")
-        avg = self.hybrid_motor.exhaust_velocity.average(*self.hybrid_motor.burn_time)
-        print(f"Average Propellant Exhaust Velocity: {avg:.3f} m/s")
-        print(f"Average Thrust: {self.hybrid_motor.average_thrust:.3f} N")
-        print(
-            f"Maximum Thrust: {self.hybrid_motor.max_thrust} N at "
-            f"{self.hybrid_motor.max_thrust_time} s after ignition."
-        )
-        print(f"Total Impulse: {self.hybrid_motor.total_impulse:.3f} Ns\n")
 
     def all(self):
         """Prints out all data available about the HybridMotor.
