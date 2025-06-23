@@ -2776,7 +2776,25 @@ class Flight:
         Kt = np.array([Matrix.transformation(row).transpose for row in stacked_arrays])
 
         return Kt
-
+    
+    @cached_property
+    def acceleration_earth_to_body_frame(self):
+        """Acceleration in body frame obtained using inertial frame acceleration
+        at each time step."""
+        Kt = self.direction_cosine_matrixes
+        
+        acceleration_earth = np.array(
+            [
+                self.ax.y_array,
+                self.ay.y_array,
+                self.az.y_array,
+            ]
+        ).transpose()
+        acceleration_body = np.squeeze(
+            np.matmul(Kt, acceleration_earth[:, :, np.newaxis])
+        )
+        return acceleration_body 
+   
     @cached_property
     def stream_velocity_body_frame(self):
         """Stream velocity array at the center of dry mass in the body frame at
@@ -2793,7 +2811,7 @@ class Flight:
             np.matmul(Kt, stream_velocity[:, :, np.newaxis])
         )
         return stream_velocity_body
-
+    
     @funcify_method("Time (s)", "Angle of Attack (°)", "spline", "constant")
     def angle_of_attack(self):
         """Angle of attack of the rocket with respect to the freestream
