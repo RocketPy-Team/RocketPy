@@ -771,6 +771,9 @@ class Flight:
                             lambda self, parachute_radius=parachute.radius: setattr(
                                 self, "parachute_radius", parachute_radius
                             ),
+                            lambda self, parachute_height=parachute.height: setattr(
+                                self, "parachute_height", parachute_height
+                            ),
                             lambda self, parachute_porosity=parachute.porosity: setattr(
                                 self, "parachute_porosity", parachute_porosity
                             ),
@@ -1022,6 +1025,9 @@ class Flight:
                                             ),
                                             lambda self, parachute_radius=parachute.radius: setattr(
                                                 self, "parachute_radius", parachute_radius
+                                            ),
+                                            lambda self, parachute_height=parachute.height: setattr(
+                                                self, "parachute_height", parachute_height
                                             ),
                                             lambda self, parachute_porosity=parachute.porosity: setattr(
                                                 self, "parachute_porosity", parachute_porosity
@@ -1973,7 +1979,8 @@ class Flight:
 
         # Get Parachute data
         cd_s = self.parachute_cd_s
-        R = self.parachute_radius
+        parachute_radius = self.parachute_radius
+        parachute_height = self.parachute_height
         porosity = self.parachute_porosity
 
 
@@ -1992,7 +1999,7 @@ class Flight:
         # tf = 8 * nominal diameter / velocity at line stretch
 
         # Calculate added mass
-        ma = ka * rho * (4 / 3) * np.pi * R**3 # ma = ka * rho * (4 / 3) * np.pi * R**2 * height
+        ma = ka * rho * (4 / 3) * np.pi * parachute_radius**2 * parachute_height
 
         # Calculate freestream speed
         freestream_x = vx - wind_velocity_x
@@ -2001,14 +2008,14 @@ class Flight:
         free_stream_speed = (freestream_x**2 + freestream_y**2 + freestream_z**2) ** 0.5
 
         # Determine drag force
-        pseudo_drag = -0.5 * rho * cd_s * free_stream_speed # * Area
+        pseudo_drag = -0.5 * rho * cd_s * free_stream_speed
         # pseudo_drag = pseudo_drag - ka * rho * 4 * np.pi * (R**2) * Rdot
         Dx = pseudo_drag * freestream_x # add eta efficiency for wake
         Dy = pseudo_drag * freestream_y
         Dz = pseudo_drag * freestream_z
         ax = Dx / (mp + ma)
         ay = Dy / (mp + ma)
-        az = (Dz - 9.8 * mp) / (mp + ma)
+        az = (Dz - mp * self.env.gravity.get_value_opt(z)) / (mp + ma)
 
         if post_processing:
             self.__post_processed_variables.append(

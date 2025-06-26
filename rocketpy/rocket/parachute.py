@@ -103,6 +103,7 @@ class Parachute:
         lag=0,
         noise=(0, 0, 0),
         parachute_radius=1.5,
+        parachute_height=None,
         porosity=0.0432,
     ):
         """Initializes Parachute class.
@@ -156,6 +157,15 @@ class Parachute:
             The values are used to add noise to the pressure signal which is
             passed to the trigger function. Default value is ``(0, 0, 0)``.
             Units are in Pa.
+        parachute_radius : float, optional
+            Radius of the inflated parachute in meters. Default value is 1.5.
+            Units are in meters.
+        parachute_height : float, optional
+            Height of the inflated parachute in meters.
+            Default value is the radius parachute. Units are in meters.
+        porosity : float, optional
+            Porosity of the parachute material, which is a measure of how much air can
+            pass through the parachute material. Default value is 0.0432.
         """
         self.name = name
         self.cd_s = cd_s
@@ -164,6 +174,9 @@ class Parachute:
         self.lag = lag
         self.noise = noise
         self.parachute_radius = parachute_radius
+        if parachute_height is None:
+            parachute_height = parachute_radius
+        self.parachute_height = parachute_height
         self.porosity = porosity
         self.noise_signal = [[-1e-6, np.random.normal(noise[0], noise[1])]]
         self.noisy_pressure_signal = []
@@ -269,6 +282,7 @@ class Parachute:
             "lag": self.lag,
             "noise": self.noise,
             "parachute_radius": self.parachute_radius,
+            "parachute_height": self.parachute_height,
             "porosity": self.porosity,
         }
 
@@ -296,8 +310,9 @@ class Parachute:
             sampling_rate=data["sampling_rate"],
             lag=data["lag"],
             noise=data["noise"],
-            parachute_radius=data["parachute_radius"],
-            porosity=data["porosity"],
+            parachute_radius=data.get("parachute_radius", 1.5),
+            parachute_height=data.get("parachute_height", None),
+            porosity=data.get("porosity", 0.0432),
         )
 
         return parachute
