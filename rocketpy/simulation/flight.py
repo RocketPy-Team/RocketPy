@@ -768,10 +768,12 @@ class Flight:
                             lambda self, parachute_cd_s=parachute.cd_s: setattr(
                                 self, "parachute_cd_s", parachute_cd_s
                             ),
-                            lambda self, parachute_radius=parachute.parachute_radius: setattr(
+                            lambda self,
+                            parachute_radius=parachute.parachute_radius: setattr(
                                 self, "parachute_radius", parachute_radius
                             ),
-                            lambda self, parachute_height=parachute.parachute_height: setattr(
+                            lambda self,
+                            parachute_height=parachute.parachute_height: setattr(
                                 self, "parachute_height", parachute_height
                             ),
                             lambda self, parachute_porosity=parachute.porosity: setattr(
@@ -1023,14 +1025,23 @@ class Flight:
                                             parachute_cd_s=parachute.cd_s: setattr(
                                                 self, "parachute_cd_s", parachute_cd_s
                                             ),
-                                            lambda self, parachute_radius=parachute.parachute_radius: setattr(
-                                                self, "parachute_radius", parachute_radius
+                                            lambda self,
+                                            parachute_radius=parachute.parachute_radius: setattr(
+                                                self,
+                                                "parachute_radius",
+                                                parachute_radius,
                                             ),
-                                            lambda self, parachute_height=parachute.parachute_height: setattr(
-                                                self, "parachute_height", parachute_height
+                                            lambda self,
+                                            parachute_height=parachute.parachute_height: setattr(
+                                                self,
+                                                "parachute_height",
+                                                parachute_height,
                                             ),
-                                            lambda self, parachute_porosity=parachute.porosity: setattr(
-                                                self, "parachute_porosity", parachute_porosity
+                                            lambda self,
+                                            parachute_porosity=parachute.porosity: setattr(
+                                                self,
+                                                "parachute_porosity",
+                                                parachute_porosity,
                                             ),
                                         ]
                                         self.flight_phases.add_phase(
@@ -1983,12 +1994,13 @@ class Flight:
         parachute_height = self.parachute_height
         porosity = self.parachute_porosity
 
-
         # Get the mass of the rocket
         mp = self.rocket.dry_mass
 
         # Define constants
-        ka = 1.068 * (1 - 1.465 * porosity - 0.25975 * porosity**2 + 1.2626 * porosity**3)
+        ka = 1.068 * (
+            1 - 1.465 * porosity - 0.25975 * porosity**2 + 1.2626 * porosity**3
+        )
         # to = 1.2
         # eta = 1
         # Rdot = (6 * R * (1 - eta) / (1.2**6)) * (
@@ -2010,7 +2022,7 @@ class Flight:
         # Determine drag force
         pseudo_drag = -0.5 * rho * cd_s * free_stream_speed
         # pseudo_drag = pseudo_drag - ka * rho * 4 * np.pi * (R**2) * Rdot
-        Dx = pseudo_drag * freestream_x # add eta efficiency for wake
+        Dx = pseudo_drag * freestream_x  # add eta efficiency for wake
         Dy = pseudo_drag * freestream_y
         Dz = pseudo_drag * freestream_z
         ax = Dx / (mp + ma)
