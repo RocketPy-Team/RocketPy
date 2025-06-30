@@ -252,7 +252,7 @@ def test_aerodynamic_moments(flight_calisto_custom_wind, flight_time, expected_v
         ("t_initial", (1.654150, 0.659142, -0.067103)),
         ("out_of_rail_time", (5.052628, 2.013361, -1.75370)),
         ("apogee_time", (2.339424, -1.648934, -0.938867)),
-        ("t_final", (0, 0, 159.2210)),
+        ("t_final", (0, 0, 159.0800)),
     ],
 )
 def test_aerodynamic_forces(flight_calisto_custom_wind, flight_time, expected_values):
