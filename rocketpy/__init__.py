@@ -37,7 +37,6 @@ from .rocket import (
     Parachute,
     RailButtons,
     Rocket,
-    BaseRocket,
     PointMassRocket,
     Tail,
     TrapezoidalFins,
