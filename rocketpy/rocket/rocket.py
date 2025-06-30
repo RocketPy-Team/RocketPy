@@ -23,89 +23,9 @@ from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
 from rocketpy.tools import parallel_axis_theorem_from_com
+from functools import cached_property
+from rocketpy.mathutils.function import funcify_method
 
-class BaseRocket:
-    """Base class for a rocket model with minimal attributes and methods."""
-    def __init__(self, mass):
-        self.mass = mass
-        self.motor = None
-    def add_motor(self, motor):
-        self.motor = motor
-        self.evaluate_total_mass()
-    def evaluate_total_mass(self):
-        if self.motor:
-            return self.mass + self.motor.total_mass
-        return self.mass
-
-
-class PointMassRocket(BaseRocket):
-    """Rocket modeled as a point mass for 3-DOF simulations."""  
-
-    def __init__(self, mass, drag_coefficient=0.4, radius=0.05):
-        super().__init__(mass)
-        
-        # Basic configuration
-        self.drag_coefficient = drag_coefficient
-        self.radius = radius  # in meters
-        self.area = math.pi * self.radius**2
-
-        # Coordinate system configuration
-        self.coordinate_system_orientation = "tail_to_nose"
-        self.center_of_dry_mass_position = 0  # arbitrary for point mass
-        self.dry_mass = mass  # dry_mass = structure + dry motor, here it's same as base mass
-        self.nozzle_position = 0  # or another reference point like -1 * length/2
-
-        # Components
-        self.parachutes = []
-        self._controllers = []
-        self.air_brakes = []
-        self.sensors = Components()
-        self.aerodynamic_surfaces = Components()
-        self.rail_buttons = Components()
-        self.surfaces_cp_to_cdm = {}
-
-        # Drag models
-        self.power_on_drag = Function(
-            drag_coefficient,
-            "Mach Number",
-            "Power-On Drag Coefficient",
-            interpolation="constant"
-        )
-        self.power_off_drag = Function(
-            drag_coefficient * 1.2,
-            "Mach Number",
-            "Power-Off Drag Coefficient",
-            interpolation="constant"
-        )
-    def add_parachute(
-        self, name, cd_s, trigger, sampling_rate=100, lag=0, noise=(0, 0, 0)
-    ):
-        parachute = Parachute(name, cd_s, trigger, sampling_rate, lag, noise)
-        self.parachutes.append(parachute)
-        self.total_mass = None
-        self.evaluate_total_mass()
-        return self.parachutes[-1]
-
-    def evaluate_total_mass(self):
-        """Returns Function of total mass (dry + motor)."""
-        if self.motor is None:
-            print("Please associate this rocket with a motor!")
-            return False
-
-        motor_mass_func = (
-            self.motor.total_mass if hasattr(self.motor.total_mass, "get_value_opt")
-            else Function(lambda t: self.motor.total_mass)
-        )
-
-        self.total_mass = Function(
-            lambda t: self.mass + motor_mass_func(t),
-            inputs="Time (s)",
-            outputs="Total Mass (Rocket + Motor + Propellant) (kg)",
-            title="Total Mass (Rocket + Motor + Propellant)"
-        )
-        return self.total_mass
-
-    
 # pylint: disable=too-many-instance-attributes, too-many-public-methods, too-many-instance-attributes
 class Rocket:
     """Keeps rocket information.
@@ -2085,3 +2005,119 @@ class Rocket:
             )
 
         return rocket
+
+class PointMassRocket(Rocket):
+    """Rocket modeled as a point mass for 3-DOF simulations."""  
+
+    def __init__(self, mass, radius=0.05):
+        self,
+        radius: float = 0, 
+        mass: float = 0, 
+        center_of_mass: float = 0,
+        power_off_drag = 0, 
+        power_on_drag = 0,  
+        super().__init__(
+                radius=radius, 
+                mass=mass, 
+                inertia=(0, 0, 0), 
+                center_of_mass_without_motor=center_of_mass,
+                power_off_drag=power_off_drag,
+                power_on_drag=power_on_drag,
+        )
+    @cached_property
+    @funcify_method("Time (s)", "I_xx (kg·m²)")
+    def I_11(self) -> Function:
+        """Returns the moment of inertia around the x-axis for a point mass (always 0)."""
+        return Function(0)
+
+    @cached_property
+    @funcify_method("Time (s)", "I_22 (kg·m²)")
+    def I_22(self) -> Function:
+        """Returns the moment of inertia around the y-axis for a point mass (always 0)."""
+        return Function(0)
+
+    @cached_property
+    @funcify_method("Time (s)", "I_33 (kg·m²)")
+    def I_33(self) -> Function:
+        """Returns the moment of inertia around the z-axis for a point mass (always 0)."""
+        return Function(0)
+
+    @cached_property
+    @funcify_method("Time (s)", "I_12 (kg·m²)")
+    def I_12(self) -> Function:
+        """Returns the product of inertia I_xy for a point mass (always 0)."""
+        return Function(0)
+
+    @cached_property
+    @funcify_method("Time (s)", "I_13 (kg·m²)")
+    def I_13(self) -> Function:
+        """Returns the product of inertia I_xz for a point mass (always 0)."""
+        return Function(0)
+
+    @cached_property
+    @funcify_method("Time (s)", "I_23 (kg·m²)")
+    def I_23(self) -> Function:
+        """Returns the product of inertia I_yz for a point mass (always 0)."""
+        return Function(0)
+    
+    @property
+    def dry_I_11(self) -> float:
+        """Returns the dry moment of inertia around the x-axis for a point mass (always 0)."""
+        return 0.0
+
+    @property
+    def dry_I_22(self) -> float:
+        """Returns the dry moment of inertia around the y-axis for a point mass (always 0)."""
+        return 0.0
+
+    @property
+    def dry_I_33(self) -> float:
+        """Returns the dry moment of inertia around the z-axis for a point mass (always 0)."""
+        return 0.0
+
+    @property
+    def dry_I_12(self) -> float:
+        """Returns the dry product of inertia I_xy for a point mass (always 0)."""
+        return 0.0
+
+    @property
+    def dry_I_13(self) -> float:
+        """Returns the dry product of inertia I_xz for a point mass (always 0)."""
+        return 0.0
+
+    @property
+    def dry_I_23(self) -> float:
+        """Returns the dry product of inertia I_yz for a point mass (always 0)."""
+        return 0.0
+
+    def evaluate_inertias(self):
+        """Calculates and returns the rocket's inertias. For a PointMassRocket, these are always zero."""
+        self.I_11 = self.I_22 = self.I_33 = Function(0)
+        self.I_12 = self.I_13 = self.I_23 = Function(0)
+        return (0, 0, 0, 0, 0, 0)
+
+    def evaluate_dry_inertias(self):
+        """Calculates and returns the rocket's dry inertias. For a PointMassRocket, these are always zero."""
+        self.dry_I_11 = self.dry_I_22 = self.dry_I_33 = 0.0
+        self.dry_I_12 = self.dry_I_13 = self.dry_I_23 = 0.0
+        return (0, 0, 0, 0, 0, 0)
+
+    @property
+    def center_of_mass(self) -> Function:
+        """Returns the center of mass for a PointMassRocket.
+        If a motor is attached, this will be the motor's center of mass.
+        Otherwise, it will be the `center_of_mass_without_motor`.
+        """
+        if self.motor and not isinstance(self.motor, EmptyMotor):
+            return self.motor_center_of_mass_position
+        return Function(self.center_of_mass_without_motor)
+
+    @property
+    def center_of_dry_mass_position(self) -> float:
+        """Returns the center of dry mass position for a PointMassRocket.
+        If a motor is attached, this will be the motor's center of dry mass position.
+        Otherwise, it will be the `center_of_mass_without_motor`.
+        """
+        if self.motor and not isinstance(self.motor, EmptyMotor):
+            return self.motor_center_of_dry_mass_position
+        return self.center_of_mass_without_motor
