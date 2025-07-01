@@ -1434,7 +1434,16 @@ class Rocket:
         return fin_set
 
     def add_parachute(
-        self, name, cd_s, trigger, sampling_rate=100, lag=0, noise=(0, 0, 0)
+        self,
+        name,
+        cd_s,
+        trigger,
+        sampling_rate=100,
+        lag=0,
+        noise=(0, 0, 0),
+        parachute_radius=1.5,
+        parachute_height=None,
+        porosity=0.0432,
     ):
         """Creates a new parachute, storing its parameters such as
         opening delay, drag coefficients and trigger function.
@@ -1493,16 +1502,36 @@ class Rocket:
             The values are used to add noise to the pressure signal which is
             passed to the trigger function. Default value is (0, 0, 0). Units
             are in pascal.
+        parachute_radius : float, optional
+            Radius of the inflated parachute. Default value is 1.5.
+            Units are in meters.
+        parachute_height : float, optional
+            Height of the inflated parachute. Default value is the radius parachute.
+            Units are in meters.
+        porosity : float, optional
+            Porosity of the parachute material, which is a measure of how much air can
+            pass through the parachute material.
+            Default value is 0.0432 (for consistency with previous versions).
 
         Returns
         -------
         parachute : Parachute
-            Parachute  containing trigger, sampling_rate, lag, cd_s, noise
-            and name. Furthermore, it stores clean_pressure_signal,
+            Parachute containing trigger, sampling_rate, lag, cd_s, noise, radius,
+            height, porosity and name. Furthermore, it stores clean_pressure_signal,
             noise_signal and noisyPressureSignal which are filled in during
             Flight simulation.
         """
-        parachute = Parachute(name, cd_s, trigger, sampling_rate, lag, noise)
+        parachute = Parachute(
+            name,
+            cd_s,
+            trigger,
+            sampling_rate,
+            lag,
+            noise,
+            parachute_radius,
+            parachute_height,
+            porosity,
+        )
         self.parachutes.append(parachute)
         return self.parachutes[-1]
 

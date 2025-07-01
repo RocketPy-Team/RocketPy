@@ -92,6 +92,13 @@ class Parachute:
         Function of noisy_pressure_signal.
     Parachute.clean_pressure_signal_function : Function
         Function of clean_pressure_signal.
+    Parachute.parachute_radius : float
+        Radius of the inflated parachute in meters.
+    Parachute.parachute_height : float
+        Height of the inflated parachute in meters.
+    Parachute.porosity : float
+        Porosity of the parachute material, which is a measure of how much air can
+        pass through the parachute material.
     """
 
     def __init__(
@@ -158,14 +165,15 @@ class Parachute:
             passed to the trigger function. Default value is ``(0, 0, 0)``.
             Units are in Pa.
         parachute_radius : float, optional
-            Radius of the inflated parachute in meters. Default value is 1.5.
+            Radius of the inflated parachute. Default value is 1.5.
             Units are in meters.
         parachute_height : float, optional
-            Height of the inflated parachute in meters.
-            Default value is the radius parachute. Units are in meters.
+            Height of the inflated parachute. Default value is the radius parachute.
+            Units are in meters.
         porosity : float, optional
             Porosity of the parachute material, which is a measure of how much air can
-            pass through the parachute material. Default value is 0.0432.
+            pass through the parachute material.
+            Default value is 0.0432 (for consistency with previous versions).
         """
         self.name = name
         self.cd_s = cd_s
@@ -173,11 +181,6 @@ class Parachute:
         self.sampling_rate = sampling_rate
         self.lag = lag
         self.noise = noise
-        self.parachute_radius = parachute_radius
-        if parachute_height is None:
-            parachute_height = parachute_radius
-        self.parachute_height = parachute_height
-        self.porosity = porosity
         self.noise_signal = [[-1e-6, np.random.normal(noise[0], noise[1])]]
         self.noisy_pressure_signal = []
         self.clean_pressure_signal = []
@@ -187,6 +190,11 @@ class Parachute:
         self.clean_pressure_signal_function = Function(0)
         self.noisy_pressure_signal_function = Function(0)
         self.noise_signal_function = Function(0)
+        self.parachute_radius = parachute_radius
+        if parachute_height is None:
+            parachute_height = parachute_radius
+        self.parachute_height = parachute_height
+        self.porosity = porosity
 
         alpha, beta = self.noise_corr
         self.noise_function = lambda: alpha * self.noise_signal[-1][
