@@ -276,6 +276,9 @@ Finally, we can add any number of Parachutes to the ``Rocket`` object.
         sampling_rate=105,
         lag=1.5,
         noise=(0, 8.3, 0.5),
+        parachute_radius=1.5,
+        parachute_height=1.5,
+        porosity=0.0432,
     )
 
     drogue = calisto.add_parachute(
@@ -285,6 +288,9 @@ Finally, we can add any number of Parachutes to the ``Rocket`` object.
         sampling_rate=105,
         lag=1.5,
         noise=(0, 8.3, 0.5),
+        parachute_radius=1.5,
+        parachute_height=1.5,
+        porosity=0.0432,
     )
 
 We can then see if the rocket is stable by plotting the static margin:
