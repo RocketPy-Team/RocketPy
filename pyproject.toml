@@ -1,6 +1,6 @@
 [project]
 name = "rocketpy"
-version = "1.9.0"
+version = "1.10.0"
 description="Advanced 6-DOF trajectory simulation for High-Power Rocketry."
 dynamic = ["dependencies"]
 readme = "README.md"

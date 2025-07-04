@@ -1,5 +1,4 @@
 import math
-import warnings
 
 import numpy as np
 
@@ -22,7 +21,7 @@ from rocketpy.rocket.aero_surface.fins.free_form_fins import FreeFormFins
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
-from rocketpy.tools import parallel_axis_theorem_from_com
+from rocketpy.tools import deprecated, parallel_axis_theorem_from_com
 
 
 # pylint: disable=too-many-instance-attributes, too-many-public-methods, too-many-instance-attributes
@@ -1173,16 +1172,16 @@ class Rocket:
         self.add_surfaces(nose, position)
         return nose
 
+    @deprecated(
+        reason="This method is set to be deprecated in version 1.0.0 and fully "
+        "removed by version 2.0.0",
+        alternative="Rocket.add_trapezoidal_fins",
+    )
     def add_fins(self, *args, **kwargs):  # pragma: no cover
         """See Rocket.add_trapezoidal_fins for documentation.
         This method is set to be deprecated in version 1.0.0 and fully removed
         by version 2.0.0. Use Rocket.add_trapezoidal_fins instead. It keeps the
         same arguments and signature."""
-        warnings.warn(
-            "This method is set to be deprecated in version 1.0.0 and fully "
-            "removed by version 2.0.0. Use Rocket.add_trapezoidal_fins instead",
-            DeprecationWarning,
-        )
         return self.add_trapezoidal_fins(*args, **kwargs)
 
     def add_trapezoidal_fins(

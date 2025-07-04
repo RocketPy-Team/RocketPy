@@ -14,6 +14,7 @@ import json
 import math
 import re
 import time
+import warnings
 from bisect import bisect_left
 
 import dill
@@ -26,6 +27,66 @@ from packaging import version as packaging_version
 
 # Mapping of module name and the name of the package that should be installed
 INSTALL_MAPPING = {"IPython": "ipython"}
+
+
+def deprecated(reason=None, version=None, alternative=None):
+    """
+    Decorator to mark functions or methods as deprecated.
+
+    This decorator issues a DeprecationWarning when the decorated function
+    is called, indicating that it will be removed in future versions.
+
+    Parameters
+    ----------
+    reason : str, optional
+        Custom deprecation message. If not provided, a default message will be used.
+    version : str, optional
+        Version when the function will be removed. If provided, it will be
+        included in the warning message.
+    alternative : str, optional
+        Name of the alternative function/method that should be used instead.
+        If provided, it will be included in the warning message.
+
+    Returns
+    -------
+    callable
+        The decorated function with deprecation warning functionality.
+
+    Examples
+    --------
+    >>> @deprecated(reason="This function is obsolete", version="v2.0.0",
+    ...             alternative="new_function")
+    ... def old_function():
+    ...     return "old result"
+
+    >>> @deprecated()
+    ... def another_old_function():
+    ...     return "result"
+    """
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            # Build the deprecation message
+            if reason:
+                message = reason
+            else:
+                message = f"The function `{func.__name__}` is deprecated"
+
+            if version:
+                message += f" and will be removed in {version}"
+
+            if alternative:
+                message += f". Use `{alternative}` instead"
+
+            message += "."
+
+            warnings.warn(message, DeprecationWarning, stacklevel=2)
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
 
 
 def tuple_handler(value):

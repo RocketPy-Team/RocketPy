@@ -183,6 +183,7 @@ class _MonteCarloPlots:
             ax2 = fig.add_subplot(gs[1])
 
             # Plot boxplot
+            # TODO: changes vert to orientation="horizontal" when support for Py3.9 ends
             ax1.boxplot(self.monte_carlo.results[key], vert=False)
             ax1.set_title(f"Box Plot of {key}")
             ax1.set_yticks([])

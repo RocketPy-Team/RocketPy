@@ -6,6 +6,7 @@ import pytest
 import pytz
 
 from rocketpy import Environment
+from rocketpy.environment.tools import geodesic_to_utm, utm_to_geodesic
 
 
 @pytest.mark.parametrize(
@@ -78,7 +79,7 @@ def test_geodesic_coordinate_geodesic_to_utm_converts_coordinate():
         utm_letter,
         north_south_hemis,
         east_west_hemis,
-    ) = Environment.geodesic_to_utm(
+    ) = geodesic_to_utm(
         lat=32.990254,
         lon=-106.974998,
         semi_major_axis=6378137.0,  # WGS84
@@ -98,7 +99,7 @@ def test_utm_to_geodesic_converts_coordinates():
     coordinates.
     """
 
-    lat, lon = Environment.utm_to_geodesic(
+    lat, lon = utm_to_geodesic(
         x=315468.64,
         y=3651938.65,
         utm_zone=13,
