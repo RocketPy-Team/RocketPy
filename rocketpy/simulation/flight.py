@@ -155,8 +155,6 @@ class Flight:
         Current integration time.
     Flight.y : list
         Current integration state vector u.
-    Flight.post_processed : bool
-        Defines if solution data has been post processed.
     Flight.initial_solution : list
         List defines initial condition - [tInit, x_init,
         y_init, z_init, vx_init, vy_init, vz_init, e0_init, e1_init,
@@ -1102,7 +1100,6 @@ class Flight:
         self.impact_velocity = 0
         self.impact_state = np.array([0])
         self.parachute_events = []
-        self.post_processed = False
         self.__post_processed_variables = []
 
     def __init_flight_state(self):
@@ -1679,6 +1676,12 @@ class Flight:
         ax, ay, az = K @ Vector(L)
         az -= self.env.gravity.get_value_opt(z)  # Include gravity
 
+        # Coriolis acceleration
+        _, w_earth_y, w_earth_z = self.env.earth_rotation_vector
+        ax -= 2 * (vz * w_earth_y - vy * w_earth_z)
+        ay -= 2 * (vx * w_earth_z)
+        az -= 2 * (-vx * w_earth_y)
+
         # Create u_dot
         u_dot = [
             vx,
@@ -1745,7 +1748,7 @@ class Flight:
         _, _, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
 
         # Create necessary vectors
-        # r = Vector([x, y, z])               # CDM position vector
+        # r = Vector([x, y, z])  # CDM position vector
         v = Vector([vx, vy, vz])  # CDM velocity vector
         e = [e0, e1, e2, e3]  # Euler parameters/quaternions
         w = Vector([omega1, omega2, omega3])  # Angular velocity vector
@@ -1904,9 +1907,6 @@ class Flight:
         # Angular velocity derivative
         w_dot = I_CM.inverse @ (T21 + (T20 ^ r_CM))
 
-        # Velocity vector derivative
-        v_dot = K @ (T20 / total_mass - (r_CM ^ w_dot))
-
         # Euler parameters derivative
         e_dot = [
             0.5 * (-omega1 * e1 - omega2 * e2 - omega3 * e3),
@@ -1914,6 +1914,10 @@ class Flight:
             0.5 * (omega2 * e0 - omega3 * e1 + omega1 * e3),
             0.5 * (omega3 * e0 + omega2 * e1 - omega1 * e2),
         ]
+
+        # Velocity vector derivative + Coriolis acceleration
+        w_earth = Vector(self.env.earth_rotation_vector)
+        v_dot = K @ (T20 / total_mass - (r_CM ^ w_dot)) - 2 * (w_earth ^ v)
 
         # Position vector derivative
         r_dot = [vx, vy, vz]
@@ -1993,6 +1997,12 @@ class Flight:
         ax = Dx / (mp + ma)
         ay = Dy / (mp + ma)
         az = (Dz - 9.8 * mp) / (mp + ma)
+
+        # Add coriolis acceleration
+        _, w_earth_y, w_earth_z = self.env.earth_rotation_vector
+        ax -= 2 * (vz * w_earth_y - vy * w_earth_z)
+        ay -= 2 * (vx * w_earth_z)
+        az -= 2 * (-vx * w_earth_y)
 
         if post_processing:
             self.__post_processed_variables.append(
@@ -3055,14 +3065,16 @@ class Flight:
         null_force = Function(0)
         if self.out_of_rail_time_index == 0:  # No rail phase, no rail button forces
             warnings.warn(
-                "Trying to calculate rail button forces without a rail phase defined."
-                + "The rail button forces will be set to zero."
+                "Trying to calculate rail button forces without a rail phase defined. "
+                + "The rail button forces will be set to zero.",
+                UserWarning,
             )
             return null_force, null_force, null_force, null_force
         if len(self.rocket.rail_buttons) == 0:
             warnings.warn(
-                "Trying to calculate rail button forces without rail buttons defined."
-                + "The rail button forces will be set to zero."
+                "Trying to calculate rail button forces without rail buttons defined. "
+                + "The rail button forces will be set to zero.",
+                UserWarning,
             )
             return null_force, null_force, null_force, null_force
 
@@ -3173,28 +3185,6 @@ class Flight:
                     current_derivative(step[0], step[1:], post_processing=True)
 
         return np.array(self.__post_processed_variables)
-
-    def post_process(self, interpolation="spline", extrapolation="natural"):
-        """This method is **deprecated** and is only kept here for backwards
-        compatibility. All attributes that need to be post processed are
-        computed just in time.
-
-        Post-process all Flight information produced during
-        simulation. Includes the calculation of maximum values,
-        calculation of secondary values such as energy and conversion
-        of lists to Function objects to facilitate plotting.
-
-        Returns
-        -------
-        None
-        """
-        # pylint: disable=unused-argument
-        warnings.warn(
-            "The method post_process is deprecated and will be removed in v1.10. "
-            "All attributes that need to be post processed are computed just in time.",
-            DeprecationWarning,
-        )
-        self.post_processed = True
 
     def calculate_stall_wind_velocity(self, stall_angle):  # TODO: move to utilities
         """Function to calculate the maximum wind velocity before the angle of

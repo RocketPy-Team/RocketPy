@@ -182,7 +182,6 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         inclination=parameters.get("inclination")[0],
         heading=parameters.get("heading")[0],
     )
-    test_flight.post_process()
 
     # Comparison with Real Data
     flight_data = np.loadtxt(
