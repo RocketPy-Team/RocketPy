@@ -1,8 +1,6 @@
-import ast
 import inspect
 import json
 import os
-import traceback
 import warnings
 from datetime import date
 from importlib.metadata import version
@@ -442,96 +440,6 @@ def _flutter_prints(
     print(f"Minimum Fin Flutter Mach Number: {min_mach:.3f} ")
     print(f"Minimum Safety Factor: {min_sf:.3f} at {time_min_sf:.2f} s")
     print(f"Altitude of minimum Safety Factor: {altitude_min_sf:.3f} m (AGL)\n")
-
-
-def create_dispersion_dictionary(filename):  # pragma: no cover
-    """Creates a dictionary with the rocket data provided by a .csv file.
-    File should be organized in four columns: attribute_class, parameter_name,
-    mean_value, standard_deviation. The first row should be the header.
-    It is advised to use ";" as separator, but "," should work on most of cases.
-    The "," separator might cause problems if the data set contains lists where
-    the items are separated by commas.
-
-    Parameters
-    ----------
-    filename : string
-        String with the path to the .csv file. The file should follow the
-        following structure:
-
-        .. code-block::
-
-            attribute_class; parameter_name; mean_value; standard_deviation;
-
-            environment; ensemble_member; [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];;
-
-            motor; impulse; 1415.15; 35.3;
-
-            motor; burn_time; 5.274; 1;
-
-            motor; nozzle_radius; 0.021642; 0.0005;
-
-            motor; throat_radius; 0.008; 0.0005;
-
-            motor; grain_separation; 0.006; 0.001;
-
-            motor; grain_density; 1707; 50;
-
-    Returns
-    -------
-    dictionary
-        Dictionary with all rocket data to be used in dispersion analysis. The
-        dictionary will follow the following structure:
-
-        .. code-block:: python
-
-            analysis_parameters = {
-                'environment': {
-                    'ensemble_member': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-                },
-                'motor': {
-                    'impulse': (1415.15, 35.3),
-                    'burn_time': (5.274, 1),
-                    'nozzle_radius': (0.021642, 0.0005),
-                    'throat_radius': (0.008, 0.0005),
-                    'grain_separation': (0.006, 0.001),
-                    'grain_density': (1707, 50),
-                    }
-            }
-    """
-    warnings.warn(
-        "This function is deprecated and will be removed in v1.10.0.",
-        DeprecationWarning,
-    )
-    try:
-        file = np.genfromtxt(
-            filename, usecols=(1, 2, 3), skip_header=1, delimiter=";", dtype=str
-        )
-    except ValueError:
-        warnings.warn(
-            "Error caught: the recommended delimiter is ';'. If using ',' "
-            "instead, be aware that some resources might not work as "
-            "expected if your data set contains lists where the items are "
-            "separated by commas. Please consider changing the delimiter to "
-            "';' if that is the case."
-        )
-        warnings.warn(traceback.format_exc())
-        file = np.genfromtxt(
-            filename, usecols=(1, 2, 3), skip_header=1, delimiter=",", dtype=str
-        )
-    analysis_parameters = {}
-    for row in file:
-        if row[0] != "":
-            if row[2] == "":
-                try:
-                    analysis_parameters[row[0].strip()] = float(row[1])
-                except ValueError:
-                    analysis_parameters[row[0].strip()] = ast.literal_eval(row[1])
-            else:
-                try:
-                    analysis_parameters[row[0].strip()] = (float(row[1]), float(row[2]))
-                except ValueError:
-                    analysis_parameters[row[0].strip()] = ""
-    return analysis_parameters
 
 
 def apogee_by_mass(flight, min_mass, max_mass, points=10, plot=True):

@@ -10,10 +10,10 @@ import warnings
 from bisect import bisect_left
 from collections.abc import Iterable
 from copy import deepcopy
+from enum import Enum
 from functools import cached_property
 from inspect import signature
 from pathlib import Path
-from enum import Enum
 
 import matplotlib.pyplot as plt
 import numpy as np

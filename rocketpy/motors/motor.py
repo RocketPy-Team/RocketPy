@@ -1151,7 +1151,7 @@ class Motor(ABC):
         Returns
         -------
         vacuum_thrust : Function
-            The rocket's thrust in a vaccum.
+            The rocket's thrust in a vacuum.
         """
         if self.reference_pressure is None:
             warnings.warn(
