@@ -247,6 +247,8 @@ class Environment:
         Number of ensemble members. Only defined when using Ensembles.
     Environment.ensemble_member : int
         Current selected ensemble member. Only defined when using Ensembles.
+    Environment.earth_rotation_vector : list[float]
+        Earth's angular velocity vector in the Flight Coordinate System.
 
     Notes
     -----
@@ -352,6 +354,7 @@ class Environment:
         self.set_location(latitude, longitude)
         self.__initialize_earth_geometry(datum)
         self.__initialize_utm_coordinates()
+        self.__set_earth_rotation_vector()
 
         # Set the gravity model
         self.gravity = self.set_gravity_model(gravity)
@@ -582,6 +585,23 @@ class Environment:
         self.wind_direction.set_inputs("Height Above Sea Level (m)")
         self.wind_direction.set_outputs("Wind Direction (Deg True)")
         self.wind_direction.set_title("Wind Direction Profile")
+
+    def __set_earth_rotation_vector(self):
+        """Calculates and stores the Earth's angular velocity vector in the Flight
+        Coordinate System, which is essential for evaluating inertial forces.
+        """
+        # Sidereal day
+        T = 86164.1  # seconds
+
+        # Earth's angular velocity magnitude
+        w_earth = 2 * np.pi / T
+
+        # Vector in the Flight Coordinate System
+        lat = np.radians(self.latitude)
+        w_local = [0, w_earth * np.cos(lat), w_earth * np.sin(lat)]
+
+        # Store the attribute
+        self.earth_rotation_vector = w_local
 
     # Validators (used to verify an attribute is being set correctly.)
 
