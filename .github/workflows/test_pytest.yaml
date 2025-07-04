@@ -44,13 +44,12 @@ jobs:
 
       - name: Install all RocketPy dependencies
         run: |
-          # Core + optional dependencies
           pip install -r requirements.txt
+          pip install -r requirements-tests.txt
           pip install -r requirements-optional.txt
+
           # Install RocketPy itself with its "all" extras
           pip install .[all]
-          # Test‐only deps
-          pip install -r requirements-tests.txt
 
       - name: Test importing rocketpy
         run: python -c "import sys, rocketpy; print(f'{rocketpy.__name__} running on Python {sys.version}')"
