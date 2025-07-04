@@ -24,7 +24,7 @@ from scipy.interpolate import (
     RBFInterpolator,
 )
 
-from rocketpy.tools import from_hex_decode, to_hex_encode
+from rocketpy.tools import deprecated, from_hex_decode, to_hex_encode
 
 from ..plots.plot_helpers import show_or_save_plot
 
@@ -1459,14 +1459,13 @@ class Function:  # pylint: disable=too-many-public-methods
             else:
                 print("Error: Only functions with 1D or 2D domains can be plotted.")
 
+    @deprecated(
+        reason="The `Function.plot1D` method is set to be deprecated and fully "
+        "removed in rocketpy v2.0.0",
+        alternative="Function.plot_1d",
+    )
     def plot1D(self, *args, **kwargs):  # pragma: no cover
         """Deprecated method, use Function.plot_1d instead."""
-        warnings.warn(
-            "The `Function.plot1D` method is set to be deprecated and fully "
-            + "removed in rocketpy v2.0.0, use `Function.plot_1d` instead. "
-            + "This method is calling `Function.plot_1d`.",
-            DeprecationWarning,
-        )
         return self.plot_1d(*args, **kwargs)
 
     def plot_1d(  # pylint: disable=too-many-statements
@@ -1559,14 +1558,13 @@ class Function:  # pylint: disable=too-many-public-methods
         if return_object:
             return fig, ax
 
+    @deprecated(
+        reason="The `Function.plot2D` method is set to be deprecated and fully "
+        "removed in rocketpy v2.0.0",
+        alternative="Function.plot_2d",
+    )
     def plot2D(self, *args, **kwargs):  # pragma: no cover
         """Deprecated method, use Function.plot_2d instead."""
-        warnings.warn(
-            "The `Function.plot2D` method is set to be deprecated and fully "
-            + "removed in rocketpy v2.0.0, use `Function.plot_2d` instead. "
-            + "This method is calling `Function.plot_2d`.",
-            DeprecationWarning,
-        )
         return self.plot_2d(*args, **kwargs)
 
     def plot_2d(  # pylint: disable=too-many-statements
