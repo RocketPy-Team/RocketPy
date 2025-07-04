@@ -7,7 +7,7 @@ on:
       - "**.py"
       - ".github/**"
       - "pyproject.toml"
-      - "requirements*"
+      - "requirements*.txt"
 
 defaults:
   run:
@@ -15,6 +15,7 @@ defaults:
 
 jobs:
   Pytest:
+    name: Test on ${{ matrix.os }} / Python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -24,35 +25,41 @@ jobs:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
     steps:
-      - uses: actions/checkout@main
-      - name: Set up Python
+      - name: Checkout repository
+        uses: actions/checkout@main
+
+      - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@main
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'pip'
+          cache: pip
           cache-dependency-path: |
             requirements.txt
-            requirements-tests.txt
             requirements-optional.txt
+            requirements-tests.txt
+            pyproject.toml
 
-      - name: Install rocketpy
-        run: pip install .
+      - name: Upgrade pip
+        run: pip install --upgrade pip
+
+      - name: Install all RocketPy dependencies
+        run: |
+          # Core + optional dependencies
+          pip install -r requirements.txt
+          pip install -r requirements-optional.txt
+          # Install RocketPy itself with its "all" extras
+          pip install .[all]
+          # Test‐only deps
+          pip install -r requirements-tests.txt
 
       - name: Test importing rocketpy
         run: python -c "import sys, rocketpy; print(f'{rocketpy.__name__} running on Python {sys.version}')"
-
-      - name: Install test dependencies
-        run: |
-          pip install -r requirements-tests.txt
-          pip install .[all]
 
       - name: Run Unit Tests
         run: pytest tests/unit --cov=rocketpy
 
       - name: Run Documentation Tests
-        run: |
-          pip install numpy --upgrade
-          pytest rocketpy --doctest-modules --cov=rocketpy --cov-append
+        run: pytest rocketpy --doctest-modules --cov=rocketpy --cov-append
 
       - name: Run Integration Tests
         run: pytest tests/integration --cov=rocketpy --cov-append
