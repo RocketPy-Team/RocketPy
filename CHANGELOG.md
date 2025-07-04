@@ -32,11 +32,11 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+-  ENH: Add the Coriolis Force to the Flight class [#799](https://github.com/RocketPy-Team/RocketPy/pull/799)
 
 ### Changed
 
 - ENH: _MotorPrints inheritance - issue #460 [#828](https://github.com/RocketPy-Team/RocketPy/pull/828)
-
 - MNT: fix deprecations and warnings [#829](https://github.com/RocketPy-Team/RocketPy/pull/829)
 
 ### Fixed
