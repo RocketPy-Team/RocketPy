@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 import matplotlib as plt
 import pytest
+
 from rocketpy import Environment
 
 plt.rcParams.update({"figure.max_open_warning": 0})
