@@ -20,12 +20,12 @@ class PointMassMotor(Motor):
     def __init__(
         self,
         thrust_source,
-        dry_mass: float,
-        propellant_initial_mass: float, # Now explicitly required
-        burn_time: float = None,
-        propellant_final_mass: float = None,
-        reshape_thrust_curve: bool = False,
-        interpolation_method: str = "linear",
+        dry_mass,
+        propellant_initial_mass,
+        burn_time = None,
+        propellant_final_mass = None,
+        reshape_thrust_curve = False,
+        interpolation_method = "linear",
     ):
         """Initialize the PointMassMotor class.
 
@@ -69,7 +69,6 @@ class PointMassMotor(Motor):
         TypeError
             If an invalid type is provided for `thrust_source`.
         """
-        # Input validation: Ensure critical parameters for mass flow are present
         if isinstance(thrust_source, (int, float, Callable)):
             if propellant_initial_mass is None:
                 raise ValueError(
@@ -91,10 +90,9 @@ class PointMassMotor(Motor):
                 "Invalid 'thrust_source' type. Must be int, float, callable, str, numpy.ndarray, or Function."
             )
 
-        self.propellant_initial_mass = propellant_initial_mass
+        self._propellant_initial_mass = propellant_initial_mass
         self.propellant_final_mass = propellant_final_mass
 
-        # Call the superclass constructor, passing center_of_dry_mass_position=0
         super().__init__(
             thrust_source=thrust_source,
             dry_inertia=(0, 0, 0), # Inertia is zero for a point mass
@@ -103,7 +101,7 @@ class PointMassMotor(Motor):
             dry_mass=dry_mass,
             nozzle_position=0, # Nozzle is at the motor's origin
             burn_time=burn_time,
-            reshape_thrust_curve=reshape_thrust_curve, # Pass the user-provided value
+            reshape_thrust_curve=reshape_thrust_curve, 
             interpolation_method=interpolation_method,
             coordinate_system_orientation="nozzle_to_combustion_chamber", # Standard orientation
         )
@@ -118,10 +116,59 @@ class PointMassMotor(Motor):
 
     # Removed the center_of_dry_mass_position override. It is now passed directly
     # to the super().__init__ as 0.
+    @property
+    def propellant_initial_mass(self):
+        """Returns the initial propellant mass for a point mass motor.
+
+        This property retrieves the value set during initialization. This implementation
+        is required as 'propellant_initial_mass' is an abstract method in the parent Motor class.
+
+        Returns
+        -------
+        float
+            Propellant initial mass in kg.
+        """
+        return self._propellant_initial_mass
+    
+    @funcify_method("Time (s)", "Exhaust velocity (m/s)")
+    def exhaust_velocity(self):
+        """Exhaust velocity by assuming it as a constant. The formula used is
+        total impulse/propellant initial mass.
+
+        Returns
+        -------
+        self.exhaust_velocity : Function
+            Gas exhaust velocity of the motor.
+
+        Notes
+        -----
+        This corresponds to the actual exhaust velocity only when the nozzle
+        exit pressure equals the atmospheric pressure.
+        """
+        return Function(
+            self.total_impulse / self.propellant_initial_mass
+        ).set_discrete_based_on_model(self.thrust)
+    
+    @cached_property
+    @funcify_method("Time (s)", "Mass flow rate (kg/s)", extrapolation="zero")
+    def total_mass_flow_rate(self) -> Function:
+        """Time derivative of the propellant mass as a function of time.
+
+        It calculates mass flow rate as the negative of thrust divided by exhaust velocity,
+        consistent with the fundamental rocket equation.
+
+        Returns
+        -------
+        Function
+            Time derivative of total propellant mass a function of time.
+        """
+
+        exhaust_vel_func = self.exhaust_velocity
+        return -self.thrust / exhaust_vel_func
 
     @cached_property
     @funcify_method("Time (s)", "Propellant Mass (kg)")
-    def center_of_propellant_mass(self) -> Function:
+    def center_of_propellant_mass(self):
         """Returns the position of the center of mass of the propellant.
 
         For a point mass motor, the propellant's center of mass is considered
@@ -134,12 +181,9 @@ class PointMassMotor(Motor):
         """
         return 0
 
-    # Removed exhaust_velocity override. It will now be inherited from the Motor base class,
-    # which calculates it dynamically based on thrust and mass_flow_rate.
-
     @cached_property
     @funcify_method("Time (s)", "Inertia (kg·m²)")
-    def propellant_I_11(self) -> Function:
+    def propellant_I_11(self):
         """Returns the propellant moment of inertia around the x-axis.
 
         For a point mass motor, this is always zero.
@@ -153,7 +197,7 @@ class PointMassMotor(Motor):
 
     @cached_property
     @funcify_method("Time (s)", "Inertia (kg·m²)")
-    def propellant_I_12(self) -> Function:
+    def propellant_I_12(self):
         """Returns the propellant product of inertia I_xy.
 
         For a point mass motor, this is always zero.
@@ -167,7 +211,7 @@ class PointMassMotor(Motor):
 
     @cached_property
     @funcify_method("Time (s)", "Inertia (kg·m²)")
-    def propellant_I_13(self) -> Function:
+    def propellant_I_13(self):
         """Returns the propellant product of inertia I_xz.
 
         For a point mass motor, this is always zero.
@@ -181,7 +225,7 @@ class PointMassMotor(Motor):
 
     @cached_property
     @funcify_method("Time (s)", "Inertia (kg·m²)")
-    def propellant_I_22(self) -> Function:
+    def propellant_I_22(self):
         """Returns the propellant moment of inertia around the y-axis.
 
         For a point mass motor, this is always zero.
@@ -195,7 +239,7 @@ class PointMassMotor(Motor):
 
     @cached_property
     @funcify_method("Time (s)", "Inertia (kg·m²)")
-    def propellant_I_23(self) -> Function:
+    def propellant_I_23(self):
         """Returns the propellant product of inertia I_yz.
 
         For a point mass motor, this is always zero.
@@ -209,7 +253,7 @@ class PointMassMotor(Motor):
 
     @cached_property
     @funcify_method("Time (s)", "Inertia (kg·m²)")
-    def propellant_I_33(self) -> Function:
+    def propellant_I_33(self):
         """Returns the propellant moment of inertia around the z-axis.
 
         For a point mass motor, this is always zero.
