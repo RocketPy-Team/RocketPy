@@ -1,8 +1,8 @@
 from functools import cached_property
+
 import numpy as np
-import csv
-import math 
-from typing import Callable # Import Callable from the typing module
+
+from typing import Callable 
 
 from rocketpy.mathutils.function import Function, funcify_method
 from .motor import Motor 

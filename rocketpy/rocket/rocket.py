@@ -2022,38 +2022,27 @@ class PointMassRocket(Rocket):
                 power_off_drag=power_off_drag,
                 power_on_drag=power_on_drag,
         )
-    @cached_property
-    @funcify_method("Time (s)", "I_xx (kg·m²)")
+
     def I_11(self) -> Function:
         """Returns the moment of inertia around the x-axis for a point mass (always 0)."""
         return Function(0)
 
-    @cached_property
-    @funcify_method("Time (s)", "I_22 (kg·m²)")
     def I_22(self) -> Function:
         """Returns the moment of inertia around the y-axis for a point mass (always 0)."""
         return Function(0)
 
-    @cached_property
-    @funcify_method("Time (s)", "I_33 (kg·m²)")
     def I_33(self) -> Function:
         """Returns the moment of inertia around the z-axis for a point mass (always 0)."""
         return Function(0)
 
-    @cached_property
-    @funcify_method("Time (s)", "I_12 (kg·m²)")
     def I_12(self) -> Function:
         """Returns the product of inertia I_xy for a point mass (always 0)."""
         return Function(0)
 
-    @cached_property
-    @funcify_method("Time (s)", "I_13 (kg·m²)")
     def I_13(self) -> Function:
         """Returns the product of inertia I_xz for a point mass (always 0)."""
         return Function(0)
 
-    @cached_property
-    @funcify_method("Time (s)", "I_23 (kg·m²)")
     def I_23(self) -> Function:
         """Returns the product of inertia I_yz for a point mass (always 0)."""
         return Function(0)
