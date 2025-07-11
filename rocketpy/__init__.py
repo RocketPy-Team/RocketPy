@@ -18,6 +18,7 @@ from .motors import (
     MassFlowRateBasedTank,
     Motor,
     SolidMotor,
+    PointMassMotor,
     SphericalTank,
     Tank,
     TankGeometry,
