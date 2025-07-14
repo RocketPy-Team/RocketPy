@@ -85,7 +85,7 @@ class StochasticNoseCone(StochasticModel):
             base_radius=base_radius,
             bluffness=bluffness,
             rocket_radius=rocket_radius,
-            power=None,
+            power=power,
             name=None,
         )
 
