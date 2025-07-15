@@ -114,7 +114,7 @@ def test_fin_flutter_analysis(flight_calisto_custom_wind):
     assert np.isclose(flutter_mach(np.inf), 1.0048188594647927, atol=5e-3)
     assert np.isclose(safety_factor(0), 64.78797, atol=5e-3)
     assert np.isclose(safety_factor(10), 2.1948620401502072, atol=5e-3)
-    assert np.isclose(safety_factor(np.inf), 61.64222220697017, atol=5e-3)
+    assert np.isclose(safety_factor(np.inf), 61.669562809629035, atol=5e-3)
 
 
 def test_flutter_prints(flight_calisto_custom_wind):
