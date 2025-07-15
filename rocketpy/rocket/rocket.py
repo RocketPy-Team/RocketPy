@@ -1502,15 +1502,16 @@ class Rocket:
             passed to the trigger function. Default value is (0, 0, 0). Units
             are in pascal.
         parachute_radius : float, optional
-            Radius of the inflated parachute. Default value is 1.5.
+            Length of the non-unique semi-axis (radius) of the inflated hemispheroid
+            parachute. Default value is 1.5.
             Units are in meters.
         parachute_height : float, optional
-            Height of the inflated parachute. Default value is the radius parachute.
+            Length of the unique semi-axis (height) of the inflated hemispheroid
+            parachute. Default value is the radius of the parachute.
             Units are in meters.
         porosity : float, optional
-            Porosity of the parachute material, which is a measure of how much air can
-            pass through the parachute material.
-            Default value is 0.0432 (for consistency with previous versions).
+            Porosity of the parachute is the ratio of open space in the canopy to total
+            canopy area. Default value is 0.0432 (for consistency with previous versions).
 
         Returns
         -------

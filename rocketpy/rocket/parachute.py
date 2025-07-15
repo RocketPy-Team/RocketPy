@@ -9,7 +9,7 @@ from ..prints.parachute_prints import _ParachutePrints
 
 
 class Parachute:
-    """Keeps parachute information.
+    """Keeps information of the parachute, which is modeled as a hemispheroid.
 
     Attributes
     ----------
@@ -93,12 +93,14 @@ class Parachute:
     Parachute.clean_pressure_signal_function : Function
         Function of clean_pressure_signal.
     Parachute.parachute_radius : float
-        Radius of the inflated parachute in meters.
+        Length of the non-unique semi-axis (radius) of the inflated hemispheroid
+        parachute in meters.
     Parachute.parachute_height : float
-        Height of the inflated parachute in meters.
+        Length of the unique semi-axis (height) of the inflated hemispheroid
+        parachute in meters.
     Parachute.porosity : float
-        Porosity of the parachute material, which is a measure of how much air can
-        pass through the parachute material.
+        Porosity of the parachute is the ratio of open space in the canopy to total
+        canopy area.
     """
 
     def __init__(
@@ -165,15 +167,16 @@ class Parachute:
             passed to the trigger function. Default value is ``(0, 0, 0)``.
             Units are in Pa.
         parachute_radius : float, optional
-            Radius of the inflated parachute. Default value is 1.5.
+            Length of the non-unique semi-axis (radius) of the inflated hemispheroid
+            parachute. Default value is 1.5.
             Units are in meters.
         parachute_height : float, optional
-            Height of the inflated parachute. Default value is the radius parachute.
+            Length of the unique semi-axis (height) of the inflated hemispheroid
+            parachute. Default value is the radius of the parachute.
             Units are in meters.
         porosity : float, optional
-            Porosity of the parachute material, which is a measure of how much air can
-            pass through the parachute material.
-            Default value is 0.0432 (for consistency with previous versions).
+            Porosity of the parachute is the ratio of open space in the canopy to total
+            canopy area. Default value is 0.0432 (for consistency with previous versions).
         """
         self.name = name
         self.cd_s = cd_s
