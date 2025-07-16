@@ -18,10 +18,9 @@ It's designed for high-power rocketry applications with focus on accuracy, perfo
 
 ### Code Style
 - Follow **PEP 8** guidelines
-- Use **Black formatter** for code formatting
 - Line length: **88 characters** (Black's default)
-- Use **type hints** for function parameters and return values
 - Organize imports with **isort**
+- Our official formatter is the **ruff frmat**
 
 ### Documentation
 - **All public classes, methods, and functions must have docstrings**
@@ -35,6 +34,7 @@ It's designed for high-power rocketry applications with focus on accuracy, perfo
 - Use descriptive test names following: `test_methodname_expectedbehaviour`
 - Include test docstrings explaining expected behavior
 - Use **parameterization** for testing multiple scenarios
+- Create pytest fixtures to avoid code repetition
 
 ## Domain-Specific Guidelines
 
@@ -45,13 +45,13 @@ It's designed for high-power rocketry applications with focus on accuracy, perfo
 - Use **descriptive variable names** for physical quantities
 
 ### Rocket Components
-- **Motors**: SolidMotor, HybridMotor, LiquidMotor classes
+- **Motors**: SolidMotor, HybridMotor and LiquidMotor classes are children classes of the Motor class
 - **Aerodynamic Surfaces**: They have Drag curves and lift coefficients
 - **Parachutes**: Trigger functions, deployment conditions
 - **Environment**: Atmospheric models, weather data, wind profiles
 
 ### Mathematical Operations
-- Use **numpy arrays** for vectorized operations
+- Use **numpy arrays** for vectorized operations (this improves performance)
 - Prefer **scipy functions** for numerical integration and optimization
 - **Handle edge cases** in calculations (division by zero, sqrt of negative numbers)
 - **Validate input ranges** for physical parameters
@@ -104,22 +104,18 @@ docs/
 
 ### Performance Considerations
 - Use **vectorized operations** where possible
-- **Cache expensive computations** when appropriate
-- Consider **memory usage** for large datasets
-- **Profile critical paths** in simulation code
+- **Cache expensive computations** when appropriate (we frequently use `cached_property`)
 - Keep in mind that RocketPy must be fast!
 
 ### Backward Compatibility
 - **Avoid breaking changes** in public APIs
 - Use **deprecation warnings** before removing features
-- **Document API changes** in docstrings and CHANGELOG
+- **Document code changes** in docstrings and CHANGELOG
 
 ## AI Assistant Guidelines
 
 ### Code Generation
 - **Always include docstrings** for new functions and classes
-- **Add type hints** to function signatures
-- **Include input validation** for public methods
 - **Follow existing patterns** in the codebase
 - **Consider edge cases** and error conditions
 
@@ -146,7 +142,6 @@ docs/
 
 ### Integration Tests
 - **Test interactions** between components
-- **Use real data files** for atmospheric models and motor thrust curves
 - **Verify end-to-end workflows** (Environment → Motor → Rocket → Flight)
 
 ### Test Data
@@ -156,34 +151,21 @@ docs/
 
 ## Project-Specific Considerations
 
-### Simulation Accuracy
-- **Maintain numerical precision** in calculations
-- **Use appropriate integration methods** for different scenarios
-- **Validate against known analytical solutions** when possible
-- **Test with real flight data** for validation
-
 ### User Experience
 - **Provide helpful error messages** with context and suggestions
 - **Include examples** in docstrings and documentation
 - **Support common use cases** with reasonable defaults
-- **Make complex features accessible** through simple APIs
-
-### Community and Collaboration
-- **Follow the development workflow** described in the docs
-- **Use descriptive commit messages** with appropriate prefixes (ENH:, BUG:, DOC:, etc.)
-- **Reference issues** in commits and pull requests
-- **Be inclusive and welcoming** in code comments and documentation
 
 ## Examples of Good Practices
 
 ### Function Definition
 ```python
 def calculate_drag_force(
-    velocity: float,
-    air_density: float,
-    drag_coefficient: float,
-    reference_area: float
-) -> float:
+    velocity,
+    air_density,
+    drag_coefficient,
+    reference_area
+):
     """Calculate drag force using the standard drag equation.
 
     Parameters
@@ -234,5 +216,6 @@ def test_calculate_drag_force_returns_correct_value():
     # Assert
     assert abs(result - expected_force) < 1e-6
 ```
+
 
 Remember: RocketPy prioritizes accuracy, performance, and usability. Always consider the physical meaning of calculations and provide clear, well-documented interfaces for users.
