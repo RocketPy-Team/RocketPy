@@ -3,27 +3,15 @@
 Flight Class Usage
 ==================
 
-The :class:`rocketpy.Flight` class is the heart of RocketPy's simulation engine. 
-It takes a :class:`rocketpy.Rocket`, an :class:`rocketpy.Environment`, and 
-launch parameters to simulate the complete flight trajectory of a rocket from 
+The :class:`rocketpy.Flight` class is the heart of RocketPy's simulation engine.
+It takes a :class:`rocketpy.Rocket`, an :class:`rocketpy.Environment`, and
+launch parameters to simulate the complete flight trajectory of a rocket from
 launch to landing.
-
-This page covers the comprehensive usage of the Flight class, including:
-
-1. Creating a Flight simulation
-2. Understanding Flight parameters
-3. Accessing simulation results
-4. Plotting flight data
-5. Advanced features and options
 
 .. seealso::
 
-    For a complete example of Flight simulation, see the 
+    For a complete example of Flight simulation, see the
     :doc:`First Simulation </user/first_simulation>` guide.
-
-.. contents:: Table of Contents
-   :local:
-   :depth: 2
 
 Creating a Flight Simulation
 ----------------------------
@@ -35,12 +23,52 @@ The most basic way to create a Flight simulation requires three mandatory parame
 a rocket, an environment, and a rail length.
 
 .. jupyter-execute::
+    :hide-code:
+    :hide-output:
+
+    import datetime
+    from rocketpy import Environment, SolidMotor, Rocket, Flight
+
+    # Create a basic environment (Spaceport America)
+    env = Environment(latitude=32.990254, longitude=-106.974998, elevation=1400)
+    # Use standard atmosphere to avoid weather data warnings in docs
+    env.set_atmospheric_model(type="standard_atmosphere")
+
+    # Create a simple solid motor
+    motor = SolidMotor(
+        thrust_source="../data/motors/cesaroni/Cesaroni_M1670.eng",
+        dry_mass=1.815,
+        dry_inertia=(0.125, 0.125, 0.002),
+        nozzle_radius=33 / 1000,
+        grain_number=5,
+        grain_density=1815,
+        grain_outer_radius=33 / 1000,
+        grain_initial_inner_radius=15 / 1000,
+        grain_initial_height=120 / 1000,
+        grain_separation=5 / 1000,
+        grains_center_of_mass_position=0.317,
+        center_of_dry_mass_position=0.317,
+    )
+
+    # Create a simple rocket
+    rocket = Rocket(
+        radius=127 / 2000,
+        mass=14.426,
+        inertia=(6.321, 6.321, 0.034),
+        power_off_drag="../data/rockets/calisto/powerOffDragCurve.csv",
+        power_on_drag="../data/rockets/calisto/powerOnDragCurve.csv",
+        center_of_mass_without_motor=0,
+        coordinate_system_orientation="tail_to_nose",
+    )
+    rocket.add_motor(motor, position=-1.255)
+
+.. jupyter-execute::
 
     from rocketpy import Environment, SolidMotor, Rocket, Flight
 
     # Assuming you have already defined env, motor, and rocket objects
     # (See Environment, Motor, and Rocket documentation for details)
-    
+
     # Create a basic flight
     flight = Flight(
         rocket=rocket,           # Your Rocket object
@@ -48,7 +76,7 @@ a rocket, an environment, and a rail length.
         rail_length=5.2,         # Length of launch rail in meters
     )
 
-Once created, the Flight object automatically runs the simulation and stores 
+Once created, the Flight object automatically runs the simulation and stores
 all results internally.
 
 Launch Parameters
@@ -58,7 +86,7 @@ You can customize the launch conditions by specifying additional parameters:
 
 .. jupyter-execute::
 
-    flight = Flight(
+    flight_custom = Flight(
         rocket=rocket,
         environment=env,
         rail_length=5.2,
@@ -80,7 +108,7 @@ Coordinate Systems and Positioning
 RocketPy uses a launch-centered coordinate system:
 
 - **X-axis**: Points East (positive values = East direction)
-- **Y-axis**: Points North (positive values = North direction)  
+- **Y-axis**: Points North (positive values = North direction)
 - **Z-axis**: Points upward (positive values = altitude above launch site)
 
 The rocket's position is tracked relative to the launch site throughout the flight.
@@ -94,7 +122,7 @@ The Flight class automatically calculates appropriate initial conditions based o
 - Rocket orientation (affected by rail button positions if present)
 - Environment conditions (wind, atmospheric properties)
 
-You can also specify custom initial conditions by passing an ``initial_solution`` 
+You can also specify custom initial conditions by passing an ``initial_solution``
 array or another Flight object to continue from a previous state.
 
 Simulation Control Parameters
@@ -111,6 +139,10 @@ Simulation Control Parameters
 - ``rtol``: Relative tolerance for numerical integration (default: 1e-6)
 - ``atol``: Absolute tolerance for numerical integration (default: auto-calculated)
 
+.. note::
+
+    Increasing the tolerance values can speed up simulations but may reduce accuracy.
+
 **Simulation Behavior:**
 
 - ``terminate_on_apogee``: Stop simulation at apogee (default: False)
@@ -119,7 +151,7 @@ Simulation Control Parameters
 Accessing Simulation Results
 ----------------------------
 
-Once a Flight simulation is complete, you can access a wealth of data about 
+Once a Flight simulation is complete, you can access a wealth of data about
 the rocket's trajectory and performance.
 
 Trajectory Data
@@ -133,12 +165,12 @@ Basic position and velocity data:
     x_trajectory = flight.x          # East coordinate (m)
     y_trajectory = flight.y          # North coordinate (m)
     altitude = flight.z              # Altitude above launch site (m)
-    
+
     # Velocity components (as functions of time)
     vx = flight.vx                   # East velocity (m/s)
     vy = flight.vy                   # North velocity (m/s)
     vz = flight.vz                   # Vertical velocity (m/s)
-    
+
     # Access specific values at given times
     altitude_at_10s = flight.z(10)   # Altitude at t=10 seconds
     max_altitude = flight.apogee     # Maximum altitude reached
@@ -153,14 +185,14 @@ Important events during the flight:
     # Rail departure
     rail_departure_time = flight.out_of_rail_time
     rail_departure_velocity = flight.out_of_rail_velocity
-    
+
     # Apogee
     apogee_time = flight.apogee_time
     apogee_altitude = flight.apogee
     apogee_coordinates = (flight.apogee_x, flight.apogee_y)
-    
+
     # Landing/Impact
-    impact_time = flight.t_final
+    impact_time = flight.impact_state[0]
     impact_velocity = flight.impact_velocity
     impact_coordinates = (flight.x_impact, flight.y_impact)
 
@@ -173,14 +205,14 @@ The Flight object provides access to all forces and accelerations acting on the 
 
     # Linear accelerations in inertial frame (m/s²)
     ax = flight.ax                   # East acceleration
-    ay = flight.ay                   # North acceleration  
+    ay = flight.ay                   # North acceleration
     az = flight.az                   # Vertical acceleration
-    
+
     # Aerodynamic forces in body frame (N)
     R1 = flight.R1                   # X-axis aerodynamic force
     R2 = flight.R2                   # Y-axis aerodynamic force
     R3 = flight.R3                   # Z-axis aerodynamic force (drag)
-    
+
     # Aerodynamic moments in body frame (N⋅m)
     M1 = flight.M1                   # Roll moment
     M2 = flight.M2                   # Pitch moment
@@ -195,12 +227,12 @@ Rocket orientation throughout the flight:
 
     # Euler parameters (quaternions)
     e0, e1, e2, e3 = flight.e0, flight.e1, flight.e2, flight.e3
-    
+
     # Angular velocities in body frame (rad/s)
     w1 = flight.w1                   # Roll rate
-    w2 = flight.w2                   # Pitch rate  
+    w2 = flight.w2                   # Pitch rate
     w3 = flight.w3                   # Yaw rate
-    
+
     # Derived attitude angles
     attitude_angle = flight.attitude_angle
     path_angle = flight.path_angle
@@ -215,66 +247,63 @@ Key performance indicators:
     # Velocity and speed
     total_speed = flight.speed
     mach_number = flight.mach_number
-    
+
     # Stability indicators
     static_margin = flight.static_margin
     stability_margin = flight.stability_margin
-    
-    # Rail button forces (if present)
-    max_rail_force_1 = flight.max_rail_button1_normal_force
-    max_rail_force_2 = flight.max_rail_button2_normal_force
+
 
 Plotting Flight Data
 --------------------
 
-The Flight class provides comprehensive plotting capabilities through the 
+The Flight class provides comprehensive plotting capabilities through the
 ``plots`` attribute.
 
 Trajectory Visualization
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. jupyter-execute::
+.. code-block:: python
 
     # 3D trajectory plot
     flight.plots.trajectory_3d()
-    
+
     # 2D trajectory (ground track)
     flight.plots.linear_kinematics_data()
 
 Flight Data Plots
 ~~~~~~~~~~~~~~~~~
 
-.. jupyter-execute::
+.. code-block:: python
 
     # Velocity and acceleration plots
     flight.plots.linear_kinematics_data()
-    
+
     # Attitude and angular motion
     flight.plots.attitude_data()
     flight.plots.angular_kinematics_data()
-    
+
     # Flight path and orientation
     flight.plots.flight_path_angle_data()
 
 Forces and Moments
 ~~~~~~~~~~~~~~~~~~
 
-.. jupyter-execute::
+.. code-block:: python
 
     # Aerodynamic forces
     flight.plots.aerodynamic_forces()
-    
+
     # Rail button forces (if applicable)
     flight.plots.rail_buttons_forces()
 
 Energy Analysis
 ~~~~~~~~~~~~~~~
 
-.. jupyter-execute::
+.. code-block:: python
 
     # Energy plots
     flight.plots.energy_data()
-    
+
     # Stability analysis
     flight.plots.stability_and_control_data()
 
@@ -296,78 +325,52 @@ The Flight class also provides detailed text output through the ``prints`` attri
 Flight Summary
 ~~~~~~~~~~~~~~
 
-.. jupyter-execute::
+.. code-block:: python
 
     # Complete flight information
     flight.info()
-    
+
     # All detailed information
     flight.all_info()
 
 Specific Information Sections
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. jupyter-execute::
+.. code-block:: python
 
     # Initial conditions
     flight.prints.initial_conditions()
-    
+
     # Wind and environment conditions
     flight.prints.surface_wind_conditions()
-    
+
     # Launch rail information
     flight.prints.launch_rail_conditions()
-    
+
     # Rail departure conditions
     flight.prints.out_of_rail_conditions()
-    
+
     # Motor burn out conditions
     flight.prints.burn_out_conditions()
-    
+
     # Apogee conditions
     flight.prints.apogee_conditions()
-    
+
     # Landing/impact conditions
     flight.prints.impact_conditions()
-    
+
     # Maximum values during flight
     flight.prints.maximum_values()
 
 Advanced Features
 -----------------
 
-Multi-Stage Rockets and Complex Simulations
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-For multi-stage rockets or complex scenarios, you can use the ``initial_solution`` 
-parameter to chain simulations:
-
-.. jupyter-execute::
-
-    # First stage flight
-    first_stage_flight = Flight(
-        rocket=first_stage_rocket,
-        environment=env,
-        rail_length=5.2,
-        max_time=60,
-        terminate_on_apogee=False
-    )
-    
-    # Second stage flight (continuing from first stage)
-    second_stage_flight = Flight(
-        rocket=second_stage_rocket,
-        environment=env,
-        rail_length=0,  # Already in flight
-        initial_solution=first_stage_flight,  # Continue from previous state
-        max_time=300
-    )
-
 Custom Equations of Motion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 RocketPy supports different sets of equations of motion:
 
-.. jupyter-execute::
+.. code-block:: python
 
     # Standard 6-DOF equations (default)
     flight_6dof = Flight(
@@ -376,8 +379,9 @@ RocketPy supports different sets of equations of motion:
         rail_length=5.2,
         equations_of_motion="standard"
     )
-    
+
     # Simplified solid propulsion equations (legacy)
+    # This may run a bit faster with no accuracy loss, but only works for solid motors
     flight_simple = Flight(
         rocket=rocket,
         environment=env,
@@ -390,7 +394,7 @@ Integration Method Selection
 
 You can choose different numerical integration methods:
 
-.. jupyter-execute::
+.. code-block:: python
 
     # High-accuracy integration (default)
     flight_accurate = Flight(
@@ -399,7 +403,7 @@ You can choose different numerical integration methods:
         rail_length=5.2,
         ode_solver="LSODA"
     )
-    
+
     # Fast integration for quick simulations
     flight_fast = Flight(
         rocket=rocket,
@@ -408,46 +412,20 @@ You can choose different numerical integration methods:
         ode_solver="RK45"
     )
 
-Data Export and Analysis
-------------------------
-
 Exporting Flight Data
-~~~~~~~~~~~~~~~~~~~~~
+---------------------
 
 You can export flight data for external analysis:
 
-.. jupyter-execute::
+.. code-block:: python
 
     # Convert to dictionary format
     flight_data = flight.to_dict(include_outputs=True)
     # NOTE: RocketPy offers an unofficial json serializer, see rocketpy._encoders for details
-    
-    # Access specific data arrays
-    time_array = flight.time
-    altitude_array = flight.z.y_array
-    velocity_array = flight.speed.y_array
 
-Working with Function Objects
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Most Flight data is stored as Function objects that can be evaluated at any time:
-
-.. jupyter-execute::
-
-    # Evaluate at specific times
-    altitude_at_5s = flight.z(5.0)
-    velocity_at_10s = flight.speed(10.0)
-    
-    # Get data arrays
-    time_points = flight.z.x_array
-    altitude_points = flight.z.y_array
-    
-    # Interpolate between points
-    custom_times = [1, 5, 10, 20, 30]
-    custom_altitudes = [flight.z(t) for t in custom_times]
 
 Common Issues and Solutions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------
 
 **Integration Problems:**
 
