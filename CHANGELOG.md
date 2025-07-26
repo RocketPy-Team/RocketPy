@@ -307,6 +307,7 @@ You can install this version by running `pip install rocketpy==1.3.0`
 
 ### Fixed
 
+- BUG: Fixes StochasticNoseCone powerseries issue #838 [#839](https://github.com/RocketPy-Team/RocketPy/pull/839)
 - MNT: Alter PYPI classifier naming. [#615](https://github.com/RocketPy-Team/RocketPy/pull/615)
 - DOC: Solve Dependencies Conflicts and pyproject build [#613](https://github.com/RocketPy-Team/RocketPy/pull/613)
 - BUG: Fixes nose cone bluffness issue #610 [#611](https://github.com/RocketPy-Team/RocketPy/pull/611)
