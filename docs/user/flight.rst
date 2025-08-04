@@ -125,6 +125,47 @@ The Flight class automatically calculates appropriate initial conditions based o
 You can also specify custom initial conditions by passing an ``initial_solution``
 array or another Flight object to continue from a previous state.
 
+**Custom Initial Solution Vector**
+
+The ``initial_solution`` parameter accepts a 14-element array defining the complete
+initial state of the rocket:
+
+.. code-block:: python
+
+    initial_solution = [
+        t_initial,    # Initial time (s)
+        x_init,       # Initial X position - East coordinate (m)
+        y_init,       # Initial Y position - North coordinate (m)
+        z_init,       # Initial Z position - altitude above launch site (m)
+        vx_init,      # Initial velocity in X direction - East (m/s)
+        vy_init,      # Initial velocity in Y direction - North (m/s)
+        vz_init,      # Initial velocity in Z direction - upward (m/s)
+        e0_init,      # Initial Euler parameter 0 (quaternion scalar part)
+        e1_init,      # Initial Euler parameter 1 (quaternion i component)
+        e2_init,      # Initial Euler parameter 2 (quaternion j component)
+        e3_init,      # Initial Euler parameter 3 (quaternion k component)
+        w1_init,      # Initial angular velocity about rocket's x-axis (rad/s)
+        w2_init,      # Initial angular velocity about rocket's y-axis (rad/s)
+        w3_init       # Initial angular velocity about rocket's z-axis (rad/s)
+    ]
+
+**Using a Previous Flight as Initial Condition**
+
+You can also continue a simulation from where another flight ended:
+
+.. code-block:: python
+
+    # Continue from the final state of a previous flight
+    continued_flight = Flight(
+        rocket=rocket,
+        environment=env,
+        rail_length=0,  # Set to 0 when continuing from free flight
+        initial_solution=flight  # Use previous Flight object
+    )
+
+This is particularly useful for multi-stage simulations or when analyzing
+different scenarios from a specific flight condition.
+
 Simulation Control Parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -133,6 +174,13 @@ Simulation Control Parameters
 - ``max_time``: Maximum simulation duration (default: 600 seconds)
 - ``max_time_step``: Maximum integration step size (default: infinity)
 - ``min_time_step``: Minimum integration step size (default: 0)
+
+.. note::
+
+    These time control parameters can significantly help with integration stability \
+    in challenging simulation cases. This is particularly useful for liquid and \
+    hybrid motors, which often have more complex thrust curves and transient \
+    behaviors that can cause numerical integration difficulties.
 
 **Accuracy Control:**
 
@@ -251,6 +299,94 @@ Key performance indicators:
     # Stability indicators
     static_margin = flight.static_margin
     stability_margin = flight.stability_margin
+
+Accessing Raw Simulation Data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For users who need direct access to the raw numerical simulation results,
+the Flight object provides the complete solution array through the ``solution``
+and ``solution_array`` attributes.
+
+**Flight.solution**
+
+The ``Flight.solution`` attribute contains the raw simulation data as a list of
+state vectors, where each row represents the rocket's complete state at a specific time:
+
+.. jupyter-execute::
+
+    # Access the raw solution list
+    raw_solution = flight.solution
+
+    # Each element is a 14-element state vector:
+    # [time, x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
+    initial_state = flight.solution[0]  # First time step
+    final_state = flight.solution[-1]   # Last time step
+
+    print(f"Initial state: {initial_state}")
+    print(f"Final state: {final_state}")
+
+**Flight.solution_array**
+
+For easier numerical analysis, use ``solution_array`` which provides the same data
+as a NumPy array:
+
+.. jupyter-execute::
+
+    import numpy as np
+
+    # Get solution as NumPy array for easier manipulation
+    solution_array = flight.solution_array  # Shape: (n_time_steps, 14)
+
+    # Extract specific columns (state variables)
+    time_array = solution_array[:, 0]        # Time values
+    position_data = solution_array[:, 1:4]   # X, Y, Z positions
+    velocity_data = solution_array[:, 4:7]   # Vx, Vy, Vz velocities
+    quaternions = solution_array[:, 7:11]    # e0, e1, e2, e3
+    angular_velocities = solution_array[:, 11:14]  # w1, w2, w3
+
+    # Example: Calculate velocity magnitude manually
+    velocity_magnitude = np.sqrt(np.sum(velocity_data**2, axis=1))
+
+**State Vector Format**
+
+Each row in the solution array follows this 14-element format:
+
+.. code-block:: python
+
+    [time, x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
+
+Where:
+    - ``time``: Simulation time in seconds
+    - ``x, y, z``: Position coordinates in meters (East, North, Up)
+    - ``vx, vy, vz``: Velocity components in m/s (East, North, Up)
+    - ``e0, e1, e2, e3``: Euler parameters (quaternions) for attitude
+    - ``w1, w2, w3``: Angular velocities in rad/s (body frame: roll, pitch, yaw rates)
+
+**Getting State at Specific Time**
+
+You can extract the rocket's state at any specific time during the flight:
+
+.. jupyter-execute::
+
+    # Get complete state vector at t=10 seconds
+    state_at_10s = flight.get_solution_at_time(10.0)
+
+    print(f"State at t=10s: {state_at_10s}")
+
+    # Extract specific values from the state vector
+    time_10s = state_at_10s[0]
+    altitude_10s = state_at_10s[3]  # Z coordinate
+    speed_10s = np.sqrt(state_at_10s[4]**2 + state_at_10s[5]**2 + state_at_10s[6]**2)
+
+    print(f"At t={time_10s}s: altitude={altitude_10s:.1f}m, speed={speed_10s:.1f}m/s")
+
+This raw data access is particularly useful for:
+
+- Custom post-processing and analysis
+- Exporting data to external tools
+- Implementing custom flight metrics
+- Monte Carlo analysis and statistical studies
+- Integration with other simulation frameworks
 
 
 Plotting Flight Data
@@ -392,12 +528,22 @@ RocketPy supports different sets of equations of motion:
 Integration Method Selection
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can choose different numerical integration methods:
+You can choose different numerical integration methods using the ``ode_solver`` parameter.
+RocketPy supports the following integration methods from ``scipy.integrate.solve_ivp``:
+
+**Available ODE Solvers:**
+
+- **'LSODA'** (default): Recommended for most flights. Automatically switches between stiff and non-stiff methods
+- **'RK45'**: Explicit Runge-Kutta method of order 5(4). Good for non-stiff problems
+- **'RK23'**: Explicit Runge-Kutta method of order 3(2). Faster but less accurate than RK45
+- **'DOP853'**: Explicit Runge-Kutta method of order 8. High accuracy for smooth problems
+- **'Radau'**: Implicit Runge-Kutta method of order 5. Good for stiff problems
+- **'BDF'**: Implicit multi-step variable-order method. Efficient for stiff problems
 
 .. code-block:: python
 
-    # High-accuracy integration (default)
-    flight_accurate = Flight(
+    # High-accuracy integration (default, recommended for most cases)
+    flight_default = Flight(
         rocket=rocket,
         environment=env,
         rail_length=5.2,
@@ -411,6 +557,26 @@ You can choose different numerical integration methods:
         rail_length=5.2,
         ode_solver="RK45"
     )
+
+    # Very high accuracy for smooth problems
+    flight_high_accuracy = Flight(
+        rocket=rocket,
+        environment=env,
+        rail_length=5.2,
+        ode_solver="DOP853"
+    )
+
+    # For stiff problems (e.g., complex motor thrust curves)
+    flight_stiff = Flight(
+        rocket=rocket,
+        environment=env,
+        rail_length=5.2,
+        ode_solver="BDF"
+    )
+
+You can also pass a custom ``scipy.integrate.OdeSolver`` object for advanced use cases.
+For more information on integration methods, see the `scipy documentation
+<https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.solve_ivp.html>`_.
 
 Exporting Flight Data
 ---------------------
