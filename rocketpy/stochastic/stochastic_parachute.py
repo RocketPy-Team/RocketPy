@@ -66,6 +66,12 @@ class StochasticParachute(StochasticModel):
         noise : list
             List of tuples in the form of (mean, standard deviation,
             time-correlation).
+        parachute_radius : tuple, list, int, float
+            Radius of the parachute in meters.
+        parachute_height : tuple, list, int, float
+            Height of the parachute in meters.
+        porosity : tuple, list, int, float
+            Porosity of the parachute.
         """
         self.parachute = parachute
         self.cd_s = cd_s
@@ -89,7 +95,7 @@ class StochasticParachute(StochasticModel):
             name=None,
             parachute_radius=parachute_radius,
             parachute_height=parachute_height,
-            porosity=porosity
+            porosity=porosity,
         )
 
     def _validate_trigger(self, trigger):

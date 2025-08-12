@@ -95,7 +95,7 @@ class Parachute:
     Parachute.parachute_radius : float
         Length of the non-unique semi-axis (radius) of the inflated hemispheroid
         parachute in meters.
-    Parachute.parachute_height : float
+    Parachute.parachute_height : float, None
         Length of the unique semi-axis (height) of the inflated hemispheroid
         parachute in meters.
     Parachute.porosity : float

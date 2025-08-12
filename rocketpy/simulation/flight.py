@@ -1997,7 +1997,10 @@ class Flight:
 
         # Define constants
         ka = 1.068 * (
-            1 - 1.465 * self.parachute_porosity - 0.25975 * self.parachute_porosity**2 + 1.2626 * self.parachute_porosity**3
+            1
+            - 1.465 * self.parachute_porosity
+            - 0.25975 * self.parachute_porosity**2
+            + 1.2626 * self.parachute_porosity**3
         )
         # to = 1.2
         # eta = 1
@@ -2009,7 +2012,14 @@ class Flight:
         # tf = 8 * nominal diameter / velocity at line stretch
 
         # Calculate added mass
-        ma = ka * rho * (4 / 3) * np.pi * self.parachute_radius**2 * self.parachute_height
+        ma = (
+            ka
+            * rho
+            * (4 / 3)
+            * np.pi
+            * self.parachute_radius**2
+            * self.parachute_height
+        )
 
         # Calculate freestream speed
         freestream_x = vx - wind_velocity_x
