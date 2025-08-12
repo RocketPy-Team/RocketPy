@@ -1992,18 +1992,12 @@ class Flight:
         wind_velocity_x = self.env.wind_velocity_x.get_value_opt(z)
         wind_velocity_y = self.env.wind_velocity_y.get_value_opt(z)
 
-        # Get Parachute data
-        cd_s = self.parachute_cd_s
-        parachute_radius = self.parachute_radius
-        parachute_height = self.parachute_height
-        porosity = self.parachute_porosity
-
         # Get the mass of the rocket
         mp = self.rocket.dry_mass
 
         # Define constants
         ka = 1.068 * (
-            1 - 1.465 * porosity - 0.25975 * porosity**2 + 1.2626 * porosity**3
+            1 - 1.465 * self.parachute_porosity - 0.25975 * self.parachute_porosity**2 + 1.2626 * self.parachute_porosity**3
         )
         # to = 1.2
         # eta = 1
@@ -2015,7 +2009,7 @@ class Flight:
         # tf = 8 * nominal diameter / velocity at line stretch
 
         # Calculate added mass
-        ma = ka * rho * (4 / 3) * np.pi * parachute_radius**2 * parachute_height
+        ma = ka * rho * (4 / 3) * np.pi * self.parachute_radius**2 * self.parachute_height
 
         # Calculate freestream speed
         freestream_x = vx - wind_velocity_x
@@ -2024,7 +2018,7 @@ class Flight:
         free_stream_speed = (freestream_x**2 + freestream_y**2 + freestream_z**2) ** 0.5
 
         # Determine drag force
-        pseudo_drag = -0.5 * rho * cd_s * free_stream_speed
+        pseudo_drag = -0.5 * rho * self.parachute_cd_s * free_stream_speed
         # pseudo_drag = pseudo_drag - ka * rho * 4 * np.pi * (R**2) * Rdot
         Dx = pseudo_drag * freestream_x  # add eta efficiency for wake
         Dy = pseudo_drag * freestream_y

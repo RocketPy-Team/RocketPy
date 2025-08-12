@@ -194,9 +194,7 @@ class Parachute:
         self.noisy_pressure_signal_function = Function(0)
         self.noise_signal_function = Function(0)
         self.parachute_radius = parachute_radius
-        if parachute_height is None:
-            parachute_height = parachute_radius
-        self.parachute_height = parachute_height
+        self.parachute_height = parachute_height or parachute_radius
         self.porosity = porosity
 
         alpha, beta = self.noise_corr
