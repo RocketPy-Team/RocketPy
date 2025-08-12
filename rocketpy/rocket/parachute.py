@@ -196,6 +196,12 @@ class Parachute:
         self.parachute_radius = parachute_radius
         self.parachute_height = parachute_height or parachute_radius
         self.porosity = porosity
+        self.ka = 1.068 * (
+            1
+            - 1.465 * self.parachute_porosity
+            - 0.25975 * self.parachute_porosity**2
+            + 1.2626 * self.parachute_porosity**3
+        )
 
         alpha, beta = self.noise_corr
         self.noise_function = lambda: alpha * self.noise_signal[-1][

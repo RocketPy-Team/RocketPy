@@ -777,6 +777,9 @@ class Flight:
                             lambda self, parachute_porosity=parachute.porosity: setattr(
                                 self, "parachute_porosity", parachute_porosity
                             ),
+                            lambda self, ka=parachute.ka: setattr(
+                                self, "parachute_ka", ka
+                            ),
                         ]
                         self.flight_phases.add_phase(
                             node.t + parachute.lag,
@@ -1040,6 +1043,9 @@ class Flight:
                                                 self,
                                                 "parachute_porosity",
                                                 parachute_porosity,
+                                            ),
+                                            lambda self, ka=parachute.ka: setattr(
+                                                self, "parachute_ka", ka
                                             ),
                                         ]
                                         self.flight_phases.add_phase(
@@ -1995,13 +2001,6 @@ class Flight:
         # Get the mass of the rocket
         mp = self.rocket.dry_mass
 
-        # Define constants
-        ka = 1.068 * (
-            1
-            - 1.465 * self.parachute_porosity
-            - 0.25975 * self.parachute_porosity**2
-            + 1.2626 * self.parachute_porosity**3
-        )
         # to = 1.2
         # eta = 1
         # Rdot = (6 * R * (1 - eta) / (1.2**6)) * (
@@ -2013,7 +2012,7 @@ class Flight:
 
         # Calculate added mass
         ma = (
-            ka
+            self.ka
             * rho
             * (4 / 3)
             * np.pi
