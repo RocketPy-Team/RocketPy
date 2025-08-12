@@ -39,6 +39,9 @@ class StochasticParachute(StochasticModel):
         sampling_rate=None,
         lag=None,
         noise=None,
+        parachute_radius=None,
+        parachute_height=None,
+        porosity=None,
     ):
         """Initializes the Stochastic Parachute class.
 
@@ -70,6 +73,9 @@ class StochasticParachute(StochasticModel):
         self.sampling_rate = sampling_rate
         self.lag = lag
         self.noise = noise
+        self.parachute_radius = parachute_radius
+        self.parachute_height = parachute_height
+        self.porosity = porosity
 
         self._validate_trigger(trigger)
         self._validate_noise(noise)
@@ -81,6 +87,9 @@ class StochasticParachute(StochasticModel):
             lag=lag,
             noise=noise,
             name=None,
+            parachute_radius=parachute_radius,
+            parachute_height=parachute_height,
+            porosity=porosity
         )
 
     def _validate_trigger(self, trigger):
