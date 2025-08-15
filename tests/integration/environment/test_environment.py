@@ -160,9 +160,8 @@ def test_nam_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=un
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_rap_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=unused-argument
-    today = date.today()
     now = datetime.now(timezone.utc)
-    example_spaceport_env.set_date((today.year, today.month, today.day, now.hour))
+    example_spaceport_env.set_date((now.year, now.month, now.day, now.hour))
     example_spaceport_env.set_atmospheric_model(type="Forecast", file="RAP")
     assert example_spaceport_env.all_info() is None
 

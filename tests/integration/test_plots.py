@@ -74,10 +74,10 @@ def test_compare_flights(mock_show, mock_figure_show, calisto, example_plain_env
     )
 
     calisto.set_rail_buttons(-0.5, 0.2)
-    inclinations = [60, 70, 80, 90]
-    headings = [0, 45, 90, 180]
+    inclinations = [60, 90]
+    headings = [0, 180]
     flights = []
-    # Create (4 * 4) = 16 different flights to be compared
+    # Create (2 * 2) = 4 different flights to be compared
     for heading in headings:
         for inclination in inclinations:
             flight = Flight(

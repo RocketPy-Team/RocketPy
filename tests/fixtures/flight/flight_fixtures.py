@@ -247,6 +247,22 @@ def flight_calisto_air_brakes(calisto_air_brakes_clamp_on, example_plain_env):
 
 
 @pytest.fixture
+def flight_calisto_air_brakes_time_overshoot(
+    calisto_air_brakes_clamp_on, example_plain_env
+):
+    """Same as flight_calisto_air_brakes but with time_overshoot=True."""
+    return Flight(
+        rocket=calisto_air_brakes_clamp_on,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        time_overshoot=True,
+        terminate_on_apogee=True,
+    )
+
+
+@pytest.fixture
 def flight_calisto_with_sensors(calisto_with_sensors, example_plain_env):
     """A rocketpy.Flight object of the Calisto rocket. This uses the calisto
     with a set of ideal sensors. The environment is the simplest possible, with
