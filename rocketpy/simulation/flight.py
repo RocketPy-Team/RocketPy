@@ -1045,7 +1045,7 @@ class Flight:
                                                 parachute_porosity,
                                             ),
                                             lambda self, ka=parachute.ka: setattr(
-                                                self, "parachute_ka", ka
+                                                self, "ka", ka
                                             ),
                                         ]
                                         self.flight_phases.add_phase(
