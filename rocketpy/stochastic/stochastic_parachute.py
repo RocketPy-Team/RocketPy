@@ -29,6 +29,12 @@ class StochasticParachute(StochasticModel):
         time-correlation).
     name : list[str]
         List with the name of the parachute object. This cannot be randomized.
+    radius : tuple, list, int, float
+        Radius of the parachute in meters.
+    height : tuple, list, int, float
+        Height of the parachute in meters.
+    porosity : tuple, list, int, float
+        Porosity of the parachute.
     """
 
     def __init__(
