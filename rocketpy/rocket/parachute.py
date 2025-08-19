@@ -92,10 +92,10 @@ class Parachute:
         Function of noisy_pressure_signal.
     Parachute.clean_pressure_signal_function : Function
         Function of clean_pressure_signal.
-    Parachute.parachute_radius : float
+    Parachute.radius : float
         Length of the non-unique semi-axis (radius) of the inflated hemispheroid
         parachute in meters.
-    Parachute.parachute_height : float, None
+    Parachute.height : float, None
         Length of the unique semi-axis (height) of the inflated hemispheroid
         parachute in meters.
     Parachute.porosity : float
@@ -111,8 +111,8 @@ class Parachute:
         sampling_rate,
         lag=0,
         noise=(0, 0, 0),
-        parachute_radius=1.5,
-        parachute_height=None,
+        radius=1.5,
+        height=None,
         porosity=0.0432,
     ):
         """Initializes Parachute class.
@@ -166,11 +166,11 @@ class Parachute:
             The values are used to add noise to the pressure signal which is
             passed to the trigger function. Default value is ``(0, 0, 0)``.
             Units are in Pa.
-        parachute_radius : float, optional
+        radius : float, optional
             Length of the non-unique semi-axis (radius) of the inflated hemispheroid
             parachute. Default value is 1.5.
             Units are in meters.
-        parachute_height : float, optional
+        height : float, optional
             Length of the unique semi-axis (height) of the inflated hemispheroid
             parachute. Default value is the radius of the parachute.
             Units are in meters.
@@ -193,8 +193,8 @@ class Parachute:
         self.clean_pressure_signal_function = Function(0)
         self.noisy_pressure_signal_function = Function(0)
         self.noise_signal_function = Function(0)
-        self.parachute_radius = parachute_radius
-        self.parachute_height = parachute_height or parachute_radius
+        self.radius = radius
+        self.height = height or radius
         self.porosity = porosity
         self.ka = 1.068 * (
             1
@@ -296,8 +296,8 @@ class Parachute:
             "sampling_rate": self.sampling_rate,
             "lag": self.lag,
             "noise": self.noise,
-            "parachute_radius": self.parachute_radius,
-            "parachute_height": self.parachute_height,
+            "radius": self.radius,
+            "height": self.height,
             "porosity": self.porosity,
         }
 
@@ -325,8 +325,8 @@ class Parachute:
             sampling_rate=data["sampling_rate"],
             lag=data["lag"],
             noise=data["noise"],
-            parachute_radius=data.get("parachute_radius", 1.5),
-            parachute_height=data.get("parachute_height", None),
+            radius=data.get("radius", 1.5),
+            height=data.get("height", None),
             porosity=data.get("porosity", 0.0432),
         )
 

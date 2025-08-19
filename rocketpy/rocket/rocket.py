@@ -1440,8 +1440,8 @@ class Rocket:
         sampling_rate=100,
         lag=0,
         noise=(0, 0, 0),
-        parachute_radius=1.5,
-        parachute_height=None,
+        radius=1.5,
+        height=None,
         porosity=0.0432,
     ):
         """Creates a new parachute, storing its parameters such as
@@ -1501,11 +1501,11 @@ class Rocket:
             The values are used to add noise to the pressure signal which is
             passed to the trigger function. Default value is (0, 0, 0). Units
             are in pascal.
-        parachute_radius : float, optional
+        radius : float, optional
             Length of the non-unique semi-axis (radius) of the inflated hemispheroid
             parachute. Default value is 1.5.
             Units are in meters.
-        parachute_height : float, optional
+        height : float, optional
             Length of the unique semi-axis (height) of the inflated hemispheroid
             parachute. Default value is the radius of the parachute.
             Units are in meters.
@@ -1528,8 +1528,8 @@ class Rocket:
             sampling_rate,
             lag,
             noise,
-            parachute_radius,
-            parachute_height,
+            radius,
+            height,
             porosity,
         )
         self.parachutes.append(parachute)

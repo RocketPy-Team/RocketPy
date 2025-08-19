@@ -1027,13 +1027,13 @@ class Flight:
                                                 self, "parachute_cd_s", parachute_cd_s
                                             ),
                                             lambda self,
-                                            parachute_radius=parachute.parachute_radius: setattr(
+                                            parachute_radius=parachute.radius: setattr(
                                                 self,
                                                 "parachute_radius",
                                                 parachute_radius,
                                             ),
                                             lambda self,
-                                            parachute_height=parachute.parachute_height: setattr(
+                                            parachute_height=parachute.height: setattr(
                                                 self,
                                                 "parachute_height",
                                                 parachute_height,

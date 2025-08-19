@@ -39,8 +39,8 @@ class StochasticParachute(StochasticModel):
         sampling_rate=None,
         lag=None,
         noise=None,
-        parachute_radius=None,
-        parachute_height=None,
+        radius=None,
+        height=None,
         porosity=None,
     ):
         """Initializes the Stochastic Parachute class.
@@ -66,9 +66,9 @@ class StochasticParachute(StochasticModel):
         noise : list
             List of tuples in the form of (mean, standard deviation,
             time-correlation).
-        parachute_radius : tuple, list, int, float
+        radius : tuple, list, int, float
             Radius of the parachute in meters.
-        parachute_height : tuple, list, int, float
+        height : tuple, list, int, float
             Height of the parachute in meters.
         porosity : tuple, list, int, float
             Porosity of the parachute.
@@ -79,8 +79,8 @@ class StochasticParachute(StochasticModel):
         self.sampling_rate = sampling_rate
         self.lag = lag
         self.noise = noise
-        self.parachute_radius = parachute_radius
-        self.parachute_height = parachute_height
+        self.radius = radius
+        self.height = height
         self.porosity = porosity
 
         self._validate_trigger(trigger)
@@ -93,8 +93,8 @@ class StochasticParachute(StochasticModel):
             lag=lag,
             noise=noise,
             name=None,
-            parachute_radius=parachute_radius,
-            parachute_height=parachute_height,
+            radius=radius,
+            height=height,
             porosity=porosity,
         )
 
