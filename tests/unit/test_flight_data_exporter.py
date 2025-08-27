@@ -1,5 +1,4 @@
 import json
-from types import SimpleNamespace
 from rocketpy.simulation import FlightDataExporter
 
 
