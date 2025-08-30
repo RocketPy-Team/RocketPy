@@ -4,7 +4,8 @@ import math
 import warnings
 from copy import deepcopy
 from functools import cached_property
-
+from ..motors.pointmassmotor import PointMassMotor
+from ..rocket import PointMassRocket
 import numpy as np
 import simplekml
 from scipy.integrate import BDF, DOP853, LSODA, RK23, RK45, OdeSolver, Radau
@@ -1193,16 +1194,33 @@ class Flight:
 
     def __init_equations_of_motion(self):
         """Initialize equations of motion."""
-        if self.equations_of_motion == "solid_propulsion" and self.simulation_mode == '6 DOF':
-            # NOTE: The u_dot is faster, but only works for solid propulsion
-            self.u_dot_generalized = self.u_dot
-        elif self.equations_of_motion == "solid_propulsion" and self.simulation_mode == '3 DOF':
-            # NOTE: The u_dot is faster, but only works for solid propulsion
-            self.u_dot_generalized = self.u_dot_3dof
-        elif self.simulation_mode == '3 DOF':
-            # NOTE: The u_dot is faster, but only works for solid propulsion
-            self.u_dot_generalized = self.u_dot_generalized_3dof
+        # Determine if a point-mass model is used.
+        is_point_mass = (
+            isinstance(self.rocket, PointMassRocket)
+            or (self.rocket._motors and isinstance(self.rocket._motors[0], PointMassMotor))
+        )
+        # Set simulation mode based on model type.
+        if is_point_mass:
+            if self.simulation_mode != "3 DOF":
+                warnings.warn("A point-mass model was detected. Simulation mode should be '3 DOF'.", UserWarning)
+            self.simulation_mode = "3 DOF"
+        else:
+            self.simulation_mode = self.simulation_mode
 
+        # Set the equations of motion based on the final simulation mode.
+        if self.simulation_mode == "3 DOF":
+            self.equations_of_motion = self.equations_of_motion
+            self.u_dot_generalized = self.u_dot_generalized_3dof
+        elif self.simulation_mode == "6 DOF":
+            if self.equations_of_motion == "solid_propulsion":
+                self.u_dot_generalized = self.u_dot_6dof
+            else:
+                self.u_dot_generalized = self.u_dot_generalized_6dof
+        else:
+            raise ValueError(
+                f"Invalid simulation_mode: {self.simulation_mode}. "
+                "Must be '3 DOF' or '6 DOF'."
+            )
     def __init_controllers(self):
         """Initialize controllers and sensors"""
         self._controllers = self.rocket._controllers[:]
