@@ -2005,106 +2005,91 @@ class Rocket:
         return rocket
 
 class PointMassRocket(Rocket):
-    """Rocket modeled as a point mass for 3-DOF simulations."""  
-
-    def __init__(self, mass, radius=0.05):
+    def __init__(
         self,
-        radius: float = 0, 
-        mass: float = 0, 
-        center_of_mass: float = 0,
-        power_off_drag = 0, 
-        power_on_drag = 0,  
+        radius: float = 0.05,
+        mass: float = 0,
+        center_of_mass_without_motor: float = 0,
+        power_off_drag: float = 0.4,
+        power_on_drag: float = 0.4,
+    ):
+        self._center_of_mass_without_motor_pointmass = center_of_mass_without_motor
+        self._center_of_dry_mass_position = center_of_mass_without_motor
+        self._center_of_mass = center_of_mass_without_motor
+        # Dry inertias are zero for point mass
+        self._dry_I_11 = 0.0
+        self._dry_I_22 = 0.0
+        self._dry_I_33 = 0.0
+        self._dry_I_12 = 0.0
+        self._dry_I_13 = 0.0
+        self._dry_I_23 = 0.0
+
+        # Call base init with safe defaults
         super().__init__(
-                radius=radius, 
-                mass=mass, 
-                inertia=(0, 0, 0), 
-                center_of_mass_without_motor=center_of_mass,
-                power_off_drag=power_off_drag,
-                power_on_drag=power_on_drag,
+            radius=radius,
+            mass=mass,
+            inertia=(0, 0, 0),
+            power_off_drag=power_off_drag,
+            power_on_drag=power_on_drag,
+            center_of_mass_without_motor=center_of_mass_without_motor,
         )
 
-    def I_11(self) -> Function:
-        """Returns the moment of inertia around the x-axis for a point mass (always 0)."""
-        return Function(0)
-
-    def I_22(self) -> Function:
-        """Returns the moment of inertia around the y-axis for a point mass (always 0)."""
-        return Function(0)
-
-    def I_33(self) -> Function:
-        """Returns the moment of inertia around the z-axis for a point mass (always 0)."""
-        return Function(0)
-
-    def I_12(self) -> Function:
-        """Returns the product of inertia I_xy for a point mass (always 0)."""
-        return Function(0)
-
-    def I_13(self) -> Function:
-        """Returns the product of inertia I_xz for a point mass (always 0)."""
-        return Function(0)
-
-    def I_23(self) -> Function:
-        """Returns the product of inertia I_yz for a point mass (always 0)."""
-        return Function(0)
-    
+    # ------------------------------------------------------------------
+    # Center of Mass Properties
+    # ------------------------------------------------------------------
     @property
-    def dry_I_11(self) -> float:
-        """Returns the dry moment of inertia around the x-axis for a point mass (always 0)."""
-        return 0.0
+    def center_of_mass_without_motor(self):
+        return self._center_of_mass_without_motor_pointmass
+
+    @center_of_mass_without_motor.setter
+    def center_of_mass_without_motor(self, value):
+        self._center_of_mass_without_motor_pointmass = value
 
     @property
-    def dry_I_22(self) -> float:
-        """Returns the dry moment of inertia around the y-axis for a point mass (always 0)."""
-        return 0.0
+    def center_of_dry_mass_position(self):
+        return self._center_of_dry_mass_position
+
+    @center_of_dry_mass_position.setter
+    def center_of_dry_mass_position(self, value):
+        self._center_of_dry_mass_position = value
 
     @property
-    def dry_I_33(self) -> float:
-        """Returns the dry moment of inertia around the z-axis for a point mass (always 0)."""
-        return 0.0
+    def center_of_mass(self):
+        return self._center_of_mass
+
+    @center_of_mass.setter
+    def center_of_mass(self, value):
+        self._center_of_mass = value
+
+    # ------------------------------------------------------------------
+    # Inertia Properties (always zero)
+    # ------------------------------------------------------------------
+    @property
+    def dry_I_11(self): return 0.0
+    @dry_I_11.setter
+    def dry_I_11(self, value): self._dry_I_11 = 0.0
 
     @property
-    def dry_I_12(self) -> float:
-        """Returns the dry product of inertia I_xy for a point mass (always 0)."""
-        return 0.0
+    def dry_I_22(self): return 0.0
+    @dry_I_22.setter
+    def dry_I_22(self, value): self._dry_I_22 = 0.0
 
     @property
-    def dry_I_13(self) -> float:
-        """Returns the dry product of inertia I_xz for a point mass (always 0)."""
-        return 0.0
+    def dry_I_33(self): return 0.0
+    @dry_I_33.setter
+    def dry_I_33(self, value): self._dry_I_33 = 0.0
 
     @property
-    def dry_I_23(self) -> float:
-        """Returns the dry product of inertia I_yz for a point mass (always 0)."""
-        return 0.0
-
-    def evaluate_inertias(self):
-        """Calculates and returns the rocket's inertias. For a PointMassRocket, these are always zero."""
-        self.I_11 = self.I_22 = self.I_33 = Function(0)
-        self.I_12 = self.I_13 = self.I_23 = Function(0)
-        return (0, 0, 0, 0, 0, 0)
-
-    def evaluate_dry_inertias(self):
-        """Calculates and returns the rocket's dry inertias. For a PointMassRocket, these are always zero."""
-        self.dry_I_11 = self.dry_I_22 = self.dry_I_33 = 0.0
-        self.dry_I_12 = self.dry_I_13 = self.dry_I_23 = 0.0
-        return (0, 0, 0, 0, 0, 0)
+    def dry_I_12(self): return 0.0
+    @dry_I_12.setter
+    def dry_I_12(self, value): self._dry_I_12 = 0.0
 
     @property
-    def center_of_mass(self) -> Function:
-        """Returns the center of mass for a PointMassRocket.
-        If a motor is attached, this will be the motor's center of mass.
-        Otherwise, it will be the `center_of_mass_without_motor`.
-        """
-        if self.motor and not isinstance(self.motor, EmptyMotor):
-            return self.motor_center_of_mass_position
-        return Function(self.center_of_mass_without_motor)
+    def dry_I_13(self): return 0.0
+    @dry_I_13.setter
+    def dry_I_13(self, value): self._dry_I_13 = 0.0
 
     @property
-    def center_of_dry_mass_position(self) -> float:
-        """Returns the center of dry mass position for a PointMassRocket.
-        If a motor is attached, this will be the motor's center of dry mass position.
-        Otherwise, it will be the `center_of_mass_without_motor`.
-        """
-        if self.motor and not isinstance(self.motor, EmptyMotor):
-            return self.motor_center_of_dry_mass_position
-        return self.center_of_mass_without_motor
+    def dry_I_23(self): return 0.0
+    @dry_I_23.setter
+    def dry_I_23(self, value): self._dry_I_23 = 0.0
