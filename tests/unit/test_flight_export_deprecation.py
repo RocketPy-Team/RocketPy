@@ -1,6 +1,7 @@
 from unittest.mock import patch
 import pytest
 
+
 def test_export_data_deprecated_emits_warning_and_delegates(flight_calisto, tmp_path):
     """Expect: calling Flight.export_data emits DeprecationWarning and delegates to FlightDataExporter.export_data."""
     out = tmp_path / "out.csv"
