@@ -45,6 +45,8 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+- BUG: Fix no time initialization when passing initial_solution as array to Flight object [#844](https://github.com/RocketPy-Team/RocketPy/pull/844)
+
 
 ## [v1.10.0] - 2025-05-16
 
