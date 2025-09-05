@@ -1510,8 +1510,10 @@ class Rocket:
             parachute. Default value is the radius of the parachute.
             Units are in meters.
         porosity : float, optional
-            Porosity of the parachute is the ratio of open space in the canopy to total
-            canopy area. Default value is 0.0432 (for consistency with previous versions).
+            Geometric porosity of the canopy (ratio of open area to total canopy area),
+            in [0, 1]. Affects only the added-mass scaling during descent; it does
+            not change ``cd_s`` (drag). The default, 0.0432, yields an added-mass
+            of 1.0 (“neutral” behavior).
 
         Returns
         -------

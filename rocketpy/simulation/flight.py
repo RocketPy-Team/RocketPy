@@ -2014,7 +2014,7 @@ class Flight:
         ma = (
             self.ka
             * rho
-            * (4 / 3)
+            * (2 / 3)
             * np.pi
             * self.parachute_radius**2
             * self.parachute_height
