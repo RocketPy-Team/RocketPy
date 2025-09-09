@@ -1,8 +1,12 @@
 from functools import cached_property
-import numpy as np
 from typing import Callable
+
+import numpy as np
+
 from rocketpy.mathutils.function import Function, funcify_method
+
 from .motor import Motor
+
 
 class PointMassMotor(Motor):
     """Motor modeled as a point mass for 3-DOF simulations."""
@@ -78,14 +82,25 @@ class PointMassMotor(Motor):
         return Function(0.0)
 
     @cached_property
-    def propellant_I_11(self): return self._zero_inertia_func()
+    def propellant_I_11(self):
+        return self._zero_inertia_func()
+
     @cached_property
-    def propellant_I_12(self): return self._zero_inertia_func()
+    def propellant_I_12(self):
+        return self._zero_inertia_func()
+
     @cached_property
-    def propellant_I_13(self): return self._zero_inertia_func()
+    def propellant_I_13(self):
+        return self._zero_inertia_func()
+
     @cached_property
-    def propellant_I_22(self): return self._zero_inertia_func()
+    def propellant_I_22(self):
+        return self._zero_inertia_func()
+
     @cached_property
-    def propellant_I_23(self): return self._zero_inertia_func()
+    def propellant_I_23(self):
+        return self._zero_inertia_func()
+
     @cached_property
-    def propellant_I_33(self): return self._zero_inertia_func()
+    def propellant_I_33(self):
+        return self._zero_inertia_func()

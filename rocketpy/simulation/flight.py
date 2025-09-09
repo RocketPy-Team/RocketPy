@@ -4,16 +4,17 @@ import math
 import warnings
 from copy import deepcopy
 from functools import cached_property
-from ..motors.pointmassmotor import PointMassMotor
-from ..rocket import PointMassRocket
+
 import numpy as np
 import simplekml
 from scipy.integrate import BDF, DOP853, LSODA, RK23, RK45, OdeSolver, Radau
 
 from ..mathutils.function import Function, funcify_method
 from ..mathutils.vector_matrix import Matrix, Vector
+from ..motors.point_mass_motor import PointMassMotor
 from ..plots.flight_plots import _FlightPlots
 from ..prints.flight_prints import _FlightPrints
+from ..rocket import PointMassRocket
 from ..tools import (
     calculate_cubic_hermite_coefficients,
     euler313_to_quaternions,
@@ -1195,14 +1196,17 @@ class Flight:
     def __init_equations_of_motion(self):
         """Initialize equations of motion."""
         # Determine if a point-mass model is used.
-        is_point_mass = (
-            isinstance(self.rocket, PointMassRocket)
-            or (self.rocket._motors and isinstance(self.rocket._motors[0], PointMassMotor))
+        is_point_mass = isinstance(self.rocket, PointMassRocket) or (
+            hasattr(self.rocket, "motor")
+            and isinstance(self.rocket.motor, PointMassMotor)
         )
         # Set simulation mode based on model type.
         if is_point_mass:
             if self.simulation_mode != "3 DOF":
-                warnings.warn("A point-mass model was detected. Simulation mode should be '3 DOF'.", UserWarning)
+                warnings.warn(
+                    "A point-mass model was detected. Simulation mode should be '3 DOF'.",
+                    UserWarning,
+                )
             self.simulation_mode = "3 DOF"
         else:
             self.simulation_mode = self.simulation_mode
@@ -1213,14 +1217,15 @@ class Flight:
             self.u_dot_generalized = self.u_dot_generalized_3dof
         elif self.simulation_mode == "6 DOF":
             if self.equations_of_motion == "solid_propulsion":
-                self.u_dot_generalized = self.u_dot_6dof
+                self.u_dot_generalized = self.u_dot
             else:
-                self.u_dot_generalized = self.u_dot_generalized_6dof
+                self.u_dot_generalized = self.u_dot_generalized
         else:
             raise ValueError(
                 f"Invalid simulation_mode: {self.simulation_mode}. "
                 "Must be '3 DOF' or '6 DOF'."
             )
+
     def __init_controllers(self):
         """Initialize controllers and sensors"""
         self._controllers = self.rocket._controllers[:]
@@ -1580,17 +1585,8 @@ class Flight:
             R3 += Z
         # Linear acceleration
         L = [
-            (
-                R1
-
-            )
-            / total_mass_at_t,
-            (
-                R2
-
-            )
-            / total_mass_at_t,
-
+            (R1) / total_mass_at_t,
+            (R2) / total_mass_at_t,
             (R3 - b * propellant_mass_at_t * (alpha2 - omega1 * omega3) + net_thrust)
             / total_mass_at_t,
         ]
@@ -1622,7 +1618,6 @@ class Flight:
 
         if post_processing:
             self.__post_processed_variables.append(
-
                 [
                     t,
                     ax,
@@ -1700,11 +1695,7 @@ class Flight:
                     air_brake.deployment_level, mach
                 )
                 ab_force = (
-                    -0.5
-                    * rho
-                    * free_stream_speed**2
-                    * air_brake.reference_area
-                    * ab_cd
+                    -0.5 * rho * free_stream_speed**2 * air_brake.reference_area * ab_cd
                 )
                 if air_brake.override_rocket_drag:
                     R3 = ab_force
@@ -1759,7 +1750,6 @@ class Flight:
         if post_processing:
             self.__post_processed_variables.append(
                 [t, *v_dot, *w_dot, R1, R2, R3, 0, 0, 0]
-
             )
 
         return u_dot
@@ -1769,7 +1759,7 @@ class Flight:
         rocket is flying in 6 DOF motion in space and significant mass variation
         effects exist. Typical flight phases include powered ascent after launch
         rail.
-    
+
         Parameters
         ----------
         t : float
