@@ -2004,6 +2004,7 @@ class Rocket:
 
         return rocket
 
+
 class PointMassRocket(Rocket):
     def __init__(
         self,
@@ -2065,31 +2066,49 @@ class PointMassRocket(Rocket):
     # Inertia Properties (always zero)
     # ------------------------------------------------------------------
     @property
-    def dry_I_11(self): return 0.0
+    def dry_I_11(self):
+        return 0.0
+
     @dry_I_11.setter
-    def dry_I_11(self, value): self._dry_I_11 = 0.0
+    def dry_I_11(self, value):
+        self._dry_I_11 = 0.0
 
     @property
-    def dry_I_22(self): return 0.0
+    def dry_I_22(self):
+        return 0.0
+
     @dry_I_22.setter
-    def dry_I_22(self, value): self._dry_I_22 = 0.0
+    def dry_I_22(self, value):
+        self._dry_I_22 = 0.0
 
     @property
-    def dry_I_33(self): return 0.0
+    def dry_I_33(self):
+        return 0.0
+
     @dry_I_33.setter
-    def dry_I_33(self, value): self._dry_I_33 = 0.0
+    def dry_I_33(self, value):
+        self._dry_I_33 = 0.0
 
     @property
-    def dry_I_12(self): return 0.0
+    def dry_I_12(self):
+        return 0.0
+
     @dry_I_12.setter
-    def dry_I_12(self, value): self._dry_I_12 = 0.0
+    def dry_I_12(self, value):
+        self._dry_I_12 = 0.0
 
     @property
-    def dry_I_13(self): return 0.0
+    def dry_I_13(self):
+        return 0.0
+
     @dry_I_13.setter
-    def dry_I_13(self, value): self._dry_I_13 = 0.0
+    def dry_I_13(self, value):
+        self._dry_I_13 = 0.0
 
     @property
-    def dry_I_23(self): return 0.0
+    def dry_I_23(self):
+        return 0.0
+
     @dry_I_23.setter
-    def dry_I_23(self, value): self._dry_I_23 = 0.0
+    def dry_I_23(self, value):
+        self._dry_I_23 = 0.0
