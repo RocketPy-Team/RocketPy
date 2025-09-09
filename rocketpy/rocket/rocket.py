@@ -1891,7 +1891,16 @@ class Rocket:
         self.info()
         self.plots.all()
 
-    def to_dict(self, include_outputs=False):
+    # pylint: disable=too-many-statements
+    def to_dict(self, **kwargs):
+        discretize = kwargs.get("discretize", False)
+
+        power_off_drag = self.power_off_drag
+        power_on_drag = self.power_on_drag
+        if discretize:
+            power_off_drag = power_off_drag.set_discrete(0, 4, 50, mutate_self=False)
+            power_on_drag = power_on_drag.set_discrete(0, 4, 50, mutate_self=False)
+
         rocket_dict = {
             "radius": self.radius,
             "mass": self.mass,
@@ -1901,8 +1910,8 @@ class Rocket:
             "I_12_without_motor": self.I_12_without_motor,
             "I_13_without_motor": self.I_13_without_motor,
             "I_23_without_motor": self.I_23_without_motor,
-            "power_off_drag": self.power_off_drag,
-            "power_on_drag": self.power_on_drag,
+            "power_off_drag": power_off_drag,
+            "power_on_drag": power_on_drag,
             "center_of_mass_without_motor": self.center_of_mass_without_motor,
             "coordinate_system_orientation": self.coordinate_system_orientation,
             "motor": self.motor,
@@ -1915,7 +1924,51 @@ class Rocket:
             "sensors": self.sensors,
         }
 
-        if include_outputs:
+        if kwargs.get("include_outputs", False):
+            thrust_to_weight = self.thrust_to_weight
+            cp_position = self.cp_position
+            stability_margin = self.stability_margin
+            center_of_mass = self.center_of_mass
+            motor_center_of_mass_position = self.motor_center_of_mass_position
+            reduced_mass = self.reduced_mass
+            total_mass = self.total_mass
+            total_mass_flow_rate = self.total_mass_flow_rate
+            center_of_propellant_position = self.center_of_propellant_position
+
+            if discretize:
+                thrust_to_weight = thrust_to_weight.set_discrete_based_on_model(
+                    self.motor.thrust, mutate_self=False
+                )
+                cp_position = cp_position.set_discrete(0, 4, 25, mutate_self=False)
+                stability_margin = stability_margin.set_discrete(
+                    (0, self.motor.burn_time[0]),
+                    (2, self.motor.burn_time[1]),
+                    (10, 10),
+                    mutate_self=False,
+                )
+                center_of_mass = center_of_mass.set_discrete_based_on_model(
+                    self.motor.thrust, mutate_self=False
+                )
+                motor_center_of_mass_position = (
+                    motor_center_of_mass_position.set_discrete_based_on_model(
+                        self.motor.thrust, mutate_self=False
+                    )
+                )
+                reduced_mass = reduced_mass.set_discrete_based_on_model(
+                    self.motor.thrust, mutate_self=False
+                )
+                total_mass = total_mass.set_discrete_based_on_model(
+                    self.motor.thrust, mutate_self=False
+                )
+                total_mass_flow_rate = total_mass_flow_rate.set_discrete_based_on_model(
+                    self.motor.thrust, mutate_self=False
+                )
+                center_of_propellant_position = (
+                    center_of_propellant_position.set_discrete_based_on_model(
+                        self.motor.thrust, mutate_self=False
+                    )
+                )
+
             rocket_dict["area"] = self.area
             rocket_dict["center_of_dry_mass_position"] = (
                 self.center_of_dry_mass_position
@@ -1923,30 +1976,26 @@ class Rocket:
             rocket_dict["center_of_mass_without_motor"] = (
                 self.center_of_mass_without_motor
             )
-            rocket_dict["motor_center_of_mass_position"] = (
-                self.motor_center_of_mass_position
-            )
+            rocket_dict["motor_center_of_mass_position"] = motor_center_of_mass_position
             rocket_dict["motor_center_of_dry_mass_position"] = (
                 self.motor_center_of_dry_mass_position
             )
-            rocket_dict["center_of_mass"] = self.center_of_mass
-            rocket_dict["reduced_mass"] = self.reduced_mass
-            rocket_dict["total_mass"] = self.total_mass
-            rocket_dict["total_mass_flow_rate"] = self.total_mass_flow_rate
-            rocket_dict["thrust_to_weight"] = self.thrust_to_weight
+            rocket_dict["center_of_mass"] = center_of_mass
+            rocket_dict["reduced_mass"] = reduced_mass
+            rocket_dict["total_mass"] = total_mass
+            rocket_dict["total_mass_flow_rate"] = total_mass_flow_rate
+            rocket_dict["thrust_to_weight"] = thrust_to_weight
             rocket_dict["cp_eccentricity_x"] = self.cp_eccentricity_x
             rocket_dict["cp_eccentricity_y"] = self.cp_eccentricity_y
             rocket_dict["thrust_eccentricity_x"] = self.thrust_eccentricity_x
             rocket_dict["thrust_eccentricity_y"] = self.thrust_eccentricity_y
-            rocket_dict["cp_position"] = self.cp_position
-            rocket_dict["stability_margin"] = self.stability_margin
+            rocket_dict["cp_position"] = cp_position
+            rocket_dict["stability_margin"] = stability_margin
             rocket_dict["static_margin"] = self.static_margin
             rocket_dict["nozzle_position"] = self.nozzle_position
             rocket_dict["nozzle_to_cdm"] = self.nozzle_to_cdm
             rocket_dict["nozzle_gyration_tensor"] = self.nozzle_gyration_tensor
-            rocket_dict["center_of_propellant_position"] = (
-                self.center_of_propellant_position
-            )
+            rocket_dict["center_of_propellant_position"] = center_of_propellant_position
 
         return rocket_dict
 

@@ -348,11 +348,11 @@ class TrapezoidalFins(Fins):
         self.prints.all()
         self.plots.all()
 
-    def to_dict(self, include_outputs=False):
-        data = super().to_dict(include_outputs)
+    def to_dict(self, **kwargs):
+        data = super().to_dict(**kwargs)
         data["tip_chord"] = self.tip_chord
 
-        if include_outputs:
+        if kwargs.get("include_outputs", False):
             data.update(
                 {
                     "sweep_length": self.sweep_length,

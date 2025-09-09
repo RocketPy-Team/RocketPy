@@ -523,7 +523,7 @@ class NoseCone(AeroSurface):
         self.prints.all()
         self.plots.all()
 
-    def to_dict(self, include_outputs=False):
+    def to_dict(self, **kwargs):
         data = {
             "_length": self._length,
             "_kind": self._kind,
@@ -533,10 +533,17 @@ class NoseCone(AeroSurface):
             "_power": self._power,
             "name": self.name,
         }
-        if include_outputs:
+        if kwargs.get("include_outputs", False):
+            clalpha = self.clalpha
+            cl = self.cl
+            if kwargs.get("discretize", False):
+                clalpha = clalpha.set_discrete(0, 4, 50)
+                cl = cl.set_discrete(
+                    (-np.pi / 6, 0), (np.pi / 6, 2), (10, 10), mutate_self=False
+                )
             data["cp"] = self.cp
-            data["clalpha"] = self.clalpha
-            data["cl"] = self.cl
+            data["clalpha"] = clalpha
+            data["cl"] = cl
 
         return data
 

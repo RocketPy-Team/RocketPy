@@ -145,7 +145,7 @@ class Flight:
     Flight.heading : int, float
         Launch heading angle relative to north given in degrees.
     Flight.initial_solution : list
-        List defines initial condition - [tInit, x_init,
+        List defines initial condition - [t_initial, x_init,
         y_init, z_init, vx_init, vy_init, vz_init, e0_init, e1_init,
         e2_init, e3_init, w1_init, w2_init, w3_init]
     Flight.t_initial : int, float
@@ -157,10 +157,6 @@ class Flight:
         Current integration time.
     Flight.y : list
         Current integration state vector u.
-    Flight.initial_solution : list
-        List defines initial condition - [tInit, x_init,
-        y_init, z_init, vx_init, vy_init, vz_init, e0_init, e1_init,
-        e2_init, e3_init, w1_init, w2_init, w3_init]
     Flight.out_of_rail_time : int, float
         Time, in seconds, in which the rocket completely leaves the
         rail.
@@ -547,7 +543,7 @@ class Flight:
         rtol : float, array, optional
             Maximum relative error tolerance to be tolerated in the
             integration scheme. Can be given as array for each
-            state space variable. Default is 1e-3.
+            state space variable. Default is 1e-6.
         atol : float, optional
             Maximum absolute error tolerance to be tolerated in the
             integration scheme. Can be given as array for each
@@ -1172,6 +1168,7 @@ class Flight:
             self.out_of_rail_state = self.initial_solution[1:]
             self.out_of_rail_time = self.initial_solution[0]
             self.out_of_rail_time_index = 0
+            self.t_initial = self.initial_solution[0]
             self.initial_derivative = self.u_dot_generalized
         if self._controllers or self.sensors:
             # Handle post process during simulation, get initial accel/forces
@@ -2113,7 +2110,7 @@ class Flight:
 
     @funcify_method("Time (s)", "Y (m)", "spline", "constant")
     def y(self):
-        """Rocket y position relative to the lauch pad as a Function of
+        """Rocket y position relative to the launch pad as a Function of
         time."""
         return self.solution_array[:, [0, 2]]
 
@@ -3009,7 +3006,7 @@ class Flight:
         "Time (s)", "Horizontal Distance to Launch Point (m)", "spline", "constant"
     )
     def drift(self):
-        """Rocket horizontal distance to tha launch point, in meters, as a
+        """Rocket horizontal distance to the launch point, in meters, as a
         Function of time."""
         return np.column_stack(
             (self.time, (self.x[:, 1] ** 2 + self.y[:, 1] ** 2) ** 0.5)
@@ -3538,7 +3535,7 @@ class Flight:
             yield i, node_list[i]
             i += 1
 
-    def to_dict(self, include_outputs=False):
+    def to_dict(self, **kwargs):
         data = {
             "rocket": self.rocket,
             "env": self.env,
@@ -3583,7 +3580,7 @@ class Flight:
             "M3": self.M3,
         }
 
-        if include_outputs:
+        if kwargs.get("include_outputs", False):
             data.update(
                 {
                     "time": self.time,
