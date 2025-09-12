@@ -32,8 +32,12 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
--  ENH: Add the Coriolis Force to the Flight class [#799](https://github.com/RocketPy-Team/RocketPy/pull/799)
--  ENH: Improve parachute geometric parametrization [#835](https://github.com/RocketPy-Team/RocketPy/pull/835)
+- EHN: Addition of ensemble variable to ECMWF dictionaries [#842] (https://github.com/RocketPy-Team/RocketPy/pull/842) 
+- ENH: Added Crop and Clip Methods to Function Class [#817](https://github.com/RocketPy-Team/RocketPy/pull/817)
+- DOC: Add Flight class usage documentation and update index [#841](https://github.com/RocketPy-Team/RocketPy/pull/841)
+- ENH: Discretized and No-Pickle Encoding Options [#827] (https://github.com/RocketPy-Team/RocketPy/pull/827)
+- ENH: Add the Coriolis Force to the Flight class [#799](https://github.com/RocketPy-Team/RocketPy/pull/799)
+- ENH: Improve parachute geometric parametrization [#835](https://github.com/RocketPy-Team/RocketPy/pull/835)
 
 ### Changed
 
@@ -41,6 +45,8 @@ Attention: The newest changes should be on top -->
 - MNT: fix deprecations and warnings [#829](https://github.com/RocketPy-Team/RocketPy/pull/829)
 
 ### Fixed
+
+- BUG: Fix no time initialization when passing initial_solution as array to Flight object [#844](https://github.com/RocketPy-Team/RocketPy/pull/844)
 
 
 ## [v1.10.0] - 2025-05-16
@@ -307,6 +313,7 @@ You can install this version by running `pip install rocketpy==1.3.0`
 
 ### Fixed
 
+- BUG: Fixes StochasticNoseCone powerseries issue #838 [#839](https://github.com/RocketPy-Team/RocketPy/pull/839)
 - MNT: Alter PYPI classifier naming. [#615](https://github.com/RocketPy-Team/RocketPy/pull/615)
 - DOC: Solve Dependencies Conflicts and pyproject build [#613](https://github.com/RocketPy-Team/RocketPy/pull/613)
 - BUG: Fixes nose cone bluffness issue #610 [#611](https://github.com/RocketPy-Team/RocketPy/pull/611)

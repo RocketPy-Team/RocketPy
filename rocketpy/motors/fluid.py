@@ -61,7 +61,7 @@ class Fluid:
 
         return f"Fluid: {self.name}"
 
-    def to_dict(self, include_outputs=False):  # pylint: disable=unused-argument
+    def to_dict(self, **kwargs):  # pylint: disable=unused-argument
         return {"name": self.name, "density": self.density}
 
     @classmethod
