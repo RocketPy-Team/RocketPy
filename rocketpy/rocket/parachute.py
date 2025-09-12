@@ -103,6 +103,9 @@ class Parachute:
         in [0, 1]. Affects only the added-mass scaling during descent; it does
         not change ``cd_s`` (drag). The default, 0.0432, yields an added-mass
         of 1.0 (“neutral” behavior).
+    Parachute.added_mass_coefficient : float
+        Coefficient used to calculate the added-mass due to dragged air. It is
+        calculated from the porosity of the parachute.
     """
 
     def __init__(
@@ -200,7 +203,7 @@ class Parachute:
         self.radius = radius
         self.height = height or radius
         self.porosity = porosity
-        self.ka = 1.068 * (
+        self.added_mass_coefficient = 1.068 * (
             1
             - 1.465 * self.porosity
             - 0.25975 * self.porosity**2
