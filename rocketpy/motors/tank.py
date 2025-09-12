@@ -505,7 +505,7 @@ class Tank(ABC):
         self.prints.all()
         self.plots.all()
 
-    def to_dict(self, include_outputs=False):
+    def to_dict(self, **kwargs):
         data = {
             "name": self.name,
             "geometry": self.geometry,
@@ -514,7 +514,7 @@ class Tank(ABC):
             "gas": self.gas,
             "discretize": self.discretize,
         }
-        if include_outputs:
+        if kwargs.get("include_outputs", False):
             data.update(
                 {
                     "fluid_mass": self.fluid_mass,
@@ -886,8 +886,8 @@ class MassFlowRateBasedTank(Tank):
             *self.flux_time, self.discretize, "linear"
         )
 
-    def to_dict(self, include_outputs=False):
-        data = super().to_dict(include_outputs)
+    def to_dict(self, **kwargs):
+        data = super().to_dict(**kwargs)
         data.update(
             {
                 "initial_liquid_mass": self.initial_liquid_mass,
@@ -1113,8 +1113,8 @@ class UllageBasedTank(Tank):
         discretize parameter."""
         self.ullage.set_discrete(*self.flux_time, self.discretize, "linear")
 
-    def to_dict(self, include_outputs=False):
-        data = super().to_dict(include_outputs)
+    def to_dict(self, **kwargs):
+        data = super().to_dict(**kwargs)
         data.update({"ullage": self.ullage})
         return data
 
@@ -1341,8 +1341,8 @@ class LevelBasedTank(Tank):
         """
         self.liquid_level.set_discrete(*self.flux_time, self.discretize, "linear")
 
-    def to_dict(self, include_outputs=False):
-        data = super().to_dict(include_outputs)
+    def to_dict(self, **kwargs):
+        data = super().to_dict(**kwargs)
         data.update({"liquid_height": self.liquid_level})
         return data
 
@@ -1600,8 +1600,8 @@ class MassBasedTank(Tank):
         self.liquid_mass.set_discrete(*self.flux_time, self.discretize, "linear")
         self.gas_mass.set_discrete(*self.flux_time, self.discretize, "linear")
 
-    def to_dict(self, include_outputs=False):
-        data = super().to_dict(include_outputs)
+    def to_dict(self, **kwargs):
+        data = super().to_dict(**kwargs)
         data.update(
             {
                 "liquid_mass": self.liquid_mass,

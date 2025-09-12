@@ -2630,7 +2630,21 @@ class Environment:
         arc_seconds = (remainder * 60 - arc_minutes) * 60
         return degrees, arc_minutes, arc_seconds
 
-    def to_dict(self, include_outputs=False):
+    def to_dict(self, **kwargs):
+        wind_velocity_x = self.wind_velocity_x
+        wind_velocity_y = self.wind_velocity_y
+        wind_heading = self.wind_heading
+        wind_direction = self.wind_direction
+        wind_speed = self.wind_speed
+        density = self.density
+        if kwargs.get("discretize", False):
+            wind_velocity_x = wind_velocity_x.set_discrete(0, self.max_expected_height)
+            wind_velocity_y = wind_velocity_y.set_discrete(0, self.max_expected_height)
+            wind_heading = wind_heading.set_discrete(0, self.max_expected_height)
+            wind_direction = wind_direction.set_discrete(0, self.max_expected_height)
+            wind_speed = wind_speed.set_discrete(0, self.max_expected_height)
+            density = density.set_discrete(0, self.max_expected_height)
+
         env_dict = {
             "gravity": self.gravity,
             "date": self.date,
@@ -2643,15 +2657,15 @@ class Environment:
             "atmospheric_model_type": self.atmospheric_model_type,
             "pressure": self.pressure,
             "temperature": self.temperature,
-            "wind_velocity_x": self.wind_velocity_x,
-            "wind_velocity_y": self.wind_velocity_y,
-            "wind_heading": self.wind_heading,
-            "wind_direction": self.wind_direction,
-            "wind_speed": self.wind_speed,
+            "wind_velocity_x": wind_velocity_x,
+            "wind_velocity_y": wind_velocity_y,
+            "wind_heading": wind_heading,
+            "wind_direction": wind_direction,
+            "wind_speed": wind_speed,
         }
 
-        if include_outputs:
-            env_dict["density"] = self.density
+        if kwargs.get("include_outputs", False):
+            env_dict["density"] = density
             env_dict["barometric_height"] = self.barometric_height
             env_dict["speed_of_sound"] = self.speed_of_sound
             env_dict["dynamic_viscosity"] = self.dynamic_viscosity

@@ -426,7 +426,7 @@ class Fins(AeroSurface):
         M3 = M3_forcing - M3_damping
         return R1, R2, R3, M1, M2, M3
 
-    def to_dict(self, include_outputs=False):
+    def to_dict(self, **kwargs):
         data = {
             "n": self.n,
             "root_chord": self.root_chord,
@@ -437,11 +437,17 @@ class Fins(AeroSurface):
             "name": self.name,
         }
 
-        if include_outputs:
+        if kwargs.get("include_outputs", False):
+            cl = self.cl
+            if kwargs.get("discretize", False):
+                cl = cl.set_discrete(
+                    (-np.pi / 6, 0), (np.pi / 6, 2), (10, 10), mutate_self=False
+                )
+
             data.update(
                 {
                     "cp": self.cp,
-                    "cl": self.cl,
+                    "cl": cl,
                     "roll_parameters": self.roll_parameters,
                     "d": self.d,
                     "ref_area": self.ref_area,

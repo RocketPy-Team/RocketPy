@@ -250,6 +250,113 @@ def test_set_discrete_based_on_model_non_mutator(linear_func):
     assert callable(func.source)
 
 
+source_array = np.array(
+    [
+        [-2, -4, -6],
+        [-0.75, -1.5, -2.25],
+        [0, 0, 0],
+        [0, 1, 1],
+        [0.5, 1, 1.5],
+        [1.5, 1, 2.5],
+        [2, 4, 6],
+    ]
+)
+cropped_array = np.array([[-0.75, -1.5, -2.25], [0, 0, 0], [0, 1, 1], [0.5, 1, 1.5]])
+clipped_array = np.array([[0, 0, 0], [0, 1, 1], [0.5, 1, 1.5]])
+
+
+@pytest.mark.parametrize(
+    "array3dsource, array3dcropped",
+    [
+        (source_array, cropped_array),
+    ],
+)
+def test_crop_ndarray(array3dsource, array3dcropped):  # pylint: disable=unused-argument
+    """Tests the functionality of crop method of the Function class.
+    The source is initialized as a ndarray before cropping.
+    """
+    func = Function(array3dsource, inputs=["x1", "x2"], outputs="y")
+    cropped_func = func.crop([(-1, 1), (-2, 2)])
+
+    assert isinstance(func, Function)
+    assert isinstance(cropped_func, Function)
+    assert np.array_equal(cropped_func.source, array3dcropped)
+    assert isinstance(cropped_func.source, type(func.source))
+
+
+def test_crop_function():
+    """Tests the functionality of crop method of the Function class.
+    The source is initialized as a function before cropping.
+    """
+    func = Function(
+        lambda x1, x2: np.sin(x1) * np.cos(x2), inputs=["x1", "x2"], outputs="y"
+    )
+    cropped_func = func.crop([(-1, 1), (-2, 2)])
+
+    assert isinstance(func, Function)
+    assert isinstance(cropped_func, Function)
+    assert callable(func.source)
+    assert callable(cropped_func.source)
+
+
+def test_crop_constant():
+    """Tests the functionality of crop method of the Function class.
+    The source is initialized as a single integer constant before cropping.
+    """
+    func = Function(13)
+    cropped_func = func.crop([(-1, 1)])
+
+    assert isinstance(func, Function)
+    assert isinstance(cropped_func, Function)
+    assert callable(func.source)
+    assert callable(cropped_func.source)
+
+
+@pytest.mark.parametrize(
+    "array3dsource, array3dclipped",
+    [
+        (source_array, clipped_array),
+    ],
+)
+def test_clip_ndarray(array3dsource, array3dclipped):  # pylint: disable=unused-argument
+    """Tests the functionality of clip method of the Function class.
+    The source is initialized as a ndarray before clipping.
+    """
+    func = Function(array3dsource, inputs=["x1", "x2"], outputs="y")
+    clipped_func = func.clip([(-2, 2)])
+
+    assert isinstance(func, Function)
+    assert isinstance(clipped_func, Function)
+    assert np.array_equal(clipped_func.source, array3dclipped)
+    assert isinstance(clipped_func.source, type(func.source))
+
+
+def test_clip_function():
+    """Tests the functionality of clip method of the Function class.
+    The source is initialized as a function before clipping.
+    """
+    func = Function(lambda x: x**2, inputs="x", outputs="y")
+    clipped_func = func.clip([(-1, 1)])
+
+    assert isinstance(func, Function)
+    assert isinstance(clipped_func, Function)
+    assert callable(func.source)
+    assert callable(clipped_func.source)
+
+
+def test_clip_constant():
+    """Tests the functionality of clip method of the Function class.
+    The source is initialized as a single integer constant before clipping.
+    """
+    func = Function(1)
+    clipped_func = func.clip([(-2, 2)])
+
+    assert isinstance(func, Function)
+    assert isinstance(clipped_func, Function)
+    assert callable(func.source)
+    assert callable(clipped_func.source)
+
+
 @pytest.mark.parametrize(
     "x, y, expected_x, expected_y",
     [
