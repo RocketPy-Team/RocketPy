@@ -777,8 +777,11 @@ class Flight:
                             lambda self, parachute_porosity=parachute.porosity: setattr(
                                 self, "parachute_porosity", parachute_porosity
                             ),
-                            lambda self, ka=parachute.added_mass_coefficient: setattr(
-                                self, "parachute_ka", ka
+                            lambda self,
+                            added_mass_coefficient=parachute.added_mass_coefficient: setattr(
+                                self,
+                                "parachute_added_mass_coefficient",
+                                added_mass_coefficient,
                             ),
                         ]
                         self.flight_phases.add_phase(
@@ -1045,8 +1048,10 @@ class Flight:
                                                 parachute_porosity,
                                             ),
                                             lambda self,
-                                            ka=parachute.added_mass_coefficient: setattr(
-                                                self, "ka", ka
+                                            added_mass_coefficient=parachute.added_mass_coefficient: setattr(
+                                                self,
+                                                "parachute_added_mass_coefficient",
+                                                added_mass_coefficient,
                                             ),
                                         ]
                                         self.flight_phases.add_phase(
@@ -2013,7 +2018,7 @@ class Flight:
 
         # Calculate added mass
         ma = (
-            self.added_mass_coefficient
+            self.parachute_added_mass_coefficient
             * rho
             * (2 / 3)
             * np.pi
