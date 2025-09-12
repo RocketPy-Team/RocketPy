@@ -33,6 +33,7 @@ Attention: The newest changes should be on top -->
 ### Added
 
 -  ENH: Add the Coriolis Force to the Flight class [#799](https://github.com/RocketPy-Team/RocketPy/pull/799)
+-  ENH: Improve parachute geometric parametrization [#835](https://github.com/RocketPy-Team/RocketPy/pull/835)
 
 ### Changed
 
