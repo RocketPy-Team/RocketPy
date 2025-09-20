@@ -1303,7 +1303,7 @@ def find_obj_from_hash(obj, hash_, depth_limit=None):
     ----------
     obj : object
         Object to search.
-    hash_ : str
+    hash_ : int
         Hash value to search for in the '__rpy_hash' field.
     depth_limit : int, optional
         Maximum depth to search recursively. If None, no limit.
@@ -1322,8 +1322,6 @@ def find_obj_from_hash(obj, hash_, depth_limit=None):
             return o
 
         if isinstance(o, dict):
-            # Check if this dict has the '__rpy_hash' key
-            # Recurse into each value
             for value in o.values():
                 result = _search(value, current_depth + 1)
                 if result is not None:
@@ -1335,7 +1333,6 @@ def find_obj_from_hash(obj, hash_, depth_limit=None):
                 if result is not None:
                     return result
 
-        # Not a container or not matching
         return None
 
     return _search(obj, 0)

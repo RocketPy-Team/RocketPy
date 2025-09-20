@@ -2083,11 +2083,8 @@ class Rocket:
             rocket.air_brakes.append(air_brake)
 
         for controller in data["_controllers"]:
-            if (
-                interactive_objects_hash := getattr(
-                    controller, "_interactive_objects_hash"
-                )
-            ) is not None:
+            interactive_objects_hash = getattr(controller, "_interactive_objects_hash")
+            if interactive_objects_hash is not None:
                 is_iterable = isinstance(interactive_objects_hash, Iterable)
                 if not is_iterable:
                     interactive_objects_hash = [interactive_objects_hash]
