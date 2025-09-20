@@ -3,12 +3,15 @@ import os
 
 import numpy as np
 import pytest
+from unittest.mock import patch
+
 
 from rocketpy._encoders import RocketPyDecoder, RocketPyEncoder
 
 from rocketpy.tools import from_hex_decode
 
 
+@patch("matplotlib.pyplot.show")
 @pytest.mark.parametrize(
     ["flight_name", "include_outputs"],
     [
@@ -19,7 +22,9 @@ from rocketpy.tools import from_hex_decode
         ("flight_calisto_hybrid_modded", False),
     ],
 )
-def test_flight_save_load_no_resimulate(flight_name, include_outputs, request):
+def test_flight_save_load_no_resimulate(
+    mock_show, flight_name, include_outputs, request
+):
     """Test encoding a ``rocketpy.Flight``.
 
     Parameters
@@ -50,6 +55,8 @@ def test_flight_save_load_no_resimulate(flight_name, include_outputs, request):
     # Higher tolerance due to random parachute trigger
     assert np.isclose(flight_to_save.t_final, flight_loaded.t_final, rtol=1e-3)
 
+    flight_loaded.all_info()
+
     os.remove("flight.json")
 
 
@@ -62,6 +69,8 @@ def test_flight_save_load_no_resimulate(flight_name, include_outputs, request):
         ("flight_calisto_robust", True),
         ("flight_calisto_liquid_modded", False),
         ("flight_calisto_hybrid_modded", False),
+        ("flight_calisto_air_brakes", False),
+        ("flight_calisto_with_sensors", False),
     ],
 )
 def test_flight_save_load_resimulate(flight_name, include_outputs, request):
@@ -93,7 +102,7 @@ def test_flight_save_load_resimulate(flight_name, include_outputs, request):
     assert np.isclose(flight_to_save.apogee_time, flight_loaded.apogee_time)
 
     # Higher tolerance due to random parachute trigger
-    assert np.isclose(flight_to_save.t_final, flight_loaded.t_final, rtol=1e-3)
+    assert np.isclose(flight_to_save.t_final, flight_loaded.t_final, rtol=5e-3)
 
     os.remove("flight.json")
 

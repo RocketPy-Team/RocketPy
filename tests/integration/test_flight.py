@@ -414,6 +414,24 @@ def test_air_brakes_flight(mock_show, flight_calisto_air_brakes):  # pylint: dis
     """
     test_flight = flight_calisto_air_brakes
     air_brakes = test_flight.rocket.air_brakes[0]
+
+    import json
+    from rocketpy._encoders import RocketPyEncoder, RocketPyDecoder
+
+    with open("test_decode_airbrake.json", "w") as f:
+        json.dump(
+            test_flight,
+            f,
+            cls=RocketPyEncoder,
+            indent=2,
+            discretize=True,
+            include_outputs=False,
+            allow_pickle=True,
+        )
+    with open("test_decode_airbrake.json", "r") as f:
+        test_flight = json.load(f, cls=RocketPyDecoder)
+    air_brakes = test_flight.rocket.air_brakes[0]
+
     assert air_brakes.plots.all() is None
     assert air_brakes.prints.all() is None
 

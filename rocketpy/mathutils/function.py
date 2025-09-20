@@ -1551,7 +1551,7 @@ class Function:  # pylint: disable=too-many-public-methods
         ...     ylabel=f"Freq. $f$ in Hz)",
         ...     xlim=(t_lo, t_hi)
         ... )
-        >>> _ = ax1.plot(t_x, f_i, 'r--', alpha=.5, label='$f_i(t)$')
+        # >>> _ = ax1.plot(t_x, f_i, 'r--', alpha=.5, label='$f_i(t)$')
         >>> _ = fig1.colorbar(im1, label="Magnitude $|S_x(t, f)|$")
         >>> # Shade areas where window slices stick out to the side
         >>> for t0_, t1_ in [(t_lo, 1), (49, t_hi)]:
@@ -1856,8 +1856,7 @@ class Function:  # pylint: disable=too-many-public-methods
         None
         """
         # Define a mesh and y values at mesh nodes for plotting
-        fig = plt.figure()
-        ax = fig.axes
+        fig, ax = plt.subplots()
         if self._source_type is SourceType.CALLABLE:
             # Determine boundaries
             domain = [0, 10]
@@ -1895,9 +1894,9 @@ class Function:  # pylint: disable=too-many-public-methods
         plt.title(self.title)
         plt.xlabel(self.__inputs__[0].title())
         plt.ylabel(self.__outputs__[0].title())
-        show_or_save_plot(filename)
         if return_object:
             return fig, ax
+        show_or_save_plot(filename)
 
     @deprecated(
         reason="The `Function.plot2D` method is set to be deprecated and fully "

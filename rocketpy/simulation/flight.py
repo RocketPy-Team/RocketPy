@@ -3575,7 +3575,6 @@ class Flight:
             "x_impact": self.x_impact,
             "y_impact": self.y_impact,
             "t_final": self.t_final,
-            "flight_phases": self.flight_phases,
             "function_evaluations": self.function_evaluations,
             "ax": self.ax,
             "ay": self.ay,
@@ -3589,6 +3588,7 @@ class Flight:
             "M1": self.M1,
             "M2": self.M2,
             "M3": self.M3,
+            "net_thrust": self.net_thrust,
         }
 
         if kwargs.get("include_outputs", False):

@@ -107,15 +107,21 @@ class RocketPyDecoder(json.JSONDecoder):
 
             try:
                 class_ = get_class_from_signature(signature)
+                hash_ = signature.get("hash", None)
 
                 if class_.__name__ == "Flight" and not self.resimulate:
                     new_flight = class_.__new__(class_)
                     new_flight.prints = _FlightPrints(new_flight)
                     new_flight.plots = _FlightPlots(new_flight)
                     set_minimal_flight_attributes(new_flight, obj)
+                    if hash_ is not None:
+                        setattr(new_flight, "__rpy_hash", hash_)
                     return new_flight
                 elif hasattr(class_, "from_dict"):
-                    return class_.from_dict(obj)
+                    new_obj = class_.from_dict(obj)
+                    if hash_ is not None:
+                        setattr(new_obj, "__rpy_hash", hash_)
+                    return new_obj
                 else:
                     # Filter keyword arguments
                     kwargs = {
@@ -123,8 +129,10 @@ class RocketPyDecoder(json.JSONDecoder):
                         for key, value in obj.items()
                         if key in class_.__init__.__code__.co_varnames
                     }
-
-                    return class_(**kwargs)
+                    new_obj = class_(**kwargs)
+                    if hash_ is not None:
+                        setattr(new_obj, "__rpy_hash", hash_)
+                    return new_obj
             except (ImportError, AttributeError):
                 return obj
         else:
@@ -157,7 +165,6 @@ def set_minimal_flight_attributes(flight, obj):
         "x_impact",
         "y_impact",
         "t_final",
-        "flight_phases",
         "ax",
         "ay",
         "az",
@@ -207,7 +214,14 @@ def get_class_signature(obj):
     class_ = obj.__class__
     name = getattr(class_, "__qualname__", class_.__name__)
 
-    return {"module": class_.__module__, "name": name}
+    signature = {"module": class_.__module__, "name": name}
+
+    try:
+        signature.update({"hash": hash(obj)})
+    except TypeError:
+        pass
+
+    return signature
 
 
 def get_class_from_signature(signature):

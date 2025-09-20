@@ -24,6 +24,7 @@ import pytz
 from cftime import num2pydate
 from matplotlib.patches import Ellipse
 from packaging import version as packaging_version
+from typing import Iterable
 
 # Mapping of module name and the name of the package that should be installed
 INSTALL_MAPPING = {"IPython": "ipython"}
@@ -1293,6 +1294,52 @@ def from_hex_decode(obj_bytes, decoder=base64.b85decode):
         Object converted from bytes.
     """
     return dill.loads(decoder(bytes.fromhex(obj_bytes)))
+
+
+def find_obj_from_hash(obj, hash_, depth_limit=None):
+    """Searches the object (and its children) for
+    an object whose '__rpy_hash' field has a particular hash value.
+
+    Parameters
+    ----------
+    obj : object
+        Object to search.
+    hash_ : str
+        Hash value to search for in the '__rpy_hash' field.
+    depth_limit : int, optional
+        Maximum depth to search recursively. If None, no limit.
+
+    Returns
+    -------
+    object
+        The object whose '__rpy_hash' matches hash_, or None if not found.
+    """
+
+    def _search(o, current_depth):
+        if depth_limit is not None and current_depth > depth_limit:
+            return None
+
+        if getattr(o, "__rpy_hash", None) == hash_:
+            return o
+
+        if isinstance(o, dict):
+            # Check if this dict has the '__rpy_hash' key
+            # Recurse into each value
+            for value in o.values():
+                result = _search(value, current_depth + 1)
+                if result is not None:
+                    return result
+
+        elif isinstance(o, (list, tuple, set)):
+            for item in o:
+                result = _search(item, current_depth + 1)
+                if result is not None:
+                    return result
+
+        # Not a container or not matching
+        return None
+
+    return _search(obj, 0)
 
 
 if __name__ == "__main__":  # pragma: no cover

@@ -427,13 +427,25 @@ class Fins(AeroSurface):
         return R1, R2, R3, M1, M2, M3
 
     def to_dict(self, **kwargs):
+        if self.airfoil:
+            if kwargs.get("discretize", False):
+                lower = -np.pi / 6 if self.airfoil[1] == "radians" else -30
+                upper = np.pi / 6 if self.airfoil[1] == "radians" else 30
+                airfoil = (
+                    self.airfoil_cl.set_discrete(lower, upper, 50, mutate_self=False),
+                    self.airfoil[1],
+                )
+            else:
+                airfoil = (self.airfoil_cl, self.airfoil[1]) if self.airfoil else None
+        else:
+            airfoil = None
         data = {
             "n": self.n,
             "root_chord": self.root_chord,
             "span": self.span,
             "rocket_radius": self.rocket_radius,
             "cant_angle": self.cant_angle,
-            "airfoil": self.airfoil,
+            "airfoil": airfoil,
             "name": self.name,
         }
 
