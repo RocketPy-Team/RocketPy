@@ -1,5 +1,6 @@
 from inspect import signature
 from typing import Iterable
+
 from rocketpy.tools import from_hex_decode, to_hex_encode
 
 from ..prints.controller_prints import _ControllerPrints

@@ -1,16 +1,15 @@
 import json
 import os
+from unittest.mock import patch
 
 import numpy as np
 import pytest
-from unittest.mock import patch
-
 
 from rocketpy._encoders import RocketPyDecoder, RocketPyEncoder
-
 from rocketpy.tools import from_hex_decode
 
 
+# pylint: disable=unused-argument
 @patch("matplotlib.pyplot.show")
 @pytest.mark.parametrize(
     ["flight_name", "include_outputs"],

@@ -1,8 +1,8 @@
 import math
+import warnings
+from typing import Iterable
 
 import numpy as np
-from rocketpy.tools import find_obj_from_hash
-from typing import Iterable
 
 from rocketpy.control.controller import _Controller
 from rocketpy.mathutils.function import Function
@@ -23,7 +23,11 @@ from rocketpy.rocket.aero_surface.fins.free_form_fins import FreeFormFins
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
-from rocketpy.tools import deprecated, parallel_axis_theorem_from_com
+from rocketpy.tools import (
+    deprecated,
+    find_obj_from_hash,
+    parallel_axis_theorem_from_com,
+)
 
 
 # pylint: disable=too-many-instance-attributes, too-many-public-methods, too-many-instance-attributes

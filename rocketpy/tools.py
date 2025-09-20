@@ -24,7 +24,6 @@ import pytz
 from cftime import num2pydate
 from matplotlib.patches import Ellipse
 from packaging import version as packaging_version
-from typing import Iterable
 
 # Mapping of module name and the name of the package that should be installed
 INSTALL_MAPPING = {"IPython": "ipython"}

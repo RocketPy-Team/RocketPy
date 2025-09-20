@@ -271,6 +271,7 @@ class Sensor(ABC):
                 print(f"Data saved to {filename}")
             return
 
+    # pylint: disable=unused-argument
     def to_dict(self, **kwargs):
         return {
             "sampling_rate": self.sampling_rate,
