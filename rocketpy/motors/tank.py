@@ -985,19 +985,17 @@ class MassFlowRateBasedTank(Tank):
         """Uniformly discretizes the parameter of inputs of fluid data ."""
         if self.discretize:
             self.liquid_mass_flow_rate_in.set_discrete(
-            *self.flux_time, self.discretize, "linear"
-        )
-            self.gas_mass_flow_rate_in.set_discrete(
-            *self.flux_time, self.discretize, "linear"
-        )
-            self.liquid_mass_flow_rate_out.set_discrete(
-            
                 *self.flux_time, self.discretize, "linear"
-        
+            )
+            self.gas_mass_flow_rate_in.set_discrete(
+                *self.flux_time, self.discretize, "linear"
+            )
+            self.liquid_mass_flow_rate_out.set_discrete(
+                *self.flux_time, self.discretize, "linear"
             )
             self.gas_mass_flow_rate_out.set_discrete(
-            *self.flux_time, self.discretize, "linear"
-        )
+                *self.flux_time, self.discretize, "linear"
+            )
         else:
             # Discretize densities for backward compatibility
             self._liquid_density.set_discrete_based_on_model(

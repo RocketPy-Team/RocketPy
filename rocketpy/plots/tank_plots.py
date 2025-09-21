@@ -35,74 +35,6 @@ class _TankPlots:
         self.flux_time = tank.flux_time
         self.geometry = tank.geometry
 
-    def fluid_mass(self, start_time, end_time):
-        """Plots the fluid mass of the tank as a function of time.
-
-        Parameters
-        ----------
-        start_time : float
-            Initial time to plot the fluid mass.
-        end_time : float
-            Final time to plot the fluid mass.
-
-        Returns
-        -------
-        None
-        """
-        _, ax = Function.compare_plots(
-            [
-                (self.tank.fluid_mass, "Total fluid mass"),
-                (self.tank.liquid_mass, "Liquid Mass"),
-                (self.tank.gas_mass, "Gas Mass"),
-            ],
-            start_time,
-            end_time,
-            title="Tank Fluid Masses",
-            xlabel="Time (s)",
-            ylabel="Mass (kg)",
-            show=False,
-            return_object=True,
-        )
-        ax.get_lines()[1].set_linestyle("--")
-        ax.get_lines()[2].set_linestyle("-.")
-        plt.show()
-
-    def net_mass_flow_rate(self):
-        """Plots the net mass flow rate of the tank as a function of time.
-
-        Returns
-        -------
-        None
-        """
-        self.tank.net_mass_flow_rate()
-
-    def fluid_volume(self):
-        """Plots the fluid volume of the tank as a function of time.
-
-        Returns
-        -------
-        None
-        """
-        self.tank.fluid_volume()
-
-    def center_of_mass(self):
-        """Plots the center of mass of the tank as a function of time.
-
-        Returns
-        -------
-        None
-        """
-        self.tank.center_of_mass()
-
-    def inertia(self):
-        """Plots the inertia of the tank as a function of time.
-
-        Returns
-        -------
-        None
-        """
-        self.tank.inertia()
-
     def _generate_tank(self, translate=(0, 0), csys=1):
         """Generates a matplotlib patch object that represents the tank.
 
@@ -263,4 +195,3 @@ class _TankPlots:
         self.fluid_volume()
         self.fluid_center_of_mass()
         self.tank.inertia.plot(*self.flux_time)
-        self.fluid_mass(*self.tank.flux_time)

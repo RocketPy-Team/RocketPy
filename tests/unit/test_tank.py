@@ -349,3 +349,17 @@ def test_mass_flow_rate_tank_inertia(
         atol=1e-3,
         rtol=1e-2,
     )
+    assert np.allclose(
+        expected_gas_inertia(times), tank.gas_inertia.y_array, atol=1e-3, rtol=1e-2
+    )
+    assert np.allclose(
+        expected_liquid_inertia(times) + expected_gas_inertia(times),
+        tank.inertia.y_array,
+        atol=1e-3,
+        rtol=1e-2,
+    )
+
+
+@patch("matplotlib.pyplot.show")
+def test_tank_geometry_plots_info(mock_show):  # pylint: disable=unused-argument
+    assert TankGeometry({(0, 5): 1}).plots.all() is None
