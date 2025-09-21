@@ -23,6 +23,7 @@ jobs:
     env:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
+      MPLBACKEND: Agg
     steps:
       - uses: actions/checkout@main
       - name: Set up Python
