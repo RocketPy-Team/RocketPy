@@ -19,6 +19,8 @@ from rocketpy.tools import from_hex_decode
         ("flight_calisto_robust", True),
         ("flight_calisto_liquid_modded", False),
         ("flight_calisto_hybrid_modded", False),
+        ("flight_calisto_air_brakes", False),
+        ("flight_calisto_with_sensors", False),
     ],
 )
 def test_flight_save_load_no_resimulate(
