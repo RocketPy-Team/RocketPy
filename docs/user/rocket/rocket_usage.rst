@@ -302,8 +302,8 @@ apogee and another that will be deployed at 800 meters above ground level:
         sampling_rate=105,
         lag=1.5,
         noise=(0, 8.3, 0.5),
-        parachute_radius=1.5,
-        parachute_height=1.5,
+        radius=1.5,
+        height=1.5,
         porosity=0.0432,
     )
 
@@ -314,8 +314,8 @@ apogee and another that will be deployed at 800 meters above ground level:
         sampling_rate=105,
         lag=1.5,
         noise=(0, 8.3, 0.5),
-        parachute_radius=1.5,
-        parachute_height=1.5,
+        radius=1.5,
+        height=1.5,
         porosity=0.0432,
     )
 

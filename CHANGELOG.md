@@ -41,6 +41,7 @@ Attention: The newest changes should be on top -->
 
 ### Changed
 
+- DOC: Update docs dependencies and sub dependencies [#851](https://github.com/RocketPy-Team/RocketPy/pull/851)
 - ENH: _MotorPrints inheritance - issue #460 [#828](https://github.com/RocketPy-Team/RocketPy/pull/828)
 - MNT: fix deprecations and warnings [#829](https://github.com/RocketPy-Team/RocketPy/pull/829)
 
