@@ -1314,28 +1314,22 @@ def find_obj_from_hash(obj, hash_, depth_limit=None):
         The object whose '__rpy_hash' matches hash_, or None if not found.
     """
 
-    def _search(o, current_depth):
+    stack = [(obj, 0)]
+    while stack:
+        current_obj, current_depth = stack.pop()
         if depth_limit is not None and current_depth > depth_limit:
-            return None
+            continue
 
-        if getattr(o, "__rpy_hash", None) == hash_:
-            return o
+        if getattr(current_obj, "__rpy_hash", None) == hash_:
+            return current_obj
 
-        if isinstance(o, dict):
-            for value in o.values():
-                result = _search(value, current_depth + 1)
-                if result is not None:
-                    return result
+        if isinstance(current_obj, dict):
+            stack.extend((v, current_depth + 1) for v in current_obj.values())
 
-        elif isinstance(o, (list, tuple, set)):
-            for item in o:
-                result = _search(item, current_depth + 1)
-                if result is not None:
-                    return result
+        elif isinstance(current_obj, (list, tuple, set)):
+            stack.extend((item, current_depth + 1) for item in current_obj)
 
-        return None
-
-    return _search(obj, 0)
+    return None
 
 
 if __name__ == "__main__":  # pragma: no cover
