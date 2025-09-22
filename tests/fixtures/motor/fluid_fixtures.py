@@ -4,7 +4,7 @@ from rocketpy import Fluid
 
 
 @pytest.fixture
-def nitrous_oxide_fluid():
+def nitrous_oxide_non_constant_fluid():
     """A nitrous_oxide fluid whose density varies with temperature
     and pressure.
 

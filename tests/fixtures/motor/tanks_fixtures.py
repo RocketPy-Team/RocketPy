@@ -463,14 +463,14 @@ def spherical_oxidizer_tank(oxidizer_fluid, oxidizer_pressurant):
 
 
 @pytest.fixture
-def cylindrical_variable_density_oxidizer_tank(nitrous_oxide_fluid):
+def cylindrical_variable_density_oxidizer_tank(nitrous_oxide_non_constant_fluid):
     """Fixture for creating a cylindrical variable density oxidizer
     tank. This fixture returns a `MassBasedTank` object representing
     a cylindrical oxidizer tank with variable density properties.
 
     Parameters
     ----------
-    nitrous_oxide_fluid : rocketpy.Fluid
+    nitrous_oxide_non_constant_fluid : rocketpy.Fluid
         The fluid object representing nitrous oxide.
 
     Returns
@@ -498,11 +498,11 @@ def cylindrical_variable_density_oxidizer_tank(nitrous_oxide_fluid):
             return -40 * (t - 4) + zero_Celsius + 2
 
     return MassBasedTank(
-        name="Variable Density O2 Tank",
+        name="Variable Density N2O Tank",
         geometry=CylindricalTank(height=0.8, radius=0.06, spherical_caps=True),
         flux_time=7,
-        liquid=nitrous_oxide_fluid,
-        gas=nitrous_oxide_fluid,
+        liquid=nitrous_oxide_non_constant_fluid,
+        gas=nitrous_oxide_non_constant_fluid,
         discretize=50,
         liquid_mass=liquid_mass,
         gas_mass=0,

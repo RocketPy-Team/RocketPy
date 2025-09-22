@@ -242,7 +242,7 @@ def test_rocket_encoder(rocket_name, request):
     )
 
 
-@pytest.mark.parametrize("rocket_name", ["calisto_robust"])
+@pytest.mark.parametrize("rocket_name", ["calisto_robust", "calisto_hybrid_modded"])
 def test_encoder_discretize(rocket_name, request):
     """Test encoding the total mass of ``rocketpy.Rocket`` with
     discretized encoding.

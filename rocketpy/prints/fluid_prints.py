@@ -1,4 +1,4 @@
-import numpy as np
+from ..mathutils.function import NUMERICAL_TYPES
 
 
 class _FluidPrints:
@@ -36,7 +36,7 @@ class _FluidPrints:
         None
         """
         print(f"Name: {self.fluid.name}")
-        if isinstance(self.fluid.density, (int, float, np.number)):
+        if isinstance(self.fluid.density, NUMERICAL_TYPES):
             print(f"Density: {self.fluid.density:.4f} kg/m^3")
         else:
             print(f"Density: {self.fluid.density_function}")
