@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.constants import atm, zero_Celsius
 
 from ..mathutils.function import Function
 from ..plots.fluid_plots import _FluidPlots
@@ -69,7 +70,7 @@ class Fluid:
 
         self._density_function = Function(
             density_function,
-            interpolation="shepard",
+            interpolation="linear",
             extrapolation="natural",
             inputs=["Temperature (K)", "Pressure (Pa)"],
             outputs="Density (kg/m³)",
@@ -90,7 +91,7 @@ class Fluid:
         Function
             Density of the fluid in kg/m³ as function of time.
         """
-        if callable(temperature.source):
+        if callable(temperature.source) and callable(pressure.source):
             return Function(
                 lambda time: self.density_function.get_value(
                     temperature.source(time), pressure.source(time)
@@ -99,13 +100,16 @@ class Fluid:
                 outputs="Density (kg/m³)",
             )
         else:
+            time_scale = np.unique(
+                np.concatenate((temperature.x_array, pressure.x_array))
+            )
             density_time = self.density_function.get_value(
-                temperature.y_array, pressure.y_array
+                temperature.get_value(time_scale), pressure.get_value(time_scale)
             )
             return Function(
                 np.column_stack(
                     (
-                        temperature.x_array,
+                        time_scale,
                         density_time,
                     )
                 ),
@@ -138,7 +142,20 @@ class Fluid:
         return f"Fluid: {self.name}"
 
     def to_dict(self, **kwargs):  # pylint: disable=unused-argument
-        return {"name": self.name, "density": self.density}
+        discretize = kwargs.get("discretize", False)
+        if not isinstance(self.density, (int, float, np.number)):
+            density = self.density_function
+        else:
+            density = self.density
+
+        if discretize and isinstance(density, Function):
+            density = density.set_discrete(
+                ((100, atm * 0.9), (zero_Celsius + 30, atm * 100)),
+                (25, 25),
+                mutate_self=False,
+            )
+
+        return {"name": self.name, "density": density}
 
     @classmethod
     def from_dict(cls, data):

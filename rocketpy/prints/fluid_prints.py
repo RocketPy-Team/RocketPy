@@ -1,3 +1,6 @@
+import numpy as np
+
+
 class _FluidPrints:
     """Class that holds prints methods for Fluid class.
 
@@ -33,4 +36,7 @@ class _FluidPrints:
         None
         """
         print(f"Name: {self.fluid.name}")
-        print(f"Density: {self.fluid.density:.4f} kg/m^3")
+        if isinstance(self.fluid.density, (int, float, np.number)):
+            print(f"Density: {self.fluid.density:.4f} kg/m^3")
+        else:
+            print(f"Density: {self.fluid.density_function}")
