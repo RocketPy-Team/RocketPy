@@ -1682,9 +1682,13 @@ class Rocket:
                listed in the same order as they are provided in the
                `interactive_objects` argument.
             7. `sensors` (list): A list of sensors that are attached to the
-               rocket. The most recent measurements of the sensors are provided
-               with the ``sensor.measurement`` attribute. The sensors are
-               listed in the same order as they are added to the rocket.
+                rocket. The most recent measurements of the sensors are provided
+                with the ``sensor.measurement`` attribute. The sensors are
+                listed in the same order as they are added to the rocket.
+            8. `environment` (Environment): The environment object containing
+                atmospheric conditions, wind data, gravity, and other
+                environmental parameters. This allows the controller to access
+                environmental data locally without relying on global variables.
 
             This function will be called during the simulation at the specified
             sampling rate. The function should evaluate and change the observed
