@@ -96,7 +96,7 @@ if __name__ == "__main__":
     print("  • Access to wind, atmospheric, and environmental data")
     print("  • Backward compatibility maintained")
     
-    print(f"\n🚀 Example usage in controller:")
+    print("\n🚀 Example usage in controller:")
     print("    # Old way (with global variables):")
     print("    altitude_AGL = altitude_ASL - env.elevation  # ❌ Global variable")
     print("    wind_x = env.wind_velocity_x(altitude_ASL)   # ❌ Global variable")
