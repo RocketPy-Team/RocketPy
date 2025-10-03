@@ -115,8 +115,12 @@ class _MonteCarloPlots:
 
         plt.legend()
         ax.set_title("1$\\sigma$, 2$\\sigma$ and 3$\\sigma$ Monte Carlo Ellipses")
-        ax.set_ylabel("North (m)")
-        ax.set_xlabel("East (m)")
+        ax.text(0, -0.1, "West", va="bottom", ha="center", transform=ax.transAxes)
+        ax.text(1, -0.1, "East", va="bottom", ha="center", transform=ax.transAxes)
+        ax.text(-0.12, 0, "South", va="bottom", ha="left", transform=ax.transAxes)
+        ax.text(-0.12, 1, "North", va="top", ha="left", transform=ax.transAxes)
+        ax.set_ylabel("Y (m)")
+        ax.set_xlabel("X (m)")
 
         # Add background image to plot
         # TODO: In the future, integrate with other libraries to plot the map (e.g. cartopy, ee, etc.)
