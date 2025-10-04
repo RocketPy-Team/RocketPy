@@ -1,5 +1,8 @@
 from unittest.mock import patch
+
 import pytest
+
+# TODO: these tests should be deleted after the deprecated methods are removed
 
 
 def test_export_data_deprecated_emits_warning_and_delegates(flight_calisto, tmp_path):

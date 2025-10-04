@@ -15,6 +15,7 @@ from ..plots.flight_plots import _FlightPlots
 from ..prints.flight_prints import _FlightPrints
 from ..tools import (
     calculate_cubic_hermite_coefficients,
+    deprecated,
     euler313_to_quaternions,
     find_closest,
     find_root_linear_interpolation,
@@ -22,7 +23,6 @@ from ..tools import (
     quaternions_to_nutation,
     quaternions_to_precession,
     quaternions_to_spin,
-    deprecated,
 )
 
 ODE_SOLVER_MAP = {
