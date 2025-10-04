@@ -677,7 +677,7 @@ by not passing any attribute names:
     :hide-output:
 
     # Sample file cleanup
-    import ospython.exe -m pip install --upgrade pip
+    import os
     os.remove("calisto_flight_data.csv")
 
 .. note::
@@ -695,7 +695,7 @@ For instance, we can save our rocket drawing as a ``.png`` file:
 
     calisto.draw(filename="calisto_drawing.png")
 
-Also, if you want to save a specific rocketpy plot, every RocketPy 
+Also, if you want to save a specific rocketpy plot, every RocketPy
 attribute of type :class:`rocketpy.Function` is capable of saving its plot
 as an image file. For example, we can save our rocket's speed plot and the
 trajectory plot as ``.jpg`` files:
