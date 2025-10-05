@@ -50,6 +50,8 @@ def test_export_sensor_data_writes_json(flight_calisto, tmp_path, monkeypatch):
     """
 
     class DummySensor:
+        """Dummy sensor with name attribute for testing."""
+
         def __init__(self, name):
             self.name = name
 

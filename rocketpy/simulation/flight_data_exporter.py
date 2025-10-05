@@ -149,8 +149,7 @@ class FlightDataExporter:
             # Deal with decorated Flight methods
             else:
                 try:
-                    obj = getattr(f.__class__, variable)
-                    variable_function = obj.__get__(f, f.__class__)
+                    variable_function = getattr(f, variable)
                 except AttributeError as exc:
                     raise AttributeError(
                         f"Variable '{variable}' not found in Flight class"
