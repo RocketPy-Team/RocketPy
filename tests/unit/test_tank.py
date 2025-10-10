@@ -1,12 +1,9 @@
 from math import isclose
 from pathlib import Path
-from unittest.mock import patch
 
 import numpy as np
 import pytest
 import scipy.integrate as spi
-
-from rocketpy.motors import TankGeometry
 
 BASE_PATH = Path("./data/rockets/berkeley/")
 
@@ -360,6 +357,34 @@ def test_mass_flow_rate_tank_inertia(
     )
 
 
-@patch("matplotlib.pyplot.show")
-def test_tank_geometry_plots_info(mock_show):  # pylint: disable=unused-argument
-    assert TankGeometry({(0, 5): 1}).plots.all() is None
+def test_variable_density_mass_tank(cylindrical_variable_density_oxidizer_tank):
+    """Tests a cylindrical tank with variable density fluids
+    from its temperature and pressure values.
+
+    Parameters
+    ----------
+    cylindrical_variable_density_oxidizer_tank: MassBasedTank
+        The tank to be tested.
+    """
+    tank = cylindrical_variable_density_oxidizer_tank
+    time_steps = np.linspace(*tank.flux_time, 75)
+
+    assert (tank._liquid_density(time_steps) > 0).all()
+    assert (tank._gas_density(time_steps) > 0).all()
+    assert (tank._liquid_density(time_steps) < 1e5).all()
+    assert (tank._gas_density(time_steps) < 1e5).all()
+    np.testing.assert_allclose(
+        tank.liquid_mass(time_steps),
+        tank.liquid_volume(time_steps) * tank._liquid_density(time_steps),
+        atol=1e-2,
+    )
+    np.testing.assert_allclose(
+        tank.gas_mass(time_steps),
+        tank.gas_volume(time_steps) * tank._gas_density(time_steps),
+        atol=1e-2,
+    )
+    np.testing.assert_allclose(
+        tank.gas_mass(time_steps),
+        0,
+        atol=1e-4,
+    )

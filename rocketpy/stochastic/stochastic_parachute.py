@@ -29,6 +29,12 @@ class StochasticParachute(StochasticModel):
         time-correlation).
     name : list[str]
         List with the name of the parachute object. This cannot be randomized.
+    radius : tuple, list, int, float
+        Radius of the parachute in meters.
+    height : tuple, list, int, float
+        Height of the parachute in meters.
+    porosity : tuple, list, int, float
+        Porosity of the parachute.
     """
 
     def __init__(
@@ -39,6 +45,9 @@ class StochasticParachute(StochasticModel):
         sampling_rate=None,
         lag=None,
         noise=None,
+        radius=None,
+        height=None,
+        porosity=None,
     ):
         """Initializes the Stochastic Parachute class.
 
@@ -63,6 +72,12 @@ class StochasticParachute(StochasticModel):
         noise : list
             List of tuples in the form of (mean, standard deviation,
             time-correlation).
+        radius : tuple, list, int, float
+            Radius of the parachute in meters.
+        height : tuple, list, int, float
+            Height of the parachute in meters.
+        porosity : tuple, list, int, float
+            Porosity of the parachute.
         """
         self.parachute = parachute
         self.cd_s = cd_s
@@ -70,6 +85,9 @@ class StochasticParachute(StochasticModel):
         self.sampling_rate = sampling_rate
         self.lag = lag
         self.noise = noise
+        self.radius = radius
+        self.height = height
+        self.porosity = porosity
 
         self._validate_trigger(trigger)
         self._validate_noise(noise)
@@ -81,6 +99,9 @@ class StochasticParachute(StochasticModel):
             lag=lag,
             noise=noise,
             name=None,
+            radius=radius,
+            height=height,
+            porosity=porosity,
         )
 
     def _validate_trigger(self, trigger):

@@ -73,6 +73,21 @@ density as such:
 
 Fluid are then passed to tanks when they are defined.
 
+.. note::
+  
+  One may define the fluid density as a function of temperature (K) and 
+  pressure (Pa). The data can be imported from an external source, such as
+  a dataset or external libraries. 
+  In this case, the fluid would be defined as such:
+
+  >>> Fluid(name="N2O", density=lambda t, p: 44 * p / (8.314 * t))
+  >>> from CoolProp.CoolProp import PropsSI # external library
+  >>> Fluid(name="N2O", density=lambda t, p: PropsSI('D', 'T', t, 'P', p, 'N2O'))
+
+  In fact, the density parameter can be any ``Function`` source, such as a
+  ``callable``, csv file or an array of points. See more on 
+  :class:`rocketpy.Function`.
+
 Tank Geometry
 -------------
 

@@ -3695,8 +3695,9 @@ class Function:  # pylint: disable=too-many-public-methods
                     + " must be provided."
                 )
             # Generate the data points using the callable
-            x = np.linspace(lower, upper, samples)
-            data_points = np.column_stack((x, self(x)))
+            data_points = self.set_discrete(
+                lower, upper, samples, mutate_self=False
+            ).source
         else:
             # If the source is already an array, use it as is
             data_points = self.source

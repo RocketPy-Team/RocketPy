@@ -1,4 +1,6 @@
 import math
+import warnings
+from typing import Iterable
 
 import numpy as np
 
@@ -21,7 +23,11 @@ from rocketpy.rocket.aero_surface.fins.free_form_fins import FreeFormFins
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
-from rocketpy.tools import deprecated, parallel_axis_theorem_from_com
+from rocketpy.tools import (
+    deprecated,
+    find_obj_from_hash,
+    parallel_axis_theorem_from_com,
+)
 
 
 # pylint: disable=too-many-instance-attributes, too-many-public-methods, too-many-instance-attributes
@@ -1433,7 +1439,16 @@ class Rocket:
         return fin_set
 
     def add_parachute(
-        self, name, cd_s, trigger, sampling_rate=100, lag=0, noise=(0, 0, 0)
+        self,
+        name,
+        cd_s,
+        trigger,
+        sampling_rate=100,
+        lag=0,
+        noise=(0, 0, 0),
+        radius=1.5,
+        height=None,
+        porosity=0.0432,
     ):
         """Creates a new parachute, storing its parameters such as
         opening delay, drag coefficients and trigger function.
@@ -1492,16 +1507,39 @@ class Rocket:
             The values are used to add noise to the pressure signal which is
             passed to the trigger function. Default value is (0, 0, 0). Units
             are in pascal.
+        radius : float, optional
+            Length of the non-unique semi-axis (radius) of the inflated hemispheroid
+            parachute. Default value is 1.5.
+            Units are in meters.
+        height : float, optional
+            Length of the unique semi-axis (height) of the inflated hemispheroid
+            parachute. Default value is the radius of the parachute.
+            Units are in meters.
+        porosity : float, optional
+            Geometric porosity of the canopy (ratio of open area to total canopy area),
+            in [0, 1]. Affects only the added-mass scaling during descent; it does
+            not change ``cd_s`` (drag). The default, 0.0432, yields an added-mass
+            of 1.0 (“neutral” behavior).
 
         Returns
         -------
         parachute : Parachute
-            Parachute  containing trigger, sampling_rate, lag, cd_s, noise
-            and name. Furthermore, it stores clean_pressure_signal,
+            Parachute containing trigger, sampling_rate, lag, cd_s, noise, radius,
+            height, porosity and name. Furthermore, it stores clean_pressure_signal,
             noise_signal and noisyPressureSignal which are filled in during
             Flight simulation.
         """
-        parachute = Parachute(name, cd_s, trigger, sampling_rate, lag, noise)
+        parachute = Parachute(
+            name,
+            cd_s,
+            trigger,
+            sampling_rate,
+            lag,
+            noise,
+            radius,
+            height,
+            porosity,
+        )
         self.parachutes.append(parachute)
         return self.parachutes[-1]
 
@@ -2038,18 +2076,30 @@ class Rocket:
         for parachute in data["parachutes"]:
             rocket.parachutes.append(parachute)
 
-        for air_brakes in data["air_brakes"]:
-            rocket.add_air_brakes(
-                drag_coefficient_curve=air_brakes["drag_coefficient_curve"],
-                controller_function=air_brakes["controller_function"],
-                sampling_rate=air_brakes["sampling_rate"],
-                clamp=air_brakes["clamp"],
-                reference_area=air_brakes["reference_area"],
-                initial_observed_variables=air_brakes["initial_observed_variables"],
-                override_rocket_drag=air_brakes["override_rocket_drag"],
-                name=air_brakes["name"],
-                controller_name=air_brakes["controller_name"],
-            )
+        for sensor, position in data["sensors"]:
+            rocket.add_sensor(sensor, position)
+
+        for air_brake in data["air_brakes"]:
+            rocket.air_brakes.append(air_brake)
+
+        for controller in data["_controllers"]:
+            interactive_objects_hash = getattr(controller, "_interactive_objects_hash")
+            if interactive_objects_hash is not None:
+                is_iterable = isinstance(interactive_objects_hash, Iterable)
+                if not is_iterable:
+                    interactive_objects_hash = [interactive_objects_hash]
+                for hash_ in interactive_objects_hash:
+                    if (hashed_obj := find_obj_from_hash(data, hash_)) is not None:
+                        if not is_iterable:
+                            controller.interactive_objects = hashed_obj
+                        else:
+                            controller.interactive_objects.append(hashed_obj)
+                    else:
+                        warnings.warn(
+                            "Could not find controller interactive objects."
+                            "Deserialization will proceed, results may not be accurate."
+                        )
+            rocket._add_controllers(controller)
 
         return rocket
 

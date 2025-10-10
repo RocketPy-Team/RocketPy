@@ -22,6 +22,7 @@ import pytest
         "fuel_tank",
         "oxidizer_tank",
         "spherical_oxidizer_tank",
+        "cylindrical_variable_density_oxidizer_tank",
     ],
 )
 def test_tank_all_info(mock_show, fixture_name, request):

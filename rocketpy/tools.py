@@ -1295,6 +1295,43 @@ def from_hex_decode(obj_bytes, decoder=base64.b85decode):
     return dill.loads(decoder(bytes.fromhex(obj_bytes)))
 
 
+def find_obj_from_hash(obj, hash_, depth_limit=None):
+    """Searches the object (and its children) for
+    an object whose '__rpy_hash' field has a particular hash value.
+
+    Parameters
+    ----------
+    obj : object
+        Object to search.
+    hash_ : int
+        Hash value to search for in the '__rpy_hash' field.
+    depth_limit : int, optional
+        Maximum depth to search recursively. If None, no limit.
+
+    Returns
+    -------
+    object
+        The object whose '__rpy_hash' matches hash_, or None if not found.
+    """
+
+    stack = [(obj, 0)]
+    while stack:
+        current_obj, current_depth = stack.pop()
+        if depth_limit is not None and current_depth > depth_limit:
+            continue
+
+        if getattr(current_obj, "__rpy_hash", None) == hash_:
+            return current_obj
+
+        if isinstance(current_obj, dict):
+            stack.extend((v, current_depth + 1) for v in current_obj.values())
+
+        elif isinstance(current_obj, (list, tuple, set)):
+            stack.extend((item, current_depth + 1) for item in current_obj)
+
+    return None
+
+
 if __name__ == "__main__":  # pragma: no cover
     import doctest
 

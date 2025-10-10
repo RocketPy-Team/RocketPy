@@ -1,4 +1,7 @@
 from inspect import signature
+from typing import Iterable
+
+from rocketpy.tools import from_hex_decode, to_hex_encode
 
 from ..prints.controller_prints import _ControllerPrints
 
@@ -181,3 +184,46 @@ class _Controller:
     def all_info(self):
         """Prints out all information about the controller."""
         self.info()
+
+    def to_dict(self, **kwargs):
+        allow_pickle = kwargs.get("allow_pickle", True)
+
+        if allow_pickle:
+            controller_function = to_hex_encode(self.controller_function)
+        else:
+            controller_function = self.controller_function.__name__
+
+        return {
+            "controller_function": controller_function,
+            "sampling_rate": self.sampling_rate,
+            "initial_observed_variables": self.initial_observed_variables,
+            "name": self.name,
+            "_interactive_objects_hash": hash(self.interactive_objects)
+            if not isinstance(self.interactive_objects, Iterable)
+            else [hash(obj) for obj in self.interactive_objects],
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        interactive_objects = data.get("interactive_objects", [])
+        controller_function = data.get("controller_function")
+        sampling_rate = data.get("sampling_rate")
+        initial_observed_variables = data.get("initial_observed_variables")
+        name = data.get("name", "Controller")
+
+        try:
+            controller_function = from_hex_decode(controller_function)
+        except (TypeError, ValueError):
+            pass
+
+        obj = cls(
+            interactive_objects=interactive_objects,
+            controller_function=controller_function,
+            sampling_rate=sampling_rate,
+            initial_observed_variables=initial_observed_variables,
+            name=name,
+        )
+        setattr(
+            obj, "_interactive_objects_hash", data.get("_interactive_objects_hash", [])
+        )
+        return obj

@@ -1,14 +1,14 @@
 # pylint: disable=too-many-lines
-import json
 import math
 import warnings
 from copy import deepcopy
 from functools import cached_property
 
 import numpy as np
-import simplekml
 from scipy.integrate import BDF, DOP853, LSODA, RK23, RK45, OdeSolver, Radau
+
 from rocketpy.simulation.flight_data_exporter import FlightDataExporter
+
 from ..mathutils.function import Function, funcify_method
 from ..mathutils.vector_matrix import Matrix, Vector
 from ..motors.point_mass_motor import PointMassMotor
@@ -2150,21 +2150,17 @@ class Flight:
         wind_velocity_x = self.env.wind_velocity_x.get_value_opt(z)
         wind_velocity_y = self.env.wind_velocity_y.get_value_opt(z)
 
-        # Get Parachute data
-        cd_s = self.parachute_cd_s
-
         # Get the mass of the rocket
         mp = self.rocket.dry_mass
 
-        # Define constants
-        ka = 1  # Added mass coefficient (depends on parachute's porosity)
-        R = 1.5  # Parachute radius
         # to = 1.2
         # eta = 1
         # Rdot = (6 * R * (1 - eta) / (1.2**6)) * (
         #     (1 - eta) * t**5 + eta * (to**3) * (t**2)
         # )
         # Rdot = 0
+        # tf = 8 * nominal diameter / velocity at line stretch
+
         # tf = 8 * nominal diameter / velocity at line stretch
 
         # Calculate added mass
@@ -2176,6 +2172,7 @@ class Flight:
             * self.parachute_radius**2
             * self.parachute_height
         )
+
         # Calculate freestream speed
         freestream_x = vx - wind_velocity_x
         freestream_y = vy - wind_velocity_y
@@ -2185,7 +2182,7 @@ class Flight:
         # Determine drag force
         pseudo_drag = -0.5 * rho * self.parachute_cd_s * free_stream_speed
         # pseudo_drag = pseudo_drag - ka * rho * 4 * np.pi * (R**2) * Rdot
-        Dx = pseudo_drag * freestream_x # add eta efficiency for wake
+        Dx = pseudo_drag * freestream_x  # add eta efficiency for wake
         Dy = pseudo_drag * freestream_y
         Dz = pseudo_drag * freestream_z
         ax = Dx / (mp + ma)
@@ -3418,20 +3415,20 @@ class Flight:
             "Maximum wind velocity at Rail Departure time before angle"
             + f" of attack exceeds {stall_angle:.3f}°: {w_v:.3f} m/s"
         )
-    
+
     @deprecated(
         reason="Moved to FlightDataExporter.export_pressures()",
         version="v1.12.0",
         alternative="rocketpy.simulation.flight_data_exporter.FlightDataExporter.export_pressures",
     )
-    def export_pressures(self, file_name, time_step):  # TODO: move out
+    def export_pressures(self, file_name, time_step):
         """
         .. deprecated:: 1.11
            Use :class:`rocketpy.simulation.flight_data_exporter.FlightDataExporter`
            and call ``.export_pressures(...)``.
         """
         return FlightDataExporter(self).export_pressures(file_name, time_step)
-    
+
     @deprecated(
         reason="Moved to FlightDataExporter.export_data()",
         version="v1.12.0",
@@ -3530,7 +3527,6 @@ class Flight:
             "x_impact": self.x_impact,
             "y_impact": self.y_impact,
             "t_final": self.t_final,
-            "flight_phases": self.flight_phases,
             "function_evaluations": self.function_evaluations,
             "ax": self.ax,
             "ay": self.ay,
