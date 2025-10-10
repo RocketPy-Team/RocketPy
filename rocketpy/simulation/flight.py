@@ -764,27 +764,28 @@ class Flight:
                                 index=phase_index + i,
                             )
                             i += 1
-                        # Create flight phase for time after inflation
+                            # Create flight phase for time after inflation
                             callbacks = [
-                            lambda self, parachute_cd_s=parachute.cd_s: setattr(
-                                self, "parachute_cd_s", parachute_cd_s
-                            ),
-                            lambda self, parachute_radius=parachute.radius: setattr(
-                                self, "parachute_radius", parachute_radius
-                            ),
-                            lambda self, parachute_height=parachute.height: setattr(
-                                self, "parachute_height", parachute_height
-                            ),
-                            lambda self, parachute_porosity=parachute.porosity: setattr(
-                                self, "parachute_porosity", parachute_porosity
-                            ),
-                            lambda self,
-                            added_mass_coefficient=parachute.added_mass_coefficient: setattr(
-                                self,
-                                "parachute_added_mass_coefficient",
-                                added_mass_coefficient,
-                            ),
-                        ]
+                                lambda self, parachute_cd_s=parachute.cd_s: setattr(
+                                    self, "parachute_cd_s", parachute_cd_s
+                                ),
+                                lambda self, parachute_radius=parachute.radius: setattr(
+                                    self, "parachute_radius", parachute_radius
+                                ),
+                                lambda self, parachute_height=parachute.height: setattr(
+                                    self, "parachute_height", parachute_height
+                                ),
+                                lambda self,
+                                parachute_porosity=parachute.porosity: setattr(
+                                    self, "parachute_porosity", parachute_porosity
+                                ),
+                                lambda self,
+                                added_mass_coefficient=parachute.added_mass_coefficient: setattr(
+                                    self,
+                                    "parachute_added_mass_coefficient",
+                                    added_mass_coefficient,
+                                ),
+                            ]
                         self.flight_phases.add_phase(
                             node.t + parachute.lag,
                             self.u_dot_parachute,
@@ -1502,17 +1503,17 @@ class Flight:
         # Thrust correction parameters
         pressure = self.env.pressure.get_value_opt(z)
         # Determine current behavior
-        if self.rocket.motor.burn_start_time < t < self.rocket.motor.burn_out_time:            
+        if self.rocket.motor.burn_start_time < t < self.rocket.motor.burn_out_time:
             # Motor burning
             # Retrieve important motor quantities
-            # Inertias	
-            motor_I_33_at_t = self.rocket.motor.I_33.get_value_opt(t)	
-            motor_I_11_at_t = self.rocket.motor.I_11.get_value_opt(t)	
-            motor_I_33_derivative_at_t = self.rocket.motor.I_33.differentiate(	
-                t, dx=1e-6	
-            )	
-            motor_I_11_derivative_at_t = self.rocket.motor.I_11.differentiate(	
-                t, dx=1e-6	
+            # Inertias
+            motor_I_33_at_t = self.rocket.motor.I_33.get_value_opt(t)
+            motor_I_11_at_t = self.rocket.motor.I_11.get_value_opt(t)
+            motor_I_33_derivative_at_t = self.rocket.motor.I_33.differentiate(
+                t, dx=1e-6
+            )
+            motor_I_11_derivative_at_t = self.rocket.motor.I_11.differentiate(
+                t, dx=1e-6
             )
             # Mass
             mass_flow_rate_at_t = self.rocket.motor.mass_flow_rate.get_value_opt(t)
@@ -1530,11 +1531,11 @@ class Flight:
         else:
             # Motor stopped
             # Inertias
-            (	
-                motor_I_33_at_t,	
-                motor_I_11_at_t,	
-                motor_I_33_derivative_at_t,	
-                motor_I_11_derivative_at_t,	
+            (
+                motor_I_33_at_t,
+                motor_I_11_at_t,
+                motor_I_33_derivative_at_t,
+                motor_I_11_derivative_at_t,
             ) = (0, 0, 0, 0)
             # Mass
             mass_flow_rate_at_t, propellant_mass_at_t = 0, 0
@@ -1542,8 +1543,8 @@ class Flight:
             net_thrust = 0
 
         # Retrieve important quantities
-        # Inertias	
-        rocket_dry_I_33 = self.rocket.dry_I_33	
+        # Inertias
+        rocket_dry_I_33 = self.rocket.dry_I_33
         rocket_dry_I_11 = self.rocket.dry_I_11
         # Mass
         rocket_dry_mass = self.rocket.dry_mass  # already with motor's dry mass
@@ -1552,15 +1553,15 @@ class Flight:
             propellant_mass_at_t + rocket_dry_mass
         )
         # Geometry
-        # b = -self.rocket.distance_rocket_propellant	
-        b = (	
-            -(	
-                self.rocket.center_of_propellant_position.get_value_opt(0)	
-                - self.rocket.center_of_dry_mass_position	
-            )	
-            * self.rocket._csys	
-        )	
-        c = self.rocket.nozzle_to_cdm	
+        # b = -self.rocket.distance_rocket_propellant
+        b = (
+            -(
+                self.rocket.center_of_propellant_position.get_value_opt(0)
+                - self.rocket.center_of_dry_mass_position
+            )
+            * self.rocket._csys
+        )
+        c = self.rocket.nozzle_to_cdm
         nozzle_radius = self.rocket.motor.nozzle_radius
         # Prepare transformation matrix
         a11 = 1 - 2 * (e2**2 + e3**2)
@@ -1611,7 +1612,7 @@ class Flight:
                 else:
                     R3 += air_brakes_force
         # Off center moment
-        M1 += self.rocket.cp_eccentricity_y * R3	
+        M1 += self.rocket.cp_eccentricity_y * R3
         M2 -= self.rocket.cp_eccentricity_x * R3
         # Get rocket velocity in body frame
         vx_b = a11 * vx + a21 * vy + a31 * vz
