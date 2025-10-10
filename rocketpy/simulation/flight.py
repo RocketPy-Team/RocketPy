@@ -467,6 +467,8 @@ class Flight:
         Defined as the minimum angle between the attitude vector and
         the freestream velocity vector. Can be called or accessed as
         array.
+    Flight.simulation_mode : str
+        Simulation mode for the flight. Can be "6 DOF" or "3 DOF".
     """
 
     def __init__(  # pylint: disable=too-many-arguments,too-many-statements
@@ -487,8 +489,8 @@ class Flight:
         verbose=False,
         name="Flight",
         equations_of_motion="standard",
-        simulation_mode="6 DOF",
         ode_solver="LSODA",
+        simulation_mode="6 DOF",
     ):
         """Run a trajectory simulation.
 
