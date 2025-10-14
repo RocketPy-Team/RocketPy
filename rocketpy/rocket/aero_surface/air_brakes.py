@@ -131,7 +131,8 @@ class AirBrakes(AeroSurface):
                 warnings.warn(
                     f"Deployment level of {self.name} is smaller than 0 or "
                     + "larger than 1. Extrapolation for the drag coefficient "
-                    + "curve will be used."
+                    + "curve will be used.",
+                    UserWarning,
                 )
         self._deployment_level = value
 
@@ -205,3 +206,24 @@ class AirBrakes(AeroSurface):
         """
         self.info()
         self.plots.drag_coefficient_curve()
+
+    def to_dict(self, **kwargs):  # pylint: disable=unused-argument
+        return {
+            "drag_coefficient_curve": self.drag_coefficient,
+            "reference_area": self.reference_area,
+            "clamp": self.clamp,
+            "override_rocket_drag": self.override_rocket_drag,
+            "deployment_level": self.initial_deployment_level,
+            "name": self.name,
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            drag_coefficient_curve=data.get("drag_coefficient_curve"),
+            reference_area=data.get("reference_area"),
+            clamp=data.get("clamp"),
+            override_rocket_drag=data.get("override_rocket_drag"),
+            deployment_level=data.get("deployment_level"),
+            name=data.get("name"),
+        )

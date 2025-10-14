@@ -271,6 +271,23 @@ class Sensor(ABC):
                 print(f"Data saved to {filename}")
             return
 
+    # pylint: disable=unused-argument
+    def to_dict(self, **kwargs):
+        return {
+            "sampling_rate": self.sampling_rate,
+            "measurement_range": self.measurement_range,
+            "resolution": self.resolution,
+            "operating_temperature": self.operating_temperature,
+            "noise_density": self.noise_density,
+            "noise_variance": self.noise_variance,
+            "random_walk_density": self.random_walk_density,
+            "random_walk_variance": self.random_walk_variance,
+            "constant_bias": self.constant_bias,
+            "temperature_bias": self.temperature_bias,
+            "temperature_scale_factor": self.temperature_scale_factor,
+            "name": self.name,
+        }
+
 
 class InertialSensor(Sensor):
     """Model of an inertial sensor (accelerometer, gyroscope, magnetometer).
@@ -573,6 +590,16 @@ class InertialSensor(Sensor):
             * self.temperature_scale_factor
         )
         return value & scale_factor
+
+    def to_dict(self, **kwargs):
+        data = super().to_dict(**kwargs)
+        data.update(
+            {
+                "orientation": self.orientation,
+                "cross_axis_sensitivity": self.cross_axis_sensitivity,
+            }
+        )
+        return data
 
 
 class ScalarSensor(Sensor):

@@ -1,11 +1,12 @@
 from abc import ABC, abstractmethod
 
 import numpy as np
+from scipy.constants import atm, zero_Celsius
 
 from ..mathutils.function import Function, funcify_method
 from ..plots.tank_plots import _TankPlots
 from ..prints.tank_prints import _TankPrints
-from ..tools import tuple_handler
+from ..tools import deprecated, tuple_handler
 
 
 class Tank(ABC):
@@ -75,7 +76,17 @@ class Tank(ABC):
         Tank symmetry axis. The reference point is the Tank center of mass.
     """
 
-    def __init__(self, name, geometry, flux_time, liquid, gas, discretize=100):
+    def __init__(
+        self,
+        name,
+        geometry,
+        flux_time,
+        liquid,
+        gas,
+        discretize=100,
+        temperature=None,
+        pressure=None,
+    ):
         """Initialize Tank class.
 
         Parameters
@@ -98,8 +109,24 @@ class Tank(ABC):
             Liquid inside the tank as a Fluid object.
         discretize : int, optional
             Number of points to discretize fluid inputs. If the input
-            already has a appropriate discretization, this parameter
+            already has a appropriate uniform discretization, this parameter
             must be set to None. The default is 100.
+        temperature : int, float, callable, string, array, Function
+            Temperature inside the tank as a function of time in K. If a callable
+            is given, it must be a function of time in seconds. An array of points
+            can also be given as a list or a string with the path to a .csv file
+            with two columns, the first one being the time in seconds and the
+            second one being the temperature in K. The default is None. This
+            parameter is only required if fluid (``liquid`` or ``gas`` parameters)
+            densities are functions of temperature.
+        pressure : int, float, callable, string, array, Function
+            Pressure inside the tank as a function of time in Pa. If a callable
+            is given, it must be a function of time in seconds. An array of points
+            can also be given as a list or a string with the path to a .csv file
+            with two columns, the first one being the time in seconds and the
+            second one being the pressure in Pa. The default is None. This
+            parameter is only required if fluid (``liquid`` or ``gas`` parameters)
+            densities are functions of pressure.
         """
         self.name = name
         self.geometry = geometry
@@ -107,6 +134,15 @@ class Tank(ABC):
         self.gas = gas
         self.liquid = liquid
         self.discretize = discretize
+        self.temperature = temperature
+        self.pressure = pressure
+
+        self._liquid_density = self.liquid.get_time_variable_density(
+            self.temperature, self.pressure
+        )
+        self._gas_density = self.gas.get_time_variable_density(
+            self.temperature, self.pressure
+        )
 
         # Initialize plots and prints object
         self.prints = _TankPrints(self)
@@ -133,6 +169,80 @@ class Tank(ABC):
             Tuple containing start and final times of the tank flux.
         """
         self._flux_time = tuple_handler(flux_time)
+
+    @property
+    def temperature(self):
+        """Returns the temperature of the tank as a function of time.
+
+        Returns
+        -------
+        Function
+            Temperature of the tank as a function of time.
+        """
+        return self._temperature
+
+    @temperature.setter
+    def temperature(self, temperature):
+        """Sets the temperature of the tank as a function of time.
+
+        Parameters
+        ----------
+        temperature : int, float, callable, string, array, Function
+            Temperature inside the tank as a function of time in K as
+            a ``Function`` source.
+        """
+        if temperature is None:
+            temperature = zero_Celsius
+
+        _temperature = Function(
+            temperature,
+            interpolation="linear",
+            extrapolation="constant",
+            inputs="Time (s)",
+            outputs="Temperature (K)",
+        )
+
+        if self.discretize:
+            _temperature = _temperature.set_discrete(*self.flux_time, self.discretize)
+
+        self._temperature = _temperature
+
+    @property
+    def pressure(self):
+        """Returns the pressure of the tank as a function of time.
+
+        Returns
+        -------
+        Function
+            Pressure of the tank as a function of time.
+        """
+        return self._pressure
+
+    @pressure.setter
+    def pressure(self, pressure):
+        """Sets the pressure of the tank as a function of time.
+
+        Parameters
+        ----------
+        pressure : int, float, callable, string, array, Function
+            Pressure inside the tank as a function of time in Pa as
+            a ``Function`` source.
+        """
+        if pressure is None:
+            pressure = atm
+
+        _pressure = Function(
+            pressure,
+            interpolation="linear",
+            extrapolation="constant",
+            inputs="Time (s)",
+            outputs="Pressure (Pa)",
+        )
+
+        if self.discretize:
+            _pressure = _pressure.set_discrete(*self.flux_time, self.discretize)
+
+        self._pressure = _pressure
 
     @property
     @abstractmethod
@@ -326,7 +436,7 @@ class Tank(ABC):
 
         # Check for zero mass
         bound_mass = (
-            self.fluid_mass < 0.001 * self.geometry.total_volume * self.gas.density
+            self.fluid_mass < 0.001 * self.geometry.total_volume * self._gas_density
         )
         if bound_mass.any():
             # TODO: pending Function setter impl.
@@ -360,7 +470,7 @@ class Tank(ABC):
             self.liquid_volume * (self.liquid_center_of_mass - self.center_of_mass) ** 2
         )
 
-        return self.liquid.density * Ix_volume
+        return self._liquid_density * Ix_volume
 
     @funcify_method("Time (s)", "Gas Inertia (kg*m^2)")
     def gas_inertia(self):
@@ -386,7 +496,7 @@ class Tank(ABC):
             self.gas_volume * (self.gas_center_of_mass - self.center_of_mass) ** 2
         )
 
-        return self.gas.density * inertia_volume
+        return self._gas_density * inertia_volume
 
     @funcify_method("Time (s)", "Fluid Inertia (kg*m^2)")
     def inertia(self):
@@ -477,6 +587,10 @@ class Tank(ABC):
             elif (height < bottom_tolerance).any():
                 underfill_height_exception(name, height)
 
+    @abstractmethod
+    def _discretize_fluid_inputs(self):
+        """Uniformly discretizes the parameter of inputs of fluid data ."""
+
     def draw(self, *, filename=None):
         """Draws the tank geometry.
 
@@ -505,7 +619,7 @@ class Tank(ABC):
         self.prints.all()
         self.plots.all()
 
-    def to_dict(self, include_outputs=False):
+    def to_dict(self, **kwargs):
         data = {
             "name": self.name,
             "geometry": self.geometry,
@@ -513,8 +627,10 @@ class Tank(ABC):
             "liquid": self.liquid,
             "gas": self.gas,
             "discretize": self.discretize,
+            "temperature": self.temperature,
+            "pressure": self.pressure,
         }
-        if include_outputs:
+        if kwargs.get("include_outputs", False):
             data.update(
                 {
                     "fluid_mass": self.fluid_mass,
@@ -560,6 +676,8 @@ class MassFlowRateBasedTank(Tank):
         liquid_mass_flow_rate_out,
         gas_mass_flow_rate_out,
         discretize=100,
+        temperature=None,
+        pressure=None,
     ):
         """Initializes the MassFlowRateBasedTank class.
 
@@ -619,8 +737,26 @@ class MassFlowRateBasedTank(Tank):
             this parameter may be set to None. Otherwise, an uniform
             discretization will be applied based on the discretize value.
             The default is 100.
+        temperature : int, float, callable, string, array, Function
+            Temperature inside the tank as a function of time in K. If a callable
+            is given, it must be a function of time in seconds. An array of points
+            can also be given as a list or a string with the path to a .csv file
+            with two columns, the first one being the time in seconds and the
+            second one being the temperature in K. The default is None. This
+            parameter is only required if fluid (``liquid`` or ``gas`` parameters)
+            densities are functions of temperature.
+        pressure : int, float, callable, string, array, Function
+            Pressure inside the tank as a function of time in Pa. If a callable
+            is given, it must be a function of time in seconds. An array of points
+            can also be given as a list or a string with the path to a .csv file
+            with two columns, the first one being the time in seconds and the
+            second one being the pressure in Pa. The default is None. This
+            parameter is only required if fluid (``liquid`` or ``gas`` parameters)
+            densities are functions of pressure.
         """
-        super().__init__(name, geometry, flux_time, liquid, gas, discretize)
+        super().__init__(
+            name, geometry, flux_time, liquid, gas, discretize, temperature, pressure
+        )
         self.initial_liquid_mass = initial_liquid_mass
         self.initial_gas_mass = initial_gas_mass
 
@@ -654,9 +790,7 @@ class MassFlowRateBasedTank(Tank):
             extrapolation="zero",
         )
 
-        # Discretize input flow if needed
-        if discretize:
-            self.discretize_flow()
+        self._discretize_fluid_inputs()
 
         # Check if the tank is overfilled or underfilled
         self._check_volume_bounds()
@@ -792,7 +926,7 @@ class MassFlowRateBasedTank(Tank):
         Function
             Volume of the liquid as a function of time.
         """
-        return self.liquid_mass / self.liquid.density
+        return self.liquid_mass / self._liquid_density
 
     @funcify_method("Time (s)", "Gas Volume (m³)")
     def gas_volume(self):
@@ -804,7 +938,7 @@ class MassFlowRateBasedTank(Tank):
         Function
             Volume of the gas as a function of time.
         """
-        return self.gas_mass / self.gas.density
+        return self.gas_mass / self._gas_density
 
     @funcify_method("Time (s)", "Liquid Height (m)")
     def liquid_height(self):
@@ -869,25 +1003,41 @@ class MassFlowRateBasedTank(Tank):
             )
         return gas_height
 
+    def _discretize_fluid_inputs(self):
+        """Uniformly discretizes the parameter of inputs of fluid data ."""
+        if self.discretize:
+            self.liquid_mass_flow_rate_in.set_discrete(
+                *self.flux_time, self.discretize, "linear"
+            )
+            self.gas_mass_flow_rate_in.set_discrete(
+                *self.flux_time, self.discretize, "linear"
+            )
+            self.liquid_mass_flow_rate_out.set_discrete(
+                *self.flux_time, self.discretize, "linear"
+            )
+            self.gas_mass_flow_rate_out.set_discrete(
+                *self.flux_time, self.discretize, "linear"
+            )
+        else:
+            # Discretize densities for backward compatibility
+            self._liquid_density.set_discrete_based_on_model(
+                self.liquid_mass_flow_rate_in
+            )
+            self._gas_density.set_discrete_based_on_model(self.gas_mass_flow_rate_in)
+
+    @deprecated(
+        "Should not be a public member of the class.",
+        "1.12.0",
+        "_discretize_fluid_inputs",
+    )
     def discretize_flow(self):
         """Discretizes the mass flow rate inputs according to the flux time and
         the discretize parameter.
         """
-        self.liquid_mass_flow_rate_in.set_discrete(
-            *self.flux_time, self.discretize, "linear"
-        )
-        self.gas_mass_flow_rate_in.set_discrete(
-            *self.flux_time, self.discretize, "linear"
-        )
-        self.liquid_mass_flow_rate_out.set_discrete(
-            *self.flux_time, self.discretize, "linear"
-        )
-        self.gas_mass_flow_rate_out.set_discrete(
-            *self.flux_time, self.discretize, "linear"
-        )
+        self._discretize_fluid_inputs()
 
-    def to_dict(self, include_outputs=False):
-        data = super().to_dict(include_outputs)
+    def to_dict(self, **kwargs):
+        data = super().to_dict(**kwargs)
         data.update(
             {
                 "initial_liquid_mass": self.initial_liquid_mass,
@@ -915,6 +1065,8 @@ class MassFlowRateBasedTank(Tank):
             liquid_mass_flow_rate_out=data["liquid_mass_flow_rate_out"],
             gas_mass_flow_rate_out=data["gas_mass_flow_rate_out"],
             discretize=data["discretize"],
+            temperature=data.get("temperature"),
+            pressure=data.get("pressure"),
         )
 
 
@@ -939,6 +1091,8 @@ class UllageBasedTank(Tank):
         gas,
         ullage,
         discretize=100,
+        temperature=None,
+        pressure=None,
     ):
         """
         Parameters
@@ -972,15 +1126,32 @@ class UllageBasedTank(Tank):
             an uniform discretization will be applied based on the discretize
             value.
             The default is 100.
+        temperature : int, float, callable, string, array, Function
+            Temperature inside the tank as a function of time in K. If a callable
+            is given, it must be a function of time in seconds. An array of points
+            can also be given as a list or a string with the path to a .csv file
+            with two columns, the first one being the time in seconds and the
+            second one being the temperature in K. The default is None. This
+            parameter is only required if fluid (``liquid`` or ``gas`` parameters)
+            densities are functions of temperature.
+        pressure : int, float, callable, string, array, Function
+            Pressure inside the tank as a function of time in Pa. If a callable
+            is given, it must be a function of time in seconds. An array of points
+            can also be given as a list or a string with the path to a .csv file
+            with two columns, the first one being the time in seconds and the
+            second one being the pressure in Pa. The default is None. This
+            parameter is only required if fluid (``liquid`` or ``gas`` parameters)
+            densities are functions of pressure.
         """
-        super().__init__(name, geometry, flux_time, liquid, gas, discretize)
+        super().__init__(
+            name, geometry, flux_time, liquid, gas, discretize, temperature, pressure
+        )
 
         # Define ullage
         self.ullage = Function(ullage, "Time (s)", "Volume (m³)", "linear")
 
         # Discretize input if needed
-        if discretize:
-            self.discretize_ullage()
+        self._discretize_fluid_inputs()
 
         # Check if the tank is overfilled or underfilled
         self._check_volume_bounds()
@@ -1065,7 +1236,7 @@ class UllageBasedTank(Tank):
         Function
             Mass of the gas as a function of time.
         """
-        return self.gas_volume * self.gas.density
+        return self.gas_volume * self._gas_density
 
     @funcify_method("Time (s)", "Liquid Mass (kg)")
     def liquid_mass(self):
@@ -1077,7 +1248,7 @@ class UllageBasedTank(Tank):
         Function
             Mass of the liquid as a function of time.
         """
-        return self.liquid_volume * self.liquid.density
+        return self.liquid_volume * self._liquid_density
 
     @funcify_method("Time (s)", "Liquid Height (m)")
     def liquid_height(self):
@@ -1108,13 +1279,28 @@ class UllageBasedTank(Tank):
         """
         return Function(self.geometry.top).set_discrete_based_on_model(self.gas_volume)
 
-    def discretize_ullage(self):
-        """Discretizes the ullage input according to the flux time and the
-        discretize parameter."""
-        self.ullage.set_discrete(*self.flux_time, self.discretize, "linear")
+    def _discretize_fluid_inputs(self):
+        """Uniformly discretizes the parameter of inputs of fluid data ."""
+        if self.discretize:
+            self.ullage.set_discrete(*self.flux_time, self.discretize, "linear")
+        else:
+            # Discretize densities for backward compatibility
+            self._liquid_density.set_discrete_based_on_model(self.ullage)
+            self._gas_density.set_discrete_based_on_model(self.ullage)
 
-    def to_dict(self, include_outputs=False):
-        data = super().to_dict(include_outputs)
+    @deprecated(
+        "Should not be a public member of the class.",
+        "1.12.0",
+        "_discretize_fluid_inputs",
+    )
+    def discretize_ullage(self):
+        """Discretizes the ullage input according to the flux time
+        and the discretize parameter.
+        """
+        self._discretize_fluid_inputs()
+
+    def to_dict(self, **kwargs):
+        data = super().to_dict(**kwargs)
         data.update({"ullage": self.ullage})
         return data
 
@@ -1128,6 +1314,8 @@ class UllageBasedTank(Tank):
             gas=data["gas"],
             ullage=data["ullage"],
             discretize=data["discretize"],
+            temperature=data.get("temperature"),
+            pressure=data.get("pressure"),
         )
 
 
@@ -1152,6 +1340,8 @@ class LevelBasedTank(Tank):
         gas,
         liquid_height,
         discretize=100,
+        temperature=None,
+        pressure=None,
     ):
         """
         Parameters
@@ -1185,14 +1375,31 @@ class LevelBasedTank(Tank):
             Otherwise, an uniform discretization will be applied based on the
             discretize value.
             The default is 100.
+        temperature : int, float, callable, string, array, Function
+            Temperature inside the tank as a function of time in K. If a callable
+            is given, it must be a function of time in seconds. An array of points
+            can also be given as a list or a string with the path to a .csv file
+            with two columns, the first one being the time in seconds and the
+            second one being the temperature in K. The default is None. This
+            parameter is only required if fluid (``liquid`` or ``gas`` parameters)
+            densities are functions of temperature.
+        pressure : int, float, callable, string, array, Function
+            Pressure inside the tank as a function of time in Pa. If a callable
+            is given, it must be a function of time in seconds. An array of points
+            can also be given as a list or a string with the path to a .csv file
+            with two columns, the first one being the time in seconds and the
+            second one being the pressure in Pa. The default is None. This
+            parameter is only required if fluid (``liquid`` or ``gas`` parameters)
+            densities are functions of pressure.
         """
-        super().__init__(name, geometry, flux_time, liquid, gas, discretize)
+        super().__init__(
+            name, geometry, flux_time, liquid, gas, discretize, temperature, pressure
+        )
 
         # Define liquid level function
         self.liquid_level = Function(liquid_height, "Time (s)", "height (m)", "linear")
 
-        if discretize:
-            self.discretize_liquid_height()
+        self._discretize_fluid_inputs()
 
         # Check if the tank is overfilled or underfilled
         self._check_height_bounds()
@@ -1303,7 +1510,7 @@ class LevelBasedTank(Tank):
         Function
             Mass of the gas as a function of time.
         """
-        return self.gas_volume * self.gas.density
+        return self.gas_volume * self._gas_density
 
     @funcify_method("Time (s)", "Liquid Mass (kg)")
     def liquid_mass(self):
@@ -1315,7 +1522,7 @@ class LevelBasedTank(Tank):
         Function
             Mass of the liquid as a function of time.
         """
-        return self.liquid_volume * self.liquid.density
+        return self.liquid_volume * self._liquid_density
 
     @funcify_method("Time (s)", "Gas Height (m)", "linear")
     def gas_height(self):
@@ -1335,14 +1542,28 @@ class LevelBasedTank(Tank):
             self.liquid_level
         )
 
+    @deprecated(
+        "Should not be a public member of the class.",
+        "1.12.0",
+        "_discretize_fluid_inputs",
+    )
     def discretize_liquid_height(self):
         """Discretizes the liquid height input according to the flux time
         and the discretize parameter.
         """
-        self.liquid_level.set_discrete(*self.flux_time, self.discretize, "linear")
+        self._discretize_fluid_inputs()
 
-    def to_dict(self, include_outputs=False):
-        data = super().to_dict(include_outputs)
+    def _discretize_fluid_inputs(self):
+        """Uniformly discretizes the parameter of inputs of fluid data ."""
+        if self.discretize:
+            self.liquid_level.set_discrete(*self.flux_time, self.discretize, "linear")
+        else:
+            # Discretize densities for backward compatibility
+            self._liquid_density.set_discrete_based_on_model(self.liquid_level)
+            self._gas_density.set_discrete_based_on_model(self.liquid_level)
+
+    def to_dict(self, **kwargs):
+        data = super().to_dict(**kwargs)
         data.update({"liquid_height": self.liquid_level})
         return data
 
@@ -1356,6 +1577,8 @@ class LevelBasedTank(Tank):
             gas=data["gas"],
             liquid_height=data["liquid_height"],
             discretize=data["discretize"],
+            temperature=data.get("temperature"),
+            pressure=data.get("pressure"),
         )
 
 
@@ -1379,6 +1602,8 @@ class MassBasedTank(Tank):
         liquid_mass,
         gas_mass,
         discretize=100,
+        temperature=None,
+        pressure=None,
     ):
         """
         Parameters
@@ -1417,15 +1642,32 @@ class MassBasedTank(Tank):
             may be set to None. Otherwise, an uniform discretization will be
             applied based on the discretize value.
             The default is 100.
+        temperature : int, float, callable, string, array, Function
+            Temperature inside the tank as a function of time in K. If a callable
+            is given, it must be a function of time in seconds. An array of points
+            can also be given as a list or a string with the path to a .csv file
+            with two columns, the first one being the time in seconds and the
+            second one being the temperature in K. The default is None. This
+            parameter is only required if fluid (``liquid`` or ``gas`` parameters)
+            densities are functions of temperature.
+        pressure : int, float, callable, string, array, Function
+            Pressure inside the tank as a function of time in Pa. If a callable
+            is given, it must be a function of time in seconds. An array of points
+            can also be given as a list or a string with the path to a .csv file
+            with two columns, the first one being the time in seconds and the
+            second one being the pressure in Pa. The default is None. This
+            parameter is only required if fluid (``liquid`` or ``gas`` parameters)
+            densities are functions of pressure.
         """
-        super().__init__(name, geometry, flux_time, liquid, gas, discretize)
+        super().__init__(
+            name, geometry, flux_time, liquid, gas, discretize, temperature, pressure
+        )
 
         # Define fluid masses
         self.liquid_mass = Function(liquid_mass, "Time (s)", "Mass (kg)", "linear")
         self.gas_mass = Function(gas_mass, "Time (s)", "Mass (kg)", "linear")
 
-        if discretize:
-            self.discretize_masses()
+        self._discretize_fluid_inputs()
 
         # Check if the tank is overfilled or underfilled
         self._check_volume_bounds()
@@ -1519,7 +1761,7 @@ class MassBasedTank(Tank):
         Function
             Volume of the gas as a function of time.
         """
-        return self.gas_mass / self.gas.density
+        return self.gas_mass / self._gas_density
 
     @funcify_method("Time (s)", "Liquid Volume (m³)")
     def liquid_volume(self):
@@ -1531,7 +1773,7 @@ class MassBasedTank(Tank):
         Function
             Volume of the liquid as a function of time.
         """
-        return self.liquid_mass / self.liquid.density
+        return self.liquid_mass / self._liquid_density
 
     @funcify_method("Time (s)", "Liquid Height (m)")
     def liquid_height(self):
@@ -1593,15 +1835,29 @@ class MassBasedTank(Tank):
             )
         return gas_height
 
+    @deprecated(
+        "Should not be a public member of the class.",
+        "1.12.0",
+        "_discretize_fluid_inputs",
+    )
     def discretize_masses(self):
         """Discretizes the fluid mass inputs according to the flux time
         and the discretize parameter.
         """
-        self.liquid_mass.set_discrete(*self.flux_time, self.discretize, "linear")
-        self.gas_mass.set_discrete(*self.flux_time, self.discretize, "linear")
+        self._discretize_fluid_inputs()
 
-    def to_dict(self, include_outputs=False):
-        data = super().to_dict(include_outputs)
+    def _discretize_fluid_inputs(self):
+        """Uniformly discretizes the parameter of inputs of fluid data ."""
+        if self.discretize:
+            self.liquid_mass.set_discrete(*self.flux_time, self.discretize, "linear")
+            self.gas_mass.set_discrete(*self.flux_time, self.discretize, "linear")
+        else:
+            # Discretize densities for backward compatibility
+            self._liquid_density.set_discrete_based_on_model(self.liquid_mass)
+            self._gas_density.set_discrete_based_on_model(self.gas_mass)
+
+    def to_dict(self, **kwargs):
+        data = super().to_dict(**kwargs)
         data.update(
             {
                 "liquid_mass": self.liquid_mass,
@@ -1621,4 +1877,6 @@ class MassBasedTank(Tank):
             liquid_mass=data["liquid_mass"],
             gas_mass=data["gas_mass"],
             discretize=data["discretize"],
+            temperature=data.get("temperature"),
+            pressure=data.get("pressure"),
         )

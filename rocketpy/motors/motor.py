@@ -1151,7 +1151,7 @@ class Motor(ABC):
         Returns
         -------
         vacuum_thrust : Function
-            The rocket's thrust in a vaccum.
+            The rocket's thrust in a vacuum.
         """
         if self.reference_pressure is None:
             warnings.warn(
@@ -1231,14 +1231,7 @@ class Motor(ABC):
             # Write last line
             file.write(f"{self.thrust.source[-1, 0]:.4f} {0:.3f}\n")
 
-    def to_dict(self, include_outputs=False):
-        thrust_source = self.thrust_source
-
-        if isinstance(thrust_source, str):
-            thrust_source = self.thrust.source
-        elif callable(thrust_source) and not isinstance(thrust_source, Function):
-            thrust_source = Function(thrust_source)
-
+    def to_dict(self, **kwargs):
         data = {
             "thrust_source": self.thrust,
             "dry_I_11": self.dry_I_11,
@@ -1258,31 +1251,94 @@ class Motor(ABC):
             "reference_pressure": self.reference_pressure,
         }
 
-        if include_outputs:
+        if kwargs.get("include_outputs", False):
+            total_mass = self.total_mass
+            propellant_mass = self.propellant_mass
+            mass_flow_rate = self.total_mass_flow_rate
+            center_of_mass = self.center_of_mass
+            center_of_propellant_mass = self.center_of_propellant_mass
+            exhaust_velocity = self.exhaust_velocity
+            I_11 = self.I_11
+            I_22 = self.I_22
+            I_33 = self.I_33
+            I_12 = self.I_12
+            I_13 = self.I_13
+            I_23 = self.I_23
+            propellant_I_11 = self.propellant_I_11
+            propellant_I_22 = self.propellant_I_22
+            propellant_I_33 = self.propellant_I_33
+            propellant_I_12 = self.propellant_I_12
+            propellant_I_13 = self.propellant_I_13
+            propellant_I_23 = self.propellant_I_23
+            if kwargs.get("discretize", False):
+                total_mass = total_mass.set_discrete_based_on_model(
+                    self.thrust, mutate_self=False
+                )
+                propellant_mass = propellant_mass.set_discrete_based_on_model(
+                    self.thrust, mutate_self=False
+                )
+                mass_flow_rate = mass_flow_rate.set_discrete_based_on_model(
+                    self.thrust, mutate_self=False
+                )
+                center_of_mass = center_of_mass.set_discrete_based_on_model(
+                    self.thrust, mutate_self=False
+                )
+                center_of_propellant_mass = (
+                    center_of_propellant_mass.set_discrete_based_on_model(
+                        self.thrust, mutate_self=False
+                    )
+                )
+                exhaust_velocity = exhaust_velocity.set_discrete_based_on_model(
+                    self.thrust, mutate_self=False
+                )
+                I_11 = I_11.set_discrete_based_on_model(self.thrust, mutate_self=False)
+                I_22 = I_22.set_discrete_based_on_model(self.thrust, mutate_self=False)
+                I_33 = I_33.set_discrete_based_on_model(self.thrust, mutate_self=False)
+                I_12 = I_12.set_discrete_based_on_model(self.thrust, mutate_self=False)
+                I_13 = I_13.set_discrete_based_on_model(self.thrust, mutate_self=False)
+                I_23 = I_23.set_discrete_based_on_model(self.thrust, mutate_self=False)
+                propellant_I_11 = propellant_I_11.set_discrete_based_on_model(
+                    self.thrust, mutate_self=False
+                )
+                propellant_I_22 = propellant_I_22.set_discrete_based_on_model(
+                    self.thrust, mutate_self=False
+                )
+                propellant_I_33 = propellant_I_33.set_discrete_based_on_model(
+                    self.thrust, mutate_self=False
+                )
+                propellant_I_12 = propellant_I_12.set_discrete_based_on_model(
+                    self.thrust, mutate_self=False
+                )
+                propellant_I_13 = propellant_I_13.set_discrete_based_on_model(
+                    self.thrust, mutate_self=False
+                )
+                propellant_I_23 = propellant_I_23.set_discrete_based_on_model(
+                    self.thrust, mutate_self=False
+                )
             data.update(
                 {
                     "vacuum_thrust": self.vacuum_thrust,
-                    "total_mass": self.total_mass,
-                    "propellant_mass": self.propellant_mass,
-                    "mass_flow_rate": self.mass_flow_rate,
-                    "center_of_mass": self.center_of_mass,
-                    "center_of_propellant_mass": self.center_of_propellant_mass,
+                    "total_mass": total_mass,
+                    "propellant_mass": propellant_mass,
+                    "mass_flow_rate": mass_flow_rate,
+                    "center_of_mass": center_of_mass,
+                    "center_of_propellant_mass": center_of_propellant_mass,
                     "total_impulse": self.total_impulse,
-                    "exhaust_velocity": self.exhaust_velocity,
+                    "exhaust_velocity": exhaust_velocity,
                     "propellant_initial_mass": self.propellant_initial_mass,
                     "structural_mass_ratio": self.structural_mass_ratio,
-                    "I_11": self.I_11,
-                    "I_22": self.I_22,
-                    "I_33": self.I_33,
-                    "I_12": self.I_12,
-                    "I_13": self.I_13,
-                    "I_23": self.I_23,
-                    "propellant_I_11": self.propellant_I_11,
-                    "propellant_I_22": self.propellant_I_22,
-                    "propellant_I_33": self.propellant_I_33,
-                    "propellant_I_12": self.propellant_I_12,
-                    "propellant_I_13": self.propellant_I_13,
-                    "propellant_I_23": self.propellant_I_23,
+                    "I_11": I_11,
+                    "I_22": I_22,
+                    "I_33": I_33,
+                    "I_12": I_12,
+                    "I_13": I_13,
+                    "I_23": I_23,
+                    "propellant_I_11": propellant_I_11,
+                    "propellant_I_22": propellant_I_22,
+                    "propellant_I_33": propellant_I_33,
+                    "propellant_I_12": propellant_I_12,
+                    "propellant_I_13": propellant_I_13,
+                    "propellant_I_23": propellant_I_23,
                 }
             )
 
@@ -1510,7 +1566,7 @@ class GenericMotor(Motor):
         Function
             Function representing the center of mass of the motor.
         """
-        return self.chamber_position
+        return Function(self.chamber_position).set_discrete_based_on_model(self.thrust)
 
     @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
     def propellant_I_11(self):
@@ -1532,11 +1588,11 @@ class GenericMotor(Motor):
         ----------
         https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        return (
+        return Function(
             self.propellant_mass
             * (3 * self.chamber_radius**2 + self.chamber_height**2)
             / 12
-        )
+        ).set_discrete_based_on_model(self.thrust)
 
     @funcify_method("Time (s)", "Inertia I_22 (kg m²)")
     def propellant_I_22(self):
@@ -1580,19 +1636,21 @@ class GenericMotor(Motor):
         ----------
         https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        return self.propellant_mass * self.chamber_radius**2 / 2
+        return Function(
+            self.propellant_mass * self.chamber_radius**2 / 2
+        ).set_discrete_based_on_model(self.thrust)
 
     @funcify_method("Time (s)", "Inertia I_12 (kg m²)")
     def propellant_I_12(self):
-        return Function(0)
+        return Function(0).set_discrete_based_on_model(self.thrust)
 
     @funcify_method("Time (s)", "Inertia I_13 (kg m²)")
     def propellant_I_13(self):
-        return Function(0)
+        return Function(0).set_discrete_based_on_model(self.thrust)
 
     @funcify_method("Time (s)", "Inertia I_23 (kg m²)")
     def propellant_I_23(self):
-        return Function(0)
+        return Function(0).set_discrete_based_on_model(self.thrust)
 
     @staticmethod
     def load_from_eng_file(
@@ -1862,8 +1920,8 @@ class GenericMotor(Motor):
         self.prints.all()
         self.plots.all()
 
-    def to_dict(self, include_outputs=False):
-        data = super().to_dict(include_outputs)
+    def to_dict(self, **kwargs):
+        data = super().to_dict(**kwargs)
         data.update(
             {
                 "chamber_radius": self.chamber_radius,

@@ -1,7 +1,10 @@
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
 import pytest
+
+from rocketpy.motors import TankGeometry
 
 PRESSURANT_PARAMS = (0.135 / 2, 0.981)
 PROPELLANT_PARAMS = (0.0744, 0.8068)
@@ -124,3 +127,8 @@ def test_tank_inertia(params, request):
         rtol=1e-5,
         atol=1e-9,
     )
+
+
+@patch("matplotlib.pyplot.show")
+def test_tank_geometry_plots_info(mock_show):  # pylint: disable=unused-argument
+    assert TankGeometry({(0, 5): 1}).plots.all() is None

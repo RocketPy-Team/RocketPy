@@ -497,8 +497,8 @@ class LiquidMotor(Motor):
         """
         self.plots.draw(filename=filename)
 
-    def to_dict(self, include_outputs=False):
-        data = super().to_dict(include_outputs)
+    def to_dict(self, **kwargs):
+        data = super().to_dict(**kwargs)
         data.update(
             {
                 "positioned_tanks": [

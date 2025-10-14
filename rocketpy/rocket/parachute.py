@@ -9,7 +9,7 @@ from ..prints.parachute_prints import _ParachutePrints
 
 
 class Parachute:
-    """Keeps parachute information.
+    """Keeps information of the parachute, which is modeled as a hemispheroid.
 
     Attributes
     ----------
@@ -92,6 +92,20 @@ class Parachute:
         Function of noisy_pressure_signal.
     Parachute.clean_pressure_signal_function : Function
         Function of clean_pressure_signal.
+    Parachute.radius : float
+        Length of the non-unique semi-axis (radius) of the inflated hemispheroid
+        parachute in meters.
+    Parachute.height : float, None
+        Length of the unique semi-axis (height) of the inflated hemispheroid
+        parachute in meters.
+    Parachute.porosity : float
+        Geometric porosity of the canopy (ratio of open area to total canopy area),
+        in [0, 1]. Affects only the added-mass scaling during descent; it does
+        not change ``cd_s`` (drag). The default, 0.0432, yields an added-mass
+        of 1.0 (“neutral” behavior).
+    Parachute.added_mass_coefficient : float
+        Coefficient used to calculate the added-mass due to dragged air. It is
+        calculated from the porosity of the parachute.
     """
 
     def __init__(
@@ -102,6 +116,9 @@ class Parachute:
         sampling_rate,
         lag=0,
         noise=(0, 0, 0),
+        radius=1.5,
+        height=None,
+        porosity=0.0432,
     ):
         """Initializes Parachute class.
 
@@ -154,6 +171,19 @@ class Parachute:
             The values are used to add noise to the pressure signal which is
             passed to the trigger function. Default value is ``(0, 0, 0)``.
             Units are in Pa.
+        radius : float, optional
+            Length of the non-unique semi-axis (radius) of the inflated hemispheroid
+            parachute. Default value is 1.5.
+            Units are in meters.
+        height : float, optional
+            Length of the unique semi-axis (height) of the inflated hemispheroid
+            parachute. Default value is the radius of the parachute.
+            Units are in meters.
+        porosity : float, optional
+            Geometric porosity of the canopy (ratio of open area to total canopy area),
+            in [0, 1]. Affects only the added-mass scaling during descent; it does
+            not change ``cd_s`` (drag). The default, 0.0432, yields an added-mass
+            of 1.0 (“neutral” behavior).
         """
         self.name = name
         self.cd_s = cd_s
@@ -170,6 +200,15 @@ class Parachute:
         self.clean_pressure_signal_function = Function(0)
         self.noisy_pressure_signal_function = Function(0)
         self.noise_signal_function = Function(0)
+        self.radius = radius
+        self.height = height or radius
+        self.porosity = porosity
+        self.added_mass_coefficient = 1.068 * (
+            1
+            - 1.465 * self.porosity
+            - 0.25975 * self.porosity**2
+            + 1.2626 * self.porosity**3
+        )
 
         alpha, beta = self.noise_corr
         self.noise_function = lambda: alpha * self.noise_signal[-1][
@@ -251,11 +290,15 @@ class Parachute:
         self.info()
         # self.plots.all() # Parachutes still doesn't have plots
 
-    def to_dict(self, include_outputs=False):
+    def to_dict(self, **kwargs):
+        allow_pickle = kwargs.get("allow_pickle", True)
         trigger = self.trigger
 
         if callable(self.trigger) and not isinstance(self.trigger, Function):
-            trigger = to_hex_encode(trigger)
+            if allow_pickle:
+                trigger = to_hex_encode(trigger)
+            else:
+                trigger = trigger.__name__
 
         data = {
             "name": self.name,
@@ -264,11 +307,18 @@ class Parachute:
             "sampling_rate": self.sampling_rate,
             "lag": self.lag,
             "noise": self.noise,
+            "radius": self.radius,
+            "height": self.height,
+            "porosity": self.porosity,
         }
 
-        if include_outputs:
+        if kwargs.get("include_outputs", False):
             data["noise_signal"] = self.noise_signal
-            data["noise_function"] = to_hex_encode(self.noise_function)
+            data["noise_function"] = (
+                to_hex_encode(self.noise_function)
+                if allow_pickle
+                else self.noise_function.__name__
+            )
             data["noisy_pressure_signal"] = self.noisy_pressure_signal
             data["clean_pressure_signal"] = self.clean_pressure_signal
 
@@ -290,6 +340,9 @@ class Parachute:
             sampling_rate=data["sampling_rate"],
             lag=data["lag"],
             noise=data["noise"],
+            radius=data.get("radius", 1.5),
+            height=data.get("height", None),
+            porosity=data.get("porosity", 0.0432),
         )
 
         return parachute

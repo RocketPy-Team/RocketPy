@@ -2885,3 +2885,79 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
         file.write(encoded_class)
         file.close()
         print("Your Environment Analysis file was saved, check it out: " + filename)
+
+    def create_environment_object(
+        self, gravity=None, date=None, datum="SIRGAS2000", max_expected_height=80000.0
+    ):
+        """Creates an Environment object with the data from the Environment Analysis instance.
+        It uses the average values from the data.
+
+        Parameters
+        ----------
+        gravity : int, float, callable, string, array, optional
+            Surface gravitational acceleration. Positive values point the
+            acceleration down. If None, the Somigliana formula is used.
+            See :meth:`Environment.set_gravity_model` for more information.
+        date : list or tuple, optional
+            List or tuple of length 4, stating (year, month, day, hour) in the
+            time zone used in the Environment Analysis instance.
+            Alternatively, can be a ``datetime`` object specifying launch
+            date and time. The dates are stored as follows:
+
+            - :attr:`Environment.local_date`: Local time of launch in
+              the time zone specified in the Environment Analysis instance.
+
+            - :attr:`Environment.datetime_date`: UTC time of launch.
+
+            Default is None.
+            See :meth:`Environment.set_date` for more information.
+        datum : string, optional
+            The desired reference ellipsoidal model, the following options are
+            available: "SAD69", "WGS84", "NAD83", and "SIRGAS2000". The default
+            is "SIRGAS2000".
+        max_expected_height : float, optional
+            Maximum altitude in meters to keep weather data. The altitude must
+            be above sea level (ASL). Especially useful for visualization. Can
+            be altered as desired by running ``max_expected_height = number``.
+        """
+        elevation_si = convert_units(
+            self.converted_elevation, self.unit_system["length"], "m"
+        )
+        altitude_si = convert_units(self.altitude_list, self.unit_system["length"], "m")
+        # Recalculating pressure profile using numpy.percentile
+        pressures = [
+            day_dict[hour]["pressure"](self.altitude_list)
+            for day_dict in self.converted_pressure_level_data.values()
+            for hour in day_dict.keys()
+        ]
+        pressure_profile = np.percentile(pressures, 50, axis=0)
+        pressure_si = convert_units(
+            pressure_profile, self.unit_system["pressure"], "Pa"
+        )
+        temperature_si = convert_units(
+            self.average_temperature_profile, self.unit_system["temperature"], "K"
+        )
+        wind_velocity_x_si = convert_units(
+            self.average_wind_velocity_x_profile, self.unit_system["wind_speed"], "m/s"
+        )
+        wind_velocity_y_si = convert_units(
+            self.average_wind_velocity_y_profile, self.unit_system["wind_speed"], "m/s"
+        )
+        env = Environment(
+            gravity,
+            date,
+            self.latitude,
+            self.longitude,
+            elevation_si,
+            datum,
+            self.preferred_timezone,
+            max_expected_height,
+        )
+        env.set_atmospheric_model(
+            type="custom_atmosphere",
+            pressure=list(zip(altitude_si, pressure_si)),
+            temperature=list(zip(altitude_si, temperature_si)),
+            wind_u=list(zip(altitude_si, wind_velocity_x_si)),
+            wind_v=list(zip(altitude_si, wind_velocity_y_si)),
+        )
+        return env

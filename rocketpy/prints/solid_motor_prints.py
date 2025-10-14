@@ -1,4 +1,7 @@
-class _SolidMotorPrints:
+from .motor_prints import _MotorPrints
+
+
+class _SolidMotorPrints(_MotorPrints):
     """Class that holds prints methods for SolidMotor class.
 
     Attributes
@@ -23,6 +26,7 @@ class _SolidMotorPrints:
         -------
         None
         """
+        super().__init__(solid_motor)
         self.solid_motor = solid_motor
 
     def nozzle_details(self):
@@ -52,28 +56,6 @@ class _SolidMotorPrints:
         print(f"Grain Height: {self.solid_motor.grain_initial_height} m")
         print(f"Grain Volume: {self.solid_motor.grain_initial_volume:.3f} m3")
         print(f"Grain Mass: {self.solid_motor.grain_initial_mass:.3f} kg\n")
-
-    def motor_details(self):
-        """Prints out all data available about the SolidMotor.
-
-        Returns
-        -------
-        None
-        """
-        print("Motor Details")
-        print("Total Burning Time: " + str(self.solid_motor.burn_duration) + " s")
-        print(
-            f"Total Propellant Mass: {self.solid_motor.propellant_initial_mass:.3f} kg"
-        )
-        print(f"Structural Mass Ratio: {self.solid_motor.structural_mass_ratio:.3f}")
-        average = self.solid_motor.exhaust_velocity.average(*self.solid_motor.burn_time)
-        print(f"Average Propellant Exhaust Velocity: {average:.3f} m/s")
-        print(f"Average Thrust: {self.solid_motor.average_thrust:.3f} N")
-        print(
-            f"Maximum Thrust: {self.solid_motor.max_thrust} N "
-            f"at {self.solid_motor.max_thrust_time} s after ignition."
-        )
-        print(f"Total Impulse: {self.solid_motor.total_impulse:.3f} Ns\n")
 
     def all(self):
         """Prints out all data available about the SolidMotor.

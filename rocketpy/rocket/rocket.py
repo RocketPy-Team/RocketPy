@@ -1,5 +1,6 @@
 import math
 import warnings
+from typing import Iterable
 
 import numpy as np
 
@@ -22,7 +23,11 @@ from rocketpy.rocket.aero_surface.fins.free_form_fins import FreeFormFins
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
-from rocketpy.tools import parallel_axis_theorem_from_com
+from rocketpy.tools import (
+    deprecated,
+    find_obj_from_hash,
+    parallel_axis_theorem_from_com,
+)
 
 
 # pylint: disable=too-many-instance-attributes, too-many-public-methods, too-many-instance-attributes
@@ -1173,16 +1178,16 @@ class Rocket:
         self.add_surfaces(nose, position)
         return nose
 
+    @deprecated(
+        reason="This method is set to be deprecated in version 1.0.0 and fully "
+        "removed by version 2.0.0",
+        alternative="Rocket.add_trapezoidal_fins",
+    )
     def add_fins(self, *args, **kwargs):  # pragma: no cover
         """See Rocket.add_trapezoidal_fins for documentation.
         This method is set to be deprecated in version 1.0.0 and fully removed
         by version 2.0.0. Use Rocket.add_trapezoidal_fins instead. It keeps the
         same arguments and signature."""
-        warnings.warn(
-            "This method is set to be deprecated in version 1.0.0 and fully "
-            "removed by version 2.0.0. Use Rocket.add_trapezoidal_fins instead",
-            DeprecationWarning,
-        )
         return self.add_trapezoidal_fins(*args, **kwargs)
 
     def add_trapezoidal_fins(
@@ -1434,7 +1439,16 @@ class Rocket:
         return fin_set
 
     def add_parachute(
-        self, name, cd_s, trigger, sampling_rate=100, lag=0, noise=(0, 0, 0)
+        self,
+        name,
+        cd_s,
+        trigger,
+        sampling_rate=100,
+        lag=0,
+        noise=(0, 0, 0),
+        radius=1.5,
+        height=None,
+        porosity=0.0432,
     ):
         """Creates a new parachute, storing its parameters such as
         opening delay, drag coefficients and trigger function.
@@ -1493,16 +1507,39 @@ class Rocket:
             The values are used to add noise to the pressure signal which is
             passed to the trigger function. Default value is (0, 0, 0). Units
             are in pascal.
+        radius : float, optional
+            Length of the non-unique semi-axis (radius) of the inflated hemispheroid
+            parachute. Default value is 1.5.
+            Units are in meters.
+        height : float, optional
+            Length of the unique semi-axis (height) of the inflated hemispheroid
+            parachute. Default value is the radius of the parachute.
+            Units are in meters.
+        porosity : float, optional
+            Geometric porosity of the canopy (ratio of open area to total canopy area),
+            in [0, 1]. Affects only the added-mass scaling during descent; it does
+            not change ``cd_s`` (drag). The default, 0.0432, yields an added-mass
+            of 1.0 (“neutral” behavior).
 
         Returns
         -------
         parachute : Parachute
-            Parachute  containing trigger, sampling_rate, lag, cd_s, noise
-            and name. Furthermore, it stores clean_pressure_signal,
+            Parachute containing trigger, sampling_rate, lag, cd_s, noise, radius,
+            height, porosity and name. Furthermore, it stores clean_pressure_signal,
             noise_signal and noisyPressureSignal which are filled in during
             Flight simulation.
         """
-        parachute = Parachute(name, cd_s, trigger, sampling_rate, lag, noise)
+        parachute = Parachute(
+            name,
+            cd_s,
+            trigger,
+            sampling_rate,
+            lag,
+            noise,
+            radius,
+            height,
+            porosity,
+        )
         self.parachutes.append(parachute)
         return self.parachutes[-1]
 
@@ -1892,7 +1929,16 @@ class Rocket:
         self.info()
         self.plots.all()
 
-    def to_dict(self, include_outputs=False):
+    # pylint: disable=too-many-statements
+    def to_dict(self, **kwargs):
+        discretize = kwargs.get("discretize", False)
+
+        power_off_drag = self.power_off_drag
+        power_on_drag = self.power_on_drag
+        if discretize:
+            power_off_drag = power_off_drag.set_discrete(0, 4, 50, mutate_self=False)
+            power_on_drag = power_on_drag.set_discrete(0, 4, 50, mutate_self=False)
+
         rocket_dict = {
             "radius": self.radius,
             "mass": self.mass,
@@ -1902,8 +1948,8 @@ class Rocket:
             "I_12_without_motor": self.I_12_without_motor,
             "I_13_without_motor": self.I_13_without_motor,
             "I_23_without_motor": self.I_23_without_motor,
-            "power_off_drag": self.power_off_drag,
-            "power_on_drag": self.power_on_drag,
+            "power_off_drag": power_off_drag,
+            "power_on_drag": power_on_drag,
             "center_of_mass_without_motor": self.center_of_mass_without_motor,
             "coordinate_system_orientation": self.coordinate_system_orientation,
             "motor": self.motor,
@@ -1916,7 +1962,51 @@ class Rocket:
             "sensors": self.sensors,
         }
 
-        if include_outputs:
+        if kwargs.get("include_outputs", False):
+            thrust_to_weight = self.thrust_to_weight
+            cp_position = self.cp_position
+            stability_margin = self.stability_margin
+            center_of_mass = self.center_of_mass
+            motor_center_of_mass_position = self.motor_center_of_mass_position
+            reduced_mass = self.reduced_mass
+            total_mass = self.total_mass
+            total_mass_flow_rate = self.total_mass_flow_rate
+            center_of_propellant_position = self.center_of_propellant_position
+
+            if discretize:
+                thrust_to_weight = thrust_to_weight.set_discrete_based_on_model(
+                    self.motor.thrust, mutate_self=False
+                )
+                cp_position = cp_position.set_discrete(0, 4, 25, mutate_self=False)
+                stability_margin = stability_margin.set_discrete(
+                    (0, self.motor.burn_time[0]),
+                    (2, self.motor.burn_time[1]),
+                    (10, 10),
+                    mutate_self=False,
+                )
+                center_of_mass = center_of_mass.set_discrete_based_on_model(
+                    self.motor.thrust, mutate_self=False
+                )
+                motor_center_of_mass_position = (
+                    motor_center_of_mass_position.set_discrete_based_on_model(
+                        self.motor.thrust, mutate_self=False
+                    )
+                )
+                reduced_mass = reduced_mass.set_discrete_based_on_model(
+                    self.motor.thrust, mutate_self=False
+                )
+                total_mass = total_mass.set_discrete_based_on_model(
+                    self.motor.thrust, mutate_self=False
+                )
+                total_mass_flow_rate = total_mass_flow_rate.set_discrete_based_on_model(
+                    self.motor.thrust, mutate_self=False
+                )
+                center_of_propellant_position = (
+                    center_of_propellant_position.set_discrete_based_on_model(
+                        self.motor.thrust, mutate_self=False
+                    )
+                )
+
             rocket_dict["area"] = self.area
             rocket_dict["center_of_dry_mass_position"] = (
                 self.center_of_dry_mass_position
@@ -1924,30 +2014,26 @@ class Rocket:
             rocket_dict["center_of_mass_without_motor"] = (
                 self.center_of_mass_without_motor
             )
-            rocket_dict["motor_center_of_mass_position"] = (
-                self.motor_center_of_mass_position
-            )
+            rocket_dict["motor_center_of_mass_position"] = motor_center_of_mass_position
             rocket_dict["motor_center_of_dry_mass_position"] = (
                 self.motor_center_of_dry_mass_position
             )
-            rocket_dict["center_of_mass"] = self.center_of_mass
-            rocket_dict["reduced_mass"] = self.reduced_mass
-            rocket_dict["total_mass"] = self.total_mass
-            rocket_dict["total_mass_flow_rate"] = self.total_mass_flow_rate
-            rocket_dict["thrust_to_weight"] = self.thrust_to_weight
+            rocket_dict["center_of_mass"] = center_of_mass
+            rocket_dict["reduced_mass"] = reduced_mass
+            rocket_dict["total_mass"] = total_mass
+            rocket_dict["total_mass_flow_rate"] = total_mass_flow_rate
+            rocket_dict["thrust_to_weight"] = thrust_to_weight
             rocket_dict["cp_eccentricity_x"] = self.cp_eccentricity_x
             rocket_dict["cp_eccentricity_y"] = self.cp_eccentricity_y
             rocket_dict["thrust_eccentricity_x"] = self.thrust_eccentricity_x
             rocket_dict["thrust_eccentricity_y"] = self.thrust_eccentricity_y
-            rocket_dict["cp_position"] = self.cp_position
-            rocket_dict["stability_margin"] = self.stability_margin
+            rocket_dict["cp_position"] = cp_position
+            rocket_dict["stability_margin"] = stability_margin
             rocket_dict["static_margin"] = self.static_margin
             rocket_dict["nozzle_position"] = self.nozzle_position
             rocket_dict["nozzle_to_cdm"] = self.nozzle_to_cdm
             rocket_dict["nozzle_gyration_tensor"] = self.nozzle_gyration_tensor
-            rocket_dict["center_of_propellant_position"] = (
-                self.center_of_propellant_position
-            )
+            rocket_dict["center_of_propellant_position"] = center_of_propellant_position
 
         return rocket_dict
 
@@ -1990,17 +2076,29 @@ class Rocket:
         for parachute in data["parachutes"]:
             rocket.parachutes.append(parachute)
 
-        for air_brakes in data["air_brakes"]:
-            rocket.add_air_brakes(
-                drag_coefficient_curve=air_brakes["drag_coefficient_curve"],
-                controller_function=air_brakes["controller_function"],
-                sampling_rate=air_brakes["sampling_rate"],
-                clamp=air_brakes["clamp"],
-                reference_area=air_brakes["reference_area"],
-                initial_observed_variables=air_brakes["initial_observed_variables"],
-                override_rocket_drag=air_brakes["override_rocket_drag"],
-                name=air_brakes["name"],
-                controller_name=air_brakes["controller_name"],
-            )
+        for sensor, position in data["sensors"]:
+            rocket.add_sensor(sensor, position)
+
+        for air_brake in data["air_brakes"]:
+            rocket.air_brakes.append(air_brake)
+
+        for controller in data["_controllers"]:
+            interactive_objects_hash = getattr(controller, "_interactive_objects_hash")
+            if interactive_objects_hash is not None:
+                is_iterable = isinstance(interactive_objects_hash, Iterable)
+                if not is_iterable:
+                    interactive_objects_hash = [interactive_objects_hash]
+                for hash_ in interactive_objects_hash:
+                    if (hashed_obj := find_obj_from_hash(data, hash_)) is not None:
+                        if not is_iterable:
+                            controller.interactive_objects = hashed_obj
+                        else:
+                            controller.interactive_objects.append(hashed_obj)
+                    else:
+                        warnings.warn(
+                            "Could not find controller interactive objects."
+                            "Deserialization will proceed, results may not be accurate."
+                        )
+            rocket._add_controllers(controller)
 
         return rocket
