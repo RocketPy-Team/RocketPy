@@ -182,12 +182,13 @@ def find_roots_cubic_function(a, b, c, d):
     Examples
     --------
     >>> from rocketpy.tools import find_roots_cubic_function
+    >>> import cmath
 
     First we define the coefficients of the function ax**3 + bx**2 + cx + d
     >>> a, b, c, d = 1, -3, -1, 3
     >>> x1, x2, x3 = find_roots_cubic_function(a, b, c, d)
-    >>> x1
-    (-1+0j)
+    >>> cmath.isclose(x1, (-1+0j))
+    True
 
     To get the real part of the roots, use the real attribute of the complex
     number.
