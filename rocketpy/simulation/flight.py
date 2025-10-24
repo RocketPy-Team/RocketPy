@@ -2159,7 +2159,6 @@ class Flight:
         #     (1 - eta) * t**5 + eta * (to**3) * (t**2)
         # )
         # Rdot = 0
-        # tf = 8 * nominal diameter / velocity at line stretch
 
         # tf = 8 * nominal diameter / velocity at line stretch
 
