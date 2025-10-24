@@ -4,7 +4,7 @@ version = "1.10.0"
 description="Advanced 6-DOF trajectory simulation for High-Power Rocketry."
 dynamic = ["dependencies"]
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 authors = [
   {name = "Giovani Hidalgo Ceotto", email = "ghceotto@gmail.com"},
   {name = "Guilherme Fernandes Alves", email = "guilherme_fernandes@usp.br"},

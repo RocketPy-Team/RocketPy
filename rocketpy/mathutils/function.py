@@ -449,6 +449,9 @@ class Function:  # pylint: disable=too-many-public-methods
 
             self._interpolation_func = rbf_interpolation
 
+        else:
+            raise ValueError(f"Interpolation {interpolation} method not recognized.")
+
     def __set_extrapolation_func(self):  # pylint: disable=too-many-statements
         """Defines extrapolation function used by the Function. Each
         extrapolation method has its own function. The function is stored in
@@ -532,6 +535,11 @@ class Function:  # pylint: disable=too-many-public-methods
                 def natural_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                     return interpolator(x)
 
+            else:
+                raise ValueError(
+                    f"Natural extrapolation not defined for {interpolation}."
+                )
+
             self._extrapolation_func = natural_extrapolation
         elif extrapolation == 2:  # constant
             if self.__dom_dim__ == 1:
@@ -547,6 +555,8 @@ class Function:  # pylint: disable=too-many-public-methods
                     return extrapolator(x)
 
             self._extrapolation_func = constant_extrapolation
+        else:
+            raise ValueError(f"Extrapolation {extrapolation} method not recognized.")
 
     def set_get_value_opt(self):
         """Defines a method that evaluates interpolations.

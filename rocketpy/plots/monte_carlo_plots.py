@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from matplotlib.transforms import offset_copy
 import numpy as np
 
 from ..tools import generate_monte_carlo_ellipses, import_optional_dependency
@@ -114,9 +115,20 @@ class _MonteCarloPlots:
             )
 
         plt.legend()
+
         ax.set_title("1$\\sigma$, 2$\\sigma$ and 3$\\sigma$ Monte Carlo Ellipses")
-        ax.set_ylabel("North (m)")
-        ax.set_xlabel("East (m)")
+        north_south_offset = offset_copy(
+            ax.transAxes, fig=plt.gcf(), x=-72, y=0, units="points"
+        )
+        east_west_offset = offset_copy(
+            ax.transAxes, fig=plt.gcf(), x=0, y=-30, units="points"
+        )
+        ax.text(0, 0, "West", va="bottom", ha="center", transform=east_west_offset)
+        ax.text(1, 0, "East", va="bottom", ha="center", transform=east_west_offset)
+        ax.text(0, 0, "South", va="bottom", ha="left", transform=north_south_offset)
+        ax.text(0, 1, "North", va="top", ha="left", transform=north_south_offset)
+        ax.set_ylabel("Y (m)")
+        ax.set_xlabel("X (m)")
 
         # Add background image to plot
         # TODO: In the future, integrate with other libraries to plot the map (e.g. cartopy, ee, etc.)
