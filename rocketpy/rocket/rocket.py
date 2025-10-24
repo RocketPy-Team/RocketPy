@@ -2114,11 +2114,11 @@ class PointMassRocket(Rocket):
     """
     def __init__(
         self,
-        radius: float = 0.05,
-        mass: float = 0,
-        center_of_mass_without_motor: float = 0,
-        power_off_drag: float = 0.4,
-        power_on_drag: float = 0.4,
+        radius: float,
+        mass: float,
+        center_of_mass_without_motor: float,
+        power_off_drag: float,
+        power_on_drag: float,
     ):
         self._center_of_mass_without_motor_pointmass = center_of_mass_without_motor
         self._center_of_dry_mass_position = center_of_mass_without_motor
@@ -2141,29 +2141,3 @@ class PointMassRocket(Rocket):
             center_of_mass_without_motor=center_of_mass_without_motor,
         )
 
-    # ------------------------------------------------------------------
-    # Center of Mass Properties
-    # ------------------------------------------------------------------
-    @property
-    def center_of_mass_without_motor(self):
-        return self._center_of_mass_without_motor_pointmass
-
-    @center_of_mass_without_motor.setter
-    def center_of_mass_without_motor(self, value):
-        self._center_of_mass_without_motor_pointmass = value
-
-    @property
-    def center_of_dry_mass_position(self):
-        return self._center_of_dry_mass_position
-
-    @center_of_dry_mass_position.setter
-    def center_of_dry_mass_position(self, value):
-        self._center_of_dry_mass_position = value
-
-    @property
-    def center_of_mass(self):
-        return self._center_of_mass
-
-    @center_of_mass.setter
-    def center_of_mass(self, value):
-        self._center_of_mass = value
