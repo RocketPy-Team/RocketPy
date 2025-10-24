@@ -2105,6 +2105,13 @@ class Rocket:
 
 
 class PointMassRocket(Rocket):
+    """
+    A simplified rocket class for trajectory simulations where the rocket is modeled as a point mass.
+
+    This class omits rotational dynamics and complex inertial properties,
+    focusing solely on translational (3-DOF) motion based on mass and aerodynamics.
+    Appropriate for educational use, quick analyses, or when rotational effects are negligible.
+    """
     def __init__(
         self,
         radius: float = 0.05,
