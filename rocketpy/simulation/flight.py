@@ -1130,6 +1130,7 @@ class Flight:
         self.out_of_rail_time_index = 0
         self.out_of_rail_state = np.array([0])
         self.apogee_state = np.array([0])
+        self.apogee = 0
         self.apogee_time = 0
         self.x_impact = 0
         self.y_impact = 0
