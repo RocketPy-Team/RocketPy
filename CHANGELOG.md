@@ -52,6 +52,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+- BUG: correct encoding for trapezoidal sweep length and angle. [#861](https://github.com/RocketPy-Team/RocketPy/pull/861)
 - BUG: Fix no time initialization when passing initial_solution as array to Flight object [#844](https://github.com/RocketPy-Team/RocketPy/pull/844)
 
 

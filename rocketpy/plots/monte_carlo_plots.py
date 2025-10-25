@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
-from matplotlib.transforms import offset_copy
 import numpy as np
+from matplotlib.transforms import offset_copy
 
 from ..tools import generate_monte_carlo_ellipses, import_optional_dependency
 
