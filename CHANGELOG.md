@@ -44,6 +44,7 @@ Attention: The newest changes should be on top -->
 
 ### Changed
 
+- TST: remove remaining files after test session. [#862](https://github.com/RocketPy-Team/RocketPy/pull/862)
 - MNT: bumps min python version to 3.10 [#857](https://github.com/RocketPy-Team/RocketPy/pull/857)
 - DOC: Update docs dependencies and sub dependencies [#851](https://github.com/RocketPy-Team/RocketPy/pull/851)
 - MNT: extract flight data exporters [#845](https://github.com/RocketPy-Team/RocketPy/pull/845)
