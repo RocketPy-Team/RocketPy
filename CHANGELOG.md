@@ -45,6 +45,7 @@ Attention: The newest changes should be on top -->
 ### Changed
 
 - MNT: allow for exporting of non apogee flights. [#863](https://github.com/RocketPy-Team/RocketPy/pull/863)
+- TST: remove remaining files after test session. [#862](https://github.com/RocketPy-Team/RocketPy/pull/862)
 - MNT: bumps min python version to 3.10 [#857](https://github.com/RocketPy-Team/RocketPy/pull/857)
 - DOC: Update docs dependencies and sub dependencies [#851](https://github.com/RocketPy-Team/RocketPy/pull/851)
 - MNT: extract flight data exporters [#845](https://github.com/RocketPy-Team/RocketPy/pull/845)
@@ -53,6 +54,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+- BUG: correct encoding for trapezoidal sweep length and angle. [#861](https://github.com/RocketPy-Team/RocketPy/pull/861)
 - BUG: Fix no time initialization when passing initial_solution as array to Flight object [#844](https://github.com/RocketPy-Team/RocketPy/pull/844)
 
 

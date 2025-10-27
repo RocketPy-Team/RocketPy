@@ -176,9 +176,6 @@ class TrapezoidalFins(Fins):
             sweep_length = np.tan(sweep_angle * np.pi / 180) * span
         elif sweep_length is None:
             sweep_length = root_chord - tip_chord
-        else:
-            # Sweep length is given
-            pass
 
         self._tip_chord = tip_chord
         self._sweep_length = sweep_length
@@ -351,12 +348,12 @@ class TrapezoidalFins(Fins):
     def to_dict(self, **kwargs):
         data = super().to_dict(**kwargs)
         data["tip_chord"] = self.tip_chord
+        data["sweep_length"] = self.sweep_length
+        data["sweep_angle"] = self.sweep_angle
 
         if kwargs.get("include_outputs", False):
             data.update(
                 {
-                    "sweep_length": self.sweep_length,
-                    "sweep_angle": self.sweep_angle,
                     "shape_vec": self.shape_vec,
                     "Af": self.Af,
                     "AR": self.AR,
@@ -382,4 +379,5 @@ class TrapezoidalFins(Fins):
             cant_angle=data["cant_angle"],
             airfoil=data["airfoil"],
             name=data["name"],
+            sweep_length=data.get("sweep_length"),
         )

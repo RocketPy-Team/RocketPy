@@ -242,6 +242,41 @@ def test_rocket_encoder(rocket_name, request):
     )
 
 
+@pytest.mark.parametrize(
+    "fin_name",
+    [
+        "calisto_trapezoidal_fins",
+        "calisto_trapezoidal_fins_custom_sweep_length",
+        "calisto_trapezoidal_fins_custom_sweep_angle",
+    ],
+)
+def test_trapezoidal_fins_encoder(fin_name, request):
+    """Test encoding a ``rocketpy.TrapezoidalFins``.
+
+    Parameters
+    ----------
+    fin_name : str
+        Name of the fin fixture to encode.
+    request : pytest.FixtureRequest
+        Pytest request object.
+    """
+    fin_to_encode = request.getfixturevalue(fin_name)
+
+    json_encoded = json.dumps(fin_to_encode, cls=RocketPyEncoder)
+
+    fin_loaded = json.loads(json_encoded, cls=RocketPyDecoder)
+
+    assert isinstance(fin_loaded, type(fin_to_encode))
+    assert fin_to_encode.n == fin_loaded.n
+    assert np.isclose(fin_to_encode.span, fin_loaded.span)
+    assert np.isclose(fin_to_encode.root_chord, fin_loaded.root_chord)
+    assert np.isclose(fin_to_encode.tip_chord, fin_loaded.tip_chord)
+    assert np.isclose(fin_to_encode.rocket_radius, fin_loaded.rocket_radius)
+    assert np.isclose(fin_to_encode.sweep_length, fin_loaded.sweep_length)
+    if fin_to_encode._sweep_angle is not None and fin_loaded._sweep_angle is not None:
+        assert np.isclose(fin_to_encode.sweep_angle, fin_loaded.sweep_angle)
+
+
 @pytest.mark.parametrize("rocket_name", ["calisto_robust", "calisto_hybrid_modded"])
 def test_encoder_discretize(rocket_name, request):
     """Test encoding the total mass of ``rocketpy.Rocket`` with
