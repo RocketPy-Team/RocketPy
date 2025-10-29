@@ -7,6 +7,7 @@ which exports flight simulation data to various formats (CSV, JSON, KML).
 import json
 
 import numpy as np
+import pytest
 
 from rocketpy.simulation import FlightDataExporter
 
@@ -225,30 +226,25 @@ def test_export_data_csv_column_names_no_leading_spaces(flight_calisto, tmp_path
     assert ", " not in header_line, "Header should not contain ', ' (comma-space)"
 
     # Verify with pandas that columns are accessible without leading spaces
-    try:
-        import pandas as pd
+    pd = pytest.importorskip("pandas")
+    
+    df = pd.read_csv(file_name)
+    columns = df.columns.tolist()
 
-        df = pd.read_csv(file_name)
-        columns = df.columns.tolist()
+    # First column should be '# Time (s)'
+    assert columns[0] == "# Time (s)"
 
-        # First column should be '# Time (s)'
-        assert columns[0] == "# Time (s)"
+    # Other columns should NOT have leading spaces
+    for col in columns[1:]:
+        assert not col.startswith(" "), f"Column '{col}' has leading space"
 
-        # Other columns should NOT have leading spaces
-        for col in columns[1:]:
-            assert not col.startswith(" "), f"Column '{col}' has leading space"
+    # Verify columns are accessible with expected names (no leading spaces)
+    assert "Z (m)" in columns
+    assert "Vz (m/s)" in columns
+    assert "Altitude AGL (m)" in columns
 
-        # Verify columns are accessible with expected names (no leading spaces)
-        assert "Z (m)" in columns
-        assert "Vz (m/s)" in columns
-        assert "Altitude AGL (m)" in columns
-
-        # Verify we can access data using column names without spaces
-        _ = df["# Time (s)"]
-        _ = df["Z (m)"]
-        _ = df["Vz (m/s)"]
-        _ = df["Altitude AGL (m)"]
-
-    except ImportError:
-        # pandas not available, skip pandas-specific test
-        pass
+    # Verify we can access data using column names without spaces
+    _ = df["# Time (s)"]
+    _ = df["Z (m)"]
+    _ = df["Vz (m/s)"]
+    _ = df["Altitude AGL (m)"]
