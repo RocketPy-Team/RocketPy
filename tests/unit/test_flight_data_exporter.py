@@ -227,7 +227,6 @@ def test_export_data_csv_column_names_no_leading_spaces(flight_calisto, tmp_path
 
     # Verify with pandas that columns are accessible without leading spaces
     pd = pytest.importorskip("pandas")
-    
     df = pd.read_csv(file_name)
     columns = df.columns.tolist()
 
