@@ -5,15 +5,17 @@ import warnings
 import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
 from functools import cached_property
-from os import path
+from os import path, remove
 
 import numpy as np
 import requests
-
+import logging
 from ..mathutils.function import Function, funcify_method
 from ..plots.motor_plots import _MotorPlots
 from ..prints.motor_prints import _MotorPrints
 from ..tools import parallel_axis_theorem_from_com, tuple_handler
+
+logger = logging.getLogger(__name__)
 
 
 # pylint: disable=too-many-public-methods
@@ -1916,7 +1918,7 @@ class GenericMotor(Motor):
             interpolation_method=interpolation_method,
             coordinate_system_orientation=coordinate_system_orientation,
         )
-
+    
     @staticmethod
     def load_from_thrustcurve_api(name: str, **kwargs):
         """
@@ -1926,16 +1928,25 @@ class GenericMotor(Motor):
         Parameters
         ----------
         name : str
-            The motor name according to the API (e.g., "Cesaroni_M1670").
+            The motor name according to the API (e.g., "Cesaroni_M1670" or "M1670").
+            Both manufacturer-prefixed and shorthand names are commonly used; if multiple
+            motors match the search, the first result is used.
         **kwargs :
-            Additional arguments passed to the Motor constructor, such as dry_mass, nozzle_radius, etc.
+            Additional arguments passed to the Motor constructor or loader, such as
+            dry_mass, nozzle_radius, etc.
 
         Returns
         -------
-        instance : cls
-            A new Motor instance initialized using the downloaded .eng file.
-        """
+        instance : GenericMotor
+            A new GenericMotor instance initialized using the downloaded .eng file.
 
+        Raises
+        ------
+        ValueError
+            If no motor is found or if the downloaded .eng data is missing.
+        requests.exceptions.RequestException
+            If a network or HTTP error occurs during the API call.
+        """
         base_url = "https://www.thrustcurve.org/api/v1"
 
         # Step 1. Search motor
@@ -1944,13 +1955,17 @@ class GenericMotor(Motor):
         data = response.json()
 
         if not data.get("results"):
-            print("No motor found.")
-            return None
+            raise ValueError(
+                f"No motor found for name '{name}'. "
+                "Please verify the motor name format (e.g., 'Cesaroni_M1670' or 'M1670') and try again."
+            )
 
-        motor = data["results"][0]
-        motor_id = motor["motorId"]
-        designation = motor["designation"].replace("/", "-")
-        print(f"Motor found: {designation} ({motor['manufacturer']})")
+        motor_info = data["results"][0]
+        motor_id = motor_info.get("motorId")
+        designation = motor_info.get("designation", "").replace("/", "-")
+        manufacturer = motor_info.get("manufacturer", "")
+        # Logging the fact that the motor was found 
+        logger.info(f"Motor found: {designation} ({manufacturer})")
 
         # Step 2. Download the .eng file
         dl_response = requests.get(
@@ -1958,20 +1973,37 @@ class GenericMotor(Motor):
             params={"motorIds": motor_id, "format": "RASP", "data": "file"},
         )
         dl_response.raise_for_status()
-        data = dl_response.json()
+        dl_data = dl_response.json()
 
-        data_base64 = data["results"][0]["data"]
+        if not dl_data.get("results"):
+            raise ValueError(f"No .eng file found for motor '{name}' in the ThrustCurve API.")
+
+        data_base64 = dl_data["results"][0].get("data")
+        if not data_base64:
+            raise ValueError(f"Downloaded .eng data for motor '{name}' is empty or invalid.")
+
         data_bytes = base64.b64decode(data_base64)
 
         # Step 3. Create the motor from the .eng file
+        tmp_path = None
+        try:
+            # create a temporary file that persists until we explicitly remove it
+            with tempfile.NamedTemporaryFile(suffix=".eng", delete=False) as tmp_file:
+                tmp_file.write(data_bytes)
+                tmp_file.flush()
+                tmp_path = tmp_file.name
 
-        with tempfile.NamedTemporaryFile(suffix=".eng", delete=True) as tmp_file:
-            tmp_file.write(data_bytes)
-            tmp_file.flush()
-
-            motor = GenericMotor.load_from_eng_file(tmp_file.name, **kwargs)
-
-        return motor
+        
+            motor_instance = GenericMotor.load_from_eng_file(tmp_path, **kwargs)
+            return motor_instance
+        finally:
+            # Ensuring the temporary file is removed
+            if tmp_path and path.exists(tmp_path):
+                try:
+                    remove(tmp_path)
+                except OSError:
+                    # If cleanup fails, don't raise: we don't want to mask prior exceptions.
+                    pass
 
     def all_info(self):
         """Prints out all data and graphs available about the Motor."""
