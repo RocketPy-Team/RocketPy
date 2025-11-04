@@ -8,7 +8,45 @@ import numpy as np
 import os
 
 def create_era5_compatible_surface(input_path, output_path, target_lat, target_lon):
-    """Patch ERA5 surface data to be RocketPy-compatible."""
+    """
+    Patch ERA5 surface data to be RocketPy-compatible for RocketPy EnvironmentAnalysis.
+
+    This function loads an ERA5 NetCDF surface file, renames and adds required variables,
+    snaps the data to the nearest grid point to the target latitude and longitude, and
+    writes the patched dataset to a new NetCDF file.
+
+    Parameters
+    ----------
+    input_path : str
+        Path to the input ERA5 NetCDF surface file.
+    output_path : str
+        Path to the output patched NetCDF file.
+    target_lat : float
+        Target latitude (in degrees) to snap to the nearest grid point.
+    target_lon : float
+        Target longitude (in degrees) to snap to the nearest grid point.
+
+    Returns
+    -------
+    best_lat : float
+        Latitude of the nearest grid point to the target latitude.
+    best_lon : float
+        Longitude of the nearest grid point to the target longitude.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the input_path does not exist.
+    KeyError
+        If required variables (e.g., 'u10', 'latitude', 'longitude') are missing from the dataset.
+
+    Example
+    -------
+    >>> best_lat, best_lon = create_era5_compatible_surface(
+    ...     "input_surface.nc", "patched_surface.nc", -23.5, -46.6
+    ... )
+    >>> print(best_lat, best_lon)
+    """
     print(f"Loading ERA5 surface: {input_path}")
     ds = xr.open_dataset(input_path)
 
