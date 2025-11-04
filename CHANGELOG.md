@@ -32,6 +32,8 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- ENH: Custom Exception errors and messages [#285](https://github.com/RocketPy-Team/RocketPy/issues/285)
+
 ### Changed
 
 ### Fixed
