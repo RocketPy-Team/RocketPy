@@ -1,6 +1,9 @@
 import numpy as np
 import pytest
 import scipy.integrate
+import requests
+import base64
+
 
 from rocketpy import Function, Motor
 
@@ -212,16 +215,56 @@ def test_load_from_rse_file(generic_motor):
     assert thrust_curve[-1][0] == 2.2  # Last point of time
     assert thrust_curve[-1][1] == 0.0  # Last thrust point
 
-
-def test_load_from_thrustcurve_api(generic_motor):
-    """Tests the GenericMotor.load_from_thrustcurve_api method.
-
+def test_load_from_thrustcurve_api(monkeypatch, generic_motor):
+    """
+    Tests the GenericMotor.load_from_thrustcurve_api method with mocked ThrustCurve API responses.
     Parameters
     ----------
+    monkeypatch : pytest.MonkeyPatch
+        The pytest monkeypatch fixture for mocking.
     generic_motor : rocketpy.GenericMotor
         The GenericMotor object to be used in the tests.
+        
     """
-    # using cesaroni data as example
+
+    class MockResponse:
+        def __init__(self, json_data):
+            self._json_data = json_data
+
+        def json(self):
+            return self._json_data
+
+        def raise_for_status(self):
+            # Simulate a successful HTTP response (200)
+            return None
+
+    # Provide mocked responses for the two endpoints: search.json and download.json
+    def mock_get(url, params=None):
+        if "search.json" in url:
+            # Return a mock search result with a motorId and designation
+            return MockResponse(
+                {
+                    "results": [
+                        {
+                            "motorId": "12345",
+                            "designation": "Cesaroni_M1670",
+                            "manufacturer": "Cesaroni",
+                        }
+                    ]
+                }
+            )
+        elif "download.json" in url:
+            # Read the local .eng file and return its base64-encoded content as the API would
+            eng_path = "data/motors/cesaroni/Cesaroni_M1670.eng"
+            with open(eng_path, "rb") as f:
+                encoded = base64.b64encode(f.read()).decode("utf-8")
+            return MockResponse({"results": [{"data": encoded}]})
+        else:
+            raise RuntimeError(f"Unexpected URL called in test mock: {url}")
+
+    monkeypatch.setattr(requests, "get", mock_get)
+
+    # Expected parameters from the original test
     burn_time = (0, 3.9)
     dry_mass = 5.231 - 3.101  # 2.130 kg
     propellant_initial_mass = 3.101
@@ -229,32 +272,30 @@ def test_load_from_thrustcurve_api(generic_motor):
     chamber_height = 757 / 1000
     nozzle_radius = chamber_radius * 0.85  # 85% of chamber radius
 
-    # Parameters from manual testing using the SolidMotor class as a reference
     average_thrust = 1545.218
     total_impulse = 6026.350
     max_thrust = 2200.0
     exhaust_velocity = 1943.357
 
-    # creating motor from .eng file
-    generic_motor = generic_motor.load_from_thrustcurve_api("M1670")
+    # Call the method using the class (works if it's a staticmethod); using type(generic_motor)
+    # ensures test works if the method is invoked on a GenericMotor instance in the project
+    motor = type(generic_motor).load_from_thrustcurve_api("M1670")
 
-    # testing relevant parameters
-    assert generic_motor.burn_time == burn_time
-    assert generic_motor.dry_mass == dry_mass
-    assert generic_motor.propellant_initial_mass == propellant_initial_mass
-    assert generic_motor.chamber_radius == chamber_radius
-    assert generic_motor.chamber_height == chamber_height
-    assert generic_motor.chamber_position == 0
-    assert generic_motor.average_thrust == pytest.approx(average_thrust)
-    assert generic_motor.total_impulse == pytest.approx(total_impulse)
-    assert generic_motor.exhaust_velocity.average(*burn_time) == pytest.approx(
-        exhaust_velocity
-    )
-    assert generic_motor.max_thrust == pytest.approx(max_thrust)
-    assert generic_motor.nozzle_radius == pytest.approx(nozzle_radius)
+    # Assertions (same as original)
+    assert motor.burn_time == burn_time
+    assert motor.dry_mass == dry_mass
+    assert motor.propellant_initial_mass == propellant_initial_mass
+    assert motor.chamber_radius == chamber_radius
+    assert motor.chamber_height == chamber_height
+    assert motor.chamber_position == 0
+    assert motor.average_thrust == pytest.approx(average_thrust)
+    assert motor.total_impulse == pytest.approx(total_impulse)
+    assert motor.exhaust_velocity.average(*burn_time) == pytest.approx(exhaust_velocity)
+    assert motor.max_thrust == pytest.approx(max_thrust)
+    assert motor.nozzle_radius == pytest.approx(nozzle_radius)
 
-    # testing thrust curve
+    # testing thrust curve equality against the local .eng import (as in original test)
     _, _, points = Motor.import_eng("data/motors/cesaroni/Cesaroni_M1670.eng")
-    assert generic_motor.thrust.y_array == pytest.approx(
+    assert motor.thrust.y_array == pytest.approx(
         Function(points, "Time (s)", "Thrust (N)", "linear", "zero").y_array
     )
