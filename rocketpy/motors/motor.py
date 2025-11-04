@@ -1,4 +1,6 @@
+import base64
 import re
+import tempfile
 import warnings
 import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
@@ -6,6 +8,7 @@ from functools import cached_property
 from os import path
 
 import numpy as np
+import requests
 
 from ..mathutils.function import Function, funcify_method
 from ..plots.motor_plots import _MotorPlots
@@ -1913,6 +1916,62 @@ class GenericMotor(Motor):
             interpolation_method=interpolation_method,
             coordinate_system_orientation=coordinate_system_orientation,
         )
+
+    @staticmethod
+    def load_from_thrustcurve_api(name: str, **kwargs):
+        """
+        Creates a Motor instance by downloading a .eng file from the ThrustCurve API
+        based on the given motor name.
+
+        Parameters
+        ----------
+        name : str
+            The motor name according to the API (e.g., "Cesaroni_M1670").
+        **kwargs :
+            Additional arguments passed to the Motor constructor, such as dry_mass, nozzle_radius, etc.
+
+        Returns
+        -------
+        instance : cls
+            A new Motor instance initialized using the downloaded .eng file.
+        """
+
+        base_url = "https://www.thrustcurve.org/api/v1"
+
+        # Step 1. Search motor
+        response = requests.get(f"{base_url}/search.json", params={"commonName": name})
+        response.raise_for_status()
+        data = response.json()
+
+        if not data.get("results"):
+            print("No motor found.")
+            return None
+
+        motor = data["results"][0]
+        motor_id = motor["motorId"]
+        designation = motor["designation"].replace("/", "-")
+        print(f"Motor found: {designation} ({motor['manufacturer']})")
+
+        # Step 2. Download the .eng file
+        dl_response = requests.get(
+            f"{base_url}/download.json",
+            params={"motorIds": motor_id, "format": "RASP", "data": "file"},
+        )
+        dl_response.raise_for_status()
+        data = dl_response.json()
+
+        data_base64 = data["results"][0]["data"]
+        data_bytes = base64.b64decode(data_base64)
+
+        # Step 3. Create the motor from the .eng file
+
+        with tempfile.NamedTemporaryFile(suffix=".eng", delete=True) as tmp_file:
+            tmp_file.write(data_bytes)
+            tmp_file.flush()
+
+            motor = GenericMotor.load_from_eng_file(tmp_file.name, **kwargs)
+
+        return motor
 
     def all_info(self):
         """Prints out all data and graphs available about the Motor."""
