@@ -19,8 +19,11 @@ def create_era5_compatible_surface(input_path, output_path, target_lat, target_l
 
     # Add v10, u100, v100
     if 'v10' not in ds:
-        ds['v10'] = xr.zeros_like(ds['u10'])
-        print("   → Added 'v10' (zeroed)")
+        if 'u10' in ds:
+            ds['v10'] = xr.zeros_like(ds['u10'])
+            print("   → Added 'v10' (zeroed)")
+        else:
+            raise KeyError("Dataset is missing both 'v10' and 'u10'. Cannot create 'v10'.")
     ds['u100'] = ds['u10']
     ds['v100'] = ds['v10']
     print("   → Added u100/v100")
