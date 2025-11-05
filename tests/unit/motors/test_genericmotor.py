@@ -1,9 +1,9 @@
-import numpy as np
-import pytest
-import scipy.integrate
-import requests
 import base64
 
+import numpy as np
+import pytest
+import requests
+import scipy.integrate
 
 from rocketpy import Function, Motor
 
@@ -215,6 +215,7 @@ def test_load_from_rse_file(generic_motor):
     assert thrust_curve[-1][0] == 2.2  # Last point of time
     assert thrust_curve[-1][1] == 0.0  # Last thrust point
 
+
 def test_load_from_thrustcurve_api(monkeypatch, generic_motor):
     """
     Tests the GenericMotor.load_from_thrustcurve_api method with mocked ThrustCurve API responses.
@@ -224,7 +225,7 @@ def test_load_from_thrustcurve_api(monkeypatch, generic_motor):
         The pytest monkeypatch fixture for mocking.
     generic_motor : rocketpy.GenericMotor
         The GenericMotor object to be used in the tests.
-        
+
     """
 
     class MockResponse:
@@ -299,3 +300,57 @@ def test_load_from_thrustcurve_api(monkeypatch, generic_motor):
     assert motor.thrust.y_array == pytest.approx(
         Function(points, "Time (s)", "Thrust (N)", "linear", "zero").y_array
     )
+
+    # 1. No motor found
+    def mock_get_no_motor(url, params=None):
+        if "search.json" in url:
+            return MockResponse({"results": []})
+        return MockResponse({"results": []})
+
+    monkeypatch.setattr(requests, "get", mock_get_no_motor)
+    with pytest.raises(ValueError, match="No motor found"):
+        type(generic_motor).load_from_thrustcurve_api("NonexistentMotor")
+
+    # 2. No .eng file found
+    def mock_get_no_eng(url, params=None):
+        if "search.json" in url:
+            return MockResponse(
+                {
+                    "results": [
+                        {
+                            "motorId": "123",
+                            "designation": "Fake",
+                            "manufacturer": "Test",
+                        }
+                    ]
+                }
+            )
+        elif "download.json" in url:
+            return MockResponse({"results": []})
+        return MockResponse({})
+
+    monkeypatch.setattr(requests, "get", mock_get_no_eng)
+    with pytest.raises(ValueError, match="No .eng file found"):
+        type(generic_motor).load_from_thrustcurve_api("FakeMotor")
+
+    # 3. Empty .eng data
+    def mock_get_empty_data(url, params=None):
+        if "search.json" in url:
+            return MockResponse(
+                {
+                    "results": [
+                        {
+                            "motorId": "123",
+                            "designation": "Fake",
+                            "manufacturer": "Test",
+                        }
+                    ]
+                }
+            )
+        elif "download.json" in url:
+            return MockResponse({"results": [{"data": ""}]})
+        return MockResponse({})
+
+    monkeypatch.setattr(requests, "get", mock_get_empty_data)
+    with pytest.raises(ValueError, match="Downloaded .eng data"):
+        type(generic_motor).load_from_thrustcurve_api("FakeMotor")
