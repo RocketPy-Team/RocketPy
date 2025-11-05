@@ -1,4 +1,5 @@
 import base64
+import logging
 import re
 import tempfile
 import warnings
@@ -9,7 +10,7 @@ from os import path, remove
 
 import numpy as np
 import requests
-import logging
+
 from ..mathutils.function import Function, funcify_method
 from ..plots.motor_plots import _MotorPlots
 from ..prints.motor_prints import _MotorPrints
@@ -1918,7 +1919,7 @@ class GenericMotor(Motor):
             interpolation_method=interpolation_method,
             coordinate_system_orientation=coordinate_system_orientation,
         )
-    
+
     @staticmethod
     def load_from_thrustcurve_api(name: str, **kwargs):
         """
@@ -1964,7 +1965,7 @@ class GenericMotor(Motor):
         motor_id = motor_info.get("motorId")
         designation = motor_info.get("designation", "").replace("/", "-")
         manufacturer = motor_info.get("manufacturer", "")
-        # Logging the fact that the motor was found 
+        # Logging the fact that the motor was found
         logger.info(f"Motor found: {designation} ({manufacturer})")
 
         # Step 2. Download the .eng file
@@ -1976,11 +1977,15 @@ class GenericMotor(Motor):
         dl_data = dl_response.json()
 
         if not dl_data.get("results"):
-            raise ValueError(f"No .eng file found for motor '{name}' in the ThrustCurve API.")
+            raise ValueError(
+                f"No .eng file found for motor '{name}' in the ThrustCurve API."
+            )
 
         data_base64 = dl_data["results"][0].get("data")
         if not data_base64:
-            raise ValueError(f"Downloaded .eng data for motor '{name}' is empty or invalid.")
+            raise ValueError(
+                f"Downloaded .eng data for motor '{name}' is empty or invalid."
+            )
 
         data_bytes = base64.b64decode(data_base64)
 
@@ -1993,9 +1998,7 @@ class GenericMotor(Motor):
                 tmp_file.flush()
                 tmp_path = tmp_file.name
 
-        
-            motor_instance = GenericMotor.load_from_eng_file(tmp_path, **kwargs)
-            return motor_instance
+            return GenericMotor.load_from_eng_file(tmp_path, **kwargs)
         finally:
             # Ensuring the temporary file is removed
             if tmp_path and path.exists(tmp_path):
