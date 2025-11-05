@@ -1,5 +1,4 @@
 import base64
-import logging
 import re
 import tempfile
 import warnings
@@ -15,8 +14,6 @@ from ..mathutils.function import Function, funcify_method
 from ..plots.motor_plots import _MotorPlots
 from ..prints.motor_prints import _MotorPrints
 from ..tools import parallel_axis_theorem_from_com, tuple_handler
-
-logger = logging.getLogger(__name__)
 
 
 # pylint: disable=too-many-public-methods
@@ -1965,8 +1962,7 @@ class GenericMotor(Motor):
         motor_id = motor_info.get("motorId")
         designation = motor_info.get("designation", "").replace("/", "-")
         manufacturer = motor_info.get("manufacturer", "")
-        # Logging the fact that the motor was found
-        logger.info(f"Motor found: {designation} ({manufacturer})")
+        warnings.warn(f"Motor found: {designation} ({manufacturer})", UserWarning)
 
         # Step 2. Download the .eng file
         dl_response = requests.get(
