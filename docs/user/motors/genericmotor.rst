@@ -106,3 +106,83 @@ note that the user can still provide the parameters manually if needed.
   The ``load_from_eng_file`` method is a very useful tool for simulating motors \
   when the user does not have all the information required to build a ``SolidMotor`` yet.
 
+The ``load_from_thrustcurve_api`` method
+---------------------------------------
+
+The ``GenericMotor`` class provides a convenience loader that downloads a temporary
+`.eng` file from the ThrustCurve.org public API and builds a ``GenericMotor``
+instance from it. This is useful when you know a motor designation (for example
+``"M1670"``) but do not want to manually download and
+save the `.eng` file.
+
+.. note::
+
+    This method performs network requests to the ThrustCurve API. Use it only
+    when you have network access. For automated testing or reproducible runs,
+    prefer using local `.eng` files.
+Signature
+----------
+
+``GenericMotor.load_from_thrustcurve_api(name: str, **kwargs) -> GenericMotor``
+
+Parameters
+----------
+name : str
+    Motor name to search on ThrustCurve (example:
+    ``"M1670"``).Only shorthand names are accepted (e.g. ``"M1670"``, not
+    ``"Cesaroni M1670"``).
+    when multiple matches occur the first result returned by the API is used.
+**kwargs :
+    Same optional arguments accepted by the :class:`GenericMotor` constructor
+    (e.g. ``dry_mass``, ``nozzle_radius``, ``interpolation_method``). Any
+    parameters provided here override values parsed from the downloaded file.
+
+Returns
+----------
+GenericMotor
+    A new ``GenericMotor`` instance created from the .eng data downloaded from
+    ThrustCurve.
+
+Raises
+----------
+ValueError
+    If the API search returns no motor, or if the download endpoint returns no
+    .eng file or empty/invalid data.
+requests.exceptions.RequestException
+
+Behavior notes
+---------------
+- The method first performs a search on ThrustCurve using the provided name.
+  If no results are returned a :class:`ValueError` is raised.
+- If a motor is found the method requests the .eng file in RASP format, decodes
+  it and temporarily writes it to disk; a ``GenericMotor`` is then constructed
+  using the existing .eng file loader. The temporary file is removed even if an
+  error occurs.
+- The function emits a non-fatal informational warning when a motor is found
+  (``warnings.warn(...)``). This follows the repository convention for
+  non-critical messages; callers can filter or suppress warnings as needed.
+
+Example
+---------------
+
+.. jupyter-execute::
+
+    from rocketpy.motors import GenericMotor
+
+    # Build a motor by name (requires network access)
+    motor = GenericMotor.load_from_thrustcurve_api("M1670")
+
+    # Use the motor as usual
+    motor.info()
+
+Testing advice
+---------------
+- ``pytest``'s ``caplog`` or ``capfd`` to assert on log/warning output.
+
+Security & reliability
+----------------
+- The method makes outgoing HTTP requests and decodes base64-encoded content;
+  validate inputs in upstream code if you accept motor names from untrusted
+  sources.
+- Network failures, API rate limits, or changes to the ThrustCurve API may
+  break loading; consider caching downloaded `.eng` files for production use.
