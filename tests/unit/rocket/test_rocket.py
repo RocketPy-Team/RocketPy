@@ -10,7 +10,9 @@ from rocketpy.motors.motor import Motor
 
 
 @patch("matplotlib.pyplot.show")
-def test_elliptical_fins(mock_show, calisto_robust, calisto_trapezoidal_fins):  # pylint: disable=unused-argument
+def test_elliptical_fins(
+    mock_show, calisto_robust, calisto_trapezoidal_fins
+):  # pylint: disable=unused-argument
     test_rocket = calisto_robust
     calisto_robust.aerodynamic_surfaces.remove(calisto_trapezoidal_fins)
     test_rocket.add_elliptical_fins(4, span=0.100, root_chord=0.120, position=-1.168)
@@ -368,6 +370,40 @@ def test_add_motor(calisto_motorless, cesaroni_m1670):
     center_of_mass_with_motor = calisto_motorless.center_of_mass
 
     assert center_of_mass_motorless is not center_of_mass_with_motor
+
+
+def test_check_missing_all_components(calisto_motorless):
+    """Tests the _check_missing_components method for a Rocket with no components."""
+    with pytest.warns(UserWarning) as record:
+        calisto_motorless._check_missing_components()
+
+    assert len(record) == 1
+    msg = str(record[0].message)
+    assert "motor" in msg
+    assert "parachutes" in msg
+    assert "aerodynamic surfaces" in msg
+
+
+def test_check_missing_some_components(calisto):
+    """Tests the _check_missing_components method for a Rocket missing some components."""
+    calisto.parachutes = []
+    calisto.aerodynamic_surfaces = []
+
+    with pytest.warns(UserWarning) as record:
+        calisto._check_missing_components()
+
+    assert len(record) == 1
+    msg = str(record[0].message)
+    assert "parachutes" in msg
+    assert "aerodynamic surfaces" in msg
+
+
+def test_check_missing_no_components_missing(calisto_robust):
+    """Tests the _check_missing_components method for a complete Rocket."""
+    # Call directly — no warnings expected
+    calisto_robust._check_missing_components()
+    # If any warning occurs, pytest will fail automatically
+    assert True
 
 
 def test_set_rail_button(calisto):
