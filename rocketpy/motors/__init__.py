@@ -1,3 +1,4 @@
+from .cluster_motor import ClusterMotor
 from .empty_motor import EmptyMotor
 from .fluid import Fluid
 from .hybrid_motor import HybridMotor

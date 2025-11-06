@@ -3,6 +3,7 @@
 import json
 from datetime import datetime
 from importlib import import_module
+from inspect import Parameter, signature
 
 import numpy as np
 
@@ -71,11 +72,12 @@ class RocketPyEncoder(json.JSONEncoder):
                 encoding["signature"] = get_class_signature(o)
                 return encoding
         elif hasattr(o, "to_dict"):
-            encoding = o.to_dict(
-                include_outputs=self.include_outputs,
-                discretize=self.discretize,
-                allow_pickle=self.allow_pickle,
-            )
+            call_kwargs = {
+                "include_outputs": self.include_outputs,
+                "discretize": self.discretize,
+                "allow_pickle": self.allow_pickle,
+            }
+            encoding = _call_to_dict_with_supported_kwargs(o, call_kwargs)
             encoding = remove_circular_references(encoding)
 
             encoding["signature"] = get_class_signature(o)
@@ -193,6 +195,23 @@ def set_minimal_flight_attributes(flight, obj):
                 flight.net_thrust.set_discrete_based_on_model(flight.speed)
 
     flight.t_initial = flight.initial_solution[0]
+
+
+def _call_to_dict_with_supported_kwargs(obj, candidate_kwargs):
+    """Call obj.to_dict passing only supported keyword arguments."""
+    method = obj.to_dict
+    sig = signature(method)
+    params = list(sig.parameters.values())
+
+    if any(param.kind == Parameter.VAR_KEYWORD for param in params):
+        return method(**candidate_kwargs)
+
+    supported_kwargs = {
+        name: candidate_kwargs[name]
+        for name in sig.parameters
+        if name != "self" and name in candidate_kwargs
+    }
+    return method(**supported_kwargs)
 
 
 def get_class_signature(obj):

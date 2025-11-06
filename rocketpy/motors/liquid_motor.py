@@ -3,21 +3,17 @@ from functools import cached_property
 import numpy as np
 
 from rocketpy.mathutils.function import funcify_method, reset_funcified_methods
-from rocketpy.tools import parallel_axis_theorem_from_com
 
 from ..plots.liquid_motor_plots import _LiquidMotorPlots
-from ..prints.liquid_motor_prints import _LiquidMotorPrints
 from .motor import Motor
 
 
 class LiquidMotor(Motor):
     """Class to specify characteristics and useful operations for Liquid
     motors. This class inherits from the Motor class.
-
     See Also
     --------
     Motor
-
     Attributes
     ----------
     LiquidMotor.coordinate_system_orientation : str
@@ -157,113 +153,43 @@ class LiquidMotor(Motor):
         It will allow to obtain the net thrust in the Flight class.
     """
 
+    # pylint: disable=too-many-locals, too-many-statements, too-many-arguments
     def __init__(
         self,
         thrust_source,
         dry_mass,
         dry_inertia,
         nozzle_radius,
+        burn_time,
         center_of_dry_mass_position,
         nozzle_position=0,
-        burn_time=None,
         reshape_thrust_curve=False,
         interpolation_method="linear",
         coordinate_system_orientation="nozzle_to_combustion_chamber",
         reference_pressure=None,
+        tanks_mass=0,
     ):
-        """Initialize LiquidMotor class, process thrust curve and geometrical
-        parameters and store results.
+        # Initialize the list of tanks
+        self.positioned_tanks = []
 
-        Parameters
-        ----------
-        thrust_source : int, float, callable, string, array, Function
-            Motor's thrust curve. Can be given as an int or float, in which
-            case the thrust will be considered constant in time. It can
-            also be given as a callable function, whose argument is time in
-            seconds and returns the thrust supplied by the motor in the
-            instant. If a string is given, it must point to a .csv or .eng file.
-            The .csv file can contain a single line header and the first column
-            must specify time in seconds, while the second column specifies
-            thrust. Arrays may also be specified, following rules set by the
-            class Function. Thrust units are Newtons.
+        # Correct the dry mass to include the mass of the tanks
+        dry_mass = dry_mass + tanks_mass
+        dry_inertia = (*dry_inertia, 0, 0, 0) if len(dry_inertia) == 3 else dry_inertia
 
-            .. seealso:: :doc:`Thrust Source Details </user/motors/thrust>`
-        dry_mass : int, float
-            Same as in Motor class. See the :class:`Motor <rocketpy.Motor>` docs.
-        dry_inertia : tuple, list
-            Tuple or list containing the motor's dry mass inertia tensor
-            components, in kg*m^2. This inertia is defined with respect to the
-            the ``center_of_dry_mass_position`` position.
-            Assuming e_3 is the rocket's axis of symmetry, e_1 and e_2 are
-            orthogonal and form a plane perpendicular to e_3, the dry mass
-            inertia tensor components must be given in the following order:
-            (I_11, I_22, I_33, I_12, I_13, I_23), where I_ij is the
-            component of the inertia tensor in the direction of e_i x e_j.
-            Alternatively, the inertia tensor can be given as
-            (I_11, I_22, I_33), where I_12 = I_13 = I_23 = 0.
-        nozzle_radius : int, float
-            Motor's nozzle outlet radius in meters.
-        center_of_dry_mass_position : int, float
-            The position, in meters, of the motor's center of mass with respect
-            to the motor's coordinate system when it is devoid of propellant.
-            See :doc:`Positions and Coordinate Systems </user/positions>`
-        nozzle_position : float
-            Motor's nozzle outlet position in meters, specified in the motor's
-            coordinate system. See
-            :doc:`Positions and Coordinate Systems </user/positions>` for
-            more information.
-        burn_time: float, tuple of float, optional
-            Motor's burn time.
-            If a float is given, the burn time is assumed to be between 0 and
-            the given float, in seconds.
-            If a tuple of float is given, the burn time is assumed to be between
-            the first and second elements of the tuple, in seconds.
-            If not specified, automatically sourced as the range between the
-            first and last-time step of the motor's thrust curve. This can only
-            be used if the motor's thrust is defined by a list of points, such
-            as a .csv file, a .eng file or a Function instance whose source is
-            a list.
-        reshape_thrust_curve : boolean, tuple, optional
-            If False, the original thrust curve supplied is not altered. If a
-            tuple is given, whose first parameter is a new burn out time and
-            whose second parameter is a new total impulse in Ns, the thrust
-            curve is reshaped to match the new specifications. May be useful
-            for motors whose thrust curve shape is expected to remain similar
-            in case the impulse and burn time varies slightly. Default is
-            False.
-        interpolation_method : string, optional
-            Method of interpolation to be used in case thrust curve is given
-            by data set in .csv or .eng, or as an array. Options are 'spline'
-            'akima' and 'linear'. Default is "linear".
-        coordinate_system_orientation : string, optional
-            Orientation of the motor's coordinate system. The coordinate system
-            is defined by the motor's axis of symmetry. The origin of the
-            coordinate system may be placed anywhere along such axis, such as
-            at the nozzle area, and must be kept the same for all other
-            positions specified. Options are "nozzle_to_combustion_chamber"
-            and "combustion_chamber_to_nozzle". Default is
-            "nozzle_to_combustion_chamber".
-        reference_pressure : int, float, optional
-            Atmospheric pressure in Pa at which the thrust data was recorded.
-        """
         super().__init__(
             thrust_source=thrust_source,
+            dry_mass=dry_mass,
             dry_inertia=dry_inertia,
             nozzle_radius=nozzle_radius,
-            center_of_dry_mass_position=center_of_dry_mass_position,
-            dry_mass=dry_mass,
-            nozzle_position=nozzle_position,
             burn_time=burn_time,
+            center_of_dry_mass_position=center_of_dry_mass_position,
+            nozzle_position=nozzle_position,
             reshape_thrust_curve=reshape_thrust_curve,
             interpolation_method=interpolation_method,
             coordinate_system_orientation=coordinate_system_orientation,
             reference_pressure=reference_pressure,
         )
 
-        self.positioned_tanks = []
-
-        # Initialize plots and prints object
-        self.prints = _LiquidMotorPrints(self)
         self.plots = _LiquidMotorPlots(self)
 
     @funcify_method("Time (s)", "Exhaust Velocity (m/s)")
@@ -374,36 +300,16 @@ class LiquidMotor(Motor):
 
     @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
     def propellant_I_11(self):
-        """Inertia tensor 11 component of the propellant, the inertia is
-        relative to the e_1 axis, centered at the instantaneous propellant
-        center of mass.
+        """Inertia tensor 11 component of the total propellant, the inertia is
+        relative to the e_1 axis, centered at the instantaneous total propellant
+        center of mass. Recalculated here relative to the instantaneous CoM.
 
         Returns
         -------
         Function
-            Propellant inertia tensor 11 component at time t.
-
-        Notes
-        -----
-        The e_1 direction is assumed to be the direction perpendicular to the
-        motor body axis.
-
-        References
-        ----------
-        https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+            Total propellant inertia tensor 11 component at time t relative to total propellant CoM.
         """
-        I_11 = 0
-        center_of_mass = self.center_of_propellant_mass
-
-        for positioned_tank in self.positioned_tanks:
-            tank = positioned_tank.get("tank")
-            tank_position = positioned_tank.get("position")
-            distance = tank_position + tank.center_of_mass - center_of_mass
-            I_11 += parallel_axis_theorem_from_com(
-                tank.inertia, tank.fluid_mass, distance
-            )
-
-        return I_11
+        return self.propellant_I_11_from_propellant_CM
 
     @funcify_method("Time (s)", "Inertia I_22 (kg m²)")
     def propellant_I_22(self):
@@ -497,8 +403,8 @@ class LiquidMotor(Motor):
         """
         self.plots.draw(filename=filename)
 
-    def to_dict(self, **kwargs):
-        data = super().to_dict(**kwargs)
+    def to_dict(self, include_outputs=False):
+        data = super().to_dict(include_outputs)
         data.update(
             {
                 "positioned_tanks": [

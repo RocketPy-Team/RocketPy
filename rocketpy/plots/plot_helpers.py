@@ -3,7 +3,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 
-from ..tools import get_matplotlib_supported_file_endings
+from rocketpy.tools import get_matplotlib_supported_file_endings
 
 SAVEFIG_DPI = 300
 

@@ -1081,6 +1081,7 @@ def exponential_backoff(max_attempts, base_delay=1, max_delay=60):
     return decorator
 
 
+# TODO: move it to inertia.py file when possible
 def parallel_axis_theorem_from_com(com_inertia_moment, mass, distance):
     """Calculates the moment of inertia of a object relative to a new axis using
     the parallel axis theorem. The new axis is parallel to and at a distance

@@ -4,6 +4,15 @@ import numpy as np
 from scipy import integrate
 
 from ..mathutils.function import Function, funcify_method, reset_funcified_methods
+from ..mathutils.inertia import (
+    parallel_axis_theorem_I11,
+    parallel_axis_theorem_I12,
+    parallel_axis_theorem_I13,
+    parallel_axis_theorem_I22,
+    parallel_axis_theorem_I23,
+    parallel_axis_theorem_I33,
+)
+from ..mathutils.vector_matrix import Vector
 from ..plots.solid_motor_plots import _SolidMotorPlots
 from ..prints.solid_motor_prints import _SolidMotorPrints
 from .motor import Motor
@@ -198,7 +207,6 @@ class SolidMotor(Motor):
         Grain length remains constant throughout the burn. Default is False.
     """
 
-    # pylint: disable=too-many-arguments
     def __init__(
         self,
         thrust_source,
@@ -331,6 +339,22 @@ class SolidMotor(Motor):
         # Store before calling super().__init__() since it calls evaluate_geometry()
         self.only_radial_burn = only_radial_burn
 
+        self.rse_motor_data = None
+        self.description_eng_file = None
+
+        if isinstance(thrust_source, str):
+            if thrust_source.endswith(".eng"):
+                comments, description, thrust_source_data = Motor.import_eng(
+                    thrust_source
+                )
+                self.description_eng_file = description
+                self.comments_eng_file = comments
+                thrust_source = thrust_source_data
+            elif thrust_source.endswith(".rse"):
+                rse_data, thrust_source_data = Motor.import_rse(thrust_source)
+                self.rse_motor_data = rse_data
+                thrust_source = thrust_source_data
+
         super().__init__(
             thrust_source=thrust_source,
             dry_inertia=dry_inertia,
@@ -344,11 +368,10 @@ class SolidMotor(Motor):
             coordinate_system_orientation=coordinate_system_orientation,
             reference_pressure=reference_pressure,
         )
-        # Nozzle parameters
+
         self.throat_radius = throat_radius
         self.throat_area = np.pi * throat_radius**2
 
-        # Grain parameters
         self.grains_center_of_mass_position = grains_center_of_mass_position
         self.grain_number = grain_number
         self.grain_separation = grain_separation
@@ -357,7 +380,6 @@ class SolidMotor(Motor):
         self.grain_initial_inner_radius = grain_initial_inner_radius
         self.grain_initial_height = grain_initial_height
 
-        # Grains initial geometrical parameters
         self.grain_initial_volume = (
             self.grain_initial_height
             * np.pi
@@ -367,9 +389,60 @@ class SolidMotor(Motor):
 
         self.evaluate_geometry()
 
-        # Initialize plots and prints object
         self.prints = _SolidMotorPrints(self)
         self.plots = _SolidMotorPlots(self)
+        self.propellant_I_11_from_propellant_CM = self.propellant_I_11
+        self.propellant_I_22_from_propellant_CM = self.propellant_I_22
+        self.propellant_I_33_from_propellant_CM = self.propellant_I_33
+        self.propellant_I_12_from_propellant_CM = self.propellant_I_12
+        self.propellant_I_13_from_propellant_CM = self.propellant_I_13
+        self.propellant_I_23_from_propellant_CM = self.propellant_I_23
+        propellant_com_func = self.center_of_propellant_mass
+
+        propellant_com_vector_func = Function(
+            lambda t: Vector([0, 0, propellant_com_func(t)]),
+            inputs="t",
+            outputs="Vector (m)",
+        )
+
+        # Utiliser les nouvelles fonctions PAT
+        self.propellant_I_11 = parallel_axis_theorem_I11(
+            self.propellant_I_11_from_propellant_CM,
+            self.propellant_mass,
+            propellant_com_vector_func,
+        )
+        self.propellant_I_22 = parallel_axis_theorem_I22(
+            self.propellant_I_22_from_propellant_CM,
+            self.propellant_mass,
+            propellant_com_vector_func,
+        )
+        self.propellant_I_33 = parallel_axis_theorem_I33(
+            self.propellant_I_33_from_propellant_CM,
+            self.propellant_mass,
+            propellant_com_vector_func,
+        )
+        self.propellant_I_12 = parallel_axis_theorem_I12(
+            self.propellant_I_12_from_propellant_CM,
+            self.propellant_mass,
+            propellant_com_vector_func,
+        )
+        self.propellant_I_13 = parallel_axis_theorem_I13(
+            self.propellant_I_13_from_propellant_CM,
+            self.propellant_mass,
+            propellant_com_vector_func,
+        )
+        self.propellant_I_23 = parallel_axis_theorem_I23(
+            self.propellant_I_23_from_propellant_CM,
+            self.propellant_mass,
+            propellant_com_vector_func,
+        )
+
+        self.I_11 = Function(lambda t: self.dry_I_11) + self.propellant_I_11
+        self.I_22 = Function(lambda t: self.dry_I_22) + self.propellant_I_22
+        self.I_33 = Function(lambda t: self.dry_I_33) + self.propellant_I_33
+        self.I_12 = Function(lambda t: self.dry_I_12) + self.propellant_I_12
+        self.I_13 = Function(lambda t: self.dry_I_13) + self.propellant_I_13
+        self.I_23 = Function(lambda t: self.dry_I_23) + self.propellant_I_23
 
     @funcify_method("Time (s)", "Mass (kg)")
     def propellant_mass(self):
@@ -380,7 +453,8 @@ class SolidMotor(Motor):
         Function
             Mass of the motor, in kg.
         """
-        return self.grain_volume * self.grain_density * self.grain_number
+        prop_mass = self.grain_volume * self.grain_density * self.grain_number
+        return prop_mass.set_discrete_based_on_model(self.grain_height)
 
     @funcify_method("Time (s)", "Grain volume (m³)")
     def grain_volume(self):
@@ -736,7 +810,7 @@ class SolidMotor(Motor):
         # Calculate inertia for all grains
         I_11 = grain_number * grain_inertia11 + grain_mass * np.sum(d**2)
 
-        return I_11
+        return I_11.set_discrete_based_on_model(self.propellant_mass)
 
     @funcify_method("Time (s)", "Inertia I_22 (kg m²)")
     def propellant_I_22(self):
@@ -785,19 +859,22 @@ class SolidMotor(Motor):
             * self.propellant_mass
             * (self.grain_outer_radius**2 + self.grain_inner_radius**2)
         )
-        return I_33
+        return I_33.set_discrete_based_on_model(self.propellant_mass)
 
     @funcify_method("Time (s)", "Inertia I_12 (kg m²)")
     def propellant_I_12(self):
-        return 0
+        zero = Function(0)
+        return zero.set_discrete_based_on_model(self.propellant_mass)
 
     @funcify_method("Time (s)", "Inertia I_13 (kg m²)")
     def propellant_I_13(self):
-        return 0
+        zero = Function(0)
+        return zero.set_discrete_based_on_model(self.propellant_mass)
 
     @funcify_method("Time (s)", "Inertia I_23 (kg m²)")
     def propellant_I_23(self):
-        return 0
+        zero = Function(0)
+        return zero.set_discrete_based_on_model(self.propellant_mass)
 
     def draw(self, *, filename=None):
         """Draw a representation of the SolidMotor.
@@ -816,8 +893,8 @@ class SolidMotor(Motor):
         """
         self.plots.draw(filename=filename)
 
-    def to_dict(self, **kwargs):
-        data = super().to_dict(**kwargs)
+    def to_dict(self, include_outputs=False):
+        data = super().to_dict(include_outputs)
         data.update(
             {
                 "nozzle_radius": self.nozzle_radius,
@@ -833,18 +910,13 @@ class SolidMotor(Motor):
             }
         )
 
-        if kwargs.get("include_outputs", False):
-            burn_rate = self.burn_rate
-            if kwargs.get("discretize", False):
-                burn_rate = burn_rate.set_discrete_based_on_model(
-                    self.thrust, mutate_self=False
-                )
+        if include_outputs:
             data.update(
                 {
                     "grain_inner_radius": self.grain_inner_radius,
                     "grain_height": self.grain_height,
                     "burn_area": self.burn_area,
-                    "burn_rate": burn_rate,
+                    "burn_rate": self.burn_rate,
                     "Kn": self.Kn,
                 }
             )

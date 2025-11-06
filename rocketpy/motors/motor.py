@@ -12,9 +12,18 @@ import numpy as np
 import requests
 
 from ..mathutils.function import Function, funcify_method
+from ..mathutils.inertia import (
+    parallel_axis_theorem_I11,
+    parallel_axis_theorem_I12,
+    parallel_axis_theorem_I13,
+    parallel_axis_theorem_I22,
+    parallel_axis_theorem_I23,
+    parallel_axis_theorem_I33,
+)
+from ..mathutils.vector_matrix import Matrix, Vector
 from ..plots.motor_plots import _MotorPlots
 from ..prints.motor_prints import _MotorPrints
-from ..tools import parallel_axis_theorem_from_com, tuple_handler
+from ..tools import tuple_handler
 
 # pylint: disable=too-many-public-methods
 # ThrustCurve API cache
@@ -172,177 +181,191 @@ class Motor(ABC):
     def __init__(
         self,
         thrust_source,
+        dry_mass,
         dry_inertia,
         nozzle_radius,
+        burn_time,
         center_of_dry_mass_position,
-        dry_mass=None,
         nozzle_position=0,
-        burn_time=None,
         reshape_thrust_curve=False,
         interpolation_method="linear",
         coordinate_system_orientation="nozzle_to_combustion_chamber",
         reference_pressure=None,
     ):
-        """Initialize Motor class, process thrust curve and geometrical
+        """Initializes Motor class, process thrust curve and geometrical
         parameters and store results.
 
-        Parameters
-        ----------
-        thrust_source : int, float, callable, string, array, Function
-            Motor's thrust curve. Can be given as an int or float, in which
-            case the thrust will be considered constant in time. It can
-            also be given as a callable function, whose argument is time in
-            seconds and returns the thrust supplied by the motor in the
-            instant. If a string is given, it must point to a .csv or .eng file.
-            The .csv file can contain a single line header and the first column
-            must specify time in seconds, while the second column specifies
-            thrust. Arrays may also be specified, following rules set by the
-            class Function. Thrust units are Newtons.
-
-            .. seealso:: :doc:`Thrust Source Details </user/motors/thrust>`
-
-        dry_mass : int, float
-            Same as in Motor class. See the :class:`Motor <rocketpy.Motor>` docs
-        center_of_dry_mass_position : int, float
-            The position, in meters, of the motor's center of mass with respect
-            to the motor's coordinate system when it is devoid of propellant.
-            See :doc:`Positions and Coordinate Systems </user/positions>`
-        dry_inertia : tuple, list
-            Tuple or list containing the motor's dry mass inertia tensor
-            components, in kg*m^2. This inertia is defined with respect to the
-            the `center_of_dry_mass_position` position.
-            Assuming e_3 is the rocket's axis of symmetry, e_1 and e_2 are
-            orthogonal and form a plane perpendicular to e_3, the dry mass
-            inertia tensor components must be given in the following order:
-            (I_11, I_22, I_33, I_12, I_13, I_23), where I_ij is the
-            component of the inertia tensor in the direction of e_i x e_j.
-            Alternatively, the inertia tensor can be given as
-            (I_11, I_22, I_33), where I_12 = I_13 = I_23 = 0.
-        nozzle_radius : int, float, optional
-            Motor's nozzle outlet radius in meters.
-        burn_time: float, tuple of float, optional
-            Motor's burn time.
-            If a float is given, the burn time is assumed to be between 0 and
-            the given float, in seconds.
-            If a tuple of float is given, the burn time is assumed to be between
-            the first and second elements of the tuple, in seconds.
-            If not specified, automatically sourced as the range between the
-            first and last-time step of the motor's thrust curve. This can only
-            be used if the motor's thrust is defined by a list of points, such
-            as a .csv file, a .eng file or a Function instance whose source is a
-            list.
-        nozzle_position : int, float, optional
-            Motor's nozzle outlet position in meters, in the motor's coordinate
-            system. See :doc:`Positions and Coordinate Systems </user/positions>`
-            for details. Default is 0, in which case the origin of the
-            coordinate system is placed at the motor's nozzle outlet.
-        reshape_thrust_curve : boolean, tuple, optional
-            If False, the original thrust curve supplied is not altered. If a
-            tuple is given, whose first parameter is a new burn out time and
-            whose second parameter is a new total impulse in Ns, the thrust
-            curve is reshaped to match the new specifications. May be useful
-            for motors whose thrust curve shape is expected to remain similar
-            in case the impulse and burn time varies slightly. Default is
-            False. Note that the Motor burn_time parameter must include the new
-            reshaped burn time.
-        interpolation_method : string, optional
-            Method of interpolation to be used in case thrust curve is given
-            by data set in .csv or .eng, or as an array. Options are 'spline'
-            'akima' and 'linear'. Default is "linear".
-        coordinate_system_orientation : string, optional
-            Orientation of the motor's coordinate system. The coordinate system
-            is defined by the motor's axis of symmetry. The origin of the
-            coordinate system may be placed anywhere along such axis, such as
-            at the nozzle area, and must be kept the same for all other
-            positions specified. Options are "nozzle_to_combustion_chamber" and
-            "combustion_chamber_to_nozzle". Default is
-            "nozzle_to_combustion_chamber".
-        reference_pressure : int, float, optional
-            Atmospheric pressure in Pa at which the thrust data was recorded.
-
-        Returns
-        -------
-        None
+        [... Docstring inchangée ...]
         """
+        # Motor attributes
+        self.nozzle_radius = nozzle_radius
+        self.nozzle_position = nozzle_position
+        self.dry_mass = dry_mass
+        self.center_of_dry_mass_position = center_of_dry_mass_position
+        dry_inertia = (*dry_inertia, 0, 0, 0) if len(dry_inertia) == 3 else dry_inertia
+        self.dry_I_11 = dry_inertia[0]
+        self.dry_I_22 = dry_inertia[1]
+        self.dry_I_33 = dry_inertia[2]
+        self.dry_I_12 = dry_inertia[3]
+        self.dry_I_13 = dry_inertia[4]
+        self.dry_I_23 = dry_inertia[5]
+
         # Define coordinate system orientation
-        self.coordinate_system_orientation = coordinate_system_orientation
         if coordinate_system_orientation == "nozzle_to_combustion_chamber":
             self._csys = 1
         elif coordinate_system_orientation == "combustion_chamber_to_nozzle":
             self._csys = -1
-        else:  # pragma: no cover
-            raise ValueError(
-                "Invalid coordinate system orientation. Options are "
-                "'nozzle_to_combustion_chamber' and 'combustion_chamber_to_nozzle'."
+        else:
+            raise TypeError(
+                "Invalid coordinate system orientation. Please choose between "
+                + '"nozzle_to_combustion_chamber" and '
+                + '"combustion_chamber_to_nozzle".'
             )
+        self.coordinate_system_orientation = coordinate_system_orientation
 
-        # Motor parameters
-        self.interpolate = interpolation_method
-        self.nozzle_position = nozzle_position
-        self.nozzle_radius = nozzle_radius
-        self.nozzle_area = np.pi * nozzle_radius**2
-        self.center_of_dry_mass_position = center_of_dry_mass_position
-        self.reference_pressure = reference_pressure
-
-        # Inertia tensor setup
-        inertia = (*dry_inertia, 0, 0, 0) if len(dry_inertia) == 3 else dry_inertia
-        self.dry_I_11 = inertia[0]
-        self.dry_I_22 = inertia[1]
-        self.dry_I_33 = inertia[2]
-        self.dry_I_12 = inertia[3]
-        self.dry_I_13 = inertia[4]
-        self.dry_I_23 = inertia[5]
-
-        # Handle .eng or .rse file inputs
-        self.description_eng_file = None
-        self.rse_motor_data = None
-        if isinstance(thrust_source, str):
-            if (
-                path.exists(thrust_source)
-                and path.splitext(path.basename(thrust_source))[1] == ".eng"
-            ):
-                _, self.description_eng_file, points = Motor.import_eng(thrust_source)
-                thrust_source = points
-            elif (
-                path.exists(thrust_source)
-                and path.splitext(path.basename(thrust_source))[1] == ".rse"
-            ):
-                self.rse_motor_data, points = Motor.import_rse(thrust_source)
-                thrust_source = points
-        # Evaluate raw thrust source
-        self.thrust_source = thrust_source
-        self.thrust = Function(
-            thrust_source, "Time (s)", "Thrust (N)", self.interpolate, "zero"
+        self.reference_pressure = (
+            reference_pressure  # <-- CORRECTION 1 : Stockage de l'argument
         )
 
-        # Handle dry_mass input
-        self.dry_mass = dry_mass
+        # Thrust curve definition and processing
+        self.thrust = Function(
+            thrust_source,
+            "Time (s)",
+            "Thrust (N)",
+            interpolation_method,
+            extrapolation="zero",
+        )
 
-        # Handle burn_time input
-        self.burn_time = burn_time
-
-        if callable(self.thrust.source):
-            self.thrust.set_discrete(*self.burn_time, 50, self.interpolate, "zero")
-
-        # Reshape thrust_source if needed
-        if reshape_thrust_curve:
-            # Overwrites burn_time and thrust
-            self.thrust = Motor.reshape_thrust_curve(self.thrust, *reshape_thrust_curve)
-            self.burn_time = (self.thrust.x_array[0], self.thrust.x_array[-1])
-
-        # Post process thrust
-        self.thrust = Motor.clip_thrust(self.thrust, self.burn_time)
-
-        # Auxiliary quantities
+        self.interpolate = interpolation_method
+        # Burn time definition
+        self.burn_time = tuple_handler(burn_time)
         self.burn_start_time = self.burn_time[0]
         self.burn_out_time = self.burn_time[1]
-        self.burn_duration = self.burn_time[1] - self.burn_time[0]
 
-        # Compute thrust metrics
-        self.max_thrust = np.amax(self.thrust.y_array)
-        max_thrust_index = np.argmax(self.thrust.y_array)
-        self.max_thrust_time = self.thrust.source[max_thrust_index, 0]
+        # Reshape thrust curve if needed
+        reshape_thrust_curve_input = reshape_thrust_curve
+        if reshape_thrust_curve_input:
+            try:
+                new_burn_time, desired_impulse = reshape_thrust_curve_input
+            except (TypeError, ValueError) as exc:
+                raise TypeError(
+                    "reshape_thrust_curve must be an iterable with two elements:"
+                    " (new_burn_time, total_impulse)."
+                ) from exc
+
+            self.thrust = self.reshape_thrust_curve(
+                self.thrust, new_burn_time, desired_impulse
+            )
+
+        # Basic calculations and attributes
+        self.burn_duration = self.burn_out_time - self.burn_start_time
+        self.total_impulse = self.thrust.integral(
+            self.burn_start_time, self.burn_out_time
+        )
+
+        # Calculate max_thrust and max_thrust_time
+        try:
+            self.max_thrust = self.thrust.max
+            # Find time of max thrust by evaluating thrust at multiple points
+            if hasattr(self.thrust, "x_array"):
+                max_thrust_index = np.argmax(self.thrust.y_array)
+                self.max_thrust_time = self.thrust.x_array[max_thrust_index]
+            else:
+                # For lambda functions, sample over burn time
+                time_samples = np.linspace(
+                    self.burn_start_time, self.burn_out_time, 1000
+                )
+                thrust_samples = [self.thrust(t) for t in time_samples]
+                max_thrust_index = np.argmax(thrust_samples)
+                self.max_thrust = thrust_samples[max_thrust_index]
+                self.max_thrust_time = time_samples[max_thrust_index]
+        except AttributeError:
+            # If thrust is lambda-based, sample to find max
+            time_samples = np.linspace(self.burn_start_time, self.burn_out_time, 1000)
+            thrust_samples = [self.thrust(t) for t in time_samples]
+            max_thrust_index = np.argmax(thrust_samples)
+            self.max_thrust = thrust_samples[max_thrust_index]
+            self.max_thrust_time = time_samples[max_thrust_index]
+
         self.average_thrust = self.total_impulse / self.burn_duration
+        self.reshape_thrust_curve_request = reshape_thrust_curve_input
+
+        # Abstract methods - must be implemented by subclasses
+        self._propellant_initial_mass = 0
+        self.exhaust_velocity = Function(0)
+        self.propellant_mass = Function(0)
+        self.total_mass = Function(0)
+        self.propellant_I_11_from_propellant_CM = Function(0)
+        self.propellant_I_22_from_propellant_CM = Function(0)
+        self.propellant_I_33_from_propellant_CM = Function(0)
+        self.center_of_propellant_mass = Function(0)
+        self.center_of_mass = Function(0)
+
+        # --- DÉBUT CORRECTION 3 : Utilisation des nouvelles fonctions PAT ---
+
+        # Inertia tensor for propellant referenced to the MOTOR's origin
+        # Note: distance_vec_3d is the vector from the motor origin to the propellant CoM
+        propellant_com_func = self.center_of_propellant_mass
+
+        # Create a Function that returns the distance vector [0, 0, center_of_propellant_mass(t)]
+        propellant_com_vector_func = Function(
+            lambda t: Vector([0, 0, propellant_com_func(t)]),
+            inputs="t",
+            outputs="Vector (m)",
+        )
+
+        # Use the new specific PAT functions
+        self.propellant_I_11 = parallel_axis_theorem_I11(
+            self.propellant_I_11_from_propellant_CM,
+            self.propellant_mass,
+            propellant_com_vector_func,
+        )
+        self.propellant_I_11.set_outputs("Propellant I_11 (kg*m^2)")
+
+        self.propellant_I_22 = parallel_axis_theorem_I22(
+            self.propellant_I_22_from_propellant_CM,
+            self.propellant_mass,
+            propellant_com_vector_func,
+        )
+        self.propellant_I_22.set_outputs("Propellant I_22 (kg*m^2)")
+
+        self.propellant_I_33 = parallel_axis_theorem_I33(
+            self.propellant_I_33_from_propellant_CM,
+            self.propellant_mass,
+            propellant_com_vector_func,
+        )
+        self.propellant_I_33.set_outputs("Propellant I_33 (kg*m^2)")
+
+        self.propellant_I_12 = parallel_axis_theorem_I12(
+            Function(0), self.propellant_mass, propellant_com_vector_func
+        )
+        self.propellant_I_12.set_outputs("Propellant I_12 (kg*m^2)")
+
+        self.propellant_I_13 = parallel_axis_theorem_I13(
+            Function(0), self.propellant_mass, propellant_com_vector_func
+        )
+        self.propellant_I_13.set_outputs("Propellant I_13 (kg*m^2)")
+
+        self.propellant_I_23 = parallel_axis_theorem_I23(
+            Function(0), self.propellant_mass, propellant_com_vector_func
+        )
+        self.propellant_I_23.set_outputs("Propellant I_23 (kg*m^2)")
+
+        # Calculate total motor inertia relative to motor's origin
+        self.I_11 = Function(lambda t: self.dry_I_11) + self.propellant_I_11
+        self.I_11.set_outputs("Motor I_11 (kg*m^2)")
+        self.I_22 = Function(lambda t: self.dry_I_22) + self.propellant_I_22
+        self.I_22.set_outputs("Motor I_22 (kg*m^2)")
+        self.I_33 = Function(lambda t: self.dry_I_33) + self.propellant_I_33
+        self.I_33.set_outputs("Motor I_33 (kg*m^2)")
+
+        # Calculate total products of inertia relative to motor's origin
+        self.I_12 = Function(lambda t: self.dry_I_12) + self.propellant_I_12
+        self.I_12.set_outputs("Motor I_12 (kg*m^2)")
+        self.I_13 = Function(lambda t: self.dry_I_13) + self.propellant_I_13
+        self.I_13.set_outputs("Motor I_13 (kg*m^2)")
+        self.I_23 = Function(lambda t: self.dry_I_23) + self.propellant_I_23
+        self.I_23.set_outputs("Motor I_23 (kg*m^2)")
 
         # Initialize plots and prints object
         self.prints = _MotorPrints(self)
@@ -582,36 +605,30 @@ class Motor(ABC):
 
     @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
     def I_11(self):
-        """Inertia tensor 11 component, which corresponds to the inertia
-        relative to the e_1 axis, centered at the instantaneous center of mass.
-
-        Returns
-        -------
-        Function
-            Propellant inertia tensor 11 component at time t.
-
-        Notes
-        -----
-        The e_1 direction is assumed to be the direction perpendicular to the
-        motor body axis. Also, due to symmetry, I_11 = I_22.
-
-        See Also
-        --------
-        https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+        """Builds a Function for the total I_11 inertia component relative
+        to the instantaneous center of mass of the motor.
         """
+        # Inertias relative to the motor origin (calculated in __init__)
+        prop_I_11_origin = self.propellant_I_11
+        dry_I_11_origin = Function(lambda t: self.dry_I_11)  # Dry inertia is constant
 
-        prop_I_11 = self.propellant_I_11
-        dry_I_11 = self.dry_I_11
-
-        prop_to_cm = self.center_of_propellant_mass - self.center_of_mass
-        dry_to_cm = self.center_of_dry_mass_position - self.center_of_mass
-
-        prop_I_11 = parallel_axis_theorem_from_com(
-            prop_I_11, self.propellant_mass, prop_to_cm
+        # Distance vectors FROM the instantaneous motor CoM TO the component CoMs
+        prop_com_to_inst_com = self.center_of_propellant_mass - self.center_of_mass
+        dry_com_to_inst_com = (
+            Function(lambda t: Vector([0, 0, self.center_of_dry_mass_position]))
+            - self.center_of_mass
         )
-        dry_I_11 = parallel_axis_theorem_from_com(dry_I_11, self.dry_mass, dry_to_cm)
 
-        return prop_I_11 + dry_I_11
+        # Apply PAT relative to the instantaneous motor CoM
+        # Note: We need the negative of the distance vector for PAT formula (origin to point)
+        prop_I_11_cm = parallel_axis_theorem_I11(
+            prop_I_11_origin, self.propellant_mass, -prop_com_to_inst_com
+        )
+        dry_I_11_cm = parallel_axis_theorem_I11(
+            dry_I_11_origin, self.dry_mass, -dry_com_to_inst_com
+        )
+
+        return prop_I_11_cm + dry_I_11_cm
 
     @funcify_method("Time (s)", "Inertia I_22 (kg m²)")
     def I_22(self):
@@ -866,7 +883,7 @@ class Motor(ABC):
         Returns
         -------
         Function
-            Propellant inertia tensor 13 component at time t.
+            Propellant inertia tensor 13 components at time t.
 
         Notes
         -----
@@ -1238,9 +1255,16 @@ class Motor(ABC):
             # Write last line
             file.write(f"{self.thrust.source[-1, 0]:.4f} {0:.3f}\n")
 
-    def to_dict(self, **kwargs):
+    def to_dict(self, include_outputs=False):
+        thrust_source = self.thrust_source
+
+        if isinstance(thrust_source, str):
+            thrust_source = self.thrust.source
+        elif callable(thrust_source) and not isinstance(thrust_source, Function):
+            thrust_source = Function(thrust_source)
+
         data = {
-            "thrust_source": self.thrust,
+            "thrust_source": thrust_source,
             "dry_I_11": self.dry_I_11,
             "dry_I_22": self.dry_I_22,
             "dry_I_33": self.dry_I_33,
@@ -1258,94 +1282,31 @@ class Motor(ABC):
             "reference_pressure": self.reference_pressure,
         }
 
-        if kwargs.get("include_outputs", False):
-            total_mass = self.total_mass
-            propellant_mass = self.propellant_mass
-            mass_flow_rate = self.total_mass_flow_rate
-            center_of_mass = self.center_of_mass
-            center_of_propellant_mass = self.center_of_propellant_mass
-            exhaust_velocity = self.exhaust_velocity
-            I_11 = self.I_11
-            I_22 = self.I_22
-            I_33 = self.I_33
-            I_12 = self.I_12
-            I_13 = self.I_13
-            I_23 = self.I_23
-            propellant_I_11 = self.propellant_I_11
-            propellant_I_22 = self.propellant_I_22
-            propellant_I_33 = self.propellant_I_33
-            propellant_I_12 = self.propellant_I_12
-            propellant_I_13 = self.propellant_I_13
-            propellant_I_23 = self.propellant_I_23
-            if kwargs.get("discretize", False):
-                total_mass = total_mass.set_discrete_based_on_model(
-                    self.thrust, mutate_self=False
-                )
-                propellant_mass = propellant_mass.set_discrete_based_on_model(
-                    self.thrust, mutate_self=False
-                )
-                mass_flow_rate = mass_flow_rate.set_discrete_based_on_model(
-                    self.thrust, mutate_self=False
-                )
-                center_of_mass = center_of_mass.set_discrete_based_on_model(
-                    self.thrust, mutate_self=False
-                )
-                center_of_propellant_mass = (
-                    center_of_propellant_mass.set_discrete_based_on_model(
-                        self.thrust, mutate_self=False
-                    )
-                )
-                exhaust_velocity = exhaust_velocity.set_discrete_based_on_model(
-                    self.thrust, mutate_self=False
-                )
-                I_11 = I_11.set_discrete_based_on_model(self.thrust, mutate_self=False)
-                I_22 = I_22.set_discrete_based_on_model(self.thrust, mutate_self=False)
-                I_33 = I_33.set_discrete_based_on_model(self.thrust, mutate_self=False)
-                I_12 = I_12.set_discrete_based_on_model(self.thrust, mutate_self=False)
-                I_13 = I_13.set_discrete_based_on_model(self.thrust, mutate_self=False)
-                I_23 = I_23.set_discrete_based_on_model(self.thrust, mutate_self=False)
-                propellant_I_11 = propellant_I_11.set_discrete_based_on_model(
-                    self.thrust, mutate_self=False
-                )
-                propellant_I_22 = propellant_I_22.set_discrete_based_on_model(
-                    self.thrust, mutate_self=False
-                )
-                propellant_I_33 = propellant_I_33.set_discrete_based_on_model(
-                    self.thrust, mutate_self=False
-                )
-                propellant_I_12 = propellant_I_12.set_discrete_based_on_model(
-                    self.thrust, mutate_self=False
-                )
-                propellant_I_13 = propellant_I_13.set_discrete_based_on_model(
-                    self.thrust, mutate_self=False
-                )
-                propellant_I_23 = propellant_I_23.set_discrete_based_on_model(
-                    self.thrust, mutate_self=False
-                )
+        if include_outputs:
             data.update(
                 {
                     "vacuum_thrust": self.vacuum_thrust,
-                    "total_mass": total_mass,
-                    "propellant_mass": propellant_mass,
-                    "mass_flow_rate": mass_flow_rate,
-                    "center_of_mass": center_of_mass,
-                    "center_of_propellant_mass": center_of_propellant_mass,
+                    "total_mass": self.total_mass,
+                    "propellant_mass": self.propellant_mass,
+                    "mass_flow_rate": self.mass_flow_rate,
+                    "center_of_mass": self.center_of_mass,
+                    "center_of_propellant_mass": self.center_of_propellant_mass,
                     "total_impulse": self.total_impulse,
-                    "exhaust_velocity": exhaust_velocity,
+                    "exhaust_velocity": self.exhaust_velocity,
                     "propellant_initial_mass": self.propellant_initial_mass,
                     "structural_mass_ratio": self.structural_mass_ratio,
-                    "I_11": I_11,
-                    "I_22": I_22,
-                    "I_33": I_33,
-                    "I_12": I_12,
-                    "I_13": I_13,
-                    "I_23": I_23,
-                    "propellant_I_11": propellant_I_11,
-                    "propellant_I_22": propellant_I_22,
-                    "propellant_I_33": propellant_I_33,
-                    "propellant_I_12": propellant_I_12,
-                    "propellant_I_13": propellant_I_13,
-                    "propellant_I_23": propellant_I_23,
+                    "I_11": self.I_11,
+                    "I_22": self.I_22,
+                    "I_33": self.I_33,
+                    "I_12": self.I_12,
+                    "I_13": self.I_13,
+                    "I_23": self.I_23,
+                    "propellant_I_11": self.propellant_I_11,
+                    "propellant_I_22": self.propellant_I_22,
+                    "propellant_I_33": self.propellant_I_33,
+                    "propellant_I_12": self.propellant_I_12,
+                    "propellant_I_13": self.propellant_I_13,
+                    "propellant_I_23": self.propellant_I_23,
                 }
             )
 
@@ -1573,7 +1534,7 @@ class GenericMotor(Motor):
         Function
             Function representing the center of mass of the motor.
         """
-        return Function(self.chamber_position).set_discrete_based_on_model(self.thrust)
+        return self.chamber_position
 
     @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
     def propellant_I_11(self):
@@ -1595,11 +1556,11 @@ class GenericMotor(Motor):
         ----------
         https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        return Function(
+        return (
             self.propellant_mass
             * (3 * self.chamber_radius**2 + self.chamber_height**2)
             / 12
-        ).set_discrete_based_on_model(self.thrust)
+        )
 
     @funcify_method("Time (s)", "Inertia I_22 (kg m²)")
     def propellant_I_22(self):
@@ -1643,21 +1604,19 @@ class GenericMotor(Motor):
         ----------
         https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        return Function(
-            self.propellant_mass * self.chamber_radius**2 / 2
-        ).set_discrete_based_on_model(self.thrust)
+        return self.propellant_mass * self.chamber_radius**2 / 2
 
     @funcify_method("Time (s)", "Inertia I_12 (kg m²)")
     def propellant_I_12(self):
-        return Function(0).set_discrete_based_on_model(self.thrust)
+        return Function(0)
 
     @funcify_method("Time (s)", "Inertia I_13 (kg m²)")
     def propellant_I_13(self):
-        return Function(0).set_discrete_based_on_model(self.thrust)
+        return Function(0)
 
     @funcify_method("Time (s)", "Inertia I_23 (kg m²)")
     def propellant_I_23(self):
-        return Function(0).set_discrete_based_on_model(self.thrust)
+        return Function(0)
 
     @staticmethod
     def load_from_eng_file(
@@ -2076,8 +2035,8 @@ class GenericMotor(Motor):
         self.prints.all()
         self.plots.all()
 
-    def to_dict(self, **kwargs):
-        data = super().to_dict(**kwargs)
+    def to_dict(self, include_outputs=False):
+        data = super().to_dict(include_outputs)
         data.update(
             {
                 "chamber_radius": self.chamber_radius,

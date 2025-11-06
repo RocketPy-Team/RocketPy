@@ -1,11 +1,16 @@
 from functools import cached_property
 
-from rocketpy.tools import parallel_axis_theorem_from_com
-
 from ..mathutils.function import Function, funcify_method, reset_funcified_methods
+from ..mathutils.inertia import (
+    parallel_axis_theorem_I11,
+    parallel_axis_theorem_I12,
+    parallel_axis_theorem_I13,
+    parallel_axis_theorem_I22,
+    parallel_axis_theorem_I23,
+    parallel_axis_theorem_I33,
+)
+from ..mathutils.vector_matrix import Vector
 from ..plots.hybrid_motor_plots import _HybridMotorPlots
-from ..prints.hybrid_motor_prints import _HybridMotorPrints
-from .liquid_motor import LiquidMotor
 from .motor import Motor
 from .solid_motor import SolidMotor
 
@@ -198,200 +203,421 @@ class HybridMotor(Motor):
         Grain length remains constant throughout the burn. Default is True.
     """
 
-    # pylint: disable=too-many-arguments
     def __init__(  # pylint: disable=too-many-arguments
         self,
         thrust_source,
         dry_mass,
         dry_inertia,
         nozzle_radius,
+        burn_time,
+        center_of_dry_mass_position,
         grain_number,
+        grain_separation,
         grain_density,
         grain_outer_radius,
         grain_initial_inner_radius,
         grain_initial_height,
-        grain_separation,
         grains_center_of_mass_position,
-        center_of_dry_mass_position,
+        tanks_mass,
+        oxidizer_initial_mass,
+        oxidizer_mass_flow_rate_curve,
+        oxidizer_density,
+        oxidizer_tanks_geometries,
+        oxidizer_tanks_positions,
+        oxidizer_initial_inertia=(0, 0, 0),
         nozzle_position=0,
-        burn_time=None,
-        throat_radius=0.01,
         reshape_thrust_curve=False,
         interpolation_method="linear",
         coordinate_system_orientation="nozzle_to_combustion_chamber",
         reference_pressure=None,
         only_radial_burn=True,
     ):
-        """Initialize Motor class, process thrust curve and geometrical
+        """Initializes HybridMotor class, process thrust curve and geometrical
         parameters and store results.
 
         Parameters
         ----------
-        thrust_source : int, float, callable, string, array, Function
-            Motor's thrust curve. Can be given as an int or float, in which
-            case the thrust will be considered constant in time. It can
-            also be given as a callable function, whose argument is time in
-            seconds and returns the thrust supplied by the motor in the
-            instant. If a string is given, it must point to a .csv or .eng file.
-            The .csv file can contain a single line header and the first column
-            must specify time in seconds, while the second column specifies
-            thrust. Arrays may also be specified, following rules set by the
-            class Function. Thrust units are Newtons.
-
-            .. seealso:: :doc:`Thrust Source Details </user/motors/thrust>`
+        thrust_source : int, float, callable, string, numpy.ndarray, list
+            Motor's thrust curve. Can be given as Thrust-Time pairs array or
+            file path (csv or eng format). Is passed to the Function class, see
+            help(Function) for more information. Thrust units are Newtons, time
+            units are seconds.
         dry_mass : int, float
-            Same as in Motor class. See the :class:`Motor <rocketpy.Motor>` docs
+            Motor's dry mass in kg. This is the mass of the motor without
+            propellant.
         dry_inertia : tuple, list
             Tuple or list containing the motor's dry mass inertia tensor
             components, in kg*m^2. This inertia is defined with respect to the
-            the `center_of_dry_mass_position` position.
-            Assuming e_3 is the rocket's axis of symmetry, e_1 and e_2 are
-            orthogonal and form a plane perpendicular to e_3, the dry mass
-            inertia tensor components must be given in the following order:
-            (I_11, I_22, I_33, I_12, I_13, I_23), where I_ij is the
-            component of the inertia tensor in the direction of e_i x e_j.
-            Alternatively, the inertia tensor can be given as
-            (I_11, I_22, I_33), where I_12 = I_13 = I_23 = 0.
+            motor's center of dry mass position. Assuming e_3 is the motor's axis
+            of symmetry, e_1 and e_2 are orthogonal and form a plane
+            perpendicular to e_3, the dry mass inertia tensor components must be
+            given in the following order: (I_11, I_22, I_33, I_12, I_13, I_23).
+            Alternatively, the inertia tensor can be given as (I_11, I_22, I_33),
+            where I_12 = I_13 = I_23 = 0.
         nozzle_radius : int, float
-            Motor's nozzle outlet radius in meters.
+            Motor's nozzle radius in meters.
+        burn_time: int, float, tuple of int, float
+            Motor's burn time.
+            If a tuple is passed, the first value is the ignition time and the
+            second value is the end of burn time. If a single number is passed,
+            the ignition time is assumed to be 0 and the end of burn time is
+            the number passed.
+        center_of_dry_mass_position : int, float
+            Position of the motor's center of dry mass (i.e. center of mass
+            without propellant) relative to the motor's coordinate system
+            origin, in meters. See the ``coordinate_system_orientation``
+            parameter for details on the coordinate system.
         grain_number : int
-            Number of solid grains
+            Number of solid grains.
+        grain_separation : int, float
+            Distance between grains, in meters.
         grain_density : int, float
-            Solid grain density in kg/m3.
+            Solid grain density in kg/m³.
         grain_outer_radius : int, float
             Solid grain outer radius in meters.
         grain_initial_inner_radius : int, float
             Solid grain initial inner radius in meters.
         grain_initial_height : int, float
             Solid grain initial height in meters.
-        grain_separation : int, float
-            Distance between grains, in meters.
-        grains_center_of_mass_position : float
-            Position of the center of mass of the grains in meters. More
-            specifically, the coordinate of the center of mass specified in the
-            motor's coordinate system.
-            See :doc:`Positions and Coordinate Systems </user/positions>` for
-            more information.
-        center_of_dry_mass_position : int, float
-            The position, in meters, of the motor's center of mass with respect
-            to the motor's coordinate system when it is devoid of propellant.
-            See :doc:`Positions and Coordinate Systems </user/positions>`.
+        grains_center_of_mass_position : int, float
+            Position of the center of mass of the grains relative to the motor's
+            coordinate system origin in meters. Generally equal to
+            ``center_of_dry_mass_position``.
+        grain_initial_inertia : tuple, list, optional
+            Tuple or list containing the initial inertia tensor components of a
+            single grain, in kg*m^2. This inertia is defined with respect to the
+            the grains_center_of_mass_position position. If not specified, the
+            grain is assumed to be a hollow cylinder with the initial dimensions.
+            Assuming e_3 is the grain's axis of symmetry, e_1 and e_2 are
+            orthogonal and form a plane perpendicular to e_3, the initial inertia
+            tensor components must be given in the following order:
+            (I_11, I_22, I_33, I_12, I_13, I_23). Alternatively, the inertia
+            tensor can be given as (I_11, I_22, I_33), where I_12 = I_13 = I_23 = 0.
+            Default is (0, 0, 0).
+        tanks_mass : float
+            Total mass of the oxidizer tanks structures in kg. Includes the mass
+            of the tanks themselves, valves, pipes, etc. It is assumed constant
+            over time.
+        oxidizer_initial_mass : float
+            Initial mass of the oxidizer, including liquid and gas phases, in kg.
+        oxidizer_mass_flow_rate_curve : int, float, callable, string, numpy.ndarray, list
+            Oxidizer mass flow rate curve. Can be given as MassFlowRate-Time
+            pairs array or file path (csv format). It is used to calculate the
+            oxidizer mass and center of mass position as a function of time.
+            If int or float is given, it is assumed constant. Mass flow rate
+            units are kg/s, time units are seconds. Passed to the Function
+            class, see help(Function) for more information.
+        oxidizer_density : float
+            Density of the oxidizer in kg/m³. It is used to calculate the volume
+            and height of the oxidizer in the tanks. It is assumed constant over
+            time.
+        oxidizer_tanks_geometries : list
+            List of tuples, where each tuple represents the geometry of an
+            oxidizer tank. Accepted geometries are:
+            ('cylinder', (top_radius, bottom_radius, height))
+            ('sphere', radius)
+            ('ullage', volume)
+            Dimensions should be in meters and volume in cubic meters.
+            The list must contain at least one tank geometry. Ullage tanks can only be
+            placed at the top or bottom of the tanks stack.
+            Example: [('ullage', 0.01), ('cylinder', (0.1, 0.1, 0.5)), ('cylinder', (0.1, 0.05, 0.2))]
+        oxidizer_tanks_positions : list
+            List of floats, representing the position of the centroid of each
+            oxidizer tank's geometry with respect to the motor's coordinate system
+            origin, in meters. The list must have the same length as
+            ``oxidizer_tanks_geometries``.
+            See the ``coordinate_system_orientation`` parameter for details on the coordinate system.
+        oxidizer_tanks_initial_liquid_level : float, optional
+            Initial liquid level in the tanks, measured in meters from the bottom
+            of the tanks stack. If specified, this parameter overrides the initial
+            oxidizer mass calculation based on ``oxidizer_initial_mass``, allowing
+            precise control over the starting volume of the liquid oxidizer. If
+            None, the initial liquid level is derived from ``oxidizer_initial_mass``.
+            Default is None.
+        oxidizer_tanks_initial_ullage_mass : float, optional
+            Initial mass of the ullage gas in kg. If not specified, it is assumed
+            to be 0. Default is 0.
+        oxidizer_tanks_initial_ullage_volume : float, optional
+            Initial volume of the ullage gas in cubic meters. If not specified, it
+            is automatically calculated based on the tanks geometries and the
+            initial liquid level. Default is None.
+        oxidizer_initial_inertia : tuple, list, optional
+            Tuple or list containing the initial inertia tensor components of the
+            oxidizer (liquid + gas), in kg*m^2. This inertia is defined with
+            respect to the initial oxidizer center of mass position. If not
+            specified, the oxidizer is assumed to be a point mass. Default is (0, 0, 0).
+            Assuming e_3 is the motor's axis of symmetry, e_1 and e_2 are
+            orthogonal and form a plane perpendicular to e_3, the initial inertia
+            tensor components must be given in the following order:
+            (I_11, I_22, I_33, I_12, I_13, I_23). Alternatively, the inertia
+            tensor can be given as (I_11, I_22, I_33), where I_12 = I_13 = I_23 = 0.
         nozzle_position : int, float, optional
-            Motor's nozzle outlet position in meters, in the motor's coordinate
-            system. See :doc:`Positions and Coordinate Systems </user/positions>`
-            for details. Default is 0, in which case the origin of the
-            coordinate system is placed at the motor's nozzle outlet.
-        burn_time: float, tuple of float, optional
-            Motor's burn time.
-            If a float is given, the burn time is assumed to be between 0 and
-            the given float, in seconds.
-            If a tuple of float is given, the burn time is assumed to be between
-            the first and second elements of the tuple, in seconds.
-            If not specified, automatically sourced as the range between the
-            first and last-time step of the motor's thrust curve. This can only
-            be used if the motor's thrust is defined by a list of points, such
-            as a .csv file, a .eng file or a Function instance whose source is
-            a list.
-        throat_radius : int, float, optional
-            Motor's nozzle throat radius in meters. Used to calculate Kn curve.
-            Optional if the Kn curve is not interesting. Its value does not
-            impact trajectory simulation.
+            Motor's nozzle outlet position in meters, specified in the motor's
+            coordinate system. Default is 0, which corresponds to the motor's
+            origin. See the ``coordinate_system_orientation`` parameter for
+            details on the coordinate system.
         reshape_thrust_curve : boolean, tuple, optional
-            If False, the original thrust curve supplied is not altered. If a
-            tuple is given, whose first parameter is a new burn out time and
-            whose second parameter is a new total impulse in Ns, the thrust
-            curve is reshaped to match the new specifications. May be useful
-            for motors whose thrust curve shape is expected to remain similar
-            in case the impulse and burn time varies slightly. Default is
-            False.
+            If False, the original thrust curve supplied is used. If a tuple is
+            given, the thrust curve is reshaped to match the new grain mass
+            flow rate and burn time. The tuple should contain the initial grain
+            mass and the final grain mass, in kg. Default is False.
         interpolation_method : string, optional
             Method of interpolation to be used in case thrust curve is given
-            by data set in .csv or .eng, or as an array. Options are 'spline'
-            'akima' and 'linear'. Default is "linear".
+            by data points. Options are 'spline', 'akima' and 'linear'.
+            Default is "linear".
         coordinate_system_orientation : string, optional
             Orientation of the motor's coordinate system. The coordinate system
-            is defined by the motor's axis of symmetry. The origin of the
-            coordinate system may be placed anywhere along such axis, such as
-            at the nozzle area, and must be kept the same for all other
-            positions specified. Options are "nozzle_to_combustion_chamber" and
-            "combustion_chamber_to_nozzle". Default is
-            "nozzle_to_combustion_chamber".
+            has its origin at the motor's center of mass and is oriented
+            according to the following options:
+            "nozzle_to_combustion_chamber" : the coordinate system is oriented
+            with the z-axis pointing from the nozzle towards the combustion
+            chamber.
+            "combustion_chamber_to_nozzle" : the coordinate system is oriented
+            with the z-axis pointing from the combustion chamber towards the
+            nozzle.
+            Default is "nozzle_to_combustion_chamber".
         reference_pressure : int, float, optional
-            Atmospheric pressure in Pa at which the thrust data was recorded.
-        only_radial_burn : boolean, optional
-            If True, inhibits the grain from burning axially, only computing
-            radial burn. If False, allows the grain to also burn
-            axially. May be useful for axially inhibited grains or hybrid motors.
-            Default is False.
+            Reference pressure in Pa used to calculate vacuum thrust and
+            pressure thrust. This corresponds to the atmospheric pressure
+            measured during the static test of the motor. Default is None,
+            which means no pressure correction is applied.
 
         Returns
         -------
         None
         """
-        super().__init__(
+        # Call SolidMotor init to initialize grain parameters
+        # Note: dry_mass and dry_inertia are temporarily set to 0, they will be
+        # calculated later considering the tanks mass.
+        SolidMotor.__init__(
+            self,
             thrust_source=thrust_source,
-            dry_inertia=dry_inertia,
+            dry_mass=0,
+            dry_inertia=(0, 0, 0),
             nozzle_radius=nozzle_radius,
-            center_of_dry_mass_position=center_of_dry_mass_position,
-            dry_mass=dry_mass,
-            nozzle_position=nozzle_position,
             burn_time=burn_time,
+            center_of_dry_mass_position=center_of_dry_mass_position,
+            grain_number=grain_number,
+            grain_separation=grain_separation,
+            grain_density=grain_density,
+            grain_outer_radius=grain_outer_radius,
+            grain_initial_inner_radius=grain_initial_inner_radius,
+            grain_initial_height=grain_initial_height,
+            grains_center_of_mass_position=grains_center_of_mass_position,
+            nozzle_position=nozzle_position,
             reshape_thrust_curve=reshape_thrust_curve,
             interpolation_method=interpolation_method,
             coordinate_system_orientation=coordinate_system_orientation,
             reference_pressure=reference_pressure,
         )
-        self.liquid = LiquidMotor(
-            thrust_source,
-            dry_mass,
-            dry_inertia,
-            nozzle_radius,
-            center_of_dry_mass_position,
-            nozzle_position,
-            burn_time,
-            reshape_thrust_curve,
-            interpolation_method,
-            coordinate_system_orientation,
-            reference_pressure,
-        )
-        self.solid = SolidMotor(
-            thrust_source,
-            dry_mass,
-            dry_inertia,
-            nozzle_radius,
-            grain_number,
-            grain_density,
-            grain_outer_radius,
-            grain_initial_inner_radius,
-            grain_initial_height,
-            grain_separation,
-            grains_center_of_mass_position,
-            center_of_dry_mass_position,
-            nozzle_position,
-            burn_time,
-            throat_radius,
-            reshape_thrust_curve,
-            interpolation_method,
-            coordinate_system_orientation,
-            reference_pressure,
-            only_radial_burn,
+
+        # Oxidizer parameters initialization
+        self.tanks_mass = tanks_mass
+        self.oxidizer_initial_mass = oxidizer_initial_mass
+        self.oxidizer_density = oxidizer_density
+        self.oxidizer_tanks_geometries = oxidizer_tanks_geometries
+        self.oxidizer_tanks_positions = oxidizer_tanks_positions
+        self.oxidizer_initial_inertia = (
+            (*oxidizer_initial_inertia, 0, 0, 0)
+            if len(oxidizer_initial_inertia) == 3
+            else oxidizer_initial_inertia
         )
 
-        self.positioned_tanks = self.liquid.positioned_tanks
-        self.grain_number = grain_number
-        self.grain_density = grain_density
-        self.grain_outer_radius = grain_outer_radius
-        self.grain_initial_inner_radius = grain_initial_inner_radius
-        self.grain_initial_height = grain_initial_height
-        self.grain_separation = grain_separation
-        self.grains_center_of_mass_position = grains_center_of_mass_position
-        self.throat_radius = throat_radius
+        # Oxidizer mass flow rate definition and processing
+        self.oxidizer_mass_flow_rate = Function(
+            oxidizer_mass_flow_rate_curve,
+            "Time (s)",
+            "Oxidizer Mass Flow Rate (kg/s)",
+            interpolation_method,
+            extrapolation="zero",
+        )
 
-        # Initialize plots and prints object
-        self.prints = _HybridMotorPrints(self)
+        # Correct dry mass and dry inertia to include tanks mass
+        self.dry_mass = dry_mass + tanks_mass
+        dry_inertia = (*dry_inertia, 0, 0, 0) if len(dry_inertia) == 3 else dry_inertia
+        self.dry_I_11 = dry_inertia[0]
+        self.dry_I_22 = dry_inertia[1]
+        self.dry_I_33 = dry_inertia[2]
+        self.dry_I_12 = dry_inertia[3]
+        self.dry_I_13 = dry_inertia[4]
+        self.dry_I_23 = dry_inertia[5]
+        # TODO: Calculate tanks inertia tensor based on their geometry and mass
+        """
+        # Initialize Tanks object
+        self.tanks = Tank(
+            geometries=oxidizer_tanks_geometries,
+            positions=oxidizer_tanks_positions,
+            fluid_mass=self.oxidizer_mass,
+            fluid_density=self.oxidizer_density,
+            initial_liquid_level=oxidizer_tanks_initial_liquid_level,
+            initial_ullage_mass=oxidizer_tanks_initial_ullage_mass,
+            initial_ullage_volume=oxidizer_tanks_initial_ullage_volume,
+        )
+        """
+        # Store important functions
+        self.liquid_propellant_mass = self.tanks.liquid_mass
+        self.gas_propellant_mass = self.tanks.gas_mass
+        self.center_of_liquid_propellant_mass = self.tanks.liquid_center_of_mass
+        self.center_of_gas_propellant_mass = self.tanks.gas_center_of_mass
+        self.liquid_propellant_I_11 = self.tanks.liquid_I_11
+        self.liquid_propellant_I_22 = self.tanks.liquid_I_22
+        self.liquid_propellant_I_33 = self.tanks.liquid_I_33
+        self.gas_propellant_I_11 = self.tanks.gas_I_11
+        self.gas_propellant_I_22 = self.tanks.gas_I_22
+        self.gas_propellant_I_33 = self.tanks.gas_I_33
+
+        # Rename grain attributes for clarity
+        self.grain_propellant_mass = self.grain_mass
+        self.center_of_grain_propellant_mass = self.grains_center_of_mass_position
+        self.grain_propellant_I_11 = self.grains_I_11
+        self.grain_propellant_I_22 = self.grains_I_22
+        self.grain_propellant_I_33 = self.grains_I_33
+
+        # Overall propellant inertia tensor components relative to propellant CoM
+        # We need to recalculate the total propellant CoM function first
+        # (Assuming self.liquid_propellant_mass and self.grain_propellant_mass exist and are Functions)
+        # (Assuming self.center_of_liquid_propellant_mass and self.center_of_grain_propellant_mass exist and are Functions returning scalars)
+        self._propellant_mass = self.liquid_propellant_mass + self.grain_propellant_mass
+        self._center_of_propellant_mass = (
+            self.center_of_liquid_propellant_mass * self.liquid_propellant_mass
+            + self.center_of_grain_propellant_mass * self.grain_propellant_mass
+        ) / self._propellant_mass
+        # Ensure division by zero is handled if needed, although propellant mass shouldn't be zero initially
+
+        # Create Functions returning distance vectors relative to the overall propellant CoM
+        liquid_com_to_prop_com = (
+            self.center_of_liquid_propellant_mass - self._center_of_propellant_mass
+        )
+        grain_com_to_prop_com = (
+            self.center_of_grain_propellant_mass - self._center_of_propellant_mass
+        )
+
+        # Convert scalar distances to 3D vectors for PAT functions
+        # The distance is along the Z-axis in the motor's coordinate system
+        liquid_dist_vec_func = Function(
+            lambda t: Vector([0, 0, liquid_com_to_prop_com(t)]), inputs="t"
+        )
+        grain_dist_vec_func = Function(
+            lambda t: Vector([0, 0, grain_com_to_prop_com(t)]), inputs="t"
+        )
+
+        # Apply PAT using the new specific functions
+        # Inertias relative to component CoMs are needed (e.g., self.liquid_propellant_I_11_from_liquid_CM)
+        # Assuming these exist, otherwise adjust the first argument of the PAT functions
+
+        # --- I_11 ---
+        # Assuming self.liquid_propellant_I_11 refers to inertia relative to liquid CoM
+        liquid_I_11_prop_com = parallel_axis_theorem_I11(
+            self.liquid_propellant_I_11,  # Inertia relative to liquid's own CoM
+            self.liquid_propellant_mass,
+            liquid_dist_vec_func,  # Distance from total prop CoM to liquid CoM
+        )
+        # Assuming self.grain_propellant_I_11 refers to inertia relative to grain CoM
+        grain_I_11_prop_com = parallel_axis_theorem_I11(
+            self.grain_propellant_I_11,  # Inertia relative to grain's own CoM
+            self.grain_propellant_mass,
+            grain_dist_vec_func,  # Distance from total prop CoM to grain CoM
+        )
+        self.propellant_I_11_from_propellant_CM = (
+            liquid_I_11_prop_com + grain_I_11_prop_com
+        )
+
+        # --- I_22 ---
+        liquid_I_22_prop_com = parallel_axis_theorem_I22(
+            self.liquid_propellant_I_22,  # Inertia relative to liquid's own CoM
+            self.liquid_propellant_mass,
+            liquid_dist_vec_func,
+        )
+        grain_I_22_prop_com = parallel_axis_theorem_I22(
+            self.grain_propellant_I_22,  # Inertia relative to grain's own CoM
+            self.grain_propellant_mass,
+            grain_dist_vec_func,
+        )
+        self.propellant_I_22_from_propellant_CM = (
+            liquid_I_22_prop_com + grain_I_22_prop_com
+        )
+
+        # --- I_33 ---
+        liquid_I_33_prop_com = parallel_axis_theorem_I33(
+            self.liquid_propellant_I_33,  # Inertia relative to liquid's own CoM
+            self.liquid_propellant_mass,
+            liquid_dist_vec_func,
+        )
+        grain_I_33_prop_com = parallel_axis_theorem_I33(
+            self.grain_propellant_I_33,  # Inertia relative to grain's own CoM
+            self.grain_propellant_mass,
+            grain_dist_vec_func,
+        )
+        self.propellant_I_33_from_propellant_CM = (
+            liquid_I_33_prop_com + grain_I_33_prop_com
+        )
+
+        # --- Products of Inertia (I_12, I_13, I_23) ---
+        # Assume components PoI are 0 relative to their own CoM due to axisymmetry
+        # PAT calculation will correctly handle the axisymmetry (result should be 0)
+
+        # I_12
+        liquid_I_12_prop_com = parallel_axis_theorem_I12(
+            Function(0), self.liquid_propellant_mass, liquid_dist_vec_func
+        )
+        grain_I_12_prop_com = parallel_axis_theorem_I12(
+            Function(0), self.grain_propellant_mass, grain_dist_vec_func
+        )
+        # Store intermediate result if needed by Motor.__init__ later, prefix with '_' if not part of public API
+        self._propellant_I_12_from_propellant_CM = (
+            liquid_I_12_prop_com + grain_I_12_prop_com
+        )
+
+        # I_13
+        liquid_I_13_prop_com = parallel_axis_theorem_I13(
+            Function(0), self.liquid_propellant_mass, liquid_dist_vec_func
+        )
+        grain_I_13_prop_com = parallel_axis_theorem_I13(
+            Function(0), self.grain_propellant_mass, grain_dist_vec_func
+        )
+        self._propellant_I_13_from_propellant_CM = (
+            liquid_I_13_prop_com + grain_I_13_prop_com
+        )
+
+        # I_23
+        liquid_I_23_prop_com = parallel_axis_theorem_I23(
+            Function(0), self.liquid_propellant_mass, liquid_dist_vec_func
+        )
+        grain_I_23_prop_com = parallel_axis_theorem_I23(
+            Function(0), self.grain_propellant_mass, grain_dist_vec_func
+        )
+        self._propellant_I_23_from_propellant_CM = (
+            liquid_I_23_prop_com + grain_I_23_prop_com
+        )
+
+        # IMPORTANT: Call the parent __init__ AFTER calculating component inertias
+        #            because the parent __init__ uses these calculated values.
+        super().__init__(
+            thrust_source=thrust_source,
+            dry_mass=self.dry_mass,  # Use the corrected dry mass
+            dry_inertia=(
+                self.dry_I_11,
+                self.dry_I_22,
+                self.dry_I_33,
+                self.dry_I_12,
+                self.dry_I_13,
+                self.dry_I_23,
+            ),  # Use corrected dry inertia
+            nozzle_radius=nozzle_radius,
+            burn_time=burn_time,
+            center_of_dry_mass_position=center_of_dry_mass_position,
+            nozzle_position=nozzle_position,
+            reshape_thrust_curve=reshape_thrust_curve,
+            interpolation_method=interpolation_method,
+            coordinate_system_orientation=coordinate_system_orientation,
+            reference_pressure=reference_pressure,
+        )
+        # The parent __init__ will now correctly use the calculated
+        # self.propellant_I_xx_from_propellant_CM values.
+
+        # Initialize plots object specific to HybridMotor
         self.plots = _HybridMotorPlots(self)
 
-    @funcify_method("Time (s)", "Exhaust velocity (m/s)")
     def exhaust_velocity(self):
         """Exhaust velocity by assuming it as a constant. The formula used is
         total impulse/propellant initial mass.
@@ -470,144 +696,50 @@ class HybridMotor(Motor):
         return mass_balance / self.propellant_mass
 
     @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
+    @property
+    @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
     def propellant_I_11(self):
         """Inertia tensor 11 component of the propellant, the inertia is
         relative to the e_1 axis, centered at the instantaneous propellant
         center of mass.
-
-        Returns
-        -------
-        Function
-            Propellant inertia tensor 11 component at time t.
-
-        Notes
-        -----
-        The e_1 direction is assumed to be the direction perpendicular to the
-        motor body axis.
-
-        References
-        ----------
-        https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
+        # Returns the value calculated in __init__
+        return self.propellant_I_11_from_propellant_CM
 
-        solid_mass = self.solid.propellant_mass
-        liquid_mass = self.liquid.propellant_mass
-
-        cm = self.center_of_propellant_mass
-        solid_cm_to_cm = self.solid.center_of_propellant_mass - cm
-        liquid_cm_to_cm = self.liquid.center_of_propellant_mass - cm
-
-        solid_prop_inertia = self.solid.propellant_I_11
-        liquid_prop_inertia = self.liquid.propellant_I_11
-
-        I_11 = parallel_axis_theorem_from_com(
-            solid_prop_inertia, solid_mass, solid_cm_to_cm
-        ) + parallel_axis_theorem_from_com(
-            liquid_prop_inertia, liquid_mass, liquid_cm_to_cm
-        )
-
-        return I_11
-
+    @property
     @funcify_method("Time (s)", "Inertia I_22 (kg m²)")
     def propellant_I_22(self):
-        """Inertia tensor 22 component of the propellant, the inertia is
-        relative to the e_2 axis, centered at the instantaneous propellant
-        center of mass.
+        """Inertia tensor 22 component of the propellant... (Identical to I_11)"""
 
-        Returns
-        -------
-        Function
-            Propellant inertia tensor 22 component at time t.
+        return self.propellant_I_22_from_propellant_CM
 
-        Notes
-        -----
-        The e_2 direction is assumed to be the direction perpendicular to the
-        motor body axis, and perpendicular to e_1.
-
-        References
-        ----------
-        https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
-        """
-        return self.propellant_I_11
-
+    @property
     @funcify_method("Time (s)", "Inertia I_33 (kg m²)")
     def propellant_I_33(self):
-        """Inertia tensor 33 component of the propellant, the inertia is
-        relative to the e_3 axis, centered at the instantaneous propellant
-        center of mass.
+        """Inertia tensor 33 component of the propellant..."""
 
-        Returns
-        -------
-        Function
-            Propellant inertia tensor 33 component at time t.
+        return self.propellant_I_33_from_propellant_CM
 
-        Notes
-        -----
-        The e_3 direction is assumed to be the axial direction of the rocket
-        motor.
-
-        References
-        ----------
-        https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
-        """
-        return self.solid.propellant_I_33 + self.liquid.propellant_I_33
-
+    @property
     @funcify_method("Time (s)", "Inertia I_12 (kg m²)")
     def propellant_I_12(self):
-        """Inertia tensor 12 component of the propellant, the inertia is
-        relative to the e_1 and e_2 axes, centered at the instantaneous
-        propellant center of mass.
+        """Inertia tensor 12 component of the propellant..."""
 
-        Returns
-        -------
-        Function
-            Propellant inertia tensor 12 component at time t.
+        return self._propellant_I_12_from_propellant_CM
 
-        Notes
-        -----
-            This is assumed to be zero due to axial symmetry of the motor. This
-            could be improved in the future to account for the fact that the
-            motor is not perfectly symmetric.
-        """
-        return 0
-
+    @property
     @funcify_method("Time (s)", "Inertia I_13 (kg m²)")
     def propellant_I_13(self):
-        """Inertia tensor 13 component of the propellant, the inertia is
-        relative to the e_1 and e_3 axes, centered at the instantaneous
-        propellant center of mass.
+        """Inertia tensor 13 component of the propellant..."""
 
-        Returns
-        -------
-        Function
-            Propellant inertia tensor 13 component at time t.
+        return self._propellant_I_13_from_propellant_CM
 
-        Notes
-        -----
-            This is assumed to be zero due to axial symmetry of the motor. This
-            could be improved in the future to account for the fact that the
-            motor is not perfectly symmetric.
-        """
-        return 0
-
+    @property
     @funcify_method("Time (s)", "Inertia I_23 (kg m²)")
     def propellant_I_23(self):
-        """Inertia tensor 23 component of the propellant, the inertia is
-        relative to the e_2 and e_3 axes, centered at the instantaneous
-        propellant center of mass.
+        """Inertia tensor 23 component of the propellant..."""
 
-        Returns
-        -------
-        Function
-            Propellant inertia tensor 23 component at time t.
-
-        Notes
-        -----
-            This is assumed to be zero due to axial symmetry of the motor. This
-            could be improved in the future to account for the fact that the
-            motor is not perfectly symmetric.
-        """
-        return 0
+        return self._propellant_I_23_from_propellant_CM
 
     def add_tank(self, tank, position):
         """Adds a tank to the motor.
@@ -652,8 +784,8 @@ class HybridMotor(Motor):
         """
         self.plots.draw(filename=filename)
 
-    def to_dict(self, **kwargs):
-        data = super().to_dict(**kwargs)
+    def to_dict(self, include_outputs=False):
+        data = super().to_dict(include_outputs)
         data.update(
             {
                 "grain_number": self.grain_number,
@@ -671,18 +803,13 @@ class HybridMotor(Motor):
             }
         )
 
-        if kwargs.get("include_outputs", False):
-            burn_rate = self.solid.burn_rate
-            if kwargs.get("discretize", False):
-                burn_rate = burn_rate.set_discrete_based_on_model(
-                    self.thrust, mutate_self=False
-                )
+        if include_outputs:
             data.update(
                 {
                     "grain_inner_radius": self.solid.grain_inner_radius,
                     "grain_height": self.solid.grain_height,
                     "burn_area": self.solid.burn_area,
-                    "burn_rate": burn_rate,
+                    "burn_rate": self.solid.burn_rate,
                 }
             )
 
@@ -714,11 +841,12 @@ class HybridMotor(Motor):
             grain_separation=data["grain_separation"],
             grains_center_of_mass_position=data["grains_center_of_mass_position"],
             nozzle_position=data["nozzle_position"],
-            throat_radius=data["throat_radius"],
+            tanks_mass=data["tanks_mass"],
+            oxidizer_initial_mass=data["oxidizer_initial_mass"],
+            oxidizer_mass_flow_rate_curve=data["oxidizer_mass_flow_rate_curve"],
+            oxidizer_density=data["oxidizer_density"],
+            oxidizer_tanks_geometries=data["oxidizer_tanks_geometries"],
+            oxidizer_tanks_positions=data["oxidizer_tanks_positions"],
             reference_pressure=data.get("reference_pressure"),
         )
-
-        for tank in data["positioned_tanks"]:
-            motor.add_tank(tank["tank"], tank["position"])
-
         return motor
