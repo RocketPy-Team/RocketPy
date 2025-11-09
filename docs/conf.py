@@ -22,12 +22,12 @@ os.environ["PYTHONPATH"] = ":".join((package_path, os.environ.get("PYTHONPATH", 
 # -- Project information -----------------------------------------------------
 
 project = "RocketPy"
-copyright = "2024, RocketPy Team"
+copyright = "2025, RocketPy Team"
 
 author = "RocketPy Team"
 
 # The full version, including alpha/beta/rc tags
-release = "1.10.0"
+release = "1.11.0"
 
 
 # -- General configuration ---------------------------------------------------

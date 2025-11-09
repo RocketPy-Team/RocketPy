@@ -19,7 +19,7 @@ If you want to choose a specific version to guarantee compatibility, you may ins
 
 .. code-block:: shell
 
-    pip install rocketpy==1.10.0
+    pip install rocketpy==1.11.0
 
 
 Optional Installation Method: ``conda``
@@ -85,7 +85,7 @@ Requirements
 Python Version
 ^^^^^^^^^^^^^^
 
-RocketPy supports Python 3.9 and above.
+RocketPy supports Python 3.10 and above.
 Sorry, there are currently no plans to support earlier versions.
 If you really need to run RocketPy on Python 3.8 or earlier, feel free to submit an issue and we will see what we can do!
 
