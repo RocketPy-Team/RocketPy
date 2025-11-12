@@ -1918,9 +1918,9 @@ class GenericMotor(Motor):
         )
 
     @staticmethod
-    def load_from_thrustcurve_api(name: str, **kwargs):
+    def call_thrustcurve_api(name: str):
         """
-        Creates a Motor instance by downloading a .eng file from the ThrustCurve API
+        Download a .eng file from the ThrustCurve API
         based on the given motor name.
 
         Parameters
@@ -1929,14 +1929,11 @@ class GenericMotor(Motor):
             The motor name according to the API (e.g., "Cesaroni_M1670" or "M1670").
             Both manufacturer-prefixed and shorthand names are commonly used; if multiple
             motors match the search, the first result is used.
-        **kwargs :
-            Additional arguments passed to the Motor constructor or loader, such as
-            dry_mass, nozzle_radius, etc.
 
         Returns
         -------
-        instance : GenericMotor
-            A new GenericMotor instance initialized using the downloaded .eng file.
+        data_base64 : String
+            The .eng file of the motor in base64
 
         Raises
         ------
@@ -1982,7 +1979,38 @@ class GenericMotor(Motor):
             raise ValueError(
                 f"Downloaded .eng data for motor '{name}' is empty or invalid."
             )
+        return data_base64
 
+    @staticmethod
+    def load_from_thrustcurve_api(name: str, **kwargs):
+        """
+        Creates a Motor instance by downloading a .eng file from the ThrustCurve API
+        based on the given motor name.
+
+        Parameters
+        ----------
+        name : str
+            The motor name according to the API (e.g., "Cesaroni_M1670" or "M1670").
+            Both manufacturer-prefixed and shorthand names are commonly used; if multiple
+            motors match the search, the first result is used.
+        **kwargs :
+            Additional arguments passed to the Motor constructor or loader, such as
+            dry_mass, nozzle_radius, etc.
+
+        Returns
+        -------
+        instance : GenericMotor
+            A new GenericMotor instance initialized using the downloaded .eng file.
+
+        Raises
+        ------
+        ValueError
+            If no motor is found or if the downloaded .eng data is missing.
+        requests.exceptions.RequestException
+            If a network or HTTP error occurs during the API call.
+        """
+
+        data_base64 = GenericMotor.call_thrustcurve_api(name)
         data_bytes = base64.b64decode(data_base64)
 
         # Step 3. Create the motor from the .eng file
