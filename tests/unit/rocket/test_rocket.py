@@ -401,9 +401,10 @@ def test_check_missing_some_components(calisto):
 def test_check_missing_no_components_missing(calisto_robust):
     """Tests the _check_missing_components method for a complete Rocket."""
     # Call directly — no warnings expected
-    calisto_robust._check_missing_components()
+    with pytest.warns(None) as record:
+        calisto_robust._check_missing_components()
     # If any warning occurs, pytest will fail automatically
-    assert True
+    assert len(record) == 0
 
 
 def test_set_rail_button(calisto):
