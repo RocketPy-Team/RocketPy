@@ -389,7 +389,6 @@ class Rocket:
 
         This method verifies whether the rocket has the following key components:
         - motor
-        - parachute(s)
         - aerodynamic surface(s)
 
         If any of these components are missing, a single warning message is issued
@@ -402,8 +401,6 @@ class Rocket:
         missing_components = []
         if isinstance(self.motor, EmptyMotor):
             missing_components.append("motor")
-        if not self.parachutes:
-            missing_components.append("parachutes")
         if not self.aerodynamic_surfaces or len(self.aerodynamic_surfaces) == 0:
             missing_components.append("aerodynamic surfaces")
 
