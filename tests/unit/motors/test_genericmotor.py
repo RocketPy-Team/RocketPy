@@ -229,6 +229,9 @@ def test_load_from_thrustcurve_api(monkeypatch, generic_motor):
     """
 
     class MockResponse:
+        """
+        Class to Mock the API
+        """
         def __init__(self, json_data):
             self._json_data = json_data
 
