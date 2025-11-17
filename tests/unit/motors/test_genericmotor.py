@@ -216,76 +216,44 @@ def test_load_from_rse_file(generic_motor):
     assert thrust_curve[-1][1] == 0.0  # Last thrust point
 
 
-def test_load_from_thrustcurve_api(monkeypatch, generic_motor):
-    """
-    Tests the GenericMotor.load_from_thrustcurve_api method with mocked ThrustCurve API responses.
-    Parameters
-    ----------
-    monkeypatch : pytest.MonkeyPatch
-        The pytest monkeypatch fixture for mocking.
-    generic_motor : rocketpy.GenericMotor
-        The GenericMotor object to be used in the tests.
+class MockResponse:
+    """Mocked response for requests."""
 
-    """
+    def __init__(self, json_data):
+        self._json_data = json_data
 
-    class MockResponse:
-        """
-        Class to Mock the API
-        """
-        def __init__(self, json_data):
-            self._json_data = json_data
+    def json(self):
+        return self._json_data
 
-        def json(self):
-            return self._json_data
+    def raise_for_status(self):
+        return None
 
-        def raise_for_status(self):
-            # Simulate a successful HTTP response (200)
-            return None
 
-    # Provide mocked responses for the two endpoints: search.json and download.json
-    def mock_get(url, params=None):
+def _mock_get(search_results=None, download_results=None):
+    """Return a mock_get function with predefined search/download results."""
+
+    def _get(url, **_kwargs):
         if "search.json" in url:
-            # Return a mock search result with a motorId and designation
-            return MockResponse(
-                {
-                    "results": [
-                        {
-                            "motorId": "12345",
-                            "designation": "Cesaroni_M1670",
-                            "manufacturer": "Cesaroni",
-                        }
-                    ]
-                }
-            )
-        elif "download.json" in url:
-            # Read the local .eng file and return its base64-encoded content as the API would
-            eng_path = "data/motors/cesaroni/Cesaroni_M1670.eng"
-            with open(eng_path, "rb") as f:
-                encoded = base64.b64encode(f.read()).decode("utf-8")
-            return MockResponse({"results": [{"data": encoded}]})
-        else:
-            raise RuntimeError(f"Unexpected URL called in test mock: {url}")
+            return MockResponse(search_results or {"results": []})
+        if "download.json" in url:
+            return MockResponse(download_results or {"results": []})
+        raise RuntimeError(f"Unexpected URL: {url}")
 
-    monkeypatch.setattr(requests, "get", mock_get)
+    return _get
 
-    # Expected parameters from the original test
+
+def assert_motor_specs(motor):
     burn_time = (0, 3.9)
-    dry_mass = 5.231 - 3.101  # 2.130 kg
+    dry_mass = 2.130
     propellant_initial_mass = 3.101
     chamber_radius = 75 / 1000
     chamber_height = 757 / 1000
-    nozzle_radius = chamber_radius * 0.85  # 85% of chamber radius
-
+    nozzle_radius = chamber_radius * 0.85
     average_thrust = 1545.218
     total_impulse = 6026.350
     max_thrust = 2200.0
     exhaust_velocity = 1943.357
 
-    # Call the method using the class (works if it's a staticmethod); using type(generic_motor)
-    # ensures test works if the method is invoked on a GenericMotor instance in the project
-    motor = type(generic_motor).load_from_thrustcurve_api("M1670")
-
-    # Assertions (same as original)
     assert motor.burn_time == burn_time
     assert motor.dry_mass == dry_mass
     assert motor.propellant_initial_mass == propellant_initial_mass
@@ -298,62 +266,62 @@ def test_load_from_thrustcurve_api(monkeypatch, generic_motor):
     assert motor.max_thrust == pytest.approx(max_thrust)
     assert motor.nozzle_radius == pytest.approx(nozzle_radius)
 
-    # testing thrust curve equality against the local .eng import (as in original test)
-    _, _, points = Motor.import_eng("data/motors/cesaroni/Cesaroni_M1670.eng")
+
+def test_load_from_thrustcurve_api(monkeypatch, generic_motor):
+    """Tests GenericMotor.load_from_thrustcurve_api with mocked API."""
+
+    eng_path = "data/motors/cesaroni/Cesaroni_M1670.eng"
+    with open(eng_path, "rb") as f:
+        encoded = base64.b64encode(f.read()).decode("utf-8")
+
+    search_json = {
+        "results": [
+            {
+                "motorId": "12345",
+                "designation": "Cesaroni_M1670",
+                "manufacturer": "Cesaroni",
+            }
+        ]
+    }
+    download_json = {"results": [{"data": encoded}]}
+    monkeypatch.setattr(requests, "get", _mock_get(search_json, download_json))
+    monkeypatch.setattr(requests.Session, "get", _mock_get(search_json, download_json))
+
+    motor = type(generic_motor).load_from_thrustcurve_api("M1670")
+
+    assert_motor_specs(motor)
+
+    _, _, points = Motor.import_eng(eng_path)
     assert motor.thrust.y_array == pytest.approx(
         Function(points, "Time (s)", "Thrust (N)", "linear", "zero").y_array
     )
 
-    # 1. No motor found
-    def mock_get_no_motor(url, params=None):
-        if "search.json" in url:
-            return MockResponse({"results": []})
-        return MockResponse({"results": []})
+    error_cases = [
+        ("No motor found", {"results": []}, None),
+        (
+            "No .eng file found",
+            {
+                "results": [
+                    {"motorId": "123", "designation": "Fake", "manufacturer": "Test"}
+                ]
+            },
+            {"results": []},
+        ),
+        (
+            "Downloaded .eng data",
+            {
+                "results": [
+                    {"motorId": "123", "designation": "Fake", "manufacturer": "Test"}
+                ]
+            },
+            {"results": [{"data": ""}]},
+        ),
+    ]
 
-    monkeypatch.setattr(requests, "get", mock_get_no_motor)
-    with pytest.raises(ValueError, match="No motor found"):
-        type(generic_motor).load_from_thrustcurve_api("NonexistentMotor")
-
-    # 2. No .eng file found
-    def mock_get_no_eng(url, params=None):
-        if "search.json" in url:
-            return MockResponse(
-                {
-                    "results": [
-                        {
-                            "motorId": "123",
-                            "designation": "Fake",
-                            "manufacturer": "Test",
-                        }
-                    ]
-                }
-            )
-        elif "download.json" in url:
-            return MockResponse({"results": []})
-        return MockResponse({})
-
-    monkeypatch.setattr(requests, "get", mock_get_no_eng)
-    with pytest.raises(ValueError, match="No .eng file found"):
-        type(generic_motor).load_from_thrustcurve_api("FakeMotor")
-
-    # 3. Empty .eng data
-    def mock_get_empty_data(url, params=None):
-        if "search.json" in url:
-            return MockResponse(
-                {
-                    "results": [
-                        {
-                            "motorId": "123",
-                            "designation": "Fake",
-                            "manufacturer": "Test",
-                        }
-                    ]
-                }
-            )
-        elif "download.json" in url:
-            return MockResponse({"results": [{"data": ""}]})
-        return MockResponse({})
-
-    monkeypatch.setattr(requests, "get", mock_get_empty_data)
-    with pytest.raises(ValueError, match="Downloaded .eng data"):
-        type(generic_motor).load_from_thrustcurve_api("FakeMotor")
+    for msg, search_res, download_res in error_cases:
+        monkeypatch.setattr(requests, "get", _mock_get(search_res, download_res))
+        monkeypatch.setattr(
+            requests.Session, "get", _mock_get(search_res, download_res)
+        )
+        with pytest.raises(ValueError, match=msg):
+            type(generic_motor).load_from_thrustcurve_api("FakeMotor")
