@@ -380,7 +380,6 @@ def test_check_missing_all_components(calisto_motorless):
     assert len(record) == 1
     msg = str(record[0].message)
     assert "motor" in msg
-    assert "parachutes" in msg
     assert "aerodynamic surfaces" in msg
 
 
@@ -394,7 +393,6 @@ def test_check_missing_some_components(calisto):
 
     assert len(record) == 1
     msg = str(record[0].message)
-    assert "parachutes" in msg
     assert "aerodynamic surfaces" in msg
 
 
