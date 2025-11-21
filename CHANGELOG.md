@@ -36,6 +36,8 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+- BUG: Fix CSV column header spacing in FlightDataExporter [#864](https://github.com/RocketPy-Team/RocketPy/issues/864)
+
 
 ## [v1.11.0] - 2025-11-01
 
