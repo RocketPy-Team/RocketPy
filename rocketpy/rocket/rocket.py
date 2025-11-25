@@ -395,19 +395,24 @@ class Rocket:
         listing all missing components. This helps users quickly identify potential
         issues before running simulations or analyses.
 
-        Notes:
+        Notes
+        -----
         - The warning uses Python's built-in `warnings.warn` function.
+
+        Returns
+        -------
+        None
         """
         missing_components = []
         if isinstance(self.motor, EmptyMotor):
             missing_components.append("motor")
-        if not self.aerodynamic_surfaces or len(self.aerodynamic_surfaces) == 0:
+        if not self.aerodynamic_surfaces:
             missing_components.append("aerodynamic surfaces")
 
         if missing_components:
             component_list = ", ".join(missing_components)
             warnings.warn(
-                f"[WARNING] Rocket has no {component_list} defined.", UserWarning
+                f"Rocket has no {component_list} defined.", UserWarning
             )
 
     @property
