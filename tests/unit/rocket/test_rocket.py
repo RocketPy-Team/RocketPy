@@ -385,7 +385,6 @@ def test_check_missing_all_components(calisto_motorless):
 
 def test_check_missing_some_components(calisto):
     """Tests the _check_missing_components method for a Rocket missing some components."""
-    calisto.parachutes = []
     calisto.aerodynamic_surfaces = []
 
     with pytest.warns(UserWarning) as record:
@@ -398,11 +397,13 @@ def test_check_missing_some_components(calisto):
 
 def test_check_missing_no_components_missing(calisto_robust):
     """Tests the _check_missing_components method for a complete Rocket."""
-    # Call directly — no warnings expected
-    with pytest.warns(None) as record:
+    import warnings
+    # Catch all warnings that occur inside this 'with' block.
+    with warnings.catch_warnings(record=True) as w:
+        # Ensure that *all* warnings are captured.
+        warnings.simplefilter("always")
         calisto_robust._check_missing_components()
-    # If any warning occurs, pytest will fail automatically
-    assert len(record) == 0
+    assert len(w) == 0
 
 
 def test_set_rail_button(calisto):
