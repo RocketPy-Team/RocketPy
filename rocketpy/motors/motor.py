@@ -1932,7 +1932,7 @@ class GenericMotor(Motor):
 
         Returns
         -------
-        data_base64 : String
+        data_base64 : str
             The .eng file of the motor in base64
 
         Raises
