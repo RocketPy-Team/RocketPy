@@ -32,6 +32,7 @@ class WeatherModelMapping:
         "latitude": "latitude",
         "longitude": "longitude",
         "level": "level",
+        "ensemble": "number",
         "temperature": "t",
         "surface_geopotential_height": None,
         "geopotential_height": None,
@@ -44,6 +45,7 @@ class WeatherModelMapping:
         "latitude": "latitude",
         "longitude": "longitude",
         "level": "pressure_level",
+        "ensemble": "number",
         "temperature": "t",
         "surface_geopotential_height": None,
         "geopotential_height": None,
@@ -118,7 +120,7 @@ class WeatherModelMapping:
         "longitude": "lon",
         "level": "lev",
         "temperature": "T",
-        "surface_geopotential_height": None,  #
+        "surface_geopotential_height": None,  
         "surface_geopotential": "PHIS",  # special key for Geopotential (m^2/s^2)
         "geopotential_height": "H",
         "geopotential": None,

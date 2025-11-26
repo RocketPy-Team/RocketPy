@@ -276,6 +276,9 @@ Finally, we can add any number of Parachutes to the ``Rocket`` object.
         sampling_rate=105,
         lag=1.5,
         noise=(0, 8.3, 0.5),
+        radius=1.5,
+        height=1.5,
+        porosity=0.0432,
     )
 
     drogue = calisto.add_parachute(
@@ -285,6 +288,9 @@ Finally, we can add any number of Parachutes to the ``Rocket`` object.
         sampling_rate=105,
         lag=1.5,
         noise=(0, 8.3, 0.5),
+        radius=1.5,
+        height=1.5,
+        porosity=0.0432,
     )
 
 We can then see if the rocket is stable by plotting the static margin:
@@ -559,12 +565,16 @@ Visualizing the Trajectory in Google Earth
 
 We can export the trajectory to ``.kml`` to visualize it in Google Earth:
 
+Use the dedicated exporter class:
+
 .. jupyter-input::
 
-    test_flight.export_kml(
+    from rocketpy.simulation import FlightDataExporter
+
+    FlightDataExporter(test_flight).export_kml(
         file_name="trajectory.kml",
         extrude=True,
-        altitude_mode="relative_to_ground",
+        altitude_mode="relativetoground",
     )
 
 .. note::
@@ -572,6 +582,10 @@ We can export the trajectory to ``.kml`` to visualize it in Google Earth:
     To learn more about the ``.kml`` format, see
     `KML Reference <https://developers.google.com/kml/documentation/kmlreference>`_.
 
+.. note::
+
+    The legacy method ``Flight.export_kml`` is deprecated. Use
+    :meth:`rocketpy.simulation.flight_data_exporter.FlightDataExporter.export_kml`.
 
 Manipulating results
 --------------------
@@ -604,17 +618,27 @@ In this section, we will explore how to export specific data from your RocketPy
 simulations to CSV files. This is particularly useful if you want to insert the
 data into spreadsheets or other software for further analysis.
 
-The main method that is used to export data is the :meth:`rocketpy.Flight.export_data` method. This method exports selected flight attributes to a CSV file. In this first example, we will export the rocket angle of attack (see :meth:`rocketpy.Flight.angle_of_attack`) and the rocket mach number (see :meth:`rocketpy.Flight.mach_number`) to the file ``calisto_flight_data.csv``.
+The recommended API is
+:meth:`rocketpy.simulation.flight_data_exporter.FlightDataExporter.export_data`,
+which exports selected flight attributes to a CSV file. In this first example,
+we export the rocket angle of attack (see :meth:`rocketpy.Flight.angle_of_attack`)
+and the rocket Mach number (see :meth:`rocketpy.Flight.mach_number`) to the file
+``calisto_flight_data.csv``.
 
 .. jupyter-execute::
 
-    test_flight.export_data(
+    from rocketpy.simulation import FlightDataExporter
+
+    exporter = FlightDataExporter(test_flight)
+    exporter.export_data(
         "calisto_flight_data.csv",
         "angle_of_attack",
         "mach_number",
     )
 
-| As you can see, the first argument of the method is the name of the file to be created. The following arguments are the attributes to be exported. We can check the file that was created by reading it with the :func:`pandas.read_csv` function:
+| As you can see, the first argument is the file name to be created. The following
+arguments are the attributes to be exported. We can check the file by reading it
+with :func:`pandas.read_csv`:
 
 .. jupyter-execute::
 
@@ -622,11 +646,13 @@ The main method that is used to export data is the :meth:`rocketpy.Flight.export
 
     pd.read_csv("calisto_flight_data.csv")
 
-| The file header specifies the meaning of each column. The time samples are obtained from the simulation solver steps. Should you want to export the data at a different sampling rate, you can use the ``time_step`` argument of the :meth:`rocketpy.Flight.export_data` method as follows.
+| The file header specifies the meaning of each column. The time samples are
+obtained from the simulation solver steps. To export the data at a different
+sampling rate, use the ``time_step`` argument:
 
 .. jupyter-execute::
 
-    test_flight.export_data(
+    exporter.export_data(
         "calisto_flight_data.csv",
         "angle_of_attack",
         "mach_number",
@@ -635,15 +661,16 @@ The main method that is used to export data is the :meth:`rocketpy.Flight.export
 
     pd.read_csv("calisto_flight_data.csv")
 
-This will export the same data at a sampling rate of 1 second. The flight data will be interpolated to match the new sampling rate.
+This exports the same data at a sampling rate of 1 second. The flight data is
+interpolated to match the new sampling rate.
 
-Finally, the :meth:`rocketpy.Flight.export_data` method also provides a convenient way to export the entire flight solution (see :meth:`rocketpy.Flight.solution_array`) to a CSV file. This is done by not passing any attributes names to the method.
+Finally, ``FlightDataExporter.export_data`` also provides a convenient way to
+export the entire flight solution (see :meth:`rocketpy.Flight.solution_array`)
+by not passing any attribute names:
 
 .. jupyter-execute::
 
-    test_flight.export_data(
-        "calisto_flight_data.csv",
-    )
+    exporter.export_data("calisto_flight_data.csv")
 
 .. jupyter-execute::
     :hide-code:
@@ -653,6 +680,10 @@ Finally, the :meth:`rocketpy.Flight.export_data` method also provides a convenie
     import os
     os.remove("calisto_flight_data.csv")
 
+.. note::
+
+    The legacy method ``Flight.export_data`` is deprecated. Use
+    :meth:`rocketpy.simulation.flight_data_exporter.FlightDataExporter.export_data`.
 
 Saving and Storing Plots
 ------------------------
@@ -664,7 +695,7 @@ For instance, we can save our rocket drawing as a ``.png`` file:
 
     calisto.draw(filename="calisto_drawing.png")
 
-Also, if you want to save a specific rocketpy plot, every RocketPy 
+Also, if you want to save a specific rocketpy plot, every RocketPy
 attribute of type :class:`rocketpy.Function` is capable of saving its plot
 as an image file. For example, we can save our rocket's speed plot and the
 trajectory plot as ``.jpg`` files:

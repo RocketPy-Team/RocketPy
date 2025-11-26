@@ -765,8 +765,8 @@ class SolidMotor(Motor):
         """
         self.plots.draw(filename=filename)
 
-    def to_dict(self, include_outputs=False):
-        data = super().to_dict(include_outputs)
+    def to_dict(self, **kwargs):
+        data = super().to_dict(**kwargs)
         data.update(
             {
                 "nozzle_radius": self.nozzle_radius,
@@ -781,13 +781,18 @@ class SolidMotor(Motor):
             }
         )
 
-        if include_outputs:
+        if kwargs.get("include_outputs", False):
+            burn_rate = self.burn_rate
+            if kwargs.get("discretize", False):
+                burn_rate = burn_rate.set_discrete_based_on_model(
+                    self.thrust, mutate_self=False
+                )
             data.update(
                 {
                     "grain_inner_radius": self.grain_inner_radius,
                     "grain_height": self.grain_height,
                     "burn_area": self.burn_area,
-                    "burn_rate": self.burn_rate,
+                    "burn_rate": burn_rate,
                     "Kn": self.Kn,
                 }
             )

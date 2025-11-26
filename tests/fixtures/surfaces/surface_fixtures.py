@@ -70,6 +70,50 @@ def calisto_trapezoidal_fins():
 
 
 @pytest.fixture
+def calisto_trapezoidal_fins_custom_sweep_length():
+    """The trapezoidal fins of the Calisto rocket with
+    a custom sweep length.
+
+    Returns
+    -------
+    rocketpy.TrapezoidalFins
+        The trapezoidal fins of the Calisto rocket.
+    """
+    return TrapezoidalFins(
+        n=4,
+        span=0.100,
+        root_chord=0.120,
+        tip_chord=0.040,
+        rocket_radius=0.0635,
+        name="calisto_trapezoidal_fins_custom_sweep_length",
+        cant_angle=0,
+        sweep_length=0.1,
+    )
+
+
+@pytest.fixture
+def calisto_trapezoidal_fins_custom_sweep_angle():
+    """The trapezoidal fins of the Calisto rocket with
+    a custom sweep angle.
+
+    Returns
+    -------
+    rocketpy.TrapezoidalFins
+        The trapezoidal fins of the Calisto rocket.
+    """
+    return TrapezoidalFins(
+        n=4,
+        span=0.100,
+        root_chord=0.120,
+        tip_chord=0.040,
+        rocket_radius=0.0635,
+        name="calisto_trapezoidal_fins_custom_sweep_angle",
+        cant_angle=0,
+        sweep_angle=30,
+    )
+
+
+@pytest.fixture
 def calisto_free_form_fins():
     """The free form fins of the Calisto rocket.
 

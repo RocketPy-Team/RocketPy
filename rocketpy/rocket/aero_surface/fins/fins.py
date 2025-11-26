@@ -426,22 +426,40 @@ class Fins(AeroSurface):
         M3 = M3_forcing - M3_damping
         return R1, R2, R3, M1, M2, M3
 
-    def to_dict(self, include_outputs=False):
+    def to_dict(self, **kwargs):
+        if self.airfoil:
+            if kwargs.get("discretize", False):
+                lower = -np.pi / 6 if self.airfoil[1] == "radians" else -30
+                upper = np.pi / 6 if self.airfoil[1] == "radians" else 30
+                airfoil = (
+                    self.airfoil_cl.set_discrete(lower, upper, 50, mutate_self=False),
+                    self.airfoil[1],
+                )
+            else:
+                airfoil = (self.airfoil_cl, self.airfoil[1]) if self.airfoil else None
+        else:
+            airfoil = None
         data = {
             "n": self.n,
             "root_chord": self.root_chord,
             "span": self.span,
             "rocket_radius": self.rocket_radius,
             "cant_angle": self.cant_angle,
-            "airfoil": self.airfoil,
+            "airfoil": airfoil,
             "name": self.name,
         }
 
-        if include_outputs:
+        if kwargs.get("include_outputs", False):
+            cl = self.cl
+            if kwargs.get("discretize", False):
+                cl = cl.set_discrete(
+                    (-np.pi / 6, 0), (np.pi / 6, 2), (10, 10), mutate_self=False
+                )
+
             data.update(
                 {
                     "cp": self.cp,
-                    "cl": self.cl,
+                    "cl": cl,
                     "roll_parameters": self.roll_parameters,
                     "d": self.d,
                     "ref_area": self.ref_area,

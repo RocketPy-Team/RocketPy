@@ -346,14 +346,17 @@ class TankGeometry:
         self._geometry[domain] = Function(radius_function)
         self.radius = PiecewiseFunction(self._geometry, "Height (m)", "radius (m)")
 
-    def to_dict(self, include_outputs=False):
+    def to_dict(self, **kwargs):
         data = {
             "geometry": {
-                str(domain): function for domain, function in self._geometry.items()
+                str(domain): function.set_discrete(*domain, 50, mutate_self=False)
+                if kwargs.get("discretize", False)
+                else function
+                for domain, function in self._geometry.items()
             }
         }
 
-        if include_outputs:
+        if kwargs.get("include_outputs", False):
             data["outputs"] = {
                 "average_radius": self.average_radius,
                 "bottom": self.bottom,
@@ -442,15 +445,15 @@ class CylindricalTank(TankGeometry):
         else:
             raise ValueError("Tank already has caps.")
 
-    def to_dict(self, include_outputs=False):
+    def to_dict(self, **kwargs):
         data = {
             "radius": self.__input_radius,
             "height": self.height,
             "spherical_caps": self.has_caps,
         }
 
-        if include_outputs:
-            data.update(super().to_dict(include_outputs))
+        if kwargs.get("include_outputs", False):
+            data.update(super().to_dict(**kwargs))
 
         return data
 
@@ -482,11 +485,11 @@ class SphericalTank(TankGeometry):
         self.__input_radius = radius
         self.add_geometry((-radius, radius), lambda h: (radius**2 - h**2) ** 0.5)
 
-    def to_dict(self, include_outputs=False):
+    def to_dict(self, **kwargs):
         data = {"radius": self.__input_radius}
 
-        if include_outputs:
-            data.update(super().to_dict(include_outputs))
+        if kwargs.get("include_outputs", False):
+            data.update(super().to_dict(**kwargs))
 
         return data
 

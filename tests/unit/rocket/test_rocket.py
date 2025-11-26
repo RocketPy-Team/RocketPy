@@ -1,3 +1,4 @@
+import warnings
 from unittest.mock import patch
 
 import numpy as np
@@ -368,6 +369,39 @@ def test_add_motor(calisto_motorless, cesaroni_m1670):
     center_of_mass_with_motor = calisto_motorless.center_of_mass
 
     assert center_of_mass_motorless is not center_of_mass_with_motor
+
+
+def test_check_missing_all_components(calisto_motorless):
+    """Tests the _check_missing_components method for a Rocket with no components."""
+    with pytest.warns(UserWarning) as record:
+        calisto_motorless._check_missing_components()
+
+    assert len(record) == 1
+    msg = str(record[0].message)
+    assert "motor" in msg
+    assert "aerodynamic surfaces" in msg
+
+
+def test_check_missing_some_components(calisto):
+    """Tests the _check_missing_components method for a Rocket missing some components."""
+    calisto.aerodynamic_surfaces = []
+
+    with pytest.warns(UserWarning) as record:
+        calisto._check_missing_components()
+
+    assert len(record) == 1
+    msg = str(record[0].message)
+    assert "aerodynamic surfaces" in msg
+
+
+def test_check_missing_no_components_missing(calisto_robust):
+    """Tests the _check_missing_components method for a complete Rocket."""
+    # Catch all warnings that occur inside this 'with' block.
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        calisto_robust._check_missing_components()
+        # For a complete rocket, this method should NOT issue any warnings.
+    assert len(w) == 0
 
 
 def test_set_rail_button(calisto):

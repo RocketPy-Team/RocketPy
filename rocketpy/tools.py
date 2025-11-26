@@ -14,6 +14,7 @@ import json
 import math
 import re
 import time
+import warnings
 from bisect import bisect_left
 
 import dill
@@ -26,6 +27,66 @@ from packaging import version as packaging_version
 
 # Mapping of module name and the name of the package that should be installed
 INSTALL_MAPPING = {"IPython": "ipython"}
+
+
+def deprecated(reason=None, version=None, alternative=None):
+    """
+    Decorator to mark functions or methods as deprecated.
+
+    This decorator issues a DeprecationWarning when the decorated function
+    is called, indicating that it will be removed in future versions.
+
+    Parameters
+    ----------
+    reason : str, optional
+        Custom deprecation message. If not provided, a default message will be used.
+    version : str, optional
+        Version when the function will be removed. If provided, it will be
+        included in the warning message.
+    alternative : str, optional
+        Name of the alternative function/method that should be used instead.
+        If provided, it will be included in the warning message.
+
+    Returns
+    -------
+    callable
+        The decorated function with deprecation warning functionality.
+
+    Examples
+    --------
+    >>> @deprecated(reason="This function is obsolete", version="v2.0.0",
+    ...             alternative="new_function")
+    ... def old_function():
+    ...     return "old result"
+
+    >>> @deprecated()
+    ... def another_old_function():
+    ...     return "result"
+    """
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            # Build the deprecation message
+            if reason:
+                message = reason
+            else:
+                message = f"The function `{func.__name__}` is deprecated"
+
+            if version:
+                message += f" and will be removed in {version}"
+
+            if alternative:
+                message += f". Use `{alternative}` instead"
+
+            message += "."
+
+            warnings.warn(message, DeprecationWarning, stacklevel=2)
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
 
 
 def tuple_handler(value):
@@ -121,12 +182,13 @@ def find_roots_cubic_function(a, b, c, d):
     Examples
     --------
     >>> from rocketpy.tools import find_roots_cubic_function
+    >>> import cmath
 
     First we define the coefficients of the function ax**3 + bx**2 + cx + d
     >>> a, b, c, d = 1, -3, -1, 3
     >>> x1, x2, x3 = find_roots_cubic_function(a, b, c, d)
-    >>> x1
-    (-1+0j)
+    >>> cmath.isclose(x1, (-1+0j))
+    True
 
     To get the real part of the roots, use the real attribute of the complex
     number.
@@ -1232,6 +1294,43 @@ def from_hex_decode(obj_bytes, decoder=base64.b85decode):
         Object converted from bytes.
     """
     return dill.loads(decoder(bytes.fromhex(obj_bytes)))
+
+
+def find_obj_from_hash(obj, hash_, depth_limit=None):
+    """Searches the object (and its children) for
+    an object whose '__rpy_hash' field has a particular hash value.
+
+    Parameters
+    ----------
+    obj : object
+        Object to search.
+    hash_ : int
+        Hash value to search for in the '__rpy_hash' field.
+    depth_limit : int, optional
+        Maximum depth to search recursively. If None, no limit.
+
+    Returns
+    -------
+    object
+        The object whose '__rpy_hash' matches hash_, or None if not found.
+    """
+
+    stack = [(obj, 0)]
+    while stack:
+        current_obj, current_depth = stack.pop()
+        if depth_limit is not None and current_depth > depth_limit:
+            continue
+
+        if getattr(current_obj, "__rpy_hash", None) == hash_:
+            return current_obj
+
+        if isinstance(current_obj, dict):
+            stack.extend((v, current_depth + 1) for v in current_obj.values())
+
+        elif isinstance(current_obj, (list, tuple, set)):
+            stack.extend((item, current_depth + 1) for item in current_obj)
+
+    return None
 
 
 if __name__ == "__main__":  # pragma: no cover

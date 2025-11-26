@@ -33,11 +33,44 @@ Attention: The newest changes should be on top -->
 ### Added
 ENH: Compatibility with MERRA-2 atmosphere reanalysis files [#825](https://github.com/RocketPy-Team/RocketPy/pull/825)
 
+- ENH: Custom Exception errors and messages [#285](https://github.com/RocketPy-Team/RocketPy/issues/285)
 
 ### Changed
 
+### Fixed
+
+- BUG: Fix CSV column header spacing in FlightDataExporter [#864](https://github.com/RocketPy-Team/RocketPy/issues/864)
+
+
+## [v1.11.0] - 2025-11-01
+
+### Added
+
+- ENH: Tank Fluids with Variable Density from Temperature and Pressure [#852](https://github.com/RocketPy-Team/RocketPy/pull/852)
+- ENH: Controller (AirBrakes) and Sensors Encoding [#849](https://github.com/RocketPy-Team/RocketPy/pull/849)
+- EHN: Addition of ensemble variable to ECMWF dictionaries [#842](https://github.com/RocketPy-Team/RocketPy/pull/842)
+- ENH: Added Crop and Clip Methods to Function Class [#817](https://github.com/RocketPy-Team/RocketPy/pull/817)
+- DOC: Add Flight class usage documentation and update index [#841](https://github.com/RocketPy-Team/RocketPy/pull/841)
+- ENH: Discretized and No-Pickle Encoding Options [#827](https://github.com/RocketPy-Team/RocketPy/pull/827)
+- ENH: Add the Coriolis Force to the Flight class [#799](https://github.com/RocketPy-Team/RocketPy/pull/799)
+- ENH: Improve parachute geometric parametrization [#835](https://github.com/RocketPy-Team/RocketPy/pull/835)
+- ENH: Changing ellipses plot axis label [#855](https://github.com/RocketPy-Team/RocketPy/pull/855)
+
+### Changed
+
+- REL: bumps up rocketpy version to 1.11.0 [#868](https://github.com/RocketPy-Team/RocketPy/pull/868)
+- MNT: allow for exporting of non apogee flights. [#863](https://github.com/RocketPy-Team/RocketPy/pull/863)
+- TST: remove remaining files after test session. [#862](https://github.com/RocketPy-Team/RocketPy/pull/862)
+- MNT: bumps min python version to 3.10 [#857](https://github.com/RocketPy-Team/RocketPy/pull/857)
+- DOC: Update docs dependencies and sub dependencies [#851](https://github.com/RocketPy-Team/RocketPy/pull/851)
+- MNT: extract flight data exporters [#845](https://github.com/RocketPy-Team/RocketPy/pull/845)
+- ENH: _MotorPrints inheritance - issue #460 [#828](https://github.com/RocketPy-Team/RocketPy/pull/828)
+- MNT: fix deprecations and warnings [#829](https://github.com/RocketPy-Team/RocketPy/pull/829)
 
 ### Fixed
+
+- BUG: correct encoding for trapezoidal sweep length and angle. [#861](https://github.com/RocketPy-Team/RocketPy/pull/861)
+- BUG: Fix no time initialization when passing initial_solution as array to Flight object [#844](https://github.com/RocketPy-Team/RocketPy/pull/844)
 
 
 ## [v1.10.0] - 2025-05-16
@@ -45,7 +78,7 @@ ENH: Compatibility with MERRA-2 atmosphere reanalysis files [#825](https://githu
 ### Added
 - ENH: Support for ND arithmetic in Function class. [#810] (https://github.com/RocketPy-Team/RocketPy/pull/810)
 - ENH: allow users to provide custom samplers [#803](https://github.com/RocketPy-Team/RocketPy/pull/803)
-- ENH: Implement Multivariate Rejection Sampling (MRS) [#738] (https://github.com/RocketPy-Team/RocketPy/pull/738) 
+- ENH: Implement Multivariate Rejection Sampling (MRS) [#738] (https://github.com/RocketPy-Team/RocketPy/pull/738)
 - ENH: Create a rocketpy file to store flight simulations [#800](https://github.com/RocketPy-Team/RocketPy/pull/800)
 - ENH: Support for the RSE file format has been added to the library [#798](https://github.com/RocketPy-Team/RocketPy/pull/798)
 - ENH: Introduce Net Thrust with pressure corrections [#789](https://github.com/RocketPy-Team/RocketPy/pull/789)
@@ -304,6 +337,7 @@ You can install this version by running `pip install rocketpy==1.3.0`
 
 ### Fixed
 
+- BUG: Fixes StochasticNoseCone powerseries issue #838 [#839](https://github.com/RocketPy-Team/RocketPy/pull/839)
 - MNT: Alter PYPI classifier naming. [#615](https://github.com/RocketPy-Team/RocketPy/pull/615)
 - DOC: Solve Dependencies Conflicts and pyproject build [#613](https://github.com/RocketPy-Team/RocketPy/pull/613)
 - BUG: Fixes nose cone bluffness issue #610 [#611](https://github.com/RocketPy-Team/RocketPy/pull/611)
