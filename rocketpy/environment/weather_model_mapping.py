@@ -120,7 +120,7 @@ class WeatherModelMapping:
         "longitude": "lon",
         "level": "lev",
         "temperature": "T",
-        "surface_geopotential_height": None,  
+        "surface_geopotential_height": None,
         "surface_geopotential": "PHIS",  # special key for Geopotential (m^2/s^2)
         "geopotential_height": "H",
         "geopotential": None,
