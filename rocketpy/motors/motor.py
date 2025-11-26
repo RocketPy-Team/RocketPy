@@ -2010,7 +2010,7 @@ class GenericMotor(Motor):
             If a network or HTTP error occurs during the API call.
         """
 
-        data_base64 = GenericMotor.call_thrustcurve_api(name)
+        data_base64 = GenericMotor._call_thrustcurve_api(name)
         data_bytes = base64.b64decode(data_base64)
 
         # Step 3. Create the motor from the .eng file
