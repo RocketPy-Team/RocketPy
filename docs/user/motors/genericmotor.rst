@@ -178,7 +178,7 @@ Example
 
 Testing advice
 ---------------
-- ``pytest``'s ``caplog`` or ``capfd`` to assert on log/warning output.
+- Use ``pytest``'s ``caplog`` or ``capfd`` to assert on log/warning output.
 
 Security & reliability
 ----------------
