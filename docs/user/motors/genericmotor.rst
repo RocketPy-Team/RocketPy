@@ -129,10 +129,10 @@ Signature
 Parameters
 ----------
 name : str
-    Motor name to search on ThrustCurve (example:
-    ``"M1670"``).Only shorthand names are accepted (e.g. ``"M1670"``, not
-    ``"Cesaroni M1670"``).
-    when multiple matches occur the first result returned by the API is used.
+    Motor name to search on ThrustCurve (examples:
+    ``"M1670"`` or ``"Cesaroni M1670"``). Both shorthand and manufacturer-prefixed
+    names are accepted. When multiple matches occur, the first result returned by
+    the API is used.
 **kwargs :
     Same optional arguments accepted by the :class:`GenericMotor` constructor
     (e.g. ``dry_mass``, ``nozzle_radius``, ``interpolation_method``). Any
