@@ -400,9 +400,9 @@ def test_check_missing_no_components_missing(calisto_robust):
     import warnings
     # Catch all warnings that occur inside this 'with' block.
     with warnings.catch_warnings(record=True) as w:
-        # Ensure that *all* warnings are captured.
         warnings.simplefilter("always")
         calisto_robust._check_missing_components()
+        # For a complete rocket, this method should NOT issue any warnings.
     assert len(w) == 0
 
 
