@@ -1918,7 +1918,7 @@ class GenericMotor(Motor):
         )
 
     @staticmethod
-    def call_thrustcurve_api(name: str):
+    def _call_thrustcurve_api(name: str):
         """
         Download a .eng file from the ThrustCurve API
         based on the given motor name.
