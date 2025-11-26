@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import numpy as np
 import pytest
+import warnings
 
 from rocketpy import Function, NoseCone, Rocket, SolidMotor
 from rocketpy.mathutils.vector_matrix import Vector
@@ -397,7 +398,6 @@ def test_check_missing_some_components(calisto):
 
 def test_check_missing_no_components_missing(calisto_robust):
     """Tests the _check_missing_components method for a complete Rocket."""
-    import warnings
     # Catch all warnings that occur inside this 'with' block.
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
