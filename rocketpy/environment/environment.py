@@ -1167,7 +1167,7 @@ class Environment:
             ``Reanalysis`` or ``Ensemble``. It specifies the dictionary to be
             used when reading ``netCDF`` and ``OPeNDAP`` files, allowing the
             correct retrieval of data. Acceptable values include ``ECMWF``,
-            ``NOAA`` and ``UCAR`` for default dictionaries which can generally
+            ``NOAA``, ``UCAR`` and ``MERRA2`` for default dictionaries which can generally
             be used to read datasets from these institutes. Alternatively, a
             dictionary structure can also be given, specifying the short names
             used for time, latitude, longitude, pressure levels, temperature

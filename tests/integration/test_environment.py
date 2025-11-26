@@ -1,7 +1,6 @@
 import time
 from datetime import date, datetime, timezone
 from unittest.mock import patch
-
 import netCDF4
 import numpy as np
 import pytest
@@ -268,7 +267,9 @@ def test_cmc_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=un
 def merra2_file_path(tmp_path):  # pylint: disable=too-many-statements
     """
     Generates a temporary NetCDF file that STRICTLY mimics the structure of a
-    NASA MERRA-2 'inst3_3d_asm_Np' file (Assimilated Meteorological Fields).
+    NASA MERRA-2 'inst3_3d_asm_Np' file (Assimilated Meteorological Fields)
+    because MERRA-2 files are too large.
+
     """
     file_path = tmp_path / "MERRA2_300.inst3_3d_asm_Np.20230620.nc4"
 
@@ -297,8 +298,7 @@ def merra2_file_path(tmp_path):  # pylint: disable=too-many-statements
         time[:] = [720]
 
         # Define Data Variables
-        # Note: Python variables are snake_case (t_var),
-        # but NetCDF names are uppercase ("T") to match NASA specs.
+        # NetCDF names are uppercase ("T") to match NASA specs.
 
         t_var = nc.createVariable("T", "f4", ("time", "lev", "lat", "lon"))
         t_var.units = "K"
@@ -317,7 +317,6 @@ def merra2_file_path(tmp_path):  # pylint: disable=too-many-statements
         h_var[:] = np.linspace(0, 10000, 5).reshape(1, 5, 1, 1) * np.ones((1, 5, 5, 5))
 
         # PHIS: Surface Geopotential Height [m2 s-2]
-        # Fixed: Variable name is now 'phis' (lowercase) to satisfy Pylint
         phis = nc.createVariable("PHIS", "f4", ("time", "lat", "lon"))
         phis.units = "m2 s-2"
 
@@ -330,26 +329,31 @@ def merra2_file_path(tmp_path):  # pylint: disable=too-many-statements
 
 def test_merra2_full_specification_compliance(merra2_file_path):
     """
-    Tests that RocketPy loads a file complying with NASA BOSILOVICH785 specs.
+    Tests that RocketPy loads a file complying with NASA MERRA-2 file specs.
     """
     # 1. Initialize Environment
-    env = Environment(date=(2023, 6, 20, 12), latitude=0, longitude=0)
+    env = Environment(
+        date=(2023, 6, 20, 12),
+        latitude=0,
+        longitude=0
+    )
 
     # 2. Force standard gravity to a known constant for precise math checking
     env.standard_g = 9.80665
 
     # 3. Load the Atmospheric Model (Using the file generated above)
     env.set_atmospheric_model(
-        type="Reanalysis", file=merra2_file_path, dictionary="MERRA2"
+        type="Reanalysis",
+        file=merra2_file_path,
+        dictionary="MERRA2"
     )
 
     # 4. Verify Unit Conversion (Energy -> Height)
     # Input: 9806.65 m2/s2
     # Expected: 1000.0 m
     print(f"Calculated Elevation: {env.elevation} m")
-    assert abs(env.elevation - 1000.0) < 0.01, (
+    assert abs(env.elevation - 1000.0) < 0.01, \
         f"Failed to convert PHIS (m2/s2) to meters. Got {env.elevation}, expected 1000.0"
-    )
 
     # 5. Verify Variable Mapping
     assert env.temperature(0) == 300.0

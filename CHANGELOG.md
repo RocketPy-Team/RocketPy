@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 Attention: The newest changes should be on top -->
 
 ### Added
+ENH: Compatibility with MERRA-2 atmosphere reanalysis files [#825](https://github.com/RocketPy-Team/RocketPy/pull/825)
 
 
 ### Changed
