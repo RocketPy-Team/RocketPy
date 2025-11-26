@@ -257,6 +257,7 @@ EXPECTED_MOTOR_SPECS = {
     "chamber_position": 0,
 }
 
+
 def assert_motor_specs(motor):
     specs = EXPECTED_MOTOR_SPECS
     assert motor.burn_time == specs["burn_time"]
@@ -267,9 +268,13 @@ def assert_motor_specs(motor):
     assert motor.chamber_position == specs["chamber_position"]
     assert motor.average_thrust == pytest.approx(specs["average_thrust"])
     assert motor.total_impulse == pytest.approx(specs["total_impulse"])
-    assert motor.exhaust_velocity.average(*specs["burn_time"]) == pytest.approx(specs["exhaust_velocity"])
+    assert motor.exhaust_velocity.average(*specs["burn_time"]) == pytest.approx(
+        specs["exhaust_velocity"]
+    )
     assert motor.max_thrust == pytest.approx(specs["max_thrust"])
     assert motor.nozzle_radius == pytest.approx(specs["nozzle_radius"])
+
+
 def test_load_from_thrustcurve_api(monkeypatch, generic_motor):
     """Tests GenericMotor.load_from_thrustcurve_api with mocked API."""
 
