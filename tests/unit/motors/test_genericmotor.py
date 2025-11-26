@@ -242,31 +242,34 @@ def _mock_get(search_results=None, download_results=None):
     return _get
 
 
+# Module-level constant for expected motor specs
+EXPECTED_MOTOR_SPECS = {
+    "burn_time": (0, 3.9),
+    "dry_mass": 2.130,
+    "propellant_initial_mass": 3.101,
+    "chamber_radius": 75 / 1000,
+    "chamber_height": 757 / 1000,
+    "nozzle_radius": (75 / 1000) * 0.85,
+    "average_thrust": 1545.218,
+    "total_impulse": 6026.350,
+    "max_thrust": 2200.0,
+    "exhaust_velocity": 1943.357,
+    "chamber_position": 0,
+}
+
 def assert_motor_specs(motor):
-    burn_time = (0, 3.9)
-    dry_mass = 2.130
-    propellant_initial_mass = 3.101
-    chamber_radius = 75 / 1000
-    chamber_height = 757 / 1000
-    nozzle_radius = chamber_radius * 0.85
-    average_thrust = 1545.218
-    total_impulse = 6026.350
-    max_thrust = 2200.0
-    exhaust_velocity = 1943.357
-
-    assert motor.burn_time == burn_time
-    assert motor.dry_mass == dry_mass
-    assert motor.propellant_initial_mass == propellant_initial_mass
-    assert motor.chamber_radius == chamber_radius
-    assert motor.chamber_height == chamber_height
-    assert motor.chamber_position == 0
-    assert motor.average_thrust == pytest.approx(average_thrust)
-    assert motor.total_impulse == pytest.approx(total_impulse)
-    assert motor.exhaust_velocity.average(*burn_time) == pytest.approx(exhaust_velocity)
-    assert motor.max_thrust == pytest.approx(max_thrust)
-    assert motor.nozzle_radius == pytest.approx(nozzle_radius)
-
-
+    specs = EXPECTED_MOTOR_SPECS
+    assert motor.burn_time == specs["burn_time"]
+    assert motor.dry_mass == specs["dry_mass"]
+    assert motor.propellant_initial_mass == specs["propellant_initial_mass"]
+    assert motor.chamber_radius == specs["chamber_radius"]
+    assert motor.chamber_height == specs["chamber_height"]
+    assert motor.chamber_position == specs["chamber_position"]
+    assert motor.average_thrust == pytest.approx(specs["average_thrust"])
+    assert motor.total_impulse == pytest.approx(specs["total_impulse"])
+    assert motor.exhaust_velocity.average(*specs["burn_time"]) == pytest.approx(specs["exhaust_velocity"])
+    assert motor.max_thrust == pytest.approx(specs["max_thrust"])
+    assert motor.nozzle_radius == pytest.approx(specs["nozzle_radius"])
 def test_load_from_thrustcurve_api(monkeypatch, generic_motor):
     """Tests GenericMotor.load_from_thrustcurve_api with mocked API."""
 
