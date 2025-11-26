@@ -120,6 +120,7 @@ save the `.eng` file.
     This method performs network requests to the ThrustCurve API. Use it only
     when you have network access. For automated testing or reproducible runs,
     prefer using local `.eng` files.
+
 Signature
 ----------
 
