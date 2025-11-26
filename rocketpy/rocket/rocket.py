@@ -411,9 +411,7 @@ class Rocket:
 
         if missing_components:
             component_list = ", ".join(missing_components)
-            warnings.warn(
-                f"Rocket has no {component_list} defined.", UserWarning
-            )
+            warnings.warn(f"Rocket has no {component_list} defined.", UserWarning)
 
     @property
     def nosecones(self):
