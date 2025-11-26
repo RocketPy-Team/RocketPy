@@ -107,7 +107,7 @@ note that the user can still provide the parameters manually if needed.
   when the user does not have all the information required to build a ``SolidMotor`` yet.
 
 The ``load_from_thrustcurve_api`` method
----------------------------------------
+----------------------------------------
 
 The ``GenericMotor`` class provides a convenience loader that downloads a temporary
 `.eng` file from the ThrustCurve.org public API and builds a ``GenericMotor``
