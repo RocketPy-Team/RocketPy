@@ -150,6 +150,7 @@ ValueError
     If the API search returns no motor, or if the download endpoint returns no
     .eng file or empty/invalid data.
 requests.exceptions.RequestException
+    If a network or HTTP error occurs during the API call to ThrustCurve.
 
 Behavior notes
 ---------------
