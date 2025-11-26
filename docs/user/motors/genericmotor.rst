@@ -155,7 +155,7 @@ Behavior notes
 ---------------
 - The method first performs a search on ThrustCurve using the provided name.
   If no results are returned a :class:`ValueError` is raised.
-- If a motor is found the method requests the .eng file in RASP format, decodes
+- If a motor is found, the method requests the .eng file in RASP format, decodes
   it and temporarily writes it to disk; a ``GenericMotor`` is then constructed
   using the existing .eng file loader. The temporary file is removed even if an
   error occurs.
