@@ -1899,17 +1899,14 @@ class Environment:
             )
         # 2. If not found, try Geopotential (m^2/s^2) and convert
         elif dictionary.get("surface_geopotential") is not None:
-            # Create a temporary dictionary to trick the helper function into reading PHIS
             temp_dict = dictionary.copy()
             temp_dict["surface_geopotential_height"] = dictionary[
                 "surface_geopotential"
             ]
-
-            geopotential_value = get_elevation_data_from_dataset(
+            surface_geopotential_value = get_elevation_data_from_dataset(
                 temp_dict, data, time_index, lat_index, lon_index, x, y, x1, x2, y1, y2
             )
-            # Perform the conversion: Height = Geopotential / Gravity
-            self.elevation = geopotential_value / self.standard_g
+            self.elevation = surface_geopotential_value / self.standard_g
 
         # Compute info data
         self.atmospheric_model_init_date = get_initial_date_from_time_array(time_array)

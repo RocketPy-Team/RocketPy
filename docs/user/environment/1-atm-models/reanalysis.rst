@@ -51,7 +51,9 @@ MERRA-2
 
 The Modern-Era Retrospective analysis for Research and Applications, Version 2 (MERRA-2) is a NASA atmospheric reanalysis for the satellite era using the Goddard Earth Observing System, Version 5 (GEOS-5) with its Atmospheric Data Assimilation System (ADAS).
 
-To use MERRA-2 data in RocketPy, you generally need the **Assimilated Meteorological Fields** collection (specifically the 3D Pressure Level data, usually named ``inst3_3d_asm_Np``).
+You can download these files from the `NASA GES DISC <https://disc.gsfc.nasa.gov/>`_.
+
+To use MERRA-2 data in RocketPy, you generally need the **Assimilated Meteorological Fields** collection (specifically the 3D Pressure Level data, usually named ``inst3_3d_asm_Np``). Note that MERRA-2 files typically use the ``.nc4`` extension (NetCDF-4), which is fully supported by RocketPy.
 
 You can load these files using the ``dictionary="MERRA2"`` argument:
 

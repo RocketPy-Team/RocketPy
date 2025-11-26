@@ -1,11 +1,10 @@
 import time
 from datetime import date, datetime, timezone
 from unittest.mock import patch
-import netCDF4
-import numpy as np
+
 import pytest
 
-from rocketpy import Environment
+
 
 
 @pytest.mark.parametrize(
@@ -263,76 +262,14 @@ def test_cmc_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=un
     assert example_spaceport_env.all_info() is None
 
 
-@pytest.fixture
-def merra2_file_path(tmp_path):  # pylint: disable=too-many-statements
-    """
-    Generates a temporary NetCDF file that STRICTLY mimics the structure of a
-    NASA MERRA-2 'inst3_3d_asm_Np' file (Assimilated Meteorological Fields)
-    because MERRA-2 files are too large.
-
-    """
-    file_path = tmp_path / "MERRA2_300.inst3_3d_asm_Np.20230620.nc4"
-
-    with netCDF4.Dataset(file_path, "w", format="NETCDF4") as nc:
-        # Define Dimensions
-        nc.createDimension("lon", 5)
-        nc.createDimension("lat", 5)
-        nc.createDimension("lev", 5)
-        nc.createDimension("time", None)
-
-        # Define Coordinates
-        lon = nc.createVariable("lon", "f8", ("lon",))
-        lon.units = "degrees_east"
-        lon[:] = np.linspace(-180, 180, 5)
-
-        lat = nc.createVariable("lat", "f8", ("lat",))
-        lat.units = "degrees_north"
-        lat[:] = np.linspace(-90, 90, 5)
-
-        lev = nc.createVariable("lev", "f8", ("lev",))
-        lev.units = "hPa"
-        lev[:] = np.linspace(1000, 100, 5)
-
-        time = nc.createVariable("time", "i4", ("time",))
-        time.units = "minutes since 2023-06-20 00:00:00"
-        time[:] = [720]
-
-        # Define Data Variables
-        # NetCDF names are uppercase ("T") to match NASA specs.
-
-        t_var = nc.createVariable("T", "f4", ("time", "lev", "lat", "lon"))
-        t_var.units = "K"
-        t_var[:] = np.full((1, 5, 5, 5), 300.0)
-
-        u_var = nc.createVariable("U", "f4", ("time", "lev", "lat", "lon"))
-        u_var.units = "m s-1"
-        u_var[:] = np.full((1, 5, 5, 5), 10.0)
-
-        v_var = nc.createVariable("V", "f4", ("time", "lev", "lat", "lon"))
-        v_var.units = "m s-1"
-        v_var[:] = np.full((1, 5, 5, 5), 5.0)
-
-        h_var = nc.createVariable("H", "f4", ("time", "lev", "lat", "lon"))
-        h_var.units = "m"
-        h_var[:] = np.linspace(0, 10000, 5).reshape(1, 5, 1, 1) * np.ones((1, 5, 5, 5))
-
-        # PHIS: Surface Geopotential Height [m2 s-2]
-        phis = nc.createVariable("PHIS", "f4", ("time", "lat", "lon"))
-        phis.units = "m2 s-2"
-
-        # We set PHIS to 9806.65 (Energy).
-        # We expect the code to divide by ~9.8 and get ~1000.0 (Height).
-        phis[:] = np.full((1, 5, 5), 9806.65)
-
-    return str(file_path)
-
-
-def test_merra2_full_specification_compliance(merra2_file_path):
+def test_merra2_full_specification_compliance(merra2_file_path, example_plain_env):
     """
     Tests that RocketPy loads a file complying with NASA MERRA-2 file specs.
     """
     # 1. Initialize Environment
-    env = Environment(date=(2023, 6, 20, 12), latitude=0, longitude=0)
+    env = example_plain_env
+    env.set_date((2023, 6, 20, 12))
+    env.set_location(latitude=0, longitude=0)
 
     # 2. Force standard gravity to a known constant for precise math checking
     env.standard_g = 9.80665
@@ -346,10 +283,10 @@ def test_merra2_full_specification_compliance(merra2_file_path):
     # Input: 9806.65 m2/s2
     # Expected: 1000.0 m
     print(f"Calculated Elevation: {env.elevation} m")
-    assert abs(env.elevation - 1000.0) < 0.01, (
+    assert abs(env.elevation - 1000.0) < 1e-6, (
         f"Failed to convert PHIS (m2/s2) to meters. Got {env.elevation}, expected 1000.0"
     )
 
     # 5. Verify Variable Mapping
-    assert env.temperature(0) == 300.0
+    assert abs(env.temperature(0) - 300.0) < 1e-6
     assert env.wind_speed(0) > 0
