@@ -1,5 +1,5 @@
 from rocketpy.motors.point_mass_motor import PointMassMotor
-from rocketpy.rocket.rocket import PointMassRocket
+from rocketpy.rocket.point_mass_rocket import PointMassRocket
 
 
 def test_point_mass_rocket_basic_properties():
