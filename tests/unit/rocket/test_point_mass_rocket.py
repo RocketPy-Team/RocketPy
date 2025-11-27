@@ -3,6 +3,11 @@ from rocketpy.rocket.point_mass_rocket import PointMassRocket
 
 
 def test_init_sets_basic_properties_correctly():
+    """Tests that PointMassRocket initializes with correct basic properties.
+
+    Verifies that radius, mass, motor assignment, and zero inertias are
+    correctly set when a PointMassRocket is created and a motor is added.
+    """
     motor = PointMassMotor(10, 1.0, 0.5, 1.0)
     rocket = PointMassRocket(
         radius=0.05,
@@ -19,7 +24,11 @@ def test_init_sets_basic_properties_correctly():
 
 
 def test_structural_and_total_mass():
-    """Test structural and total mass properties of point mass rocket."""
+    """Tests structural and total mass properties of PointMassRocket.
+
+    Verifies that the rocket's structural mass and total mass (including motor
+    dry mass and propellant) are calculated correctly at time t=0.
+    """
     motor = PointMassMotor(10, 1.0, 1.1, 2.0)
     rocket = PointMassRocket(
         radius=0.03,
@@ -37,7 +46,11 @@ def test_structural_and_total_mass():
 
 
 def test_add_motor_overwrites():
-    """Test that adding a motor overwrites the previous motor."""
+    """Tests that adding a new motor to PointMassRocket overwrites the previous motor.
+
+    Verifies that when add_motor is called multiple times, only the most
+    recently added motor is retained.
+    """
     motor1 = PointMassMotor(10, 1, 1.1, 2.0)
     motor2 = PointMassMotor(20, 2, 1.5, 3.0)
     rocket = PointMassRocket(0.02, 1.0, 0.0, 0.2, 0.5)
