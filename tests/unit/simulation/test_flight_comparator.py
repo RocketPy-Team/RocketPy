@@ -505,7 +505,7 @@ def test_full_workflow(flight_calisto):
     results = comparator.compare_key_events()
     comparator.trajectories_2d(plane="xz")
 
-    # Verify results 
+    # Verify results
     assert isinstance(results, dict)
     assert len(results) >= 4  # At least 4 metrics
     assert "Apogee Altitude (m)" in results
