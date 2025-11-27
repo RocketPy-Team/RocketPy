@@ -156,7 +156,7 @@ class FlightDataExporter:
                     ) from exc
             variable_points = variable_function(time_points)
             exported_matrix += [variable_points]
-            exported_header += f", {variable_function.__outputs__[0]}"
+            exported_header += f",{variable_function.__outputs__[0]}"
 
         exported_matrix = np.array(exported_matrix).T  # Fix matrix orientation
 

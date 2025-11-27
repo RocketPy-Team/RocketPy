@@ -31,11 +31,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 Attention: The newest changes should be on top -->
 
 ### Added
+
 - ENH: Add thrustcurve api integration to retrieve motor eng data [#870](https://github.com/RocketPy-Team/RocketPy/pull/870)
+- ENH: Custom Exception errors and messages [#285](https://github.com/RocketPy-Team/RocketPy/issues/285)
 
 ### Changed
 
 ### Fixed
+
+- BUG: Fix CSV column header spacing in FlightDataExporter [#864](https://github.com/RocketPy-Team/RocketPy/issues/864)
 
 
 ## [v1.11.0] - 2025-11-01

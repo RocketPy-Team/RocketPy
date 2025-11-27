@@ -384,6 +384,35 @@ class Rocket:
         self.prints = _RocketPrints(self)
         self.plots = _RocketPlots(self)
 
+    def _check_missing_components(self):
+        """Check if the rocket is missing any essential components and issue a warning.
+
+        This method verifies whether the rocket has the following key components:
+        - motor
+        - aerodynamic surface(s)
+
+        If any of these components are missing, a single warning message is issued
+        listing all missing components. This helps users quickly identify potential
+        issues before running simulations or analyses.
+
+        Notes
+        -----
+        - The warning uses Python's built-in `warnings.warn` function.
+
+        Returns
+        -------
+        None
+        """
+        missing_components = []
+        if isinstance(self.motor, EmptyMotor):
+            missing_components.append("motor")
+        if not self.aerodynamic_surfaces:
+            missing_components.append("aerodynamic surfaces")
+
+        if missing_components:
+            component_list = ", ".join(missing_components)
+            warnings.warn(f"Rocket has no {component_list} defined.", UserWarning)
+
     @property
     def nosecones(self):
         """A list containing all the nose cones currently added to the rocket."""
