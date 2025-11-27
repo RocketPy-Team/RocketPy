@@ -31,13 +31,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 Attention: The newest changes should be on top -->
 
 ### Added
-ENH: Compatibility with MERRA-2 atmosphere reanalysis files [#825](https://github.com/RocketPy-Team/RocketPy/pull/825)
 
-- ENH: Enable only radial burning [#815](https://github.com/RocketPy-Team/RocketPy/pull/815)
-- ENH: Add thrustcurve api integration to retrieve motor eng data [#870](https://github.com/RocketPy-Team/RocketPy/pull/870)
-- ENH: Custom Exception errors and messages [#285](https://github.com/RocketPy-Team/RocketPy/issues/285)
+- Add caching to ThrustCurve API requests to avoid repeated downloads for the same motor (#878)
+-	GenericMotor.load_from_thrustcurve_api(name, no_cache=False) to download motors directly from the ThrustCurve API.
+- Automatic caching of downloaded .eng files in ~/.rocketpy_cache.
+-	no_cache option to bypass the cache and force a fresh API download.
 
 ### Changed
+- Unit tests for GenericMotor now include coverage for API caching and error handling.
 
 ### Fixed
 
@@ -78,7 +79,6 @@ ENH: Compatibility with MERRA-2 atmosphere reanalysis files [#825](https://githu
 ## [v1.10.0] - 2025-05-16
 
 ### Added
-
 - ENH: Support for ND arithmetic in Function class. [#810] (https://github.com/RocketPy-Team/RocketPy/pull/810)
 - ENH: allow users to provide custom samplers [#803](https://github.com/RocketPy-Team/RocketPy/pull/803)
 - ENH: Implement Multivariate Rejection Sampling (MRS) [#738] (https://github.com/RocketPy-Team/RocketPy/pull/738)

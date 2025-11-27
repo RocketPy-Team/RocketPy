@@ -109,17 +109,29 @@ note that the user can still provide the parameters manually if needed.
 The ``load_from_thrustcurve_api`` method
 ----------------------------------------
 
-The ``GenericMotor`` class provides a convenience loader that downloads a temporary
+The ``GenericMotor`` class provides a convenience loader that downloads an
 `.eng` file from the ThrustCurve.org public API and builds a ``GenericMotor``
 instance from it. This is useful when you know a motor designation (for example
-``"M1670"``) but do not want to manually download and
-save the `.eng` file.
+``"M1670"``) but do not want to manually download and save the `.eng` file.
+
+The method also includes automatic caching for faster repeated usage.  
+Downloaded `.eng` files are stored in the user's RocketPy cache folder
+(``~/.rocketpy_cache``). When a subsequent request is made for the same motor,
+the cached copy is used instead of performing another network request.
+
+You can bypass the cache by setting ``no_cache=True``:
+
+- ``no_cache=False`` (default):  
+  Use a cached file if available; otherwise download and store it.
+
+- ``no_cache=True``:  
+  Always fetch a fresh version from the API and overwrite the cache.
 
 .. note::
 
-    This method performs network requests to the ThrustCurve API. Use it only
-    when you have network access. For automated testing or reproducible runs,
-    prefer using local `.eng` files.
+    This method performs network requests to the ThrustCurve API unless a cached
+    version exists. For automated testing or fully reproducible workflows, prefer
+    local `.eng` files or set ``no_cache=True`` explicitly.
 
 Example
 -------
@@ -128,8 +140,19 @@ Example
 
     from rocketpy.motors import GenericMotor
 
-    # Build a motor by name (requires network access)
+    # Build a motor by name (requires network access unless cached)
     motor = GenericMotor.load_from_thrustcurve_api("M1670")
 
-    # Use the motor as usual
+    # Print the motor information
+    motor.info()
+
+Using the no_cache option
+-------------------------
+
+If you want to force RocketPy to ignore the cache and download a fresh copy
+every time, use:
+
+.. jupyter-execute::
+
+    motor = GenericMotor.load_from_thrustcurve_api("M1670", no_cache=True)
     motor.info()

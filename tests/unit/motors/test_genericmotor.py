@@ -6,6 +6,7 @@ import requests
 import scipy.integrate
 
 from rocketpy import Function, Motor
+from rocketpy.motors.motor import GenericMotor
 
 BURN_TIME = (2, 7)
 
@@ -333,3 +334,41 @@ def test_load_from_thrustcurve_api(monkeypatch, generic_motor):
         )
         with pytest.raises(ValueError, match=msg):
             type(generic_motor).load_from_thrustcurve_api("FakeMotor")
+
+
+def test_thrustcurve_api_cache(monkeypatch, tmp_path):
+    """Tests that ThrustCurve API is caching works correctly."""
+
+    eng_path = "data/motors/cesaroni/Cesaroni_M1670.eng"
+    with open(eng_path, "rb") as f:
+        encoded = base64.b64encode(f.read()).decode("utf-8")
+
+    search_json = {"results": [{"motorId": "12345"}]}
+    download_json = {"results": [{"data": encoded}]}
+
+    # Patch requests.get to return mocked API responses
+    monkeypatch.setattr(requests, "get", _mock_get(search_json, download_json))
+
+    # Patch the module-level CACHE_DIR to use the tmp_path
+    monkeypatch.setattr("rocketpy.motors.motor.CACHE_DIR", tmp_path)
+
+    # First call writes to cache
+    motor1 = GenericMotor.load_from_thrustcurve_api("M1670")
+    cache_file = tmp_path / "M1670.eng.b64"
+    assert cache_file.exists()
+
+    # Second call reads from cache; API should not be called
+    monkeypatch.setattr(
+        requests,
+        "get",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            RuntimeError("API should not be called")
+        ),
+    )
+    motor2 = GenericMotor.load_from_thrustcurve_api("M1670")
+    assert motor2.thrust.y_array == pytest.approx(motor1.thrust.y_array)
+
+    # Bypass cache with no_cache=True
+    monkeypatch.setattr(requests, "get", _mock_get(search_json, download_json))
+    motor3 = GenericMotor.load_from_thrustcurve_api("M1670", no_cache=True)
+    assert motor3.thrust.y_array == pytest.approx(motor1.thrust.y_array)
