@@ -45,6 +45,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+- BUG: Fix parallel Monte Carlo simulation showing incorrect iteration count [#806](https://github.com/RocketPy-Team/RocketPy/pull/806)
 - BUG: Fix CSV column header spacing in FlightDataExporter [#864](https://github.com/RocketPy-Team/RocketPy/issues/864)
 
 
