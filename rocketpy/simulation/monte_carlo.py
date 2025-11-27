@@ -292,7 +292,7 @@ class MonteCarlo:
                 with open(self.output_file, "a", encoding="utf-8") as f:
                     f.write(outputs_json)
 
-                sim_monitor.print_update_status(sim_monitor.count)
+                sim_monitor.print_update_status()
 
             sim_monitor.print_final_status()
 
@@ -430,7 +430,7 @@ class MonteCarlo:
                     with open(self.output_file, "a", encoding="utf-8") as f:
                         f.write(outputs_json)
 
-                    sim_monitor.print_update_status(sim_idx)
+                    sim_monitor.print_update_status()
                 finally:
                     mutex.release()
 
@@ -1208,6 +1208,7 @@ class _SimMonitor:
         self.count = initial_count
         self.n_simulations = n_simulations
         self.start_time = start_time
+        self.completed_count = 0
 
     def keep_simulating(self):
         return self.count < self.n_simulations
@@ -1216,25 +1217,24 @@ class _SimMonitor:
         self.count += 1
         return self.count
 
-    def print_update_status(self, sim_idx):
+    def print_update_status(self):
         """Prints a message on the same line as the previous one and replaces
         the previous message with the new one, deleting the extra characters
-        from the previous message.
-
-        Parameters
-        ----------
-        sim_idx : int
-            Index of the current simulation.
+        from the previous message. This method increments the completed_count
+        to track how many simulations have finished (thread-safe when called
+        within a mutex-protected section).
 
         Returns
         -------
         None
         """
+        self.completed_count += 1
 
-        average_time = (time() - self.start_time) / (self.count - self.initial_count)
-        estimated_time = int((self.n_simulations - self.count) * average_time)
+        average_time = (time() - self.start_time) / self.completed_count
+        remaining = self.n_simulations - self.initial_count - self.completed_count
+        estimated_time = int(remaining * average_time)
 
-        msg = f"Current iteration: {sim_idx:06d}"
+        msg = f"Iterations completed: {self.completed_count:06d}"
         msg += f" | Average Time per Iteration: {average_time:.3f} s"
         msg += f" | Estimated time left: {estimated_time} s"
 
