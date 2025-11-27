@@ -1957,9 +1957,9 @@ class GenericMotor(Motor):
 
         motor_info = data["results"][0]
         motor_id = motor_info.get("motorId")
-        designation = motor_info.get("designation", "").replace("/", "-")
-        manufacturer = motor_info.get("manufacturer", "")
-        warnings.warn(f"Motor found: {designation} ({manufacturer})", UserWarning)
+        # NOTE: commented bc we don't use it, but keeping for possible future use
+        # designation = motor_info.get("designation", "").replace("/", "-")
+        # manufacturer = motor_info.get("manufacturer", "")
 
         # Step 2. Download the .eng file
         dl_response = requests.get(

@@ -121,51 +121,8 @@ save the `.eng` file.
     when you have network access. For automated testing or reproducible runs,
     prefer using local `.eng` files.
 
-Signature
-----------
-
-``GenericMotor.load_from_thrustcurve_api(name: str, **kwargs) -> GenericMotor``
-
-Parameters
-----------
-name : str
-    Motor name to search on ThrustCurve (examples:
-    ``"M1670"`` or ``"Cesaroni M1670"``). Both shorthand and manufacturer-prefixed
-    names are accepted. When multiple matches occur, the first result returned by
-    the API is used.
-**kwargs :
-    Same optional arguments accepted by the :class:`GenericMotor` constructor
-    (e.g. ``dry_mass``, ``nozzle_radius``, ``interpolation_method``). Any
-    parameters provided here override values parsed from the downloaded file.
-
-Returns
-----------
-GenericMotor
-    A new ``GenericMotor`` instance created from the .eng data downloaded from
-    ThrustCurve.
-
-Raises
-----------
-ValueError
-    If the API search returns no motor, or if the download endpoint returns no
-    .eng file or empty/invalid data.
-requests.exceptions.RequestException
-    If a network or HTTP error occurs during the API call to ThrustCurve.
-
-Behavior notes
----------------
-- The method first performs a search on ThrustCurve using the provided name.
-  If no results are returned a :class:`ValueError` is raised.
-- If a motor is found, the method requests the .eng file in RASP format, decodes
-  it and temporarily writes it to disk. A ``GenericMotor`` is then constructed
-  using the existing .eng file loader. The temporary file is removed even if an
-  error occurs.
-- The function emits a non-fatal informational warning when a motor is found
-  (``warnings.warn(...)``). This follows the repository convention for
-  non-critical messages; callers can filter or suppress warnings as needed.
-
 Example
----------------
+-------
 
 .. jupyter-execute::
 
@@ -176,15 +133,3 @@ Example
 
     # Use the motor as usual
     motor.info()
-
-Testing advice
----------------
-- Use ``pytest``'s ``caplog`` or ``capfd`` to assert on log/warning output.
-
-Security & reliability
-----------------
-- The method makes outgoing HTTP requests and decodes base64-encoded content;
-  validate inputs in upstream code if you accept motor names from untrusted
-  sources.
-- Network failures, API rate limits, or changes to the ThrustCurve API may
-  break loading; consider caching downloaded `.eng` files for production use.
