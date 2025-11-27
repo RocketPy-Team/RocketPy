@@ -123,7 +123,7 @@ Or use a custom thrust function:
 .. seealso::
 
     For detailed information about :class:`rocketpy.PointMassMotor` parameters,
-    see the :ref:`API reference <api_reference>`.
+    see the :class:`rocketpy.PointMassMotor` class documentation.
 
 Step 3: Create a PointMassRocket
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -412,7 +412,6 @@ See Also
 - :ref:`First Simulation <firstsimulation>` - Standard 6-DOF simulation tutorial
 - :ref:`Rocket Class Usage <rocketusage>` - Full rocket modeling capabilities
 - :ref:`Flight Class Usage <flightusage>` - Complete flight simulation options
-- :doc:`../examples/3_dof_trial_sim` - Jupyter notebook example
 
 Further Reading
 ---------------
