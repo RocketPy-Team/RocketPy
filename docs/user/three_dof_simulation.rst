@@ -279,6 +279,14 @@ Export trajectory data to CSV:
         "vz",
     )
 
+
+.. jupyter-execute::
+    :hide-code:
+
+    import os
+    os.remove("trajectory_3dof.csv")
+
+
 Complete Example
 ----------------
 
