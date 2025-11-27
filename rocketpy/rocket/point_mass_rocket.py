@@ -46,8 +46,8 @@ class PointMassRocket(Rocket):
         radius: float,
         mass: float,
         center_of_mass_without_motor: float,
-        power_off_drag: float,
-        power_on_drag: float,
+        power_off_drag,
+        power_on_drag,
     ):
         self._center_of_mass_without_motor_pointmass = center_of_mass_without_motor
         self._center_of_dry_mass_position = center_of_mass_without_motor
