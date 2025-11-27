@@ -687,7 +687,7 @@ class Flight:
             )
 
             # Initialize phase time nodes
-            self.__setup_phase_time_nodes(phase, phase_index)
+            self.__setup_phase_time_nodes(phase)
 
             # Iterate through time nodes
             for node_index, node in self.time_iterator(phase.time_nodes):
@@ -821,15 +821,13 @@ class Flight:
         if verbose:
             print(f"\n>>> Simulation Completed at Time: {self.t:3.4f} s")
 
-    def __setup_phase_time_nodes(self, phase, phase_index):
+    def __setup_phase_time_nodes(self, phase):
         """Set up time nodes for the current phase.
 
         Parameters
         ----------
         phase : FlightPhase
             The current flight phase.
-        phase_index : int
-            The index of the current phase.
         """
         phase.time_nodes = self.TimeNodes()
 
@@ -951,8 +949,11 @@ class Flight:
             ):
                 continue  # Check next parachute
 
-            # Remove parachute from flight parachutes
-            self.parachutes.remove(parachute)
+            # Remove parachute from flight parachutes (if not already removed)
+            if parachute in self.parachutes:
+                self.parachutes.remove(parachute)
+            else:
+                continue  # Parachute already triggered, skip to next
 
             # Create phase for time after detection and before inflation
             # Must only be created if parachute has any lag
@@ -1591,7 +1592,6 @@ class Flight:
         """Initialize controllers and sensors"""
         self._controllers = self.rocket._controllers[:]
         self.sensors = self.rocket.sensors.get_components()
-        # Note: time_overshoot now supports both controllers and sensors
 
         # reset controllable object to initial state (only airbrakes for now)
         for air_brakes in self.rocket.air_brakes:

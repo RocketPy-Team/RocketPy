@@ -49,7 +49,7 @@ Attention: The newest changes should be on top -->
 
 ### Changed
 
--
+- ENH: Refactor Flight class to improve time node handling and sensor/controllers [#843](https://github.com/RocketPy-Team/RocketPy/pull/843)
 
 ### Fixed
 

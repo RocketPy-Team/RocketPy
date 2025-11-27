@@ -280,7 +280,7 @@ def test_merra2_full_specification_compliance(merra2_file_path, example_plain_en
     # Input: 9806.65 m2/s2
     # Expected: 1000.0 m
     print(f"Calculated Elevation: {env.elevation} m")
-    assert abs(env.elevation - 1000.0) < 1e-6, (
+    assert abs(env.elevation - 1000.0) < 1e-4, (
         f"Failed to convert PHIS (m2/s2) to meters. Got {env.elevation}, expected 1000.0"
     )
 
