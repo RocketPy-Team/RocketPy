@@ -432,7 +432,7 @@ def test_trajectories_2d_missing_data_warning(flight_calisto):
 
     time_data = np.linspace(0, flight_calisto.t_final, 100)
 
-    # Add only 'z', missing 'x'
+    # Add only 'z', missing 'x', should give a warning
     comparator.add_data("Incomplete", {"z": (time_data, flight_calisto.z(time_data))})
 
     with pytest.warns(UserWarning, match="No external sources have both"):
@@ -505,7 +505,7 @@ def test_full_workflow(flight_calisto):
     results = comparator.compare_key_events()
     comparator.trajectories_2d(plane="xz")
 
-    # Verify results - now a dict instead of DataFrame
+    # Verify results 
     assert isinstance(results, dict)
     assert len(results) >= 4  # At least 4 metrics
     assert "Apogee Altitude (m)" in results

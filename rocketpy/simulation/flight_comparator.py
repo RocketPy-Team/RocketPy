@@ -568,7 +568,7 @@ class FlightComparator:
 
         axis1, axis2 = plane[0], plane[1]
 
-        # Check if Flight object has required attributes
+        # Check if Flight object has the required attributes
         if not hasattr(self.flight, axis1) or not hasattr(self.flight, axis2):
             warnings.warn(f"Flight object missing {axis1} or {axis2} attributes")
             return
@@ -601,7 +601,7 @@ class FlightComparator:
             plt.close(fig)
             return
 
-        # Formatting (use axis labels from RocketPy convention)
+        # Formatting
         axis_labels = {"x": "X - East (m)", "y": "Y - North (m)", "z": "Z - Up (m)"}
         ax.set_xlabel(axis_labels.get(axis1, f"{axis1} (m)"))
         ax.set_ylabel(axis_labels.get(axis2, f"{axis2} (m)"))
