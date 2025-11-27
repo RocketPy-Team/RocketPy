@@ -1,5 +1,6 @@
-from rocketpy.rocket.rocket import PointMassRocket
 from rocketpy.motors.point_mass_motor import PointMassMotor
+from rocketpy.rocket.rocket import PointMassRocket
+
 
 def test_point_mass_rocket_basic_properties():
     motor = PointMassMotor(10, 1.0, 0.5, 1.0)
@@ -8,13 +9,14 @@ def test_point_mass_rocket_basic_properties():
         mass=2.0,
         center_of_mass_without_motor=0.1,
         power_off_drag=0.7,
-        power_on_drag=0.8
+        power_on_drag=0.8,
     )
     rocket.addmotor(motor, 0)
     assert rocket.radius == 0.05
     assert rocket.mass == 2.0
     assert rocket.motor is motor
     assert rocket.dryI11 == 0.0  # 3-DOF: inertias are forced zero
+
 
 def test_structural_and_total_mass():
     """Test structural and total mass properties of point mass rocket."""
@@ -24,14 +26,15 @@ def test_structural_and_total_mass():
         mass=2.5,
         center_of_mass_without_motor=0,
         power_off_drag=0.3,
-        power_on_drag=0.4
+        power_on_drag=0.4,
     )
     rocket.addmotor(motor, 0)
-    
+
     # Test that structural mass and total mass are calculated correctly
     assert rocket.mass == 2.5
     expected_total_mass = rocket.mass + motor.propellant_initial_mass
     assert abs(rocket.total_mass(0) - expected_total_mass) < 1e-6
+
 
 def test_add_motor_overwrites():
     """Test that adding a motor overwrites the previous motor."""
