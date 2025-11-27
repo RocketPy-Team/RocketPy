@@ -1,8 +1,11 @@
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.transforms import offset_copy
 
 from ..tools import generate_monte_carlo_ellipses, import_optional_dependency
+from .plot_helpers import show_or_save_plot
 
 
 class _MonteCarloPlots:
@@ -159,7 +162,7 @@ class _MonteCarloPlots:
         else:
             plt.show()
 
-    def all(self, keys=None):
+    def all(self, keys=None, *, filename=None):
         """
         Plot the histograms of the Monte Carlo simulation results.
 
@@ -168,6 +171,14 @@ class _MonteCarloPlots:
         keys : str, list or tuple, optional
             The keys of the results to be plotted. If None, all results will be
             plotted. Default is None.
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. If a filename is provided,
+            each histogram will be saved with the key name appended to the
+            filename (e.g., "plots/histogram_apogee.png" for key "apogee" with
+            filename "plots/histogram.png"). Supported file endings are: eps,
+            jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff and
+            webp (these are the formats supported by matplotlib).
 
         Returns
         -------
@@ -207,7 +218,16 @@ class _MonteCarloPlots:
             ax1.set_xticks([])
 
             plt.tight_layout()
-            plt.show()
+
+            # Generate the filename for this specific key if saving
+            if filename is not None:
+                file_path = Path(filename)
+                key_filename = str(
+                    file_path.parent / f"{file_path.stem}_{key}{file_path.suffix}"
+                )
+                show_or_save_plot(key_filename)
+            else:
+                show_or_save_plot(None)
 
     def plot_comparison(self, other_monte_carlo):
         """

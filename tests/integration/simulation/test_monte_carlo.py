@@ -134,6 +134,34 @@ def test_monte_carlo_plots(mock_show, monte_carlo_calisto_pre_loaded):
         _post_test_file_cleanup()
 
 
+def test_monte_carlo_plots_all_save(monte_carlo_calisto_pre_loaded):
+    """Tests the plots.all method with save functionality.
+
+    Parameters
+    ----------
+    monte_carlo_calisto_pre_loaded : MonteCarlo
+        The MonteCarlo object, this is a pytest fixture.
+    """
+    try:
+        # Test saving with a single key
+        monte_carlo_calisto_pre_loaded.plots.all(
+            keys="apogee", filename="test_histogram.png"
+        )
+        assert os.path.exists("test_histogram_apogee.png")
+        os.remove("test_histogram_apogee.png")
+
+        # Test saving with multiple keys
+        monte_carlo_calisto_pre_loaded.plots.all(
+            keys=["apogee", "x_impact"], filename="test_multi.png"
+        )
+        assert os.path.exists("test_multi_apogee.png")
+        assert os.path.exists("test_multi_x_impact.png")
+        os.remove("test_multi_apogee.png")
+        os.remove("test_multi_x_impact.png")
+    finally:
+        _post_test_file_cleanup()
+
+
 def test_monte_carlo_export_ellipses_to_kml(monte_carlo_calisto_pre_loaded):
     """Tests the export_ellipses_to_kml method of the MonteCarlo class.
 
