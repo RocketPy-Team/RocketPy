@@ -7,6 +7,7 @@ from functools import cached_property
 import numpy as np
 from scipy.integrate import BDF, DOP853, LSODA, RK23, RK45, OdeSolver, Radau
 
+from rocketpy.simulation.flight_comparator import FlightComparator
 from rocketpy.simulation.flight_data_exporter import FlightDataExporter
 
 from ..mathutils.function import Function, funcify_method
@@ -3958,3 +3959,32 @@ class Flight:
                     otherwise.
                 """
                 return self.t < other.t
+
+    def compare(self, data, variable="z", label="External Data"):
+        """
+        Compares the simulated flight against provided external data.
+
+        This is a convenience wrapper for the FlightComparator class.
+
+        Parameters
+        ----------
+        data : dict
+            Dictionary containing the external data.
+            Keys should be variables (e.g. 'z', 'vz') and values should be
+            (time_array, data_array) tuples or RocketPy Functions.
+        variable : str, optional
+            The variable to compare immediately. Default is "z" (Altitude).
+        label : str, optional
+            Legend label for the external data. Default is "External Data".
+
+        Returns
+        -------
+        FlightComparator
+            The comparator object, allowing for further comparisons.
+        """
+
+        comparator = FlightComparator(self)
+        comparator.add_data(label=label, data_dict=data)
+        comparator.compare(variable)
+
+        return comparator
