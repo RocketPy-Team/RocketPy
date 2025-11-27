@@ -1,4 +1,5 @@
 import base64
+import pathlib
 
 import numpy as np
 import pytest
@@ -372,3 +373,70 @@ def test_thrustcurve_api_cache(monkeypatch, tmp_path):
     monkeypatch.setattr(requests, "get", _mock_get(search_json, download_json))
     motor3 = GenericMotor.load_from_thrustcurve_api("M1670", no_cache=True)
     assert motor3.thrust.y_array == pytest.approx(motor1.thrust.y_array)
+
+
+def test_thrustcurve_api_cache_robustness(monkeypatch, tmp_path):  # pylint: disable=too-many-statements
+    """
+    Tests exception handling for cache operations to ensure 100% coverage.
+    Simulates OS errors for mkdir, write, and read operations.
+    """
+
+    # 1. Setup Mock API to return success
+    eng_path = "data/motors/cesaroni/Cesaroni_M1670.eng"
+    with open(eng_path, "rb") as f:
+        encoded = base64.b64encode(f.read()).decode("utf-8")
+
+    search_json = {"results": [{"motorId": "12345"}]}
+    download_json = {"results": [{"data": encoded}]}
+    monkeypatch.setattr(requests, "get", _mock_get(search_json, download_json))
+
+    # Point cache to tmp_path so we don't mess with real home
+    monkeypatch.setattr("rocketpy.motors.motor.CACHE_DIR", tmp_path)
+
+    # CASE 1: mkdir fails -> should warn and continue (disable caching)
+    original_mkdir = pathlib.Path.mkdir
+
+    def mock_mkdir_fail(self, *args, **kwargs):
+        if self == tmp_path:
+            raise OSError("Simulated mkdir error")
+        return original_mkdir(self, *args, **kwargs)
+
+    monkeypatch.setattr(pathlib.Path, "mkdir", mock_mkdir_fail)
+
+    with pytest.warns(UserWarning, match="Could not create cache directory"):
+        GenericMotor.load_from_thrustcurve_api("M1670")
+
+    # Reset mkdir logic for next test
+    monkeypatch.setattr(pathlib.Path, "mkdir", original_mkdir)
+
+    # CASE 2: write_text fails -> should warn and continue
+    original_write = pathlib.Path.write_text
+
+    def mock_write_fail(self, *args, **kwargs):
+        if "M1670.eng.b64" in str(self):
+            raise OSError("Simulated write error")
+        return original_write(self, *args, **kwargs)
+
+    monkeypatch.setattr(pathlib.Path, "write_text", mock_write_fail)
+
+    with pytest.warns(RuntimeWarning, match="Could not write to cache file"):
+        GenericMotor.load_from_thrustcurve_api("M1670")
+
+    # Reset write logic
+    monkeypatch.setattr(pathlib.Path, "write_text", original_write)
+
+    # CASE 3: read_text fails (corrupt file) -> should warn and fetch fresh
+    cache_file = tmp_path / "M1670.eng.b64"
+    cache_file.write_text("corrupted_data")
+
+    original_read = pathlib.Path.read_text
+
+    def mock_read_fail(self, *args, **kwargs):
+        if self == cache_file:
+            raise UnicodeDecodeError("utf-8", b"", 0, 1, "bad")
+        return original_read(self, *args, **kwargs)
+
+    monkeypatch.setattr(pathlib.Path, "read_text", mock_read_fail)
+
+    with pytest.warns(UserWarning, match="Failed to read cached motor file"):
+        GenericMotor.load_from_thrustcurve_api("M1670")

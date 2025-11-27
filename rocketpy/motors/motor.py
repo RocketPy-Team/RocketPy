@@ -1971,10 +1971,6 @@ class GenericMotor(Motor):
                     "Fetching fresh data from API."
                 )
 
-        # Use cached file if it exists and no_cache is False
-        if cache_file.exists() and not no_cache:
-            return cache_file.read_text()
-
         base_url = "https://www.thrustcurve.org/api/v1"
         # Step 1. Search motor
         response = requests.get(f"{base_url}/search.json", params={"commonName": name})
