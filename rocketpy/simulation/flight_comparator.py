@@ -33,14 +33,22 @@ class FlightComparator:
 
     Examples
     --------
-    >>> comparator = FlightComparator(my_flight)
-    >>> comparator.add_data('OpenRocket', {
-    ...     'altitude': (time_array, altitude_array),
-    ...     'vz': (time_array, velocity_array)
-    ... })
-    >>> comparator.compare('altitude')
-    >>> comparator.summary()
-    >>> events_table = comparator.compare_key_events()
+
+    .. code-block:: python
+
+        # Assuming you have a Flight object named 'my_flight'
+        comparator = FlightComparator(my_flight)
+
+        # Add external data
+        comparator.add_data('OpenRocket', {
+            'altitude': (time_array, altitude_array),
+            'vz': (time_array, velocity_array)
+        })
+
+        # Run comparisons
+        comparator.compare('altitude')
+        comparator.summary()
+        events_table = comparator.compare_key_events()
     """
 
     def __init__(self, flight):
