@@ -3,8 +3,8 @@ from unittest.mock import patch
 import numpy as np
 
 
-@patch("matplotlib.pyplot.show")  # pylint: disable=unused-argument
-def test_hybrid_motor_info(mock_show, hybrid_motor):
+@patch("matplotlib.pyplot.show")
+def test_hybrid_motor_info(mock_show, hybrid_motor):  # pylint: disable=unused-argument
     """Tests the HybridMotor.all_info() method.
 
     Parameters
