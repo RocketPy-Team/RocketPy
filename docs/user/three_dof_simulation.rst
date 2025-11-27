@@ -67,7 +67,7 @@ The environment setup is identical to standard simulations:
         elevation=1400
     )
 
-    env.set_atmospheric_model(type="StandardAtmosphere")
+    env.set_atmospheric_model(type="standard_atmosphere")
 
 Step 2: Create a PointMassMotor
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -294,7 +294,7 @@ Here's a complete 3-DOF simulation from start to finish:
         longitude=-8.2889,
         elevation=100
     )
-    env.set_atmospheric_model(type="StandardAtmosphere")
+    env.set_atmospheric_model(type="standard_atmosphere")
 
     # 2. Motor
     motor = PointMassMotor(

@@ -1312,7 +1312,7 @@ def find_obj_from_hash(obj, hash_, depth_limit=None):
     Returns
     -------
     object
-        The object whose '__rpy_hash' matches hash_, or None if not found.
+        The object whose '__rpy_hash' matches ``hash_``, or None if not found.
     """
 
     stack = [(obj, 0)]
