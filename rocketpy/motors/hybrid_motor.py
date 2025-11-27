@@ -195,7 +195,7 @@ class HybridMotor(Motor):
         It will allow to obtain the net thrust in the Flight class.
     SolidMotor.only_radial_burn : bool
         If True, grain regression is restricted to radial burn only (inner radius growth).
-        Grain length remains constant throughout the burn. Default is False.
+        Grain length remains constant throughout the burn. Default is True.
     """
 
     # pylint: disable=too-many-arguments
