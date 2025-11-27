@@ -337,7 +337,7 @@ def test_load_from_thrustcurve_api(monkeypatch, generic_motor):
 
 
 def test_thrustcurve_api_cache(monkeypatch, tmp_path):
-    """Tests that ThrustCurve API is caching works correctly."""
+    """Tests that ThrustCurve API caching works correctly."""
 
     eng_path = "data/motors/cesaroni/Cesaroni_M1670.eng"
     with open(eng_path, "rb") as f:

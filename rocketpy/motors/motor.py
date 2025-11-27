@@ -19,7 +19,6 @@ from ..tools import parallel_axis_theorem_from_com, tuple_handler
 # pylint: disable=too-many-public-methods
 # ThrustCurve API cache
 CACHE_DIR = Path.home() / ".rocketpy_cache"
-CACHE_DIR.mkdir(exist_ok=True)
 
 
 class Motor(ABC):
@@ -1923,7 +1922,7 @@ class GenericMotor(Motor):
         )
 
     @staticmethod
-    def _call_thrustcurve_api(name: str, no_cache: bool = False):
+    def _call_thrustcurve_api(name: str, no_cache: bool = False):  # pylint: disable=too-many-statements
         """
         Download a .eng file from the ThrustCurve API
         based on the given motor name.
@@ -1948,15 +1947,29 @@ class GenericMotor(Motor):
             If no motor is found or if the downloaded .eng data is missing.
         requests.exceptions.RequestException
             If a network or HTTP error occurs during the API call.
+
         Notes
         -----
         - The cache prevents multiple network requests for the same motor name across sessions.
         - Cached files are stored in `~/.rocketpy_cache` and reused unless `no_cache=True`.
         - Filenames are sanitized to avoid invalid characters.
         """
+        try:
+            CACHE_DIR.mkdir(exist_ok=True)
+        except OSError as e:
+            warnings.warn(f"Could not create cache directory: {e}. Caching disabled.")
+            no_cache = True
         # File path in the cache
         safe_name = re.sub(r"[^A-Za-z0-9_.-]", "_", name)
         cache_file = CACHE_DIR / f"{safe_name}.eng.b64"
+        if not no_cache and cache_file.exists():
+            try:
+                return cache_file.read_text()
+            except (OSError, UnicodeDecodeError) as e:
+                warnings.warn(
+                    f"Failed to read cached motor file '{cache_file}': {e}. "
+                    "Fetching fresh data from API."
+                )
 
         # Use cached file if it exists and no_cache is False
         if cache_file.exists() and not no_cache:
@@ -1998,7 +2011,16 @@ class GenericMotor(Motor):
             raise ValueError(
                 f"Downloaded .eng data for motor '{name}' is empty or invalid."
             )
-        cache_file.write_text(data_base64)
+        if not no_cache:
+            try:
+                cache_file.write_text(data_base64)
+            except (OSError, PermissionError) as e:
+                warnings.warn(
+                    f"Could not write to cache file '{cache_file}': {e}. "
+                    "Continuing without caching.",
+                    RuntimeWarning,
+                )
+
         return data_base64
 
     @staticmethod

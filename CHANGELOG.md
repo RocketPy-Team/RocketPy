@@ -31,14 +31,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 Attention: The newest changes should be on top -->
 
 ### Added
-
-- Add caching to ThrustCurve API requests to avoid repeated downloads for the same motor (#878)
--	GenericMotor.load_from_thrustcurve_api(name, no_cache=False) to download motors directly from the ThrustCurve API.
-- Automatic caching of downloaded .eng files in ~/.rocketpy_cache.
--	no_cache option to bypass the cache and force a fresh API download.
-
+- ENH: Add persistent caching for ThrustCurve API (#881)
 ### Changed
-- Unit tests for GenericMotor now include coverage for API caching and error handling.
 
 ### Fixed
 
@@ -79,6 +73,7 @@ Attention: The newest changes should be on top -->
 ## [v1.10.0] - 2025-05-16
 
 ### Added
+
 - ENH: Support for ND arithmetic in Function class. [#810] (https://github.com/RocketPy-Team/RocketPy/pull/810)
 - ENH: allow users to provide custom samplers [#803](https://github.com/RocketPy-Team/RocketPy/pull/803)
 - ENH: Implement Multivariate Rejection Sampling (MRS) [#738] (https://github.com/RocketPy-Team/RocketPy/pull/738)
