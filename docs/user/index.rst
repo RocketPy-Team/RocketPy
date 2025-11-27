@@ -7,10 +7,11 @@ RocketPy's User Guide
 
    Installation and Requirements <installation.rst>
    First Simulation <first_simulation.rst>
+   3-DOF Simulations <three_dof_simulation.rst>
 
 .. toctree::
    :maxdepth: 1
-   :caption: Main Classes Usage  
+   :caption: Main Classes Usage
 
    Positions and Coordinate Systems <positions.rst>
    Motors <motors/motors.rst>

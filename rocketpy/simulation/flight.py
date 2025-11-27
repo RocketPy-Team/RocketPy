@@ -11,8 +11,10 @@ from rocketpy.simulation.flight_data_exporter import FlightDataExporter
 
 from ..mathutils.function import Function, funcify_method
 from ..mathutils.vector_matrix import Matrix, Vector
+from ..motors.point_mass_motor import PointMassMotor
 from ..plots.flight_plots import _FlightPlots
 from ..prints.flight_prints import _FlightPrints
+from ..rocket import PointMassRocket
 from ..tools import (
     calculate_cubic_hermite_coefficients,
     deprecated,
@@ -466,6 +468,8 @@ class Flight:
         Defined as the minimum angle between the attitude vector and
         the freestream velocity vector. Can be called or accessed as
         array.
+    Flight.simulation_mode : str
+        Simulation mode for the flight. Can be "6 DOF" or "3 DOF".
     """
 
     def __init__(  # pylint: disable=too-many-arguments,too-many-statements
@@ -487,6 +491,7 @@ class Flight:
         name="Flight",
         equations_of_motion="standard",
         ode_solver="LSODA",
+        simulation_mode="6 DOF",
     ):
         """Run a trajectory simulation.
 
@@ -599,6 +604,7 @@ class Flight:
         self.terminate_on_apogee = terminate_on_apogee
         self.name = name
         self.equations_of_motion = equations_of_motion
+        self.simulation_mode = simulation_mode
         self.ode_solver = ode_solver
 
         # Controller initialization
@@ -1229,9 +1235,34 @@ class Flight:
 
     def __init_equations_of_motion(self):
         """Initialize equations of motion."""
-        if self.equations_of_motion == "solid_propulsion":
-            # NOTE: The u_dot is faster, but only works for solid propulsion
-            self.u_dot_generalized = self.u_dot
+        # Determine if a point-mass model is used.
+        is_point_mass = isinstance(self.rocket, PointMassRocket) or (
+            hasattr(self.rocket, "motor")
+            and isinstance(self.rocket.motor, PointMassMotor)
+        )
+        # Set simulation mode based on model type.
+        if is_point_mass:
+            if self.simulation_mode != "3 DOF":
+                warnings.warn(
+                    "A point-mass model was detected. Simulation mode should be '3 DOF'.",
+                    UserWarning,
+                )
+            self.simulation_mode = "3 DOF"
+
+        # Set the equations of motion based on the final simulation mode.
+        if self.simulation_mode == "3 DOF":
+            self.u_dot_generalized = self.u_dot_generalized_3dof
+        elif self.simulation_mode == "6 DOF":
+            self.u_dot_generalized = (
+                self.u_dot
+                if self.equations_of_motion == "solid_propulsion"
+                else self.u_dot_generalized
+            )
+        else:
+            raise ValueError(
+                f"Invalid simulation_mode: {self.simulation_mode}. "
+                "Must be '3 DOF' or '6 DOF'."
+            )
 
     def __init_controllers(self):
         """Initialize controllers and sensors"""
@@ -1465,6 +1496,7 @@ class Flight:
         # Retrieve integration data
         _, _, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
         # Determine lift force and moment
+        omega1, omega2, omega3 = 0, 0, 0
         R1, R2, M1, M2, M3 = 0, 0, 0, 0, 0
         # Thrust correction parameters
         pressure = self.env.pressure.get_value_opt(z)
@@ -1485,6 +1517,7 @@ class Flight:
             mass_flow_rate_at_t = self.rocket.motor.mass_flow_rate.get_value_opt(t)
             propellant_mass_at_t = self.rocket.motor.propellant_mass.get_value_opt(t)
             # Thrust
+
             net_thrust = max(
                 self.rocket.motor.thrust.get_value_opt(t)
                 + self.rocket.motor.pressure_thrust(pressure),
@@ -1693,7 +1726,6 @@ class Flight:
         e1dot = 0.5 * (omega1 * e0 + omega3 * e2 - omega2 * e3)
         e2dot = 0.5 * (omega2 * e0 - omega3 * e1 + omega1 * e3)
         e3dot = 0.5 * (omega3 * e0 + omega2 * e1 - omega1 * e2)
-
         # Linear acceleration
         L = [
             (
@@ -1755,6 +1787,123 @@ class Flight:
                     M3,
                     net_thrust,
                 ]
+            )
+        return u_dot
+
+    def u_dot_generalized_3dof(self, t, u, post_processing=False):
+        """Calculates derivative of u state vector with respect to time when the
+        rocket is flying in 3 DOF motion in space and significant mass variation
+        effects exist.
+
+        Parameters
+        ----------
+        t : float
+            Time in seconds.
+        u : list
+            State vector: [x, y, z, vx, vy, vz, q0, q1, q2, q3, omega1, omega2, omega3].
+        post_processing : bool, optional
+            If True, adds flight data to self variables like self.angle_of_attack.
+
+        Returns
+        -------
+        list
+            Derivative state vector: [vx, vy, vz, ax, ay, az,
+            e0_dot, e1_dot, e2_dot, e3_dot, alpha1, alpha2, alpha3].
+        """
+        # Unpack state
+        _, _, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
+
+        # Define vectors
+        v = Vector([vx, vy, vz])
+        e = [e0, e1, e2, e3]
+        w = Vector([omega1, omega2, omega3])
+
+        # Mass and transformation
+        total_mass = self.rocket.total_mass.get_value_opt(t)
+        K = Matrix.transformation(e)
+        Kt = K.transpose
+
+        # Atmospheric and wind data
+        rho = self.env.density.get_value_opt(z)
+        wind_vx = self.env.wind_velocity_x.get_value_opt(z)
+        wind_vy = self.env.wind_velocity_y.get_value_opt(z)
+        wind_velocity = Vector([wind_vx, wind_vy, 0])
+
+        free_stream_velocity = wind_velocity - v
+        free_stream_speed = abs(free_stream_velocity)
+        speed_of_sound = self.env.speed_of_sound.get_value_opt(z)
+        mach = free_stream_speed / speed_of_sound
+
+        # Drag computation
+        if t < self.rocket.motor.burn_out_time:
+            cd = self.rocket.power_on_drag.get_value_opt(mach)
+        else:
+            cd = self.rocket.power_off_drag.get_value_opt(mach)
+
+        R1, R2 = 0, 0
+        R3 = -0.5 * rho * free_stream_speed**2 * self.rocket.area * cd
+
+        for air_brake in self.rocket.air_brakes:
+            if air_brake.deployment_level > 0:
+                ab_cd = air_brake.drag_coefficient.get_value_opt(
+                    air_brake.deployment_level, mach
+                )
+                ab_force = (
+                    -0.5 * rho * free_stream_speed**2 * air_brake.reference_area * ab_cd
+                )
+                if air_brake.override_rocket_drag:
+                    R3 = ab_force
+                else:
+                    R3 += ab_force
+
+        # Velocity in body frame
+        vb_body = Kt @ v
+
+        for surface, _ in self.rocket.aerodynamic_surfaces:
+            cp = self.rocket.surfaces_cp_to_cdm[surface]
+            vb_component = vb_body + (w ^ cp)
+
+            comp_z = z + (K @ cp).z
+            wind_cx = self.env.wind_velocity_x.get_value_opt(comp_z)
+            wind_cy = self.env.wind_velocity_y.get_value_opt(comp_z)
+            wind_body = Kt @ Vector([wind_cx, wind_cy, 0])
+
+            rel_velocity = wind_body - vb_component
+            rel_speed = abs(rel_velocity)
+            rel_mach = rel_speed / speed_of_sound
+
+            reynolds = (
+                self.env.density.get_value_opt(comp_z)
+                * rel_speed
+                * surface.reference_length
+                / self.env.dynamic_viscosity.get_value_opt(comp_z)
+            )
+
+            fx, fy, fz, *_ = surface.compute_forces_and_moments(
+                rel_velocity, rel_speed, rel_mach, rho, cp, w, reynolds
+            )
+            R1 += fx
+            R2 += fy
+            R3 += fz
+
+        # Thrust and weight
+        thrust = self.rocket.motor.thrust.get_value_opt(t)
+        gravity = self.env.gravity.get_value_opt(z)
+        weight_body = Kt @ Vector([0, 0, -total_mass * gravity])
+
+        total_force = Vector([0, 0, thrust]) + weight_body + Vector([R1, R2, R3])
+
+        # Dynamics
+        v_dot = K @ (total_force / total_mass)
+        e_dot = [0, 0, 0, 0]  # Euler derivatives unused in 3DOF
+        w_dot = [0, 0, 0]  # No angular dynamics in 3DOF
+        r_dot = [vx, vy, vz]
+
+        u_dot = [*r_dot, *v_dot, *e_dot, *w_dot]
+
+        if post_processing:
+            self.__post_processed_variables.append(
+                [t, *v_dot, *w_dot, R1, R2, R3, 0, 0, 0]
             )
 
         return u_dot
