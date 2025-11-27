@@ -5,8 +5,6 @@ from unittest.mock import patch
 import pytest
 
 
-
-
 @pytest.mark.parametrize(
     "lat, lon, theoretical_elevation",
     [
