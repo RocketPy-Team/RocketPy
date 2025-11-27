@@ -1,4 +1,8 @@
+import matplotlib
 import pytest
+
+# Configure matplotlib to use non-interactive backend for tests
+matplotlib.use("Agg")
 
 # Pytest configuration
 pytest_plugins = [
