@@ -1248,18 +1248,16 @@ class Flight:
                     UserWarning,
                 )
             self.simulation_mode = "3 DOF"
-        else:
-            self.simulation_mode = self.simulation_mode
 
         # Set the equations of motion based on the final simulation mode.
         if self.simulation_mode == "3 DOF":
-            self.equations_of_motion = self.equations_of_motion
             self.u_dot_generalized = self.u_dot_generalized_3dof
         elif self.simulation_mode == "6 DOF":
-            if self.equations_of_motion == "solid_propulsion":
-                self.u_dot_generalized = self.u_dot
-            else:
-                self.u_dot_generalized = self.u_dot_generalized
+            self.u_dot_generalized = (
+                self.u_dot
+                if self.equations_of_motion == "solid_propulsion"
+                else self.u_dot_generalized
+            )
         else:
             raise ValueError(
                 f"Invalid simulation_mode: {self.simulation_mode}. "
@@ -1842,7 +1840,8 @@ class Flight:
         else:
             cd = self.rocket.power_off_drag.get_value_opt(mach)
 
-        R1, R2, R3 = 0, 0, -0.5 * rho * free_stream_speed**2 * self.rocket.area * cd
+        R1, R2 = 0, 0
+        R3 = -0.5 * rho * free_stream_speed**2 * self.rocket.area * cd
 
         for air_brake in self.rocket.air_brakes:
             if air_brake.deployment_level > 0:

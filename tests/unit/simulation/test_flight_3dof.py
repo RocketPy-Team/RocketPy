@@ -41,7 +41,9 @@ def point_mass_rocket(point_mass_motor):
     return rocket
 
 
-def test_3dof_simulation_mode_autoset(example_plain_env, point_mass_rocket):
+def test_simulation_mode_sets_3dof_with_point_mass_rocket(
+    example_plain_env, point_mass_rocket
+):
     """Test that simulation mode is correctly set to 3 DOF."""
     flight = Flight(
         rocket=point_mass_rocket,
@@ -52,21 +54,21 @@ def test_3dof_simulation_mode_autoset(example_plain_env, point_mass_rocket):
     assert flight.simulation_mode == "3 DOF"
 
 
-def test_3dof_simulation_mode_warning(
-    monkeypatch, example_plain_env, point_mass_rocket
-):
+def test_3dof_simulation_mode_warning(example_plain_env, point_mass_rocket):
     """Test that a warning is issued when 6 DOF is requested with PointMassRocket."""
-    monkeypatch.setattr("warnings.warn", lambda *a, **k: None)
-    flight = Flight(
-        rocket=point_mass_rocket,
-        environment=example_plain_env,
-        rail_length=1,
-        simulation_mode="6 DOF",
-    )
-    assert flight.simulation_mode == "3 DOF"
+    with pytest.warns(UserWarning):
+        flight = Flight(
+            rocket=point_mass_rocket,
+            environment=example_plain_env,
+            rail_length=1,
+            simulation_mode="6 DOF",
+        )
+        assert flight.simulation_mode == "3 DOF"
 
 
-def test_3dof_equations_of_motion_functions(example_plain_env, point_mass_rocket):
+def test_u_dot_generalized_3dof_returns_valid_result(
+    example_plain_env, point_mass_rocket
+):
     """Test that 3-DOF equations of motion return valid results."""
     flight = Flight(
         rocket=point_mass_rocket,

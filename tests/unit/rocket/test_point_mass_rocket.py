@@ -2,7 +2,7 @@ from rocketpy.motors.point_mass_motor import PointMassMotor
 from rocketpy.rocket.point_mass_rocket import PointMassRocket
 
 
-def test_point_mass_rocket_basic_properties():
+def test_init_sets_basic_properties_correctly():
     motor = PointMassMotor(10, 1.0, 0.5, 1.0)
     rocket = PointMassRocket(
         radius=0.05,
