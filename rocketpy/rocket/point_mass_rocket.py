@@ -53,12 +53,12 @@ class PointMassRocket(Rocket):
         self._center_of_dry_mass_position = center_of_mass_without_motor
         self._center_of_mass = center_of_mass_without_motor
         # Dry inertias are zero for point mass
-        self._dry_I_11 = 0.0
-        self._dry_I_22 = 0.0
-        self._dry_I_33 = 0.0
-        self._dry_I_12 = 0.0
-        self._dry_I_13 = 0.0
-        self._dry_I_23 = 0.0
+        self.dry_I_11 = 0.0
+        self.dry_I_22 = 0.0
+        self.dry_I_33 = 0.0
+        self.dry_I_12 = 0.0
+        self.dry_I_13 = 0.0
+        self.dry_I_23 = 0.0
 
         # Call base init with safe defaults
         super().__init__(
