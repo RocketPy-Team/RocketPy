@@ -75,15 +75,15 @@ def test_3dof_equations_of_motion_functions(example_plain_env, point_mass_rocket
         simulation_mode="3 DOF",
     )
     u = [0] * 13  # Generalized state vector size
-    result = flight.udotgeneralized3dof(0, u)
+    result = flight.u_dot_generalized_3dof(0, u)
     assert isinstance(result, (list, np.ndarray))
 
 
-def test_invalid_simulation_mode(example_plain_env, point_mass_rocket):
+def test_invalid_simulation_mode(example_plain_env, calisto):
     """Test that invalid simulation mode raises ValueError."""
     with pytest.raises(ValueError):
         Flight(
-            rocket=point_mass_rocket,
+            rocket=calisto,
             environment=example_plain_env,
             rail_length=1,
             simulation_mode="2 DOF",

@@ -10,7 +10,8 @@ def test_init_required_args():
     assert isinstance(m, PointMassMotor)
     assert m.dry_mass == 1.0
     assert m.propellant_initial_mass == 0.5
-    assert m.burn_time == 1.2
+    assert m.burn_time == (0, 1.2)  # burn_time is always a tuple (start, end)
+    assert m.burn_duration == 1.2
 
 
 def test_missing_required_args_raises():
@@ -27,19 +28,19 @@ def test_exhaustvelocity_and_totalmassflowrate():
     m = PointMassMotor(
         thrust_source=10, dry_mass=1.0, propellant_initial_mass=1.0, burn_time=2.0
     )
-    ev_func = m.exhaustvelocity()
-    assert hasattr(ev_func, "getValue")
-    tmf_func = m.totalmassflowrate
-    assert hasattr(tmf_func, "getValue")
+    ev_func = m.exhaust_velocity
+    assert hasattr(ev_func, "get_value")
+    tmf_func = m.total_mass_flow_rate
+    assert hasattr(tmf_func, "get_value")
 
 
 def test_zero_inertias():
     m = PointMassMotor(
         thrust_source=10, dry_mass=1.0, propellant_initial_mass=1.0, burn_time=2.0
     )
-    assert m.propellantI11().getValue(0) == 0
-    assert m.propellantI22().getValue(0) == 0
-    assert m.propellantI33().getValue(0) == 0
+    assert m.propellant_I_11.get_value(0) == 0
+    assert m.propellant_I_22.get_value(0) == 0
+    assert m.propellant_I_33.get_value(0) == 0
 
 
 def test_callable_thrust():

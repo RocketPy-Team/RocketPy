@@ -69,3 +69,35 @@ class PointMassRocket(Rocket):
             power_on_drag=power_on_drag,
             center_of_mass_without_motor=center_of_mass_without_motor,
         )
+
+    def evaluate_dry_inertias(self):
+        """Override to ensure inertias remain zero for point mass model.
+
+        Returns
+        -------
+        tuple
+            All inertia components as zeros.
+        """
+        self.dry_I_11 = 0.0
+        self.dry_I_22 = 0.0
+        self.dry_I_33 = 0.0
+        self.dry_I_12 = 0.0
+        self.dry_I_13 = 0.0
+        self.dry_I_23 = 0.0
+        return (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+
+    def evaluate_inertias(self):
+        """Override to ensure inertias remain zero for point mass model.
+
+        Returns
+        -------
+        tuple
+            All inertia components as zeros.
+        """
+        self.I_11 = 0.0
+        self.I_22 = 0.0
+        self.I_33 = 0.0
+        self.I_12 = 0.0
+        self.I_13 = 0.0
+        self.I_23 = 0.0
+        return (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
