@@ -31,7 +31,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 Attention: The newest changes should be on top -->
 
 ### Added
+
 - ENH: Add persistent caching for ThrustCurve API (#881)
+
+ENH: Compatibility with MERRA-2 atmosphere reanalysis files [#825](https://github.com/RocketPy-Team/RocketPy/pull/825)
+
+- ENH: Enable only radial burning [#815](https://github.com/RocketPy-Team/RocketPy/pull/815)
+- ENH: Add thrustcurve api integration to retrieve motor eng data [#870](https://github.com/RocketPy-Team/RocketPy/pull/870)
+- ENH: Custom Exception errors and messages [#285](https://github.com/RocketPy-Team/RocketPy/issues/285)
+
 ### Changed
 
 ### Fixed
