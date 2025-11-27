@@ -106,3 +106,30 @@ note that the user can still provide the parameters manually if needed.
   The ``load_from_eng_file`` method is a very useful tool for simulating motors \
   when the user does not have all the information required to build a ``SolidMotor`` yet.
 
+The ``load_from_thrustcurve_api`` method
+----------------------------------------
+
+The ``GenericMotor`` class provides a convenience loader that downloads a temporary
+`.eng` file from the ThrustCurve.org public API and builds a ``GenericMotor``
+instance from it. This is useful when you know a motor designation (for example
+``"M1670"``) but do not want to manually download and
+save the `.eng` file.
+
+.. note::
+
+    This method performs network requests to the ThrustCurve API. Use it only
+    when you have network access. For automated testing or reproducible runs,
+    prefer using local `.eng` files.
+
+Example
+-------
+
+.. jupyter-execute::
+
+    from rocketpy.motors import GenericMotor
+
+    # Build a motor by name (requires network access)
+    motor = GenericMotor.load_from_thrustcurve_api("M1670")
+
+    # Use the motor as usual
+    motor.info()
