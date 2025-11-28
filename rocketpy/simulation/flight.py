@@ -7,7 +7,6 @@ from functools import cached_property
 import numpy as np
 from scipy.integrate import BDF, DOP853, LSODA, RK23, RK45, OdeSolver, Radau
 
-from rocketpy.simulation.flight_comparator import FlightComparator
 from rocketpy.simulation.flight_data_exporter import FlightDataExporter
 
 from ..mathutils.function import Function, funcify_method
@@ -3960,7 +3959,7 @@ class Flight:
                 """
                 return self.t < other.t
 
-    def compare(self, data, variable="z", label="External Data"):
+    def compare(self, data, variable="z", label="External Data"): # pylint: disable=import-outside-toplevel)
         """
         Compares the simulated flight against provided external data.
 
@@ -3982,6 +3981,10 @@ class Flight:
         FlightComparator
             The comparator object, allowing for further comparisons.
         """
+
+        from rocketpy.simulation.flight_comparator import (
+            FlightComparator,
+        )  
 
         comparator = FlightComparator(self)
         comparator.add_data(label=label, data_dict=data)

@@ -12,6 +12,7 @@ import pytest
 
 from rocketpy import Function
 from rocketpy.simulation.flight_comparator import FlightComparator
+from rocketpy.simulation.flight_data_importer import FlightDataImporter
 
 
 # Test FlightComparator initialization
@@ -526,3 +527,35 @@ def test_compare_with_invalid_time_range(flight_calisto, time_range, exc_type):
 
     with pytest.raises(exc_type):
         comparator.compare("z", time_range=time_range)
+
+
+def test_add_data_with_flight_data_importer(flight_calisto, tmp_path):
+    """Test adding external data by passing a FlightDataImporter instance."""
+    comparator = FlightComparator(flight_calisto)
+
+    # Minimal CSV with time and z
+    csv_path = tmp_path / "importer_log.csv"
+    time_data = np.linspace(0, flight_calisto.t_final, 20)
+    z_data = flight_calisto.z(time_data) + 3.0
+
+    lines = ["time,z\n"]
+    for t, z in zip(time_data, z_data):
+        lines.append(f"{t},{z}\n")
+    csv_path.write_text("".join(lines), encoding="utf-8")
+
+    importer = FlightDataImporter(
+        paths=str(csv_path),
+        columns_map={"time": "time", "z": "z"},
+        units=None,
+    )
+
+    comparator.add_data("Imported", importer)
+
+    assert "Imported" in comparator.data_sources
+    source = comparator.data_sources["Imported"]
+
+    # z should be registered, altitude alias should exist
+    assert "z" in source
+    assert isinstance(source["z"], Function)
+    assert "altitude" in source
+    assert source["altitude"] is source["z"]

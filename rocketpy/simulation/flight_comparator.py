@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from rocketpy.mathutils import Function
+from rocketpy.simulation.flight_data_importer import FlightDataImporter
 
 from ..plots.plot_helpers import show_or_save_fig
 
@@ -76,7 +77,7 @@ class FlightComparator:
         self.flight = flight
         self.data_sources = {}  # The format is {'Source Name': {'variable': Function}}
 
-    def add_data(self, label, data_dict):  # pylint: disable=too-many-statements
+    def add_data(self, label, data_dict):  # pylint: disable=too-many-statements,import-outside-toplevel,cyclic-import
         """
         Add an external dataset to the comparator.
 
@@ -84,7 +85,7 @@ class FlightComparator:
         ----------
         label : str
             Name of the data source (e.g., "Avionics", "OpenRocket", "RASAero").
-        data_dict : dict or Flight
+        data_dict : dict, Flight, or FlightDataImporter
             External data to be compared.
 
             If a dict, keys must be variable names (e.g., 'z', 'vz', 'az', 'altitude')
@@ -92,11 +93,19 @@ class FlightComparator:
                 - A RocketPy Function object
                 - A tuple/list of (time_array, data_array)
 
-            If a Flight-like object is provided, standard Flight attributes such as
+            If a Flight object is provided, standard Flight attributes such as
             'z', 'vz', 'x', 'y', 'speed', 'vx', 'vy', 'ax', 'ay', 'az', 'acceleration'
-            will be registered automatically when available. In this case, 'altitude'
-            will be aliased to 'z' if present.
+            will be registered automatically when available.
+
+            If a FlightDataImporter object is provided, all flight attributes will be
+            registered automatically. In both cases, 'altitude' will be aliased to 'z'
+            if present.
         """
+
+        from rocketpy.simulation.flight import (
+            Flight,  
+        )
+
         processed_data = {}
 
         # Case 1: dict
@@ -118,10 +127,9 @@ class FlightComparator:
                         "Expected RocketPy Function or (time, data) tuple."
                     )
 
-        # Case 2: Flight-like external simulation
-        elif hasattr(data_dict, "t_final") and hasattr(data_dict, "z"):
+        # Case 2: Flight instance
+        elif isinstance(data_dict, Flight):
             external_flight = data_dict
-            # Standard variables that can be compared directly as Functions
             candidate_vars = [
                 "z",
                 "vz",
@@ -147,21 +155,53 @@ class FlightComparator:
 
             if not processed_data:
                 warnings.warn(
-                    f"No comparable variables found when using Flight-like "
+                    f"No comparable variables found when using Flight "
                     f"object for data source '{label}'."
+                )
+
+        # Case 3: FlightDataImporter instance
+        elif isinstance(data_dict, FlightDataImporter):
+            importer = data_dict
+            candidate_vars = [
+                "z",
+                "vz",
+                "x",
+                "y",
+                "speed",
+                "vx",
+                "vy",
+                "ax",
+                "ay",
+                "az",
+                "acceleration",
+            ]
+            for var in candidate_vars:
+                if hasattr(importer, var):
+                    value = getattr(importer, var)
+                    if isinstance(value, Function):
+                        processed_data[var] = value
+
+            # Provide 'altitude' alias for convenience if 'z' exists
+            if "z" in processed_data and "altitude" not in processed_data:
+                processed_data["altitude"] = processed_data["z"]
+
+            if not processed_data:
+                warnings.warn(
+                    f"No comparable variables found when using FlightDataImporter "
+                    f"for data source '{label}'."
                 )
 
         else:
             warnings.warn(
-                f"Data source '{label}' not recognized. Expected a dict or a "
-                "Flight-like object with attributes such as 'z' and 't_final'."
+                f"Data source '{label}' not recognized. Expected a dict, Flight, "
+                "or FlightDataImporter object."
             )
 
         self.data_sources[label] = processed_data
         print(
             f"Added data source '{label}' with variables: {list(processed_data.keys())}"
         )
-        # If this is not a dict (e.g., a Flight-like object), we're done.
+        # If this is not a dict (e.g., a Flight or FlightDataImporter), we're done.
         if not isinstance(data_dict, dict):
             return
 

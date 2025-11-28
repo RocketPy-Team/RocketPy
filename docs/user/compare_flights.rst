@@ -1,10 +1,19 @@
-Compare Flights
-===============
+Flight Comparator
+=================
 
-This example demonstrates how to use the rocketpy ``CompareFlights`` class.
-This class has many applications, including the comparison of different flight
-setups for a single rocket, the simulation of deployable systems, and the
-multi-stage rocket analysis.
+This example demonstrates how to use the RocketPy ``FlightComparator`` class.
+
+This class is designed to compare a RocketPy Flight simulation against external
+data sources, such as:
+
+- Real flight data (avionics logs, altimeter CSVs)
+- Simulations from other software (OpenRocket, RASAero)
+- Theoretical models or manual calculations
+
+Unlike ``CompareFlights`` (which compares multiple RocketPy simulations),
+``FlightComparator`` specifically handles the challenge of aligning different
+time steps and calculating error metrics (RMSE, MAE, etc.) between a
+"Reference" simulation and "External" data.
 
 Importing classes
 -----------------
@@ -13,217 +22,98 @@ We will start by importing the necessary classes and modules:
 
 .. jupyter-execute::
 
-      from rocketpy.plots.compare import CompareFlights
-      from rocketpy import Environment, Flight, Rocket, SolidMotor
-      from datetime import datetime, timedelta
+   import numpy as np
 
+   from rocketpy import Environment, Rocket, SolidMotor, Flight
+   from rocketpy.simulation import FlightComparator, FlightDataImporter
 
-Create Environment, Motor and Rocket
-------------------------------------
+Create Simulation (Reference)
+-----------------------------
 
-First, let's create the environment, motor and rocket objects.
-This is done following the same steps as in the :ref:`firstsimulation` example.
-
-.. jupyter-execute::
-
-      after_tomorrow = datetime.now() + timedelta(days=2)
-      env = Environment(latitude=-23, longitude=-49, date=after_tomorrow)
-      env.set_atmospheric_model(type="Forecast", file="GFS")
-
-      cesaroni_motor = SolidMotor(
-          thrust_source="../data/motors/cesaroni/Cesaroni_M1670.eng",
-          dry_mass=1.815,
-          dry_inertia=(0.125, 0.125, 0.002),
-          nozzle_radius=33 / 1000,
-          grain_number=5,
-          grain_density=1815,
-          grain_outer_radius=33 / 1000,
-          grain_initial_inner_radius=15 / 1000,
-          grain_initial_height=120 / 1000,
-          grain_separation=5 / 1000,
-          grains_center_of_mass_position=0.397,
-          center_of_dry_mass_position=0.317,
-          nozzle_position=0,
-          burn_time=3.9,
-          throat_radius=11 / 1000,
-          coordinate_system_orientation="nozzle_to_combustion_chamber",
-      )
-
-      calisto = Rocket(
-          radius=127 / 2000,
-          mass=14.426,
-          inertia=(6.321, 6.321, 0.034),
-          power_off_drag="../data/rockets/calisto/powerOffDragCurve.csv",
-          power_on_drag="../data/rockets/calisto/powerOnDragCurve.csv",
-          center_of_mass_without_motor=0,
-          coordinate_system_orientation="tail_to_nose",
-      )
-
-      calisto.set_rail_buttons(
-          upper_button_position=0.0818,
-          lower_button_position=-0.618,
-          angular_position=45,
-      )
-
-      calisto.add_motor(cesaroni_motor, position=-1.255)
-
-      nosecone = calisto.add_nose(length=0.55829, kind="vonKarman", position=1.278)
-
-      fin_set = calisto.add_trapezoidal_fins(
-          n=4,
-          root_chord=0.120,
-          tip_chord=0.060,
-          span=0.110,
-          position=-1.04956,
-          cant_angle=0.5,
-          airfoil=("../data/airfoils/NACA0012-radians.txt", "radians"),
-      )
-
-      tail = calisto.add_tail(
-          top_radius=0.0635, bottom_radius=0.0435, length=0.060, position=-1.194656
-      )
-
-      main_chute = calisto.add_parachute(
-          "Main",
-          cd_s=10.0,
-          trigger=800,
-          sampling_rate=105,
-          lag=1.5,
-          noise=(0, 8.3, 0.5),
-      )
-
-      drogue_chute = calisto.add_parachute(
-          "Drogue",
-          cd_s=1.0,
-          trigger="apogee",
-          sampling_rate=105,
-          lag=1.5,
-          noise=(0, 8.3, 0.5),
-      )
-
-Creating the Flight objects
----------------------------
-
-Now we can create different flights varying the launch angle and the rail inclination:
+First, let's create the standard RocketPy simulation that will serve as our
+"Ground Truth" or reference model. This follows the standard setup.
 
 .. jupyter-execute::
 
-      inclinations = [85, 75]
-      headings = [90, 135]
-      flights = []
+   # 1. Setup Environment
+   env = Environment(
+       date=(2022, 10, 1, 12),
+       latitude=32.990254,
+       longitude=-106.974998,
+       elevation=1400,
+   )
+   env.set_atmospheric_model(type="standard_atmosphere")
 
-      for heading in headings:
-          for inclination in inclinations:
-              flight = Flight(
-                  environment=env,
-                  rocket=calisto,
-                  rail_length=5.2,
-                  inclination=inclination,
-                  heading=heading,
-                  name=f"Incl {inclination} Head {heading}",
-              )
-              flights.append(flight)
+   # 2. Setup Motor
+   Pro75M1670 = SolidMotor(
+       thrust_source="../data/motors/cesaroni/Cesaroni_M1670.eng",
+       burn_time=3.9,
+       grain_number=5,
+       grain_density=1815,
+       grain_outer_radius=33 / 1000,
+       grain_initial_inner_radius=15 / 1000,
+       grain_initial_height=120 / 1000,
+       grain_separation=5 / 1000,
+       nozzle_radius=33 / 1000,
+       throat_radius=11 / 1000,
+       interpolation_method="linear",
+       coordinate_system_orientation="nozzle_to_combustion_chamber",
+       dry_mass=1.815,
+       dry_inertia=(0.125, 0.125, 0.002),
+       grains_center_of_mass_position=0.33,
+       center_of_dry_mass_position=0.317,
+       nozzle_position=0,
+   )
 
+   # 3. Setup Rocket
+   calisto = Rocket(
+       radius=127 / 2000,
+       mass=19.197 - 2.956,
+       inertia=(6.321, 6.321, 0.034),
+       power_off_drag="../data/calisto/powerOffDragCurve.csv",
+       power_on_drag="../data/calisto/powerOnDragCurve.csv",
+       center_of_mass_without_motor=0,
+       coordinate_system_orientation="tail_to_nose",
+   )
 
-We can easily visualize the number of flights created:
+   calisto.set_rail_buttons(0.0818, -0.618, 45)
+   calisto.add_motor(Pro75M1670, position=-1.255)
 
-.. jupyter-execute::
+   # Add aerodynamic surfaces
+   nosecone = calisto.add_nose(length=0.55829, kind="vonKarman", position=0.71971)
+   fin_set = calisto.add_trapezoidal_fins(
+       n=4,
+       root_chord=0.120,
+       tip_chord=0.040,
+       span=0.100,
+       position=-1.04956,
+       cant_angle=0.5,
+       airfoil=("../data/calisto/fins/NACA0012-radians.txt", "radians"),
+   )
+   tail = calisto.add_tail(
+       top_radius=0.0635,
+       bottom_radius=0.0435,
+       length=0.060,
+       position=-1.194656,
+   )
 
-      print("Number of flights: ", len(flights))
+   # 4. Simulate
+   flight = Flight(
+       rocket=calisto,
+       environment=env,
+       rail_length=5.2,
+       inclination=85,
+       heading=0,
+   )
 
-Start the comparison
---------------------
+Importing External Data (dict)
+------------------------------
 
-It is easy to initialize the ``CompareFlights`` object:
+The primary data format expected by ``FlightComparator.add_data`` is a dictionary
+where keys are variable names (e.g. ``"z"``, ``"vz"``, ``"altitude"``) and values
+are either:
 
-.. jupyter-execute::
+- A RocketPy ``Function`` object, or
+- A tuple of ``(time_array, data_array)``.
 
-      comparison = CompareFlights(flights)
-
-
-After the initialization, we can use different methods to plot the results in a comparative way.
-To see a full description of the available methods, you can check the :ref:`compareflights` documentation.
-
-Plotting results one by one
-----------------------------
-
-The flights results are divided into different methods, so we can plot them one by one.
-This is practical when we want to focus on a specific aspect of the flights.
-
-.. jupyter-execute::
-
-      comparison.trajectories_3d(legend=True)
-
-.. jupyter-execute::
-
-      comparison.positions()
-
-.. jupyter-execute::
-
-      comparison.trajectories_2d(plane="xy", legend=True)
-
-.. jupyter-execute::
-
-      comparison.velocities()
-
-.. jupyter-execute::
-
-      comparison.stream_velocities()
-
-.. jupyter-execute::
-
-      comparison.accelerations()
-
-.. jupyter-execute::
-
-      comparison.angular_velocities()
-
-.. jupyter-execute::
-
-      comparison.angular_accelerations()
-
-.. jupyter-execute::
-
-      comparison.attitude_angles()
-
-.. jupyter-execute::
-
-      comparison.euler_angles()
-
-.. jupyter-execute::
-
-      comparison.quaternions()
-
-.. jupyter-execute::
-
-      comparison.angles_of_attack()
-
-.. jupyter-execute::
-
-      comparison.aerodynamic_forces()
-
-.. jupyter-execute::
-
-      comparison.aerodynamic_moments()
-
-.. jupyter-execute::
-
-      comparison.fluid_mechanics()
-
-.. jupyter-execute::
-
-      comparison.energies()
-
-.. jupyter-execute::
-
-      comparison.powers()
-
-
-Plotting using the ``all`` method
----------------------------------
-
-Alternatively, we can plot the results altogether by calling one simple method:
-
-.. jupyter-execute::
-
-      comparison.all()
+In this example, external data is generated synthetically, but in practice you
