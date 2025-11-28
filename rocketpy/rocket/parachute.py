@@ -94,7 +94,8 @@ class Parachute:
         Function of clean_pressure_signal.
     Parachute.radius : float
         Length of the non-unique semi-axis (radius) of the inflated hemispheroid
-        parachute in meters. Estimated from ``cd_s`` if not explicitly provided.
+        parachute in meters. Estimated from ``cd_s`` using the formula
+        ``R = sqrt(cd_s / (1.4 * π))`` if not explicitly provided.
     Parachute.height : float
         Length of the unique semi-axis (height) of the inflated hemispheroid
         parachute in meters.
@@ -352,8 +353,8 @@ class Parachute:
             sampling_rate=data["sampling_rate"],
             lag=data["lag"],
             noise=data["noise"],
-            radius=data.get("radius"),
-            height=data.get("height"),
+            radius=data.get("radius", None),
+            height=data.get("height", None),
             porosity=data.get("porosity", 0.0432),
         )
 
