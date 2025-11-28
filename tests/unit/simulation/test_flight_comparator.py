@@ -2,7 +2,7 @@
 
 This module tests the FlightComparator class which compares RocketPy Flight
 simulations against external data sources such as flight logs, OpenRocket
-simulations, and RAS Aero simulations.
+simulations, and RASAero simulations.
 """
 
 import os
@@ -265,15 +265,17 @@ def test_compare_key_events_basic(flight_calisto):
     assert "Apogee Time (s)" in results
     assert "Max Velocity (m/s)" in results
     assert "Impact Velocity (m/s)" in results
-
+    apogee_alt = results["Apogee Altitude (m)"]
     # Check RocketPy values exist
-    assert "RocketPy" in results["Apogee Altitude (m)"]
+    assert "RocketPy" in apogee_alt
 
     # Check external source data exists
-    assert "Simulator" in results["Apogee Altitude (m)"]
-    assert "value" in results["Apogee Altitude (m)"]["Simulator"]
-    assert "error" in results["Apogee Altitude (m)"]["Simulator"]
-    assert "error_percentage" in results["Apogee Altitude (m)"]["Simulator"]
+    assert "Simulator" in apogee_alt
+    assert set(apogee_alt["Simulator"].keys()) == {
+        "value",
+        "error",
+        "error_percentage",
+    }
 
 
 def test_compare_key_events_multiple_sources(flight_calisto):
@@ -296,14 +298,16 @@ def test_compare_key_events_multiple_sources(flight_calisto):
     comparator.add_data("RASAero", {"z": (time_data, flight_calisto.z(time_data) - 5)})
 
     results = comparator.compare_key_events()
-
+    apogee_alt = results["Apogee Altitude (m)"]
     # Check both sources are in the results
-    assert "OpenRocket" in results["Apogee Altitude (m)"]
-    assert "RASAero" in results["Apogee Altitude (m)"]
+    assert "OpenRocket" in apogee_alt
+    assert "RASAero" in apogee_alt
 
     # Check data structure for each source
-    assert "value" in results["Apogee Altitude (m)"]["OpenRocket"]
-    assert "value" in results["Apogee Altitude (m)"]["RASAero"]
+    for src in ("OpenRocket", "RASAero"):
+        assert "value" in apogee_alt[src]
+        assert "error" in apogee_alt[src]
+        assert "error_percentage" in apogee_alt[src]
 
 
 # Test summary method
@@ -469,9 +473,8 @@ def test_trajectories_2d_save(flight_calisto, filename):
         os.remove(filename)
 
 
-# Integration test
-def test_full_workflow(flight_calisto):
-    """Test complete workflow: add data, compare, summary, plots.
+def test_add_data_with_flight_object(flight_calisto):
+    """Test adding external data by passing a Flight instance directly.
 
     Parameters
     ----------
@@ -480,32 +483,46 @@ def test_full_workflow(flight_calisto):
     """
     comparator = FlightComparator(flight_calisto)
 
-    # Simulate external data with realistic errors
-    time_data = np.linspace(0, flight_calisto.t_final, 100)
+    # Use the same Flight as an external "simulator" just to exercise the path
+    comparator.add_data("Baseline Flight", flight_calisto)
 
-    comparator.add_data(
-        "OpenRocket",
-        {
-            "altitude": (
-                time_data,
-                flight_calisto.z(time_data) + np.random.normal(0, 5, 100),
-            ),
-            "vz": (
-                time_data,
-                flight_calisto.vz(time_data) + np.random.normal(0, 1, 100),
-            ),
-            "x": (time_data, flight_calisto.x(time_data)),
-            "z": (time_data, flight_calisto.z(time_data)),
-        },
-    )
+    assert "Baseline Flight" in comparator.data_sources
+    source = comparator.data_sources["Baseline Flight"]
 
-    # Test all methods - should run without error
-    comparator.summary()
-    comparator.compare("altitude")
-    results = comparator.compare_key_events()
-    comparator.trajectories_2d(plane="xz")
+    # Standard variables should be registered when present
+    assert "z" in source
+    assert "vz" in source
+    assert "altitude" in source  # alias to z
+    assert isinstance(source["z"], Function)
 
-    # Verify results
-    assert isinstance(results, dict)
-    assert len(results) >= 4  # At least 4 metrics
-    assert "Apogee Altitude (m)" in results
+
+def test_compare_with_time_range_valid(flight_calisto):
+    """Test compare() with a valid time_range."""
+    comparator = FlightComparator(flight_calisto)
+
+    t = np.linspace(0, flight_calisto.t_final, 100)
+    comparator.add_data("Sim", {"z": (t, flight_calisto.z(t))})
+
+    # Should run without error for a proper sub-range
+    comparator.compare("z", time_range=(0.1, flight_calisto.t_final - 0.1))
+
+
+@pytest.mark.parametrize(
+    "time_range,exc_type",
+    [
+        (("a", "b"), TypeError),
+        ((1.0, 1.0), ValueError),
+        ((-0.1, 1.0), ValueError),
+        ((0.0, 1e9), ValueError),
+        ("not_a_tuple", TypeError),
+    ],
+)
+def test_compare_with_invalid_time_range(flight_calisto, time_range, exc_type):
+    """Test that invalid time_range raises appropriate errors."""
+    comparator = FlightComparator(flight_calisto)
+
+    t = np.linspace(0, flight_calisto.t_final, 100)
+    comparator.add_data("Sim", {"z": (t, flight_calisto.z(t))})
+
+    with pytest.raises(exc_type):
+        comparator.compare("z", time_range=time_range)

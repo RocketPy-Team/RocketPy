@@ -8,12 +8,10 @@ from rocketpy.mathutils import Function
 from ..plots.plot_helpers import show_or_save_fig
 
 
-# pylint: disable=too-many-public-methods
-# pylint: disable=too-many-statements
 class FlightComparator:
     """
     A class to compare a RocketPy Flight simulation against external data sources
-    (such as flight logs, OpenRocket simulations, RAS Aero).
+    (such as flight logs, OpenRocket simulations, RASAero).
 
     This class handles the time-interpolation required to compare datasets
     recorded at different frequencies.
@@ -51,6 +49,8 @@ class FlightComparator:
         events_table = comparator.compare_key_events()
     """
 
+    DEFAULT_GRID_POINTS = 1000  # number of points for interpolation grids
+
     def __init__(self, flight):
         """
         Initialize the comparator with a reference RocketPy Flight.
@@ -64,28 +64,107 @@ class FlightComparator:
         -------
         None
         """
+        # Minimal duck-typed validation to give clear errors early
+        required_attrs = ("t_final", "apogee", "apogee_time", "impact_velocity")
+        missing = [attr for attr in required_attrs if not hasattr(flight, attr)]
+        if missing:
+            raise TypeError(
+                "flight must be a rocketpy.Flight-like object with attributes "
+                f"{required_attrs}. Missing: {', '.join(missing)}"
+            )
+
         self.flight = flight
         self.data_sources = {}  # The format is {'Source Name': {'variable': Function}}
 
-    def add_data(self, label, data_dict):
+    def add_data(self, label, data_dict):  # pylint: disable=too-many-statements
         """
         Add an external dataset to the comparator.
 
         Parameters
         ----------
         label : str
-            Name of the data source (e.g., "Avionics", "OpenRocket", "RAS Aero").
-        data_dict : dict
-            Dictionary containing the variables to compare.
-            Keys must be variable names (e.g., 'z', 'vz', 'az', 'altitude').
-            Values can be:
+            Name of the data source (e.g., "Avionics", "OpenRocket", "RASAero").
+        data_dict : dict or Flight
+            External data to be compared.
+
+            If a dict, keys must be variable names (e.g., 'z', 'vz', 'az', 'altitude')
+            and values can be:
                 - A RocketPy Function object
                 - A tuple/list of (time_array, data_array)
 
-        Returns
-        -------
-        None
+            If a Flight-like object is provided, standard Flight attributes such as
+            'z', 'vz', 'x', 'y', 'speed', 'vx', 'vy', 'ax', 'ay', 'az', 'acceleration'
+            will be registered automatically when available. In this case, 'altitude'
+            will be aliased to 'z' if present.
         """
+        processed_data = {}
+
+        # Case 1: dict
+        if isinstance(data_dict, dict):
+            for key, value in data_dict.items():
+                if isinstance(value, Function):
+                    processed_data[key] = value
+                elif isinstance(value, (tuple, list)) and len(value) == 2:
+                    time_arr, data_arr = value
+                    processed_data[key] = Function(
+                        np.column_stack((time_arr, data_arr)),
+                        inputs="Time (s)",
+                        outputs=key,
+                        interpolation="linear",
+                    )
+                else:
+                    warnings.warn(
+                        f"Skipping '{key}' in '{label}'. Format not recognized. "
+                        "Expected RocketPy Function or (time, data) tuple."
+                    )
+
+        # Case 2: Flight-like external simulation
+        elif hasattr(data_dict, "t_final") and hasattr(data_dict, "z"):
+            external_flight = data_dict
+            # Standard variables that can be compared directly as Functions
+            candidate_vars = [
+                "z",
+                "vz",
+                "x",
+                "y",
+                "speed",
+                "vx",
+                "vy",
+                "ax",
+                "ay",
+                "az",
+                "acceleration",
+            ]
+            for var in candidate_vars:
+                if hasattr(external_flight, var):
+                    value = getattr(external_flight, var)
+                    if isinstance(value, Function):
+                        processed_data[var] = value
+
+            # Provide 'altitude' alias for convenience if 'z' exists
+            if "z" in processed_data and "altitude" not in processed_data:
+                processed_data["altitude"] = processed_data["z"]
+
+            if not processed_data:
+                warnings.warn(
+                    f"No comparable variables found when using Flight-like "
+                    f"object for data source '{label}'."
+                )
+
+        else:
+            warnings.warn(
+                f"Data source '{label}' not recognized. Expected a dict or a "
+                "Flight-like object with attributes such as 'z' and 't_final'."
+            )
+
+        self.data_sources[label] = processed_data
+        print(
+            f"Added data source '{label}' with variables: {list(processed_data.keys())}"
+        )
+        # If this is not a dict (e.g., a Flight-like object), we're done.
+        if not isinstance(data_dict, dict):
+            return
+
         # Check if label already exists
         if label in self.data_sources:
             warnings.warn(f"Data source '{label}' already exists. Overwriting.")
@@ -122,65 +201,52 @@ class FlightComparator:
             f"Added data source '{label}' with variables: {list(processed_data.keys())}"
         )
 
-    def compare(
-        self, attribute, time_range=None, figsize=(10, 8), legend=True, filename=None
-    ):
-        """
-        Compares a specific attribute across all added data sources.
-        Generates a plot and prints error metrics (RMSE, MAE, relative error).
+    def _process_time_range(self, time_range):
+        """Validate and normalize time_range."""
+        if time_range is None:
+            return 0.0, self.flight.t_final
 
-        Parameters
-        ----------
-        attribute : str
-            The attribute name to compare (e.g., 'z', 'vz').
-            This must exist as an attribute in the RocketPy Flight object.
-        time_range : tuple, optional
-            (start_time, end_time) to restrict the comparison.
-            If None, uses the full duration of the RocketPy simulation.
-        figsize : tuple, optional
-            standard matplotlib figsize to be used in the plots, by default
-            (10, 8), where the tuple means (width, height).
-        legend : bool, optional
-            Weather or not to show the legend, by default True
-        filename : str, optional
-            If a filename is provided, the plot will be saved to a file, by
-            default None. Image options are: png, pdf, ps, eps and svg.
-
-        Returns
-        -------
-        None
-        """
-        # 1. Get RocketPy Simulation Data
-        if not hasattr(self.flight, attribute):
-            warnings.warn(
-                f"Attribute '{attribute}' not found in the RocketPy Flight object."
+        if not isinstance(time_range, (tuple, list)) or len(time_range) != 2:
+            raise TypeError(
+                "time_range must be a (start_time, end_time) tuple or list."
             )
-            return
 
-        # Get the simulated function
-        sim_func = getattr(self.flight, attribute)
+        t_min, t_max = time_range
+        if not isinstance(t_min, (int, float)) or not isinstance(t_max, (int, float)):
+            raise TypeError("time_range values must be numeric.")
 
-        # Determining the duration for comparison
-        if time_range:
-            t_min, t_max = time_range
-        else:
-            t_min = 0  # Start at liftoff
-            # Default to end of simulation
-            t_max = self.flight.t_final
+        if t_min >= t_max:
+            raise ValueError("time_range[0] must be strictly less than time_range[1].")
 
-        # Create a 1000-point time grid to evaluate both functions
-        t_grid = np.linspace(t_min, t_max, 1000)
+        if t_min < 0 or t_max > self.flight.t_final:
+            raise ValueError(
+                "time_range must lie within [0, flight.t_final]. "
+                f"Got [{t_min}, {t_max}], flight.t_final={self.flight.t_final}."
+            )
 
-        # Interpolate Simulation onto the grid
-        y_sim = sim_func(t_grid)
+        return float(t_min), float(t_max)
 
-        # 2. Setting up the Plot (Top: Values, Bottom: Error)
+    def _build_time_grid(self, t_min, t_max):
+        """Build interpolation grid."""
+        return np.linspace(t_min, t_max, self.DEFAULT_GRID_POINTS)
+
+    def _setup_compare_figure(self, figsize, attribute):
+        """Create figure and axes for compare()."""
         fig, (ax1, ax2) = plt.subplots(
-            2, 1, figsize=figsize, sharex=True, gridspec_kw={"height_ratios": [2, 1]}
+            2,
+            1,
+            figsize=figsize,
+            sharex=True,
+            gridspec_kw={"height_ratios": [2, 1]},
         )
+        ax1.set_title(f"Flight Comparison: {attribute}")
+        ax2.set_title("Residuals (Simulation - External)")
+        ax2.set_xlabel("Time (s)")
+        return fig, ax1, ax2
 
-        # Plot RocketPy Reference
-        ax1.plot(
+    def _plot_reference_series(self, ax, t_grid, y_sim):
+        """Plot RocketPy reference curve."""
+        ax.plot(
             t_grid,
             y_sim,
             label="RocketPy Simulation",
@@ -189,12 +255,27 @@ class FlightComparator:
             alpha=0.8,
         )
 
+    def _plot_external_sources(
+        self,
+        attribute,
+        t_grid,
+        y_sim,
+        ax_values,
+        ax_errors,
+    ):
+        """Plot external sources and print metrics.
+
+        Returns
+        -------
+        bool
+            True if at least one external source had the attribute.
+        """
+        has_plots = False
+
         print(f"\n{'-' * 20}")
         print(f"COMPARISON REPORT: {attribute}")
         print(f"{'-' * 20}")
 
-        # 3. Going through External Sources and comparing
-        has_plots = False
         for label, dataset in self.data_sources.items():
             if attribute not in dataset:
                 continue
@@ -213,7 +294,6 @@ class FlightComparator:
             rmse = np.sqrt(np.mean(error**2))  # Root Mean Square Error
             max_dev = np.max(np.abs(error))  # Max Deviation
 
-            # Calculate Relative Error Percentage
             mean_abs_y_sim = np.mean(np.abs(y_sim))
             relative_error_pct = (
                 (rmse / mean_abs_y_sim) * 100 if mean_abs_y_sim != 0 else np.inf
@@ -227,38 +307,90 @@ class FlightComparator:
             print(f"  - Relative Error: {relative_error_pct:.2f}%")
 
             # Plot Data
-            ax1.plot(t_grid, y_ext, label=label, linestyle="--")
+            ax_values.plot(t_grid, y_ext, label=label, linestyle="--")
 
             # Plot Error
-            ax2.plot(t_grid, error, label=f"Error ({label})")
+            ax_errors.plot(t_grid, error, label=f"Error ({label})")
+
+        return has_plots
+
+    def _finalize_compare_figure(
+        self, fig, ax_values, ax_errors, attribute, legend, filename
+    ):
+        """Apply formatting, legends and show/save for compare()."""
+        ax_values.set_ylabel(attribute)
+        ax_values.grid(True, linestyle=":", alpha=0.6)
+
+        ax_errors.set_ylabel("Difference")
+        ax_errors.grid(True, linestyle=":", alpha=0.6)
+
+        if legend:
+            ax_values.legend()
+            ax_errors.legend()
+
+        fig.tight_layout()
+        show_or_save_fig(fig, filename)
+        if filename:
+            print(f"Plot saved to file: {filename}")
+
+    def compare(  # pylint: disable=too-many-statements
+        self,
+        attribute,
+        time_range=None,
+        figsize=(10, 8),
+        legend=True,
+        filename=None,
+    ):
+        """
+        Compares a specific attribute across all added data sources.
+        Generates a plot and prints error metrics (RMSE, MAE, relative error).
+        ...
+        """
+        # 1. Get RocketPy Simulation Data
+        if not hasattr(self.flight, attribute):
+            warnings.warn(
+                f"Attribute '{attribute}' not found in the RocketPy Flight object."
+            )
+            return
+
+        sim_func = getattr(self.flight, attribute)
+
+        # 2. Process time range and build grid
+        t_min, t_max = self._process_time_range(time_range)
+        t_grid = self._build_time_grid(t_min, t_max)
+
+        # Interpolate Simulation onto the grid
+        y_sim = sim_func(t_grid)
+
+        # 3. Set up figure and plot reference
+        fig, ax_values, ax_errors = self._setup_compare_figure(figsize, attribute)
+        self._plot_reference_series(ax_values, t_grid, y_sim)
+
+        # 4. Plot external sources and metrics
+        has_plots = self._plot_external_sources(
+            attribute=attribute,
+            t_grid=t_grid,
+            y_sim=y_sim,
+            ax_values=ax_values,
+            ax_errors=ax_errors,
+        )
 
         if not has_plots:
             warnings.warn(f"No external sources have data for variable '{attribute}'.")
             plt.close(fig)
             return
 
-        # Formatting
-        ax1.set_title(f"Flight Comparison: {attribute}")
-        ax1.set_ylabel(attribute)
-        if legend:
-            ax1.legend()
-        ax1.grid(True, linestyle=":", alpha=0.6)
+        # 5. Final formatting and save/show
+        self._finalize_compare_figure(
+            fig=fig,
+            ax_values=ax_values,
+            ax_errors=ax_errors,
+            attribute=attribute,
+            legend=legend,
+            filename=filename,
+        )
 
-        ax2.set_title("Residuals (Simulation - External)")
-        ax2.set_ylabel("Difference")
-        ax2.set_xlabel("Time (s)")
-        if legend:
-            ax2.legend()
-        ax2.grid(True, linestyle=":", alpha=0.6)
-
-        fig.tight_layout()
-
-        # Using the existing helper function
-        show_or_save_fig(fig, filename)
-        if filename:
-            print(f"Plot saved to file: {filename}")
-
-    def compare_key_events(self):
+    def compare_key_events(self):  # pylint: disable=too-many-statements
         """
         Compare critical flight events across all data sources.
 
@@ -272,16 +404,19 @@ class FlightComparator:
         results = {}
 
         # Create time grid for interpolation
-        t_grid = np.linspace(0, self.flight.t_final, 1000)
-
+        t_grid = np.linspace(0, self.flight.t_final, self.DEFAULT_GRID_POINTS)
+        altitude_cache = {}
+        for label, dataset in self.data_sources.items():
+            if "altitude" in dataset or "z" in dataset:
+                alt_func = dataset.get("altitude", dataset.get("z"))
+                altitude_cache[label] = alt_func(t_grid)
         # 1. Compare Apogee Altitude
         rocketpy_apogee = self.flight.apogee
         apogee_results = {"RocketPy": rocketpy_apogee}
 
         for label, dataset in self.data_sources.items():
-            if "altitude" in dataset or "z" in dataset:
-                alt_func = dataset.get("altitude", dataset.get("z"))
-                altitudes = alt_func(t_grid)
+            if label in altitude_cache:
+                altitudes = altitude_cache[label]
                 ext_apogee = np.max(altitudes)
                 error = ext_apogee - rocketpy_apogee
                 rel_error = (
@@ -301,9 +436,8 @@ class FlightComparator:
         apogee_time_results = {"RocketPy": rocketpy_apogee_time}
 
         for label, dataset in self.data_sources.items():
-            if "altitude" in dataset or "z" in dataset:
-                alt_func = dataset.get("altitude", dataset.get("z"))
-                altitudes = alt_func(t_grid)
+            if label in altitude_cache:
+                altitudes = altitude_cache[label]
                 ext_apogee_time = t_grid[np.argmax(altitudes)]
                 error = ext_apogee_time - rocketpy_apogee_time
                 rel_error = (
@@ -454,7 +588,7 @@ class FlightComparator:
 
         return "\n".join(lines)
 
-    def summary(self):
+    def summary(self):  # pylint: disable=too-many-statements
         """
         Print comprehensive comparison summary including key events and metrics.
 
@@ -476,15 +610,21 @@ class FlightComparator:
 
         print(f"\nExternal Data Sources: {list(self.data_sources.keys())}")
 
-        # Display key events comparison table
         try:
             events_results = self.compare_key_events()
             print("\n" + self._format_key_events_table(events_results))
             print(
-                "\nNote: Values marked with * are approximations (e.g., speed from vz only)"
+                "\nNote: Values marked with * are approximations "
+                "(e.g., speed from vz only)"
             )
-        except Exception as e:  # pylint: disable=broad-exception-caught
-            print(f"Could not generate key events table: {e}")
+        except (KeyError, AttributeError, ValueError) as exc:
+            print(
+                "Could not generate key events table. "
+                "Ensure external data sources contain compatible variables "
+                "such as 'altitude' or 'z' for altitude and 'speed' or 'vz' "
+                "for velocity. Details: "
+                f"{exc}"
+            )
 
         print("\n" + "=" * 60)
 
@@ -542,9 +682,11 @@ class FlightComparator:
         for var in available_vars:
             self.compare(var, time_range=time_range, figsize=figsize, legend=legend)
 
-    def trajectories_2d(self, plane="xz", figsize=(7, 7), legend=True, filename=None):
+    def trajectories_2d(self, plane="xz", figsize=(7, 7), legend=True, filename=None):  # pylint: disable=too-many-statements
         """
         Compare 2D flight trajectories between RocketPy simulation and external sources.
+        Coordinates are plotted in the inertial NED-like frame used by Flight:
+        x is East, y is North and z is Up.
 
         Parameters
         ----------
@@ -579,7 +721,7 @@ class FlightComparator:
         ax = plt.subplot(111)
 
         # Create time grid for evaluation
-        t_grid = np.linspace(0, self.flight.t_final, 1000)
+        t_grid = np.linspace(0, self.flight.t_final, self.DEFAULT_GRID_POINTS)
 
         # Plot RocketPy trajectory
         x_sim = getattr(self.flight, axis1)(t_grid)

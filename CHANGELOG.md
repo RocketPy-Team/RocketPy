@@ -31,7 +31,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 Attention: The newest changes should be on top -->
 
 ### Added
-
+- ENH: Built-in flight comparison tool (`FlightComparator`) to validate simulations against external data [#888](https://github.com/RocketPy-Team/RocketPy/pull/888)
 - ENH: Add persistent caching for ThrustCurve API [#881](https://github.com/RocketPy-Team/RocketPy/pull/881)
 - ENH: Compatibility with MERRA-2 atmosphere reanalysis files [#825](https://github.com/RocketPy-Team/RocketPy/pull/825)
 - ENH: Enable only radial burning [#815](https://github.com/RocketPy-Team/RocketPy/pull/815)
