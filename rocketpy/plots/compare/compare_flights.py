@@ -139,7 +139,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             limit and second item, the y axis upper limit. If set to None, will
             be calculated automatically by matplotlib.
         legend : bool, optional
-            Weather or not to show the legend, by default True
+            Whether or not to show the legend, by default True
         filename : str, optional
             If a filename is provided, the plot will be saved to a file, by
             default None. Image options are: png, pdf, ps, eps and svg.
@@ -196,7 +196,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             limit and second item, the y axis upper limit. If set to None, will
             be calculated automatically by matplotlib.
         legend : bool, optional
-            Weather or not to show the legend, by default True
+            Whether or not to show the legend, by default True
         filename : str, optional
             If a filename is provided, the plot will be saved to a file, by
             default None. Image options are: png, pdf, ps, eps and svg.
@@ -253,7 +253,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             limit and second item, the y axis upper limit. If set to None, will
             be calculated automatically by matplotlib.
         legend : bool, optional
-            Weather or not to show the legend, by default True
+            Whether or not to show the legend, by default True
         filename : str, optional
             If a filename is provided, the plot will be saved to a file, by
             default None. Image options are: png, pdf, ps, eps and svg.
@@ -319,7 +319,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             limit and second item, the y axis upper limit. If set to None, will
             be calculated automatically by matplotlib.
         legend : bool, optional
-            Weather or not to show the legend, by default True
+            Whether or not to show the legend, by default True
         filename : str, optional
             If a filename is provided, the plot will be saved to a file, by
             default None. Image options are: png, pdf, ps, eps and svg.
@@ -375,7 +375,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             limit and second item, the y axis upper limit. If set to None, will
             be calculated automatically by matplotlib.
         legend : bool, optional
-            Weather or not to show the legend, by default True
+            Whether or not to show the legend, by default True
         filename : str, optional
             If a filename is provided, the plot will be saved to a file, by
             default None. Image options are: png, pdf, ps, eps and svg.
@@ -435,7 +435,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             limit and second item, the y axis upper limit. If set to None, will
             be calculated automatically by matplotlib.
         legend : bool, optional
-            Weather or not to show the legend, by default True
+            Whether or not to show the legend, by default True
         filename : str, optional
             If a filename is provided, the plot will be saved to a file, by
             default None. Image options are: png, pdf, ps, eps and svg.
@@ -491,7 +491,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             limit and second item, the y axis upper limit. If set to None, will
             be calculated automatically by matplotlib.
         legend : bool, optional
-            Weather or not to show the legend, by default True
+            Whether or not to show the legend, by default True
         filename : str, optional
             If a filename is provided, the plot will be saved to a file, by
             default None. Image options are: png, pdf, ps, eps and svg.
@@ -546,7 +546,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             limit and second item, the y axis upper limit. If set to None, will
             be calculated automatically by matplotlib.
         legend : bool, optional
-            Weather or not to show the legend, by default True
+            Whether or not to show the legend, by default True
         filename : str, optional
             If a filename is provided, the plot will be saved to a file, by
             default None. Image options are: png, pdf, ps, eps and svg.
@@ -601,7 +601,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             limit and second item, the y axis upper limit. If set to None, will
             be calculated automatically by matplotlib.
         legend : bool, optional
-            Weather or not to show the legend, by default True
+            Whether or not to show the legend, by default True
         filename : str, optional
             If a filename is provided, the plot will be saved to a file, by
             default None. Image options are: png, pdf, ps, eps and svg.
@@ -661,7 +661,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             limit and second item, the y axis upper limit. If set to None, will
             be calculated automatically by matplotlib.
         legend : bool, optional
-            Weather or not to show the legend, by default True
+            Whether or not to show the legend, by default True
         filename : str, optional
             If a filename is provided, the plot will be saved to a file, by
             default None. Image options are: png, pdf, ps, eps and svg.
@@ -720,7 +720,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             limit and second item, the y axis upper limit. If set to None, will
             be calculated automatically by matplotlib.
         legend : bool, optional
-            Weather or not to show the legend, by default True
+            Whether or not to show the legend, by default True
         filename : str, optional
             If a filename is provided, the plot will be saved to a file,
             by default None.
@@ -774,7 +774,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             limit and second item, the y axis upper limit. If set to None, will
             be calculated automatically by matplotlib.
         legend : bool, optional
-            Weather or not to show the legend, by default True
+            Whether or not to show the legend, by default True
         filename : str, optional
             If a filename is provided, the plot will be saved to a file,
             by default None.
@@ -834,7 +834,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             limit and second item, the y axis upper limit. If set to None, will
             be calculated automatically by matplotlib.
         legend : bool, optional
-            Weather or not to show the legend, by default True
+            Whether or not to show the legend, by default True
         filename : str, optional
             If a filename is provided, the plot will be saved to a file,
             by default None.
@@ -889,7 +889,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             limit and second item, the y axis upper limit. If set to None, will
             be calculated automatically by matplotlib.
         legend : bool, optional
-            Weather or not to show the legend, by default True
+            Whether or not to show the legend, by default True
         filename : str, optional
             If a filename is provided, the plot will be saved to a file,
             by default None.
@@ -955,7 +955,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             limit and second item, the y axis upper limit. If set to None, will
             be calculated automatically by matplotlib.
         legend : bool, optional
-            Weather or not to show the legend, by default True
+            Whether or not to show the legend, by default True
         filename : str, optional
             If a filename is provided, the plot will be saved to a file,
             by default None.
@@ -1011,7 +1011,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             limit and second item, the y axis upper limit. If set to None, will
             be calculated automatically by matplotlib.
         legend : bool, optional
-            Weather or not to show the legend, by default True
+            Whether or not to show the legend, by default True
         filename : str, optional
             If a filename is provided, the plot will be saved to a file,
             by default None.
@@ -1074,7 +1074,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             limit and second item, the y axis upper limit. If set to None, will
             be calculated automatically by matplotlib.
         legend : bool, optional
-            Weather or not to show the legend, by default True
+            Whether or not to show the legend, by default True
         filename : str, optional
             If a filename is provided, the plot will be saved to a file,
             by default None.
@@ -1113,7 +1113,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             limit and second item, the y axis upper limit. If set to None, will
             be calculated automatically by matplotlib.
         legend : bool, optional
-            Weather or not to show the legend, by default True
+            Whether or not to show the legend, by default True
         filename : str, optional
             If a filename is provided, the plot will be saved to a file,
             by default None.

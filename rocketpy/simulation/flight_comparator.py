@@ -642,7 +642,7 @@ class FlightComparator:
             standard matplotlib figsize to be used in the plots, by default
             (10, 8), where the tuple means (width, height).
         legend : bool, optional
-            Weather or not to show the legend, by default True
+            Whether or not to show the legend, by default True
 
         Returns
         -------
@@ -696,7 +696,7 @@ class FlightComparator:
             standard matplotlib figsize to be used in the plots, by default
             (7, 7), where the tuple means (width, height).
         legend : bool, optional
-            Weather or not to show the legend, by default True
+            Whether or not to show the legend, by default True
         filename : str, optional
             If a filename is provided, the plot will be saved to a file, by
             default None. Image options are: png, pdf, ps, eps and svg.
