@@ -92,17 +92,25 @@ class Parachute:
         Function of noisy_pressure_signal.
     Parachute.clean_pressure_signal_function : Function
         Function of clean_pressure_signal.
+    Parachute.drag_coefficient : float
+        Drag coefficient of the inflated canopy shape, used only when
+        ``radius`` is not provided to estimate the parachute radius from
+        ``cd_s``: ``R = sqrt(cd_s / (drag_coefficient * pi))``. Typical
+        values: 1.4 for hemispherical canopies (default), 0.75 for flat
+        circular canopies, 1.5 for extended-skirt canopies.
     Parachute.radius : float
         Length of the non-unique semi-axis (radius) of the inflated hemispheroid
-        parachute in meters.
-    Parachute.height : float, None
+        parachute in meters. If not provided at construction time, it is
+        estimated from ``cd_s`` and ``drag_coefficient``.
+    Parachute.height : float
         Length of the unique semi-axis (height) of the inflated hemispheroid
         parachute in meters.
     Parachute.porosity : float
-        Geometric porosity of the canopy (ratio of open area to total canopy area),
-        in [0, 1]. Affects only the added-mass scaling during descent; it does
-        not change ``cd_s`` (drag). The default, 0.0432, yields an added-mass
-        of 1.0 (“neutral” behavior).
+        Geometric porosity of the canopy (ratio of open area to total canopy
+        area), in [0, 1]. Affects only the added-mass scaling during descent;
+        it does not change ``cd_s`` (drag). The default value of 0.0432 is
+        chosen so that the resulting ``added_mass_coefficient`` equals
+        approximately 1.0 ("neutral" added-mass behavior).
     Parachute.added_mass_coefficient : float
         Coefficient used to calculate the added-mass due to dragged air. It is
         calculated from the porosity of the parachute.
@@ -116,7 +124,8 @@ class Parachute:
         sampling_rate,
         lag=0,
         noise=(0, 0, 0),
-        radius=1.5,
+        radius=None,
+        drag_coefficient=1.4,
         height=None,
         porosity=0.0432,
     ):
@@ -172,18 +181,33 @@ class Parachute:
             passed to the trigger function. Default value is ``(0, 0, 0)``.
             Units are in Pa.
         radius : float, optional
-            Length of the non-unique semi-axis (radius) of the inflated hemispheroid
-            parachute. Default value is 1.5.
+            Length of the non-unique semi-axis (radius) of the inflated
+            hemispheroid parachute. If not provided, it is estimated from
+            ``cd_s`` and ``drag_coefficient`` using:
+            ``radius = sqrt(cd_s / (drag_coefficient * pi))``.
             Units are in meters.
+        drag_coefficient : float, optional
+            Drag coefficient of the inflated canopy shape, used only when
+            ``radius`` is not provided. It relates the aerodynamic ``cd_s``
+            to the physical canopy area via
+            ``cd_s = drag_coefficient * pi * radius**2``. Typical values:
+
+            - **1.4** — hemispherical canopy (default, NASA SP-8066)
+            - **0.75** — flat circular canopy
+            - **1.5** — extended-skirt canopy
+
+            Has no effect when ``radius`` is explicitly provided.
         height : float, optional
             Length of the unique semi-axis (height) of the inflated hemispheroid
             parachute. Default value is the radius of the parachute.
             Units are in meters.
         porosity : float, optional
-            Geometric porosity of the canopy (ratio of open area to total canopy area),
-            in [0, 1]. Affects only the added-mass scaling during descent; it does
-            not change ``cd_s`` (drag). The default, 0.0432, yields an added-mass
-            of 1.0 (“neutral” behavior).
+            Geometric porosity of the canopy (ratio of open area to total
+            canopy area), in [0, 1]. Affects only the added-mass scaling
+            during descent; it does not change ``cd_s`` (drag). The default
+            value of 0.0432 is chosen so that the resulting
+            ``added_mass_coefficient`` equals approximately 1.0 ("neutral"
+            added-mass behavior).
         """
         self.name = name
         self.cd_s = cd_s
@@ -191,6 +215,34 @@ class Parachute:
         self.sampling_rate = sampling_rate
         self.lag = lag
         self.noise = noise
+        self.drag_coefficient = drag_coefficient
+        # Estimate radius from cd_s if not provided.
+        # cd_s = Cd * S = Cd * π * R²  =>  R = sqrt(cd_s / (Cd * π))
+        if radius is None:
+            self.radius = np.sqrt(cd_s / (drag_coefficient * np.pi))
+        else:
+            self.radius = radius
+        self.height = height or self.radius
+        self.porosity = porosity
+        self.added_mass_coefficient = 1.068 * (
+            1
+            - 1.465 * self.porosity
+            - 0.25975 * self.porosity**2
+            + 1.2626 * self.porosity**3
+        )
+
+        self.__init_noise(noise)
+        self.prints = _ParachutePrints(self)
+        self.__evaluate_trigger_function(trigger)
+
+    def __init_noise(self, noise):
+        """Initializes all noise-related attributes.
+
+        Parameters
+        ----------
+        noise : tuple, list
+            List in the format (mean, standard deviation, time-correlation).
+        """
         self.noise_signal = [[-1e-6, np.random.normal(noise[0], noise[1])]]
         self.noisy_pressure_signal = []
         self.clean_pressure_signal = []
@@ -200,25 +252,11 @@ class Parachute:
         self.clean_pressure_signal_function = Function(0)
         self.noisy_pressure_signal_function = Function(0)
         self.noise_signal_function = Function(0)
-        self.radius = radius
-        self.height = height or radius
-        self.porosity = porosity
-        self.added_mass_coefficient = 1.068 * (
-            1
-            - 1.465 * self.porosity
-            - 0.25975 * self.porosity**2
-            + 1.2626 * self.porosity**3
-        )
-
         alpha, beta = self.noise_corr
         self.noise_function = lambda: (
             alpha * self.noise_signal[-1][1]
             + beta * np.random.normal(noise[0], noise[1])
         )
-
-        self.prints = _ParachutePrints(self)
-
-        self.__evaluate_trigger_function(trigger)
 
     def __evaluate_trigger_function(self, trigger):
         """This is used to set the triggerfunc attribute that will be used to
@@ -309,6 +347,7 @@ class Parachute:
             "lag": self.lag,
             "noise": self.noise,
             "radius": self.radius,
+            "drag_coefficient": self.drag_coefficient,
             "height": self.height,
             "porosity": self.porosity,
         }
@@ -341,7 +380,8 @@ class Parachute:
             sampling_rate=data["sampling_rate"],
             lag=data["lag"],
             noise=data["noise"],
-            radius=data.get("radius", 1.5),
+            radius=data.get("radius", None),
+            drag_coefficient=data.get("drag_coefficient", 1.4),
             height=data.get("height", None),
             porosity=data.get("porosity", 0.0432),
         )
