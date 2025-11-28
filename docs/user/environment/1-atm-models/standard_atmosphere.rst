@@ -22,8 +22,7 @@ Other profiles can be derived from it, however, winds are automatically set to
 
     env.plots.atmospheric_model()
 
-.. skip one line with |
-| 
+|
 
 The International Standard Atmosphere can also be reset at any time by using the
 :meth:`rocketpy.Environment.set_atmospheric_model` method. For example:

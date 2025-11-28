@@ -1667,12 +1667,11 @@ class Rocket:
             6. `interactive_objects` (list): A list containing the objects that
                the controller function can interact with. The objects are
                listed in the same order as they are provided in the
-               `interactive_objects`
+               `interactive_objects` argument.
             7. `sensors` (list): A list of sensors that are attached to the
-                rocket. The most recent measurements of the sensors are provided
-                with the ``sensor.measurement`` attribute. The sensors are
-                listed in the same order as they are added to the rocket
-               ``interactive_objects``
+               rocket. The most recent measurements of the sensors are provided
+               with the ``sensor.measurement`` attribute. The sensors are
+               listed in the same order as they are added to the rocket.
 
             This function will be called during the simulation at the specified
             sampling rate. The function should evaluate and change the observed

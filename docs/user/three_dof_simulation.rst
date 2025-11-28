@@ -67,7 +67,7 @@ The environment setup is identical to standard simulations:
         elevation=1400
     )
 
-    env.set_atmospheric_model(type="StandardAtmosphere")
+    env.set_atmospheric_model(type="standard_atmosphere")
 
 Step 2: Create a PointMassMotor
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -123,7 +123,7 @@ Or use a custom thrust function:
 .. seealso::
 
     For detailed information about :class:`rocketpy.PointMassMotor` parameters,
-    see the :ref:`API reference <api_reference>`.
+    see the :class:`rocketpy.PointMassMotor` class documentation.
 
 Step 3: Create a PointMassRocket
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -279,6 +279,14 @@ Export trajectory data to CSV:
         "vz",
     )
 
+
+.. jupyter-execute::
+    :hide-code:
+
+    import os
+    os.remove("trajectory_3dof.csv")
+
+
 Complete Example
 ----------------
 
@@ -294,7 +302,7 @@ Here's a complete 3-DOF simulation from start to finish:
         longitude=-8.2889,
         elevation=100
     )
-    env.set_atmospheric_model(type="StandardAtmosphere")
+    env.set_atmospheric_model(type="standard_atmosphere")
 
     # 2. Motor
     motor = PointMassMotor(
@@ -412,7 +420,6 @@ See Also
 - :ref:`First Simulation <firstsimulation>` - Standard 6-DOF simulation tutorial
 - :ref:`Rocket Class Usage <rocketusage>` - Full rocket modeling capabilities
 - :ref:`Flight Class Usage <flightusage>` - Complete flight simulation options
-- :doc:`../examples/3_dof_trial_sim` - Jupyter notebook example
 
 Further Reading
 ---------------

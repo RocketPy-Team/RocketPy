@@ -90,6 +90,7 @@ regarding the launch site:
 
 | This roughly corresponds to the location of Spaceport America, New Mexico.
 
+
 Next, we need to specify the atmospheric model to be used. In this example,
 we will get GFS forecasts data from tomorrow.
 
@@ -109,6 +110,7 @@ of tomorrow:
     )  # Hour given in UTC time
 
 | Now we set the atmospheric model to be used:
+
 
 .. jupyter-execute::
 
@@ -188,6 +190,7 @@ to specify several parameters:
     )
 
 | We can see its characteristics by calling the info method:
+
 
 .. jupyter-execute::
 
@@ -637,8 +640,9 @@ and the rocket Mach number (see :meth:`rocketpy.Flight.mach_number`) to the file
     )
 
 | As you can see, the first argument is the file name to be created. The following
-arguments are the attributes to be exported. We can check the file by reading it
-with :func:`pandas.read_csv`:
+  arguments are the attributes to be exported. We can check the file by reading it
+  with :func:`pandas.read_csv`:
+
 
 .. jupyter-execute::
 
@@ -647,8 +651,9 @@ with :func:`pandas.read_csv`:
     pd.read_csv("calisto_flight_data.csv")
 
 | The file header specifies the meaning of each column. The time samples are
-obtained from the simulation solver steps. To export the data at a different
-sampling rate, use the ``time_step`` argument:
+  obtained from the simulation solver steps. To export the data at a different
+  sampling rate, use the ``time_step`` argument:
+
 
 .. jupyter-execute::
 
