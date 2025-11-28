@@ -94,8 +94,8 @@ class Parachute:
         Function of clean_pressure_signal.
     Parachute.radius : float
         Length of the non-unique semi-axis (radius) of the inflated hemispheroid
-        parachute in meters.
-    Parachute.height : float, None
+        parachute in meters. Estimated from ``cd_s`` if not explicitly provided.
+    Parachute.height : float
         Length of the unique semi-axis (height) of the inflated hemispheroid
         parachute in meters.
     Parachute.porosity : float
@@ -108,6 +108,10 @@ class Parachute:
         calculated from the porosity of the parachute.
     """
 
+    # Typical drag coefficient for hemispherical parachute
+    # Used to estimate radius from cd_s when radius is not provided
+    HEMISPHERICAL_CD = 1.4
+
     def __init__(
         self,
         name,
@@ -116,7 +120,7 @@ class Parachute:
         sampling_rate,
         lag=0,
         noise=(0, 0, 0),
-        radius=1.5,
+        radius=None,
         height=None,
         porosity=0.0432,
     ):
@@ -173,7 +177,9 @@ class Parachute:
             Units are in Pa.
         radius : float, optional
             Length of the non-unique semi-axis (radius) of the inflated hemispheroid
-            parachute. Default value is 1.5.
+            parachute. If not provided, it is estimated from ``cd_s`` assuming a
+            typical hemispherical parachute drag coefficient of 1.4, using the
+            formula: ``radius = sqrt(cd_s / (HEMISPHERICAL_CD * pi))``.
             Units are in meters.
         height : float, optional
             Length of the unique semi-axis (height) of the inflated hemispheroid
@@ -200,8 +206,13 @@ class Parachute:
         self.clean_pressure_signal_function = Function(0)
         self.noisy_pressure_signal_function = Function(0)
         self.noise_signal_function = Function(0)
-        self.radius = radius
-        self.height = height or radius
+        # Estimate radius from cd_s if not provided
+        if radius is None:
+            # cd_s = Cd * S = Cd * π * R² => R = sqrt(cd_s / (Cd * π))
+            self.radius = np.sqrt(cd_s / (self.HEMISPHERICAL_CD * np.pi))
+        else:
+            self.radius = radius
+        self.height = height or self.radius
         self.porosity = porosity
         self.added_mass_coefficient = 1.068 * (
             1
@@ -341,8 +352,8 @@ class Parachute:
             sampling_rate=data["sampling_rate"],
             lag=data["lag"],
             noise=data["noise"],
-            radius=data.get("radius", 1.5),
-            height=data.get("height", None),
+            radius=data.get("radius"),
+            height=data.get("height"),
             porosity=data.get("porosity", 0.0432),
         )
 
