@@ -65,24 +65,24 @@ def controller_function_with_environment():
         environment,
     ):
         # state = [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]
-        altitude_ASL = state[2]  # altitude above sea level
-        altitude_AGL = (
-            altitude_ASL - environment.elevation
+        altitude_asl = state[2]  # altitude above sea level
+        altitude_agl = (
+            altitude_asl - environment.elevation
         )  # altitude above ground level
         vx, vy, vz = state[3], state[4], state[5]
 
         # Use environment parameter instead of global variable
-        wind_x = environment.wind_velocity_x(altitude_ASL)
-        wind_y = environment.wind_velocity_y(altitude_ASL)
+        wind_x = environment.wind_velocity_x(altitude_asl)
+        wind_y = environment.wind_velocity_y(altitude_asl)
 
         # Calculate Mach number using environment data
         free_stream_speed = ((wind_x - vx) ** 2 + (wind_y - vy) ** 2 + (vz) ** 2) ** 0.5
-        mach_number = free_stream_speed / environment.speed_of_sound(altitude_ASL)
+        mach_number = free_stream_speed / environment.speed_of_sound(altitude_asl)
 
         if time < 3.9:
             return None
 
-        if altitude_AGL < 1500:
+        if altitude_agl < 1500:
             air_brakes.deployment_level = 0
         else:
             previous_vz = state_history[-1][5] if state_history else vz
