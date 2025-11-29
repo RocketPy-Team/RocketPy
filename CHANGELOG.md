@@ -32,6 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- ENH: Add axial_acceleration attribute to the Flight class [#876](https://github.com/RocketPy-Team/RocketPy/pull/876)
 - ENH: Add save functionality to `_MonteCarloPlots.all` method [#848](https://github.com/RocketPy-Team/RocketPy/pull/848)
 - ENH: Add persistent caching for ThrustCurve API [#881](https://github.com/RocketPy-Team/RocketPy/pull/881)
 - ENH: Compatibility with MERRA-2 atmosphere reanalysis files [#825](https://github.com/RocketPy-Team/RocketPy/pull/825)

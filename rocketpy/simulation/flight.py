@@ -2620,6 +2620,15 @@ class Flight:
         max_acceleration_time_index = np.argmax(self.acceleration[:, 1])
         return self.acceleration[max_acceleration_time_index, 1]
 
+    @cached_property
+    def axial_acceleration(self):
+        """Axial acceleration magnitude as a function of time."""
+        return (
+            self.ax * self.attitude_vector_x
+            + self.ay * self.attitude_vector_y
+            + self.az * self.attitude_vector_z
+        )
+
     @funcify_method("Time (s)", "Horizontal Speed (m/s)")
     def horizontal_speed(self):
         """Rocket horizontal speed as a Function of time."""
