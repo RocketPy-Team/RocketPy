@@ -617,7 +617,7 @@ def test_7_parameter_controller_with_sensors(calisto_robust, example_plain_env):
     """
 
     # Define a 7-parameter controller
-    def controller_7_params(
+    def controller_7_params(  # pylint: disable=unused-argument
         time,
         sampling_rate,
         state,
@@ -675,14 +675,14 @@ def test_invalid_controller_parameter_count(calisto_robust):
     """
 
     # Define controller with wrong number of parameters (5)
-    def invalid_controller_5_params(
+    def invalid_controller_5_params(  # pylint: disable=unused-argument
         time, sampling_rate, state, state_history, observed_variables
     ):
         """Invalid controller with only 5 parameters."""
         return None
 
     # Define controller with wrong number of parameters (9)
-    def invalid_controller_9_params(
+    def invalid_controller_9_params(  # pylint: disable=unused-argument
         time,
         sampling_rate,
         state,
@@ -742,7 +742,7 @@ def test_environment_methods_accessible_in_controller(
         "temperature": False,
     }
 
-    def controller_test_environment_access(
+    def controller_test_environment_access(  # pylint: disable=unused-argument
         time,
         sampling_rate,
         state,
@@ -753,7 +753,7 @@ def test_environment_methods_accessible_in_controller(
         environment,
     ):
         """Controller that tests access to various environment methods."""
-        altitude_ASL = state[2]
+        altitude_asl = state[2]
 
         if time < 3.9:
             return None
@@ -763,25 +763,25 @@ def test_environment_methods_accessible_in_controller(
             _ = environment.elevation
             methods_called["elevation"] = True
 
-            _ = environment.wind_velocity_x(altitude_ASL)
+            _ = environment.wind_velocity_x(altitude_asl)
             methods_called["wind_velocity_x"] = True
 
-            _ = environment.wind_velocity_y(altitude_ASL)
+            _ = environment.wind_velocity_y(altitude_asl)
             methods_called["wind_velocity_y"] = True
 
-            _ = environment.speed_of_sound(altitude_ASL)
+            _ = environment.speed_of_sound(altitude_asl)
             methods_called["speed_of_sound"] = True
 
-            _ = environment.pressure(altitude_ASL)
+            _ = environment.pressure(altitude_asl)
             methods_called["pressure"] = True
 
-            _ = environment.temperature(altitude_ASL)
+            _ = environment.temperature(altitude_asl)
             methods_called["temperature"] = True
 
             air_brakes.deployment_level = 0.3
         except AttributeError as e:
             # If any method is not accessible, the test should fail
-            raise AssertionError(f"Environment method not accessible: {e}")
+            raise AssertionError(f"Environment method not accessible: {e}") from e
 
         return (time, air_brakes.deployment_level)
 
