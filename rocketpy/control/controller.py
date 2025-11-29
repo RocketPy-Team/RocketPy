@@ -159,7 +159,10 @@ class _Controller:
                 "The arguments must be in the following order: "
                 "(time, sampling_rate, state_vector, state_history, "
                 "observed_variables, interactive_objects, sensors, environment). "
-                "The last two arguments (sensors and environment) are optional."
+                "Supported signatures: "
+                "6 parameters (no sensors, no environment), "
+                "7 parameters (with sensors, no environment), or "
+                "8 parameters (with sensors and environment)."
             )
         return new_controller_function
 
