@@ -1,10 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Polygon
+from matplotlib.animation import FuncAnimation
 
 from rocketpy.mathutils.function import Function
 
-from .plot_helpers import show_or_save_plot
+from .plot_helpers import show_or_save_plot, show_or_save_animation
 
 
 class _TankPlots:
@@ -179,6 +180,77 @@ class _TankPlots:
         ax.lines[1].set_linestyle("-.")
         ax.legend(["Liquid", "Gas", "Total"])
         show_or_save_plot(filename)
+
+    def animate_fluid_volume(self, filename=None, fps=30):
+        """Animates the liquid and gas volumes inside the tank as a function of time.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the animation should be saved to. By default None, in which
+            case the animation will be shown instead of saved.
+        fps : int, optional
+            Frames per second for the animation. Default is 30.
+
+        Returns
+        -------
+        matplotlib.animation.FuncAnimation
+            The created animation object.
+        """
+
+        t_start, t_end = self.flux_time
+        times = np.linspace(t_start, t_end, 200)
+
+        liquid_values = self.tank.liquid_volume.get_value(times)
+        gas_values = self.tank.gas_volume.get_value(times)
+
+        fig, ax = plt.subplots()
+
+        ax.set_xlim(times[0], times[-1])
+        max_val = max(liquid_values.max(), gas_values.max())
+        ax.set_ylim(0, max_val * 1.1)
+
+        ax.set_xlabel("Time (s)")
+        ax.set_ylabel("Volume (m³)")
+        ax.set_title("Liquid/Gas Volume Evolution")
+        (line_liquid,) = ax.plot([], [], lw=2, color="blue", label="Liquid Volume")
+        (line_gas,) = ax.plot([], [], lw=2, color="red", label="Gas Volume")
+
+        (point_liquid,) = ax.plot([], [], "ko")
+        (point_gas,) = ax.plot([], [], "ko")
+
+        ax.legend()
+
+        def init():
+            line_liquid.set_data([], [])
+            line_gas.set_data([], [])
+            point_liquid.set_data([], [])
+            point_gas.set_data([], [])
+            return line_liquid, line_gas, point_liquid, point_gas
+
+        def update(frame_index):
+            # Liquid part
+            line_liquid.set_data(times[:frame_index], liquid_values[:frame_index])
+            point_liquid.set_data(times[frame_index], liquid_values[frame_index])
+
+            # Gas part
+            line_gas.set_data(times[:frame_index], gas_values[:frame_index])
+            point_gas.set_data(times[frame_index], gas_values[frame_index])
+
+            return line_liquid, line_gas, point_liquid, point_gas
+
+        animation = FuncAnimation(
+            fig,
+            update,
+            frames=len(times),
+            init_func=init,
+            interval=1000 / fps,
+            blit=True,
+        )
+
+        show_or_save_animation(animation, filename, fps=fps)
+
+        return animation
 
     def all(self):
         """Prints out all graphs available about the Tank. It simply calls
