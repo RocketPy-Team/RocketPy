@@ -3958,36 +3958,3 @@ class Flight:
                     otherwise.
                 """
                 return self.t < other.t
-
-    def compare(self, data, variable="z", label="External Data"): # pylint: disable=import-outside-toplevel)
-        """
-        Compares the simulated flight against provided external data.
-
-        This is a convenience wrapper for the FlightComparator class.
-
-        Parameters
-        ----------
-        data : dict
-            Dictionary containing the external data.
-            Keys should be variables (e.g. 'z', 'vz') and values should be
-            (time_array, data_array) tuples or RocketPy Functions.
-        variable : str, optional
-            The variable to compare immediately. Default is "z" (Altitude).
-        label : str, optional
-            Legend label for the external data. Default is "External Data".
-
-        Returns
-        -------
-        FlightComparator
-            The comparator object, allowing for further comparisons.
-        """
-
-        from rocketpy.simulation.flight_comparator import (
-            FlightComparator,
-        )  
-
-        comparator = FlightComparator(self)
-        comparator.add_data(label=label, data_dict=data)
-        comparator.compare(variable)
-
-        return comparator

@@ -1,7 +1,11 @@
 Flight Comparator
 =================
 
-This example demonstrates how to use the RocketPy ``FlightComparator`` class.
+This example demonstrates how to use the RocketPy ``FlightComparator`` class to
+compare a Flight simulation against external data sources.
+
+Users must explicitly create a `FlightComparator` instance.
+
 
 This class is designed to compare a RocketPy Flight simulation against external
 data sources, such as:
@@ -97,14 +101,38 @@ First, let's create the standard RocketPy simulation that will serve as our
        position=-1.194656,
    )
 
-   # 4. Simulate
-   flight = Flight(
-       rocket=calisto,
-       environment=env,
-       rail_length=5.2,
-       inclination=85,
-       heading=0,
-   )
+    # 4. Simulate
+    flight = Flight(
+    rocket=calisto,
+    environment=env,
+    rail_length=5.2,
+    inclination=85,
+    heading=0,
+    )
+
+    # 5. Create FlightComparator instance
+    comparator = FlightComparator(flight)
+
+Adding Another Flight Object
+----------------------------
+
+You can compare against another RocketPy Flight simulation directly:
+
+.. jupyter-execute::
+
+    # Create a second simulation with slightly different parameters
+    flight2 = Flight(
+        rocket=calisto,
+        environment=env,
+        rail_length=5.0,  # Slightly shorter rail
+        inclination=85,
+        heading=0,
+    )
+
+    # Add the second flight directly
+    comparator.add_data("Alternative Sim", flight2)
+
+    print(f"Added variables from flight2: {list(comparator.data_sources['Alternative Sim'].keys())}")
 
 Importing External Data (dict)
 ------------------------------
@@ -116,4 +144,40 @@ are either:
 - A RocketPy ``Function`` object, or
 - A tuple of ``(time_array, data_array)``.
 
-In this example, external data is generated synthetically, but in practice you
+Let's create some synthetic external data to compare against our reference
+simulation:
+
+.. jupyter-execute::
+
+    # Generate synthetic external data with realistic noise
+    time_external = np.linspace(0, flight.t_final, 80)  # Different time steps
+    external_altitude = flight.z(time_external) + np.random.normal(0, 3, 80)  # 3m noise
+    external_velocity = flight.vz(time_external) + np.random.normal(0, 0.5, 80)  # 0.5 m/s noise
+
+    # Add the external data to our comparator
+    comparator.add_data(
+        "External Simulator", 
+        {
+            "altitude": (time_external, external_altitude),
+            "vz": (time_external, external_velocity),
+        }
+    )
+
+Running Comparisons
+-------------------
+
+Now we can run the various comparison methods:
+
+.. jupyter-execute::
+
+    # Generate summary with key events
+    comparator.summary()
+
+    # Compare specific variable
+    comparator.compare("altitude")
+
+    # Compare all available variables
+    comparator.all()
+
+    # Plot 2D trajectory
+    comparator.trajectories_2d(plane="xz")

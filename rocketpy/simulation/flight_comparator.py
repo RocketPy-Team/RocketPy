@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from rocketpy.mathutils import Function
+from rocketpy.simulation.flight import Flight
 from rocketpy.simulation.flight_data_importer import FlightDataImporter
 
 from ..plots.plot_helpers import show_or_save_fig
@@ -15,7 +16,9 @@ class FlightComparator:
     (such as flight logs, OpenRocket simulations, RASAero).
 
     This class handles the time-interpolation required to compare datasets
-    recorded at different frequencies.
+    recorded at different frequencies, and computes error metrics (RMSE, MAE, etc.)
+    between your RocketPy simulation and external or reference data.
+
 
     Parameters
     ----------
@@ -35,14 +38,19 @@ class FlightComparator:
 
     .. code-block:: python
 
-        # Assuming you have a Flight object named 'my_flight'
+        from rocketpy.simulation import FlightComparator
+
+        # Suppose you have a Flight object named 'my_flight'
         comparator = FlightComparator(my_flight)
 
-        # Add external data
+        # Add external data (e.g., from OpenRocket or logs)
         comparator.add_data('OpenRocket', {
             'altitude': (time_array, altitude_array),
             'vz': (time_array, velocity_array)
         })
+
+        # You can also add another RocketPy Flight directly:
+        comparator.add_data('OtherSimulation', other_flight)
 
         # Run comparisons
         comparator.compare('altitude')
@@ -52,7 +60,7 @@ class FlightComparator:
 
     DEFAULT_GRID_POINTS = 1000  # number of points for interpolation grids
 
-    def __init__(self, flight):
+    def __init__(self, flight: Flight):
         """
         Initialize the comparator with a reference RocketPy Flight.
 
@@ -65,19 +73,19 @@ class FlightComparator:
         -------
         None
         """
-        # Minimal duck-typed validation to give clear errors early
+        # Duck-typed validation gives clear errors for Flight-like objects, more flexible than an isinstance check
         required_attrs = ("t_final", "apogee", "apogee_time", "impact_velocity")
         missing = [attr for attr in required_attrs if not hasattr(flight, attr)]
         if missing:
             raise TypeError(
-                "flight must be a rocketpy.Flight-like object with attributes "
+                "flight must be a rocketpy.Flight or Flight-like object with attributes "
                 f"{required_attrs}. Missing: {', '.join(missing)}"
             )
 
         self.flight = flight
         self.data_sources = {}  # The format is {'Source Name': {'variable': Function}}
 
-    def add_data(self, label, data_dict):  # pylint: disable=too-many-statements,import-outside-toplevel,cyclic-import
+    def add_data(self, label, data_dict):  # pylint: disable=too-many-statements
         """
         Add an external dataset to the comparator.
 
@@ -102,9 +110,8 @@ class FlightComparator:
             if present.
         """
 
-        from rocketpy.simulation.flight import (
-            Flight,  
-        )
+        if isinstance(data_dict, dict) and not data_dict:
+            raise ValueError("data_dict cannot be empty")
 
         processed_data = {}
 
@@ -197,44 +204,8 @@ class FlightComparator:
                 "or FlightDataImporter object."
             )
 
-        self.data_sources[label] = processed_data
-        print(
-            f"Added data source '{label}' with variables: {list(processed_data.keys())}"
-        )
-        # If this is not a dict (e.g., a Flight or FlightDataImporter), we're done.
-        if not isinstance(data_dict, dict):
-            return
-
-        # Check if label already exists
         if label in self.data_sources:
             warnings.warn(f"Data source '{label}' already exists. Overwriting.")
-
-        # Making sure that data_dict is not empty
-        if not data_dict:
-            raise ValueError("data_dict cannot be empty")
-
-        processed_data = {}
-
-        for key, value in data_dict.items():
-            # If already a Function, store it
-            if isinstance(value, Function):
-                processed_data[key] = value
-
-            # If raw data, convert to a function
-            elif isinstance(value, (tuple, list)) and len(value) == 2:
-                time_arr, data_arr = value
-                # Creating a Function for automatic interpolation
-                processed_data[key] = Function(
-                    np.column_stack((time_arr, data_arr)),
-                    inputs="Time (s)",
-                    outputs=key,
-                    interpolation="linear",
-                )
-            else:
-                warnings.warn(
-                    f"Skipping '{key}' in '{label}'. Format not recognized. "
-                    "Expected RocketPy Function or (time, data) tuple."
-                )
 
         self.data_sources[label] = processed_data
         print(

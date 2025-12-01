@@ -90,18 +90,3 @@ def test_full_workflow_with_importer(flight_calisto, tmp_path):
     assert isinstance(results, dict)
     assert "Apogee Altitude (m)" in results
     assert "Impact Velocity (m/s)" in results
-
-
-def test_flight_compare_helper(flight_calisto):
-    """Test Flight.compare() convenience wrapper."""
-    time_data = np.linspace(0, flight_calisto.t_final, 100)
-    external = {
-        "z": (time_data, flight_calisto.z(time_data) + 5.0),
-        "vz": (time_data, flight_calisto.vz(time_data)),
-    }
-
-    comparator = flight_calisto.compare(external, variable="z", label="External")
-
-    assert isinstance(comparator, FlightComparator)
-    assert "External" in comparator.data_sources
-    assert "z" in comparator.data_sources["External"]
