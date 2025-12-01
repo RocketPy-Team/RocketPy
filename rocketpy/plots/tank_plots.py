@@ -188,7 +188,8 @@ class _TankPlots:
         ----------
         filename : str | None, optional
             The path the animation should be saved to. By default None, in which
-            case the animation will be shown instead of saved.
+            case the animation will be shown instead of saved. Supported file
+            ending is: .gif
         fps : int, optional
             Frames per second for the animation. Default is 30.
 
@@ -230,11 +231,11 @@ class _TankPlots:
 
         def update(frame_index):
             # Liquid part
-            line_liquid.set_data(times[:frame_index], liquid_values[:frame_index])
+            line_liquid.set_data(times[:frame_index+1], liquid_values[:frame_index+1])
             point_liquid.set_data(times[frame_index], liquid_values[frame_index])
 
             # Gas part
-            line_gas.set_data(times[:frame_index], gas_values[:frame_index])
+            line_gas.set_data(times[:frame_index+1], gas_values[:frame_index+1])
             point_gas.set_data(times[frame_index], gas_values[frame_index])
 
             return line_liquid, line_gas, point_liquid, point_gas

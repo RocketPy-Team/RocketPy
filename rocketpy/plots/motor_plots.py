@@ -528,7 +528,8 @@ class _MotorPlots:
         ----------
         filename : str | None, optional
             The path the animation should be saved to. By default None, in which
-            case the animation will be shown instead of saved.
+            case the animation will be shown instead of saved.Supported file 
+            ending is: .gif
         fps : int, optional
             Frames per second for the animation. Default is 30.
 
@@ -539,8 +540,8 @@ class _MotorPlots:
         """
 
         # Extract time and mass data
-        times = self.motor.propellant_mass.times
-        values = self.motor.propellant_mass.values
+        times = self.motor.propellant_mass.x_array
+        values = self.motor.propellant_mass.y_array
 
         # Create figure and axis
         fig, ax = plt.subplots()
@@ -566,8 +567,8 @@ class _MotorPlots:
 
         # Update per frame
         def update(frame_index):
-            line.set_data(times[:frame_index], values[:frame_index])
-            point.set_data(times[frame_index], values[frame_index])
+            line.set_data(times[:frame_index+1], values[:frame_index+1])
+            point.set_data([times[frame_index]], [values[frame_index]])
             return line, point
 
         # Build animation

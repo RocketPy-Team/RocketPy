@@ -6,7 +6,11 @@ from matplotlib.animation import FuncAnimation
 import pytest
 
 from rocketpy.plots.compare import Compare
-from rocketpy.plots.plot_helpers import show_or_save_fig, show_or_save_plot, show_or_save_animation
+from rocketpy.plots.plot_helpers import (
+    show_or_save_fig,
+    show_or_save_plot,
+    show_or_save_animation,
+)
 
 
 @patch("matplotlib.pyplot.show")
@@ -123,3 +127,17 @@ def test_show_or_save_animation(mock_show, filename):
     else:
         assert os.path.exists(filename)
         os.remove(filename)
+
+
+def test_show_or_save_animation_unsupported_format():
+    # Test that show_or_save_animation raises ValueError for unsupported formats.
+    fig, ax = plt.subplots()
+
+    def update(frame):
+        ax.plot([0, frame], [0, frame])
+        return ax
+
+    animation = FuncAnimation(fig, update, frames=5)
+
+    with pytest.raises(ValueError, match="Unsupported file ending"):
+        show_or_save_animation(animation, "test.mp4")
