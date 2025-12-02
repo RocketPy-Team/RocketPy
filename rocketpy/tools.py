@@ -1079,6 +1079,33 @@ def exponential_backoff(max_attempts, base_delay=1, max_delay=60):
     return decorator
 
 
+def parallel_axis_theorem_from_com(com_inertia_moment, mass, distance):
+    """Calculates the moment of inertia of a object relative to a new axis using
+    the parallel axis theorem. The new axis is parallel to and at a distance
+    'distance' from the original axis, which *must* passes through the object's
+    center of mass.
+
+    Parameters
+    ----------
+    com_inertia_moment : float
+        Moment of inertia relative to the center of mass of the object.
+    mass : float
+        Mass of the object.
+    distance : float
+        Perpendicular distance between the original and new axis.
+
+    Returns
+    -------
+    float
+        Moment of inertia relative to the new axis.
+
+    References
+    ----------
+    https://en.wikipedia.org/wiki/Parallel_axis_theorem
+    """
+    return com_inertia_moment + mass * distance**2
+
+
 def _pat_dynamic_helper(com_inertia_moment, mass, distance_vec_3d, axes_term_lambda):
     "Local import to break circular dependency with mathutils.function"
     from rocketpy.mathutils.function import (
@@ -1095,11 +1122,9 @@ def _pat_dynamic_helper(com_inertia_moment, mass, distance_vec_3d, axes_term_lam
     )
 
     def get_val(arg, t):
-
         return arg(t) if isinstance(arg, Function) else arg
 
     if not is_dynamic:
-
         d_vec = Vector(distance_vec_3d)
         mass_term = mass * axes_term_lambda(d_vec)
         return com_inertia_moment + mass_term
@@ -1134,11 +1159,9 @@ def _pat_dynamic_product_helper(
     )
 
     def get_val(arg, t):
-
         return arg(t) if isinstance(arg, Function) else arg
 
     if not is_dynamic:
-
         d_vec = Vector(distance_vec_3d)
         mass_term = mass * product_term_lambda(d_vec)
         return com_inertia_product + mass_term
@@ -1155,43 +1178,43 @@ def _pat_dynamic_product_helper(
         return Function(new_source, inputs="t", outputs="Inertia (kg*m^2)")
 
 
+# pylint: disable=invalid-name
 def parallel_axis_theorem_I11(com_inertia_moment, mass, distance_vec_3d):
-
     return _pat_dynamic_helper(
         com_inertia_moment, mass, distance_vec_3d, lambda d_vec: d_vec.y**2 + d_vec.z**2
     )
 
 
+# pylint: disable=invalid-name
 def parallel_axis_theorem_I22(com_inertia_moment, mass, distance_vec_3d):
-
     return _pat_dynamic_helper(
         com_inertia_moment, mass, distance_vec_3d, lambda d_vec: d_vec.x**2 + d_vec.z**2
     )
 
 
+# pylint: disable=invalid-name
 def parallel_axis_theorem_I33(com_inertia_moment, mass, distance_vec_3d):
-
     return _pat_dynamic_helper(
         com_inertia_moment, mass, distance_vec_3d, lambda d_vec: d_vec.x**2 + d_vec.y**2
     )
 
 
+# pylint: disable=invalid-name
 def parallel_axis_theorem_I12(com_inertia_product, mass, distance_vec_3d):
-
     return _pat_dynamic_product_helper(
         com_inertia_product, mass, distance_vec_3d, lambda d_vec: d_vec.x * d_vec.y
     )
 
 
+# pylint: disable=invalid-name
 def parallel_axis_theorem_I13(com_inertia_product, mass, distance_vec_3d):
-
     return _pat_dynamic_product_helper(
         com_inertia_product, mass, distance_vec_3d, lambda d_vec: d_vec.x * d_vec.z
     )
 
 
+# pylint: disable=invalid-name
 def parallel_axis_theorem_I23(com_inertia_product, mass, distance_vec_3d):
-
     return _pat_dynamic_product_helper(
         com_inertia_product, mass, distance_vec_3d, lambda d_vec: d_vec.y * d_vec.z
     )
