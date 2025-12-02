@@ -17,6 +17,29 @@ class _MonteCarloPlots:
         self.monte_carlo = monte_carlo
 
     def _get_background_map(self, background, xlim, ylim):
+        """
+        Helper method to get the background map for the Monte Carlo analysis.
+
+        Parameters
+        ----------
+        background : str, optional
+            Type of background map to automatically download and display.
+            Options: "satellite" (uses Esri.WorldImagery)
+                     "street" (uses OpenStreetMap.Mapnik)
+                     "terrain" (uses Esri.WorldTopoMap)
+                     or any contextily provider name (e.g., "CartoDB.Positron").
+        xlim : tuple
+            Limits of the x-axis. Default is (-3000, 3000). Values in meters.
+        ylim : tuple
+            Limits of the y-axis. Default is (-3000, 3000). Values in meters.
+
+        Returns
+        -------
+        bg : ndarray
+            Image as a 3D array of RGB values
+        extent : tuple
+            Bounding box [minX, maxX, minY, maxY] of the returned image
+        """
         if background is None:
             return None, None
         else:
