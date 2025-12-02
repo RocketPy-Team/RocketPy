@@ -2571,6 +2571,15 @@ class Flight:
         """Rocket acceleration magnitude as a Function of time."""
         return (self.ax**2 + self.ay**2 + self.az**2) ** 0.5
 
+    @funcify_method("Time (s)", "Axial Acceleration (m/s²)", "spline", "zero")
+    def axial_acceleration(self):
+        """Axial acceleration magnitude as a function of time, in m/s²."""
+        return (
+            self.ax * self.attitude_vector_x
+            + self.ay * self.attitude_vector_y
+            + self.az * self.attitude_vector_z
+        )
+
     @cached_property
     def max_acceleration_power_on_time(self):
         """Time at which the rocket reaches its maximum acceleration during
@@ -2619,15 +2628,6 @@ class Flight:
         """Maximum acceleration reached by the rocket."""
         max_acceleration_time_index = np.argmax(self.acceleration[:, 1])
         return self.acceleration[max_acceleration_time_index, 1]
-
-    @cached_property
-    def axial_acceleration(self):
-        """Axial acceleration magnitude as a function of time."""
-        return (
-            self.ax * self.attitude_vector_x
-            + self.ay * self.attitude_vector_y
-            + self.az * self.attitude_vector_z
-        )
 
     @funcify_method("Time (s)", "Horizontal Speed (m/s)")
     def horizontal_speed(self):
