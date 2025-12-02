@@ -3162,7 +3162,7 @@ class Flight:
         max_acceleration_time_index = np.argmax(
             self.acceleration[burn_out_time_index:, 1]
         )
-        return self.acceleration[max_acceleration_time_index, 0]
+        return self.acceleration[burn_out_time_index + max_acceleration_time_index, 0]
 
     @cached_property
     def max_acceleration_power_off(self):
