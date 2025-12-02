@@ -470,6 +470,18 @@ class Flight:
         array.
     Flight.simulation_mode : str
         Simulation mode for the flight. Can be "6 DOF" or "3 DOF".
+    Flight.rail_button1_bending_moment : Function
+        Internal bending moment at upper rail button attachment point in N·m
+        as a function of time. Calculated using beam theory during rail phase.
+    Flight.max_rail_button1_bending_moment : float
+        Maximum internal bending moment experienced at upper rail button
+        attachment point during rail flight phase in N·m.
+    Flight.rail_button2_bending_moment : Function
+        Internal bending moment at lower rail button attachment point in N·m
+        as a function of time. Calculated using beam theory during rail phase.
+    Flight.max_rail_button2_bending_moment : float
+        Maximum internal bending moment experienced at lower rail button
+        attachment point during rail flight phase in N·m.
     """
 
     def __init__(  # pylint: disable=too-many-arguments,too-many-statements
@@ -3958,3 +3970,62 @@ class Flight:
                     otherwise.
                 """
                 return self.t < other.t
+    def _calculate_rail_button_bending_moments(self):
+        """
+        Calculate internal bending moments at rail button attachment points.
+    
+        Uses beam theory with simple support assumptions (ΣF≠0, M_contact=0)
+        to determine internal structural moments for stress analysis.
+    
+        The bending moment at each button consists of two components:
+        1. Main bending from the opposing button's normal force (M = N × L)
+        2. Additional moment from shear force at button tip (M = S × h)
+    
+        Returns
+        -------
+        None
+        """
+        # Check if rail buttons exist
+        if len(self.rocket.rail_buttons) == 0:
+            warnings.warn(
+                "Trying to calculate rail button bending moments without "
+                "rail buttons defined. Setting moments to zero.",
+                UserWarning,
+            )
+            null_moment = Function(0)
+            self.rail_button1_bending_moment = null_moment
+            self.rail_button2_bending_moment = null_moment
+            self.max_rail_button1_bending_moment = 0.0
+            self.max_rail_button2_bending_moment = 0.0
+            return
+        #distance between points
+        button1_pos = self.rocket.rail_buttons.component_coordinate_system_orientation * (self.rocket.rail_buttons.position)
+        button2_pos = button1_pos + self.rocket.rail_buttons.buttons_distance
+        d1 = abs(button1_pos - self.rocket.center_of_mass_without_motor)
+        d2 = abs(button2_pos - self.rocket.center_of_mass_without_motor)
+        L = d1 + d2  # Distance between buttons
+        h_button = self.rocket.rail_buttons.button_height #rail button height
+        #forces
+        N1 = self.rail_button1_normal_force
+        N2 = self.rail_button2_normal_force
+        S1 = self.rail_button1_shear_force
+        S2 = self.rail_button2_shear_force
+        t = N1.source[:, 0]
+        # Main bending from opposing button + additional moment from shear at tip
+        M1_values = N2.source[:, 1] * L + S1.source[:, 1] * h_button
+        M2_values = N1.source[:, 1] * L + S2.source[:, 1] * h_button
+        self.rail_button1_bending_moment = Function(
+            np.column_stack([t, M1_values]),
+            inputs="Time (s)",
+            outputs="Bending Moment (N·m)",
+            interpolation="linear",
+        )
+        self.rail_button2_bending_moment = Function(
+            np.column_stack([t, M2_values]),
+            inputs="Time (s)",
+            outputs="Bending Moment (N·m)",
+            interpolation="linear",
+        )
+        # Maximum bending moments in terms of absolute value for stress calculations
+        self.max_rail_button1_bending_moment = float(np.max(np.abs(M1_values)))
+        self.max_rail_button2_bending_moment = float(np.max(np.abs(M2_values)))
