@@ -502,6 +502,16 @@ class MonteCarlo:
                 f"Attribute '{attribute}' not found in results. Available attributes: {available}"
             )
 
+        if not 0 < confidence_level < 1:
+            raise ValueError(
+                f"confidence_level must be between 0 and 1, got {confidence_level}"
+            )
+
+        if not isinstance(n_resamples, int) or n_resamples <= 0:
+            raise ValueError(
+                f"n_resamples must be a positive integer, got {n_resamples}"
+            )
+
         data = (np.array(self.results[attribute]),)
 
         res = bootstrap(

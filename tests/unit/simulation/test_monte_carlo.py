@@ -76,10 +76,12 @@ class MockMonteCarlo(MonteCarlo):
         self.results = {
             "apogee": [98, 102, 100, 99, 101, 100, 97, 103],
             "max_velocity": [250, 255, 245, 252, 248],
+            "single_point": [100],
+            "empty_attribute": [],
         }
 
 
-def test_ci_calculation_basic():
+def test_estimate_confidence_interval_contains_known_mean():
     """Checks that the confidence interval contains the known mean."""
     mc = MockMonteCarlo()
 
@@ -89,7 +91,7 @@ def test_ci_calculation_basic():
     assert ci.low < ci.high
 
 
-def test_ci_custom_statistic():
+def test_estimate_confidence_interval_supports_custom_statistic():
     """Checks that the statistic can be changed (e.g., standard deviation instead of mean)."""
     mc = MockMonteCarlo()
 
@@ -99,7 +101,7 @@ def test_ci_custom_statistic():
     assert ci_std.low < ci_std.high
 
 
-def test_ci_error_handling():
+def test_estimate_confidence_interval_raises_value_error_when_attribute_missing():
     """Checks that the code raises an error if the key does not exist."""
     mc = MockMonteCarlo()
 
@@ -110,7 +112,7 @@ def test_ci_error_handling():
     assert "not found in results" in str(excinfo.value)
 
 
-def test_ci_consistency():
+def test_estimate_confidence_interval_increases_width_with_higher_confidence_level():
     """Checks that a higher confidence level yields a wider interval."""
     mc = MockMonteCarlo()
 
@@ -122,3 +124,64 @@ def test_ci_consistency():
 
     # The more confident we want to be (99%), the wider the interval must be
     assert width_99 >= width_90
+
+
+def test_estimate_confidence_interval_raises_value_error_when_confidence_level_out_of_bounds():
+    """Checks that validation fails if confidence_level is not strictly between 0 and 1."""
+    mc = MockMonteCarlo()
+
+    # Case 1: Value <= 0
+    with pytest.raises(ValueError, match="confidence_level must be between 0 and 1"):
+        mc.estimate_confidence_interval("apogee", confidence_level=0)
+
+    with pytest.raises(ValueError, match="confidence_level must be between 0 and 1"):
+        mc.estimate_confidence_interval("apogee", confidence_level=-0.5)
+
+    # Case 2: Value >= 1
+    with pytest.raises(ValueError, match="confidence_level must be between 0 and 1"):
+        mc.estimate_confidence_interval("apogee", confidence_level=1)
+
+    with pytest.raises(ValueError, match="confidence_level must be between 0 and 1"):
+        mc.estimate_confidence_interval("apogee", confidence_level=1.5)
+
+
+def test_estimate_confidence_interval_raises_value_error_when_n_resamples_invalid():
+    """Checks that validation fails if n_resamples is not a positive integer."""
+    mc = MockMonteCarlo()
+
+    # Case 1: Not an integer (e.g. float)
+    with pytest.raises(ValueError, match="n_resamples must be a positive integer"):
+        mc.estimate_confidence_interval("apogee", n_resamples=1000.5)
+
+    # Case 2: Zero or Negative
+    with pytest.raises(ValueError, match="n_resamples must be a positive integer"):
+        mc.estimate_confidence_interval("apogee", n_resamples=0)
+
+    with pytest.raises(ValueError, match="n_resamples must be a positive integer"):
+        mc.estimate_confidence_interval("apogee", n_resamples=-100)
+
+
+def test_estimate_confidence_interval_raises_value_error_on_empty_data_list():
+    """Checks behavior when the attribute exists but contains no data (empty list)."""
+    mc = MockMonteCarlo()
+
+    with pytest.raises(ValueError):
+        mc.estimate_confidence_interval("empty_attribute")
+
+
+def test_estimate_confidence_interval_handles_single_data_point():
+    """Checks behavior with only one data point. The CI should be [val, val]."""
+    mc = MockMonteCarlo()
+
+    with pytest.raises(ValueError):  # two or more value
+        mc.estimate_confidence_interval("single_point", n_resamples=50)
+
+
+def test_estimate_confidence_interval_raises_type_error_for_invalid_statistic():
+    """Checks that passing a non-callable object (like a string/int) as statistic raises TypeError."""
+    mc = MockMonteCarlo()
+    with pytest.raises(TypeError):
+        mc.estimate_confidence_interval("apogee", statistic=1)
+
+    with pytest.raises(TypeError):
+        mc.estimate_confidence_interval("apogee", statistic="not_a_function")
