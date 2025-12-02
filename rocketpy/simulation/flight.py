@@ -3970,20 +3970,23 @@ class Flight:
                     otherwise.
                 """
                 return self.t < other.t
-    def _calculate_rail_button_bending_moments(self):
+    @cachedproperty
+    def calculate_rail_button_bending_moments(self):
         """
         Calculate internal bending moments at rail button attachment points.
-    
+
         Uses beam theory with simple support assumptions (ΣF≠0, M_contact=0)
         to determine internal structural moments for stress analysis.
-    
+
         The bending moment at each button consists of two components:
         1. Main bending from the opposing button's normal force (M = N × L)
         2. Additional moment from shear force at button tip (M = S × h)
-    
+
         Returns
         -------
-        None
+        tuple
+            (rail_button1_bending_moment, max_rail_button1_bending_moment,
+            rail_button2_bending_moment, max_rail_button2_bending_moment)
         """
         # Check if rail buttons exist
         if len(self.rocket.rail_buttons) == 0:
@@ -4029,3 +4032,28 @@ class Flight:
         # Maximum bending moments in terms of absolute value for stress calculations
         self.max_rail_button1_bending_moment = float(np.max(np.abs(M1_values)))
         self.max_rail_button2_bending_moment = float(np.max(np.abs(M2_values)))
+        return (
+            self.rail_button1_bending_moment,
+            self.max_rail_button1_bending_moment,
+            self.rail_button2_bending_moment,
+            self.max_rail_button2_bending_moment,
+        )
+    @property
+    def rail_button1_bending_moment(self):
+        """Upper rail button bending moment as a Function of time."""
+        return self.calculate_rail_button_bending_moments[0]
+
+    @property
+    def max_rail_button1_bending_moment(self):
+        """Maximum upper rail button bending moment, in N·m."""
+        return self.calculate_rail_button_bending_moments[1]
+
+    @property
+    def rail_button2_bending_moment(self):
+        """Lower rail button bending moment as a Function of time."""
+        return self.calculate_rail_button_bending_moments[2]
+
+    @property
+    def max_rail_button2_bending_moment(self):
+        """Maximum lower rail button bending moment, in N·m."""
+        return self.calculate_rail_button_bending_moments[3]
