@@ -206,10 +206,9 @@ class _MonteCarloPlots:
         None
         """
 
-        imageio = import_optional_dependency("imageio")
-
         # Import background map
         if image is not None:
+            imageio = import_optional_dependency("imageio")
             try:
                 img = imageio.imread(image)
             except FileNotFoundError as e:
@@ -501,10 +500,10 @@ class _MonteCarloPlots:
         -------
         None
         """
-        imageio = import_optional_dependency("imageio")
 
         # Import background map
         if image is not None:
+            imageio = import_optional_dependency("imageio")
             try:
                 img = imageio.imread(image)
             except FileNotFoundError as e:  # pragma no cover
