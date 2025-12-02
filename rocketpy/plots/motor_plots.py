@@ -528,7 +528,7 @@ class _MotorPlots:
         ----------
         filename : str | None, optional
             The path the animation should be saved to. By default None, in which
-            case the animation will be shown instead of saved.Supported file 
+            case the animation will be shown instead of saved.Supported file
             ending is: .gif
         fps : int, optional
             Frames per second for the animation. Default is 30.
@@ -567,7 +567,7 @@ class _MotorPlots:
 
         # Update per frame
         def update(frame_index):
-            line.set_data(times[:frame_index+1], values[:frame_index+1])
+            line.set_data(times[: frame_index + 1], values[: frame_index + 1])
             point.set_data([times[frame_index]], [values[frame_index]])
             return line, point
 

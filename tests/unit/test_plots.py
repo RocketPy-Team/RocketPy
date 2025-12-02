@@ -141,3 +141,33 @@ def test_show_or_save_animation_unsupported_format():
 
     with pytest.raises(ValueError, match="Unsupported file ending"):
         show_or_save_animation(animation, "test.mp4")
+
+
+def test_animate_propellant_mass(cesaroni_m1670):
+    """Test that animate_propellant_mass saves a .gif file correctly."""
+
+    motor = cesaroni_m1670
+    animation = motor.plots.animate_propellant_mass(filename="cesaroni_m1670.gif")
+
+    # Check animation type
+    assert isinstance(animation, FuncAnimation)
+
+    # check if file exists
+    assert os.path.exists("cesaroni_m1670.gif")
+
+    os.remove("cesaroni_m1670.gif")
+
+
+def test_animate_fluid_volume(example_mass_flow_rate_based_tank_seblm):
+    """Test that animate_fluid_volume saves a .gif file correctly."""
+
+    tank = example_mass_flow_rate_based_tank_seblm
+    animation = tank.plots.animate_fluid_volume(filename="test_fluid_volume.gif")
+
+    # Check animation type
+    assert isinstance(animation, FuncAnimation)
+
+    # Check if file exists
+    assert os.path.exists("test_fluid_volume.gif")
+
+    os.remove("test_fluid_volume.gif")

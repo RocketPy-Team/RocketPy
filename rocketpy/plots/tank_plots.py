@@ -231,12 +231,14 @@ class _TankPlots:
 
         def update(frame_index):
             # Liquid part
-            line_liquid.set_data(times[:frame_index+1], liquid_values[:frame_index+1])
-            point_liquid.set_data(times[frame_index], liquid_values[frame_index])
+            line_liquid.set_data(
+                times[: frame_index + 1], liquid_values[: frame_index + 1]
+            )
+            point_liquid.set_data([times[frame_index]], [liquid_values[frame_index]])
 
             # Gas part
-            line_gas.set_data(times[:frame_index+1], gas_values[:frame_index+1])
-            point_gas.set_data(times[frame_index], gas_values[frame_index])
+            line_gas.set_data(times[: frame_index + 1], gas_values[: frame_index + 1])
+            point_gas.set_data([times[frame_index]], [gas_values[frame_index]])
 
             return line_liquid, line_gas, point_liquid, point_gas
 
