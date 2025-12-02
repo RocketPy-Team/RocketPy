@@ -1488,7 +1488,7 @@ class Rocket:
         sampling_rate=100,
         lag=0,
         noise=(0, 0, 0),
-        radius=1.5,
+        radius=None,
         height=None,
         porosity=0.0432,
     ):
@@ -1551,7 +1551,9 @@ class Rocket:
             are in pascal.
         radius : float, optional
             Length of the non-unique semi-axis (radius) of the inflated hemispheroid
-            parachute. Default value is 1.5.
+            parachute. If not provided, it is estimated from ``cd_s`` assuming a
+            typical hemispherical parachute drag coefficient of 1.4, using the
+            formula: ``radius = sqrt(cd_s / (1.4 * pi))``.
             Units are in meters.
         height : float, optional
             Length of the unique semi-axis (height) of the inflated hemispheroid
