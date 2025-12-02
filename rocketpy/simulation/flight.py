@@ -3970,7 +3970,7 @@ class Flight:
                     otherwise.
                 """
                 return self.t < other.t
-    @cachedproperty
+    @cached_property
     def calculate_rail_button_bending_moments(self):
         """
         Calculate internal bending moments at rail button attachment points.
