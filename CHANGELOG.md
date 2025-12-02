@@ -37,7 +37,7 @@ Attention: The newest changes should be on top -->
 - ENH: Enable only radial burning [#815](https://github.com/RocketPy-Team/RocketPy/pull/815)
 - ENH: Add thrustcurve api integration to retrieve motor eng data [#870](https://github.com/RocketPy-Team/RocketPy/pull/870)
 - ENH: custom warning no motor or aerosurface [#871](https://github.com/RocketPy-Team/RocketPy/pull/871)
-- ENH: Implement Bootstrapping for Confidence Interval Estimation [#891](https://github.com/RocketPy-Team/RocketPy/issues/891)
+- ENH: Implement Bootstrapping for Confidence Interval Estimation [#891](https://github.com/RocketPy-Team/RocketPy/pull/897)
 
 ### Changed
 
