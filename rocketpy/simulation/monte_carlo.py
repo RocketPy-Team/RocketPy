@@ -487,8 +487,8 @@ class MonteCarlo:
             The confidence level for the interval (between 0 and 1). Default is 0.95.
         n_resamples : int, optional
             The number of resamples to perform. Default is 1000.
-        random_state : int, optional
-            Seed for the random number generator to ensure reproducibility.
+        random_state : int or None, optional
+            Seed for the random number generator to ensure reproducibility. If None (default), the random number generator is not seeded.
 
         Returns
         -------
