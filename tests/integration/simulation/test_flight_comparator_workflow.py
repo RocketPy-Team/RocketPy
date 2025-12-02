@@ -1,4 +1,4 @@
-"""Integration tests for FlightComparator and Flight.compare.
+"""Integration tests for FlightComparator.
 
 These tests exercise the full workflow of:
 - running a Flight simulation,

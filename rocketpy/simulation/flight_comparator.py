@@ -213,7 +213,28 @@ class FlightComparator:
         )
 
     def _process_time_range(self, time_range):
-        """Validate and normalize time_range."""
+        """
+        Validate and normalize the time_range argument.
+
+        Parameters
+        ----------
+        time_range : tuple of (float, float) or list of (float, float) or None
+            Tuple or list specifying the start and end times (in seconds) for the comparison.
+            If None, the full flight duration [0, flight.t_final] is used.
+
+        Returns
+        -------
+        tuple of (float, float)
+            The validated (t_min, t_max) time range in seconds, where
+            0.0 <= t_min < t_max <= flight.t_final.
+
+        Raises
+        ------
+        TypeError
+            If time_range is not a tuple or list of two numeric values.
+        ValueError
+            If time_range values are invalid or out of bounds.
+        """
         if time_range is None:
             return 0.0, self.flight.t_final
 
@@ -238,11 +259,46 @@ class FlightComparator:
         return float(t_min), float(t_max)
 
     def _build_time_grid(self, t_min, t_max):
-        """Build interpolation grid."""
+        """
+        Build a time grid for interpolation between t_min and t_max.
+
+        Parameters
+        ----------
+        t_min : float
+            Start time of the grid, in seconds.
+        t_max : float
+            End time of the grid, in seconds.
+
+        Returns
+        -------
+        numpy.ndarray
+            Array of time points (in seconds) linearly spaced between t_min and t_max,
+            with length equal to DEFAULT_GRID_POINTS.
+        """
         return np.linspace(t_min, t_max, self.DEFAULT_GRID_POINTS)
 
     def _setup_compare_figure(self, figsize, attribute):
-        """Create figure and axes for compare()."""
+        """
+        Create a matplotlib figure and axes for the compare() method.
+
+        Parameters
+        ----------
+        figsize : tuple of float
+            Size of the figure in inches as (width, height).
+        attribute : str
+            Name of the attribute being compared, used for the plot title.
+
+        Returns
+        -------
+        tuple
+            A tuple containing:
+            - fig : matplotlib.figure.Figure
+                The created figure object.
+            - ax1 : matplotlib.axes.Axes
+                The axes object for the main comparison plot.
+            - ax2 : matplotlib.axes.Axes
+                The axes object for the residuals (error) plot.
+        """
         fig, (ax1, ax2) = plt.subplots(
             2,
             1,
@@ -256,7 +312,23 @@ class FlightComparator:
         return fig, ax1, ax2
 
     def _plot_reference_series(self, ax, t_grid, y_sim):
-        """Plot RocketPy reference curve."""
+        """
+        Plot RocketPy reference curve on the given axes.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes
+            he axes object on which to plot the reference curve.
+        t_grid : numpy.ndarray
+            Array of time points, in seconds.
+        y_sim : numpy.ndarray
+            Array of simulated values corresponding to t_grid.
+
+        Returns
+        -------
+        None
+
+        """
         ax.plot(
             t_grid,
             y_sim,
@@ -274,12 +346,26 @@ class FlightComparator:
         ax_values,
         ax_errors,
     ):
-        """Plot external sources and print metrics.
+        """
+        Plot external data sources and print error metrics.
+
+        Parameters
+        ----------
+        attribute : str
+            Name of the attribute to compare (e.g., 'altitude', 'vz').
+        t_grid : np.ndarray
+            1D array of time points (in seconds) at which to evaluate and plot the data.
+        y_sim : np.ndarray
+            1D array of simulated values corresponding to t_grid.
+        ax_values : matplotlib.axes.Axes
+            Axes object to plot the simulation and external data values.
+        ax_errors : matplotlib.axes.Axes
+            Axes object to plot the error (residuals) between simulation and external data.
 
         Returns
         -------
         bool
-            True if at least one external source had the attribute.
+            True if at least one external source had the specified attribute and data was plotted.
         """
         has_plots = False
 
@@ -328,7 +414,28 @@ class FlightComparator:
     def _finalize_compare_figure(
         self, fig, ax_values, ax_errors, attribute, legend, filename
     ):
-        """Apply formatting, legends and show/save for compare()."""
+        """
+        Apply formatting, legends, and show/save the comparison figure.
+
+        Parameters
+        ----------
+        fig : matplotlib.figure.Figure
+            The figure object containing the comparison plots.
+        ax_values : matplotlib.axes.Axes
+            The axes object displaying the compared values.
+        ax_errors : matplotlib.axes.Axes
+            The axes object displaying the residuals/errors.
+        attribute : str
+            Name of the attribute being compared (used for labels).
+        legend : bool
+            Whether to display legends on both axes.
+        filename : str or None
+            If provided, save the figure to this file path. If None, display the figure.
+
+        Returns
+        -------
+        None
+        """
         ax_values.set_ylabel(attribute)
         ax_values.grid(True, linestyle=":", alpha=0.6)
 
@@ -353,9 +460,34 @@ class FlightComparator:
         filename=None,
     ):
         """
-        Compares a specific attribute across all added data sources.
-        Generates a plot and prints error metrics (RMSE, MAE, relative error).
-        ...
+        Compare a specific attribute (e.g., altitude, velocity) across all added data sources.
+
+        This method generates a plot comparing the specified attribute from the reference
+        RocketPy Flight object and all added external data sources (e.g., OpenRocket, flight logs).
+        It interpolates all data onto a common time grid, computes error metrics (RMSE, MAE,
+        relative error), and displays or saves the resulting plot.
+
+        Parameters
+        ----------
+        attribute : str
+            Name of the attribute to compare (e.g., "altitude", "vz", "ax").
+            The attribute must be present as a callable (function or property) in the
+            reference Flight object and in each external data source.
+        time_range : tuple of float, optional
+            Tuple specifying the time range (t_min, t_max) in seconds for the comparison.
+            If None (default), uses the full time range of the reference Flight.
+        figsize : tuple of float, optional
+            Size of the figure in inches, as (width, height). Default is (10, 8).
+        legend : bool, optional
+            Whether to display a legend on the plot. Default is True.
+        filename : str or None, optional
+            If provided, saves the plot to the specified file path. If None (default),
+            the plot is shown interactively.
+
+        Returns
+        -------
+        None
+
         """
         # 1. Get RocketPy Simulation Data
         if not hasattr(self.flight, attribute):
