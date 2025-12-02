@@ -669,7 +669,7 @@ class _MonteCarloPlots:
         plt.axvline(0, color="black", linewidth=0.5)
         plt.xlim(*xlim)
         plt.ylim(*ylim)
-        plt.aspect("equal")
+        ax.set_aspect("equal")
 
         if save:
             plt.savefig(
