@@ -4020,15 +4020,15 @@ class Flight:
         )
         lower_button_position = rail_buttons_tuple.position.z
 
-        # Signed distances from buttons to center of dry mass
-        D1 = upper_button_position - self.rocket.center_of_dry_mass_position(
-            self.rocket._csys
-        )
-        D2 = lower_button_position - self.rocket.center_of_dry_mass_position(
-            self.rocket._csys
-        )
-        d1 = abs(D1)
-        d2 = abs(D2)
+        # Get center of dry mass (handle both callable and property)
+        if callable(self.rocket.center_of_dry_mass_position):
+            cdm = self.rocket.center_of_dry_mass_position(self.rocket._csys)
+        else:
+            cdm = self.rocket.center_of_dry_mass_position
+
+        # Distances from buttons to center of dry mass
+        d1 = abs(upper_button_position - cdm)
+        d2 = abs(lower_button_position - cdm)
 
         # Rail button standoff height
         h_button = rail_buttons_tuple.component.button_height
