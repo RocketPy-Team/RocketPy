@@ -22,6 +22,7 @@ from time import time
 
 import numpy as np
 import simplekml
+from scipy.stats import bootstrap
 
 from rocketpy._encoders import RocketPyEncoder
 from rocketpy.plots.monte_carlo_plots import _MonteCarloPlots
@@ -462,6 +463,67 @@ class MonteCarlo:
             terminate_on_apogee=self.flight.terminate_on_apogee,
             time_overshoot=self.flight.time_overshoot,
         )
+
+    def estimate_confidence_interval(
+        self,
+        attribute,
+        statistic=np.mean,
+        confidence_level=0.95,
+        n_resamples=1000,
+        random_state=None,
+    ):
+        """
+        Estimates the confidence interval for a specific attribute of the results
+        using the bootstrap method.
+
+        Parameters
+        ----------
+        attribute : str
+            The name of the attribute stored in self.results (e.g., "apogee", "max_velocity").
+        statistic : callable, optional
+            A function that computes the statistic of interest (e.g., np.mean, np.std).
+            Default is np.mean.
+        confidence_level : float, optional
+            The confidence level for the interval (between 0 and 1). Default is 0.95.
+        n_resamples : int, optional
+            The number of resamples to perform. Default is 1000.
+        random_state : int or None, optional
+            Seed for the random number generator to ensure reproducibility. If None (default), the random number generator is not seeded.
+
+        Returns
+        -------
+        confidence_interval : ConfidenceInterval
+            An object containing the low and high bounds of the confidence interval.
+            Access via .low and .high.
+        """
+        if attribute not in self.results:
+            available = list(self.results.keys())
+            raise ValueError(
+                f"Attribute '{attribute}' not found in results. Available attributes: {available}"
+            )
+
+        if not 0 < confidence_level < 1:
+            raise ValueError(
+                f"confidence_level must be between 0 and 1, got {confidence_level}"
+            )
+
+        if not isinstance(n_resamples, int) or n_resamples <= 0:
+            raise ValueError(
+                f"n_resamples must be a positive integer, got {n_resamples}"
+            )
+
+        data = (np.array(self.results[attribute]),)
+
+        res = bootstrap(
+            data,
+            statistic,
+            confidence_level=confidence_level,
+            n_resamples=n_resamples,
+            random_state=random_state,
+            method="percentile",
+        )
+
+        return res.confidence_interval
 
     def __evaluate_flight_inputs(self, sim_idx):
         """Evaluates the inputs of a single flight simulation.
