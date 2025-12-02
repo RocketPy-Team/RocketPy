@@ -3974,33 +3974,47 @@ class Flight:
     @cached_property
     def calculate_rail_button_bending_moments(self):
         """
-        Calculate internal bending moments at rail button attachment points.
+          Calculate internal bending moments at rail button attachment points.
 
-        Uses beam theory to determine internal structural moments for stress
-        analysis of the rail button attachments (fasteners and airframe).
+          Uses beam theory to determine internal structural moments for stress
+          analysis of the rail button attachments (fasteners and airframe).
 
-        The bending moment at each button attachment consists of:
-        1. Bending from shear force at button contact point: M = S × h
-        where S is the shear (tangential) force and h is button height
-        2. Direct moment contribution from the button's reaction forces
+          The bending moment at each button attachment consists of:
+          1. Bending from shear force at button contact point: M = S × h
+          where S is the shear (tangential) force and h is button height
+          2. Direct moment contribution from the button's reaction forces
 
-        Notes
-        -----
-        - Calculated only during the rail phase of flight
-        - Maximum values use absolute values for worst-case stress analysis
-        - The bending moments represent internal stresses in the rocket
-        airframe at the rail button attachment points
+          Assumptions
+          -----------
+          - Rail buttons act as simple supports: provide reaction forces (normal
+        and shear) but no moment reaction at the rail contact point.
+          - The rocket acts as a beam supported at two points (rail buttons).
+          - Bending moments arise from the lever arm effect of reaction forces
+          and the cantilever moment from button standoff height.
 
-        Returns
-        -------
-        tuple
-            (rail_button1_bending_moment : Function,
-            max_rail_button1_bending_moment : float,
-            rail_button2_bending_moment : Function,
-            max_rail_button2_bending_moment : float)
+          The bending moment at each button attachment consists of:
+          1. Normal force moment: M = N x d, where N is normal reaction force
+         and d is distance from button to center of dry mass
+          2. Shear force cantilever moment: M = S x h, where S is shear force
+         and h is button standoff height
 
-            Where rail_button1/2_bending_moment are Function objects of time
-            in N·m, and max values are floats in N·m.
+          Notes
+          -----
+          - Calculated only during the rail phase of flight
+          - Maximum values use absolute values for worst-case stress analysis
+          - The bending moments represent internal stresses in the rocket
+          airframe at the rail button attachment points
+
+          Returns
+          -------
+          tuple
+              (rail_button1_bending_moment : Function,
+              max_rail_button1_bending_moment : float,
+              rail_button2_bending_moment : Function,
+              max_rail_button2_bending_moment : float)
+
+              Where rail_button1/2_bending_moment are Function objects of time
+              in N·m, and max values are floats in N·m.
         """
         # Check if rail buttons exist
         null_moment = Function(0)
@@ -4014,6 +4028,15 @@ class Flight:
 
         # Get rail button geometry
         rail_buttons_tuple = self.rocket.rail_buttons[0]
+        # Rail button standoff height
+        h_button = rail_buttons_tuple.component.button_height
+        if h_button is None:
+            warnings.warn(
+                "Rail button height not defined. Bending moments cannot be "
+                "calculated. Setting moments to zero.",
+                UserWarning,
+            )
+            return (null_moment, 0.0, null_moment, 0.0)
         upper_button_position = (
             rail_buttons_tuple.component.buttons_distance
             + rail_buttons_tuple.position.z
@@ -4029,9 +4052,6 @@ class Flight:
         # Distances from buttons to center of dry mass
         d1 = abs(upper_button_position - cdm)
         d2 = abs(lower_button_position - cdm)
-
-        # Rail button standoff height
-        h_button = rail_buttons_tuple.component.button_height
 
         # forces
         N1 = self.rail_button1_normal_force

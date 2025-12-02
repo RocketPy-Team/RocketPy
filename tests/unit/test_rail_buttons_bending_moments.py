@@ -1,43 +1,34 @@
 """Unit tests for RailButtons bending moment formulas and calculation logic.
 
-
 These tests focus on verifying the mathematical correctness and realism
 of the calculate_rail_button_bending_moments method in isolation.
 """
 
 import warnings
 
+import matplotlib.pyplot as plt
 import numpy as np
 
+from rocketpy import Environment, Flight
 from rocketpy.mathutils.function import Function
 from rocketpy.rocket.aero_surface.rail_buttons import RailButtons
 
 
-def test_bending_moment_zero_without_rail_buttons():
-    """Verify bending moments return zero functions if no rail buttons present."""
+def test_bending_moment_zero_without_rail_buttons(calisto_motorless):
+    """Verify bending moments return zero functions if no rail buttons present.
 
-    class NoRailButtonsMock:
-        """Mock Flight class with no rail buttons for testing zero moment case."""
+    Parameters
+    ----------
+    calisto_motorless : rocketpy.Rocket
+        Basic rocket without rail buttons.
+    """
+    # Create a flight with this rocket (no rail buttons)
+    env = Environment(latitude=0, longitude=0)
+    env.set_atmospheric_model(type="standard_atmosphere")
+    flight = Flight(rocket=calisto_motorless, environment=env, rail_length=1)
 
-        def __init__(self):
-            self.rocket = type("", (), {})()
-            self.rocket.rail_buttons = []
-            self.rocket.center_of_dry_mass_position = lambda x: 0
-            self.rocket._csys = 1
-
-        def calculate_rail_button_bending_moments(self):
-            null_moment = Function(0)
-            if len(self.rocket.rail_buttons) == 0:
-                warnings.warn(
-                    "Trying to calculate rail button bending moments without "
-                    "rail buttons defined. Setting moments to zero.",
-                    UserWarning,
-                )
-                return (null_moment, 0.0, null_moment, 0.0)
-
-    flight = NoRailButtonsMock()
-    moments = flight.calculate_rail_button_bending_moments()
-
+    # Should return zero moments
+    moments = flight.calculate_rail_button_bending_moments
     m1_func, max_m1, m2_func, max_m2 = moments
 
     # Verify types
@@ -46,11 +37,51 @@ def test_bending_moment_zero_without_rail_buttons():
     assert isinstance(max_m1, float)
     assert isinstance(max_m2, float)
 
-    # Verify zero functions - check first few values instead of full source
+    # Verify zero functions
     assert m1_func(0) == 0
     assert m1_func(1) == 0
     assert m2_func(0) == 0
     assert m2_func(1) == 0
+    assert max_m1 == 0.0
+    assert max_m2 == 0.0
+
+
+def test_bending_moment_zero_with_none_button_height(calisto_motorless):
+    """Verify bending moments return zero when button_height is None.
+
+    Parameters
+    ----------
+    calisto_motorless : rocketpy.Rocket
+        Basic rocket fixture.
+    """
+    # Add rail buttons with None height (default)
+    calisto_motorless.set_rail_buttons(
+        upper_button_position=0.5,
+        lower_button_position=-0.5,
+        angular_position=45,
+    )
+
+    # Verify button_height is None
+    assert calisto_motorless.rail_buttons[0].component.button_height is None
+
+    # Create flight
+    env = Environment(latitude=0, longitude=0)
+    env.set_atmospheric_model(type="standard_atmosphere")
+    flight = Flight(rocket=calisto_motorless, environment=env, rail_length=1)
+
+    # Should warn and return zero moments
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        moments = flight.calculate_rail_button_bending_moments
+
+        # Verify warning was issued
+        assert len(w) == 1
+        assert "button height not defined" in str(w[0].message).lower()
+
+    m1_func, max_m1, _, max_m2 = moments
+
+    # Verify zero moments returned
+    assert m1_func(0) == 0
     assert max_m1 == 0.0
     assert max_m2 == 0.0
 
@@ -86,7 +117,7 @@ def test_railbuttons_serialization_backward_compat():
     }
 
     rb = RailButtons.from_dict(old_data)
-    assert rb.button_height == 0.015  # Should use default
+    assert rb.button_height is None  # Should use None default
 
 
 def test_railbuttons_angular_position_rad_property():
@@ -106,3 +137,70 @@ def test_railbuttons_no_aero_contribution():
     rb.evaluate_lift_coefficient()
     assert rb.clalpha(1.0) == 0  # Zero lift derivative
     assert rb.cl(0.1, 1.0) == 0  # Zero lift coefficient
+
+
+def test_rail_button_bending_moments_prints(flight_calisto_robust, capsys):
+    """Test that bending moments are printed correctly in flight.prints.
+
+    Parameters
+    ----------
+    flight_calisto_robust : rocketpy.Flight
+        Flight fixture with motor and rail buttons.
+    capsys : pytest fixture
+        Captures stdout/stderr.
+    """
+    # Set button height on existing rail buttons
+    flight_calisto_robust.rocket.rail_buttons[0].component.button_height = 0.02
+
+    # Call the print method
+    flight_calisto_robust.prints.rail_button_bending_moments()
+
+    # Capture output
+    captured = capsys.readouterr()
+
+    # Verify output contains bending moment data
+    assert "Rail Button Bending Moments" in captured.out
+    assert "Maximum Upper Rail Button Bending Moment" in captured.out
+    assert "Maximum Lower Rail Button Bending Moment" in captured.out
+    assert "N·m" in captured.out
+
+
+def test_rail_button_bending_moments_plot_with_height(flight_calisto_robust):
+    """Test that bending moments plot is created when button_height is defined.
+
+    Parameters
+    ----------
+    flight_calisto_robust : rocketpy.Flight
+        Flight fixture with motor and rail buttons.
+    """
+    # Set button height on existing rail buttons
+    flight_calisto_robust.rocket.rail_buttons[0].component.button_height = 0.02
+
+    # Should not raise an error
+    flight_calisto_robust.plots.rail_buttons_bending_moments()
+
+    # Close the figure to avoid memory issues
+    plt.close("all")
+
+
+def test_rail_button_bending_moments_plot_without_height(flight_calisto_robust, capsys):
+    """Test that bending moments plot is skipped when button_height is None.
+
+    Parameters
+    ----------
+    flight_calisto_robust : rocketpy.Flight
+        Flight fixture with motor and rail buttons.
+    capsys : pytest fixture
+        Captures stdout/stderr.
+    """
+    # Ensure button_height is None (it should be by default now)
+    flight_calisto_robust.rocket.rail_buttons[0].component.button_height = None
+
+    # Call plot method
+    flight_calisto_robust.plots.rail_buttons_bending_moments()
+
+    # Capture output
+    captured = capsys.readouterr()
+
+    # Should print skip message
+    assert "height not defined" in captured.out
