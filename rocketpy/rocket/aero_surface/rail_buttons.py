@@ -19,12 +19,17 @@ class RailButtons(AeroSurface):
         relative to one of the other principal axis.
     RailButtons.angular_position_rad : float
         Angular position of the rail buttons in radians.
+    RailButtons.button_height : float
+        Height (standoff distance) of the rail button from the rocket
+        body surface to the rail contact point, in meters. Used for
+        calculating bending moments at the attachment point.
     """
 
     def __init__(
         self,
         buttons_distance,
         angular_position=45,
+        button_height=0.015,
         name="Rail Buttons",
         rocket_radius=None,
     ):
@@ -48,6 +53,7 @@ class RailButtons(AeroSurface):
         super().__init__(name, None, None)
         self.buttons_distance = buttons_distance
         self.angular_position = angular_position
+        self.button_height = button_height
         self.name = name
         self.rocket_radius = rocket_radius
         self.evaluate_lift_coefficient()
@@ -104,6 +110,7 @@ class RailButtons(AeroSurface):
         return {
             "buttons_distance": self.buttons_distance,
             "angular_position": self.angular_position,
+            "button_height": self.button_height,
             "name": self.name,
             "rocket_radius": self.rocket_radius,
         }
@@ -113,6 +120,7 @@ class RailButtons(AeroSurface):
         return cls(
             data["buttons_distance"],
             data["angular_position"],
+            data.get("button_height", 0.015),
             data["name"],
             data["rocket_radius"],
         )
