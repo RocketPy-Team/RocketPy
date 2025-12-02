@@ -6,7 +6,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.transforms import offset_copy
 
-from ..tools import generate_monte_carlo_ellipses, import_optional_dependency, inverted_haversine, haversine
+from ..tools import (
+    generate_monte_carlo_ellipses,
+    import_optional_dependency,
+    inverted_haversine,
+    haversine,
+)
 from .plot_helpers import show_or_save_plot
 
 
@@ -50,7 +55,7 @@ class _MonteCarloPlots:
                     "contextily library is required for automatic map background. "
                     "Install it via 'pip install contextily' or 'pip install rocketpy[monte-carlo]'. "
                     "Plotting without background.",
-                    UserWarning
+                    UserWarning,
                 )
                 return None, None
 
@@ -113,11 +118,18 @@ class _MonteCarloPlots:
                     dist = (x**2 + y**2) ** 0.5
                     # Calculate bearing: 0 is North (Y), 90 is East (X)
                     bearing = np.degrees(np.arctan2(x, y))
-                    lat, lon = inverted_haversine(origin_lat, origin_lon, dist, bearing, earth_radius)
+                    lat, lon = inverted_haversine(
+                        origin_lat, origin_lon, dist, bearing, earth_radius
+                    )
                     req_lats.append(lat)
                     req_lons.append(lon)
 
-                west, south, east, north = min(req_lons), min(req_lats), max(req_lons), max(req_lats)
+                west, south, east, north = (
+                    min(req_lons),
+                    min(req_lats),
+                    max(req_lons),
+                    max(req_lats),
+                )
 
                 bg, mercator_extent = contextily.bounds2img(
                     west, south, east, north, source=source_provider, ll=True
@@ -127,32 +139,52 @@ class _MonteCarloPlots:
                 def mercator_to_wgs84(x, y):
                     r_major = 6378137.0
                     lon = x / r_major * 180.0 / math.pi
-                    lat = (2 * math.atan(math.exp(y / r_major)) - math.pi / 2.0) * 180.0 / math.pi
+                    lat = (
+                        (2 * math.atan(math.exp(y / r_major)) - math.pi / 2.0)
+                        * 180.0
+                        / math.pi
+                    )
                     return lat, lon
 
                 # Convert corners of the fetched image
-                bg_lat_min, bg_lon_min = mercator_to_wgs84(mercator_extent[0], mercator_extent[2]) # Bottom-Left
-                bg_lat_max, bg_lon_max = mercator_to_wgs84(mercator_extent[1], mercator_extent[3]) # Top-Right
+                bg_lat_min, bg_lon_min = mercator_to_wgs84(
+                    mercator_extent[0], mercator_extent[2]
+                )  # Bottom-Left
+                bg_lat_max, bg_lon_max = mercator_to_wgs84(
+                    mercator_extent[1], mercator_extent[3]
+                )  # Top-Right
 
                 # Calculate X/Y meters relative to origin (lat0, lon0) using haversine
                 # X = Distance along longitude (East-West)
                 # Y = Distance along latitude (North-South)
 
                 # Calculate X min (Left)
-                x_min = haversine(origin_lat, origin_lon, origin_lat, bg_lon_min, earth_radius)
-                if bg_lon_min < origin_lon: x_min = -x_min
+                x_min = haversine(
+                    origin_lat, origin_lon, origin_lat, bg_lon_min, earth_radius
+                )
+                if bg_lon_min < origin_lon:
+                    x_min = -x_min
 
                 # Calculate X max (Right)
-                x_max = haversine(origin_lat, origin_lon, origin_lat, bg_lon_max, earth_radius)
-                if bg_lon_max < origin_lon: x_max = -x_max
+                x_max = haversine(
+                    origin_lat, origin_lon, origin_lat, bg_lon_max, earth_radius
+                )
+                if bg_lon_max < origin_lon:
+                    x_max = -x_max
 
                 # Calculate Y min (Bottom)
-                y_min = haversine(origin_lat, origin_lon, bg_lat_min, origin_lon, earth_radius)
-                if bg_lat_min < origin_lat: y_min = -y_min
+                y_min = haversine(
+                    origin_lat, origin_lon, bg_lat_min, origin_lon, earth_radius
+                )
+                if bg_lat_min < origin_lat:
+                    y_min = -y_min
 
                 # Calculate Y max (Top)
-                y_max = haversine(origin_lat, origin_lon, bg_lat_max, origin_lon, earth_radius)
-                if bg_lat_max < origin_lat: y_max = -y_max
+                y_max = haversine(
+                    origin_lat, origin_lon, bg_lat_max, origin_lon, earth_radius
+                )
+                if bg_lat_max < origin_lat:
+                    y_max = -y_max
 
                 return bg, [x_min, x_max, y_min, y_max]
 
@@ -216,7 +248,7 @@ class _MonteCarloPlots:
                     "The image file was not found. Please check the path."
                 ) from e
 
-        bg ,local_extent = None, None
+        bg, local_extent = None, None
         if image is None and background is not None:
             bg, local_extent = self._get_background_map(background, xlim, ylim)
 
@@ -311,19 +343,14 @@ class _MonteCarloPlots:
             )
 
         elif bg is not None and local_extent is not None:
-            plt.imshow(
-                bg,
-                extent=local_extent,
-                zorder=0,
-                interpolation="bilinear"
-            )
+            plt.imshow(bg, extent=local_extent, zorder=0, interpolation="bilinear")
 
         plt.axhline(0, color="black", linewidth=0.5)
         plt.axvline(0, color="black", linewidth=0.5)
         plt.xlim(*xlim)
         plt.ylim(*ylim)
         # Set equal aspect ratio to ensure consistent display regardless of background
-        ax.set_aspect('equal')
+        ax.set_aspect("equal")
 
         if save:
             plt.savefig(
@@ -511,8 +538,7 @@ class _MonteCarloPlots:
                     "The image file was not found. Please check the path."
                 ) from e
 
-
-        bg ,local_extent = None, None
+        bg, local_extent = None, None
         if image is None and background is not None:
             bg, local_extent = self._get_background_map(background, xlim, ylim)
 
@@ -637,18 +663,13 @@ class _MonteCarloPlots:
                 ],
             )
         elif bg is not None and local_extent is not None:
-            plt.imshow(
-                bg,
-                extent=local_extent,
-                zorder=0,
-                interpolation="bilinear"
-            )
+            plt.imshow(bg, extent=local_extent, zorder=0, interpolation="bilinear")
 
         plt.axhline(0, color="black", linewidth=0.5)
         plt.axvline(0, color="black", linewidth=0.5)
         plt.xlim(*xlim)
         plt.ylim(*ylim)
-        plt.aspect('equal')
+        plt.aspect("equal")
 
         if save:
             plt.savefig(

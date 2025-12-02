@@ -138,8 +138,9 @@ def test_ellipses_image_takes_precedence_over_background(
         # Test that when both image and background are provided, image takes precedence
         # This should not attempt to download background map
         import numpy as np
+
         mock_image = np.zeros((100, 100, 3), dtype=np.uint8)  # RGB image
-        
+
         with patch("imageio.imread") as mock_imread:
             mock_imread.return_value = mock_image
             result = monte_carlo_calisto_pre_loaded.plots.ellipses(
@@ -171,7 +172,9 @@ def test_ellipses_background_no_environment():
     mock_monte_carlo = MockMonteCarlo()
     plots = _MonteCarloPlots(mock_monte_carlo)
 
-    with pytest.raises(ValueError, match="MonteCarlo object must have an 'environment' attribute"):
+    with pytest.raises(
+        ValueError, match="MonteCarlo object must have an 'environment' attribute"
+    ):
         plots.ellipses(background="satellite")
 
 
@@ -191,12 +194,16 @@ def test_ellipses_background_no_latitude_longitude():
 
     plots = _MonteCarloPlots(mock_monte_carlo)
 
-    with pytest.raises(ValueError, match="Environment must have 'latitude' and 'longitude' attributes"):
+    with pytest.raises(
+        ValueError, match="Environment must have 'latitude' and 'longitude' attributes"
+    ):
         plots.ellipses(background="satellite")
 
 
 @patch("matplotlib.pyplot.show")
-def test_ellipses_background_contextily_not_installed(mock_show, monte_carlo_calisto_pre_loaded):
+def test_ellipses_background_contextily_not_installed(
+    mock_show, monte_carlo_calisto_pre_loaded
+):
     """Test that a warning is issued when contextily is not installed.
 
     Parameters
@@ -215,19 +222,28 @@ def test_ellipses_background_contextily_not_installed(mock_show, monte_carlo_cal
                 raise ImportError("No module named 'contextily'")
             return original_import(name)
 
-        with patch("rocketpy.plots.monte_carlo_plots.import_optional_dependency", side_effect=mock_import_optional_dependency):
+        with patch(
+            "rocketpy.plots.monte_carlo_plots.import_optional_dependency",
+            side_effect=mock_import_optional_dependency,
+        ):
             with warnings.catch_warnings(record=True) as w:
                 warnings.simplefilter("always")
-                result = monte_carlo_calisto_pre_loaded.plots.ellipses(background="satellite")
+                result = monte_carlo_calisto_pre_loaded.plots.ellipses(
+                    background="satellite"
+                )
                 assert result is None
                 assert len(w) > 0
-                assert any("contextily" in str(warning.message).lower() for warning in w)
+                assert any(
+                    "contextily" in str(warning.message).lower() for warning in w
+                )
     finally:
         _post_test_file_cleanup()
 
 
 @patch("matplotlib.pyplot.show")
-def test_ellipses_background_with_custom_xlim_ylim(mock_show, monte_carlo_calisto_pre_loaded):
+def test_ellipses_background_with_custom_xlim_ylim(
+    mock_show, monte_carlo_calisto_pre_loaded
+):
     """Test using background with custom xlim and ylim.
 
     Parameters
@@ -270,4 +286,3 @@ def test_ellipses_background_save(mock_show, monte_carlo_calisto_pre_loaded):
         assert os.path.exists("monte_carlo_test.png")
     finally:
         _post_test_file_cleanup()
-

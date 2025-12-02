@@ -18,12 +18,12 @@ plt.rcParams.update({"figure.max_open_warning": 0})
 
 def create_kennedy_environment():
     """Create an Environment object for Kennedy Space Center.
-    
+
     Kennedy Space Center coordinates:
     - Latitude: 28.5721° N
     - Longitude: -80.6480° W
     - Elevation: ~3 meters
-    
+
     Returns
     -------
     Environment
@@ -44,7 +44,7 @@ def create_kennedy_environment():
 
 def create_simulated_monte_carlo_data():
     """Create a MonteCarlo object with simulated results data.
-    
+
     Returns
     -------
     MonteCarlo
@@ -61,7 +61,6 @@ def create_simulated_monte_carlo_data():
         latitude=None,
         longitude=None,
     )
-
 
     from unittest.mock import MagicMock
 
@@ -100,7 +99,7 @@ def create_simulated_monte_carlo_data():
 
 def test_all_background_options():
     """Test all background map options and save images.
-    
+
     This function tests:
     - None (no background)
     - satellite
