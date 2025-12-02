@@ -1,10 +1,12 @@
+import math
 from pathlib import Path
+import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.transforms import offset_copy
 
-from ..tools import generate_monte_carlo_ellipses, import_optional_dependency
+from ..tools import generate_monte_carlo_ellipses, import_optional_dependency, inverted_haversine, haversine
 from .plot_helpers import show_or_save_plot
 
 
@@ -14,10 +16,135 @@ class _MonteCarloPlots:
     def __init__(self, monte_carlo):
         self.monte_carlo = monte_carlo
 
+    def _get_background_map(self, background, xlim, ylim):
+        if background is None:
+            return None, None
+        else:
+            try:
+                contextily = import_optional_dependency("contextily")
+            except ImportError:
+                warnings.warn(
+                    "contextily library is required for automatic map background. "
+                    "Install it via 'pip install contextily' or 'pip install rocketpy[monte-carlo]'. "
+                    "Plotting without background.",
+                    UserWarning
+                )
+                return None, None
+
+            if not hasattr(self.monte_carlo, "environment"):
+                raise ValueError(
+                    "MonteCarlo object must have an 'environment' attribute "
+                    "to use automatic map background."
+                )
+            env = self.monte_carlo.environment
+            if not hasattr(env, "latitude") or not hasattr(env, "longitude"):
+                raise ValueError(
+                    "Environment must have 'latitude' and 'longitude' attributes."
+                )
+
+            try:
+
+                # Handle both StochasticEnvironment (which stores as lists) and Environment (which stores as scalars)
+                origin_lat = env.latitude
+                origin_lon = env.longitude
+                if isinstance(origin_lat, (list, tuple)):
+                    origin_lat = origin_lat[0]
+                if isinstance(origin_lon, (list, tuple)):
+                    origin_lon = origin_lon[0]
+                # Get earth_radius from the underlying Environment object if available
+                if hasattr(env, "obj") and hasattr(env.obj, "earth_radius"):
+                    earth_radius = env.obj.earth_radius
+                else:
+                    earth_radius = getattr(env, "earth_radius", 6.3781e6)
+
+                if background == "satellite":
+                    map_provider = "Esri.WorldImagery"
+                elif background == "street":
+                    map_provider = "OpenStreetMap.Mapnik"
+                elif background == "terrain":
+                    map_provider = "Esri.WorldTopoMap"
+                else:
+                    map_provider = background
+
+                # Helper to resolve provider string (e.g., "Esri.WorldImagery") to object
+                source_provider = map_provider
+                if isinstance(map_provider, str):
+                    try:
+                        # Attempt to traverse contextily.providers
+                        p = contextily.providers
+                        for key in map_provider.split("."):
+                            p = p[key]
+                        source_provider = p
+                    except (KeyError, AttributeError):
+                        pass
+
+                corners_xy = [
+                    (xlim[0], ylim[0]),  # Bottom-Left
+                    (xlim[0], ylim[1]),  # Top-Left
+                    (xlim[1], ylim[0]),  # Bottom-Right
+                    (xlim[1], ylim[1]),  # Top-Right
+                ]
+                req_lats, req_lons = [], []
+
+                for x, y in corners_xy:
+                    dist = (x**2 + y**2) ** 0.5
+                    # Calculate bearing: 0 is North (Y), 90 is East (X)
+                    bearing = np.degrees(np.arctan2(x, y))
+                    lat, lon = inverted_haversine(origin_lat, origin_lon, dist, bearing, earth_radius)
+                    req_lats.append(lat)
+                    req_lons.append(lon)
+
+                west, south, east, north = min(req_lons), min(req_lats), max(req_lons), max(req_lats)
+
+                bg, mercator_extent = contextily.bounds2img(
+                    west, south, east, north, source=source_provider, ll=True
+                )
+
+                # Helper: Web Mercator (3857) to WGS84 (4326) without pyproj dependency
+                def mercator_to_wgs84(x, y):
+                    r_major = 6378137.0
+                    lon = x / r_major * 180.0 / math.pi
+                    lat = (2 * math.atan(math.exp(y / r_major)) - math.pi / 2.0) * 180.0 / math.pi
+                    return lat, lon
+
+                # Convert corners of the fetched image
+                bg_lat_min, bg_lon_min = mercator_to_wgs84(mercator_extent[0], mercator_extent[2]) # Bottom-Left
+                bg_lat_max, bg_lon_max = mercator_to_wgs84(mercator_extent[1], mercator_extent[3]) # Top-Right
+
+                # Calculate X/Y meters relative to origin (lat0, lon0) using haversine
+                # X = Distance along longitude (East-West)
+                # Y = Distance along latitude (North-South)
+
+                # Calculate X min (Left)
+                x_min = haversine(origin_lat, origin_lon, origin_lat, bg_lon_min, earth_radius)
+                if bg_lon_min < origin_lon: x_min = -x_min
+
+                # Calculate X max (Right)
+                x_max = haversine(origin_lat, origin_lon, origin_lat, bg_lon_max, earth_radius)
+                if bg_lon_max < origin_lon: x_max = -x_max
+
+                # Calculate Y min (Bottom)
+                y_min = haversine(origin_lat, origin_lon, bg_lat_min, origin_lon, earth_radius)
+                if bg_lat_min < origin_lat: y_min = -y_min
+
+                # Calculate Y max (Top)
+                y_max = haversine(origin_lat, origin_lon, bg_lat_max, origin_lon, earth_radius)
+                if bg_lat_max < origin_lat: y_max = -y_max
+
+                return bg, [x_min, x_max, y_min, y_max]
+
+            except Exception as e:
+                warnings.warn(
+                    f"Unable to fetch background map '{background}'. "
+                    f"Error: {e}. Plotting without background."
+                )
+                return None, None
+
     # pylint: disable=too-many-statements
     def ellipses(
         self,
         image=None,
+        background=None,
         actual_landing_point=None,
         perimeter_size=3000,
         xlim=(-3000, 3000),
@@ -31,6 +158,14 @@ class _MonteCarloPlots:
         ----------
         image : str, optional
             Path to the background image, usually a map of the launch site.
+            If both `image` and `background` are provided, `image` takes precedence.
+        background : str, optional
+            Type of background map to automatically download and display.
+            Options: "satellite" (uses Esri.WorldImagery)
+                     "street" (uses OpenStreetMap.Mapnik)
+                     "terrain" (uses Esri.WorldTopoMap)
+                     or any contextily provider name (e.g., "CartoDB.Positron").
+            If both `image` and `background` are provided, `image` takes precedence.
         actual_landing_point : tuple, optional
             Actual landing point of the rocket in (x, y) meters.
         perimeter_size : int, optional
@@ -58,6 +193,10 @@ class _MonteCarloPlots:
                 raise FileNotFoundError(
                     "The image file was not found. Please check the path."
                 ) from e
+
+        bg ,local_extent = None, None
+        if image is None and background is not None:
+            bg, local_extent = self._get_background_map(background, xlim, ylim)
 
         try:
             apogee_x = np.array(self.monte_carlo.results["apogee_x"])
@@ -132,7 +271,6 @@ class _MonteCarloPlots:
         ax.text(0, 1, "North", va="top", ha="left", transform=north_south_offset)
         ax.set_ylabel("Y (m)")
         ax.set_xlabel("X (m)")
-
         # Add background image to plot
         # TODO: In the future, integrate with other libraries to plot the map (e.g. cartopy, ee, etc.)
         # You can translate the basemap by changing dx and dy (in meters)
@@ -150,10 +288,20 @@ class _MonteCarloPlots:
                 ],
             )
 
+        elif bg is not None and local_extent is not None:
+            plt.imshow(
+                bg,
+                extent=local_extent,
+                zorder=0,
+                interpolation="bilinear"
+            )
+
         plt.axhline(0, color="black", linewidth=0.5)
         plt.axvline(0, color="black", linewidth=0.5)
         plt.xlim(*xlim)
         plt.ylim(*ylim)
+        # Set equal aspect ratio to ensure consistent display regardless of background
+        ax.set_aspect('equal')
 
         if save:
             plt.savefig(
@@ -294,6 +442,7 @@ class _MonteCarloPlots:
         self,
         other_monte_carlo,
         image=None,
+        background=None,
         perimeter_size=3000,
         xlim=(-3000, 3000),
         ylim=(-3000, 3000),
@@ -308,6 +457,13 @@ class _MonteCarloPlots:
             MonteCarlo object which the current one will be compared to.
         image : str, optional
             Path to the background image, usually a map of the launch site.
+        background : str, optional
+            Type of background map to automatically download and display.
+            Options: "satellite" (uses Esri.WorldImagery)
+                     "street" (uses OpenStreetMap.Mapnik)
+                     "terrain" (uses Esri.WorldTopoMap)
+                     or any contextily provider name (e.g., "CartoDB.Positron").
+            If both `image` and `background` are provided, `image` takes precedence.
         perimeter_size : int, optional
             Size of the perimeter to be plotted. Default is 3000.
         xlim : tuple, optional
@@ -332,6 +488,11 @@ class _MonteCarloPlots:
                 raise FileNotFoundError(
                     "The image file was not found. Please check the path."
                 ) from e
+
+
+        bg ,local_extent = None, None
+        if image is None and background is not None:
+            bg, local_extent = self._get_background_map(background, xlim, ylim)
 
         try:
             original_apogee_x = np.array(self.monte_carlo.results["apogee_x"])
@@ -453,11 +614,19 @@ class _MonteCarloPlots:
                     perimeter_size - dy,
                 ],
             )
+        elif bg is not None and local_extent is not None:
+            plt.imshow(
+                bg,
+                extent=local_extent,
+                zorder=0,
+                interpolation="bilinear"
+            )
 
         plt.axhline(0, color="black", linewidth=0.5)
         plt.axvline(0, color="black", linewidth=0.5)
         plt.xlim(*xlim)
         plt.ylim(*ylim)
+        plt.aspect('equal')
 
         if save:
             plt.savefig(
