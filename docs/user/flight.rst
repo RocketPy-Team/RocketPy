@@ -285,15 +285,18 @@ During the rail launch phase, RocketPy calculates reaction forces and internal b
 - ``rail_button2_bending_moment`` : Time-dependent bending moment at lower rail button attachment  
 - ``max_rail_button2_bending_moment`` : Maximum absolute bending moment at lower rail button
 
-These bending moments are calculated using beam theory, combining:
-1. Shear force x button height (cantilever moment)
-2. Normal reaction forces x distance to center of dry mass (lever arm moment)
+**Calculation Method:**
 
-The moments are zero after rail departure and represent internal structural loads for airframe and fastener stress analysis.
+Bending moments are calculated using beam theory assuming simple supports (rail buttons provide reaction forces but no moment reaction at rail contact). The total moment combines:
+
+1. Shear force × button height (cantilever moment from button standoff)
+2. Normal force × distance to center of dry mass (lever arm effect)
+
+Moments are zero after rail departure and represent internal structural loads for airframe and fastener stress analysis. Requires ``button_height`` to be defined when adding rail buttons via ``rocket.set_rail_buttons()``.
 
 .. note::
-   Requires rail buttons to be defined on the Rocket using ``rocket.set_rail_buttons()``.
-   See Issue #893 for implementation details.
+   See Issue #893 for implementation details and validation approach.
+
 
 
 Attitude and Orientation
