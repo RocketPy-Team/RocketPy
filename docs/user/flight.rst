@@ -266,6 +266,36 @@ The Flight object provides access to all forces and accelerations acting on the 
     M2 = flight.M2                   # Pitch moment
     M3 = flight.M3                   # Yaw moment
 
+Rail Button Forces and Bending Moments
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+During the rail launch phase, RocketPy calculates reaction forces and internal bending moments at the rail button attachment points:
+
+**Rail Button Forces (N):**
+
+- ``rail_button1_normal_force`` : Normal reaction force at upper rail button
+- ``rail_button1_shear_force`` : Shear (tangential) reaction force at upper rail button  
+- ``rail_button2_normal_force`` : Normal reaction force at lower rail button
+- ``rail_button2_shear_force`` : Shear (tangential) reaction force at lower rail button
+
+**Rail Button Bending Moments (N⋅m):**
+
+- ``rail_button1_bending_moment`` : Time-dependent bending moment at upper rail button attachment
+- ``max_rail_button1_bending_moment`` : Maximum absolute bending moment at upper rail button
+- ``rail_button2_bending_moment`` : Time-dependent bending moment at lower rail button attachment  
+- ``max_rail_button2_bending_moment`` : Maximum absolute bending moment at lower rail button
+
+These bending moments are calculated using beam theory, combining:
+1. Shear force x button height (cantilever moment)
+2. Normal reaction forces x distance to center of dry mass (lever arm moment)
+
+The moments are zero after rail departure and represent internal structural loads for airframe and fastener stress analysis.
+
+.. note::
+   Requires rail buttons to be defined on the Rocket using ``rocket.set_rail_buttons()``.
+   See Issue #893 for implementation details.
+
+
 Attitude and Orientation
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
