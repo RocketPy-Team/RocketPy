@@ -1,4 +1,3 @@
-# pylint: disable=cyclic-import
 import pytest
 
 from rocketpy.rocket.aero_surface import (
