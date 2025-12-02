@@ -2573,7 +2573,7 @@ class Flight:
 
     @funcify_method("Time (s)", "Axial Acceleration (m/s²)", "spline", "zero")
     def axial_acceleration(self):
-        """Axial acceleration magnitude as a function of time, in m/s²."""
+        """Axial acceleration magnitude as a Function of time."""
         return (
             self.ax * self.attitude_vector_x
             + self.ay * self.attitude_vector_y
