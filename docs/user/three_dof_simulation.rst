@@ -418,7 +418,7 @@ in the :class:`rocketpy.Flight` class:
         inclination=85,
         heading=45,
         simulation_mode="3 DOF",
-        weathercock_coeff=1.0,  # Default value
+        weathercock_coeff=1.0,  # Example with weathercocking enabled
     )
 
     print(f"Apogee: {flight.apogee - env.elevation:.2f} m")

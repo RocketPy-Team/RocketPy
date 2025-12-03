@@ -108,10 +108,8 @@ def test_simulation_mode_sets_3dof_with_point_mass_rocket(flight_3dof):
 
     Parameters
     ----------
-    example_plain_env : rocketpy.Environment
-        A basic environment fixture for flight simulation.
-    point_mass_rocket : rocketpy.PointMassRocket
-        A point mass rocket fixture for 3-DOF simulation.
+    flight_3dof : rocketpy.simulation.flight.Flight
+        A Flight fixture configured for 3-DOF simulation with a PointMassRocket.
     """
     assert flight_3dof.simulation_mode == "3 DOF"
 
@@ -145,12 +143,6 @@ def test_u_dot_generalized_3dof_returns_valid_result(flight_3dof):
     Verifies that the u_dot_generalized_3dof method returns a list or numpy
     array representing the state derivative vector.
 
-    Parameters
-    ----------
-    example_plain_env : rocketpy.Environment
-        A basic environment fixture for flight simulation.
-    point_mass_rocket : rocketpy.PointMassRocket
-        A point mass rocket fixture for 3-DOF simulation.
     """
     flight = flight_3dof
     u = [0] * 13  # Generalized state vector size
