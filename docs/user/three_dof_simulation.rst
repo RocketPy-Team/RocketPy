@@ -448,7 +448,7 @@ relative wind. This affects the lateral motion and impact point:
      - Original 3-DOF behavior
    * - 1.0
      - Moderate
-     - Default, general purpose
+     - General purpose
    * - 2.0-5.0
      - Fast
      - Highly stable rockets
