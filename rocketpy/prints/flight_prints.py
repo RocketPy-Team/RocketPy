@@ -358,6 +358,34 @@ class _FlightPrints:
                 f"{self.flight.max_rail_button2_shear_force:.3f} N"
             )
 
+    def rail_button_bending_moments(self):
+        """Prints rail button bending moment data.
+
+        Returns
+        -------
+        None
+        """
+        if (
+            len(self.flight.rocket.rail_buttons) == 0
+            or self.flight.out_of_rail_time_index == 0
+        ):
+            return
+
+        # Check if button_height is defined
+        rail_buttons_tuple = self.flight.rocket.rail_buttons[0]
+        if rail_buttons_tuple.component.button_height is None:
+            return
+
+        print("\nRail Button Bending Moments\n")
+        print(
+            "Maximum Upper Rail Button Bending Moment: "
+            f"{self.flight.max_rail_button1_bending_moment:.3f} N·m"
+        )
+        print(
+            "Maximum Lower Rail Button Bending Moment: "
+            f"{self.flight.max_rail_button2_bending_moment:.3f} N·m"
+        )
+
     def stability_margin(self):
         """Prints out the stability margins of the flight at different times.
 
@@ -427,6 +455,9 @@ class _FlightPrints:
         print()
 
         self.maximum_values()
+        print()
+
+        self.rail_button_bending_moments()
         print()
 
         self.numerical_integration_settings()
