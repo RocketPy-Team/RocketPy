@@ -85,7 +85,7 @@ def test_bending_moment_zero_with_none_button_height(calisto_motorless):
 
 def test_bending_moment_zero_with_default_button_height(calisto_motorless):
     """Verify bending moments return zero when button_height uses default value.
-    
+
     Parameters
     ----------
     calisto_motorless : rocketpy.Rocket
@@ -98,7 +98,7 @@ def test_bending_moment_zero_with_default_button_height(calisto_motorless):
         angular_position=45,
         # button_height not specified - should default to None
     )
-    
+
     # Verify default is None
     assert calisto_motorless.rail_buttons[0].component.button_height is None
 
