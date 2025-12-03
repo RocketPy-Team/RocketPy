@@ -1976,6 +1976,12 @@ class Flight:
                         # If parallel, use y axis
                         y_axis = Vector([0.0, 1.0, 0.0])
                         perp_axis = body_z_inertial ^ y_axis
+                        if abs(perp_axis) < 1e-6:
+                            # If still parallel, raise an error or choose a default axis
+                            raise ValueError(
+                                "Cannot determine a valid rotation axis: "
+                                "body_z_inertial is parallel to both x and y axes."
+                            )
                     rotation_axis = perp_axis.unit_vector
                     # 180 degree rotation: sin(angle) = 1
                     omega_mag = self.weathercock_coeff * 1.0
