@@ -22,6 +22,7 @@ from scipy.interpolate import (
     LinearNDInterpolator,
     NearestNDInterpolator,
     RBFInterpolator,
+    RegularGridInterpolator,
 )
 
 from rocketpy.plots.plot_helpers import show_or_save_plot
@@ -43,6 +44,7 @@ INTERPOLATION_TYPES = {
     "spline": 3,
     "shepard": 4,
     "rbf": 5,
+    "regular_grid": 6,
 }
 EXTRAPOLATION_TYPES = {"zero": 0, "natural": 1, "constant": 2}
 
@@ -365,6 +367,18 @@ class Function:  # pylint: disable=too-many-public-methods
             self.__set_extrapolation_func()
         return self
 
+    @property
+    def is_multidimensional(self):
+        """Return True when the Function has domain dimension greater than 1.
+
+        This abstracts checks for multi-dimensionality so callers don't need
+        to inspect internal attributes like ``__inputs__`` or ``__dom_dim__``.
+        """
+        try:
+            return int(self.__dom_dim__) > 1
+        except (AttributeError, TypeError):
+            return False
+
     def __set_interpolation_func(self):  # pylint: disable=too-many-statements
         """Defines interpolation function used by the Function. Each
         interpolation method has its own function`.
@@ -448,6 +462,41 @@ class Function:  # pylint: disable=too-many-public-methods
                 return interpolator(x)
 
             self._interpolation_func = rbf_interpolation
+
+        elif interpolation == 6:  # regular_grid (RegularGridInterpolator)
+            # For grid interpolation, the actual interpolator is stored separately
+            # This function is a placeholder that should not be called directly
+            # since __get_value_opt_grid is used instead
+            if hasattr(self, "_grid_interpolator"):
+
+                def grid_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
+                    return self._grid_interpolator(x)
+
+                self._interpolation_func = grid_interpolation
+            else:
+                # Fallback to shepard if grid interpolator not available
+                warnings.warn(
+                    "Grid interpolator not found, falling back to shepard interpolation"
+                )
+
+                def shepard_fallback(x, x_min, x_max, x_data, y_data, _):
+                    # pylint: disable=unused-argument
+                    arg_qty, arg_dim = x.shape
+                    result = np.empty(arg_qty)
+                    x = x.reshape((arg_qty, 1, arg_dim))
+                    sub_matrix = x_data - x
+                    distances_squared = np.sum(sub_matrix**2, axis=2)
+                    zero_distances = np.where(distances_squared == 0)
+                    valid_indexes = np.ones(arg_qty, dtype=bool)
+                    valid_indexes[zero_distances[0]] = False
+                    weights = distances_squared[valid_indexes] ** (-1.5)
+                    numerator_sum = np.sum(y_data * weights, axis=1)
+                    denominator_sum = np.sum(weights, axis=1)
+                    result[valid_indexes] = numerator_sum / denominator_sum
+                    result[~valid_indexes] = y_data[zero_distances[1]]
+                    return result
+
+                self._interpolation_func = shepard_fallback
 
         else:
             raise ValueError(f"Interpolation {interpolation} method not recognized.")
@@ -631,6 +680,66 @@ class Function:  # pylint: disable=too-many-public-methods
             )
 
         if arg_qty == 1:
+            return float(result[0])
+
+        return result
+
+    def __get_value_opt_grid(self, *args):  # pylint: disable=unused-private-member
+        """Evaluate the Function using RegularGridInterpolator for structured grids.
+
+        This method is dynamically assigned in from_grid() class method.
+
+        Parameters
+        ----------
+        args : tuple
+            Values where the Function is to be evaluated. Must match the number
+            of dimensions of the grid.
+
+        Returns
+        -------
+        result : scalar or ndarray
+            Value of the Function at the specified points.
+        """
+        # Check if we have the grid interpolator
+        if not hasattr(self, "_grid_interpolator"):
+            raise RuntimeError(
+                "Grid interpolator not initialized. Use from_grid() to create "
+                "a Function with grid interpolation."
+            )
+
+        # Convert args to appropriate format for RegularGridInterpolator
+        # RegularGridInterpolator expects points as (N, ndim) array
+        if len(args) != self.__dom_dim__:
+            raise ValueError(
+                f"Expected {self.__dom_dim__} arguments but got {len(args)}"
+            )
+
+        # Handle single point evaluation
+        point = np.array(args).reshape(1, -1)
+
+        # Handle extrapolation based on the extrapolation setting
+        if self.__extrapolation__ == "constant":
+            # Clamp point to grid boundaries for constant extrapolation
+            for i, axis in enumerate(self._grid_axes):
+                point[0, i] = np.clip(point[0, i], axis[0], axis[-1])
+            result = self._grid_interpolator(point)
+        elif self.__extrapolation__ == "zero":
+            # Check if point is outside bounds
+            outside_bounds = False
+            for i, axis in enumerate(self._grid_axes):
+                if point[0, i] < axis[0] or point[0, i] > axis[-1]:
+                    outside_bounds = True
+                    break
+            if outside_bounds:
+                result = np.array([0.0])
+            else:
+                result = self._grid_interpolator(point)
+        else:
+            # Natural or other extrapolation - use interpolator directly
+            result = self._grid_interpolator(point)
+
+        # Return scalar for single evaluation
+        if result.size == 1:
             return float(result[0])
 
         return result
@@ -3891,11 +4000,16 @@ class Function:  # pylint: disable=too-many-public-methods
         elif self.__dom_dim__ > 1:
             if interpolation is None:
                 interpolation = "shepard"
-            if interpolation.lower() not in ["shepard", "linear", "rbf"]:
+            if interpolation.lower() not in [
+                "shepard",
+                "linear",
+                "rbf",
+                "regular_grid",
+            ]:
                 warnings.warn(
                     (
                         "Interpolation method set to 'shepard'. The methods "
-                        "'linear', 'shepard' and 'rbf' are supported for "
+                        "'linear', 'shepard', 'rbf' and 'regular_grid' are supported for "
                         "multiple dimensions."
                     ),
                 )
@@ -3949,6 +4063,250 @@ class Function:  # pylint: disable=too-many-public-methods
             "interpolation": self.__interpolation__,
             "extrapolation": self.__extrapolation__,
         }
+
+    @classmethod
+    def from_grid(
+        cls,
+        grid_data,
+        axes,
+        inputs=None,
+        outputs=None,
+        interpolation="regular_grid",
+        extrapolation="constant",
+        flatten_for_compatibility=True,
+        **kwargs,
+    ):  # pylint: disable=too-many-statements #TODO: Refactor this method into smaller methods
+        """Creates a Function from N-dimensional grid data.
+
+        This method is designed for structured grid data, such as CFD simulation
+        results where values are computed on a regular grid. It uses
+        scipy.interpolate.RegularGridInterpolator for efficient interpolation.
+
+        Parameters
+        ----------
+        grid_data : ndarray
+            N-dimensional array containing the function values on the grid.
+            For example, for a 3D function Cd(M, Re, α), this would be a 3D array
+            where grid_data[i, j, k] = Cd(M[i], Re[j], α[k]).
+        axes : list of ndarray
+            List of 1D arrays defining the grid points along each axis.
+            Each array should be sorted in ascending order.
+            For example: [M_axis, Re_axis, alpha_axis].
+        inputs : list of str, optional
+            Names of the input variables. If None, generic names will be used.
+            For example: ['Mach', 'Reynolds', 'Alpha'].
+        outputs : str, optional
+            Name of the output variable. For example: 'Cd'.
+        interpolation : str, optional
+            Interpolation method. Default is 'regular_grid'.
+            Currently only 'regular_grid' is supported for grid data.
+        extrapolation : str, optional
+            Extrapolation behavior. Default is ``'constant'`` which clamps to
+            edge values. Supported options are::
+
+                'constant'
+                    Use nearest edge value for out-of-bounds points (clamp).
+                'zero'
+                    Return zero for out-of-bounds points.
+                'natural'
+                    Use the interpolator's natural behavior: when the
+                    underlying ``RegularGridInterpolator`` is created with
+                    ``fill_value=None`` and ``method='linear'``, this results
+                    in linear extrapolation based on the edge gradients.
+
+            If an unsupported extrapolation value is supplied a ``ValueError``
+            is raised.
+        flatten_for_compatibility : bool, optional
+            If True (default), creates flattened ``_domain``, ``_image``, and
+            ``source`` arrays for backward compatibility with existing Function
+            methods and serialization. For large N-dimensional grids (e.g.,
+            100x100x100 points), this requires O(n^d) additional memory where n
+            is the typical axis length and d is the number of dimensions.
+            Set to False to skip this flattening and reduce memory usage if
+            compatibility with legacy code paths is not required.
+        **kwargs : dict, optional
+            Additional arguments passed to the Function constructor.
+
+        Returns
+        -------
+        Function
+            A Function object using RegularGridInterpolator for evaluation.
+
+        Notes
+        -----
+        - Grid data must be on a regular (structured) grid.
+        - For unstructured data, use the regular Function constructor with
+          scattered points.
+        - Extrapolation with 'constant' mode uses the nearest edge values,
+          which is appropriate for aerodynamic coefficients where extrapolation
+          beyond the data range should be avoided.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> # Create 3D drag coefficient data
+        >>> mach = np.array([0.0, 0.5, 1.0, 1.5, 2.0])
+        >>> reynolds = np.array([1e5, 5e5, 1e6])
+        >>> alpha = np.array([0.0, 2.0, 4.0, 6.0])
+        >>> # Create a simple drag coefficient function
+        >>> M, Re, A = np.meshgrid(mach, reynolds, alpha, indexing='ij')
+        >>> cd_data = 0.3 + 0.1 * M + 1e-7 * Re + 0.01 * A
+        >>> # Create Function object
+        >>> cd_func = Function.from_grid(
+        ...     cd_data,
+        ...     [mach, reynolds, alpha],
+        ...     inputs=['Mach', 'Reynolds', 'Alpha'],
+        ...     outputs='Cd'
+        ... )
+        >>> # Evaluate at a point
+        >>> cd_func(1.2, 3e5, 3.0)
+        0.48000000000000004
+
+        """
+        # Validate inputs
+        if not isinstance(grid_data, np.ndarray):
+            grid_data = np.array(grid_data)
+
+        if not isinstance(axes, (list, tuple)):
+            raise ValueError("axes must be a list or tuple of 1D arrays")
+
+        # Ensure all axes are numpy arrays
+        axes = [
+            np.array(axis) if not isinstance(axis, np.ndarray) else axis
+            for axis in axes
+        ]
+
+        # Check dimensions match
+        if len(axes) != grid_data.ndim:
+            raise ValueError(
+                f"Number of axes ({len(axes)}) must match grid_data dimensions "
+                f"({grid_data.ndim})"
+            )
+
+        # Check each axis matches corresponding grid dimension and is sorted
+        for i, axis in enumerate(axes):
+            if len(axis) != grid_data.shape[i]:
+                raise ValueError(
+                    f"Axis {i} has {len(axis)} points but grid dimension {i} "
+                    f"has {grid_data.shape[i]} points"
+                )
+            # Check if axis is sorted in ascending order
+            if not np.all(np.diff(axis) > 0):
+                warnings.warn(
+                    f"Axis {i} is not strictly sorted in ascending order. "
+                    "RegularGridInterpolator requires sorted axes. "
+                    "This may cause unexpected interpolation results.",
+                    UserWarning,
+                )
+
+        # Set default inputs if not provided
+        if inputs is None:
+            inputs = [f"x{i}" for i in range(len(axes))]
+        elif len(inputs) != len(axes):
+            raise ValueError(
+                f"Number of inputs ({len(inputs)}) must match number of axes ({len(axes)})"
+            )
+
+        # Create a new Function instance
+        func = cls.__new__(cls)
+
+        # Validate extrapolation option for grid-based interpolation
+        allowed_extrap = ("constant", "zero", "natural")
+        if extrapolation not in allowed_extrap:
+            raise ValueError(
+                "Unsupported extrapolation for grid interpolation. "
+                f"Supported values: {allowed_extrap}"
+            )
+
+        # Store grid-specific data first
+        func._grid_axes = axes
+        func._grid_data = grid_data
+
+        # Create RegularGridInterpolator
+        # We handle extrapolation manually in __get_value_opt_grid,
+        # so we set bounds_error=False and let it extrapolate linearly
+        # (which we'll override when needed)
+        func._grid_interpolator = RegularGridInterpolator(
+            axes,
+            grid_data,
+            method="linear",
+            bounds_error=False,
+            fill_value=None,  # Linear extrapolation (will be overridden by manual handling)
+        )
+
+        # Create placeholder domain and image for compatibility.
+        # For large grids this requires O(n^d) memory; set flatten_for_compatibility=False
+        # to skip this if legacy code compatibility is not required.
+        if flatten_for_compatibility:
+            mesh = np.meshgrid(*axes, indexing="ij")
+            domain_points = np.column_stack([m.ravel() for m in mesh])
+            func._domain = domain_points
+            func._image = grid_data.ravel()
+            # Set source as flattened data array (for compatibility with serialization)
+            func.source = np.column_stack([domain_points, func._image])
+        else:
+            # Minimal placeholders - grid interpolator is the primary data source
+            func._domain = None
+            func._image = None
+            func.source = None
+
+        # Initialize basic attributes
+        func.__inputs__ = inputs
+        func.__outputs__ = outputs if outputs is not None else "f"
+        func.__interpolation__ = interpolation
+        func.__extrapolation__ = extrapolation
+        func.title = kwargs.get("title", None)
+        func.__img_dim__ = 1
+        func.__cropped_domain__ = (None, None)
+        func._source_type = SourceType.ARRAY
+        func.__dom_dim__ = len(axes)
+
+        # Set basic array attributes for compatibility
+        func.x_array = axes[0]
+        func.x_initial, func.x_final = axes[0][0], axes[0][-1]
+        if flatten_for_compatibility:
+            # For grid-based (N-D) functions, a 1-D `y_array` is not a meaningful
+            # representation of the function values. Some legacy code paths and
+            # serialization expect a `y_array` attribute to exist, so provide the
+            # full flattened image for compatibility rather than a truncated slice.
+            # Callers should avoid relying on `y_array` for multidimensional
+            # Functions; use the interpolator / `get_value_opt` instead.
+            func.y_array = func._image
+            # Use the global min/max of the flattened image as a sensible
+            # `y_initial`/`y_final` for compatibility with code that inspects
+            # scalar bounds. These describe the image range, not an ordering
+            # along any particular axis.
+            func.y_initial, func.y_final = (
+                float(func._image.min()),
+                float(func._image.max()),
+            )
+        else:
+            # Minimal placeholders when flattening is disabled
+            func.y_array = None
+            func.y_initial, func.y_final = (
+                float(grid_data.min()),
+                float(grid_data.max()),
+            )
+        if len(axes) > 2:
+            func.z_array = axes[2]
+            func.z_initial, func.z_final = axes[2][0], axes[2][-1]
+
+        # Set get_value_opt to use grid interpolation
+        func.get_value_opt = func.__get_value_opt_grid
+
+        # Set interpolation and extrapolation functions
+        func.__set_interpolation_func()
+        # Only set extrapolation function if we have flattened data, otherwise
+        # extrapolation is handled by __get_value_opt_grid directly
+        if flatten_for_compatibility:
+            func.__set_extrapolation_func()
+
+        # Set inputs and outputs properly
+        func.set_inputs(inputs)
+        func.set_outputs(outputs)
+        func.set_title(func.title)
+
+        return func
 
     @classmethod
     def from_dict(cls, func_dict):

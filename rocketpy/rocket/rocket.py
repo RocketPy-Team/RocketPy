@@ -341,20 +341,28 @@ class Rocket:
         )
 
         # Define aerodynamic drag coefficients
-        self.power_off_drag = Function(
-            power_off_drag,
-            "Mach Number",
-            "Drag Coefficient with Power Off",
-            "linear",
-            "constant",
-        )
-        self.power_on_drag = Function(
-            power_on_drag,
-            "Mach Number",
-            "Drag Coefficient with Power On",
-            "linear",
-            "constant",
-        )
+        # If already a Function, use it directly (preserves multi-dimensional drag)
+        if isinstance(power_off_drag, Function):
+            self.power_off_drag = power_off_drag
+        else:
+            self.power_off_drag = Function(
+                power_off_drag,
+                "Mach Number",
+                "Drag Coefficient with Power Off",
+                "linear",
+                "constant",
+            )
+
+        if isinstance(power_on_drag, Function):
+            self.power_on_drag = power_on_drag
+        else:
+            self.power_on_drag = Function(
+                power_on_drag,
+                "Mach Number",
+                "Drag Coefficient with Power On",
+                "linear",
+                "constant",
+            )
 
         # Create a, possibly, temporary empty motor
         # self.motors = Components()  # currently unused, only 1 motor is supported

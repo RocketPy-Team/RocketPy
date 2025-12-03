@@ -229,6 +229,7 @@ good-names=FlightPhases,
            center_of_mass_without_motor_to_CDM,
            motor_center_of_dry_mass_to_CDM,
            generic_motor_cesaroni_M1520,
+           Re, # Reynolds number
 
 # Good variable names regexes, separated by a comma. If names match any regex,
 # they will always be accepted
