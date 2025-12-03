@@ -1964,7 +1964,7 @@ class Flight:
                     # 180 degree rotation: sin(angle) = 1
                     omega_mag = self.weathercock_coeff * 1.0
                     omega_body = Kt @ (rotation_axis * omega_mag)
-                # else: aligned or nearly aligned, omega_body remains None
+                # else: aligned (dot > 0.999) - no rotation needed, omega_body stays None
 
             # Compute quaternion derivatives from omega_body
             if omega_body is not None:
