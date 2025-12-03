@@ -204,6 +204,37 @@ Finally, we can compare the ellipses for the apogees and landing points using th
 Note we can pass along parameters used in the usual `ellipses` method of the 
 `MonteCarlo` class, in this case the `ylim` argument to expand the y-axis limits.
 
+
+Calculating Confidence Intervals
+--------------------------------
+
+Beyond visual comparisons, you may want to calculate statistical confidence intervals
+for specific attributes of the flight (e.g., apogee, max velocity) based on the
+resampled data. Since the resulting data is loaded into a ``MonteCarlo`` object,
+you can use its method to compute these intervals using the bootstrap method.
+
+The following example shows how to calculate the 95% confidence interval for the
+mean of the apogee using the ``mrs_results`` object created earlier:
+
+.. jupyter-execute::
+
+    # Calculate the 95% Confidence Interval for the mean apogee
+    # We pass np.mean as the statistic to be evaluated
+    apogee_ci = mrs_results.calculate_confidence_interval(
+        attribute="apogee",
+        statistic=np.mean,
+        confidence_level=0.95,
+        n_resamples=10000
+    )
+
+    print(f"95% Confidence Interval for Apogee Mean: {apogee_ci}")
+
+You can use any statistic function that accepts an array of data, such as ``np.median``
+or ``np.std``.
+
+
+
+
 Time Comparison
 ---------------
 
