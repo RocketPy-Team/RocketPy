@@ -464,6 +464,15 @@ with 3-DOF simulations using ``PointMassRocket`` and different weathercocking
 coefficients. This demonstrates the trade-off between computational speed and
 accuracy.
 
+.. note::
+
+    The thrust curve files used in this example (e.g., ``AeroTech_K828FJ.eng``)
+    are included in the RocketPy repository under the ``data/motors/`` directory.
+    If you are running this code outside of the repository, you can download the
+    motor files from `RocketPy's data/motors folder on GitHub
+    <https://github.com/RocketPy-Team/RocketPy/tree/master/data/motors>`_ or use
+    your own thrust curve files.
+
 **Setup the simulations:**
 
 .. jupyter-execute::
