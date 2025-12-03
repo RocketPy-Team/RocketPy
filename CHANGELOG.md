@@ -34,11 +34,14 @@ Attention: The newest changes should be on top -->
 
 - ENH: Air brakes controller functions now support 8-parameter signature [#854](https://github.com/RocketPy-Team/RocketPy/pull/854)
 - ENH: Add save functionality to `_MonteCarloPlots.all` method [#848](https://github.com/RocketPy-Team/RocketPy/pull/848)
+- ENH: Rail button bending moments calculation in Flight class [#893](https://github.com/RocketPy-Team/RocketPy/pull/893)
+- ENH: Built-in flight comparison tool (`FlightComparator`) to validate simulations against external data [#888](https://github.com/RocketPy-Team/RocketPy/pull/888)
 - ENH: Add persistent caching for ThrustCurve API [#881](https://github.com/RocketPy-Team/RocketPy/pull/881)
 - ENH: Compatibility with MERRA-2 atmosphere reanalysis files [#825](https://github.com/RocketPy-Team/RocketPy/pull/825)
 - ENH: Enable only radial burning [#815](https://github.com/RocketPy-Team/RocketPy/pull/815)
 - ENH: Add thrustcurve api integration to retrieve motor eng data [#870](https://github.com/RocketPy-Team/RocketPy/pull/870)
 - ENH: custom warning no motor or aerosurface [#871](https://github.com/RocketPy-Team/RocketPy/pull/871)
+- ENH: Implement Bootstrapping for Confidence Interval Estimation [#891](https://github.com/RocketPy-Team/RocketPy/pull/897)
 
 ### Changed
 
