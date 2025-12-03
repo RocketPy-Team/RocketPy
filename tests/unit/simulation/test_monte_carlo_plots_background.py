@@ -1,10 +1,9 @@
 # pylint: disable=unused-argument
 import os
-import warnings
+import pytest
 from unittest.mock import MagicMock, patch
 
 import matplotlib.pyplot as plt
-import pytest
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
@@ -13,6 +12,9 @@ def _post_test_file_cleanup():
     """Clean monte carlo files after test session if they exist."""
     files_to_cleanup = [
         "monte_carlo_test.png",
+        "monte_carlo_test.errors.txt",
+        "monte_carlo_test.inputs.txt",
+        "monte_carlo_test.outputs.txt",
     ]
     for filepath in files_to_cleanup:
         if os.path.exists(filepath):
@@ -152,10 +154,12 @@ def test_ellipses_image_takes_precedence_over_background(
         _post_test_file_cleanup()
 
 
-def test_ellipses_background_no_environment():
+@patch("matplotlib.pyplot.show")
+def test_ellipses_background_no_environment(mock_show):
     """Test that ValueError is raised when MonteCarlo object has no environment attribute.
 
     This test creates a MonteCarlo object without an environment attribute.
+    The function should raise ValueError when trying to fetch background map.
     """
     from rocketpy.plots.monte_carlo_plots import _MonteCarloPlots
 
@@ -172,16 +176,18 @@ def test_ellipses_background_no_environment():
     mock_monte_carlo = MockMonteCarlo()
     plots = _MonteCarloPlots(mock_monte_carlo)
 
-    with pytest.raises(
-        ValueError, match="MonteCarlo object must have an 'environment' attribute"
-    ):
+    with pytest.raises(ValueError) as exc_info:
         plots.ellipses(background="satellite")
+    assert "environment" in str(exc_info.value).lower()
+    assert "automatically fetching the background map" in str(exc_info.value)
 
 
-def test_ellipses_background_no_latitude_longitude():
+@patch("matplotlib.pyplot.show")
+def test_ellipses_background_no_latitude_longitude(mock_show):
     """Test that ValueError is raised when environment has no latitude or longitude attributes.
 
     This test creates a mock environment without latitude and longitude attributes.
+    The function should raise ValueError when trying to fetch background map.
     """
     from rocketpy.plots.monte_carlo_plots import _MonteCarloPlots
 
@@ -191,20 +197,28 @@ def test_ellipses_background_no_latitude_longitude():
 
     mock_monte_carlo = MagicMock()
     mock_monte_carlo.environment = mock_environment
+    mock_monte_carlo.results = {
+        "apogee_x": [100, 200, 300],
+        "apogee_y": [100, 200, 300],
+        "x_impact": [1000, 2000, 3000],
+        "y_impact": [1000, 2000, 3000],
+    }
+    mock_monte_carlo.filename = "test"
 
     plots = _MonteCarloPlots(mock_monte_carlo)
 
-    with pytest.raises(
-        ValueError, match="Environment must have 'latitude' and 'longitude' attributes"
-    ):
+    with pytest.raises(ValueError) as exc_info:
         plots.ellipses(background="satellite")
+    assert "latitude" in str(exc_info.value).lower()
+    assert "longitude" in str(exc_info.value).lower()
+    assert "automatically fetching the background map" in str(exc_info.value)
 
 
 @patch("matplotlib.pyplot.show")
 def test_ellipses_background_contextily_not_installed(
     mock_show, monte_carlo_calisto_pre_loaded
 ):
-    """Test that a warning is issued when contextily is not installed.
+    """Test that ImportError is raised when contextily is not installed.
 
     Parameters
     ----------
@@ -226,16 +240,9 @@ def test_ellipses_background_contextily_not_installed(
             "rocketpy.plots.monte_carlo_plots.import_optional_dependency",
             side_effect=mock_import_optional_dependency,
         ):
-            with warnings.catch_warnings(record=True) as w:
-                warnings.simplefilter("always")
-                result = monte_carlo_calisto_pre_loaded.plots.ellipses(
-                    background="satellite"
-                )
-                assert result is None
-                assert len(w) > 0
-                assert any(
-                    "contextily" in str(warning.message).lower() for warning in w
-                )
+            with pytest.raises(ImportError) as exc_info:
+                monte_carlo_calisto_pre_loaded.plots.ellipses(background="satellite")
+            assert "contextily" in str(exc_info.value).lower()
     finally:
         _post_test_file_cleanup()
 
@@ -284,5 +291,80 @@ def test_ellipses_background_save(mock_show, monte_carlo_calisto_pre_loaded):
         assert result is None
         # Verify file was created
         assert os.path.exists("monte_carlo_test.png")
+    finally:
+        _post_test_file_cleanup()
+
+
+@patch("matplotlib.pyplot.show")
+def test_ellipses_background_invalid_provider(
+    mock_show, monte_carlo_calisto_pre_loaded
+):
+    """Test that ValueError is raised when an invalid map provider is specified.
+
+    Parameters
+    ----------
+    mock_show :
+        Mocks the matplotlib.pyplot.show() function to avoid showing the plots.
+    monte_carlo_calisto_pre_loaded : MonteCarlo
+        The MonteCarlo object, this is a pytest fixture.
+    """
+    try:
+        with pytest.raises(ValueError) as exc_info:
+            monte_carlo_calisto_pre_loaded.plots.ellipses(
+                background="Invalid.Provider.Name"
+            )
+        assert "Invalid map provider" in str(exc_info.value)
+        assert "Invalid.Provider.Name" in str(exc_info.value)
+        assert (
+            "satellite" in str(exc_info.value)
+            or "street" in str(exc_info.value)
+            or "terrain" in str(exc_info.value)
+        )
+    finally:
+        _post_test_file_cleanup()
+
+
+@patch("matplotlib.pyplot.show")
+def test_ellipses_background_bounds2img_failure(
+    mock_show, monte_carlo_calisto_pre_loaded
+):
+    """Test that RuntimeError is raised when bounds2img fails to fetch map tiles.
+
+    Parameters
+    ----------
+    mock_show :
+        Mocks the matplotlib.pyplot.show() function to avoid showing the plots.
+    monte_carlo_calisto_pre_loaded : MonteCarlo
+        The MonteCarlo object, this is a pytest fixture.
+    """
+    try:
+        from rocketpy.tools import import_optional_dependency as original_import
+        import contextily
+
+        # Create a mock contextily module with a failing bounds2img
+        mock_contextily = MagicMock()
+        mock_contextily.providers = contextily.providers
+
+        def mock_bounds2img(*args, **kwargs):
+            raise ConnectionError("Network error: Unable to fetch tiles")
+
+        mock_contextily.bounds2img = mock_bounds2img
+
+        def mock_import_optional_dependency(name):
+            if name == "contextily":
+                return mock_contextily
+            return original_import(name)
+
+        with patch(
+            "rocketpy.plots.monte_carlo_plots.import_optional_dependency",
+            side_effect=mock_import_optional_dependency,
+        ):
+            with pytest.raises(RuntimeError) as exc_info:
+                monte_carlo_calisto_pre_loaded.plots.ellipses(background="satellite")
+            assert "Failed to fetch background map tiles" in str(exc_info.value)
+            assert "satellite" in str(exc_info.value)
+            assert "Network connectivity" in str(
+                exc_info.value
+            ) or "Service unavailability" in str(exc_info.value)
     finally:
         _post_test_file_cleanup()
