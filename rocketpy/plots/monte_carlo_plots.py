@@ -1,4 +1,3 @@
-import math
 import warnings
 from pathlib import Path
 
@@ -11,6 +10,7 @@ from ..tools import (
     haversine,
     import_optional_dependency,
     inverted_haversine,
+    mercator_to_wgs84,
 )
 from .plot_helpers import show_or_save_plot
 
@@ -134,23 +134,12 @@ class _MonteCarloPlots:
                 west, south, east, north, source=source_provider, ll=True
             )
 
-            # Helper: Web Mercator (3857) to WGS84 (4326) without pyproj dependency
-            def mercator_to_wgs84(x, y):
-                r_major = 6378137.0
-                lon = x / r_major * 180.0 / math.pi
-                lat = (
-                    (2 * math.atan(math.exp(y / r_major)) - math.pi / 2.0)
-                    * 180.0
-                    / math.pi
-                )
-                return lat, lon
-
             # Convert corners of the fetched image
             bg_lat_min, bg_lon_min = mercator_to_wgs84(
-                mercator_extent[0], mercator_extent[2]
+                mercator_extent[0], mercator_extent[2], earth_radius
             )  # Bottom-Left
             bg_lat_max, bg_lon_max = mercator_to_wgs84(
-                mercator_extent[1], mercator_extent[3]
+                mercator_extent[1], mercator_extent[3], earth_radius
             )  # Top-Right
 
             # Calculate X/Y meters relative to origin (lat0, lon0) using haversine

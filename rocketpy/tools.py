@@ -443,6 +443,36 @@ def inverted_haversine(lat0, lon0, distance, bearing, earth_radius=6.3781e6):
     return lat1_deg, lon1_deg
 
 
+def mercator_to_wgs84(x, y, earth_radius=6.3781e6):
+    """Convert Web Mercator (EPSG:3857) coordinates to WGS84 (EPSG:4326) coordinates.
+
+    This function converts coordinates from Web Mercator projection to WGS84
+    latitude/longitude without requiring the pyproj dependency.
+
+    Parameters
+    ----------
+    x : float
+        X coordinate in Web Mercator projection (meters).
+    y : float
+        Y coordinate in Web Mercator projection (meters).
+    earth_radius : float, optional
+        Earth's radius in meters. Default value is 6.3781e6.
+
+    Returns
+    -------
+    tuple[float, float]
+        A tuple containing (latitude, longitude) in degrees.
+
+    """
+    lon = x / earth_radius * 180.0 / math.pi
+    lat = (
+        (2 * math.atan(math.exp(y / earth_radius)) - math.pi / 2.0)
+        * 180.0
+        / math.pi
+    )
+    return lat, lon
+
+
 # Functions for monte carlo analysis
 def sort_eigenvalues(cov):
     # Calculate eigenvalues and eigenvectors
