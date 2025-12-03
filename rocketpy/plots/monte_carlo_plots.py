@@ -1,4 +1,3 @@
-import warnings
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -37,12 +36,13 @@ class _MonteCarloPlots:
         if not hasattr(self.monte_carlo, "environment"):
             raise ValueError(
                 "MonteCarlo object must have an 'environment' attribute "
-                "to use automatic map background."
+                "for automatically fetching the background map."
             )
         env = self.monte_carlo.environment
         if not hasattr(env, "latitude") or not hasattr(env, "longitude"):
             raise ValueError(
-                "Environment must have 'latitude' and 'longitude' attributes."
+                "Environment must have 'latitude' and 'longitude' attributes "
+                "for automatically fetching the background map."
             )
 
         # Handle both StochasticEnvironment (which stores as lists) and
@@ -97,8 +97,13 @@ class _MonteCarloPlots:
                 for key in map_provider.split("."):
                     p = p[key]
                 source_provider = p
-            except (KeyError, AttributeError):
-                pass
+            except (KeyError, AttributeError) as e:
+                raise ValueError(
+                    f"Invalid map provider '{background}'. "
+                    f"The provider '{map_provider}' could not be found in contextily.providers. "
+                    f"Please check the provider name or use one of the built-in options: "
+                    f"'satellite', 'street', or 'terrain'."
+                ) from e
 
         return source_provider
 
@@ -125,45 +130,46 @@ class _MonteCarloPlots:
             Image as a 3D array of RGB values
         extent : tuple
             Bounding box [minX, maxX, minY, maxY] of the returned image
+
+        Raises
+        ------
+        ImportError
+            If the contextily library is not installed.
+        RuntimeError
+            If unable to fetch the background map from the provider.
         """
         if background is None:
             return None, None
 
-        try:
-            contextily = import_optional_dependency("contextily")
-        except ImportError:
-            warnings.warn(
-                "contextily library is required for automatic map background. "
-                "Install it via 'pip install contextily' or 'pip install rocketpy[monte-carlo]'. "
-                "Plotting without background.",
-                UserWarning,
-            )
-            return None, None
+        contextily = import_optional_dependency("contextily")
+
+        origin_lat, origin_lon, earth_radius = self._get_environment_coordinates()
+        source_provider = self._resolve_map_provider(background, contextily)
+        local_extent = [xlim[0], xlim[1], ylim[0], ylim[1]]
+        west, south, east, north = convert_local_extent_to_wgs84(
+            local_extent, origin_lat, origin_lon, earth_radius
+        )
 
         try:
-            origin_lat, origin_lon, earth_radius = self._get_environment_coordinates()
-            source_provider = self._resolve_map_provider(background, contextily)
-            local_extent = [xlim[0], xlim[1], ylim[0], ylim[1]]
-            west, south, east, north = convert_local_extent_to_wgs84(
-                local_extent, origin_lat, origin_lon, earth_radius
-            )
-
             bg, mercator_extent = contextily.bounds2img(
                 west, south, east, north, source=source_provider, ll=True
             )
-
-            local_extent = convert_mercator_extent_to_local(
-                mercator_extent, origin_lat, origin_lon, earth_radius
-            )
-
-            return bg, local_extent
-
         except Exception as e:
-            warnings.warn(
-                f"Unable to fetch background map '{background}'. "
-                f"Error: {e}. Plotting without background."
-            )
-            return None, None
+            raise RuntimeError(
+                f"Failed to fetch background map tiles from provider '{background}'. "
+                f"This could be due to:\n"
+                f"  - Network connectivity issues\n"
+                f"  - Invalid coordinate bounds (west={west:.6f}, south={south:.6f}, "
+                f"east={east:.6f}, north={north:.6f})\n"
+                f"  - Service unavailability\n"
+                f"  - Invalid map provider configuration\n\n"
+            ) from e
+
+        local_extent = convert_mercator_extent_to_local(
+            mercator_extent, origin_lat, origin_lon, earth_radius
+        )
+
+        return bg, local_extent
 
     # pylint: disable=too-many-statements
     def ellipses(
