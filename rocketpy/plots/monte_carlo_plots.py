@@ -54,11 +54,13 @@ class _MonteCarloPlots:
         if isinstance(origin_lon, (list, tuple)):
             origin_lon = origin_lon[0]
 
-        # Get earth_radius from the underlying Environment object if available
-        if hasattr(env, "obj") and hasattr(env.obj, "earth_radius"):
-            earth_radius = env.obj.earth_radius
-        else:
-            earth_radius = getattr(env, "earth_radius", 6.3781e6)
+        # We enforce the standard WGS84 Earth radius (approx. 6,378,137 m) for
+        # visualization purposes. Background map providers (e.g., via Contextily)
+        # typically use Web Mercator (EPSG:3857), which assumes this standard radius.
+        # Using a custom local radius here—even if used in the physics simulation—would
+        # cause projection mismatches, resulting in the map being offset or scaled
+        # incorrectly relative to the data points.
+        earth_radius = 6378137.0
 
         return origin_lat, origin_lon, earth_radius
 
