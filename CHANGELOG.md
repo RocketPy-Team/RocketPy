@@ -33,6 +33,7 @@ Attention: The newest changes should be on top -->
 ### Added
 
 - ENH: Air brakes controller functions now support 8-parameter signature [#854](https://github.com/RocketPy-Team/RocketPy/pull/854)
+- ENH: 3-dof lateral motion improvement [#883](https://github.com/RocketPy-Team/RocketPy/pull/883)
 - ENH: Add multi-dimensional drag coefficient support (Cd as function of M, Re, α) [#875](https://github.com/RocketPy-Team/RocketPy/pull/875)
 - ENH: Add save functionality to `_MonteCarloPlots.all` method [#848](https://github.com/RocketPy-Team/RocketPy/pull/848)
 - ENH: add animations for motor propellant mass and tank fluid volumes [#894](https://github.com/RocketPy-Team/RocketPy/pull/894)

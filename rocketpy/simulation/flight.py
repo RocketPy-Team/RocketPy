@@ -504,6 +504,7 @@ class Flight:
         equations_of_motion="standard",
         ode_solver="LSODA",
         simulation_mode="6 DOF",
+        weathercock_coeff=0.0,
     ):
         """Run a trajectory simulation.
 
@@ -587,6 +588,14 @@ class Flight:
             A custom ``scipy.integrate.OdeSolver`` can be passed as well.
             For more information on the integration methods, see the scipy
             documentation [1]_.
+        weathercock_coeff : float, optional
+            Proportionality coefficient (rate coefficient) for the alignment rate of the rocket's body axis
+            with the relative wind direction in 3-DOF simulations, in rad/s. The actual angular velocity
+            applied to align the rocket is calculated as ``weathercock_coeff * sin(angle)``, where ``angle``
+            is the angle between the rocket's axis and the wind direction. A higher value means faster alignment
+            (quasi-static weathercocking). This parameter is only used when simulation_mode is '3 DOF'.
+            Default is 0.0 to mimic a pure 3-DOF simulation without any weathercocking (fixed attitude).
+            Set to a positive value to enable quasi-static weathercocking behaviour.
 
 
         Returns
@@ -618,6 +627,7 @@ class Flight:
         self.equations_of_motion = equations_of_motion
         self.simulation_mode = simulation_mode
         self.ode_solver = ode_solver
+        self.weathercock_coeff = weathercock_coeff
 
         # Controller initialization
         self.__init_controllers()
@@ -1937,14 +1947,15 @@ class Flight:
     def u_dot_generalized_3dof(self, t, u, post_processing=False):
         """Calculates derivative of u state vector with respect to time when the
         rocket is flying in 3 DOF motion in space and significant mass variation
-        effects exist.
+        effects exist. Includes a weathercocking model that evolves the body axis
+        direction toward the relative wind direction.
 
         Parameters
         ----------
         t : float
             Time in seconds.
         u : list
-            State vector: [x, y, z, vx, vy, vz, q0, q1, q2, q3, omega1, omega2, omega3].
+            State vector: [x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3].
         post_processing : bool, optional
             If True, adds flight data to self variables like self.angle_of_attack.
 
@@ -2039,9 +2050,85 @@ class Flight:
 
         # Dynamics
         v_dot = K @ (total_force / total_mass)
-        e_dot = [0, 0, 0, 0]  # Euler derivatives unused in 3DOF
-        w_dot = [0, 0, 0]  # No angular dynamics in 3DOF
         r_dot = [vx, vy, vz]
+        # Weathercocking: evolve body axis direction toward relative wind
+        # The body z-axis (attitude vector) should align with -freestream_velocity
+        if self.weathercock_coeff > 0 and free_stream_speed > 1e-6:
+            # Current body z-axis in inertial frame (attitude vector)
+            # From rotation matrix: column 3 gives the body z-axis in inertial frame
+            body_z_inertial = Vector(
+                [
+                    2 * (e1 * e3 + e0 * e2),
+                    2 * (e2 * e3 - e0 * e1),
+                    1 - 2 * (e1**2 + e2**2),
+                ]
+            )
+
+            # Desired direction: opposite of freestream velocity (into the wind)
+            # This is the direction the rocket nose should point
+            # Division by free_stream_speed ensures the result is a unit vector
+            desired_direction = -free_stream_velocity / free_stream_speed
+
+            # Compute rotation axis (cross product of current and desired)
+            rotation_axis = body_z_inertial ^ desired_direction
+            rotation_axis_mag = abs(rotation_axis)
+
+            # Determine omega_body based on alignment state
+            omega_body = None
+
+            if rotation_axis_mag > 1e-8:
+                # Normal case: compute angular velocity from misalignment
+                rotation_axis = rotation_axis / rotation_axis_mag
+
+                # The magnitude of the cross product of two unit vectors equals
+                # the sine of the angle between them
+                sin_angle = min(1.0, max(-1.0, rotation_axis_mag))
+
+                # Angular velocity magnitude proportional to misalignment angle
+                omega_mag = self.weathercock_coeff * sin_angle
+
+                # Angular velocity in inertial frame, then transform to body frame
+                omega_body = Kt @ (rotation_axis * omega_mag)
+            else:
+                # Check if aligned or anti-aligned using dot product
+                dot = body_z_inertial @ desired_direction
+                if dot < -0.999:  # Anti-aligned
+                    # Choose an arbitrary perpendicular axis
+                    x_axis = Vector([1.0, 0.0, 0.0])
+                    perp_axis = body_z_inertial ^ x_axis
+                    if abs(perp_axis) < 1e-6:
+                        y_axis = Vector([0.0, 1.0, 0.0])
+                        perp_axis = body_z_inertial ^ y_axis
+                        if abs(perp_axis) < 1e-6:
+                            raise ValueError(
+                                "Cannot determine a valid rotation axis: "
+                                "body_z_inertial is parallel to both x and y axes."
+                            )
+                    rotation_axis = perp_axis.unit_vector
+                    # 180 degree rotation: sin(angle) = 1
+                    omega_mag = self.weathercock_coeff * 1.0
+                    omega_body = Kt @ (rotation_axis * omega_mag)
+                # else: aligned (dot > 0.999) - no rotation needed, omega_body stays None
+
+            # Compute quaternion derivatives from omega_body
+            if omega_body is not None:
+                omega1_wc, omega2_wc, omega3_wc = (
+                    omega_body.x,
+                    omega_body.y,
+                    omega_body.z,
+                )
+                e0_dot = 0.5 * (-omega1_wc * e1 - omega2_wc * e2 - omega3_wc * e3)
+                e1_dot = 0.5 * (omega1_wc * e0 + omega3_wc * e2 - omega2_wc * e3)
+                e2_dot = 0.5 * (omega2_wc * e0 - omega3_wc * e1 + omega1_wc * e3)
+                e3_dot = 0.5 * (omega3_wc * e0 + omega2_wc * e1 - omega1_wc * e2)
+                e_dot = [e0_dot, e1_dot, e2_dot, e3_dot]
+            else:
+                e_dot = [0, 0, 0, 0]
+            w_dot = [0, 0, 0]  # No angular acceleration in 3DOF model
+        else:
+            # No weathercocking or negligible freestream speed
+            e_dot = [0, 0, 0, 0]
+            w_dot = [0, 0, 0]
 
         u_dot = [*r_dot, *v_dot, *e_dot, *w_dot]
 
