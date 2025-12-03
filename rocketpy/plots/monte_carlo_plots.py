@@ -6,11 +6,10 @@ import numpy as np
 from matplotlib.transforms import offset_copy
 
 from ..tools import (
+    convert_local_extent_to_wgs84,
+    convert_mercator_extent_to_local,
     generate_monte_carlo_ellipses,
-    haversine,
     import_optional_dependency,
-    inverted_haversine,
-    mercator_to_wgs84,
 )
 from .plot_helpers import show_or_save_plot
 
@@ -20,6 +19,86 @@ class _MonteCarloPlots:
 
     def __init__(self, monte_carlo):
         self.monte_carlo = monte_carlo
+
+    def _get_environment_coordinates(self):
+        """Get origin coordinates and earth radius from the environment.
+
+        Returns
+        -------
+        tuple[float, float, float]
+            A tuple containing (origin_lat, origin_lon, earth_radius).
+
+        Raises
+        ------
+        ValueError
+            If MonteCarlo object doesn't have an environment attribute, or if
+            environment doesn't have latitude and longitude attributes.
+        """
+        if not hasattr(self.monte_carlo, "environment"):
+            raise ValueError(
+                "MonteCarlo object must have an 'environment' attribute "
+                "to use automatic map background."
+            )
+        env = self.monte_carlo.environment
+        if not hasattr(env, "latitude") or not hasattr(env, "longitude"):
+            raise ValueError(
+                "Environment must have 'latitude' and 'longitude' attributes."
+            )
+
+        # Handle both StochasticEnvironment (which stores as lists) and
+        # Environment (which stores as scalars)
+        origin_lat = env.latitude
+        origin_lon = env.longitude
+        if isinstance(origin_lat, (list, tuple)):
+            origin_lat = origin_lat[0]
+        if isinstance(origin_lon, (list, tuple)):
+            origin_lon = origin_lon[0]
+
+        # Get earth_radius from the underlying Environment object if available
+        if hasattr(env, "obj") and hasattr(env.obj, "earth_radius"):
+            earth_radius = env.obj.earth_radius
+        else:
+            earth_radius = getattr(env, "earth_radius", 6.3781e6)
+
+        return origin_lat, origin_lon, earth_radius
+
+    def _resolve_map_provider(self, background, contextily):
+        """Resolve the map provider string to a contextily provider object.
+
+        Parameters
+        ----------
+        background : str
+            Type of background map. Options: "satellite", "street", "terrain",
+            or any contextily provider name (e.g., "CartoDB.Positron").
+        contextily : module
+            The contextily module.
+
+        Returns
+        -------
+        object
+            The resolved contextily provider object.
+        """
+        if background == "satellite":
+            map_provider = "Esri.WorldImagery"
+        elif background == "street":
+            map_provider = "OpenStreetMap.Mapnik"
+        elif background == "terrain":
+            map_provider = "Esri.WorldTopoMap"
+        else:
+            map_provider = background
+
+        # Attempt to resolve provider string (e.g., "Esri.WorldImagery") to object
+        source_provider = map_provider
+        if isinstance(map_provider, str):
+            try:
+                p = contextily.providers
+                for key in map_provider.split("."):
+                    p = p[key]
+                source_provider = p
+            except (KeyError, AttributeError):
+                pass
+
+        return source_provider
 
     def _get_background_map(self, background, xlim, ylim):
         """
@@ -59,122 +138,23 @@ class _MonteCarloPlots:
             )
             return None, None
 
-        if not hasattr(self.monte_carlo, "environment"):
-            raise ValueError(
-                "MonteCarlo object must have an 'environment' attribute "
-                "to use automatic map background."
-            )
-        env = self.monte_carlo.environment
-        if not hasattr(env, "latitude") or not hasattr(env, "longitude"):
-            raise ValueError(
-                "Environment must have 'latitude' and 'longitude' attributes."
-            )
-
         try:
-            # Handle both StochasticEnvironment (which stores as lists) and Environment (which stores as scalars)
-            origin_lat = env.latitude
-            origin_lon = env.longitude
-            if isinstance(origin_lat, (list, tuple)):
-                origin_lat = origin_lat[0]
-            if isinstance(origin_lon, (list, tuple)):
-                origin_lon = origin_lon[0]
-            # Get earth_radius from the underlying Environment object if available
-            if hasattr(env, "obj") and hasattr(env.obj, "earth_radius"):
-                earth_radius = env.obj.earth_radius
-            else:
-                earth_radius = getattr(env, "earth_radius", 6.3781e6)
-
-            if background == "satellite":
-                map_provider = "Esri.WorldImagery"
-            elif background == "street":
-                map_provider = "OpenStreetMap.Mapnik"
-            elif background == "terrain":
-                map_provider = "Esri.WorldTopoMap"
-            else:
-                map_provider = background
-
-            # Helper to resolve provider string (e.g., "Esri.WorldImagery") to object
-            source_provider = map_provider
-            if isinstance(map_provider, str):
-                try:
-                    # Attempt to traverse contextily.providers
-                    p = contextily.providers
-                    for key in map_provider.split("."):
-                        p = p[key]
-                    source_provider = p
-                except (KeyError, AttributeError):
-                    pass
-
-            corners_xy = [
-                (xlim[0], ylim[0]),  # Bottom-Left
-                (xlim[0], ylim[1]),  # Top-Left
-                (xlim[1], ylim[0]),  # Bottom-Right
-                (xlim[1], ylim[1]),  # Top-Right
-            ]
-            req_lats, req_lons = [], []
-
-            for x, y in corners_xy:
-                dist = (x**2 + y**2) ** 0.5
-                # Calculate bearing: 0 is North (Y), 90 is East (X)
-                bearing = np.degrees(np.arctan2(x, y))
-                lat, lon = inverted_haversine(
-                    origin_lat, origin_lon, dist, bearing, earth_radius
-                )
-                req_lats.append(lat)
-                req_lons.append(lon)
-
-            west, south, east, north = (
-                min(req_lons),
-                min(req_lats),
-                max(req_lons),
-                max(req_lats),
+            origin_lat, origin_lon, earth_radius = self._get_environment_coordinates()
+            source_provider = self._resolve_map_provider(background, contextily)
+            local_extent = [xlim[0], xlim[1], ylim[0], ylim[1]]
+            west, south, east, north = convert_local_extent_to_wgs84(
+                local_extent, origin_lat, origin_lon, earth_radius
             )
 
             bg, mercator_extent = contextily.bounds2img(
                 west, south, east, north, source=source_provider, ll=True
             )
 
-            # Convert corners of the fetched image
-            bg_lat_min, bg_lon_min = mercator_to_wgs84(
-                mercator_extent[0], mercator_extent[2], earth_radius
-            )  # Bottom-Left
-            bg_lat_max, bg_lon_max = mercator_to_wgs84(
-                mercator_extent[1], mercator_extent[3], earth_radius
-            )  # Top-Right
-
-            # Calculate X/Y meters relative to origin (lat0, lon0) using haversine
-            # X = Distance along longitude (East-West)
-            # Y = Distance along latitude (North-South)
-
-            # Calculate X min (Left)
-            x_min = haversine(
-                origin_lat, origin_lon, origin_lat, bg_lon_min, earth_radius
+            local_extent = convert_mercator_extent_to_local(
+                mercator_extent, origin_lat, origin_lon, earth_radius
             )
-            if bg_lon_min < origin_lon:
-                x_min = -x_min
 
-            # Calculate X max (Right)
-            x_max = haversine(
-                origin_lat, origin_lon, origin_lat, bg_lon_max, earth_radius
-            )
-            if bg_lon_max < origin_lon:
-                x_max = -x_max
-
-            # Calculate Y min (Bottom)
-            y_min = haversine(
-                origin_lat, origin_lon, bg_lat_min, origin_lon, earth_radius
-            )
-            if bg_lat_min < origin_lat:
-                y_min = -y_min
-
-            # Calculate Y max (Top)
-            y_max = haversine(
-                origin_lat, origin_lon, bg_lat_max, origin_lon, earth_radius
-            )
-            if bg_lat_max < origin_lat:
-                y_max = -y_max
-
-            return bg, [x_min, x_max, y_min, y_max]
+            return bg, local_extent
 
         except Exception as e:
             warnings.warn(
