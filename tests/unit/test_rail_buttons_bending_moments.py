@@ -47,43 +47,60 @@ def test_bending_moment_zero_without_rail_buttons(calisto_motorless):
 
 
 def test_bending_moment_zero_with_none_button_height(calisto_motorless):
-    """Verify bending moments return zero when button_height is None.
+    """Verify bending moments return zero when button_height is explicitly None.
 
     Parameters
     ----------
     calisto_motorless : rocketpy.Rocket
         Basic rocket fixture.
     """
-    # Add rail buttons with None height (default)
+    from rocketpy import Environment, Flight
+
+    # Create rail buttons, then explicitly set height to None
     calisto_motorless.set_rail_buttons(
         upper_button_position=0.5,
         lower_button_position=-0.5,
         angular_position=45,
     )
+    calisto_motorless.rail_buttons[0].component.button_height = None  # explicit None
 
-    # Verify button_height is None
+    # Sanity check
     assert calisto_motorless.rail_buttons[0].component.button_height is None
 
-    # Create flight
     env = Environment(latitude=0, longitude=0)
     env.set_atmospheric_model(type="standard_atmosphere")
     flight = Flight(rocket=calisto_motorless, environment=env, rail_length=1)
 
-    # Should warn and return zero moments
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
         moments = flight.calculate_rail_button_bending_moments
-
-        # Verify warning was issued
         assert len(w) == 1
         assert "button height not defined" in str(w[0].message).lower()
 
     m1_func, max_m1, _, max_m2 = moments
-
-    # Verify zero moments returned
     assert m1_func(0) == 0
     assert max_m1 == 0.0
     assert max_m2 == 0.0
+
+
+def test_bending_moment_zero_with_default_button_height(calisto_motorless):
+    """Verify bending moments return zero when button_height uses default value.
+    
+    Parameters
+    ----------
+    calisto_motorless : rocketpy.Rocket
+        Basic rocket fixture.
+    """
+    # Add rail buttons without specifying button_height (tests default)
+    calisto_motorless.set_rail_buttons(
+        upper_button_position=0.5,
+        lower_button_position=-0.5,
+        angular_position=45,
+        # button_height not specified - should default to None
+    )
+    
+    # Verify default is None
+    assert calisto_motorless.rail_buttons[0].component.button_height is None
 
 
 def test_railbuttons_serialization_roundtrip():
