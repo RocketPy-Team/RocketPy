@@ -54,7 +54,6 @@ def test_bending_moment_zero_with_none_button_height(calisto_motorless):
     calisto_motorless : rocketpy.Rocket
         Basic rocket fixture.
     """
-    from rocketpy import Environment, Flight
 
     # Create rail buttons, then explicitly set height to None
     calisto_motorless.set_rail_buttons(
