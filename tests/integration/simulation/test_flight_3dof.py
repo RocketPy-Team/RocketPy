@@ -202,10 +202,8 @@ def test_weathercock_coeff_default(flight_3dof):
 
     Parameters
     ----------
-    example_plain_env : rocketpy.Environment
-        A basic environment fixture for flight simulation.
-    point_mass_rocket : rocketpy.PointMassRocket
-        A point mass rocket fixture for 3-DOF simulation.
+    flight_3dof : rocketpy.Flight
+        A Flight object for a 3-DOF simulation, provided by the flight_3dof fixture.
     """
     assert flight_3dof.weathercock_coeff == 0.0
 
