@@ -1,6 +1,6 @@
 import math
-from pathlib import Path
 import warnings
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -8,9 +8,9 @@ from matplotlib.transforms import offset_copy
 
 from ..tools import (
     generate_monte_carlo_ellipses,
+    haversine,
     import_optional_dependency,
     inverted_haversine,
-    haversine,
 )
 from .plot_helpers import show_or_save_plot
 
@@ -47,153 +47,152 @@ class _MonteCarloPlots:
         """
         if background is None:
             return None, None
-        else:
-            try:
-                contextily = import_optional_dependency("contextily")
-            except ImportError:
-                warnings.warn(
-                    "contextily library is required for automatic map background. "
-                    "Install it via 'pip install contextily' or 'pip install rocketpy[monte-carlo]'. "
-                    "Plotting without background.",
-                    UserWarning,
+
+        try:
+            contextily = import_optional_dependency("contextily")
+        except ImportError:
+            warnings.warn(
+                "contextily library is required for automatic map background. "
+                "Install it via 'pip install contextily' or 'pip install rocketpy[monte-carlo]'. "
+                "Plotting without background.",
+                UserWarning,
+            )
+            return None, None
+
+        if not hasattr(self.monte_carlo, "environment"):
+            raise ValueError(
+                "MonteCarlo object must have an 'environment' attribute "
+                "to use automatic map background."
+            )
+        env = self.monte_carlo.environment
+        if not hasattr(env, "latitude") or not hasattr(env, "longitude"):
+            raise ValueError(
+                "Environment must have 'latitude' and 'longitude' attributes."
+            )
+
+        try:
+            # Handle both StochasticEnvironment (which stores as lists) and Environment (which stores as scalars)
+            origin_lat = env.latitude
+            origin_lon = env.longitude
+            if isinstance(origin_lat, (list, tuple)):
+                origin_lat = origin_lat[0]
+            if isinstance(origin_lon, (list, tuple)):
+                origin_lon = origin_lon[0]
+            # Get earth_radius from the underlying Environment object if available
+            if hasattr(env, "obj") and hasattr(env.obj, "earth_radius"):
+                earth_radius = env.obj.earth_radius
+            else:
+                earth_radius = getattr(env, "earth_radius", 6.3781e6)
+
+            if background == "satellite":
+                map_provider = "Esri.WorldImagery"
+            elif background == "street":
+                map_provider = "OpenStreetMap.Mapnik"
+            elif background == "terrain":
+                map_provider = "Esri.WorldTopoMap"
+            else:
+                map_provider = background
+
+            # Helper to resolve provider string (e.g., "Esri.WorldImagery") to object
+            source_provider = map_provider
+            if isinstance(map_provider, str):
+                try:
+                    # Attempt to traverse contextily.providers
+                    p = contextily.providers
+                    for key in map_provider.split("."):
+                        p = p[key]
+                    source_provider = p
+                except (KeyError, AttributeError):
+                    pass
+
+            corners_xy = [
+                (xlim[0], ylim[0]),  # Bottom-Left
+                (xlim[0], ylim[1]),  # Top-Left
+                (xlim[1], ylim[0]),  # Bottom-Right
+                (xlim[1], ylim[1]),  # Top-Right
+            ]
+            req_lats, req_lons = [], []
+
+            for x, y in corners_xy:
+                dist = (x**2 + y**2) ** 0.5
+                # Calculate bearing: 0 is North (Y), 90 is East (X)
+                bearing = np.degrees(np.arctan2(x, y))
+                lat, lon = inverted_haversine(
+                    origin_lat, origin_lon, dist, bearing, earth_radius
                 )
-                return None, None
+                req_lats.append(lat)
+                req_lons.append(lon)
 
-            if not hasattr(self.monte_carlo, "environment"):
-                raise ValueError(
-                    "MonteCarlo object must have an 'environment' attribute "
-                    "to use automatic map background."
+            west, south, east, north = (
+                min(req_lons),
+                min(req_lats),
+                max(req_lons),
+                max(req_lats),
+            )
+
+            bg, mercator_extent = contextily.bounds2img(
+                west, south, east, north, source=source_provider, ll=True
+            )
+
+            # Helper: Web Mercator (3857) to WGS84 (4326) without pyproj dependency
+            def mercator_to_wgs84(x, y):
+                r_major = 6378137.0
+                lon = x / r_major * 180.0 / math.pi
+                lat = (
+                    (2 * math.atan(math.exp(y / r_major)) - math.pi / 2.0)
+                    * 180.0
+                    / math.pi
                 )
-            env = self.monte_carlo.environment
-            if not hasattr(env, "latitude") or not hasattr(env, "longitude"):
-                raise ValueError(
-                    "Environment must have 'latitude' and 'longitude' attributes."
-                )
+                return lat, lon
 
-            try:
+            # Convert corners of the fetched image
+            bg_lat_min, bg_lon_min = mercator_to_wgs84(
+                mercator_extent[0], mercator_extent[2]
+            )  # Bottom-Left
+            bg_lat_max, bg_lon_max = mercator_to_wgs84(
+                mercator_extent[1], mercator_extent[3]
+            )  # Top-Right
 
-                # Handle both StochasticEnvironment (which stores as lists) and Environment (which stores as scalars)
-                origin_lat = env.latitude
-                origin_lon = env.longitude
-                if isinstance(origin_lat, (list, tuple)):
-                    origin_lat = origin_lat[0]
-                if isinstance(origin_lon, (list, tuple)):
-                    origin_lon = origin_lon[0]
-                # Get earth_radius from the underlying Environment object if available
-                if hasattr(env, "obj") and hasattr(env.obj, "earth_radius"):
-                    earth_radius = env.obj.earth_radius
-                else:
-                    earth_radius = getattr(env, "earth_radius", 6.3781e6)
+            # Calculate X/Y meters relative to origin (lat0, lon0) using haversine
+            # X = Distance along longitude (East-West)
+            # Y = Distance along latitude (North-South)
 
-                if background == "satellite":
-                    map_provider = "Esri.WorldImagery"
-                elif background == "street":
-                    map_provider = "OpenStreetMap.Mapnik"
-                elif background == "terrain":
-                    map_provider = "Esri.WorldTopoMap"
-                else:
-                    map_provider = background
+            # Calculate X min (Left)
+            x_min = haversine(
+                origin_lat, origin_lon, origin_lat, bg_lon_min, earth_radius
+            )
+            if bg_lon_min < origin_lon:
+                x_min = -x_min
 
-                # Helper to resolve provider string (e.g., "Esri.WorldImagery") to object
-                source_provider = map_provider
-                if isinstance(map_provider, str):
-                    try:
-                        # Attempt to traverse contextily.providers
-                        p = contextily.providers
-                        for key in map_provider.split("."):
-                            p = p[key]
-                        source_provider = p
-                    except (KeyError, AttributeError):
-                        pass
+            # Calculate X max (Right)
+            x_max = haversine(
+                origin_lat, origin_lon, origin_lat, bg_lon_max, earth_radius
+            )
+            if bg_lon_max < origin_lon:
+                x_max = -x_max
 
-                corners_xy = [
-                    (xlim[0], ylim[0]),  # Bottom-Left
-                    (xlim[0], ylim[1]),  # Top-Left
-                    (xlim[1], ylim[0]),  # Bottom-Right
-                    (xlim[1], ylim[1]),  # Top-Right
-                ]
-                req_lats, req_lons = [], []
+            # Calculate Y min (Bottom)
+            y_min = haversine(
+                origin_lat, origin_lon, bg_lat_min, origin_lon, earth_radius
+            )
+            if bg_lat_min < origin_lat:
+                y_min = -y_min
 
-                for x, y in corners_xy:
-                    dist = (x**2 + y**2) ** 0.5
-                    # Calculate bearing: 0 is North (Y), 90 is East (X)
-                    bearing = np.degrees(np.arctan2(x, y))
-                    lat, lon = inverted_haversine(
-                        origin_lat, origin_lon, dist, bearing, earth_radius
-                    )
-                    req_lats.append(lat)
-                    req_lons.append(lon)
+            # Calculate Y max (Top)
+            y_max = haversine(
+                origin_lat, origin_lon, bg_lat_max, origin_lon, earth_radius
+            )
+            if bg_lat_max < origin_lat:
+                y_max = -y_max
 
-                west, south, east, north = (
-                    min(req_lons),
-                    min(req_lats),
-                    max(req_lons),
-                    max(req_lats),
-                )
+            return bg, [x_min, x_max, y_min, y_max]
 
-                bg, mercator_extent = contextily.bounds2img(
-                    west, south, east, north, source=source_provider, ll=True
-                )
-
-                # Helper: Web Mercator (3857) to WGS84 (4326) without pyproj dependency
-                def mercator_to_wgs84(x, y):
-                    r_major = 6378137.0
-                    lon = x / r_major * 180.0 / math.pi
-                    lat = (
-                        (2 * math.atan(math.exp(y / r_major)) - math.pi / 2.0)
-                        * 180.0
-                        / math.pi
-                    )
-                    return lat, lon
-
-                # Convert corners of the fetched image
-                bg_lat_min, bg_lon_min = mercator_to_wgs84(
-                    mercator_extent[0], mercator_extent[2]
-                )  # Bottom-Left
-                bg_lat_max, bg_lon_max = mercator_to_wgs84(
-                    mercator_extent[1], mercator_extent[3]
-                )  # Top-Right
-
-                # Calculate X/Y meters relative to origin (lat0, lon0) using haversine
-                # X = Distance along longitude (East-West)
-                # Y = Distance along latitude (North-South)
-
-                # Calculate X min (Left)
-                x_min = haversine(
-                    origin_lat, origin_lon, origin_lat, bg_lon_min, earth_radius
-                )
-                if bg_lon_min < origin_lon:
-                    x_min = -x_min
-
-                # Calculate X max (Right)
-                x_max = haversine(
-                    origin_lat, origin_lon, origin_lat, bg_lon_max, earth_radius
-                )
-                if bg_lon_max < origin_lon:
-                    x_max = -x_max
-
-                # Calculate Y min (Bottom)
-                y_min = haversine(
-                    origin_lat, origin_lon, bg_lat_min, origin_lon, earth_radius
-                )
-                if bg_lat_min < origin_lat:
-                    y_min = -y_min
-
-                # Calculate Y max (Top)
-                y_max = haversine(
-                    origin_lat, origin_lon, bg_lat_max, origin_lon, earth_radius
-                )
-                if bg_lat_max < origin_lat:
-                    y_max = -y_max
-
-                return bg, [x_min, x_max, y_min, y_max]
-
-            except Exception as e:
-                warnings.warn(
-                    f"Unable to fetch background map '{background}'. "
-                    f"Error: {e}. Plotting without background."
-                )
-                return None, None
+        except Exception as e:
+            warnings.warn(
+                f"Unable to fetch background map '{background}'. "
+                f"Error: {e}. Plotting without background."
+            )
+            return None, None
 
     # pylint: disable=too-many-statements
     def ellipses(
