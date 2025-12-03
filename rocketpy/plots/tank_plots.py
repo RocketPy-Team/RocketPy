@@ -208,8 +208,7 @@ class _TankPlots:
         fig, ax = plt.subplots()
 
         ax.set_xlim(times[0], times[-1])
-        max_val = max(liquid_values.max(), gas_values.max())
-        ax.set_ylim(0, max_val * 1.1)
+        ax.set_ylim(0, max(liquid_values.max(), gas_values.max()) * 1.1)
 
         ax.set_xlabel("Time (s)")
         ax.set_ylabel("Volume (m³)")
@@ -223,10 +222,8 @@ class _TankPlots:
         ax.legend()
 
         def init():
-            line_liquid.set_data([], [])
-            line_gas.set_data([], [])
-            point_liquid.set_data([], [])
-            point_gas.set_data([], [])
+            for item in (line_liquid, line_gas, point_liquid, point_gas):
+                item.set_data([], [])
             return line_liquid, line_gas, point_liquid, point_gas
 
         def update(frame_index):
