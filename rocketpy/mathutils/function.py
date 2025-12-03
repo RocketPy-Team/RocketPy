@@ -4073,6 +4073,7 @@ class Function:  # pylint: disable=too-many-public-methods
         outputs=None,
         interpolation="regular_grid",
         extrapolation="constant",
+        flatten_for_compatibility=True,
         **kwargs,
     ):  # pylint: disable=too-many-statements #TODO: Refactor this method into smaller methods
         """Creates a Function from N-dimensional grid data.
@@ -4115,6 +4116,14 @@ class Function:  # pylint: disable=too-many-public-methods
 
             If an unsupported extrapolation value is supplied a ``ValueError``
             is raised.
+        flatten_for_compatibility : bool, optional
+            If True (default), creates flattened ``_domain``, ``_image``, and
+            ``source`` arrays for backward compatibility with existing Function
+            methods and serialization. For large N-dimensional grids (e.g.,
+            100x100x100 points), this requires O(n^d) additional memory where n
+            is the typical axis length and d is the number of dimensions.
+            Set to False to skip this flattening and reduce memory usage if
+            compatibility with legacy code paths is not required.
         **kwargs : dict, optional
             Additional arguments passed to the Function constructor.
 
@@ -4174,12 +4183,20 @@ class Function:  # pylint: disable=too-many-public-methods
                 f"({grid_data.ndim})"
             )
 
-        # Check each axis matches corresponding grid dimension
+        # Check each axis matches corresponding grid dimension and is sorted
         for i, axis in enumerate(axes):
             if len(axis) != grid_data.shape[i]:
                 raise ValueError(
                     f"Axis {i} has {len(axis)} points but grid dimension {i} "
                     f"has {grid_data.shape[i]} points"
+                )
+            # Check if axis is sorted in ascending order
+            if not np.all(np.diff(axis) > 0):
+                warnings.warn(
+                    f"Axis {i} is not strictly sorted in ascending order. "
+                    "RegularGridInterpolator requires sorted axes. "
+                    "This may cause unexpected interpolation results.",
+                    UserWarning,
                 )
 
         # Set default inputs if not provided
@@ -4217,15 +4234,21 @@ class Function:  # pylint: disable=too-many-public-methods
             fill_value=None,  # Linear extrapolation (will be overridden by manual handling)
         )
 
-        # Create placeholder domain and image for compatibility
-        # This flattens the grid for any code expecting these attributes
-        mesh = np.meshgrid(*axes, indexing="ij")
-        domain_points = np.column_stack([m.ravel() for m in mesh])
-        func._domain = domain_points
-        func._image = grid_data.ravel()
-
-        # Set source as flattened data array (for compatibility with serialization, etc.)
-        func.source = np.column_stack([domain_points, func._image])
+        # Create placeholder domain and image for compatibility.
+        # For large grids this requires O(n^d) memory; set flatten_for_compatibility=False
+        # to skip this if legacy code compatibility is not required.
+        if flatten_for_compatibility:
+            mesh = np.meshgrid(*axes, indexing="ij")
+            domain_points = np.column_stack([m.ravel() for m in mesh])
+            func._domain = domain_points
+            func._image = grid_data.ravel()
+            # Set source as flattened data array (for compatibility with serialization)
+            func.source = np.column_stack([domain_points, func._image])
+        else:
+            # Minimal placeholders - grid interpolator is the primary data source
+            func._domain = None
+            func._image = None
+            func.source = None
 
         # Initialize basic attributes
         func.__inputs__ = inputs
@@ -4241,21 +4264,29 @@ class Function:  # pylint: disable=too-many-public-methods
         # Set basic array attributes for compatibility
         func.x_array = axes[0]
         func.x_initial, func.x_final = axes[0][0], axes[0][-1]
-        # For grid-based (N-D) functions, a 1-D `y_array` is not a meaningful
-        # representation of the function values. Some legacy code paths and
-        # serialization expect a `y_array` attribute to exist, so provide the
-        # full flattened image for compatibility rather than a truncated slice.
-        # Callers should avoid relying on `y_array` for multidimensional
-        # Functions; use the interpolator / `get_value_opt` instead.
-        func.y_array = func._image
-        # Use the global min/max of the flattened image as a sensible
-        # `y_initial`/`y_final` for compatibility with code that inspects
-        # scalar bounds. These describe the image range, not an ordering
-        # along any particular axis.
-        func.y_initial, func.y_final = (
-            float(func._image.min()),
-            float(func._image.max()),
-        )
+        if flatten_for_compatibility:
+            # For grid-based (N-D) functions, a 1-D `y_array` is not a meaningful
+            # representation of the function values. Some legacy code paths and
+            # serialization expect a `y_array` attribute to exist, so provide the
+            # full flattened image for compatibility rather than a truncated slice.
+            # Callers should avoid relying on `y_array` for multidimensional
+            # Functions; use the interpolator / `get_value_opt` instead.
+            func.y_array = func._image
+            # Use the global min/max of the flattened image as a sensible
+            # `y_initial`/`y_final` for compatibility with code that inspects
+            # scalar bounds. These describe the image range, not an ordering
+            # along any particular axis.
+            func.y_initial, func.y_final = (
+                float(func._image.min()),
+                float(func._image.max()),
+            )
+        else:
+            # Minimal placeholders when flattening is disabled
+            func.y_array = None
+            func.y_initial, func.y_final = (
+                float(grid_data.min()),
+                float(grid_data.max()),
+            )
         if len(axes) > 2:
             func.z_array = axes[2]
             func.z_initial, func.z_final = axes[2][0], axes[2][-1]
@@ -4265,7 +4296,10 @@ class Function:  # pylint: disable=too-many-public-methods
 
         # Set interpolation and extrapolation functions
         func.__set_interpolation_func()
-        func.__set_extrapolation_func()
+        # Only set extrapolation function if we have flattened data, otherwise
+        # extrapolation is handled by __get_value_opt_grid directly
+        if flatten_for_compatibility:
+            func.__set_extrapolation_func()
 
         # Set inputs and outputs properly
         func.set_inputs(inputs)

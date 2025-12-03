@@ -1398,72 +1398,70 @@ class Flight:
         float
             Drag coefficient value
         """
-        # Check if drag function is multi-dimensional using Function API
-        if isinstance(drag_function, Function) and getattr(
+        # Early return for 1D drag functions (only mach number)
+        if not isinstance(drag_function, Function) or not getattr(
             drag_function, "is_multidimensional", False
         ):
-            # Multi-dimensional drag function - calculate additional parameters
-
-            # Calculate Reynolds number
-            # Re = rho * V * L / mu
-            # where L is characteristic length (rocket diameter)
-            rho = self.env.density.get_value_opt(z)
-            mu = self.env.dynamic_viscosity.get_value_opt(z)
-            freestream_speed = np.linalg.norm(freestream_velocity_body)
-            characteristic_length = 2 * self.rocket.radius  # Diameter
-            # Defensive: avoid division by zero or non-finite viscosity values.
-            # Use a small epsilon fallback if `mu` is zero, negative, NaN or infinite.
-            try:
-                mu_val = float(mu)
-            except (TypeError, ValueError, OverflowError):
-                # Only catch errors related to invalid numeric conversion.
-                # Avoid catching broad Exception to satisfy linters and
-                # allow other unexpected errors to surface.
-                mu_val = 0.0
-            if not np.isfinite(mu_val) or mu_val <= 0.0:
-                mu_safe = 1e-10
-            else:
-                mu_safe = mu_val
-
-            reynolds = rho * freestream_speed * characteristic_length / mu_safe
-
-            # Calculate angle of attack
-            # Angle between freestream velocity and rocket axis (z-axis in body frame)
-            # The z component of freestream velocity in body frame
-            if hasattr(freestream_velocity_body, "z"):
-                stream_vz_b = -freestream_velocity_body.z
-            else:
-                stream_vz_b = -freestream_velocity_body[2]
-
-            # Normalize and calculate angle
-            if freestream_speed > 1e-6:
-                cos_alpha = stream_vz_b / freestream_speed
-                # Clamp to [-1, 1] to avoid numerical issues
-                cos_alpha = np.clip(cos_alpha, -1.0, 1.0)
-                alpha_rad = np.arccos(cos_alpha)
-                alpha_deg = np.rad2deg(alpha_rad)
-            else:
-                alpha_deg = 0.0
-
-            # Determine which parameters to pass based on input names
-            input_names = [name.lower() for name in drag_function.__inputs__]
-            args = []
-
-            for name in input_names:
-                if "mach" in name or name == "m":
-                    args.append(mach)
-                elif "reynolds" in name or name == "re":
-                    args.append(reynolds)
-                elif "alpha" in name or name == "a" or "attack" in name:
-                    args.append(alpha_deg)
-                else:
-                    # Unknown parameter, default to mach
-                    args.append(mach)
-
-            return drag_function.get_value_opt(*args)
-        else:
-            # 1D drag function - only mach number
             return drag_function.get_value_opt(mach)
+
+        # Multi-dimensional drag function - calculate additional parameters
+
+        # Calculate Reynolds number: Re = rho * V * L / mu
+        # where L is characteristic length (rocket diameter)
+        rho = self.env.density.get_value_opt(z)
+        mu = self.env.dynamic_viscosity.get_value_opt(z)
+        freestream_speed = np.linalg.norm(freestream_velocity_body)
+        characteristic_length = 2 * self.rocket.radius  # Diameter
+        # Defensive: avoid division by zero or non-finite viscosity values.
+        # Use a small epsilon fallback if `mu` is zero, negative, NaN or infinite.
+        try:
+            mu_val = float(mu)
+        except (TypeError, ValueError, OverflowError):
+            # Only catch errors related to invalid numeric conversion.
+            # Avoid catching broad Exception to satisfy linters and
+            # allow other unexpected errors to surface.
+            mu_val = 0.0
+        if not np.isfinite(mu_val) or mu_val <= 0.0:
+            mu_safe = 1e-10
+        else:
+            mu_safe = mu_val
+
+        reynolds = rho * freestream_speed * characteristic_length / mu_safe
+
+        # Calculate angle of attack
+        # Angle between freestream velocity and rocket axis (z-axis in body frame)
+        # The z component of freestream velocity in body frame
+        if hasattr(freestream_velocity_body, "z"):
+            stream_vz_b = -freestream_velocity_body.z
+        else:
+            stream_vz_b = -freestream_velocity_body[2]
+
+        # Normalize and calculate angle
+        if freestream_speed > 1e-6:
+            cos_alpha = stream_vz_b / freestream_speed
+            # Clamp to [-1, 1] to avoid numerical issues
+            cos_alpha = np.clip(cos_alpha, -1.0, 1.0)
+            alpha_rad = np.arccos(cos_alpha)
+            alpha_deg = np.rad2deg(alpha_rad)
+        else:
+            alpha_deg = 0.0
+
+        # Determine which parameters to pass based on input names
+        input_names = [name.lower() for name in drag_function.__inputs__]
+        args = []
+
+        for name in input_names:
+            if "mach" in name or name == "m":
+                args.append(mach)
+            elif "reynolds" in name or name == "re":
+                args.append(reynolds)
+            elif "alpha" in name or name == "a" or "attack" in name:
+                args.append(alpha_deg)
+            else:
+                # Unknown parameter, default to mach
+                args.append(mach)
+
+        return drag_function.get_value_opt(*args)
 
     def udot_rail1(self, t, u, post_processing=False):
         """Calculates derivative of u state vector with respect to time

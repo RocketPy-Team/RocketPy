@@ -280,3 +280,73 @@ def test_shepard_fallback_at_exact_data_points():
     assert func(1, 0) == 20
     assert func(0, 1) == 30
     assert func(1, 1) == 40
+
+
+def test_from_grid_unsorted_axis_warns():
+    """Test that from_grid warns when axes are not sorted in ascending order."""
+    y_data = np.array([0.0, 1.0, 4.0])
+
+    # Test with unsorted axis (descending order)
+    unsorted_axis = np.array([2.0, 1.0, 0.0])
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        Function.from_grid(y_data, [unsorted_axis], inputs=["x"], outputs="y")
+
+        # Check that a warning was issued
+        assert len(w) == 1
+        assert "not strictly sorted in ascending order" in str(w[0].message)
+
+
+def test_from_grid_repeated_values_warns():
+    """Test that from_grid warns when axes have repeated values.
+
+    Note: RegularGridInterpolator requires strictly ascending or descending
+    axes. Repeated values will cause scipy to raise a ValueError after our
+    warning is issued.
+    """
+    y_data = np.array([0.0, 1.0, 4.0])
+
+    # Test with repeated values (not strictly ascending)
+    repeated_axis = np.array([0.0, 1.0, 1.0])
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        # Scipy will raise ValueError after our warning, so we expect both
+        try:
+            Function.from_grid(y_data, [repeated_axis], inputs=["x"], outputs="y")
+        except ValueError as e:
+            # scipy raises this error for non-strictly-sorted axes
+            assert "strictly ascending" in str(e).lower() or "dimension 0" in str(e)
+
+        # Check that a warning was issued before the error
+        assert len(w) == 1
+        assert "not strictly sorted in ascending order" in str(w[0].message)
+
+
+def test_from_grid_flatten_for_compatibility_false():
+    """Test that flatten_for_compatibility=False skips flattening."""
+    x = np.array([0.0, 1.0, 2.0])
+    y = np.array([0.0, 1.0])
+
+    X, Y = np.meshgrid(x, y, indexing="ij")
+    z_data = X + Y
+
+    func = Function.from_grid(
+        z_data,
+        [x, y],
+        inputs=["x", "y"],
+        outputs="z",
+        flatten_for_compatibility=False,
+    )
+
+    # Check that flattened attributes are None
+    assert func._domain is None
+    assert func._image is None
+    assert func.source is None
+    assert func.y_array is None
+
+    # But the function should still work correctly
+    assert func(0.0, 0.0) == 0.0
+    assert func(1.0, 1.0) == 2.0
+    assert func(2.0, 1.0) == 3.0
