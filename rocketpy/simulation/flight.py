@@ -2584,6 +2584,15 @@ class Flight:
         """Rocket acceleration magnitude as a Function of time."""
         return (self.ax**2 + self.ay**2 + self.az**2) ** 0.5
 
+    @funcify_method("Time (s)", "Axial Acceleration (m/s²)", "spline", "zero")
+    def axial_acceleration(self):
+        """Axial acceleration magnitude as a Function of time."""
+        return (
+            self.ax * self.attitude_vector_x
+            + self.ay * self.attitude_vector_y
+            + self.az * self.attitude_vector_z
+        )
+
     @cached_property
     def max_acceleration_power_on_time(self):
         """Time at which the rocket reaches its maximum acceleration during
