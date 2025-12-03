@@ -577,13 +577,13 @@ class Flight:
             For more information on the integration methods, see the scipy
             documentation [1]_.
         weathercock_coeff : float, optional
-            Coefficient that controls the rate at which the rocket's body axis
-            aligns with the relative wind direction in 3-DOF simulations, in rad/s.
-            A higher value means faster alignment (quasi-static weathercocking).
-            This parameter is only used when simulation_mode is '3 DOF'.
-            Default is 0.0 to mimic a pure 3-DOF simulation without any
-            weathercocking (fixed attitude). Set to a positive value to enable
-            quasi-static weathercocking behaviour.
+            Proportionality coefficient (rate coefficient) for the alignment rate of the rocket's body axis
+            with the relative wind direction in 3-DOF simulations, in rad/s. The actual angular velocity
+            applied to align the rocket is calculated as ``weathercock_coeff * sin(angle)``, where ``angle``
+            is the angle between the rocket's axis and the wind direction. A higher value means faster alignment
+            (quasi-static weathercocking). This parameter is only used when simulation_mode is '3 DOF'.
+            Default is 0.0 to mimic a pure 3-DOF simulation without any weathercocking (fixed attitude).
+            Set to a positive value to enable quasi-static weathercocking behaviour.
 
 
         Returns
