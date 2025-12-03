@@ -1929,27 +1929,45 @@ class Flight:
             rotation_axis = body_z_inertial ^ desired_direction
             rotation_axis_mag = abs(rotation_axis)
 
+            # Determine omega_body based on alignment state
+            omega_body = None
+
             if rotation_axis_mag > 1e-8:
-                # Normalize rotation axis
+                # Normal case: compute angular velocity from misalignment
                 rotation_axis = rotation_axis / rotation_axis_mag
 
                 # The magnitude of the cross product of two unit vectors equals
                 # the sine of the angle between them
-                sin_angle = rotation_axis_mag
-
-                # Clamp sin_angle to valid range
-                sin_angle = min(1.0, max(-1.0, sin_angle))
+                sin_angle = min(1.0, max(-1.0, rotation_axis_mag))
 
                 # Angular velocity magnitude proportional to misalignment angle
                 omega_mag = self.weathercock_coeff * sin_angle
 
-                # Angular velocity in inertial frame
-                omega_inertial = rotation_axis * omega_mag
+                # Angular velocity in inertial frame, then transform to body frame
+                omega_body = Kt @ (rotation_axis * omega_mag)
+            else:
+                # Check if aligned or anti-aligned using dot product
+                dot = body_z_inertial @ desired_direction
+                if dot < -0.999:  # Anti-aligned
+                    # Choose an arbitrary perpendicular axis
+                    x_axis = Vector([1.0, 0.0, 0.0])
+                    perp_axis = body_z_inertial ^ x_axis
+                    if abs(perp_axis) < 1e-6:
+                        y_axis = Vector([0.0, 1.0, 0.0])
+                        perp_axis = body_z_inertial ^ y_axis
+                        if abs(perp_axis) < 1e-6:
+                            raise ValueError(
+                                "Cannot determine a valid rotation axis: "
+                                "body_z_inertial is parallel to both x and y axes."
+                            )
+                    rotation_axis = perp_axis.unit_vector
+                    # 180 degree rotation: sin(angle) = 1
+                    omega_mag = self.weathercock_coeff * 1.0
+                    omega_body = Kt @ (rotation_axis * omega_mag)
+                # else: aligned (dot > 0.999) - no rotation needed, omega_body stays None
 
-                # Transform angular velocity to body frame
-                omega_body = Kt @ omega_inertial
-
-                # Quaternion derivative from angular velocity in body frame
+            # Compute quaternion derivatives from omega_body
+            if omega_body is not None:
                 omega1_wc, omega2_wc, omega3_wc = (
                     omega_body.x,
                     omega_body.y,
@@ -1960,48 +1978,9 @@ class Flight:
                 e2_dot = 0.5 * (omega2_wc * e0 - omega3_wc * e1 + omega1_wc * e3)
                 e3_dot = 0.5 * (omega3_wc * e0 + omega2_wc * e1 - omega1_wc * e2)
                 e_dot = [e0_dot, e1_dot, e2_dot, e3_dot]
-                w_dot = [0, 0, 0]  # No angular acceleration in 3DOF model
             else:
-                # Check if aligned or anti-aligned using dot product
-                dot = body_z_inertial @ desired_direction  # Vector dot product
-                if dot > 0.999:  # Aligned
-                    e_dot = [0, 0, 0, 0]
-                    w_dot = [0, 0, 0]
-                elif dot < -0.999:  # Anti-aligned
-                    # Choose an arbitrary perpendicular axis
-                    # Try [1,0,0] unless body_z_inertial is parallel to it
-                    x_axis = Vector([1.0, 0.0, 0.0])
-                    perp_axis = body_z_inertial ^ x_axis
-                    if abs(perp_axis) < 1e-6:
-                        # If parallel, use y axis
-                        y_axis = Vector([0.0, 1.0, 0.0])
-                        perp_axis = body_z_inertial ^ y_axis
-                        if abs(perp_axis) < 1e-6:
-                            # If still parallel, raise an error or choose a default axis
-                            raise ValueError(
-                                "Cannot determine a valid rotation axis: "
-                                "body_z_inertial is parallel to both x and y axes."
-                            )
-                    rotation_axis = perp_axis.unit_vector
-                    # 180 degree rotation: sin(angle) = 1
-                    omega_mag = self.weathercock_coeff * 1.0
-                    omega_inertial = rotation_axis * omega_mag
-                    omega_body = Kt @ omega_inertial
-                    omega1_wc, omega2_wc, omega3_wc = (
-                        omega_body.x,
-                        omega_body.y,
-                        omega_body.z,
-                    )
-                    e0_dot = 0.5 * (-omega1_wc * e1 - omega2_wc * e2 - omega3_wc * e3)
-                    e1_dot = 0.5 * (omega1_wc * e0 + omega3_wc * e2 - omega2_wc * e3)
-                    e2_dot = 0.5 * (omega2_wc * e0 - omega3_wc * e1 + omega1_wc * e3)
-                    e3_dot = 0.5 * (omega3_wc * e0 + omega2_wc * e1 - omega1_wc * e2)
-                    e_dot = [e0_dot, e1_dot, e2_dot, e3_dot]
-                    w_dot = [0, 0, 0]
-                else:
-                    # Vectors are nearly aligned, treat as aligned
-                    e_dot = [0, 0, 0, 0]
-                    w_dot = [0, 0, 0]
+                e_dot = [0, 0, 0, 0]
+            w_dot = [0, 0, 0]  # No angular acceleration in 3DOF model
         else:
             # No weathercocking or negligible freestream speed
             e_dot = [0, 0, 0, 0]
