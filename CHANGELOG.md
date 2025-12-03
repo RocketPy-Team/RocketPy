@@ -32,8 +32,8 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
-- ENH: Add animations for motor propellant mass and tank fluid volume [#656](https://github.com/RocketPy-Team/RocketPy/issues/656)
-- ENH: Add save functionality to `_MonteCarloPlots.all` method [#848](https://github.com/RocketPy-Team/RocketPy/pull/848)
+- ENH: add animations for motor propellant mass and tank fluid volumes
+ [#894](https://github.com/RocketPy-Team/RocketPy/pull/894)
 - ENH: Add axial_acceleration attribute to the Flight class [#876](https://github.com/RocketPy-Team/RocketPy/pull/876)
 - ENH: Rail button bending moments calculation in Flight class [#893](https://github.com/RocketPy-Team/RocketPy/pull/893)
 - ENH: Built-in flight comparison tool (`FlightComparator`) to validate simulations against external data [#888](https://github.com/RocketPy-Team/RocketPy/pull/888)
