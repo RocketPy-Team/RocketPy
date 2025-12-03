@@ -239,10 +239,8 @@ def test_weathercock_nonzero_evolves_attitude(flight_weathercock_pos):
 
     Parameters
     ----------
-    example_plain_env : rocketpy.Environment
-        A basic environment fixture for flight simulation.
-    point_mass_rocket : rocketpy.PointMassRocket
-        A point mass rocket fixture for 3-DOF simulation.
+    flight_weathercock_pos : rocketpy.simulation.Flight
+        A Flight fixture with a positive weathercock coefficient for 3-DOF simulation.
     """
     flight = flight_weathercock_pos
     # Create a state with misaligned body axis
