@@ -7,51 +7,27 @@ and tests all background map options, saving the results as images.
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from datetime import datetime, timedelta
+from unittest.mock import MagicMock
 
-from rocketpy import Environment
 from rocketpy.simulation import MonteCarlo
 from rocketpy.stochastic import StochasticEnvironment
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
 
-def create_kennedy_environment():
-    """Create an Environment object for Kennedy Space Center.
-
-    Kennedy Space Center coordinates:
-    - Latitude: 28.5721° N
-    - Longitude: -80.6480° W
-    - Elevation: ~3 meters
-
-    Returns
-    -------
-    Environment
-        Environment object configured for Kennedy Space Center.
-    """
-    env = Environment(
-        latitude=28.5721,
-        longitude=-80.6480,
-        elevation=3.0,
-        datum="WGS84",
-    )
-    # Set a date for the environment (tomorrow at noon UTC)
-    tomorrow = datetime.now() + timedelta(days=1)
-    # Use tuple format: (year, month, day, hour)
-    env.set_date((tomorrow.year, tomorrow.month, tomorrow.day, 12), timezone="UTC")
-    return env
-
-
-def create_simulated_monte_carlo_data():
+def create_simulated_monte_carlo_data(env):
     """Create a MonteCarlo object with simulated results data.
+
+    Parameters
+    ----------
+    env : rocketpy.Environment
+        Environment object to use for the Monte Carlo simulation.
 
     Returns
     -------
     MonteCarlo
         MonteCarlo object with simulated apogee and impact data.
     """
-    # Create environment for Kennedy Space Center
-    env = create_kennedy_environment()
 
     # Create stochastic environment (no randomization for simplicity)
     stochastic_env = StochasticEnvironment(
@@ -61,8 +37,6 @@ def create_simulated_monte_carlo_data():
         latitude=None,
         longitude=None,
     )
-
-    from unittest.mock import MagicMock
 
     stochastic_rocket = MagicMock()
     stochastic_flight = MagicMock()
@@ -97,7 +71,7 @@ def create_simulated_monte_carlo_data():
     return monte_carlo
 
 
-def test_all_background_options():
+def test_all_background_options(example_kennedy_env):
     """Test all background map options and save images.
 
     This function tests:
@@ -106,11 +80,16 @@ def test_all_background_options():
     - street
     - terrain
     - custom provider (CartoDB.Positron)
+
+    Parameters
+    ----------
+    example_kennedy_env : rocketpy.Environment
+        Environment fixture for Kennedy Space Center.
     """
     output_dir = "kennedy_background_tests"
     os.makedirs(output_dir, exist_ok=True)
 
-    monte_carlo = create_simulated_monte_carlo_data()
+    monte_carlo = create_simulated_monte_carlo_data(example_kennedy_env)
 
     background_options = [
         (None, "no_background"),
@@ -153,7 +132,3 @@ def test_all_background_options():
             print(f"✗ Error: {str(e)}")
 
     print(f"\nAll tests completed! Check the '{output_dir}/' directory for results.")
-
-
-if __name__ == "__main__":
-    test_all_background_options()
