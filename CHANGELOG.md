@@ -53,6 +53,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+- BUG: energy_data plot not working for 3 dof sims [[#906](https://github.com/RocketPy-Team/RocketPy/issues/906)]
 - BUG: Fix CSV column header spacing in FlightDataExporter [#864](https://github.com/RocketPy-Team/RocketPy/issues/864)
 - BUG: Fix parallel Monte Carlo simulation showing incorrect iteration count [#806](https://github.com/RocketPy-Team/RocketPy/pull/806)
 
