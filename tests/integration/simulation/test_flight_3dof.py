@@ -307,7 +307,7 @@ def test_3dof_net_thrust_available(flight_3dof):
     """Tests that net_thrust property is available in 3 DOF mode.
     The net_thrust property is required for energy plots and should be
     available in both 3 DOF and 6 DOF modes.
-    
+
     Parameters
     ----------
     flight_3dof : rocketpy.simulation.flight.Flight
