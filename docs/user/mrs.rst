@@ -204,6 +204,31 @@ Finally, we can compare the ellipses for the apogees and landing points using th
 Note we can pass along parameters used in the usual `ellipses` method of the 
 `MonteCarlo` class, in this case the `ylim` argument to expand the y-axis limits.
 
+You can also use the ``background`` parameter to automatically download and display 
+a background map. The ``background`` parameter accepts:
+- ``"satellite"`` - uses Esri.WorldImagery for satellite imagery
+- ``"street"`` - uses OpenStreetMap.Mapnik for street maps
+- ``"terrain"`` - uses Esri.WorldTopoMap for terrain maps
+- Any contextily provider name (e.g., ``"CartoDB.Positron"``)
+
+To view all available providers, you can use ``contextily.providers``:
+
+.. jupyter-execute::
+
+    import contextily
+    # List all available providers
+    print(list(contextily.providers.keys()))
+
+For example, to display a satellite background map:
+
+.. jupyter-execute::
+
+    original_results.compare_ellipses(mrs_results, background="satellite")
+
+Note that if both ``image`` and ``background`` parameters are provided, the ``image`` 
+parameter takes precedence. The background map is automatically downloaded based on the 
+environment's latitude and longitude coordinates.
+
 
 Calculating Confidence Intervals
 --------------------------------
