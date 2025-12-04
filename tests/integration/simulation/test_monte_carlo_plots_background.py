@@ -5,6 +5,7 @@ and tests all background map options, saving the results as images.
 """
 
 import os
+import shutil
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -92,43 +93,50 @@ def test_all_background_options(example_kennedy_env):
     output_dir = "kennedy_background_tests"
     os.makedirs(output_dir, exist_ok=True)
 
-    monte_carlo = MockMonteCarlo(env=example_kennedy_env)
+    try:
+        monte_carlo = MockMonteCarlo(env=example_kennedy_env)
 
-    background_options = [
-        (None, "no_background"),
-        ("satellite", "satellite"),
-        ("street", "street"),
-        ("terrain", "terrain"),
-        ("CartoDB.Positron", "cartodb_positron"),
-    ]
+        background_options = [
+            (None, "no_background"),
+            ("satellite", "satellite"),
+            ("street", "street"),
+            ("terrain", "terrain"),
+            ("CartoDB.Positron", "cartodb_positron"),
+        ]
 
-    print(f"Testing {len(background_options)} background options...")
-    print(f"Output directory: {output_dir}/")
+        print(f"Testing {len(background_options)} background options...")
+        print(f"Output directory: {output_dir}/")
 
-    for background, name in background_options:
-        print(f"  Testing {name}...", end=" ")
+        for background, name in background_options:
+            print(f"  Testing {name}...", end=" ")
 
-        # Temporarily change filename to save with desired name
-        original_filename = monte_carlo.filename
-        monte_carlo.filename = os.path.join(output_dir, f"kennedy_{name}")
+            # Temporarily change filename to save with desired name
+            original_filename = monte_carlo.filename
+            monte_carlo.filename = os.path.join(output_dir, f"kennedy_{name}")
 
-        try:
-            monte_carlo.plots.ellipses(
-                background=background,
-                xlim=(-5000, 5000),
-                ylim=(-5000, 5000),
-                save=True,
-            )
-
-            # Check if file was created
-            expected_file = f"{monte_carlo.filename}.png"
-            if not os.path.exists(expected_file):
-                raise FileNotFoundError(
-                    f"Expected file {expected_file} was not created after plotting."
+            try:
+                monte_carlo.plots.ellipses(
+                    background=background,
+                    xlim=(-5000, 5000),
+                    ylim=(-5000, 5000),
+                    save=True,
                 )
-            print(f"✓ Saved to {expected_file}")
-        finally:
-            # Restore original filename
-            monte_carlo.filename = original_filename
 
-    print(f"\nAll tests completed! Check the '{output_dir}/' directory for results.")
+                # Check if file was created
+                expected_file = f"{monte_carlo.filename}.png"
+                if not os.path.exists(expected_file):
+                    raise FileNotFoundError(
+                        f"Expected file {expected_file} was not created after plotting."
+                    )
+                print(f"✓ Saved to {expected_file}")
+            finally:
+                # Restore original filename
+                monte_carlo.filename = original_filename
+
+        print(
+            f"\nAll tests completed! Check the '{output_dir}/' directory for results."
+        )
+    finally:
+        # Clean up generated files and directory
+        if os.path.exists(output_dir):
+            shutil.rmtree(output_dir)
