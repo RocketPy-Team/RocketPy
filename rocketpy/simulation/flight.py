@@ -2041,11 +2041,20 @@ class Flight:
             R3 += fz
 
         # Thrust and weight
-        thrust = self.rocket.motor.thrust.get_value_opt(t)
+        # Calculate net thrust including pressure thrust correction if motor is burning
+        if self.rocket.motor.burn_start_time < t < self.rocket.motor.burn_out_time:
+            pressure = self.env.pressure.get_value_opt(z)
+            net_thrust = max(
+                self.rocket.motor.thrust.get_value_opt(t)
+                + self.rocket.motor.pressure_thrust(pressure),
+                0,
+            )
+        else:
+            net_thrust = 0
         gravity = self.env.gravity.get_value_opt(z)
         weight_body = Kt @ Vector([0, 0, -total_mass * gravity])
 
-        total_force = Vector([0, 0, thrust]) + weight_body + Vector([R1, R2, R3])
+        total_force = Vector([0, 0, net_thrust]) + weight_body + Vector([R1, R2, R3])
 
         # Dynamics
         v_dot = K @ (total_force / total_mass)
@@ -2133,7 +2142,7 @@ class Flight:
 
         if post_processing:
             self.__post_processed_variables.append(
-                [t, *v_dot, *w_dot, R1, R2, R3, 0, 0, 0]
+                [t, *v_dot, *w_dot, R1, R2, R3, 0, 0, 0, net_thrust]
             )
 
         return u_dot
