@@ -7,68 +7,71 @@ and tests all background map options, saving the results as images.
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from unittest.mock import MagicMock
 
 from rocketpy.simulation import MonteCarlo
-from rocketpy.stochastic import StochasticEnvironment
+from rocketpy.plots.monte_carlo_plots import _MonteCarloPlots
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
 
-def create_simulated_monte_carlo_data(env):
-    """Create a MonteCarlo object with simulated results data.
+class MockMonteCarlo(MonteCarlo):
+    """Create a mock class to test the method without running a real simulation.
 
-    Parameters
-    ----------
-    env : rocketpy.Environment
-        Environment object to use for the Monte Carlo simulation.
-
-    Returns
-    -------
-    MonteCarlo
-        MonteCarlo object with simulated apogee and impact data.
+    This class creates a MonteCarlo object with simulated results data for testing
+    background map options. Only includes the minimal attributes needed for plotting.
     """
 
-    # Create stochastic environment (no randomization for simplicity)
-    stochastic_env = StochasticEnvironment(
-        environment=env,
-        elevation=None,
-        gravity=None,
-        latitude=None,
-        longitude=None,
-    )
+    def __init__(self, env, filename="kennedy_space_center_test"):
+        """Initialize MockMonteCarlo with simulated data.
 
-    stochastic_rocket = MagicMock()
-    stochastic_flight = MagicMock()
+        Parameters
+        ----------
+        env : rocketpy.Environment
+            Environment object to use for the Monte Carlo simulation.
+            Must have latitude and longitude attributes.
+        filename : str, optional
+            Filename for the MonteCarlo object. Defaults to "kennedy_space_center_test".
+        """
 
-    monte_carlo = MonteCarlo(
-        filename="kennedy_space_center_test",
-        environment=stochastic_env,
-        rocket=stochastic_rocket,
-        flight=stochastic_flight,
-    )
+        # pylint: disable=super-init-not-called
+        # Create a simple environment object with only latitude and longitude
+        # needed for background map fetching
+        class SimpleEnvironment:
+            """Simple environment object with only latitude and longitude."""
 
-    # Generate simulated Monte Carlo results
-    # Simulate 50 data points with realistic dispersion
-    np.random.seed(42)  # For reproducibility
+            def __init__(self, env):
+                self.latitude = env.latitude
+                self.longitude = env.longitude
 
-    # Simulate apogee points (scattered around origin with some dispersion)
-    n_points = 50
-    apogee_x = np.random.normal(0, 500, n_points)  # meters, std dev 500m
-    apogee_y = np.random.normal(0, 500, n_points)  # meters, std dev 500m
+        # Set attributes needed for plotting background maps
+        self.filename = filename
+        self.environment = SimpleEnvironment(env)
+        self.plots = _MonteCarloPlots(self)
 
-    # Simulate impact points (further from origin, more dispersion)
-    impact_x = np.random.normal(2000, 1000, n_points)  # meters, mean 2km, std dev 1km
-    impact_y = np.random.normal(1500, 1000, n_points)  # meters, mean 1.5km, std dev 1km
+        # Generate simulated Monte Carlo results
+        # Simulate 50 data points with realistic dispersion
+        np.random.seed(42)  # For reproducibility
 
-    monte_carlo.results = {
-        "apogee_x": apogee_x.tolist(),
-        "apogee_y": apogee_y.tolist(),
-        "x_impact": impact_x.tolist(),
-        "y_impact": impact_y.tolist(),
-    }
+        # Simulate apogee points (scattered around origin with some dispersion)
+        n_points = 50
+        apogee_x = np.random.normal(0, 500, n_points)  # meters, std dev 500m
+        apogee_y = np.random.normal(0, 500, n_points)  # meters, std dev 500m
 
-    return monte_carlo
+        # Simulate impact points (further from origin, more dispersion)
+        impact_x = np.random.normal(
+            2000, 1000, n_points
+        )  # meters, mean 2km, std dev 1km
+        impact_y = np.random.normal(
+            1500, 1000, n_points
+        )  # meters, mean 1.5km, std dev 1km
+
+        # Set simulated results (only what's needed for ellipses plot)
+        self.results = {
+            "apogee_x": apogee_x.tolist(),
+            "apogee_y": apogee_y.tolist(),
+            "x_impact": impact_x.tolist(),
+            "y_impact": impact_y.tolist(),
+        }
 
 
 def test_all_background_options(example_kennedy_env):
@@ -89,7 +92,7 @@ def test_all_background_options(example_kennedy_env):
     output_dir = "kennedy_background_tests"
     os.makedirs(output_dir, exist_ok=True)
 
-    monte_carlo = create_simulated_monte_carlo_data(example_kennedy_env)
+    monte_carlo = MockMonteCarlo(env=example_kennedy_env)
 
     background_options = [
         (None, "no_background"),
@@ -103,32 +106,29 @@ def test_all_background_options(example_kennedy_env):
     print(f"Output directory: {output_dir}/")
 
     for background, name in background_options:
+        print(f"  Testing {name}...", end=" ")
+
+        # Temporarily change filename to save with desired name
+        original_filename = monte_carlo.filename
+        monte_carlo.filename = os.path.join(output_dir, f"kennedy_{name}")
+
         try:
-            print(f"  Testing {name}...", end=" ")
+            monte_carlo.plots.ellipses(
+                background=background,
+                xlim=(-5000, 5000),
+                ylim=(-5000, 5000),
+                save=True,
+            )
 
-            # Temporarily change filename to save with desired name
-            original_filename = monte_carlo.filename
-            monte_carlo.filename = os.path.join(output_dir, f"kennedy_{name}")
-
-            try:
-                monte_carlo.plots.ellipses(
-                    background=background,
-                    xlim=(-5000, 5000),
-                    ylim=(-5000, 5000),
-                    save=True,
+            # Check if file was created
+            expected_file = f"{monte_carlo.filename}.png"
+            if not os.path.exists(expected_file):
+                raise FileNotFoundError(
+                    f"Expected file {expected_file} was not created after plotting."
                 )
-
-                # Check if file was created
-                expected_file = f"{monte_carlo.filename}.png"
-                if os.path.exists(expected_file):
-                    print(f"✓ Saved to {expected_file}")
-                else:
-                    print("✗ Failed to save")
-            finally:
-                # Restore original filename
-                monte_carlo.filename = original_filename
-
-        except (ValueError, ImportError, OSError) as e:
-            print(f"✗ Error: {str(e)}")
+            print(f"✓ Saved to {expected_file}")
+        finally:
+            # Restore original filename
+            monte_carlo.filename = original_filename
 
     print(f"\nAll tests completed! Check the '{output_dir}/' directory for results.")
