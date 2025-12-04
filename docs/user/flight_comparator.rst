@@ -74,8 +74,8 @@ First, let's create the standard RocketPy simulation that will serve as our
        radius=127 / 2000,
        mass=19.197 - 2.956,
        inertia=(6.321, 6.321, 0.034),
-       power_off_drag="../data/calisto/powerOffDragCurve.csv",
-       power_on_drag="../data/calisto/powerOnDragCurve.csv",
+       power_off_drag="../data/rockets/calisto/powerOffDragCurve.csv",
+       power_on_drag="../data/rockets/calisto/powerOnDragCurve.csv",
        center_of_mass_without_motor=0,
        coordinate_system_orientation="tail_to_nose",
    )
@@ -101,17 +101,17 @@ First, let's create the standard RocketPy simulation that will serve as our
        position=-1.194656,
    )
 
-    # 4. Simulate
-    flight = Flight(
-    rocket=calisto,
-    environment=env,
-    rail_length=5.2,
-    inclination=85,
-    heading=0,
-    )
+   # 4. Simulate
+   flight = Flight(
+       rocket=calisto,
+       environment=env,
+       rail_length=5.2,
+       inclination=85,
+       heading=0,
+   )
 
-    # 5. Create FlightComparator instance
-    comparator = FlightComparator(flight)
+   # 5. Create FlightComparator instance
+   comparator = FlightComparator(flight)
 
 Adding Another Flight Object
 ----------------------------
@@ -156,7 +156,7 @@ simulation:
 
     # Add the external data to our comparator
     comparator.add_data(
-        "External Simulator", 
+        "External Simulator",
         {
             "altitude": (time_external, external_altitude),
             "vz": (time_external, external_velocity),

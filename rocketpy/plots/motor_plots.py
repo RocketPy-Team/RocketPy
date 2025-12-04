@@ -1,9 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.patches import Polygon
 from matplotlib.animation import FuncAnimation
+from matplotlib.patches import Polygon
 
-from ..plots.plot_helpers import show_or_save_plot, show_or_save_animation
+from ..plots.plot_helpers import show_or_save_animation, show_or_save_plot
 
 
 class _MotorPlots:
