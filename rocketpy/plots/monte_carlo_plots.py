@@ -79,6 +79,13 @@ class _MonteCarloPlots:
         -------
         object
             The resolved contextily provider object.
+
+        Raises
+        ------
+        ValueError
+            If the map provider string cannot be resolved in contextily.providers.
+            This may occur if the provider name is invalid. Check the provider name
+            or use one of the built-in options: 'satellite', 'street', or 'terrain'.
         """
         if background == "satellite":
             map_provider = "Esri.WorldImagery"
