@@ -32,6 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- TST: Add branch coverage for fin_flutter_analysis and fix keyword argument bug [#904](https://github.com/RocketPy-Team/RocketPy/pull/815)
 - ENH: 3-dof lateral motion improvement [#883](https://github.com/RocketPy-Team/RocketPy/pull/883)
 - ENH: Add multi-dimensional drag coefficient support (Cd as function of M, Re, α) [#875](https://github.com/RocketPy-Team/RocketPy/pull/875)
 - ENH: Add save functionality to `_MonteCarloPlots.all` method [#848](https://github.com/RocketPy-Team/RocketPy/pull/848)
@@ -54,6 +55,7 @@ Attention: The newest changes should be on top -->
 
 - BUG: Fix CSV column header spacing in FlightDataExporter [#864](https://github.com/RocketPy-Team/RocketPy/issues/864)
 - BUG: Fix parallel Monte Carlo simulation showing incorrect iteration count [#806](https://github.com/RocketPy-Team/RocketPy/pull/806)
+- BUG: Fixed keyword argument bug in `fin_flutter_analysis` where `filename` parameter was passed as positional argument to `_flutter_plots`, causing TypeError when saving plots [#904](https://github.com/RocketPy-Team/RocketPy/pull/904)
 
 
 ## [v1.11.0] - 2025-11-01
