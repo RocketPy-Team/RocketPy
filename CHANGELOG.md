@@ -32,6 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- MNT: net thrust addition to 3 dof in flight class [#907] (https://github.com/RocketPy-Team/RocketPy/pull/907)
 - ENH: 3-dof lateral motion improvement [#883](https://github.com/RocketPy-Team/RocketPy/pull/883)
 - ENH: Add multi-dimensional drag coefficient support (Cd as function of M, Re, α) [#875](https://github.com/RocketPy-Team/RocketPy/pull/875)
 - ENH: Add save functionality to `_MonteCarloPlots.all` method [#848](https://github.com/RocketPy-Team/RocketPy/pull/848)
