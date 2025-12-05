@@ -8,6 +8,7 @@ import os
 import shutil
 import numpy as np
 import matplotlib.pyplot as plt
+import pytest
 
 from rocketpy.simulation import MonteCarlo
 from rocketpy.plots.monte_carlo_plots import _MonteCarloPlots
@@ -75,7 +76,17 @@ class MockMonteCarlo(MonteCarlo):
         }
 
 
-def test_all_background_options(example_kennedy_env):
+@pytest.mark.parametrize(
+    "background,name",
+    [
+        (None, "no_background"),
+        ("satellite", "satellite"),
+        ("street", "street"),
+        ("terrain", "terrain"),
+        ("CartoDB.Positron", "cartodb_positron"),
+    ],
+)
+def test_all_background_options(example_kennedy_env, background, name):
     """Test all background map options and save images.
 
     This function tests:
@@ -89,6 +100,10 @@ def test_all_background_options(example_kennedy_env):
     ----------
     example_kennedy_env : rocketpy.Environment
         Environment fixture for Kennedy Space Center.
+    background : str or None
+        Background map option to test.
+    name : str
+        Name identifier for the background option (used in filename).
     """
     output_dir = "kennedy_background_tests"
     os.makedirs(output_dir, exist_ok=True)
@@ -96,47 +111,25 @@ def test_all_background_options(example_kennedy_env):
     try:
         monte_carlo = MockMonteCarlo(env=example_kennedy_env)
 
-        background_options = [
-            (None, "no_background"),
-            ("satellite", "satellite"),
-            ("street", "street"),
-            ("terrain", "terrain"),
-            ("CartoDB.Positron", "cartodb_positron"),
-        ]
+        # Temporarily change filename to save with desired name
+        original_filename = monte_carlo.filename
+        monte_carlo.filename = os.path.join(output_dir, f"kennedy_{name}")
 
-        print(f"Testing {len(background_options)} background options...")
-        print(f"Output directory: {output_dir}/")
+        try:
+            monte_carlo.plots.ellipses(
+                background=background,
+                xlim=(-5000, 5000),
+                ylim=(-5000, 5000),
+                save=True,
+            )
 
-        for background, name in background_options:
-            print(f"  Testing {name}...", end=" ")
-
-            # Temporarily change filename to save with desired name
-            original_filename = monte_carlo.filename
-            monte_carlo.filename = os.path.join(output_dir, f"kennedy_{name}")
-
-            try:
-                monte_carlo.plots.ellipses(
-                    background=background,
-                    xlim=(-5000, 5000),
-                    ylim=(-5000, 5000),
-                    save=True,
+            expected_file = f"{monte_carlo.filename}.png"
+            if not os.path.exists(expected_file):
+                raise FileNotFoundError(
+                    f"Expected file {expected_file} was not created after plotting."
                 )
-
-                # Check if file was created
-                expected_file = f"{monte_carlo.filename}.png"
-                if not os.path.exists(expected_file):
-                    raise FileNotFoundError(
-                        f"Expected file {expected_file} was not created after plotting."
-                    )
-                print(f"✓ Saved to {expected_file}")
-            finally:
-                # Restore original filename
-                monte_carlo.filename = original_filename
-
-        print(
-            f"\nAll tests completed! Check the '{output_dir}/' directory for results."
-        )
+        finally:
+            monte_carlo.filename = original_filename
     finally:
-        # Clean up generated files and directory
         if os.path.exists(output_dir):
             shutil.rmtree(output_dir)
