@@ -397,7 +397,8 @@ def test_ellipses_background_bounds2img_failure(
     """
     mock_monte_carlo = MockMonteCarlo(environment=SimpleEnvironment())
     from rocketpy.tools import import_optional_dependency as original_import  # pylint: disable=import-outside-toplevel
-    import contextily  # pylint: disable=import-outside-toplevel
+
+    contextily = pytest.importorskip("contextily")
 
     mock_contextily = MagicMock()
     mock_contextily.providers = contextily.providers
