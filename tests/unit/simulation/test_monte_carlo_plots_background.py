@@ -1,8 +1,9 @@
 # pylint: disable=unused-argument,assignment-from-no-return
 import os
 import urllib.error  # pylint: disable=unused-import
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 import matplotlib.pyplot as plt
 from PIL import UnidentifiedImageError  # pylint: disable=unused-import
@@ -154,7 +155,7 @@ def test_ellipses_image_takes_precedence_over_background(mock_show, tmp_path):
 
     # Test that when both image and background are provided, image takes precedence
     # This should not attempt to download background map
-    import numpy as np
+    import numpy as np  # pylint: disable=import-outside-toplevel
 
     mock_image = np.zeros((100, 100, 3), dtype=np.uint8)  # RGB image
 
@@ -217,7 +218,7 @@ def test_ellipses_background_contextily_not_installed(mock_show):
         Mocks the matplotlib.pyplot.show() function to avoid showing the plots.
     """
     mock_monte_carlo = MockMonteCarlo(environment=SimpleEnvironment())
-    from rocketpy.tools import import_optional_dependency as original_import
+    from rocketpy.tools import import_optional_dependency as original_import  # pylint: disable=import-outside-toplevel
 
     # Create a mock function that only raises exception when importing contextily
     def mock_import_optional_dependency(name):
@@ -391,8 +392,8 @@ def test_ellipses_background_bounds2img_failure(
         List of expected message substrings in the raised exception.
     """
     mock_monte_carlo = MockMonteCarlo(environment=SimpleEnvironment())
-    from rocketpy.tools import import_optional_dependency as original_import
-    import contextily
+    from rocketpy.tools import import_optional_dependency as original_import  # pylint: disable=import-outside-toplevel
+    import contextily  # pylint: disable=import-outside-toplevel
 
     mock_contextily = MagicMock()
     mock_contextily.providers = contextily.providers
