@@ -1,5 +1,7 @@
 from pathlib import Path
+import urllib
 
+from PIL import UnidentifiedImageError
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.transforms import offset_copy
@@ -161,17 +163,41 @@ class _MonteCarloPlots:
             bg, mercator_extent = contextily.bounds2img(
                 west, south, east, north, source=source_provider, ll=True
             )
-        except Exception as e:
-            raise RuntimeError(
-                f"Failed to fetch background map tiles from provider '{background}'. "
-                f"This could be due to:\n"
-                f"  - Network connectivity issues\n"
-                f"  - Invalid coordinate bounds (west={west:.6f}, south={south:.6f}, "
-                f"east={east:.6f}, north={north:.6f})\n"
-                f"  - Service unavailability\n"
-                f"  - Invalid map provider configuration\n\n"
+        except ValueError as e:
+            raise ValueError(
+                f"Input coordinates or zoom level are invalid.\n"
+                f"  - Provided bounds: W={west:.6f}, S={south:.6f}, E={east:.6f}, N={north:.6f}\n"
+                f"  - Provider: {source_provider}\n"
+                f"  - Tip: Ensure West < East and South < North.\n"
+                f"  - Tip: Ensure coordinates are within Web Mercator limits (approx +/-85 lat).\n"
+                f"Original error: {str(e)}"
             ) from e
 
+        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as e:
+            raise ConnectionError(
+                f"Network error while fetching tiles from provider '{background}'.\n"
+                f"  - Provider: {source_provider}\n"
+                f"  - Status: Check your internet connection.\n"
+                f"  - The tile server might be down or blocking requests (rate limited).\n"
+                f"  - Original error: {str(e)}"
+            ) from e
+
+        except UnidentifiedImageError as e:
+            raise RuntimeError(
+                f"The provider '{background}' returned invalid image data.\n"
+                f"  - Provider: {source_provider}\n"
+                f"  - Cause: This often happens when the API requires a key/token that is missing or invalid.\n"
+                f"  - Result: The server likely returned an HTML error page instead of a PNG/JPG."
+                f"  - Original error: {str(e)}"
+            ) from e
+
+        except Exception as e:
+            raise RuntimeError(
+                f"An unexpected error occurred while generating the map.\n"
+                f"  - Bounds: {west:.6f}, {south:.6f}, {east:.6f}, {north:.6f}\n"
+                f"  - Provider: {source_provider}\n"
+                f"  - Error Detail: {str(e)}"
+            ) from e
         local_extent = convert_mercator_extent_to_local(
             mercator_extent, origin_lat, origin_lon, earth_radius
         )
