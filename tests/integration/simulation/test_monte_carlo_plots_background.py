@@ -15,6 +15,10 @@ from rocketpy.plots.monte_carlo_plots import _MonteCarloPlots
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
+pytest.importorskip(
+    "contextily", reason="This test requires contextily to be installed"
+)
+
 
 class MockMonteCarlo(MonteCarlo):
     """Create a mock class to test the method without running a real simulation.
