@@ -1,9 +1,11 @@
 # pylint: disable=unused-argument,assignment-from-no-return
 import os
+import urllib.error  # pylint: disable=unused-import
 import pytest
 from unittest.mock import MagicMock, patch
 
 import matplotlib.pyplot as plt
+from PIL import UnidentifiedImageError  # pylint: disable=unused-import
 
 from rocketpy.plots.monte_carlo_plots import _MonteCarloPlots
 from rocketpy.simulation import MonteCarlo
@@ -297,24 +299,106 @@ def test_ellipses_background_invalid_provider(mock_show):
 
 
 @patch("matplotlib.pyplot.show")
-def test_ellipses_background_bounds2img_failure(mock_show):
-    """Test that RuntimeError is raised when bounds2img fails to fetch map tiles.
+@pytest.mark.parametrize(
+    "exception_factory,expected_exception,expected_messages",
+    [
+        # ValueError case: invalid coordinates or zoom level
+        (
+            lambda: ValueError("Invalid coordinates"),
+            ValueError,
+            [
+                "Input coordinates or zoom level are invalid",
+                "Provided bounds",
+                "Tip: Ensure West < East and South < North",
+            ],
+        ),
+        # ConnectionError case: network errors (URLError)
+        (
+            lambda: urllib.error.URLError("Network error: Unable to fetch tiles"),
+            ConnectionError,
+            [
+                "Network error while fetching tiles from provider",
+                "Check your internet connection",
+                "The tile server might be down or blocking requests",
+            ],
+        ),
+        # ConnectionError case: network errors (HTTPError)
+        (
+            lambda: urllib.error.HTTPError(
+                "http://example.com", 500, "Internal Server Error", None, None
+            ),
+            ConnectionError,
+            [
+                "Network error while fetching tiles from provider",
+                "Check your internet connection",
+                "The tile server might be down or blocking requests",
+            ],
+        ),
+        # ConnectionError case: network errors (TimeoutError)
+        (
+            lambda: TimeoutError("Request timed out"),
+            ConnectionError,
+            [
+                "Network error while fetching tiles from provider",
+                "Check your internet connection",
+                "The tile server might be down or blocking requests",
+            ],
+        ),
+        # RuntimeError case: UnidentifiedImageError (invalid image data)
+        (
+            lambda: UnidentifiedImageError("Cannot identify image file"),
+            RuntimeError,
+            [
+                "returned invalid image data",
+                "API requires a key/token that is missing or invalid",
+                "server likely returned an HTML error page instead of a PNG/JPG",
+            ],
+        ),
+        # RuntimeError case: other unexpected exceptions
+        (
+            lambda: Exception("Unexpected error occurred"),
+            RuntimeError,
+            [
+                "An unexpected error occurred while generating the map",
+                "Bounds",
+                "Provider",
+                "Error Detail",
+            ],
+        ),
+    ],
+)
+def test_ellipses_background_bounds2img_failure(
+    mock_show, exception_factory, expected_exception, expected_messages
+):
+    """Test that appropriate exceptions are raised when bounds2img fails.
+
+    This is a parameterized test that covers all exception types handled in
+    the _fetch_background_map method:
+    - ValueError: invalid coordinates or zoom level
+    - ConnectionError: network errors (URLError, HTTPError, TimeoutError)
+    - RuntimeError: UnidentifiedImageError (invalid image data)
+    - RuntimeError: other unexpected exceptions
 
     Parameters
     ----------
     mock_show :
         Mocks the matplotlib.pyplot.show() function to avoid showing the plots.
+    exception_factory : callable
+        A function that returns the exception to raise in mock_bounds2img.
+    expected_exception : type
+        The expected exception type to be raised.
+    expected_messages : list[str]
+        List of expected message substrings in the raised exception.
     """
     mock_monte_carlo = MockMonteCarlo(environment=SimpleEnvironment())
     from rocketpy.tools import import_optional_dependency as original_import
     import contextily
 
-    # Create a mock contextily module with a failing bounds2img
     mock_contextily = MagicMock()
     mock_contextily.providers = contextily.providers
 
     def mock_bounds2img(*args, **kwargs):
-        raise ConnectionError("Network error: Unable to fetch tiles")
+        raise exception_factory()
 
     mock_contextily.bounds2img = mock_bounds2img
 
@@ -327,10 +411,13 @@ def test_ellipses_background_bounds2img_failure(mock_show):
         "rocketpy.plots.monte_carlo_plots.import_optional_dependency",
         side_effect=mock_import_optional_dependency,
     ):
-        with pytest.raises(RuntimeError) as exc_info:
+        with pytest.raises(expected_exception) as exc_info:
             mock_monte_carlo.plots.ellipses(background="satellite")
-        assert "Failed to fetch background map tiles" in str(exc_info.value)
-        assert "satellite" in str(exc_info.value)
-        assert "Network connectivity" in str(
-            exc_info.value
-        ) or "Service unavailability" in str(exc_info.value)
+
+        error_message = str(exc_info.value)
+        for expected_msg in expected_messages:
+            assert expected_msg in error_message, (
+                f"Expected message '{expected_msg}' not found in error: {error_message}"
+            )
+
+        assert "Esri.WorldImagery" in error_message
