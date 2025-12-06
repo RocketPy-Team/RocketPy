@@ -119,6 +119,7 @@ class Parachute:
         radius=1.5,
         height=None,
         porosity=0.0432,
+        opening_shock_coefficient=1.6,  # TODO: analyse methods to calculate Cx and X1
     ):
         """Initializes Parachute class.
 
@@ -184,6 +185,14 @@ class Parachute:
             in [0, 1]. Affects only the added-mass scaling during descent; it does
             not change ``cd_s`` (drag). The default, 0.0432, yields an added-mass
             of 1.0 (“neutral” behavior).
+        opening_shock_coefficient : float, optional
+            Coefficient used to calculate the parachute's opening shock force.
+            Combined factor (Cx * X1) accounting for canopy shape and mass ratio.
+            Default value set for 1.6, can be calculated by geometrical and porosity
+            relations.
+        opening_shock_force : float, optional
+            Parachute's estimated opening shock force.
+            Calculated based on Knacke, T. W. (1992). Parachute Recovery Systems Design Manual.
         """
         self.name = name
         self.cd_s = cd_s
@@ -203,6 +212,8 @@ class Parachute:
         self.radius = radius
         self.height = height or radius
         self.porosity = porosity
+        self.opening_shock_coefficient = opening_shock_coefficient
+        self.opening_shock_force = None
         self.added_mass_coefficient = 1.068 * (
             1
             - 1.465 * self.porosity
@@ -346,3 +357,28 @@ class Parachute:
         )
 
         return parachute
+
+    def calculate_opening_shock(self, density, velocity):
+        """
+        Calculates the opening shock force based on Knacke's formula.
+
+        Fo = Cx * X1 * q * S * Cd
+        Knacke, T. W. (1992). Parachute Recovery Systems Design Manual.(Page 5-50)
+
+        Parameters
+        ----------
+        density: float
+            Air density during the parachute's opening (kg/m^3).
+        velocity: float
+            Rocket velocity relative to the air during the parachute's opening (m/s).
+
+        Returns
+        -------
+        force: float
+            The estimated peak opening shock force during the parachute's opening (N).
+        """
+
+        dynamic_pressure = 0.5 * density * (velocity**2)
+        force = self.opening_shock_coefficient * dynamic_pressure * self.cd_s
+
+        return force
