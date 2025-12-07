@@ -7,4 +7,3 @@ imageio
 multiprocess>=0.70
 statsmodels
 prettytable
-contextily>=1.0.0
