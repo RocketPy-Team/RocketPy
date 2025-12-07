@@ -454,7 +454,6 @@ def test_rocket_csys_equivalence(
     )
 
 
-# TODO: fix the issues on this test and debug shock analysis
 def test_opening_shock_recorded_during_flight(calisto, example_plain_env):
     """
     Testing if the opening shock is being saved correctly during simulations.

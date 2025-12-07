@@ -774,20 +774,8 @@ class Flight:
                         self.sensors,
                     ):
 
-                        # Calculate opening shock force
-                        opening_altitude = self.y_sol[2]
-                        opening_density = self.env.density(opening_altitude)
-                        opening_velocity = (
-                            (self.y_sol[3]) ** 2
-                            + (self.y_sol[4]) ** 2
-                            + (self.y_sol[5]) ** 2
-                        ) ** 0.5
-
-                        parachute.opening_shock_force = (
-                            parachute.calculate_opening_shock(
-                                opening_density, opening_velocity
-                            )
-                        )
+                        # Calculates the parachute's opening shock force
+                        self.calculate_parachute_opening_shock_force(parachute)
 
                         # Remove parachute from flight parachutes
                         self.parachutes.remove(parachute)
@@ -1108,6 +1096,12 @@ class Flight:
                                         phase.time_nodes.flush_after(node_index)
                                         phase.time_nodes.add_node(self.t, [], [], [])
                                         phase.solver.status = "finished"
+
+                                        # Calculates the parachute's opening shock force
+                                        self.calculate_parachute_opening_shock_force(
+                                            parachute
+                                        )
+
                                         # Save parachute event
                                         self.parachute_events.append(
                                             [self.t, parachute]
@@ -4371,3 +4365,18 @@ class Flight:
     def max_rail_button2_bending_moment(self):
         """Maximum lower rail button bending moment, in N·m."""
         return self.calculate_rail_button_bending_moments[3]
+
+    def calculate_parachute_opening_shock_force(self, parachute):
+        """Calculates and stores the shock force on parachute opening
+        Uses the current self.y_sol and self.env.
+        """
+        # Calculate opening shock force
+        opening_altitude = self.y_sol[2]
+        opening_density = self.env.density(opening_altitude)
+        opening_velocity = (
+            (self.y_sol[3]) ** 2 + (self.y_sol[4]) ** 2 + (self.y_sol[5]) ** 2
+        ) ** 0.5
+
+        parachute.opening_shock_force = parachute.calculate_opening_shock(
+            opening_density, opening_velocity
+        )

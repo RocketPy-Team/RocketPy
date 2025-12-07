@@ -321,6 +321,7 @@ class Parachute:
             "radius": self.radius,
             "height": self.height,
             "porosity": self.porosity,
+            "opening_shock_coefficient": self.opening_shock_coefficient,
         }
 
         if kwargs.get("include_outputs", False):
@@ -332,6 +333,7 @@ class Parachute:
             )
             data["noisy_pressure_signal"] = self.noisy_pressure_signal
             data["clean_pressure_signal"] = self.clean_pressure_signal
+            data["opening_shock_force"] = self.opening_shock_force
 
         return data
 
@@ -354,6 +356,7 @@ class Parachute:
             radius=data.get("radius", 1.5),
             height=data.get("height", None),
             porosity=data.get("porosity", 0.0432),
+            opening_shock_coefficient=data.get("opening_shock_coefficient", 1.6),
         )
 
         return parachute
