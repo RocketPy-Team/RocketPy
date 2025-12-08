@@ -265,9 +265,7 @@ def test_3dof_weathercocking_affects_trajectory(
 
     # They should be reasonably close but not identical
     apogee_difference = abs(apogee_no_wc - apogee_with_wc)
-    assert apogee_difference > 0.1, (
-        "Weathercocking should affect apogee altitude"
-    )
+    assert apogee_difference > 0.1, "Weathercocking should affect apogee altitude"
 
     # Both should still be in reasonable range
     assert 500 < apogee_no_wc < 3000
@@ -445,7 +443,9 @@ def test_3dof_flight_thrust_profile(flight_3dof_no_weathercock):
     assert abs(thrust_after_burnout) < 1e-6, "Thrust should be zero after burnout"
 
 
-def test_3dof_flight_reproducibility(acceptance_environment, acceptance_point_mass_rocket):
+def test_3dof_flight_reproducibility(
+    acceptance_environment, acceptance_point_mass_rocket
+):
     """Test that 3 DOF flights are reproducible.
 
     Running the same simulation multiple times should produce identical results.
