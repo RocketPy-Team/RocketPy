@@ -301,3 +301,26 @@ def test_weathercock_anti_aligned_uses_perp_axis_and_evolves(flight_weathercock_
     assert e_dot_magnitude > 1e-6, (
         "Quaternion derivatives should be non-zero for anti-aligned"
     )
+
+
+def test_3dof_net_thrust_available(flight_3dof):
+    """Tests that net_thrust property is available in 3 DOF mode.
+    The net_thrust property is required for energy plots and should be
+    available in both 3 DOF and 6 DOF modes.
+
+    Parameters
+    ----------
+    flight_3dof : rocketpy.simulation.flight.Flight
+        A Flight object configured for 3-DOF simulation.
+    """
+    # Check that net_thrust can be accessed
+    assert hasattr(flight_3dof, "net_thrust"), "net_thrust attribute not found"
+
+    # Check that it returns a Function object with data
+    net_thrust = flight_3dof.net_thrust
+    assert len(net_thrust) > 0, "net_thrust should have data points"
+
+    # Verify that thrust_power can be computed (uses net_thrust internally)
+    assert hasattr(flight_3dof, "thrust_power"), "thrust_power attribute not found"
+    thrust_power = flight_3dof.thrust_power
+    assert len(thrust_power) > 0, "thrust_power should have data points"
