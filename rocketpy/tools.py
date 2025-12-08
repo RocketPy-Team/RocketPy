@@ -1178,12 +1178,10 @@ def _pat_dynamic_product_helper(
         return Function(new_source, inputs="t", outputs="Inertia (kg*m^2)")
 
 
-
 def parallel_axis_theorem_I11(com_inertia_moment, mass, distance_vec_3d):
     return _pat_dynamic_helper(
         com_inertia_moment, mass, distance_vec_3d, lambda d_vec: d_vec.y**2 + d_vec.z**2
     )
-
 
 
 def parallel_axis_theorem_I22(com_inertia_moment, mass, distance_vec_3d):
@@ -1192,12 +1190,10 @@ def parallel_axis_theorem_I22(com_inertia_moment, mass, distance_vec_3d):
     )
 
 
-
 def parallel_axis_theorem_I33(com_inertia_moment, mass, distance_vec_3d):
     return _pat_dynamic_helper(
         com_inertia_moment, mass, distance_vec_3d, lambda d_vec: d_vec.x**2 + d_vec.y**2
     )
-
 
 
 def parallel_axis_theorem_I12(com_inertia_product, mass, distance_vec_3d):
@@ -1206,12 +1202,10 @@ def parallel_axis_theorem_I12(com_inertia_product, mass, distance_vec_3d):
     )
 
 
-
 def parallel_axis_theorem_I13(com_inertia_product, mass, distance_vec_3d):
     return _pat_dynamic_product_helper(
         com_inertia_product, mass, distance_vec_3d, lambda d_vec: d_vec.x * d_vec.z
     )
-
 
 
 def parallel_axis_theorem_I23(com_inertia_product, mass, distance_vec_3d):
