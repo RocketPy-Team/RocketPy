@@ -14,12 +14,13 @@ robustness of the 3 DOF implementation.
 
 Note: These tests are designed for the 3 DOF feature implemented in issue #882.
 They will be skipped until PointMassMotor and PointMassRocket are available.
+All fixtures are defined in tests/fixtures/flight/flight_fixtures.py.
 """
 
 import numpy as np
 import pytest
 
-from rocketpy import Environment, Flight
+from rocketpy import Flight
 
 # Try to import 3DOF-specific classes, skip tests if not available
 try:
@@ -29,8 +30,6 @@ try:
     THREEDOF_AVAILABLE = True
 except ImportError:
     THREEDOF_AVAILABLE = False
-    PointMassMotor = None
-    PointMassRocket = None
 
 # Skip all tests in this module if 3DOF is not available
 pytestmark = pytest.mark.skipif(
@@ -38,109 +37,6 @@ pytestmark = pytest.mark.skipif(
     reason="3 DOF feature (PointMassMotor, PointMassRocket) not yet available. "
     "These tests will be enabled when issue #882 is merged.",
 )
-
-
-@pytest.fixture
-def acceptance_environment():
-    """Create a realistic environment for acceptance testing.
-
-    Returns
-    -------
-    rocketpy.Environment
-        An environment with realistic atmospheric conditions.
-    """
-    env = Environment(
-        gravity=9.81,
-        latitude=32.99,
-        longitude=-106.975,
-        elevation=1400,
-    )
-    # Use standard atmosphere
-    env.set_atmospheric_model(type="standard_atmosphere")
-    env.max_expected_height = 3000
-    return env
-
-
-@pytest.fixture
-def acceptance_point_mass_motor():
-    """Create a realistic point mass motor for acceptance testing.
-
-    Returns
-    -------
-    rocketpy.PointMassMotor
-        A point mass motor with realistic thrust and mass properties.
-    """
-    return PointMassMotor(
-        thrust_source=1500,  # 1500 N constant thrust
-        dry_mass=2.5,  # 2.5 kg dry mass
-        propellant_initial_mass=3.0,  # 3.0 kg propellant
-        burn_time=3.5,  # 3.5 s burn time
-    )
-
-
-@pytest.fixture
-def acceptance_point_mass_rocket(acceptance_point_mass_motor):
-    """Create a realistic point mass rocket for acceptance testing.
-
-    Parameters
-    ----------
-    acceptance_point_mass_motor : rocketpy.PointMassMotor
-        The motor to be added to the rocket.
-
-    Returns
-    -------
-    rocketpy.PointMassRocket
-        A point mass rocket with realistic dimensions and properties.
-    """
-    rocket = PointMassRocket(
-        radius=0.0635,  # 127 mm diameter (5 inches)
-        mass=5.0,  # 5 kg without motor
-        center_of_mass_without_motor=0.5,
-        power_off_drag=0.45,
-        power_on_drag=0.50,
-    )
-    rocket.add_motor(acceptance_point_mass_motor, position=0)
-    return rocket
-
-
-@pytest.fixture
-def flight_3dof_no_weathercock(acceptance_environment, acceptance_point_mass_rocket):
-    """Create a 3 DOF flight without weathercocking.
-
-    Returns
-    -------
-    rocketpy.Flight
-        A 3 DOF flight simulation with weathercock_coeff=0.0.
-    """
-    return Flight(
-        rocket=acceptance_point_mass_rocket,
-        environment=acceptance_environment,
-        rail_length=5.0,
-        inclination=85,  # 85 degrees from horizontal (5 degrees from vertical)
-        heading=0,
-        simulation_mode="3 DOF",
-        weathercock_coeff=0.0,
-    )
-
-
-@pytest.fixture
-def flight_3dof_with_weathercock(acceptance_environment, acceptance_point_mass_rocket):
-    """Create a 3 DOF flight with weathercocking enabled.
-
-    Returns
-    -------
-    rocketpy.Flight
-        A 3 DOF flight simulation with weathercock_coeff=1.0.
-    """
-    return Flight(
-        rocket=acceptance_point_mass_rocket,
-        environment=acceptance_environment,
-        rail_length=5.0,
-        inclination=85,
-        heading=0,
-        simulation_mode="3 DOF",
-        weathercock_coeff=1.0,
-    )
 
 
 def test_3dof_flight_basic_trajectory(flight_3dof_no_weathercock):
@@ -452,7 +348,7 @@ def test_3dof_flight_thrust_profile(flight_3dof_no_weathercock):
 
 
 def test_3dof_flight_reproducibility(
-    acceptance_environment, acceptance_point_mass_rocket
+    example_spaceport_env, acceptance_point_mass_rocket
 ):
     """Test that 3 DOF flights are reproducible.
 
@@ -460,15 +356,15 @@ def test_3dof_flight_reproducibility(
 
     Parameters
     ----------
-    acceptance_environment : rocketpy.Environment
-        Environment fixture for testing.
+    example_spaceport_env : rocketpy.Environment
+        Environment fixture for Spaceport America.
     acceptance_point_mass_rocket : rocketpy.PointMassRocket
         Rocket fixture for testing.
     """
     # Run simulation twice with same parameters
     flight1 = Flight(
         rocket=acceptance_point_mass_rocket,
-        environment=acceptance_environment,
+        environment=example_spaceport_env,
         rail_length=5.0,
         inclination=85,
         heading=0,
@@ -478,7 +374,7 @@ def test_3dof_flight_reproducibility(
 
     flight2 = Flight(
         rocket=acceptance_point_mass_rocket,
-        environment=acceptance_environment,
+        environment=example_spaceport_env,
         rail_length=5.0,
         inclination=85,
         heading=0,
@@ -499,7 +395,7 @@ def test_3dof_flight_reproducibility(
 
 
 def test_3dof_flight_different_weathercock_coefficients(
-    acceptance_environment, acceptance_point_mass_rocket
+    example_spaceport_env, acceptance_point_mass_rocket
 ):
     """Test 3 DOF flight with various weathercock coefficients.
 
@@ -508,8 +404,8 @@ def test_3dof_flight_different_weathercock_coefficients(
 
     Parameters
     ----------
-    acceptance_environment : rocketpy.Environment
-        Environment fixture for testing.
+    example_spaceport_env : rocketpy.Environment
+        Environment fixture for Spaceport America.
     acceptance_point_mass_rocket : rocketpy.PointMassRocket
         Rocket fixture for testing.
     """
@@ -519,7 +415,7 @@ def test_3dof_flight_different_weathercock_coefficients(
     for coeff in coefficients:
         flight = Flight(
             rocket=acceptance_point_mass_rocket,
-            environment=acceptance_environment,
+            environment=example_spaceport_env,
             rail_length=5.0,
             inclination=85,
             heading=0,
