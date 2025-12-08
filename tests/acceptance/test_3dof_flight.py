@@ -398,21 +398,29 @@ def test_3dof_flight_mass_variation(flight_3dof_no_weathercock):
     """
     flight = flight_3dof_no_weathercock
 
-    # Get initial mass
+    # Get initial mass (at t=0)
     initial_mass = flight.rocket.total_mass(0)
 
     # Get mass during burn (at t=1s)
-    burn_mass = flight.rocket.total_mass(1.0)
+    mass_during_burn = flight.rocket.total_mass(1.0)
 
     # Get mass after burnout (at t=5s, after 3.5s burn time)
     post_burn_mass = flight.rocket.total_mass(5.0)
 
-    # Initial mass should be greater than burn mass
-    assert initial_mass > burn_mass, "Mass should decrease during burn"
+    # Initial mass should be greater than mass during burn
+    assert initial_mass > mass_during_burn, "Mass should decrease during burn"
 
-    # Post-burn mass should equal burn-out mass (motor dry mass)
-    # Allow small tolerance for numerical precision
-    assert abs(burn_mass - post_burn_mass) < 0.01, (
+    # Mass during burn should be greater than post-burn mass
+    # (propellant is still being consumed)
+    assert mass_during_burn > post_burn_mass, (
+        "Mass should continue decreasing until burnout"
+    )
+
+    # Mass should remain constant after burnout
+    # Check at t=6s and t=7s to verify constant mass
+    mass_at_6s = flight.rocket.total_mass(6.0)
+    mass_at_7s = flight.rocket.total_mass(7.0)
+    assert abs(mass_at_6s - mass_at_7s) < 0.001, (
         "Mass should remain constant after burnout"
     )
 
@@ -528,7 +536,10 @@ def test_3dof_flight_different_weathercock_coefficients(
         )
 
     # Apogees should vary with weathercock coefficient
+    # Calculate the range of apogees to ensure they're different
     apogees = [f.apogee for f in flights]
-    assert len(set(np.round(apogees, 1))) > 1, (
-        "Different weathercock coefficients should produce different apogees"
+    apogee_range = max(apogees) - min(apogees)
+    assert apogee_range > 1.0, (
+        f"Different weathercock coefficients should produce different apogees. "
+        f"Range was only {apogee_range:.2f} m"
     )
