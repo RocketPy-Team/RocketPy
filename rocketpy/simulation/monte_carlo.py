@@ -1209,7 +1209,7 @@ class MonteCarlo:
             converted_values = []
 
             for value in value_list:
-                if isinstance(value, np.generic) == True:
+                if isinstance(value, np.generic):
                     converted_values.append(value.float())
 
                 else:
