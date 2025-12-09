@@ -31,7 +31,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 Attention: The newest changes should be on top -->
 
 ### Added
-- ENH: BUG: Fix of Floating Point Precision Errors/Warnings [#3](https://github.com/RocketPy-Team/RocketPy/pull/3)
 
 ### Changed
 
