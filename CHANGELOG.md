@@ -39,6 +39,7 @@ Attention: The newest changes should be on top -->
 - MNT: MNT: Adjusted README [#4](https://github.com/RocketPy-Team/RocketPy/pull/4)
 
 ### Fixed
+- BUG: Update README with aerodynamic models section [#7](https://github.com/RocketPy-Team/RocketPy/pull/7)
 
 
 ## [v1.11.0] - 2025-11-01
