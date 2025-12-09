@@ -5,6 +5,9 @@ else
 	PYTHON=python3
 endif
 
+
+
+
 pytest:
 	$(PYTHON) -m pytest tests
 
