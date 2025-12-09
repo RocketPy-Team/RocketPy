@@ -11,7 +11,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: Malmahrouqi3/RocketPy-mo2
-          ref: develop
+          ref: changelog-update
           token: ${{ secrets.TOKEN }}
 
       - name: Update Changelog
