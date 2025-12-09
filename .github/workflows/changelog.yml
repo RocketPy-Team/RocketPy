@@ -28,19 +28,19 @@ jobs:
           if [[ "$PR_LABELS" == *"Bug"* ]]; then
             SECTION="### Fixed"
             PREFIX="BUG"
-          elif [[ "$PR_LABELS" == *"Refactor"* ]] || [[ "$PR_LABELS" == *"Maintenance"* ]]; then
+          elif [[ "$PR_LABELS" == *"Refactor"* ]]; then
             SECTION="### Changed"
             PREFIX="MNT"
           elif [[ "$PR_LABELS" == *"Docs"* ]] && [[ "$PR_LABELS" == *"Git housekeeping"* ]]; then
             SECTION="### Changed"
             PREFIX="DOC"
+          elif [[ "$PR_LABELS" == *"Tests"* ]]; then
+            SECTION="### Changed"
+            PREFIX="TST"
           elif [[ "$PR_LABELS" == *"Docs"* ]]; then
             # Only documentation -> Added section
             SECTION="### Added"
             PREFIX="DOC"
-          elif [[ "$PR_LABELS" == *"Tests"* ]]; then
-            SECTION="### Changed"
-            PREFIX="TST"
           fi
 
           ENTRY="- $PREFIX: $PR_TITLE [#$PR_NUMBER](https://github.com/RocketPy-Team/RocketPy/pull/$PR_NUMBER)"
