@@ -99,7 +99,7 @@ Check out documentation details using the links below:
 
 <br>
 
-# Join Our Community!
+# Join Our Community! Of course
 
 RocketPy is growing fast! Many university groups and rocket hobbyists have already started using it. The number of stars and forks for this repository is skyrocketing. And this is all thanks to a great community of users, engineers, developers, marketing specialists, and everyone interested in helping.
 
