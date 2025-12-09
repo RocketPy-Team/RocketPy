@@ -102,7 +102,7 @@ def test_liquid_motor_flight(mock_show, flight_calisto_liquid_modded):  # pylint
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_time_overshoot(mock_show, calisto_robust, example_spaceport_env):  # pylint: disable=unused-argument
+def test_time_overshoot_false(mock_show, calisto_robust, example_spaceport_env):  # pylint: disable=unused-argument
     """Test the time_overshoot parameter of the Flight class. This basically
     calls the all_info() method for a simulation without time_overshoot and
     checks if it returns None. It is not testing if the values are correct,
@@ -289,6 +289,19 @@ def test_air_brakes_flight(mock_show, flight_calisto_air_brakes):  # pylint: dis
     test_flight = flight_calisto_air_brakes
     air_brakes = test_flight.rocket.air_brakes[0]
 
+    assert air_brakes.plots.all() is None
+    assert air_brakes.prints.all() is None
+
+
+@patch("matplotlib.pyplot.show")
+def test_air_brakes_flight_with_overshoot(
+    mock_show, flight_calisto_air_brakes_time_overshoot
+):  # pylint: disable=unused-argument
+    """
+    Same as test_air_brakes_flight but with time_overshoot=True.
+    """
+    test_flight = flight_calisto_air_brakes_time_overshoot
+    air_brakes = test_flight.rocket.air_brakes[0]
     assert air_brakes.plots.all() is None
     assert air_brakes.prints.all() is None
 
