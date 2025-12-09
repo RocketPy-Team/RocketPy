@@ -1,0 +1,18 @@
+{
+    "out_of_rail_time": 0.3206136320356596,
+    "apogee_time": 27.661287457326196,
+    "y_impact": 430.74875183507294,
+    "out_of_rail_velocity": 23.38038793209511,
+    "initial_stability_margin": 2.3885733776462277,
+    "apogee_x": 465.28266375011316,
+    "x_impact": 532.0790850036708,
+    "out_of_rail_stability_margin": 2.4598107378387306,
+    "apogee": 5069.675566732136,
+    "lateral_surface_wind": 0.0,
+    "max_mach_number": 0.9152283462666928,
+    "frontal_surface_wind": 0.0,
+    "t_final": 307.9031185047359,
+    "impact_velocity": -5.733499813375344,
+    "apogee_y": 377.1145697596162,
+    "index": 3
+}
