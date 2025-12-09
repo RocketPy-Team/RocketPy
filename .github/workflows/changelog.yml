@@ -48,7 +48,7 @@ jobs:
           ENTRY="- $PREFIX: $PR_TITLE [#$PR_NUMBER](https://github.com/RocketPy-Team/RocketPy/pull/$PR_NUMBER)"
           SECTION_LINE=$(grep -n "^$SECTION$" CHANGELOG.md | head -1 | cut -d: -f1)
 
-          sed -i "${SECTION_LINE}a\\\\n$ENTRY" CHANGELOG.md
+          sed -i "$((SECTION_LINE + 1))a\\$ENTRY" CHANGELOG.md
 
       - name: Push Changes
         run: |
