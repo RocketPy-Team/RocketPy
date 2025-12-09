@@ -3,18 +3,20 @@ on:
   pull_request:
     types: [closed]
     branches:
-      - changelog-update
+      - develop
+
 jobs:
-  self:
+  Changelog:
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout RocketPy repository
-        uses: actions/checkout@v3
+      - name: Clone RocketPy
+        uses: actions/checkout@main
         with:
-          repository: Malmahrouqi3/RocketPy-mo2
-          ref: changelog-update
-          token: ${{ secrets.TOKEN }}
+          repository: RocketPy-Team/RocketPy
+          ref: develop
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update Changelog
         env:
@@ -48,7 +50,7 @@ jobs:
 
           sed -i "${SECTION_LINE}a\\\\n$ENTRY" CHANGELOG.md
 
-      - name: Commit and Push changes
+      - name: Push Changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
