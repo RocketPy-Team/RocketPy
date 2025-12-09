@@ -3,7 +3,7 @@ on:
   pull_request:
     types: [closed]
     branches:
-      - develop
+      - changelog-update
 jobs:
   self:
     if: github.event.pull_request.merged == true
