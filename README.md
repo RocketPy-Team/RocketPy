@@ -37,6 +37,10 @@ RocketPy is the next-generation trajectory simulation solution for High-Power Ro
    - Custom atmospheric profiles and Soundings (Wyoming)
    - Weather forecasts, reanalysis, and ensembles for realistic scenarios
 
+
+
+
+
 3. **Aerodynamic Models**
    - Optional Barrowman equations for lift coefficients
    - Easy import of drag coefficients from other sources (e.g., CFD simulations)
