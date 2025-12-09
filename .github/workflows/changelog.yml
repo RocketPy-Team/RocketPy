@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout RocketPy repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@main
         with:
           repository: Malmahrouqi3/RocketPy-mo2
           ref: changelog-update
