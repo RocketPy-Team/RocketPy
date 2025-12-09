@@ -142,6 +142,9 @@ The following image shows how the four main classes interact with each other:
 
 A typical workflow starts with importing these classes from RocketPy:
 
+
+
+
 ```python
 from rocketpy import Environment, Rocket, SolidMotor, Flight
 ```
