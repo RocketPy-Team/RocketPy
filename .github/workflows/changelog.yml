@@ -36,7 +36,7 @@ jobs:
             # Only documentation -> Added section
             SECTION="### Added"
             PREFIX="DOC"
-          elseif [[ "$PR_LABELS" == *"Tests"* ]]; then
+          elif [[ "$PR_LABELS" == *"Tests"* ]]; then
             SECTION="### Changed"
             PREFIX="TST"
           fi
