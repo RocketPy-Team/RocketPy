@@ -32,6 +32,8 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+ENH: Auto Populate Changelog [#xxx](https://github.com/RocketPy-Team/RocketPy/pull/xxx)
+
 ### Changed
 
 ### Fixed
