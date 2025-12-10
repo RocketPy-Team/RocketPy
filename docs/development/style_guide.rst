@@ -163,12 +163,12 @@ Pull Requests
 ^^^^^^^^^^^^^
 
 When opening a Pull Request, the name of the PR should be clear and concise.
-Similarly to the commit messages, the PR name should start with an acronym indicating the type of PR
-and then a brief description of the changes.
+Unlike the commit messages, the PR name should not start with an acronym indicating the type of PR, 
+only a brief description of the changes. The maintainers will label your PR accordingly.
 
 Here is an example of a good PR name:
 
-- ``BUG: fix the Frequency Response plot of the Flight class``
+- ``fix the Frequency Response plot of the Flight class``
 
 The PR description explain the changes and motivation behind them. There is a template \
 available when opening a PR that can be used to guide you through the process of both \
