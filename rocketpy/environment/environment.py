@@ -607,7 +607,7 @@ class Environment:
 
     def __validate_dictionary(self, file, dictionary):
         # removed CMC until it is fixed.
-        available_models = ["GFS", "NAM", "RAP", "HIRESW", "GEFS", "ERA5"]
+        available_models = ["GFS", "NAM", "RAP", "HIRESW", "GEFS", "ERA5", "MERRA2"]
         if isinstance(dictionary, str):
             dictionary = self.__weather_model_map.get(dictionary)
         elif file in available_models:
@@ -1186,7 +1186,7 @@ class Environment:
             ``Reanalysis`` or ``Ensemble``. It specifies the dictionary to be
             used when reading ``netCDF`` and ``OPeNDAP`` files, allowing the
             correct retrieval of data. Acceptable values include ``ECMWF``,
-            ``NOAA`` and ``UCAR`` for default dictionaries which can generally
+            ``NOAA``, ``UCAR`` and ``MERRA2`` for default dictionaries which can generally
             be used to read datasets from these institutes. Alternatively, a
             dictionary structure can also be given, specifying the short names
             used for time, latitude, longitude, pressure levels, temperature
@@ -1893,10 +1893,20 @@ class Environment:
         self._max_expected_height = max(height[0], height[-1])
 
         # Get elevation data from file
-        if dictionary["surface_geopotential_height"] is not None:
+        if dictionary.get("surface_geopotential_height") is not None:
             self.elevation = get_elevation_data_from_dataset(
                 dictionary, data, time_index, lat_index, lon_index, x, y, x1, x2, y1, y2
             )
+        # 2. If not found, try Geopotential (m^2/s^2) and convert
+        elif dictionary.get("surface_geopotential") is not None:
+            temp_dict = dictionary.copy()
+            temp_dict["surface_geopotential_height"] = dictionary[
+                "surface_geopotential"
+            ]
+            surface_geopotential_value = get_elevation_data_from_dataset(
+                temp_dict, data, time_index, lat_index, lon_index, x, y, x1, x2, y1, y2
+            )
+            self.elevation = surface_geopotential_value / self.standard_g
 
         # Compute info data
         self.atmospheric_model_init_date = get_initial_date_from_time_array(time_array)

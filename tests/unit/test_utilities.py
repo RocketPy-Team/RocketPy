@@ -117,6 +117,76 @@ def test_fin_flutter_analysis(flight_calisto_custom_wind):
     assert np.isclose(safety_factor(np.inf), 61.669562809629035, atol=5e-3)
 
 
+def test_fin_flutter_analysis_with_prints(flight_calisto_custom_wind):
+    """Test fin_flutter_analysis with see_prints=True to cover print branch.
+
+    Parameters
+    ----------
+    flight_calisto_custom_wind : Flight
+        A Flight object with a rocket with fins.
+    """
+    flutter_mach, safety_factor = utilities.fin_flutter_analysis(
+        fin_thickness=2 / 1000,
+        shear_modulus=10e9,
+        flight=flight_calisto_custom_wind,
+        see_prints=True,
+        see_graphs=False,  # False = returns tuple!
+        filename=None,
+    )
+
+    # Verify returns are valid
+    assert flutter_mach is not None
+    assert safety_factor is not None
+
+
+@patch("matplotlib.pyplot.show")
+def test_fin_flutter_analysis_with_graphs(mock_show, flight_calisto_custom_wind):  # pylint: disable=unused-argument
+    """Test fin_flutter_analysis with see_graphs=True to cover plotting branch.
+
+    Parameters
+    ----------
+    mock_show : mock
+        Mock of matplotlib.pyplot.show function.
+    flight_calisto_custom_wind : Flight
+        A Flight object with a rocket with fins.
+    """
+    result = utilities.fin_flutter_analysis(
+        fin_thickness=2 / 1000,
+        shear_modulus=10e9,
+        flight=flight_calisto_custom_wind,
+        see_prints=False,
+        see_graphs=True,  # True = returns None!
+        filename=None,
+    )
+
+    assert result is None
+    mock_show.assert_called()
+
+
+@patch("matplotlib.pyplot.show")
+def test_fin_flutter_analysis_complete_output(mock_show, flight_calisto_custom_wind):  # pylint: disable=unused-argument
+    """Test fin_flutter_analysis with both prints and graphs enabled.
+
+    Parameters
+    ----------
+    mock_show : mock
+        Mock of matplotlib.pyplot.show function.
+    flight_calisto_custom_wind : Flight
+        A Flight object with a rocket with fins.
+    """
+    result = utilities.fin_flutter_analysis(
+        fin_thickness=2 / 1000,
+        shear_modulus=10e9,
+        flight=flight_calisto_custom_wind,
+        see_prints=True,
+        see_graphs=True,  # True = returns None!
+        filename=None,
+    )
+
+    assert result is None
+    mock_show.assert_called()
+
+
 def test_flutter_prints(flight_calisto_custom_wind):
     """Tests the _flutter_prints function.
 

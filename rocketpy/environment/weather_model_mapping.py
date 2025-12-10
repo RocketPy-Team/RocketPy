@@ -114,6 +114,19 @@ class WeatherModelMapping:
         "u_wind": "ugrdprs",
         "v_wind": "vgrdprs",
     }
+    MERRA2 = {
+        "time": "time",
+        "latitude": "lat",
+        "longitude": "lon",
+        "level": "lev",
+        "temperature": "T",
+        "surface_geopotential_height": None,
+        "surface_geopotential": "PHIS",  # special key for Geopotential (m^2/s^2)
+        "geopotential_height": "H",
+        "geopotential": None,
+        "u_wind": "U",
+        "v_wind": "V",
+    }
 
     def __init__(self):
         """Initialize the class, creates a dictionary with all the weather models
@@ -129,6 +142,7 @@ class WeatherModelMapping:
             "CMC": self.CMC,
             "GEFS": self.GEFS,
             "HIRESW": self.HIRESW,
+            "MERRA2": self.MERRA2,
         }
 
     def get(self, model):

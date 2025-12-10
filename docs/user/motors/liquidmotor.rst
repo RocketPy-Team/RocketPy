@@ -160,6 +160,21 @@ For example:
 
   example_liquid.exhaust_velocity.plot(0, 5)
 
+The tanks added to a ``LiquidMotor`` can now be animated to visualize
+how the liquid and gas volumes evolve during the burn.
+
+To animate the tanks, we can use the ``animate_fluid_volume()`` method:
+
+.. jupyter-execute::
+
+  example_liquid.animate_fluid_volume(fps=30)
+
+Optionally, the animation can be saved to a GIF file:
+
+.. jupyter-execute::
+
+  example_liquid.animate_fluid_volume(fps=30, save_as="liquid_motor.gif")
+
 Alternatively, you can plot all the information at once:
 
 .. jupyter-execute::
