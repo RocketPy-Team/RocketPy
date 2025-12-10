@@ -25,9 +25,6 @@
 RocketPy is the next-generation trajectory simulation solution for High-Power Rocketry. The code is written as a [Python](http://www.python.org) library and allows for a complete 6 degrees of freedom simulation of a rocket's flight trajectory, including high-fidelity variable mass effects as well as descent under parachutes. Weather conditions, such as wind profiles, can be imported from sophisticated datasets, allowing for realistic scenarios. Furthermore, the implementation facilitates complex simulations, such as multi-stage rockets, design and trajectory optimization and dispersion analysis.
 
 
-
-
-
 ## Main features
 
 1. **Nonlinear 6 Degrees of Freedom Simulations**
@@ -39,10 +36,6 @@ RocketPy is the next-generation trajectory simulation solution for High-Power Ro
    - Supports International Standard Atmosphere (1976)
    - Custom atmospheric profiles and Soundings (Wyoming)
    - Weather forecasts, reanalysis, and ensembles for realistic scenarios
-
-
-
-
 
 3. **Aerodynamic Models**
    - Optional Barrowman equations for lift coefficients
@@ -103,7 +96,7 @@ Check out documentation details using the links below:
 
 <br>
 
-# Join Our Community! Of course
+# Join Our Community!
 
 RocketPy is growing fast! Many university groups and rocket hobbyists have already started using it. The number of stars and forks for this repository is skyrocketing. And this is all thanks to a great community of users, engineers, developers, marketing specialists, and everyone interested in helping.
 
@@ -148,9 +141,6 @@ The following image shows how the four main classes interact with each other:
 ![Diagram](https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/Fluxogram-Page-2.svg)
 
 A typical workflow starts with importing these classes from RocketPy:
-
-
-
 
 ```python
 from rocketpy import Environment, Rocket, SolidMotor, Flight
