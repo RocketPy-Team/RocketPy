@@ -31,10 +31,31 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 Attention: The newest changes should be on top -->
 
 ### Added
+- ENH: Add background map auto download functionality to Monte Carlo plots [#896](https://github.com/RocketPy-Team/RocketPy/pull/896)
+- MNT: net thrust addition to 3 dof in flight class [#907] (https://github.com/RocketPy-Team/RocketPy/pull/907)
+- ENH: 3-dof lateral motion improvement [#883](https://github.com/RocketPy-Team/RocketPy/pull/883)
+- ENH: Add multi-dimensional drag coefficient support (Cd as function of M, Re, α) [#875](https://github.com/RocketPy-Team/RocketPy/pull/875)
+- ENH: Add save functionality to `_MonteCarloPlots.all` method [#848](https://github.com/RocketPy-Team/RocketPy/pull/848)
+- ENH: add animations for motor propellant mass and tank fluid volumes [#894](https://github.com/RocketPy-Team/RocketPy/pull/894)
+- ENH: Rail button bending moments calculation in Flight class [#893](https://github.com/RocketPy-Team/RocketPy/pull/893)
+- ENH: Implement Bootstrapping for Confidence Interval Estimation [#891](https://github.com/RocketPy-Team/RocketPy/pull/897)
+- ENH: Built-in flight comparison tool (`FlightComparator`) to validate simulations against external data [#888](https://github.com/RocketPy-Team/RocketPy/pull/888)
+- ENH: Add persistent caching for ThrustCurve API [#881](https://github.com/RocketPy-Team/RocketPy/pull/881)
+- ENH: Add axial_acceleration attribute to the Flight class [#876](https://github.com/RocketPy-Team/RocketPy/pull/876)
+- ENH: custom warning no motor or aerosurface [#871](https://github.com/RocketPy-Team/RocketPy/pull/871)
+- ENH: Add thrustcurve api integration to retrieve motor eng data [#870](https://github.com/RocketPy-Team/RocketPy/pull/870)
+- ENH: Compatibility with MERRA-2 atmosphere reanalysis files [#825](https://github.com/RocketPy-Team/RocketPy/pull/825)
+- ENH: Enable only radial burning [#815](https://github.com/RocketPy-Team/RocketPy/pull/815)
 
 ### Changed
 
+- ENH: Refactor Flight class to improve time node handling and sensor/controllers [#843](https://github.com/RocketPy-Team/RocketPy/pull/843)
+
 ### Fixed
+
+- BUG: energy_data plot not working for 3 dof sims [[#906](https://github.com/RocketPy-Team/RocketPy/issues/906)]
+- BUG: Fix CSV column header spacing in FlightDataExporter [#864](https://github.com/RocketPy-Team/RocketPy/issues/864)
+- BUG: Fix parallel Monte Carlo simulation showing incorrect iteration count [#806](https://github.com/RocketPy-Team/RocketPy/pull/806)
 
 
 ## [v1.11.0] - 2025-11-01
@@ -71,6 +92,7 @@ Attention: The newest changes should be on top -->
 ## [v1.10.0] - 2025-05-16
 
 ### Added
+
 - ENH: Support for ND arithmetic in Function class. [#810] (https://github.com/RocketPy-Team/RocketPy/pull/810)
 - ENH: allow users to provide custom samplers [#803](https://github.com/RocketPy-Team/RocketPy/pull/803)
 - ENH: Implement Multivariate Rejection Sampling (MRS) [#738] (https://github.com/RocketPy-Team/RocketPy/pull/738)

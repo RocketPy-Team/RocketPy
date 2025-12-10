@@ -25,27 +25,27 @@ class Parachute:
         system. It can be one of the following:
 
         - A callable function that takes three arguments:
-        1. Freestream pressure in pascals.
-        2. Height in meters above ground level.
-        3. The state vector of the simulation, which is defined as:
+          1. Freestream pressure in pascals.
+          2. Height in meters above ground level.
+          3. The state vector of the simulation, which is defined as:
 
-           `[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]`.
+             `[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]`.
 
-        4. A list of sensors that are attached to the rocket. The most recent
-           measurements of the sensors are provided with the
-           ``sensor.measurement`` attribute. The sensors are listed in the same
-           order as they are added to the rocket.
+          4. A list of sensors that are attached to the rocket. The most recent
+             measurements of the sensors are provided with the
+             ``sensor.measurement`` attribute. The sensors are listed in the same
+             order as they are added to the rocket.
 
-        The function should return ``True`` if the parachute ejection system
-        should be triggered and False otherwise. The function will be called
-        according to the specified sampling rate.
+          The function should return ``True`` if the parachute ejection system
+          should be triggered and False otherwise. The function will be called
+          according to the specified sampling rate.
 
         - A float value, representing an absolute height in meters. In this
-        case, the parachute will be ejected when the rocket reaches this height
-        above ground level.
+          case, the parachute will be ejected when the rocket reaches this height
+          above ground level.
 
         - The string "apogee" which triggers the parachute at apogee, i.e.,
-        when the rocket reaches its highest point and starts descending.
+          when the rocket reaches its highest point and starts descending.
 
 
     Parachute.triggerfunc : function

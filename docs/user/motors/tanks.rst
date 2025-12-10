@@ -263,6 +263,21 @@ We can see some outputs with:
   # Evolution of the Propellant center of mass position
   N2O_mass_tank.center_of_mass.plot()
 
+All tank types now include a built-in method for animating the evolution
+of liquid and gas volumes over time. This visualization aids in understanding the dynamic behavior
+of the tank's contents. To animate the tanks, we can use the 
+``animate_fluid_volume()`` method:
+
+.. jupyter-execute::
+
+  N2O_mass_tank.animate_fluid_volume(fps=30)
+
+Optionally, the animation can be saved to a GIF file:
+
+.. jupyter-execute::
+
+  N2O_mass_tank.animate_fluid_volume(fps=30, save_as="mass_based_tank.gif")
+
 
 Ullage Based Tank
 -----------------

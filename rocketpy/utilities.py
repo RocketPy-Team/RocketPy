@@ -283,7 +283,7 @@ def fin_flutter_analysis(
             flight,
         )
     if see_graphs:
-        _flutter_plots(flight, flutter_mach, safety_factor, filename)
+        _flutter_plots(flight, flutter_mach, safety_factor, filename=filename)
     else:
         return flutter_mach, safety_factor
 

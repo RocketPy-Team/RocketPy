@@ -1,8 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Polygon
+from matplotlib.animation import FuncAnimation
 
-from ..plots.plot_helpers import show_or_save_plot
+from ..plots.plot_helpers import show_or_save_plot, show_or_save_animation
 
 
 class _MotorPlots:
@@ -519,6 +520,71 @@ class _MotorPlots:
         plt.ylabel("Radius (m)")
         plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
         plt.tight_layout()
+
+    def animate_propellant_mass(self, filename=None, fps=30):
+        """Animates the propellant mass of the motor as a function of time.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the animation should be saved to. By default None, in which
+            case the animation will be shown instead of saved.Supported file
+            ending is: .gif
+        fps : int, optional
+            Frames per second for the animation. Default is 30.
+
+        Returns
+        -------
+        matplotlib.animation.FuncAnimation
+            The created animation object.
+        """
+
+        # Extract time and mass data
+        times = self.motor.propellant_mass.x_array
+        values = self.motor.propellant_mass.y_array
+
+        # Create figure and axis
+        fig, ax = plt.subplots()
+
+        # Configure axis
+        ax.set_xlim(times[0], times[-1])
+        ax.set_ylim(min(values), max(values))
+        ax.set_xlabel("Time (s)")
+        ax.set_ylabel("Propellant Mass (kg)")
+        ax.set_title("Propellant Mass Evolution")
+
+        # Create line and current point marker
+        (line,) = ax.plot([], [], lw=2, color="blue", label="Propellant Mass")
+        (point,) = ax.plot([], [], "ko")
+
+        ax.legend()
+
+        # Initialization
+        def init():
+            line.set_data([], [])
+            point.set_data([], [])
+            return line, point
+
+        # Update per frame
+        def update(frame_index):
+            line.set_data(times[: frame_index + 1], values[: frame_index + 1])
+            point.set_data([times[frame_index]], [values[frame_index]])
+            return line, point
+
+        # Build animation
+        animation = FuncAnimation(
+            fig,
+            update,
+            frames=len(times),
+            init_func=init,
+            interval=1000 / fps,
+            blit=True,
+        )
+
+        # Show or save animation
+        show_or_save_animation(animation, filename, fps=fps)
+
+        return animation
 
     def all(self):
         """Prints out all graphs available about the Motor. It simply calls
