@@ -1,10 +1,17 @@
 from pathlib import Path
+import urllib
 
+from PIL import UnidentifiedImageError
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.transforms import offset_copy
 
-from ..tools import generate_monte_carlo_ellipses, import_optional_dependency
+from ..tools import (
+    convert_local_extent_to_wgs84,
+    convert_mercator_extent_to_local,
+    generate_monte_carlo_ellipses,
+    import_optional_dependency,
+)
 from .plot_helpers import show_or_save_plot
 
 
@@ -14,10 +21,194 @@ class _MonteCarloPlots:
     def __init__(self, monte_carlo):
         self.monte_carlo = monte_carlo
 
+    def _get_environment_coordinates(self):
+        """Get origin coordinates and earth radius from the environment.
+
+        Returns
+        -------
+        tuple[float, float, float]
+            A tuple containing (origin_lat, origin_lon, earth_radius).
+
+        Raises
+        ------
+        ValueError
+            If MonteCarlo object doesn't have an environment attribute, or if
+            environment doesn't have latitude and longitude attributes.
+        """
+        if not hasattr(self.monte_carlo, "environment"):
+            raise ValueError(
+                "MonteCarlo object must have an 'environment' attribute "
+                "for automatically fetching the background map."
+            )
+        env = self.monte_carlo.environment
+        if not hasattr(env, "latitude") or not hasattr(env, "longitude"):
+            raise ValueError(
+                "Environment must have 'latitude' and 'longitude' attributes "
+                "for automatically fetching the background map."
+            )
+
+        # Handle both StochasticEnvironment (which stores as lists) and
+        # Environment (which stores as scalars)
+        origin_lat = env.latitude
+        origin_lon = env.longitude
+        if isinstance(origin_lat, (list, tuple)):
+            origin_lat = origin_lat[0]
+        if isinstance(origin_lon, (list, tuple)):
+            origin_lon = origin_lon[0]
+
+        # We enforce the standard WGS84 Earth radius (approx. 6,378,137 m) for
+        # visualization purposes. Background map providers (e.g., via Contextily)
+        # typically use Web Mercator (EPSG:3857), which assumes this standard radius.
+        # Using a custom local radius here—even if used in the physics simulation—would
+        # cause projection mismatches, resulting in the map being offset or scaled
+        # incorrectly relative to the data points.
+        earth_radius = 6378137.0
+
+        return origin_lat, origin_lon, earth_radius
+
+    def _resolve_map_provider(self, background, contextily):
+        """Resolve the map provider string to a contextily provider object.
+
+        Parameters
+        ----------
+        background : str
+            Type of background map. Options: "satellite", "street", "terrain",
+            or any contextily provider name (e.g., "CartoDB.Positron").
+        contextily : module
+            The contextily module.
+
+        Returns
+        -------
+        object
+            The resolved contextily provider object.
+
+        Raises
+        ------
+        ValueError
+            If the map provider string cannot be resolved in contextily.providers.
+            This may occur if the provider name is invalid. Check the provider name
+            or use one of the built-in options: 'satellite', 'street', or 'terrain'.
+        """
+        if background == "satellite":
+            map_provider = "Esri.WorldImagery"
+        elif background == "street":
+            map_provider = "OpenStreetMap.Mapnik"
+        elif background == "terrain":
+            map_provider = "Esri.WorldTopoMap"
+        else:
+            map_provider = background
+
+        # Attempt to resolve provider string (e.g., "Esri.WorldImagery") to object
+        source_provider = map_provider
+        if isinstance(map_provider, str):
+            try:
+                p = contextily.providers
+                for key in map_provider.split("."):
+                    p = p[key]
+                source_provider = p
+            except (KeyError, AttributeError) as e:
+                raise ValueError(
+                    f"Invalid map provider '{background}'. "
+                    f"The provider '{map_provider}' could not be found in contextily.providers. "
+                    f"Please check the provider name or use one of the built-in options: "
+                    f"'satellite', 'street', or 'terrain'."
+                ) from e
+
+        return source_provider
+
+    def _get_background_map(self, background, xlim, ylim):
+        """
+        Helper method to get the background map for the Monte Carlo analysis.
+
+        Parameters
+        ----------
+        background : str, optional
+            Type of background map to automatically download and display.
+            Options: "satellite" (uses Esri.WorldImagery)
+                     "street" (uses OpenStreetMap.Mapnik)
+                     "terrain" (uses Esri.WorldTopoMap)
+                     or any contextily provider name (e.g., "CartoDB.Positron").
+        xlim : tuple
+            Limits of the x-axis. Default is (-3000, 3000). Values in meters.
+        ylim : tuple
+            Limits of the y-axis. Default is (-3000, 3000). Values in meters.
+
+        Returns
+        -------
+        bg : ndarray
+            Image as a 3D array of RGB values
+        extent : tuple
+            Bounding box [minX, maxX, minY, maxY] of the returned image
+
+        Raises
+        ------
+        ImportError
+            If the contextily library is not installed.
+        RuntimeError
+            If unable to fetch the background map from the provider.
+        """
+        if background is None:
+            return None, None
+
+        contextily = import_optional_dependency("contextily")
+
+        origin_lat, origin_lon, earth_radius = self._get_environment_coordinates()
+        source_provider = self._resolve_map_provider(background, contextily)
+        local_extent = [xlim[0], xlim[1], ylim[0], ylim[1]]
+        west, south, east, north = convert_local_extent_to_wgs84(
+            local_extent, origin_lat, origin_lon, earth_radius
+        )
+
+        try:
+            bg, mercator_extent = contextily.bounds2img(
+                west, south, east, north, source=source_provider, ll=True
+            )
+        except ValueError as e:
+            raise ValueError(
+                f"Input coordinates or zoom level are invalid.\n"
+                f"  - Provided bounds: W={west:.6f}, S={south:.6f}, E={east:.6f}, N={north:.6f}\n"
+                f"  - Provider: {source_provider}\n"
+                f"  - Tip: Ensure West < East and South < North.\n"
+                f"  - Tip: Ensure coordinates are within Web Mercator limits (approx +/-85 lat).\n"
+                f"Original error: {str(e)}"
+            ) from e
+
+        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as e:
+            raise ConnectionError(
+                f"Network error while fetching tiles from provider '{background}'.\n"
+                f"  - Provider: {source_provider}\n"
+                f"  - Status: Check your internet connection.\n"
+                f"  - The tile server might be down or blocking requests (rate limited).\n"
+                f"  - Original error: {str(e)}"
+            ) from e
+
+        except UnidentifiedImageError as e:
+            raise RuntimeError(
+                f"The provider '{background}' returned invalid image data.\n"
+                f"  - Provider: {source_provider}\n"
+                f"  - Cause: This often happens when the API requires a key/token that is missing or invalid.\n"
+                f"  - Result: The server likely returned an HTML error page instead of a PNG/JPG."
+                f"  - Original error: {str(e)}"
+            ) from e
+
+        except Exception as e:
+            raise RuntimeError(
+                f"An unexpected error occurred while generating the map.\n"
+                f"  - Bounds: {west:.6f}, {south:.6f}, {east:.6f}, {north:.6f}\n"
+                f"  - Provider: {source_provider}\n"
+                f"  - Error Detail: {str(e)}"
+            ) from e
+        local_extent = convert_mercator_extent_to_local(
+            mercator_extent, origin_lat, origin_lon, earth_radius
+        )
+
+        return bg, local_extent
+
     # pylint: disable=too-many-statements
     def ellipses(
         self,
         image=None,
+        background=None,
         actual_landing_point=None,
         perimeter_size=3000,
         xlim=(-3000, 3000),
@@ -31,6 +222,14 @@ class _MonteCarloPlots:
         ----------
         image : str, optional
             Path to the background image, usually a map of the launch site.
+            If both `image` and `background` are provided, `image` takes precedence.
+        background : str, optional
+            Type of background map to automatically download and display.
+            Options: "satellite" (uses Esri.WorldImagery)
+                     "street" (uses OpenStreetMap.Mapnik)
+                     "terrain" (uses Esri.WorldTopoMap)
+                     or any contextily provider name (e.g., "CartoDB.Positron").
+            If both `image` and `background` are provided, `image` takes precedence.
         actual_landing_point : tuple, optional
             Actual landing point of the rocket in (x, y) meters.
         perimeter_size : int, optional
@@ -48,16 +247,19 @@ class _MonteCarloPlots:
         None
         """
 
-        imageio = import_optional_dependency("imageio")
-
         # Import background map
         if image is not None:
+            imageio = import_optional_dependency("imageio")
             try:
                 img = imageio.imread(image)
             except FileNotFoundError as e:
                 raise FileNotFoundError(
                     "The image file was not found. Please check the path."
                 ) from e
+
+        bg, local_extent = None, None
+        if image is None and background is not None:
+            bg, local_extent = self._get_background_map(background, xlim, ylim)
 
         try:
             apogee_x = np.array(self.monte_carlo.results["apogee_x"])
@@ -132,7 +334,6 @@ class _MonteCarloPlots:
         ax.text(0, 1, "North", va="top", ha="left", transform=north_south_offset)
         ax.set_ylabel("Y (m)")
         ax.set_xlabel("X (m)")
-
         # Add background image to plot
         # TODO: In the future, integrate with other libraries to plot the map (e.g. cartopy, ee, etc.)
         # You can translate the basemap by changing dx and dy (in meters)
@@ -150,10 +351,15 @@ class _MonteCarloPlots:
                 ],
             )
 
+        elif bg is not None and local_extent is not None:
+            plt.imshow(bg, extent=local_extent, zorder=0, interpolation="bilinear")
+
         plt.axhline(0, color="black", linewidth=0.5)
         plt.axvline(0, color="black", linewidth=0.5)
         plt.xlim(*xlim)
         plt.ylim(*ylim)
+        # Set equal aspect ratio to ensure consistent display regardless of background
+        ax.set_aspect("equal")
 
         if save:
             plt.savefig(
@@ -294,6 +500,7 @@ class _MonteCarloPlots:
         self,
         other_monte_carlo,
         image=None,
+        background=None,
         perimeter_size=3000,
         xlim=(-3000, 3000),
         ylim=(-3000, 3000),
@@ -308,6 +515,13 @@ class _MonteCarloPlots:
             MonteCarlo object which the current one will be compared to.
         image : str, optional
             Path to the background image, usually a map of the launch site.
+        background : str, optional
+            Type of background map to automatically download and display.
+            Options: "satellite" (uses Esri.WorldImagery)
+                     "street" (uses OpenStreetMap.Mapnik)
+                     "terrain" (uses Esri.WorldTopoMap)
+                     or any contextily provider name (e.g., "CartoDB.Positron").
+            If both `image` and `background` are provided, `image` takes precedence.
         perimeter_size : int, optional
             Size of the perimeter to be plotted. Default is 3000.
         xlim : tuple, optional
@@ -322,16 +536,20 @@ class _MonteCarloPlots:
         -------
         None
         """
-        imageio = import_optional_dependency("imageio")
 
         # Import background map
         if image is not None:
+            imageio = import_optional_dependency("imageio")
             try:
                 img = imageio.imread(image)
             except FileNotFoundError as e:  # pragma no cover
                 raise FileNotFoundError(
                     "The image file was not found. Please check the path."
                 ) from e
+
+        bg, local_extent = None, None
+        if image is None and background is not None:
+            bg, local_extent = self._get_background_map(background, xlim, ylim)
 
         try:
             original_apogee_x = np.array(self.monte_carlo.results["apogee_x"])
@@ -453,11 +671,14 @@ class _MonteCarloPlots:
                     perimeter_size - dy,
                 ],
             )
+        elif bg is not None and local_extent is not None:
+            plt.imshow(bg, extent=local_extent, zorder=0, interpolation="bilinear")
 
         plt.axhline(0, color="black", linewidth=0.5)
         plt.axvline(0, color="black", linewidth=0.5)
         plt.xlim(*xlim)
         plt.ylim(*ylim)
+        ax.set_aspect("equal")
 
         if save:
             plt.savefig(
