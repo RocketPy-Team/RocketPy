@@ -443,6 +443,137 @@ def inverted_haversine(lat0, lon0, distance, bearing, earth_radius=6.3781e6):
     return lat1_deg, lon1_deg
 
 
+def mercator_to_wgs84(x, y, earth_radius=6.3781e6):
+    """Convert Web Mercator (EPSG:3857) coordinates to WGS84 (EPSG:4326) coordinates.
+
+    This function converts coordinates from Web Mercator projection to WGS84
+    latitude/longitude without requiring the pyproj dependency.
+
+    Parameters
+    ----------
+    x : float
+        X coordinate in Web Mercator projection (meters).
+    y : float
+        Y coordinate in Web Mercator projection (meters).
+    earth_radius : float, optional
+        Earth's radius in meters. Default value is 6.3781e6.
+
+    Returns
+    -------
+    tuple[float, float]
+        A tuple containing (latitude, longitude) in degrees.
+
+    """
+    lon = x / earth_radius * 180.0 / math.pi
+    lat = (2 * math.atan(math.exp(y / earth_radius)) - math.pi / 2.0) * 180.0 / math.pi
+    return lat, lon
+
+
+def convert_local_extent_to_wgs84(
+    local_extent, origin_lat, origin_lon, earth_radius=6.3781e6
+):
+    """Convert local extent to geographic extent (latitude/longitude bounding box).
+
+    This function converts a local extent (bounding box in meters relative to an
+    origin point) to a geographic extent (bounding box in latitude/longitude degrees).
+
+    Parameters
+    ----------
+    local_extent : list[float]
+        Local extent [x_min, x_max, y_min, y_max] in meters relative to the origin.
+    origin_lat : float
+        Origin latitude in degrees.
+    origin_lon : float
+        Origin longitude in degrees.
+    earth_radius : float, optional
+        Earth's radius in meters. Default value is 6.3781e6.
+
+    Returns
+    -------
+    tuple[float, float, float, float]
+        Geographic extent (west, south, east, north) in degrees.
+    """
+    x_min, x_max, y_min, y_max = local_extent
+    corners_xy = [
+        (x_min, y_min),  # Bottom-Left
+        (x_min, y_max),  # Top-Left
+        (x_max, y_min),  # Bottom-Right
+        (x_max, y_max),  # Top-Right
+    ]
+    req_lats, req_lons = [], []
+
+    for x, y in corners_xy:
+        dist = (x**2 + y**2) ** 0.5
+        # Calculate bearing: 0 is North (Y), 90 is East (X)
+        bearing = np.degrees(np.arctan2(x, y))
+        lat, lon = inverted_haversine(
+            origin_lat, origin_lon, dist, bearing, earth_radius
+        )
+        req_lats.append(lat)
+        req_lons.append(lon)
+
+    return min(req_lons), min(req_lats), max(req_lons), max(req_lats)
+
+
+def convert_mercator_extent_to_local(
+    mercator_extent, origin_lat, origin_lon, earth_radius=6.3781e6
+):
+    """Convert Mercator extent to local extent (coordinates relative to origin).
+
+    This function converts a geographic extent from Web Mercator coordinates to a
+    local extent (bounding box in meters relative to an origin point).
+
+    Parameters
+    ----------
+    mercator_extent : list[float]
+        Mercator extent [minX, maxX, minY, maxY] in meters.
+    origin_lat : float
+        Origin latitude in degrees.
+    origin_lon : float
+        Origin longitude in degrees.
+    earth_radius : float, optional
+        Earth's radius in meters. Default value is 6.3781e6.
+
+    Returns
+    -------
+    list[float]
+        Local extent [x_min, x_max, y_min, y_max] in meters relative to the origin.
+    """
+    # Convert corners of the fetched image from Mercator to WGS84
+    bg_lat_min, bg_lon_min = mercator_to_wgs84(
+        mercator_extent[0], mercator_extent[2], earth_radius
+    )  # Bottom-Left
+    bg_lat_max, bg_lon_max = mercator_to_wgs84(
+        mercator_extent[1], mercator_extent[3], earth_radius
+    )  # Top-Right
+
+    # Calculate X/Y meters relative to origin (lat0, lon0) using haversine
+    # X = Distance along longitude (East-West)
+    # Y = Distance along latitude (North-South)
+
+    # Calculate X min (Left)
+    x_min = haversine(origin_lat, origin_lon, origin_lat, bg_lon_min, earth_radius)
+    if bg_lon_min < origin_lon:
+        x_min = -x_min
+
+    # Calculate X max (Right)
+    x_max = haversine(origin_lat, origin_lon, origin_lat, bg_lon_max, earth_radius)
+    if bg_lon_max < origin_lon:
+        x_max = -x_max
+
+    # Calculate Y min (Bottom)
+    y_min = haversine(origin_lat, origin_lon, bg_lat_min, origin_lon, earth_radius)
+    if bg_lat_min < origin_lat:
+        y_min = -y_min
+
+    # Calculate Y max (Top)
+    y_max = haversine(origin_lat, origin_lon, bg_lat_max, origin_lon, earth_radius)
+    if bg_lat_max < origin_lat:
+        y_max = -y_max
+
+    return [x_min, x_max, y_min, y_max]
+
+
 # Functions for monte carlo analysis
 def sort_eigenvalues(cov):
     # Calculate eigenvalues and eigenvectors

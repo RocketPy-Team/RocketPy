@@ -720,9 +720,16 @@ class _FlightPlots:
         ax2.grid()
 
         ax3 = plt.subplot(413)
+        # Handle both array-based and callable-based Functions
+        thrust_power = self.flight.thrust_power
+        if callable(thrust_power.source):
+            # For callable sources, discretize based on speed
+            thrust_power = thrust_power.set_discrete_based_on_model(
+                self.flight.speed, mutate_self=False
+            )
         ax3.plot(
-            self.flight.thrust_power[:, 0],
-            self.flight.thrust_power[:, 1],
+            thrust_power[:, 0],
+            thrust_power[:, 1],
             label="|Thrust Power|",
         )
         ax3.set_xlim(0, self.flight.rocket.motor.burn_out_time)
@@ -734,9 +741,16 @@ class _FlightPlots:
         ax3.grid()
 
         ax4 = plt.subplot(414)
+        # Handle both array-based and callable-based Functions
+        drag_power = self.flight.drag_power
+        if callable(drag_power.source):
+            # For callable sources, discretize based on speed
+            drag_power = drag_power.set_discrete_based_on_model(
+                self.flight.speed, mutate_self=False
+            )
         ax4.plot(
-            self.flight.drag_power[:, 0],
-            -self.flight.drag_power[:, 1],
+            drag_power[:, 0],
+            -drag_power[:, 1],
             label="|Drag Power|",
         )
         ax4.set_xlim(

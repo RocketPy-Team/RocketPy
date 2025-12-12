@@ -76,6 +76,7 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(skip_slow)
 
 
+# TODO: move this to Environment fixtures when possible
 @pytest.fixture
 def merra2_file_path(tmp_path):  # pylint: disable=too-many-statements
     """
