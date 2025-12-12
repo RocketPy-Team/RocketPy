@@ -14,6 +14,7 @@ latest documentation.
 """
 
 import json
+import csv
 import os
 import traceback
 import warnings
@@ -1150,57 +1151,55 @@ class MonteCarlo:
 
         kml.save(filename)
 
-    def export_json(
-            self,
-            filename,
-            indent_size = 4
-    ):
+    def export_json(self, filename, indent_size=4):
         """
-    Export Monte Carlo results into a JSON file.
+        Export Monte Carlo results into a JSON file.
 
-    The exported data reflects exactly what is stored inside ``self.results``.
-    Depending on how the MonteCarlo object was populated, values may be either
-    lists (when results come from running Monte Carlo simulations) or scalars
-    (when results are imported from previously saved output summaries).
+        The exported data reflects exactly what is stored inside ``self.results``.
+        Depending on how the MonteCarlo object was populated, values may be either
+        lists (when results come from running Monte Carlo simulations) or scalars
+        (when results are imported from previously saved output summaries).
 
-    Parameters
-    ----------
-    filename : str
-        Path to the JSON file that will be created. If the file already exists,
-        it will be overwritten.
-    indent_size : int, optional
-        Number of spaces used for indentation in the generated JSON file.
-        Defaults to 4.
+        Parameters
+        ----------
+        filename : str
+            Path to the JSON file that will be created. If the file already exists,
+            it will be overwritten.
+        indent_size : int, optional
+            Number of spaces used for indentation in the generated JSON file.
+            Defaults to 4.
 
-    Notes
-    -----
-    This function only exports the data already contained inside
-    ``self.results``. No computations are performed during export. Users
-    should call ``simulate()`` or ``import_results()`` before exporting.
+        Notes
+        -----
+        This function only exports the data already contained inside
+        ``self.results``. No computations are performed during export. Users
+        should call ``simulate()`` or ``import_results()`` before exporting.
 
-    Examples
-    --------
-    Run new Monte Carlo simulations and export results::
+        Examples
+        --------
+        Run new Monte Carlo simulations and export results::
 
-        mc = MonteCarlo(environment=env, rocket=rocket, flight=flight)
-        mc.simulate(20)
-        mc.export_json("results.json")
+            mc = MonteCarlo(environment=env, rocket=rocket, flight=flight)
+            mc.simulate(20)
+            mc.export_json("results.json")
 
-    Export results previously loaded from file::
+        Export results previously loaded from file::
 
-        mc = MonteCarlo(environment=env, rocket=rocket, flight=flight)
-        mc.import_results("sample.outputs.txt")
-        mc.export_json("summary.json")
-    """
+            mc = MonteCarlo(environment=env, rocket=rocket, flight=flight)
+            mc.import_results("sample.outputs.txt")
+            mc.export_json("summary.json")
+        """
         if filename is None:
-            return ValueError("A valid filename to be provided !!")
-        
+            raise ValueError("A valid filename must be provided")
+
         if not filename.lower().endswith(".json"):
-            return ValueError("filename should end with .json")
-        
+            raise ValueError("filename must end with .json")
+
         if not self.results or len(self.results) == 0:
-            raise RuntimeError("Monte Carlo test simulations to be performed ")
-        
+            raise RuntimeError(
+                "No reesults found run simulation() or import results first"
+            )
+
         export_dictionary = {}
 
         for key in self.results:
@@ -1210,21 +1209,86 @@ class MonteCarlo:
 
             for value in value_list:
                 if isinstance(value, np.generic):
-                    converted_values.append(value.float())
+                    converted_values.append(float(value))
 
                 else:
-                    converted_values = value
+                    converted_values.append(value)
 
             export_dictionary[key] = converted_values
 
-        try:
-            with open(filename, "w", encoding = "utf-8") as file:
-                json.dump(export_dictionary, file, indent = indent_size)
-
-        except (TypeError, OSError) as e:
-            print(f"Error writing JSON: {e}")
+        with open(filename, "w", encoding="utf-8") as file:
+            json.dump(export_dictionary, file, indent=indent_size, cls=RocketPyEncoder)
 
         return
+
+    """
+    Export Monte Carlo results into a CSV file.
+
+    Each row represents one simulation iteration (if results contain lists).
+    Values that are scalars (from imported summaries) are repeated for all rows.
+
+    Examples
+    --------
+    mc.simulate(50)
+    mc.export_csv("results.csv")
+    """
+
+    def export_csv(self, filename: str):
+        """
+        Export Monte Carlo results into a CSV file.
+
+        The CSV rows correspond to individual simulation iterations whenever
+        the stored values are lists. Scalar values (from imported summaries)
+        are repeated across all rows.
+
+        Parameters
+        ----------
+        filename : str
+            Output CSV file path. Must end in ".csv".
+        """
+        if filename is None:
+            raise ValueError("A Filename must be provided")
+
+        if not filename.lower().endswith(".csv"):
+            raise ValueError("The filename must end with .csv")
+
+        if not self.results or len(self.results) == 0:
+            raise RuntimeError(
+                "No results found run simulations() or import results first"
+            )
+
+        # collection of keys and length
+        headers = list(self.results.keys())
+
+        # Determine number of rows
+        # If lists exist → number of simulations
+        # If all scalars → only 1 row
+        max_len = 1
+
+        for _ in self.results.values():
+            if isinstance(_, (list, np.ndarray)):
+                max_len = len(_)
+                break
+
+        with open(filename, "w", newline="", encoding="utf-8") as file:
+            writer = csv.writer(file)
+
+            # write headers
+            writer.writerow(headers)
+
+            # write rows
+            for i in range(max_len):
+                row = []
+                for key in headers:
+                    value = self.results[key]
+
+                    if isinstance(value, np.ndarray):
+                        row.append(value[i])
+
+                    else:
+                        row.append(value)
+
+                writer.writerow(row)
 
     def info(self):
         """

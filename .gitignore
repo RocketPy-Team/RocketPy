@@ -52,6 +52,12 @@ coverage.xml
 cover/
 .pylint-report.txt
 .ruff-report.txt
+# Ignore temporary MonteCarlo export test artifacts
+temp_test_output.json
+monte_carlo_test.inputs.txt
+monte_carlo_test.outputs.txt
+monte_carlo_test.errors.txt
+
 
 # Translations
 *.mo
