@@ -1202,9 +1202,7 @@ class MonteCarlo:
 
         export_dictionary = {}
 
-        for key in self.results:
-            value_list = self.results[key]
-
+        for key, value_list in self.results.items():
             converted_values = []
 
             for value in value_list:
@@ -1218,20 +1216,6 @@ class MonteCarlo:
 
         with open(filename, "w", encoding="utf-8") as file:
             json.dump(export_dictionary, file, indent=indent_size, cls=RocketPyEncoder)
-
-        return
-
-    """
-    Export Monte Carlo results into a CSV file.
-
-    Each row represents one simulation iteration (if results contain lists).
-    Values that are scalars (from imported summaries) are repeated for all rows.
-
-    Examples
-    --------
-    mc.simulate(50)
-    mc.export_csv("results.csv")
-    """
 
     def export_csv(self, filename: str):
         """
