@@ -449,12 +449,13 @@ def bella_lui_point_mass_rocket(bella_lui_point_mass_motor):
 def acceptance_point_mass_motor():
     """Create a realistic point mass motor for acceptance testing.
 
-    This is an alias for bella_lui_point_mass_motor to maintain compatibility.
+    Uses the same Bella Lui rocket parameters (K828FJ motor) to provide
+    a consistent baseline for all acceptance tests.
 
     Returns
     -------
     rocketpy.PointMassMotor
-        A point mass motor with realistic thrust and mass properties.
+        A point mass motor with Bella Lui rocket parameters.
     """
     return PointMassMotor(
         thrust_source="data/motors/aerotech/AeroTech_K828FJ.eng",
@@ -468,7 +469,8 @@ def acceptance_point_mass_motor():
 def acceptance_point_mass_rocket(acceptance_point_mass_motor):
     """Create a realistic point mass rocket for acceptance testing.
 
-    This is an alias for bella_lui_point_mass_rocket to maintain compatibility.
+    Uses the same Bella Lui rocket parameters to provide a consistent
+    baseline for all acceptance tests.
 
     Parameters
     ----------
@@ -478,7 +480,7 @@ def acceptance_point_mass_rocket(acceptance_point_mass_motor):
     Returns
     -------
     rocketpy.PointMassRocket
-        A point mass rocket with realistic dimensions and properties.
+        A point mass rocket with Bella Lui rocket parameters.
     """
     rocket = PointMassRocket(
         radius=0.156,
