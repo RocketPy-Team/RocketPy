@@ -21,12 +21,14 @@ from rocketpy import Flight
 from tests.fixtures.flight.flight_fixtures import LAUNCH_HEADING, LAUNCH_INCLINATION
 
 # Test tolerance constants
-MIN_APOGEE_ALTITUDE = 500  # meters
-MAX_APOGEE_ALTITUDE = 3000  # meters
-MIN_APOGEE_TIME = 5  # seconds
-MAX_APOGEE_TIME = 60  # seconds
-MIN_VELOCITY = 50  # m/s
-MAX_VELOCITY = 400  # m/s
+# Based on Bella Lui rocket performance (~459m apogee, K828FJ motor)
+# Apogee range allows for variation in atmospheric conditions and drag models
+MIN_APOGEE_ALTITUDE = 300  # meters - lower bound for point mass approximation
+MAX_APOGEE_ALTITUDE = 600  # meters - upper bound considering Bella Lui achieves ~459m
+MIN_APOGEE_TIME = 5  # seconds - minimum time to apogee
+MAX_APOGEE_TIME = 30  # seconds - maximum time to apogee for this class of rocket
+MIN_VELOCITY = 30  # m/s - minimum peak velocity
+MAX_VELOCITY = 150  # m/s - maximum peak velocity (Bella Lui is subsonic)
 APOGEE_SPEED_RATIO = 0.3  # Max ratio of apogee speed to max speed
 MAX_LATERAL_TO_ALTITUDE_RATIO = 0.5  # Max lateral displacement vs altitude ratio
 QUATERNION_CHANGE_TOLERANCE = 0.1  # Max quaternion change without weathercocking
