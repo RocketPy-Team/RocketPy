@@ -491,6 +491,9 @@ def acceptance_point_mass_rocket(acceptance_point_mass_motor):
 def flight_3dof_no_weathercock(example_spaceport_env, acceptance_point_mass_rocket):
     """Create a 3 DOF flight without weathercocking.
 
+    Uses standard launch parameters: 85 degrees inclination (5 degrees from vertical)
+    and 0 degrees heading (north).
+
     Parameters
     ----------
     example_spaceport_env : rocketpy.Environment
@@ -503,12 +506,15 @@ def flight_3dof_no_weathercock(example_spaceport_env, acceptance_point_mass_rock
     rocketpy.Flight
         A 3 DOF flight simulation with weathercock_coeff=0.0.
     """
+    LAUNCH_INCLINATION = 85  # degrees from horizontal (5 degrees from vertical)
+    LAUNCH_HEADING = 0  # degrees (north)
+
     return Flight(
         rocket=acceptance_point_mass_rocket,
         environment=example_spaceport_env,
         rail_length=5.0,
-        inclination=85,  # 85 degrees from horizontal (5 degrees from vertical)
-        heading=0,
+        inclination=LAUNCH_INCLINATION,
+        heading=LAUNCH_HEADING,
         simulation_mode="3 DOF",
         weathercock_coeff=0.0,
     )
@@ -517,6 +523,9 @@ def flight_3dof_no_weathercock(example_spaceport_env, acceptance_point_mass_rock
 @pytest.fixture
 def flight_3dof_with_weathercock(example_spaceport_env, acceptance_point_mass_rocket):
     """Create a 3 DOF flight with weathercocking enabled.
+
+    Uses standard launch parameters: 85 degrees inclination (5 degrees from vertical)
+    and 0 degrees heading (north).
 
     Parameters
     ----------
@@ -530,12 +539,15 @@ def flight_3dof_with_weathercock(example_spaceport_env, acceptance_point_mass_ro
     rocketpy.Flight
         A 3 DOF flight simulation with weathercock_coeff=1.0.
     """
+    LAUNCH_INCLINATION = 85  # degrees from horizontal (5 degrees from vertical)
+    LAUNCH_HEADING = 0  # degrees (north)
+
     return Flight(
         rocket=acceptance_point_mass_rocket,
         environment=example_spaceport_env,
         rail_length=5.0,
-        inclination=85,
-        heading=0,
+        inclination=LAUNCH_INCLINATION,
+        heading=LAUNCH_HEADING,
         simulation_mode="3 DOF",
         weathercock_coeff=1.0,
     )
