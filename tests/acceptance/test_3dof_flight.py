@@ -12,31 +12,12 @@ produces realistic and physically consistent results, including:
 The tests use realistic rocket configurations and scenarios to ensure the
 robustness of the 3 DOF implementation.
 
-Note: These tests are designed for the 3 DOF feature implemented in issue #882.
-They will be skipped until PointMassMotor and PointMassRocket are available.
 All fixtures are defined in tests/fixtures/flight/flight_fixtures.py.
 """
 
 import numpy as np
-import pytest
 
 from rocketpy import Flight
-
-# Try to import 3DOF-specific classes, skip tests if not available
-try:
-    from rocketpy.motors.point_mass_motor import PointMassMotor
-    from rocketpy.rocket.point_mass_rocket import PointMassRocket
-
-    THREEDOF_AVAILABLE = True
-except ImportError:
-    THREEDOF_AVAILABLE = False
-
-# Skip all tests in this module if 3DOF is not available
-pytestmark = pytest.mark.skipif(
-    not THREEDOF_AVAILABLE,
-    reason="3 DOF feature (PointMassMotor, PointMassRocket) not yet available. "
-    "These tests will be enabled when issue #882 is merged.",
-)
 
 
 def test_3dof_flight_basic_trajectory(flight_3dof_no_weathercock):
