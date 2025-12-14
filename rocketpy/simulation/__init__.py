@@ -7,9 +7,9 @@ from .multivariate_rejection_sampler import MultivariateRejectionSampler
 
 __all__ = [
     "Flight",
+    "FlightComparator",
     "FlightDataExporter",
     "FlightDataImporter",
-    "FlightComparator",
     "MonteCarlo",
     "MultivariateRejectionSampler",
 ]

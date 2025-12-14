@@ -3,9 +3,8 @@ import os
 import urllib.error  # pylint: disable=unused-import
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 import matplotlib.pyplot as plt
+import pytest
 from PIL import UnidentifiedImageError  # pylint: disable=unused-import
 
 from rocketpy.plots.monte_carlo_plots import _MonteCarloPlots
@@ -222,7 +221,9 @@ def test_ellipses_background_contextily_not_installed(mock_show):
         Mocks the matplotlib.pyplot.show() function to avoid showing the plots.
     """
     mock_monte_carlo = MockMonteCarlo(environment=SimpleEnvironment())
-    from rocketpy.tools import import_optional_dependency as original_import  # pylint: disable=import-outside-toplevel
+    from rocketpy.tools import (
+        import_optional_dependency as original_import,  # pylint: disable=import-outside-toplevel
+    )
 
     # Create a mock function that only raises exception when importing contextily
     def mock_import_optional_dependency(name):
@@ -396,7 +397,6 @@ def test_ellipses_background_bounds2img_failure(
         List of expected message substrings in the raised exception.
     """
     mock_monte_carlo = MockMonteCarlo(environment=SimpleEnvironment())
-    from rocketpy.tools import import_optional_dependency as original_import  # pylint: disable=import-outside-toplevel
 
     contextily = pytest.importorskip("contextily")
 

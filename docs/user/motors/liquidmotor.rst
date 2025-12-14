@@ -1,21 +1,21 @@
 LiquidMotor Class Usage
 =======================
 
-Here we explore different features of the LiquidMotor class. 
+Here we explore different features of the LiquidMotor class.
 
 Creating a Liquid Motor
 -----------------------
 
 To define a liquid motor, we will need a few information about our motor:
 
-- The thrust source file, which is a file containing the thrust curve of the 
-  motor. This file can be a .eng file, a .rse file, or a .csv file. See more 
+- The thrust source file, which is a file containing the thrust curve of the
+  motor. This file can be a .eng file, a .rse file, or a .csv file. See more
   details in :doc:`Thrust Source Details </user/motors/thrust>`
-- Tank objects, which will define propellant tanks. See more details in 
+- Tank objects, which will define propellant tanks. See more details in
   :doc:`Tank Usage</user/motors/tanks>`
 - Position related parameters, such as the position of the center of mass of the
-  dry mass, the position of the center of mass of the grains, and the position 
-  of the nozzle. See more details in 
+  dry mass, the position of the center of mass of the grains, and the position
+  of the nozzle. See more details in
   :ref:`Motor Coordinate Systems <motorcsys>`
 
 Let's first import the necessary modules:
@@ -75,15 +75,15 @@ Then we must first define the tanks:
   Here we define two tanks, one for the oxidizer and one for the fuel. We use
   the :ref:`MassFlowRateBasedTank <mass_flow_rate_based_tank>`,
   which means that the mass flow rates of the liquid and gas are defined by the
-  user. 
-  
+  user.
+
   In this case, we are using a lambda functions to define the mass flow rates,
-  but .csv files can also be used. See more details in 
+  but .csv files can also be used. See more details in
   :class:`rocketpy.motors.Tank.MassFlowRateBasedTank.__init__`
 
 Now we can define our liquid motor and add the tanks. We are using a lambda function as the thrust
-curve, but keep in mind that you can use 
-:doc:`different formats </user/motors/thrust>` here. 
+curve, but keep in mind that you can use
+:doc:`different formats </user/motors/thrust>` here.
 
 .. jupyter-execute::
 
@@ -107,19 +107,19 @@ curve, but keep in mind that you can use
     - ``dry_inertia`` is defined as a tuple of the form ``(I11, I22, I33)``.
       Where ``I11`` and ``I22`` are the inertia of the dry mass around the
       perpendicular axes to the motor, and ``I33`` is the inertia around the
-      motor center axis. 
-    - ``dry inertia`` is defined in relation to the **center of dry mass**, and 
+      motor center axis.
+    - ``dry inertia`` is defined in relation to the **center of dry mass**, and
       not in relation to the coordinate system origin.
     - ``center_of_dry_mass_position``, ``nozzle_position`` and the tanks
-      ``position`` are defined in relation to the 
+      ``position`` are defined in relation to the
       :ref:`coordinate system origin <motorcsys>`, which is the nozzle outlet in
       this case.
     - Both ``dry_mass`` **and** ``center_of_dry_mass_position`` must consider
       the mass of the tanks.
 
-.. seealso:: 
-    
-    You can find details on each of the initialization parameters in 
+.. seealso::
+
+    You can find details on each of the initialization parameters in
     :class:`rocketpy.LiquidMotor.__init__`
 
     And you can find details on adding tanks in :ref:`Adding Tanks`
@@ -163,20 +163,39 @@ For example:
 The tanks added to a ``LiquidMotor`` can now be animated to visualize
 how the liquid and gas volumes evolve during the burn.
 
-To animate the tanks, we can use the ``animate_fluid_volume()`` method:
+To animate a specific tank, use its plotter ``animate_fluid_volume()`` method:
 
 .. jupyter-execute::
 
-  example_liquid.animate_fluid_volume(fps=30)
+  oxidizer_tank.plots.animate_fluid_volume(fps=30)
 
 Optionally, the animation can be saved to a GIF file:
 
 .. jupyter-execute::
 
-  example_liquid.animate_fluid_volume(fps=30, save_as="liquid_motor.gif")
+  oxidizer_tank.plots.animate_fluid_volume(fps=30, filename="oxidizer.gif")
+
+If multiple tanks are present, you can loop over them:
+
+.. jupyter-execute::
+
+  for positioned in example_liquid.positioned_tanks:
+      tank = positioned["tank"]
+      tank.plots.animate_fluid_volume(
+          fps=30, filename=f"{tank.name.replace(' ', '_')}.gif"
+      )
 
 Alternatively, you can plot all the information at once:
 
 .. jupyter-execute::
 
   example_liquid.all_info()
+
+.. jupyter-execute::
+  :hide-code:
+  :hide-output:
+
+  from pathlib import Path
+  import glob
+  for gif_file in glob.glob("*.gif"):
+      Path(gif_file).unlink(missing_ok=True)

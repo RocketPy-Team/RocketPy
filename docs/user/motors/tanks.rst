@@ -37,8 +37,8 @@ The different types of tanks are:
 - ``class UllageBasedTank``: flow is described by ullage. See
   `Ullage Based Tank`_ for more information.
 
-To summarize, the ``UllageBasedTank`` and ``LevelBasedTank`` are less accurate 
-than the ``MassFlowRateBasedTank`` and ``MassBasedTank``, since they assume 
+To summarize, the ``UllageBasedTank`` and ``LevelBasedTank`` are less accurate
+than the ``MassFlowRateBasedTank`` and ``MassBasedTank``, since they assume
 uniform gas distribution filling all the portion that is not occupied by liquid.
 Therefore, these tanks can only model the tank state until the liquid runs out.
 
@@ -50,7 +50,7 @@ in the tank. This object is defined in the `Fluid`_ section.
 
 .. seealso::
   Tanks are added to motors using the ``add_tank`` method of the motor. You can
-  find more information about this method in the 
+  find more information about this method in the
   :ref:`Adding Tanks <Adding Tanks>` section.
 
 .. attention::
@@ -63,7 +63,7 @@ Fluid
 ------
 
 Fluid are a very simple class which describes the properties of a fluid. They
-are used to define the propellant in a tank. A Fluid is defined by its name and 
+are used to define the propellant in a tank. A Fluid is defined by its name and
 density as such:
 
 .. jupyter-execute::
@@ -74,10 +74,10 @@ density as such:
 Fluid are then passed to tanks when they are defined.
 
 .. note::
-  
-  One may define the fluid density as a function of temperature (K) and 
+
+  One may define the fluid density as a function of temperature (K) and
   pressure (Pa). The data can be imported from an external source, such as
-  a dataset or external libraries. 
+  a dataset or external libraries.
   In this case, the fluid would be defined as such:
 
   >>> Fluid(name="N2O", density=lambda t, p: 44 * p / (8.314 * t))
@@ -85,7 +85,7 @@ Fluid are then passed to tanks when they are defined.
   >>> Fluid(name="N2O", density=lambda t, p: PropsSI('D', 'T', t, 'P', p, 'N2O'))
 
   In fact, the density parameter can be any ``Function`` source, such as a
-  ``callable``, csv file or an array of points. See more on 
+  ``callable``, csv file or an array of points. See more on
   :class:`rocketpy.Function`.
 
 Tank Geometry
@@ -125,8 +125,8 @@ The predefined ``SphericalTank`` is defined with:
 Custom Tank Geometry
 ~~~~~~~~~~~~~~~~~~~~
 
-The ``TankGeometry`` class can be used to define a custom geometry by passing 
-the ``geometry_dict`` parameter, which is a dictionary with its *keys* as tuples 
+The ``TankGeometry`` class can be used to define a custom geometry by passing
+the ``geometry_dict`` parameter, which is a dictionary with its *keys* as tuples
 containing the lower and upper bound of the tank, while the *values* correspond
 to the radius function of that section of the tank.
 
@@ -141,13 +141,13 @@ To exemplify, lets define a cylindrical tank with the same dimensions as the
       }
   )
 
-This defines a cylindrical tank with a 2 m lengths (from -1 m to 1 m) and a 
+This defines a cylindrical tank with a 2 m lengths (from -1 m to 1 m) and a
 constant radius of 0.1 m.
 
 .. note::
   The center of coordinate is always at the exact geometrical center of the tank.
 
-We can also define a tank with a parabolic cross-section by using a 
+We can also define a tank with a parabolic cross-section by using a
 variable radius, for example:
 
 .. jupyter-execute::
@@ -163,7 +163,7 @@ variable radius, for example:
 Mass Flow Rate Based Tank
 -------------------------
 
-A ``MassFlowRateBasedTank`` has its flow described by the variation of liquid 
+A ``MassFlowRateBasedTank`` has its flow described by the variation of liquid
 and gas masses through time and is defined as such:
 
 .. jupyter-execute::
@@ -265,18 +265,25 @@ We can see some outputs with:
 
 All tank types now include a built-in method for animating the evolution
 of liquid and gas volumes over time. This visualization aids in understanding the dynamic behavior
-of the tank's contents. To animate the tanks, we can use the 
-``animate_fluid_volume()`` method:
+of the tank's contents. To animate the tanks, we can use the
+``animate_fluid_volume()`` method from the tank's plotter:
 
 .. jupyter-execute::
 
-  N2O_mass_tank.animate_fluid_volume(fps=30)
+  N2O_mass_tank.plots.animate_fluid_volume(fps=30)
 
 Optionally, the animation can be saved to a GIF file:
 
 .. jupyter-execute::
 
-  N2O_mass_tank.animate_fluid_volume(fps=30, save_as="mass_based_tank.gif")
+  N2O_mass_tank.plots.animate_fluid_volume(fps=30, filename="mass_based_tank.gif")
+
+.. jupyter-execute::
+  :hide-code:
+  :hide-output:
+
+  from pathlib import Path
+  Path("mass_based_tank.gif").unlink(missing_ok=True)
 
 
 Ullage Based Tank
@@ -286,7 +293,7 @@ An ``UllageBasedTank`` has its flow described by the ullage volume, i.e.,
 the volume of the tank that is not occupied by the liquid. It assumes that
 the ullage volume is uniformly filled by the gas.
 
-To define it, lets first calculate the ullage volume by using the 
+To define it, lets first calculate the ullage volume by using the
 ``MassFlowRateBasedTank`` we defined above:
 
 .. jupyter-execute::
@@ -329,7 +336,7 @@ We can see some outputs with:
   N2O_ullage_tank.net_mass_flow_rate.plot()
 
 .. jupyter-execute::
-  
+
   # Evolution of the Propellant center of mass position
   N2O_ullage_tank.center_of_mass.plot()
 
@@ -341,7 +348,7 @@ A ``LevelBasedTank`` has its flow described by liquid level, i.e.,
 the height of the liquid inside the tank. It assumes that the volume
 above the liquid level is uniformly occupied by gas.
 
-To define it, lets first calculate the liquid height by using the 
+To define it, lets first calculate the liquid height by using the
 ``MassFlowRateBasedTank`` we defined above:
 
 .. jupyter-execute::
@@ -374,7 +381,7 @@ We can see some outputs with:
   # Draw the tank
   N20_level_tank.draw()
 
-| 
+|
 
 .. jupyter-execute::
 
@@ -383,7 +390,7 @@ We can see some outputs with:
   N20_level_tank.net_mass_flow_rate.plot()
 
 .. jupyter-execute::
-  
+
   # Evolution of the Propellant center of mass position
   N20_level_tank.center_of_mass.plot()
 
