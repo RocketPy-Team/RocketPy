@@ -9,8 +9,8 @@ produces realistic and physically consistent results, including:
 - Comparison between 3 DOF and 6 DOF simulations
 - Validation of key flight metrics
 
-The tests use realistic rocket configurations and scenarios to ensure the
-robustness of the 3 DOF implementation.
+The tests use realistic rocket configurations based on the Bella Lui rocket
+to ensure the robustness of the 3 DOF implementation.
 
 All fixtures are defined in tests/fixtures/flight/flight_fixtures.py.
 """
@@ -19,12 +19,31 @@ import numpy as np
 
 from rocketpy import Flight
 
+# Test tolerance constants
+MIN_APOGEE_ALTITUDE = 500  # meters
+MAX_APOGEE_ALTITUDE = 3000  # meters
+MIN_APOGEE_TIME = 5  # seconds
+MAX_APOGEE_TIME = 60  # seconds
+MIN_VELOCITY = 50  # m/s
+MAX_VELOCITY = 400  # m/s
+APOGEE_SPEED_RATIO = 0.3  # Max ratio of apogee speed to max speed
+MAX_LATERAL_TO_ALTITUDE_RATIO = 0.5  # Max lateral displacement vs altitude ratio
+QUATERNION_CHANGE_TOLERANCE = 0.1  # Max quaternion change without weathercocking
+WEATHERCOCK_COEFFICIENTS = [0.0, 0.5, 1.0, 2.0]  # Test weathercock coefficients
+WEATHERCOCK_RANGE_THRESHOLD = 1.0  # Minimum apogee difference (meters)
+LATERAL_INCREASE_THRESHOLD = 0.5  # Minimum lateral increase (meters)
+LAUNCH_INCLINATION = 85  # degrees from horizontal
+LAUNCH_HEADING = 0  # degrees
+MASS_TOLERANCE = 0.001  # kg
+THRUST_TOLERANCE = 1e-6  # N
+
 
 def test_3dof_flight_basic_trajectory(flight_3dof_no_weathercock):
     """Test that 3 DOF flight produces reasonable trajectory.
 
     This test validates that the basic 3 DOF flight simulation produces
-    physically reasonable results for key flight metrics.
+    physically reasonable results for key flight metrics using Bella Lui
+    based rocket parameters.
 
     Parameters
     ----------
@@ -33,21 +52,24 @@ def test_3dof_flight_basic_trajectory(flight_3dof_no_weathercock):
     """
     flight = flight_3dof_no_weathercock
 
-    # Validate apogee is reasonable (between 500m and 3000m)
+    # Validate apogee is reasonable
     apogee_altitude = flight.apogee - flight.env.elevation
-    assert 500 < apogee_altitude < 3000, (
-        f"Apogee altitude {apogee_altitude:.1f} m is outside expected range"
+    assert MIN_APOGEE_ALTITUDE < apogee_altitude < MAX_APOGEE_ALTITUDE, (
+        f"Apogee altitude {apogee_altitude:.1f} m is outside expected range "
+        f"[{MIN_APOGEE_ALTITUDE}, {MAX_APOGEE_ALTITUDE}]"
     )
 
-    # Validate apogee time is reasonable (between 5s and 60s)
-    assert 5 < flight.apogee_time < 60, (
-        f"Apogee time {flight.apogee_time:.1f} s is outside expected range"
+    # Validate apogee time is reasonable
+    assert MIN_APOGEE_TIME < flight.apogee_time < MAX_APOGEE_TIME, (
+        f"Apogee time {flight.apogee_time:.1f} s is outside expected range "
+        f"[{MIN_APOGEE_TIME}, {MAX_APOGEE_TIME}]"
     )
 
     # Validate maximum velocity is reasonable (subsonic to low supersonic)
     max_velocity = flight.max_speed
-    assert 50 < max_velocity < 400, (
-        f"Maximum velocity {max_velocity:.1f} m/s is outside expected range"
+    assert MIN_VELOCITY < max_velocity < MAX_VELOCITY, (
+        f"Maximum velocity {max_velocity:.1f} m/s is outside expected range "
+        f"[{MIN_VELOCITY}, {MAX_VELOCITY}]"
     )
 
     # Validate impact velocity is reasonable (with no parachute, terminal velocity)
@@ -78,9 +100,9 @@ def test_3dof_flight_energy_conservation(flight_3dof_no_weathercock):
     max_speed = flight.max_speed
 
     # Apogee speed should be significantly less than max speed
-    assert apogee_speed < 0.3 * max_speed, (
+    assert apogee_speed < APOGEE_SPEED_RATIO * max_speed, (
         f"Apogee speed {apogee_speed:.1f} m/s should be much less than "
-        f"max speed {max_speed:.1f} m/s"
+        f"max speed {max_speed:.1f} m/s (ratio < {APOGEE_SPEED_RATIO})"
     )
 
     # Potential energy at apogee should be positive
@@ -112,9 +134,10 @@ def test_3dof_flight_lateral_motion_no_weathercock(flight_3dof_no_weathercock):
 
     # Lateral displacement should be reasonable (not too extreme)
     apogee_altitude = flight.apogee - flight.env.elevation
-    assert lateral_displacement < 0.5 * apogee_altitude, (
+    assert lateral_displacement < MAX_LATERAL_TO_ALTITUDE_RATIO * apogee_altitude, (
         f"Lateral displacement {lateral_displacement:.1f} m seems too large "
-        f"compared to apogee altitude {apogee_altitude:.1f} m"
+        f"compared to apogee altitude {apogee_altitude:.1f} m "
+        f"(ratio > {MAX_LATERAL_TO_ALTITUDE_RATIO})"
     )
 
 
@@ -142,11 +165,13 @@ def test_3dof_weathercocking_affects_trajectory(
 
     # They should be reasonably close but not identical
     apogee_difference = abs(apogee_no_wc - apogee_with_wc)
-    assert apogee_difference > 0.1, "Weathercocking should affect apogee altitude"
+    assert apogee_difference > LATERAL_INCREASE_THRESHOLD, (
+        f"Weathercocking should affect apogee altitude (difference: {apogee_difference:.2f} m)"
+    )
 
     # Both should still be in reasonable range
-    assert 500 < apogee_no_wc < 3000
-    assert 500 < apogee_with_wc < 3000
+    assert MIN_APOGEE_ALTITUDE < apogee_no_wc < MAX_APOGEE_ALTITUDE
+    assert MIN_APOGEE_ALTITUDE < apogee_with_wc < MAX_APOGEE_ALTITUDE
 
 
 def test_3dof_weathercocking_coefficient_stored(flight_3dof_with_weathercock):
@@ -257,8 +282,9 @@ def test_3dof_flight_quaternion_evolution_no_weathercock(flight_3dof_no_weatherc
 
     # Without weathercocking, quaternion change should be minimal
     # (allowing for some numerical drift)
-    assert quat_change < 0.1, (
-        f"Quaternion change {quat_change:.6f} is too large without weathercocking"
+    assert quat_change < QUATERNION_CHANGE_TOLERANCE, (
+        f"Quaternion change {quat_change:.6f} is too large without weathercocking "
+        f"(tolerance: {QUATERNION_CHANGE_TOLERANCE})"
     )
 
 
@@ -266,7 +292,7 @@ def test_3dof_flight_mass_variation(flight_3dof_no_weathercock):
     """Test that rocket mass varies correctly during flight.
 
     The rocket mass should decrease during motor burn and remain constant
-    after burnout.
+    after burnout. Based on Bella Lui motor with ~2.43s burn time.
 
     Parameters
     ----------
@@ -281,8 +307,8 @@ def test_3dof_flight_mass_variation(flight_3dof_no_weathercock):
     # Get mass during burn (at t=1s)
     mass_during_burn = flight.rocket.total_mass(1.0)
 
-    # Get mass after burnout (at t=5s, after 3.5s burn time)
-    post_burn_mass = flight.rocket.total_mass(5.0)
+    # Get mass after burnout (at t=4s, after ~2.43s burn time)
+    post_burn_mass = flight.rocket.total_mass(4.0)
 
     # Initial mass should be greater than mass during burn
     assert initial_mass > mass_during_burn, "Mass should decrease during burn"
@@ -294,19 +320,20 @@ def test_3dof_flight_mass_variation(flight_3dof_no_weathercock):
     )
 
     # Mass should remain constant after burnout
-    # Check at t=6s and t=7s to verify constant mass
+    # Check at t=5s and t=6s to verify constant mass
+    mass_at_5s = flight.rocket.total_mass(5.0)
     mass_at_6s = flight.rocket.total_mass(6.0)
-    mass_at_7s = flight.rocket.total_mass(7.0)
-    assert abs(mass_at_6s - mass_at_7s) < 0.001, (
-        "Mass should remain constant after burnout"
+    assert abs(mass_at_5s - mass_at_6s) < MASS_TOLERANCE, (
+        f"Mass should remain constant after burnout (difference: {abs(mass_at_5s - mass_at_6s):.4f} kg, "
+        f"tolerance: {MASS_TOLERANCE} kg)"
     )
 
 
 def test_3dof_flight_thrust_profile(flight_3dof_no_weathercock):
     """Test that thrust profile is correct for point mass motor.
 
-    For a constant thrust motor, thrust should be constant during burn
-    and zero after burnout.
+    For the Bella Lui motor (K828FJ), thrust should be positive during burn
+    (~2.43s) and zero after burnout.
 
     Parameters
     ----------
@@ -318,14 +345,17 @@ def test_3dof_flight_thrust_profile(flight_3dof_no_weathercock):
     # Get thrust during burn (at t=1s)
     thrust_during_burn = flight.rocket.motor.thrust(1.0)
 
-    # Get thrust after burnout (at t=5s)
-    thrust_after_burnout = flight.rocket.motor.thrust(5.0)
+    # Get thrust after burnout (at t=4s, after ~2.43s burn time)
+    thrust_after_burnout = flight.rocket.motor.thrust(4.0)
 
     # Thrust during burn should be positive
     assert thrust_during_burn > 0, "Thrust should be positive during burn"
 
     # Thrust after burnout should be zero
-    assert abs(thrust_after_burnout) < 1e-6, "Thrust should be zero after burnout"
+    assert abs(thrust_after_burnout) < THRUST_TOLERANCE, (
+        f"Thrust should be zero after burnout (got {thrust_after_burnout:.9f} N, "
+        f"tolerance: {THRUST_TOLERANCE} N)"
+    )
 
 
 def test_3dof_flight_reproducibility(
@@ -347,8 +377,8 @@ def test_3dof_flight_reproducibility(
         rocket=acceptance_point_mass_rocket,
         environment=example_spaceport_env,
         rail_length=5.0,
-        inclination=85,
-        heading=0,
+        inclination=LAUNCH_INCLINATION,
+        heading=LAUNCH_HEADING,
         simulation_mode="3 DOF",
         weathercock_coeff=0.5,
     )
@@ -357,8 +387,8 @@ def test_3dof_flight_reproducibility(
         rocket=acceptance_point_mass_rocket,
         environment=example_spaceport_env,
         rail_length=5.0,
-        inclination=85,
-        heading=0,
+        inclination=LAUNCH_INCLINATION,
+        heading=LAUNCH_HEADING,
         simulation_mode="3 DOF",
         weathercock_coeff=0.5,
     )
@@ -390,7 +420,7 @@ def test_3dof_flight_different_weathercock_coefficients(
     acceptance_point_mass_rocket : rocketpy.PointMassRocket
         Rocket fixture for testing.
     """
-    coefficients = [0.0, 0.5, 1.0, 2.0]
+    coefficients = WEATHERCOCK_COEFFICIENTS
     flights = []
 
     for coeff in coefficients:
@@ -398,8 +428,8 @@ def test_3dof_flight_different_weathercock_coefficients(
             rocket=acceptance_point_mass_rocket,
             environment=example_spaceport_env,
             rail_length=5.0,
-            inclination=85,
-            heading=0,
+            inclination=LAUNCH_INCLINATION,
+            heading=LAUNCH_HEADING,
             simulation_mode="3 DOF",
             weathercock_coeff=coeff,
         )
@@ -408,15 +438,16 @@ def test_3dof_flight_different_weathercock_coefficients(
     # All flights should have reasonable apogees
     for flight, coeff in zip(flights, coefficients):
         apogee = flight.apogee - flight.env.elevation
-        assert 500 < apogee < 3000, (
-            f"Apogee {apogee:.1f} m with weathercock_coeff={coeff} is outside expected range"
+        assert MIN_APOGEE_ALTITUDE < apogee < MAX_APOGEE_ALTITUDE, (
+            f"Apogee {apogee:.1f} m with weathercock_coeff={coeff} is outside expected range "
+            f"[{MIN_APOGEE_ALTITUDE}, {MAX_APOGEE_ALTITUDE}]"
         )
 
     # Apogees should vary with weathercock coefficient
     # Calculate the range of apogees to ensure they're different
     apogees = [f.apogee for f in flights]
     apogee_range = max(apogees) - min(apogees)
-    assert apogee_range > 1.0, (
+    assert apogee_range > WEATHERCOCK_RANGE_THRESHOLD, (
         f"Different weathercock coefficients should produce different apogees. "
-        f"Range was only {apogee_range:.2f} m"
+        f"Range was only {apogee_range:.2f} m (threshold: {WEATHERCOCK_RANGE_THRESHOLD} m)"
     )
