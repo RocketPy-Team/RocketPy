@@ -31,8 +31,12 @@ APOGEE_SPEED_RATIO = 0.3  # Max ratio of apogee speed to max speed
 MAX_LATERAL_TO_ALTITUDE_RATIO = 0.5  # Max lateral displacement vs altitude ratio
 QUATERNION_CHANGE_TOLERANCE = 0.1  # Max quaternion change without weathercocking
 WEATHERCOCK_COEFFICIENTS = [0.0, 0.5, 1.0, 2.0]  # Test weathercock coefficients
-WEATHERCOCK_APOGEE_DIFFERENCE = 0.5  # Minimum apogee difference due to weathercocking (meters)
-WEATHERCOCK_RANGE_THRESHOLD = 1.0  # Minimum range of apogees across coefficients (meters)
+WEATHERCOCK_APOGEE_DIFFERENCE = (
+    0.5  # Minimum apogee difference due to weathercocking (meters)
+)
+WEATHERCOCK_RANGE_THRESHOLD = (
+    1.0  # Minimum range of apogees across coefficients (meters)
+)
 LATERAL_INCREASE_THRESHOLD = 0.5  # Minimum lateral displacement increase (meters)
 # LAUNCH_INCLINATION and LAUNCH_HEADING imported from flight_fixtures
 MASS_TOLERANCE = 0.001  # kg
