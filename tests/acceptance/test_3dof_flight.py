@@ -18,6 +18,7 @@ All fixtures are defined in tests/fixtures/flight/flight_fixtures.py.
 import numpy as np
 
 from rocketpy import Flight
+from tests.fixtures.flight.flight_fixtures import LAUNCH_HEADING, LAUNCH_INCLINATION
 
 # Test tolerance constants
 MIN_APOGEE_ALTITUDE = 500  # meters
@@ -32,8 +33,7 @@ QUATERNION_CHANGE_TOLERANCE = 0.1  # Max quaternion change without weathercockin
 WEATHERCOCK_COEFFICIENTS = [0.0, 0.5, 1.0, 2.0]  # Test weathercock coefficients
 WEATHERCOCK_RANGE_THRESHOLD = 1.0  # Minimum apogee difference (meters)
 LATERAL_INCREASE_THRESHOLD = 0.5  # Minimum lateral increase (meters)
-LAUNCH_INCLINATION = 85  # degrees from horizontal
-LAUNCH_HEADING = 0  # degrees
+# LAUNCH_INCLINATION and LAUNCH_HEADING imported from flight_fixtures
 MASS_TOLERANCE = 0.001  # kg
 THRUST_TOLERANCE = 1e-6  # N
 
