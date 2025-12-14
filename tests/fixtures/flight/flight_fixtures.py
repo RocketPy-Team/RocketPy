@@ -5,6 +5,10 @@ from rocketpy import Flight, Function, Rocket
 from rocketpy.motors.point_mass_motor import PointMassMotor
 from rocketpy.rocket.point_mass_rocket import PointMassRocket
 
+# Standard launch parameters for 3DOF acceptance tests
+LAUNCH_INCLINATION = 85  # degrees from horizontal (5 degrees from vertical)
+LAUNCH_HEADING = 0  # degrees (north)
+
 
 @pytest.fixture
 def flight_calisto(calisto, example_plain_env):  # old name: flight
@@ -506,9 +510,6 @@ def flight_3dof_no_weathercock(example_spaceport_env, acceptance_point_mass_rock
     rocketpy.Flight
         A 3 DOF flight simulation with weathercock_coeff=0.0.
     """
-    LAUNCH_INCLINATION = 85  # degrees from horizontal (5 degrees from vertical)
-    LAUNCH_HEADING = 0  # degrees (north)
-
     return Flight(
         rocket=acceptance_point_mass_rocket,
         environment=example_spaceport_env,
@@ -539,9 +540,6 @@ def flight_3dof_with_weathercock(example_spaceport_env, acceptance_point_mass_ro
     rocketpy.Flight
         A 3 DOF flight simulation with weathercock_coeff=1.0.
     """
-    LAUNCH_INCLINATION = 85  # degrees from horizontal (5 degrees from vertical)
-    LAUNCH_HEADING = 0  # degrees (north)
-
     return Flight(
         rocket=acceptance_point_mass_rocket,
         environment=example_spaceport_env,
