@@ -1,10 +1,10 @@
-from pathlib import Path
 import urllib
+from pathlib import Path
 
-from PIL import UnidentifiedImageError
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.transforms import offset_copy
+from PIL import UnidentifiedImageError
 
 from ..tools import (
     convert_local_extent_to_wgs84,

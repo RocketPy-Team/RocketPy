@@ -61,6 +61,12 @@ if os.environ.get("READTHEDOCS", "") == "True":
 # Don't run notebooks
 nbsphinx_execute = "never"
 
+# Configure jupyter_sphinx execution behavior
+jupyter_execute_kwargs = {
+    "timeout": 300,  # 5 minutes timeout per cell
+    "allow_errors": True,  # Continue building even if cells raise errors
+}
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 

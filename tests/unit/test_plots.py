@@ -2,14 +2,14 @@ import os
 from unittest.mock import MagicMock, patch
 
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
 import pytest
+from matplotlib.animation import FuncAnimation
 
 from rocketpy.plots.compare import Compare
 from rocketpy.plots.plot_helpers import (
+    show_or_save_animation,
     show_or_save_fig,
     show_or_save_plot,
-    show_or_save_animation,
 )
 
 
