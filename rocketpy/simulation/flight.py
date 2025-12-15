@@ -3724,15 +3724,16 @@ class Flight:
     def calculate_rail_button_bending_moments(self):
         """Calculate internal bending moments at rail button attachment points.
 
-        This method uses beam theory to determine the internal structural
-        moments for stress analysis of the rail button attachments (fasteners
-        and airframe).
+        Uses beam theory to determine the internal structural moments for
+        stress analysis of the rail button attachments (fasteners and airframe).
 
         The bending moment at each button attachment consists of:
 
-        1. Bending from shear force at button contact point: $M = S \\times h$,
-           where $S$ is the shear (tangential) force and $h$ is button height.
-        2. Direct moment contribution from the button's reaction forces.
+        1. Normal force moment: $M = N \\times d$, where $N$ is the normal
+           reaction force and $d$ is the distance from button to center of
+           dry mass.
+        2. Shear force cantilever moment: $M = S \\times h$, where $S$ is the
+           shear (tangential) force and $h$ is the button standoff height.
 
         Returns
         -------
@@ -3748,28 +3749,18 @@ class Flight:
 
         Notes
         -----
-        This calculation is meaningful only during the rail phase of flight.
-        Maximum values use absolute values for worst-case stress analysis.
-        The bending moments represent internal stresses in the rocket airframe
-        at the rail button attachment points.
+        - Calculated only during the rail phase of flight
+        - Maximum values use absolute values for worst-case stress analysis
+        - The bending moments represent internal stresses in the rocket
+          airframe at the rail button attachment points
 
         **Assumptions:**
 
         - Rail buttons act as simple supports: provide reaction forces (normal
-          and shear) but no moment reaction at the rail contact point.
-        - The rocket acts as a beam supported at two points (rail buttons).
+          and shear) but no moment reaction at the rail contact point
+        - The rocket acts as a beam supported at two points (rail buttons)
         - Bending moments arise from the lever arm effect of reaction forces
-          and the cantilever moment from button standoff height.
-        - Normal force moment: M = N x d, where N is normal reaction force
-          and d is distance from button to center of dry mass.
-        - Shear force cantilever moment: M = S x h, where S is shear force
-          and h is button standoff height.
-
-        Examples
-        --------
-        >>> moments = flight.calculate_rail_button_bending_moments
-        >>> print(moments[1])  # max rail button 1 bending moment
-        >>> print(moments[3])  # max rail button 2 bending moment
+          and the cantilever moment from button standoff height
         """
         # Check if rail buttons exist
         null_moment = Function(0)
