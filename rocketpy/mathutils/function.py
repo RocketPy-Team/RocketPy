@@ -465,6 +465,41 @@ class Function:  # pylint: disable=too-many-public-methods
 
                 self._interpolation_func = rbf_interpolation
 
+            case 6:  # regular_grid (RegularGridInterpolator)
+                # For grid interpolation, the actual interpolator is stored separately
+                # This function is a placeholder that should not be called directly
+                # since __get_value_opt_grid is used instead
+                if hasattr(self, "_grid_interpolator"):
+
+                    def grid_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
+                        return self._grid_interpolator(x)
+
+                    self._interpolation_func = grid_interpolation
+                else:
+                    # Fallback to shepard if grid interpolator not available
+                    warnings.warn(
+                        "Grid interpolator not found, falling back to shepard interpolation"
+                    )
+
+                    def shepard_fallback(x, x_min, x_max, x_data, y_data, _):
+                        # pylint: disable=unused-argument
+                        arg_qty, arg_dim = x.shape
+                        result = np.empty(arg_qty)
+                        x = x.reshape((arg_qty, 1, arg_dim))
+                        sub_matrix = x_data - x
+                        distances_squared = np.sum(sub_matrix**2, axis=2)
+                        zero_distances = np.where(distances_squared == 0)
+                        valid_indexes = np.ones(arg_qty, dtype=bool)
+                        valid_indexes[zero_distances[0]] = False
+                        weights = distances_squared[valid_indexes] ** (-1.5)
+                        numerator_sum = np.sum(y_data * weights, axis=1)
+                        denominator_sum = np.sum(weights, axis=1)
+                        result[valid_indexes] = numerator_sum / denominator_sum
+                        result[~valid_indexes] = y_data[zero_distances[1]]
+                        return result
+
+                    self._interpolation_func = shepard_fallback
+
             case _:
                 raise ValueError(
                     f"Interpolation {interpolation} method not recognized."
@@ -511,14 +546,14 @@ class Function:  # pylint: disable=too-many-public-methods
 
                     case 1:  # polynomial
 
-                        def natural_extrapolation(
+                        def natural_extrapolation(  # pylint: disable=function-redefined
                             x, x_min, x_max, x_data, y_data, coeffs
                         ):  # pylint: disable=unused-argument
                             return np.sum(coeffs * x ** np.arange(len(coeffs)))
 
                     case 2:  # akima
 
-                        def natural_extrapolation(
+                        def natural_extrapolation(  # pylint: disable=function-redefined
                             x, x_min, x_max, x_data, y_data, coeffs
                         ):  # pylint: disable=unused-argument
                             a = coeffs[:4] if x < x_min else coeffs[-4:]
@@ -526,19 +561,19 @@ class Function:  # pylint: disable=too-many-public-methods
 
                     case 3:  # spline
 
-                        def natural_extrapolation(
+                        def natural_extrapolation(  # pylint: disable=function-redefined
                             x, x_min, x_max, x_data, y_data, coeffs
                         ):  # pylint: disable=unused-argument
                             if x < x_min:
                                 a = coeffs[:, 0]
-                                x = x - x_data[0]
+                                x = x_data[0]
                             else:
                                 a = coeffs[:, -1]
                                 x = x - x_data[-2]
                             return a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
 
                     case 4:  # shepard
-                        # pylint: disable=unused-argument
+                        # pylint: disable=unused-argument,function-redefined
                         def natural_extrapolation(x, x_min, x_max, x_data, y_data, _):
                             arg_qty, arg_dim = x.shape
                             result = np.empty(arg_qty)
@@ -564,7 +599,7 @@ class Function:  # pylint: disable=too-many-public-methods
                             self._domain, self._image, neighbors=100
                         )
 
-                        def natural_extrapolation(
+                        def natural_extrapolation(  # pylint: disable=function-redefined
                             x, x_min, x_max, x_data, y_data, coeffs
                         ):  # pylint: disable=unused-argument
                             return interpolator(x)
