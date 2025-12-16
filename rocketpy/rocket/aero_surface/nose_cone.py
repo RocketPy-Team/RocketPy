@@ -234,15 +234,15 @@ class NoseCone(AeroSurface):
             case "lvhaack":
                 self.k = 0.563
 
-                def theta(x):
+                def theta_lvhaack(x):
                     return np.arccos(1 - 2 * max(min(x / self.length, 1), 0))
 
                 self.y_nosecone = Function(
                     lambda x: self.base_radius
                     * (
-                        theta(x)
-                        - np.sin(2 * theta(x)) / 2
-                        + (np.sin(theta(x)) ** 3) / 3
+                        theta_lvhaack(x)
+                        - np.sin(2 * theta_lvhaack(x)) / 2
+                        + (np.sin(theta_lvhaack(x)) ** 3) / 3
                     )
                     ** (0.5)
                     / (np.pi**0.5)
@@ -272,12 +272,12 @@ class NoseCone(AeroSurface):
             case "vonkarman":
                 self.k = 0.5
 
-                def theta(x):
+                def theta_vonkarman(x):
                     return np.arccos(1 - 2 * max(min(x / self.length, 1), 0))
 
                 self.y_nosecone = Function(
                     lambda x: self.base_radius
-                    * (theta(x) - np.sin(2 * theta(x)) / 2) ** (0.5)
+                    * (theta_vonkarman(x) - np.sin(2 * theta_vonkarman(x)) / 2) ** (0.5)
                     / (np.pi**0.5)
                 )
             case "parabolic":

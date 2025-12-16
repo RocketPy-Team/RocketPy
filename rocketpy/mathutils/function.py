@@ -570,7 +570,12 @@ class Function:  # pylint: disable=too-many-public-methods
                             else:
                                 a = coeffs[:, -1]
                                 x_offset = x - x_data[-2]
-                            return a[3] * x_offset**3 + a[2] * x_offset**2 + a[1] * x_offset + a[0]
+                            return (
+                                a[3] * x_offset**3
+                                + a[2] * x_offset**2
+                                + a[1] * x_offset
+                                + a[0]
+                            )
 
                     case 4:  # shepard
                         # pylint: disable=unused-argument,function-redefined
