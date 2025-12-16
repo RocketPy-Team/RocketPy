@@ -566,11 +566,11 @@ class Function:  # pylint: disable=too-many-public-methods
                         ):  # pylint: disable=unused-argument
                             if x < x_min:
                                 a = coeffs[:, 0]
-                                x = x_data[0]
+                                x_offset = x - x_data[0]
                             else:
                                 a = coeffs[:, -1]
-                                x = x - x_data[-2]
-                            return a[3] * x**3 + a[2] * x**2 + a[1] * x + a[0]
+                                x_offset = x - x_data[-2]
+                            return a[3] * x_offset**3 + a[2] * x_offset**2 + a[1] * x_offset + a[0]
 
                     case 4:  # shepard
                         # pylint: disable=unused-argument,function-redefined
@@ -3254,19 +3254,19 @@ class Function:  # pylint: disable=too-many-public-methods
                     ans += y_data[0] * (min(x_data[0], b) - a)
                 elif self.__extrapolation__ == "natural":
                     c = coeffs[:, 0]
-                    sub_b = a - x_data[0]
-                    sub_a = min(b, x_data[0]) - x_data[0]
+                    sub_a = a - x_data[0]
+                    sub_b = min(b, x_data[0]) - x_data[0]
                     ans += (
-                        (c[3] * sub_a**4) / 4
-                        + (c[2] * sub_a**3 / 3)
-                        + (c[1] * sub_a**2 / 2)
-                        + c[0] * sub_a
-                    )
-                    ans -= (
                         (c[3] * sub_b**4) / 4
                         + (c[2] * sub_b**3 / 3)
                         + (c[1] * sub_b**2 / 2)
                         + c[0] * sub_b
+                    )
+                    ans -= (
+                        (c[3] * sub_a**4) / 4
+                        + (c[2] * sub_a**3 / 3)
+                        + (c[1] * sub_a**2 / 2)
+                        + c[0] * sub_a
                     )
                 else:
                     # self.__extrapolation__ = 'zero'
