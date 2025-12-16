@@ -115,3 +115,31 @@ def environment_spaceport_america_2023():
 
     env.max_expected_height = 6000
     return env
+
+
+@pytest.fixture
+def example_kennedy_env(example_date_naive):
+    """Environment class with location set to Kennedy Space Center launch site.
+
+    Kennedy Space Center coordinates:
+    - Latitude: 28.5721° N
+    - Longitude: -80.6480° W
+    - Elevation: ~3 meters
+
+    Returns
+    -------
+    rocketpy.Environment
+        Environment object configured for Kennedy Space Center.
+    """
+    kennedy_env = Environment(
+        latitude=28.5721,
+        longitude=-80.6480,
+        elevation=3.0,
+        datum="WGS84",
+    )
+    # Set date to tomorrow at noon UTC
+    tomorrow = example_date_naive
+    kennedy_env.set_date(
+        (tomorrow.year, tomorrow.month, tomorrow.day, 12), timezone="UTC"
+    )
+    return kennedy_env

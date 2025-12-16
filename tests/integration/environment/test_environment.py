@@ -160,9 +160,8 @@ def test_nam_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=un
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_rap_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=unused-argument
-    today = date.today()
     now = datetime.now(timezone.utc)
-    example_spaceport_env.set_date((today.year, today.month, today.day, now.hour))
+    example_spaceport_env.set_date((now.year, now.month, now.day, now.hour))
     example_spaceport_env.set_atmospheric_model(type="Forecast", file="RAP")
     assert example_spaceport_env.all_info() is None
 
@@ -258,3 +257,33 @@ def test_cmc_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=un
     """
     example_spaceport_env.set_atmospheric_model(type="Ensemble", file="CMC")
     assert example_spaceport_env.all_info() is None
+
+
+def test_merra2_full_specification_compliance(merra2_file_path, example_plain_env):
+    """
+    Tests that RocketPy loads a file complying with NASA MERRA-2 file specs.
+    """
+    # 1. Initialize Environment
+    env = example_plain_env
+    env.set_date((2023, 6, 20, 12))
+    env.set_location(latitude=0, longitude=0)
+
+    # 2. Force standard gravity to a known constant for precise math checking
+    env.standard_g = 9.80665
+
+    # 3. Load the Atmospheric Model (Using the file generated above)
+    env.set_atmospheric_model(
+        type="Reanalysis", file=merra2_file_path, dictionary="MERRA2"
+    )
+
+    # 4. Verify Unit Conversion (Energy -> Height)
+    # Input: 9806.65 m2/s2
+    # Expected: 1000.0 m
+    print(f"Calculated Elevation: {env.elevation} m")
+    assert abs(env.elevation - 1000.0) < 1e-4, (
+        f"Failed to convert PHIS (m2/s2) to meters. Got {env.elevation}, expected 1000.0"
+    )
+
+    # 5. Verify Variable Mapping
+    assert abs(env.temperature(0) - 300.0) < 1e-6
+    assert env.wind_speed(0) > 0

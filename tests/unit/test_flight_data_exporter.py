@@ -7,6 +7,7 @@ which exports flight simulation data to various formats (CSV, JSON, KML).
 import json
 
 import numpy as np
+import pytest
 
 from rocketpy.simulation import FlightDataExporter
 
@@ -192,3 +193,57 @@ def test_export_kml_trajectory(flight_calisto_robust, tmp_path):
     assert np.allclose(flight_calisto_robust.latitude[:, 1], lat, atol=1e-3)
     assert np.allclose(flight_calisto_robust.longitude[:, 1], lon, atol=1e-3)
     assert np.allclose(flight_calisto_robust.z[:, 1], z, atol=1e-3)
+
+
+def test_export_data_csv_column_names_no_leading_spaces(flight_calisto, tmp_path):
+    """Test that CSV column headers have no leading spaces after commas.
+
+    This validates that exported CSV files can be easily read with pandas
+    without requiring leading spaces in column names (Issue #864).
+
+    When reading CSVs with pandas, column names should be accessible as
+    'Vz (m/s)' not ' Vz (m/s)' (with leading space).
+
+    Parameters
+    ----------
+    flight_calisto : rocketpy.Flight
+        Flight object to be tested.
+    tmp_path : pathlib.Path
+        Pytest fixture for temporary directories.
+    """
+    file_name = tmp_path / "flight_data_columns.csv"
+    FlightDataExporter(flight_calisto).export_data(
+        str(file_name), "z", "vz", "altitude"
+    )
+
+    # Read the header line directly
+    with open(file_name, "r") as f:
+        header_line = f.readline().strip()
+
+    # Verify header format - should have no spaces after commas
+    # Format should be: # Time (s),Z (m),Vz (m/s),Altitude AGL (m)
+    assert header_line.startswith("# Time (s),")
+    assert ", " not in header_line, "Header should not contain ', ' (comma-space)"
+
+    # Verify with pandas that columns are accessible without leading spaces
+    pd = pytest.importorskip("pandas")
+    df = pd.read_csv(file_name)
+    columns = df.columns.tolist()
+
+    # First column should be '# Time (s)'
+    assert columns[0] == "# Time (s)"
+
+    # Other columns should NOT have leading spaces
+    for col in columns[1:]:
+        assert not col.startswith(" "), f"Column '{col}' has leading space"
+
+    # Verify columns are accessible with expected names (no leading spaces)
+    assert "Z (m)" in columns
+    assert "Vz (m/s)" in columns
+    assert "Altitude AGL (m)" in columns
+
+    # Verify we can access data using column names without spaces
+    _ = df["# Time (s)"]
+    _ = df["Z (m)"]
+    _ = df["Vz (m/s)"]
+    _ = df["Altitude AGL (m)"]

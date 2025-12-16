@@ -65,6 +65,7 @@ monte-carlo = [
     "multiprocess>=0.70",
     "statsmodels",
     "prettytable",
+    "contextily>=1.0.0; python_version < '3.14'",
 ]
 
 all = ["rocketpy[env-analysis]", "rocketpy[monte-carlo]"]

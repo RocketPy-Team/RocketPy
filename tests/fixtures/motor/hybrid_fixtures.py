@@ -4,7 +4,7 @@ from rocketpy import HybridMotor
 
 
 @pytest.fixture
-def hybrid_motor(spherical_oxidizer_tank):
+def hybrid_motor(oxidizer_tank):
     """An example of a hybrid motor with spherical oxidizer
     tank and fuel grains.
 
@@ -35,6 +35,6 @@ def hybrid_motor(spherical_oxidizer_tank):
         grains_center_of_mass_position=-0.1,
     )
 
-    motor.add_tank(spherical_oxidizer_tank, position=0.3)
+    motor.add_tank(oxidizer_tank, position=0.3)
 
     return motor
