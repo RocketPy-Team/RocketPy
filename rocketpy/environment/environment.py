@@ -1277,7 +1277,6 @@ class Environment:
         self.atmospheric_model_type = type
         type = type.lower()
 
-        # Handle each case using match statement
         match type:
             case "standard_atmosphere":
                 self.process_standard_atmosphere()
