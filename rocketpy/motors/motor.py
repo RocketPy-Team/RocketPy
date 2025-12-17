@@ -266,15 +266,16 @@ class Motor(ABC):
         """
         # Define coordinate system orientation
         self.coordinate_system_orientation = coordinate_system_orientation
-        if coordinate_system_orientation == "nozzle_to_combustion_chamber":
-            self._csys = 1
-        elif coordinate_system_orientation == "combustion_chamber_to_nozzle":
-            self._csys = -1
-        else:  # pragma: no cover
-            raise ValueError(
-                "Invalid coordinate system orientation. Options are "
-                "'nozzle_to_combustion_chamber' and 'combustion_chamber_to_nozzle'."
-            )
+        match coordinate_system_orientation:
+            case "nozzle_to_combustion_chamber":
+                self._csys = 1
+            case "combustion_chamber_to_nozzle":
+                self._csys = -1
+            case _:  # pragma: no cover
+                raise ValueError(
+                    "Invalid coordinate system orientation. Options are "
+                    "'nozzle_to_combustion_chamber' and 'combustion_chamber_to_nozzle'."
+                )
 
         # Motor parameters
         self.interpolate = interpolation_method
