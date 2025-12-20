@@ -68,7 +68,7 @@ def test_3dof_flight_basic_trajectory(flight_3dof_no_weathercock):
         f"[{MIN_APOGEE_TIME}, {MAX_APOGEE_TIME}]"
     )
 
-    # Validate maximum velocity is reasonable (subsonic to low supersonic)
+    # Validate maximum velocity is reasonable (subsonic)
     max_velocity = flight.max_speed
     assert MIN_VELOCITY < max_velocity < MAX_VELOCITY, (
         f"Maximum velocity {max_velocity:.1f} m/s is outside expected range "
