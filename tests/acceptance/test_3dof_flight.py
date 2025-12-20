@@ -35,7 +35,6 @@ QUATERNION_CHANGE_TOLERANCE = 0.1  # Max quaternion change without weathercockin
 WEATHERCOCK_COEFFICIENTS = [0.0, 0.5, 1.0, 2.0]  # Test weathercock coefficients
 # Note: Weathercocking effects are verified by checking for changes in trajectory
 # rather than specific tolerance values, as the magnitude is hard to quantify
-LATERAL_INCREASE_THRESHOLD = 0.5  # Minimum lateral displacement increase (meters)
 # LAUNCH_INCLINATION and LAUNCH_HEADING imported from flight_fixtures
 MASS_TOLERANCE = 0.001  # kg
 THRUST_TOLERANCE = 1e-6  # N
