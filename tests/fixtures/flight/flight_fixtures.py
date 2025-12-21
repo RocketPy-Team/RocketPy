@@ -419,7 +419,7 @@ def acceptance_point_mass_rocket(acceptance_point_mass_motor):
     """Create a realistic point mass rocket for acceptance testing.
 
     Based on Bella Lui rocket parameters:
-    - Radius: 156 mm (diameter 312 mm)
+    - Radius: 78 mm (156 mm diameter)
     - Dry mass (without motor): ~17.227 kg
     - Power-off drag coefficient: ~0.43
     - Power-on drag coefficient: ~0.43
@@ -435,7 +435,7 @@ def acceptance_point_mass_rocket(acceptance_point_mass_motor):
         A point mass rocket with Bella Lui parameters.
     """
     rocket = PointMassRocket(
-        radius=0.156,  # 156 mm radius
+        radius=0.078,  # 78 mm radius (156 mm diameter)
         mass=17.227,  # kg without motor
         center_of_mass_without_motor=0,
         power_off_drag=0.43,

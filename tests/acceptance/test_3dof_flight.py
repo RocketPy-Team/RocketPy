@@ -466,13 +466,14 @@ def test_3dof_flight_different_weathercock_coefficients(
     # Verify that different coefficients produce different results
     # This confirms the weathercocking physics is being applied
     apogees = [f.apogee for f in flights]
-    unique_apogees = set(apogees)
 
-    # At least some coefficients should produce different apogees
-    # (not all will necessarily be different, but there should be variation)
-    assert len(unique_apogees) > 1, (
+    # Check if there's meaningful variation in apogees (use range instead of set
+    # to avoid floating-point precision issues)
+    apogee_range = max(apogees) - min(apogees)
+    apogee_tolerance = 0.01  # meters - meaningful physical difference
+    assert apogee_range > apogee_tolerance, (
         f"Different weathercock coefficients should produce different apogees. "
-        f"All simulations resulted in the same apogee: {apogees[0]:.2f} m"
+        f"Range of apogees: {apogee_range:.4f} m (threshold: {apogee_tolerance} m)"
     )
 
     # Verify lateral displacements also vary with coefficients
@@ -483,8 +484,10 @@ def test_3dof_flight_different_weathercock_coefficients(
         lateral = (x**2 + y**2) ** 0.5
         lateral_displacements.append(lateral)
 
-    unique_laterals = set(lateral_displacements)
-    assert len(unique_laterals) > 1, (
+    # Check if there's meaningful variation in lateral displacements
+    lateral_tolerance = 0.001  # meters - meaningful physical difference
+    lateral_range = max(lateral_displacements) - min(lateral_displacements)
+    assert lateral_range > lateral_tolerance, (
         "Different weathercock coefficients should produce different lateral displacements. "
-        f"All simulations resulted in the same lateral displacement: {lateral_displacements[0]:.2f} m"
+        f"Range of lateral displacements: {lateral_range:.4f} m (threshold: {lateral_tolerance} m)"
     )
