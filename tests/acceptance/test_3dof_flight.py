@@ -6,7 +6,6 @@ produces realistic and physically consistent results, including:
 
 - Basic 3 DOF trajectory simulation
 - Weathercocking behavior with different coefficients
-- Comparison between 3 DOF and 6 DOF simulations
 - Validation of key flight metrics
 
 The tests use realistic rocket configurations based on the Bella Lui rocket
