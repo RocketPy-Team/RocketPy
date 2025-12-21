@@ -274,7 +274,7 @@ def test_3dof_flight_quaternion_evolution_no_weathercock(flight_3dof_no_weatherc
     - Passive aerodynamic effects
     - Numerical integration effects
     - Wind conditions in the environment
-    
+
     This test verifies that without the active weathercocking model, the
     attitude changes remain within reasonable bounds.
 
