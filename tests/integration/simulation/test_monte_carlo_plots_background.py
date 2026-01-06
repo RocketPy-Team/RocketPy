@@ -6,12 +6,13 @@ and tests all background map options, saving the results as images.
 
 import os
 import shutil
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
 import pytest
 
-from rocketpy.simulation import MonteCarlo
 from rocketpy.plots.monte_carlo_plots import _MonteCarloPlots
+from rocketpy.simulation import MonteCarlo
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 

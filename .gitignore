@@ -162,6 +162,7 @@ cython_debug/
 # Docs
 *.docx
 *.pdf
+docs/*.gif
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can

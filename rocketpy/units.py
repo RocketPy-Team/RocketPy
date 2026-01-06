@@ -77,10 +77,13 @@ def convert_units_Functions(variable, from_unit, to_unit, axis=1):
     else:
         variable_source[:, axis] *= conversion_factor(from_unit, to_unit)
     # Rename axis labels
-    if axis == 0:
-        variable.__inputs__[0] = variable.__inputs__[0].replace(from_unit, to_unit)
-    elif axis == 1:
-        variable.__outputs__[0] = variable.__outputs__[0].replace(from_unit, to_unit)
+    match axis:
+        case 0:
+            variable.__inputs__[0] = variable.__inputs__[0].replace(from_unit, to_unit)
+        case 1:
+            variable.__outputs__[0] = variable.__outputs__[0].replace(
+                from_unit, to_unit
+            )
     # Create new Function instance with converted data
     return Function(
         source=variable_source,

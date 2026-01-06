@@ -1,11 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.patches import Polygon
 from matplotlib.animation import FuncAnimation
+from matplotlib.patches import Polygon
 
 from rocketpy.mathutils.function import Function
 
-from .plot_helpers import show_or_save_plot, show_or_save_animation
+from .plot_helpers import show_or_save_animation, show_or_save_plot
 
 
 class _TankPlots:
