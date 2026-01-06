@@ -258,7 +258,7 @@ def test_monte_carlo_simulate_convergence(monte_carlo_calisto):
         )
 
         assert isinstance(ci_history, list)
-        print (ci_history)
+        print(ci_history)
         assert all(isinstance(width, float) for width in ci_history)
         assert len(ci_history) >= 1
         assert monte_carlo_calisto.num_of_loaded_sims <= 20
