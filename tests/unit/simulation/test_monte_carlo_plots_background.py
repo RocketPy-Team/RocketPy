@@ -1,15 +1,16 @@
 # pylint: disable=unused-argument,assignment-from-no-return
 import os
-import urllib.error  # pylint: disable=unused-import
+import urllib.error
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 import matplotlib.pyplot as plt
-from PIL import UnidentifiedImageError  # pylint: disable=unused-import
+import numpy as np
+import pytest
+from PIL import UnidentifiedImageError
 
 from rocketpy.plots.monte_carlo_plots import _MonteCarloPlots
 from rocketpy.simulation import MonteCarlo
+from rocketpy.tools import import_optional_dependency
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
@@ -67,100 +68,53 @@ class SimpleEnvironment:
         self.longitude = longitude
 
 
+@pytest.mark.parametrize(
+    "background_type",
+    [None, "satellite", "street", "terrain", "CartoDB.Positron"],
+)
 @patch("matplotlib.pyplot.show")
-def test_ellipses_background_none(mock_show):
-    """Test default behavior when background=None (no background map displayed).
+def test_ellipses_background_types_display_successfully(mock_show, background_type):
+    """Test that different background map types display without errors.
+
+    This parameterized test verifies that the ellipses method works with:
+    - None (no background map)
+    - "satellite" (Esri.WorldImagery)
+    - "street" (OpenStreetMap.Mapnik)
+    - "terrain" (Esri.WorldTopoMap)
+    - Custom provider (e.g., CartoDB.Positron)
 
     Parameters
     ----------
-    mock_show :
-        Mocks the matplotlib.pyplot.show() function to avoid showing the plots.
+    mock_show : unittest.mock.MagicMock
+        Mocks the matplotlib.pyplot.show() function to avoid displaying plots.
+    background_type : str or None
+        The background map type to test.
     """
     mock_monte_carlo = MockMonteCarlo(environment=SimpleEnvironment())
-    # Test that background=None does not raise an error
-    result = mock_monte_carlo.plots.ellipses(background=None)
-    assert result is None
 
+    result = mock_monte_carlo.plots.ellipses(background=background_type)
 
-@patch("matplotlib.pyplot.show")
-def test_ellipses_background_satellite(mock_show):
-    """Test using satellite map when background="satellite".
-
-    Parameters
-    ----------
-    mock_show :
-        Mocks the matplotlib.pyplot.show() function to avoid showing the plots.
-    """
-    mock_monte_carlo = MockMonteCarlo(environment=SimpleEnvironment())
-    # Test that background="satellite" does not raise an error
-    result = mock_monte_carlo.plots.ellipses(background="satellite")
-    assert result is None
-
-
-@patch("matplotlib.pyplot.show")
-def test_ellipses_background_street(mock_show):
-    """Test using street map when background="street".
-
-    Parameters
-    ----------
-    mock_show :
-        Mocks the matplotlib.pyplot.show() function to avoid showing the plots.
-    """
-    mock_monte_carlo = MockMonteCarlo(environment=SimpleEnvironment())
-    # Test that background="street" does not raise an error
-    result = mock_monte_carlo.plots.ellipses(background="street")
-    assert result is None
-
-
-@patch("matplotlib.pyplot.show")
-def test_ellipses_background_terrain(mock_show):
-    """Test using terrain map when background="terrain".
-
-    Parameters
-    ----------
-    mock_show :
-        Mocks the matplotlib.pyplot.show() function to avoid showing the plots.
-    """
-    mock_monte_carlo = MockMonteCarlo(environment=SimpleEnvironment())
-    # Test that background="terrain" does not raise an error
-    result = mock_monte_carlo.plots.ellipses(background="terrain")
-    assert result is None
-
-
-@patch("matplotlib.pyplot.show")
-def test_ellipses_background_custom_provider(mock_show):
-    """Test using custom contextily provider for background.
-
-    Parameters
-    ----------
-    mock_show :
-        Mocks the matplotlib.pyplot.show() function to avoid showing the plots.
-    """
-    mock_monte_carlo = MockMonteCarlo(environment=SimpleEnvironment())
-    # Test that custom provider does not raise an error
-    result = mock_monte_carlo.plots.ellipses(background="CartoDB.Positron")
     assert result is None
 
 
 @patch("matplotlib.pyplot.show")
 def test_ellipses_image_takes_precedence_over_background(mock_show, tmp_path):
-    """Test that image takes precedence when both image and background are provided.
+    """Test that image parameter takes precedence over background parameter.
+
+    When both image and background are provided, the image should be used
+    and the background map should not be downloaded.
 
     Parameters
     ----------
-    mock_show :
-        Mocks the matplotlib.pyplot.show() function to avoid showing the plots.
-    tmp_path :
-        pytest fixture providing a temporary directory.
+    mock_show : unittest.mock.MagicMock
+        Mocks the matplotlib.pyplot.show() function to avoid displaying plots.
+    tmp_path : pathlib.Path
+        Pytest fixture providing a temporary directory.
     """
+
     mock_monte_carlo = MockMonteCarlo(environment=SimpleEnvironment())
     dummy_image_path = tmp_path / "dummy_image.png"
     dummy_image_path.write_bytes(b"dummy")
-
-    # Test that when both image and background are provided, image takes precedence
-    # This should not attempt to download background map
-    import numpy as np  # pylint: disable=import-outside-toplevel
-
     mock_image = np.zeros((100, 100, 3), dtype=np.uint8)  # RGB image
 
     with patch("imageio.imread") as mock_imread:
@@ -173,62 +127,67 @@ def test_ellipses_image_takes_precedence_over_background(mock_show, tmp_path):
 
 
 @patch("matplotlib.pyplot.show")
-def test_ellipses_background_no_environment(mock_show):
-    """Test that ValueError is raised when MonteCarlo object has no environment attribute.
+def test_ellipses_background_raises_error_when_no_environment(mock_show):
+    """Test that ValueError is raised when environment attribute is missing.
 
-    This test creates a MonteCarlo object without an environment attribute.
-    The function should raise ValueError when trying to fetch background map.
+    Parameters
+    ----------
+    mock_show : unittest.mock.MagicMock
+        Mocks the matplotlib.pyplot.show() function to avoid displaying plots.
     """
+
     mock_monte_carlo = MockMonteCarlo(environment=None)
 
     with pytest.raises(ValueError) as exc_info:
         mock_monte_carlo.plots.ellipses(background="satellite")
-    assert "environment" in str(exc_info.value).lower()
-    assert "automatically fetching the background map" in str(exc_info.value)
+
+    error_message = str(exc_info.value).lower()
+    assert "environment" in error_message
+    assert "automatically fetching the background map" in error_message
 
 
 @patch("matplotlib.pyplot.show")
-def test_ellipses_background_no_latitude_longitude(mock_show):
-    """Test that ValueError is raised when environment has no latitude or longitude attributes.
+def test_ellipses_background_raises_error_when_missing_coordinates(mock_show):
+    """Test that ValueError is raised when environment lacks latitude or longitude.
 
-    This test creates a mock environment without latitude and longitude attributes.
-    The function should raise ValueError when trying to fetch background map.
+    Parameters
+    ----------
+    mock_show : unittest.mock.MagicMock
+        Mocks the matplotlib.pyplot.show() function to avoid displaying plots.
     """
 
-    # Create a simple environment object without latitude and longitude
     class EmptyEnvironment:
         """Empty environment object without latitude and longitude attributes."""
-
-        def __init__(self):
-            pass
 
     mock_environment = EmptyEnvironment()
     mock_monte_carlo = MockMonteCarlo(environment=mock_environment)
 
     with pytest.raises(ValueError) as exc_info:
         mock_monte_carlo.plots.ellipses(background="satellite")
-    assert "latitude" in str(exc_info.value).lower()
-    assert "longitude" in str(exc_info.value).lower()
-    assert "automatically fetching the background map" in str(exc_info.value)
+
+    error_message = str(exc_info.value).lower()
+    assert "latitude" in error_message
+    assert "longitude" in error_message
+    assert "automatically fetching the background map" in error_message
 
 
 @patch("matplotlib.pyplot.show")
-def test_ellipses_background_contextily_not_installed(mock_show):
+def test_ellipses_background_raises_error_when_contextily_not_installed(mock_show):
     """Test that ImportError is raised when contextily is not installed.
 
     Parameters
     ----------
-    mock_show :
-        Mocks the matplotlib.pyplot.show() function to avoid showing the plots.
+    mock_show : unittest.mock.MagicMock
+        Mocks the matplotlib.pyplot.show() function to avoid displaying plots.
     """
-    mock_monte_carlo = MockMonteCarlo(environment=SimpleEnvironment())
-    from rocketpy.tools import import_optional_dependency as original_import  # pylint: disable=import-outside-toplevel
 
-    # Create a mock function that only raises exception when importing contextily
+    mock_monte_carlo = MockMonteCarlo(environment=SimpleEnvironment())
+
     def mock_import_optional_dependency(name):
+        """Mock function that raises ImportError for contextily."""
         if name == "contextily":
             raise ImportError("No module named 'contextily'")
-        return original_import(name)
+        return import_optional_dependency(name)
 
     with patch(
         "rocketpy.plots.monte_carlo_plots.import_optional_dependency",
@@ -240,42 +199,44 @@ def test_ellipses_background_contextily_not_installed(mock_show):
 
 
 @patch("matplotlib.pyplot.show")
-def test_ellipses_background_with_custom_xlim_ylim(mock_show):
-    """Test using background with custom xlim and ylim.
+def test_ellipses_background_works_with_custom_limits(mock_show):
+    """Test that background maps work with custom axis limits.
 
     Parameters
     ----------
-    mock_show :
-        Mocks the matplotlib.pyplot.show() function to avoid showing the plots.
+    mock_show : unittest.mock.MagicMock
+        Mocks the matplotlib.pyplot.show() function to avoid displaying plots.
     """
+
     mock_monte_carlo = MockMonteCarlo(environment=SimpleEnvironment())
-    # Test using custom xlim and ylim
+
     result = mock_monte_carlo.plots.ellipses(
         background="satellite",
         xlim=(-5000, 5000),
         ylim=(-5000, 5000),
     )
+
     assert result is None
 
 
 @patch("matplotlib.pyplot.show")
-def test_ellipses_background_save(mock_show):
-    """Test using background with save=True.
+def test_ellipses_background_saves_file_successfully(mock_show):
+    """Test that plots with background maps can be saved to file.
 
     Parameters
     ----------
-    mock_show :
-        Mocks the matplotlib.pyplot.show() function to avoid showing the plots.
+    mock_show : unittest.mock.MagicMock
+        Mocks the matplotlib.pyplot.show() function to avoid displaying plots.
     """
+
     filename = "monte_carlo_test.png"
+    mock_monte_carlo = MockMonteCarlo(
+        environment=SimpleEnvironment(), filename="monte_carlo_test"
+    )
+
     try:
-        mock_monte_carlo = MockMonteCarlo(
-            environment=SimpleEnvironment(), filename="monte_carlo_test"
-        )
-        # Test save functionality
         result = mock_monte_carlo.plots.ellipses(background="satellite", save=True)
         assert result is None
-        # Verify file was created
         assert os.path.exists(filename)
     finally:
         if os.path.exists(filename):
@@ -283,27 +244,28 @@ def test_ellipses_background_save(mock_show):
 
 
 @patch("matplotlib.pyplot.show")
-def test_ellipses_background_invalid_provider(mock_show):
-    """Test that ValueError is raised when an invalid map provider is specified.
+def test_ellipses_background_raises_error_for_invalid_provider(mock_show):
+    """Test that ValueError is raised for invalid map provider names.
 
     Parameters
     ----------
-    mock_show :
-        Mocks the matplotlib.pyplot.show() function to avoid showing the plots.
+    mock_show : unittest.mock.MagicMock
+        Mocks the matplotlib.pyplot.show() function to avoid displaying plots.
     """
+
     mock_monte_carlo = MockMonteCarlo(environment=SimpleEnvironment())
+    invalid_provider = "Invalid.Provider.Name"
+
     with pytest.raises(ValueError) as exc_info:
-        mock_monte_carlo.plots.ellipses(background="Invalid.Provider.Name")
-    assert "Invalid map provider" in str(exc_info.value)
-    assert "Invalid.Provider.Name" in str(exc_info.value)
-    assert (
-        "satellite" in str(exc_info.value)
-        or "street" in str(exc_info.value)
-        or "terrain" in str(exc_info.value)
-    )
+        mock_monte_carlo.plots.ellipses(background=invalid_provider)
+
+    error_message = str(exc_info.value)
+    assert "Invalid map provider" in error_message
+    assert invalid_provider in error_message
+    # Check that error message includes built-in options
+    assert any(option in error_message for option in ["satellite", "street", "terrain"])
 
 
-@patch("matplotlib.pyplot.show")
 @pytest.mark.parametrize(
     "exception_factory,expected_exception,expected_messages",
     [
@@ -372,46 +334,48 @@ def test_ellipses_background_invalid_provider(mock_show):
         ),
     ],
 )
-def test_ellipses_background_bounds2img_failure(
+@patch("matplotlib.pyplot.show")
+def test_ellipses_background_handles_bounds2img_failures(
     mock_show, exception_factory, expected_exception, expected_messages
 ):
     """Test that appropriate exceptions are raised when bounds2img fails.
 
-    This is a parameterized test that covers all exception types handled in
-    the _fetch_background_map method:
-    - ValueError: invalid coordinates or zoom level
-    - ConnectionError: network errors (URLError, HTTPError, TimeoutError)
-    - RuntimeError: UnidentifiedImageError (invalid image data)
-    - RuntimeError: other unexpected exceptions
+    This parameterized test verifies error handling for all exception types
+    that can occur during background map fetching:
+    - ValueError: Invalid coordinates or zoom level
+    - ConnectionError: Network errors (URLError, HTTPError, TimeoutError)
+    - RuntimeError: Invalid image data (UnidentifiedImageError)
+    - RuntimeError: Other unexpected exceptions
 
     Parameters
     ----------
-    mock_show :
-        Mocks the matplotlib.pyplot.show() function to avoid showing the plots.
+    mock_show : unittest.mock.MagicMock
+        Mocks the matplotlib.pyplot.show() function to avoid displaying plots.
     exception_factory : callable
         A function that returns the exception to raise in mock_bounds2img.
     expected_exception : type
         The expected exception type to be raised.
-    expected_messages : list[str]
+    expected_messages : list of str
         List of expected message substrings in the raised exception.
     """
-    mock_monte_carlo = MockMonteCarlo(environment=SimpleEnvironment())
-    from rocketpy.tools import import_optional_dependency as original_import  # pylint: disable=import-outside-toplevel
 
+    mock_monte_carlo = MockMonteCarlo(environment=SimpleEnvironment())
     contextily = pytest.importorskip("contextily")
 
     mock_contextily = MagicMock()
     mock_contextily.providers = contextily.providers
 
     def mock_bounds2img(*args, **kwargs):
+        """Mock bounds2img that raises the specified exception."""
         raise exception_factory()
 
     mock_contextily.bounds2img = mock_bounds2img
 
     def mock_import_optional_dependency(name):
+        """Mock import function that returns mock contextily."""
         if name == "contextily":
             return mock_contextily
-        return original_import(name)
+        return import_optional_dependency(name)
 
     with patch(
         "rocketpy.plots.monte_carlo_plots.import_optional_dependency",

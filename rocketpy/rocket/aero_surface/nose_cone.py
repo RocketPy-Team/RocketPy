@@ -226,79 +226,84 @@ class NoseCone(AeroSurface):
         self._kind = value
         value = (value.replace(" ", "")).lower()
 
-        if value == "conical":
-            self.k = 2 / 3
-            self.y_nosecone = Function(lambda x: x * self.base_radius / self.length)
+        match value:
+            case "conical":
+                self.k = 2 / 3
+                self.y_nosecone = Function(lambda x: x * self.base_radius / self.length)
 
-        elif value == "lvhaack":
-            self.k = 0.563
+            case "lvhaack":
+                self.k = 0.563
 
-            def theta(x):
-                return np.arccos(1 - 2 * max(min(x / self.length, 1), 0))
+                def theta_lvhaack(x):
+                    return np.arccos(1 - 2 * max(min(x / self.length, 1), 0))
 
-            self.y_nosecone = Function(
-                lambda x: self.base_radius
-                * (theta(x) - np.sin(2 * theta(x)) / 2 + (np.sin(theta(x)) ** 3) / 3)
-                ** (0.5)
-                / (np.pi**0.5)
-            )
+                self.y_nosecone = Function(
+                    lambda x: self.base_radius
+                    * (
+                        theta_lvhaack(x)
+                        - np.sin(2 * theta_lvhaack(x)) / 2
+                        + (np.sin(theta_lvhaack(x)) ** 3) / 3
+                    )
+                    ** (0.5)
+                    / (np.pi**0.5)
+                )
 
-        elif value in ["tangent", "tangentogive", "ogive"]:
-            rho = (self.base_radius**2 + self.length**2) / (2 * self.base_radius)
-            volume = np.pi * (
-                self.length * rho**2
-                - (self.length**3) / 3
-                - (rho - self.base_radius) * rho**2 * np.arcsin(self.length / rho)
-            )
-            area = np.pi * self.base_radius**2
-            self.k = 1 - volume / (area * self.length)
-            self.y_nosecone = Function(
-                lambda x: np.sqrt(rho**2 - (min(x - self.length, 0)) ** 2)
-                + (self.base_radius - rho)
-            )
+            case "tangent" | "tangentogive" | "ogive":
+                rho = (self.base_radius**2 + self.length**2) / (2 * self.base_radius)
+                volume = np.pi * (
+                    self.length * rho**2
+                    - (self.length**3) / 3
+                    - (rho - self.base_radius) * rho**2 * np.arcsin(self.length / rho)
+                )
+                area = np.pi * self.base_radius**2
+                self.k = 1 - volume / (area * self.length)
+                self.y_nosecone = Function(
+                    lambda x: np.sqrt(rho**2 - (min(x - self.length, 0)) ** 2)
+                    + (self.base_radius - rho)
+                )
 
-        elif value == "elliptical":
-            self.k = 1 / 3
-            self.y_nosecone = Function(
-                lambda x: self.base_radius
-                * np.sqrt(1 - ((x - self.length) / self.length) ** 2)
-            )
+            case "elliptical":
+                self.k = 1 / 3
+                self.y_nosecone = Function(
+                    lambda x: self.base_radius
+                    * np.sqrt(1 - ((x - self.length) / self.length) ** 2)
+                )
 
-        elif value == "vonkarman":
-            self.k = 0.5
+            case "vonkarman":
+                self.k = 0.5
 
-            def theta(x):
-                return np.arccos(1 - 2 * max(min(x / self.length, 1), 0))
+                def theta_vonkarman(x):
+                    return np.arccos(1 - 2 * max(min(x / self.length, 1), 0))
 
-            self.y_nosecone = Function(
-                lambda x: self.base_radius
-                * (theta(x) - np.sin(2 * theta(x)) / 2) ** (0.5)
-                / (np.pi**0.5)
-            )
-        elif value == "parabolic":
-            self.k = 0.5
-            self.y_nosecone = Function(
-                lambda x: self.base_radius
-                * ((2 * x / self.length - (x / self.length) ** 2) / (2 - 1))
-            )
-        elif value == "powerseries":
-            self.k = (2 * self.power) / ((2 * self.power) + 1)
-            self.y_nosecone = Function(
-                lambda x: self.base_radius * np.power(x / self.length, self.power)
-            )
-        else:  # pragma: no cover
-            raise ValueError(
-                f"Nose Cone kind '{self.kind}' not found, "
-                + "please use one of the following Nose Cone kinds:"
-                + '\n\t"conical"'
-                + '\n\t"ogive"'
-                + '\n\t"lvhaack"'
-                + '\n\t"tangent"'
-                + '\n\t"vonkarman"'
-                + '\n\t"elliptical"'
-                + '\n\t"powerseries"'
-                + '\n\t"parabolic"\n'
-            )
+                self.y_nosecone = Function(
+                    lambda x: self.base_radius
+                    * (theta_vonkarman(x) - np.sin(2 * theta_vonkarman(x)) / 2) ** (0.5)
+                    / (np.pi**0.5)
+                )
+            case "parabolic":
+                self.k = 0.5
+                self.y_nosecone = Function(
+                    lambda x: self.base_radius
+                    * ((2 * x / self.length - (x / self.length) ** 2) / (2 - 1))
+                )
+            case "powerseries":
+                self.k = (2 * self.power) / ((2 * self.power) + 1)
+                self.y_nosecone = Function(
+                    lambda x: self.base_radius * np.power(x / self.length, self.power)
+                )
+            case _:  # pragma: no cover
+                raise ValueError(
+                    f"Nose Cone kind '{self.kind}' not found, "
+                    + "please use one of the following Nose Cone kinds:"
+                    + '\n\t"conical"'
+                    + '\n\t"ogive"'
+                    + '\n\t"lvhaack"'
+                    + '\n\t"tangent"'
+                    + '\n\t"vonkarman"'
+                    + '\n\t"elliptical"'
+                    + '\n\t"powerseries"'
+                    + '\n\t"parabolic"\n'
+                )
 
         self.evaluate_center_of_pressure()
         self.evaluate_geometrical_parameters()
