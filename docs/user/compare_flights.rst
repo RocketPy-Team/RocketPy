@@ -226,4 +226,5 @@ Alternatively, we can plot the results altogether by calling one simple method:
 
 .. jupyter-execute::
 
-      comparison.all()
+      # commented to avoid long output
+      # comparison.all()

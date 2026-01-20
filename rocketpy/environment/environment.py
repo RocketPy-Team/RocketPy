@@ -1277,31 +1277,31 @@ class Environment:
         self.atmospheric_model_type = type
         type = type.lower()
 
-        # Handle each case # TODO: use match case when python 3.9 is no longer supported
-        if type == "standard_atmosphere":
-            self.process_standard_atmosphere()
-        elif type == "wyoming_sounding":
-            self.process_wyoming_sounding(file)
-        elif type == "custom_atmosphere":
-            self.process_custom_atmosphere(pressure, temperature, wind_u, wind_v)
-        elif type == "windy":
-            self.process_windy_atmosphere(file)
-        elif type in ["forecast", "reanalysis", "ensemble"]:
-            dictionary = self.__validate_dictionary(file, dictionary)
-            try:
-                fetch_function = self.__atm_type_file_to_function_map[type][file]
-            except KeyError:
-                fetch_function = None
+        match type:
+            case "standard_atmosphere":
+                self.process_standard_atmosphere()
+            case "wyoming_sounding":
+                self.process_wyoming_sounding(file)
+            case "custom_atmosphere":
+                self.process_custom_atmosphere(pressure, temperature, wind_u, wind_v)
+            case "windy":
+                self.process_windy_atmosphere(file)
+            case "forecast" | "reanalysis" | "ensemble":
+                dictionary = self.__validate_dictionary(file, dictionary)
+                try:
+                    fetch_function = self.__atm_type_file_to_function_map[type][file]
+                except KeyError:
+                    fetch_function = None
 
-            # Fetches the dataset using OpenDAP protocol or uses the file path
-            dataset = fetch_function() if fetch_function is not None else file
+                # Fetches the dataset using OpenDAP protocol or uses the file path
+                dataset = fetch_function() if fetch_function is not None else file
 
-            if type in ["forecast", "reanalysis"]:
-                self.process_forecast_reanalysis(dataset, dictionary)
-            else:
-                self.process_ensemble(dataset, dictionary)
-        else:  # pragma: no cover
-            raise ValueError(f"Unknown model type '{type}'.")
+                if type in ["forecast", "reanalysis"]:
+                    self.process_forecast_reanalysis(dataset, dictionary)
+                else:
+                    self.process_ensemble(dataset, dictionary)
+            case _:  # pragma: no cover
+                raise ValueError(f"Unknown model type '{type}'.")
 
         if type not in ["ensemble"]:
             # Ensemble already computed these values
@@ -2696,51 +2696,52 @@ class Environment:
         )
         atmospheric_model = data["atmospheric_model_type"]
 
-        if atmospheric_model == "standard_atmosphere":
-            env.set_atmospheric_model("standard_atmosphere")
-        elif atmospheric_model == "custom_atmosphere":
-            env.set_atmospheric_model(
-                type="custom_atmosphere",
-                pressure=data["pressure"],
-                temperature=data["temperature"],
-                wind_u=data["wind_velocity_x"],
-                wind_v=data["wind_velocity_y"],
-            )
-        else:
-            env.__set_pressure_function(data["pressure"])
-            env.__set_temperature_function(data["temperature"])
-            env.__set_wind_velocity_x_function(data["wind_velocity_x"])
-            env.__set_wind_velocity_y_function(data["wind_velocity_y"])
-            env.__set_wind_heading_function(data["wind_heading"])
-            env.__set_wind_direction_function(data["wind_direction"])
-            env.__set_wind_speed_function(data["wind_speed"])
-            env.elevation = data["elevation"]
-            env.max_expected_height = data["max_expected_height"]
+        match atmospheric_model:
+            case "standard_atmosphere":
+                env.set_atmospheric_model("standard_atmosphere")
+            case "custom_atmosphere":
+                env.set_atmospheric_model(
+                    type="custom_atmosphere",
+                    pressure=data["pressure"],
+                    temperature=data["temperature"],
+                    wind_u=data["wind_velocity_x"],
+                    wind_v=data["wind_velocity_y"],
+                )
+            case _:
+                env.__set_pressure_function(data["pressure"])
+                env.__set_temperature_function(data["temperature"])
+                env.__set_wind_velocity_x_function(data["wind_velocity_x"])
+                env.__set_wind_velocity_y_function(data["wind_velocity_y"])
+                env.__set_wind_heading_function(data["wind_heading"])
+                env.__set_wind_direction_function(data["wind_direction"])
+                env.__set_wind_speed_function(data["wind_speed"])
+                env.elevation = data["elevation"]
+                env.max_expected_height = data["max_expected_height"]
 
-            if atmospheric_model in ("windy", "forecast", "reanalysis", "ensemble"):
-                env.atmospheric_model_init_date = data["atmospheric_model_init_date"]
-                env.atmospheric_model_end_date = data["atmospheric_model_end_date"]
-                env.atmospheric_model_interval = data["atmospheric_model_interval"]
-                env.atmospheric_model_init_lat = data["atmospheric_model_init_lat"]
-                env.atmospheric_model_end_lat = data["atmospheric_model_end_lat"]
-                env.atmospheric_model_init_lon = data["atmospheric_model_init_lon"]
-                env.atmospheric_model_end_lon = data["atmospheric_model_end_lon"]
+        if atmospheric_model in ("windy", "forecast", "reanalysis", "ensemble"):
+            env.atmospheric_model_init_date = data["atmospheric_model_init_date"]
+            env.atmospheric_model_end_date = data["atmospheric_model_end_date"]
+            env.atmospheric_model_interval = data["atmospheric_model_interval"]
+            env.atmospheric_model_init_lat = data["atmospheric_model_init_lat"]
+            env.atmospheric_model_end_lat = data["atmospheric_model_end_lat"]
+            env.atmospheric_model_init_lon = data["atmospheric_model_init_lon"]
+            env.atmospheric_model_end_lon = data["atmospheric_model_end_lon"]
 
-            if atmospheric_model == "ensemble":
-                env.level_ensemble = data["level_ensemble"]
-                env.height_ensemble = data["height_ensemble"]
-                env.temperature_ensemble = data["temperature_ensemble"]
-                env.wind_u_ensemble = data["wind_u_ensemble"]
-                env.wind_v_ensemble = data["wind_v_ensemble"]
-                env.wind_heading_ensemble = data["wind_heading_ensemble"]
-                env.wind_direction_ensemble = data["wind_direction_ensemble"]
-                env.wind_speed_ensemble = data["wind_speed_ensemble"]
-                env.num_ensemble_members = data["num_ensemble_members"]
+        if atmospheric_model == "ensemble":
+            env.level_ensemble = data["level_ensemble"]
+            env.height_ensemble = data["height_ensemble"]
+            env.temperature_ensemble = data["temperature_ensemble"]
+            env.wind_u_ensemble = data["wind_u_ensemble"]
+            env.wind_v_ensemble = data["wind_v_ensemble"]
+            env.wind_heading_ensemble = data["wind_heading_ensemble"]
+            env.wind_direction_ensemble = data["wind_direction_ensemble"]
+            env.wind_speed_ensemble = data["wind_speed_ensemble"]
+            env.num_ensemble_members = data["num_ensemble_members"]
 
-            env.__reset_barometric_height_function()
-            env.calculate_density_profile()
-            env.calculate_speed_of_sound_profile()
-            env.calculate_dynamic_viscosity()
+        env.__reset_barometric_height_function()
+        env.calculate_density_profile()
+        env.calculate_speed_of_sound_profile()
+        env.calculate_dynamic_viscosity()
 
         return env
 

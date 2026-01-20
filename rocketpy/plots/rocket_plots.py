@@ -348,18 +348,19 @@ class _RocketPlots:
     ):
         """Draws the generic surface and saves the position of the points of interest
         for the tubes."""
-        if plane == "xz":
-            # z position of the sensor is the x position in the plot
-            x_pos = position[2]
-            # x position of the surface is the y position in the plot
-            y_pos = position[0]
-        elif plane == "yz":
-            # z position of the surface is the x position in the plot
-            x_pos = position[2]
-            # y position of the surface is the y position in the plot
-            y_pos = position[1]
-        else:  # pragma: no cover
-            raise ValueError("Plane must be 'xz' or 'yz'.")
+        match plane:
+            case "xz":
+                # z position of the sensor is the x position in the plot
+                x_pos = position[2]
+                # x position of the surface is the y position in the plot
+                y_pos = position[0]
+            case "yz":
+                # z position of the surface is the x position in the plot
+                x_pos = position[2]
+                # y position of the surface is the y position in the plot
+                y_pos = position[1]
+            case _:  # pragma: no cover
+                raise ValueError("Plane must be 'xz' or 'yz'.")
 
         ax.scatter(
             x_pos,
@@ -592,22 +593,23 @@ class _RocketPlots:
         for i, sensor_pos in enumerate(sensors):
             sensor = sensor_pos[0]
             pos = sensor_pos[1]
-            if plane == "xz":
-                # z position of the sensor is the x position in the plot
-                x_pos = pos[2]
-                normal_x = sensor.normal_vector.z
-                # x position of the sensor is the y position in the plot
-                y_pos = pos[0]
-                normal_y = sensor.normal_vector.x
-            elif plane == "yz":
-                # z position of the sensor is the x position in the plot
-                x_pos = pos[2]
-                normal_x = sensor.normal_vector.z
-                # y position of the sensor is the y position in the plot
-                y_pos = pos[1]
-                normal_y = sensor.normal_vector.y
-            else:  # pragma: no cover
-                raise ValueError("Plane must be 'xz' or 'yz'.")
+            match plane:
+                case "xz":
+                    # z position of the sensor is the x position in the plot
+                    x_pos = pos[2]
+                    normal_x = sensor.normal_vector.z
+                    # x position of the sensor is the y position in the plot
+                    y_pos = pos[0]
+                    normal_y = sensor.normal_vector.x
+                case "yz":
+                    # z position of the sensor is the x position in the plot
+                    x_pos = pos[2]
+                    normal_x = sensor.normal_vector.z
+                    # y position of the sensor is the y position in the plot
+                    y_pos = pos[1]
+                    normal_y = sensor.normal_vector.y
+                case _:  # pragma: no cover
+                    raise ValueError("Plane must be 'xz' or 'yz'.")
 
             # line length is 2/5 of the rocket radius
             line_length = self.rocket.radius / 2.5
