@@ -1005,7 +1005,7 @@ class _FlightPlots:
         ax3 = plt.subplot(413)
         # Handle both array-based and callable-based Functions
         thrust_power = self.flight.thrust_power
-        if callable(thrust_power.source):
+        if not thrust_power.is_array_source():
             # For callable sources, discretize based on speed
             thrust_power = thrust_power.set_discrete_based_on_model(
                 self.flight.speed, mutate_self=False
@@ -1026,7 +1026,7 @@ class _FlightPlots:
         ax4 = plt.subplot(414)
         # Handle both array-based and callable-based Functions
         drag_power = self.flight.drag_power
-        if callable(drag_power.source):
+        if not drag_power.is_array_source():
             # For callable sources, discretize based on speed
             drag_power = drag_power.set_discrete_based_on_model(
                 self.flight.speed, mutate_self=False

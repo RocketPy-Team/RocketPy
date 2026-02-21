@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from rocketpy import Function
+from rocketpy.mathutils.function import SourceType
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
@@ -308,8 +309,109 @@ def test_crop_constant():
 
     assert isinstance(func, Function)
     assert isinstance(cropped_func, Function)
-    assert callable(func.source)
-    assert callable(cropped_func.source)
+    assert func._source_type is SourceType.SCALAR
+    assert func._scalar_value == 13.0
+    assert cropped_func._source_type is SourceType.SCALAR
+    assert cropped_func._scalar_value == 13.0
+
+
+@pytest.mark.parametrize(
+    "lower, upper",
+    [
+        (0.0, 3.0),
+        (-1.0, 2.0),
+    ],
+)
+def test_crop_1d_ndarray_values(lower, upper):
+    """Test crop on a 1-D ndarray source removes out-of-range rows and
+    preserves all in-range rows with correct values."""
+    source = np.array([(x, x**2) for x in range(-2, 6)])
+    func = Function(source)
+    cropped = func.crop([(lower, upper)])
+
+    assert isinstance(cropped, Function)
+    assert np.all(cropped.source[:, 0] >= lower)
+    assert np.all(cropped.source[:, 0] <= upper)
+    # Check that all source rows within bounds are present
+    expected = source[(source[:, 0] >= lower) & (source[:, 0] <= upper)]
+    assert np.array_equal(cropped.source, expected)
+
+
+@pytest.mark.parametrize(
+    "x_lim, expected_dim0_bounds",
+    [
+        ([(-1.0, 1.0)], (-1.0, 1.0)),
+        ([(0.0, 2.0)], (0.0, 2.0)),
+    ],
+)
+def test_crop_callable_records_cropped_domain_1d(x_lim, expected_dim0_bounds):
+    """Test that crop on a callable 1-D Function correctly records
+    __cropped_domain__ so that subsequent set_discrete honours the bounds."""
+    func = Function(lambda x: x**2)
+    cropped = func.crop(x_lim)
+
+    assert cropped.__cropped_domain__ is not None
+    recorded = cropped.__cropped_domain__[0]
+    assert recorded == expected_dim0_bounds
+
+
+@pytest.mark.parametrize(
+    "x_lim",
+    [
+        [(-1.0, 1.0), None],  # skip second dim
+        [None, (-2.0, 2.0)],  # skip first dim
+        [(-1.0, 1.0), (-2.0, 2.0)],  # both dims
+    ],
+)
+def test_crop_callable_nd_partial(x_lim):
+    """Test crop with None entries skips the corresponding dimension and
+    only sets __cropped_domain__ for the non-None dims."""
+    func = Function(lambda x1, x2: x1 + x2, inputs=["x1", "x2"])
+    cropped = func.crop(x_lim)
+
+    assert isinstance(cropped, Function)
+    assert callable(cropped.source)
+    domain = cropped.__cropped_domain__
+    for i, lim in enumerate(x_lim):
+        if lim is None:
+            assert domain[i] is None
+        else:
+            assert domain[i] == lim
+
+
+def test_crop_nd_ndarray_removes_out_of_range_rows():
+    """Test crop on a 3-D ndarray source keeps only rows whose inputs are
+    within all specified per-dimension ranges."""
+    rng = np.random.default_rng(42)
+    pts = rng.uniform(-3, 3, (200, 3))
+    zs = pts[:, 0] + pts[:, 1] + pts[:, 2]
+    source = np.column_stack([pts, zs])
+    func = Function(source, inputs=["x", "y", "z"])
+
+    x_lim = [(-1.0, 1.0), (-1.0, 1.0), (-1.0, 1.0)]
+    cropped = func.crop(x_lim)
+
+    assert isinstance(cropped, Function)
+    assert np.all(cropped.source[:, 0] >= -1.0)
+    assert np.all(cropped.source[:, 0] <= 1.0)
+    assert np.all(cropped.source[:, 1] >= -1.0)
+    assert np.all(cropped.source[:, 1] <= 1.0)
+    assert np.all(cropped.source[:, 2] >= -1.0)
+    assert np.all(cropped.source[:, 2] <= 1.0)
+
+
+@pytest.mark.parametrize(
+    "bad_x_lim, exc_type",
+    [
+        ((-1, 1), TypeError),  # not a list
+        ([(0, 1), (0, 1), (0, 1)], ValueError),  # too many dims for 2-D func
+    ],
+)
+def test_crop_invalid_input_raises(bad_x_lim, exc_type):
+    """Test that crop raises the appropriate error for invalid x_lim."""
+    func = Function(lambda x, y: x + y, inputs=["x", "y"])
+    with pytest.raises(exc_type):
+        func.crop(bad_x_lim)
 
 
 @pytest.mark.parametrize(
@@ -353,8 +455,76 @@ def test_clip_constant():
 
     assert isinstance(func, Function)
     assert isinstance(clipped_func, Function)
-    assert callable(func.source)
-    assert callable(clipped_func.source)
+    assert func._source_type is SourceType.SCALAR
+    assert func._scalar_value == 1.0
+    assert clipped_func._source_type is SourceType.SCALAR
+    assert clipped_func._scalar_value == 1.0
+
+
+@pytest.mark.parametrize(
+    "y_lo, y_hi, x_in, expected_out",
+    [
+        (-4.0, 4.0, 0.0, 0.0),  # inside range, unchanged
+        (-4.0, 4.0, 2.0, 4.0),  # inside range, unchanged
+        (-4.0, 4.0, 3.0, 4.0),  # clamped at upper bound
+        (-4.0, 4.0, -3.0, 4.0),  # clamped at upper bound (x**2)
+        (1.0, 9.0, 0.0, 1.0),  # clamped at lower bound
+        (1.0, 9.0, 4.0, 9.0),  # clamped at upper bound
+    ],
+)
+def test_clip_callable_clamps_output_values(y_lo, y_hi, x_in, expected_out):
+    """Test that clip on a callable Function clamps output values to the
+    specified range rather than removing any domain points."""
+    func = Function(lambda x: x**2, inputs="x", outputs="y")
+    clipped = func.clip([(y_lo, y_hi)])
+
+    assert np.isclose(clipped(x_in), expected_out)
+
+
+@pytest.mark.parametrize(
+    "y_lo, y_hi, n_rows_kept",
+    [
+        (-3.0, 3.0, 5),  # z=-6 and z=6 excluded; remaining 5 rows in range
+        (-10.0, 10.0, 7),  # all rows kept
+        (0.0, 0.1, 1),  # only row with z≈0
+    ],
+)
+def test_clip_ndarray_2d_removes_rows_outside_range(y_lo, y_hi, n_rows_kept):
+    """Test that clip on a 2-D ndarray source removes rows whose output
+    column falls outside the specified y_lim range."""
+    func = Function(source_array, inputs=["x1", "x2"], outputs="y")
+    clipped = func.clip([(y_lo, y_hi)])
+
+    assert isinstance(clipped, Function)
+    assert np.all(clipped.source[:, 2] >= y_lo)
+    assert np.all(clipped.source[:, 2] <= y_hi)
+    assert len(clipped.source) == n_rows_kept
+
+
+def test_clip_constant_clamps_output():
+    """Test that clipping a constant Function clamps its output to y_lim.
+
+    Function(5) stores source as a scalar, so clip clamps the value directly;
+    values are clamped to the specified range rather than raising."""
+    func = Function(5)  # constant 5, stored as SCALAR
+    clipped = func.clip([(10.0, 20.0)])  # 5 < 10, so output should be clamped to 10
+    assert clipped.get_value(0) == 10.0
+    clipped_hi = func.clip([(-1.0, 3.0)])  # 5 > 3, clamped to 3
+    assert clipped_hi.get_value(0) == 3.0
+
+
+@pytest.mark.parametrize(
+    "bad_y_lim, exc_type",
+    [
+        ((-1, 1), TypeError),  # not a list
+        ([(-1, 1), (-1, 1)], ValueError),  # wrong length for single-output func
+    ],
+)
+def test_clip_invalid_input_raises(bad_y_lim, exc_type):
+    """Test that clip raises the appropriate error for invalid y_lim."""
+    func = Function(lambda x: x**2, inputs="x", outputs="y")
+    with pytest.raises(exc_type):
+        func.clip(bad_y_lim)
 
 
 @pytest.mark.parametrize(
@@ -770,6 +940,157 @@ def test_set_discrete_based_on_2d_model(func_2d_from_csv):
     )
     assert discretized_func.__interpolation__ == func_2d_from_csv.__interpolation__
     assert discretized_func.__extrapolation__ == func_2d_from_csv.__extrapolation__
+
+
+@pytest.mark.parametrize(
+    "interpolation, extrapolation",
+    [
+        ("spline", "constant"),
+        ("linear", "natural"),
+        ("akima", "zero"),
+    ],
+)
+def test_set_discrete_1d_respects_interpolation_extrapolation(
+    interpolation, extrapolation
+):
+    """Test that set_discrete preserves the caller-specified interpolation and
+    extrapolation methods for 1-D functions after discretisation."""
+    func = Function(lambda x: x**2)
+    disc = func.set_discrete(
+        -5,
+        5,
+        50,
+        interpolation=interpolation,
+        extrapolation=extrapolation,
+        mutate_self=False,
+    )
+
+    assert disc.__interpolation__ == interpolation
+    assert disc.__extrapolation__ == extrapolation
+
+
+@pytest.mark.parametrize(
+    "samples",
+    [3, 5, 10],
+)
+def test_set_discrete_nd_shape_and_forced_interp(samples):
+    """Test that set_discrete on an N-D (3-D) function produces a source array
+    with the correct shape (samples^3, 4) and forces shepard/natural."""
+    func = Function(lambda x, y, z: x + y + z, inputs=["x", "y", "z"])
+    disc = func.set_discrete(0, 2, samples, mutate_self=False)
+
+    assert isinstance(disc, Function)
+    assert disc.source.shape == (samples**3, 4)
+    assert disc.__interpolation__ == "shepard"
+    assert disc.__extrapolation__ == "natural"
+
+
+def test_set_discrete_nd_scalar_bounds():
+    """Test set_discrete on a 3-D function using scalar bounds, which should
+    be broadcast to all three dimensions."""
+    func = Function(lambda x, y, z: x * y * z, inputs=["x", "y", "z"])
+    disc = func.set_discrete(-1, 1, 5, mutate_self=False)
+
+    assert disc.source.shape == (125, 4)
+    assert np.isclose(disc.source[:, 0].min(), -1.0)
+    assert np.isclose(disc.source[:, 0].max(), 1.0)
+
+
+def test_set_discrete_nd_list_bounds_and_samples():
+    """Test set_discrete on a 3-D function using per-dimension bounds and
+    sample counts."""
+    func = Function(lambda x, y, z: x + y + z, inputs=["x", "y", "z"])
+    lowers = [0.0, 1.0, 2.0]
+    uppers = [1.0, 2.0, 3.0]
+    samples = [3, 4, 5]
+    disc = func.set_discrete(lowers, uppers, samples, mutate_self=False)
+
+    assert disc.source.shape == (3 * 4 * 5, 4)
+    assert np.isclose(disc.source[:, 0].min(), 0.0)
+    assert np.isclose(disc.source[:, 1].min(), 1.0)
+    assert np.isclose(disc.source[:, 2].min(), 2.0)
+
+
+@pytest.mark.parametrize("mutate_self", [True, False])
+def test_set_discrete_nd_mutate_self(mutate_self):
+    """Test that mutate_self=True replaces in-place while mutate_self=False
+    leaves the original callable untouched for N-D functions."""
+    func = Function(lambda x, y, z: x + y + z, inputs=["x", "y", "z"])
+    result = func.set_discrete(0, 1, 3, mutate_self=mutate_self)
+
+    assert isinstance(result, Function)
+    if mutate_self:
+        assert func is result
+        assert isinstance(func.source, np.ndarray)
+    else:
+        assert callable(func.source)
+
+
+def test_set_discrete_based_on_model_nd():
+    """Test that set_discrete_based_on_model works for N-D (3-D) functions,
+    evaluating the target function at all domain points of the model."""
+    pts = np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 1, 1]], dtype=float)
+    zs_model = pts.sum(axis=1)
+    model = Function(np.column_stack([pts, zs_model]), inputs=["x", "y", "z"])
+
+    target = Function(lambda x, y, z: 2 * (x + y + z), inputs=["x", "y", "z"])
+    disc = target.set_discrete_based_on_model(model, mutate_self=False)
+
+    assert isinstance(disc, Function)
+    assert disc.source.shape == (len(pts), 4)
+    # Values should be 2 * sum of coordinates
+    for i, row in enumerate(pts):
+        expected_z = 2 * row.sum()
+        assert np.isclose(disc.source[i, 3], expected_z, atol=1e-6)
+
+
+def test_set_discrete_based_on_model_keep_self_false(linear_func):
+    """Test that keep_self=False replaces interpolation and extrapolation
+    with those from the model Function."""
+    func = Function([(0, 0), (1, 1), (2, 4), (3, 9), (4, 16)], interpolation="linear")
+    disc = func.set_discrete_based_on_model(
+        linear_func, keep_self=False, mutate_self=False
+    )
+
+    assert disc.__interpolation__ == linear_func.__interpolation__
+    assert disc.__extrapolation__ == linear_func.__extrapolation__
+
+
+def test_set_discrete_based_on_model_keep_self_true(linear_func):
+    """Test that keep_self=True (default) preserves the caller's interpolation
+    and extrapolation after discretisation."""
+    # Use an ndarray-based func with a non-default (linear) interpolation so
+    # the setting is not None and can be verified after discretisation.
+    func = Function([(0, 0), (1, 1), (2, 4), (3, 9), (4, 16)], interpolation="linear")
+    original_interp = func.__interpolation__  # "linear"
+    original_extrap = func.__extrapolation__
+    disc = func.set_discrete_based_on_model(
+        linear_func, keep_self=True, mutate_self=False
+    )
+
+    assert disc.__interpolation__ == original_interp
+    assert disc.__extrapolation__ == original_extrap
+
+
+@pytest.mark.parametrize(
+    "bad_model, exc_type",
+    [
+        (Function(lambda x: x), TypeError),  # callable model
+        # ndarray model with dim=2, but func has dim=1 → mismatch
+        (
+            Function(
+                np.array([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0], [2.0, 2.0, 2.0]]),
+                inputs=["x1", "x2"],
+            ),
+            ValueError,
+        ),
+    ],
+)
+def test_set_discrete_based_on_model_invalid_model_raises(bad_model, exc_type):
+    """Test that set_discrete_based_on_model raises for invalid model inputs."""
+    func = Function(lambda x: x**2)
+    with pytest.raises(exc_type):
+        func.set_discrete_based_on_model(bad_model)
 
 
 @pytest.mark.parametrize("other", [1, 0.1, np.int_(1), np.float64(0.1), np.array([1])])

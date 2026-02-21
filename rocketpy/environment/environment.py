@@ -498,7 +498,7 @@ class Environment:
             interpolation="linear",
             extrapolation="natural",
         )
-        if callable(self.barometric_height.source):
+        if not self.barometric_height.is_array_source():
             # discretize to speed up flight simulation
             self.barometric_height.set_discrete(
                 0,
@@ -581,7 +581,7 @@ class Environment:
     def __reset_barometric_height_function(self):
         # NOTE: this assumes self.pressure and max_expected_height are already set.
         self.barometric_height = self.pressure.inverse_function()
-        if callable(self.barometric_height.source):
+        if not self.barometric_height.is_array_source():
             # discretize to speed up flight simulation
             self.barometric_height.set_discrete(
                 0,
@@ -1572,7 +1572,7 @@ class Environment:
             self.__reset_barometric_height_function()
 
             # Check maximum height of custom pressure input
-            if not callable(self.pressure.source):
+            if self.pressure.is_array_source():
                 max_expected_height = max(self.pressure[-1, 0], max_expected_height)
 
         # Save temperature profile
@@ -1582,14 +1582,14 @@ class Environment:
         else:
             self.__set_temperature_function(temperature)
             # Check maximum height of custom temperature input
-            if not callable(self.temperature.source):
+            if self.temperature.is_array_source():
                 max_expected_height = max(self.temperature[-1, 0], max_expected_height)
 
         # Save wind profile
         self.__set_wind_velocity_x_function(wind_u)
         self.__set_wind_velocity_y_function(wind_v)
         # Check maximum height of custom wind input
-        if not callable(self.wind_velocity_x.source):
+        if self.wind_velocity_x.is_array_source():
             max_expected_height = max(self.wind_velocity_x[-1, 0], max_expected_height)
 
         def wind_heading_func(h):  # TODO: create another custom reset for heading

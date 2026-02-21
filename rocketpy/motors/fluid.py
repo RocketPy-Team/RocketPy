@@ -112,20 +112,20 @@ class Fluid:
         Function
             Density of the fluid in kg/m³ as function of time.
         """
-        is_temperature_callable = callable(temperature.source)
-        is_pressure_callable = callable(pressure.source)
-        if is_temperature_callable and is_pressure_callable:
+        is_temperature_array = temperature.is_array_source()
+        is_pressure_array = pressure.is_array_source()
+        if not is_temperature_array and not is_pressure_array:
             return Function(
                 lambda time: self.density_function.get_value(
-                    temperature.source(time), pressure.source(time)
+                    temperature.get_value_opt(time), pressure.get_value_opt(time)
                 ),
                 inputs="Time (s)",
                 outputs="Density (kg/m³)",
             )
 
-        if is_temperature_callable or is_pressure_callable:
+        if not is_temperature_array or not is_pressure_array:
             time_scale = (
-                temperature.x_array if not is_temperature_callable else pressure.x_array
+                temperature.x_array if is_temperature_array else pressure.x_array
             )
         else:
             time_scale = np.unique(
