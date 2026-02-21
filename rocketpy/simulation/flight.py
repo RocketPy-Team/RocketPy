@@ -4589,7 +4589,6 @@ class Flight:
                     tmp_dict[time]._controllers += node._controllers
                     tmp_dict[time].callbacks += node.callbacks
                     tmp_dict[time]._component_sensors += node._component_sensors
-                    tmp_dict[time]._controllers += node._controllers
                 except KeyError:
                     # If the node does not exist, add it to the dictionary
                     tmp_dict[time] = node
