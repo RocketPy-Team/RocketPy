@@ -409,10 +409,7 @@ class GenericSurface:
 
         def _create_regular_grid_function(csv_source, variable_names):
             """Create a regular-grid Function when CSV samples form a full grid."""
-            try:
-                data = np.loadtxt(csv_source, delimiter=",", skiprows=1, dtype=float)
-            except (OSError, ValueError):
-                return None
+            data = np.loadtxt(csv_source, delimiter=",", skiprows=1, dtype=float)
 
             data = np.atleast_2d(data)
             expected_columns = len(variable_names) + 1
