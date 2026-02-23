@@ -2339,11 +2339,7 @@ class Rocket:
                 float(value)
                 return True
             except (TypeError, ValueError):
-                try:
-                    int(value)
-                    return True
-                except (TypeError, ValueError):
-                    return False
+                return False
 
         # Read only the first row initially to decide which parsing mode to use.
         try:
