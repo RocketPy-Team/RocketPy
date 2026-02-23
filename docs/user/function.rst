@@ -90,9 +90,13 @@ plotted as follows:
 
 .. important::
 
-    The ``Function`` class only supports interpolation ``shepard`` and \
-    extrapolation ``natural`` for datasets higher than one dimension (more than \
-    one input). 
+    For datasets higher than one dimension (more than one input), the
+    ``Function`` class supports interpolation ``linear``, ``shepard``, ``rbf``
+    and ``regular_grid``.
+
+    The ``regular_grid`` interpolation requires a complete Cartesian grid and
+    must be provided as ``(axes, grid_data)``. See the ``Function`` API
+    documentation for details.
 
 CSV File
 ^^^^^^^^
@@ -183,7 +187,7 @@ In this section we are going to delve deeper on ``Function`` creation and its pa
 - source: the ``Function`` data source. We have explored this parameter in the section above;
 - inputs: a list of strings containing each input variable name. If the source only has one input, may be abbreviated as a string (e.g. "speed (m/s)");
 - outputs: a list of strings containing each output variable name. If the source only has one output, may be abbreviated as a string (e.g. "total energy (J)");
-- interpolation: a string that is the interpolation method to be used if the source is a dataset. Defaults to ``spline``;
+- interpolation: a string that is the interpolation method to be used if the source is a dataset. For N-D datasets, supported options are ``linear``, ``shepard``, ``rbf`` and ``regular_grid``. Defaults to ``spline`` for 1-D and ``shepard`` for N-D datasets;
 - extrapolation: a string that is the extrapolation method to be used if the source is a dataset. Defaults to ``constant``;
 - title: the title to be shown in the plots.
 

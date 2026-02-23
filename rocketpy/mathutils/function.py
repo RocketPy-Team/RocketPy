@@ -108,8 +108,8 @@ class Function:  # pylint: disable=too-many-public-methods
         interpolation : string, optional
             Interpolation method to be used if source type is ndarray.
             For 1-D functions, linear, polynomial, akima and spline are
-            supported. For N-D functions, linear, shepard and rbf are
-            supported.
+            supported. For N-D functions, linear, shepard, rbf and
+            regular_grid are supported.
             Default for 1-D functions is spline and for N-D functions is
             shepard.
         extrapolation : string, optional
@@ -310,8 +310,8 @@ class Function:  # pylint: disable=too-many-public-methods
         method : string, optional
             Interpolation method to be used if source type is ndarray.
             For 1-D functions, linear, polynomial, akima and spline is
-            supported. For N-D functions, linear, shepard and rbf are
-            supported.
+            supported. For N-D functions, linear, shepard, rbf and
+            regular_grid are supported.
             Default for 1-D functions is spline and for N-D functions is
             shepard.
 
@@ -924,8 +924,8 @@ class Function:  # pylint: disable=too-many-public-methods
         interpolation : string
             Interpolation method to be used if source type is ndarray.
             For 1-D functions, linear, polynomial, akima and spline are
-            supported. For N-D functions, linear, shepard and rbf are
-            supported.
+            supported. For N-D functions, linear, shepard, rbf and
+            regular_grid are supported.
             Default for 1-D functions is spline and for N-D functions is
             shepard.
         extrapolation : string, optional
