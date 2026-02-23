@@ -143,10 +143,7 @@ def create_regular_grid_function(
     """
     from rocketpy.mathutils.function import Function
 
-    try:
-        data = np.loadtxt(csv_source, delimiter=",", skiprows=1, dtype=float)
-    except (OSError, ValueError):
-        return None
+    data = np.loadtxt(csv_source, delimiter=",", skiprows=1, dtype=float)
 
     data = np.atleast_2d(data)
     expected_columns = len(variable_names) + 1
