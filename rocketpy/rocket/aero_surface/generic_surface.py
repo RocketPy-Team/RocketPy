@@ -1,12 +1,11 @@
 import copy
-import csv
 import math
 
 import numpy as np
 
 from rocketpy.mathutils import Function
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
-from rocketpy.tools import create_regular_grid_function
+from rocketpy.tools import load_generic_surface_csv
 
 
 class GenericSurface:
@@ -329,7 +328,7 @@ class GenericSurface:
         """
         if isinstance(input_data, str):
             # Input is assumed to be a file path to a CSV
-            return self.__load_csv(input_data, coeff_name)
+            return load_generic_surface_csv(input_data, coeff_name)
         elif isinstance(input_data, Function):
             if input_data.__dom_dim__ != 7:
                 raise ValueError(
@@ -380,53 +379,3 @@ class GenericSurface:
                 f"Invalid input for {coeff_name}: must be a CSV file path"
                 " or a callable."
             )
-
-    def __load_csv(self, file_path, coeff_name):
-        """Load a CSV file and create a Function object with the correct number
-        of arguments. The CSV file must have a header that specifies the
-        independent variables that are used.
-
-        Parameters
-        ----------
-        file_path : str
-            Path to the CSV file.
-        coeff_name : str
-            Name of the coefficient being processed.
-
-        Returns
-        -------
-        Function
-            Function object with 7 input arguments (alpha, beta, mach, reynolds,
-            pitch_rate, yaw_rate, roll_rate).
-
-        Notes
-        -----
-        CSV files must contain at least one independent variable column with
-        one of these names: ``alpha``, ``beta``, ``mach``, ``reynolds``,
-        ``pitch_rate``, ``yaw_rate``, ``roll_rate``. The independent variable
-        columns can appear in any order. The last column must contain the
-        coefficient values.
-        """
-        # Generate a lambda that applies only the relevant arguments to csv_func
-        def wrapper(alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate):
-            args_by_name = {
-                "alpha": alpha,
-                "beta": beta,
-                "mach": mach,
-                "reynolds": reynolds,
-                "pitch_rate": pitch_rate,
-                "yaw_rate": yaw_rate,
-                "roll_rate": roll_rate,
-            }
-            selected_args = [args_by_name[col] for col in ordered_present_columns]
-            return csv_func(*selected_args)
-
-        # Create the interpolation function
-        func = Function(
-            wrapper,
-            independent_vars,
-            [coeff_name],
-            interpolation="linear",
-            extrapolation="natural",
-        )
-        return func

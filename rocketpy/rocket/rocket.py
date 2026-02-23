@@ -1,4 +1,3 @@
-import csv
 import inspect
 import math
 import warnings
@@ -26,9 +25,9 @@ from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
 from rocketpy.tools import (
-    create_regular_grid_function,
     deprecated,
     find_obj_from_hash,
+    load_rocket_drag_csv,
     parallel_axis_theorem_from_com,
 )
 
@@ -2228,7 +2227,7 @@ class Rocket:
         # Case 1: string input can be a CSV path or any Function-supported source.
         if isinstance(input_data, str):
             if input_data.lower().endswith(".csv"):
-                return self.__load_csv(input_data, coeff_name)
+                return load_rocket_drag_csv(input_data, coeff_name)
 
             function_data = Function(input_data)
             _validate_function_domain_dimension(function_data)
@@ -2308,155 +2307,3 @@ class Rocket:
             f"Invalid input for {coeff_name}: must be int, float, CSV file path, "
             "Function, or callable."
         )
-
-    def __load_csv(self, file_path, coeff_name):
-        """Load a CSV file and create a Function object with the correct number
-                of arguments.
-
-                The CSV can be provided in one of the following formats:
-
-                - Headerless with exactly 2 columns: interpreted as
-                    ``mach, drag_coefficient``.
-                - Header-based: independent variables must be explicitly specified
-                    in the header using valid variable names.
-
-        Parameters
-        ----------
-        file_path : str
-            Path to the CSV file.
-        coeff_name : str
-            Name of the coefficient being processed.
-
-        Returns
-        -------
-        Function
-            Function object with 7 input arguments (alpha, beta, mach, reynolds,
-            pitch_rate, yaw_rate, roll_rate).
-        """
-
-        def _is_numeric(value):
-            try:
-                float(value)
-                return True
-            except (TypeError, ValueError):
-                try:
-                    int(value)
-                    return True
-                except (TypeError, ValueError):
-                    return False
-
-        # Read only the first row initially to decide which parsing mode to use.
-        try:
-            with open(file_path, mode="r") as file:
-                reader = csv.reader(file)
-                first_row = next(reader)
-        except (FileNotFoundError, IOError) as e:
-            raise ValueError(f"Error reading {coeff_name} CSV file: {e}") from e
-        except StopIteration as e:
-            raise ValueError(f"Invalid or empty CSV file for {coeff_name}.") from e
-
-        if not first_row:
-            raise ValueError(f"Invalid or empty CSV file for {coeff_name}.")
-
-        # TODO make header strings flexible (e.g. 'alpha', 'Alpha', 'ALPHA')
-        independent_vars = [
-            "alpha",
-            "beta",
-            "mach",
-            "reynolds",
-            "pitch_rate",
-            "yaw_rate",
-            "roll_rate",
-        ]
-
-        # Headerless mode: first row is numeric and there are exactly 2 columns.
-        # Interpret as mach, coefficient.
-        is_headerless_two_column = len(first_row) == 2 and all(
-            _is_numeric(cell) for cell in first_row
-        )
-
-        # Fast path for classic drag curve files with no header.
-        if is_headerless_two_column:
-            csv_func = Function(
-                file_path,
-                interpolation="linear",
-                extrapolation="constant",
-            )
-
-            # Wrap 1D mach curve to the standard 7D interface.
-            def wrapper(alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate):
-                return csv_func(mach)
-
-            return Function(
-                wrapper,
-                independent_vars,
-                [coeff_name],
-                interpolation="linear",
-                extrapolation="constant",
-            )
-
-        # Header-based mode: variables must be explicitly defined.
-        header = [column.strip() for column in first_row]
-        present_columns = [col for col in independent_vars if col in header]
-
-        invalid_columns = [col for col in header[:-1] if col not in independent_vars]
-        if invalid_columns:
-            raise ValueError(
-                f"Invalid independent variable(s) in {coeff_name} CSV: "
-                f"{invalid_columns}. Valid options are: {independent_vars}."
-            )
-
-        if header[-1] in independent_vars:
-            raise ValueError(
-                f"Last column in {coeff_name} CSV must be the coefficient "
-                "value, not an independent variable."
-            )
-
-        # Ensure that at least one independent variable is present
-        if not present_columns:
-            raise ValueError(f"No independent variables found in {coeff_name} CSV.")
-
-        # Build ordered variable names as they appear in the CSV header.
-        # This guarantees argument order consistency with Function(file_path),
-        # which interprets columns positionally.
-        ordered_present_columns = [
-            col for col in header[:-1] if col in independent_vars
-        ]
-
-        # Prefer regular-grid interpolation when possible; fallback to linear otherwise.
-        csv_func = create_regular_grid_function(
-            file_path,
-            ordered_present_columns,
-            coeff_name,
-            extrapolation="constant",
-        )
-        if csv_func is None:
-            csv_func = Function(
-                file_path,
-                interpolation="linear",
-                extrapolation="constant",
-            )
-
-        # Generate a lambda that applies only the relevant arguments to csv_func
-        def wrapper(alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate):
-            args_by_name = {
-                "alpha": alpha,
-                "beta": beta,
-                "mach": mach,
-                "reynolds": reynolds,
-                "pitch_rate": pitch_rate,
-                "yaw_rate": yaw_rate,
-                "roll_rate": roll_rate,
-            }
-            selected_args = [args_by_name[col] for col in ordered_present_columns]
-            return csv_func(*selected_args)
-
-        # Create the interpolation function
-        func = Function(
-            wrapper,
-            independent_vars,
-            [coeff_name],
-            interpolation="linear",
-            extrapolation="constant",
-        )
-        return func
