@@ -21,10 +21,16 @@ class PointMassRocket(Rocket):
     center_of_mass_without_motor : float
         Position, in meters, of the rocket's center of mass without motor
         relative to the rocket's coordinate system.
-    power_off_drag : float, callable, array, string, Function
-        Drag coefficient as a function of Mach number when the motor is off.
-    power_on_drag : float, callable, array, string, Function
-        Drag coefficient as a function of Mach number when the motor is on.
+    power_off_drag : int, float, callable, array, string, Function
+        Drag coefficient input when the motor is off. Accepts the same formats
+        as :class:`rocketpy.Rocket`, including 1D (Mach-only) and 7D
+        (alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate)
+        definitions.
+    power_on_drag : int, float, callable, array, string, Function
+        Drag coefficient input when the motor is on. Accepts the same formats
+        as :class:`rocketpy.Rocket`, including 1D (Mach-only) and 7D
+        (alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate)
+        definitions.
 
     Attributes
     ----------
@@ -35,10 +41,16 @@ class PointMassRocket(Rocket):
     center_of_mass_without_motor : float
         Position, in meters, of the rocket's center of mass without motor
         relative to the rocket's coordinate system.
-    power_off_drag : Function
-        Drag coefficient as a function of Mach number when the motor is off.
-    power_on_drag : Function
-        Drag coefficient as a function of Mach number when the motor is on.
+    power_off_drag_7d : Function
+        Drag coefficient function with seven inputs in the order:
+        alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate.
+    power_on_drag_7d : Function
+        Drag coefficient function with seven inputs in the order:
+        alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate.
+    power_off_drag_by_mach : Function
+        Convenience wrapper for power-off drag as a Mach-only function.
+    power_on_drag_by_mach : Function
+        Convenience wrapper for power-on drag as a Mach-only function.
     """
 
     def __init__(

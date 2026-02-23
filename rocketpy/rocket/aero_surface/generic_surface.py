@@ -32,7 +32,8 @@ class GenericSurface:
         angle of attack, angle of sideslip, Mach number, Reynolds number,
         pitch rate, yaw rate and roll rate. For CSV files, the header must
         contain at least one of the following: "alpha", "beta", "mach",
-        "reynolds", "pitch_rate", "yaw_rate" and "roll_rate".
+        "reynolds", "pitch_rate", "yaw_rate" and "roll_rate". The
+        independent variable columns can be provided in any order.
 
         See Also
         --------
@@ -342,7 +343,21 @@ class GenericSurface:
                     f"{coeff_name} function must have 7 input arguments"
                     " (alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate)."
                 )
-            return input_data
+            return Function(
+                input_data,
+                [
+                    "alpha",
+                    "beta",
+                    "mach",
+                    "reynolds",
+                    "pitch_rate",
+                    "yaw_rate",
+                    "roll_rate",
+                ],
+                [coeff_name],
+                interpolation="linear",
+                extrapolation="natural",
+            )
         elif input_data == 0:
             return Function(
                 lambda alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate: 0,
@@ -382,13 +397,69 @@ class GenericSurface:
         Function
             Function object with 7 input arguments (alpha, beta, mach, reynolds,
             pitch_rate, yaw_rate, roll_rate).
+
+        Notes
+        -----
+        CSV files must contain at least one independent variable column with
+        one of these names: ``alpha``, ``beta``, ``mach``, ``reynolds``,
+        ``pitch_rate``, ``yaw_rate``, ``roll_rate``. The independent variable
+        columns can appear in any order. The last column must contain the
+        coefficient values.
         """
+
+        def _create_regular_grid_function(csv_source, variable_names):
+            """Create a regular-grid Function when CSV samples form a full grid."""
+            try:
+                data = np.loadtxt(csv_source, delimiter=",", skiprows=1, dtype=float)
+            except (OSError, ValueError):
+                return None
+
+            data = np.atleast_2d(data)
+            expected_columns = len(variable_names) + 1
+            if data.shape[1] != expected_columns:
+                return None
+
+            coordinates = data[:, :-1]
+            values = data[:, -1]
+
+            if np.unique(coordinates, axis=0).shape[0] != coordinates.shape[0]:
+                return None
+
+            axes = [np.unique(coordinates[:, i]) for i in range(len(variable_names))]
+            expected_size = int(np.prod([axis.size for axis in axes]))
+            if expected_size != coordinates.shape[0]:
+                return None
+
+            sorting_keys = [
+                coordinates[:, i] for i in range(len(variable_names) - 1, -1, -1)
+            ]
+            sorted_indices = np.lexsort(tuple(sorting_keys))
+            sorted_coordinates = coordinates[sorted_indices]
+            sorted_values = values[sorted_indices]
+
+            expected_coordinates = np.column_stack(
+                [axis_values.ravel() for axis_values in np.meshgrid(*axes, indexing="ij")]
+            )
+            if not np.allclose(sorted_coordinates, expected_coordinates, rtol=0, atol=1e-12):
+                return None
+
+            grid_data = sorted_values.reshape(tuple(axis.size for axis in axes))
+            return Function(
+                (axes, grid_data),
+                inputs=variable_names,
+                outputs=[coeff_name],
+                interpolation="regular_grid",
+                extrapolation="natural",
+            )
+
         try:
             with open(file_path, mode="r") as file:
                 reader = csv.reader(file)
                 header = next(reader)
         except (FileNotFoundError, IOError) as e:
             raise ValueError(f"Error reading {coeff_name} CSV file: {e}") from e
+        except StopIteration as e:
+            raise ValueError(f"Invalid or empty CSV file for {coeff_name}.") from e
 
         if not header:
             raise ValueError(f"Invalid or empty CSV file for {coeff_name}.")
@@ -403,7 +474,15 @@ class GenericSurface:
             "yaw_rate",
             "roll_rate",
         ]
+        header = [column.strip() for column in header]
         present_columns = [col for col in independent_vars if col in header]
+
+        invalid_columns = [col for col in header[:-1] if col not in independent_vars]
+        if invalid_columns:
+            raise ValueError(
+                f"Invalid independent variable(s) in {coeff_name} CSV: "
+                f"{invalid_columns}. Valid options are: {independent_vars}."
+            )
 
         # Check that the last column is not an independent variable
         if header[-1] in independent_vars:
@@ -416,22 +495,34 @@ class GenericSurface:
         if not present_columns:
             raise ValueError(f"No independent variables found in {coeff_name} CSV.")
 
-        # Initialize the CSV-based function
-        csv_func = Function(
-            file_path,
-            interpolation="linear",
-            extrapolation="natural",
-        )
+        # Build ordered variable names as they appear in the CSV header.
+        # This guarantees argument order consistency with Function(file_path),
+        # which interprets columns positionally.
+        ordered_present_columns = [
+            col for col in header[:-1] if col in independent_vars
+        ]
 
-        # Create a mask for the presence of each independent variable
-        # save on self to avoid loss of scope
-        _mask = [1 if col in present_columns else 0 for col in independent_vars]
+        # Initialize the CSV-based function
+        csv_func = _create_regular_grid_function(file_path, ordered_present_columns)
+        if csv_func is None:
+            csv_func = Function(
+                file_path,
+                interpolation="linear",
+                extrapolation="natural",
+            )
 
         # Generate a lambda that applies only the relevant arguments to csv_func
         def wrapper(alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate):
-            args = [alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate]
-            # Select arguments that correspond to present variables
-            selected_args = [arg for arg, m in zip(args, _mask) if m]
+            args_by_name = {
+                "alpha": alpha,
+                "beta": beta,
+                "mach": mach,
+                "reynolds": reynolds,
+                "pitch_rate": pitch_rate,
+                "yaw_rate": yaw_rate,
+                "roll_rate": roll_rate,
+            }
+            selected_args = [args_by_name[col] for col in ordered_present_columns]
             return csv_func(*selected_args)
 
         # Create the interpolation function

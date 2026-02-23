@@ -1,3 +1,5 @@
+import csv
+import inspect
 import math
 import warnings
 from typing import Iterable
@@ -145,12 +147,22 @@ class Rocket:
     Rocket.static_margin : float
         Float value corresponding to rocket static margin when
         loaded with propellant in units of rocket diameter or calibers.
-    Rocket.power_off_drag : Function
-        Rocket's drag coefficient as a function of Mach number when the
-        motor is off.
-    Rocket.power_on_drag : Function
-        Rocket's drag coefficient as a function of Mach number when the
-        motor is on.
+    Rocket.power_off_drag : int, float, callable, string, array, Function
+        Original user input for rocket's drag coefficient when the motor is
+        off. This is preserved for reconstruction and Monte Carlo workflows.
+    Rocket.power_on_drag : int, float, callable, string, array, Function
+        Original user input for rocket's drag coefficient when the motor is
+        on. This is preserved for reconstruction and Monte Carlo workflows.
+    Rocket.power_off_drag_7d : Function
+        Rocket's drag coefficient with motor off as a 7D function of
+        (alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate).
+    Rocket.power_on_drag_7d : Function
+        Rocket's drag coefficient with motor on as a 7D function of
+        (alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate).
+    Rocket.power_off_drag_by_mach : Function
+        Rocket's drag coefficient with motor off as a function of Mach number.
+    Rocket.power_on_drag_by_mach : Function
+        Rocket's drag coefficient with motor on as a function of Mach number.
     Rocket.rail_buttons : RailButtons
         RailButtons object containing the rail buttons information.
     Rocket.motor : Motor
@@ -342,28 +354,30 @@ class Rocket:
         )
 
         # Define aerodynamic drag coefficients
-        # If already a Function, use it directly (preserves multi-dimensional drag)
-        if isinstance(power_off_drag, Function):
-            self.power_off_drag = power_off_drag
-        else:
-            self.power_off_drag = Function(
-                power_off_drag,
-                "Mach Number",
-                "Drag Coefficient with Power Off",
-                "linear",
-                "constant",
-            )
-
-        if isinstance(power_on_drag, Function):
-            self.power_on_drag = power_on_drag
-        else:
-            self.power_on_drag = Function(
-                power_on_drag,
-                "Mach Number",
-                "Drag Coefficient with Power On",
-                "linear",
-                "constant",
-            )
+        # Coefficients used during flight simulation
+        self.power_off_drag_7d = self.__process_drag_input(
+            power_off_drag, "Drag Coefficient with Power Off"
+        )
+        self.power_on_drag_7d = self.__process_drag_input(
+            power_on_drag, "Drag Coefficient with Power On"
+        )
+        self.power_on_drag_by_mach = Function(
+            lambda mach: self.power_on_drag_7d(0, 0, mach, 0, 0, 0, 0),
+            inputs="Mach Number",
+            outputs="Drag Coefficient with Power On",
+            interpolation="linear",
+            extrapolation="constant",
+        )
+        self.power_off_drag_by_mach = Function(
+            lambda mach: self.power_off_drag_7d(0, 0, mach, 0, 0, 0, 0),
+            inputs="Mach Number",
+            outputs="Drag Coefficient with Power Off",
+            interpolation="linear",
+            extrapolation="constant",
+        )
+        # Saving user input for monte carlo
+        self.power_off_drag = power_off_drag
+        self.power_on_drag = power_on_drag
 
         # Create a, possibly, temporary empty motor
         # self.motors = Components()  # currently unused, only 1 motor is supported
@@ -1970,11 +1984,17 @@ class Rocket:
     def to_dict(self, **kwargs):
         discretize = kwargs.get("discretize", False)
 
-        power_off_drag = self.power_off_drag
-        power_on_drag = self.power_on_drag
+        power_off_drag = self.power_off_drag_7d
+        power_on_drag = self.power_on_drag_7d
         if discretize:
-            power_off_drag = power_off_drag.set_discrete(0, 4, 50, mutate_self=False)
-            power_on_drag = power_on_drag.set_discrete(0, 4, 50, mutate_self=False)
+            if power_off_drag.__dom_dim__ == 1:
+                power_off_drag = power_off_drag.set_discrete(
+                    0, 4, 50, mutate_self=False
+                )
+            if power_on_drag.__dom_dim__ == 1:
+                power_on_drag = power_on_drag.set_discrete(
+                    0, 4, 50, mutate_self=False
+                )
 
         rocket_dict = {
             "radius": self.radius,
@@ -2139,3 +2159,351 @@ class Rocket:
             rocket._add_controllers(controller)
 
         return rocket
+
+    def __process_drag_input(self, input_data, coeff_name):
+        """Process drag coefficient input and normalize it to a 7D Function.
+
+        Parameters
+        ----------
+        input_data : int, float, str, callable, Function
+            Input data to be processed.
+        coeff_name : str
+            Name of the coefficient being processed for error reporting.
+
+        Returns
+        -------
+        Function
+            Function object with 7 input arguments in the following order:
+            alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate.
+        """
+        inputs = [
+            "alpha",
+            "beta",
+            "mach",
+            "reynolds",
+            "pitch_rate",
+            "yaw_rate",
+            "roll_rate",
+        ]
+
+        # Helper: lift a 1D Mach-only source into the required 7D signature.
+        def _wrap_mach_only_source(mach_source):
+            return Function(
+                lambda alpha,
+                beta,
+                mach,
+                reynolds,
+                pitch_rate,
+                yaw_rate,
+                roll_rate: mach_source(mach),
+                inputs,
+                [coeff_name],
+                interpolation="linear",
+                extrapolation="constant",
+            )
+
+        # Helper: enforce that Function-based inputs are either 1D (Mach) or 7D.
+        def _validate_function_domain_dimension(function):
+            if function.__dom_dim__ not in (1, 7):
+                raise ValueError(
+                    f"{coeff_name} function must have either 1 input argument "
+                    "(mach) or 7 input arguments (alpha, beta, mach, reynolds, "
+                    "pitch_rate, yaw_rate, roll_rate), in that order."
+                )
+
+        # Helper: count required positional arguments in a callable.
+        def _count_positional_args(callable_obj):
+            signature = inspect.signature(callable_obj)
+            positional_params = [
+                parameter
+                for parameter in signature.parameters.values()
+                if parameter.kind
+                in (
+                    inspect.Parameter.POSITIONAL_ONLY,
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                )
+                and parameter.default is inspect.Parameter.empty
+            ]
+            return len(positional_params)
+
+        # Case 1: string input can be a CSV path or any Function-supported source.
+        if isinstance(input_data, str):
+            if input_data.lower().endswith(".csv"):
+                return self.__load_csv(input_data, coeff_name)
+
+            function_data = Function(input_data)
+            _validate_function_domain_dimension(function_data)
+            if function_data.__dom_dim__ == 7:
+                function_data.set_extrapolation("constant")
+                return function_data
+            return _wrap_mach_only_source(function_data.get_value_opt)
+
+        # Case 2: Function input is accepted directly after domain validation.
+        if isinstance(input_data, Function):
+            _validate_function_domain_dimension(input_data)
+            if input_data.__dom_dim__ == 7:
+                input_data.set_extrapolation("constant")
+                return input_data
+            return _wrap_mach_only_source(input_data.get_value_opt)
+
+        # Case 3: callable input must expose either 1 (Mach) or 7 arguments.
+        if callable(input_data):
+            n_positional_args = _count_positional_args(input_data)
+            if n_positional_args not in (1, 7):
+                raise ValueError(
+                    f"{coeff_name} callable must have either 1 positional "
+                    "argument (mach) or 7 positional arguments (alpha, beta, "
+                    "mach, reynolds, pitch_rate, yaw_rate, roll_rate), in that "
+                    "order."
+                )
+
+            if n_positional_args == 1:
+                return _wrap_mach_only_source(input_data)
+
+            return Function(
+                input_data,
+                inputs,
+                [coeff_name],
+                interpolation="linear",
+                extrapolation="constant",
+            )
+
+        # Case 4: scalar input means a constant drag coefficient in all conditions.
+        if isinstance(input_data, (int, float)):
+            return Function(
+                lambda alpha,
+                beta,
+                mach,
+                reynolds,
+                pitch_rate,
+                yaw_rate,
+                roll_rate: float(input_data),
+                inputs,
+                [coeff_name],
+                interpolation="linear",
+                extrapolation="constant",
+            )
+
+        # If is list/tuple try to pass it to a function.
+        # If composed of lists/tuples len 2, then interpret as function of mach
+        # Otherwise interpret it as function of all 7 variables
+        # This reuses Function's parser and then feeds back into this same pipeline.
+        if isinstance(input_data, (list, tuple)):
+            if all(
+                isinstance(item, (list, tuple)) and (len(item) == 2 or len(item) == 8)
+                for item in input_data
+            ):
+                try:
+                    return self.__process_drag_input(
+                        Function(list(input_data)), coeff_name
+                    )
+                except Exception as e:
+                    raise ValueError(
+                        f"Invalid list/tuple format for {coeff_name}. Expected "
+                        "a list of [mach, coefficient] pairs or a list of "
+                        "[alpha, beta, mach, reynolds, pitch_rate, yaw_rate, "
+                        "roll_rate, coefficient] entries."
+                    ) from e
+
+        raise TypeError(
+            f"Invalid input for {coeff_name}: must be int, float, CSV file path, "
+            "Function, or callable."
+        )
+
+    def __load_csv(self, file_path, coeff_name):
+        """Load a CSV file and create a Function object with the correct number
+                of arguments.
+
+                The CSV can be provided in one of the following formats:
+
+                - Headerless with exactly 2 columns: interpreted as
+                    ``mach, drag_coefficient``.
+                - Header-based: independent variables must be explicitly specified
+                    in the header using valid variable names.
+
+        Parameters
+        ----------
+        file_path : str
+            Path to the CSV file.
+        coeff_name : str
+            Name of the coefficient being processed.
+
+        Returns
+        -------
+        Function
+            Function object with 7 input arguments (alpha, beta, mach, reynolds,
+            pitch_rate, yaw_rate, roll_rate).
+        """
+
+        # Try to represent header-based data as regular grid when it is complete.
+        # Return None whenever data is not strictly grid-compatible.
+        def _create_regular_grid_function(csv_source, variable_names):
+            """Create a regular-grid Function when CSV samples form a full grid."""
+            try:
+                data = np.loadtxt(csv_source, delimiter=",", skiprows=1, dtype=float)
+            except (OSError, ValueError):
+                return None
+
+            # Normalize to 2D in case the CSV has a single data row.
+            data = np.atleast_2d(data)
+            expected_columns = len(variable_names) + 1
+            if data.shape[1] != expected_columns:
+                return None
+
+            coordinates = data[:, :-1]
+            values = data[:, -1]
+
+            # Reject duplicate coordinate samples.
+            if np.unique(coordinates, axis=0).shape[0] != coordinates.shape[0]:
+                return None
+
+            # Build axes and verify full Cartesian-product coverage.
+            axes = [np.unique(coordinates[:, i]) for i in range(len(variable_names))]
+            expected_size = int(np.prod([axis.size for axis in axes]))
+            if expected_size != coordinates.shape[0]:
+                return None
+
+            # Sort sampled points in lexicographic grid order.
+            sorting_keys = [
+                coordinates[:, i] for i in range(len(variable_names) - 1, -1, -1)
+            ]
+            sorted_indices = np.lexsort(tuple(sorting_keys))
+            sorted_coordinates = coordinates[sorted_indices]
+            sorted_values = values[sorted_indices]
+
+            # Compare against an ideal meshgrid order.
+            expected_coordinates = np.column_stack(
+                [axis_values.ravel() for axis_values in np.meshgrid(*axes, indexing="ij")]
+            )
+            if not np.allclose(sorted_coordinates, expected_coordinates, rtol=0, atol=1e-12):
+                return None
+
+            # Reshape coefficient values into nD grid tensor and build function.
+            grid_data = sorted_values.reshape(tuple(axis.size for axis in axes))
+            return Function(
+                (axes, grid_data),
+                inputs=variable_names,
+                outputs=[coeff_name],
+                interpolation="regular_grid",
+                extrapolation="constant",
+            )
+
+        def _is_numeric(value):
+            try:
+                float(value)
+                return True
+            except (TypeError, ValueError):
+                try:
+                    int(value)
+                    return True
+                except (TypeError, ValueError):
+                    return False
+
+        # Read only the first row initially to decide which parsing mode to use.
+        try:
+            with open(file_path, mode="r") as file:
+                reader = csv.reader(file)
+                first_row = next(reader)
+        except (FileNotFoundError, IOError) as e:
+            raise ValueError(f"Error reading {coeff_name} CSV file: {e}") from e
+        except StopIteration as e:
+            raise ValueError(f"Invalid or empty CSV file for {coeff_name}.") from e
+
+        if not first_row:
+            raise ValueError(f"Invalid or empty CSV file for {coeff_name}.")
+
+        # TODO make header strings flexible (e.g. 'alpha', 'Alpha', 'ALPHA')
+        independent_vars = [
+            "alpha",
+            "beta",
+            "mach",
+            "reynolds",
+            "pitch_rate",
+            "yaw_rate",
+            "roll_rate",
+        ]
+
+        # Headerless mode: first row is numeric and there are exactly 2 columns.
+        # Interpret as mach, coefficient.
+        is_headerless_two_column = len(first_row) == 2 and all(
+            _is_numeric(cell) for cell in first_row
+        )
+
+        # Fast path for classic drag curve files with no header.
+        if is_headerless_two_column:
+            csv_func = Function(
+                file_path,
+                interpolation="linear",
+                extrapolation="constant",
+            )
+
+            # Wrap 1D mach curve to the standard 7D interface.
+            def wrapper(alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate):
+                return csv_func(mach)
+
+            return Function(
+                wrapper,
+                independent_vars,
+                [coeff_name],
+                interpolation="linear",
+                extrapolation="constant",
+            )
+
+        # Header-based mode: variables must be explicitly defined.
+        header = [column.strip() for column in first_row]
+        present_columns = [col for col in independent_vars if col in header]
+
+        invalid_columns = [col for col in header[:-1] if col not in independent_vars]
+        if invalid_columns:
+            raise ValueError(
+                f"Invalid independent variable(s) in {coeff_name} CSV: "
+                f"{invalid_columns}. Valid options are: {independent_vars}."
+            )
+
+        if header[-1] in independent_vars:
+            raise ValueError(
+                f"Last column in {coeff_name} CSV must be the coefficient "
+                "value, not an independent variable."
+            )
+
+        # Ensure that at least one independent variable is present
+        if not present_columns:
+            raise ValueError(f"No independent variables found in {coeff_name} CSV.")
+
+        # Build ordered variable names as they appear in the CSV header.
+        # This guarantees argument order consistency with Function(file_path),
+        # which interprets columns positionally.
+        ordered_present_columns = [col for col in header[:-1] if col in independent_vars]
+
+        # Prefer regular-grid interpolation when possible; fallback to linear otherwise.
+        csv_func = _create_regular_grid_function(file_path, ordered_present_columns)
+        if csv_func is None:
+            csv_func = Function(
+                file_path,
+                interpolation="linear",
+                extrapolation="constant",
+            )
+
+        # Generate a lambda that applies only the relevant arguments to csv_func
+        def wrapper(alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate):
+            args_by_name = {
+                "alpha": alpha,
+                "beta": beta,
+                "mach": mach,
+                "reynolds": reynolds,
+                "pitch_rate": pitch_rate,
+                "yaw_rate": yaw_rate,
+                "roll_rate": roll_rate,
+            }
+            selected_args = [args_by_name[col] for col in ordered_present_columns]
+            return csv_func(*selected_args)
+
+        # Create the interpolation function
+        func = Function(
+            wrapper,
+            independent_vars,
+            [coeff_name],
+            interpolation="linear",
+            extrapolation="constant",
+        )
+        return func
