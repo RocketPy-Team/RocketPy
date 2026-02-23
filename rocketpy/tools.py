@@ -116,6 +116,75 @@ def tuple_handler(value):
             raise ValueError("value must be a list or tuple of length 1 or 2.")
 
 
+def create_regular_grid_function(
+    csv_source,
+    variable_names,
+    coeff_name,
+    extrapolation,
+):
+    """Create a regular-grid Function when CSV samples form a full grid.
+
+    Parameters
+    ----------
+    csv_source : str
+        Path to the CSV file.
+    variable_names : list[str]
+        Ordered independent variable names present in the CSV.
+    coeff_name : str
+        Name of the coefficient output.
+    extrapolation : str
+        Extrapolation method passed to the Function constructor.
+
+    Returns
+    -------
+    Function or None
+        A ``Function`` configured with ``regular_grid`` interpolation when the
+        CSV data forms a strict Cartesian grid, otherwise ``None``.
+    """
+    from rocketpy.mathutils.function import Function
+
+    try:
+        data = np.loadtxt(csv_source, delimiter=",", skiprows=1, dtype=float)
+    except (OSError, ValueError):
+        return None
+
+    data = np.atleast_2d(data)
+    expected_columns = len(variable_names) + 1
+    if data.shape[1] != expected_columns:
+        return None
+
+    coordinates = data[:, :-1]
+    values = data[:, -1]
+
+    if np.unique(coordinates, axis=0).shape[0] != coordinates.shape[0]:
+        return None
+
+    axes = [np.unique(coordinates[:, i]) for i in range(len(variable_names))]
+    expected_size = int(np.prod([axis.size for axis in axes]))
+    if expected_size != coordinates.shape[0]:
+        return None
+
+    sorting_keys = [coordinates[:, i] for i in range(len(variable_names) - 1, -1, -1)]
+    sorted_indices = np.lexsort(tuple(sorting_keys))
+    sorted_coordinates = coordinates[sorted_indices]
+    sorted_values = values[sorted_indices]
+
+    expected_coordinates = np.column_stack(
+        [axis_values.ravel() for axis_values in np.meshgrid(*axes, indexing="ij")]
+    )
+    if not np.allclose(sorted_coordinates, expected_coordinates, rtol=0, atol=1e-12):
+        return None
+
+    grid_data = sorted_values.reshape(tuple(axis.size for axis in axes))
+    return Function(
+        (axes, grid_data),
+        inputs=variable_names,
+        outputs=[coeff_name],
+        interpolation="regular_grid",
+        extrapolation=extrapolation,
+    )
+
+
 def calculate_cubic_hermite_coefficients(x0, x1, y0, yp0, y1, yp1):
     """Calculate the coefficients of a cubic Hermite interpolation function.
     The function is defined as ax**3 + bx**2 + cx + d.

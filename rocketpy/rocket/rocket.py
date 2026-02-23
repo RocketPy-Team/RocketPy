@@ -26,6 +26,7 @@ from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
 from rocketpy.tools import (
+    create_regular_grid_function,
     deprecated,
     find_obj_from_hash,
     parallel_axis_theorem_from_com,
@@ -1992,9 +1993,7 @@ class Rocket:
                     0, 4, 50, mutate_self=False
                 )
             if power_on_drag.__dom_dim__ == 1:
-                power_on_drag = power_on_drag.set_discrete(
-                    0, 4, 50, mutate_self=False
-                )
+                power_on_drag = power_on_drag.set_discrete(0, 4, 50, mutate_self=False)
 
         rocket_dict = {
             "radius": self.radius,
@@ -2335,59 +2334,6 @@ class Rocket:
             pitch_rate, yaw_rate, roll_rate).
         """
 
-        # Try to represent header-based data as regular grid when it is complete.
-        # Return None whenever data is not strictly grid-compatible.
-        def _create_regular_grid_function(csv_source, variable_names):
-            """Create a regular-grid Function when CSV samples form a full grid."""
-            try:
-                data = np.loadtxt(csv_source, delimiter=",", skiprows=1, dtype=float)
-            except (OSError, ValueError):
-                return None
-
-            # Normalize to 2D in case the CSV has a single data row.
-            data = np.atleast_2d(data)
-            expected_columns = len(variable_names) + 1
-            if data.shape[1] != expected_columns:
-                return None
-
-            coordinates = data[:, :-1]
-            values = data[:, -1]
-
-            # Reject duplicate coordinate samples.
-            if np.unique(coordinates, axis=0).shape[0] != coordinates.shape[0]:
-                return None
-
-            # Build axes and verify full Cartesian-product coverage.
-            axes = [np.unique(coordinates[:, i]) for i in range(len(variable_names))]
-            expected_size = int(np.prod([axis.size for axis in axes]))
-            if expected_size != coordinates.shape[0]:
-                return None
-
-            # Sort sampled points in lexicographic grid order.
-            sorting_keys = [
-                coordinates[:, i] for i in range(len(variable_names) - 1, -1, -1)
-            ]
-            sorted_indices = np.lexsort(tuple(sorting_keys))
-            sorted_coordinates = coordinates[sorted_indices]
-            sorted_values = values[sorted_indices]
-
-            # Compare against an ideal meshgrid order.
-            expected_coordinates = np.column_stack(
-                [axis_values.ravel() for axis_values in np.meshgrid(*axes, indexing="ij")]
-            )
-            if not np.allclose(sorted_coordinates, expected_coordinates, rtol=0, atol=1e-12):
-                return None
-
-            # Reshape coefficient values into nD grid tensor and build function.
-            grid_data = sorted_values.reshape(tuple(axis.size for axis in axes))
-            return Function(
-                (axes, grid_data),
-                inputs=variable_names,
-                outputs=[coeff_name],
-                interpolation="regular_grid",
-                extrapolation="constant",
-            )
-
         def _is_numeric(value):
             try:
                 float(value)
@@ -2473,10 +2419,17 @@ class Rocket:
         # Build ordered variable names as they appear in the CSV header.
         # This guarantees argument order consistency with Function(file_path),
         # which interprets columns positionally.
-        ordered_present_columns = [col for col in header[:-1] if col in independent_vars]
+        ordered_present_columns = [
+            col for col in header[:-1] if col in independent_vars
+        ]
 
         # Prefer regular-grid interpolation when possible; fallback to linear otherwise.
-        csv_func = _create_regular_grid_function(file_path, ordered_present_columns)
+        csv_func = create_regular_grid_function(
+            file_path,
+            ordered_present_columns,
+            coeff_name,
+            extrapolation="constant",
+        )
         if csv_func is None:
             csv_func = Function(
                 file_path,
