@@ -2296,7 +2296,7 @@ class Rocket:
                     return self.__process_drag_input(
                         Function(list(input_data)), coeff_name
                     )
-                except Exception as e:
+                except (TypeError, ValueError) as e:
                     raise ValueError(
                         f"Invalid list/tuple format for {coeff_name}. Expected "
                         "a list of [mach, coefficient] pairs or a list of "
