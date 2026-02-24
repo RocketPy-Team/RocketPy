@@ -1707,15 +1707,18 @@ class Flight:
     ):
         """Build drag-model inputs in the 7D order used by Rocket drag functions."""
         aerodynamic_stream_velocity = -stream_velocity_body
-        alpha = np.arctan2(aerodynamic_stream_velocity[1], aerodynamic_stream_velocity[2])
-        beta = np.arctan2(aerodynamic_stream_velocity[0], aerodynamic_stream_velocity[2])
+        alpha = np.arctan2(
+            aerodynamic_stream_velocity[1], aerodynamic_stream_velocity[2]
+        )
+        beta = np.arctan2(
+            aerodynamic_stream_velocity[0], aerodynamic_stream_velocity[2]
+        )
         reynolds = (
             density * stream_speed * (2 * self.rocket.radius) / dynamic_viscosity
             if dynamic_viscosity > 0
             else 0
         )
         return alpha, beta, stream_mach, reynolds
-
 
     def udot_rail1(self, t, u, post_processing=False):
         """Calculates derivative of u state vector with respect to time

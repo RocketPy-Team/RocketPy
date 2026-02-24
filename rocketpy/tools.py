@@ -142,7 +142,9 @@ def create_regular_grid_function(
         A ``Function`` configured with ``regular_grid`` interpolation when the
         CSV data forms a strict Cartesian grid, otherwise ``None``.
     """
-    from rocketpy.mathutils.function import Function
+    from rocketpy.mathutils.function import (
+        Function,  # pylint: disable=import-outside-toplevel
+    )
 
     data = np.loadtxt(csv_source, delimiter=",", skiprows=1, dtype=float)
 
@@ -183,14 +185,16 @@ def create_regular_grid_function(
     )
 
 
-def load_generic_surface_csv(file_path, coeff_name):
+def load_generic_surface_csv(file_path, coeff_name):  # pylint: disable=too-many-statements
     """Load GenericSurface coefficient CSV into a 7D Function.
 
     This loader expects header-based CSV data with one or more independent
     variables among: alpha, beta, mach, reynolds, pitch_rate, yaw_rate,
     roll_rate.
     """
-    from rocketpy.mathutils.function import Function
+    from rocketpy.mathutils.function import (
+        Function,  # pylint: disable=import-outside-toplevel
+    )
 
     independent_vars = [
         "alpha",
@@ -270,13 +274,15 @@ def load_generic_surface_csv(file_path, coeff_name):
     )
 
 
-def load_rocket_drag_csv(file_path, coeff_name):
+def load_rocket_drag_csv(file_path, coeff_name):  # pylint: disable=too-many-statements
     """Load Rocket drag CSV into a 7D Function.
 
     Supports either headerless two-column (mach, coefficient) tables or
     header-based multi-variable CSV tables.
     """
-    from rocketpy.mathutils.function import Function
+    from rocketpy.mathutils.function import (
+        Function,  # pylint: disable=import-outside-toplevel
+    )
 
     independent_vars = [
         "alpha",
@@ -322,11 +328,19 @@ def load_rocket_drag_csv(file_path, coeff_name):
             extrapolation="constant",
         )
 
-        def wrapper(alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate):
+        def mach_wrapper(
+            _alpha,
+            _beta,
+            mach,
+            _reynolds,
+            _pitch_rate,
+            _yaw_rate,
+            _roll_rate,
+        ):
             return csv_func(mach)
 
         return Function(
-            wrapper,
+            mach_wrapper,
             independent_vars,
             [coeff_name],
             interpolation="linear",

@@ -1,7 +1,6 @@
-import numpy as np
 import pytest
 
-from rocketpy import Flight, Rocket
+from rocketpy import Flight
 from rocketpy.motors.point_mass_motor import PointMassMotor
 from rocketpy.rocket.point_mass_rocket import PointMassRocket
 

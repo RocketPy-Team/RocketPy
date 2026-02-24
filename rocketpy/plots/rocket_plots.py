@@ -109,7 +109,10 @@ class _RocketPlots:
         except AttributeError:
             x_power_drag_on = np.linspace(0, 2, 50)
             y_power_drag_on = np.array(
-                [self.rocket.power_on_drag_by_mach.get_value_opt(x) for x in x_power_drag_on]
+                [
+                    self.rocket.power_on_drag_by_mach.get_value_opt(x)
+                    for x in x_power_drag_on
+                ]
             )
         try:
             x_power_drag_off = self.rocket.power_off_drag_by_mach.x_array
@@ -117,7 +120,10 @@ class _RocketPlots:
         except AttributeError:
             x_power_drag_off = np.linspace(0, 2, 50)
             y_power_drag_off = np.array(
-                [self.rocket.power_off_drag_by_mach.get_value_opt(x) for x in x_power_drag_off]
+                [
+                    self.rocket.power_off_drag_by_mach.get_value_opt(x)
+                    for x in x_power_drag_off
+                ]
             )
 
         _, ax = plt.subplots()
