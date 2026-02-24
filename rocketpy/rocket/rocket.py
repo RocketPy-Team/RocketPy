@@ -677,12 +677,14 @@ class Rocket:
         self.stability_margin.set_source(
             lambda mach, time: (
                 (
-                    self.center_of_mass.get_value_opt(time)
-                    - self.cp_position.get_value_opt(mach)
+                    (
+                        self.center_of_mass.get_value_opt(time)
+                        - self.cp_position.get_value_opt(mach)
+                    )
+                    / (2 * self.radius)
                 )
-                / (2 * self.radius)
+                * self._csys
             )
-            * self._csys
         )
         return self.stability_margin
 
@@ -699,10 +701,12 @@ class Rocket:
         # Calculate static margin
         self.static_margin.set_source(
             lambda time: (
-                self.center_of_mass.get_value_opt(time)
-                - self.cp_position.get_value_opt(0)
+                (
+                    self.center_of_mass.get_value_opt(time)
+                    - self.cp_position.get_value_opt(0)
+                )
+                / (2 * self.radius)
             )
-            / (2 * self.radius)
         )
         # Change sign if coordinate system is upside down
         self.static_margin *= self._csys
@@ -2180,13 +2184,9 @@ class Rocket:
         # Helper: lift a 1D Mach-only source into the required 7D signature.
         def _wrap_mach_only_source(mach_source):
             return Function(
-                lambda alpha,
-                beta,
-                mach,
-                reynolds,
-                pitch_rate,
-                yaw_rate,
-                roll_rate: mach_source(mach),
+                lambda alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate: (
+                    mach_source(mach)
+                ),
                 inputs,
                 [coeff_name],
                 interpolation="linear",
@@ -2262,13 +2262,9 @@ class Rocket:
         # Case 4: scalar input means a constant drag coefficient in all conditions.
         if isinstance(input_data, (int, float)):
             return Function(
-                lambda alpha,
-                beta,
-                mach,
-                reynolds,
-                pitch_rate,
-                yaw_rate,
-                roll_rate: float(input_data),
+                lambda alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate: (
+                    float(input_data)
+                ),
                 inputs,
                 [coeff_name],
                 interpolation="linear",

@@ -759,11 +759,12 @@ class Flight:
                             lambda self, parachute_porosity=parachute.porosity: setattr(
                                 self, "parachute_porosity", parachute_porosity
                             ),
-                            lambda self,
-                            added_mass_coefficient=parachute.added_mass_coefficient: setattr(
-                                self,
-                                "parachute_added_mass_coefficient",
-                                added_mass_coefficient,
+                            lambda self, added_mass_coefficient=parachute.added_mass_coefficient: (
+                                setattr(
+                                    self,
+                                    "parachute_added_mass_coefficient",
+                                    added_mass_coefficient,
+                                )
                             ),
                         ]
                         self.flight_phases.add_phase(
@@ -981,11 +982,12 @@ class Flight:
                 lambda self, parachute_porosity=parachute.porosity: setattr(
                     self, "parachute_porosity", parachute_porosity
                 ),
-                lambda self,
-                added_mass_coefficient=parachute.added_mass_coefficient: setattr(
-                    self,
-                    "parachute_added_mass_coefficient",
-                    added_mass_coefficient,
+                lambda self, added_mass_coefficient=parachute.added_mass_coefficient: (
+                    setattr(
+                        self,
+                        "parachute_added_mass_coefficient",
+                        added_mass_coefficient,
+                    )
                 ),
             ]
             self.flight_phases.add_phase(
@@ -1387,11 +1389,12 @@ class Flight:
                 lambda self, parachute_porosity=parachute.porosity: setattr(
                     self, "parachute_porosity", parachute_porosity
                 ),
-                lambda self,
-                added_mass_coefficient=parachute.added_mass_coefficient: setattr(
-                    self,
-                    "parachute_added_mass_coefficient",
-                    added_mass_coefficient,
+                lambda self, added_mass_coefficient=parachute.added_mass_coefficient: (
+                    setattr(
+                        self,
+                        "parachute_added_mass_coefficient",
+                        added_mass_coefficient,
+                    )
                 ),
             ]
             self.flight_phases.add_phase(

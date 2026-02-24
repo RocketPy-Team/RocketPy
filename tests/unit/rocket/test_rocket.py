@@ -776,8 +776,9 @@ def test_drag_input_types_supported_for_power_on_and_power_off(tmp_path):
         interpolation="linear",
     )
     function_7d = Function(
-        lambda alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate: mach
-        + reynolds,
+        lambda alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate: (
+            mach + reynolds
+        ),
         inputs=[
             "alpha",
             "beta",
@@ -811,8 +812,9 @@ def test_drag_input_types_supported_for_power_on_and_power_off(tmp_path):
         ),
         (
             "callable_7d",
-            lambda alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate: mach
-            + reynolds,
+            lambda alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate: (
+                mach + reynolds
+            ),
             query,
             0.95,
         ),

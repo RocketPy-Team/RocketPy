@@ -172,13 +172,9 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         "constant",
     )
     BellaLui.power_off_drag_7d = Function(
-        lambda alpha,
-        beta,
-        mach,
-        reynolds,
-        pitch_rate,
-        yaw_rate,
-        roll_rate: power_off_drag_by_mach.get_value_opt(mach),
+        lambda alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate: (
+            power_off_drag_by_mach.get_value_opt(mach)
+        ),
         [
             "alpha",
             "beta",
@@ -193,13 +189,9 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         extrapolation="constant",
     )
     BellaLui.power_on_drag_7d = Function(
-        lambda alpha,
-        beta,
-        mach,
-        reynolds,
-        pitch_rate,
-        yaw_rate,
-        roll_rate: power_on_drag_by_mach.get_value_opt(mach),
+        lambda alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate: (
+            power_on_drag_by_mach.get_value_opt(mach)
+        ),
         [
             "alpha",
             "beta",

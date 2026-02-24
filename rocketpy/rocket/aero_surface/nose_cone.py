@@ -238,14 +238,16 @@ class NoseCone(AeroSurface):
                     return np.arccos(1 - 2 * max(min(x / self.length, 1), 0))
 
                 self.y_nosecone = Function(
-                    lambda x: self.base_radius
-                    * (
-                        theta_lvhaack(x)
-                        - np.sin(2 * theta_lvhaack(x)) / 2
-                        + (np.sin(theta_lvhaack(x)) ** 3) / 3
+                    lambda x: (
+                        self.base_radius
+                        * (
+                            theta_lvhaack(x)
+                            - np.sin(2 * theta_lvhaack(x)) / 2
+                            + (np.sin(theta_lvhaack(x)) ** 3) / 3
+                        )
+                        ** (0.5)
+                        / (np.pi**0.5)
                     )
-                    ** (0.5)
-                    / (np.pi**0.5)
                 )
 
             case "tangent" | "tangentogive" | "ogive":
@@ -258,15 +260,19 @@ class NoseCone(AeroSurface):
                 area = np.pi * self.base_radius**2
                 self.k = 1 - volume / (area * self.length)
                 self.y_nosecone = Function(
-                    lambda x: np.sqrt(rho**2 - (min(x - self.length, 0)) ** 2)
-                    + (self.base_radius - rho)
+                    lambda x: (
+                        np.sqrt(rho**2 - (min(x - self.length, 0)) ** 2)
+                        + (self.base_radius - rho)
+                    )
                 )
 
             case "elliptical":
                 self.k = 1 / 3
                 self.y_nosecone = Function(
-                    lambda x: self.base_radius
-                    * np.sqrt(1 - ((x - self.length) / self.length) ** 2)
+                    lambda x: (
+                        self.base_radius
+                        * np.sqrt(1 - ((x - self.length) / self.length) ** 2)
+                    )
                 )
 
             case "vonkarman":
@@ -276,15 +282,20 @@ class NoseCone(AeroSurface):
                     return np.arccos(1 - 2 * max(min(x / self.length, 1), 0))
 
                 self.y_nosecone = Function(
-                    lambda x: self.base_radius
-                    * (theta_vonkarman(x) - np.sin(2 * theta_vonkarman(x)) / 2) ** (0.5)
-                    / (np.pi**0.5)
+                    lambda x: (
+                        self.base_radius
+                        * (theta_vonkarman(x) - np.sin(2 * theta_vonkarman(x)) / 2)
+                        ** (0.5)
+                        / (np.pi**0.5)
+                    )
                 )
             case "parabolic":
                 self.k = 0.5
                 self.y_nosecone = Function(
-                    lambda x: self.base_radius
-                    * ((2 * x / self.length - (x / self.length) ** 2) / (2 - 1))
+                    lambda x: (
+                        self.base_radius
+                        * ((2 * x / self.length - (x / self.length) ** 2) / (2 - 1))
+                    )
                 )
             case "powerseries":
                 self.k = (2 * self.power) / ((2 * self.power) + 1)
