@@ -1986,13 +1986,6 @@ class Rocket:
 
         power_off_drag = self.power_off_drag_7d
         power_on_drag = self.power_on_drag_7d
-        if discretize:
-            if power_off_drag.__dom_dim__ == 1:
-                power_off_drag = power_off_drag.set_discrete(
-                    0, 4, 50, mutate_self=False
-                )
-            if power_on_drag.__dom_dim__ == 1:
-                power_on_drag = power_on_drag.set_discrete(0, 4, 50, mutate_self=False)
 
         rocket_dict = {
             "radius": self.radius,
