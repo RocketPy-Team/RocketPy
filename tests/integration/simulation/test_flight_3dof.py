@@ -202,7 +202,7 @@ def test_weathercock_coeff_default(flight_3dof):
 
 def test_point_mass_rocket_3dof_uses_7d_drag_inputs(
     example_plain_env, point_mass_motor
-):
+):  # pylint: disable=too-many-locals,too-many-statements
     """Ensure PointMassRocket uses the 7D drag interface in 3-DOF dynamics."""
 
     def drag_7d(alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate):
