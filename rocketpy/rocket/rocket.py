@@ -1489,6 +1489,7 @@ class Rocket:
         lag=0,
         noise=(0, 0, 0),
         radius=None,
+        drag_coefficient=1.4,
         height=None,
         porosity=0.0432,
     ):
@@ -1550,28 +1551,34 @@ class Rocket:
             passed to the trigger function. Default value is (0, 0, 0). Units
             are in pascal.
         radius : float, optional
-            Length of the non-unique semi-axis (radius) of the inflated hemispheroid
-            parachute. If not provided, it is estimated from ``cd_s`` assuming a
-            typical hemispherical parachute drag coefficient of 1.4, using the
-            formula: ``radius = sqrt(cd_s / (1.4 * pi))``.
+            Length of the non-unique semi-axis (radius) of the inflated
+            hemispheroid parachute. If not provided, it is estimated from
+            `cd_s` and `drag_coefficient` using:
+            `radius = sqrt(cd_s / (drag_coefficient * pi))`.
             Units are in meters.
+        drag_coefficient : float, optional
+            Drag coefficient of the inflated canopy shape, used only when
+            `radius` is not provided. Typical values: 1.4 for hemispherical
+            canopies (default), 0.75 for flat circular canopies, 1.5 for
+            extended-skirt canopies. Has no effect when `radius` is given.
         height : float, optional
             Length of the unique semi-axis (height) of the inflated hemispheroid
             parachute. Default value is the radius of the parachute.
             Units are in meters.
         porosity : float, optional
-            Geometric porosity of the canopy (ratio of open area to total canopy area),
-            in [0, 1]. Affects only the added-mass scaling during descent; it does
-            not change ``cd_s`` (drag). The default, 0.0432, yields an added-mass
-            of 1.0 (“neutral” behavior).
+            Geometric porosity of the canopy (ratio of open area to total
+            canopy area), in [0, 1]. Affects only the added-mass scaling
+            during descent; it does not change `cd_s` (drag). The default
+            value of 0.0432 yields an `added_mass_coefficient` of
+            approximately 1.0.
 
         Returns
         -------
         parachute : Parachute
-            Parachute containing trigger, sampling_rate, lag, cd_s, noise, radius,
-            height, porosity and name. Furthermore, it stores clean_pressure_signal,
-            noise_signal and noisyPressureSignal which are filled in during
-            Flight simulation.
+            Parachute containing trigger, sampling_rate, lag, cd_s, noise,
+            radius, drag_coefficient, height, porosity and name. Furthermore,
+            it stores clean_pressure_signal, noise_signal and
+            noisyPressureSignal which are filled in during Flight simulation.
         """
         parachute = Parachute(
             name,
@@ -1581,6 +1588,7 @@ class Rocket:
             lag,
             noise,
             radius,
+            drag_coefficient,
             height,
             porosity,
         )
