@@ -806,6 +806,7 @@ def test_environment_methods_accessible_in_controller(
 
     # Verify flight completed
     assert flight.t_final > 0
+    assert flight.all_info() is None
 
     # Verify all environment methods were successfully called
     assert all(methods_called.values()), f"Not all methods called: {methods_called}"

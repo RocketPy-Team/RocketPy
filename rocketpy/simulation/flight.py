@@ -875,6 +875,7 @@ class Flight:
                 self.y_sol,
                 self.solution,
                 self.sensors,
+                self.env,
             )
 
     def __measure_sensors(self, component_sensors, u_dot, t=None, y_sol=None):
@@ -1296,6 +1297,7 @@ class Flight:
                     overshootable_node.y_sol,
                     self.solution,
                     self.sensors,
+                    self.env,
                 )
 
             # Process sensors at overshootable node
