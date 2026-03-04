@@ -211,9 +211,10 @@ class Parachute:
         )
 
         alpha, beta = self.noise_corr
-        self.noise_function = lambda: alpha * self.noise_signal[-1][
-            1
-        ] + beta * np.random.normal(noise[0], noise[1])
+        self.noise_function = lambda: (
+            alpha * self.noise_signal[-1][1]
+            + beta * np.random.normal(noise[0], noise[1])
+        )
 
         self.prints = _ParachutePrints(self)
 

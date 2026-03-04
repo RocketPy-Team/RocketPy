@@ -663,12 +663,14 @@ class Rocket:
         self.stability_margin.set_source(
             lambda mach, time: (
                 (
-                    self.center_of_mass.get_value_opt(time)
-                    - self.cp_position.get_value_opt(mach)
+                    (
+                        self.center_of_mass.get_value_opt(time)
+                        - self.cp_position.get_value_opt(mach)
+                    )
+                    / (2 * self.radius)
                 )
-                / (2 * self.radius)
+                * self._csys
             )
-            * self._csys
         )
         return self.stability_margin
 
@@ -685,10 +687,12 @@ class Rocket:
         # Calculate static margin
         self.static_margin.set_source(
             lambda time: (
-                self.center_of_mass.get_value_opt(time)
-                - self.cp_position.get_value_opt(0)
+                (
+                    self.center_of_mass.get_value_opt(time)
+                    - self.cp_position.get_value_opt(0)
+                )
+                / (2 * self.radius)
             )
-            / (2 * self.radius)
         )
         # Change sign if coordinate system is upside down
         self.static_margin *= self._csys

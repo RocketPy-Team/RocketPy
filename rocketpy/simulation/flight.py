@@ -759,11 +759,12 @@ class Flight:
                             lambda self, parachute_porosity=parachute.porosity: setattr(
                                 self, "parachute_porosity", parachute_porosity
                             ),
-                            lambda self,
-                            added_mass_coefficient=parachute.added_mass_coefficient: setattr(
-                                self,
-                                "parachute_added_mass_coefficient",
-                                added_mass_coefficient,
+                            lambda self, added_mass_coefficient=parachute.added_mass_coefficient: (
+                                setattr(
+                                    self,
+                                    "parachute_added_mass_coefficient",
+                                    added_mass_coefficient,
+                                )
                             ),
                         ]
                         self.flight_phases.add_phase(
@@ -981,11 +982,12 @@ class Flight:
                 lambda self, parachute_porosity=parachute.porosity: setattr(
                     self, "parachute_porosity", parachute_porosity
                 ),
-                lambda self,
-                added_mass_coefficient=parachute.added_mass_coefficient: setattr(
-                    self,
-                    "parachute_added_mass_coefficient",
-                    added_mass_coefficient,
+                lambda self, added_mass_coefficient=parachute.added_mass_coefficient: (
+                    setattr(
+                        self,
+                        "parachute_added_mass_coefficient",
+                        added_mass_coefficient,
+                    )
                 ),
             ]
             self.flight_phases.add_phase(
@@ -1387,11 +1389,12 @@ class Flight:
                 lambda self, parachute_porosity=parachute.porosity: setattr(
                     self, "parachute_porosity", parachute_porosity
                 ),
-                lambda self,
-                added_mass_coefficient=parachute.added_mass_coefficient: setattr(
-                    self,
-                    "parachute_added_mass_coefficient",
-                    added_mass_coefficient,
+                lambda self, added_mass_coefficient=parachute.added_mass_coefficient: (
+                    setattr(
+                        self,
+                        "parachute_added_mass_coefficient",
+                        added_mass_coefficient,
+                    )
                 ),
             ]
             self.flight_phases.add_phase(
@@ -3159,7 +3162,7 @@ class Flight:
         max_acceleration_time_index = np.argmax(
             self.acceleration[burn_out_time_index:, 1]
         )
-        return self.acceleration[max_acceleration_time_index, 0]
+        return self.acceleration[burn_out_time_index + max_acceleration_time_index, 0]
 
     @cached_property
     def max_acceleration_power_off(self):
@@ -4586,7 +4589,6 @@ class Flight:
                     tmp_dict[time]._controllers += node._controllers
                     tmp_dict[time].callbacks += node.callbacks
                     tmp_dict[time]._component_sensors += node._component_sensors
-                    tmp_dict[time]._controllers += node._controllers
                 except KeyError:
                     # If the node does not exist, add it to the dictionary
                     tmp_dict[time] = node
