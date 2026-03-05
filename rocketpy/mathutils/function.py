@@ -5,6 +5,8 @@ and more. This is a core class of our package, and should be maintained
 carefully as it may impact all the rest of the project.
 """
 
+import base64
+import functools
 import operator
 import warnings
 from bisect import bisect_left
@@ -15,6 +17,7 @@ from functools import cached_property
 from inspect import signature
 from pathlib import Path
 
+import dill
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import integrate, linalg, optimize
@@ -26,7 +29,6 @@ from scipy.interpolate import (
 )
 
 from rocketpy.plots.plot_helpers import show_or_save_plot
-from rocketpy.tools import deprecated, from_hex_decode, to_hex_encode
 
 # Numpy 1.x compatibility,
 # TODO: remove these lines when all dependencies support numpy>=2.0.0
@@ -47,6 +49,46 @@ INTERPOLATION_TYPES = {
     "regular_grid": 6,
 }
 EXTRAPOLATION_TYPES = {"zero": 0, "natural": 1, "constant": 2}
+
+
+def deprecated(reason=None, version=None, alternative=None):
+    """Decorator to mark functions or methods as deprecated.
+
+    This decorator issues a DeprecationWarning when the decorated function
+    is called, indicating that it will be removed in future versions.
+    """
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            if reason:
+                message = reason
+            else:
+                message = f"The function `{func.__name__}` is deprecated"
+
+            if version:
+                message += f" and will be removed in {version}"
+
+            if alternative:
+                message += f". Use `{alternative}` instead"
+
+            message += "."
+            warnings.warn(message, DeprecationWarning, stacklevel=2)
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+def to_hex_encode(obj, encoder=base64.b85encode):
+    """Converts an object to hex representation using dill."""
+    return encoder(dill.dumps(obj)).hex()
+
+
+def from_hex_decode(obj_bytes, decoder=base64.b85decode):
+    """Converts an object from hex representation using dill."""
+    return dill.loads(decoder(bytes.fromhex(obj_bytes)))
 
 
 class SourceType(Enum):
@@ -161,6 +203,74 @@ class Function:  # pylint: disable=too-many-public-methods
         self.set_inputs(self.__inputs__)
         self.set_outputs(self.__outputs__)
         self.set_title(self.title)
+
+    @classmethod
+    def from_regular_grid_csv(
+        cls, csv_source, variable_names, coeff_name, extrapolation
+    ):
+        """Create a regular-grid Function from CSV samples when possible.
+
+        Parameters
+        ----------
+        csv_source : str
+            Path to the CSV file.
+        variable_names : list[str]
+            Ordered independent variable names present in the CSV.
+        coeff_name : str
+            Name of the output coefficient.
+        extrapolation : str
+            Extrapolation method passed to the Function constructor.
+
+        Returns
+        -------
+        Function or None
+            A ``Function`` configured with ``regular_grid`` interpolation when
+            the CSV forms a strict Cartesian grid, otherwise ``None``.
+        """
+        try:
+            data = np.loadtxt(csv_source, delimiter=",", skiprows=1, dtype=np.float64)
+        except (OSError, ValueError):
+            return None
+
+        data = np.atleast_2d(data)
+        expected_columns = len(variable_names) + 1
+        if data.shape[1] != expected_columns:
+            return None
+
+        coordinates = data[:, :-1]
+        values = data[:, -1]
+
+        if np.unique(coordinates, axis=0).shape[0] != coordinates.shape[0]:
+            return None
+
+        axes = [np.unique(coordinates[:, i]) for i in range(len(variable_names))]
+        expected_size = int(np.prod([axis.size for axis in axes]))
+        if expected_size != coordinates.shape[0]:
+            return None
+
+        sorting_keys = [
+            coordinates[:, i] for i in range(len(variable_names) - 1, -1, -1)
+        ]
+        sorted_indices = np.lexsort(tuple(sorting_keys))
+        sorted_coordinates = coordinates[sorted_indices]
+        sorted_values = values[sorted_indices]
+
+        expected_coordinates = np.column_stack(
+            [axis_values.ravel() for axis_values in np.meshgrid(*axes, indexing="ij")]
+        )
+        if not np.allclose(
+            sorted_coordinates, expected_coordinates, rtol=0, atol=1e-12
+        ):
+            return None
+
+        grid_data = sorted_values.reshape(tuple(axis.size for axis in axes))
+        return cls(
+            (axes, grid_data),
+            inputs=variable_names,
+            outputs=[coeff_name],
+            interpolation="regular_grid",
+            extrapolation=extrapolation,
+        )
 
     # Define all set methods
     def set_inputs(self, inputs):

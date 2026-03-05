@@ -117,11 +117,6 @@ def tuple_handler(value):
             raise ValueError("value must be a list or tuple of length 1 or 2.")
 
 
-def _get_function_class():
-    """Return ``Function`` using lazy import to avoid cyclic imports."""
-    return importlib.import_module("rocketpy.mathutils.function").Function
-
-
 def create_regular_grid_function(
     csv_source,
     variable_names,
@@ -147,44 +142,13 @@ def create_regular_grid_function(
         A ``Function`` configured with ``regular_grid`` interpolation when the
         CSV data forms a strict Cartesian grid, otherwise ``None``.
     """
-    function_class = _get_function_class()
+    from rocketpy.mathutils.function import Function
 
-    data = np.loadtxt(csv_source, delimiter=",", skiprows=1, dtype=float)
-
-    data = np.atleast_2d(data)
-    expected_columns = len(variable_names) + 1
-    if data.shape[1] != expected_columns:
-        return None
-
-    coordinates = data[:, :-1]
-    values = data[:, -1]
-
-    if np.unique(coordinates, axis=0).shape[0] != coordinates.shape[0]:
-        return None
-
-    axes = [np.unique(coordinates[:, i]) for i in range(len(variable_names))]
-    expected_size = int(np.prod([axis.size for axis in axes]))
-    if expected_size != coordinates.shape[0]:
-        return None
-
-    sorting_keys = [coordinates[:, i] for i in range(len(variable_names) - 1, -1, -1)]
-    sorted_indices = np.lexsort(tuple(sorting_keys))
-    sorted_coordinates = coordinates[sorted_indices]
-    sorted_values = values[sorted_indices]
-
-    expected_coordinates = np.column_stack(
-        [axis_values.ravel() for axis_values in np.meshgrid(*axes, indexing="ij")]
-    )
-    if not np.allclose(sorted_coordinates, expected_coordinates, rtol=0, atol=1e-12):
-        return None
-
-    grid_data = sorted_values.reshape(tuple(axis.size for axis in axes))
-    return function_class(
-        (axes, grid_data),
-        inputs=variable_names,
-        outputs=[coeff_name],
-        interpolation="regular_grid",
-        extrapolation=extrapolation,
+    return Function.from_regular_grid_csv(
+        csv_source,
+        variable_names,
+        coeff_name,
+        extrapolation,
     )
 
 
@@ -195,7 +159,7 @@ def load_generic_surface_csv(file_path, coeff_name):  # pylint: disable=too-many
     variables among: alpha, beta, mach, reynolds, pitch_rate, yaw_rate,
     roll_rate.
     """
-    function_class = _get_function_class()
+    from rocketpy.mathutils.function import Function
 
     independent_vars = [
         "alpha",
@@ -247,7 +211,7 @@ def load_generic_surface_csv(file_path, coeff_name):  # pylint: disable=too-many
         extrapolation="natural",
     )
     if csv_func is None:
-        csv_func = function_class(
+        csv_func = Function(
             file_path,
             interpolation="linear",
             extrapolation="natural",
@@ -266,7 +230,7 @@ def load_generic_surface_csv(file_path, coeff_name):  # pylint: disable=too-many
         selected_args = [args_by_name[col] for col in ordered_present_columns]
         return csv_func(*selected_args)
 
-    return function_class(
+    return Function(
         wrapper,
         independent_vars,
         [coeff_name],
@@ -281,7 +245,7 @@ def load_rocket_drag_csv(file_path, coeff_name):  # pylint: disable=too-many-sta
     Supports either headerless two-column (mach, coefficient) tables or
     header-based multi-variable CSV tables.
     """
-    function_class = _get_function_class()
+    from rocketpy.mathutils.function import Function
 
     independent_vars = [
         "alpha",
@@ -321,7 +285,7 @@ def load_rocket_drag_csv(file_path, coeff_name):  # pylint: disable=too-many-sta
     )
 
     if is_headerless_two_column:
-        csv_func = function_class(
+        csv_func = Function(
             file_path,
             interpolation="linear",
             extrapolation="constant",
@@ -338,7 +302,7 @@ def load_rocket_drag_csv(file_path, coeff_name):  # pylint: disable=too-many-sta
         ):
             return csv_func(mach)
 
-        return function_class(
+        return Function(
             mach_wrapper,
             independent_vars,
             [coeff_name],
@@ -374,7 +338,7 @@ def load_rocket_drag_csv(file_path, coeff_name):  # pylint: disable=too-many-sta
         extrapolation="constant",
     )
     if csv_func is None:
-        csv_func = function_class(
+        csv_func = Function(
             file_path,
             interpolation="linear",
             extrapolation="constant",
@@ -393,7 +357,7 @@ def load_rocket_drag_csv(file_path, coeff_name):  # pylint: disable=too-many-sta
         selected_args = [args_by_name[col] for col in ordered_present_columns]
         return csv_func(*selected_args)
 
-    return function_class(
+    return Function(
         wrapper,
         independent_vars,
         [coeff_name],
