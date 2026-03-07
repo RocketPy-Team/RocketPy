@@ -122,7 +122,7 @@ def create_regular_grid_function(
     variable_names,
     coeff_name,
     extrapolation,
-):
+):  # pylint: disable=import-outside-toplevel
     """Create a regular-grid Function when CSV samples form a full grid.
 
     Parameters
@@ -142,7 +142,9 @@ def create_regular_grid_function(
         A ``Function`` configured with ``regular_grid`` interpolation when the
         CSV data forms a strict Cartesian grid, otherwise ``None``.
     """
-    from rocketpy.mathutils.function import Function
+    from rocketpy.mathutils.function import (  # pylint: disable=import-outside-toplevel
+        Function,  # pylint: disable=import-outside-toplevel
+    )
 
     return Function.from_regular_grid_csv(
         csv_source,
@@ -152,14 +154,16 @@ def create_regular_grid_function(
     )
 
 
-def load_generic_surface_csv(file_path, coeff_name):  # pylint: disable=too-many-statements
+def load_generic_surface_csv(file_path, coeff_name):  # pylint: disable=too-many-statements,import-outside-toplevel
     """Load GenericSurface coefficient CSV into a 7D Function.
 
     This loader expects header-based CSV data with one or more independent
     variables among: alpha, beta, mach, reynolds, pitch_rate, yaw_rate,
     roll_rate.
     """
-    from rocketpy.mathutils.function import Function
+    from rocketpy.mathutils.function import (  # pylint: disable=import-outside-toplevel
+        Function,  # pylint: disable=import-outside-toplevel
+    )
 
     independent_vars = [
         "alpha",
@@ -239,13 +243,15 @@ def load_generic_surface_csv(file_path, coeff_name):  # pylint: disable=too-many
     )
 
 
-def load_rocket_drag_csv(file_path, coeff_name):  # pylint: disable=too-many-statements
+def load_rocket_drag_csv(file_path, coeff_name):  # pylint: disable=too-many-statements,import-outside-toplevel
     """Load Rocket drag CSV into a 7D Function.
 
     Supports either headerless two-column (mach, coefficient) tables or
     header-based multi-variable CSV tables.
     """
-    from rocketpy.mathutils.function import Function
+    from rocketpy.mathutils.function import (  # pylint: disable=import-outside-toplevel
+        Function,  # pylint: disable=import-outside-toplevel
+    )
 
     independent_vars = [
         "alpha",
