@@ -74,6 +74,32 @@ def test_valid_initialization_from_csv(filename_valid_coeff):
     )
 
 
+def test_csv_independent_variables_accept_any_order(tmp_path):
+    """Checks if GenericSurface correctly maps CSV columns by header names,
+    regardless of independent variable column order."""
+    filename = tmp_path / "valid_coefficients_shuffled_order.csv"
+    filename.write_text(
+        "mach,alpha,cL\n0,0,0\n0,1,10\n2,0,2\n2,1,12\n",
+        encoding="utf-8",
+    )
+
+    generic_surface = GenericSurface(
+        reference_area=REFERENCE_AREA,
+        reference_length=REFERENCE_LENGTH,
+        coefficients={"cL": str(filename)},
+    )
+
+    closure = generic_surface.cL.source.__closure__
+    csv_function = next(
+        cell.cell_contents
+        for cell in closure
+        if isinstance(cell.cell_contents, Function)
+    )
+
+    assert generic_surface.cL(1, 0, 2, 0, 0, 0, 0) == pytest.approx(12)
+    assert csv_function.get_interpolation_method() == "regular_grid"
+
+
 def test_compute_forces_and_moments():
     """Checks if there are not logical errors in
     compute forces and moments"""

@@ -1,11 +1,11 @@
 import copy
-import csv
 import math
 
 import numpy as np
 
 from rocketpy.mathutils import Function
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
+from rocketpy.tools import load_generic_surface_csv
 
 
 class GenericSurface:
@@ -32,7 +32,8 @@ class GenericSurface:
         angle of attack, angle of sideslip, Mach number, Reynolds number,
         pitch rate, yaw rate and roll rate. For CSV files, the header must
         contain at least one of the following: "alpha", "beta", "mach",
-        "reynolds", "pitch_rate", "yaw_rate" and "roll_rate".
+        "reynolds", "pitch_rate", "yaw_rate" and "roll_rate". The
+        independent variable columns can be provided in any order.
 
         See Also
         --------
@@ -327,7 +328,7 @@ class GenericSurface:
         """
         if isinstance(input_data, str):
             # Input is assumed to be a file path to a CSV
-            return self.__load_csv(input_data, coeff_name)
+            return load_generic_surface_csv(input_data, coeff_name)
         elif isinstance(input_data, Function):
             if input_data.__dom_dim__ != 7:
                 raise ValueError(
@@ -342,7 +343,21 @@ class GenericSurface:
                     f"{coeff_name} function must have 7 input arguments"
                     " (alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate)."
                 )
-            return input_data
+            return Function(
+                input_data,
+                [
+                    "alpha",
+                    "beta",
+                    "mach",
+                    "reynolds",
+                    "pitch_rate",
+                    "yaw_rate",
+                    "roll_rate",
+                ],
+                [coeff_name],
+                interpolation="linear",
+                extrapolation="natural",
+            )
         elif input_data == 0:
             return Function(
                 lambda alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate: 0,
@@ -364,82 +379,3 @@ class GenericSurface:
                 f"Invalid input for {coeff_name}: must be a CSV file path"
                 " or a callable."
             )
-
-    def __load_csv(self, file_path, coeff_name):
-        """Load a CSV file and create a Function object with the correct number
-        of arguments. The CSV file must have a header that specifies the
-        independent variables that are used.
-
-        Parameters
-        ----------
-        file_path : str
-            Path to the CSV file.
-        coeff_name : str
-            Name of the coefficient being processed.
-
-        Returns
-        -------
-        Function
-            Function object with 7 input arguments (alpha, beta, mach, reynolds,
-            pitch_rate, yaw_rate, roll_rate).
-        """
-        try:
-            with open(file_path, mode="r") as file:
-                reader = csv.reader(file)
-                header = next(reader)
-        except (FileNotFoundError, IOError) as e:
-            raise ValueError(f"Error reading {coeff_name} CSV file: {e}") from e
-
-        if not header:
-            raise ValueError(f"Invalid or empty CSV file for {coeff_name}.")
-
-        # TODO make header strings flexible (e.g. 'alpha', 'Alpha', 'ALPHA')
-        independent_vars = [
-            "alpha",
-            "beta",
-            "mach",
-            "reynolds",
-            "pitch_rate",
-            "yaw_rate",
-            "roll_rate",
-        ]
-        present_columns = [col for col in independent_vars if col in header]
-
-        # Check that the last column is not an independent variable
-        if header[-1] in independent_vars:
-            raise ValueError(
-                f"Last column in {coeff_name} CSV must be the coefficient"
-                " value, not an independent variable."
-            )
-
-        # Ensure that at least one independent variable is present
-        if not present_columns:
-            raise ValueError(f"No independent variables found in {coeff_name} CSV.")
-
-        # Initialize the CSV-based function
-        csv_func = Function(
-            file_path,
-            interpolation="linear",
-            extrapolation="natural",
-        )
-
-        # Create a mask for the presence of each independent variable
-        # save on self to avoid loss of scope
-        _mask = [1 if col in present_columns else 0 for col in independent_vars]
-
-        # Generate a lambda that applies only the relevant arguments to csv_func
-        def wrapper(alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate):
-            args = [alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate]
-            # Select arguments that correspond to present variables
-            selected_args = [arg for arg, m in zip(args, _mask) if m]
-            return csv_func(*selected_args)
-
-        # Create the interpolation function
-        func = Function(
-            wrapper,
-            independent_vars,
-            [coeff_name],
-            interpolation="linear",
-            extrapolation="natural",
-        )
-        return func

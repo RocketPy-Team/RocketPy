@@ -742,8 +742,8 @@ class StochasticRocket(StochasticModel):
                 "coordinate_system_orientation"
             ],
         )
-        rocket.power_off_drag *= generated_dict["power_off_drag_factor"]
-        rocket.power_on_drag *= generated_dict["power_on_drag_factor"]
+        rocket.power_off_drag_7d *= generated_dict["power_off_drag_factor"]
+        rocket.power_on_drag_7d *= generated_dict["power_on_drag_factor"]
 
         if hasattr(self, "cp_eccentricity_x") and hasattr(self, "cp_eccentricity_y"):
             cp_ecc_x, cp_ecc_y = self._create_eccentricities(
