@@ -1306,3 +1306,202 @@ def test_short_time_fft(
         else:
             assert np.all(frequencies >= -sampling_frequency / 2)
             assert np.all(frequencies <= sampling_frequency / 2)
+
+
+@pytest.fixture
+def bilinear_grid_2d():
+    """Return a 2-D regular_grid Function for f(x, y) = 2x + 3y.
+
+    Because the true function is bilinear, RegularGridInterpolator can
+    reproduce it exactly both on grid nodes and at any interior point.
+
+    Returns
+    -------
+    Function
+        Regular-grid Function object sampled over x in [0, 2] and y in [0, 2].
+    """
+    x_axis = np.array([0.0, 1.0, 2.0])
+    y_axis = np.array([0.0, 1.0, 2.0])
+    X, Y = np.meshgrid(x_axis, y_axis, indexing="ij")
+    data = 2.0 * X + 3.0 * Y
+    return Function(
+        ([x_axis, y_axis], data),
+        inputs=["x", "y"],
+        outputs=["z"],
+        interpolation="regular_grid",
+    )
+
+
+def test_regular_grid_constructor_sets_metadata(bilinear_grid_2d):
+    """Test that a regular_grid Function is initialised with correct metadata.
+
+    Checks that the interpolation method, domain dimension, inputs and outputs
+    are all stored correctly after construction via the ``(axes, grid_data)``
+    tuple form.
+    """
+    assert bilinear_grid_2d.get_interpolation_method() == "regular_grid"
+    assert bilinear_grid_2d.get_extrapolation_method() == "natural"
+    assert bilinear_grid_2d.get_domain_dim() == 2
+    assert bilinear_grid_2d.get_inputs() == ["x", "y"]
+    assert bilinear_grid_2d.get_outputs() == ["z"]
+
+
+@pytest.mark.parametrize(
+    "x, y, expected",
+    [
+        (0.0, 0.0, 0.0),
+        (1.0, 0.0, 2.0),
+        (0.0, 1.0, 3.0),
+        (2.0, 2.0, 10.0),
+        (0.5, 0.5, 2.5),
+        (1.5, 1.0, 6.0),
+        ([0.0, 1.0], [0.0, 1.0], [0.0, 5.0]),
+    ],
+)
+def test_2d_regular_grid_interpolation(bilinear_grid_2d, x, y, expected):
+    """Test in-domain evaluation of a 2-D regular_grid Function.
+
+    Parameters
+    ----------
+    bilinear_grid_2d : Function
+        2-D regular_grid Function for f(x, y) = 2x + 3y.
+    x : float or list
+        First input coordinate(s).
+    y : float or list
+        Second input coordinate(s).
+    expected : float or list
+        Expected function value(s).
+    """
+    result = bilinear_grid_2d(x, y)
+    result_opt = bilinear_grid_2d.get_value_opt(x, y)
+
+    assert np.isclose(result, expected, atol=1e-10).all()
+    assert np.isclose(result_opt, expected, atol=1e-10).all()
+
+
+@pytest.mark.parametrize(
+    "x, y, z, expected",
+    [
+        (0.0, 0.0, 0.0, 0.0),
+        (1.0, 0.0, 0.0, 1.0),
+        (0.0, 1.0, 0.0, 2.0),
+        (0.0, 0.0, 1.0, 3.0),
+        (0.5, 0.5, 0.5, 3.0),
+        ([0.0, 1.0], [0.0, 0.0], [0.0, 0.0], [0.0, 1.0]),
+    ],
+)
+def test_3d_regular_grid_interpolation(x, y, z, expected):
+    """Test in-domain evaluation of a 3-D regular_grid Function.
+
+    The sampled function is f(x, y, z) = x + 2y + 3z, which is trilinear so
+    RegularGridInterpolator reproduces it exactly everywhere inside the domain.
+
+    Parameters
+    ----------
+    x : float or list
+        First input coordinate(s).
+    y : float or list
+        Second input coordinate(s).
+    z : float or list
+        Third input coordinate(s).
+    expected : float or list
+        Expected function value(s).
+    """
+    x_axis = np.array([0.0, 1.0])
+    y_axis = np.array([0.0, 1.0])
+    z_axis = np.array([0.0, 1.0])
+    X, Y, Z = np.meshgrid(x_axis, y_axis, z_axis, indexing="ij")
+    data = X + 2.0 * Y + 3.0 * Z
+    func = Function(
+        ([x_axis, y_axis, z_axis], data),
+        inputs=["x", "y", "z"],
+        outputs=["w"],
+        interpolation="regular_grid",
+    )
+
+    result = func(x, y, z)
+    result_opt = func.get_value_opt(x, y, z)
+
+    assert np.isclose(result, expected, atol=1e-10).all()
+    assert np.isclose(result_opt, expected, atol=1e-10).all()
+
+
+@pytest.mark.parametrize(
+    "extrapolation, x_out, y_out, expected",
+    [
+        # constant: clamp to boundary face and interpolate
+        ("constant", 3.0, 0.0, 4.0),  # x clamped to 2 → 2*2 + 3*0 = 4
+        ("constant", -1.0, 1.0, 3.0),  # x clamped to 0 → 2*0 + 3*1 = 3
+        ("constant", 1.0, 5.0, 8.0),  # y clamped to 2 → 2*1 + 3*2 = 8
+        # zero: always returns 0 outside domain
+        ("zero", 3.0, 0.0, 0.0),
+        ("zero", -1.0, 1.0, 0.0),
+        # natural: linear continuation — exact for a bilinear underlying function
+        ("natural", 3.0, 0.0, 6.0),  # 2*3 + 3*0 = 6
+        ("natural", -1.0, 0.0, -2.0),  # 2*(-1) + 3*0 = -2
+        ("natural", 0.0, 3.0, 9.0),  # 2*0 + 3*3 = 9
+    ],
+)
+def test_regular_grid_extrapolation(extrapolation, x_out, y_out, expected):
+    """Test out-of-domain behaviour for all extrapolation modes.
+
+    Parameters
+    ----------
+    extrapolation : str
+        Extrapolation mode: ``'constant'``, ``'zero'``, or ``'natural'``.
+    x_out : float
+        Out-of-domain x coordinate.
+    y_out : float
+        Out-of-domain y coordinate.
+    expected : float
+        Expected function value at the out-of-domain point.
+    """
+    x_axis = np.array([0.0, 1.0, 2.0])
+    y_axis = np.array([0.0, 1.0, 2.0])
+    X, Y = np.meshgrid(x_axis, y_axis, indexing="ij")
+    data = 2.0 * X + 3.0 * Y
+    func = Function(
+        ([x_axis, y_axis], data),
+        inputs=["x", "y"],
+        outputs=["z"],
+        interpolation="regular_grid",
+        extrapolation=extrapolation,
+    )
+
+    result = func(x_out, y_out)
+
+    assert np.isclose(result, expected, atol=1e-10)
+
+
+@pytest.mark.parametrize(
+    "bad_source, match",
+    [
+        # axes count doesn't match grid_data.ndim
+        (
+            ([np.array([0.0, 1.0])], np.ones((2, 2))),
+            "Number of axes",
+        ),
+        # first axis length doesn't match first grid dimension
+        (
+            ([np.array([0.0, 1.0, 2.0]), np.array([0.0, 1.0])], np.ones((2, 2))),
+            "Axis 0",
+        ),
+    ],
+)
+def test_regular_grid_invalid_source_raises(bad_source, match):
+    """Test that a malformed ``(axes, grid_data)`` source raises ValueError.
+
+    Parameters
+    ----------
+    bad_source : tuple
+        An ``(axes, grid_data)`` tuple that is structurally invalid.
+    match : str
+        Substring expected in the exception message.
+    """
+    with pytest.raises(ValueError, match=match):
+        Function(
+            bad_source,
+            inputs=["x", "y"],
+            outputs=["z"],
+            interpolation="regular_grid",
+        )
