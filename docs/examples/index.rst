@@ -21,7 +21,7 @@ apogee of some rockets.
       "Bella Lui (2020)": (460.50, 458.97),
       "NDRT (2020)": (1296.77, 1316.75),
       "Andromeda (2022)": (3614.95,3415),
-      "Astra (2022)": (3043.07, 3250), 
+      "Astra (2022)": (3043.07, 3250),
       "Erebus (2022)": (2750.90,3020),
       "Prometheus (2022)": (4190.05, 3898.37),
       "Cavour (2023)": (2818.90, 2789),
@@ -31,6 +31,7 @@ apogee of some rockets.
       "Halcyon (2023)": (3212.78, 3450),
       "Lince (2023)": (3284.12, 3587),
       "Defiance (2024)": (9238.01, 9308.32),
+      "Hedy (2025)": (5406.92, 5231.53),
    }
 
    max_apogee = 10000
@@ -102,5 +103,6 @@ In the next sections you will find the simulations of the rockets listed above.
    camoes_flight_sim.ipynb
    lince_flight_sim.ipynb
    defiance_flight_sim.ipynb
+   hedy_flight_sim.ipynb
 
 
