@@ -716,7 +716,6 @@ def test_invalid_controller_parameter_count(calisto_robust):
             clamp=True,
         )
 
-
 def make_controller_test_environment_access(methods_called):
     def _call_env_methods(environment, altitude_asl):
         _ = environment.elevation
