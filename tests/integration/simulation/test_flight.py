@@ -800,7 +800,7 @@ def make_controller_test_environment_access(methods_called):
     return controller
 
 
-def test_environment_methods_accessible_in_controller(
+def test_environment_methods_accessible_in_controller(  # pylint: disable=too-many-statements
     calisto_robust, example_plain_env
 ):
     """Test that all environment methods are accessible within the controller.
