@@ -215,15 +215,7 @@ class Parachute:
         self.sampling_rate = sampling_rate
         self.lag = lag
         self.noise = noise
-        self.noise_signal = [[-1e-6, np.random.normal(noise[0], noise[1])]]
-        self.noisy_pressure_signal = []
-        self.clean_pressure_signal = []
-        self.noise_bias = noise[0]
-        self.noise_deviation = noise[1]
-        self.noise_corr = (noise[2], (1 - noise[2] ** 2) ** 0.5)
-        self.clean_pressure_signal_function = Function(0)
-        self.noisy_pressure_signal_function = Function(0)
-        self.noise_signal_function = Function(0)
+        self._initialize_noise_attributes(noise)
         self.drag_coefficient = drag_coefficient
         # Estimate radius from cd_s if not provided.
         # cd_s = Cd * S = Cd * π * R²  =>  R = sqrt(cd_s / (Cd * π))
@@ -239,16 +231,26 @@ class Parachute:
             - 0.25975 * self.porosity**2
             + 1.2626 * self.porosity**3
         )
+        self.prints = _ParachutePrints(self)
 
+        self.__evaluate_trigger_function(trigger)
+
+    def _initialize_noise_attributes(self, noise):
+        """Initializes noise-related attributes for the parachute pressure signal."""
+        self.noise_signal = [[-1e-6, np.random.normal(noise[0], noise[1])]]
+        self.noisy_pressure_signal = []
+        self.clean_pressure_signal = []
+        self.noise_bias = noise[0]
+        self.noise_deviation = noise[1]
+        self.noise_corr = (noise[2], (1 - noise[2] ** 2) ** 0.5)
+        self.clean_pressure_signal_function = Function(0)
+        self.noisy_pressure_signal_function = Function(0)
+        self.noise_signal_function = Function(0)
         alpha, beta = self.noise_corr
         self.noise_function = lambda: (
             alpha * self.noise_signal[-1][1]
             + beta * np.random.normal(noise[0], noise[1])
         )
-
-        self.prints = _ParachutePrints(self)
-
-        self.__evaluate_trigger_function(trigger)
 
     def __evaluate_trigger_function(self, trigger):
         """This is used to set the triggerfunc attribute that will be used to
