@@ -8,12 +8,12 @@ from rocketpy import Parachute
 
 
 def _make_parachute(**kwargs):
-    defaults = dict(
-        name="test",
-        cd_s=10.0,
-        trigger="apogee",
-        sampling_rate=100,
-    )
+    defaults = {
+        "name": "test",
+        "cd_s": 10.0,
+        "trigger": "apogee",
+        "sampling_rate": 100,
+    }
     defaults.update(kwargs)
     return Parachute(**defaults)
 
@@ -98,14 +98,14 @@ class TestParachuteSerialization:
     def test_from_dict_defaults_drag_coefficient_to_1_4_when_absent(self):
         """Dicts serialized before drag_coefficient was added (no key) must
         fall back to 1.4 for backward compatibility."""
-        data = dict(
-            name="legacy",
-            cd_s=10.0,
-            trigger="apogee",
-            sampling_rate=100,
-            lag=0,
-            noise=(0, 0, 0),
+        data = {
+            "name": "legacy",
+            "cd_s": 10.0,
+            "trigger": "apogee",
+            "sampling_rate": 100,
+            "lag": 0,
+            "noise": (0, 0, 0),
             # no drag_coefficient key — simulates old serialized data
-        )
+        }
         parachute = Parachute.from_dict(data)
         assert parachute.drag_coefficient == pytest.approx(1.4)

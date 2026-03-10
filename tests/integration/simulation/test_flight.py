@@ -742,6 +742,20 @@ def test_environment_methods_accessible_in_controller(
         "temperature": False,
     }
 
+    def _call_env_methods(environment, altitude_asl, methods_called):
+        _ = environment.elevation
+        methods_called["elevation"] = True
+        _ = environment.wind_velocity_x(altitude_asl)
+        methods_called["wind_velocity_x"] = True
+        _ = environment.wind_velocity_y(altitude_asl)
+        methods_called["wind_velocity_y"] = True
+        _ = environment.speed_of_sound(altitude_asl)
+        methods_called["speed_of_sound"] = True
+        _ = environment.pressure(altitude_asl)
+        methods_called["pressure"] = True
+        _ = environment.temperature(altitude_asl)
+        methods_called["temperature"] = True
+
     def controller_test_environment_access(  # pylint: disable=unused-argument
         time,
         sampling_rate,
@@ -758,29 +772,10 @@ def test_environment_methods_accessible_in_controller(
         if time < 3.9:
             return None
 
-        # Test accessing various environment methods
         try:
-            _ = environment.elevation
-            methods_called["elevation"] = True
-
-            _ = environment.wind_velocity_x(altitude_asl)
-            methods_called["wind_velocity_x"] = True
-
-            _ = environment.wind_velocity_y(altitude_asl)
-            methods_called["wind_velocity_y"] = True
-
-            _ = environment.speed_of_sound(altitude_asl)
-            methods_called["speed_of_sound"] = True
-
-            _ = environment.pressure(altitude_asl)
-            methods_called["pressure"] = True
-
-            _ = environment.temperature(altitude_asl)
-            methods_called["temperature"] = True
-
+            _call_env_methods(environment, altitude_asl, methods_called)
             air_brakes.deployment_level = 0.3
         except AttributeError as e:
-            # If any method is not accessible, the test should fail
             raise AssertionError(f"Environment method not accessible: {e}") from e
 
         return (time, air_brakes.deployment_level)
