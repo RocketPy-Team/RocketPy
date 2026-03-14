@@ -731,6 +731,21 @@ def make_controller_test_environment_access(methods_called):
         _ = environment.temperature(altitude_asl)
         methods_called["temperature"] = True
 
+def make_controller_test_environment_access(methods_called):
+    def _call_env_methods(environment, altitude_asl):
+        _ = environment.elevation
+        methods_called["elevation"] = True
+        _ = environment.wind_velocity_x(altitude_asl)
+        methods_called["wind_velocity_x"] = True
+        _ = environment.wind_velocity_y(altitude_asl)
+        methods_called["wind_velocity_y"] = True
+        _ = environment.speed_of_sound(altitude_asl)
+        methods_called["speed_of_sound"] = True
+        _ = environment.pressure(altitude_asl)
+        methods_called["pressure"] = True
+        _ = environment.temperature(altitude_asl)
+        methods_called["temperature"] = True
+
     def controller(  # pylint: disable=unused-argument
         time,
         sampling_rate,
