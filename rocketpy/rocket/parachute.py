@@ -125,9 +125,9 @@ class Parachute:
         lag=0,
         noise=(0, 0, 0),
         radius=None,
-        drag_coefficient=1.4,
         height=None,
         porosity=0.0432,
+        drag_coefficient=1.4,
     ):
         """Initializes Parachute class.
 
@@ -186,17 +186,6 @@ class Parachute:
             ``cd_s`` and ``drag_coefficient`` using:
             ``radius = sqrt(cd_s / (drag_coefficient * pi))``.
             Units are in meters.
-        drag_coefficient : float, optional
-            Drag coefficient of the inflated canopy shape, used only when
-            ``radius`` is not provided. It relates the aerodynamic ``cd_s``
-            to the physical canopy area via
-            ``cd_s = drag_coefficient * pi * radius**2``. Typical values:
-
-            - **1.4** — hemispherical canopy (default, NASA SP-8066)
-            - **0.75** — flat circular canopy
-            - **1.5** — extended-skirt canopy
-
-            Has no effect when ``radius`` is explicitly provided.
         height : float, optional
             Length of the unique semi-axis (height) of the inflated hemispheroid
             parachute. Default value is the radius of the parachute.
@@ -208,6 +197,17 @@ class Parachute:
             value of 0.0432 is chosen so that the resulting
             ``added_mass_coefficient`` equals approximately 1.0 ("neutral"
             added-mass behavior).
+        drag_coefficient : float, optional
+            Drag coefficient of the inflated canopy shape, used only when
+            ``radius`` is not provided. It relates the aerodynamic ``cd_s``
+            to the physical canopy area via
+            ``cd_s = drag_coefficient * pi * radius**2``. Typical values:
+
+            - **1.4** — hemispherical canopy (default, NASA SP-8066)
+            - **0.75** — flat circular canopy
+            - **1.5** — extended-skirt canopy
+
+            Has no effect when ``radius`` is explicitly provided.
         """
         self.name = name
         self.cd_s = cd_s

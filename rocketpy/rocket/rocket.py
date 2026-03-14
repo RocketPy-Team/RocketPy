@@ -1503,9 +1503,9 @@ class Rocket:
         lag=0,
         noise=(0, 0, 0),
         radius=None,
-        drag_coefficient=1.4,
         height=None,
         porosity=0.0432,
+        drag_coefficient=1.4,
     ):
         """Creates a new parachute, storing its parameters such as
         opening delay, drag coefficients and trigger function.
@@ -1570,11 +1570,6 @@ class Rocket:
             `cd_s` and `drag_coefficient` using:
             `radius = sqrt(cd_s / (drag_coefficient * pi))`.
             Units are in meters.
-        drag_coefficient : float, optional
-            Drag coefficient of the inflated canopy shape, used only when
-            `radius` is not provided. Typical values: 1.4 for hemispherical
-            canopies (default), 0.75 for flat circular canopies, 1.5 for
-            extended-skirt canopies. Has no effect when `radius` is given.
         height : float, optional
             Length of the unique semi-axis (height) of the inflated hemispheroid
             parachute. Default value is the radius of the parachute.
@@ -1585,6 +1580,11 @@ class Rocket:
             during descent; it does not change `cd_s` (drag). The default
             value of 0.0432 yields an `added_mass_coefficient` of
             approximately 1.0 ("neutral" added-mass behavior).
+        drag_coefficient : float, optional
+            Drag coefficient of the inflated canopy shape, used only when
+            `radius` is not provided. Typical values: 1.4 for hemispherical
+            canopies (default), 0.75 for flat circular canopies, 1.5 for
+            extended-skirt canopies. Has no effect when `radius` is given.
 
         Returns
         -------
