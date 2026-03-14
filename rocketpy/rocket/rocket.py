@@ -1584,7 +1584,7 @@ class Rocket:
             canopy area), in [0, 1]. Affects only the added-mass scaling
             during descent; it does not change `cd_s` (drag). The default
             value of 0.0432 yields an `added_mass_coefficient` of
-            approximately 1.0.
+            approximately 1.0 ("neutral" added-mass behavior).
 
         Returns
         -------
