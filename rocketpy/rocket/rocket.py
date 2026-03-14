@@ -1602,9 +1602,9 @@ class Rocket:
             lag,
             noise,
             radius,
-            drag_coefficient,
             height,
             porosity,
+            drag_coefficient,
         )
         self.parachutes.append(parachute)
         return self.parachutes[-1]
