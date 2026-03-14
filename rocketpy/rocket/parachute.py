@@ -209,6 +209,8 @@ class Parachute:
 
             Has no effect when ``radius`` is explicitly provided.
         """
+
+        # Save arguments as attributes
         self.name = name
         self.cd_s = cd_s
         self.trigger = trigger
@@ -216,24 +218,37 @@ class Parachute:
         self.lag = lag
         self.noise = noise
         self.drag_coefficient = drag_coefficient
-        # Estimate radius from cd_s if not provided.
-        # cd_s = Cd * S = Cd * π * R²  =>  R = sqrt(cd_s / (Cd * π))
-        if radius is None:
-            self.radius = np.sqrt(cd_s / (drag_coefficient * np.pi))
-        else:
-            self.radius = radius
-        self.height = height or self.radius
         self.porosity = porosity
-        self.added_mass_coefficient = 1.068 * (
-            1
-            - 1.465 * self.porosity
-            - 0.25975 * self.porosity**2
-            + 1.2626 * self.porosity**3
-        )
 
+        # Initialize derived attributes
+        self.radius = self.__resolve_radius(radius, cd_s, drag_coefficient)
+        self.height = self.__resolve_height(height, self.radius)
+        self.added_mass_coefficient = self.__compute_added_mass_coefficient(
+            self.porosity
+        )
         self.__init_noise(noise)
-        self.prints = _ParachutePrints(self)
         self.__evaluate_trigger_function(trigger)
+
+        # Prints and plots
+        self.prints = _ParachutePrints(self)
+
+    def __resolve_radius(self, radius, cd_s, drag_coefficient):
+        """Resolves parachute radius from input or aerodynamic relation."""
+        if radius is not None:
+            return radius
+
+        # cd_s = Cd * S = Cd * pi * R^2  =>  R = sqrt(cd_s / (Cd * pi))
+        return np.sqrt(cd_s / (drag_coefficient * np.pi))
+
+    def __resolve_height(self, height, radius):
+        """Resolves parachute height defaulting to radius when not provided."""
+        return height or radius
+
+    def __compute_added_mass_coefficient(self, porosity):
+        """Computes the added-mass coefficient from canopy porosity."""
+        return 1.068 * (
+            1 - 1.465 * porosity - 0.25975 * porosity**2 + 1.2626 * porosity**3
+        )
 
     def __init_noise(self, noise):
         """Initializes all noise-related attributes.
@@ -263,7 +278,8 @@ class Parachute:
         interact with the Flight class.
         """
         # pylint: disable=unused-argument, function-redefined
-        # The parachute is deployed by a custom function
+
+        # Case 1: The parachute is deployed by a custom function
         if callable(trigger):
             # work around for having added sensors to parachute triggers
             # to avoid breaking changes
@@ -276,9 +292,10 @@ class Parachute:
 
             self.triggerfunc = triggerfunc
 
+        # Case 2: The parachute is deployed at a given height
         elif isinstance(trigger, (int, float)):
             # The parachute is deployed at a given height
-            def triggerfunc(p, h, y, sensors):  # pylint: disable=unused-argument
+            def triggerfunc(p, h, y, sensors):
                 # p = pressure considering parachute noise signal
                 # h = height above ground level considering parachute noise signal
                 # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
@@ -286,9 +303,10 @@ class Parachute:
 
             self.triggerfunc = triggerfunc
 
+        # Case 3: The parachute is deployed at apogee
         elif trigger.lower() == "apogee":
             # The parachute is deployed at apogee
-            def triggerfunc(p, h, y, sensors):  # pylint: disable=unused-argument
+            def triggerfunc(p, h, y, sensors):
                 # p = pressure considering parachute noise signal
                 # h = height above ground level considering parachute noise signal
                 # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
@@ -296,6 +314,7 @@ class Parachute:
 
             self.triggerfunc = triggerfunc
 
+        # Case 4: Invalid trigger input
         else:
             raise ValueError(
                 f"Unable to set the trigger function for parachute '{self.name}'. "
@@ -327,7 +346,7 @@ class Parachute:
     def all_info(self):
         """Prints all information about the Parachute class."""
         self.info()
-        # self.plots.all() # Parachutes still doesn't have plots
+        # self.plots.all() # TODO: Parachutes still doesn't have plots
 
     def to_dict(self, **kwargs):
         allow_pickle = kwargs.get("allow_pickle", True)
