@@ -237,10 +237,16 @@ class NoseCone(AeroSurface):
                 return np.arccos(1 - 2 * max(min(x / self.length, 1), 0))
 
             self.y_nosecone = Function(
-                lambda x: self.base_radius
-                * (theta(x) - np.sin(2 * theta(x)) / 2 + (np.sin(theta(x)) ** 3) / 3)
-                ** (0.5)
-                / (np.pi**0.5)
+                lambda x: (
+                    self.base_radius
+                    * (
+                        theta(x)
+                        - np.sin(2 * theta(x)) / 2
+                        + (np.sin(theta(x)) ** 3) / 3
+                    )
+                    ** (0.5)
+                    / (np.pi**0.5)
+                )
             )
 
         elif value in ["tangent", "tangentogive", "ogive"]:
@@ -253,15 +259,19 @@ class NoseCone(AeroSurface):
             area = np.pi * self.base_radius**2
             self.k = 1 - volume / (area * self.length)
             self.y_nosecone = Function(
-                lambda x: np.sqrt(rho**2 - (min(x - self.length, 0)) ** 2)
-                + (self.base_radius - rho)
+                lambda x: (
+                    np.sqrt(rho**2 - (min(x - self.length, 0)) ** 2)
+                    + (self.base_radius - rho)
+                )
             )
 
         elif value == "elliptical":
             self.k = 1 / 3
             self.y_nosecone = Function(
-                lambda x: self.base_radius
-                * np.sqrt(1 - ((x - self.length) / self.length) ** 2)
+                lambda x: (
+                    self.base_radius
+                    * np.sqrt(1 - ((x - self.length) / self.length) ** 2)
+                )
             )
 
         elif value == "vonkarman":
@@ -271,15 +281,19 @@ class NoseCone(AeroSurface):
                 return np.arccos(1 - 2 * max(min(x / self.length, 1), 0))
 
             self.y_nosecone = Function(
-                lambda x: self.base_radius
-                * (theta(x) - np.sin(2 * theta(x)) / 2) ** (0.5)
-                / (np.pi**0.5)
+                lambda x: (
+                    self.base_radius
+                    * (theta(x) - np.sin(2 * theta(x)) / 2) ** (0.5)
+                    / (np.pi**0.5)
+                )
             )
         elif value == "parabolic":
             self.k = 0.5
             self.y_nosecone = Function(
-                lambda x: self.base_radius
-                * ((2 * x / self.length - (x / self.length) ** 2) / (2 - 1))
+                lambda x: (
+                    self.base_radius
+                    * ((2 * x / self.length - (x / self.length) ** 2) / (2 - 1))
+                )
             )
         elif value == "powerseries":
             self.k = (2 * self.power) / ((2 * self.power) + 1)

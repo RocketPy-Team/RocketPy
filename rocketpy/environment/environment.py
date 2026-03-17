@@ -2434,22 +2434,26 @@ class Environment:
 
         # Reset wind heading and velocity magnitude
         self.wind_heading = Function(
-            lambda h: (180 / np.pi)
-            * np.arctan2(
-                self.wind_velocity_x.get_value_opt(h),
-                self.wind_velocity_y.get_value_opt(h),
-            )
-            % 360,
+            lambda h: (
+                (180 / np.pi)
+                * np.arctan2(
+                    self.wind_velocity_x.get_value_opt(h),
+                    self.wind_velocity_y.get_value_opt(h),
+                )
+                % 360
+            ),
             "Height (m)",
             "Wind Heading (degrees)",
             extrapolation="constant",
         )
         self.wind_speed = Function(
             lambda h: (
-                self.wind_velocity_x.get_value_opt(h) ** 2
-                + self.wind_velocity_y.get_value_opt(h) ** 2
-            )
-            ** 0.5,
+                (
+                    self.wind_velocity_x.get_value_opt(h) ** 2
+                    + self.wind_velocity_y.get_value_opt(h) ** 2
+                )
+                ** 0.5
+            ),
             "Height (m)",
             "Wind Speed (m/s)",
             extrapolation="constant",

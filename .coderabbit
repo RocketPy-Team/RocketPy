@@ -1,0 +1,43 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+language: "en-US"
+
+reviews:
+  profile: "assertive"
+  poem: false
+  in_progress_fortune: false
+
+  auto_review:
+    enabled: true
+    drafts: false
+    ignore_title_keywords:
+      - "wip"
+      - "do not review"
+
+  path_instructions:
+    - path: "**/*.py"
+      instructions: |
+        This is RocketPy, a scientific Python rocket trajectory simulator.
+        - Docstrings must use NumPy format with parameter types (e.g. `x : float`) but no units in the type field
+        - Do not add type hints to function signatures — the codebase does not use them
+        - No magic numbers without a comment explaining what they represent
+        - Flag any new public function or class missing a NumPy docstring
+        - Flag any logic that duplicates existing RocketPy utilities
+
+    - path: "tests/**"
+      instructions: |
+        Tests use pytest with pytest.approx for float comparisons, not plain == or np.isclose.
+        Flag any float assertion that does not use pytest.approx.
+        Test names should describe the scenario being tested, not just the function name.
+
+  finishing_touches:
+    docstrings:
+      enabled: true
+    unit_tests:
+      enabled: true
+
+knowledge_base:
+  web_search:
+    enabled: true
+  learnings:
+    scope: auto
