@@ -2,6 +2,7 @@ import time
 from datetime import date, datetime, timezone
 from unittest.mock import patch
 
+import numpy as np
 import pytest
 
 
@@ -90,6 +91,43 @@ def test_standard_atmosphere(mock_show, example_plain_env):  # pylint: disable=u
     assert abs(example_plain_env.pressure(0) - 101325.0) < 1e-8
     assert abs(example_plain_env.barometric_height(101325.0)) < 1e-2
     assert example_plain_env.prints.print_earth_details() is None
+
+
+@patch("matplotlib.pyplot.show")
+def test_wind_plots_wrapping_direction(mock_show, example_plain_env):  # pylint: disable=unused-argument
+    """Tests that wind direction plots handle 360°→0° wraparound without
+    drawing a horizontal line across the graph.
+
+    Parameters
+    ----------
+    mock_show : mock
+        Mock object to replace matplotlib.pyplot.show() method.
+    example_plain_env : rocketpy.Environment
+        Example environment object to be tested.
+    """
+    # Set a custom atmosphere where wind direction wraps from ~350° to ~10°
+    # across the altitude range by choosing wind_u and wind_v to create a
+    # direction near 350° at low altitude and ~10° at higher altitude.
+    # wind_direction = (180 + atan2(wind_u, wind_v)) % 360
+    # For direction ~350°: need atan2(wind_u, wind_v) ≈ 170° → wind_u>0, wind_v<0
+    # For direction ~10°:  need atan2(wind_u, wind_v) ≈ -170° → wind_u<0, wind_v<0
+    example_plain_env.set_atmospheric_model(
+        type="custom_atmosphere",
+        pressure=None,
+        temperature=300,
+        wind_u=[(0, 1), (5000, -1)],   # changes sign across altitude
+        wind_v=[(0, -6), (5000, -6)],  # stays negative → heading near 350°/10°
+    )
+    # Verify that the wind direction actually wraps through 0°/360° in this
+    # atmosphere so the test exercises the wraparound code path.
+    low_dir = example_plain_env.wind_direction(0)
+    high_dir = example_plain_env.wind_direction(5000)
+    assert abs(low_dir - high_dir) > 180, (
+        "Test setup error: wind direction should cross 0°/360° boundary"
+    )
+    # Verify info() and atmospheric_model() plots complete without error
+    assert example_plain_env.info() is None
+    assert example_plain_env.plots.atmospheric_model() is None
 
 
 @pytest.mark.parametrize(

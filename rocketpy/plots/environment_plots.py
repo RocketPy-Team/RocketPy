@@ -55,9 +55,19 @@ class _EnvironmentPlots:
         ax.set_xlabel("Wind Speed (m/s)", color="#ff7f0e")
         ax.tick_params("x", colors="#ff7f0e")
         axup = ax.twiny()
+        directions = np.array(
+            [self.environment.wind_direction(i) for i in self.grid], dtype=float
+        )
+        altitudes = np.array(self.grid, dtype=float)
+        # Insert NaN where direction jumps by more than 180° (360°→0° wraparound)
+        # so matplotlib does not draw a horizontal line across the plot.
+        WRAP_THRESHOLD = 180  # degrees; half the full circle
+        wrap_indices = np.where(np.abs(np.diff(directions)) > WRAP_THRESHOLD)[0] + 1
+        directions = np.insert(directions, wrap_indices, np.nan)
+        altitudes = np.insert(altitudes, wrap_indices, np.nan)
         axup.plot(
-            [self.environment.wind_direction(i) for i in self.grid],
-            self.grid,
+            directions,
+            altitudes,
             color="#1f77b4",
             label="Wind Direction",
         )
@@ -309,11 +319,20 @@ class _EnvironmentPlots:
 
         # Create wind direction subplot
         ax8 = plt.subplot(324)
+        WRAP_THRESHOLD = 180  # degrees; half the full circle
         for i in range(self.environment.num_ensemble_members):
             self.environment.select_ensemble_member(i)
+            dirs = np.array(
+                [self.environment.wind_direction(j) for j in self.grid], dtype=float
+            )
+            alts = np.array(self.grid, dtype=float)
+            # Insert NaN at wraparound points to avoid crossing lines
+            wrap_idx = np.where(np.abs(np.diff(dirs)) > WRAP_THRESHOLD)[0] + 1
+            dirs = np.insert(dirs, wrap_idx, np.nan)
+            alts = np.insert(alts, wrap_idx, np.nan)
             ax8.plot(
-                [self.environment.wind_direction(i) for i in self.grid],
-                self.grid,
+                dirs,
+                alts,
                 label=i,
             )
         ax8.set_ylabel("Height Above Sea Level (m)")
