@@ -27,6 +27,7 @@ from rocketpy.environment.tools import (
     find_latitude_index,
     find_longitude_index,
     find_time_index,
+    geodesic_to_lambert_conformal,
     geodesic_to_utm,
     get_elevation_data_from_dataset,
     get_final_date_from_time_array,
@@ -604,6 +605,61 @@ class Environment:
         self.earth_rotation_vector = w_local
 
     # Validators (used to verify an attribute is being set correctly.)
+
+    @staticmethod
+    def __dictionary_matches_dataset(dictionary, dataset):
+        """Check whether a mapping dictionary is compatible with a dataset."""
+        variables = dataset.variables
+        required_keys = (
+            "time",
+            "latitude",
+            "longitude",
+            "level",
+            "temperature",
+            "u_wind",
+            "v_wind",
+        )
+
+        for key in required_keys:
+            variable_name = dictionary.get(key)
+            if variable_name is None or variable_name not in variables:
+                return False
+
+        projection_name = dictionary.get("projection")
+        if projection_name is not None and projection_name not in variables:
+            return False
+
+        geopotential_height_name = dictionary.get("geopotential_height")
+        geopotential_name = dictionary.get("geopotential")
+        has_geopotential_height = (
+            geopotential_height_name is not None
+            and geopotential_height_name in variables
+        )
+        has_geopotential = (
+            geopotential_name is not None and geopotential_name in variables
+        )
+
+        return has_geopotential_height or has_geopotential
+
+    def __resolve_dictionary_for_dataset(self, dictionary, dataset):
+        """Resolve a compatible mapping dictionary for the loaded dataset.
+
+        If the provided mapping is incompatible with the dataset variables,
+        this method tries built-in mappings and falls back to the first
+        compatible one.
+        """
+        if self.__dictionary_matches_dataset(dictionary, dataset):
+            return dictionary
+
+        for model_name, candidate in self.__weather_model_map.all_dictionaries.items():
+            if self.__dictionary_matches_dataset(candidate, dataset):
+                warnings.warn(
+                    "Provided weather mapping does not match dataset variables. "
+                    f"Falling back to built-in mapping '{model_name}'."
+                )
+                return candidate
+
+        return dictionary
 
     def __validate_dictionary(self, file, dictionary):
         # removed CMC until it is fixed.
@@ -1200,6 +1256,36 @@ class Environment:
             case "windy":
                 self.process_windy_atmosphere(file)
             case "forecast" | "reanalysis" | "ensemble":
+                if isinstance(file, str):
+                    shortcut_map = self.__atm_type_file_to_function_map.get(type, {})
+                    matching_shortcut = next(
+                        (
+                            shortcut
+                            for shortcut in shortcut_map
+                            if shortcut.lower() == file.lower()
+                        ),
+                        None,
+                    )
+                    if matching_shortcut is not None:
+                        file = matching_shortcut
+
+                if isinstance(file, str):
+                    file_upper = file.upper()
+                    if type == "forecast" and file_upper == "HIRESW":
+                        raise ValueError(
+                            "The HIRESW latest-model shortcut is currently "
+                            "unavailable because NOMADS OPeNDAP is deactivated. "
+                            "Please use another forecast source or provide a "
+                            "compatible dataset path/URL explicitly."
+                        )
+                    if type == "ensemble" and file_upper == "GEFS":
+                        raise ValueError(
+                            "The GEFS latest-model shortcut is currently "
+                            "unavailable because NOMADS OPeNDAP is deactivated. "
+                            "Please use another ensemble source or provide a "
+                            "compatible dataset path/URL explicitly."
+                        )
+
                 dictionary = self.__validate_dictionary(file, dictionary)
                 try:
                     fetch_function = self.__atm_type_file_to_function_map[type][file]
@@ -1661,20 +1747,34 @@ class Environment:
         # Read weather file
         if isinstance(file, str):
             data = netCDF4.Dataset(file)
-            if dictionary["time"] not in data.variables.keys():
-                dictionary = self.__weather_model_map.get("ECMWF_v0")
         else:
             data = file
 
+        dictionary = self.__resolve_dictionary_for_dataset(dictionary, data)
+
         # Get time, latitude and longitude data from file
         time_array = data.variables[dictionary["time"]]
-        lon_list = data.variables[dictionary["longitude"]][:].tolist()
-        lat_list = data.variables[dictionary["latitude"]][:].tolist()
+        lon_array = data.variables[dictionary["longitude"]]
+        lat_array = data.variables[dictionary["latitude"]]
+
+        # Some THREDDS datasets use projected x/y coordinates.
+        if dictionary.get("projection") is not None:
+            projection_variable = data.variables[dictionary["projection"]]
+            x_units = getattr(lon_array, "units", "m")
+            target_lon, target_lat = geodesic_to_lambert_conformal(
+                self.latitude,
+                self.longitude,
+                projection_variable,
+                x_units=x_units,
+            )
+        else:
+            target_lon = self.longitude
+            target_lat = self.latitude
 
         # Find time, latitude and longitude indexes
         time_index = find_time_index(self.datetime_date, time_array)
-        lon, lon_index = find_longitude_index(self.longitude, lon_list)
-        _, lat_index = find_latitude_index(self.latitude, lat_list)
+        lon, lon_index = find_longitude_index(target_lon, lon_array)
+        _, lat_index = find_latitude_index(target_lat, lat_array)
 
         # Get pressure level data from file
         levels = get_pressure_levels_from_file(data, dictionary)
@@ -1732,9 +1832,9 @@ class Environment:
             ) from e
 
         # Prepare for bilinear interpolation
-        x, y = self.latitude, lon
-        x1, y1 = lat_list[lat_index - 1], lon_list[lon_index - 1]
-        x2, y2 = lat_list[lat_index], lon_list[lon_index]
+        x, y = target_lat, lon
+        x1, y1 = float(lat_array[lat_index - 1]), float(lon_array[lon_index - 1])
+        x2, y2 = float(lat_array[lat_index]), float(lon_array[lon_index])
 
         # Determine properties in lat, lon
         height = bilinear_interpolation(
@@ -1785,6 +1885,17 @@ class Environment:
             wind_vs[:, 1, 0],
             wind_vs[:, 1, 1],
         )
+
+        # Some datasets expose different level counts between fields
+        # (e.g., temperature on isobaric1 and geopotential on isobaric).
+        min_profile_length = min(
+            len(levels), len(height), len(temper), len(wind_u), len(wind_v)
+        )
+        levels = levels[:min_profile_length]
+        height = height[:min_profile_length]
+        temper = temper[:min_profile_length]
+        wind_u = wind_u[:min_profile_length]
+        wind_v = wind_v[:min_profile_length]
 
         # Determine wind speed, heading and direction
         wind_speed = calculate_wind_speed(wind_u, wind_v)
@@ -1843,14 +1954,14 @@ class Environment:
             )
         else:
             self.atmospheric_model_interval = 0
-        self.atmospheric_model_init_lat = lat_list[0]
-        self.atmospheric_model_end_lat = lat_list[-1]
-        self.atmospheric_model_init_lon = lon_list[0]
-        self.atmospheric_model_end_lon = lon_list[-1]
+        self.atmospheric_model_init_lat = float(lat_array[0])
+        self.atmospheric_model_end_lat = float(lat_array[len(lat_array) - 1])
+        self.atmospheric_model_init_lon = float(lon_array[0])
+        self.atmospheric_model_end_lon = float(lon_array[len(lon_array) - 1])
 
         # Save debugging data
-        self.lat_array = lat_list
-        self.lon_array = lon_list
+        self.lat_array = [x1, x2]
+        self.lon_array = [y1, y2]
         self.lon_index = lon_index
         self.lat_index = lat_index
         self.geopotentials = geopotentials
@@ -1858,7 +1969,10 @@ class Environment:
         self.wind_vs = wind_vs
         self.levels = levels
         self.temperatures = temperatures
-        self.time_array = time_array[:].tolist()
+        self.time_array = [
+            float(time_array[0]),
+            float(time_array[time_array.shape[0] - 1]),
+        ]
         self.height = height
 
         # Close weather data
@@ -1937,23 +2051,40 @@ class Environment:
         else:
             data = file
 
+        dictionary = self.__resolve_dictionary_for_dataset(dictionary, data)
+
         # Get time, latitude and longitude data from file
         time_array = data.variables[dictionary["time"]]
-        lon_list = data.variables[dictionary["longitude"]][:].tolist()
-        lat_list = data.variables[dictionary["latitude"]][:].tolist()
+        lon_array = data.variables[dictionary["longitude"]]
+        lat_array = data.variables[dictionary["latitude"]]
+
+        # Some THREDDS datasets use projected x/y coordinates.
+        #TODO CHECK THIS I AM NOT SURE?????
+        if dictionary.get("projection") is not None:
+            projection_variable = data.variables[dictionary["projection"]]
+            x_units = getattr(lon_array, "units", "m")
+            target_lon, target_lat = geodesic_to_lambert_conformal(
+                self.latitude,
+                self.longitude,
+                projection_variable,
+                x_units=x_units,
+            )
+        else:
+            target_lon = self.longitude
+            target_lat = self.latitude
 
         # Find time, latitude and longitude indexes
         time_index = find_time_index(self.datetime_date, time_array)
-        lon, lon_index = find_longitude_index(self.longitude, lon_list)
-        _, lat_index = find_latitude_index(self.latitude, lat_list)
+        lon, lon_index = find_longitude_index(target_lon, lon_array)
+        _, lat_index = find_latitude_index(target_lat, lat_array)
 
         # Get ensemble data from file
+        has_ensemble_dimension = True
         try:
             num_members = len(data.variables[dictionary["ensemble"]][:])
-        except KeyError as e:
-            raise ValueError(
-                "Unable to read ensemble data from file. Check file and dictionary."
-            ) from e
+        except KeyError:
+            has_ensemble_dimension = False
+            num_members = 1
 
         # Get pressure level data from file
         levels = get_pressure_levels_from_file(data, dictionary)
@@ -2012,10 +2143,16 @@ class Environment:
                 "Unable to read wind-v component. Check file and dictionary."
             ) from e
 
+        if not has_ensemble_dimension:
+            geopotentials = np.expand_dims(geopotentials, axis=0)
+            temperatures = np.expand_dims(temperatures, axis=0)
+            wind_us = np.expand_dims(wind_us, axis=0)
+            wind_vs = np.expand_dims(wind_vs, axis=0)
+
         # Prepare for bilinear interpolation
-        x, y = self.latitude, lon
-        x1, y1 = lat_list[lat_index - 1], lon_list[lon_index - 1]
-        x2, y2 = lat_list[lat_index], lon_list[lon_index]
+        x, y = target_lat, lon
+        x1, y1 = float(lat_array[lat_index - 1]), float(lon_array[lon_index - 1])
+        x2, y2 = float(lat_array[lat_index]), float(lon_array[lon_index])
 
         # Determine properties in lat, lon
         height = bilinear_interpolation(
@@ -2067,6 +2204,19 @@ class Environment:
             wind_vs[:, :, 1, 1],
         )
 
+        min_profile_length = min(
+            len(levels),
+            height.shape[1],
+            temper.shape[1],
+            wind_u.shape[1],
+            wind_v.shape[1],
+        )
+        levels = levels[:min_profile_length]
+        height = height[:, :min_profile_length]
+        temper = temper[:, :min_profile_length]
+        wind_u = wind_u[:, :min_profile_length]
+        wind_v = wind_v[:, :min_profile_length]
+
         # Determine wind speed, heading and direction
         wind_speed = calculate_wind_speed(wind_u, wind_v)
         wind_heading = calculate_wind_heading(wind_u, wind_v)
@@ -2099,14 +2249,14 @@ class Environment:
         self.atmospheric_model_init_date = get_initial_date_from_time_array(time_array)
         self.atmospheric_model_end_date = get_final_date_from_time_array(time_array)
         self.atmospheric_model_interval = get_interval_date_from_time_array(time_array)
-        self.atmospheric_model_init_lat = lat_list[0]
-        self.atmospheric_model_end_lat = lat_list[-1]
-        self.atmospheric_model_init_lon = lon_list[0]
-        self.atmospheric_model_end_lon = lon_list[-1]
+        self.atmospheric_model_init_lat = float(lat_array[0])
+        self.atmospheric_model_end_lat = float(lat_array[len(lat_array) - 1])
+        self.atmospheric_model_init_lon = float(lon_array[0])
+        self.atmospheric_model_end_lon = float(lon_array[len(lon_array) - 1])
 
         # Save debugging data
-        self.lat_array = lat_list
-        self.lon_array = lon_list
+        self.lat_array = [x1, x2]
+        self.lon_array = [y1, y2]
         self.lon_index = lon_index
         self.lat_index = lat_index
         self.geopotentials = geopotentials
@@ -2114,7 +2264,10 @@ class Environment:
         self.wind_vs = wind_vs
         self.levels = levels
         self.temperatures = temperatures
-        self.time_array = time_array[:].tolist()
+        self.time_array = [
+            float(time_array[0]),
+            float(time_array[time_array.shape[0] - 1]),
+        ]
         self.height = height
 
         # Close weather data
