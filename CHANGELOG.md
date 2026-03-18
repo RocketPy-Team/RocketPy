@@ -40,7 +40,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
-- 
+- BUG: Restore `Rocket.power_off_drag` and `Rocket.power_on_drag` as `Function` objects while preserving raw inputs in `power_off_drag_input` and `power_on_drag_input` [#941](https://github.com/RocketPy-Team/RocketPy/pull/941)
 
 ## [v1.12.0] - 2026-03-08
 
