@@ -40,7 +40,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
-- 
+- BUG: Add explicit timeouts to ThrustCurve API requests [#935](https://github.com/RocketPy-Team/RocketPy/pull/935)
 
 ## [v1.12.0] - 2026-03-08
 
