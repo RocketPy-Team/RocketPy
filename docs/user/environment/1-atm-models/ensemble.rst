@@ -1,3 +1,5 @@
+.. _ensemble_atmosphere:
+
 Ensemble
 ========
 
@@ -21,7 +23,21 @@ Ensemble Forecast
 Global Ensemble Forecast System (GEFS)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The ``GEFS`` model is a global ensemble forecast model ...
+.. danger::
+
+    **GEFS shortcut unavailable**: ``file="GEFS"`` is currently disabled in
+    RocketPy because NOMADS OPeNDAP is deactivated for this endpoint.
+
+.. note::
+
+    If you have a GEFS-compatible NetCDF or OPeNDAP dataset from another
+    provider (or a local copy), you can still load it explicitly by passing the
+    dataset path/URL in ``file`` and a compatible mapping in ``dictionary``.
+
+
+The ``GEFS`` model is a global ensemble forecast system useful for uncertainty
+analysis, but RocketPy's automatic ``file="GEFS"`` shortcut is temporarily
+disabled.
 
 
 .. code-block:: python
@@ -71,16 +87,12 @@ CMC Ensemble
     resulted in a change of the model's endpoint. Efforts are underway to \
     restore access to the CMC Ensemble model as swiftly as possible.
 
-.. code-block:: python
+At the moment, there is no built-in ``file="CMC"`` shortcut in
+``Environment.set_atmospheric_model``.
 
-    env_cmc = Environment(
-        date=date_info,
-        latitude=-21.960641,
-        longitude=-47.482122,
-        elevation=640,
-    )
-    env_cmc.set_atmospheric_model(type="Ensemble", file="CMC")
-    env_cmc.all_info()
+If you have a CMC-compatible NetCDF or OPeNDAP dataset, load it explicitly by
+passing the dataset path/URL in ``file`` and a matching mapping dictionary in
+``dictionary``.
 
 
 Ensemble Reanalysis

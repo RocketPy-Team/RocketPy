@@ -138,15 +138,15 @@ class Environment:
     Environment.atmospheric_model_type : string
         Describes the atmospheric model which is being used. Can only assume the
         following values: ``standard_atmosphere``, ``custom_atmosphere``,
-        ``wyoming_sounding``, ``Forecast``, ``Reanalysis``,
-        ``Ensemble``.
+        ``wyoming_sounding``, ``windy``, ``forecast``, ``reanalysis``,
+        ``ensemble``.
     Environment.atmospheric_model_file : string
         Address of the file used for the atmospheric model being used. Only
-        defined for ``wyoming_sounding``, ``Forecast``,
-        ``Reanalysis``, ``Ensemble``
+        defined for ``wyoming_sounding``, ``windy``, ``forecast``,
+        ``reanalysis``, ``ensemble``
     Environment.atmospheric_model_dict : dictionary
         Dictionary used to properly interpret ``netCDF`` and ``OPeNDAP`` files.
-        Only defined for ``Forecast``, ``Reanalysis``, ``Ensemble``.
+        Only defined for ``forecast``, ``reanalysis``, ``ensemble``.
     Environment.atmospheric_model_init_date : datetime
         Datetime object instance of first available date in ``netCDF``
         and ``OPeNDAP`` files when using ``Forecast``, ``Reanalysis`` or
@@ -295,21 +295,21 @@ class Environment:
 
             - :attr:`Environment.datetime_date`: UTC time of launch.
 
-            Must be given if a Forecast, Reanalysis
-            or Ensemble, will be set as an atmospheric model.
+            Must be given if a ``windy``, ``forecast``, ``reanalysis``
+            or ``ensemble`` atmospheric model will be used.
             Default is None.
             See :meth:`Environment.set_date` for more information.
         latitude : float, optional
             Latitude in degrees (ranging from -90 to 90) of rocket
-            launch location. Must be given if a Forecast, Reanalysis
-            or Ensemble will be used as an atmospheric model or if
+            launch location. Must be given if a ``windy``, ``forecast``,
+            ``reanalysis`` or ``ensemble`` atmospheric model will be used or if
             Open-Elevation will be used to compute elevation. Positive
             values correspond to the North. Default value is 0, which
             corresponds to the equator.
         longitude : float, optional
             Longitude in degrees (ranging from -180 to 180) of rocket
-            launch location. Must be given if a Forecast, Reanalysis
-            or Ensemble will be used as an atmospheric model or if
+            launch location. Must be given if a ``windy``, ``forecast``,
+            ``reanalysis`` or ``ensemble`` atmospheric model will be used or if
             Open-Elevation will be used to compute elevation. Positive
             values correspond to the East. Default value is 0, which
             corresponds to the Greenwich Meridian.
@@ -607,11 +607,24 @@ class Environment:
 
     def __validate_dictionary(self, file, dictionary):
         # removed CMC until it is fixed.
-        available_models = ["GFS", "NAM", "RAP", "HIRESW", "GEFS", "ERA5", "MERRA2"]
+        available_models = [
+            "GFS",
+            "NAM",
+            "RAP",
+            "HIRESW",
+            "GEFS",
+            "ERA5",
+            "MERRA2",
+        ]
         if isinstance(dictionary, str):
             dictionary = self.__weather_model_map.get(dictionary)
-        elif file in available_models:
-            dictionary = self.__weather_model_map.get(file)
+        elif isinstance(file, str):
+            matching_model = next(
+                (model for model in available_models if model.lower() == file.lower()),
+                None,
+            )
+            if matching_model is not None:
+                dictionary = self.__weather_model_map.get(matching_model)
         if not isinstance(dictionary, dict):
             raise TypeError(
                 "Please specify a dictionary or choose a valid model from the "
@@ -1045,171 +1058,41 @@ class Environment:
         wind_u=0,
         wind_v=0,
     ):
-        """Defines an atmospheric model for the Environment. Supported
-        functionality includes using data from the `International Standard
-        Atmosphere`, importing data from weather reanalysis, forecasts and
-        ensemble forecasts, importing data from upper air soundings and
-        inputting data as custom functions, arrays or csv files.
+        """Define the atmospheric model for this Environment.
 
         Parameters
         ----------
         type : string
-            One of the following options:
+            Atmospheric model selector (case-insensitive). Accepted values are
+            ``"standard_atmosphere"``, ``"wyoming_sounding"``, ``"windy"``,
+            ``"forecast"``, ``"reanalysis"``, ``"ensemble"`` and
+            ``"custom_atmosphere"``.
+        file : string | netCDF4.Dataset, optional
+            Data source or model shortcut. Meaning depends on ``type``:
 
-            - ``standard_atmosphere``: sets pressure and temperature profiles
-              corresponding to the International Standard Atmosphere defined by
-              ISO 2533 and ranging from -2 km to 80 km of altitude above sea
-              level. Note that the wind profiles are set to zero when this type
-              is chosen.
+            - ``"standard_atmosphere"`` and ``"custom_atmosphere"``: ignored.
+            - ``"wyoming_sounding"``: URL of the sounding text page.
+            - ``"windy"``: one of ``"ECMWF"``, ``"GFS"``, ``"ICON"`` or
+              ``"ICONEU"``.
+            - ``"forecast"``: local path, OPeNDAP URL, open
+              ``netCDF4.Dataset``, or one of ``"GFS"``, ``"NAM"`` or ``"RAP"``
+              for the latest available forecast.
+            - ``"reanalysis"``: local path, OPeNDAP URL, or open
+              ``netCDF4.Dataset``.
+            - ``"ensemble"``: local path, OPeNDAP URL, open
+              ``netCDF4.Dataset``, or ``"GEFS"`` for the latest available
+              forecast.
+        dictionary : dict | str, optional
+            Variable-name mapping for ``"forecast"``, ``"reanalysis"`` and
+            ``"ensemble"``. It may be a custom dictionary or a built-in
+            mapping name (for example: ``"ECMWF"``, ``"ECMWF_v0"``,
+            ``"NOAA"``, ``"GFS"``, ``"NAM"``, ``"RAP"``, ``"HIRESW"``,
+            ``"GEFS"``, ``"MERRA2"`` or ``"CMC"``).
 
-            - ``wyoming_sounding``: sets pressure, temperature, wind-u
-              and wind-v profiles and surface elevation obtained from
-              an upper air sounding given by the file parameter through
-              an URL. This URL should point to a data webpage given by
-              selecting plot type as text: list, a station and a time at
-              `weather.uwyo`_.
-              An example of a valid link would be:
-
-              http://weather.uwyo.edu/cgi-bin/sounding?region=samer&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=02&FROM=0200&TO=0200&STNM=82599
-
-              .. _weather.uwyo: http://weather.uwyo.edu/upperair/sounding.html
-
-            - ``windy_atmosphere``: sets pressure, temperature, wind-u and
-              wind-v profiles and surface elevation obtained from the Windy API.
-              See file argument to specify the model as either ``ECMWF``,
-              ``GFS`` or ``ICON``.
-
-            - ``Forecast``: sets pressure, temperature, wind-u and wind-v
-              profiles and surface elevation obtained from a weather forecast
-              file in ``netCDF`` format or from an ``OPeNDAP`` URL, both given
-              through the file parameter. When this type is chosen, the date
-              and location of the launch should already have been set through
-              the date and location parameters when initializing the
-              Environment. The ``netCDF`` and ``OPeNDAP`` datasets must contain
-              at least geopotential height or geopotential, temperature, wind-u
-              and wind-v profiles as a function of pressure levels. If surface
-              geopotential or geopotential height is given, elevation is also
-              set. Otherwise, elevation is not changed. Profiles are
-              interpolated bi-linearly using supplied latitude and longitude.
-              The date used is the nearest one to the date supplied.
-              Furthermore, a dictionary must be supplied through the dictionary
-              parameter in order for the dataset to be accurately read. Lastly,
-              the dataset must use a rectangular grid sorted in either ascending
-              or descending order of latitude and longitude.
-
-            - ``Reanalysis``: sets pressure, temperature, wind-u and wind-v
-              profiles and surface elevation obtained from a weather forecast
-              file in ``netCDF`` format or from an ``OPeNDAP`` URL, both given
-              through the file parameter. When this type is chosen, the date and
-              location of the launch should already have been set through the
-              date and location parameters when initializing the Environment.
-              The ``netCDF`` and ``OPeNDAP`` datasets must contain at least
-              geopotential height or geopotential, temperature, wind-u and
-              wind-v profiles as a function of pressure levels. If surface
-              geopotential or geopotential height is given, elevation is also
-              set. Otherwise, elevation is not changed. Profiles are
-              interpolated bi-linearly using supplied latitude and longitude.
-              The date used is the nearest one to the date supplied.
-              Furthermore, a dictionary must be supplied through the dictionary
-              parameter in order for the dataset to be accurately read. Lastly,
-              the dataset must use a rectangular grid sorted in either ascending
-              or descending order of latitude and longitude.
-
-            - ``Ensemble``: sets pressure, temperature, wind-u and wind-v
-              profiles and surface elevation obtained from a weather forecast
-              file in ``netCDF`` format or from an ``OPeNDAP`` URL, both given
-              through the file parameter. When this type is chosen, the date and
-              location of the launch should already have been set through the
-              date and location parameters when initializing the Environment.
-              The ``netCDF`` and ``OPeNDAP`` datasets must contain at least
-              geopotential height or geopotential, temperature, wind-u and
-              wind-v profiles as a function of pressure levels. If surface
-              geopotential or geopotential height is given, elevation is also
-              set. Otherwise, elevation is not changed. Profiles are
-              interpolated bi-linearly using supplied latitude and longitude.
-              The date used is the nearest one to the date supplied.
-              Furthermore, a dictionary must be supplied through the dictionary
-              parameter in order for the dataset to be accurately read. Lastly,
-              the dataset must use a rectangular grid sorted in either ascending
-              or descending order of latitude and longitude. By default the
-              first ensemble forecast is activated.
-
-              .. seealso::
-
-                To activate other ensemble forecasts see
-                :meth:`rocketpy.Environment.select_ensemble_member`.
-
-            - ``custom_atmosphere``: sets pressure, temperature, wind-u and
-              wind-v profiles given though the pressure, temperature, wind-u and
-              wind-v parameters of this method. If pressure or temperature is
-              not given, it will default to the `International Standard
-              Atmosphere`. If the wind components are not given, it will default
-              to 0.
-
-        file : string, optional
-            String that must be given when type is either ``wyoming_sounding``,
-            ``Forecast``, ``Reanalysis``, ``Ensemble`` or ``Windy``. It
-            specifies the location of the data given, either through a local
-            file address or a URL. If type is ``Forecast``, this parameter can
-            also be either ``GFS``, ``FV3``, ``RAP`` or ``NAM`` for latest of
-            these forecasts.
-
-            .. note::
-
-                Time reference for the Forecasts are:
-
-                - ``GFS``: `Global` - 0.25deg resolution - Updates every 6
-                  hours, forecast for 81 points spaced by 3 hours
-                - ``RAP``: `Regional USA` - 0.19deg resolution - Updates hourly,
-                  forecast for 40 points spaced hourly
-                - ``NAM``: `Regional CONUS Nest` - 5 km resolution - Updates
-                  every 6 hours, forecast for 21 points spaced by 3 hours
-
-            If type is ``Ensemble``, this parameter can also be ``GEFS``
-            for the latest of this ensemble.
-
-            .. note::
-
-                Time referece for the Ensembles are:
-
-                - GEFS: Global, bias-corrected, 0.5deg resolution, 21 forecast
-                  members, Updates every 6 hours, forecast for 65 points spaced
-                  by 4 hours
-                - CMC (currently not available): Global, 0.5deg resolution, 21 \
-                  forecast members, Updates every 12 hours, forecast for 65 \
-                  points spaced by 4 hours
-
-            If type is ``Windy``, this parameter can be either ``GFS``,
-            ``ECMWF``, ``ICON`` or ``ICONEU``. Default in this case is ``ECMWF``.
-        dictionary : dictionary, string, optional
-            Dictionary that must be given when type is either ``Forecast``,
-            ``Reanalysis`` or ``Ensemble``. It specifies the dictionary to be
-            used when reading ``netCDF`` and ``OPeNDAP`` files, allowing the
-            correct retrieval of data. Acceptable values include ``ECMWF``,
-            ``NOAA``, ``UCAR`` and ``MERRA2`` for default dictionaries which can generally
-            be used to read datasets from these institutes. Alternatively, a
-            dictionary structure can also be given, specifying the short names
-            used for time, latitude, longitude, pressure levels, temperature
-            profile, geopotential or geopotential height profile, wind-u and
-            wind-v profiles in the dataset given in the file parameter.
-            Additionally, ensemble dictionaries must have the ensemble as well.
-            An example is the following dictionary, used for ``NOAA``:
-
-            .. code-block:: python
-
-                dictionary = {
-                    "time": "time",
-                    "latitude": "lat",
-                    "longitude": "lon",
-                    "level": "lev",
-                    "ensemble": "ens",
-                    "temperature": "tmpprs",
-                    "surface_geopotential_height": "hgtsfc",
-                    "geopotential_height": "hgtprs",
-                    "geopotential": None,
-                    "u_wind": "ugrdprs",
-                    "v_wind": "vgrdprs",
-                }
+            If ``dictionary`` is omitted and ``file`` is one of RocketPy's
+            latest-model shortcuts, the matching built-in mapping is selected
+            automatically. For ensemble datasets, the mapping must include the
+            ensemble dimension key (typically ``"ensemble"``).
 
         pressure : float, string, array, callable, optional
             This defines the atmospheric pressure profile.
@@ -1272,6 +1155,36 @@ class Environment:
         Returns
         -------
         None
+
+        Raises
+        ------
+        ValueError
+            If ``type`` is unknown, if required launch date/time information is
+            missing for date-dependent models, if Windy model names are invalid,
+            or if required atmospheric variables cannot be read from the input
+            dataset.
+        TypeError
+            If ``dictionary`` is invalid for ``"forecast"``, ``"reanalysis"``
+            or ``"ensemble"``.
+        KeyError
+            If a built-in mapping name passed in ``dictionary`` is unknown.
+
+        See Also
+        --------
+        :ref:`atmospheric_models`
+            Overview of all atmospheric-model workflows in the user guide.
+        :ref:`forecast`
+            Forecast and Windy usage details, including latest-model shortcuts.
+        :ref:`reanalysis`
+            Reanalysis and MERRA-2 examples.
+        :ref:`soundings`
+            Wyoming sounding workflow and RUC migration notes.
+        :ref:`custom_atmosphere`
+            Defining pressure, temperature and wind profiles directly.
+        :ref:`ensemble_atmosphere`
+            Ensemble forecasts and member-selection workflow.
+        :ref:`environment_other_apis`
+            Building custom mapping dictionaries for NetCDF/OPeNDAP APIs.
         """
         # Save atmospheric model type
         self.atmospheric_model_type = type
@@ -1471,6 +1384,12 @@ class Environment:
             ``ECMWF`` for the `ECMWF-HRES` model, ``GFS`` for the `GFS` model,
             ``ICON`` for the `ICON-Global` model or ``ICONEU`` for the `ICON-EU`
             model.
+
+        Raises
+        ------
+        ValueError
+            If ``model`` is not one of ``ECMWF``, ``GFS``, ``ICON`` or
+            ``ICONEU``.
         """
 
         if model.lower() not in ["ecmwf", "gfs", "icon", "iconeu"]:
@@ -1728,6 +1647,13 @@ class Environment:
         Returns
         -------
         None
+
+        Raises
+        ------
+        ValueError
+            If launch date/time was not set before loading date-dependent data,
+            or if required geopotential/geopotential-height, temperature,
+            wind-u, or wind-v variables cannot be read from the dataset.
         """
         # Check if date, lat and lon are known
         self.__validate_datetime()
@@ -1994,6 +1920,13 @@ class Environment:
         --------
         See the :class:``rocketpy.environment.weather_model_mapping`` for some
         dictionary examples.
+
+        Raises
+        ------
+        ValueError
+            If launch date/time was not set before loading date-dependent data,
+            or if required geopotential/geopotential-height, temperature,
+            wind-u, or wind-v variables cannot be read from the dataset.
         """
         # Check if date, lat and lon are known
         self.__validate_datetime()
