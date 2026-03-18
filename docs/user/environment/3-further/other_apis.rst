@@ -96,6 +96,39 @@ Instead of a custom dictionary, you can pass a built-in mapping name in the
 - ``"MERRA2"``
 - ``"CMC"`` (for compatible datasets loaded explicitly)
 
+What a mapping name means
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Base mapping names (for example ``"GFS"``, ``"NAM"`` and ``"RAP"``) map
+    RocketPy weather keys to the current default variable naming used by the
+    corresponding provider datasets.
+- These defaults are aligned with current shortcut workflows (for example,
+    THREDDS-backed latest model sources) and may use projected coordinates
+    (``x``/``y`` plus ``projection``) depending on the model.
+
+Legacy mapping names
+^^^^^^^^^^^^^^^^^^^^
+
+If you are loading archived or older NOMADS-style datasets, use the explicit
+legacy aliases:
+
+- ``"GFS_LEGACY"``
+- ``"NAM_LEGACY"``
+- ``"NOAA_LEGACY"``
+- ``"RAP_LEGACY"``
+- ``"CMC_LEGACY"``
+- ``"GEFS_LEGACY"``
+- ``"HIRESW_LEGACY"``
+- ``"MERRA2_LEGACY"``
+
+Legacy aliases primarily cover older variable naming patterns such as
+``lev``, ``tmpprs``, ``hgtprs``, ``ugrdprs`` and ``vgrdprs``.
+
+.. note::
+
+        Mapping names are case-insensitive. For example,
+        ``"gfs_legacy"`` and ``"GFS_LEGACY"`` are equivalent.
+
 For custom dictionaries, the canonical structure is:
 
 .. code-block:: python
