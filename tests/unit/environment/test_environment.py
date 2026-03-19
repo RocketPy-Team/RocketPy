@@ -6,8 +6,8 @@ import pytest
 import pytz
 
 from rocketpy import Environment
-from rocketpy.environment.weather_model_mapping import WeatherModelMapping
 from rocketpy.environment.tools import geodesic_to_utm, utm_to_geodesic
+from rocketpy.environment.weather_model_mapping import WeatherModelMapping
 
 
 @pytest.mark.parametrize(

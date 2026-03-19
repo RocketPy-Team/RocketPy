@@ -2059,7 +2059,7 @@ class Environment:
         lat_array = data.variables[dictionary["latitude"]]
 
         # Some THREDDS datasets use projected x/y coordinates.
-        #TODO CHECK THIS I AM NOT SURE?????
+        # TODO CHECK THIS I AM NOT SURE?????
         if dictionary.get("projection") is not None:
             projection_variable = data.variables[dictionary["projection"]]
             x_units = getattr(lon_array, "units", "m")

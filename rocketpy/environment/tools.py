@@ -133,9 +133,7 @@ def geodesic_to_lambert_conformal(lat, lon, projection_variable, x_units="m"):
     lon_radians = math.radians(lon % 360)
 
     lat_origin = math.radians(float(projection_variable.latitude_of_projection_origin))
-    lon_origin = math.radians(
-        float(projection_variable.longitude_of_central_meridian)
-    )
+    lon_origin = math.radians(float(projection_variable.longitude_of_central_meridian))
 
     standard_parallel = projection_variable.standard_parallel
     if np.ndim(standard_parallel) == 0:
@@ -157,9 +155,7 @@ def geodesic_to_lambert_conformal(lat, lon, projection_variable, x_units="m"):
     f_const = (math.cos(phi_1) * math.tan(math.pi / 4 + phi_1 / 2) ** n) / n
 
     rho = earth_radius * f_const / (math.tan(math.pi / 4 + lat_radians / 2) ** n)
-    rho_origin = (
-        earth_radius * f_const / (math.tan(math.pi / 4 + lat_origin / 2) ** n)
-    )
+    rho_origin = earth_radius * f_const / (math.tan(math.pi / 4 + lat_origin / 2) ** n)
     theta = n * (lon_radians - lon_origin)
 
     x_meters = rho * math.sin(theta)
@@ -229,7 +225,7 @@ def mask_and_clean_dataset(*args):
     return data_array
 
 
-def find_longitude_index(longitude, lon_list):
+def find_longitude_index(longitude, lon_list): # pylint: disable=too-many-statements
     """Finds the index of the given longitude in a list of longitudes.
 
     Parameters
@@ -249,6 +245,7 @@ def find_longitude_index(longitude, lon_list):
     ValueError
         If the longitude is not within the range covered by the list.
     """
+
     def _coord_value(source, index):
         return float(source[index])
 
@@ -286,7 +283,7 @@ def find_longitude_index(longitude, lon_list):
     if lon_index == lon_len and _coord_value(lon_list, lon_index - 1) == lon:
         lon_index -= 1
     # Check if longitude value is inside the grid
-    if lon_index == 0 or lon_index == lon_len:
+    if lon_index in (0, lon_len):
         raise ValueError(
             f"Longitude {lon} not inside region covered by file, which is "
             f"from {lon_start} to {lon_end}."
@@ -315,6 +312,7 @@ def find_latitude_index(latitude, lat_list):
     ValueError
         If the latitude is not within the range covered by the list.
     """
+
     def _coord_value(source, index):
         return float(source[index])
 
@@ -338,7 +336,7 @@ def find_latitude_index(latitude, lat_list):
     if lat_index == lat_len and _coord_value(lat_list, lat_index - 1) == latitude:
         lat_index -= 1
     # Check if latitude value is inside the grid
-    if lat_index == 0 or lat_index == lat_len:
+    if lat_index in (0, lat_len):
         raise ValueError(
             f"Latitude {latitude} not inside region covered by file, "
             f"which is from {lat_start} to {lat_end}."
@@ -346,7 +344,7 @@ def find_latitude_index(latitude, lat_list):
     return latitude, lat_index
 
 
-def find_time_index(datetime_date, time_array):
+def find_time_index(datetime_date, time_array): # pylint: disable=too-many-statements
     """Finds the index of the given datetime in a netCDF4 time array.
 
     Parameters
@@ -382,7 +380,11 @@ def find_time_index(datetime_date, time_array):
     while low < high:
         mid = (low + high) // 2
         mid_time_num = float(time_array[mid])
-        if (mid_time_num < input_time_num) if is_ascending else (mid_time_num > input_time_num):
+        if (
+            (mid_time_num < input_time_num)
+            if is_ascending
+            else (mid_time_num > input_time_num)
+        ):
             low = mid + 1
         else:
             high = mid

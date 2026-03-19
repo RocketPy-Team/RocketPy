@@ -114,8 +114,7 @@ def fetch_gfs_file_return_dataset(max_attempts=10, base_delay=2):
         If unable to load the latest weather data for GFS.
     """
     file_url = (
-        "https://thredds.ucar.edu/thredds/dodsC/grib/NCEP/GFS/"
-        "Global_0p25deg/Best"
+        "https://thredds.ucar.edu/thredds/dodsC/grib/NCEP/GFS/Global_0p25deg/Best"
     )
     attempt_count = 0
     while attempt_count < max_attempts:
@@ -149,10 +148,7 @@ def fetch_nam_file_return_dataset(max_attempts=10, base_delay=2):
     RuntimeError
         If unable to load the latest weather data for NAM.
     """
-    file_url = (
-        "https://thredds.ucar.edu/thredds/dodsC/grib/NCEP/NAM/"
-        "CONUS_12km/Best"
-    )
+    file_url = "https://thredds.ucar.edu/thredds/dodsC/grib/NCEP/NAM/CONUS_12km/Best"
     attempt_count = 0
     while attempt_count < max_attempts:
         try:
@@ -185,10 +181,7 @@ def fetch_rap_file_return_dataset(max_attempts=10, base_delay=2):
     RuntimeError
         If unable to load the latest weather data for RAP.
     """
-    file_url = (
-        "https://thredds.ucar.edu/thredds/dodsC/grib/NCEP/RAP/"
-        "CONUS_13km/Best"
-    )
+    file_url = "https://thredds.ucar.edu/thredds/dodsC/grib/NCEP/RAP/CONUS_13km/Best"
     attempt_count = 0
     while attempt_count < max_attempts:
         try:
@@ -221,10 +214,7 @@ def fetch_hrrr_file_return_dataset(max_attempts=10, base_delay=2):
     RuntimeError
         If unable to load the latest weather data for HRRR.
     """
-    file_url = (
-        "https://thredds.ucar.edu/thredds/dodsC/grib/NCEP/HRRR/"
-        "CONUS_2p5km/Best"
-    )
+    file_url = "https://thredds.ucar.edu/thredds/dodsC/grib/NCEP/HRRR/CONUS_2p5km/Best"
     attempt_count = 0
     while attempt_count < max_attempts:
         try:
@@ -233,7 +223,9 @@ def fetch_hrrr_file_return_dataset(max_attempts=10, base_delay=2):
             attempt_count += 1
             time.sleep(base_delay**attempt_count)
 
-    raise RuntimeError("Unable to load latest weather data for HRRR through " + file_url)
+    raise RuntimeError(
+        "Unable to load latest weather data for HRRR through " + file_url
+    )
 
 
 def fetch_aigfs_file_return_dataset(max_attempts=10, base_delay=2):
@@ -258,8 +250,7 @@ def fetch_aigfs_file_return_dataset(max_attempts=10, base_delay=2):
         If unable to load the latest weather data for AIGFS.
     """
     file_url = (
-        "https://thredds.ucar.edu/thredds/dodsC/grib/NCEP/AIGFS/"
-        "Global_0p25deg/Best"
+        "https://thredds.ucar.edu/thredds/dodsC/grib/NCEP/AIGFS/Global_0p25deg/Best"
     )
     attempt_count = 0
     while attempt_count < max_attempts:
@@ -269,7 +260,10 @@ def fetch_aigfs_file_return_dataset(max_attempts=10, base_delay=2):
             attempt_count += 1
             time.sleep(base_delay**attempt_count)
 
-    raise RuntimeError("Unable to load latest weather data for AIGFS through " + file_url)
+    raise RuntimeError(
+        "Unable to load latest weather data for AIGFS through " + file_url
+    )
+
 
 def fetch_hiresw_file_return_dataset(max_attempts=10, base_delay=2):
     """Fetches the latest HiResW (High-Resolution Window) dataset from the NOAA's
