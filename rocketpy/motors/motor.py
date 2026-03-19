@@ -1946,8 +1946,11 @@ class GenericMotor(Motor):
         ------
         ValueError
             If no motor is found or if the downloaded .eng data is missing.
+        requests.exceptions.Timeout
+            If a search or download request to the ThrustCurve API exceeds the
+            timeout limit (5 s connect / 30 s read).
         requests.exceptions.RequestException
-            If a network or HTTP error occurs during the API call.
+            If any other network or HTTP error occurs during the API call.
 
         Notes
         -----
@@ -1973,8 +1976,13 @@ class GenericMotor(Motor):
                 )
 
         base_url = "https://www.thrustcurve.org/api/v1"
+        _timeout = (5, 30)  # (connect timeout, read timeout) in seconds
         # Step 1. Search motor
-        response = requests.get(f"{base_url}/search.json", params={"commonName": name})
+        response = requests.get(
+            f"{base_url}/search.json",
+            params={"commonName": name},
+            timeout=_timeout,
+        )
         response.raise_for_status()
         data = response.json()
 
@@ -1994,6 +2002,7 @@ class GenericMotor(Motor):
         dl_response = requests.get(
             f"{base_url}/download.json",
             params={"motorIds": motor_id, "format": "RASP", "data": "file"},
+            timeout=_timeout,
         )
         dl_response.raise_for_status()
         dl_data = dl_response.json()

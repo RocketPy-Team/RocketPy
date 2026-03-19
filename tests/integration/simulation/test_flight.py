@@ -717,7 +717,49 @@ def test_invalid_controller_parameter_count(calisto_robust):
         )
 
 
-def test_environment_methods_accessible_in_controller(  # pylint: disable=too-many-statements
+def make_controller_test_environment_access(methods_called):
+    def _call_env_methods(environment, altitude_asl):
+        _ = environment.elevation
+        methods_called["elevation"] = True
+        _ = environment.wind_velocity_x(altitude_asl)
+        methods_called["wind_velocity_x"] = True
+        _ = environment.wind_velocity_y(altitude_asl)
+        methods_called["wind_velocity_y"] = True
+        _ = environment.speed_of_sound(altitude_asl)
+        methods_called["speed_of_sound"] = True
+        _ = environment.pressure(altitude_asl)
+        methods_called["pressure"] = True
+        _ = environment.temperature(altitude_asl)
+        methods_called["temperature"] = True
+
+    def controller(  # pylint: disable=unused-argument
+        time,
+        sampling_rate,
+        state,
+        state_history,
+        observed_variables,
+        air_brakes,
+        sensors,
+        environment,
+    ):
+        """Controller that tests access to various environment methods."""
+        altitude_asl = state[2]
+
+        if time < 3.9:
+            return None
+
+        try:
+            _call_env_methods(environment, altitude_asl)
+            air_brakes.deployment_level = 0.3
+        except AttributeError as e:
+            raise AssertionError(f"Environment method not accessible: {e}") from e
+
+        return (time, air_brakes.deployment_level)
+
+    return controller
+
+
+def test_environment_methods_accessible_in_controller(
     calisto_robust, example_plain_env
 ):
     """Test that all environment methods are accessible within the controller.
@@ -742,54 +784,13 @@ def test_environment_methods_accessible_in_controller(  # pylint: disable=too-ma
         "temperature": False,
     }
 
-    def controller_test_environment_access(  # pylint: disable=unused-argument
-        time,
-        sampling_rate,
-        state,
-        state_history,
-        observed_variables,
-        air_brakes,
-        sensors,
-        environment,
-    ):
-        """Controller that tests access to various environment methods."""
-        altitude_asl = state[2]
-
-        if time < 3.9:
-            return None
-
-        # Test accessing various environment methods
-        try:
-            _ = environment.elevation
-            methods_called["elevation"] = True
-
-            _ = environment.wind_velocity_x(altitude_asl)
-            methods_called["wind_velocity_x"] = True
-
-            _ = environment.wind_velocity_y(altitude_asl)
-            methods_called["wind_velocity_y"] = True
-
-            _ = environment.speed_of_sound(altitude_asl)
-            methods_called["speed_of_sound"] = True
-
-            _ = environment.pressure(altitude_asl)
-            methods_called["pressure"] = True
-
-            _ = environment.temperature(altitude_asl)
-            methods_called["temperature"] = True
-
-            air_brakes.deployment_level = 0.3
-        except AttributeError as e:
-            # If any method is not accessible, the test should fail
-            raise AssertionError(f"Environment method not accessible: {e}") from e
-
-        return (time, air_brakes.deployment_level)
+    controller = make_controller_test_environment_access(methods_called)
 
     # Add air brakes with environment-testing controller
     calisto_robust.parachutes = []
     calisto_robust.add_air_brakes(
         drag_coefficient_curve="data/rockets/calisto/air_brakes_cd.csv",
-        controller_function=controller_test_environment_access,
+        controller_function=controller,
         sampling_rate=10,
         clamp=True,
     )
