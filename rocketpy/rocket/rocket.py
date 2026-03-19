@@ -382,8 +382,8 @@ class Rocket:
             extrapolation="constant",
         )
         # Saving raw user input for reconstruction and Monte Carlo
-        self.power_off_drag_input = power_off_drag
-        self.power_on_drag_input = power_on_drag
+        self._power_off_drag_input = power_off_drag
+        self._power_on_drag_input = power_on_drag
         # Public API attributes: keep as Function (Mach-only) for backward compatibility
         self.power_off_drag = self.power_off_drag_by_mach
         self.power_on_drag = self.power_on_drag_by_mach
