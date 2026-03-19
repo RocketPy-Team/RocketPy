@@ -24,7 +24,7 @@ Global Forecast System (GFS)
 
 Using the latest forecast from GFS is simple.
 Set the atmospheric model to ``forecast`` and specify that GFS is the file you want.
-Note that since data is downloaded from the NOMADS server, this line of code can
+Note that since data is downloaded from a remote OPeNDAP server, this line of code can
 take longer than usual.
 
 .. jupyter-execute::
@@ -111,36 +111,15 @@ The same coordinates for SpacePort America will be used.
 High Resolution Window (HIRESW)
 -------------------------------
 
-The High Resolution Window (HIRESW) model is a sophisticated weather forecasting
-system that operates at a high spatial resolution of approximately 3 km.
-It utilizes two main dynamical cores: the Advanced Research WRF (WRF-ARW) and
-the Finite Volume Cubed Sphere (FV3), each designed to enhance the accuracy of
-weather predictions.
+.. danger::
 
-You can easily set up HIRESW in RocketPy by specifying the date, latitude, and
-longitude of your location. Let's use SpacePort America as an example.
+    **HIRESW shortcut unavailable**: ``file="HIRESW"`` is currently disabled in
+    RocketPy because NOMADS OPeNDAP is deactivated for this endpoint.
 
-.. jupyter-execute::
+If you have a HIRESW-compatible dataset from another provider (or a local copy),
+you can still load it explicitly by passing the path/URL in ``file`` and an
+appropriate mapping in ``dictionary``.
 
-    env_hiresw = Environment(
-        date=tomorrow,
-        latitude=32.988528,
-        longitude=-106.975056,
-    )
-
-    env_hiresw.set_atmospheric_model(
-        type="Forecast",
-        file="HIRESW",
-        dictionary="HIRESW",
-    )
-
-    env_hiresw.plots.atmospheric_model()
-
-.. note::
-
-    The HRES model is updated every 12 hours, providing forecasts with a \
-    resolution of 3 km. The model can predict weather conditions up to 48 hours \
-    in advance. RocketPy uses the CONUS domain with ARW core.
 
 
 Using Windy Atmosphere
@@ -248,6 +227,5 @@ Also, the servers may be down or may face high traffic.
 
 .. seealso::
 
-    To see a complete list of available models on the NOAA's NOMADS server, visit
-    `NOMADS <https://nomads.ncep.noaa.gov/>`_.
-
+    To browse available NCEP model collections on UCAR THREDDS, visit
+    `THREDDS NCEP Catalog <https://thredds.ucar.edu/thredds/catalog/grib/NCEP/GFS/Global_0p25deg/catalog.html>`_.

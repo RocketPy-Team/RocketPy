@@ -1,3 +1,5 @@
+.. _environment_other_apis:
+
 Connecting to other APIs
 ========================
 
@@ -25,14 +27,19 @@ the following dimensions and variables:
 - Latitude
 - Longitude
 - Pressure Levels
+- Temperature (as a function of Time, Pressure Levels, Latitude and Longitude)
 - Geopotential Height (as a function of Time, Pressure Levels, Latitude and Longitude)
+- or Geopotential (as a function of Time, Pressure Levels, Latitude and Longitude)
 - Surface Geopotential Height (as a function of Time, Latitude and Longitude)
+    (optional)
 - Wind - U Component (as a function of Time, Pressure Levels, Latitude and Longitude)
 - Wind - V Component (as a function of Time, Pressure Levels, Latitude and Longitude)
 
+Some projected grids also require a ``projection`` key in the mapping.
 
-For example, let's imagine we want to use the HIRESW model from this endpoint: 
-`https://nomads.ncep.noaa.gov/dods/hiresw/ <https://nomads.ncep.noaa.gov/dods/hiresw/>`_
+
+For example, let's imagine we want to use a forecast model available via an
+OPeNDAP endpoint.
 
 
 Looking through the variable list in the link above, we find the following correspondence:
@@ -72,15 +79,85 @@ Therefore, we can create an environment like this:
         dictionary=name_mapping,
     )
 
+Built-in mapping dictionaries
+-----------------------------
+
+Instead of a custom dictionary, you can pass a built-in mapping name in the
+``dictionary`` argument. Common options include:
+
+- ``"ECMWF"``
+- ``"ECMWF_v0"``
+- ``"NOAA"``
+- ``"GFS"``
+- ``"NAM"``
+- ``"RAP"``
+- ``"HIRESW"`` (mapping available; latest-model shortcut currently disabled)
+- ``"GEFS"`` (mapping available; latest-model shortcut currently disabled)
+- ``"MERRA2"``
+- ``"CMC"`` (for compatible datasets loaded explicitly)
+
+What a mapping name means
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Base mapping names (for example ``"GFS"``, ``"NAM"`` and ``"RAP"``) map
+    RocketPy weather keys to the current default variable naming used by the
+    corresponding provider datasets.
+- These defaults are aligned with current shortcut workflows (for example,
+    THREDDS-backed latest model sources) and may use projected coordinates
+    (``x``/``y`` plus ``projection``) depending on the model.
+
+Legacy mapping names
+^^^^^^^^^^^^^^^^^^^^
+
+If you are loading archived or older NOMADS-style datasets, use the explicit
+legacy aliases:
+
+- ``"GFS_LEGACY"``
+- ``"NAM_LEGACY"``
+- ``"NOAA_LEGACY"``
+- ``"RAP_LEGACY"``
+- ``"CMC_LEGACY"``
+- ``"GEFS_LEGACY"``
+- ``"HIRESW_LEGACY"``
+- ``"MERRA2_LEGACY"``
+
+Legacy aliases primarily cover older variable naming patterns such as
+``lev``, ``tmpprs``, ``hgtprs``, ``ugrdprs`` and ``vgrdprs``.
+
+.. note::
+
+        Mapping names are case-insensitive. For example,
+        ``"gfs_legacy"`` and ``"GFS_LEGACY"`` are equivalent.
+
+For custom dictionaries, the canonical structure is:
+
+.. code-block:: python
+
+    mapping = {
+        "time": "time",
+        "latitude": "lat",
+        "longitude": "lon",
+        "level": "lev",
+        "temperature": "tmpprs",
+        "surface_geopotential_height": "hgtsfc",  # optional
+        "geopotential_height": "hgtprs",          # or geopotential
+        "geopotential": None,
+        "u_wind": "ugrdprs",
+        "v_wind": "vgrdprs",
+    }
+
+.. important::
+
+    Ensemble datasets require an additional key for member selection:
+    ``"ensemble": "<your_member_dimension_name>"``.
+
 .. caution::
 
-    Notice the ``file`` argument were suppressed in the code above. This is because \
-    the URL depends on the date you are running the simulation. For example, as \
-    it for now, a possible link could be: https://nomads.ncep.noaa.gov/dods/hiresw/hiresw20240803/hiresw_conusfv3_12z \
-    (for the 3rd of August, 2024, at 12:00 UTC). \
-    You should replace the date in the URL with the date you are running the simulation. \
-    Different models may have different URL structures, so be sure to check the \
-    documentation of the model you are using.
+    The ``file`` argument was intentionally omitted in the example above. This is
+    because the URL depends on the provider, dataset, and date you are running
+    the simulation. Build the endpoint according to the provider specification
+    and always validate that the target service is active before running your
+    simulation workflow.
 
 
 Without OPeNDAP protocol
@@ -94,4 +171,3 @@ Environment class, for example:
 
 - `Meteomatics <https://www.meteomatics.com/en/weather-api/>`_: `#545 <https://github.com/RocketPy-Team/RocketPy/issues/545>`_
 - `Open-Meteo <https://open-meteo.com/>`_: `#520 <https://github.com/RocketPy-Team/RocketPy/issues/520>`_
-

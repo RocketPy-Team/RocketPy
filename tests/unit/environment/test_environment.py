@@ -7,6 +7,7 @@ import pytz
 
 from rocketpy import Environment
 from rocketpy.environment.tools import geodesic_to_utm, utm_to_geodesic
+from rocketpy.environment.weather_model_mapping import WeatherModelMapping
 
 
 @pytest.mark.parametrize(
@@ -243,3 +244,70 @@ def test_environment_export_environment_exports_valid_environment_json(
     )
 
     os.remove("environment.json")
+
+
+class _DummyDataset:
+    """Small test double that mimics a netCDF dataset variables mapping."""
+
+    def __init__(self, variable_names):
+        self.variables = {name: object() for name in variable_names}
+
+
+def test_resolve_dictionary_keeps_compatible_mapping(example_plain_env):
+    """Keep the user-selected mapping when it already matches dataset keys."""
+    gfs_mapping = example_plain_env._Environment__weather_model_map.get("GFS")
+    dataset = _DummyDataset(
+        [
+            "time",
+            "lat",
+            "lon",
+            "isobaric",
+            "Temperature_isobaric",
+            "Geopotential_height_isobaric",
+            "u-component_of_wind_isobaric",
+            "v-component_of_wind_isobaric",
+        ]
+    )
+
+    resolved = example_plain_env._Environment__resolve_dictionary_for_dataset(
+        gfs_mapping, dataset
+    )
+
+    assert resolved is gfs_mapping
+
+
+def test_resolve_dictionary_falls_back_to_legacy_mapping(example_plain_env):
+    """Fallback to a compatible built-in mapping for legacy NOMADS-style files."""
+    thredds_gfs_mapping = example_plain_env._Environment__weather_model_map.get("GFS")
+    dataset = _DummyDataset(
+        [
+            "time",
+            "lat",
+            "lon",
+            "lev",
+            "tmpprs",
+            "hgtprs",
+            "ugrdprs",
+            "vgrdprs",
+        ]
+    )
+
+    resolved = example_plain_env._Environment__resolve_dictionary_for_dataset(
+        thredds_gfs_mapping, dataset
+    )
+
+    # Explicit legacy mappings should be preferred over unrelated model mappings.
+    assert resolved == example_plain_env._Environment__weather_model_map.get(
+        "GFS_LEGACY"
+    )
+    assert resolved["level"] == "lev"
+    assert resolved["temperature"] == "tmpprs"
+    assert resolved["geopotential_height"] == "hgtprs"
+
+
+def test_weather_model_mapping_exposes_legacy_aliases():
+    """Legacy mapping names should be available and case-insensitive."""
+    mapping = WeatherModelMapping()
+
+    assert mapping.get("GFS_LEGACY")["temperature"] == "tmpprs"
+    assert mapping.get("gfs_legacy")["temperature"] == "tmpprs"

@@ -57,31 +57,22 @@ This service allows users to download virtual soundings from numerical weather
 prediction models such as GFS, RAP, and NAM, and also real soundings from the
 Integrated Global Radiosonde Archive (IGRA).
 
-These options can be retrieved as a text file in GSD format.
-By generating such a file through the link above, the file's URL can be used to
-import the atmospheric data into RocketPy.
-
-We will use the same sounding station as we did for the Wyoming Soundings.
+These options can be retrieved as a text file in GSD format. However,
+RocketPy no longer provides a dedicated ``set_atmospheric_model`` type for
+NOAA RUC Soundings.
 
 .. note::
     
     Select ROABs as the initial data source, specify the station through its \
     WMO-ID, and opt for the ASCII (GSD format) button.
 
-Initialize a new Environment instance:
+If you need to use RUC-sounding-like data in RocketPy, convert it to one of the
+supported workflows:
 
-.. code-block:: python
-
-    url = r"https://rucsoundings.noaa.gov/get_raobs.cgi?data_source=RAOB&latest=latest&start_year=2019&start_month_name=Feb&start_mday=5&start_hour=12&start_min=0&n_hrs=1.0&fcst_len=shortest&airport=83779&text=Ascii%20text%20%28GSD%20format%29&hydrometeors=false&start=latest"
-
-    env = Environment()
-    env.set_atmospheric_model(type="NOAARucSounding", file=url)
-    env.plots.atmospheric_model()
+- Use :ref:`custom_atmosphere` after parsing the text data.
+- Use :ref:`reanalysis` or :ref:`forecast` with NetCDF/OPeNDAP sources.
 
 .. note::
 
     The leading `r` in the URL string is used to indicate a raw string, which \
     is useful when dealing with backslashes in URLs.
-
-
-
