@@ -243,16 +243,17 @@ independent variables:
 - ``beta``: Side slip angle.
 - ``mach``: Mach number.
 - ``reynolds``: Reynolds number.
-- ``q``: Pitch rate.
-- ``r``: Yaw rate.
-- ``p``: Roll rate.
+- ``pitch_rate``: Pitch rate.
+- ``yaw_rate``: Yaw rate.
+- ``roll_rate``: Roll rate.
 
 The last column must be the coefficient value, and must contain a header, 
 though the header name can be anything.
 
 .. important::
    Not all columns need to be present in the file, but the columns that are
-   present must be named, **and ordered**, as described above.
+   present must be correctly named as described above. Independent variable
+   columns can be in any order.
 
 An example of a ``.csv`` file is shown below:
 

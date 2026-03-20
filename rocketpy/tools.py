@@ -7,6 +7,7 @@ between minor versions if necessary, although this will be always avoided.
 """
 
 import base64
+import csv
 import functools
 import importlib
 import importlib.metadata
@@ -114,6 +115,261 @@ def tuple_handler(value):
             return tuple(value)
         else:
             raise ValueError("value must be a list or tuple of length 1 or 2.")
+
+
+def create_regular_grid_function(
+    csv_source,
+    variable_names,
+    coeff_name,
+    extrapolation,
+):  # pylint: disable=import-outside-toplevel
+    """Create a regular-grid Function when CSV samples form a full grid.
+
+    Parameters
+    ----------
+    csv_source : str
+        Path to the CSV file.
+    variable_names : list[str]
+        Ordered independent variable names present in the CSV.
+    coeff_name : str
+        Name of the coefficient output.
+    extrapolation : str
+        Extrapolation method passed to the Function constructor.
+
+    Returns
+    -------
+    Function or None
+        A ``Function`` configured with ``regular_grid`` interpolation when the
+        CSV data forms a strict Cartesian grid, otherwise ``None``.
+    """
+    from rocketpy.mathutils.function import (  # pylint: disable=import-outside-toplevel
+        Function,  # pylint: disable=import-outside-toplevel
+    )
+
+    return Function.from_regular_grid_csv(
+        csv_source,
+        variable_names,
+        coeff_name,
+        extrapolation,
+    )
+
+
+def load_generic_surface_csv(file_path, coeff_name):  # pylint: disable=too-many-statements,import-outside-toplevel
+    """Load GenericSurface coefficient CSV into a 7D Function.
+
+    This loader expects header-based CSV data with one or more independent
+    variables among: alpha, beta, mach, reynolds, pitch_rate, yaw_rate,
+    roll_rate.
+    """
+    from rocketpy.mathutils.function import (  # pylint: disable=import-outside-toplevel
+        Function,  # pylint: disable=import-outside-toplevel
+    )
+
+    independent_vars = [
+        "alpha",
+        "beta",
+        "mach",
+        "reynolds",
+        "pitch_rate",
+        "yaw_rate",
+        "roll_rate",
+    ]
+
+    try:
+        with open(file_path, mode="r") as file:
+            reader = csv.reader(file)
+            header = next(reader)
+    except (FileNotFoundError, IOError) as e:
+        raise ValueError(f"Error reading {coeff_name} CSV file: {e}") from e
+    except StopIteration as e:
+        raise ValueError(f"Invalid or empty CSV file for {coeff_name}.") from e
+
+    if not header:
+        raise ValueError(f"Invalid or empty CSV file for {coeff_name}.")
+
+    header = [column.strip() for column in header]
+    present_columns = [col for col in independent_vars if col in header]
+
+    invalid_columns = [col for col in header[:-1] if col not in independent_vars]
+    if invalid_columns:
+        raise ValueError(
+            f"Invalid independent variable(s) in {coeff_name} CSV: "
+            f"{invalid_columns}. Valid options are: {independent_vars}."
+        )
+
+    if header[-1] in independent_vars:
+        raise ValueError(
+            f"Last column in {coeff_name} CSV must be the coefficient"
+            " value, not an independent variable."
+        )
+
+    if not present_columns:
+        raise ValueError(f"No independent variables found in {coeff_name} CSV.")
+
+    ordered_present_columns = [col for col in header[:-1] if col in independent_vars]
+
+    csv_func = create_regular_grid_function(
+        file_path,
+        ordered_present_columns,
+        coeff_name,
+        extrapolation="natural",
+    )
+    if csv_func is None:
+        csv_func = Function(
+            file_path,
+            interpolation="linear",
+            extrapolation="natural",
+        )
+
+    def wrapper(alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate):
+        args_by_name = {
+            "alpha": alpha,
+            "beta": beta,
+            "mach": mach,
+            "reynolds": reynolds,
+            "pitch_rate": pitch_rate,
+            "yaw_rate": yaw_rate,
+            "roll_rate": roll_rate,
+        }
+        selected_args = [args_by_name[col] for col in ordered_present_columns]
+        return csv_func(*selected_args)
+
+    return Function(
+        wrapper,
+        independent_vars,
+        [coeff_name],
+        interpolation="linear",
+        extrapolation="natural",
+    )
+
+
+def load_rocket_drag_csv(file_path, coeff_name):  # pylint: disable=too-many-statements,import-outside-toplevel
+    """Load Rocket drag CSV into a 7D Function.
+
+    Supports either headerless two-column (mach, coefficient) tables or
+    header-based multi-variable CSV tables.
+    """
+    from rocketpy.mathutils.function import (  # pylint: disable=import-outside-toplevel
+        Function,  # pylint: disable=import-outside-toplevel
+    )
+
+    independent_vars = [
+        "alpha",
+        "beta",
+        "mach",
+        "reynolds",
+        "pitch_rate",
+        "yaw_rate",
+        "roll_rate",
+    ]
+
+    def _is_numeric(value):
+        try:
+            float(value)
+            return True
+        except (TypeError, ValueError):
+            try:
+                int(value)
+                return True
+            except (TypeError, ValueError):
+                return False
+
+    try:
+        with open(file_path, mode="r") as file:
+            reader = csv.reader(file)
+            first_row = next(reader)
+    except (FileNotFoundError, IOError) as e:
+        raise ValueError(f"Error reading {coeff_name} CSV file: {e}") from e
+    except StopIteration as e:
+        raise ValueError(f"Invalid or empty CSV file for {coeff_name}.") from e
+
+    if not first_row:
+        raise ValueError(f"Invalid or empty CSV file for {coeff_name}.")
+
+    is_headerless_two_column = len(first_row) == 2 and all(
+        _is_numeric(cell) for cell in first_row
+    )
+
+    if is_headerless_two_column:
+        csv_func = Function(
+            file_path,
+            interpolation="linear",
+            extrapolation="constant",
+        )
+
+        def mach_wrapper(
+            _alpha,
+            _beta,
+            mach,
+            _reynolds,
+            _pitch_rate,
+            _yaw_rate,
+            _roll_rate,
+        ):
+            return csv_func(mach)
+
+        return Function(
+            mach_wrapper,
+            independent_vars,
+            [coeff_name],
+            interpolation="linear",
+            extrapolation="constant",
+        )
+
+    header = [column.strip() for column in first_row]
+    present_columns = [col for col in independent_vars if col in header]
+
+    invalid_columns = [col for col in header[:-1] if col not in independent_vars]
+    if invalid_columns:
+        raise ValueError(
+            f"Invalid independent variable(s) in {coeff_name} CSV: "
+            f"{invalid_columns}. Valid options are: {independent_vars}."
+        )
+
+    if header[-1] in independent_vars:
+        raise ValueError(
+            f"Last column in {coeff_name} CSV must be the coefficient "
+            "value, not an independent variable."
+        )
+
+    if not present_columns:
+        raise ValueError(f"No independent variables found in {coeff_name} CSV.")
+
+    ordered_present_columns = [col for col in header[:-1] if col in independent_vars]
+
+    csv_func = create_regular_grid_function(
+        file_path,
+        ordered_present_columns,
+        coeff_name,
+        extrapolation="constant",
+    )
+    if csv_func is None:
+        csv_func = Function(
+            file_path,
+            interpolation="linear",
+            extrapolation="constant",
+        )
+
+    def wrapper(alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate):
+        args_by_name = {
+            "alpha": alpha,
+            "beta": beta,
+            "mach": mach,
+            "reynolds": reynolds,
+            "pitch_rate": pitch_rate,
+            "yaw_rate": yaw_rate,
+            "roll_rate": roll_rate,
+        }
+        selected_args = [args_by_name[col] for col in ordered_present_columns]
+        return csv_func(*selected_args)
+
+    return Function(
+        wrapper,
+        independent_vars,
+        [coeff_name],
+        interpolation="linear",
+        extrapolation="constant",
+    )
 
 
 def calculate_cubic_hermite_coefficients(x0, x1, y0, yp0, y1, yp1):
@@ -441,6 +697,137 @@ def inverted_haversine(lat0, lon0, distance, bearing, earth_radius=6.3781e6):
     lon1_deg = np.rad2deg(lon1_rad)
 
     return lat1_deg, lon1_deg
+
+
+def mercator_to_wgs84(x, y, earth_radius=6.3781e6):
+    """Convert Web Mercator (EPSG:3857) coordinates to WGS84 (EPSG:4326) coordinates.
+
+    This function converts coordinates from Web Mercator projection to WGS84
+    latitude/longitude without requiring the pyproj dependency.
+
+    Parameters
+    ----------
+    x : float
+        X coordinate in Web Mercator projection (meters).
+    y : float
+        Y coordinate in Web Mercator projection (meters).
+    earth_radius : float, optional
+        Earth's radius in meters. Default value is 6.3781e6.
+
+    Returns
+    -------
+    tuple[float, float]
+        A tuple containing (latitude, longitude) in degrees.
+
+    """
+    lon = x / earth_radius * 180.0 / math.pi
+    lat = (2 * math.atan(math.exp(y / earth_radius)) - math.pi / 2.0) * 180.0 / math.pi
+    return lat, lon
+
+
+def convert_local_extent_to_wgs84(
+    local_extent, origin_lat, origin_lon, earth_radius=6.3781e6
+):
+    """Convert local extent to geographic extent (latitude/longitude bounding box).
+
+    This function converts a local extent (bounding box in meters relative to an
+    origin point) to a geographic extent (bounding box in latitude/longitude degrees).
+
+    Parameters
+    ----------
+    local_extent : list[float]
+        Local extent [x_min, x_max, y_min, y_max] in meters relative to the origin.
+    origin_lat : float
+        Origin latitude in degrees.
+    origin_lon : float
+        Origin longitude in degrees.
+    earth_radius : float, optional
+        Earth's radius in meters. Default value is 6.3781e6.
+
+    Returns
+    -------
+    tuple[float, float, float, float]
+        Geographic extent (west, south, east, north) in degrees.
+    """
+    x_min, x_max, y_min, y_max = local_extent
+    corners_xy = [
+        (x_min, y_min),  # Bottom-Left
+        (x_min, y_max),  # Top-Left
+        (x_max, y_min),  # Bottom-Right
+        (x_max, y_max),  # Top-Right
+    ]
+    req_lats, req_lons = [], []
+
+    for x, y in corners_xy:
+        dist = (x**2 + y**2) ** 0.5
+        # Calculate bearing: 0 is North (Y), 90 is East (X)
+        bearing = np.degrees(np.arctan2(x, y))
+        lat, lon = inverted_haversine(
+            origin_lat, origin_lon, dist, bearing, earth_radius
+        )
+        req_lats.append(lat)
+        req_lons.append(lon)
+
+    return min(req_lons), min(req_lats), max(req_lons), max(req_lats)
+
+
+def convert_mercator_extent_to_local(
+    mercator_extent, origin_lat, origin_lon, earth_radius=6.3781e6
+):
+    """Convert Mercator extent to local extent (coordinates relative to origin).
+
+    This function converts a geographic extent from Web Mercator coordinates to a
+    local extent (bounding box in meters relative to an origin point).
+
+    Parameters
+    ----------
+    mercator_extent : list[float]
+        Mercator extent [minX, maxX, minY, maxY] in meters.
+    origin_lat : float
+        Origin latitude in degrees.
+    origin_lon : float
+        Origin longitude in degrees.
+    earth_radius : float, optional
+        Earth's radius in meters. Default value is 6.3781e6.
+
+    Returns
+    -------
+    list[float]
+        Local extent [x_min, x_max, y_min, y_max] in meters relative to the origin.
+    """
+    # Convert corners of the fetched image from Mercator to WGS84
+    bg_lat_min, bg_lon_min = mercator_to_wgs84(
+        mercator_extent[0], mercator_extent[2], earth_radius
+    )  # Bottom-Left
+    bg_lat_max, bg_lon_max = mercator_to_wgs84(
+        mercator_extent[1], mercator_extent[3], earth_radius
+    )  # Top-Right
+
+    # Calculate X/Y meters relative to origin (lat0, lon0) using haversine
+    # X = Distance along longitude (East-West)
+    # Y = Distance along latitude (North-South)
+
+    # Calculate X min (Left)
+    x_min = haversine(origin_lat, origin_lon, origin_lat, bg_lon_min, earth_radius)
+    if bg_lon_min < origin_lon:
+        x_min = -x_min
+
+    # Calculate X max (Right)
+    x_max = haversine(origin_lat, origin_lon, origin_lat, bg_lon_max, earth_radius)
+    if bg_lon_max < origin_lon:
+        x_max = -x_max
+
+    # Calculate Y min (Bottom)
+    y_min = haversine(origin_lat, origin_lon, bg_lat_min, origin_lon, earth_radius)
+    if bg_lat_min < origin_lat:
+        y_min = -y_min
+
+    # Calculate Y max (Top)
+    y_max = haversine(origin_lat, origin_lon, bg_lat_max, origin_lon, earth_radius)
+    if bg_lat_max < origin_lat:
+        y_max = -y_max
+
+    return [x_min, x_max, y_min, y_max]
 
 
 # Functions for monte carlo analysis

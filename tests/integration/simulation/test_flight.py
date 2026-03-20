@@ -102,7 +102,7 @@ def test_liquid_motor_flight(mock_show, flight_calisto_liquid_modded):  # pylint
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_time_overshoot(mock_show, calisto_robust, example_spaceport_env):  # pylint: disable=unused-argument
+def test_time_overshoot_false(mock_show, calisto_robust, example_spaceport_env):  # pylint: disable=unused-argument
     """Test the time_overshoot parameter of the Flight class. This basically
     calls the all_info() method for a simulation without time_overshoot and
     checks if it returns None. It is not testing if the values are correct,
@@ -294,6 +294,19 @@ def test_air_brakes_flight(mock_show, flight_calisto_air_brakes):  # pylint: dis
 
 
 @patch("matplotlib.pyplot.show")
+def test_air_brakes_flight_with_overshoot(
+    mock_show, flight_calisto_air_brakes_time_overshoot
+):  # pylint: disable=unused-argument
+    """
+    Same as test_air_brakes_flight but with time_overshoot=True.
+    """
+    test_flight = flight_calisto_air_brakes_time_overshoot
+    air_brakes = test_flight.rocket.air_brakes[0]
+    assert air_brakes.plots.all() is None
+    assert air_brakes.prints.all() is None
+
+
+@patch("matplotlib.pyplot.show")
 def test_initial_solution(mock_show, example_plain_env, calisto_robust):  # pylint: disable=unused-argument
     """Tests the initial_solution option of the Flight class. This test simply
     simulates the flight using the initial_solution option and checks if the
@@ -438,3 +451,363 @@ def test_rocket_csys_equivalence(
         flight_calisto_robust.initial_solution,
         flight_calisto_nose_to_tail_robust.initial_solution,
     )
+
+
+def test_air_brakes_with_environment_parameter(
+    calisto_robust, controller_function_with_environment, example_plain_env
+):
+    """Test that air brakes controller can access environment parameter during flight.
+
+    This test verifies that:
+    - The 8-parameter controller signature works correctly
+    - Environment data is accessible within the controller
+    - The flight simulation completes successfully
+    - Controller observed variables are properly stored
+
+    This addresses issue #853 where environment had to be accessed via global variables.
+
+    Parameters
+    ----------
+    calisto_robust : rocketpy.Rocket
+        Calisto rocket without air brakes
+    controller_function_with_environment : function
+        Controller function using the new 8-parameter signature
+    example_plain_env : rocketpy.Environment
+        Environment object for the simulation
+    """
+    # Add air brakes with 8-parameter controller
+    calisto_robust.parachutes = []  # Remove parachutes for cleaner test
+    calisto_robust.add_air_brakes(
+        drag_coefficient_curve="data/rockets/calisto/air_brakes_cd.csv",
+        controller_function=controller_function_with_environment,
+        sampling_rate=10,
+        clamp=True,
+    )
+
+    # Run flight simulation
+    flight = Flight(
+        rocket=calisto_robust,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=True,
+    )
+
+    # Verify flight completed successfully
+    assert flight.t_final > 0
+    assert flight.apogee > 0
+
+    # Verify controller was called and observed variables were stored
+    # Controller is attached to the rocket, not the air brakes object
+    controllers = [c for c in calisto_robust._controllers if "AirBrakes" in c.name]
+    assert len(controllers) > 0
+    controller = controllers[0]
+    assert len(controller.observed_variables) > 0
+
+    # Verify observed variables contain expected data (time, deployment_level, mach_number)
+    for observed in controller.observed_variables:
+        if observed is not None:
+            assert len(observed) == 3
+            time, deployment_level, mach_number = observed
+            assert time >= 0
+            assert 0 <= deployment_level <= 1  # Should be clamped
+            assert mach_number >= 0
+
+
+def test_air_brakes_serialization_with_environment(
+    calisto_robust, controller_function_with_environment, example_plain_env
+):
+    """Test that rockets with air brakes using environment parameter can be serialized.
+
+    This test specifically addresses issue #853 - serialization of rockets with
+    air brakes that use controllers should work without relying on global variables.
+
+    Parameters
+    ----------
+    calisto_robust : rocketpy.Rocket
+        Calisto rocket without air brakes
+    controller_function_with_environment : function
+        Controller function using the new 8-parameter signature
+    example_plain_env : rocketpy.Environment
+        Environment object for the simulation
+    """
+    # Add air brakes with 8-parameter controller
+    calisto_robust.parachutes = []
+    calisto_robust.add_air_brakes(
+        drag_coefficient_curve="data/rockets/calisto/air_brakes_cd.csv",
+        controller_function=controller_function_with_environment,
+        sampling_rate=10,
+        clamp=True,
+    )
+
+    # Serialize the rocket
+    rocket_dict = calisto_robust.to_dict()
+
+    # Verify serialization succeeded and contains air brakes data
+    assert "air_brakes" in rocket_dict
+    assert len(rocket_dict["air_brakes"]) > 0
+
+    # Run a flight with the original rocket
+    flight_original = Flight(
+        rocket=calisto_robust,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=True,
+    )
+
+    # Verify flight completed
+    assert flight_original.t_final > 0
+    assert flight_original.apogee > 0
+
+
+def test_backward_compatibility_6_parameter_controller(
+    calisto_robust, controller_function, example_plain_env
+):
+    """Test that old 6-parameter controllers still work (backward compatibility).
+
+    Parameters
+    ----------
+    calisto_robust : rocketpy.Rocket
+        Calisto rocket without air brakes
+    controller_function : function
+        Controller function using the old 6-parameter signature
+    example_plain_env : rocketpy.Environment
+        Environment object for the simulation
+    """
+    # Add air brakes with old-style 6-parameter controller
+    calisto_robust.parachutes = []
+    calisto_robust.add_air_brakes(
+        drag_coefficient_curve="data/rockets/calisto/air_brakes_cd.csv",
+        controller_function=controller_function,
+        sampling_rate=10,
+        clamp=True,
+    )
+
+    # Run flight simulation
+    flight = Flight(
+        rocket=calisto_robust,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=True,
+    )
+
+    # Verify flight completed successfully
+    assert flight.t_final > 0
+    assert flight.apogee > 0
+
+    # Verify controller exists
+    controllers = [c for c in calisto_robust._controllers if "AirBrakes" in c.name]
+    assert len(controllers) > 0
+
+
+def test_7_parameter_controller_with_sensors(calisto_robust, example_plain_env):
+    """Test that 7-parameter controllers (with sensors, no environment) work correctly.
+
+    Parameters
+    ----------
+    calisto_robust : rocketpy.Rocket
+        Calisto rocket without air brakes
+    example_plain_env : rocketpy.Environment
+        Environment object for the simulation
+    """
+
+    # Define a 7-parameter controller
+    def controller_7_params(  # pylint: disable=unused-argument
+        time,
+        sampling_rate,
+        state,
+        state_history,
+        observed_variables,
+        air_brakes,
+        sensors,
+    ):
+        """Controller with 7 parameters (includes sensors, but not environment)."""
+        altitude = state[2]
+        vz = state[5]
+
+        if time < 3.9:
+            return None
+
+        if altitude < 1500:
+            air_brakes.deployment_level = 0
+        else:
+            # Simple proportional control
+            air_brakes.deployment_level = min(0.5, max(0, vz / 100))
+
+        return (time, air_brakes.deployment_level)
+
+    # Add air brakes with 7-parameter controller
+    calisto_robust.parachutes = []
+    calisto_robust.add_air_brakes(
+        drag_coefficient_curve="data/rockets/calisto/air_brakes_cd.csv",
+        controller_function=controller_7_params,
+        sampling_rate=10,
+        clamp=True,
+    )
+
+    # Run flight simulation
+    flight = Flight(
+        rocket=calisto_robust,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=True,
+    )
+
+    # Verify flight completed successfully
+    assert flight.t_final > 0
+    assert flight.apogee > 0
+
+
+def test_invalid_controller_parameter_count(calisto_robust):
+    """Test that controllers with invalid parameter counts raise ValueError.
+
+    Parameters
+    ----------
+    calisto_robust : rocketpy.Rocket
+        Calisto rocket without air brakes
+    """
+
+    # Define controller with wrong number of parameters (5)
+    def invalid_controller_5_params(  # pylint: disable=unused-argument
+        time, sampling_rate, state, state_history, observed_variables
+    ):
+        """Invalid controller with only 5 parameters."""
+        return None
+
+    # Define controller with wrong number of parameters (9)
+    def invalid_controller_9_params(  # pylint: disable=unused-argument
+        time,
+        sampling_rate,
+        state,
+        state_history,
+        observed_variables,
+        air_brakes,
+        sensors,
+        environment,
+        extra_param,
+    ):
+        """Invalid controller with 9 parameters."""
+        return None
+
+    calisto_robust.parachutes = []
+
+    # Test that 5-parameter controller raises ValueError
+    with pytest.raises(ValueError, match="must have 6, 7, or 8 arguments"):
+        calisto_robust.add_air_brakes(
+            drag_coefficient_curve="data/rockets/calisto/air_brakes_cd.csv",
+            controller_function=invalid_controller_5_params,
+            sampling_rate=10,
+            clamp=True,
+        )
+
+    # Test that 9-parameter controller raises ValueError
+    with pytest.raises(ValueError, match="must have 6, 7, or 8 arguments"):
+        calisto_robust.add_air_brakes(
+            drag_coefficient_curve="data/rockets/calisto/air_brakes_cd.csv",
+            controller_function=invalid_controller_9_params,
+            sampling_rate=10,
+            clamp=True,
+        )
+
+
+def make_controller_test_environment_access(methods_called):
+    def _call_env_methods(environment, altitude_asl):
+        _ = environment.elevation
+        methods_called["elevation"] = True
+        _ = environment.wind_velocity_x(altitude_asl)
+        methods_called["wind_velocity_x"] = True
+        _ = environment.wind_velocity_y(altitude_asl)
+        methods_called["wind_velocity_y"] = True
+        _ = environment.speed_of_sound(altitude_asl)
+        methods_called["speed_of_sound"] = True
+        _ = environment.pressure(altitude_asl)
+        methods_called["pressure"] = True
+        _ = environment.temperature(altitude_asl)
+        methods_called["temperature"] = True
+
+    def controller(  # pylint: disable=unused-argument
+        time,
+        sampling_rate,
+        state,
+        state_history,
+        observed_variables,
+        air_brakes,
+        sensors,
+        environment,
+    ):
+        """Controller that tests access to various environment methods."""
+        altitude_asl = state[2]
+
+        if time < 3.9:
+            return None
+
+        try:
+            _call_env_methods(environment, altitude_asl)
+            air_brakes.deployment_level = 0.3
+        except AttributeError as e:
+            raise AssertionError(f"Environment method not accessible: {e}") from e
+
+        return (time, air_brakes.deployment_level)
+
+    return controller
+
+
+def test_environment_methods_accessible_in_controller(
+    calisto_robust, example_plain_env
+):
+    """Test that all environment methods are accessible within the controller.
+
+    This test verifies that the environment object passed to the controller
+    provides access to all necessary atmospheric and environmental data.
+
+    Parameters
+    ----------
+    calisto_robust : rocketpy.Rocket
+        Calisto rocket without air brakes
+    example_plain_env : rocketpy.Environment
+        Environment object for the simulation
+    """
+    # Track which environment methods were successfully called
+    methods_called = {
+        "elevation": False,
+        "wind_velocity_x": False,
+        "wind_velocity_y": False,
+        "speed_of_sound": False,
+        "pressure": False,
+        "temperature": False,
+    }
+
+    controller = make_controller_test_environment_access(methods_called)
+
+    # Add air brakes with environment-testing controller
+    calisto_robust.parachutes = []
+    calisto_robust.add_air_brakes(
+        drag_coefficient_curve="data/rockets/calisto/air_brakes_cd.csv",
+        controller_function=controller,
+        sampling_rate=10,
+        clamp=True,
+    )
+
+    # Run flight simulation
+    flight = Flight(
+        rocket=calisto_robust,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=True,
+    )
+
+    # Verify flight completed
+    assert flight.t_final > 0
+    assert flight.all_info() is None
+
+    # Verify all environment methods were successfully called
+    assert all(methods_called.values()), f"Not all methods called: {methods_called}"

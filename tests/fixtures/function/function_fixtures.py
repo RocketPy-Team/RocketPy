@@ -84,47 +84,6 @@ def func_2d_from_csv():
     return func
 
 
-## Controller
-@pytest.fixture
-def controller_function():
-    """Create a controller function that updates the air brakes deployment level
-    based on the altitude and vertical velocity of the rocket. This is the same
-    controller function that is used in the air brakes example in the
-    documentation.
-
-    Returns
-    -------
-    function
-        A controller function
-    """
-
-    def controller_function(  # pylint: disable=unused-argument
-        time, sampling_rate, state, state_history, observed_variables, air_brakes
-    ):
-        z = state[2]
-        vz = state[5]
-        previous_vz = state_history[-1][5]
-        if time < 3.9:
-            return None
-        if z < 1500:
-            air_brakes.deployment_level = 0
-        else:
-            new_deployment_level = (
-                air_brakes.deployment_level + 0.1 * vz + 0.01 * previous_vz**2
-            )
-            if new_deployment_level > air_brakes.deployment_level + 0.2 / sampling_rate:
-                new_deployment_level = air_brakes.deployment_level + 0.2 / sampling_rate
-            elif (
-                new_deployment_level < air_brakes.deployment_level - 0.2 / sampling_rate
-            ):
-                new_deployment_level = air_brakes.deployment_level - 0.2 / sampling_rate
-            else:
-                new_deployment_level = air_brakes.deployment_level
-            air_brakes.deployment_level = new_deployment_level
-
-    return controller_function
-
-
 @pytest.fixture
 def lambda_quad_func():
     """Create a lambda function based on a string.

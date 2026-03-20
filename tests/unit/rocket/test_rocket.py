@@ -1,4 +1,5 @@
 import warnings
+from itertools import product
 from unittest.mock import patch
 
 import numpy as np
@@ -689,3 +690,148 @@ def test_coordinate_system_orientation(
     static_margin_nose_to_tail = rocket_nose_to_tail.static_margin
 
     assert np.array_equal(static_margin_tail_to_nose, static_margin_nose_to_tail)
+
+
+def test_drag_csv_header_order_independent_for_multivariable_input(tmp_path):
+    """Ensure drag CSV independent-variable columns are interpreted by name.
+
+    This test checks that swapping the order of header-defined variables
+    (mach and reynolds) yields equivalent drag interpolation results.
+    """
+
+    ordered_csv = tmp_path / "drag_mach_reynolds.csv"
+    ordered_csv.write_text(
+        "mach,reynolds,cd\n0.5,0.1,0.6\n1.0,0.1,1.1\n0.5,0.2,0.7\n1.0,0.2,1.2\n",
+        encoding="utf-8",
+    )
+
+    swapped_csv = tmp_path / "drag_reynolds_mach.csv"
+    swapped_csv.write_text(
+        "reynolds,mach,cd\n0.1,0.5,0.6\n0.1,1.0,1.1\n0.2,0.5,0.7\n0.2,1.0,1.2\n",
+        encoding="utf-8",
+    )
+
+    rocket_ordered = Rocket(
+        radius=0.05,
+        mass=1.0,
+        inertia=(1.0, 1.0, 1.0),
+        power_off_drag=str(ordered_csv),
+        power_on_drag=str(ordered_csv),
+        center_of_mass_without_motor=0.0,
+    )
+
+    rocket_swapped = Rocket(
+        radius=0.05,
+        mass=1.0,
+        inertia=(1.0, 1.0, 1.0),
+        power_off_drag=str(swapped_csv),
+        power_on_drag=str(swapped_csv),
+        center_of_mass_without_motor=0.0,
+    )
+
+    drag_ordered = rocket_ordered.power_off_drag_7d(0, 0, 0.8, 0.15, 0, 0, 0)
+    drag_swapped = rocket_swapped.power_off_drag_7d(0, 0, 0.8, 0.15, 0, 0, 0)
+
+    ordered_closure = rocket_ordered.power_off_drag_7d.source.__closure__
+    swapped_closure = rocket_swapped.power_off_drag_7d.source.__closure__
+    ordered_csv_function = next(
+        cell.cell_contents
+        for cell in ordered_closure
+        if isinstance(cell.cell_contents, Function)
+    )
+    swapped_csv_function = next(
+        cell.cell_contents
+        for cell in swapped_closure
+        if isinstance(cell.cell_contents, Function)
+    )
+
+    assert drag_ordered == pytest.approx(0.95)
+    assert drag_swapped == pytest.approx(0.95)
+    assert drag_swapped == pytest.approx(drag_ordered)
+    assert ordered_csv_function.get_interpolation_method() == "regular_grid"
+    assert swapped_csv_function.get_interpolation_method() == "regular_grid"
+
+
+def test_drag_input_types_supported_for_power_on_and_power_off(tmp_path):
+    """Ensure drag input processing accepts all supported input types.
+
+    This test validates that both ``power_off_drag`` and ``power_on_drag``
+    accept and correctly evaluate all supported input categories.
+    """
+    query = (1.0, 0.0, 0.8, 0.15, 0.0, 0.0, 0.0)
+
+    csv_drag = tmp_path / "drag_mach_reynolds.csv"
+    csv_drag.write_text(
+        "mach,reynolds,cd\n0.5,0.1,0.6\n1.0,0.1,1.1\n0.5,0.2,0.7\n1.0,0.2,1.2\n",
+        encoding="utf-8",
+    )
+
+    txt_drag = tmp_path / "drag_curve.txt"
+    txt_drag.write_text("0.0,0.2\n1.0,0.4\n", encoding="utf-8")
+
+    function_1d = Function(
+        lambda mach: 0.2 + mach,
+        inputs=["mach"],
+        outputs=["cd"],
+        interpolation="linear",
+    )
+    function_7d = Function(
+        lambda alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate: (
+            mach + reynolds
+        ),
+        inputs=[
+            "alpha",
+            "beta",
+            "mach",
+            "reynolds",
+            "pitch_rate",
+            "yaw_rate",
+            "roll_rate",
+        ],
+        outputs=["cd"],
+        interpolation="linear",
+    )
+
+    drag_7d_table = [
+        (*coords, float(sum(coords))) for coords in product((0.0, 1.0), repeat=7)
+    ]
+    drag_7d_query = (1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0)
+
+    test_cases = [
+        ("int", 1, query, 1.0),
+        ("float", 0.37, query, 0.37),
+        ("csv_path", str(csv_drag), query, 0.95),
+        ("txt_path", str(txt_drag), query, 0.36),
+        ("function_1d", function_1d, query, 1.0),
+        ("function_7d", function_7d, query, 0.95),
+        (
+            "callable_1d",
+            lambda mach: 0.2 + mach,
+            query,
+            1.0,
+        ),
+        (
+            "callable_7d",
+            lambda alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate: (
+                mach + reynolds
+            ),
+            query,
+            0.95,
+        ),
+        ("list_pairs", [[0.0, 0.2], [1.0, 0.4]], query, 0.36),
+        ("tuple_pairs", ((0.0, 0.2), (1.0, 0.4)), query, 0.36),
+        ("list_7d_entries", drag_7d_table, drag_7d_query, 4.0),
+    ]
+
+    for _, drag_input, query_point, expected in test_cases:
+        rocket = Rocket(
+            radius=0.05,
+            mass=1.0,
+            inertia=(1.0, 1.0, 1.0),
+            power_off_drag=drag_input,
+            power_on_drag=drag_input,
+            center_of_mass_without_motor=0.0,
+        )
+
+        assert rocket.power_off_drag_7d(*query_point) == pytest.approx(expected)
+        assert rocket.power_on_drag_7d(*query_point) == pytest.approx(expected)

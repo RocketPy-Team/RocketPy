@@ -1,45 +1,65 @@
+.. _flightcomparator:
+
 Flight Comparator
 =================
 
-This example demonstrates how to use the RocketPy ``FlightComparator`` class to
-compare a Flight simulation against external data sources.
+The :class:`rocketpy.simulation.FlightComparator` class enables users to compare
+a RocketPy Flight simulation against external data sources, providing error
+metrics and visualization tools for validation and analysis.
 
-Users must explicitly create a `FlightComparator` instance.
+.. seealso::
 
+    For comparing multiple RocketPy simulations together, see the
+    :doc:`Compare Flights </user/compare_flights>` guide.
+
+Overview
+--------
 
 This class is designed to compare a RocketPy Flight simulation against external
 data sources, such as:
 
-- Real flight data (avionics logs, altimeter CSVs)
-- Simulations from other software (OpenRocket, RASAero)
-- Theoretical models or manual calculations
+- **Real flight data** - Avionics logs, altimeter CSVs, GPS tracking data
+- **Other simulators** - OpenRocket, RASAero, or custom simulation tools
+- **Theoretical models** - Analytical solutions or manual calculations
 
-Unlike ``CompareFlights`` (which compares multiple RocketPy simulations),
-``FlightComparator`` specifically handles the challenge of aligning different
-time steps and calculating error metrics (RMSE, MAE, etc.) between a
-"Reference" simulation and "External" data.
+Unlike :class:`rocketpy.plots.compare.CompareFlights` (which compares multiple
+RocketPy simulations), ``FlightComparator`` specifically handles the challenge
+of aligning different time steps and calculating error metrics (RMSE, MAE, etc.)
+between a "Reference" simulation and "External" data.
 
-Importing classes
------------------
+Key Features
+------------
 
-We will start by importing the necessary classes and modules:
+- Automatic time-step alignment between different data sources
+- Error metric calculations (RMSE, MAE, etc.)
+- Side-by-side visualization of flight variables
+- Support for multiple external data sources
+- Direct comparison with other RocketPy Flight objects
+
+
+Creating a Reference Simulation
+--------------------------------
+
+First, import the necessary classes and modules:
+
+Importing Classes
+~~~~~~~~~~~~~~~~~
 
 .. jupyter-execute::
 
    import numpy as np
-
    from rocketpy import Environment, Rocket, SolidMotor, Flight
    from rocketpy.simulation import FlightComparator, FlightDataImporter
 
-Create Simulation (Reference)
------------------------------
+Setting Up the Environment
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 First, let's create the standard RocketPy simulation that will serve as our
-"Ground Truth" or reference model. This follows the standard setup.
+reference model. This follows the same pattern as in :ref:`firstsimulation`.
 
 .. jupyter-execute::
 
-   # 1. Setup Environment
+   # Create Environment (Spaceport America, NM)
    env = Environment(
        date=(2022, 10, 1, 12),
        latitude=32.990254,
@@ -48,7 +68,12 @@ First, let's create the standard RocketPy simulation that will serve as our
    )
    env.set_atmospheric_model(type="standard_atmosphere")
 
-   # 2. Setup Motor
+Setting Up the Motor
+~~~~~~~~~~~~~~~~~~~~~
+
+.. jupyter-execute::
+
+   # Create a Cesaroni M1670 Solid Motor
    Pro75M1670 = SolidMotor(
        thrust_source="../data/motors/cesaroni/Cesaroni_M1670.eng",
        burn_time=3.9,
@@ -69,22 +94,35 @@ First, let's create the standard RocketPy simulation that will serve as our
        nozzle_position=0,
    )
 
-   # 3. Setup Rocket
+Setting Up the Rocket
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. jupyter-execute::
+
+   # Create Calisto rocket
    calisto = Rocket(
        radius=127 / 2000,
        mass=19.197 - 2.956,
        inertia=(6.321, 6.321, 0.034),
-       power_off_drag="../data/calisto/powerOffDragCurve.csv",
-       power_on_drag="../data/calisto/powerOnDragCurve.csv",
+       power_off_drag="../data/rockets/calisto/powerOffDragCurve.csv",
+       power_on_drag="../data/rockets/calisto/powerOnDragCurve.csv",
        center_of_mass_without_motor=0,
        coordinate_system_orientation="tail_to_nose",
    )
 
+   # Add rail buttons
    calisto.set_rail_buttons(0.0818, -0.618, 45)
+
+   # Add motor to rocket
    calisto.add_motor(Pro75M1670, position=-1.255)
 
    # Add aerodynamic surfaces
-   nosecone = calisto.add_nose(length=0.55829, kind="vonKarman", position=0.71971)
+   nosecone = calisto.add_nose(
+       length=0.55829,
+       kind="vonKarman",
+       position=0.71971,
+   )
+
    fin_set = calisto.add_trapezoidal_fins(
        n=4,
        root_chord=0.120,
@@ -92,8 +130,9 @@ First, let's create the standard RocketPy simulation that will serve as our
        span=0.100,
        position=-1.04956,
        cant_angle=0.5,
-       airfoil=("../data/calisto/fins/NACA0012-radians.txt", "radians"),
+       airfoil=("../data/airfoils/NACA0012-radians.txt", "radians"),
    )
+
    tail = calisto.add_tail(
        top_radius=0.0635,
        bottom_radius=0.0435,
@@ -101,22 +140,36 @@ First, let's create the standard RocketPy simulation that will serve as our
        position=-1.194656,
    )
 
-    # 4. Simulate
-    flight = Flight(
-    rocket=calisto,
-    environment=env,
-    rail_length=5.2,
-    inclination=85,
-    heading=0,
-    )
+Running the Simulation
+~~~~~~~~~~~~~~~~~~~~~~~
 
-    # 5. Create FlightComparator instance
-    comparator = FlightComparator(flight)
+.. jupyter-execute::
 
-Adding Another Flight Object
-----------------------------
+   # Create and run flight simulation
+   flight = Flight(
+       rocket=calisto,
+       environment=env,
+       rail_length=5.2,
+       inclination=85,
+       heading=0,
+   )
 
-You can compare against another RocketPy Flight simulation directly:
+Creating the FlightComparator
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. jupyter-execute::
+
+   # Initialize FlightComparator with reference flight
+   comparator = FlightComparator(flight)
+
+
+Adding Comparison Data
+----------------------
+
+Comparing with Another Flight
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can compare against another RocketPy :class:`rocketpy.Flight` object directly:
 
 .. jupyter-execute::
 
@@ -129,55 +182,90 @@ You can compare against another RocketPy Flight simulation directly:
         heading=0,
     )
 
-    # Add the second flight directly
+    # Add the second flight to comparator
     comparator.add_data("Alternative Sim", flight2)
 
-    print(f"Added variables from flight2: {list(comparator.data_sources['Alternative Sim'].keys())}")
-
-Importing External Data (dict)
-------------------------------
+Comparing with External Data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The primary data format expected by ``FlightComparator.add_data`` is a dictionary
-where keys are variable names (e.g. ``"z"``, ``"vz"``, ``"altitude"``) and values
+where keys are variable names (e.g., ``"z"``, ``"vz"``, ``"altitude"``) and values
 are either:
 
-- A RocketPy ``Function`` object, or
-- A tuple of ``(time_array, data_array)``.
+- A RocketPy :class:`rocketpy.Function` object, or
+- A tuple of ``(time_array, data_array)``
 
-Let's create some synthetic external data to compare against our reference
-simulation:
+Let's create some synthetic external data to demonstrate the comparison process:
 
 .. jupyter-execute::
 
     # Generate synthetic external data with realistic noise
     time_external = np.linspace(0, flight.t_final, 80)  # Different time steps
-    external_altitude = flight.z(time_external) + np.random.normal(0, 3, 80)  # 3m noise
-    external_velocity = flight.vz(time_external) + np.random.normal(0, 0.5, 80)  # 0.5 m/s noise
+    external_altitude = flight.z(time_external) + np.random.normal(0, 3, 80)  # Add 3 m noise
+    external_velocity = flight.vz(time_external) + np.random.normal(0, 0.5, 80)  # Add 0.5 m/s noise
 
-    # Add the external data to our comparator
+    # Add external data to comparator
     comparator.add_data(
-        "External Simulator", 
+        "External Simulator",
         {
             "altitude": (time_external, external_altitude),
             "vz": (time_external, external_velocity),
         }
     )
 
-Running Comparisons
--------------------
+.. tip::
+    External data does not need to have the same time steps as the reference
+    simulation. The ``FlightComparator`` automatically handles interpolation
+    and alignment for comparison.
 
-Now we can run the various comparison methods:
+
+Analyzing Comparison Results
+-----------------------------
+
+Summary Report
+~~~~~~~~~~~~~~
+
+Generate a comprehensive summary of the comparison:
 
 .. jupyter-execute::
 
-    # Generate summary with key events
+    # Display comparison summary with key flight events
     comparator.summary()
 
-    # Compare specific variable
+Comparing Specific Variables
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can compare individual flight variables:
+
+.. jupyter-execute::
+
+    # Compare altitude data across all sources
     comparator.compare("altitude")
 
-    # Compare all available variables
+The comparison plot shows the reference simulation alongside all external data
+sources, making it easy to identify discrepancies and validate the simulation.
+
+Comparing All Variables
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+To get a complete overview, compare all available variables at once:
+
+.. jupyter-execute::
+
+    # Generate plots for all common variables
     comparator.all()
 
-    # Plot 2D trajectory
+Trajectory Visualization
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Visualize 2D trajectory projections for spatial comparison:
+
+.. jupyter-execute::
+
+    # Plot trajectory in the XZ plane (side view)
     comparator.trajectories_2d(plane="xz")
+
+.. seealso::
+
+    For detailed API documentation and additional methods, see
+    :class:`rocketpy.simulation.FlightComparator` in the API reference.

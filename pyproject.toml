@@ -65,6 +65,7 @@ monte-carlo = [
     "multiprocess>=0.70",
     "statsmodels",
     "prettytable",
+    "contextily>=1.0.0; python_version < '3.14'",
 ]
 
 all = ["rocketpy[env-analysis]", "rocketpy[monte-carlo]"]
@@ -78,7 +79,7 @@ exclude_also = [
 
 
 [tool.ruff]
-target-version = "py39"
+target-version = "py310"
 line-length = 88
 indent-width = 4
 
