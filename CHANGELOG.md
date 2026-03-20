@@ -40,6 +40,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+- BUG: Fix incorrect Jacobian in `only_radial_burn` branch of `SolidMotor.evaluate_geometry` [#935](https://github.com/RocketPy-Team/RocketPy/pull/935)
 - BUG: Add explicit timeouts to ThrustCurve API requests [#935](https://github.com/RocketPy-Team/RocketPy/pull/935)
 
 ## [v1.12.0] - 2026-03-08
