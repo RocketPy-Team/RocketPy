@@ -65,7 +65,6 @@ class PointMassRocket(Rocket):
         Convenience wrapper for power-on drag as a Mach-only function.
     """
 
-
     def __init__(
         self,
         radius: float,
