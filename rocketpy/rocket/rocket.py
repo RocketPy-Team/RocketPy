@@ -147,12 +147,18 @@ class Rocket:
     Rocket.static_margin : float
         Float value corresponding to rocket static margin when
         loaded with propellant in units of rocket diameter or calibers.
-    Rocket.power_off_drag : int, float, callable, string, array, Function
+    Rocket.power_off_drag : Function
+        Rocket's drag coefficient as a function of Mach number when the
+        motor is off. Alias for ``power_off_drag_by_mach``.
+    Rocket.power_on_drag : Function
+        Rocket's drag coefficient as a function of Mach number when the
+        motor is on. Alias for ``power_on_drag_by_mach``.
+    Rocket.power_off_drag_input : int, float, callable, string, array, Function
         Original user input for rocket's drag coefficient when the motor is
-        off. This is preserved for reconstruction and Monte Carlo workflows.
-    Rocket.power_on_drag : int, float, callable, string, array, Function
+        off. Preserved for reconstruction and Monte Carlo workflows.
+    Rocket.power_on_drag_input : int, float, callable, string, array, Function
         Original user input for rocket's drag coefficient when the motor is
-        on. This is preserved for reconstruction and Monte Carlo workflows.
+        on. Preserved for reconstruction and Monte Carlo workflows.
     Rocket.power_off_drag_7d : Function
         Rocket's drag coefficient with motor off as a 7D function of
         (alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate).
@@ -375,9 +381,12 @@ class Rocket:
             interpolation="linear",
             extrapolation="constant",
         )
-        # Saving user input for monte carlo
-        self.power_off_drag = power_off_drag
-        self.power_on_drag = power_on_drag
+        # Saving raw user input for reconstruction and Monte Carlo
+        self._power_off_drag_input = power_off_drag
+        self._power_on_drag_input = power_on_drag
+        # Public API attributes: keep as Function (Mach-only) for backward compatibility
+        self.power_off_drag = self.power_off_drag_by_mach
+        self.power_on_drag = self.power_on_drag_by_mach
 
         # Create a, possibly, temporary empty motor
         # self.motors = Components()  # currently unused, only 1 motor is supported
