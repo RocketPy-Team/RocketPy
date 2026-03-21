@@ -1,5 +1,8 @@
+import csv
+import inspect
 import math
 import warnings
+from typing import Iterable
 
 import numpy as np
 
@@ -25,7 +28,11 @@ from rocketpy.rocket.aero_surface.fins.trapezoidal_fin import TrapezoidalFin
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
-from rocketpy.tools import parallel_axis_theorem_from_com
+from rocketpy.tools import (
+    deprecated,
+    find_obj_from_hash,
+    parallel_axis_theorem_from_com,
+)
 
 
 # pylint: disable=too-many-instance-attributes, too-many-public-methods, too-many-instance-attributes
@@ -145,10 +152,26 @@ class Rocket:
         loaded with propellant in units of rocket diameter or calibers.
     Rocket.power_off_drag : Function
         Rocket's drag coefficient as a function of Mach number when the
-        motor is off.
+        motor is off. Alias for ``power_off_drag_by_mach``.
     Rocket.power_on_drag : Function
         Rocket's drag coefficient as a function of Mach number when the
-        motor is on.
+        motor is on. Alias for ``power_on_drag_by_mach``.
+    Rocket.power_off_drag_input : int, float, callable, string, array, Function
+        Original user input for rocket's drag coefficient when the motor is
+        off. Preserved for reconstruction and Monte Carlo workflows.
+    Rocket.power_on_drag_input : int, float, callable, string, array, Function
+        Original user input for rocket's drag coefficient when the motor is
+        on. Preserved for reconstruction and Monte Carlo workflows.
+    Rocket.power_off_drag_7d : Function
+        Rocket's drag coefficient with motor off as a 7D function of
+        (alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate).
+    Rocket.power_on_drag_7d : Function
+        Rocket's drag coefficient with motor on as a 7D function of
+        (alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate).
+    Rocket.power_off_drag_by_mach : Function
+        Rocket's drag coefficient with motor off as a function of Mach number.
+    Rocket.power_on_drag_by_mach : Function
+        Rocket's drag coefficient with motor on as a function of Mach number.
     Rocket.rail_buttons : RailButtons
         RailButtons object containing the rail buttons information.
     Rocket.motor : Motor
@@ -277,15 +300,16 @@ class Rocket:
         """
         # Define coordinate system orientation
         self.coordinate_system_orientation = coordinate_system_orientation
-        if coordinate_system_orientation == "tail_to_nose":
-            self._csys = 1
-        elif coordinate_system_orientation == "nose_to_tail":
-            self._csys = -1
-        else:  # pragma: no cover
-            raise TypeError(
-                "Invalid coordinate system orientation. Please choose between "
-                + '"tail_to_nose" and "nose_to_tail".'
-            )
+        match coordinate_system_orientation:
+            case "tail_to_nose":
+                self._csys = 1
+            case "nose_to_tail":
+                self._csys = -1
+            case _:  # pragma: no cover
+                raise TypeError(
+                    "Invalid coordinate system orientation. Please choose between "
+                    + '"tail_to_nose" and "nose_to_tail".'
+                )
 
         # Define rocket inertia attributes in SI units
         self.mass = mass
@@ -339,20 +363,33 @@ class Rocket:
         )
 
         # Define aerodynamic drag coefficients
-        self.power_off_drag = Function(
-            power_off_drag,
-            "Mach Number",
-            "Drag Coefficient with Power Off",
-            "linear",
-            "constant",
+        # Coefficients used during flight simulation
+        self.power_off_drag_7d = self.__process_drag_input(
+            power_off_drag, "Drag Coefficient with Power Off"
         )
-        self.power_on_drag = Function(
-            power_on_drag,
-            "Mach Number",
-            "Drag Coefficient with Power On",
-            "linear",
-            "constant",
+        self.power_on_drag_7d = self.__process_drag_input(
+            power_on_drag, "Drag Coefficient with Power On"
         )
+        self.power_on_drag_by_mach = Function(
+            lambda mach: self.power_on_drag_7d(0, 0, mach, 0, 0, 0, 0),
+            inputs="Mach Number",
+            outputs="Drag Coefficient with Power On",
+            interpolation="linear",
+            extrapolation="constant",
+        )
+        self.power_off_drag_by_mach = Function(
+            lambda mach: self.power_off_drag_7d(0, 0, mach, 0, 0, 0, 0),
+            inputs="Mach Number",
+            outputs="Drag Coefficient with Power Off",
+            interpolation="linear",
+            extrapolation="constant",
+        )
+        # Saving raw user input for reconstruction and Monte Carlo
+        self._power_off_drag_input = power_off_drag
+        self._power_on_drag_input = power_on_drag
+        # Public API attributes: keep as Function (Mach-only) for backward compatibility
+        self.power_off_drag = self.power_off_drag_by_mach
+        self.power_on_drag = self.power_on_drag_by_mach
 
         # Create a, possibly, temporary empty motor
         # self.motors = Components()  # currently unused, only 1 motor is supported
@@ -381,6 +418,35 @@ class Rocket:
         # Initialize plots and prints object
         self.prints = _RocketPrints(self)
         self.plots = _RocketPlots(self)
+
+    def _check_missing_components(self):
+        """Check if the rocket is missing any essential components and issue a warning.
+
+        This method verifies whether the rocket has the following key components:
+        - motor
+        - aerodynamic surface(s)
+
+        If any of these components are missing, a single warning message is issued
+        listing all missing components. This helps users quickly identify potential
+        issues before running simulations or analyses.
+
+        Notes
+        -----
+        - The warning uses Python's built-in `warnings.warn` function.
+
+        Returns
+        -------
+        None
+        """
+        missing_components = []
+        if isinstance(self.motor, EmptyMotor):
+            missing_components.append("motor")
+        if not self.aerodynamic_surfaces:
+            missing_components.append("aerodynamic surfaces")
+
+        if missing_components:
+            component_list = ", ".join(missing_components)
+            warnings.warn(f"Rocket has no {component_list} defined.", UserWarning)
 
     @property
     def nosecones(self):
@@ -629,12 +695,14 @@ class Rocket:
         self.stability_margin.set_source(
             lambda mach, time: (
                 (
-                    self.center_of_mass.get_value_opt(time)
-                    - self.cp_position.get_value_opt(mach)
+                    (
+                        self.center_of_mass.get_value_opt(time)
+                        - self.cp_position.get_value_opt(mach)
+                    )
+                    / (2 * self.radius)
                 )
-                / (2 * self.radius)
+                * self._csys
             )
-            * self._csys
         )
         return self.stability_margin
 
@@ -651,10 +719,12 @@ class Rocket:
         # Calculate static margin
         self.static_margin.set_source(
             lambda time: (
-                self.center_of_mass.get_value_opt(time)
-                - self.cp_position.get_value_opt(0)
+                (
+                    self.center_of_mass.get_value_opt(time)
+                    - self.cp_position.get_value_opt(0)
+                )
+                / (2 * self.radius)
             )
-            / (2 * self.radius)
         )
         # Change sign if coordinate system is upside down
         self.static_margin *= self._csys
@@ -1202,16 +1272,16 @@ class Rocket:
         self.add_surfaces(nose, position)
         return nose
 
+    @deprecated(
+        reason="This method is set to be deprecated in version 1.0.0 and fully "
+        "removed by version 2.0.0",
+        alternative="Rocket.add_trapezoidal_fins",
+    )
     def add_fins(self, *args, **kwargs):  # pragma: no cover
         """See Rocket.add_trapezoidal_fins for documentation.
         This method is set to be deprecated in version 1.0.0 and fully removed
         by version 2.0.0. Use Rocket.add_trapezoidal_fins instead. It keeps the
         same arguments and signature."""
-        warnings.warn(
-            "This method is set to be deprecated in version 1.0.0 and fully "
-            "removed by version 2.0.0. Use Rocket.add_trapezoidal_fins instead",
-            DeprecationWarning,
-        )
         return self.add_trapezoidal_fins(*args, **kwargs)
 
     def add_trapezoidal_fins(
@@ -1482,7 +1552,17 @@ class Rocket:
         return fin_set
 
     def add_parachute(
-        self, name, cd_s, trigger, sampling_rate=100, lag=0, noise=(0, 0, 0)
+        self,
+        name,
+        cd_s,
+        trigger,
+        sampling_rate=100,
+        lag=0,
+        noise=(0, 0, 0),
+        radius=None,
+        height=None,
+        porosity=0.0432,
+        drag_coefficient=1.4,
     ):
         """Creates a new parachute, storing its parameters such as
         opening delay, drag coefficients and trigger function.
@@ -1541,16 +1621,48 @@ class Rocket:
             The values are used to add noise to the pressure signal which is
             passed to the trigger function. Default value is (0, 0, 0). Units
             are in pascal.
+        radius : float, optional
+            Length of the non-unique semi-axis (radius) of the inflated
+            hemispheroid parachute. If not provided, it is estimated from
+            `cd_s` and `drag_coefficient` using:
+            `radius = sqrt(cd_s / (drag_coefficient * pi))`.
+            Units are in meters.
+        height : float, optional
+            Length of the unique semi-axis (height) of the inflated hemispheroid
+            parachute. Default value is the radius of the parachute.
+            Units are in meters.
+        porosity : float, optional
+            Geometric porosity of the canopy (ratio of open area to total
+            canopy area), in [0, 1]. Affects only the added-mass scaling
+            during descent; it does not change `cd_s` (drag). The default
+            value of 0.0432 yields an `added_mass_coefficient` of
+            approximately 1.0 ("neutral" added-mass behavior).
+        drag_coefficient : float, optional
+            Drag coefficient of the inflated canopy shape, used only when
+            `radius` is not provided. Typical values: 1.4 for hemispherical
+            canopies (default), 0.75 for flat circular canopies, 1.5 for
+            extended-skirt canopies. Has no effect when `radius` is given.
 
         Returns
         -------
         parachute : Parachute
-            Parachute  containing trigger, sampling_rate, lag, cd_s, noise
-            and name. Furthermore, it stores clean_pressure_signal,
-            noise_signal and noisyPressureSignal which are filled in during
-            Flight simulation.
+            Parachute containing trigger, sampling_rate, lag, cd_s, noise,
+            radius, drag_coefficient, height, porosity and name. Furthermore,
+            it stores clean_pressure_signal, noise_signal and
+            noisyPressureSignal which are filled in during Flight simulation.
         """
-        parachute = Parachute(name, cd_s, trigger, sampling_rate, lag, noise)
+        parachute = Parachute(
+            name,
+            cd_s,
+            trigger,
+            sampling_rate,
+            lag,
+            noise,
+            radius,
+            height,
+            porosity,
+            drag_coefficient,
+        )
         self.parachutes.append(parachute)
         return self.parachutes[-1]
 
@@ -1648,12 +1760,15 @@ class Rocket:
             6. `interactive_objects` (list): A list containing the objects that
                the controller function can interact with. The objects are
                listed in the same order as they are provided in the
-               `interactive_objects`
+               `interactive_objects` argument.
             7. `sensors` (list): A list of sensors that are attached to the
-               rocket. The most recent measurements of the sensors are provided
-               with the ``sensor.measurement`` attribute. The sensors are
-               listed in the same order as they are added to the rocket
-               ``interactive_objects``
+                rocket. The most recent measurements of the sensors are provided
+                with the ``sensor.measurement`` attribute. The sensors are
+                listed in the same order as they are added to the rocket.
+            8. `environment` (Environment): The environment object containing
+                atmospheric conditions, wind data, gravity, and other
+                environmental parameters. This allows the controller to access
+                environmental data locally without relying on global variables.
 
             This function will be called during the simulation at the specified
             sampling rate. The function should evaluate and change the observed
@@ -1939,7 +2054,13 @@ class Rocket:
         self.info()
         self.plots.all()
 
-    def to_dict(self, include_outputs=False):
+    # pylint: disable=too-many-statements
+    def to_dict(self, **kwargs):
+        discretize = kwargs.get("discretize", False)
+
+        power_off_drag = self.power_off_drag_7d
+        power_on_drag = self.power_on_drag_7d
+
         rocket_dict = {
             "radius": self.radius,
             "mass": self.mass,
@@ -1949,8 +2070,8 @@ class Rocket:
             "I_12_without_motor": self.I_12_without_motor,
             "I_13_without_motor": self.I_13_without_motor,
             "I_23_without_motor": self.I_23_without_motor,
-            "power_off_drag": self.power_off_drag,
-            "power_on_drag": self.power_on_drag,
+            "power_off_drag": power_off_drag,
+            "power_on_drag": power_on_drag,
             "center_of_mass_without_motor": self.center_of_mass_without_motor,
             "coordinate_system_orientation": self.coordinate_system_orientation,
             "motor": self.motor,
@@ -1963,7 +2084,51 @@ class Rocket:
             "sensors": self.sensors,
         }
 
-        if include_outputs:
+        if kwargs.get("include_outputs", False):
+            thrust_to_weight = self.thrust_to_weight
+            cp_position = self.cp_position
+            stability_margin = self.stability_margin
+            center_of_mass = self.center_of_mass
+            motor_center_of_mass_position = self.motor_center_of_mass_position
+            reduced_mass = self.reduced_mass
+            total_mass = self.total_mass
+            total_mass_flow_rate = self.total_mass_flow_rate
+            center_of_propellant_position = self.center_of_propellant_position
+
+            if discretize:
+                thrust_to_weight = thrust_to_weight.set_discrete_based_on_model(
+                    self.motor.thrust, mutate_self=False
+                )
+                cp_position = cp_position.set_discrete(0, 4, 25, mutate_self=False)
+                stability_margin = stability_margin.set_discrete(
+                    (0, self.motor.burn_time[0]),
+                    (2, self.motor.burn_time[1]),
+                    (10, 10),
+                    mutate_self=False,
+                )
+                center_of_mass = center_of_mass.set_discrete_based_on_model(
+                    self.motor.thrust, mutate_self=False
+                )
+                motor_center_of_mass_position = (
+                    motor_center_of_mass_position.set_discrete_based_on_model(
+                        self.motor.thrust, mutate_self=False
+                    )
+                )
+                reduced_mass = reduced_mass.set_discrete_based_on_model(
+                    self.motor.thrust, mutate_self=False
+                )
+                total_mass = total_mass.set_discrete_based_on_model(
+                    self.motor.thrust, mutate_self=False
+                )
+                total_mass_flow_rate = total_mass_flow_rate.set_discrete_based_on_model(
+                    self.motor.thrust, mutate_self=False
+                )
+                center_of_propellant_position = (
+                    center_of_propellant_position.set_discrete_based_on_model(
+                        self.motor.thrust, mutate_self=False
+                    )
+                )
+
             rocket_dict["area"] = self.area
             rocket_dict["center_of_dry_mass_position"] = (
                 self.center_of_dry_mass_position
@@ -1971,30 +2136,26 @@ class Rocket:
             rocket_dict["center_of_mass_without_motor"] = (
                 self.center_of_mass_without_motor
             )
-            rocket_dict["motor_center_of_mass_position"] = (
-                self.motor_center_of_mass_position
-            )
+            rocket_dict["motor_center_of_mass_position"] = motor_center_of_mass_position
             rocket_dict["motor_center_of_dry_mass_position"] = (
                 self.motor_center_of_dry_mass_position
             )
-            rocket_dict["center_of_mass"] = self.center_of_mass
-            rocket_dict["reduced_mass"] = self.reduced_mass
-            rocket_dict["total_mass"] = self.total_mass
-            rocket_dict["total_mass_flow_rate"] = self.total_mass_flow_rate
-            rocket_dict["thrust_to_weight"] = self.thrust_to_weight
+            rocket_dict["center_of_mass"] = center_of_mass
+            rocket_dict["reduced_mass"] = reduced_mass
+            rocket_dict["total_mass"] = total_mass
+            rocket_dict["total_mass_flow_rate"] = total_mass_flow_rate
+            rocket_dict["thrust_to_weight"] = thrust_to_weight
             rocket_dict["cp_eccentricity_x"] = self.cp_eccentricity_x
             rocket_dict["cp_eccentricity_y"] = self.cp_eccentricity_y
             rocket_dict["thrust_eccentricity_x"] = self.thrust_eccentricity_x
             rocket_dict["thrust_eccentricity_y"] = self.thrust_eccentricity_y
-            rocket_dict["cp_position"] = self.cp_position
-            rocket_dict["stability_margin"] = self.stability_margin
+            rocket_dict["cp_position"] = cp_position
+            rocket_dict["stability_margin"] = stability_margin
             rocket_dict["static_margin"] = self.static_margin
             rocket_dict["nozzle_position"] = self.nozzle_position
             rocket_dict["nozzle_to_cdm"] = self.nozzle_to_cdm
             rocket_dict["nozzle_gyration_tensor"] = self.nozzle_gyration_tensor
-            rocket_dict["center_of_propellant_position"] = (
-                self.center_of_propellant_position
-            )
+            rocket_dict["center_of_propellant_position"] = center_of_propellant_position
 
         return rocket_dict
 
@@ -2037,17 +2198,297 @@ class Rocket:
         for parachute in data["parachutes"]:
             rocket.parachutes.append(parachute)
 
-        for air_brakes in data["air_brakes"]:
-            rocket.add_air_brakes(
-                drag_coefficient_curve=air_brakes["drag_coefficient_curve"],
-                controller_function=air_brakes["controller_function"],
-                sampling_rate=air_brakes["sampling_rate"],
-                clamp=air_brakes["clamp"],
-                reference_area=air_brakes["reference_area"],
-                initial_observed_variables=air_brakes["initial_observed_variables"],
-                override_rocket_drag=air_brakes["override_rocket_drag"],
-                name=air_brakes["name"],
-                controller_name=air_brakes["controller_name"],
-            )
+        for sensor, position in data["sensors"]:
+            rocket.add_sensor(sensor, position)
+
+        for air_brake in data["air_brakes"]:
+            rocket.air_brakes.append(air_brake)
+
+        for controller in data["_controllers"]:
+            interactive_objects_hash = getattr(controller, "_interactive_objects_hash")
+            if interactive_objects_hash is not None:
+                is_iterable = isinstance(interactive_objects_hash, Iterable)
+                if not is_iterable:
+                    interactive_objects_hash = [interactive_objects_hash]
+                for hash_ in interactive_objects_hash:
+                    if (hashed_obj := find_obj_from_hash(data, hash_)) is not None:
+                        if not is_iterable:
+                            controller.interactive_objects = hashed_obj
+                        else:
+                            controller.interactive_objects.append(hashed_obj)
+                    else:
+                        warnings.warn(
+                            "Could not find controller interactive objects."
+                            "Deserialization will proceed, results may not be accurate."
+                        )
+            rocket._add_controllers(controller)
 
         return rocket
+
+    def __process_drag_input(self, input_data, coeff_name):
+        """Process drag coefficient input and normalize it to a 7D Function.
+
+        Parameters
+        ----------
+        input_data : int, float, str, callable, Function
+            Input data to be processed.
+        coeff_name : str
+            Name of the coefficient being processed for error reporting.
+
+        Returns
+        -------
+        Function
+            Function object with 7 input arguments in the following order:
+            alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate.
+        """
+        inputs = [
+            "alpha",
+            "beta",
+            "mach",
+            "reynolds",
+            "pitch_rate",
+            "yaw_rate",
+            "roll_rate",
+        ]
+
+        # Helper: lift a 1D Mach-only source into the required 7D signature.
+        def _wrap_mach_only_source(mach_source):
+            return Function(
+                lambda alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate: (
+                    mach_source(mach)
+                ),
+                inputs,
+                [coeff_name],
+                interpolation="linear",
+                extrapolation="constant",
+            )
+
+        # Helper: enforce that Function-based inputs are either 1D (Mach) or 7D.
+        def _validate_function_domain_dimension(function):
+            if function.__dom_dim__ not in (1, 7):
+                raise ValueError(
+                    f"{coeff_name} function must have either 1 input argument "
+                    "(mach) or 7 input arguments (alpha, beta, mach, reynolds, "
+                    "pitch_rate, yaw_rate, roll_rate), in that order."
+                )
+
+        # Helper: count required positional arguments in a callable.
+        def _count_positional_args(callable_obj):
+            signature = inspect.signature(callable_obj)
+            positional_params = [
+                parameter
+                for parameter in signature.parameters.values()
+                if parameter.kind
+                in (
+                    inspect.Parameter.POSITIONAL_ONLY,
+                    inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                )
+                and parameter.default is inspect.Parameter.empty
+            ]
+            return len(positional_params)
+
+        # Case 1: string input can be a CSV path or any Function-supported source.
+        if isinstance(input_data, str):
+            if input_data.lower().endswith(".csv"):
+                return self.__load_rocket_drag_csv(input_data, coeff_name)
+
+            function_data = Function(input_data)
+            _validate_function_domain_dimension(function_data)
+            if function_data.__dom_dim__ == 7:
+                function_data.set_extrapolation("constant")
+                return function_data
+            return _wrap_mach_only_source(function_data.get_value_opt)
+
+        # Case 2: Function input is accepted directly after domain validation.
+        if isinstance(input_data, Function):
+            _validate_function_domain_dimension(input_data)
+            if input_data.__dom_dim__ == 7:
+                input_data.set_extrapolation("constant")
+                return input_data
+            return _wrap_mach_only_source(input_data.get_value_opt)
+
+        # Case 3: callable input must expose either 1 (Mach) or 7 arguments.
+        if callable(input_data):
+            n_positional_args = _count_positional_args(input_data)
+            if n_positional_args not in (1, 7):
+                raise ValueError(
+                    f"{coeff_name} callable must have either 1 positional "
+                    "argument (mach) or 7 positional arguments (alpha, beta, "
+                    "mach, reynolds, pitch_rate, yaw_rate, roll_rate), in that "
+                    "order."
+                )
+
+            if n_positional_args == 1:
+                return _wrap_mach_only_source(input_data)
+
+            return Function(
+                input_data,
+                inputs,
+                [coeff_name],
+                interpolation="linear",
+                extrapolation="constant",
+            )
+
+        # Case 4: scalar input means a constant drag coefficient in all conditions.
+        if isinstance(input_data, (int, float)):
+            return Function(
+                lambda alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate: (
+                    float(input_data)
+                ),
+                inputs,
+                [coeff_name],
+                interpolation="linear",
+                extrapolation="constant",
+            )
+
+        # If is list/tuple try to pass it to a function.
+        # If composed of lists/tuples len 2, then interpret as function of mach
+        # Otherwise interpret it as function of all 7 variables
+        # This reuses Function's parser and then feeds back into this same pipeline.
+        if isinstance(input_data, (list, tuple)):
+            if all(
+                isinstance(item, (list, tuple)) and (len(item) == 2 or len(item) == 8)
+                for item in input_data
+            ):
+                try:
+                    return self.__process_drag_input(
+                        Function(list(input_data)), coeff_name
+                    )
+                except (TypeError, ValueError) as e:
+                    raise ValueError(
+                        f"Invalid list/tuple format for {coeff_name}. Expected "
+                        "a list of [mach, coefficient] pairs or a list of "
+                        "[alpha, beta, mach, reynolds, pitch_rate, yaw_rate, "
+                        "roll_rate, coefficient] entries."
+                    ) from e
+
+        raise TypeError(
+            f"Invalid input for {coeff_name}: must be int, float, CSV file path, "
+            "Function, or callable."
+        )
+
+    def __load_rocket_drag_csv(self, file_path, coeff_name):  # pylint: disable=too-many-statements,import-outside-toplevel
+        """Load Rocket drag CSV into a 7D Function.
+
+        Supports either headerless two-column (mach, coefficient) tables or
+        header-based multi-variable CSV tables.
+        """
+        independent_vars = [
+            "alpha",
+            "beta",
+            "mach",
+            "reynolds",
+            "pitch_rate",
+            "yaw_rate",
+            "roll_rate",
+        ]
+
+        def _is_numeric(value):
+            try:
+                float(value)
+                return True
+            except (TypeError, ValueError):
+                try:
+                    int(value)
+                    return True
+                except (TypeError, ValueError):
+                    return False
+
+        try:
+            with open(file_path, mode="r") as file:
+                reader = csv.reader(file)
+                first_row = next(reader)
+        except (FileNotFoundError, IOError) as e:
+            raise ValueError(f"Error reading {coeff_name} CSV file: {e}") from e
+        except StopIteration as e:
+            raise ValueError(f"Invalid or empty CSV file for {coeff_name}.") from e
+
+        if not first_row:
+            raise ValueError(f"Invalid or empty CSV file for {coeff_name}.")
+
+        is_headerless_two_column = len(first_row) == 2 and all(
+            _is_numeric(cell) for cell in first_row
+        )
+
+        if is_headerless_two_column:
+            csv_func = Function(
+                file_path,
+                interpolation="linear",
+                extrapolation="constant",
+            )
+
+            def mach_wrapper(
+                _alpha,
+                _beta,
+                mach,
+                _reynolds,
+                _pitch_rate,
+                _yaw_rate,
+                _roll_rate,
+            ):
+                return csv_func(mach)
+
+            return Function(
+                mach_wrapper,
+                independent_vars,
+                [coeff_name],
+                interpolation="linear",
+                extrapolation="constant",
+            )
+
+        header = [column.strip() for column in first_row]
+        present_columns = [col for col in independent_vars if col in header]
+
+        invalid_columns = [col for col in header[:-1] if col not in independent_vars]
+        if invalid_columns:
+            raise ValueError(
+                f"Invalid independent variable(s) in {coeff_name} CSV: "
+                f"{invalid_columns}. Valid options are: {independent_vars}."
+            )
+
+        if header[-1] in independent_vars:
+            raise ValueError(
+                f"Last column in {coeff_name} CSV must be the coefficient "
+                "value, not an independent variable."
+            )
+
+        if not present_columns:
+            raise ValueError(f"No independent variables found in {coeff_name} CSV.")
+
+        ordered_present_columns = [
+            col for col in header[:-1] if col in independent_vars
+        ]
+
+        csv_func = Function.from_regular_grid_csv(
+            file_path,
+            ordered_present_columns,
+            coeff_name,
+            extrapolation="constant",
+        )
+        if csv_func is None:
+            csv_func = Function(
+                file_path,
+                interpolation="linear",
+                extrapolation="constant",
+            )
+
+        def wrapper(alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate):
+            args_by_name = {
+                "alpha": alpha,
+                "beta": beta,
+                "mach": mach,
+                "reynolds": reynolds,
+                "pitch_rate": pitch_rate,
+                "yaw_rate": yaw_rate,
+                "roll_rate": roll_rate,
+            }
+            selected_args = [args_by_name[col] for col in ordered_present_columns]
+            return csv_func(*selected_args)
+
+        return Function(
+            wrapper,
+            independent_vars,
+            [coeff_name],
+            interpolation="linear",
+            extrapolation="constant",
+        )

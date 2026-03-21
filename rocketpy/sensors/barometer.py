@@ -190,3 +190,20 @@ class Barometer(ScalarSensor):
             file_format=file_format,
             data_labels=("t", "pressure"),
         )
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            sampling_rate=data["sampling_rate"],
+            measurement_range=data["measurement_range"],
+            resolution=data["resolution"],
+            noise_density=data["noise_density"],
+            noise_variance=data["noise_variance"],
+            random_walk_density=data["random_walk_density"],
+            random_walk_variance=data["random_walk_variance"],
+            constant_bias=data["constant_bias"],
+            operating_temperature=data["operating_temperature"],
+            temperature_bias=data["temperature_bias"],
+            temperature_scale_factor=data["temperature_scale_factor"],
+            name=data["name"],
+        )

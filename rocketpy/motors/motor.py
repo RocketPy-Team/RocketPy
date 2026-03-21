@@ -1,19 +1,26 @@
+import base64
 import re
+import tempfile
 import warnings
 import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
 from functools import cached_property
-from os import path
+from os import path, remove
+from pathlib import Path
 
 import numpy as np
+import requests
 
 from ..mathutils.function import Function, funcify_method
 from ..plots.motor_plots import _MotorPlots
 from ..prints.motor_prints import _MotorPrints
 from ..tools import parallel_axis_theorem_from_com, tuple_handler
 
-
 # pylint: disable=too-many-public-methods
+# ThrustCurve API cache
+CACHE_DIR = Path.home() / ".rocketpy_cache"
+
+
 class Motor(ABC):
     """Abstract class to specify characteristics and useful operations for
     motors. Cannot be instantiated.
@@ -259,15 +266,16 @@ class Motor(ABC):
         """
         # Define coordinate system orientation
         self.coordinate_system_orientation = coordinate_system_orientation
-        if coordinate_system_orientation == "nozzle_to_combustion_chamber":
-            self._csys = 1
-        elif coordinate_system_orientation == "combustion_chamber_to_nozzle":
-            self._csys = -1
-        else:  # pragma: no cover
-            raise ValueError(
-                "Invalid coordinate system orientation. Options are "
-                "'nozzle_to_combustion_chamber' and 'combustion_chamber_to_nozzle'."
-            )
+        match coordinate_system_orientation:
+            case "nozzle_to_combustion_chamber":
+                self._csys = 1
+            case "combustion_chamber_to_nozzle":
+                self._csys = -1
+            case _:  # pragma: no cover
+                raise ValueError(
+                    "Invalid coordinate system orientation. Options are "
+                    "'nozzle_to_combustion_chamber' and 'combustion_chamber_to_nozzle'."
+                )
 
         # Motor parameters
         self.interpolate = interpolation_method
@@ -1151,7 +1159,7 @@ class Motor(ABC):
         Returns
         -------
         vacuum_thrust : Function
-            The rocket's thrust in a vaccum.
+            The rocket's thrust in a vacuum.
         """
         if self.reference_pressure is None:
             warnings.warn(
@@ -1231,14 +1239,7 @@ class Motor(ABC):
             # Write last line
             file.write(f"{self.thrust.source[-1, 0]:.4f} {0:.3f}\n")
 
-    def to_dict(self, include_outputs=False):
-        thrust_source = self.thrust_source
-
-        if isinstance(thrust_source, str):
-            thrust_source = self.thrust.source
-        elif callable(thrust_source) and not isinstance(thrust_source, Function):
-            thrust_source = Function(thrust_source)
-
+    def to_dict(self, **kwargs):
         data = {
             "thrust_source": self.thrust,
             "dry_I_11": self.dry_I_11,
@@ -1258,31 +1259,94 @@ class Motor(ABC):
             "reference_pressure": self.reference_pressure,
         }
 
-        if include_outputs:
+        if kwargs.get("include_outputs", False):
+            total_mass = self.total_mass
+            propellant_mass = self.propellant_mass
+            mass_flow_rate = self.total_mass_flow_rate
+            center_of_mass = self.center_of_mass
+            center_of_propellant_mass = self.center_of_propellant_mass
+            exhaust_velocity = self.exhaust_velocity
+            I_11 = self.I_11
+            I_22 = self.I_22
+            I_33 = self.I_33
+            I_12 = self.I_12
+            I_13 = self.I_13
+            I_23 = self.I_23
+            propellant_I_11 = self.propellant_I_11
+            propellant_I_22 = self.propellant_I_22
+            propellant_I_33 = self.propellant_I_33
+            propellant_I_12 = self.propellant_I_12
+            propellant_I_13 = self.propellant_I_13
+            propellant_I_23 = self.propellant_I_23
+            if kwargs.get("discretize", False):
+                total_mass = total_mass.set_discrete_based_on_model(
+                    self.thrust, mutate_self=False
+                )
+                propellant_mass = propellant_mass.set_discrete_based_on_model(
+                    self.thrust, mutate_self=False
+                )
+                mass_flow_rate = mass_flow_rate.set_discrete_based_on_model(
+                    self.thrust, mutate_self=False
+                )
+                center_of_mass = center_of_mass.set_discrete_based_on_model(
+                    self.thrust, mutate_self=False
+                )
+                center_of_propellant_mass = (
+                    center_of_propellant_mass.set_discrete_based_on_model(
+                        self.thrust, mutate_self=False
+                    )
+                )
+                exhaust_velocity = exhaust_velocity.set_discrete_based_on_model(
+                    self.thrust, mutate_self=False
+                )
+                I_11 = I_11.set_discrete_based_on_model(self.thrust, mutate_self=False)
+                I_22 = I_22.set_discrete_based_on_model(self.thrust, mutate_self=False)
+                I_33 = I_33.set_discrete_based_on_model(self.thrust, mutate_self=False)
+                I_12 = I_12.set_discrete_based_on_model(self.thrust, mutate_self=False)
+                I_13 = I_13.set_discrete_based_on_model(self.thrust, mutate_self=False)
+                I_23 = I_23.set_discrete_based_on_model(self.thrust, mutate_self=False)
+                propellant_I_11 = propellant_I_11.set_discrete_based_on_model(
+                    self.thrust, mutate_self=False
+                )
+                propellant_I_22 = propellant_I_22.set_discrete_based_on_model(
+                    self.thrust, mutate_self=False
+                )
+                propellant_I_33 = propellant_I_33.set_discrete_based_on_model(
+                    self.thrust, mutate_self=False
+                )
+                propellant_I_12 = propellant_I_12.set_discrete_based_on_model(
+                    self.thrust, mutate_self=False
+                )
+                propellant_I_13 = propellant_I_13.set_discrete_based_on_model(
+                    self.thrust, mutate_self=False
+                )
+                propellant_I_23 = propellant_I_23.set_discrete_based_on_model(
+                    self.thrust, mutate_self=False
+                )
             data.update(
                 {
                     "vacuum_thrust": self.vacuum_thrust,
-                    "total_mass": self.total_mass,
-                    "propellant_mass": self.propellant_mass,
-                    "mass_flow_rate": self.mass_flow_rate,
-                    "center_of_mass": self.center_of_mass,
-                    "center_of_propellant_mass": self.center_of_propellant_mass,
+                    "total_mass": total_mass,
+                    "propellant_mass": propellant_mass,
+                    "mass_flow_rate": mass_flow_rate,
+                    "center_of_mass": center_of_mass,
+                    "center_of_propellant_mass": center_of_propellant_mass,
                     "total_impulse": self.total_impulse,
-                    "exhaust_velocity": self.exhaust_velocity,
+                    "exhaust_velocity": exhaust_velocity,
                     "propellant_initial_mass": self.propellant_initial_mass,
                     "structural_mass_ratio": self.structural_mass_ratio,
-                    "I_11": self.I_11,
-                    "I_22": self.I_22,
-                    "I_33": self.I_33,
-                    "I_12": self.I_12,
-                    "I_13": self.I_13,
-                    "I_23": self.I_23,
-                    "propellant_I_11": self.propellant_I_11,
-                    "propellant_I_22": self.propellant_I_22,
-                    "propellant_I_33": self.propellant_I_33,
-                    "propellant_I_12": self.propellant_I_12,
-                    "propellant_I_13": self.propellant_I_13,
-                    "propellant_I_23": self.propellant_I_23,
+                    "I_11": I_11,
+                    "I_22": I_22,
+                    "I_33": I_33,
+                    "I_12": I_12,
+                    "I_13": I_13,
+                    "I_23": I_23,
+                    "propellant_I_11": propellant_I_11,
+                    "propellant_I_22": propellant_I_22,
+                    "propellant_I_33": propellant_I_33,
+                    "propellant_I_12": propellant_I_12,
+                    "propellant_I_13": propellant_I_13,
+                    "propellant_I_23": propellant_I_23,
                 }
             )
 
@@ -1510,7 +1574,7 @@ class GenericMotor(Motor):
         Function
             Function representing the center of mass of the motor.
         """
-        return self.chamber_position
+        return Function(self.chamber_position).set_discrete_based_on_model(self.thrust)
 
     @funcify_method("Time (s)", "Inertia I_11 (kg m²)")
     def propellant_I_11(self):
@@ -1532,11 +1596,11 @@ class GenericMotor(Motor):
         ----------
         https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        return (
+        return Function(
             self.propellant_mass
             * (3 * self.chamber_radius**2 + self.chamber_height**2)
             / 12
-        )
+        ).set_discrete_based_on_model(self.thrust)
 
     @funcify_method("Time (s)", "Inertia I_22 (kg m²)")
     def propellant_I_22(self):
@@ -1580,19 +1644,21 @@ class GenericMotor(Motor):
         ----------
         https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        return self.propellant_mass * self.chamber_radius**2 / 2
+        return Function(
+            self.propellant_mass * self.chamber_radius**2 / 2
+        ).set_discrete_based_on_model(self.thrust)
 
     @funcify_method("Time (s)", "Inertia I_12 (kg m²)")
     def propellant_I_12(self):
-        return Function(0)
+        return Function(0).set_discrete_based_on_model(self.thrust)
 
     @funcify_method("Time (s)", "Inertia I_13 (kg m²)")
     def propellant_I_13(self):
-        return Function(0)
+        return Function(0).set_discrete_based_on_model(self.thrust)
 
     @funcify_method("Time (s)", "Inertia I_23 (kg m²)")
     def propellant_I_23(self):
-        return Function(0)
+        return Function(0).set_discrete_based_on_model(self.thrust)
 
     @staticmethod
     def load_from_eng_file(
@@ -1856,14 +1922,172 @@ class GenericMotor(Motor):
             coordinate_system_orientation=coordinate_system_orientation,
         )
 
+    @staticmethod
+    def _call_thrustcurve_api(name: str, no_cache: bool = False):  # pylint: disable=too-many-statements
+        """
+        Download a .eng file from the ThrustCurve API
+        based on the given motor name.
+
+        Parameters
+        ----------
+        name : str
+            The motor name according to the API (e.g., "Cesaroni_M1670" or "M1670").
+            Both manufacturer-prefixed and shorthand names are commonly used; if multiple
+            motors match the search, the first result is used.
+        no_cache : bool, optional
+            If True, forces a new API fetch even if the motor is cached.
+
+        Returns
+        -------
+        data_base64 : str
+            The .eng file of the motor in base64
+
+        Raises
+        ------
+        ValueError
+            If no motor is found or if the downloaded .eng data is missing.
+        requests.exceptions.Timeout
+            If a search or download request to the ThrustCurve API exceeds the
+            timeout limit (5 s connect / 30 s read).
+        requests.exceptions.RequestException
+            If any other network or HTTP error occurs during the API call.
+
+        Notes
+        -----
+        - The cache prevents multiple network requests for the same motor name across sessions.
+        - Cached files are stored in `~/.rocketpy_cache` and reused unless `no_cache=True`.
+        - Filenames are sanitized to avoid invalid characters.
+        """
+        try:
+            CACHE_DIR.mkdir(exist_ok=True)
+        except OSError as e:
+            warnings.warn(f"Could not create cache directory: {e}. Caching disabled.")
+            no_cache = True
+        # File path in the cache
+        safe_name = re.sub(r"[^A-Za-z0-9_.-]", "_", name)
+        cache_file = CACHE_DIR / f"{safe_name}.eng.b64"
+        if not no_cache and cache_file.exists():
+            try:
+                return cache_file.read_text()
+            except (OSError, UnicodeDecodeError) as e:
+                warnings.warn(
+                    f"Failed to read cached motor file '{cache_file}': {e}. "
+                    "Fetching fresh data from API."
+                )
+
+        base_url = "https://www.thrustcurve.org/api/v1"
+        _timeout = (5, 30)  # (connect timeout, read timeout) in seconds
+        # Step 1. Search motor
+        response = requests.get(
+            f"{base_url}/search.json",
+            params={"commonName": name},
+            timeout=_timeout,
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        if not data.get("results"):
+            raise ValueError(
+                f"No motor found for name '{name}'. "
+                "Please verify the motor name format (e.g., 'Cesaroni_M1670' or 'M1670') and try again."
+            )
+
+        motor_info = data["results"][0]
+        motor_id = motor_info.get("motorId")
+        # NOTE: commented bc we don't use it, but keeping for possible future use
+        # designation = motor_info.get("designation", "").replace("/", "-")
+        # manufacturer = motor_info.get("manufacturer", "")
+
+        # Step 2. Download the .eng file
+        dl_response = requests.get(
+            f"{base_url}/download.json",
+            params={"motorIds": motor_id, "format": "RASP", "data": "file"},
+            timeout=_timeout,
+        )
+        dl_response.raise_for_status()
+        dl_data = dl_response.json()
+
+        if not dl_data.get("results"):
+            raise ValueError(
+                f"No .eng file found for motor '{name}' in the ThrustCurve API."
+            )
+
+        data_base64 = dl_data["results"][0].get("data")
+        if not data_base64:
+            raise ValueError(
+                f"Downloaded .eng data for motor '{name}' is empty or invalid."
+            )
+        if not no_cache:
+            try:
+                cache_file.write_text(data_base64)
+            except (OSError, PermissionError) as e:
+                warnings.warn(
+                    f"Could not write to cache file '{cache_file}': {e}. "
+                    "Continuing without caching.",
+                    RuntimeWarning,
+                )
+
+        return data_base64
+
+    @staticmethod
+    def load_from_thrustcurve_api(name: str, no_cache: bool = False, **kwargs):
+        """
+        Creates a Motor instance by downloading a .eng file from the ThrustCurve API
+        based on the given motor name.
+
+        Parameters
+        ----------
+        name : str
+            The motor name according to the API (e.g., "Cesaroni_M1670" or "M1670").
+            Both manufacturer-prefixed and shorthand names are commonly used; if multiple
+            motors match the search, the first result is used.
+        **kwargs :
+            Additional arguments passed to the Motor constructor or loader, such as
+            dry_mass, nozzle_radius, etc.
+
+        Returns
+        -------
+        instance : GenericMotor
+            A new GenericMotor instance initialized using the downloaded .eng file.
+
+        Raises
+        ------
+        ValueError
+            If no motor is found or if the downloaded .eng data is missing.
+        requests.exceptions.RequestException
+            If a network or HTTP error occurs during the API call.
+        """
+
+        data_base64 = GenericMotor._call_thrustcurve_api(name, no_cache=no_cache)
+        data_bytes = base64.b64decode(data_base64)
+
+        # Step 3. Create the motor from the .eng file
+        tmp_path = None
+        try:
+            # create a temporary file that persists until we explicitly remove it
+            with tempfile.NamedTemporaryFile(suffix=".eng", delete=False) as tmp_file:
+                tmp_file.write(data_bytes)
+                tmp_file.flush()
+                tmp_path = tmp_file.name
+
+            return GenericMotor.load_from_eng_file(tmp_path, **kwargs)
+        finally:
+            # Ensuring the temporary file is removed
+            if tmp_path and path.exists(tmp_path):
+                try:
+                    remove(tmp_path)
+                except OSError:
+                    # If cleanup fails, don't raise: we don't want to mask prior exceptions.
+                    pass
+
     def all_info(self):
         """Prints out all data and graphs available about the Motor."""
         # Print motor details
         self.prints.all()
         self.plots.all()
 
-    def to_dict(self, include_outputs=False):
-        data = super().to_dict(include_outputs)
+    def to_dict(self, **kwargs):
+        data = super().to_dict(**kwargs)
         data.update(
             {
                 "chamber_radius": self.chamber_radius,

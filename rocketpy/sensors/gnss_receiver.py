@@ -124,3 +124,20 @@ class GnssReceiver(ScalarSensor):
             file_format=file_format,
             data_labels=("t", "latitude", "longitude", "altitude"),
         )
+
+    def to_dict(self, **kwargs):
+        return {
+            "sampling_rate": self.sampling_rate,
+            "position_accuracy": self.position_accuracy,
+            "altitude_accuracy": self.altitude_accuracy,
+            "name": self.name,
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            sampling_rate=data["sampling_rate"],
+            position_accuracy=data["position_accuracy"],
+            altitude_accuracy=data["altitude_accuracy"],
+            name=data["name"],
+        )

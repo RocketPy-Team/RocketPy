@@ -164,10 +164,12 @@ class Tail(AeroSurface):
         """
         # Calculate clalpha
         self.clalpha = Function(
-            lambda mach: 2
-            * (
-                (self.bottom_radius / self.rocket_radius) ** 2
-                - (self.top_radius / self.rocket_radius) ** 2
+            lambda mach: (
+                2
+                * (
+                    (self.bottom_radius / self.rocket_radius) ** 2
+                    - (self.top_radius / self.rocket_radius) ** 2
+                )
             ),
             "Mach",
             f"Lift coefficient derivative for {self.name}",
@@ -205,7 +207,7 @@ class Tail(AeroSurface):
         self.prints.all()
         self.plots.all()
 
-    def to_dict(self, include_outputs=False):
+    def to_dict(self, **kwargs):
         data = {
             "top_radius": self._top_radius,
             "bottom_radius": self._bottom_radius,
@@ -214,11 +216,20 @@ class Tail(AeroSurface):
             "name": self.name,
         }
 
-        if include_outputs:
+        if kwargs.get("include_outputs", False):
+            clalpha = self.clalpha
+            cl = self.cl
+            if kwargs.get("discretize", False):
+                clalpha = clalpha.set_discrete(0, 4, 50)
+                cl = cl.set_discrete(
+                    (-np.pi / 6, 0), (np.pi / 6, 2), (10, 10), mutate_self=False
+                )
+
             data.update(
                 {
                     "cp": self.cp,
-                    "cl": self.clalpha,
+                    "clalpha": clalpha,
+                    "cl": cl,
                     "slant_length": self.slant_length,
                     "surface_area": self.surface_area,
                 }

@@ -31,12 +31,102 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 Attention: The newest changes should be on top -->
 
 ### Added
+
+- 
+
+### Changed
+
+- 
+
+### Fixed
+
+- 
+
+## [v1.12.0] - 2026-03-08
+
+### Added
+
+
+- ENH: Air brakes controller functions now support 8-parameter signature [#854](https://github.com/RocketPy-Team/RocketPy/pull/854)
+- TST: Add acceptance tests for 3DOF flight simulation based on Bella Lui rocket [#914] (https://github.com/RocketPy-Team/RocketPy/pull/914_
+- ENH: Add background map auto download functionality to Monte Carlo plots [#896](https://github.com/RocketPy-Team/RocketPy/pull/896)
+- MNT: net thrust addition to 3 dof in flight class [#907] (https://github.com/RocketPy-Team/RocketPy/pull/907)
+- ENH: 3-dof lateral motion improvement [#883](https://github.com/RocketPy-Team/RocketPy/pull/883)
+- ENH: Add multi-dimensional drag coefficient support (Cd as function of M, Re, α) [#875](https://github.com/RocketPy-Team/RocketPy/pull/875)
+- ENH: Add save functionality to `_MonteCarloPlots.all` method [#848](https://github.com/RocketPy-Team/RocketPy/pull/848)
+- ENH: add animations for motor propellant mass and tank fluid volumes [#894](https://github.com/RocketPy-Team/RocketPy/pull/894)
+- ENH: Rail button bending moments calculation in Flight class [#893](https://github.com/RocketPy-Team/RocketPy/pull/893)
+- ENH: Implement Bootstrapping for Confidence Interval Estimation [#891](https://github.com/RocketPy-Team/RocketPy/pull/897)
+- ENH: Built-in flight comparison tool (`FlightComparator`) to validate simulations against external data [#888](https://github.com/RocketPy-Team/RocketPy/pull/888)
+- ENH: Add persistent caching for ThrustCurve API [#881](https://github.com/RocketPy-Team/RocketPy/pull/881)
+- ENH: Add axial_acceleration attribute to the Flight class [#876](https://github.com/RocketPy-Team/RocketPy/pull/876)
+- ENH: custom warning no motor or aerosurface [#871](https://github.com/RocketPy-Team/RocketPy/pull/871)
+- ENH: Add thrustcurve api integration to retrieve motor eng data [#870](https://github.com/RocketPy-Team/RocketPy/pull/870)
+- ENH: Compatibility with MERRA-2 atmosphere reanalysis files [#825](https://github.com/RocketPy-Team/RocketPy/pull/825)
+- ENH: Enable only radial burning [#815](https://github.com/RocketPy-Team/RocketPy/pull/815)
+
+### Changed
+
+- ENH: Improve multi-variable drag compatibility, regular-grid handling, and related tests/docs [#927](https://github.com/RocketPy-Team/RocketPy/pull/927/changes)
+- ENH: replace if elif else chains with match statement [#921](https://github.com/RocketPy-Team/RocketPy/pull/921/changes)
+- ENH: Refactor Flight class to improve time node handling and sensor/controllers [#843](https://github.com/RocketPy-Team/RocketPy/pull/843)
+
+### Fixed
+
+- BUG: Restore `Rocket.power_off_drag` and `Rocket.power_on_drag` as `Function` objects while preserving raw inputs in `power_off_drag_input` and `power_on_drag_input` [#941](https://github.com/RocketPy-Team/RocketPy/pull/941)
+- BUG: Add explicit timeouts to ThrustCurve API requests [#935](https://github.com/RocketPy-Team/RocketPy/pull/935)
+- BUG: Fix hard-coded radius value for parachute added mass calculation [#889](https://github.com/RocketPy-Team/RocketPy/pull/889)
+- DOC: Fix documentation build [#908](https://github.com/RocketPy-Team/RocketPy/pull/908)
+- BUG: energy_data plot not working for 3 dof sims [[#906](https://github.com/RocketPy-Team/RocketPy/issues/906)]
+- BUG: Fix CSV column header spacing in FlightDataExporter [#864](https://github.com/RocketPy-Team/RocketPy/issues/864)
+- BUG: Fix parallel Monte Carlo simulation showing incorrect iteration count [#806](https://github.com/RocketPy-Team/RocketPy/pull/806)
+- BUG: Fix missing titles in roll parameter plots for fin sets [#934](https://github.com/RocketPy-Team/RocketPy/pull/934)
+- BUG: Duplicate _controllers in Flight.TimeNodes.merge() [#931](https://github.com/RocketPy-Team/RocketPy/pull/931)
+- BUG: Fix incorrect Jacobian in `only_radial_burn` branch of `SolidMotor.evaluate_geometry` [#935](https://github.com/RocketPy-Team/RocketPy/pull/935)
+- BUG: Add explicit timeouts to ThrustCurve API requests [#935](https://github.com/RocketPy-Team/RocketPy/pull/935)
+
+## [v1.11.0] - 2025-11-01
+
+### Added
+
+- ENH: Tank Fluids with Variable Density from Temperature and Pressure [#852](https://github.com/RocketPy-Team/RocketPy/pull/852)
+- ENH: Controller (AirBrakes) and Sensors Encoding [#849](https://github.com/RocketPy-Team/RocketPy/pull/849)
+- EHN: Addition of ensemble variable to ECMWF dictionaries [#842](https://github.com/RocketPy-Team/RocketPy/pull/842)
+- ENH: Added Crop and Clip Methods to Function Class [#817](https://github.com/RocketPy-Team/RocketPy/pull/817)
+- DOC: Add Flight class usage documentation and update index [#841](https://github.com/RocketPy-Team/RocketPy/pull/841)
+- ENH: Discretized and No-Pickle Encoding Options [#827](https://github.com/RocketPy-Team/RocketPy/pull/827)
+- ENH: Add the Coriolis Force to the Flight class [#799](https://github.com/RocketPy-Team/RocketPy/pull/799)
+- ENH: Improve parachute geometric parametrization [#835](https://github.com/RocketPy-Team/RocketPy/pull/835)
+- ENH: Changing ellipses plot axis label [#855](https://github.com/RocketPy-Team/RocketPy/pull/855)
+
+### Changed
+
+- REL: bumps up rocketpy version to 1.11.0 [#868](https://github.com/RocketPy-Team/RocketPy/pull/868)
+- MNT: allow for exporting of non apogee flights. [#863](https://github.com/RocketPy-Team/RocketPy/pull/863)
+- TST: remove remaining files after test session. [#862](https://github.com/RocketPy-Team/RocketPy/pull/862)
+- MNT: bumps min python version to 3.10 [#857](https://github.com/RocketPy-Team/RocketPy/pull/857)
+- DOC: Update docs dependencies and sub dependencies [#851](https://github.com/RocketPy-Team/RocketPy/pull/851)
+- MNT: extract flight data exporters [#845](https://github.com/RocketPy-Team/RocketPy/pull/845)
+- ENH: _MotorPrints inheritance - issue #460 [#828](https://github.com/RocketPy-Team/RocketPy/pull/828)
+- MNT: fix deprecations and warnings [#829](https://github.com/RocketPy-Team/RocketPy/pull/829)
+
+### Fixed
+
+- BUG: correct encoding for trapezoidal sweep length and angle. [#861](https://github.com/RocketPy-Team/RocketPy/pull/861)
+- BUG: Fix no time initialization when passing initial_solution as array to Flight object [#844](https://github.com/RocketPy-Team/RocketPy/pull/844)
+
+
+## [v1.10.0] - 2025-05-16
+
+### Added
+
 - ENH: Support for ND arithmetic in Function class. [#810] (https://github.com/RocketPy-Team/RocketPy/pull/810)
 - ENH: allow users to provide custom samplers [#803](https://github.com/RocketPy-Team/RocketPy/pull/803)
-- ENH: Implement Multivariate Rejection Sampling (MRS) [#738] (https://github.com/RocketPy-Team/RocketPy/pull/738) 
+- ENH: Implement Multivariate Rejection Sampling (MRS) [#738] (https://github.com/RocketPy-Team/RocketPy/pull/738)
 - ENH: Create a rocketpy file to store flight simulations [#800](https://github.com/RocketPy-Team/RocketPy/pull/800)
 - ENH: Support for the RSE file format has been added to the library [#798](https://github.com/RocketPy-Team/RocketPy/pull/798)
 - ENH: Introduce Net Thrust with pressure corrections [#789](https://github.com/RocketPy-Team/RocketPy/pull/789)
+- ENH: Environment object from EnvironmentAnalysis [#813](https://github.com/RocketPy-Team/RocketPy/pull/813)
 
 ### Changed
 
@@ -49,7 +139,7 @@ Attention: The newest changes should be on top -->
 - BUG: Wrong Phi Initialization For nose_to_tail Rockets [#809](https://github.com/RocketPy-Team/RocketPy/pull/809)
 - BUG: Fix StochasticFlight time_overshoot None bug [#805](https://github.com/RocketPy-Team/RocketPy/pull/805)
 
-## v1.9.0 - 2025-03-24
+## [v1.9.0] - 2025-03-24
 
 ### Added
 
@@ -291,6 +381,7 @@ You can install this version by running `pip install rocketpy==1.3.0`
 
 ### Fixed
 
+- BUG: Fixes StochasticNoseCone powerseries issue #838 [#839](https://github.com/RocketPy-Team/RocketPy/pull/839)
 - MNT: Alter PYPI classifier naming. [#615](https://github.com/RocketPy-Team/RocketPy/pull/615)
 - DOC: Solve Dependencies Conflicts and pyproject build [#613](https://github.com/RocketPy-Team/RocketPy/pull/613)
 - BUG: Fixes nose cone bluffness issue #610 [#611](https://github.com/RocketPy-Team/RocketPy/pull/611)

@@ -1,12 +1,16 @@
 import json
 import os
+from unittest.mock import patch
 
 import numpy as np
 import pytest
 
 from rocketpy._encoders import RocketPyDecoder, RocketPyEncoder
+from rocketpy.tools import from_hex_decode
 
 
+# pylint: disable=unused-argument
+@patch("matplotlib.pyplot.show")
 @pytest.mark.parametrize(
     ["flight_name", "include_outputs"],
     [
@@ -15,9 +19,13 @@ from rocketpy._encoders import RocketPyDecoder, RocketPyEncoder
         ("flight_calisto_robust", True),
         ("flight_calisto_liquid_modded", False),
         ("flight_calisto_hybrid_modded", False),
+        ("flight_calisto_air_brakes", False),
+        ("flight_calisto_with_sensors", False),
     ],
 )
-def test_flight_save_load_no_resimulate(flight_name, include_outputs, request):
+def test_flight_save_load_no_resimulate(
+    mock_show, flight_name, include_outputs, request
+):
     """Test encoding a ``rocketpy.Flight``.
 
     Parameters
@@ -48,6 +56,8 @@ def test_flight_save_load_no_resimulate(flight_name, include_outputs, request):
     # Higher tolerance due to random parachute trigger
     assert np.isclose(flight_to_save.t_final, flight_loaded.t_final, rtol=1e-3)
 
+    flight_loaded.all_info()
+
     os.remove("flight.json")
 
 
@@ -60,6 +70,8 @@ def test_flight_save_load_no_resimulate(flight_name, include_outputs, request):
         ("flight_calisto_robust", True),
         ("flight_calisto_liquid_modded", False),
         ("flight_calisto_hybrid_modded", False),
+        ("flight_calisto_air_brakes", False),
+        ("flight_calisto_with_sensors", False),
     ],
 )
 def test_flight_save_load_resimulate(flight_name, include_outputs, request):
@@ -91,7 +103,7 @@ def test_flight_save_load_resimulate(flight_name, include_outputs, request):
     assert np.isclose(flight_to_save.apogee_time, flight_loaded.apogee_time)
 
     # Higher tolerance due to random parachute trigger
-    assert np.isclose(flight_to_save.t_final, flight_loaded.t_final, rtol=1e-3)
+    assert np.isclose(flight_to_save.t_final, flight_loaded.t_final, rtol=5e-3)
 
     os.remove("flight.json")
 
@@ -228,3 +240,90 @@ def test_rocket_encoder(rocket_name, request):
         rocket_to_encode.static_margin(sample_times),
         rocket_loaded.static_margin(sample_times),
     )
+
+
+@pytest.mark.parametrize(
+    "fin_name",
+    [
+        "calisto_trapezoidal_fins",
+        "calisto_trapezoidal_fins_custom_sweep_length",
+        "calisto_trapezoidal_fins_custom_sweep_angle",
+    ],
+)
+def test_trapezoidal_fins_encoder(fin_name, request):
+    """Test encoding a ``rocketpy.TrapezoidalFins``.
+
+    Parameters
+    ----------
+    fin_name : str
+        Name of the fin fixture to encode.
+    request : pytest.FixtureRequest
+        Pytest request object.
+    """
+    fin_to_encode = request.getfixturevalue(fin_name)
+
+    json_encoded = json.dumps(fin_to_encode, cls=RocketPyEncoder)
+
+    fin_loaded = json.loads(json_encoded, cls=RocketPyDecoder)
+
+    assert isinstance(fin_loaded, type(fin_to_encode))
+    assert fin_to_encode.n == fin_loaded.n
+    assert np.isclose(fin_to_encode.span, fin_loaded.span)
+    assert np.isclose(fin_to_encode.root_chord, fin_loaded.root_chord)
+    assert np.isclose(fin_to_encode.tip_chord, fin_loaded.tip_chord)
+    assert np.isclose(fin_to_encode.rocket_radius, fin_loaded.rocket_radius)
+    assert np.isclose(fin_to_encode.sweep_length, fin_loaded.sweep_length)
+    if fin_to_encode._sweep_angle is not None and fin_loaded._sweep_angle is not None:
+        assert np.isclose(fin_to_encode.sweep_angle, fin_loaded.sweep_angle)
+
+
+@pytest.mark.parametrize("rocket_name", ["calisto_robust", "calisto_hybrid_modded"])
+def test_encoder_discretize(rocket_name, request):
+    """Test encoding the total mass of ``rocketpy.Rocket`` with
+    discretized encoding.
+
+    Parameters
+    ----------
+    rocket_name : str
+        Name of the rocket fixture to encode.
+    request : pytest.FixtureRequest
+        Pytest request object.
+    """
+    rocket_to_encode = request.getfixturevalue(rocket_name)
+
+    json_encoded = json.dumps(
+        rocket_to_encode, cls=RocketPyEncoder, discretize=True, include_outputs=True
+    )
+
+    mass_loaded = json.loads(
+        json.dumps(json.loads(json_encoded)["total_mass"]), cls=RocketPyDecoder
+    )
+
+    sample_times = np.linspace(*rocket_to_encode.motor.burn_time, 100)
+
+    np.testing.assert_allclose(
+        mass_loaded(sample_times),
+        rocket_to_encode.total_mass(sample_times),
+        rtol=1e-3,
+        atol=1e-1,
+    )
+    assert isinstance(mass_loaded.source, np.ndarray)
+
+
+@pytest.mark.parametrize("parachute_name", ["calisto_main_chute"])
+def test_encoder_no_pickle(parachute_name, request):
+    """Test encoding of a ``rocketpy.Parachute`` disallowing
+    pickle usage.
+    """
+    parachute_to_encode = request.getfixturevalue(parachute_name)
+
+    json_encoded = json.dumps(
+        parachute_to_encode,
+        cls=RocketPyEncoder,
+        allow_pickle=False,
+    )
+
+    trigger_loaded = json.loads(json_encoded)["trigger"]
+
+    with pytest.raises(ValueError, match=r"non-hexadecimal number found"):
+        from_hex_decode(trigger_loaded)

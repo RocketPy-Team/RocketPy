@@ -88,7 +88,7 @@ persistent=yes
 
 # Minimum Python version to use for version dependent checks. Will default to
 # the version used to run pylint.
-py-version=3.9
+py-version=3.10
 
 # Discover python modules and packages in the file system subtree.
 recursive=no
@@ -98,10 +98,6 @@ recursive=no
 # directory used to determine a package namespace for modules located under the
 # source root.
 source-roots=
-
-# When enabled, pylint would attempt to guess common misconfiguration and emit
-# user-friendly hints instead of false-positive error messages.
-suggestion-mode=yes
 
 # Allow loading of arbitrary C extensions. Extensions are imported into the
 # active Python interpreter and may run arbitrary code.
@@ -234,6 +230,7 @@ good-names=FlightPhases,
            R_pi,
            R_uncanted,
            R_body_to_fin, 
+           Re, # Reynolds number
 
 # Good variable names regexes, separated by a comma. If names match any regex,
 # they will always be accepted

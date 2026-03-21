@@ -1,6 +1,12 @@
 import pytest
 
 from rocketpy import Flight
+from rocketpy.motors.point_mass_motor import PointMassMotor
+from rocketpy.rocket.point_mass_rocket import PointMassRocket
+
+# Standard launch parameters for 3DOF acceptance tests
+LAUNCH_INCLINATION = 85  # degrees from horizontal (5 degrees from vertical)
+LAUNCH_HEADING = 0  # degrees (north)
 
 
 @pytest.fixture
@@ -246,6 +252,22 @@ def flight_calisto_air_brakes(calisto_air_brakes_clamp_on, example_plain_env):
 
 
 @pytest.fixture
+def flight_calisto_air_brakes_time_overshoot(
+    calisto_air_brakes_clamp_on, example_plain_env
+):
+    """Same as flight_calisto_air_brakes but with time_overshoot=True."""
+    return Flight(
+        rocket=calisto_air_brakes_clamp_on,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        time_overshoot=True,
+        terminate_on_apogee=True,
+    )
+
+
+@pytest.fixture
 def flight_calisto_with_sensors(calisto_with_sensors, example_plain_env):
     """A rocketpy.Flight object of the Calisto rocket. This uses the calisto
     with a set of ideal sensors. The environment is the simplest possible, with
@@ -272,4 +294,125 @@ def flight_calisto_with_sensors(calisto_with_sensors, example_plain_env):
         heading=0,
         time_overshoot=False,
         terminate_on_apogee=True,
+    )
+
+
+# 3 DOF Flight Fixtures
+# These fixtures are for testing the 3 DOF flight simulation mode
+# Based on Bella Lui rocket parameters for realistic acceptance testing
+
+
+@pytest.fixture
+def acceptance_point_mass_motor():
+    """Create a realistic point mass motor for acceptance testing.
+
+    Based on Bella Lui rocket (K828FJ motor) with the following specs:
+    - Total impulse: ~2157 N·s
+    - Average thrust: ~888 N
+    - Burn time: ~2.43 s
+    - Propellant mass: ~1.373 kg
+    - Dry mass: ~1 kg
+
+    Returns
+    -------
+    rocketpy.PointMassMotor
+        A point mass motor with Bella Lui rocket parameters.
+    """
+    return PointMassMotor(
+        thrust_source="data/motors/aerotech/AeroTech_K828FJ.eng",
+        dry_mass=1.0,  # kg
+        propellant_initial_mass=1.373,  # kg
+        burn_time=2.43,  # s
+    )
+
+
+@pytest.fixture
+def acceptance_point_mass_rocket(acceptance_point_mass_motor):
+    """Create a realistic point mass rocket for acceptance testing.
+
+    Based on Bella Lui rocket parameters:
+    - Radius: 78 mm (156 mm diameter)
+    - Dry mass (without motor): ~17.227 kg
+    - Power-off drag coefficient: ~0.43
+    - Power-on drag coefficient: ~0.43
+
+    Parameters
+    ----------
+    acceptance_point_mass_motor : rocketpy.PointMassMotor
+        The motor to be added to the rocket.
+
+    Returns
+    -------
+    rocketpy.PointMassRocket
+        A point mass rocket with Bella Lui parameters.
+    """
+    rocket = PointMassRocket(
+        radius=0.078,  # 78 mm radius (156 mm diameter)
+        mass=17.227,  # kg without motor
+        center_of_mass_without_motor=0,
+        power_off_drag=0.43,
+        power_on_drag=0.43,
+        weathercock_coeff=0.0,
+    )
+    rocket.add_motor(acceptance_point_mass_motor, position=0)
+    return rocket
+
+
+@pytest.fixture
+def flight_3dof_no_weathercock(example_spaceport_env, acceptance_point_mass_rocket):
+    """Create a 3 DOF flight without weathercocking.
+
+    Uses standard launch parameters: 85 degrees inclination (5 degrees from vertical)
+    and 0 degrees heading (north).
+
+    Parameters
+    ----------
+    example_spaceport_env : rocketpy.Environment
+        Environment fixture for Spaceport America.
+    acceptance_point_mass_rocket : rocketpy.PointMassRocket
+        Point mass rocket fixture.
+
+    Returns
+    -------
+    rocketpy.Flight
+        A 3 DOF flight simulation with weathercock_coeff=0.0.
+    """
+    acceptance_point_mass_rocket.weathercock_coeff = 0.0
+    return Flight(
+        rocket=acceptance_point_mass_rocket,
+        environment=example_spaceport_env,
+        rail_length=5.0,
+        inclination=LAUNCH_INCLINATION,
+        heading=LAUNCH_HEADING,
+        simulation_mode="3 DOF",
+    )
+
+
+@pytest.fixture
+def flight_3dof_with_weathercock(example_spaceport_env, acceptance_point_mass_rocket):
+    """Create a 3 DOF flight with weathercocking enabled.
+
+    Uses standard launch parameters: 85 degrees inclination (5 degrees from vertical)
+    and 0 degrees heading (north).
+
+    Parameters
+    ----------
+    example_spaceport_env : rocketpy.Environment
+        Environment fixture for Spaceport America.
+    acceptance_point_mass_rocket : rocketpy.PointMassRocket
+        Point mass rocket fixture.
+
+    Returns
+    -------
+    rocketpy.Flight
+        A 3 DOF flight simulation with weathercock_coeff=1.0.
+    """
+    acceptance_point_mass_rocket.weathercock_coeff = 1.0
+    return Flight(
+        rocket=acceptance_point_mass_rocket,
+        environment=example_spaceport_env,
+        rail_length=5.0,
+        inclination=LAUNCH_INCLINATION,
+        heading=LAUNCH_HEADING,
+        simulation_mode="3 DOF",
     )

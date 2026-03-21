@@ -193,8 +193,12 @@ class HybridMotor(Motor):
     HybridMotor.reference_pressure : int, float
         Atmospheric pressure in Pa at which the thrust data was recorded.
         It will allow to obtain the net thrust in the Flight class.
+    SolidMotor.only_radial_burn : bool
+        If True, grain regression is restricted to radial burn only (inner radius growth).
+        Grain length remains constant throughout the burn. Default is True.
     """
 
+    # pylint: disable=too-many-arguments
     def __init__(  # pylint: disable=too-many-arguments
         self,
         thrust_source,
@@ -216,6 +220,7 @@ class HybridMotor(Motor):
         interpolation_method="linear",
         coordinate_system_orientation="nozzle_to_combustion_chamber",
         reference_pressure=None,
+        only_radial_burn=True,
     ):
         """Initialize Motor class, process thrust curve and geometrical
         parameters and store results.
@@ -313,6 +318,11 @@ class HybridMotor(Motor):
             "nozzle_to_combustion_chamber".
         reference_pressure : int, float, optional
             Atmospheric pressure in Pa at which the thrust data was recorded.
+        only_radial_burn : boolean, optional
+            If True, inhibits the grain from burning axially, only computing
+            radial burn. If False, allows the grain to also burn
+            axially. May be useful for axially inhibited grains or hybrid motors.
+            Default is False.
 
         Returns
         -------
@@ -364,6 +374,7 @@ class HybridMotor(Motor):
             interpolation_method,
             coordinate_system_orientation,
             reference_pressure,
+            only_radial_burn,
         )
 
         self.positioned_tanks = self.liquid.positioned_tanks
@@ -641,8 +652,8 @@ class HybridMotor(Motor):
         """
         self.plots.draw(filename=filename)
 
-    def to_dict(self, include_outputs=False):
-        data = super().to_dict(include_outputs)
+    def to_dict(self, **kwargs):
+        data = super().to_dict(**kwargs)
         data.update(
             {
                 "grain_number": self.grain_number,
@@ -660,13 +671,18 @@ class HybridMotor(Motor):
             }
         )
 
-        if include_outputs:
+        if kwargs.get("include_outputs", False):
+            burn_rate = self.solid.burn_rate
+            if kwargs.get("discretize", False):
+                burn_rate = burn_rate.set_discrete_based_on_model(
+                    self.thrust, mutate_self=False
+                )
             data.update(
                 {
                     "grain_inner_radius": self.solid.grain_inner_radius,
                     "grain_height": self.solid.grain_height,
                     "burn_area": self.solid.burn_area,
-                    "burn_rate": self.solid.burn_rate,
+                    "burn_rate": burn_rate,
                 }
             )
 

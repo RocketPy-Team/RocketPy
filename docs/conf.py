@@ -22,12 +22,12 @@ os.environ["PYTHONPATH"] = ":".join((package_path, os.environ.get("PYTHONPATH", 
 # -- Project information -----------------------------------------------------
 
 project = "RocketPy"
-copyright = "2024, RocketPy Team"
+copyright = "2026, RocketPy Team"
 
 author = "RocketPy Team"
 
 # The full version, including alpha/beta/rc tags
-release = "1.9.0"
+release = "1.12.0"
 
 
 # -- General configuration ---------------------------------------------------
@@ -60,6 +60,12 @@ if os.environ.get("READTHEDOCS", "") == "True":
 
 # Don't run notebooks
 nbsphinx_execute = "never"
+
+# Configure jupyter_sphinx execution behavior
+jupyter_execute_kwargs = {
+    "timeout": 300,  # 5 minutes timeout per cell
+    "allow_errors": True,  # Continue building even if cells raise errors
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]

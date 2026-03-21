@@ -395,6 +395,70 @@ class _FlightPlots:
         plt.subplots_adjust(hspace=0.5)
         show_or_save_plot(filename)
 
+    def rail_buttons_bending_moments(self, *, filename=None):
+        """Prints out Rail Buttons Bending Moments graphs.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
+
+        Returns
+        -------
+        None
+        """
+        if len(self.flight.rocket.rail_buttons) == 0:
+            print(
+                "No rail buttons were defined. Skipping rail button bending moment plots."
+            )
+        elif self.flight.out_of_rail_time_index == 0:
+            print("No rail phase was found. Skipping rail button bending moment plots.")
+        else:
+            # Check if button_height is defined
+            rail_buttons_tuple = self.flight.rocket.rail_buttons[0]
+            if rail_buttons_tuple.component.button_height is None:
+                print("Rail button height not defined. Skipping bending moment plots.")
+            else:
+                plt.figure(figsize=(9, 3))
+
+                ax1 = plt.subplot(111)
+                ax1.plot(
+                    self.flight.rail_button1_bending_moment[
+                        : self.flight.out_of_rail_time_index, 0
+                    ],
+                    self.flight.rail_button1_bending_moment[
+                        : self.flight.out_of_rail_time_index, 1
+                    ],
+                    label="Upper Rail Button",
+                )
+                ax1.plot(
+                    self.flight.rail_button2_bending_moment[
+                        : self.flight.out_of_rail_time_index, 0
+                    ],
+                    self.flight.rail_button2_bending_moment[
+                        : self.flight.out_of_rail_time_index, 1
+                    ],
+                    label="Lower Rail Button",
+                )
+                ax1.set_xlim(
+                    0,
+                    (
+                        self.flight.out_of_rail_time
+                        if self.flight.out_of_rail_time > 0
+                        else self.flight.tFinal
+                    ),
+                )
+                ax1.legend()
+                ax1.grid(True)
+                ax1.set_xlabel("Time (s)")
+                ax1.set_ylabel("Bending Moment (N·m)")
+                ax1.set_title("Rail Button Bending Moments")
+
+                show_or_save_plot(filename)
+
     def rail_buttons_forces(self, *, filename=None):  # pylint: disable=too-many-statements
         """Prints out all Rail Buttons Forces graphs available about the Flight.
 
@@ -656,9 +720,16 @@ class _FlightPlots:
         ax2.grid()
 
         ax3 = plt.subplot(413)
+        # Handle both array-based and callable-based Functions
+        thrust_power = self.flight.thrust_power
+        if callable(thrust_power.source):
+            # For callable sources, discretize based on speed
+            thrust_power = thrust_power.set_discrete_based_on_model(
+                self.flight.speed, mutate_self=False
+            )
         ax3.plot(
-            self.flight.thrust_power[:, 0],
-            self.flight.thrust_power[:, 1],
+            thrust_power[:, 0],
+            thrust_power[:, 1],
             label="|Thrust Power|",
         )
         ax3.set_xlim(0, self.flight.rocket.motor.burn_out_time)
@@ -670,9 +741,16 @@ class _FlightPlots:
         ax3.grid()
 
         ax4 = plt.subplot(414)
+        # Handle both array-based and callable-based Functions
+        drag_power = self.flight.drag_power
+        if callable(drag_power.source):
+            # For callable sources, discretize based on speed
+            drag_power = drag_power.set_discrete_based_on_model(
+                self.flight.speed, mutate_self=False
+            )
         ax4.plot(
-            self.flight.drag_power[:, 0],
-            -self.flight.drag_power[:, 1],
+            drag_power[:, 0],
+            -drag_power[:, 1],
             label="|Drag Power|",
         )
         ax4.set_xlim(
@@ -958,6 +1036,9 @@ class _FlightPlots:
 
         print("\n\nAerodynamic Forces Plots\n")
         self.aerodynamic_forces()
+
+        print("\n\nRail Buttons Bending Moments Plots\n")
+        self.rail_buttons_bending_moments()
 
         print("\n\nRail Buttons Forces Plots\n")
         self.rail_buttons_forces()

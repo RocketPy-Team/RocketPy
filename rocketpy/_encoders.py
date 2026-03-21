@@ -13,33 +13,46 @@ from rocketpy.prints.flight_prints import _FlightPrints
 
 class RocketPyEncoder(json.JSONEncoder):
     """Custom JSON encoder for RocketPy objects. It defines how to encode
-    different types of objects to a JSON supported format."""
+    different types of objects to a JSON supported format.
+    """
 
     def __init__(self, *args, **kwargs):
+        """Initializes the encoder with parameter options.
+
+        Parameters
+        ----------
+        *args : tuple
+            Positional arguments to pass to the parent class.
+        **kwargs : dict
+            Keyword arguments to configure the encoder. The following
+            options are available:
+            - include_outputs: bool, whether to include simulation outputs.
+              Default is False.
+            - include_function_data: bool, whether to include Function
+              data in the encoding. If False, Functions will be encoded by their
+              ``__repr__``. This is useful for reducing the size of the outputs,
+              but it prevents full restoration of the object upon decoding.
+              Default is True.
+            - discretize: bool, whether to discretize Functions whose source
+              are callables. If True, the accuracy of the decoding may be reduced.
+              Default is False.
+            - allow_pickle: bool, whether to pickle callable objects. If
+              False, callable sources (such as user-defined functions, parachute
+              triggers or simulation callable outputs) will have their name
+              stored instead of the function itself. This is useful for
+              reducing the size of the outputs, but it prevents full restoration
+              of the object upon decoding.
+              Default is True.
+        """
         self.include_outputs = kwargs.pop("include_outputs", False)
         self.include_function_data = kwargs.pop("include_function_data", True)
+        self.discretize = kwargs.pop("discretize", False)
+        self.allow_pickle = kwargs.pop("allow_pickle", True)
         super().__init__(*args, **kwargs)
 
     def default(self, o):
-        if isinstance(
-            o,
-            (
-                np.int_,
-                np.intc,
-                np.intp,
-                np.int8,
-                np.int16,
-                np.int32,
-                np.int64,
-                np.uint8,
-                np.uint16,
-                np.uint32,
-                np.uint64,
-            ),
-        ):
-            return int(o)
-        elif isinstance(o, (np.float16, np.float32, np.float64)):
-            return float(o)
+        if isinstance(o, np.generic):
+            return o.item()
         elif isinstance(o, np.ndarray):
             return o.tolist()
         elif isinstance(o, datetime):
@@ -50,11 +63,19 @@ class RocketPyEncoder(json.JSONEncoder):
             if not self.include_function_data:
                 return str(o)
             else:
-                encoding = o.to_dict(self.include_outputs)
+                encoding = o.to_dict(
+                    include_outputs=self.include_outputs,
+                    discretize=self.discretize,
+                    allow_pickle=self.allow_pickle,
+                )
                 encoding["signature"] = get_class_signature(o)
                 return encoding
         elif hasattr(o, "to_dict"):
-            encoding = o.to_dict(self.include_outputs)
+            encoding = o.to_dict(
+                include_outputs=self.include_outputs,
+                discretize=self.discretize,
+                allow_pickle=self.allow_pickle,
+            )
             encoding = remove_circular_references(encoding)
 
             encoding["signature"] = get_class_signature(o)
@@ -86,15 +107,21 @@ class RocketPyDecoder(json.JSONDecoder):
 
             try:
                 class_ = get_class_from_signature(signature)
+                hash_ = signature.get("hash", None)
 
                 if class_.__name__ == "Flight" and not self.resimulate:
                     new_flight = class_.__new__(class_)
                     new_flight.prints = _FlightPrints(new_flight)
                     new_flight.plots = _FlightPlots(new_flight)
                     set_minimal_flight_attributes(new_flight, obj)
+                    if hash_ is not None:
+                        setattr(new_flight, "__rpy_hash", hash_)
                     return new_flight
                 elif hasattr(class_, "from_dict"):
-                    return class_.from_dict(obj)
+                    new_obj = class_.from_dict(obj)
+                    if hash_ is not None:
+                        setattr(new_obj, "__rpy_hash", hash_)
+                    return new_obj
                 else:
                     # Filter keyword arguments
                     kwargs = {
@@ -102,8 +129,10 @@ class RocketPyDecoder(json.JSONDecoder):
                         for key, value in obj.items()
                         if key in class_.__init__.__code__.co_varnames
                     }
-
-                    return class_(**kwargs)
+                    new_obj = class_(**kwargs)
+                    if hash_ is not None:
+                        setattr(new_obj, "__rpy_hash", hash_)
+                    return new_obj
             except (ImportError, AttributeError):
                 return obj
         else:
@@ -136,7 +165,6 @@ def set_minimal_flight_attributes(flight, obj):
         "x_impact",
         "y_impact",
         "t_final",
-        "flight_phases",
         "ax",
         "ay",
         "az",
@@ -186,7 +214,14 @@ def get_class_signature(obj):
     class_ = obj.__class__
     name = getattr(class_, "__qualname__", class_.__name__)
 
-    return {"module": class_.__module__, "name": name}
+    signature = {"module": class_.__module__, "name": name}
+
+    try:
+        signature.update({"hash": hash(obj)})
+    except TypeError:
+        pass
+
+    return signature
 
 
 def get_class_from_signature(signature):

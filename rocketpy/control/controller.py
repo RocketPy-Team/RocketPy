@@ -1,4 +1,7 @@
 from inspect import signature
+from typing import Iterable
+
+from rocketpy.tools import from_hex_decode, to_hex_encode
 
 from ..prints.controller_prints import _ControllerPrints
 
@@ -57,7 +60,11 @@ class _Controller:
             7. `sensors` (list): A list of sensors that are attached to the
                 rocket. The most recent measurements of the sensors are provided
                 with the ``sensor.measurement`` attribute. The sensors are
-                listed in the same order as they are added to the rocket
+                listed in the same order as they are added to the rocket.
+            8. `environment` (Environment): The environment object containing
+                atmospheric conditions, wind data, gravity, and other
+                environmental parameters. This allows the controller to access
+                environmental data locally without relying on global variables.
 
             This function will be called during the simulation at the specified
             sampling rate. The function should evaluate and change the interactive
@@ -99,7 +106,7 @@ class _Controller:
     def __init_controller_function(self, controller_function):
         """Checks number of arguments of the controller function and initializes
         it with the correct number of arguments. This is a workaround to allow
-        the controller function to receive sensors without breaking changes"""
+        the controller function to receive sensors and environment without breaking changes"""
         sig = signature(controller_function)
         if len(sig.parameters) == 6:
             # pylint: disable=unused-argument
@@ -111,6 +118,7 @@ class _Controller:
                 observed_variables,
                 interactive_objects,
                 sensors,
+                environment,
             ):
                 return controller_function(
                     time,
@@ -122,18 +130,43 @@ class _Controller:
                 )
 
         elif len(sig.parameters) == 7:
+            # pylint: disable=unused-argument
+            def new_controller_function(
+                time,
+                sampling_rate,
+                state_vector,
+                state_history,
+                observed_variables,
+                interactive_objects,
+                sensors,
+                environment,
+            ):
+                return controller_function(
+                    time,
+                    sampling_rate,
+                    state_vector,
+                    state_history,
+                    observed_variables,
+                    interactive_objects,
+                    sensors,
+                )
+
+        elif len(sig.parameters) == 8:
             new_controller_function = controller_function
         else:
             raise ValueError(
-                "The controller function must have 6 or 7 arguments. "
+                "The controller function must have 6, 7, or 8 arguments. "
                 "The arguments must be in the following order: "
                 "(time, sampling_rate, state_vector, state_history, "
-                "observed_variables, interactive_objects, sensors)."
-                "Sensors argument is optional."
+                "observed_variables, interactive_objects, sensors, environment). "
+                "Supported signatures: "
+                "6 parameters (no sensors, no environment), "
+                "7 parameters (with sensors, no environment), or "
+                "8 parameters (with sensors and environment)."
             )
         return new_controller_function
 
-    def __call__(self, time, state_vector, state_history, sensors):
+    def __call__(self, time, state_vector, state_history, sensors, environment):
         """Call the controller function. This is used by the simulation class.
 
         Parameters
@@ -154,6 +187,9 @@ class _Controller:
             measurements of the sensors are provided with the
             ``sensor.measurement`` attribute. The sensors are listed in the same
             order as they are added to the rocket.
+        environment : Environment
+            The environment object containing atmospheric conditions, wind data,
+            gravity, and other environmental parameters.
 
         Returns
         -------
@@ -167,6 +203,7 @@ class _Controller:
             self.observed_variables,
             self.interactive_objects,
             sensors,
+            environment,
         )
         if observed_variables is not None:
             self.observed_variables.append(observed_variables)
@@ -181,3 +218,46 @@ class _Controller:
     def all_info(self):
         """Prints out all information about the controller."""
         self.info()
+
+    def to_dict(self, **kwargs):
+        allow_pickle = kwargs.get("allow_pickle", True)
+
+        if allow_pickle:
+            controller_function = to_hex_encode(self.controller_function)
+        else:
+            controller_function = self.controller_function.__name__
+
+        return {
+            "controller_function": controller_function,
+            "sampling_rate": self.sampling_rate,
+            "initial_observed_variables": self.initial_observed_variables,
+            "name": self.name,
+            "_interactive_objects_hash": hash(self.interactive_objects)
+            if not isinstance(self.interactive_objects, Iterable)
+            else [hash(obj) for obj in self.interactive_objects],
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        interactive_objects = data.get("interactive_objects", [])
+        controller_function = data.get("controller_function")
+        sampling_rate = data.get("sampling_rate")
+        initial_observed_variables = data.get("initial_observed_variables")
+        name = data.get("name", "Controller")
+
+        try:
+            controller_function = from_hex_decode(controller_function)
+        except (TypeError, ValueError):
+            pass
+
+        obj = cls(
+            interactive_objects=interactive_objects,
+            controller_function=controller_function,
+            sampling_rate=sampling_rate,
+            initial_observed_variables=initial_observed_variables,
+            name=name,
+        )
+        setattr(
+            obj, "_interactive_objects_hash", data.get("_interactive_objects_hash", [])
+        )
+        return obj

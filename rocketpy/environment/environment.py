@@ -27,6 +27,7 @@ from rocketpy.environment.tools import (
     find_latitude_index,
     find_longitude_index,
     find_time_index,
+    geodesic_to_utm,
     get_elevation_data_from_dataset,
     get_final_date_from_time_array,
     get_initial_date_from_time_array,
@@ -34,8 +35,6 @@ from rocketpy.environment.tools import (
     get_pressure_levels_from_file,
     mask_and_clean_dataset,
 )
-from rocketpy.environment.tools import geodesic_to_utm as geodesic_to_utm_tools
-from rocketpy.environment.tools import utm_to_geodesic as utm_to_geodesic_tools
 from rocketpy.environment.weather_model_mapping import WeatherModelMapping
 from rocketpy.mathutils.function import NUMERICAL_TYPES, Function, funcify_method
 from rocketpy.plots.environment_plots import _EnvironmentPlots
@@ -248,6 +247,8 @@ class Environment:
         Number of ensemble members. Only defined when using Ensembles.
     Environment.ensemble_member : int
         Current selected ensemble member. Only defined when using Ensembles.
+    Environment.earth_rotation_vector : list[float]
+        Earth's angular velocity vector in the Flight Coordinate System.
 
     Notes
     -----
@@ -353,6 +354,7 @@ class Environment:
         self.set_location(latitude, longitude)
         self.__initialize_earth_geometry(datum)
         self.__initialize_utm_coordinates()
+        self.__set_earth_rotation_vector()
 
         # Set the gravity model
         self.gravity = self.set_gravity_model(gravity)
@@ -451,7 +453,7 @@ class Environment:
                 self.initial_utm_letter,
                 self.initial_hemisphere,
                 self.initial_ew,
-            ) = self.geodesic_to_utm(
+            ) = geodesic_to_utm(
                 lat=self.latitude,
                 lon=self.longitude,
                 flattening=self.ellipsoid.flattening,
@@ -584,11 +586,28 @@ class Environment:
         self.wind_direction.set_outputs("Wind Direction (Deg True)")
         self.wind_direction.set_title("Wind Direction Profile")
 
+    def __set_earth_rotation_vector(self):
+        """Calculates and stores the Earth's angular velocity vector in the Flight
+        Coordinate System, which is essential for evaluating inertial forces.
+        """
+        # Sidereal day
+        T = 86164.1  # seconds
+
+        # Earth's angular velocity magnitude
+        w_earth = 2 * np.pi / T
+
+        # Vector in the Flight Coordinate System
+        lat = np.radians(self.latitude)
+        w_local = [0, w_earth * np.cos(lat), w_earth * np.sin(lat)]
+
+        # Store the attribute
+        self.earth_rotation_vector = w_local
+
     # Validators (used to verify an attribute is being set correctly.)
 
     def __validate_dictionary(self, file, dictionary):
         # removed CMC until it is fixed.
-        available_models = ["GFS", "NAM", "RAP", "HIRESW", "GEFS", "ERA5"]
+        available_models = ["GFS", "NAM", "RAP", "HIRESW", "GEFS", "ERA5", "MERRA2"]
         if isinstance(dictionary, str):
             dictionary = self.__weather_model_map.get(dictionary)
         elif file in available_models:
@@ -1167,7 +1186,7 @@ class Environment:
             ``Reanalysis`` or ``Ensemble``. It specifies the dictionary to be
             used when reading ``netCDF`` and ``OPeNDAP`` files, allowing the
             correct retrieval of data. Acceptable values include ``ECMWF``,
-            ``NOAA`` and ``UCAR`` for default dictionaries which can generally
+            ``NOAA``, ``UCAR`` and ``MERRA2`` for default dictionaries which can generally
             be used to read datasets from these institutes. Alternatively, a
             dictionary structure can also be given, specifying the short names
             used for time, latitude, longitude, pressure levels, temperature
@@ -1258,31 +1277,31 @@ class Environment:
         self.atmospheric_model_type = type
         type = type.lower()
 
-        # Handle each case # TODO: use match case when python 3.9 is no longer supported
-        if type == "standard_atmosphere":
-            self.process_standard_atmosphere()
-        elif type == "wyoming_sounding":
-            self.process_wyoming_sounding(file)
-        elif type == "custom_atmosphere":
-            self.process_custom_atmosphere(pressure, temperature, wind_u, wind_v)
-        elif type == "windy":
-            self.process_windy_atmosphere(file)
-        elif type in ["forecast", "reanalysis", "ensemble"]:
-            dictionary = self.__validate_dictionary(file, dictionary)
-            try:
-                fetch_function = self.__atm_type_file_to_function_map[type][file]
-            except KeyError:
-                fetch_function = None
+        match type:
+            case "standard_atmosphere":
+                self.process_standard_atmosphere()
+            case "wyoming_sounding":
+                self.process_wyoming_sounding(file)
+            case "custom_atmosphere":
+                self.process_custom_atmosphere(pressure, temperature, wind_u, wind_v)
+            case "windy":
+                self.process_windy_atmosphere(file)
+            case "forecast" | "reanalysis" | "ensemble":
+                dictionary = self.__validate_dictionary(file, dictionary)
+                try:
+                    fetch_function = self.__atm_type_file_to_function_map[type][file]
+                except KeyError:
+                    fetch_function = None
 
-            # Fetches the dataset using OpenDAP protocol or uses the file path
-            dataset = fetch_function() if fetch_function is not None else file
+                # Fetches the dataset using OpenDAP protocol or uses the file path
+                dataset = fetch_function() if fetch_function is not None else file
 
-            if type in ["forecast", "reanalysis"]:
-                self.process_forecast_reanalysis(dataset, dictionary)
-            else:
-                self.process_ensemble(dataset, dictionary)
-        else:  # pragma: no cover
-            raise ValueError(f"Unknown model type '{type}'.")
+                if type in ["forecast", "reanalysis"]:
+                    self.process_forecast_reanalysis(dataset, dictionary)
+                else:
+                    self.process_ensemble(dataset, dictionary)
+            case _:  # pragma: no cover
+                raise ValueError(f"Unknown model type '{type}'.")
 
         if type not in ["ensemble"]:
             # Ensemble already computed these values
@@ -1874,10 +1893,20 @@ class Environment:
         self._max_expected_height = max(height[0], height[-1])
 
         # Get elevation data from file
-        if dictionary["surface_geopotential_height"] is not None:
+        if dictionary.get("surface_geopotential_height") is not None:
             self.elevation = get_elevation_data_from_dataset(
                 dictionary, data, time_index, lat_index, lon_index, x, y, x1, x2, y1, y2
             )
+        # 2. If not found, try Geopotential (m^2/s^2) and convert
+        elif dictionary.get("surface_geopotential") is not None:
+            temp_dict = dictionary.copy()
+            temp_dict["surface_geopotential_height"] = dictionary[
+                "surface_geopotential"
+            ]
+            surface_geopotential_value = get_elevation_data_from_dataset(
+                temp_dict, data, time_index, lat_index, lon_index, x, y, x1, x2, y1, y2
+            )
+            self.elevation = surface_geopotential_value / self.standard_g
 
         # Compute info data
         self.atmospheric_model_init_date = get_initial_date_from_time_array(time_array)
@@ -2415,22 +2444,26 @@ class Environment:
 
         # Reset wind heading and velocity magnitude
         self.wind_heading = Function(
-            lambda h: (180 / np.pi)
-            * np.arctan2(
-                self.wind_velocity_x.get_value_opt(h),
-                self.wind_velocity_y.get_value_opt(h),
-            )
-            % 360,
+            lambda h: (
+                (180 / np.pi)
+                * np.arctan2(
+                    self.wind_velocity_x.get_value_opt(h),
+                    self.wind_velocity_y.get_value_opt(h),
+                )
+                % 360
+            ),
             "Height (m)",
             "Wind Heading (degrees)",
             extrapolation="constant",
         )
         self.wind_speed = Function(
             lambda h: (
-                self.wind_velocity_x.get_value_opt(h) ** 2
-                + self.wind_velocity_y.get_value_opt(h) ** 2
-            )
-            ** 0.5,
+                (
+                    self.wind_velocity_x.get_value_opt(h) ** 2
+                    + self.wind_velocity_y.get_value_opt(h) ** 2
+                )
+                ** 0.5
+            ),
             "Height (m)",
             "Wind Speed (m/s)",
             extrapolation="constant",
@@ -2523,98 +2556,7 @@ class Environment:
                 f"the following recognized datum: {available_datums}"
             ) from e
 
-    # Auxiliary functions - Geodesic Coordinates
-
-    @staticmethod
-    def geodesic_to_utm(
-        lat, lon, semi_major_axis=6378137.0, flattening=1 / 298.257223563
-    ):
-        """Function which converts geodetic coordinates, i.e. lat/lon, to UTM
-        projection coordinates. Can be used only for latitudes between -80.00°
-        and 84.00°
-
-        Parameters
-        ----------
-        lat : float
-            The latitude coordinates of the point of analysis, must be contained
-            between -80.00° and 84.00°
-        lon : float
-            The longitude coordinates of the point of analysis, must be
-            contained between -180.00° and 180.00°
-        semi_major_axis : float
-            The semi-major axis of the ellipsoid used to represent the Earth,
-            must be given in meters (default is 6,378,137.0 m, which corresponds
-            to the WGS84 ellipsoid)
-        flattening : float
-            The flattening of the ellipsoid used to represent the Earth, usually
-            between 1/250 and 1/150 (default is 1/298.257223563, which
-            corresponds to the WGS84 ellipsoid)
-
-        Returns
-        -------
-        x : float
-            East coordinate, always positive
-        y : float
-            North coordinate, always positive
-        utm_zone : int
-            The number of the UTM zone of the point of analysis, can vary
-            between 1 and 60
-        utm_letter : string
-            The letter of the UTM zone of the point of analysis, can vary
-            between C and X, omitting the letters "I" and "O"
-        hemis : string
-            Returns "S" for southern hemisphere and "N" for Northern hemisphere
-        EW : string
-            Returns "W" for western hemisphere and "E" for eastern hemisphere
-        """
-        warnings.warn(
-            "This function is deprecated and will be removed in v1.10.0. "
-            "Please use the new method `tools.geodesic_to_utm` instead.",
-            DeprecationWarning,
-        )
-        return geodesic_to_utm_tools(lat, lon, semi_major_axis, flattening)
-
-    @staticmethod
-    def utm_to_geodesic(
-        x, y, utm_zone, hemis, semi_major_axis=6378137.0, flattening=1 / 298.257223563
-    ):
-        """Function to convert UTM coordinates to geodesic coordinates
-        (i.e. latitude and longitude).
-
-        Parameters
-        ----------
-        x : float
-            East UTM coordinate in meters
-        y : float
-            North UTM coordinate in meters
-        utm_zone : int
-            The number of the UTM zone of the point of analysis, can vary
-            between 1 and 60
-        hemis : string
-            Equals to "S" for southern hemisphere and "N" for Northern
-            hemisphere
-        semi_major_axis : float
-            The semi-major axis of the ellipsoid used to represent the Earth,
-            must be given in meters (default is 6,378,137.0 m, which corresponds
-            to the WGS84 ellipsoid)
-        flattening : float
-            The flattening of the ellipsoid used to represent the Earth, usually
-            between 1/250 and 1/150 (default is 1/298.257223563, which
-            corresponds to the WGS84 ellipsoid)
-
-        Returns
-        -------
-        lat : float
-            latitude of the analyzed point
-        lon : float
-            latitude of the analyzed point
-        """
-        warnings.warn(
-            "This function is deprecated and will be removed in v1.10.0. "
-            "Please use the new method `tools.utm_to_geodesic` instead.",
-            DeprecationWarning,
-        )
-        return utm_to_geodesic_tools(x, y, utm_zone, hemis, semi_major_axis, flattening)
+    # Auxiliary functions
 
     @staticmethod
     def calculate_earth_radius(
@@ -2702,7 +2644,21 @@ class Environment:
         arc_seconds = (remainder * 60 - arc_minutes) * 60
         return degrees, arc_minutes, arc_seconds
 
-    def to_dict(self, include_outputs=False):
+    def to_dict(self, **kwargs):
+        wind_velocity_x = self.wind_velocity_x
+        wind_velocity_y = self.wind_velocity_y
+        wind_heading = self.wind_heading
+        wind_direction = self.wind_direction
+        wind_speed = self.wind_speed
+        density = self.density
+        if kwargs.get("discretize", False):
+            wind_velocity_x = wind_velocity_x.set_discrete(0, self.max_expected_height)
+            wind_velocity_y = wind_velocity_y.set_discrete(0, self.max_expected_height)
+            wind_heading = wind_heading.set_discrete(0, self.max_expected_height)
+            wind_direction = wind_direction.set_discrete(0, self.max_expected_height)
+            wind_speed = wind_speed.set_discrete(0, self.max_expected_height)
+            density = density.set_discrete(0, self.max_expected_height)
+
         env_dict = {
             "gravity": self.gravity,
             "date": self.date,
@@ -2715,15 +2671,15 @@ class Environment:
             "atmospheric_model_type": self.atmospheric_model_type,
             "pressure": self.pressure,
             "temperature": self.temperature,
-            "wind_velocity_x": self.wind_velocity_x,
-            "wind_velocity_y": self.wind_velocity_y,
-            "wind_heading": self.wind_heading,
-            "wind_direction": self.wind_direction,
-            "wind_speed": self.wind_speed,
+            "wind_velocity_x": wind_velocity_x,
+            "wind_velocity_y": wind_velocity_y,
+            "wind_heading": wind_heading,
+            "wind_direction": wind_direction,
+            "wind_speed": wind_speed,
         }
 
-        if include_outputs:
-            env_dict["density"] = self.density
+        if kwargs.get("include_outputs", False):
+            env_dict["density"] = density
             env_dict["barometric_height"] = self.barometric_height
             env_dict["speed_of_sound"] = self.speed_of_sound
             env_dict["dynamic_viscosity"] = self.dynamic_viscosity
@@ -2744,51 +2700,52 @@ class Environment:
         )
         atmospheric_model = data["atmospheric_model_type"]
 
-        if atmospheric_model == "standard_atmosphere":
-            env.set_atmospheric_model("standard_atmosphere")
-        elif atmospheric_model == "custom_atmosphere":
-            env.set_atmospheric_model(
-                type="custom_atmosphere",
-                pressure=data["pressure"],
-                temperature=data["temperature"],
-                wind_u=data["wind_velocity_x"],
-                wind_v=data["wind_velocity_y"],
-            )
-        else:
-            env.__set_pressure_function(data["pressure"])
-            env.__set_temperature_function(data["temperature"])
-            env.__set_wind_velocity_x_function(data["wind_velocity_x"])
-            env.__set_wind_velocity_y_function(data["wind_velocity_y"])
-            env.__set_wind_heading_function(data["wind_heading"])
-            env.__set_wind_direction_function(data["wind_direction"])
-            env.__set_wind_speed_function(data["wind_speed"])
-            env.elevation = data["elevation"]
-            env.max_expected_height = data["max_expected_height"]
+        match atmospheric_model:
+            case "standard_atmosphere":
+                env.set_atmospheric_model("standard_atmosphere")
+            case "custom_atmosphere":
+                env.set_atmospheric_model(
+                    type="custom_atmosphere",
+                    pressure=data["pressure"],
+                    temperature=data["temperature"],
+                    wind_u=data["wind_velocity_x"],
+                    wind_v=data["wind_velocity_y"],
+                )
+            case _:
+                env.__set_pressure_function(data["pressure"])
+                env.__set_temperature_function(data["temperature"])
+                env.__set_wind_velocity_x_function(data["wind_velocity_x"])
+                env.__set_wind_velocity_y_function(data["wind_velocity_y"])
+                env.__set_wind_heading_function(data["wind_heading"])
+                env.__set_wind_direction_function(data["wind_direction"])
+                env.__set_wind_speed_function(data["wind_speed"])
+                env.elevation = data["elevation"]
+                env.max_expected_height = data["max_expected_height"]
 
-            if atmospheric_model in ("windy", "forecast", "reanalysis", "ensemble"):
-                env.atmospheric_model_init_date = data["atmospheric_model_init_date"]
-                env.atmospheric_model_end_date = data["atmospheric_model_end_date"]
-                env.atmospheric_model_interval = data["atmospheric_model_interval"]
-                env.atmospheric_model_init_lat = data["atmospheric_model_init_lat"]
-                env.atmospheric_model_end_lat = data["atmospheric_model_end_lat"]
-                env.atmospheric_model_init_lon = data["atmospheric_model_init_lon"]
-                env.atmospheric_model_end_lon = data["atmospheric_model_end_lon"]
+        if atmospheric_model in ("windy", "forecast", "reanalysis", "ensemble"):
+            env.atmospheric_model_init_date = data["atmospheric_model_init_date"]
+            env.atmospheric_model_end_date = data["atmospheric_model_end_date"]
+            env.atmospheric_model_interval = data["atmospheric_model_interval"]
+            env.atmospheric_model_init_lat = data["atmospheric_model_init_lat"]
+            env.atmospheric_model_end_lat = data["atmospheric_model_end_lat"]
+            env.atmospheric_model_init_lon = data["atmospheric_model_init_lon"]
+            env.atmospheric_model_end_lon = data["atmospheric_model_end_lon"]
 
-            if atmospheric_model == "ensemble":
-                env.level_ensemble = data["level_ensemble"]
-                env.height_ensemble = data["height_ensemble"]
-                env.temperature_ensemble = data["temperature_ensemble"]
-                env.wind_u_ensemble = data["wind_u_ensemble"]
-                env.wind_v_ensemble = data["wind_v_ensemble"]
-                env.wind_heading_ensemble = data["wind_heading_ensemble"]
-                env.wind_direction_ensemble = data["wind_direction_ensemble"]
-                env.wind_speed_ensemble = data["wind_speed_ensemble"]
-                env.num_ensemble_members = data["num_ensemble_members"]
+        if atmospheric_model == "ensemble":
+            env.level_ensemble = data["level_ensemble"]
+            env.height_ensemble = data["height_ensemble"]
+            env.temperature_ensemble = data["temperature_ensemble"]
+            env.wind_u_ensemble = data["wind_u_ensemble"]
+            env.wind_v_ensemble = data["wind_v_ensemble"]
+            env.wind_heading_ensemble = data["wind_heading_ensemble"]
+            env.wind_direction_ensemble = data["wind_direction_ensemble"]
+            env.wind_speed_ensemble = data["wind_speed_ensemble"]
+            env.num_ensemble_members = data["num_ensemble_members"]
 
-            env.__reset_barometric_height_function()
-            env.calculate_density_profile()
-            env.calculate_speed_of_sound_profile()
-            env.calculate_dynamic_viscosity()
+        env.__reset_barometric_height_function()
+        env.calculate_density_profile()
+        env.calculate_speed_of_sound_profile()
+        env.calculate_dynamic_viscosity()
 
         return env
 

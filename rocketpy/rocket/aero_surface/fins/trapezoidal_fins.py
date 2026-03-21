@@ -203,4 +203,5 @@ class TrapezoidalFins(_TrapezoidalMixin, Fins):
             cant_angle=data["cant_angle"],
             airfoil=data["airfoil"],
             name=data["name"],
+            sweep_length=data.get("sweep_length"),
         )

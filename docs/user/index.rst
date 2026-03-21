@@ -7,15 +7,17 @@ RocketPy's User Guide
 
    Installation and Requirements <installation.rst>
    First Simulation <first_simulation.rst>
+   3 DOF Simulations and Comparison <three_dof_simulation.rst>
 
 .. toctree::
    :maxdepth: 1
-   :caption: Main Classes Usage  
+   :caption: Main Classes Usage
 
    Positions and Coordinate Systems <positions.rst>
    Motors <motors/motors.rst>
    Rocket <rocket/rocket.rst>
    Environment <environment.rst>
+   Flight <flight.rst>
 
 .. toctree::
    :maxdepth: 2

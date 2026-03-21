@@ -141,7 +141,7 @@ def test_bella_lui_rocket_data_asserts_acceptance():
     )
 
     # Define aerodynamic drag coefficients
-    BellaLui.power_off_drag = Function(
+    power_off_drag_by_mach = Function(
         [
             (0.01, 0.51),
             (0.02, 0.46),
@@ -156,7 +156,7 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         "linear",
         "constant",
     )
-    BellaLui.power_on_drag = Function(
+    power_on_drag_by_mach = Function(
         [
             (0.01, 0.51),
             (0.02, 0.46),
@@ -171,8 +171,42 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         "linear",
         "constant",
     )
-    BellaLui.power_off_drag *= parameters.get("power_off_drag")[0]
-    BellaLui.power_on_drag *= parameters.get("power_on_drag")[0]
+    BellaLui.power_off_drag_7d = Function(
+        lambda alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate: (
+            power_off_drag_by_mach.get_value_opt(mach)
+        ),
+        [
+            "alpha",
+            "beta",
+            "mach",
+            "reynolds",
+            "pitch_rate",
+            "yaw_rate",
+            "roll_rate",
+        ],
+        ["Drag Coefficient with Power Off"],
+        interpolation="linear",
+        extrapolation="constant",
+    )
+    BellaLui.power_on_drag_7d = Function(
+        lambda alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate: (
+            power_on_drag_by_mach.get_value_opt(mach)
+        ),
+        [
+            "alpha",
+            "beta",
+            "mach",
+            "reynolds",
+            "pitch_rate",
+            "yaw_rate",
+            "roll_rate",
+        ],
+        ["Drag Coefficient with Power On"],
+        interpolation="linear",
+        extrapolation="constant",
+    )
+    BellaLui.power_off_drag_7d *= parameters.get("power_off_drag")[0]
+    BellaLui.power_on_drag_7d *= parameters.get("power_on_drag")[0]
 
     # Flight
     test_flight = Flight(
@@ -182,7 +216,6 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         inclination=parameters.get("inclination")[0],
         heading=parameters.get("heading")[0],
     )
-    test_flight.post_process()
 
     # Comparison with Real Data
     flight_data = np.loadtxt(

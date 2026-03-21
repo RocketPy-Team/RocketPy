@@ -1,10 +1,10 @@
-nbsphinx==0.9.4
-pydata-sphinx-theme==0.15.2
+nbsphinx==0.9.7
+pydata-sphinx-theme==0.16.1
 jupyter-sphinx==0.5.3
-sphinx_design==0.5.0
-ipykernel==6.29.4
-pandas==2.2.2
-lxml_html_clean==0.1.1
+sphinx_design==0.6.1
+ipykernel==6.30.1
+pandas==2.3.2
+lxml_html_clean==0.4.2
 sphinx-copybutton==0.5.2
 sphinx-tabs==3.4.7
-plotly>=5
+plotly==6.3.0

@@ -1,10 +1,10 @@
 [project]
 name = "rocketpy"
-version = "1.9.0"
+version = "1.12.0"
 description="Advanced 6-DOF trajectory simulation for High-Power Rocketry."
 dynamic = ["dependencies"]
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 authors = [
   {name = "Giovani Hidalgo Ceotto", email = "ghceotto@gmail.com"},
   {name = "Guilherme Fernandes Alves", email = "guilherme_fernandes@usp.br"},
@@ -65,6 +65,7 @@ monte-carlo = [
     "multiprocess>=0.70",
     "statsmodels",
     "prettytable",
+    "contextily>=1.0.0; python_version < '3.14'",
 ]
 
 all = ["rocketpy[env-analysis]", "rocketpy[monte-carlo]"]
@@ -78,7 +79,7 @@ exclude_also = [
 
 
 [tool.ruff]
-target-version = "py39"
+target-version = "py310"
 line-length = 88
 indent-width = 4
 
