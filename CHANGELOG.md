@@ -73,6 +73,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+- BUG: Add wraparound logic for wind direction in environment plots [#939](https://github.com/RocketPy-Team/RocketPy/pull/939)
 - BUG: Restore `Rocket.power_off_drag` and `Rocket.power_on_drag` as `Function` objects while preserving raw inputs in `power_off_drag_input` and `power_on_drag_input` [#941](https://github.com/RocketPy-Team/RocketPy/pull/941)
 - BUG: Add explicit timeouts to ThrustCurve API requests [#935](https://github.com/RocketPy-Team/RocketPy/pull/935)
 - BUG: Fix hard-coded radius value for parachute added mass calculation [#889](https://github.com/RocketPy-Team/RocketPy/pull/889)
