@@ -1,6 +1,7 @@
 from rocketpy.plots.aero_surface_plots import _TrapezoidalFinPlots
 from rocketpy.prints.aero_surface_prints import _TrapezoidalFinPrints
 from rocketpy.rocket.aero_surface.fins._geometry import _TrapezoidalGeometry
+
 from .fin import Fin
 
 

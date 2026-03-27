@@ -89,11 +89,7 @@ class _TrapezoidalGeometry(_FinGeometry):
         Af = Yr * owner.span / 2
         AR = 2 * owner.span**2 / Af
         gamma_c = np.arctan(
-            (
-                self.sweep_length
-                + 0.5 * self.tip_chord
-                - 0.5 * owner.root_chord
-            )
+            (self.sweep_length + 0.5 * self.tip_chord - 0.5 * owner.root_chord)
             / owner.span
         )
         Yma = (owner.span / 3) * (owner.root_chord + 2 * self.tip_chord) / Yr
@@ -114,25 +110,17 @@ class _TrapezoidalGeometry(_FinGeometry):
             * owner.rocket_radius**2
         ) / 12
         roll_damping_interference_factor = 1 + (
-            ((tau - lambda_) / tau)
-            - ((1 - lambda_) / (tau - 1)) * np.log(tau)
+            ((tau - lambda_) / tau) - ((1 - lambda_) / (tau - 1)) * np.log(tau)
         ) / (
             ((tau + 1) * (tau - lambda_)) / 2
             - ((1 - lambda_) * (tau**3 - 1)) / (3 * (tau - 1))
         )
         roll_forcing_interference_factor = (1 / np.pi**2) * (
             (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
-            + (
-                np.pi
-                * (tau**2 + 1) ** 2
-                / (tau**2 * (tau - 1) ** 2)
-            )
+            + (np.pi * (tau**2 + 1) ** 2 / (tau**2 * (tau - 1) ** 2))
             * np.arcsin((tau**2 - 1) / (tau**2 + 1))
             - (2 * np.pi * (tau + 1)) / (tau * (tau - 1))
-            + (
-                (tau**2 + 1) ** 2
-                / (tau**2 * (tau - 1) ** 2)
-            )
+            + ((tau**2 + 1) ** 2 / (tau**2 * (tau - 1) ** 2))
             * (np.arcsin((tau**2 - 1) / (tau**2 + 1))) ** 2
             - (4 * (tau + 1))
             / (tau * (tau - 1))
@@ -149,12 +137,8 @@ class _TrapezoidalGeometry(_FinGeometry):
         owner.tau = tau
         owner.lift_interference_factor = lift_interference_factor
         owner.λ = lambda_  # pylint: disable=non-ascii-name
-        owner.roll_damping_interference_factor = (
-            roll_damping_interference_factor
-        )
-        owner.roll_forcing_interference_factor = (
-            roll_forcing_interference_factor
-        )
+        owner.roll_damping_interference_factor = roll_damping_interference_factor
+        owner.roll_forcing_interference_factor = roll_forcing_interference_factor
 
         self.evaluate_shape()
 
@@ -192,13 +176,9 @@ class _TrapezoidalGeometry(_FinGeometry):
                     "AR": self.owner.AR,
                     "gamma_c": self.owner.gamma_c,
                     "Yma": self.owner.Yma,
-                    "roll_geometrical_constant": (
-                        self.owner.roll_geometrical_constant
-                    ),
+                    "roll_geometrical_constant": (self.owner.roll_geometrical_constant),
                     "tau": self.owner.tau,
-                    "lift_interference_factor": (
-                        self.owner.lift_interference_factor
-                    ),
+                    "lift_interference_factor": (self.owner.lift_interference_factor),
                     "roll_damping_interference_factor": (
                         self.owner.roll_damping_interference_factor
                     ),
@@ -278,8 +258,7 @@ class _EllipticalGeometry(_FinGeometry):
                     * owner.rocket_radius**2
                     * np.sqrt(-(owner.span**2) + owner.rocket_radius**2)
                     * np.arctan(
-                        owner.span
-                        / np.sqrt(-(owner.span**2) + owner.rocket_radius**2)
+                        owner.span / np.sqrt(-(owner.span**2) + owner.rocket_radius**2)
                     )
                     - np.pi
                     * owner.rocket_radius**2
@@ -289,27 +268,17 @@ class _EllipticalGeometry(_FinGeometry):
                 2
                 * owner.span
                 * (-(owner.span**2) + owner.rocket_radius**2)
-                * (
-                    owner.span**2 / 3
-                    + np.pi * owner.span * owner.rocket_radius / 4
-                )
+                * (owner.span**2 / 3 + np.pi * owner.span * owner.rocket_radius / 4)
             )
         else:
             roll_damping_interference_factor = (28 - 3 * np.pi) / (4 + 3 * np.pi)
 
         roll_forcing_interference_factor = (1 / np.pi**2) * (
             (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
-            + (
-                np.pi
-                * (tau**2 + 1) ** 2
-                / (tau**2 * (tau - 1) ** 2)
-            )
+            + (np.pi * (tau**2 + 1) ** 2 / (tau**2 * (tau - 1) ** 2))
             * np.arcsin((tau**2 - 1) / (tau**2 + 1))
             - (2 * np.pi * (tau + 1)) / (tau * (tau - 1))
-            + (
-                (tau**2 + 1) ** 2
-                / (tau**2 * (tau - 1) ** 2)
-            )
+            + ((tau**2 + 1) ** 2 / (tau**2 * (tau - 1) ** 2))
             * (np.arcsin((tau**2 - 1) / (tau**2 + 1))) ** 2
             - (4 * (tau + 1))
             / (tau * (tau - 1))
@@ -324,12 +293,8 @@ class _EllipticalGeometry(_FinGeometry):
         owner.roll_geometrical_constant = roll_geometrical_constant
         owner.tau = tau
         owner.lift_interference_factor = lift_interference_factor
-        owner.roll_damping_interference_factor = (
-            roll_damping_interference_factor
-        )
-        owner.roll_forcing_interference_factor = (
-            roll_forcing_interference_factor
-        )
+        owner.roll_damping_interference_factor = roll_damping_interference_factor
+        owner.roll_forcing_interference_factor = roll_forcing_interference_factor
 
         self.evaluate_shape()
 
@@ -389,12 +354,12 @@ class _FreeFormGeometry(_FinGeometry):
         span = max(ys) - min(ys)
         return root_chord, span
 
-    def evaluate_geometrical_parameters(self):  # pylint: disable=too-many-statements
+    def evaluate_geometrical_parameters(
+        self,
+    ):  # pylint: disable=too-many-statements,too-many-locals,invalid-name
         """Calculates and saves free-form fin geometric parameters."""
         owner = self.owner
 
-        # pylint: disable=invalid-name
-        # pylint: disable=too-many-locals
         Af = 0
         for i in range(len(self.shape_points) - 1):
             x1, y1 = self.shape_points[i]
@@ -410,17 +375,10 @@ class _FreeFormGeometry(_FinGeometry):
 
         roll_forcing_interference_factor = (1 / np.pi**2) * (
             (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
-            + (
-                np.pi
-                * (tau**2 + 1) ** 2
-                / (tau**2 * (tau - 1) ** 2)
-            )
+            + (np.pi * (tau**2 + 1) ** 2 / (tau**2 * (tau - 1) ** 2))
             * np.arcsin((tau**2 - 1) / (tau**2 + 1))
             - (2 * np.pi * (tau + 1)) / (tau * (tau - 1))
-            + (
-                (tau**2 + 1) ** 2
-                / (tau**2 * (tau - 1) ** 2)
-            )
+            + ((tau**2 + 1) ** 2 / (tau**2 * (tau - 1) ** 2))
             * (np.arcsin((tau**2 - 1) / (tau**2 + 1))) ** 2
             - (4 * (tau + 1))
             / (tau * (tau - 1))
@@ -547,13 +505,9 @@ class _FreeFormGeometry(_FinGeometry):
                     "Yma": self.owner.Yma,
                     "mac_length": self.owner.mac_length,
                     "mac_lead": self.owner.mac_lead,
-                    "roll_geometrical_constant": (
-                        self.owner.roll_geometrical_constant
-                    ),
+                    "roll_geometrical_constant": (self.owner.roll_geometrical_constant),
                     "tau": self.owner.tau,
-                    "lift_interference_factor": (
-                        self.owner.lift_interference_factor
-                    ),
+                    "lift_interference_factor": (self.owner.lift_interference_factor),
                     "roll_forcing_interference_factor": (
                         self.owner.roll_forcing_interference_factor
                     ),

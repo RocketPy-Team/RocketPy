@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+
 class _AeroSurfacePrints(ABC):
     def __init__(self, aero_surface):
         self.aero_surface = aero_surface

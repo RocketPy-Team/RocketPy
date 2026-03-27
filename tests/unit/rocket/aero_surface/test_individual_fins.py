@@ -44,7 +44,7 @@ def test_individual_fin_info_returns_none(request, fixture_name, expected_class)
         "calisto_free_form_fin",
     ],
 )
-def test_individual_fin_draw_returns_none(mock_show, request, fixture_name):
+def test_individual_fin_draw_returns_none(mock_show, request, fixture_name):  # pylint: disable=unused-argument
     """Ensure draw() executes for all individual fin classes."""
     # Arrange
     fin = request.getfixturevalue(fixture_name)
@@ -96,7 +96,9 @@ def test_trapezoidal_fin_setters_update_geometry(calisto_trapezoidal_fin):
 def test_trapezoidal_fin_rejects_inconsistent_sweep_inputs():
     """Ensure trapezoidal fin rejects sweep_length with sweep_angle together."""
     # Arrange / Act / Assert
-    with pytest.raises(ValueError, match="Cannot use sweep_length and sweep_angle together"):
+    with pytest.raises(
+        ValueError, match="Cannot use sweep_length and sweep_angle together"
+    ):
         TrapezoidalFin(
             angular_position=0,
             root_chord=0.12,
@@ -197,7 +199,9 @@ def test_individual_fin_to_dict_contains_expected_keys(
         ),
     ],
 )
-def test_individual_fin_from_dict_roundtrip(request, fixture_name, fin_class, comparisons):
+def test_individual_fin_from_dict_roundtrip(
+    request, fixture_name, fin_class, comparisons
+):
     """Ensure each individual fin can be reconstructed with from_dict."""
     # Arrange
     fin = request.getfixturevalue(fixture_name)

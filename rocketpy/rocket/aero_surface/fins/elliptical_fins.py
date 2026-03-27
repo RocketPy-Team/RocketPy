@@ -183,9 +183,7 @@ class EllipticalFins(Fins):
     def to_dict(self, **kwargs):
         data = super().to_dict(**kwargs)
         data.update(
-            self.geometry.get_data(
-                include_outputs=kwargs.get("include_outputs", False)
-            )
+            self.geometry.get_data(include_outputs=kwargs.get("include_outputs", False))
         )
         return data
 

@@ -1,6 +1,7 @@
 from rocketpy.plots.aero_surface_plots import _FreeFormFinsPlots
 from rocketpy.prints.aero_surface_prints import _FreeFormFinsPrints
 from rocketpy.rocket.aero_surface.fins._geometry import _FreeFormGeometry
+
 from .fins import Fins
 
 
@@ -172,9 +173,7 @@ class FreeFormFins(Fins):
     def to_dict(self, **kwargs):
         data = super().to_dict(**kwargs)
         data.update(
-            self.geometry.get_data(
-                include_outputs=kwargs.get("include_outputs", False)
-            )
+            self.geometry.get_data(include_outputs=kwargs.get("include_outputs", False))
         )
         return data
 
