@@ -2,6 +2,7 @@ import time
 from datetime import date, datetime, timezone
 from unittest.mock import patch
 
+import numpy as np
 import pytest
 
 
