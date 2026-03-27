@@ -1,10 +1,10 @@
 from rocketpy.plots.aero_surface_plots import _EllipticalFinPlots
 from rocketpy.prints.aero_surface_prints import _EllipticalFinPrints
-from rocketpy.rocket.aero_surface.fins._elliptical_mixin import _EllipticalMixin
+from rocketpy.rocket.aero_surface.fins._geometry import _EllipticalGeometry
 from rocketpy.rocket.aero_surface.fins.fin import Fin
 
 
-class EllipticalFin(_EllipticalMixin, Fin):
+class EllipticalFin(Fin):
     """Class that defines and holds information for an elliptical fin set.
 
     This class inherits from the Fin class.
@@ -53,7 +53,7 @@ class EllipticalFin(_EllipticalMixin, Fin):
     EllipticalFin.Af : float
         Area of the longitudinal section of each fin in the set.
     EllipticalFin.AR : float
-        Aspect ratio of each fin in the set.
+        Aspect ratio of the fin.
     EllipticalFin.gamma_c : float
         Fin mid-chord sweep angle.
     EllipticalFin.Yma : float
@@ -92,7 +92,7 @@ class EllipticalFin(_EllipticalMixin, Fin):
         rocket_radius,
         cant_angle=0,
         airfoil=None,
-        name="Fins",
+        name="Elliptical Fin",
     ):
         """Initialize EllipticalFin class.
 
@@ -140,7 +140,7 @@ class EllipticalFin(_EllipticalMixin, Fin):
             The tuple's second item is the unit of the angle of attack,
             accepting either "radians" or "degrees".
         name : str
-            Name of fin set.
+            Name of elliptical fin.
 
         Returns
         -------
@@ -157,16 +157,14 @@ class EllipticalFin(_EllipticalMixin, Fin):
             name,
         )
 
-        self.evaluate_geometrical_parameters()
-        self.evaluate_center_of_pressure()
-        self.evaluate_lift_coefficient()
-        self.evaluate_roll_parameters()
+        self.geometry = _EllipticalGeometry(self)
+        self._run_geometry_update_chain()
 
         self.prints = _EllipticalFinPrints(self)
         self.plots = _EllipticalFinPlots(self)
 
     def evaluate_center_of_pressure(self):
-        """Calculates and returns the center of pressure of the fin set in local
+        """Calculates and returns the center of pressure of the fin in local
         coordinates. The center of pressure position is saved and stored as a
         tuple.
 
@@ -182,21 +180,8 @@ class EllipticalFin(_EllipticalMixin, Fin):
         self.cp = (self.cpx, self.cpy, self.cpz)
 
     def to_dict(self, include_outputs=False):
-        data = super().to_dict(include_outputs)
-        if include_outputs:
-            data.update(
-                {
-                    "Af": self.Af,
-                    "AR": self.AR,
-                    "gamma_c": self.gamma_c,
-                    "Yma": self.Yma,
-                    "roll_geometrical_constant": self.roll_geometrical_constant,
-                    "tau": self.tau,
-                    "lift_interference_factor": self.lift_interference_factor,
-                    "roll_damping_interference_factor": self.roll_damping_interference_factor,
-                    "roll_forcing_interference_factor": self.roll_forcing_interference_factor,
-                }
-            )
+        data = super().to_dict(include_outputs=include_outputs)
+        data.update(self.geometry.get_data(include_outputs=include_outputs))
         return data
 
     @classmethod

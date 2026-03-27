@@ -1,11 +1,10 @@
 from rocketpy.plots.aero_surface_plots import _FreeFormFinsPlots
 from rocketpy.prints.aero_surface_prints import _FreeFormFinsPrints
-from rocketpy.rocket.aero_surface.fins._free_form_mixin import _FreeFormMixin
-
+from rocketpy.rocket.aero_surface.fins._geometry import _FreeFormGeometry
 from .fins import Fins
 
 
-class FreeFormFins(_FreeFormMixin, Fins):
+class FreeFormFins(Fins):
     """Class that defines and holds information for a free form fin set.
 
     This class inherits from the Fins class.
@@ -132,7 +131,7 @@ class FreeFormFins(_FreeFormMixin, Fins):
         -------
         None
         """
-        root_chord, span = self._initialize(shape_points)
+        root_chord, span = _FreeFormGeometry.infer_dimensions(shape_points)
 
         super().__init__(
             n,
@@ -144,10 +143,8 @@ class FreeFormFins(_FreeFormMixin, Fins):
             name,
         )
 
-        self.evaluate_geometrical_parameters()
-        self.evaluate_center_of_pressure()
-        self.evaluate_lift_coefficient()
-        self.evaluate_roll_parameters()
+        self.geometry = _FreeFormGeometry(self, shape_points)
+        self._run_geometry_update_chain()
 
         self.prints = _FreeFormFinsPrints(self)
         self.plots = _FreeFormFinsPlots(self)
@@ -167,6 +164,19 @@ class FreeFormFins(_FreeFormMixin, Fins):
         self.cpy = 0
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
+
+    @property
+    def shape_points(self):
+        return self.geometry.shape_points
+
+    def to_dict(self, **kwargs):
+        data = super().to_dict(**kwargs)
+        data.update(
+            self.geometry.get_data(
+                include_outputs=kwargs.get("include_outputs", False)
+            )
+        )
+        return data
 
     @classmethod
     def from_dict(cls, data):

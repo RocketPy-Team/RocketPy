@@ -114,19 +114,17 @@ class _FreeFormMixin:
                     chord_length[i] += x
 
         # Replace infinities and handle invalid values in chord_lead and chord_trail
-        for i in range(points_per_line):
-            if (
-                np.isinf(chord_lead[i])
-                or np.isinf(chord_trail[i])
-                or np.isnan(chord_lead[i])
-                or np.isnan(chord_trail[i])
-            ):
-                chord_lead[i] = 0
-                chord_trail[i] = 0
-            if chord_length[i] < 0 or np.isnan(chord_length[i]):
-                chord_length[i] = 0
-            if chord_length[i] > chord_trail[i] - chord_lead[i]:
-                chord_length[i] = chord_trail[i] - chord_lead[i]
+        # Use vectorized operations for better performance
+        invalid_lead = np.isnan(chord_lead) | np.isinf(chord_lead)
+        invalid_trail = np.isnan(chord_trail) | np.isinf(chord_trail)
+        chord_lead[invalid_lead | invalid_trail] = 0
+        chord_trail[invalid_lead | invalid_trail] = 0
+
+        # Clamp chord_length to valid range
+        chord_length[chord_length < 0] = 0
+        chord_length[np.isnan(chord_length)] = 0
+        max_chord = chord_trail - chord_lead
+        chord_length = np.minimum(chord_length, max_chord)
 
         # Initialize integration variables for various aerodynamic and roll properties
         radius = self.rocket_radius

@@ -1100,7 +1100,7 @@ class Rocket:
 
         Parameters
         ----------
-        surfaces : list, AeroSurface, NoseCone, TrapezoidalFins, EllipticalFins, Tail, RailButtons
+        surfaces : list[AeroSurface], AeroSurface
             Aerodynamic surface to be added to the rocket. Can be a list of
             AeroSurface if more than one surface is to be added.
         positions : int, float, tuple, list, Vector

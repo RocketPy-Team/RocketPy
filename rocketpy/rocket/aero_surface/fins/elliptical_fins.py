@@ -1,11 +1,11 @@
 from rocketpy.plots.aero_surface_plots import _EllipticalFinsPlots
 from rocketpy.prints.aero_surface_prints import _EllipticalFinsPrints
-from rocketpy.rocket.aero_surface.fins._elliptical_mixin import _EllipticalMixin
+from rocketpy.rocket.aero_surface.fins._geometry import _EllipticalGeometry
 
 from .fins import Fins
 
 
-class EllipticalFins(_EllipticalMixin, Fins):
+class EllipticalFins(Fins):
     """Class that defines and holds information for an elliptical fin set.
 
     This class inherits from the Fins class.
@@ -158,10 +158,8 @@ class EllipticalFins(_EllipticalMixin, Fins):
             name,
         )
 
-        self.evaluate_geometrical_parameters()
-        self.evaluate_center_of_pressure()
-        self.evaluate_lift_coefficient()
-        self.evaluate_roll_parameters()
+        self.geometry = _EllipticalGeometry(self)
+        self._run_geometry_update_chain()
 
         self.prints = _EllipticalFinsPrints(self)
         self.plots = _EllipticalFinsPlots(self)
@@ -181,6 +179,15 @@ class EllipticalFins(_EllipticalMixin, Fins):
         self.cpy = 0
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
+
+    def to_dict(self, **kwargs):
+        data = super().to_dict(**kwargs)
+        data.update(
+            self.geometry.get_data(
+                include_outputs=kwargs.get("include_outputs", False)
+            )
+        )
+        return data
 
     @classmethod
     def from_dict(cls, data):

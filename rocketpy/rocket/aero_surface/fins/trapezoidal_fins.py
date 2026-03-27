@@ -1,11 +1,10 @@
 from rocketpy.plots.aero_surface_plots import _TrapezoidalFinsPlots
 from rocketpy.prints.aero_surface_prints import _TrapezoidalFinsPrints
-from rocketpy.rocket.aero_surface.fins._trapezoidal_mixin import _TrapezoidalMixin
-
+from rocketpy.rocket.aero_surface.fins._geometry import _TrapezoidalGeometry
 from .fins import Fins
 
 
-class TrapezoidalFins(_TrapezoidalMixin, Fins):
+class TrapezoidalFins(Fins):
     """Class that defines and holds information for a trapezoidal fin set.
 
     This class inherits from the Fins class.
@@ -165,10 +164,43 @@ class TrapezoidalFins(_TrapezoidalMixin, Fins):
             name,
         )
 
-        self._initialize(sweep_length, sweep_angle, root_chord, tip_chord, span)
+        self.geometry = _TrapezoidalGeometry(
+            self,
+            tip_chord=tip_chord,
+            sweep_length=sweep_length,
+            sweep_angle=sweep_angle,
+        )
+        self._run_geometry_update_chain()
 
         self.prints = _TrapezoidalFinsPrints(self)
         self.plots = _TrapezoidalFinsPlots(self)
+
+    @property
+    def tip_chord(self):
+        return self.geometry.tip_chord
+
+    @tip_chord.setter
+    def tip_chord(self, value):
+        self.geometry.tip_chord = value
+        self._run_geometry_update_chain()
+
+    @property
+    def sweep_angle(self):
+        return self.geometry.sweep_angle
+
+    @sweep_angle.setter
+    def sweep_angle(self, value):
+        self.geometry.sweep_angle = value
+        self._run_geometry_update_chain()
+
+    @property
+    def sweep_length(self):
+        return self.geometry.sweep_length
+
+    @sweep_length.setter
+    def sweep_length(self, value):
+        self.geometry.sweep_length = value
+        self._run_geometry_update_chain()
 
     def evaluate_center_of_pressure(self):
         """Calculates and returns the center of pressure of the fin set in local
@@ -191,6 +223,15 @@ class TrapezoidalFins(_TrapezoidalMixin, Fins):
         self.cpy = 0
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
+
+    def to_dict(self, **kwargs):
+        data = super().to_dict(**kwargs)
+        data.update(
+            self.geometry.get_data(
+                include_outputs=kwargs.get("include_outputs", False)
+            )
+        )
+        return data
 
     @classmethod
     def from_dict(cls, data):

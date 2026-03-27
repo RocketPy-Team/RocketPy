@@ -1,10 +1,10 @@
 from rocketpy.plots.aero_surface_plots import _FreeFormFinPlots
 from rocketpy.prints.aero_surface_prints import _FreeFormFinPrints
-from rocketpy.rocket.aero_surface.fins._free_form_mixin import _FreeFormMixin
+from rocketpy.rocket.aero_surface.fins._geometry import _FreeFormGeometry
 from rocketpy.rocket.aero_surface.fins.fin import Fin
 
 
-class FreeFormFin(_FreeFormMixin, Fin):
+class FreeFormFin(Fin):
     """Class that defines and holds information for a free form fin set.
 
     This class inherits from the Fin class.
@@ -48,7 +48,7 @@ class FreeFormFin(_FreeFormMixin, Fin):
     FreeFormFin.Af : float
         Area of the longitudinal section of each fin in the set.
     FreeFormFin.AR : float
-        Aspect ratio of each fin in the set
+        Aspect ratio of the fin.
     FreeFormFin.gamma_c : float
         Fin mid-chord sweep angle.
     FreeFormFin.Yma : float
@@ -90,7 +90,7 @@ class FreeFormFin(_FreeFormMixin, Fin):
         rocket_radius,
         cant_angle=0,
         airfoil=None,
-        name="Fins",
+        name="Free Form Fin",
     ):
         """Initialize FreeFormFin class.
 
@@ -127,13 +127,13 @@ class FreeFormFin(_FreeFormMixin, Fin):
             The tuple's second item is the unit of the angle of attack,
             accepting either "radians" or "degrees".
         name : str
-            Name of fin set.
+            Name of the free form fin.
 
         Returns
         -------
         None
         """
-        root_chord, span = self._initialize(shape_points)
+        root_chord, span = _FreeFormGeometry.infer_dimensions(shape_points)
 
         super().__init__(
             angular_position,
@@ -145,16 +145,14 @@ class FreeFormFin(_FreeFormMixin, Fin):
             name,
         )
 
-        self.evaluate_geometrical_parameters()
-        self.evaluate_center_of_pressure()
-        self.evaluate_lift_coefficient()
-        self.evaluate_roll_parameters()
+        self.geometry = _FreeFormGeometry(self, shape_points)
+        self._run_geometry_update_chain()
 
         self.prints = _FreeFormFinPrints(self)
         self.plots = _FreeFormFinPlots(self)
 
     def evaluate_center_of_pressure(self):
-        """Calculates and returns the center of pressure of the fin set in local
+        """Calculates and returns the center of pressure of the fin in local
         coordinates. The center of pressure position is saved and stored as a
         tuple.
 
@@ -168,6 +166,15 @@ class FreeFormFin(_FreeFormMixin, Fin):
         self.cpy = self.Yma
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
+
+    @property
+    def shape_points(self):
+        return self.geometry.shape_points
+
+    def to_dict(self, include_outputs=False):
+        data = super().to_dict(include_outputs=include_outputs)
+        data.update(self.geometry.get_data(include_outputs=include_outputs))
+        return data
 
     @classmethod
     def from_dict(cls, data):

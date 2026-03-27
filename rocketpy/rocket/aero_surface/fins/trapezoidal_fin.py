@@ -1,11 +1,10 @@
 from rocketpy.plots.aero_surface_plots import _TrapezoidalFinPlots
 from rocketpy.prints.aero_surface_prints import _TrapezoidalFinPrints
-from rocketpy.rocket.aero_surface.fins._trapezoidal_mixin import _TrapezoidalMixin
-
+from rocketpy.rocket.aero_surface.fins._geometry import _TrapezoidalGeometry
 from .fin import Fin
 
 
-class TrapezoidalFin(_TrapezoidalMixin, Fin):
+class TrapezoidalFin(Fin):
     """A class used to represent a single trapezoidal fin.
 
     This class inherits from the Fin class.
@@ -56,8 +55,8 @@ class TrapezoidalFin(_TrapezoidalMixin, Fin):
         Reference diameter of the rocket, in meters.
     TrapezoidalFins.fin_area : float
         Area of the longitudinal section of each fin in the set.
-    TrapezoidalFins.f_ar : float
-        Aspect ratio of each fin in the set
+    TrapezoidalFins.AR : float
+        Aspect ratio of the fin.
     TrapezoidalFin.gamma_c : float
         Fin mid-chord sweep angle.
     TrapezoidalFin.yma : float
@@ -93,7 +92,7 @@ class TrapezoidalFin(_TrapezoidalMixin, Fin):
         sweep_length=None,
         sweep_angle=None,
         airfoil=None,
-        name="Fins",
+        name="Trapezoidal Fin",
     ):
         """Initializes the TrapezoidalFin class.
 
@@ -143,7 +142,7 @@ class TrapezoidalFin(_TrapezoidalMixin, Fin):
             The tuple's second item is the unit of the angle of attack,
             accepting either "radians" or "degrees".
         name : str
-            Name of fin set.
+            Name of the trapezoidal fin.
         """
         super().__init__(
             angular_position,
@@ -155,14 +154,47 @@ class TrapezoidalFin(_TrapezoidalMixin, Fin):
             name,
         )
 
-        self._initialize(sweep_length, sweep_angle, root_chord, tip_chord, span)
+        self.geometry = _TrapezoidalGeometry(
+            self,
+            tip_chord=tip_chord,
+            sweep_length=sweep_length,
+            sweep_angle=sweep_angle,
+        )
+        self._run_geometry_update_chain()
         self.evaluate_rotation_matrix()
 
         self.prints = _TrapezoidalFinPrints(self)
         self.plots = _TrapezoidalFinPlots(self)
 
+    @property
+    def tip_chord(self):
+        return self.geometry.tip_chord
+
+    @tip_chord.setter
+    def tip_chord(self, value):
+        self.geometry.tip_chord = value
+        self._run_geometry_update_chain()
+
+    @property
+    def sweep_angle(self):
+        return self.geometry.sweep_angle
+
+    @sweep_angle.setter
+    def sweep_angle(self, value):
+        self.geometry.sweep_angle = value
+        self._run_geometry_update_chain()
+
+    @property
+    def sweep_length(self):
+        return self.geometry.sweep_length
+
+    @sweep_length.setter
+    def sweep_length(self, value):
+        self.geometry.sweep_length = value
+        self._run_geometry_update_chain()
+
     def evaluate_center_of_pressure(self):
-        """Calculates and returns the center of pressure of the fin set in local
+        """Calculates and returns the center of pressure of the fin in local
         coordinates. The center of pressure position is saved and stored as a
         tuple.
 
@@ -182,6 +214,11 @@ class TrapezoidalFin(_TrapezoidalMixin, Fin):
         self.cpy = self.Yma
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
+
+    def to_dict(self, include_outputs=False):
+        data = super().to_dict(include_outputs=include_outputs)
+        data.update(self.geometry.get_data(include_outputs=include_outputs))
+        return data
 
     @classmethod
     def from_dict(cls, data):

@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 
-
 class _AeroSurfacePrints(ABC):
     def __init__(self, aero_surface):
         self.aero_surface = aero_surface
@@ -77,10 +76,8 @@ class _FinsPrints(_AeroSurfacePrints):
         print("-------------------------------------")
         print(f"Number of fins: {self.aero_surface.n}")
         print(f"Reference rocket radius: {self.aero_surface.rocket_radius:.3f} m")
-        try:
+        if hasattr(self.aero_surface, "tip_chord"):
             print(f"Tip chord: {self.aero_surface.tip_chord:.3f} m")
-        except AttributeError:
-            pass  # it isn't a trapezoidal fin, just don't worry about tip chord
         print(f"Root chord: {self.aero_surface.root_chord:.3f} m")
         print(f"Span: {self.aero_surface.span:.3f} m")
         print(
@@ -176,10 +173,8 @@ class _FinPrints(_AeroSurfacePrints):
         print("Geometric information of the fin set:")
         print("-------------------------------------")
         print(f"Reference rocket radius: {self.aero_surface.rocket_radius:.3f} m")
-        try:
+        if hasattr(self.aero_surface, "tip_chord"):
             print(f"Tip chord: {self.aero_surface.tip_chord:.3f} m")
-        except AttributeError:
-            pass  # it isn't a trapezoidal fin, just don't worry about tip chord
         print(f"Root chord: {self.aero_surface.root_chord:.3f} m")
         print(f"Span: {self.aero_surface.span:.3f} m")
         print(
