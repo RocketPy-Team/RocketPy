@@ -1,3 +1,4 @@
+import csv
 import inspect
 import math
 import warnings
@@ -27,7 +28,6 @@ from rocketpy.rocket.parachute import Parachute
 from rocketpy.tools import (
     deprecated,
     find_obj_from_hash,
-    load_rocket_drag_csv,
     parallel_axis_theorem_from_com,
 )
 
@@ -147,12 +147,18 @@ class Rocket:
     Rocket.static_margin : float
         Float value corresponding to rocket static margin when
         loaded with propellant in units of rocket diameter or calibers.
-    Rocket.power_off_drag : int, float, callable, string, array, Function
+    Rocket.power_off_drag : Function
+        Rocket's drag coefficient as a function of Mach number when the
+        motor is off. Alias for ``power_off_drag_by_mach``.
+    Rocket.power_on_drag : Function
+        Rocket's drag coefficient as a function of Mach number when the
+        motor is on. Alias for ``power_on_drag_by_mach``.
+    Rocket.power_off_drag_input : int, float, callable, string, array, Function
         Original user input for rocket's drag coefficient when the motor is
-        off. This is preserved for reconstruction and Monte Carlo workflows.
-    Rocket.power_on_drag : int, float, callable, string, array, Function
+        off. Preserved for reconstruction and Monte Carlo workflows.
+    Rocket.power_on_drag_input : int, float, callable, string, array, Function
         Original user input for rocket's drag coefficient when the motor is
-        on. This is preserved for reconstruction and Monte Carlo workflows.
+        on. Preserved for reconstruction and Monte Carlo workflows.
     Rocket.power_off_drag_7d : Function
         Rocket's drag coefficient with motor off as a 7D function of
         (alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate).
@@ -375,9 +381,12 @@ class Rocket:
             interpolation="linear",
             extrapolation="constant",
         )
-        # Saving user input for monte carlo
-        self.power_off_drag = power_off_drag
-        self.power_on_drag = power_on_drag
+        # Saving raw user input for reconstruction and Monte Carlo
+        self._power_off_drag_input = power_off_drag
+        self._power_on_drag_input = power_on_drag
+        # Public API attributes: keep as Function (Mach-only) for backward compatibility
+        self.power_off_drag = self.power_off_drag_by_mach
+        self.power_on_drag = self.power_on_drag_by_mach
 
         # Create a, possibly, temporary empty motor
         # self.motors = Components()  # currently unused, only 1 motor is supported
@@ -2234,7 +2243,7 @@ class Rocket:
         # Case 1: string input can be a CSV path or any Function-supported source.
         if isinstance(input_data, str):
             if input_data.lower().endswith(".csv"):
-                return load_rocket_drag_csv(input_data, coeff_name)
+                return self.__load_rocket_drag_csv(input_data, coeff_name)
 
             function_data = Function(input_data)
             _validate_function_domain_dimension(function_data)
@@ -2309,4 +2318,130 @@ class Rocket:
         raise TypeError(
             f"Invalid input for {coeff_name}: must be int, float, CSV file path, "
             "Function, or callable."
+        )
+
+    def __load_rocket_drag_csv(self, file_path, coeff_name):  # pylint: disable=too-many-statements,import-outside-toplevel
+        """Load Rocket drag CSV into a 7D Function.
+
+        Supports either headerless two-column (mach, coefficient) tables or
+        header-based multi-variable CSV tables.
+        """
+        independent_vars = [
+            "alpha",
+            "beta",
+            "mach",
+            "reynolds",
+            "pitch_rate",
+            "yaw_rate",
+            "roll_rate",
+        ]
+
+        def _is_numeric(value):
+            try:
+                float(value)
+                return True
+            except (TypeError, ValueError):
+                try:
+                    int(value)
+                    return True
+                except (TypeError, ValueError):
+                    return False
+
+        try:
+            with open(file_path, mode="r") as file:
+                reader = csv.reader(file)
+                first_row = next(reader)
+        except (FileNotFoundError, IOError) as e:
+            raise ValueError(f"Error reading {coeff_name} CSV file: {e}") from e
+        except StopIteration as e:
+            raise ValueError(f"Invalid or empty CSV file for {coeff_name}.") from e
+
+        if not first_row:
+            raise ValueError(f"Invalid or empty CSV file for {coeff_name}.")
+
+        is_headerless_two_column = len(first_row) == 2 and all(
+            _is_numeric(cell) for cell in first_row
+        )
+
+        if is_headerless_two_column:
+            csv_func = Function(
+                file_path,
+                interpolation="linear",
+                extrapolation="constant",
+            )
+
+            def mach_wrapper(
+                _alpha,
+                _beta,
+                mach,
+                _reynolds,
+                _pitch_rate,
+                _yaw_rate,
+                _roll_rate,
+            ):
+                return csv_func(mach)
+
+            return Function(
+                mach_wrapper,
+                independent_vars,
+                [coeff_name],
+                interpolation="linear",
+                extrapolation="constant",
+            )
+
+        header = [column.strip() for column in first_row]
+        present_columns = [col for col in independent_vars if col in header]
+
+        invalid_columns = [col for col in header[:-1] if col not in independent_vars]
+        if invalid_columns:
+            raise ValueError(
+                f"Invalid independent variable(s) in {coeff_name} CSV: "
+                f"{invalid_columns}. Valid options are: {independent_vars}."
+            )
+
+        if header[-1] in independent_vars:
+            raise ValueError(
+                f"Last column in {coeff_name} CSV must be the coefficient "
+                "value, not an independent variable."
+            )
+
+        if not present_columns:
+            raise ValueError(f"No independent variables found in {coeff_name} CSV.")
+
+        ordered_present_columns = [
+            col for col in header[:-1] if col in independent_vars
+        ]
+
+        csv_func = Function.from_regular_grid_csv(
+            file_path,
+            ordered_present_columns,
+            coeff_name,
+            extrapolation="constant",
+        )
+        if csv_func is None:
+            csv_func = Function(
+                file_path,
+                interpolation="linear",
+                extrapolation="constant",
+            )
+
+        def wrapper(alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate):
+            args_by_name = {
+                "alpha": alpha,
+                "beta": beta,
+                "mach": mach,
+                "reynolds": reynolds,
+                "pitch_rate": pitch_rate,
+                "yaw_rate": yaw_rate,
+                "roll_rate": roll_rate,
+            }
+            selected_args = [args_by_name[col] for col in ordered_present_columns]
+            return csv_func(*selected_args)
+
+        return Function(
+            wrapper,
+            independent_vars,
+            [coeff_name],
+            interpolation="linear",
+            extrapolation="constant",
         )

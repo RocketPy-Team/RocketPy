@@ -5,8 +5,6 @@ and more. This is a core class of our package, and should be maintained
 carefully as it may impact all the rest of the project.
 """
 
-import base64
-import functools
 import operator
 import warnings
 from bisect import bisect_left
@@ -17,9 +15,9 @@ from functools import cached_property
 from inspect import signature
 from pathlib import Path
 
-import dill
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy import trapezoid
 from scipy import integrate, linalg, optimize
 from scipy.interpolate import (
     LinearNDInterpolator,
@@ -29,14 +27,7 @@ from scipy.interpolate import (
 )
 
 from rocketpy.plots.plot_helpers import show_or_save_plot
-
-# Numpy 1.x compatibility,
-# TODO: remove these lines when all dependencies support numpy>=2.0.0
-if np.lib.NumpyVersion(np.__version__) >= "2.0.0b1":
-    # pylint: disable=no-name-in-module
-    from numpy import trapezoid  # pragma: no cover
-else:
-    from numpy import trapz as trapezoid  # pragma: no cover
+from rocketpy.tools import deprecated, from_hex_decode, to_hex_encode
 
 NUMERICAL_TYPES = (float, int, complex, np.integer, np.floating)
 INTERPOLATION_TYPES = {
@@ -49,46 +40,6 @@ INTERPOLATION_TYPES = {
     "regular_grid": 6,
 }
 EXTRAPOLATION_TYPES = {"zero": 0, "natural": 1, "constant": 2}
-
-
-def deprecated(reason=None, version=None, alternative=None):
-    """Decorator to mark functions or methods as deprecated.
-
-    This decorator issues a DeprecationWarning when the decorated function
-    is called, indicating that it will be removed in future versions.
-    """
-
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            if reason:
-                message = reason
-            else:
-                message = f"The function `{func.__name__}` is deprecated"
-
-            if version:
-                message += f" and will be removed in {version}"
-
-            if alternative:
-                message += f". Use `{alternative}` instead"
-
-            message += "."
-            warnings.warn(message, DeprecationWarning, stacklevel=2)
-            return func(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
-
-
-def to_hex_encode(obj, encoder=base64.b85encode):
-    """Converts an object to hex representation using dill."""
-    return encoder(dill.dumps(obj)).hex()
-
-
-def from_hex_decode(obj_bytes, decoder=base64.b85decode):
-    """Converts an object from hex representation using dill."""
-    return dill.loads(decoder(bytes.fromhex(obj_bytes)))
 
 
 class SourceType(Enum):

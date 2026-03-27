@@ -504,7 +504,6 @@ class Flight:
         equations_of_motion="standard",
         ode_solver="LSODA",
         simulation_mode="6 DOF",
-        weathercock_coeff=0.0,
     ):
         """Run a trajectory simulation.
 
@@ -588,16 +587,6 @@ class Flight:
             A custom ``scipy.integrate.OdeSolver`` can be passed as well.
             For more information on the integration methods, see the scipy
             documentation [1]_.
-        weathercock_coeff : float, optional
-            Proportionality coefficient (rate coefficient) for the alignment rate of the rocket's body axis
-            with the relative wind direction in 3-DOF simulations, in rad/s. The actual angular velocity
-            applied to align the rocket is calculated as ``weathercock_coeff * sin(angle)``, where ``angle``
-            is the angle between the rocket's axis and the wind direction. A higher value means faster alignment
-            (quasi-static weathercocking). This parameter is only used when simulation_mode is '3 DOF'.
-            Default is 0.0 to mimic a pure 3-DOF simulation without any weathercocking (fixed attitude).
-            Set to a positive value to enable quasi-static weathercocking behaviour.
-
-
         Returns
         -------
         None
@@ -627,7 +616,6 @@ class Flight:
         self.equations_of_motion = equations_of_motion
         self.simulation_mode = simulation_mode
         self.ode_solver = ode_solver
-        self.weathercock_coeff = weathercock_coeff
 
         # Controller initialization
         self.__init_controllers()
@@ -2310,7 +2298,8 @@ class Flight:
         r_dot = [vx, vy, vz]
         # Weathercocking: evolve body axis direction toward relative wind
         # The body z-axis (attitude vector) should align with -freestream_velocity
-        if self.weathercock_coeff > 0 and free_stream_speed > 1e-6:
+        weathercock_coeff = getattr(self.rocket, "weathercock_coeff", 0.0)
+        if weathercock_coeff > 0 and free_stream_speed > 1e-6:
             # Current body z-axis in inertial frame (attitude vector)
             # From rotation matrix: column 3 gives the body z-axis in inertial frame
             body_z_inertial = Vector(
@@ -2342,7 +2331,7 @@ class Flight:
                 sin_angle = min(1.0, max(-1.0, rotation_axis_mag))
 
                 # Angular velocity magnitude proportional to misalignment angle
-                omega_mag = self.weathercock_coeff * sin_angle
+                omega_mag = weathercock_coeff * sin_angle
 
                 # Angular velocity in inertial frame, then transform to body frame
                 omega_body = Kt @ (rotation_axis * omega_mag)
@@ -2363,7 +2352,7 @@ class Flight:
                             )
                     rotation_axis = perp_axis.unit_vector
                     # 180 degree rotation: sin(angle) = 1
-                    omega_mag = self.weathercock_coeff * 1.0
+                    omega_mag = weathercock_coeff * 1.0
                     omega_body = Kt @ (rotation_axis * omega_mag)
                 # else: aligned (dot > 0.999) - no rotation needed, omega_body stays None
 
