@@ -51,8 +51,8 @@ class _EnvironmentPlots:
         altitudes : numpy.ndarray
             Altitude array with NaN inserted at wraparound points.
         """
-        WRAP_THRESHOLD = 180  # degrees; half the full circle
-        wrap_indices = np.where(np.abs(np.diff(directions)) > WRAP_THRESHOLD)[0] + 1
+        wrap_threshold = 180  # degrees; half the full circle
+        wrap_indices = np.where(np.abs(np.diff(directions)) > wrap_threshold)[0] + 1
         directions = np.insert(directions, wrap_indices, np.nan)
         altitudes = np.insert(altitudes, wrap_indices, np.nan)
         return directions, altitudes
