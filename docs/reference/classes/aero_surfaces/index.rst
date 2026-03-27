@@ -20,7 +20,3 @@ AeroSurface Classes
    AirBrakes
    GenericSurface
    LinearGenericSurface
-   _EllipticalMixin
-   _TrapezoidalMixin
-   _FreeFormMixin
-   _BaseFin
