@@ -399,15 +399,20 @@ class Fin(_BaseFin):
         # Rotate the point to the user-defined coordinate system
         p = Vector([p.x * _csys, p.y, p.z * _csys])
 
-        # Calculate the position of the fin leading edge in the user frame
-        # as if no cant angle was applied
-        position = Vector(
-            [
-                -self.rocket_radius * math.sin(self.angular_position_rad) * _csys,
-                self.rocket_radius * math.cos(self.angular_position_rad),
-                position,
-            ]
-        )
+        # Build the leading-edge position in the user frame as if no cant
+        # angle was applied. Scalars are interpreted as z coordinates only,
+        # while vectors/tuples/lists are interpreted as full (x, y, z)
+        # coordinates.
+        if isinstance(position, (Vector, tuple, list)):
+            position = Vector(position)
+        else:
+            position = Vector(
+                [
+                    -self.rocket_radius * math.sin(self.angular_position_rad) * _csys,
+                    self.rocket_radius * math.cos(self.angular_position_rad),
+                    position,
+                ]
+            )
 
         # Translate the position of the fin leading edge to the position of the
         # fin leading edge with cant angle

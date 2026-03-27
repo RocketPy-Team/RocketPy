@@ -12,6 +12,7 @@ from rocketpy import (
     TrapezoidalFin,
     TrapezoidalFins,
 )
+from rocketpy.mathutils.vector_matrix import Vector
 
 
 @pytest.mark.parametrize(
@@ -219,6 +220,28 @@ def test_individual_fin_from_dict_roundtrip(
         assert reconstructed.shape_points == fin.shape_points
 
 
+def test_trapezoidal_fin_from_dict_roundtrip_preserves_sweep_length():
+    """Ensure TrapezoidalFin round-trip preserves non-default sweep geometry."""
+    # Arrange
+    original = TrapezoidalFin(
+        angular_position=0,
+        root_chord=0.12,
+        tip_chord=0.04,
+        span=0.1,
+        rocket_radius=0.0635,
+        cant_angle=0,
+        sweep_angle=15.0,
+        name="roundtrip_trapezoidal_fin",
+    )
+    data = original.to_dict()
+
+    # Act
+    reconstructed = TrapezoidalFin.from_dict(data)
+
+    # Assert
+    assert reconstructed.sweep_length == pytest.approx(original.sweep_length)
+
+
 def test_calisto_finset_vs_four_individual_fins_close():
     """Ensure a 4-fin set and 4 individual fins produce close aerodynamics.
 
@@ -294,3 +317,40 @@ def test_calisto_finset_vs_four_individual_fins_close():
     # Assert
     np.testing.assert_allclose(cp_individual, cp_finset, rtol=1e-6, atol=1e-6)
     np.testing.assert_allclose(clalpha_individual_corrected, clalpha_finset)
+
+
+@pytest.mark.parametrize(
+    "position_input",
+    [
+        (0.02, -0.01, -1.2),
+        Vector([0.02, -0.01, -1.2]),
+    ],
+)
+def test_add_individual_fin_accepts_full_3d_position(position_input):
+    """Ensure individual fins accept full (x, y, z) position inputs."""
+    # Arrange
+    rocket = Rocket(
+        radius=0.0635,
+        mass=14.426,
+        inertia=(6.321, 6.321, 0.034),
+        power_off_drag="data/rockets/calisto/powerOffDragCurve.csv",
+        power_on_drag="data/rockets/calisto/powerOnDragCurve.csv",
+        center_of_mass_without_motor=0,
+        coordinate_system_orientation="tail_to_nose",
+    )
+    fin = TrapezoidalFin(
+        angular_position=30,
+        root_chord=0.120,
+        tip_chord=0.040,
+        span=0.100,
+        rocket_radius=0.0635,
+        cant_angle=0,
+        name="position_test_fin",
+    )
+
+    # Act
+    rocket.add_surfaces(fin, position_input)
+    stored_position = rocket.aerodynamic_surfaces[0].position
+
+    # Assert
+    assert stored_position == Vector([0.02, -0.01, -1.2])

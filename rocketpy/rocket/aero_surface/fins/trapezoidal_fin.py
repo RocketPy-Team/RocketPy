@@ -230,6 +230,7 @@ class TrapezoidalFin(Fin):
             span=data["span"],
             rocket_radius=data["rocket_radius"],
             cant_angle=data["cant_angle"],
+            sweep_length=data.get("sweep_length"),
             airfoil=data["airfoil"],
             name=data["name"],
         )

@@ -1365,9 +1365,9 @@ class Rocket:
         """
         if n <= 2:
             raise ValueError(
-                "Number of fins must be greater than 2."
-                "If you want to add 2 or 1 fins, create a TrapezoidalFin object "
-                " and add it to the rocket using the add_surfaces method."
+                "Number of fins must be greater than 2. "
+                "For 1 or 2 fins, create a FreeFormFin object "
+                "and add it to the rocket using the add_surfaces method."
             )
 
         # Modify radius if not given, use rocket radius, otherwise use given.
@@ -1457,9 +1457,9 @@ class Rocket:
         """
         if n <= 2:
             raise ValueError(
-                "Number of fins must be greater than 2."
-                "If you want to add 2 or 1 fins, create a EllipticalFin object "
-                " and add it to the rocket using the add_surfaces method."
+                "Number of fins must be greater than 2. "
+                "For 1 or 2 fins, create a FreeFormFin object "
+                "and add it to the rocket using the add_surfaces method."
             )
 
         radius = radius if radius is not None else self.radius
@@ -1530,9 +1530,9 @@ class Rocket:
         """
         if n <= 2:
             raise ValueError(
-                "Number of fins must be greater than 2."
-                "If you want to add 2 or 1 fins, create a FreeFormFin object "
-                " and add it to the rocket using the add_surfaces method."
+                "Number of fins must be greater than 2. "
+                "For 1 or 2 fins, create a FreeFormFin object "
+                "and add it to the rocket using the add_surfaces method."
             )
 
         # Modify radius if not given, use rocket radius, otherwise use given.
