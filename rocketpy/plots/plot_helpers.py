@@ -3,9 +3,20 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 
-from ..tools import get_matplotlib_supported_file_endings
-
 SAVEFIG_DPI = 300
+
+
+def get_matplotlib_supported_file_endings():
+    """Get file endings supported by matplotlib.
+
+    Returns
+    -------
+    list[str]
+        List of file endings prepended with a dot.
+    """
+    filetypes = plt.gcf().canvas.get_supported_filetypes().keys()
+    filetypes = ["." + filetype for filetype in filetypes]
+    return filetypes
 
 
 def show_or_save_plot(filename=None):

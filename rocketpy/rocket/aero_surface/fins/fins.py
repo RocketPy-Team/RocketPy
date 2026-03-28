@@ -328,6 +328,7 @@ class Fins(AeroSurface):
         )  # Function of mach number
         clf_delta.set_inputs("Mach")
         clf_delta.set_outputs("Roll moment forcing coefficient derivative")
+        clf_delta.set_title(None)
         cld_omega = (
             2
             * self.roll_damping_interference_factor
@@ -339,6 +340,7 @@ class Fins(AeroSurface):
         )  # Function of mach number
         cld_omega.set_inputs("Mach")
         cld_omega.set_outputs("Roll moment damping coefficient derivative")
+        cld_omega.set_title(None)
         self.roll_parameters = [clf_delta, cld_omega, self.cant_angle_rad]
         return self.roll_parameters
 

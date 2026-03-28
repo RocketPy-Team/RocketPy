@@ -1,7 +1,6 @@
-import numpy as np
 import pytest
 
-from rocketpy import Flight, Function, Rocket
+from rocketpy import Flight
 from rocketpy.motors.point_mass_motor import PointMassMotor
 from rocketpy.rocket.point_mass_rocket import PointMassRocket
 
@@ -298,93 +297,6 @@ def flight_calisto_with_sensors(calisto_with_sensors, example_plain_env):
     )
 
 
-@pytest.fixture
-def flight_alpha(example_plain_env, cesaroni_m1670):
-    """Fixture that returns a Flight using an alpha-dependent 3D Cd function."""
-    # Create grid data
-    mach = np.array([0.0, 0.5, 1.0, 1.5])
-    reynolds = np.array([1e5, 1e6])
-    alpha = np.array([0.0, 5.0, 10.0, 15.0])
-    M, _, A = np.meshgrid(mach, reynolds, alpha, indexing="ij")
-    cd_data = 0.3 + 0.05 * M + 0.03 * A
-    cd_data = np.clip(cd_data, 0.2, 2.0)
-
-    drag_func = Function.from_grid(
-        cd_data,
-        [mach, reynolds, alpha],
-        inputs=["Mach", "Reynolds", "Alpha"],
-        outputs="Cd",
-    )
-
-    env = example_plain_env
-    env.set_atmospheric_model(type="standard_atmosphere")
-
-    # Build rocket and flight
-    rocket = Rocket(
-        radius=0.0635,
-        mass=16.24,
-        inertia=(6.321, 6.321, 0.034),
-        power_off_drag=drag_func,
-        power_on_drag=drag_func,
-        center_of_mass_without_motor=0,
-        coordinate_system_orientation="tail_to_nose",
-    )
-    rocket.set_rail_buttons(0.2, -0.5, 30)
-    rocket.add_motor(cesaroni_m1670, position=-1.255)
-
-    return Flight(
-        rocket=rocket,
-        environment=env,
-        rail_length=5.2,
-        inclination=85,
-        heading=0,
-    )
-
-
-@pytest.fixture
-def flight_flat(example_plain_env, cesaroni_m1670):
-    """Fixture that returns a Flight using an alpha-averaged (flat) Cd function."""
-    # Create grid data
-    mach = np.array([0.0, 0.5, 1.0, 1.5])
-    reynolds = np.array([1e5, 1e6])
-    alpha = np.array([0.0, 5.0, 10.0, 15.0])
-    M, _, A = np.meshgrid(mach, reynolds, alpha, indexing="ij")
-    cd_data = 0.3 + 0.05 * M + 0.03 * A
-    cd_data = np.clip(cd_data, 0.2, 2.0)
-
-    cd_flat = cd_data.mean(axis=2)
-    drag_flat = Function.from_grid(
-        cd_flat,
-        [mach, reynolds],
-        inputs=["Mach", "Reynolds"],
-        outputs="Cd",
-    )
-
-    env = example_plain_env
-    env.set_atmospheric_model(type="standard_atmosphere")
-
-    # Build rocket and flight
-    rocket = Rocket(
-        radius=0.0635,
-        mass=16.24,
-        inertia=(6.321, 6.321, 0.034),
-        power_off_drag=drag_flat,
-        power_on_drag=drag_flat,
-        center_of_mass_without_motor=0,
-        coordinate_system_orientation="tail_to_nose",
-    )
-    rocket.set_rail_buttons(0.2, -0.5, 30)
-    rocket.add_motor(cesaroni_m1670, position=-1.255)
-
-    return Flight(
-        rocket=rocket,
-        environment=env,
-        rail_length=5.2,
-        inclination=85,
-        heading=0,
-    )
-
-
 # 3 DOF Flight Fixtures
 # These fixtures are for testing the 3 DOF flight simulation mode
 # Based on Bella Lui rocket parameters for realistic acceptance testing
@@ -440,6 +352,7 @@ def acceptance_point_mass_rocket(acceptance_point_mass_motor):
         center_of_mass_without_motor=0,
         power_off_drag=0.43,
         power_on_drag=0.43,
+        weathercock_coeff=0.0,
     )
     rocket.add_motor(acceptance_point_mass_motor, position=0)
     return rocket
@@ -464,6 +377,7 @@ def flight_3dof_no_weathercock(example_spaceport_env, acceptance_point_mass_rock
     rocketpy.Flight
         A 3 DOF flight simulation with weathercock_coeff=0.0.
     """
+    acceptance_point_mass_rocket.weathercock_coeff = 0.0
     return Flight(
         rocket=acceptance_point_mass_rocket,
         environment=example_spaceport_env,
@@ -471,7 +385,6 @@ def flight_3dof_no_weathercock(example_spaceport_env, acceptance_point_mass_rock
         inclination=LAUNCH_INCLINATION,
         heading=LAUNCH_HEADING,
         simulation_mode="3 DOF",
-        weathercock_coeff=0.0,
     )
 
 
@@ -494,6 +407,7 @@ def flight_3dof_with_weathercock(example_spaceport_env, acceptance_point_mass_ro
     rocketpy.Flight
         A 3 DOF flight simulation with weathercock_coeff=1.0.
     """
+    acceptance_point_mass_rocket.weathercock_coeff = 1.0
     return Flight(
         rocket=acceptance_point_mass_rocket,
         environment=example_spaceport_env,
@@ -501,5 +415,4 @@ def flight_3dof_with_weathercock(example_spaceport_env, acceptance_point_mass_ro
         inclination=LAUNCH_INCLINATION,
         heading=LAUNCH_HEADING,
         simulation_mode="3 DOF",
-        weathercock_coeff=1.0,
     )

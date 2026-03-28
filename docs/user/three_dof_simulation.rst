@@ -381,7 +381,7 @@ The ``weathercock_coeff`` Parameter
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The weathercocking behavior is controlled by the ``weathercock_coeff`` parameter
-in the :class:`rocketpy.Flight` class:
+in the :class:`rocketpy.PointMassRocket` class:
 
 .. jupyter-execute::
 
@@ -407,10 +407,11 @@ in the :class:`rocketpy.Flight` class:
         center_of_mass_without_motor=0.0,
         power_off_drag=0.43,
         power_on_drag=0.43,
+        weathercock_coeff=1.0,  # Example with weathercocking enabled
     )
     rocket.add_motor(motor, position=0)
 
-    # Flight with weathercocking enabled
+    # Flight uses the weathercocking configured on the point-mass rocket
     flight = Flight(
         rocket=rocket,
         environment=env,
@@ -418,7 +419,6 @@ in the :class:`rocketpy.Flight` class:
         inclination=85,
         heading=45,
         simulation_mode="3 DOF",
-        weathercock_coeff=1.0,  # Example with weathercocking enabled
     )
 
     print(f"Apogee: {flight.apogee - env.elevation:.2f} m")
@@ -540,6 +540,7 @@ accuracy.
         center_of_mass_without_motor=0,
         power_off_drag=0.43,
         power_on_drag=0.43,
+        weathercock_coeff=0.0,
     )
     rocket_3dof.add_motor(motor_3dof, -1.1356)
 
@@ -561,6 +562,7 @@ accuracy.
 
     # 3-DOF with no weathercocking
     start = time.time()
+    rocket_3dof.weathercock_coeff = 0.0
     flight_3dof_0 = Flight(
         rocket=rocket_3dof,
         environment=env,
@@ -569,12 +571,12 @@ accuracy.
         heading=45,
         terminate_on_apogee=True,
         simulation_mode="3 DOF",
-        weathercock_coeff=0.0,
     )
     time_3dof_0 = time.time() - start
 
     # 3-DOF with default weathercocking
     start = time.time()
+    rocket_3dof.weathercock_coeff = 1.0
     flight_3dof_1 = Flight(
         rocket=rocket_3dof,
         environment=env,
@@ -583,12 +585,12 @@ accuracy.
         heading=45,
         terminate_on_apogee=True,
         simulation_mode="3 DOF",
-        weathercock_coeff=1.0,
     )
     time_3dof_1 = time.time() - start
 
     # 3-DOF with high weathercocking
     start = time.time()
+    rocket_3dof.weathercock_coeff = 5.0
     flight_3dof_5 = Flight(
         rocket=rocket_3dof,
         environment=env,
@@ -597,7 +599,6 @@ accuracy.
         heading=45,
         terminate_on_apogee=True,
         simulation_mode="3 DOF",
-        weathercock_coeff=5.0,
     )
     time_3dof_5 = time.time() - start
 

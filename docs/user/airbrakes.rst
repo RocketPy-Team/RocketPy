@@ -167,21 +167,21 @@ Lets define the controller function:
 .. jupyter-execute::
 
     def controller_function(
-        time, sampling_rate, state, state_history, observed_variables, air_brakes
+        time, sampling_rate, state, state_history, observed_variables, air_brakes, sensors, environment
     ):
         # state = [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]
         altitude_ASL = state[2]
-        altitude_AGL = altitude_ASL - env.elevation
+        altitude_AGL = altitude_ASL - environment.elevation
         vx, vy, vz = state[3], state[4], state[5]
 
         # Get winds in x and y directions
-        wind_x, wind_y = env.wind_velocity_x(altitude_ASL), env.wind_velocity_y(altitude_ASL)
+        wind_x, wind_y = environment.wind_velocity_x(altitude_ASL), environment.wind_velocity_y(altitude_ASL)
 
         # Calculate Mach number
         free_stream_speed = (
             (wind_x - vx) ** 2 + (wind_y - vy) ** 2 + (vz) ** 2
         ) ** 0.5
-        mach_number = free_stream_speed / env.speed_of_sound(altitude_ASL)
+        mach_number = free_stream_speed / environment.speed_of_sound(altitude_ASL)
 
         # Get previous state from state_history
         previous_state = state_history[-1]
@@ -223,6 +223,22 @@ Lets define the controller function:
         )
 
 .. note::
+
+    - The ``controller_function`` accepts 6, 7, or 8 parameters for backward
+      compatibility:
+
+      * **6 parameters** (original): ``time``, ``sampling_rate``, ``state``,
+        ``state_history``, ``observed_variables``, ``air_brakes``
+      * **7 parameters** (with sensors): adds ``sensors`` as the 7th parameter
+      * **8 parameters** (with environment): adds ``sensors`` and ``environment``
+        as the 7th and 8th parameters
+
+    - The **environment parameter** provides access to atmospheric conditions
+      (wind, temperature, pressure, elevation) without relying on global variables.
+      This enables proper serialization of rockets with air brakes and improves
+      code modularity. Available methods include ``environment.elevation``,
+      ``environment.wind_velocity_x(altitude)``, ``environment.wind_velocity_y(altitude)``,
+      ``environment.speed_of_sound(altitude)``, and others.
 
     - The code inside the ``controller_function`` can be as complex as needed.
       Anything can be implemented inside the function, including filters,

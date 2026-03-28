@@ -31,6 +31,9 @@ class StochasticParachute(StochasticModel):
         List with the name of the parachute object. This cannot be randomized.
     radius : tuple, list, int, float
         Radius of the parachute in meters.
+    drag_coefficient : tuple, list, int, float
+        Drag coefficient of the inflated canopy shape, used only when
+        ``radius`` is not provided.
     height : tuple, list, int, float
         Height of the parachute in meters.
     porosity : tuple, list, int, float
@@ -46,6 +49,7 @@ class StochasticParachute(StochasticModel):
         lag=None,
         noise=None,
         radius=None,
+        drag_coefficient=None,
         height=None,
         porosity=None,
     ):
@@ -74,6 +78,9 @@ class StochasticParachute(StochasticModel):
             time-correlation).
         radius : tuple, list, int, float
             Radius of the parachute in meters.
+        drag_coefficient : tuple, list, int, float
+            Drag coefficient of the inflated canopy shape, used only when
+            ``radius`` is not provided.
         height : tuple, list, int, float
             Height of the parachute in meters.
         porosity : tuple, list, int, float
@@ -86,6 +93,7 @@ class StochasticParachute(StochasticModel):
         self.lag = lag
         self.noise = noise
         self.radius = radius
+        self.drag_coefficient = drag_coefficient
         self.height = height
         self.porosity = porosity
 
@@ -100,6 +108,7 @@ class StochasticParachute(StochasticModel):
             noise=noise,
             name=None,
             radius=radius,
+            drag_coefficient=drag_coefficient,
             height=height,
             porosity=porosity,
         )

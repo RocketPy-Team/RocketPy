@@ -59,12 +59,12 @@ def flight_weathercock_zero(example_plain_env, point_mass_rocket):
     rocketpy.simulation.flight.Flight
         A Flight object configured for 3-DOF with zero weathercock coefficient.
     """
+    point_mass_rocket.weathercock_coeff = 0.0
     return Flight(
         rocket=point_mass_rocket,
         environment=example_plain_env,
         rail_length=1,
         simulation_mode="3 DOF",
-        weathercock_coeff=0.0,
     )
 
 
@@ -94,12 +94,12 @@ def flight_weathercock_pos(example_plain_env, point_mass_rocket):
     rocketpy.simulation.flight.Flight
         A Flight object configured for 3-DOF with weathercocking enabled.
     """
+    point_mass_rocket.weathercock_coeff = 1.0
     return Flight(
         rocket=point_mass_rocket,
         environment=example_plain_env,
         rail_length=1,
         simulation_mode="3 DOF",
-        weathercock_coeff=1.0,
     )
 
 
@@ -169,24 +169,16 @@ def test_invalid_simulation_mode(example_plain_env, calisto):
         )
 
 
-def test_weathercock_coeff_stored(example_plain_env, point_mass_rocket):
-    """Tests that the weathercock_coeff parameter is correctly stored.
+def test_weathercock_coeff_stored(point_mass_rocket):
+    """Tests that weathercock coefficient is stored in PointMassRocket.
 
     Parameters
     ----------
-    example_plain_env : rocketpy.Environment
-        A basic environment fixture for flight simulation.
     point_mass_rocket : rocketpy.PointMassRocket
         A point mass rocket fixture for 3-DOF simulation.
     """
-    flight = Flight(
-        rocket=point_mass_rocket,
-        environment=example_plain_env,
-        rail_length=1,
-        simulation_mode="3 DOF",
-        weathercock_coeff=2.5,
-    )
-    assert flight.weathercock_coeff == 2.5
+    point_mass_rocket.weathercock_coeff = 2.5
+    assert point_mass_rocket.weathercock_coeff == 2.5
 
 
 def test_weathercock_coeff_default(flight_3dof):
@@ -197,7 +189,77 @@ def test_weathercock_coeff_default(flight_3dof):
     flight_3dof : rocketpy.Flight
         A Flight object for a 3-DOF simulation, provided by the flight_3dof fixture.
     """
-    assert flight_3dof.weathercock_coeff == 0.0
+    assert flight_3dof.rocket.weathercock_coeff == 0.0
+
+
+def test_point_mass_rocket_3dof_uses_7d_drag_inputs(
+    example_plain_env, point_mass_motor
+):  # pylint: disable=too-many-locals,too-many-statements
+    """Ensure PointMassRocket uses the 7D drag interface in 3-DOF dynamics."""
+
+    def drag_7d(alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate):
+        return (
+            0.2
+            + 0.01 * abs(alpha)
+            + 0.01 * abs(beta)
+            + 1e-7 * reynolds
+            + 0.001 * (abs(pitch_rate) + abs(yaw_rate) + abs(roll_rate))
+            + 0.01 * mach
+        )
+
+    rocket = PointMassRocket(
+        radius=0.05,
+        mass=2.0,
+        center_of_mass_without_motor=0.1,
+        power_off_drag=drag_7d,
+        power_on_drag=drag_7d,
+    )
+    rocket.add_motor(point_mass_motor, position=0)
+
+    flight = Flight(
+        rocket=rocket,
+        environment=example_plain_env,
+        rail_length=1,
+        simulation_mode="3 DOF",
+    )
+
+    t = 10.0
+    u = [0, 0, 100, 50, 5, 0, 1, 0, 0, 0, 0.3, -0.2, 0.1]
+    u_dot = flight.u_dot_generalized_3dof(t, u)
+
+    z = u[2]
+    vx, vy, vz = u[3], u[4], u[5]
+    omega1, omega2, omega3 = u[10], u[11], u[12]
+
+    rho = flight.env.density.get_value_opt(z)
+    dynamic_viscosity = flight.env.dynamic_viscosity.get_value_opt(z)
+    wind_vx = flight.env.wind_velocity_x.get_value_opt(z)
+    wind_vy = flight.env.wind_velocity_y.get_value_opt(z)
+    speed_of_sound = flight.env.speed_of_sound.get_value_opt(z)
+    gravity = flight.env.gravity.get_value_opt(z)
+
+    free_stream_velocity = np.array([wind_vx - vx, wind_vy - vy, -vz])
+    free_stream_speed = np.linalg.norm(free_stream_velocity)
+    mach = free_stream_speed / speed_of_sound
+
+    stream_velocity_body = free_stream_velocity
+    aerodynamic_stream_velocity = -stream_velocity_body
+    alpha = np.arctan2(aerodynamic_stream_velocity[1], aerodynamic_stream_velocity[2])
+    beta = np.arctan2(aerodynamic_stream_velocity[0], aerodynamic_stream_velocity[2])
+
+    reynolds = (
+        rho * free_stream_speed * (2 * rocket.radius) / dynamic_viscosity
+        if dynamic_viscosity > 0
+        else 0
+    )
+
+    cd_expected = drag_7d(alpha, beta, mach, reynolds, omega1, omega2, omega3)
+    r3_expected = -0.5 * rho * free_stream_speed**2 * rocket.area * cd_expected
+    az_expected = (
+        r3_expected - rocket.total_mass.get_value_opt(t) * gravity
+    ) / rocket.total_mass.get_value_opt(t)
+
+    assert u_dot[5] == pytest.approx(az_expected)
 
 
 def test_weathercock_zero_gives_fixed_attitude(flight_weathercock_zero):
