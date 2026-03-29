@@ -386,7 +386,9 @@ class MonteCarlo:
             raise ValueError("Number of workers must be at least 2 for parallel mode.")
         return n_workers
 
-    def __sim_producer(self, seed, sim_monitor, mutex, error_event):  # pylint: disable=too-many-statements
+    def __sim_producer(
+        self, seed, sim_monitor, mutex, error_event
+    ):  # pylint: disable=too-many-statements
         """Simulation producer to be used in parallel by multiprocessing.
 
         Parameters
@@ -532,10 +534,12 @@ class MonteCarlo:
         tolerance=0.5,
         max_simulations=1000,
         batch_size=50,
-        parallel=True,
-        n_workers=4,
+        parallel=False,
+        n_workers=None,
     ):
-        """Run simulations cumulatively in batches until the confidence interval meets tolerance.
+        """Run Monte Carlo simulations in batches until the confidence interval
+        width converges within the specified tolerance or the maximum number of
+        simulations is reached.
 
         Parameters
         ----------
@@ -550,20 +554,22 @@ class MonteCarlo:
         batch_size : int, optional
             The number of simulations to run in each batch. Default is 50.
         parallel : bool, optional
-            Whether to run simulations in parallel. Default is True.
+            Whether to run simulations in parallel. Default is False.
         n_workers : int, optional
-            The number of worker processes to use if running in parallel. Default is 8.
+            The number of worker processes to use if running in parallel. Default is None.
 
         Returns
         -------
-        confidence_interval_width : float
-            The confidence interval width when the simulation stopped for either meeting the tolerance or maximum number of simulations.
+        confidence_interval_history : list of float
+            History of confidence interval widths, one value per batch of simulations.
+            The last element corresponds to the width when the simulation stopped for
+            either meeting the tolerance or reaching the maximum number of simulations.
         """
 
         self.import_outputs(self.filename.with_suffix(".outputs.txt"))
-        confidence_interval = []
+        confidence_interval_history = []
 
-        while (self.num_of_loaded_sims < max_simulations):
+        while self.num_of_loaded_sims < max_simulations:
             total_sims = min(self.num_of_loaded_sims + batch_size, max_simulations)
 
             self.simulate(
@@ -581,12 +587,12 @@ class MonteCarlo:
                 confidence_level=target_confidence,
             )
 
-            confidence_interval.append(float(ci.high - ci.low))
+            confidence_interval_history.append(float(ci.high - ci.low))
 
             if float(ci.high - ci.low) <= tolerance:
                 break
 
-        return confidence_interval
+        return confidence_interval_history
 
     def __evaluate_flight_inputs(self, sim_idx):
         """Evaluates the inputs of a single flight simulation.
