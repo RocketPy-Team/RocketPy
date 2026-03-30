@@ -1089,14 +1089,25 @@ class MonteCarlo:
     def set_num_of_loaded_sims(self):
         """
         Determines the number of simulations loaded from output_file being
-        currently used.
+        currently used. Supports .txt (JSONL), .csv, and .json formats.
 
         Returns
         -------
         None
         """
+        fmt = self._detect_file_format(self.output_file)
         with open(self.output_file, mode="r", encoding="utf-8") as outputs:
-            self.num_of_loaded_sims = sum(1 for _ in outputs)
+            if fmt == "jsonl":
+                self.num_of_loaded_sims = sum(1 for _ in outputs)
+            elif fmt == "csv":
+                # Subtract 1 for the header row
+                self.num_of_loaded_sims = max(0, sum(1 for _ in outputs) - 1)
+            elif fmt == "json":
+                content = outputs.read().strip()
+                if content:
+                    self.num_of_loaded_sims = len(json.loads(content))
+                else:
+                    self.num_of_loaded_sims = 0
 
     def set_results(self):
         """
