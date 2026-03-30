@@ -1469,6 +1469,109 @@ class MonteCarlo:
         """
         self.plots.ellipses_comparison(other_monte_carlo, **kwargs)
 
+    # CSV and JSON export methods
+
+    def export_outputs_to_csv(self, filename):
+        """Export simulation outputs to a CSV file.
+
+        Each row represents one simulation. All output values are scalar,
+        so the CSV is directly usable in spreadsheet applications.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the output CSV file.
+
+        Raises
+        ------
+        ValueError
+            If no output data is available to export.
+        """
+        self._write_log_to_csv(self.outputs_log, filename)
+
+    def export_outputs_to_json(self, filename):
+        """Export simulation outputs to a JSON file as an array of objects.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the output JSON file.
+
+        Raises
+        ------
+        ValueError
+            If no output data is available to export.
+        """
+        self._write_log_to_json(self.outputs_log, filename)
+
+    def export_inputs_to_csv(self, filename, flatten=False):
+        """Export simulation inputs to a CSV file.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the output CSV file.
+        flatten : bool, optional
+            If True, columns with non-scalar values (dicts, lists) are
+            omitted from the CSV. If False (default), non-scalar values
+            are serialized as JSON strings within the CSV cells.
+
+        Raises
+        ------
+        ValueError
+            If no input data is available to export.
+        """
+        self._write_log_to_csv(self.inputs_log, filename, flatten=flatten)
+
+    def export_inputs_to_json(self, filename):
+        """Export simulation inputs to a JSON file as an array of objects.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the output JSON file.
+
+        Raises
+        ------
+        ValueError
+            If no input data is available to export.
+        """
+        self._write_log_to_json(self.inputs_log, filename)
+
+    def export_errors_to_csv(self, filename, flatten=False):
+        """Export simulation errors to a CSV file.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the output CSV file.
+        flatten : bool, optional
+            If True, columns with non-scalar values (dicts, lists) are
+            omitted from the CSV. If False (default), non-scalar values
+            are serialized as JSON strings within the CSV cells.
+
+        Raises
+        ------
+        ValueError
+            If no error data is available to export.
+        """
+        self._write_log_to_csv(self.errors_log, filename, flatten=flatten)
+
+    def export_errors_to_json(self, filename):
+        """Export simulation errors to a JSON file as an array of objects.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the output JSON file.
+
+        Raises
+        ------
+        ValueError
+            If no error data is available to export.
+        """
+        self._write_log_to_json(self.errors_log, filename)
+
 
 def _import_multiprocess():
     """Import the necessary modules and submodules for the
