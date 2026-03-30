@@ -1164,13 +1164,15 @@ class MonteCarlo:
 
     def import_outputs(self, filename=None):
         """
-        Import Monte Carlo results from .txt file and save it into a dictionary.
+        Import Monte Carlo results from a file and save it into a dictionary.
+        Supports .txt (JSONL), .csv, and .json file formats.
 
         Parameters
         ----------
         filename : str, optional
             Name or directory path to the file to be imported. If none,
-            self.filename will be used.
+            self.filename will be used with the default .outputs.txt suffix.
+            Files with .csv or .json extensions are also accepted.
 
         Returns
         -------
@@ -1178,7 +1180,7 @@ class MonteCarlo:
 
         Notes
         -----
-        Notice that you can import the outputs, inputs, and errors from the a
+        Notice that you can import the outputs, inputs, and errors from a
         file without the need to run simulations. You can use previously saved
         files to process analyze the results or to continue a simulation.
         """
@@ -1198,13 +1200,15 @@ class MonteCarlo:
 
     def import_inputs(self, filename=None):
         """
-        Import Monte Carlo inputs from .txt file and save it into a dictionary.
+        Import Monte Carlo inputs from a file and save it into a dictionary.
+        Supports .txt (JSONL), .csv, and .json file formats.
 
         Parameters
         ----------
         filename : str, optional
             Name or directory path to the file to be imported. If none,
-            self.filename will be used.
+            self.filename will be used with the default .inputs.txt suffix.
+            Files with .csv or .json extensions are also accepted.
 
         Returns
         -------
@@ -1223,13 +1227,15 @@ class MonteCarlo:
 
     def import_errors(self, filename=None):
         """
-        Import Monte Carlo errors from .txt file and save it into a dictionary.
+        Import Monte Carlo errors from a file and save it into a dictionary.
+        Supports .txt (JSONL), .csv, and .json file formats.
 
         Parameters
         ----------
         filename : str, optional
             Name or directory path to the file to be imported. If none,
-            self.filename will be used.
+            self.filename will be used with the default .errors.txt suffix.
+            Files with .csv or .json extensions are also accepted.
 
         Returns
         -------
@@ -1248,7 +1254,7 @@ class MonteCarlo:
 
     def import_results(self, filename=None):
         """
-        Import Monte Carlo results from .txt file and save it into a dictionary.
+        Import Monte Carlo results from a file and save it into a dictionary.
 
         Parameters
         ----------
