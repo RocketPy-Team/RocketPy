@@ -1056,41 +1056,35 @@ class MonteCarlo:
     def set_inputs_log(self):
         """
         Sets inputs_log from a file into an attribute for easy access.
+        Supports .txt (JSONL), .csv, and .json file formats.
 
         Returns
         -------
         None
         """
-        self.inputs_log = []
-        with open(self.input_file, mode="r", encoding="utf-8") as rows:
-            for line in rows:
-                self.inputs_log.append(json.loads(line))
+        self.inputs_log = self._read_log_file(self.input_file)
 
     def set_outputs_log(self):
         """
         Sets outputs_log from a file into an attribute for easy access.
+        Supports .txt (JSONL), .csv, and .json file formats.
 
         Returns
         -------
         None
         """
-        self.outputs_log = []
-        with open(self.output_file, mode="r", encoding="utf-8") as rows:
-            for line in rows:
-                self.outputs_log.append(json.loads(line))
+        self.outputs_log = self._read_log_file(self.output_file)
 
     def set_errors_log(self):
         """
         Sets errors_log from a file into an attribute for easy access.
+        Supports .txt (JSONL), .csv, and .json file formats.
 
         Returns
         -------
         None
         """
-        self.errors_log = []
-        with open(self.error_file, mode="r", encoding="utf-8") as errors:
-            for line in errors:
-                self.errors_log.append(json.loads(line))
+        self.errors_log = self._read_log_file(self.error_file)
 
     def set_num_of_loaded_sims(self):
         """
