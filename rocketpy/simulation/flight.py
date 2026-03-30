@@ -4497,6 +4497,9 @@ class Flight:
 
         def add_controllers(self, controllers, t_init, t_end):
             for controller in controllers:
+                # Skip node creation for continuous controllers
+                if math.isinf(controller.sampling_rate):
+                    continue
                 # Calculate start of sampling time nodes
                 controller_time_step = 1 / controller.sampling_rate
                 controller_node_list = [
