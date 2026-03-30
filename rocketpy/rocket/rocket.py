@@ -1952,38 +1952,42 @@ class Rocket:
         self.thrust_eccentricity_y = y
         return self
 
-    def add_discrete_controller(self,
-                                controller_function,
-                                refresh_rate,
-                                interactive_objects=None,
-                                initial_observed_variables=None,
-                                name=None
-                                ):
+    def add_discrete_controller(
+        self,
+        controller_function,
+        refresh_rate,
+        interactive_objects=None,
+        initial_observed_variables=None,
+        name=None,
+    ):
 
         controller = _Controller(
-        controller_function=controller_function,
-        sampling_rate=refresh_rate,
-        interactive_objects=interactive_objects,
-        initial_observed_variables=initial_observed_variables,
-        name=name)
+            controller_function=controller_function,
+            sampling_rate=refresh_rate,
+            interactive_objects=interactive_objects,
+            initial_observed_variables=initial_observed_variables,
+            name=name,
+        )
 
         self._add_controllers(controller)
 
         return None
 
-    def add_continuous_controller(self,
-                                controller_function,
-                                interactive_objects=None,
-                                initial_observed_variables=None,
-                                name=None
-                                ):
+    def add_continuous_controller(
+        self,
+        controller_function,
+        interactive_objects=None,
+        initial_observed_variables=None,
+        name=None,
+    ):
 
         controller = _Controller(
             controller_function=controller_function,
             sampling_rate=np.inf,
             interactive_objects=interactive_objects,
             initial_observed_variables=initial_observed_variables,
-            name=name)
+            name=name,
+        )
 
         self._add_controllers(controller)
         return controller
