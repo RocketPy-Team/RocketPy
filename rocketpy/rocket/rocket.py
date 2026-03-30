@@ -2021,7 +2021,7 @@ class Rocket:
 
         self._add_controllers(controller)
 
-        return None
+        return self
 
     def add_continuous_controller(
         self,
