@@ -875,6 +875,182 @@ class MonteCarlo:
         self._error_file = value
         self.set_errors_log()
 
+    # File format helpers
+
+    @staticmethod
+    def _detect_file_format(filepath):
+        """Detect file format from the file extension.
+
+        Parameters
+        ----------
+        filepath : str or Path
+            Path to the file.
+
+        Returns
+        -------
+        str
+            One of ``"jsonl"``, ``"csv"``, or ``"json"``.
+
+        Raises
+        ------
+        ValueError
+            If the file extension is not supported.
+        """
+        suffix = Path(filepath).suffix.lower()
+        format_map = {".txt": "jsonl", ".csv": "csv", ".json": "json"}
+        if suffix not in format_map:
+            raise ValueError(
+                f"Unsupported file extension '{suffix}'. "
+                "Expected '.txt', '.csv', or '.json'."
+            )
+        return format_map[suffix]
+
+    @staticmethod
+    def _parse_csv_value(value):
+        """Parse a string value from a CSV cell into its appropriate type.
+
+        Parameters
+        ----------
+        value : str
+            The raw string value from the CSV cell.
+
+        Returns
+        -------
+        int, float, dict, list, or str
+            The parsed value in its appropriate Python type.
+        """
+        if value == "":
+            return value
+        # Try parsing JSON objects/arrays
+        if value.startswith(("{", "[")):
+            try:
+                return json.loads(value)
+            except (json.JSONDecodeError, ValueError):
+                pass
+        # Try numeric types
+        try:
+            int_val = int(value)
+            # Ensure the string was truly an integer (not "1.0")
+            if str(int_val) == value:
+                return int_val
+        except ValueError:
+            pass
+        try:
+            return float(value)
+        except ValueError:
+            pass
+        return value
+
+    def _read_log_file(self, filepath):
+        """Read a log file in any supported format and return a list of dicts.
+
+        Parameters
+        ----------
+        filepath : str or Path
+            Path to the log file. Format is detected from the extension.
+
+        Returns
+        -------
+        list of dict
+            A list of dictionaries, one per simulation record.
+        """
+        fmt = self._detect_file_format(filepath)
+        result = []
+        with open(filepath, mode="r", encoding="utf-8") as f:
+            if fmt == "jsonl":
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        result.append(json.loads(line))
+            elif fmt == "json":
+                content = f.read().strip()
+                if content:
+                    result = json.load(open(filepath, encoding="utf-8"))
+            elif fmt == "csv":
+                reader = csv.DictReader(f)
+                for row in reader:
+                    result.append(
+                        {k: self._parse_csv_value(v) for k, v in row.items()}
+                    )
+        return result
+
+    @staticmethod
+    def _write_log_to_csv(log_data, filepath, flatten=False):
+        """Write a list of dicts to a CSV file.
+
+        Parameters
+        ----------
+        log_data : list of dict
+            The data to write. Each dict is one row.
+        filepath : str or Path
+            Output file path.
+        flatten : bool, optional
+            If True, non-scalar columns (dicts, lists) are omitted.
+            If False (default), non-scalar values are serialized as JSON
+            strings in the CSV cells.
+
+        Raises
+        ------
+        ValueError
+            If ``log_data`` is empty.
+        """
+        if not log_data:
+            raise ValueError(
+                "No data to export. Run a simulation first or import "
+                "existing data."
+            )
+        # Collect all keys preserving insertion order
+        all_keys = list(dict.fromkeys(k for row in log_data for k in row))
+
+        if flatten:
+            # Identify scalar-only keys
+            scalar_keys = []
+            for key in all_keys:
+                if all(
+                    not isinstance(row.get(key), (dict, list))
+                    for row in log_data
+                ):
+                    scalar_keys.append(key)
+            fieldnames = scalar_keys
+        else:
+            fieldnames = all_keys
+
+        with open(filepath, mode="w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
+            writer.writeheader()
+            for row in log_data:
+                csv_row = {}
+                for key in fieldnames:
+                    value = row.get(key, "")
+                    if isinstance(value, (dict, list)):
+                        csv_row[key] = json.dumps(value)
+                    else:
+                        csv_row[key] = value
+                writer.writerow(csv_row)
+
+    def _write_log_to_json(self, log_data, filepath):
+        """Write a list of dicts to a JSON file as a proper JSON array.
+
+        Parameters
+        ----------
+        log_data : list of dict
+            The data to write. Each dict becomes one element of the array.
+        filepath : str or Path
+            Output file path.
+
+        Raises
+        ------
+        ValueError
+            If ``log_data`` is empty.
+        """
+        if not log_data:
+            raise ValueError(
+                "No data to export. Run a simulation first or import "
+                "existing data."
+            )
+        with open(filepath, mode="w", encoding="utf-8") as f:
+            json.dump(log_data, f, cls=RocketPyEncoder, indent=2)
+
     # Setters for post simulation attributes
 
     def set_inputs_log(self):
