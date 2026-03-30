@@ -13,6 +13,7 @@ change in future versions. Users are encouraged to check for updates and read th
 latest documentation.
 """
 
+import csv
 import json
 import os
 import traceback
