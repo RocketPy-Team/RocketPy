@@ -115,7 +115,7 @@ def geodesic_to_lambert_conformal(lat, lon, projection_variable, x_units="m"):
     Parameters
     ----------
     lat : float
-        Latitude in degrees.
+        Latitude in degrees, ranging from -90 to 90
     lon : float
         Longitude in degrees, ranging from -180 to 180.
     projection_variable : netCDF4.Variable
