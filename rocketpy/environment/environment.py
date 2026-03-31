@@ -2033,8 +2033,8 @@ class Environment:
 
         See also
         --------
-        See the :class:``rocketpy.environment.weather_model_mapping`` for some
-        dictionary examples.
+        See the :class:`rocketpy.environment.weather_model_mapping.WeatherModelMapping`
+        class for some dictionary examples.
 
         Raises
         ------
