@@ -225,7 +225,7 @@ def mask_and_clean_dataset(*args):
     return data_array
 
 
-def find_longitude_index(longitude, lon_list):  # pylint: disable=too-many-statements
+def find_longitude_index(longitude, lon_list):
     """Finds the index of the given longitude in a list of longitudes.
 
     Parameters
