@@ -7,21 +7,21 @@ class WeatherModelMapping:
     Each dictionary in this class maps those canonical keys to the actual
     variable names in a specific data provider format.
 
-        Mapping families
-        ----------------
-        - Base names (for example ``GFS``, ``NAM``, ``RAP``) represent the current
-            default mappings used by the latest-model shortcuts and THREDDS-style
-            datasets.
-        - ``*_LEGACY`` names represent older NOMADS-style variable naming
-            conventions (for example ``lev``, ``tmpprs``, ``ugrdprs`` and
-            ``vgrdprs``) and are intended for archived or previously downloaded files.
+    Mapping families
+    ----------------
+    - Base names (for example ``GFS``, ``NAM``, ``RAP``) represent the current
+      default mappings used by the latest-model shortcuts and THREDDS-style
+      datasets.
+    - ``*_LEGACY`` names represent older NOMADS-style variable naming
+      conventions (for example ``lev``, ``tmpprs``, ``ugrdprs`` and
+      ``vgrdprs``) and are intended for archived or previously downloaded files.
 
-        Notes
-        -----
-        - Mappings can also include optional keys such as ``projection`` for
-            projected grids and ``ensemble`` for member dimensions.
-        - The :meth:`get` method is case-insensitive, so ``"gfs_legacy"`` and
-            ``"GFS_LEGACY"`` are equivalent.
+    Notes
+    -----
+    - Mappings can also include optional keys such as ``projection`` for
+      projected grids and ``ensemble`` for member dimensions.
+    - The :meth:`get` method is case-insensitive, so ``"gfs_legacy"`` and
+      ``"GFS_LEGACY"`` are equivalent.
     """
 
     GFS = {

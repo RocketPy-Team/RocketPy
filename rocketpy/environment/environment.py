@@ -178,14 +178,14 @@ class Environment:
         ``Ensemble``.
     Environment.lat_array : array
         Defined if ``netCDF`` or ``OPeNDAP`` file is used, for Forecasts,
-        Reanalysis and Ensembles. 2x2 matrix for each pressure level of
-        latitudes corresponding to the vertices of the grid cell which
-        surrounds the launch site.
+        Reanalysis and Ensembles. Two-element list ``[x1, x2]`` containing
+        the latitude coordinates of the grid-cell vertices that bracket the
+        launch site and are used in bilinear interpolation.
     Environment.lon_array : array
         Defined if ``netCDF`` or ``OPeNDAP`` file is used, for Forecasts,
-        Reanalysis and Ensembles. 2x2 matrix for each pressure level of
-        longitudes corresponding to the vertices of the grid cell which
-        surrounds the launch site.
+        Reanalysis and Ensembles. Two-element list ``[y1, y2]`` containing
+        the longitude coordinates of the grid-cell vertices that bracket the
+        launch site and are used in bilinear interpolation.
     Environment.lon_index : int
         Defined if ``netCDF`` or ``OPeNDAP`` file is used, for Forecasts,
         Reanalysis and Ensembles. Index to a grid longitude which
@@ -223,7 +223,8 @@ class Environment:
         surrounds the launch site.
     Environment.time_array : array
         Defined if ``netCDF`` or ``OPeNDAP`` file is used, for Forecasts,
-        Reanalysis and Ensembles. Array of dates available in the file.
+        Reanalysis and Ensembles. Two-element list with the first and last
+        values from the dataset time variable in the dataset native units.
     Environment.height : array
         Defined if ``netCDF`` or ``OPeNDAP`` file is used, for Forecasts,
         Reanalysis and Ensembles. List of geometric height corresponding to
