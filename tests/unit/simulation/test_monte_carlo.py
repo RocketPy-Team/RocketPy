@@ -204,9 +204,24 @@ class MockMonteCarloWithLogs(MonteCarlo):
             {"apogee": 4500.00, "x_impact": 480.10, "index": 2},
         ]
         self.inputs_log = [
-            {"elevation": 1413.6, "radius": 0.0635, "parachutes": [{"cd_s": 9.84}], "index": 0},
-            {"elevation": 1400.0, "radius": 0.0640, "parachutes": [{"cd_s": 10.0}], "index": 1},
-            {"elevation": 1420.0, "radius": 0.0630, "parachutes": [{"cd_s": 9.50}], "index": 2},
+            {
+                "elevation": 1413.6,
+                "radius": 0.0635,
+                "parachutes": [{"cd_s": 9.84}],
+                "index": 0,
+            },
+            {
+                "elevation": 1400.0,
+                "radius": 0.0640,
+                "parachutes": [{"cd_s": 10.0}],
+                "index": 1,
+            },
+            {
+                "elevation": 1420.0,
+                "radius": 0.0630,
+                "parachutes": [{"cd_s": 9.50}],
+                "index": 2,
+            },
         ]
         self.errors_log = []
         self.results = {}

@@ -969,9 +969,7 @@ class MonteCarlo:
             elif fmt == "csv":
                 reader = csv.DictReader(f)
                 for row in reader:
-                    result.append(
-                        {k: self._parse_csv_value(v) for k, v in row.items()}
-                    )
+                    result.append({k: self._parse_csv_value(v) for k, v in row.items()})
         return result
 
     @staticmethod
@@ -996,8 +994,7 @@ class MonteCarlo:
         """
         if not log_data:
             raise ValueError(
-                "No data to export. Run a simulation first or import "
-                "existing data."
+                "No data to export. Run a simulation first or import existing data."
             )
         # Collect all keys preserving insertion order
         all_keys = list(dict.fromkeys(k for row in log_data for k in row))
@@ -1006,10 +1003,7 @@ class MonteCarlo:
             # Identify scalar-only keys
             scalar_keys = []
             for key in all_keys:
-                if all(
-                    not isinstance(row.get(key), (dict, list))
-                    for row in log_data
-                ):
+                if all(not isinstance(row.get(key), (dict, list)) for row in log_data):
                     scalar_keys.append(key)
             fieldnames = scalar_keys
         else:
@@ -1045,8 +1039,7 @@ class MonteCarlo:
         """
         if not log_data:
             raise ValueError(
-                "No data to export. Run a simulation first or import "
-                "existing data."
+                "No data to export. Run a simulation first or import existing data."
             )
         with open(filepath, mode="w", encoding="utf-8") as f:
             json.dump(log_data, f, cls=RocketPyEncoder, indent=2)
