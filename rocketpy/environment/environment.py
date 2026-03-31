@@ -2058,8 +2058,10 @@ class Environment:
         lon_array = data.variables[dictionary["longitude"]]
         lat_array = data.variables[dictionary["latitude"]]
 
-        # Some THREDDS datasets use projected x/y coordinates.
-        # TODO CHECK THIS I AM NOT SURE?????
+        # Some THREDDS datasets use projected x/y coordinates. When a
+        # "projection" variable is provided in the mapping dictionary, convert
+        # the launch site's geodesic coordinates to the model's projected
+        # coordinate system before locating the nearest grid cell.
         if dictionary.get("projection") is not None:
             projection_variable = data.variables[dictionary["projection"]]
             x_units = getattr(lon_array, "units", "m")
