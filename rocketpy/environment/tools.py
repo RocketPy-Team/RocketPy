@@ -344,7 +344,7 @@ def find_latitude_index(latitude, lat_list):
     return latitude, lat_index
 
 
-def find_time_index(datetime_date, time_array):  # pylint: disable=too-many-statements
+def find_time_index(datetime_date, time_array):
     """Finds the index of the given datetime in a netCDF4 time array.
 
     Parameters
