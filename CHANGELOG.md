@@ -32,7 +32,8 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
-- 
+- ENH: Adaptive Monte Carlo via Convergence Criteria [#922](https://github.com/RocketPy-Team/RocketPy/pull/922)
+- TST: Add acceptance tests for 3DOF flight simulation based on Bella Lui rocket [#914](https://github.com/RocketPy-Team/RocketPy/pull/914)
 
 ### Changed
 

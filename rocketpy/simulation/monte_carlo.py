@@ -525,6 +525,73 @@ class MonteCarlo:
 
         return res.confidence_interval
 
+    def simulate_convergence(
+        self,
+        target_attribute="apogee_time",
+        target_confidence=0.95,
+        tolerance=0.5,
+        max_simulations=1000,
+        batch_size=50,
+        parallel=False,
+        n_workers=None,
+    ):
+        """Run Monte Carlo simulations in batches until the confidence interval
+        width converges within the specified tolerance or the maximum number of
+        simulations is reached.
+
+        Parameters
+        ----------
+        target_attribute : str
+            The target attribute to track its convergence (e.g., "apogee", "apogee_time", etc.).
+        target_confidence : float, optional
+            The confidence level for the interval (between 0 and 1). Default is 0.95.
+        tolerance : float, optional
+            The desired width of the confidence interval in seconds, meters, or other units. Default is 0.5.
+        max_simulations : int, optional
+            The maximum number of simulations to run to avoid infinite loops. Default is 1000.
+        batch_size : int, optional
+            The number of simulations to run in each batch. Default is 50.
+        parallel : bool, optional
+            Whether to run simulations in parallel. Default is False.
+        n_workers : int, optional
+            The number of worker processes to use if running in parallel. Default is None.
+
+        Returns
+        -------
+        confidence_interval_history : list of float
+            History of confidence interval widths, one value per batch of simulations.
+            The last element corresponds to the width when the simulation stopped for
+            either meeting the tolerance or reaching the maximum number of simulations.
+        """
+
+        self.import_outputs(self.filename.with_suffix(".outputs.txt"))
+        confidence_interval_history = []
+
+        while self.num_of_loaded_sims < max_simulations:
+            total_sims = min(self.num_of_loaded_sims + batch_size, max_simulations)
+
+            self.simulate(
+                number_of_simulations=total_sims,
+                append=True,
+                include_function_data=False,
+                parallel=parallel,
+                n_workers=n_workers,
+            )
+
+            self.import_outputs(self.filename.with_suffix(".outputs.txt"))
+
+            ci = self.estimate_confidence_interval(
+                attribute=target_attribute,
+                confidence_level=target_confidence,
+            )
+
+            confidence_interval_history.append(float(ci.high - ci.low))
+
+            if float(ci.high - ci.low) <= tolerance:
+                break
+
+        return confidence_interval_history
+
     def __evaluate_flight_inputs(self, sim_idx):
         """Evaluates the inputs of a single flight simulation.
 
