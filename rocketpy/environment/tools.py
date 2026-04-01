@@ -225,7 +225,7 @@ def mask_and_clean_dataset(*args):
     return data_array
 
 
-def find_longitude_index(longitude, lon_list):
+def find_longitude_index(longitude, lon_list):  # pylint: disable=too-many-statements
     """Finds the index of the given longitude in a list of longitudes.
 
     Parameters
@@ -344,7 +344,7 @@ def find_latitude_index(latitude, lat_list):
     return latitude, lat_index
 
 
-def find_time_index(datetime_date, time_array):
+def find_time_index(datetime_date, time_array):  # pylint: disable=too-many-statements
     """Finds the index of the given datetime in a netCDF4 time array.
 
     Parameters

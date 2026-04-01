@@ -311,3 +311,234 @@ def test_weather_model_mapping_exposes_legacy_aliases():
 
     assert mapping.get("GFS_LEGACY")["temperature"] == "tmpprs"
     assert mapping.get("gfs_legacy")["temperature"] == "tmpprs"
+
+
+def test_dictionary_matches_dataset_rejects_missing_projection(example_plain_env):
+    """Reject mapping when projection key is declared but variable is missing."""
+    # Arrange
+    mapping = {
+        "time": "time",
+        "latitude": "y",
+        "longitude": "x",
+        "projection": "LambertConformal_Projection",
+        "level": "isobaric",
+        "temperature": "Temperature_isobaric",
+        "geopotential_height": "Geopotential_height_isobaric",
+        "geopotential": None,
+        "u_wind": "u-component_of_wind_isobaric",
+        "v_wind": "v-component_of_wind_isobaric",
+    }
+    dataset = _DummyDataset(
+        [
+            "time",
+            "y",
+            "x",
+            "isobaric",
+            "Temperature_isobaric",
+            "Geopotential_height_isobaric",
+            "u-component_of_wind_isobaric",
+            "v-component_of_wind_isobaric",
+        ]
+    )
+
+    # Act
+    is_compatible = example_plain_env._Environment__dictionary_matches_dataset(
+        mapping, dataset
+    )
+
+    # Assert
+    assert not is_compatible
+
+
+def test_dictionary_matches_dataset_accepts_geopotential_only(example_plain_env):
+    """Accept mapping when geopotential exists and geopotential height is absent."""
+    # Arrange
+    mapping = {
+        "time": "time",
+        "latitude": "latitude",
+        "longitude": "longitude",
+        "level": "level",
+        "temperature": "t",
+        "geopotential_height": None,
+        "geopotential": "z",
+        "u_wind": "u",
+        "v_wind": "v",
+    }
+    dataset = _DummyDataset(
+        [
+            "time",
+            "latitude",
+            "longitude",
+            "level",
+            "t",
+            "z",
+            "u",
+            "v",
+        ]
+    )
+
+    # Act
+    is_compatible = example_plain_env._Environment__dictionary_matches_dataset(
+        mapping, dataset
+    )
+
+    # Assert
+    assert is_compatible
+
+
+def test_resolve_dictionary_warns_when_falling_back(example_plain_env):
+    """Emit warning and return a built-in mapping when fallback is required."""
+    # Arrange
+    incompatible_mapping = {
+        "time": "bad_time",
+        "latitude": "bad_lat",
+        "longitude": "bad_lon",
+        "level": "bad_level",
+        "temperature": "bad_temp",
+        "geopotential_height": "bad_height",
+        "geopotential": None,
+        "u_wind": "bad_u",
+        "v_wind": "bad_v",
+    }
+    dataset = _DummyDataset(
+        [
+            "time",
+            "lat",
+            "lon",
+            "isobaric",
+            "Temperature_isobaric",
+            "Geopotential_height_isobaric",
+            "u-component_of_wind_isobaric",
+            "v-component_of_wind_isobaric",
+        ]
+    )
+
+    # Act
+    with pytest.warns(UserWarning, match="Falling back to built-in mapping"):
+        resolved = example_plain_env._Environment__resolve_dictionary_for_dataset(
+            incompatible_mapping, dataset
+        )
+
+    # Assert
+    assert resolved == example_plain_env._Environment__weather_model_map.get("GFS")
+
+
+def test_resolve_dictionary_returns_original_when_no_compatible_builtin(
+    example_plain_env,
+):
+    """Return original mapping unchanged when no built-in mapping can match."""
+    # Arrange
+    original_mapping = {
+        "time": "a",
+        "latitude": "b",
+        "longitude": "c",
+        "level": "d",
+        "temperature": "e",
+        "geopotential_height": "f",
+        "geopotential": None,
+        "u_wind": "g",
+        "v_wind": "h",
+    }
+    dataset = _DummyDataset(["foo", "bar"])
+
+    # Act
+    resolved = example_plain_env._Environment__resolve_dictionary_for_dataset(
+        original_mapping, dataset
+    )
+
+    # Assert
+    assert resolved is original_mapping
+
+
+@pytest.mark.parametrize(
+    "model_type,file_name,error_message",
+    [
+        (
+            "Forecast",
+            "hiresw",
+            "HIRESW latest-model shortcut is currently unavailable",
+        ),
+        (
+            "Ensemble",
+            "gefs",
+            "GEFS latest-model shortcut is currently unavailable",
+        ),
+    ],
+)
+def test_set_atmospheric_model_blocks_deactivated_shortcuts_case_insensitive(
+    example_plain_env,
+    model_type,
+    file_name,
+    error_message,
+):
+    """Reject deactivated shortcut aliases regardless of input string case."""
+    # Arrange
+    environment = example_plain_env
+
+    # Act / Assert
+    with pytest.raises(ValueError, match=error_message):
+        environment.set_atmospheric_model(type=model_type, file=file_name)
+
+
+def test_validate_dictionary_uses_case_insensitive_file_shortcut(example_plain_env):
+    """Infer built-in mapping from file shortcut even when shortcut is lowercase."""
+    # Arrange
+    environment = example_plain_env
+
+    # Act
+    mapping = environment._Environment__validate_dictionary("gfs", None)
+
+    # Assert
+    assert mapping == environment._Environment__weather_model_map.get("GFS")
+
+
+def test_validate_dictionary_raises_type_error_for_invalid_dictionary(
+    example_plain_env,
+):
+    """Raise TypeError when no valid dictionary can be inferred."""
+    # Arrange
+    environment = example_plain_env
+
+    # Act / Assert
+    with pytest.raises(TypeError, match="Please specify a dictionary"):
+        environment._Environment__validate_dictionary("not_a_model", None)
+
+
+def test_set_atmospheric_model_normalizes_shortcut_case_for_forecast(example_plain_env):
+    """Normalize shortcut name before lookup and process forecast data."""
+    # Arrange
+    environment = example_plain_env
+
+    environment._Environment__atm_type_file_to_function_map = {
+        "forecast": {
+            "GFS": lambda: "fake-dataset",
+        },
+        "ensemble": {},
+    }
+
+    called_arguments = {}
+
+    def fake_process_forecast_reanalysis(dataset, dictionary):
+        called_arguments["dataset"] = dataset
+        called_arguments["dictionary"] = dictionary
+
+    environment.process_forecast_reanalysis = fake_process_forecast_reanalysis
+
+    # Act
+    environment.set_atmospheric_model(type="Forecast", file="gfs")
+
+    # Assert
+    assert called_arguments["dataset"] == "fake-dataset"
+    assert called_arguments[
+        "dictionary"
+    ] == environment._Environment__weather_model_map.get("GFS")
+
+
+def test_set_atmospheric_model_raises_for_unknown_model_type(example_plain_env):
+    """Raise ValueError for unknown atmospheric model selector."""
+    # Arrange
+    environment = example_plain_env
+
+    # Act / Assert
+    with pytest.raises(ValueError, match="Unknown model type"):
+        environment.set_atmospheric_model(type="unknown_type")
