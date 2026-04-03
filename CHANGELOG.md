@@ -46,7 +46,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
-- BUG: Migrate Forecasts to UCAR THREDDS [#943](https://github.com/RocketPy-Team/RocketPy/pull/943)
+- HOTFIX: Migrate Forecasts to UCAR THREDDS [#943](https://github.com/RocketPy-Team/RocketPy/pull/943)
 
 ## [v1.12.0] - 2026-03-08
 
