@@ -451,7 +451,7 @@ Yaw
   example_rocket.aerodynamic_surfaces.pop()
   example_rocket.aerodynamic_surfaces.pop()
 
-Given oposing canards at 0 degrees and 180 degrees, having opposite cant angles, 
+Given opposing canards at 0 degrees and 180 degrees, having opposite cant angles, 
 a positive yaw moment will be generated. The following example shows the 
 effect of this configuration in the non-zero angle of attack flight of the 
 rocket:
