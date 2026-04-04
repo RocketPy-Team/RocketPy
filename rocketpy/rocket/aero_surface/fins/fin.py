@@ -49,10 +49,10 @@ class Fin(_BaseFin):
     Fin.sweep_angle : float
         Fin sweep angle with respect to the rocket centerline. Must
         be given in degrees.
-    Fin.d : float
+    Fin.rocket_diameter : float
         Reference diameter of the rocket. Has units of length and is given
         in meters.
-    Fin.ref_area : float
+    Fin.reference_area : float
         Reference area of the rocket.
     Fin.Af : float
         Area of the longitudinal section of each fin in the set.
@@ -240,7 +240,7 @@ class Fin(_BaseFin):
             * self.clalpha_single_fin
             * np.cos(self.cant_angle_rad)
             * self.roll_geometrical_constant
-            / (self.ref_area * self.d**2)
+            / (self.reference_area * self.reference_length**2)
         )  # Function of mach number
         cld_omega.set_inputs("Mach")
         cld_omega.set_outputs("Roll moment damping coefficient derivative")
@@ -436,8 +436,11 @@ class Fin(_BaseFin):
                     "cp": self.cp,
                     "cl": self.cl,
                     "roll_parameters": self.roll_parameters,
-                    "d": self.d,
-                    "ref_area": self.ref_area,
+                    "rocket_diameter": self.rocket_diameter,
+                    "diameter": self.rocket_diameter,
+                    "d": self.rocket_diameter,
+                    "reference_area": self.reference_area,
+                    "ref_area": self.reference_area,
                 }
             )
         return data

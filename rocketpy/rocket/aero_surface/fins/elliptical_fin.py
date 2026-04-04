@@ -46,9 +46,9 @@ class EllipticalFin(Fin):
     EllipticalFin.sweep_angle : float
         Fins sweep angle with respect to the rocket centerline. Must
         be given in degrees.
-    EllipticalFin.d : float
+    EllipticalFin.rocket_diameter : float
         Reference diameter of the rocket, in meters.
-    EllipticalFin.ref_area : float
+    EllipticalFin.reference_area : float
         Reference area of the rocket.
     EllipticalFin.Af : float
         Area of the longitudinal section of each fin in the set.

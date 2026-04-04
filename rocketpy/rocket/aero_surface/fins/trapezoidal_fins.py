@@ -51,9 +51,9 @@ class TrapezoidalFins(Fins):
     TrapezoidalFins.sweep_angle : float
         Fins sweep angle with respect to the rocket centerline. Must
         be given in degrees.
-    TrapezoidalFins.d : float
+    TrapezoidalFins.rocket_diameter : float
         Reference diameter of the rocket, in meters.
-    TrapezoidalFins.ref_area : float
+    TrapezoidalFins.reference_area : float
         Reference area of the rocket, in m².
     TrapezoidalFins.Af : float
         Area of the longitudinal section of each fin in the set.

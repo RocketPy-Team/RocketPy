@@ -46,10 +46,14 @@ class _BaseFin(AeroSurface):
         self._cant_angle_rad = math.radians(cant_angle)
         self.geometry = None
 
-        self.d = 2 * rocket_radius
-        self.ref_area = np.pi * rocket_radius**2
+        self.reference_area = np.pi * rocket_radius**2
 
-        super().__init__(name, self.ref_area, self.d)
+        super().__init__(name, self.reference_area, self.rocket_diameter)
+
+    def _update_reference_quantities(self):
+        """Update quantities that depend on rocket radius."""
+        self.reference_area = np.pi * self._rocket_radius**2
+        self.reference_length = self.rocket_diameter
 
     def _run_geometry_update_chain(self):
         """Recompute all dependent aerodynamic properties after a geometry change."""
@@ -79,7 +83,48 @@ class _BaseFin(AeroSurface):
             Rocket radius in meters.
         """
         self._rocket_radius = value
+        self._update_reference_quantities()
         self._run_geometry_update_chain()
+
+    @property
+    def rocket_diameter(self):
+        """Reference rocket diameter in meters."""
+        return 2 * self._rocket_radius
+
+    @rocket_diameter.setter
+    def rocket_diameter(self, value):
+        """Set reference rocket diameter in meters."""
+        self.rocket_radius = value / 2
+
+    @property
+    def diameter(self):
+        """Backward-compatible alias for :attr:`rocket_diameter`."""
+        return self.rocket_diameter
+
+    @diameter.setter
+    def diameter(self, value):
+        """Backward-compatible alias setter for :attr:`rocket_diameter`."""
+        self.rocket_diameter = value
+
+    @property
+    def d(self):
+        """Backward-compatible alias for :attr:`rocket_diameter`."""
+        return self.rocket_diameter
+
+    @d.setter
+    def d(self, value):
+        """Backward-compatible alias setter for :attr:`rocket_diameter`."""
+        self.rocket_diameter = value
+
+    @property
+    def ref_area(self):
+        """Backward-compatible alias for :attr:`reference_area`."""
+        return self.reference_area
+
+    @ref_area.setter
+    def ref_area(self, value):
+        """Backward-compatible alias setter for :attr:`reference_area`."""
+        self.reference_area = value
 
     @property
     def root_chord(self):
@@ -250,7 +295,7 @@ class _BaseFin(AeroSurface):
             return (
                 clalpha2D(mach)
                 * planform_correlation_parameter(mach)
-                * (self.Af / self.ref_area)
+                * (self.Af / self.reference_area)
                 * np.cos(self.gamma_c)
             ) / (
                 2

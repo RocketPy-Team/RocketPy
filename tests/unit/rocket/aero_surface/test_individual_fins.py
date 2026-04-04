@@ -94,6 +94,74 @@ def test_trapezoidal_fin_setters_update_geometry(calisto_trapezoidal_fin):
     assert fin.sweep_length == pytest.approx(0.03)
 
 
+def test_individual_fin_rocket_diameter_aliases_are_kept_in_sync(
+    calisto_trapezoidal_fin,
+):
+    """Ensure rocket_diameter is canonical and old aliases remain compatible."""
+    # Arrange
+    fin = calisto_trapezoidal_fin
+
+    # Act
+    fin.rocket_diameter = 0.15
+
+    # Assert
+    assert fin.rocket_diameter == pytest.approx(0.15)
+    assert fin.diameter == pytest.approx(0.15)
+    assert fin.d == pytest.approx(0.15)
+    assert fin.rocket_radius == pytest.approx(0.075)
+    assert fin.reference_length == pytest.approx(0.15)
+
+    # Act
+    fin.d = 0.20
+
+    # Assert
+    assert fin.rocket_diameter == pytest.approx(0.20)
+    assert fin.diameter == pytest.approx(0.20)
+    assert fin.d == pytest.approx(0.20)
+    assert fin.rocket_radius == pytest.approx(0.10)
+    assert fin.reference_length == pytest.approx(0.20)
+
+
+def test_individual_fin_reference_area_and_ref_area_alias_are_kept_in_sync(
+    calisto_trapezoidal_fin,
+):
+    """Ensure reference_area is canonical and ref_area remains compatible."""
+    # Arrange
+    fin = calisto_trapezoidal_fin
+
+    # Act
+    fin.reference_area = 0.123
+
+    # Assert
+    assert fin.reference_area == pytest.approx(0.123)
+    assert fin.ref_area == pytest.approx(0.123)
+
+    # Act
+    fin.ref_area = 0.456
+
+    # Assert
+    assert fin.reference_area == pytest.approx(0.456)
+    assert fin.ref_area == pytest.approx(0.456)
+
+
+def test_individual_fin_to_dict_include_outputs_exposes_diameter_aliases(
+    calisto_trapezoidal_fin,
+):
+    """Ensure output serialization exposes canonical and alias diameter keys."""
+    # Arrange
+    fin = calisto_trapezoidal_fin
+
+    # Act
+    data = fin.to_dict(include_outputs=True)
+
+    # Assert
+    assert data["rocket_diameter"] == pytest.approx(fin.rocket_diameter)
+    assert data["diameter"] == pytest.approx(fin.rocket_diameter)
+    assert data["d"] == pytest.approx(fin.rocket_diameter)
+    assert data["reference_area"] == pytest.approx(fin.reference_area)
+    assert data["ref_area"] == pytest.approx(fin.reference_area)
+
+
 def test_trapezoidal_fin_rejects_inconsistent_sweep_inputs():
     """Ensure trapezoidal fin rejects sweep_length with sweep_angle together."""
     # Arrange / Act / Assert

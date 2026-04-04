@@ -42,9 +42,9 @@ class FreeFormFins(Fins):
         Fin span in meters.
     FreeFormFins.name : string
         Name of fin set.
-    FreeFormFins.d : float
+    FreeFormFins.rocket_diameter : float
         Reference diameter of the rocket, in meters.
-    FreeFormFins.ref_area : float
+    FreeFormFins.reference_area : float
         Reference area of the rocket, in m².
     FreeFormFins.Af : float
         Area of the longitudinal section of each fin in the set.
