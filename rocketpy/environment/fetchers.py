@@ -12,6 +12,8 @@ import requests
 
 from rocketpy.tools import exponential_backoff
 
+MAX_RETRY_DELAY_SECONDS = 600
+
 
 @exponential_backoff(max_attempts=3, base_delay=1, max_delay=60)
 def fetch_open_elevation(lat, lon):
@@ -122,7 +124,7 @@ def fetch_gfs_file_return_dataset(max_attempts=10, base_delay=2):
             return netCDF4.Dataset(file_url)
         except OSError:
             attempt_count += 1
-            time.sleep(base_delay**attempt_count)
+            time.sleep(min(base_delay**attempt_count, MAX_RETRY_DELAY_SECONDS))
 
     raise RuntimeError("Unable to load latest weather data for GFS through " + file_url)
 
@@ -155,7 +157,7 @@ def fetch_nam_file_return_dataset(max_attempts=10, base_delay=2):
             return netCDF4.Dataset(file_url)
         except OSError:
             attempt_count += 1
-            time.sleep(base_delay**attempt_count)
+            time.sleep(min(base_delay**attempt_count, MAX_RETRY_DELAY_SECONDS))
 
     raise RuntimeError("Unable to load latest weather data for NAM through " + file_url)
 
@@ -188,7 +190,7 @@ def fetch_rap_file_return_dataset(max_attempts=10, base_delay=2):
             return netCDF4.Dataset(file_url)
         except OSError:
             attempt_count += 1
-            time.sleep(base_delay**attempt_count)
+            time.sleep(min(base_delay**attempt_count, MAX_RETRY_DELAY_SECONDS))
 
     raise RuntimeError("Unable to load latest weather data for RAP through " + file_url)
 
@@ -241,7 +243,7 @@ def fetch_hiresw_file_return_dataset(max_attempts=10, base_delay=2):
             return dataset
         except OSError:
             attempt_count += 1
-            time.sleep(base_delay**attempt_count)
+            time.sleep(min(base_delay**attempt_count, MAX_RETRY_DELAY_SECONDS))
 
     if dataset is None:
         raise RuntimeError(
@@ -320,7 +322,7 @@ def fetch_gefs_ensemble():
             return dataset
         except OSError:
             attempt_count += 1
-            time.sleep(2**attempt_count)
+            time.sleep(min(2**attempt_count, MAX_RETRY_DELAY_SECONDS))
     if not success:
         raise RuntimeError(
             "Unable to load latest weather data for GEFS through " + file
@@ -362,6 +364,6 @@ def fetch_cmc_ensemble():
             return dataset
         except OSError:
             attempt_count += 1
-            time.sleep(2**attempt_count)
+            time.sleep(min(2**attempt_count, MAX_RETRY_DELAY_SECONDS))
     if not success:
         raise RuntimeError("Unable to load latest weather data for CMC through " + file)

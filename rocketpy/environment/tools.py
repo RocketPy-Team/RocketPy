@@ -279,7 +279,9 @@ def find_longitude_index(longitude, lon_list):  # pylint: disable=too-many-state
             high = mid
     lon_index = low
 
-    # Take care of longitude value equal to maximum longitude in the grid
+    # Take care of longitude value equal to minimum/maximum longitude in the grid
+    if lon_index == 0 and math.isclose(_coord_value(lon_list, 0), lon):
+        lon_index = 1
     if lon_index == lon_len and _coord_value(lon_list, lon_index - 1) == lon:
         lon_index -= 1
     # Check if longitude value is inside the grid
@@ -332,7 +334,9 @@ def find_latitude_index(latitude, lat_list):
             high = mid
     lat_index = low
 
-    # Take care of latitude value equal to maximum latitude in the grid
+    # Take care of latitude value equal to minimum/maximum latitude in the grid
+    if lat_index == 0 and math.isclose(_coord_value(lat_list, 0), latitude):
+        lat_index = 1
     if lat_index == lat_len and _coord_value(lat_list, lat_index - 1) == latitude:
         lat_index -= 1
     # Check if latitude value is inside the grid

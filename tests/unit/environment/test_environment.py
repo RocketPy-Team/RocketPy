@@ -6,8 +6,22 @@ import pytest
 import pytz
 
 from rocketpy import Environment
-from rocketpy.environment.tools import geodesic_to_utm, utm_to_geodesic
+from rocketpy.environment.tools import (
+    find_longitude_index,
+    geodesic_to_lambert_conformal,
+    geodesic_to_utm,
+    utm_to_geodesic,
+)
 from rocketpy.environment.weather_model_mapping import WeatherModelMapping
+
+
+class DummyLambertProjection:
+    """Minimal projection metadata container for unit tests."""
+
+    latitude_of_projection_origin = 40.0
+    longitude_of_central_meridian = 263.0
+    standard_parallel = np.array([30.0, 60.0])
+    earth_radius = 6371229.0
 
 
 @pytest.mark.parametrize(
@@ -110,6 +124,52 @@ def test_utm_to_geodesic_converts_coordinates():
     )
     assert np.isclose(lat, 32.99025, atol=1e-5)
     assert np.isclose(lon, -106.9750, atol=1e-5)
+
+
+def test_geodesic_to_lambert_conformal_projection_origin_maps_to_zero():
+    """Tests wrapped central meridian maps to coordinate origin in Lambert conformal."""
+    projection = DummyLambertProjection()
+
+    x, y = geodesic_to_lambert_conformal(
+        lat=projection.latitude_of_projection_origin,
+        lon=projection.longitude_of_central_meridian % 360,
+        projection_variable=projection,
+        x_units="m",
+    )
+
+    assert np.isclose(x, 0.0, atol=1e-8)
+    assert np.isclose(y, 0.0, atol=1e-8)
+
+
+def test_geodesic_to_lambert_conformal_km_units_scale_from_meters():
+    """Tests Lambert conformal conversion scales outputs from meters to km."""
+    projection = DummyLambertProjection()
+
+    x_meters, y_meters = geodesic_to_lambert_conformal(
+        lat=39.0,
+        lon=-96.0,
+        projection_variable=projection,
+        x_units="m",
+    )
+    x_km, y_km = geodesic_to_lambert_conformal(
+        lat=39.0,
+        lon=-96.0,
+        projection_variable=projection,
+        x_units="km",
+    )
+
+    assert np.isclose(x_km, x_meters / 1000.0, atol=1e-8)
+    assert np.isclose(y_km, y_meters / 1000.0, atol=1e-8)
+
+
+def test_find_longitude_index_accepts_lower_grid_boundary():
+    """Tests longitude equal to first grid value is accepted as in-range."""
+    lon_list = [0.0, 0.25, 0.5]
+
+    lon, lon_index = find_longitude_index(0.0, lon_list)
+
+    assert lon == 0.0
+    assert lon_index == 1
 
 
 @pytest.mark.parametrize(
