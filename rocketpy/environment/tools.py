@@ -307,7 +307,9 @@ def _adjust_boundary_coordinate_index(index, coord_list, coord_value):
     return index
 
 
-def _validate_coordinate_index_in_range(index, coord_len, coord_start, coord_end, coord_name):
+def _validate_coordinate_index_in_range(
+    index, coord_len, coord_start, coord_end, coord_name
+):
     """Validate that coordinate index is within valid interpolation range.
 
     Parameters
@@ -365,7 +367,9 @@ def find_longitude_index(longitude, lon_list):
     lon_index = _binary_search_coordinate_index(lon, lon_list, is_ascending)
     lon_index = _adjust_boundary_coordinate_index(lon_index, lon_list, lon)
 
-    _validate_coordinate_index_in_range(lon_index, lon_len, lon_start, lon_end, "Longitude")
+    _validate_coordinate_index_in_range(
+        lon_index, lon_len, lon_start, lon_end, "Longitude"
+    )
 
     return lon, lon_index
 
