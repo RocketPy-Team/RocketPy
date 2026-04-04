@@ -55,8 +55,8 @@ class _BaseFin(AeroSurface):
         self.reference_area = np.pi * self._rocket_radius**2
         self.reference_length = self.rocket_diameter
 
-    def _run_geometry_update_chain(self):
-        """Recompute all dependent aerodynamic properties after a geometry change."""
+    def _update_geometry_chain(self):
+        """Update geometry-dependent quantities in dependency order."""
         self.evaluate_geometrical_parameters()
         self.evaluate_center_of_pressure()
         self.evaluate_lift_coefficient()
@@ -84,7 +84,7 @@ class _BaseFin(AeroSurface):
         """
         self._rocket_radius = value
         self._update_reference_quantities()
-        self._run_geometry_update_chain()
+        self._update_geometry_chain()
 
     @property
     def rocket_diameter(self):
@@ -147,7 +147,7 @@ class _BaseFin(AeroSurface):
             Root chord length in meters.
         """
         self._root_chord = value
-        self._run_geometry_update_chain()
+        self._update_geometry_chain()
 
     @property
     def span(self):
@@ -170,7 +170,7 @@ class _BaseFin(AeroSurface):
             Fin span in meters.
         """
         self._span = value
-        self._run_geometry_update_chain()
+        self._update_geometry_chain()
 
     @property
     def cant_angle(self):
@@ -216,7 +216,7 @@ class _BaseFin(AeroSurface):
             Cant angle in radians.
         """
         self._cant_angle_rad = value
-        self._run_geometry_update_chain()
+        self._update_geometry_chain()
 
     @property
     def airfoil(self):
@@ -241,7 +241,7 @@ class _BaseFin(AeroSurface):
             or None for planar fin.
         """
         self._airfoil = value
-        self._run_geometry_update_chain()
+        self._update_geometry_chain()
 
     def info(self):
         """Print fin geometry and lift information."""
