@@ -75,7 +75,7 @@ def test_individual_fin_angular_position_updates_radians(request, fixture_name):
 
     # Assert
     assert fin.angular_position == 45
-    assert fin.angular_position_rad == pytest.approx(np.pi / 4)
+    np.testing.assert_allclose(fin.angular_position_rad, np.pi / 4)
 
 
 def test_trapezoidal_fin_setters_update_geometry(calisto_trapezoidal_fin):
@@ -89,9 +89,9 @@ def test_trapezoidal_fin_setters_update_geometry(calisto_trapezoidal_fin):
     fin.sweep_length = 0.03
 
     # Assert
-    assert fin.tip_chord == pytest.approx(0.05)
-    assert fin.sweep_angle == pytest.approx(12.0)
-    assert fin.sweep_length == pytest.approx(0.03)
+    np.testing.assert_allclose(fin.tip_chord, 0.05)
+    np.testing.assert_allclose(fin.sweep_angle, 12.0)
+    np.testing.assert_allclose(fin.sweep_length, 0.03)
 
 
 def test_individual_fin_rocket_diameter_aliases_are_kept_in_sync(
@@ -105,21 +105,21 @@ def test_individual_fin_rocket_diameter_aliases_are_kept_in_sync(
     fin.rocket_diameter = 0.15
 
     # Assert
-    assert fin.rocket_diameter == pytest.approx(0.15)
-    assert fin.diameter == pytest.approx(0.15)
-    assert fin.d == pytest.approx(0.15)
-    assert fin.rocket_radius == pytest.approx(0.075)
-    assert fin.reference_length == pytest.approx(0.15)
+    np.testing.assert_allclose(fin.rocket_diameter, 0.15)
+    np.testing.assert_allclose(fin.diameter, 0.15)
+    np.testing.assert_allclose(fin.d, 0.15)
+    np.testing.assert_allclose(fin.rocket_radius, 0.075)
+    np.testing.assert_allclose(fin.reference_length, 0.15)
 
     # Act
     fin.d = 0.20
 
     # Assert
-    assert fin.rocket_diameter == pytest.approx(0.20)
-    assert fin.diameter == pytest.approx(0.20)
-    assert fin.d == pytest.approx(0.20)
-    assert fin.rocket_radius == pytest.approx(0.10)
-    assert fin.reference_length == pytest.approx(0.20)
+    np.testing.assert_allclose(fin.rocket_diameter, 0.20)
+    np.testing.assert_allclose(fin.diameter, 0.20)
+    np.testing.assert_allclose(fin.d, 0.20)
+    np.testing.assert_allclose(fin.rocket_radius, 0.10)
+    np.testing.assert_allclose(fin.reference_length, 0.20)
 
 
 def test_individual_fin_reference_area_and_ref_area_alias_are_kept_in_sync(
@@ -133,15 +133,15 @@ def test_individual_fin_reference_area_and_ref_area_alias_are_kept_in_sync(
     fin.reference_area = 0.123
 
     # Assert
-    assert fin.reference_area == pytest.approx(0.123)
-    assert fin.ref_area == pytest.approx(0.123)
+    np.testing.assert_allclose(fin.reference_area, 0.123)
+    np.testing.assert_allclose(fin.ref_area, 0.123)
 
     # Act
     fin.ref_area = 0.456
 
     # Assert
-    assert fin.reference_area == pytest.approx(0.456)
-    assert fin.ref_area == pytest.approx(0.456)
+    np.testing.assert_allclose(fin.reference_area, 0.456)
+    np.testing.assert_allclose(fin.ref_area, 0.456)
 
 
 def test_individual_fin_to_dict_include_outputs_exposes_diameter_aliases(
@@ -155,11 +155,11 @@ def test_individual_fin_to_dict_include_outputs_exposes_diameter_aliases(
     data = fin.to_dict(include_outputs=True)
 
     # Assert
-    assert data["rocket_diameter"] == pytest.approx(fin.rocket_diameter)
-    assert data["diameter"] == pytest.approx(fin.rocket_diameter)
-    assert data["d"] == pytest.approx(fin.rocket_diameter)
-    assert data["reference_area"] == pytest.approx(fin.reference_area)
-    assert data["ref_area"] == pytest.approx(fin.reference_area)
+    np.testing.assert_allclose(data["rocket_diameter"], fin.rocket_diameter)
+    np.testing.assert_allclose(data["diameter"], fin.rocket_diameter)
+    np.testing.assert_allclose(data["d"], fin.rocket_diameter)
+    np.testing.assert_allclose(data["reference_area"], fin.reference_area)
+    np.testing.assert_allclose(data["ref_area"], fin.reference_area)
 
 
 def test_trapezoidal_fin_rejects_inconsistent_sweep_inputs():
@@ -282,7 +282,7 @@ def test_individual_fin_from_dict_roundtrip(
     # Assert
     assert isinstance(reconstructed, fin_class)
     for field in comparisons:
-        assert getattr(reconstructed, field) == pytest.approx(getattr(fin, field))
+        np.testing.assert_allclose(getattr(reconstructed, field), getattr(fin, field))
 
     if fin_class is FreeFormFin:
         assert reconstructed.shape_points == fin.shape_points
@@ -307,7 +307,7 @@ def test_trapezoidal_fin_from_dict_roundtrip_preserves_sweep_length():
     reconstructed = TrapezoidalFin.from_dict(data)
 
     # Assert
-    assert reconstructed.sweep_length == pytest.approx(original.sweep_length)
+    np.testing.assert_allclose(reconstructed.sweep_length, original.sweep_length)
 
 
 def test_calisto_finset_vs_four_individual_fins_close():
