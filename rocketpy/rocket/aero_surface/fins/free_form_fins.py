@@ -146,6 +146,7 @@ class FreeFormFins(Fins):
 
         self.geometry = _FreeFormGeometry(self, shape_points)
         self._update_geometry_chain()
+        self.evaluate_shape()
 
         self.prints = _FreeFormFinsPrints(self)
         self.plots = _FreeFormFinsPlots(self)

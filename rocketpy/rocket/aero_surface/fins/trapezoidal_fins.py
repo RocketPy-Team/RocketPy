@@ -172,6 +172,7 @@ class TrapezoidalFins(Fins):
             sweep_angle=sweep_angle,
         )
         self._update_geometry_chain()
+        self.evaluate_shape()
 
         self.prints = _TrapezoidalFinsPrints(self)
         self.plots = _TrapezoidalFinsPlots(self)
@@ -184,6 +185,7 @@ class TrapezoidalFins(Fins):
     def tip_chord(self, value):
         self.geometry.tip_chord = value
         self._update_geometry_chain()
+        self.evaluate_shape()
 
     @property
     def sweep_angle(self):
@@ -193,6 +195,7 @@ class TrapezoidalFins(Fins):
     def sweep_angle(self, value):
         self.geometry.sweep_angle = value
         self._update_geometry_chain()
+        self.evaluate_shape()
 
     @property
     def sweep_length(self):
@@ -202,6 +205,7 @@ class TrapezoidalFins(Fins):
     def sweep_length(self, value):
         self.geometry.sweep_length = value
         self._update_geometry_chain()
+        self.evaluate_shape()
 
     def evaluate_center_of_pressure(self):
         """Calculates and returns the center of pressure of the fin set in local

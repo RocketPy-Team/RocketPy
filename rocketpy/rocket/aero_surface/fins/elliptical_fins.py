@@ -160,6 +160,7 @@ class EllipticalFins(Fins):
 
         self.geometry = _EllipticalGeometry(self)
         self._update_geometry_chain()
+        self.evaluate_shape()
 
         self.prints = _EllipticalFinsPrints(self)
         self.plots = _EllipticalFinsPlots(self)

@@ -14,11 +14,11 @@ class _FinGeometry(ABC):
 
     @abstractmethod
     def evaluate_geometrical_parameters(self):
-        """Evaluate and store geometry-dependent aerodynamic parameters."""
+        """Evaluate and return geometry-dependent aerodynamic parameters."""
 
     @abstractmethod
     def evaluate_shape(self):
-        """Evaluate the shape vector used by plotting and outputs."""
+        """Evaluate and return the shape vector used by plotting and outputs."""
 
     def get_data(self, include_outputs=False):
         """Return geometry-specific serialization data."""
@@ -48,9 +48,6 @@ class _TrapezoidalGeometry(_FinGeometry):
         self._tip_chord = tip_chord
         self._sweep_length = sweep_length
         self._sweep_angle = sweep_angle
-        self.owner._tip_chord = self._tip_chord
-        self.owner._sweep_length = self._sweep_length
-        self.owner._sweep_angle = self._sweep_angle
 
     @property
     def tip_chord(self):
@@ -59,7 +56,6 @@ class _TrapezoidalGeometry(_FinGeometry):
     @tip_chord.setter
     def tip_chord(self, value):
         self._tip_chord = value
-        self.owner._tip_chord = value
 
     @property
     def sweep_length(self):
@@ -68,7 +64,6 @@ class _TrapezoidalGeometry(_FinGeometry):
     @sweep_length.setter
     def sweep_length(self, value):
         self._sweep_length = value
-        self.owner._sweep_length = value
 
     @property
     def sweep_angle(self):
@@ -78,11 +73,9 @@ class _TrapezoidalGeometry(_FinGeometry):
     def sweep_angle(self, value):
         self._sweep_angle = value
         self._sweep_length = np.tan(np.radians(value)) * self.owner.span
-        self.owner._sweep_angle = self._sweep_angle
-        self.owner._sweep_length = self._sweep_length
 
     def evaluate_geometrical_parameters(self):
-        """Calculates and saves trapezoidal fin geometric parameters."""
+        """Calculate trapezoidal fin geometric parameters."""
         # pylint: disable=invalid-name
         owner = self.owner
         Yr = owner.root_chord + self.tip_chord
@@ -128,19 +121,31 @@ class _TrapezoidalGeometry(_FinGeometry):
             + (8 / (tau - 1) ** 2) * np.log((tau**2 + 1) / (2 * tau))
         )
 
-        owner.Yr = Yr
-        owner.Af = Af
-        owner.AR = AR
-        owner.gamma_c = gamma_c
-        owner.Yma = Yma
-        owner.roll_geometrical_constant = roll_geometrical_constant
-        owner.tau = tau
-        owner.lift_interference_factor = lift_interference_factor
-        owner.λ = lambda_  # pylint: disable=non-ascii-name
-        owner.roll_damping_interference_factor = roll_damping_interference_factor
-        owner.roll_forcing_interference_factor = roll_forcing_interference_factor
+        self.Yr = Yr
+        self.Af = Af
+        self.AR = AR
+        self.gamma_c = gamma_c
+        self.Yma = Yma
+        self.roll_geometrical_constant = roll_geometrical_constant
+        self.tau = tau
+        self.lift_interference_factor = lift_interference_factor
+        self.λ = lambda_  # pylint: disable=non-ascii-name
+        self.roll_damping_interference_factor = roll_damping_interference_factor
+        self.roll_forcing_interference_factor = roll_forcing_interference_factor
 
-        self.evaluate_shape()
+        return {
+            "Yr": Yr,
+            "Af": Af,
+            "AR": AR,
+            "gamma_c": gamma_c,
+            "Yma": Yma,
+            "roll_geometrical_constant": roll_geometrical_constant,
+            "tau": tau,
+            "lift_interference_factor": lift_interference_factor,
+            "λ": lambda_,  # pylint: disable=non-ascii-name
+            "roll_damping_interference_factor": roll_damping_interference_factor,
+            "roll_forcing_interference_factor": roll_forcing_interference_factor,
+        }
 
     def evaluate_shape(self):
         owner = self.owner
@@ -160,7 +165,9 @@ class _TrapezoidalGeometry(_FinGeometry):
             ]
 
         x_array, y_array = zip(*points)
-        owner.shape_vec = [np.array(x_array), np.array(y_array)]
+        shape_vec = [np.array(x_array), np.array(y_array)]
+        self.shape_vec = shape_vec
+        return shape_vec
 
     def get_data(self, include_outputs=False):
         data = {
@@ -171,19 +178,23 @@ class _TrapezoidalGeometry(_FinGeometry):
         if include_outputs:
             data.update(
                 {
-                    "shape_vec": self.owner.shape_vec,
-                    "Af": self.owner.Af,
-                    "AR": self.owner.AR,
-                    "gamma_c": self.owner.gamma_c,
-                    "Yma": self.owner.Yma,
-                    "roll_geometrical_constant": (self.owner.roll_geometrical_constant),
-                    "tau": self.owner.tau,
-                    "lift_interference_factor": (self.owner.lift_interference_factor),
-                    "roll_damping_interference_factor": (
-                        self.owner.roll_damping_interference_factor
+                    "shape_vec": getattr(self, "shape_vec", None),
+                    "Af": getattr(self, "Af", None),
+                    "AR": getattr(self, "AR", None),
+                    "gamma_c": getattr(self, "gamma_c", None),
+                    "Yma": getattr(self, "Yma", None),
+                    "roll_geometrical_constant": getattr(
+                        self, "roll_geometrical_constant", None
                     ),
-                    "roll_forcing_interference_factor": (
-                        self.owner.roll_forcing_interference_factor
+                    "tau": getattr(self, "tau", None),
+                    "lift_interference_factor": getattr(
+                        self, "lift_interference_factor", None
+                    ),
+                    "roll_damping_interference_factor": getattr(
+                        self, "roll_damping_interference_factor", None
+                    ),
+                    "roll_forcing_interference_factor": getattr(
+                        self, "roll_forcing_interference_factor", None
                     ),
                 }
             )
@@ -194,7 +205,7 @@ class _EllipticalGeometry(_FinGeometry):
     """Geometry strategy for elliptical fins."""
 
     def evaluate_geometrical_parameters(self):  # pylint: disable=too-many-statements
-        """Calculates and saves elliptical fin geometric parameters."""
+        """Calculate elliptical fin geometric parameters."""
         owner = self.owner
 
         # pylint: disable=invalid-name
@@ -286,17 +297,27 @@ class _EllipticalGeometry(_FinGeometry):
             + (8 / (tau - 1) ** 2) * np.log((tau**2 + 1) / (2 * tau))
         )
 
-        owner.Af = Af
-        owner.AR = AR
-        owner.gamma_c = gamma_c
-        owner.Yma = Yma
-        owner.roll_geometrical_constant = roll_geometrical_constant
-        owner.tau = tau
-        owner.lift_interference_factor = lift_interference_factor
-        owner.roll_damping_interference_factor = roll_damping_interference_factor
-        owner.roll_forcing_interference_factor = roll_forcing_interference_factor
+        self.Af = Af
+        self.AR = AR
+        self.gamma_c = gamma_c
+        self.Yma = Yma
+        self.roll_geometrical_constant = roll_geometrical_constant
+        self.tau = tau
+        self.lift_interference_factor = lift_interference_factor
+        self.roll_damping_interference_factor = roll_damping_interference_factor
+        self.roll_forcing_interference_factor = roll_forcing_interference_factor
 
-        self.evaluate_shape()
+        return {
+            "Af": Af,
+            "AR": AR,
+            "gamma_c": gamma_c,
+            "Yma": Yma,
+            "roll_geometrical_constant": roll_geometrical_constant,
+            "tau": tau,
+            "lift_interference_factor": lift_interference_factor,
+            "roll_damping_interference_factor": roll_damping_interference_factor,
+            "roll_forcing_interference_factor": roll_forcing_interference_factor,
+        }
 
     def evaluate_shape(self):
         owner = self.owner
@@ -305,24 +326,26 @@ class _EllipticalGeometry(_FinGeometry):
             np.radians(angles)
         )
         y_array = owner.span * np.sin(np.radians(angles))
-        owner.shape_vec = [x_array, y_array]
+        shape_vec = [x_array, y_array]
+        self.shape_vec = shape_vec
+        return shape_vec
 
     def get_data(self, include_outputs=False):
         if not include_outputs:
             return {}
         return {
-            "Af": self.owner.Af,
-            "AR": self.owner.AR,
-            "gamma_c": self.owner.gamma_c,
-            "Yma": self.owner.Yma,
-            "roll_geometrical_constant": self.owner.roll_geometrical_constant,
-            "tau": self.owner.tau,
-            "lift_interference_factor": self.owner.lift_interference_factor,
-            "roll_damping_interference_factor": (
-                self.owner.roll_damping_interference_factor
+            "Af": getattr(self, "Af", None),
+            "AR": getattr(self, "AR", None),
+            "gamma_c": getattr(self, "gamma_c", None),
+            "Yma": getattr(self, "Yma", None),
+            "roll_geometrical_constant": getattr(self, "roll_geometrical_constant", None),
+            "tau": getattr(self, "tau", None),
+            "lift_interference_factor": getattr(self, "lift_interference_factor", None),
+            "roll_damping_interference_factor": getattr(
+                self, "roll_damping_interference_factor", None
             ),
-            "roll_forcing_interference_factor": (
-                self.owner.roll_forcing_interference_factor
+            "roll_forcing_interference_factor": getattr(
+                self, "roll_forcing_interference_factor", None
             ),
         }
 
@@ -357,7 +380,7 @@ class _FreeFormGeometry(_FinGeometry):
     def evaluate_geometrical_parameters(
         self,
     ):  # pylint: disable=too-many-statements,too-many-locals,invalid-name
-        """Calculates and saves free-form fin geometric parameters."""
+        """Calculate free-form fin geometric parameters."""
         owner = self.owner
 
         Af = 0
@@ -474,45 +497,65 @@ class _FreeFormGeometry(_FinGeometry):
         mac_lead /= total_area
         cos_gamma = cos_gamma_sum / (points_per_line - 1)
 
-        owner.Af = Af
-        owner.AR = AR
-        owner.gamma_c = np.arccos(cos_gamma)
-        owner.Yma = mac_span
-        owner.mac_length = mac_length
-        owner.mac_lead = mac_lead
-        owner.tau = tau
-        owner.roll_geometrical_constant = roll_geometrical_constant
-        owner.lift_interference_factor = lift_interference_factor
-        owner.roll_forcing_interference_factor = roll_forcing_interference_factor
-        owner.roll_damping_interference_factor = 1 + (
+        gamma_c = np.arccos(cos_gamma)
+
+        self.Af = Af
+        self.AR = AR
+        self.gamma_c = gamma_c
+        self.Yma = mac_span
+        self.mac_length = mac_length
+        self.mac_lead = mac_lead
+        self.tau = tau
+        self.roll_geometrical_constant = roll_geometrical_constant
+        self.lift_interference_factor = lift_interference_factor
+        self.roll_forcing_interference_factor = roll_forcing_interference_factor
+        self.roll_damping_interference_factor = 1 + (
             roll_damping_numerator / roll_damping_denominator
         )
 
-        self.evaluate_shape()
+        return {
+            "Af": Af,
+            "AR": AR,
+            "gamma_c": gamma_c,
+            "Yma": mac_span,
+            "mac_length": mac_length,
+            "mac_lead": mac_lead,
+            "tau": tau,
+            "roll_geometrical_constant": roll_geometrical_constant,
+            "lift_interference_factor": lift_interference_factor,
+            "roll_forcing_interference_factor": roll_forcing_interference_factor,
+            "roll_damping_interference_factor": self.roll_damping_interference_factor,
+        }
 
     def evaluate_shape(self):
         x_array, y_array = zip(*self.shape_points)
-        self.owner.shape_vec = [np.array(x_array), np.array(y_array)]
+        shape_vec = [np.array(x_array), np.array(y_array)]
+        self.shape_vec = shape_vec
+        return shape_vec
 
     def get_data(self, include_outputs=False):
         data = {"shape_points": self.shape_points}
         if include_outputs:
             data.update(
                 {
-                    "Af": self.owner.Af,
-                    "AR": self.owner.AR,
-                    "gamma_c": self.owner.gamma_c,
-                    "Yma": self.owner.Yma,
-                    "mac_length": self.owner.mac_length,
-                    "mac_lead": self.owner.mac_lead,
-                    "roll_geometrical_constant": (self.owner.roll_geometrical_constant),
-                    "tau": self.owner.tau,
-                    "lift_interference_factor": (self.owner.lift_interference_factor),
-                    "roll_forcing_interference_factor": (
-                        self.owner.roll_forcing_interference_factor
+                    "Af": getattr(self, "Af", None),
+                    "AR": getattr(self, "AR", None),
+                    "gamma_c": getattr(self, "gamma_c", None),
+                    "Yma": getattr(self, "Yma", None),
+                    "mac_length": getattr(self, "mac_length", None),
+                    "mac_lead": getattr(self, "mac_lead", None),
+                    "roll_geometrical_constant": getattr(
+                        self, "roll_geometrical_constant", None
                     ),
-                    "roll_damping_interference_factor": (
-                        self.owner.roll_damping_interference_factor
+                    "tau": getattr(self, "tau", None),
+                    "lift_interference_factor": getattr(
+                        self, "lift_interference_factor", None
+                    ),
+                    "roll_forcing_interference_factor": getattr(
+                        self, "roll_forcing_interference_factor", None
+                    ),
+                    "roll_damping_interference_factor": getattr(
+                        self, "roll_damping_interference_factor", None
                     ),
                 }
             )

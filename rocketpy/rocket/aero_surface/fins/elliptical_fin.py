@@ -159,6 +159,7 @@ class EllipticalFin(Fin):
 
         self.geometry = _EllipticalGeometry(self)
         self._update_geometry_chain()
+        self.evaluate_shape()
 
         self.prints = _EllipticalFinPrints(self)
         self.plots = _EllipticalFinPlots(self)

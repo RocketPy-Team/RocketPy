@@ -148,6 +148,7 @@ class _BaseFin(AeroSurface):
         """
         self._root_chord = value
         self._update_geometry_chain()
+        self.evaluate_shape()
 
     @property
     def span(self):
@@ -171,6 +172,7 @@ class _BaseFin(AeroSurface):
         """
         self._span = value
         self._update_geometry_chain()
+        self.evaluate_shape()
 
     @property
     def cant_angle(self):
@@ -326,14 +328,16 @@ class _BaseFin(AeroSurface):
 
         This method delegates to the configured geometry strategy.
         """
-        self.geometry.evaluate_geometrical_parameters()
+        geometry_data = self.geometry.evaluate_geometrical_parameters()
+        for key, value in geometry_data.items():
+            setattr(self, key, value)
 
     def evaluate_shape(self):
         """Evaluate the shape representation of the fin.
 
         This method delegates to the configured geometry strategy.
         """
-        self.geometry.evaluate_shape()
+        self.shape_vec = self.geometry.evaluate_shape()
 
     @abstractmethod
     def draw(self):
