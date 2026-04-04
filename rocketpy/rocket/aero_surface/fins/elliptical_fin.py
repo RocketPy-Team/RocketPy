@@ -167,12 +167,7 @@ class EllipticalFin(Fin):
     def evaluate_center_of_pressure(self):
         """Calculates and returns the center of pressure of the fin in local
         coordinates. The center of pressure position is saved and stored as a
-        tuple.
-
-        Returns
-        -------
-        None
-        """
+        tuple."""
         # Barrowman elliptical-fin center of pressure location.
         cpz = 0.288 * self.root_chord
         self.cpx = 0

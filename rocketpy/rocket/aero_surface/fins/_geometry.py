@@ -338,7 +338,9 @@ class _EllipticalGeometry(_FinGeometry):
             "AR": getattr(self, "AR", None),
             "gamma_c": getattr(self, "gamma_c", None),
             "Yma": getattr(self, "Yma", None),
-            "roll_geometrical_constant": getattr(self, "roll_geometrical_constant", None),
+            "roll_geometrical_constant": getattr(
+                self, "roll_geometrical_constant", None
+            ),
             "tau": getattr(self, "tau", None),
             "lift_interference_factor": getattr(self, "lift_interference_factor", None),
             "roll_damping_interference_factor": getattr(

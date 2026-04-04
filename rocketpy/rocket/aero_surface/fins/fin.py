@@ -276,12 +276,16 @@ class Fin(_BaseFin):
         """
         phi = self.angular_position_rad
         delta = self.cant_angle_rad
+        sin_phi = math.sin(phi)
+        cos_phi = math.cos(phi)
+        sin_delta = math.sin(delta)
+        cos_delta = math.cos(delta)
 
         # Rotation about body Z by angular position
         R_phi = Matrix(
             [
-                [np.cos(phi), -np.sin(phi), 0],
-                [np.sin(phi), np.cos(phi), 0],
+                [cos_phi, -sin_phi, 0],
+                [sin_phi, cos_phi, 0],
                 [0, 0, 1],
             ]
         )
@@ -289,9 +293,9 @@ class Fin(_BaseFin):
         # Cant rotation about body Y
         R_delta = Matrix(
             [
-                [np.cos(delta), 0, -np.sin(delta)],
+                [cos_delta, 0, -sin_delta],
                 [0, 1, 0],
-                [np.sin(delta), 0, np.cos(delta)],
+                [sin_delta, 0, cos_delta],
             ]
         )
 
