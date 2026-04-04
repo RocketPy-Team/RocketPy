@@ -205,7 +205,7 @@ From the Barrowman method, the moment along the center axis of the rocket
   M_{z \, \text{final}} = M_{z} + M_{damp}
 
 Where :math:`C_{ld}` is the roll moment damping coefficient, :math:`L_{r}` 
-is the reference length, which is equal to the rocket diamete, and
+is the reference length, which is equal to the rocket diameter, and
 :math:`\omega_z` is the angular velocity of the rocket around the z-axis.
 
 Adding Individual Fins to the Rocket
