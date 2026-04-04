@@ -1076,8 +1076,11 @@ class Rocket:
         rail buttons case, and position type.
         """
         if isinstance(surface, (TrapezoidalFin, EllipticalFin, FreeFormFin)):
-            # TODO: this depends on cant angle, so it should somehow be
-            # recalculated whenever the cant angle of the fin changes
+            # TODO: the leading edge position should be recomputed whenever cant
+            # angle of the fin changes, but currently it is only computed at the
+            # moment the fin is added to the rocket. Detecting when the cant
+            # angle changes is hard, because it is a parameter of the fin, while
+            # the leading edge position is only defined on the rocket
             position = surface._compute_leading_edge_position(position, self._csys)
         else:
             position = (

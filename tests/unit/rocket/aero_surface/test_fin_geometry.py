@@ -25,11 +25,7 @@ def test_trapezoidal_geometry_evaluate_geometrical_parameters(
     expected_area = (owner.root_chord + owner.tip_chord) * owner.span / 2
     expected_aspect_ratio = 2 * owner.span**2 / expected_area
     expected_gamma_c = np.arctan(
-        (
-            geometry.sweep_length
-            + 0.5 * owner.tip_chord
-            - 0.5 * owner.root_chord
-        )
+        (geometry.sweep_length + 0.5 * owner.tip_chord - 0.5 * owner.root_chord)
         / owner.span
     )
     expected_mid_aerodynamic_span = (
@@ -46,10 +42,7 @@ def test_trapezoidal_geometry_evaluate_geometrical_parameters(
         * (owner.root_chord + 2 * owner.tip_chord)
         * owner.rocket_radius
         * owner.span**2
-        + 6
-        * (owner.root_chord + owner.tip_chord)
-        * owner.span
-        * owner.rocket_radius**2
+        + 6 * (owner.root_chord + owner.tip_chord) * owner.span * owner.rocket_radius**2
     ) / 12
     expected_lift_interference_factor = 1 + 1 / tau
     expected_roll_damping_factor = 1 + (
@@ -65,8 +58,7 @@ def test_trapezoidal_geometry_evaluate_geometrical_parameters(
         - (2 * np.pi * (tau + 1)) / (tau * (tau - 1))
         + ((tau**2 + 1) ** 2 / (tau**2 * (tau - 1) ** 2))
         * (np.arcsin((tau**2 - 1) / (tau**2 + 1))) ** 2
-        - (4 * (tau + 1)) / (tau * (tau - 1))
-        * np.arcsin((tau**2 - 1) / (tau**2 + 1))
+        - (4 * (tau + 1)) / (tau * (tau - 1)) * np.arcsin((tau**2 - 1) / (tau**2 + 1))
         + (8 / (tau - 1) ** 2) * np.log((tau**2 + 1) / (2 * tau))
     )
 
@@ -163,8 +155,8 @@ def test_elliptical_geometry_evaluate_geometrical_parameters(
     owner = calisto_elliptical_fin
     expected_area = np.pi * owner.root_chord / 2 * owner.span / 2
     expected_aspect_ratio = 2 * owner.span**2 / expected_area
-    expected_mid_aerodynamic_span = owner.span / (3 * np.pi) * np.sqrt(
-        9 * np.pi**2 - 64
+    expected_mid_aerodynamic_span = (
+        owner.span / (3 * np.pi) * np.sqrt(9 * np.pi**2 - 64)
     )
     expected_roll_constant = (
         owner.root_chord
@@ -229,9 +221,7 @@ def test_elliptical_geometry_get_data_returns_expected_outputs(
     assert data_without_outputs == {}
     assert data_with_outputs["Af"] == pytest.approx(calisto_elliptical_fin.Af)
     assert data_with_outputs["AR"] == pytest.approx(calisto_elliptical_fin.AR)
-    assert data_with_outputs["gamma_c"] == pytest.approx(
-        calisto_elliptical_fin.gamma_c
-    )
+    assert data_with_outputs["gamma_c"] == pytest.approx(calisto_elliptical_fin.gamma_c)
     assert data_with_outputs["Yma"] == pytest.approx(calisto_elliptical_fin.Yma)
     assert data_with_outputs["roll_geometrical_constant"] == pytest.approx(
         calisto_elliptical_fin.roll_geometrical_constant
@@ -317,9 +307,7 @@ def test_free_form_geometry_get_data_returns_expected_outputs(
     assert data_with_outputs["shape_points"] == calisto_free_form_fin.shape_points
     assert data_with_outputs["Af"] == pytest.approx(calisto_free_form_fin.Af)
     assert data_with_outputs["AR"] == pytest.approx(calisto_free_form_fin.AR)
-    assert data_with_outputs["gamma_c"] == pytest.approx(
-        calisto_free_form_fin.gamma_c
-    )
+    assert data_with_outputs["gamma_c"] == pytest.approx(calisto_free_form_fin.gamma_c)
     assert data_with_outputs["Yma"] == pytest.approx(calisto_free_form_fin.Yma)
     assert data_with_outputs["mac_length"] == pytest.approx(
         calisto_free_form_fin.mac_length

@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+
 # TODO: the rocketpy/prints/aero_surface_prints.py file could be separated into different, smaller files.
 class _AeroSurfacePrints(ABC):
     def __init__(self, aero_surface):
