@@ -205,7 +205,7 @@ From the Barrowman method, the moment along the center axis of the rocket
   M_{z \, \text{final}} = M_{z} + M_{damp}
 
 Where :math:`C_{ld}` is the roll moment damping coefficient, :math:`L_{r}` 
-is the reference length, which is equal to the rocket diamete, and
+is the reference length, which is equal to the rocket diameter, and
 :math:`\omega_z` is the angular velocity of the rocket around the z-axis.
 
 Adding Individual Fins to the Rocket
@@ -451,7 +451,7 @@ Yaw
   example_rocket.aerodynamic_surfaces.pop()
   example_rocket.aerodynamic_surfaces.pop()
 
-Given oposing canards at 0 degrees and 180 degrees, having opposite cant angles, 
+Given opposing canards at 0 degrees and 180 degrees, having opposite cant angles, 
 a positive yaw moment will be generated. The following example shows the 
 effect of this configuration in the non-zero angle of attack flight of the 
 rocket:
