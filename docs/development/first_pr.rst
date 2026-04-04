@@ -96,14 +96,13 @@ The CHANGELOG file
 ------------------
 
 We keep track of the changes in the ``CHANGELOG.md`` file.
-When you open a PR, you should add a new entry to the "Unreleased" section of the file.
-This entry should simply be the title of your PR.
+When you open a PR, you should see the "Unreleased" section of the file.
+An entry will simply contain the title of your PR if merged.
 
 .. note::
 
-    In the future we would like to automate the CHANGELOG update, but for now \
-    it is a manual process, unfortunately.
-
+    The CHANGELOG is auto-updated once a PR is merged based on the associated labels, \
+    which are assigned by the maintainers.
 
 The review process
 ------------------

@@ -1,0 +1,62 @@
+name: Populate Changelog
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - develop
+
+permissions:
+  contents: write
+
+jobs:
+  Changelog:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clone RocketPy
+        uses: actions/checkout@main
+        with:
+          repository: RocketPy-Team/RocketPy
+          ref: develop
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Changelog
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_LABELS: ${{ join(github.event.pull_request.labels.*.name, ',') }}
+        run: |
+          SECTION="### Added"
+          PREFIX="ENH"
+
+          if [[ "$PR_LABELS" == *"Bug"* ]]; then
+            SECTION="### Fixed"
+            PREFIX="BUG"
+          elif [[ "$PR_LABELS" == *"Refactor"* ]]; then
+            SECTION="### Changed"
+            PREFIX="MNT"
+          elif [[ "$PR_LABELS" == *"Docs"* ]] && [[ "$PR_LABELS" == *"Git housekeeping"* ]]; then
+            SECTION="### Changed"
+            PREFIX="DOC"
+          elif [[ "$PR_LABELS" == *"Tests"* ]]; then
+            SECTION="### Changed"
+            PREFIX="TST"
+          elif [[ "$PR_LABELS" == *"Docs"* ]]; then
+            # Only documentation -> Added section
+            SECTION="### Added"
+            PREFIX="DOC"
+          fi
+
+          ENTRY="- $PREFIX: $PR_TITLE [#$PR_NUMBER](https://github.com/RocketPy-Team/RocketPy/pull/$PR_NUMBER)"
+          SECTION_LINE=$(grep -n "^$SECTION$" CHANGELOG.md | head -1 | cut -d: -f1)
+
+          sed -i "$((SECTION_LINE + 1))a\\$ENTRY" CHANGELOG.md
+
+      - name: Push Changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git commit -m "DOC: Update Changelog for PR #${{ github.event.pull_request.number }}"
+          git push
