@@ -546,13 +546,14 @@ class SolidMotor(Motor):
                     2 * np.pi * (grain_inner_radius * grain_height) ** 2
                 )
 
-                inner_radius_derivative_wrt_inner_radius = factor * (
-                    grain_height - 2 * grain_inner_radius
-                )
-                inner_radius_derivative_wrt_height = 0
+                # burn_area = 2π*r*h, so ṙ = -vdiff/(2π*r*h):
+                #   ∂ṙ/∂r = vdiff/(2π*r²*h) = factor * h
+                #   ∂ṙ/∂h = vdiff/(2π*r*h²) = factor * r
+                inner_radius_derivative_wrt_inner_radius = factor * grain_height
+                inner_radius_derivative_wrt_height = factor * grain_inner_radius
+                # dh/dt = 0, so all partial derivatives of height are zero
                 height_derivative_wrt_inner_radius = 0
                 height_derivative_wrt_height = 0
-                # Height is a constant, so all the derivatives with respect to it are set to zero
 
                 return [
                     [

@@ -11,6 +11,7 @@ pytest_plugins = [
     "tests.fixtures.environment.environment_fixtures",
     "tests.fixtures.flight.flight_fixtures",
     "tests.fixtures.function.function_fixtures",
+    "tests.fixtures.controller.controller_fixtures",
     "tests.fixtures.motor.liquid_fixtures",
     "tests.fixtures.motor.hybrid_fixtures",
     "tests.fixtures.motor.solid_motor_fixtures",

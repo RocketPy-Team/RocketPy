@@ -352,6 +352,7 @@ def acceptance_point_mass_rocket(acceptance_point_mass_motor):
         center_of_mass_without_motor=0,
         power_off_drag=0.43,
         power_on_drag=0.43,
+        weathercock_coeff=0.0,
     )
     rocket.add_motor(acceptance_point_mass_motor, position=0)
     return rocket
@@ -376,6 +377,7 @@ def flight_3dof_no_weathercock(example_spaceport_env, acceptance_point_mass_rock
     rocketpy.Flight
         A 3 DOF flight simulation with weathercock_coeff=0.0.
     """
+    acceptance_point_mass_rocket.weathercock_coeff = 0.0
     return Flight(
         rocket=acceptance_point_mass_rocket,
         environment=example_spaceport_env,
@@ -383,7 +385,6 @@ def flight_3dof_no_weathercock(example_spaceport_env, acceptance_point_mass_rock
         inclination=LAUNCH_INCLINATION,
         heading=LAUNCH_HEADING,
         simulation_mode="3 DOF",
-        weathercock_coeff=0.0,
     )
 
 
@@ -406,6 +407,7 @@ def flight_3dof_with_weathercock(example_spaceport_env, acceptance_point_mass_ro
     rocketpy.Flight
         A 3 DOF flight simulation with weathercock_coeff=1.0.
     """
+    acceptance_point_mass_rocket.weathercock_coeff = 1.0
     return Flight(
         rocket=acceptance_point_mass_rocket,
         environment=example_spaceport_env,
@@ -413,5 +415,4 @@ def flight_3dof_with_weathercock(example_spaceport_env, acceptance_point_mass_ro
         inclination=LAUNCH_INCLINATION,
         heading=LAUNCH_HEADING,
         simulation_mode="3 DOF",
-        weathercock_coeff=1.0,
     )

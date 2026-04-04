@@ -59,12 +59,12 @@ def flight_weathercock_zero(example_plain_env, point_mass_rocket):
     rocketpy.simulation.flight.Flight
         A Flight object configured for 3-DOF with zero weathercock coefficient.
     """
+    point_mass_rocket.weathercock_coeff = 0.0
     return Flight(
         rocket=point_mass_rocket,
         environment=example_plain_env,
         rail_length=1,
         simulation_mode="3 DOF",
-        weathercock_coeff=0.0,
     )
 
 
@@ -94,12 +94,12 @@ def flight_weathercock_pos(example_plain_env, point_mass_rocket):
     rocketpy.simulation.flight.Flight
         A Flight object configured for 3-DOF with weathercocking enabled.
     """
+    point_mass_rocket.weathercock_coeff = 1.0
     return Flight(
         rocket=point_mass_rocket,
         environment=example_plain_env,
         rail_length=1,
         simulation_mode="3 DOF",
-        weathercock_coeff=1.0,
     )
 
 
@@ -169,24 +169,16 @@ def test_invalid_simulation_mode(example_plain_env, calisto):
         )
 
 
-def test_weathercock_coeff_stored(example_plain_env, point_mass_rocket):
-    """Tests that the weathercock_coeff parameter is correctly stored.
+def test_weathercock_coeff_stored(point_mass_rocket):
+    """Tests that weathercock coefficient is stored in PointMassRocket.
 
     Parameters
     ----------
-    example_plain_env : rocketpy.Environment
-        A basic environment fixture for flight simulation.
     point_mass_rocket : rocketpy.PointMassRocket
         A point mass rocket fixture for 3-DOF simulation.
     """
-    flight = Flight(
-        rocket=point_mass_rocket,
-        environment=example_plain_env,
-        rail_length=1,
-        simulation_mode="3 DOF",
-        weathercock_coeff=2.5,
-    )
-    assert flight.weathercock_coeff == 2.5
+    point_mass_rocket.weathercock_coeff = 2.5
+    assert point_mass_rocket.weathercock_coeff == 2.5
 
 
 def test_weathercock_coeff_default(flight_3dof):
@@ -197,7 +189,7 @@ def test_weathercock_coeff_default(flight_3dof):
     flight_3dof : rocketpy.Flight
         A Flight object for a 3-DOF simulation, provided by the flight_3dof fixture.
     """
-    assert flight_3dof.weathercock_coeff == 0.0
+    assert flight_3dof.rocket.weathercock_coeff == 0.0
 
 
 def test_point_mass_rocket_3dof_uses_7d_drag_inputs(

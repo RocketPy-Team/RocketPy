@@ -236,3 +236,30 @@ def test_monte_carlo_callback(monte_carlo_calisto):
             monte_carlo_calisto.simulate(number_of_simulations=10, append=False)
     finally:
         _post_test_file_cleanup()
+
+
+@pytest.mark.slow
+def test_monte_carlo_simulate_convergence(monte_carlo_calisto):
+    """Tests the simulate_convergence method of the MonteCarlo class.
+
+    Parameters
+    ----------
+    monte_carlo_calisto : MonteCarlo
+        The MonteCarlo object, this is a pytest fixture.
+    """
+    try:
+        ci_history = monte_carlo_calisto.simulate_convergence(
+            target_attribute="apogee",
+            target_confidence=0.95,
+            tolerance=5.0,
+            max_simulations=20,
+            batch_size=5,
+            parallel=False,
+        )
+
+        assert isinstance(ci_history, list)
+        assert all(isinstance(width, float) for width in ci_history)
+        assert len(ci_history) >= 1
+        assert monte_carlo_calisto.num_of_loaded_sims <= 20
+    finally:
+        _post_test_file_cleanup()

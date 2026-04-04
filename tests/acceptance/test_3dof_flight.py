@@ -202,7 +202,7 @@ def test_3dof_weathercocking_coefficient_stored(flight_3dof_with_weathercock):
     flight_3dof_with_weathercock : rocketpy.Flight
         A 3 DOF flight simulation with weathercocking enabled.
     """
-    assert flight_3dof_with_weathercock.weathercock_coeff == 1.0
+    assert flight_3dof_with_weathercock.rocket.weathercock_coeff == 1.0
 
 
 def test_3dof_flight_post_processing_attributes(flight_3dof_no_weathercock):
@@ -399,6 +399,8 @@ def test_3dof_flight_reproducibility(
     acceptance_point_mass_rocket : rocketpy.PointMassRocket
         Rocket fixture for testing.
     """
+    acceptance_point_mass_rocket.weathercock_coeff = 0.5
+
     # Run simulation twice with same parameters
     flight1 = Flight(
         rocket=acceptance_point_mass_rocket,
@@ -407,7 +409,6 @@ def test_3dof_flight_reproducibility(
         inclination=LAUNCH_INCLINATION,
         heading=LAUNCH_HEADING,
         simulation_mode="3 DOF",
-        weathercock_coeff=0.5,
     )
 
     flight2 = Flight(
@@ -417,7 +418,6 @@ def test_3dof_flight_reproducibility(
         inclination=LAUNCH_INCLINATION,
         heading=LAUNCH_HEADING,
         simulation_mode="3 DOF",
-        weathercock_coeff=0.5,
     )
 
     # Results should be identical
@@ -452,6 +452,7 @@ def test_3dof_flight_different_weathercock_coefficients(
     flights = []
 
     for coeff in coefficients:
+        acceptance_point_mass_rocket.weathercock_coeff = coeff
         flight = Flight(
             rocket=acceptance_point_mass_rocket,
             environment=example_spaceport_env,
@@ -459,7 +460,6 @@ def test_3dof_flight_different_weathercock_coefficients(
             inclination=LAUNCH_INCLINATION,
             heading=LAUNCH_HEADING,
             simulation_mode="3 DOF",
-            weathercock_coeff=coeff,
         )
         flights.append(flight)
 

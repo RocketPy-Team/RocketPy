@@ -1,11 +1,11 @@
 import copy
+import csv
 import math
 
 import numpy as np
 
 from rocketpy.mathutils import Function
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
-from rocketpy.tools import load_generic_surface_csv
 
 
 class GenericSurface:
@@ -328,7 +328,7 @@ class GenericSurface:
         """
         if isinstance(input_data, str):
             # Input is assumed to be a file path to a CSV
-            return load_generic_surface_csv(input_data, coeff_name)
+            return self.__load_generic_surface_csv(input_data, coeff_name)
         elif isinstance(input_data, Function):
             if input_data.__dom_dim__ != 7:
                 raise ValueError(
@@ -379,3 +379,89 @@ class GenericSurface:
                 f"Invalid input for {coeff_name}: must be a CSV file path"
                 " or a callable."
             )
+
+    def __load_generic_surface_csv(self, file_path, coeff_name):  # pylint: disable=too-many-statements,import-outside-toplevel
+        """Load GenericSurface coefficient CSV into a 7D Function.
+
+        This loader expects header-based CSV data with one or more independent
+        variables among: alpha, beta, mach, reynolds, pitch_rate, yaw_rate,
+        roll_rate.
+        """
+        independent_vars = [
+            "alpha",
+            "beta",
+            "mach",
+            "reynolds",
+            "pitch_rate",
+            "yaw_rate",
+            "roll_rate",
+        ]
+
+        try:
+            with open(file_path, mode="r") as file:
+                reader = csv.reader(file)
+                header = next(reader)
+        except (FileNotFoundError, IOError) as e:
+            raise ValueError(f"Error reading {coeff_name} CSV file: {e}") from e
+        except StopIteration as e:
+            raise ValueError(f"Invalid or empty CSV file for {coeff_name}.") from e
+
+        if not header:
+            raise ValueError(f"Invalid or empty CSV file for {coeff_name}.")
+
+        header = [column.strip() for column in header]
+        present_columns = [col for col in independent_vars if col in header]
+
+        invalid_columns = [col for col in header[:-1] if col not in independent_vars]
+        if invalid_columns:
+            raise ValueError(
+                f"Invalid independent variable(s) in {coeff_name} CSV: "
+                f"{invalid_columns}. Valid options are: {independent_vars}."
+            )
+
+        if header[-1] in independent_vars:
+            raise ValueError(
+                f"Last column in {coeff_name} CSV must be the coefficient"
+                " value, not an independent variable."
+            )
+
+        if not present_columns:
+            raise ValueError(f"No independent variables found in {coeff_name} CSV.")
+
+        ordered_present_columns = [
+            col for col in header[:-1] if col in independent_vars
+        ]
+
+        csv_func = Function.from_regular_grid_csv(
+            file_path,
+            ordered_present_columns,
+            coeff_name,
+            extrapolation="natural",
+        )
+        if csv_func is None:
+            csv_func = Function(
+                file_path,
+                interpolation="linear",
+                extrapolation="natural",
+            )
+
+        def wrapper(alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate):
+            args_by_name = {
+                "alpha": alpha,
+                "beta": beta,
+                "mach": mach,
+                "reynolds": reynolds,
+                "pitch_rate": pitch_rate,
+                "yaw_rate": yaw_rate,
+                "roll_rate": roll_rate,
+            }
+            selected_args = [args_by_name[col] for col in ordered_present_columns]
+            return csv_func(*selected_args)
+
+        return Function(
+            wrapper,
+            independent_vars,
+            [coeff_name],
+            interpolation="linear",
+            extrapolation="natural",
+        )
