@@ -225,7 +225,117 @@ def mask_and_clean_dataset(*args):
     return data_array
 
 
-def find_longitude_index(longitude, lon_list):  # pylint: disable=too-many-statements
+def _normalize_longitude_value(longitude, lon_start, lon_end):
+    """Normalize longitude based on grid format [-180, 180] or [0, 360].
+
+    Parameters
+    ----------
+    longitude : float
+        The longitude to normalize.
+    lon_start : float
+        The first longitude value in the grid.
+    lon_end : float
+        The last longitude value in the grid.
+
+    Returns
+    -------
+    float
+        The normalized longitude value.
+    """
+    # Determine if file uses geographic longitudes in [-180, 180] or [0, 360].
+    # Do not remap projected x coordinates.
+    is_geographic_longitude = abs(lon_start) <= 360 and abs(lon_end) <= 360
+    if is_geographic_longitude:
+        if lon_start < 0 or lon_end < 0:
+            return longitude if longitude < 180 else -180 + longitude % 180
+        return longitude % 360
+    return longitude
+
+
+def _binary_search_coordinate_index(target_value, coord_list, is_ascending):
+    """Find insertion index for target value using binary search.
+
+    Parameters
+    ----------
+    target_value : float
+        The coordinate value to locate.
+    coord_list : list of float
+        The list of coordinate values.
+    is_ascending : bool
+        Whether the coordinate list is in ascending order.
+
+    Returns
+    -------
+    int
+        The insertion index such that coord_list[index-1] and coord_list[index]
+        bracket the target value.
+    """
+    low = 0
+    high = len(coord_list)
+    while low < high:
+        mid = (low + high) // 2
+        mid_value = float(coord_list[mid])
+        if (mid_value < target_value) if is_ascending else (mid_value > target_value):
+            low = mid + 1
+        else:
+            high = mid
+    return low
+
+
+def _adjust_boundary_coordinate_index(index, coord_list, coord_value):
+    """Adjust index for exact matches at grid boundaries.
+
+    Parameters
+    ----------
+    index : int
+        The current index from binary search.
+    coord_list : list of float
+        The list of coordinate values.
+    coord_value : float
+        The coordinate value being matched.
+
+    Returns
+    -------
+    int
+        The adjusted index after boundary handling.
+    """
+    coord_len = len(coord_list)
+    if index == 0 and math.isclose(float(coord_list[0]), coord_value):
+        return 1
+    if index == coord_len and float(coord_list[coord_len - 1]) == coord_value:
+        return index - 1
+    return index
+
+
+def _validate_coordinate_index_in_range(index, coord_len, coord_start, coord_end, coord_name):
+    """Validate that coordinate index is within valid interpolation range.
+
+    Parameters
+    ----------
+    index : int
+        The coordinate index to validate.
+    coord_len : int
+        The length of the coordinate list.
+    coord_start : float
+        The first coordinate value in the grid.
+    coord_end : float
+        The last coordinate value in the grid.
+    coord_name : str
+        The name of the coordinate (e.g., "Longitude", "Latitude").
+
+    Raises
+    ------
+    ValueError
+        If the index is out of valid range (0 or coord_len).
+    """
+    if index in (0, coord_len):
+        raise ValueError(
+            f"{coord_name} not inside region covered by file, which is "
+            f"from {coord_start} to {coord_end}."
+        )
+
+
+def find_longitude_index(longitude, lon_list):
     """Finds the index of the given longitude in a list of longitudes.
 
     Parameters
@@ -245,51 +355,17 @@ def find_longitude_index(longitude, lon_list):  # pylint: disable=too-many-state
     ValueError
         If the longitude is not within the range covered by the list.
     """
-
-    def _coord_value(source, index):
-        return float(source[index])
-
     lon_len = len(lon_list)
-    lon_start = _coord_value(lon_list, 0)
-    lon_end = _coord_value(lon_list, lon_len - 1)
+    lon_start = float(lon_list[0])
+    lon_end = float(lon_list[lon_len - 1])
 
-    # Determine if file uses geographic longitudes in [-180, 180] or [0, 360].
-    # Do not remap projected x coordinates.
-    is_geographic_longitude = abs(lon_start) <= 360 and abs(lon_end) <= 360
-    if is_geographic_longitude:
-        if lon_start < 0 or lon_end < 0:
-            lon = longitude if longitude < 180 else -180 + longitude % 180
-        else:
-            lon = longitude % 360
-    else:
-        lon = longitude
-
+    lon = _normalize_longitude_value(longitude, lon_start, lon_end)
     is_ascending = lon_start < lon_end
 
-    # Binary search to find the insertion index such that index-1 and index
-    # bracket the requested longitude.
-    low = 0
-    high = lon_len
-    while low < high:
-        mid = (low + high) // 2
-        mid_value = _coord_value(lon_list, mid)
-        if (mid_value < lon) if is_ascending else (mid_value > lon):
-            low = mid + 1
-        else:
-            high = mid
-    lon_index = low
+    lon_index = _binary_search_coordinate_index(lon, lon_list, is_ascending)
+    lon_index = _adjust_boundary_coordinate_index(lon_index, lon_list, lon)
 
-    # Take care of longitude value equal to minimum/maximum longitude in the grid
-    if lon_index == 0 and math.isclose(_coord_value(lon_list, 0), lon):
-        lon_index = 1
-    if lon_index == lon_len and _coord_value(lon_list, lon_index - 1) == lon:
-        lon_index -= 1
-    # Check if longitude value is inside the grid
-    if lon_index in (0, lon_len):
-        raise ValueError(
-            f"Longitude {lon} not inside region covered by file, which is "
-            f"from {lon_start} to {lon_end}."
-        )
+    _validate_coordinate_index_in_range(lon_index, lon_len, lon_start, lon_end, "Longitude")
 
     return lon, lon_index
 
@@ -314,37 +390,18 @@ def find_latitude_index(latitude, lat_list):
     ValueError
         If the latitude is not within the range covered by the list.
     """
-
-    def _coord_value(source, index):
-        return float(source[index])
-
     lat_len = len(lat_list)
-    lat_start = _coord_value(lat_list, 0)
-    lat_end = _coord_value(lat_list, lat_len - 1)
+    lat_start = float(lat_list[0])
+    lat_end = float(lat_list[lat_len - 1])
     is_ascending = lat_start < lat_end
 
-    low = 0
-    high = lat_len
-    while low < high:
-        mid = (low + high) // 2
-        mid_value = _coord_value(lat_list, mid)
-        if (mid_value < latitude) if is_ascending else (mid_value > latitude):
-            low = mid + 1
-        else:
-            high = mid
-    lat_index = low
+    lat_index = _binary_search_coordinate_index(latitude, lat_list, is_ascending)
+    lat_index = _adjust_boundary_coordinate_index(lat_index, lat_list, latitude)
 
-    # Take care of latitude value equal to minimum/maximum latitude in the grid
-    if lat_index == 0 and math.isclose(_coord_value(lat_list, 0), latitude):
-        lat_index = 1
-    if lat_index == lat_len and _coord_value(lat_list, lat_index - 1) == latitude:
-        lat_index -= 1
-    # Check if latitude value is inside the grid
-    if lat_index in (0, lat_len):
-        raise ValueError(
-            f"Latitude {latitude} not inside region covered by file, "
-            f"which is from {lat_start} to {lat_end}."
-        )
+    _validate_coordinate_index_in_range(
+        lat_index, lat_len, lat_start, lat_end, "Latitude"
+    )
+
     return latitude, lat_index
 
 
