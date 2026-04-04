@@ -172,7 +172,7 @@ class EllipticalFin(Fin):
         -------
         None
         """
-        # Center of pressure position in local coordinates
+        # Barrowman elliptical-fin center of pressure location.
         cpz = 0.288 * self.root_chord
         self.cpx = 0
         self.cpy = self.Yma
