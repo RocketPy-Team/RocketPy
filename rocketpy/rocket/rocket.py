@@ -1132,8 +1132,8 @@ class Rocket:
         -------
         None
         """
-        if isinstance(surfaces, list):
-            if isinstance(positions, list):
+        if isinstance(surfaces, Iterable):
+            if isinstance(positions, Iterable):
                 if len(surfaces) != len(positions):
                     raise ValueError(
                         "The number of surfaces and positions must be the same."
