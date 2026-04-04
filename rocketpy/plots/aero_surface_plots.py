@@ -141,9 +141,15 @@ class _FinsPlots(_AeroSurfacePlots):
     """Abstract class that contains all fin plots. This class inherits from the
     _AeroSurfacePlots class."""
 
-    def airfoil(self):
+    def airfoil(self, *, filename=None):
         """Plots the airfoil information when the fin has an airfoil shape. If
         the fin does not have an airfoil shape, this method does nothing.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved.
 
         Returns
         -------
@@ -152,55 +158,79 @@ class _FinsPlots(_AeroSurfacePlots):
 
         if self.aero_surface.airfoil:
             print("Airfoil lift curve:")
-            self.aero_surface.airfoil_cl.plot_1d(force_data=True)
+            self.aero_surface.airfoil_cl.plot_1d(force_data=True, filename=filename)
 
-    def roll(self):
+    def roll(self, *, filename=None):
         """Plots the roll parameters of the fin set.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved.
 
         Returns
         -------
         None
         """
         print("Roll parameters:")
-        self.aero_surface.roll_parameters[0]()
-        self.aero_surface.roll_parameters[1]()
+        self.aero_surface.roll_parameters[0](filename=filename)
+        self.aero_surface.roll_parameters[1](filename=filename)
 
-    def lift(self):
+    def lift(self, *, filename=None):
         """Plots the lift coefficient of the aero surface as a function of Mach
         and the angle of attack. A 3D plot is expected. See the rocketpy.Function
         class for more information on how this plot is made. Also, this method
         plots the lift coefficient considering a single fin and the lift
         coefficient considering all fins.
 
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved.
+
         Returns
         -------
         None
         """
         print("Lift coefficient:")
-        self.aero_surface.cl()
-        self.aero_surface.clalpha_single_fin()
-        self.aero_surface.clalpha_multiple_fins()
+        self.aero_surface.cl(filename=filename)
+        self.aero_surface.clalpha_single_fin(filename=filename)
+        self.aero_surface.clalpha_multiple_fins(filename=filename)
 
-    def all(self):
+    def all(self, *, filename=None):
         """Plots all available fin plots.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved.
 
         Returns
         -------
         None
         """
-        self.draw()
-        self.airfoil()
-        self.roll()
-        self.lift()
+        self.draw(filename=filename)
+        self.airfoil(filename=filename)
+        self.roll(filename=filename)
+        self.lift(filename=filename)
 
 
 class _FinPlots(_AeroSurfacePlots):
     """Abstract class that contains all fin plots. This class inherits from the
     _AeroSurfacePlots class."""
 
-    def airfoil(self):
+    def airfoil(self, *, filename=None):
         """Plots the airfoil information when the fin has an airfoil shape. If
         the fin does not have an airfoil shape, this method does nothing.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved.
 
         Returns
         -------
@@ -209,45 +239,63 @@ class _FinPlots(_AeroSurfacePlots):
 
         if self.aero_surface.airfoil:
             print("Airfoil lift curve:")
-            self.aero_surface.airfoil_cl.plot_1d(force_data=True)
+            self.aero_surface.airfoil_cl.plot_1d(force_data=True, filename=filename)
 
-    def roll(self):
+    def roll(self, *, filename=None):
         """Plots the roll parameters of the fin set.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved.
 
         Returns
         -------
         None
         """
         print("Roll parameters:")
-        self.aero_surface.roll_parameters[0]()
-        self.aero_surface.roll_parameters[1]()
+        self.aero_surface.roll_parameters[0](filename=filename)
+        self.aero_surface.roll_parameters[1](filename=filename)
 
-    def lift(self):
+    def lift(self, *, filename=None):
         """Plots the lift coefficient of the aero surface as a function of Mach
         and the angle of attack. A 3D plot is expected. See the rocketpy.Function
         class for more information on how this plot is made. Also, this method
         plots the lift coefficient considering a single fin and the lift
         coefficient considering all fins.
 
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved.
+
         Returns
         -------
         None
         """
         print("Lift coefficient:")
-        self.aero_surface.cl()
-        self.aero_surface.clalpha_single_fin()
+        self.aero_surface.cl(filename=filename)
+        self.aero_surface.clalpha_single_fin(filename=filename)
 
-    def all(self):
+    def all(self, *, filename=None):
         """Plots all available fin plots.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved.
 
         Returns
         -------
         None
         """
-        self.draw()
-        self.airfoil()
-        self.roll()
-        self.lift()
+        self.draw(filename=filename)
+        self.airfoil(filename=filename)
+        self.roll(filename=filename)
+        self.lift(filename=filename)
 
 
 class _TrapezoidalFinsPlots(_FinsPlots):
@@ -495,7 +543,7 @@ class _TrapezoidalFinPlots(_FinPlots):
         ax.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
 
         plt.tight_layout()
-        plt.show()
+        show_or_save_plot(filename)
 
 
 class _EllipticalFinsPlots(_FinsPlots):
@@ -643,7 +691,7 @@ class _EllipticalFinPlots(_FinPlots):
         ax.legend(bbox_to_anchor=(1.05, 1.0), loc="upper left")
 
         plt.tight_layout()
-        plt.show()
+        show_or_save_plot(filename)
 
 
 class _FreeFormFinsPlots(_FinsPlots):
