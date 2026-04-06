@@ -232,8 +232,11 @@ def test_gefs_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=u
     example_spaceport_env : rocketpy.Environment
         Example environment object to be tested.
     """
-    example_spaceport_env.set_atmospheric_model(type="Ensemble", file="GEFS")
-    assert example_spaceport_env.all_info() is None
+    with pytest.raises(
+        ValueError,
+        match="GEFS latest-model shortcut is currently unavailable",
+    ):
+        example_spaceport_env.set_atmospheric_model(type="Ensemble", file="GEFS")
 
 
 @pytest.mark.slow
@@ -288,13 +291,15 @@ def test_hiresw_ensemble_atmosphere(mock_show, example_spaceport_env):  # pylint
 
     example_spaceport_env.set_date(date_info)
 
-    example_spaceport_env.set_atmospheric_model(
-        type="Forecast",
-        file="HIRESW",
-        dictionary="HIRESW",
-    )
-
-    assert example_spaceport_env.all_info() is None
+    with pytest.raises(
+        ValueError,
+        match="HIRESW latest-model shortcut is currently unavailable",
+    ):
+        example_spaceport_env.set_atmospheric_model(
+            type="Forecast",
+            file="HIRESW",
+            dictionary="HIRESW",
+        )
 
 
 @pytest.mark.skip(reason="CMC model is currently not working")

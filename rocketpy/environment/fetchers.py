@@ -12,6 +12,8 @@ import requests
 
 from rocketpy.tools import exponential_backoff
 
+MAX_RETRY_DELAY_SECONDS = 600
+
 
 @exponential_backoff(max_attempts=3, base_delay=1, max_delay=60)
 def fetch_open_elevation(lat, lon):
@@ -93,8 +95,8 @@ def fetch_atmospheric_data_from_windy(lat, lon, model):
 
 
 def fetch_gfs_file_return_dataset(max_attempts=10, base_delay=2):
-    """Fetches the latest GFS (Global Forecast System) dataset from the NOAA's
-    GrADS data server using the OpenDAP protocol.
+    """Fetches the latest GFS (Global Forecast System) dataset from the UCAR
+    THREDDS data server using the OPeNDAP protocol.
 
     Parameters
     ----------
@@ -113,38 +115,23 @@ def fetch_gfs_file_return_dataset(max_attempts=10, base_delay=2):
     RuntimeError
         If unable to load the latest weather data for GFS.
     """
-    time_attempt = datetime.now(tz=timezone.utc)
+    file_url = (
+        "https://thredds.ucar.edu/thredds/dodsC/grib/NCEP/GFS/Global_0p25deg/Best"
+    )
     attempt_count = 0
-    dataset = None
-
-    # TODO: the code below is trying to determine the hour of the latest available
-    # forecast by trial and error. This is not the best way to do it. We should
-    # actually check the NOAA website for the latest forecast time. Refactor needed.
     while attempt_count < max_attempts:
-        time_attempt -= timedelta(hours=6)  # GFS updates every 6 hours
-        file_url = (
-            f"https://nomads.ncep.noaa.gov/dods/gfs_0p25/gfs"
-            f"{time_attempt.year:04d}{time_attempt.month:02d}"
-            f"{time_attempt.day:02d}/"
-            f"gfs_0p25_{6 * (time_attempt.hour // 6):02d}z"
-        )
         try:
-            # Attempts to create a dataset from the file using OpenDAP protocol.
-            dataset = netCDF4.Dataset(file_url)
-            return dataset
+            return netCDF4.Dataset(file_url)
         except OSError:
             attempt_count += 1
-            time.sleep(base_delay**attempt_count)
+            time.sleep(min(base_delay**attempt_count, MAX_RETRY_DELAY_SECONDS))
 
-    if dataset is None:
-        raise RuntimeError(
-            "Unable to load latest weather data for GFS through " + file_url
-        )
+    raise RuntimeError("Unable to load latest weather data for GFS through " + file_url)
 
 
 def fetch_nam_file_return_dataset(max_attempts=10, base_delay=2):
-    """Fetches the latest NAM (North American Mesoscale) dataset from the NOAA's
-    GrADS data server using the OpenDAP protocol.
+    """Fetches the latest NAM (North American Mesoscale) dataset from the UCAR
+    THREDDS data server using the OPeNDAP protocol.
 
     Parameters
     ----------
@@ -163,33 +150,21 @@ def fetch_nam_file_return_dataset(max_attempts=10, base_delay=2):
     RuntimeError
         If unable to load the latest weather data for NAM.
     """
-    # Attempt to get latest forecast
-    time_attempt = datetime.now(tz=timezone.utc)
+    file_url = "https://thredds.ucar.edu/thredds/dodsC/grib/NCEP/NAM/CONUS_12km/Best"
     attempt_count = 0
-    dataset = None
-
     while attempt_count < max_attempts:
-        time_attempt -= timedelta(hours=6)  # NAM updates every 6 hours
-        file = (
-            f"https://nomads.ncep.noaa.gov/dods/nam/nam{time_attempt.year:04d}"
-            f"{time_attempt.month:02d}{time_attempt.day:02d}/"
-            f"nam_conusnest_{6 * (time_attempt.hour // 6):02d}z"
-        )
         try:
-            # Attempts to create a dataset from the file using OpenDAP protocol.
-            dataset = netCDF4.Dataset(file)
-            return dataset
+            return netCDF4.Dataset(file_url)
         except OSError:
             attempt_count += 1
-            time.sleep(base_delay**attempt_count)
+            time.sleep(min(base_delay**attempt_count, MAX_RETRY_DELAY_SECONDS))
 
-    if dataset is None:
-        raise RuntimeError("Unable to load latest weather data for NAM through " + file)
+    raise RuntimeError("Unable to load latest weather data for NAM through " + file_url)
 
 
 def fetch_rap_file_return_dataset(max_attempts=10, base_delay=2):
-    """Fetches the latest RAP (Rapid Refresh) dataset from the NOAA's GrADS data
-    server using the OpenDAP protocol.
+    """Fetches the latest RAP (Rapid Refresh) dataset from the UCAR THREDDS
+    data server using the OPeNDAP protocol.
 
     Parameters
     ----------
@@ -208,28 +183,16 @@ def fetch_rap_file_return_dataset(max_attempts=10, base_delay=2):
     RuntimeError
         If unable to load the latest weather data for RAP.
     """
-    # Attempt to get latest forecast
-    time_attempt = datetime.now(tz=timezone.utc)
+    file_url = "https://thredds.ucar.edu/thredds/dodsC/grib/NCEP/RAP/CONUS_13km/Best"
     attempt_count = 0
-    dataset = None
-
     while attempt_count < max_attempts:
-        time_attempt -= timedelta(hours=1)  # RAP updates every hour
-        file = (
-            f"https://nomads.ncep.noaa.gov/dods/rap/rap{time_attempt.year:04d}"
-            f"{time_attempt.month:02d}{time_attempt.day:02d}/"
-            f"rap_{time_attempt.hour:02d}z"
-        )
         try:
-            # Attempts to create a dataset from the file using OpenDAP protocol.
-            dataset = netCDF4.Dataset(file)
-            return dataset
+            return netCDF4.Dataset(file_url)
         except OSError:
             attempt_count += 1
-            time.sleep(base_delay**attempt_count)
+            time.sleep(min(base_delay**attempt_count, MAX_RETRY_DELAY_SECONDS))
 
-    if dataset is None:
-        raise RuntimeError("Unable to load latest weather data for RAP through " + file)
+    raise RuntimeError("Unable to load latest weather data for RAP through " + file_url)
 
 
 def fetch_hiresw_file_return_dataset(max_attempts=10, base_delay=2):
@@ -280,7 +243,7 @@ def fetch_hiresw_file_return_dataset(max_attempts=10, base_delay=2):
             return dataset
         except OSError:
             attempt_count += 1
-            time.sleep(base_delay**attempt_count)
+            time.sleep(min(base_delay**attempt_count, MAX_RETRY_DELAY_SECONDS))
 
     if dataset is None:
         raise RuntimeError(
@@ -359,7 +322,7 @@ def fetch_gefs_ensemble():
             return dataset
         except OSError:
             attempt_count += 1
-            time.sleep(2**attempt_count)
+            time.sleep(min(2**attempt_count, MAX_RETRY_DELAY_SECONDS))
     if not success:
         raise RuntimeError(
             "Unable to load latest weather data for GEFS through " + file
@@ -401,6 +364,6 @@ def fetch_cmc_ensemble():
             return dataset
         except OSError:
             attempt_count += 1
-            time.sleep(2**attempt_count)
+            time.sleep(min(2**attempt_count, MAX_RETRY_DELAY_SECONDS))
     if not success:
         raise RuntimeError("Unable to load latest weather data for CMC through " + file)
