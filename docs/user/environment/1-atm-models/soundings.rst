@@ -59,7 +59,7 @@ Integrated Global Radiosonde Archive (IGRA).
 
 These options can be retrieved as a text file in GSD format. However,
 RocketPy no longer provides a dedicated ``set_atmospheric_model`` type for
-NOAA RUC Soundings.
+NOAA RUC Soundings, since NOAA has discontinued the OPENDAP service.
 
 .. note::
     

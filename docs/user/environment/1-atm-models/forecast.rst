@@ -6,8 +6,8 @@ Forecasts
 Weather forecasts can be used to set the atmospheric model in RocketPy.
 
 Here, we will showcase how to import global forecasts such as GFS, as well as
-local forecasts like NAM and RAP for North America, all available through
-OPeNDAP on the `NOAA's NCEP NOMADS <http://nomads.ncep.noaa.gov/>`_ website.
+local forecasts like NAM, RAP and HRRR for North America, all available through
+OPeNDAP on the `UCAR THREDDS <https://thredds.ucar.edu/>`_ server.
 Other generic forecasts can also be imported.
 
 .. important::
@@ -21,6 +21,10 @@ Other generic forecasts can also be imported.
 
 Global Forecast System (GFS)
 ----------------------------
+
+GFS is NOAA's global numerical weather prediction model. It provides worldwide
+atmospheric forecasts and is usually a good default choice when you need broad
+coverage, consistent availability, and launch planning several days ahead.
 
 Using the latest forecast from GFS is simple.
 Set the atmospheric model to ``forecast`` and specify that GFS is the file you want.
@@ -48,8 +52,33 @@ take longer than usual.
     `GFS overview page <https://www.emc.ncep.noaa.gov/emc/pages/numerical_forecast_systems/gfs.php>`_.
 
 
+Artificial Intelligence Global Forecast System (AIGFS)
+------------------------------------------------------
+
+AIGFS is a global AI-based forecast product distributed through the same THREDDS
+ecosystem used by other RocketPy forecast inputs. It is useful when you want a
+global forecast alternative to traditional physics-only models.
+
+RocketPy supports the latest AIGFS global forecast through THREDDS.
+
+.. jupyter-execute::
+
+    env_aigfs = Environment(date=tomorrow)
+    env_aigfs.set_atmospheric_model(type="forecast", file="AIGFS")
+    env_aigfs.plots.atmospheric_model()
+
+.. note::
+
+    AIGFS is currently available as a global 0.25 degree forecast product on
+    UCAR THREDDS.
+
+
 North American Mesoscale Forecast System (NAM)
 ----------------------------------------------
+
+NAM is a regional forecast model focused on North America. It is best suited
+for launches inside its coverage area when you want finer regional detail than
+global models typically provide.
 
 You can also request the latest forecasts from NAM.
 Since this is a regional model for North America, you need to specify latitude
@@ -77,6 +106,10 @@ We will use **SpacePort America** for this, represented by coordinates
 
 Rapid Refresh (RAP)
 -------------------
+
+RAP is a short-range, high-frequency regional model for North America. It is
+especially useful for near-term operations, where fast update cycles are more
+important than long forecast horizon.
 
 The Rapid Refresh (RAP) model is another regional model for North America.
 It is similar to NAM, but with a higher resolution and a shorter forecast range.
@@ -111,6 +144,17 @@ The same coordinates for SpacePort America will be used.
 High Resolution Window (HIRESW)
 -------------------------------
 
+HIRESW is a convection-allowing, high-resolution regional system designed to
+resolve local weather structure better than coarser grids. It is most useful
+for short-range, local analysis where small-scale wind and weather features
+matter.
+
+The High Resolution Window (HIRESW) model is a sophisticated weather forecasting
+system that operates at a high spatial resolution of approximately 3 km.
+It utilizes two main dynamical cores: the Advanced Research WRF (WRF-ARW) and
+the Finite Volume Cubed Sphere (FV3), each designed to enhance the accuracy of
+weather predictions.
+
 .. danger::
 
     **HIRESW shortcut unavailable**: ``file="HIRESW"`` is currently disabled in
@@ -120,6 +164,33 @@ If you have a HIRESW-compatible dataset from another provider (or a local copy),
 you can still load it explicitly by passing the path/URL in ``file`` and an
 appropriate mapping in ``dictionary``.
 
+
+High-Resolution Rapid Refresh (HRRR)
+------------------------------------
+
+HRRR is a high-resolution, short-range forecast model for North America with
+hourly updates. It is generally best for day-of-launch weather assessment and
+rapidly changing local conditions.
+
+RocketPy supports HRRR through a dedicated THREDDS shortcut.
+Like NAM and RAP, HRRR is a regional model over North America.
+
+If you have a HIRESW-compatible dataset from another provider (or a local copy),
+you can still load it explicitly by passing the path/URL in ``file`` and an
+appropriate mapping in ``dictionary``.
+
+    env_hrrr = Environment(
+        date=now_plus_twelve,
+        latitude=32.988528,
+        longitude=-106.975056,
+    )
+    env_hrrr.set_atmospheric_model(type="forecast", file="HRRR")
+    env_hrrr.plots.atmospheric_model()
+
+.. note::
+
+    HRRR is a high-resolution regional model with approximately 2.5 km grid
+    spacing over CONUS. Availability depends on upstream THREDDS data services.
 
 
 Using Windy Atmosphere
@@ -154,6 +225,10 @@ to EuRoC's launch area in Portugal.
 ECMWF
 ^^^^^
 
+ECMWF (HRES) is a global, high-skill forecast model known for strong
+medium-range performance. It is often a good choice for mission planning when
+you need reliable synoptic-scale forecasts several days ahead.
+
 We can use the ``ECMWF`` model from Windy.com. 
 
 .. jupyter-execute::
@@ -173,6 +248,10 @@ We can use the ``ECMWF`` model from Windy.com.
 GFS
 ^^^
 
+Windy's GFS option provides NOAA's global model through Windy's interface. It
+is a practical baseline for global coverage and for comparing against other
+models when assessing forecast uncertainty.
+
 The ``GFS`` model is also available on Windy.com. This is the same model as
 described in the :ref:`global-forecast-system` section.
 
@@ -185,6 +264,10 @@ described in the :ref:`global-forecast-system` section.
 
 ICON
 ^^^^
+
+ICON is DWD's global weather model, available in Windy for broad-scale
+forecasting. It is useful as an independent global model source to cross-check
+wind and temperature trends against GFS or ECMWF.
 
 The ICON model is a global weather forecasting model already available on Windy.com.
 
@@ -202,6 +285,10 @@ The ICON model is a global weather forecasting model already available on Windy.
 
 ICON-EU
 ^^^^^^^
+
+ICON-EU is the regional European configuration of ICON, with higher spatial
+detail over Europe than ICON-Global. It is best for European launch sites when
+regional structure is important.
 
 The ICON-EU model is a regional weather forecasting model available on Windy.com.
 

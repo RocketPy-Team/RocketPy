@@ -89,8 +89,10 @@ Instead of a custom dictionary, you can pass a built-in mapping name in the
 - ``"ECMWF_v0"``
 - ``"NOAA"``
 - ``"GFS"``
+- ``"AIGFS"``
 - ``"NAM"``
 - ``"RAP"``
+- ``"HRRR"``
 - ``"HIRESW"`` (mapping available; latest-model shortcut currently disabled)
 - ``"GEFS"`` (mapping available; latest-model shortcut currently disabled)
 - ``"MERRA2"``
@@ -116,10 +118,7 @@ legacy aliases:
 - ``"NAM_LEGACY"``
 - ``"NOAA_LEGACY"``
 - ``"RAP_LEGACY"``
-- ``"CMC_LEGACY"``
 - ``"GEFS_LEGACY"``
-- ``"HIRESW_LEGACY"``
-- ``"MERRA2_LEGACY"``
 
 Legacy aliases primarily cover older variable naming patterns such as
 ``lev``, ``tmpprs``, ``hgtprs``, ``ugrdprs`` and ``vgrdprs``.
