@@ -61,6 +61,8 @@ The following figure shows the two possibilities for the user input coordinate s
    the same as the **Body Axes Coordinate System**. The origin of the coordinate \
    system may still be different.
 
+.. _angular_position:
+
 Angular Position Inputs
 ~~~~~~~~~~~~~~~~~~~~~~~
 
