@@ -19,7 +19,7 @@ jobs:
         with:
           repository: RocketPy-Team/RocketPy
           ref: develop
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.RELEASE_TOKEN }}
 
       - name: Update Changelog
         env:
