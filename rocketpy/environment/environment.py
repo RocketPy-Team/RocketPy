@@ -11,10 +11,12 @@ import numpy as np
 import pytz
 
 from rocketpy.environment.fetchers import (
+    fetch_aigfs_file_return_dataset,
     fetch_atmospheric_data_from_windy,
     fetch_gefs_ensemble,
     fetch_gfs_file_return_dataset,
     fetch_hiresw_file_return_dataset,
+    fetch_hrrr_file_return_dataset,
     fetch_nam_file_return_dataset,
     fetch_open_elevation,
     fetch_rap_file_return_dataset,
@@ -369,9 +371,11 @@ class Environment:
         self.__weather_model_map = WeatherModelMapping()
         self.__atm_type_file_to_function_map = {
             "forecast": {
+                "AIGFS": fetch_aigfs_file_return_dataset,
                 "GFS": fetch_gfs_file_return_dataset,
                 "NAM": fetch_nam_file_return_dataset,
                 "RAP": fetch_rap_file_return_dataset,
+                "HRRR": fetch_hrrr_file_return_dataset,
                 "HIRESW": fetch_hiresw_file_return_dataset,
             },
             "ensemble": {
@@ -665,9 +669,11 @@ class Environment:
     def __validate_dictionary(self, file, dictionary):
         # removed CMC until it is fixed.
         available_models = [
+            "AIGFS",
             "GFS",
             "NAM",
             "RAP",
+            "HRRR",
             "HIRESW",
             "GEFS",
             "ERA5",
@@ -1132,8 +1138,9 @@ class Environment:
             - ``"windy"``: one of ``"ECMWF"``, ``"GFS"``, ``"ICON"`` or
               ``"ICONEU"``.
             - ``"forecast"``: local path, OPeNDAP URL, open
-              ``netCDF4.Dataset``, or one of ``"GFS"``, ``"NAM"`` or ``"RAP"``
-              for the latest available forecast.
+              ``netCDF4.Dataset``, or one of ``"AIGFS"``, ``"GFS"``,
+              ``"NAM"``, ``"RAP"``, ``"HRRR"`` or ``"HIRESW"`` for the
+              latest available forecast.
             - ``"reanalysis"``: local path, OPeNDAP URL, or open
               ``netCDF4.Dataset``.
             - ``"ensemble"``: local path, OPeNDAP URL, open
@@ -1143,8 +1150,9 @@ class Environment:
             Variable-name mapping for ``"forecast"``, ``"reanalysis"`` and
             ``"ensemble"``. It may be a custom dictionary or a built-in
             mapping name (for example: ``"ECMWF"``, ``"ECMWF_v0"``,
-            ``"NOAA"``, ``"GFS"``, ``"NAM"``, ``"RAP"``, ``"HIRESW"``,
-            ``"GEFS"``, ``"MERRA2"`` or ``"CMC"``).
+            ``"NOAA"``, ``"AIGFS"``, ``"GFS"``, ``"NAM"``, ``"RAP"``,
+            ``"HRRR"``, ``"HIRESW"``, ``"GEFS"``, ``"MERRA2"`` or
+            ``"CMC"``).
 
             If ``dictionary`` is omitted and ``file`` is one of RocketPy's
             latest-model shortcuts, the matching built-in mapping is selected
@@ -1761,13 +1769,17 @@ class Environment:
         # Some THREDDS datasets use projected x/y coordinates.
         if dictionary.get("projection") is not None:
             projection_variable = data.variables[dictionary["projection"]]
-            x_units = getattr(lon_array, "units", "m")
-            target_lon, target_lat = geodesic_to_lambert_conformal(
-                self.latitude,
-                self.longitude,
-                projection_variable,
-                x_units=x_units,
-            )
+            if dictionary.get("projection") == "LambertConformal_Projection":
+                x_units = getattr(lon_array, "units", "m")
+                target_lon, target_lat = geodesic_to_lambert_conformal(
+                    self.latitude,
+                    self.longitude,
+                    projection_variable,
+                    x_units=x_units,
+                )
+            else:
+                target_lon = self.longitude
+                target_lat = self.latitude
         else:
             target_lon = self.longitude
             target_lat = self.latitude
@@ -2065,13 +2077,17 @@ class Environment:
         # coordinate system before locating the nearest grid cell.
         if dictionary.get("projection") is not None:
             projection_variable = data.variables[dictionary["projection"]]
-            x_units = getattr(lon_array, "units", "m")
-            target_lon, target_lat = geodesic_to_lambert_conformal(
-                self.latitude,
-                self.longitude,
-                projection_variable,
-                x_units=x_units,
-            )
+            if dictionary.get("projection") == "LambertConformal_Projection":
+                x_units = getattr(lon_array, "units", "m")
+                target_lon, target_lat = geodesic_to_lambert_conformal(
+                    self.latitude,
+                    self.longitude,
+                    projection_variable,
+                    x_units=x_units,
+                )
+            else:
+                target_lon = self.longitude
+                target_lat = self.latitude
         else:
             target_lon = self.longitude
             target_lat = self.latitude
