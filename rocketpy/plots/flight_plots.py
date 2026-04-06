@@ -1,8 +1,12 @@
+import os
+import time
 from functools import cached_property
+from importlib import resources
 
 import matplotlib.pyplot as plt
 import numpy as np
 
+from ..tools import import_optional_dependency
 from .plot_helpers import show_or_save_plot
 
 
@@ -132,6 +136,308 @@ class _FlightPlots:
         ax1.view_init(15, 45)
         ax1.set_box_aspect(None, zoom=0.95)  # 95% for label adjustment
         show_or_save_plot(filename)
+
+    def _resolve_animation_model_path(self, file_name):
+        """Resolve model path, defaulting to the built-in STL when omitted."""
+        if file_name is not None:
+            return file_name
+
+        return str(
+            resources.files("rocketpy.plots").joinpath("assets/default_rocket.stl")
+        )
+
+    def _validate_animation_inputs(self, file_name, start, stop, time_step):
+        """Validate shared input parameters for 3D animation methods."""
+        if time_step <= 0:
+            raise ValueError(
+                f"Invalid time_step: {time_step}. It must be greater than 0."
+            )
+
+        if stop is None:
+            stop = self.flight.t_final
+
+        if (
+            start < 0
+            or stop < 0
+            or start > self.flight.t_final
+            or stop > self.flight.t_final
+            or start >= stop
+        ):
+            raise ValueError(
+                f"Invalid animation time range: start={start}, stop={stop}. "
+                f"Both must be within [0, {self.flight.t_final}] and start < stop."
+            )
+
+        if not os.path.isfile(file_name):
+            raise FileNotFoundError(
+                f"Could not find the 3D model file: '{file_name}'. "
+                "Provide a valid .stl file path."
+            )
+
+        return stop
+
+    @staticmethod
+    def _rotation_from_quaternion(q0, q1, q2, q3):
+        """Convert unit quaternion to axis-angle representation in degrees.
+
+        Parameters
+        ----------
+        q0 : float
+            Scalar part of the unit quaternion.
+        q1 : float
+            First vector component of the unit quaternion.
+        q2 : float
+            Second vector component of the unit quaternion.
+        q3 : float
+            Third vector component of the unit quaternion.
+
+        Returns
+        -------
+        angle_deg : float
+            Rotation angle in degrees.
+        axis : tuple of float
+            Unit rotation axis as (x, y, z).
+        """
+        norm = np.sqrt(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3)
+        if norm == 0:
+            return 0.0, (1.0, 0.0, 0.0)
+
+        q0 = q0 / norm
+        q1 = q1 / norm
+        q2 = q2 / norm
+        q3 = q3 / norm
+
+        # q and -q represent the same orientation. Keep q0 non-negative to
+        # reduce discontinuities in axis-angle interpolation across frames.
+        if q0 < 0:
+            q0 = -q0
+            q1 = -q1
+            q2 = -q2
+            q3 = -q3
+
+        q0 = np.clip(q0, -1.0, 1.0)
+        angle = 2 * np.arccos(q0)
+        sin_half = np.sqrt(max(1 - q0 * q0, 0.0))
+
+        if sin_half < 1e-12:
+            return 0.0, (1.0, 0.0, 0.0)
+
+        axis = (q1 / sin_half, q2 / sin_half, q3 / sin_half)
+        return np.degrees(angle), axis
+
+    def _create_animation_box(self, start, scale=1.0):
+        """Create a world bounding box with minimum visible dimensions.
+
+        Parameters
+        ----------
+        start : float
+            Animation start time in seconds.
+        scale : float, optional
+            Scaling factor applied to trajectory extents. Default is 1.0.
+
+        Returns
+        -------
+        vedo.Box
+            A wireframe box centred on the trajectory extents.
+        """
+        min_box_dim = 10.0
+        x_values = self.flight.x[:, 1]
+        y_values = self.flight.y[:, 1]
+        z_values = self.flight.z[:, 1] - self.flight.env.elevation
+
+        center_x = 0.5 * (np.max(x_values) + np.min(x_values))
+        center_y = 0.5 * (np.max(y_values) + np.min(y_values))
+        center_z = max(self.flight.z(start) - self.flight.env.elevation, 0.0)
+
+        length = max(np.ptp(x_values) * scale, min_box_dim)
+        width = max(np.ptp(y_values) * scale, min_box_dim)
+        height = max(np.ptp(z_values) * scale, min_box_dim)
+
+        # Keep z centre inside visible space while preserving minimum box size.
+        center_z = max(center_z, 0.5 * min_box_dim)
+
+        vedo = import_optional_dependency("vedo")
+        Box = vedo.Box
+
+        return Box(
+            pos=[center_x, center_y, center_z],
+            length=length,
+            width=width,
+            height=height,
+        ).wireframe()
+
+    def animate_trajectory(
+        self, file_name=None, start=0, stop=None, time_step=0.1, **kwargs
+    ):
+        """Animate 6-DOF trajectory and attitude using vedo.
+
+        Parameters
+        ----------
+        file_name : str | None, optional
+            Path to a 3D model file representing the rocket, usually ``.stl``.
+            If None, RocketPy uses a built-in default STL model.
+            Default is None.
+        start : int, float, optional
+            Animation start time in seconds. Default is 0.
+        stop : int, float | None, optional
+            Animation end time in seconds. If None, uses ``flight.t_final``.
+            Default is None.
+        time_step : float, optional
+            Animation frame step in seconds. Must be greater than 0.
+            Default is 0.1.
+        **kwargs : dict, optional
+            Additional keyword arguments passed to ``vedo.Plotter.show``.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        Requires the ``vedo`` package. Install it with::
+
+            pip install rocketpy[animation]
+        """
+        vedo = import_optional_dependency("vedo")
+
+        Line = vedo.Line
+        Mesh = vedo.Mesh
+        Plotter = vedo.Plotter
+        settings = vedo.settings
+
+        file_name = self._resolve_animation_model_path(file_name)
+        stop = self._validate_animation_inputs(file_name, start, stop, time_step)
+
+        try:
+            settings.allow_interaction = True
+        except AttributeError:
+            pass
+
+        world = self._create_animation_box(start, scale=1.2)
+        base_rocket = Mesh(file_name).c("green")
+        time_steps = np.arange(start, stop, time_step)
+        trajectory_points = []
+
+        plt = Plotter(axes=1, interactive=False)
+        plt.show(world, "Rocket Trajectory Animation", viewup="z", **kwargs)
+
+        for t in time_steps:
+            rocket = base_rocket.clone()
+            x_position = self.flight.x(t)
+            y_position = self.flight.y(t)
+            z_position = self.flight.z(t) - self.flight.env.elevation
+
+            angle_deg, axis = self._rotation_from_quaternion(
+                self.flight.e0(t),
+                self.flight.e1(t),
+                self.flight.e2(t),
+                self.flight.e3(t),
+            )
+
+            rocket.pos(x_position, y_position, z_position)
+            if angle_deg != 0.0:
+                rocket.rotate(angle_deg, axis=axis)
+
+            trajectory_points.append([x_position, y_position, z_position])
+            actors = [world, rocket]
+            if len(trajectory_points) > 1:
+                actors.append(Line(trajectory_points, c="k", alpha=0.5))
+
+            plt.show(*actors, resetcam=False)
+
+            # Pause to maintain consistent animation speed and make each frame visible
+            start_pause = time.time()
+            while time.time() - start_pause < time_step:
+                plt.render()
+
+            if getattr(plt, "escaped", False):
+                break
+
+        plt.interactive().close()
+        return None
+
+    def animate_rotate(
+        self, file_name=None, start=0, stop=None, time_step=0.1, **kwargs
+    ):
+        """Animate rocket attitude (rotation-only view) using vedo.
+
+        Parameters
+        ----------
+        file_name : str | None, optional
+            Path to a 3D model file representing the rocket, usually ``.stl``.
+            If None, RocketPy uses a built-in default STL model.
+            Default is None.
+        start : int, float, optional
+            Animation start time in seconds. Default is 0.
+        stop : int, float | None, optional
+            Animation end time in seconds. If None, uses ``flight.t_final``.
+            Default is None.
+        time_step : float, optional
+            Animation frame step in seconds. Must be greater than 0.
+            Default is 0.1.
+        **kwargs : dict, optional
+            Additional keyword arguments passed to ``vedo.Plotter.show``.
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        Requires the ``vedo`` package. Install it with::
+
+            pip install rocketpy[animation]
+        """
+        vedo = import_optional_dependency("vedo")
+
+        Mesh = vedo.Mesh
+        Plotter = vedo.Plotter
+        settings = vedo.settings
+
+        file_name = self._resolve_animation_model_path(file_name)
+        stop = self._validate_animation_inputs(file_name, start, stop, time_step)
+
+        try:
+            settings.allow_interaction = True
+        except AttributeError:
+            pass
+
+        world = self._create_animation_box(start, scale=0.3)
+        base_rocket = Mesh(file_name).c("green")
+        time_steps = np.arange(start, stop, time_step)
+
+        x_start = self.flight.x(start)
+        y_start = self.flight.y(start)
+        z_start = self.flight.z(start) - self.flight.env.elevation
+
+        plt = Plotter(axes=1, interactive=False)
+        plt.show(world, "Rocket Rotation Animation", viewup="z", **kwargs)
+
+        for t in time_steps:
+            rocket = base_rocket.clone()
+            angle_deg, axis = self._rotation_from_quaternion(
+                self.flight.e0(t),
+                self.flight.e1(t),
+                self.flight.e2(t),
+                self.flight.e3(t),
+            )
+
+            rocket.pos(x_start, y_start, z_start)
+            if angle_deg != 0.0:
+                rocket.rotate(angle_deg, axis=axis)
+
+            plt.show(world, rocket, resetcam=False)
+
+            # Pause to maintain consistent animation speed and make each frame visible
+            start_pause = time.time()
+            while time.time() - start_pause < time_step:
+                plt.render()
+
+            if getattr(plt, "escaped", False):
+                break
+
+        plt.interactive().close()
+        return None
 
     def linear_kinematics_data(self, *, filename=None):  # pylint: disable=too-many-statements
         """Prints out all Kinematics graphs available about the Flight

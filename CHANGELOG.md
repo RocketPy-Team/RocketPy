@@ -32,7 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
--
+- ENH: Add 3D flight trajectory and attitude animations in Flight plots layer [#909](https://github.com/RocketPy-Team/RocketPy/pull/909)
 
 ### Changed
 
