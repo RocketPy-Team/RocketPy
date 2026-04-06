@@ -217,12 +217,12 @@ class _FlightPlots:
 
         q0 = np.clip(q0, -1.0, 1.0)
         angle = 2 * np.arccos(q0)
-        sin_half = np.sqrt(max(1 - q0 * q0, 0.0))
+        sin_half_angle = np.sqrt(max(1 - q0 * q0, 0.0))
 
-        if sin_half < 1e-12:
+        if sin_half_angle < 1e-12:
             return 0.0, (1.0, 0.0, 0.0)
 
-        axis = (q1 / sin_half, q2 / sin_half, q3 / sin_half)
+        axis = (q1 / sin_half_angle, q2 / sin_half_angle, q3 / sin_half_angle)
         return np.degrees(angle), axis
 
     def _create_animation_box(self, start, scale=1.0):
@@ -346,8 +346,8 @@ class _FlightPlots:
             plt.show(*actors, resetcam=False)
 
             # Pause to maintain consistent animation speed and make each frame visible
-            start_pause = time.time()
-            while time.time() - start_pause < time_step:
+            frame_start_time = time.time()
+            while time.time() - frame_start_time < time_step:
                 plt.render()
 
             if getattr(plt, "escaped", False):
@@ -429,8 +429,8 @@ class _FlightPlots:
             plt.show(world, rocket, resetcam=False)
 
             # Pause to maintain consistent animation speed and make each frame visible
-            start_pause = time.time()
-            while time.time() - start_pause < time_step:
+            frame_start_time = time.time()
+            while time.time() - frame_start_time < time_step:
                 plt.render()
 
             if getattr(plt, "escaped", False):
