@@ -619,7 +619,7 @@ class Flight:
         self.ode_solver = ode_solver
 
         # Events
-        def out_of_rail_trigger(state):
+        def out_of_rail_trigger(state, **kwargs) -> bool:
             return (
                 state[0] ** 2 + state[1] ** 2 + (state[2] - self.env.elevation) ** 2
                 >= self.effective_1rl**2
