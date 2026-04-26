@@ -190,8 +190,7 @@ def get_pressure_levels_from_file(data, dictionary):
         If the pressure levels cannot be read from the file.
     """
     try:
-        # Convert mbar to Pa
-        levels = 100 * data.variables[dictionary["level"]][:]
+        levels = data.variables[dictionary["level"]][:]
     except KeyError as e:
         raise ValueError(
             "Unable to read pressure levels from file. Check file and dictionary."
