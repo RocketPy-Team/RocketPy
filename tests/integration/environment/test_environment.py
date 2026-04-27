@@ -45,6 +45,7 @@ def test_era5_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=u
         type="Reanalysis",
         file="data/weather/SpaceportAmerica_2018_ERA-5.nc",
         dictionary="ECMWF",
+        pressure_conversion_factor="hPa",
     )
     assert example_spaceport_env.all_info() is None
 

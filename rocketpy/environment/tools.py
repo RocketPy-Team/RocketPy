@@ -169,7 +169,7 @@ def geodesic_to_lambert_conformal(lat, lon, projection_variable, x_units="m"):
 ## These functions are meant to be used with netcdf4 datasets
 
 
-def get_pressure_levels_from_file(data, dictionary):
+def get_pressure_levels_from_file(data, dictionary, conversion_factor):
     """Extracts pressure levels from a netCDF4 dataset and converts them to Pa.
 
     Parameters
@@ -178,6 +178,9 @@ def get_pressure_levels_from_file(data, dictionary):
         The netCDF4 dataset containing the pressure level data.
     dictionary : dict
         A dictionary mapping variable names to dataset keys.
+    conversion_factor : float, int
+        Specifies the factor by which the pressure will be multiplied
+        in order to transform it to Pascal.
 
     Returns
     -------
@@ -190,7 +193,7 @@ def get_pressure_levels_from_file(data, dictionary):
         If the pressure levels cannot be read from the file.
     """
     try:
-        levels = data.variables[dictionary["level"]][:]
+        levels = conversion_factor * data.variables[dictionary["level"]][:]
     except KeyError as e:
         raise ValueError(
             "Unable to read pressure levels from file. Check file and dictionary."
