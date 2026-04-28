@@ -1,31 +1,33 @@
 import inspect
-from typing import get_type_hints
 import warnings
+from typing import get_type_hints
+
+
 class Event:
     # TODO: should "sensors" arg of the trigger function be a dictionary instead
-    #  of a list? It would be more intuitive to access the sensors by name 
+    #  of a list? It would be more intuitive to access the sensors by name
     def __init__(self, trigger, action, name, event_context=None):
         """Initializes an Event object.
 
         Parameters
         ----------
         trigger : function
-            A function that must return a boolean value. The event will be 
-            triggered when this function returns True. The function should be 
+            A function that must return a boolean value. The event will be
+            triggered when this function returns True. The function should be
             defined with the following signature: trigger(**kwargs), where
             kwargs is a dictionary containing the keys:
 
                 - `"time"` (float): The current simulation time in seconds.
                 - `"state"` (list): The state vector of the simulation, structured
                   as `[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]`.
-                - `"state_dot"` (list): The time derivative of the state vector, 
+                - `"state_dot"` (list): The time derivative of the state vector,
                   structured as `[vx, vy, vz, ax, ay, az, e0_dot, e1_dot, e2_dot, e3_dot, wx_dot, wy_dot, wz_dot]`.
                 - `"sampling_rate"` (float or None): The sampling rate of the
                   event, in seconds. If None, the event will be checked for
                   triggering at every time step of the simulation. If a float
-                  value is provided, the event will only be checked for 
+                  value is provided, the event will only be checked for
                   triggering at that specific time interval.
-                - `"sensors"` (list): A list of sensors that are attached to the 
+                - `"sensors"` (list): A list of sensors that are attached to the
                   rocket. The most recent measurements of the sensors are provided
                   with the ``sensor.measurement`` attribute. The sensors are
                   listed in the same order as they are added to the rocket.
@@ -37,20 +39,20 @@ class Event:
                 - `"phase_index"` (int): The index of the current flight phase.
                 - `"node_index"` (int): The index of the current node in the
                   current flight phase.
-                - Any additional custom key-value pairs provided via the 
+                - Any additional custom key-value pairs provided via the
                   `event_context` parameter (see below).
-                
+
         action : function
             A function that will be executed when the event is triggered. The
-            function should be defined with the following signature: 
+            function should be defined with the following signature:
             action(**kwargs), where kwargs is a dictionary containing the same
             keys as the trigger function. The action function can also modify
             the state of the simulation by returning a dictionary with the keys:
                 - `"state"` (list): A new state vector to replace the current state
                   vector. The structure of the state vector is the same as the
                   one provided in the trigger function.
-                - `"disable_event"` (bool): If True, the event will not be 
-                  checked for triggering again after being triggered, making 
+                - `"disable_event"` (bool): If True, the event will not be
+                  checked for triggering again after being triggered, making
                   it a one-time event. Defaults to True.
                 - `"new_events"` (list): A list of new Event objects to be added
                   to the simulation when the event is triggered. This can be
@@ -58,38 +60,38 @@ class Event:
                   triggered, such as a parachute deployment event that spawns
                   a new event to check for the parachute deployment after a
                   certain time delay.
-                - `"remove_events"` (list): A list of Event objects to be 
-                  removed from the simulation when the event is triggered. This 
-                  can be used to create events that remove other events when 
-                  they are triggered, such as a parachute deployment event that 
+                - `"remove_events"` (list): A list of Event objects to be
+                  removed from the simulation when the event is triggered. This
+                  can be used to create events that remove other events when
+                  they are triggered, such as a parachute deployment event that
                   removes the apogee event when it is triggered.
-                - Any other key-value pairs defined in `event_context` will 
-                  also be included. These allow you to maintain custom state or 
-                  counters across multiple trigger and action calls. Use cases 
+                - Any other key-value pairs defined in `event_context` will
+                  also be included. These allow you to maintain custom state or
+                  counters across multiple trigger and action calls. Use cases
                   include: tracking the number of times an event has been triggered
-                  (e.g., `{"trigger_count": 0}`), recording the time of the last 
-                  trigger (e.g., `{"last_trigger_time": None}`), or any other 
+                  (e.g., `{"trigger_count": 0}`), recording the time of the last
+                  trigger (e.g., `{"last_trigger_time": None}`), or any other
                   custom data your trigger/action functions need to share state.
-                  
-                  Example: If you initialize the event with 
-                  `event_context={"trigger_count": 0}`, your trigger and action 
-                  functions will receive `trigger_count=0` in their kwargs dict. 
-                  You can then update this value in the action function by 
-                  including it in the returned dictionary (e.g., 
-                  `{"trigger_count": 1}`), and it will be passed to subsequent 
+
+                  Example: If you initialize the event with
+                  `event_context={"trigger_count": 0}`, your trigger and action
+                  functions will receive `trigger_count=0` in their kwargs dict.
+                  You can then update this value in the action function by
+                  including it in the returned dictionary (e.g.,
+                  `{"trigger_count": 1}`), and it will be passed to subsequent
                   trigger/action calls.
 
         name : str
             A name for the event, used for identification purposes.
         event_context : dict, optional
-            A dictionary of custom key-value pairs that will be passed to the 
-            trigger and action functions. This allows you to initialize and 
-            maintain custom state that persists across multiple trigger/action 
-            calls. For example, `event_context={"trigger_count": 0, 
-            "last_trigger_time": None}` can be used to track event state. 
-            When the action function returns a dictionary with updated values 
-            (e.g., `{"trigger_count": 1}`), those values persist and are 
-            passed to subsequent calls. Defaults to an empty dictionary if not 
+            A dictionary of custom key-value pairs that will be passed to the
+            trigger and action functions. This allows you to initialize and
+            maintain custom state that persists across multiple trigger/action
+            calls. For example, `event_context={"trigger_count": 0,
+            "last_trigger_time": None}` can be used to track event state.
+            When the action function returns a dictionary with updated values
+            (e.g., `{"trigger_count": 1}`), those values persist and are
+            passed to subsequent calls. Defaults to an empty dictionary if not
             provided.
         """
         self.name = name
@@ -125,31 +127,40 @@ class Event:
         # 3. Consider allowing signature to be flexible (accepts **kwargs)
         #  to accommodate user-defined custom event_context keys
         # verify if the return type is bool when annotated
-        return_annotation = get_type_hints(trigger).get('return', None)
+        return_annotation = get_type_hints(trigger).get("return", None)
         if return_annotation is not None and return_annotation is not bool:
-            raise ValueError(f"Trigger function {self.name} must return a boolean value.")
+            raise ValueError(
+                f"Trigger function {self.name} must return a boolean value."
+            )
         # verify if the trigger function accepts **kwargs and therefore can
         # receive standard event arguments plus custom event_context keys
         s = inspect.signature(trigger)
-        if not any(p.kind == inspect.Parameter.VAR_KEYWORD for p in s.parameters.values()):
+        if not any(
+            p.kind == inspect.Parameter.VAR_KEYWORD for p in s.parameters.values()
+        ):
             raise ValueError(
                 f"Trigger function {self.name} must accept **kwargs to receive event context "
                 f"and simulation state."
             )
-        if any(p.kind == inspect.Parameter.POSITIONAL_ONLY for p in s.parameters.values()):
+        if any(
+            p.kind == inspect.Parameter.POSITIONAL_ONLY for p in s.parameters.values()
+        ):
             raise ValueError(
                 f"Trigger function {self.name} must accept keyword arguments; "
                 "positional-only parameters are not supported."
             )
+
         # Helper function to generate dummy values based on type annotations
         # of parameters, allowing to test the function without real values
         def _placeholder_for_parameter(parameter):
             annotation = parameter.annotation
             if annotation is inspect.Parameter.empty:
-                warnings.warn(f"Trigger function {self.name}: Test with parameters skipped due "
-                              f"to missing type annotation for parameter '{parameter.name}'. \n"
+                warnings.warn(
+                    f"Trigger function {self.name}: Test with parameters skipped due "
+                    f"to missing type annotation for parameter '{parameter.name}'. \n"
                     f"Is highly recommended that parameters have type annotations "
-                              f"(var: type). Parameter '{parameter.name}' has no annotation.")
+                    f"(var: type). Parameter '{parameter.name}' has no annotation."
+                )
                 skip_test = True
                 return None, skip_test
             if annotation in (int, float):
@@ -164,6 +175,7 @@ class Event:
             if origin in (list, tuple, set, dict):
                 return origin(), False
             return None, False
+
         # Build a dictionary with dummy values to test if function accepts **kwargs
         # Include an unexpected argument to validate the function doesn't complain
         test_kwargs = {"unexpected_kwarg": 123}
@@ -178,10 +190,14 @@ class Event:
                     annotation = parameter.annotation
                     if annotation in (list, tuple, set, dict):
                         skip_test = True
-                    elif hasattr(annotation, "__origin__") and getattr(annotation, "__origin__", None) in (list, tuple, set, dict):
+                    elif hasattr(annotation, "__origin__") and getattr(
+                        annotation, "__origin__", None
+                    ) in (list, tuple, set, dict):
                         skip_test = True
                     else:
-                        test_kwargs[name], skip_test = _placeholder_for_parameter(parameter)
+                        test_kwargs[name], skip_test = _placeholder_for_parameter(
+                            parameter
+                        )
         # Execute the trigger function with test values to validate compatibility
         # If TypeError occurs, the function doesn't properly accept **kwargs
         if not skip_test:
@@ -274,21 +290,20 @@ class Event:
         pass
 
 
-
 # TODO: add a parameter to the Event class that specify whether the event should
-# be triggered only once, or if it can be triggered multiple times. Also, add a 
+# be triggered only once, or if it can be triggered multiple times. Also, add a
 # way to stop the event from continuously triggering on command inside the action
-# function, such as a "disable" method that can be called inside the action 
+# function, such as a "disable" method that can be called inside the action
 # function to prevent the event from being triggered again.
 
 # TODO: add a parameter to the Event class that specify whether the event should
 # be a discrete event, meaning that it should only be checked for triggering at
 # specific time intervals (e.g. every 0.1 seconds) instead of at every time step
-# of the simulation. This would be useful for parachute events. This should be 
+# of the simulation. This would be useful for parachute events. This should be
 # done by adding a "sampling_rate" parameter to the Event class, that is none by
 # default (meaning that the event is checked at every time step), but if it is
-# set to a float value, the event will only be checked for triggering at that 
-# specific time interval. The flight class should be able to differentiate 
+# set to a float value, the event will only be checked for triggering at that
+# specific time interval. The flight class should be able to differentiate
 # between the discrete and continuous events (we will handle this later)
 
 
