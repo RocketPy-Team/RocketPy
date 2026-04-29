@@ -27,7 +27,6 @@ from rocketpy.rocket.aero_surface.fins.free_form_fins import FreeFormFins
 from rocketpy.rocket.aero_surface.fins.trapezoidal_fin import TrapezoidalFin
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 from rocketpy.rocket.components import Components
-from rocketpy.rocket.parachute import Parachute
 from rocketpy.tools import (
     deprecated,
     find_obj_from_hash,
@@ -1554,120 +1553,18 @@ class Rocket:
         self.add_surfaces(fin_set, position)
         return fin_set
 
-    def add_parachute(
-        self,
-        name,
-        cd_s,
-        trigger,
-        sampling_rate=100,
-        lag=0,
-        noise=(0, 0, 0),
-        radius=None,
-        height=None,
-        porosity=0.0432,
-        drag_coefficient=1.4,
-    ):
-        """Creates a new parachute, storing its parameters such as
-        opening delay, drag coefficients and trigger function.
+    def add_parachute(self, parachute):
+        """Adds parachute to the rocket parachute list
 
         Parameters
         ----------
-        name : string
-            Parachute name, such as drogue and main. Has no impact in
-            simulation, as it is only used to display data in a more
-            organized matter.
-        cd_s : float
-            Drag coefficient times reference area for parachute. It is
-            used to compute the drag force exerted on the parachute by
-            the equation F = ((1/2)*rho*V^2)*cd_s, that is, the drag
-            force is the dynamic pressure computed on the parachute
-            times its cd_s coefficient. Has units of area and must be
-            given in squared meters.
-        trigger : callable, float, str
-            Defines the trigger condition for the parachute ejection system. It
-            can be one of the following:
-
-            - A callable function that takes three arguments: \
-
-                1. Freestream pressure in pascals.
-                2. Height in meters above ground level.
-                3. The state vector of the simulation, which is defined as: \
-
-                    .. code-block:: python
-
-                        u = [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]
-
-                .. note::
-
-                    The function should return ``True`` if the parachute \
-                    ejection system should be triggered and ``False`` otherwise.
-            - A float value, representing an absolute height in meters. In this \
-                case, the parachute will be ejected when the rocket reaches this \
-                height above ground level.
-            - The string "apogee" which triggers the parachute at apogee, i.e., \
-                when the rocket reaches its highest point and starts descending.
-
-            .. note::
-
-                The function will be called according to the sampling rate specified.
-        sampling_rate : float, optional
-            Sampling rate in which the trigger function works. It is used to
-            simulate the refresh rate of onboard sensors such as barometers.
-            Default value is 100. Value must be given in hertz.
-        lag : float, optional
-            Time between the parachute ejection system is triggered and the
-            parachute is fully opened. During this time, the simulation will
-            consider the rocket as flying without a parachute. Default value
-            is 0. Must be given in seconds.
-        noise : tuple, list, optional
-            List in the format (mean, standard deviation, time-correlation).
-            The values are used to add noise to the pressure signal which is
-            passed to the trigger function. Default value is (0, 0, 0). Units
-            are in pascal.
-        radius : float, optional
-            Length of the non-unique semi-axis (radius) of the inflated
-            hemispheroid parachute. If not provided, it is estimated from
-            `cd_s` and `drag_coefficient` using:
-            `radius = sqrt(cd_s / (drag_coefficient * pi))`.
-            Units are in meters.
-        height : float, optional
-            Length of the unique semi-axis (height) of the inflated hemispheroid
-            parachute. Default value is the radius of the parachute.
-            Units are in meters.
-        porosity : float, optional
-            Geometric porosity of the canopy (ratio of open area to total
-            canopy area), in [0, 1]. Affects only the added-mass scaling
-            during descent; it does not change `cd_s` (drag). The default
-            value of 0.0432 yields an `added_mass_coefficient` of
-            approximately 1.0 ("neutral" added-mass behavior).
-        drag_coefficient : float, optional
-            Drag coefficient of the inflated canopy shape, used only when
-            `radius` is not provided. Typical values: 1.4 for hemispherical
-            canopies (default), 0.75 for flat circular canopies, 1.5 for
-            extended-skirt canopies. Has no effect when `radius` is given.
-
-        Returns
-        -------
-        parachute : Parachute
-            Parachute containing trigger, sampling_rate, lag, cd_s, noise,
-            radius, drag_coefficient, height, porosity and name. Furthermore,
-            it stores clean_pressure_signal, noise_signal and
-            noisyPressureSignal which are filled in during Flight simulation.
+        parachute : object with parent class Parachute
+            The parachute object to be added to the rocket. Notice
+            the parachute object itself cannot be of the
+            class Parachute since it is an abstract class,
+            a specific type of a parachute
         """
-        parachute = Parachute(
-            name,
-            cd_s,
-            trigger,
-            sampling_rate,
-            lag,
-            noise,
-            radius,
-            height,
-            porosity,
-            drag_coefficient,
-        )
         self.parachutes.append(parachute)
-        return self.parachutes[-1]
 
     def add_sensor(self, sensor, position):
         """Adds a sensor to the rocket.

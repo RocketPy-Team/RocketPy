@@ -4,7 +4,7 @@ import matplotlib as plt
 import numpy as np
 import pytest
 
-from rocketpy import Flight
+from rocketpy import Flight, HemisphericalParachute
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
@@ -149,7 +149,7 @@ def test_simpler_parachute_triggers(mock_show, example_plain_env, calisto_robust
     """
     calisto_robust.parachutes = []
 
-    _ = calisto_robust.add_parachute(
+    main = HemisphericalParachute(
         "Main",
         cd_s=10.0,
         trigger=400,
@@ -157,7 +157,7 @@ def test_simpler_parachute_triggers(mock_show, example_plain_env, calisto_robust
         lag=0,
     )
 
-    _ = calisto_robust.add_parachute(
+    drogue2 = HemisphericalParachute(
         "Drogue2",
         cd_s=5.5,
         trigger=lambda pressure, height, state: height < 800 and state[5] < 0,
@@ -165,13 +165,16 @@ def test_simpler_parachute_triggers(mock_show, example_plain_env, calisto_robust
         lag=0,
     )
 
-    _ = calisto_robust.add_parachute(
+    drogue1 = HemisphericalParachute(
         "Drogue",
         cd_s=1.0,
         trigger="apogee",
         sampling_rate=105,
         lag=0,
     )
+    calisto_robust.add_parachute(main)
+    calisto_robust.add_parachute(drogue1)
+    calisto_robust.add_parachute(drogue2)
 
     test_flight = Flight(
         rocket=calisto_robust,

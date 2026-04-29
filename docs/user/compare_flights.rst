@@ -14,7 +14,7 @@ We will start by importing the necessary classes and modules:
 .. jupyter-execute::
 
       from rocketpy.plots.compare import CompareFlights
-      from rocketpy import Environment, Flight, Rocket, SolidMotor
+      from rocketpy import Environment, Flight, Rocket, SolidMotor, HemisphericalParachute
       from datetime import datetime, timedelta
 
 
@@ -83,7 +83,7 @@ This is done following the same steps as in the :ref:`firstsimulation` example.
           top_radius=0.0635, bottom_radius=0.0435, length=0.060, position=-1.194656
       )
 
-      main_chute = calisto.add_parachute(
+      main_chute = HemisphericalParachute(
           "Main",
           cd_s=10.0,
           trigger=800,
@@ -92,7 +92,7 @@ This is done following the same steps as in the :ref:`firstsimulation` example.
           noise=(0, 8.3, 0.5),
       )
 
-      drogue_chute = calisto.add_parachute(
+      drogue_chute = HemisphericalParachute(
           "Drogue",
           cd_s=1.0,
           trigger="apogee",
@@ -100,6 +100,8 @@ This is done following the same steps as in the :ref:`firstsimulation` example.
           lag=1.5,
           noise=(0, 8.3, 0.5),
       )
+      calisto.add_parachute(main_chute)
+      calisto.add_parachute(drogue_chute)
 
 Creating the Flight objects
 ---------------------------

@@ -67,7 +67,7 @@ we will use from RocketPy:
 
 .. jupyter-execute::
 
-    from rocketpy import Environment, SolidMotor, Rocket, Flight
+    from rocketpy import Environment, SolidMotor, Rocket, Flight, HemisphericalParachute
 
 .. note::
 
@@ -272,7 +272,7 @@ Finally, we can add any number of Parachutes to the ``Rocket`` object.
 
 .. jupyter-execute::
 
-    main = calisto.add_parachute(
+    main = HemisphericalParachute(
         name="main",
         cd_s=10.0,
         trigger=800,      # ejection altitude in meters
@@ -284,7 +284,7 @@ Finally, we can add any number of Parachutes to the ``Rocket`` object.
         porosity=0.0432,
     )
 
-    drogue = calisto.add_parachute(
+    drogue = HemisphericalParachute(
         name="drogue",
         cd_s=1.0,
         trigger="apogee",  # ejection at apogee
@@ -295,6 +295,8 @@ Finally, we can add any number of Parachutes to the ``Rocket`` object.
         height=1.5,
         porosity=0.0432,
     )
+    calisto.add_parachute(main)
+    calisto.add_parachute(drogue)
 
 We can then see if the rocket is stable by plotting the static margin:
 

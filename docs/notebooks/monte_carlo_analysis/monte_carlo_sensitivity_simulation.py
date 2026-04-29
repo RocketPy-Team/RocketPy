@@ -11,7 +11,14 @@
 import datetime
 
 # %%
-from rocketpy import Environment, Flight, MonteCarlo, Rocket, SolidMotor
+from rocketpy import (
+    Environment,
+    Flight,
+    HemisphericalParachute,
+    MonteCarlo,
+    Rocket,
+    SolidMotor,
+)
 from rocketpy.stochastic import (
     StochasticEnvironment,
     StochasticFlight,
@@ -135,7 +142,7 @@ fin_set = rocket.add_trapezoidal_fins(
 tail = rocket.add_tail(
     top_radius=0.0635, bottom_radius=0.0435, length=0.060, position=-1.194656
 )
-Main = rocket.add_parachute(
+Main = HemisphericalParachute(
     "Main",
     cd_s=analysis_parameters["parachutes_main_cd_s"]["mean"],
     lag=analysis_parameters["parachutes_main_lag"]["mean"],
@@ -144,7 +151,7 @@ Main = rocket.add_parachute(
     noise=(0, 8.3, 0.5),
 )
 
-Drogue = rocket.add_parachute(
+Drogue = HemisphericalParachute(
     "Drogue",
     cd_s=analysis_parameters["parachutes_drogue_cd_s"]["mean"],
     lag=analysis_parameters["parachutes_drogue_lag"]["mean"],
@@ -152,6 +159,9 @@ Drogue = rocket.add_parachute(
     sampling_rate=105,
     noise=(0, 8.3, 0.5),
 )
+
+rocket.add_parachute(Main)
+rocket.add_parachute(Drogue)
 
 # Flight
 test_flight = Flight(

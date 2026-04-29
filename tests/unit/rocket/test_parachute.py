@@ -4,7 +4,7 @@ drag_coefficient parameters introduced in PR #889."""
 import numpy as np
 import pytest
 
-from rocketpy import Parachute
+from rocketpy import HemisphericalParachute
 
 
 def _make_parachute(**kwargs):
@@ -15,7 +15,7 @@ def _make_parachute(**kwargs):
         "sampling_rate": 100,
     }
     defaults.update(kwargs)
-    return Parachute(**defaults)
+    return HemisphericalParachute(**defaults)
 
 
 class TestParachuteRadiusEstimation:
@@ -91,7 +91,7 @@ class TestParachuteSerialization:
         drag_coefficient."""
         original = _make_parachute(cd_s=5.0, drag_coefficient=0.75)
         data = original.to_dict()
-        restored = Parachute.from_dict(data)
+        restored = HemisphericalParachute.from_dict(data)
         assert restored.drag_coefficient == pytest.approx(0.75)
         assert restored.radius == pytest.approx(original.radius, rel=1e-9)
 
@@ -107,5 +107,5 @@ class TestParachuteSerialization:
             "noise": (0, 0, 0),
             # no drag_coefficient key — simulates old serialized data
         }
-        parachute = Parachute.from_dict(data)
+        parachute = HemisphericalParachute.from_dict(data)
         assert parachute.drag_coefficient == pytest.approx(1.4)

@@ -747,9 +747,10 @@ class Flight:
                                 )
                             ),
                         ]
+                        u_dot_parachute = self.u_dot_parachute_wrapper(parachute)
                         self.flight_phases.add_phase(
                             node.t + parachute.lag,
-                            self.u_dot_parachute,
+                            u_dot_parachute,
                             callbacks,
                             clear=False,
                             index=phase_index + i,
@@ -973,7 +974,7 @@ class Flight:
             ]
             self.flight_phases.add_phase(
                 node.t + parachute.lag,
-                self.u_dot_parachute,
+                self.u_dot_parachute_wrapper(parachute),
                 callbacks,
                 clear=False,
                 index=phase_index + i,
@@ -1381,7 +1382,7 @@ class Flight:
             ]
             self.flight_phases.add_phase(
                 overshootable_node.t + parachute.lag,
-                self.u_dot_parachute,
+                self.u_dot_parachute_wrapper(parachute),
                 callbacks,
                 clear=False,
                 index=phase_index + i,
@@ -2615,87 +2616,54 @@ class Flight:
 
         return u_dot
 
-    def u_dot_parachute(self, t, u, post_processing=False):
-        """Calculates derivative of u state vector with respect to time
-        when rocket is flying under parachute. A 3 DOF approximation is
-        used.
+    def u_dot_parachute_wrapper(self, parachute):
+        """Creates a wrapper for the u_dot_parachute used to solve the equations of
+        motion when that parachute is triggered. The reason is the following:
+        each parachute implements its own u_dot. This u_dot takes as argument the
+        state variable 'u', the time 't', and additional flight information as
+        'flight_information'. However, the solver (which is in the Flight class)
+        only allos u_dot to take 'u' and 't' as arguments. Hence, this wrapper
+        wraps the output of the u_dot to match the expected arguments of the
+        solver.
 
         Parameters
         ----------
-        t : float
-            Time in seconds
-        u : list
-            State vector defined by u = [x, y, z, vx, vy, vz, e0, e1,
-            e2, e3, omega1, omega2, omega3].
-        post_processing : bool, optional
-            If True, adds flight data information directly to self
-            variables such as self.angle_of_attack. Default is False.
+        parachute : Parachute
+            Parachute that is current executing the equations of motion
 
         Return
         ------
-        u_dot : list
-            State vector defined by u_dot = [vx, vy, vz, ax, ay, az,
-            e0dot, e1dot, e2dot, e3dot, alpha1, alpha2, alpha3].
+        u_dot_parachute : function
+            A augmented (with flight information) u_dot_parachute used in the solver
 
         """
-        # Get relevant state data
-        z, vx, vy, vz = u[2:6]
+        # additional information used for the u_dot_parachute equations
+        flight_information = {
+            "env": self.env,
+            "rocket": self.rocket,
+        }
 
-        # Get atmospheric data
-        rho = self.env.density.get_value_opt(z)
-        wind_velocity_x = self.env.wind_velocity_x.get_value_opt(z)
-        wind_velocity_y = self.env.wind_velocity_y.get_value_opt(z)
+        def u_dot_parachute(t, u, post_processing=False):
+            if post_processing:
+                data_dict = parachute.u_dot(
+                    t=t,
+                    u=u,
+                    flight_information=flight_information,
+                    post_processing=post_processing,
+                )
+                state = data_dict["state"]
+                post_processing_info = data_dict["post_processing_information"]
+                self.__post_processed_variables.append(post_processing_info)
+                return state
+            else:
+                return parachute.u_dot(
+                    t=t,
+                    u=u,
+                    flight_information=flight_information,
+                    post_processing=post_processing,
+                )
 
-        # Get the mass of the rocket
-        mp = self.rocket.dry_mass
-
-        # to = 1.2
-        # eta = 1
-        # Rdot = (6 * R * (1 - eta) / (1.2**6)) * (
-        #     (1 - eta) * t**5 + eta * (to**3) * (t**2)
-        # )
-        # Rdot = 0
-
-        # tf = 8 * nominal diameter / velocity at line stretch
-
-        # Calculate added mass
-        ma = (
-            self.parachute_added_mass_coefficient
-            * rho
-            * (2 / 3)
-            * np.pi
-            * self.parachute_radius**2
-            * self.parachute_height
-        )
-
-        # Calculate freestream speed
-        freestream_x = vx - wind_velocity_x
-        freestream_y = vy - wind_velocity_y
-        freestream_z = vz
-        free_stream_speed = (freestream_x**2 + freestream_y**2 + freestream_z**2) ** 0.5
-
-        # Determine drag force
-        pseudo_drag = -0.5 * rho * self.parachute_cd_s * free_stream_speed
-        # pseudo_drag = pseudo_drag - ka * rho * 4 * np.pi * (R**2) * Rdot
-        Dx = pseudo_drag * freestream_x  # add eta efficiency for wake
-        Dy = pseudo_drag * freestream_y
-        Dz = pseudo_drag * freestream_z
-        ax = Dx / (mp + ma)
-        ay = Dy / (mp + ma)
-        az = (Dz - mp * self.env.gravity.get_value_opt(z)) / (mp + ma)
-
-        # Add coriolis acceleration
-        _, w_earth_y, w_earth_z = self.env.earth_rotation_vector
-        ax -= 2 * (vz * w_earth_y - vy * w_earth_z)
-        ay -= 2 * (vx * w_earth_z)
-        az -= 2 * (-vx * w_earth_y)
-
-        if post_processing:
-            self.__post_processed_variables.append(
-                [t, ax, ay, az, 0, 0, 0, Dx, Dy, Dz, 0, 0, 0, 0]
-            )
-
-        return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
+        return u_dot_parachute
 
     @cached_property
     def solution_array(self):
