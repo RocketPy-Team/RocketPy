@@ -399,9 +399,8 @@ class CylindricalTank(TankGeometry):
 
         Parameters
         ----------
-        radius_function : int, float, callable, array-like, Function
-            Radius of the cylindrical tank as a function of height, in meters.
-            A scalar value defines a uniform radius along the tank axis.
+        radius_function : int, float
+            Radius of the cylindrical tank, in meters.
         height : float
             Height of the cylindrical tank, in meters.
         spherical_caps : bool, optional
@@ -524,9 +523,8 @@ class SphericalTank(TankGeometry):
 
         Parameters
         ----------
-        radius_function : int, float, callable, array-like, Function
-            Radius of the spherical tank as a function of height, in meters.
-            A scalar value defines a uniform radius.
+        radius_function : int, float
+            Radius of the spherical tank, in meters.
         geometry_dict : Union[dict, None], optional
             Dictionary containing the geometry of the tank. See TankGeometry.
 
