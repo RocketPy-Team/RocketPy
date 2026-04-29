@@ -619,7 +619,8 @@ class Flight:
         self.ode_solver = ode_solver
 
         # Events
-        def out_of_rail_trigger(state, **kwargs) -> bool:
+        def out_of_rail_trigger(**kwargs) -> bool:
+            state = kwargs["state"]
             return (
                 state[0] ** 2 + state[1] ** 2 + (state[2] - self.env.elevation) ** 2
                 >= self.effective_1rl**2
@@ -1031,8 +1032,10 @@ class Flight:
         # TODO: make all these 3 events be handled with the Events class
         # Check for first out of rail event
         if len(self.out_of_rail_state) == 1:
-            if self.out_of_rail_event.trigger(self.y_sol):
-                return self.out_of_rail_event.action(phase, phase_index, node_index)
+            if self.out_of_rail_event.trigger(state=self.y_sol):
+                return self.out_of_rail_event.action(
+                    phase=phase, phase_index=phase_index, node_index=node_index
+                )
 
         # Check for apogee event
         # TODO: negative vz doesn't really mean apogee. Improve this.
@@ -1045,7 +1048,7 @@ class Flight:
 
         return False
 
-    def __handle_out_of_rail_event(self, phase, phase_index, node_index):
+    def __handle_out_of_rail_event(self, **kwargs):
         """Handle the out of rail event.
 
         Parameters
@@ -1062,6 +1065,9 @@ class Flight:
         bool
             True to indicate the simulation should break.
         """
+        phase = kwargs.get("phase")
+        phase_index = kwargs.get("phase_index")
+        node_index = kwargs.get("node_index")
         # Check exactly when it went out using root finding
         # Disconsider elevation
         self.solution[-2][3] -= self.env.elevation

@@ -1,9 +1,10 @@
 import inspect
-import warnings
 from typing import get_type_hints
 
 
 class Event:
+    """A class representing an event in the simulation."""
+
     # TODO: should "sensors" arg of the trigger function be a dictionary instead
     #  of a list? It would be more intuitive to access the sensors by name
     def __init__(self, trigger, action, name, event_context=None):
@@ -102,7 +103,6 @@ class Event:
         # or disabled. The disable_event flag from the action return value should
         # control whether this event continues to be checked for triggering.
 
-    # TODO: check_trigger does note receive enough arguments to substitute parachute events
     def __verify_trigger(self, trigger):
         """Verifies that the trigger function is valid.
 
@@ -119,107 +119,23 @@ class Event:
         Raises
         ------
         ValueError
-            If the trigger function does not have the correct signature or does not return a boolean value.
+            If the trigger function does not have the correct signature or does not return a boolean value
+            (at least if not declared or annotated).
         """
-        # TODO: implement inspection of trigger function to verify:
-        # 1. It accepts **kwargs (accepts arbitrary keyword arguments)
-        # 2. Return type annotation is bool or can be tested to return bool
-        # 3. Consider allowing signature to be flexible (accepts **kwargs)
-        #  to accommodate user-defined custom event_context keys
-        # verify if the return type is bool when annotated
-        return_annotation = get_type_hints(trigger).get("return", None)
-        if return_annotation is not None and return_annotation is not bool:
-            raise ValueError(
-                f"Trigger function {self.name} must return a boolean value."
-            )
-        # verify if the trigger function accepts **kwargs and therefore can
-        # receive standard event arguments plus custom event_context keys
+        # verify if the trigger function accepts only **kwargs arguments
         s = inspect.signature(trigger)
-        if not any(
-            p.kind == inspect.Parameter.VAR_KEYWORD for p in s.parameters.values()
-        ):
+        if any(p.kind != inspect.Parameter.VAR_KEYWORD for p in s.parameters.values()):
             raise ValueError(
-                f"Trigger function {self.name} must accept **kwargs to receive event context "
-                f"and simulation state."
+                f"The Trigger function of the {self.name} event must accept only keyword arguments. def {trigger.__name__}(**kwargs) -> bool:"
             )
-        if any(
-            p.kind == inspect.Parameter.POSITIONAL_ONLY for p in s.parameters.values()
-        ):
+        # Verify if the return type annotation is bool.
+        # Since is not possible to know for sure if the user is actually returning a bool value,
+        # we enforce bool annotation to motivate users to actually return bool values.
+        return_annotation = get_type_hints(trigger).get("return", None)
+        if return_annotation is not bool:
             raise ValueError(
-                f"Trigger function {self.name} must accept keyword arguments; "
-                "positional-only parameters are not supported."
-            )
-
-        # Helper function to generate dummy values based on type annotations
-        # of parameters, allowing to test the function without real values
-        def _placeholder_for_parameter(parameter):
-            annotation = parameter.annotation
-            if annotation is inspect.Parameter.empty:
-                warnings.warn(
-                    f"Trigger function {self.name}: Test with parameters skipped due "
-                    f"to missing type annotation for parameter '{parameter.name}'. \n"
-                    f"Is highly recommended that parameters have type annotations "
-                    f"(var: type). Parameter '{parameter.name}' has no annotation."
-                )
-                skip_test = True
-                return None, skip_test
-            if annotation in (int, float):
-                return 0, False
-            if annotation is bool:
-                return False, False
-            if annotation is str:
-                return "", False
-            if annotation in (list, tuple, set, dict):
-                return annotation(), False
-            origin = getattr(annotation, "__origin__", None)
-            if origin in (list, tuple, set, dict):
-                return origin(), False
-            return None, False
-
-        # Build a dictionary with dummy values to test if function accepts **kwargs
-        # Include an unexpected argument to validate the function doesn't complain
-        test_kwargs = {"unexpected_kwarg": 123}
-        skip_test = False
-        # Iterate through function parameters to generate appropriate test values
-        for name, parameter in s.parameters.items():
-            if parameter.kind in (
-                inspect.Parameter.POSITIONAL_OR_KEYWORD,
-                inspect.Parameter.KEYWORD_ONLY,
-            ):
-                if parameter.default is inspect.Parameter.empty:
-                    annotation = parameter.annotation
-                    if annotation in (list, tuple, set, dict):
-                        skip_test = True
-                    elif hasattr(annotation, "__origin__") and getattr(
-                        annotation, "__origin__", None
-                    ) in (list, tuple, set, dict):
-                        skip_test = True
-                    else:
-                        test_kwargs[name], skip_test = _placeholder_for_parameter(
-                            parameter
-                        )
-        # Execute the trigger function with test values to validate compatibility
-        # If TypeError occurs, the function doesn't properly accept **kwargs
-        if not skip_test:
-            try:
-                trigger(**test_kwargs)
-            except TypeError as e:
-                raise ValueError(
-                    f"Trigger function {self.name} must accept arbitrary kwargs without raising "
-                    "a TypeError."
-                ) from e
-            except Exception as e:
-                raise ValueError(
-                    f"Trigger function {self.name} must accept arbitrary kwargs without raising "
-                    f"an error: {e}"
-                ) from e
-        else:
-            # Test was skipped due to complex types; warn user to validate manually
-            warnings.warn(
-                f"Trigger function {self.name}: Test with parameters "
-                f"skipped for parameters with complex types "
-                f"(list, tuple, set, dict). Ensure the function handles "
-                f"arbitrary inputs gracefully."
+                f"The Trigger function of the {self.name} event must return a boolean value and must be annotated with '-> bool' for type checking.\n"
+                f"def {trigger.__name__}(**kwargs) -> bool:"
             )
         return trigger
 
@@ -239,17 +155,25 @@ class Event:
         Raises
         ------
         ValueError
-            If the action function does not have the correct signature.
+            If the action function does not have the correct signature or does not return a valid type.
         """
-        # TODO: implement inspection of action function to verify:
-        # 1. It accepts **kwargs (accepts arbitrary keyword arguments)
-        # 2. It can optionally return None or a dict with any of these keys:
-        #    - \"state\": list of floats
-        #    - \"disable_event\": bool
-        #    - \"new_events\": list of Event objects
-        #    - \"remove_events\": list of Event objects
-        #    - Any custom keys to update event_context
-        # 3. Raise ValueError if signature doesn't match expectations
+        # verify if the action function accepts only **kwargs arguments
+        s = inspect.signature(action)
+        if any(p.kind != inspect.Parameter.VAR_KEYWORD for p in s.parameters.values()):
+            raise ValueError(
+                f"The Action function of the {self.name} event must accept only keyword arguments. def {action.__name__}(**kwargs) -> None or dict:"
+            )
+        # verify if the return type annotation is None or dict
+        # Since is not possible to know for sure if the user is actually returning None or a dict,
+        # we enforce None or dict annotation to motivate users to actually return None or dict.
+        return_annotation = get_type_hints(action).get("return", None)
+        if return_annotation is not None and return_annotation is not (
+            type(None) or dict
+        ):
+            raise ValueError(
+                f"The Action function of the {self.name} event must return None or a dictionary and must be annotated with '-> None' or '-> dict' for type checking.\n"
+                f"def {action.__name__}(**kwargs) -> None or dict:"
+            )
         return action
 
     def __repr__(self):
