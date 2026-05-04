@@ -1048,10 +1048,10 @@ class Flight:
 
         return False
 
-    def __handle_out_of_rail_event(self, **kwargs):
+    def __handle_out_of_rail_event(self, **kwargs) -> bool:
         """Handle the out of rail event.
 
-        Parameters
+        keyword arguments are passed by the Event class when the trigger function is called.
         ----------
         phase : FlightPhase
             The current flight phase.
@@ -1065,9 +1065,9 @@ class Flight:
         bool
             True to indicate the simulation should break.
         """
-        phase = kwargs.get("phase")
-        phase_index = kwargs.get("phase_index")
-        node_index = kwargs.get("node_index")
+        phase = kwargs["phase"]
+        phase_index = kwargs["phase_index"]
+        node_index = kwargs["node_index"]
         # Check exactly when it went out using root finding
         # Disconsider elevation
         self.solution[-2][3] -= self.env.elevation

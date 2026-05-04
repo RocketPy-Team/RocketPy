@@ -123,8 +123,12 @@ class Event:
             (at least if not declared or annotated).
         """
         # verify if the trigger function accepts only **kwargs arguments
+        # also avoids functions with no arguments, since they can't be used as triggers
         s = inspect.signature(trigger)
-        if any(p.kind != inspect.Parameter.VAR_KEYWORD for p in s.parameters.values()):
+        if (
+            any(p.kind != inspect.Parameter.VAR_KEYWORD for p in s.parameters.values())
+            or len(s.parameters) == 0
+        ):
             raise ValueError(
                 f"The Trigger function of the {self.name} event must accept only keyword arguments. def {trigger.__name__}(**kwargs) -> bool:"
             )
@@ -159,20 +163,25 @@ class Event:
         """
         # verify if the action function accepts only **kwargs arguments
         s = inspect.signature(action)
-        if any(p.kind != inspect.Parameter.VAR_KEYWORD for p in s.parameters.values()):
+        if (
+            any(p.kind != inspect.Parameter.VAR_KEYWORD for p in s.parameters.values())
+            or len(s.parameters) == 0
+        ):
             raise ValueError(
-                f"The Action function of the {self.name} event must accept only keyword arguments. def {action.__name__}(**kwargs) -> None or dict:"
+                f"The Action function of the {self.name} event must accept only keyword arguments. def {action.__name__}(**kwargs) -> None | dict:"
             )
         # verify if the return type annotation is None or dict
         # Since is not possible to know for sure if the user is actually returning None or a dict,
         # we enforce None or dict annotation to motivate users to actually return None or dict.
-        return_annotation = get_type_hints(action).get("return", None)
-        if return_annotation is not None and return_annotation is not (
-            type(None) or dict
+        return_annotation = get_type_hints(action).get("return", int)
+        if (
+            (return_annotation is not type(None))
+            and (return_annotation is not dict)
+            and (return_annotation is not bool)
         ):
             raise ValueError(
                 f"The Action function of the {self.name} event must return None or a dictionary and must be annotated with '-> None' or '-> dict' for type checking.\n"
-                f"def {action.__name__}(**kwargs) -> None or dict:"
+                f"def {action.__name__}(**kwargs) -> None | dict:"
             )
         return action
 
