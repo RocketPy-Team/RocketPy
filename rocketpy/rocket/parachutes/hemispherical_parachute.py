@@ -3,10 +3,10 @@ import numpy as np
 from rocketpy.tools import from_hex_decode, to_hex_encode
 
 from ...mathutils.function import Function
-from .parachute import Parachute
+from .base_parachute import BaseParachute
 
 
-class HemisphericalParachute(Parachute):
+class HemisphericalParachute(BaseParachute):
     """Implements a hemispherical parachute.
 
     Attributes
@@ -249,6 +249,23 @@ class HemisphericalParachute(Parachute):
             1 - 1.465 * porosity - 0.25975 * porosity**2 + 1.2626 * porosity**3
         )
 
+    def add_information_to_flight(self, flight_obj, additional_info):
+        """Adds parachute information to flight"""
+        drag = additional_info["drag"]
+        t = additional_info["t"]
+        if self.name not in flight_obj.parachutes_info.keys():
+            flight_obj.parachutes_info[self.name] = {"drag": [], "t": []}
+            flight_obj.parachutes_info[self.name]["drag"].append(drag)
+            flight_obj.parachutes_info[self.name]["t"].append(t)
+        else:
+            # LSODA did not accept last solution, we replace it
+            if t == flight_obj.parachutes_info[self.name]["t"][-1]:
+                flight_obj.parachutes_info[self.name]["drag"][-1] = drag
+                flight_obj.parachutes_info[self.name]["t"][-1] = t
+            else:
+                flight_obj.parachutes_info[self.name]["drag"].append(drag)
+                flight_obj.parachutes_info[self.name]["t"].append(t)
+
     # pylint: disable=too-many-locals, too-many-statements
     def u_dot(self, t, u, flight_information, post_processing=False):
         """Calculates derivative of u state vector with respect to time
@@ -322,6 +339,7 @@ class HemisphericalParachute(Parachute):
         Dx = pseudo_drag * freestream_x  # add eta efficiency for wake
         Dy = pseudo_drag * freestream_y
         Dz = pseudo_drag * freestream_z
+        total_drag = np.sqrt(Dx**2 + Dy**2 + Dz**2)
         ax = Dx / (mp + ma)
         ay = Dy / (mp + ma)
         az = (Dz - mp * env.gravity.get_value_opt(z)) / (mp + ma)
@@ -331,6 +349,15 @@ class HemisphericalParachute(Parachute):
         ax -= 2 * (vz * w_earth_y - vy * w_earth_z)
         ay -= 2 * (vx * w_earth_z)
         az -= 2 * (-vx * w_earth_y)
+
+        additional_info = {
+            "t": t,
+            "drag": total_drag,
+        }
+        output = {
+            "state": [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0],
+            "additional_info": additional_info,
+        }
 
         if post_processing:
             data_dict = {
@@ -353,8 +380,7 @@ class HemisphericalParachute(Parachute):
                 ],
             }
             return data_dict
-        else:
-            return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
+        return output
 
     # serialization methods
     def to_dict(self, **kwargs):
