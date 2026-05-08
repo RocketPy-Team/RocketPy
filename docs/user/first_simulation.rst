@@ -295,8 +295,8 @@ Finally, we can add any number of Parachutes to the ``Rocket`` object.
         height=1.5,
         porosity=0.0432,
     )
-    calisto.add_parachute(main)
-    calisto.add_parachute(drogue)
+    calisto.add_parachute(parachute = main)
+    calisto.add_parachute(parachute = drogue)
 
 We can then see if the rocket is stable by plotting the static margin:
 

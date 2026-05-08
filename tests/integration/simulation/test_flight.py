@@ -172,9 +172,68 @@ def test_simpler_parachute_triggers(mock_show, example_plain_env, calisto_robust
         sampling_rate=105,
         lag=0,
     )
-    calisto_robust.add_parachute(main)
-    calisto_robust.add_parachute(drogue1)
-    calisto_robust.add_parachute(drogue2)
+    calisto_robust.add_parachute(parachute = main)
+    calisto_robust.add_parachute(parachute = drogue1)
+    calisto_robust.add_parachute(parachute = drogue2)
+
+    test_flight = Flight(
+        rocket=calisto_robust,
+        environment=example_plain_env,
+        rail_length=5,
+        inclination=85,
+        heading=0,
+    )
+
+    assert (
+        abs(test_flight.z(test_flight.parachute_events[0][0]) - test_flight.apogee) <= 1
+    )
+    assert (
+        abs(
+            test_flight.z(test_flight.parachute_events[1][0])
+            - (800 + example_plain_env.elevation)
+        )
+        <= 1
+    )
+    assert (
+        abs(
+            test_flight.z(test_flight.parachute_events[2][0])
+            - (400 + example_plain_env.elevation)
+        )
+        <= 1
+    )
+    assert calisto_robust.all_info() is None
+    assert test_flight.all_info() is None
+
+
+#TODO: When the legacy behavior is removed, remove this test
+@patch("matplotlib.pyplot.show")
+def test_legacy_add_parachute(mock_show, example_plain_env, calisto_robust):  # pylint: disable=unused-argument
+    """This is a legacy test that repeats the tests in 'test_simpler_parachute_triggers'
+    but using the 'add_parachute' method with legacy inputs. The results should be the same.
+    """
+    calisto_robust.parachutes = []
+
+    calisto_robust.add_parachute(
+        "Main",
+        cd_s=10.0,
+        trigger=400,
+        sampling_rate=105,
+        lag=0,
+    )
+    calisto_robust.add_parachute(
+        "Drogue2",
+        cd_s=5.5,
+        trigger=lambda pressure, height, state: height < 800 and state[5] < 0,
+        sampling_rate=105,
+        lag=0,
+    )
+    calisto_robust.add_parachute(
+        "Drogue",
+        cd_s=1.0,
+        trigger="apogee",
+        sampling_rate=105,
+        lag=0,
+    )
 
     test_flight = Flight(
         rocket=calisto_robust,

@@ -416,6 +416,6 @@ def prometheus_rocket(generic_motor_cesaroni_M1520):
         trigger=457.2,  # 1500 ft
         sampling_rate=100,
     )
-    prometheus.add_parachute(drogue)
-    prometheus.add_parachute(main)
+    prometheus.add_parachute(parachute = drogue)
+    prometheus.add_parachute(parachute = main)
     return prometheus

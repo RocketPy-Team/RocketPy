@@ -795,6 +795,6 @@ class StochasticRocket(StochasticModel):
 
         for parachute in self.parachutes:
             parachute = self._create_parachute(parachute)
-            rocket.add_parachute(parachute)
+            rocket.add_parachute(parachute = parachute)
 
         return rocket

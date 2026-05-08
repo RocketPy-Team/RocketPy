@@ -320,8 +320,8 @@ apogee and another that will be deployed at 800 meters above ground level:
         height=1.5,
         porosity=0.0432,
     )
-    calisto.add_parachute(main)
-    calisto.add_parachute(drogue)
+    calisto.add_parachute(parachute = main)
+    calisto.add_parachute(parachute = drogue)
 
 .. seealso::
 

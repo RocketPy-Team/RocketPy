@@ -240,8 +240,8 @@ def stochastic_calisto(
     rocket.set_rail_buttons(
         stochastic_rail_buttons, lower_button_position=(-0.618, 0.001, "normal")
     )
-    rocket.add_parachute(stochastic_main_parachute)
-    rocket.add_parachute(stochastic_drogue_parachute)
+    rocket.add_parachute(parachute = stochastic_main_parachute)
+    rocket.add_parachute(parachute = stochastic_drogue_parachute)
     return rocket
 
 

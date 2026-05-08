@@ -11,16 +11,16 @@ class HemisphericalParachute(BaseParachute):
 
     Attributes
     ----------
-    Parachute.name : string
+    HemisphericalParachute.name : string
         Parachute name, such as drogue and main. Has no impact in
         simulation, as it is only used to display data in a more
         organized matter.
-    Parachute.parachute_type : string
+    HemisphericalParachute.parachute_type : string
         Parachute type, such as hemispherical and parafoil.
-    Parachute.cd_s : float
+    HemisphericalParachute.cd_s : float
         Drag coefficient times reference area for parachute. It has units of
         area and must be given in squared meters.
-    Parachute.trigger : callable, float, str
+    HemisphericalParachute.trigger : callable, float, str
         This parameter defines the trigger condition for the parachute ejection
         system. It can be one of the following:
 
@@ -48,7 +48,7 @@ class HemisphericalParachute(BaseParachute):
           when the rocket reaches its highest point and starts descending.
 
 
-    Parachute.triggerfunc : function
+    HemisphericalParachute.triggerfunc : function
         Trigger function created from the trigger used to evaluate the trigger
         condition for the parachute ejection system. It is a callable function
         that takes three arguments: Freestream pressure in Pa, Height above
@@ -60,58 +60,58 @@ class HemisphericalParachute(BaseParachute):
 
             The function will be called according to the sampling rate specified.
 
-    Parachute.sampling_rate : float
+    HemisphericalParachute.sampling_rate : float
         Sampling rate, in Hz, for the trigger function.
-    Parachute.lag : float
+    HemisphericalParachute.lag : float
         Time, in seconds, between the parachute ejection system is triggered
         and the parachute is fully opened.
-    Parachute.noise : tuple, list
+    HemisphericalParachute.noise : tuple, list
         List in the format (mean, standard deviation, time-correlation).
         The values are used to add noise to the pressure signal which is passed
         to the trigger function. Default value is (0, 0, 0). Units are in Pa.
-    Parachute.noise_bias : float
+    HemisphericalParachute.noise_bias : float
         Mean value of the noise added to the pressure signal, which is
         passed to the trigger function. Unit is in Pa.
-    Parachute.noise_deviation : float
+    HemisphericalParachute.noise_deviation : float
         Standard deviation of the noise added to the pressure signal,
         which is passed to the trigger function. Unit is in Pa.
-    Parachute.noise_corr : tuple, list
+    HemisphericalParachute.noise_corr : tuple, list
         Tuple with the correlation between noise and time.
-    Parachute.noise_signal : list of tuple
+    HemisphericalParachute.noise_signal : list of tuple
         List of (t, noise signal) corresponding to signal passed to
         trigger function. Completed after running a simulation.
-    Parachute.noisy_pressure_signal : list of tuple
+    HemisphericalParachute.noisy_pressure_signal : list of tuple
         List of (t, noisy pressure signal) that is passed to the
         trigger function. Completed after running a simulation.
-    Parachute.clean_pressure_signal : list of tuple
+    HemisphericalParachute.clean_pressure_signal : list of tuple
         List of (t, clean pressure signal) corresponding to signal passed to
         trigger function. Completed after running a simulation.
-    Parachute.noise_signal_function : Function
+    HemisphericalParachute.noise_signal_function : Function
         Function of noiseSignal.
-    Parachute.noisy_pressure_signal_function : Function
+    HemisphericalParachute.noisy_pressure_signal_function : Function
         Function of noisy_pressure_signal.
-    Parachute.clean_pressure_signal_function : Function
+    HemisphericalParachute.clean_pressure_signal_function : Function
         Function of clean_pressure_signal.
-    Parachute.drag_coefficient : float
+    HemisphericalParachute.drag_coefficient : float
         Drag coefficient of the inflated canopy shape, used only when
         ``radius`` is not provided to estimate the parachute radius from
         ``cd_s``: ``R = sqrt(cd_s / (drag_coefficient * pi))``. Typical
         values: 1.4 for hemispherical canopies (default), 0.75 for flat
         circular canopies, 1.5 for extended-skirt canopies.
-    Parachute.radius : float
+    HemisphericalParachute.radius : float
         Length of the non-unique semi-axis (radius) of the inflated hemispherical
         parachute in meters. If not provided at construction time, it is
         estimated from ``cd_s`` and ``drag_coefficient``.
-    Parachute.height : float
+    HemisphericalParachute.height : float
         Length of the unique semi-axis (height) of the inflated hemispherical
         parachute in meters.
-    Parachute.porosity : float
+    HemisphericalParachute.porosity : float
         Geometric porosity of the canopy (ratio of open area to total canopy
         area), in [0, 1]. Affects only the added-mass scaling during descent;
         it does not change ``cd_s`` (drag). The default value of 0.0432 is
         chosen so that the resulting ``added_mass_coefficient`` equals
         approximately 1.0 ("neutral" added-mass behavior).
-    Parachute.added_mass_coefficient : float
+    HemisphericalParachute.added_mass_coefficient : float
         Coefficient used to calculate the added-mass due to dragged air. It is
         calculated from the porosity of the parachute.
     """

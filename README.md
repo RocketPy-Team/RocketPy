@@ -279,8 +279,8 @@ drogue = HemisphericalParachute(
     porosity=0.0432,
 )
 
-calisto.add_parachute(main)
-calisto.add_parachute(drogue)
+calisto.add_parachute(parachute = main)
+calisto.add_parachute(parachute = drogue)
 ```
 
 Finally, you can create a Flight object to simulate your trajectory. To get help on the Flight class, use:

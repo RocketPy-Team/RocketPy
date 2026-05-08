@@ -171,8 +171,8 @@ def test_ndrt_2020_rocket_data_asserts_acceptance(env_file):
         lag=parameters.get("lag_rec")[0],
         noise=(0, 8.3, 0.5),
     )
-    NDRT2020.add_parachute(drogue)
-    NDRT2020.add_parachute(main)
+    NDRT2020.add_parachute(parachute = drogue)
+    NDRT2020.add_parachute(parachute = main)
 
     # Flight
     rocketpy_flight = Flight(

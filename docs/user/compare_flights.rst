@@ -100,8 +100,8 @@ This is done following the same steps as in the :ref:`firstsimulation` example.
           lag=1.5,
           noise=(0, 8.3, 0.5),
       )
-      calisto.add_parachute(main_chute)
-      calisto.add_parachute(drogue_chute)
+      calisto.add_parachute(parachute = main_chute)
+      calisto.add_parachute(parachute = drogue_chute)
 
 Creating the Flight objects
 ---------------------------

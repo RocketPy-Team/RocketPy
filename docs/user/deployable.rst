@@ -199,8 +199,8 @@ Therefore we should be careful with the value of its mass.
           lag=1.5,
           noise=(0, 8.3, 0.5),
       )
-      rocket_without_payload.add_parachute(main_chute)
-      rocket_without_payload.add_parachute(drogue_chute)
+      rocket_without_payload.add_parachute(parachute = main_chute)
+      rocket_without_payload.add_parachute(parachute = drogue_chute)
 
 .. jupyter-execute::
 
@@ -261,8 +261,8 @@ surfaces to stabilize it, nor a motor that ignites. It does, however, have parac
           lag=1.5,
           noise=(0, 8.3, 0.5),
       )
-      payload_rocket.add_parachute(payload_drogue)
-      payload_rocket.add_parachute(payload_main)
+      payload_rocket.add_parachute(parachute = payload_drogue)
+      payload_rocket.add_parachute(parachute = payload_main)
 
 .. important::
 
