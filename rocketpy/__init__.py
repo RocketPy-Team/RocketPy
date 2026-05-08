@@ -39,6 +39,7 @@ from .rocket import (
     HemisphericalParachute,
     LinearGenericSurface,
     NoseCone,
+    Parachute,
     PointMassRocket,
     RailButtons,
     Rocket,

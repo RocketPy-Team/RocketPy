@@ -172,9 +172,9 @@ def test_simpler_parachute_triggers(mock_show, example_plain_env, calisto_robust
         sampling_rate=105,
         lag=0,
     )
-    calisto_robust.add_parachute(parachute = main)
-    calisto_robust.add_parachute(parachute = drogue1)
-    calisto_robust.add_parachute(parachute = drogue2)
+    calisto_robust.add_parachute(parachute=main)
+    calisto_robust.add_parachute(parachute=drogue1)
+    calisto_robust.add_parachute(parachute=drogue2)
 
     test_flight = Flight(
         rocket=calisto_robust,
@@ -205,7 +205,7 @@ def test_simpler_parachute_triggers(mock_show, example_plain_env, calisto_robust
     assert test_flight.all_info() is None
 
 
-#TODO: When the legacy behavior is removed, remove this test
+# TODO: When the legacy behavior is removed, remove this test
 @patch("matplotlib.pyplot.show")
 def test_legacy_add_parachute(mock_show, example_plain_env, calisto_robust):  # pylint: disable=unused-argument
     """This is a legacy test that repeats the tests in 'test_simpler_parachute_triggers'

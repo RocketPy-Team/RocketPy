@@ -147,7 +147,7 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         lag=parameters.get("lag_rec")[0],
         noise=(0, 8.3, 0.5),
     )
-    BellaLui.add_parachute(parachute = drogue)
+    BellaLui.add_parachute(parachute=drogue)
 
     # Define aerodynamic drag coefficients
     power_off_drag_by_mach = Function(

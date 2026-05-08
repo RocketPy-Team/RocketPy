@@ -2567,7 +2567,7 @@ class Flight:
         each parachute implements its own u_dot. This u_dot takes as argument the
         state variable 'u', the time 't', and additional flight information as
         'flight_information'. However, the solver (which is in the Flight class)
-        only allos u_dot to take 'u' and 't' as arguments. Hence, this wrapper
+        only allows u_dot to take 'u' and 't' as arguments. Hence, this wrapper
         wraps the output of the u_dot to match the expected arguments of the
         solver.
 

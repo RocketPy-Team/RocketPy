@@ -3,10 +3,10 @@ import numpy as np
 from rocketpy.tools import from_hex_decode, to_hex_encode
 
 from ...mathutils.function import Function
-from .base_parachute import BaseParachute
+from .parachute import Parachute
 
 
-class HemisphericalParachute(BaseParachute):
+class HemisphericalParachute(Parachute):
     """Implements a hemispherical parachute.
 
     Attributes
@@ -24,7 +24,7 @@ class HemisphericalParachute(BaseParachute):
         This parameter defines the trigger condition for the parachute ejection
         system. It can be one of the following:
 
-        - A callable function that takes three arguments:
+        - A callable function that takes four arguments:
           1. Freestream pressure in pascals.
           2. Height in meters above ground level.
           3. The state vector of the simulation, which is defined as:
@@ -289,9 +289,13 @@ class HemisphericalParachute(BaseParachute):
 
         Return
         ------
-        u_dot : list
-            State vector defined by u_dot = [vx, vy, vz, ax, ay, az,
-            e0dot, e1dot, e2dot, e3dot, alpha1, alpha2, alpha3].
+        u_dot : dict
+            A dictionary containing two or three keys
+            1) state: State vector which depends on the parachute model.
+            2) additional_information: information as dict that is added
+            to the  'parachutes_info' attribute in the Flight class.
+            3) post_processing_information: State vector containing
+            post processing information.
 
         """
         # Get relevant state data
@@ -307,15 +311,6 @@ class HemisphericalParachute(BaseParachute):
 
         # Get the mass of the rocket
         mp = rocket.dry_mass
-
-        # to = 1.2
-        # eta = 1
-        # Rdot = (6 * R * (1 - eta) / (1.2**6)) * (
-        #     (1 - eta) * t**5 + eta * (to**3) * (t**2)
-        # )
-        # Rdot = 0
-
-        # tf = 8 * nominal diameter / velocity at line stretch
 
         # Calculate added mass
         ma = (
@@ -335,8 +330,7 @@ class HemisphericalParachute(BaseParachute):
 
         # Determine drag force
         pseudo_drag = -0.5 * rho * self.cd_s * free_stream_speed
-        # pseudo_drag = pseudo_drag - ka * rho * 4 * np.pi * (R**2) * Rdot
-        Dx = pseudo_drag * freestream_x  # add eta efficiency for wake
+        Dx = pseudo_drag * freestream_x
         Dy = pseudo_drag * freestream_y
         Dz = pseudo_drag * freestream_z
         total_drag = np.sqrt(Dx**2 + Dy**2 + Dz**2)
@@ -360,26 +354,22 @@ class HemisphericalParachute(BaseParachute):
         }
 
         if post_processing:
-            data_dict = {
-                "state": [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0],
-                "post_processing_information": [
-                    t,
-                    ax,
-                    ay,
-                    az,
-                    0,
-                    0,
-                    0,
-                    Dx,
-                    Dy,
-                    Dz,
-                    0,
-                    0,
-                    0,
-                    0,
-                ],
-            }
-            return data_dict
+            output["post_processing_information"] = [
+                t,
+                ax,
+                ay,
+                az,
+                0,
+                0,
+                0,
+                Dx,
+                Dy,
+                Dz,
+                0,
+                0,
+                0,
+                0,
+            ]
         return output
 
     # serialization methods
