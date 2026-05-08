@@ -1669,7 +1669,7 @@ class Rocket:
             # For backwards compatibility
             deprecation_message = (
                 "Passing parachute parameters directly to 'add_parachute' method is "
-                + "deprecated and will be removed in a future release. Please create "
+                + "deprecated and will be removed in version 1.12.0. Please create "
                 + "an object of class 'HemisphericalParachute' and pass it to the "
                 + "'parachute' argument of 'add_parachute' for the same behavior."
             )
