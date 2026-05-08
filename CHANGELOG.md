@@ -91,6 +91,7 @@ Attention: The newest changes should be on top -->
 - BUG: Duplicate _controllers in Flight.TimeNodes.merge() [#931](https://github.com/RocketPy-Team/RocketPy/pull/931)
 - BUG: Fix incorrect Jacobian in `only_radial_burn` branch of `SolidMotor.evaluate_geometry` [#935](https://github.com/RocketPy-Team/RocketPy/pull/935)
 - BUG: Add explicit timeouts to ThrustCurve API requests [#935](https://github.com/RocketPy-Team/RocketPy/pull/935)
+- BUG: Remove duplicate controller call in Flight.__simulate [#959](https://github.com/RocketPy-Team/RocketPy/issues/959)
 
 ## [v1.11.0] - 2025-11-01
 
