@@ -1187,8 +1187,10 @@ class Flight:
         ]
         if len(valid_t_root) > 1:  # pragma: no cover
             raise ValueError("Multiple roots found when solving for impact time.")
+        # Fall back to t1 when noise places the crossing at the step boundary.
+        t_root_local = valid_t_root[0] if valid_t_root else t1
         # Determine impact state at t_root
-        self.t = self.t_final = valid_t_root[0] + self.solution[-2][0]
+        self.t = self.t_final = t_root_local + self.solution[-2][0]
         interpolator = phase.solver.dense_output()
         self.y_sol = self.impact_state = interpolator(self.t)
         # Roll back solution
