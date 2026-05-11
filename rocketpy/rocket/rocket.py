@@ -2008,8 +2008,11 @@ class Rocket:
         refresh_rate,
         interactive_objects=None,
         initial_observed_variables=None,
-        name=None,
+        name="Controller",
     ):
+        """Creates a new discrete controller, storing its parameters such as
+        controller function, refresh rate, and interactive objects. The controller 
+        will be called at the specified refresh rate during the simulation."""
 
         controller = _Controller(
             controller_function=controller_function,
@@ -2026,8 +2029,11 @@ class Rocket:
         controller_function,
         interactive_objects=None,
         initial_observed_variables=None,
-        name=None,
+        name="Controller",
     ):
+        """Creates a new continuous controller, storing its parameters such as
+        controller function and interactive objects. The controller will 
+        be called at every time step of the simulation."""
 
         controller = _Controller(
             controller_function=controller_function,
