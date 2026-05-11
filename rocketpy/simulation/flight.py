@@ -1583,8 +1583,12 @@ class Flight:
     def __init_controllers(self):
         """Initialize controllers and sensors"""
         self._controllers = self.rocket._controllers[:]
-        self._continuous_controllers = [c for c in self._controllers if math.isinf(c.sampling_rate)]
-        self._discrete_controllers = [c for c in self._controllers if not math.isinf(c.sampling_rate)]
+        self._continuous_controllers = [
+            c for c in self._controllers if math.isinf(c.sampling_rate)
+        ]
+        self._discrete_controllers = [
+            c for c in self._controllers if not math.isinf(c.sampling_rate)
+        ]
         self.sensors = self.rocket.sensors.get_components()
 
         # reset controllable object to initial state (only airbrakes for now)
