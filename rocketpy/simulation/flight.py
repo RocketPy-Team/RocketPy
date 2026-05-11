@@ -698,15 +698,6 @@ class Flight:
 
                 self.__process_sensors_and_controllers_at_current_node(node, phase)
 
-                for controller in node._controllers:
-                    controller(
-                        self.t,
-                        self.y_sol,
-                        self.solution,
-                        self.sensors,
-                        self.env,
-                    )
-
                 for parachute in node.parachutes:
                     # Calculate and save pressure signal
                     (
@@ -860,7 +851,7 @@ class Flight:
         phase : FlightPhase
             The current flight phase.
         """
-        if self.sensors:
+        if node._component_sensors:
             u_dot = phase.derivative(self.t, self.y_sol)
             self.__measure_sensors(node._component_sensors, u_dot)
 

@@ -1,5 +1,5 @@
 import time
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from unittest.mock import patch
 
 import numpy as np
@@ -146,6 +146,7 @@ def test_wind_plots_wrapping_direction(mock_show, example_plain_env):  # pylint:
     assert example_plain_env.plots.atmospheric_model() is None
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "model_name",
     [
@@ -197,6 +198,42 @@ def test_gfs_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=un
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
+def test_aigfs_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=unused-argument
+    """Tests the Forecast model with the AIGFS file.
+
+    Parameters
+    ----------
+    mock_show : mock
+        Mock object to replace matplotlib.pyplot.show() method.
+    example_spaceport_env : rocketpy.Environment
+        Example environment object to be tested.
+    """
+    example_spaceport_env.set_atmospheric_model(type="Forecast", file="AIGFS")
+    assert example_spaceport_env.all_info() is None
+
+
+@pytest.mark.slow
+@patch("matplotlib.pyplot.show")
+def test_hrrr_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=unused-argument
+    """Tests the Forecast model with the HRRR file.
+
+    Parameters
+    ----------
+    mock_show : mock
+        Mock object to replace matplotlib.pyplot.show() method.
+    example_spaceport_env : rocketpy.Environment
+        Example environment object to be tested.
+    """
+    # Sometimes the HRRR latest-model can fail due to not having at least 24
+    # hours in the future in the forecast, so we try with 12 hours in the future
+    # only.
+    example_spaceport_env.set_date(datetime.now() + timedelta(hours=12))
+    example_spaceport_env.set_atmospheric_model(type="Forecast", file="HRRR")
+    assert example_spaceport_env.all_info() is None
+
+
+@pytest.mark.slow
+@patch("matplotlib.pyplot.show")
 def test_nam_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=unused-argument
     """Tests the Forecast model with the NAM file.
 
@@ -232,8 +269,11 @@ def test_gefs_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=u
     example_spaceport_env : rocketpy.Environment
         Example environment object to be tested.
     """
-    example_spaceport_env.set_atmospheric_model(type="Ensemble", file="GEFS")
-    assert example_spaceport_env.all_info() is None
+    with pytest.raises(
+        ValueError,
+        match="GEFS latest-model shortcut is currently unavailable",
+    ):
+        example_spaceport_env.set_atmospheric_model(type="Ensemble", file="GEFS")
 
 
 @pytest.mark.slow
@@ -288,13 +328,15 @@ def test_hiresw_ensemble_atmosphere(mock_show, example_spaceport_env):  # pylint
 
     example_spaceport_env.set_date(date_info)
 
-    example_spaceport_env.set_atmospheric_model(
-        type="Forecast",
-        file="HIRESW",
-        dictionary="HIRESW",
-    )
-
-    assert example_spaceport_env.all_info() is None
+    with pytest.raises(
+        ValueError,
+        match="HIRESW latest-model shortcut is currently unavailable",
+    ):
+        example_spaceport_env.set_atmospheric_model(
+            type="Forecast",
+            file="HIRESW",
+            dictionary="HIRESW",
+        )
 
 
 @pytest.mark.skip(reason="CMC model is currently not working")

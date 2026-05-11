@@ -1,14 +1,13 @@
-from rocketpy.plots.aero_surface_plots import _TrapezoidalFinsPlots
-from rocketpy.prints.aero_surface_prints import _TrapezoidalFinsPrints
-from rocketpy.rocket.aero_surface.fins._geometry import _TrapezoidalGeometry
+from rocketpy.plots.aero_surface_plots import _EllipticalFinPlots
+from rocketpy.prints.aero_surface_prints import _EllipticalFinPrints
+from rocketpy.rocket.aero_surface.fins._geometry import _EllipticalGeometry
+from rocketpy.rocket.aero_surface.fins.fin import Fin
 
-from .fins import Fins
 
+class EllipticalFin(Fin):
+    """Class that defines and holds information for an elliptical fin set.
 
-class TrapezoidalFins(Fins):
-    """Class that defines and holds information for a trapezoidal fin set.
-
-    This class inherits from the Fins class.
+    This class inherits from the Fin class.
 
     Note
     ----
@@ -20,98 +19,91 @@ class TrapezoidalFins(Fins):
 
     See Also
     --------
-    Fins
+    Fin
 
     Attributes
     ----------
-    TrapezoidalFins.n : int
-        Number of fins in fin set.
-    TrapezoidalFins.rocket_radius : float
+    EllipticalFin.rocket_radius : float
         The reference rocket radius used for lift coefficient normalization, in
         meters.
-    TrapezoidalFins.airfoil : tuple
+    EllipticalFin.airfoil : tuple
         Tuple of two items. First is the airfoil lift curve.
-        Second is the unit of the curve (radians or degrees).
-    TrapezoidalFins.cant_angle : float
+        Second is the unit of the curve (radians or degrees)
+    EllipticalFin.cant_angle : float
         Fins cant angle with respect to the rocket centerline, in degrees.
-    TrapezoidalFins.cant_angle_rad : float
+    EllipticalFin.cant_angle_rad : float
         Fins cant angle with respect to the rocket centerline, in radians.
-    TrapezoidalFins.root_chord : float
+    EllipticalFin.root_chord : float
         Fin root chord in meters.
-    TrapezoidalFins.tip_chord : float
-        Fin tip chord in meters.
-    TrapezoidalFins.span : float
+    EllipticalFin.span : float
         Fin span in meters.
-    TrapezoidalFins.name : string
+    EllipticalFin.name : string
         Name of fin set.
-    TrapezoidalFins.sweep_length : float
+    EllipticalFin.sweep_length : float
         Fins sweep length in meters. By sweep length, understand the axial
         distance between the fin root leading edge and the fin tip leading edge
         measured parallel to the rocket centerline.
-    TrapezoidalFins.sweep_angle : float
+    EllipticalFin.sweep_angle : float
         Fins sweep angle with respect to the rocket centerline. Must
         be given in degrees.
-    TrapezoidalFins.rocket_diameter : float
+    EllipticalFin.rocket_diameter : float
         Reference diameter of the rocket, in meters.
-    TrapezoidalFins.reference_area : float
-        Reference area of the rocket, in m².
-    TrapezoidalFins.Af : float
+    EllipticalFin.reference_area : float
+        Reference area of the rocket.
+    EllipticalFin.Af : float
         Area of the longitudinal section of each fin in the set.
-    TrapezoidalFins.AR : float
-        Aspect ratio of each fin in the set
-    TrapezoidalFins.gamma_c : float
+    EllipticalFin.AR : float
+        Aspect ratio of the fin.
+    EllipticalFin.gamma_c : float
         Fin mid-chord sweep angle.
-    TrapezoidalFins.Yma : float
+    EllipticalFin.Yma : float
         Span wise position of the mean aerodynamic chord.
-    TrapezoidalFins.roll_geometrical_constant : float
+    EllipticalFin.roll_geometrical_constant : float
         Geometrical constant used in roll calculations.
-    TrapezoidalFins.tau : float
+    EllipticalFin.tau : float
         Geometrical relation used to simplify lift and roll calculations.
-    TrapezoidalFins.lift_interference_factor : float
+    EllipticalFin.lift_interference_factor : float
         Factor of Fin-Body interference in the lift coefficient.
-    TrapezoidalFins.cp : tuple
+    EllipticalFin.cp : tuple
         Tuple with the x, y and z local coordinates of the fin set center of
         pressure. Has units of length and is given in meters.
-    TrapezoidalFins.cpx : float
+    EllipticalFin.cpx : float
         Fin set local center of pressure x coordinate. Has units of length and
         is given in meters.
-    TrapezoidalFins.cpy : float
+    EllipticalFin.cpy : float
         Fin set local center of pressure y coordinate. Has units of length and
         is given in meters.
-    TrapezoidalFins.cpz : float
+    EllipticalFin.cpz : float
         Fin set local center of pressure z coordinate. Has units of length and
         is given in meters.
-    TrapezoidalFins.cl : Function
+    EllipticalFin.cl : Function
         Function which defines the lift coefficient as a function of the angle
         of attack and the Mach number. Takes as input the angle of attack in
         radians and the Mach number. Returns the lift coefficient.
-    TrapezoidalFins.clalpha : float
+    EllipticalFin.clalpha : float
         Lift coefficient slope. Has units of 1/rad.
     """
 
     def __init__(
         self,
-        n,
+        angular_position,
         root_chord,
-        tip_chord,
         span,
         rocket_radius,
         cant_angle=0,
-        sweep_length=None,
-        sweep_angle=None,
         airfoil=None,
-        name="Fins",
+        name="Elliptical Fin",
     ):
-        """Initialize TrapezoidalFins class.
+        """Initialize EllipticalFin class.
 
         Parameters
         ----------
-        n : int
-            Number of fins, must be larger than 2.
+        angular_position : float
+            Angular position of the fin in degrees measured as the rotation
+            around the symmetry axis of the rocket relative to one of the other
+            principal axis. See :ref:`Angular Position Inputs <angular_position>`
         root_chord : int, float
             Fin root chord in meters.
-        tip_chord : int, float
-            Fin tip chord in meters.
         span : int, float
             Fin span in meters.
         rocket_radius : int, float
@@ -148,7 +140,7 @@ class TrapezoidalFins(Fins):
             The tuple's second item is the unit of the angle of attack,
             accepting either "radians" or "degrees".
         name : str
-            Name of fin set.
+            Name of elliptical fin.
 
         Returns
         -------
@@ -156,7 +148,7 @@ class TrapezoidalFins(Fins):
         """
 
         super().__init__(
-            n,
+            angular_position,
             root_chord,
             span,
             rocket_radius,
@@ -165,87 +157,37 @@ class TrapezoidalFins(Fins):
             name,
         )
 
-        self.geometry = _TrapezoidalGeometry(
-            self,
-            tip_chord=tip_chord,
-            sweep_length=sweep_length,
-            sweep_angle=sweep_angle,
-        )
+        self.geometry = _EllipticalGeometry(self)
         self._update_geometry_chain()
         self.evaluate_shape()
 
-        self.prints = _TrapezoidalFinsPrints(self)
-        self.plots = _TrapezoidalFinsPlots(self)
-
-    @property
-    def tip_chord(self):
-        return self.geometry.tip_chord
-
-    @tip_chord.setter
-    def tip_chord(self, value):
-        self.geometry.tip_chord = value
-        self._update_geometry_chain()
-        self.evaluate_shape()
-
-    @property
-    def sweep_angle(self):
-        return self.geometry.sweep_angle
-
-    @sweep_angle.setter
-    def sweep_angle(self, value):
-        self.geometry.sweep_angle = value
-        self._update_geometry_chain()
-        self.evaluate_shape()
-
-    @property
-    def sweep_length(self):
-        return self.geometry.sweep_length
-
-    @sweep_length.setter
-    def sweep_length(self, value):
-        self.geometry.sweep_length = value
-        self._update_geometry_chain()
-        self.evaluate_shape()
+        self.prints = _EllipticalFinPrints(self)
+        self.plots = _EllipticalFinPlots(self)
 
     def evaluate_center_of_pressure(self):
-        """Calculates and returns the center of pressure of the fin set in local
+        """Calculates and returns the center of pressure of the fin in local
         coordinates. The center of pressure position is saved and stored as a
-        tuple.
-
-        Returns
-        -------
-        None
-        """
-        # Center of pressure position in local coordinates
-        cpz = (self.sweep_length / 3) * (
-            (self.root_chord + 2 * self.tip_chord) / (self.root_chord + self.tip_chord)
-        ) + (1 / 6) * (
-            self.root_chord
-            + self.tip_chord
-            - self.root_chord * self.tip_chord / (self.root_chord + self.tip_chord)
-        )
+        tuple."""
+        # Barrowman elliptical-fin center of pressure location.
+        cpz = 0.288 * self.root_chord
         self.cpx = 0
-        self.cpy = 0
+        self.cpy = self.Yma
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
 
-    def to_dict(self, **kwargs):
-        data = super().to_dict(**kwargs)
-        data.update(
-            self.geometry.get_data(include_outputs=kwargs.get("include_outputs", False))
-        )
+    def to_dict(self, include_outputs=False):
+        data = super().to_dict(include_outputs=include_outputs)
+        data.update(self.geometry.get_data(include_outputs=include_outputs))
         return data
 
     @classmethod
     def from_dict(cls, data):
         return cls(
-            n=data["n"],
+            angular_position=data["angular_position"],
             root_chord=data["root_chord"],
-            tip_chord=data["tip_chord"],
             span=data["span"],
             rocket_radius=data["rocket_radius"],
             cant_angle=data["cant_angle"],
             airfoil=data["airfoil"],
             name=data["name"],
-            sweep_length=data.get("sweep_length"),
         )

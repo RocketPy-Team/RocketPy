@@ -1,9 +1,67 @@
 class WeatherModelMapping:
-    """Class to map the weather model variables to the variables used in the
-    Environment class.
+    """Map provider-specific variable names to RocketPy weather fields.
+
+    RocketPy reads forecast/reanalysis/ensemble datasets using canonical keys
+    such as ``time``, ``latitude``, ``longitude``, ``level``, ``temperature``,
+    ``geopotential_height``, ``geopotential``, ``u_wind`` and ``v_wind``.
+    Each dictionary in this class maps those canonical keys to the actual
+    variable names in a specific data provider format.
+
+    Mapping families
+    ----------------
+    - Base names (for example ``GFS``, ``NAM``, ``RAP``) represent the current
+      default mappings used by the latest-model shortcuts and THREDDS-style
+      datasets.
+    - ``*_LEGACY`` names represent older NOMADS-style variable naming
+      conventions (for example ``lev``, ``tmpprs``, ``ugrdprs`` and
+      ``vgrdprs``) and are intended for archived or previously downloaded files.
+
+    Notes
+    -----
+    - Mappings can also include optional keys such as ``projection`` for
+      projected grids and ``ensemble`` for member dimensions.
+    - The :meth:`get` method is case-insensitive, so ``"gfs_legacy"`` and
+      ``"GFS_LEGACY"`` are equivalent.
     """
 
     GFS = {
+        "time": "time",
+        "latitude": "lat",
+        "longitude": "lon",
+        "level": "isobaric",
+        "temperature": "Temperature_isobaric",
+        "surface_geopotential_height": "Geopotential_height_surface",
+        "geopotential_height": "Geopotential_height_isobaric",
+        "geopotential": None,
+        "u_wind": "u-component_of_wind_isobaric",
+        "v_wind": "v-component_of_wind_isobaric",
+    }
+    GFS_LEGACY = {
+        "time": "time",
+        "latitude": "lat",
+        "longitude": "lon",
+        "level": "lev",
+        "temperature": "tmpprs",
+        "surface_geopotential_height": "hgtsfc",
+        "geopotential_height": "hgtprs",
+        "geopotential": None,
+        "u_wind": "ugrdprs",
+        "v_wind": "vgrdprs",
+    }
+    AIGFS = {
+        "time": "time",
+        "latitude": "lat",
+        "longitude": "lon",
+        "projection": "LatLon_Projection",
+        "level": "isobaric",
+        "temperature": "Temperature_isobaric",
+        "surface_geopotential_height": None,
+        "geopotential_height": "Geopotential_height_isobaric",
+        "geopotential": None,
+        "u_wind": "u-component_of_wind_isobaric",
+        "v_wind": "v-component_of_wind_isobaric",
+    }
+    NAM_LEGACY = {
         "time": "time",
         "latitude": "lat",
         "longitude": "lon",
@@ -17,15 +75,16 @@ class WeatherModelMapping:
     }
     NAM = {
         "time": "time",
-        "latitude": "lat",
-        "longitude": "lon",
-        "level": "lev",
-        "temperature": "tmpprs",
-        "surface_geopotential_height": "hgtsfc",
-        "geopotential_height": "hgtprs",
+        "latitude": "y",
+        "longitude": "x",
+        "projection": "LambertConformal_Projection",
+        "level": "isobaric",
+        "temperature": "Temperature_isobaric",
+        "surface_geopotential_height": None,
+        "geopotential_height": "Geopotential_height_isobaric",
         "geopotential": None,
-        "u_wind": "ugrdprs",
-        "v_wind": "vgrdprs",
+        "u_wind": "u-component_of_wind_isobaric",
+        "v_wind": "v-component_of_wind_isobaric",
     }
     ECMWF_v0 = {
         "time": "time",
@@ -57,15 +116,15 @@ class WeatherModelMapping:
         "time": "time",
         "latitude": "lat",
         "longitude": "lon",
-        "level": "lev",
-        "temperature": "tmpprs",
-        "surface_geopotential_height": "hgtsfc",
-        "geopotential_height": "hgtprs",
+        "level": "isobaric",
+        "temperature": "Temperature_isobaric",
+        "surface_geopotential_height": "Geopotential_height_surface",
+        "geopotential_height": "Geopotential_height_isobaric",
         "geopotential": None,
-        "u_wind": "ugrdprs",
-        "v_wind": "vgrdprs",
+        "u_wind": "u-component_of_wind_isobaric",
+        "v_wind": "v-component_of_wind_isobaric",
     }
-    RAP = {
+    NOAA_LEGACY = {
         "time": "time",
         "latitude": "lat",
         "longitude": "lon",
@@ -76,6 +135,44 @@ class WeatherModelMapping:
         "geopotential": None,
         "u_wind": "ugrdprs",
         "v_wind": "vgrdprs",
+    }
+    RAP = {
+        "time": "time",
+        "latitude": "y",
+        "longitude": "x",
+        "projection": "LambertConformal_Projection",
+        "level": "isobaric",
+        "temperature": "Temperature_isobaric",
+        "surface_geopotential_height": None,
+        "geopotential_height": "Geopotential_height_isobaric",
+        "geopotential": None,
+        "u_wind": "u-component_of_wind_isobaric",
+        "v_wind": "v-component_of_wind_isobaric",
+    }
+    RAP_LEGACY = {
+        "time": "time",
+        "latitude": "lat",
+        "longitude": "lon",
+        "level": "lev",
+        "temperature": "tmpprs",
+        "surface_geopotential_height": "hgtsfc",
+        "geopotential_height": "hgtprs",
+        "geopotential": None,
+        "u_wind": "ugrdprs",
+        "v_wind": "vgrdprs",
+    }
+    HRRR = {
+        "time": "time",
+        "latitude": "y",
+        "longitude": "x",
+        "projection": "LambertConformal_Projection",
+        "level": "isobaric",
+        "temperature": "Temperature_isobaric",
+        "surface_geopotential_height": None,
+        "geopotential_height": "Geopotential_height_isobaric",
+        "geopotential": None,
+        "u_wind": "u-component_of_wind_isobaric",
+        "v_wind": "v-component_of_wind_isobaric",
     }
     CMC = {
         "time": "time",
@@ -91,6 +188,19 @@ class WeatherModelMapping:
         "v_wind": "vgrdprs",
     }
     GEFS = {
+        "time": "time",
+        "latitude": "lat",
+        "longitude": "lon",
+        "level": "lev",
+        "ensemble": "ens",
+        "temperature": "tmpprs",
+        "surface_geopotential_height": None,
+        "geopotential_height": "hgtprs",
+        "geopotential": None,
+        "u_wind": "ugrdprs",
+        "v_wind": "vgrdprs",
+    }
+    GEFS_LEGACY = {
         "time": "time",
         "latitude": "lat",
         "longitude": "lon",
@@ -129,27 +239,62 @@ class WeatherModelMapping:
     }
 
     def __init__(self):
-        """Initialize the class, creates a dictionary with all the weather models
-        available and their respective dictionaries with the variables."""
+        """Build the lookup table with default and legacy mapping aliases."""
 
         self.all_dictionaries = {
             "GFS": self.GFS,
+            "GFS_LEGACY": self.GFS_LEGACY,
+            "AIGFS": self.AIGFS,
             "NAM": self.NAM,
+            "NAM_LEGACY": self.NAM_LEGACY,
             "ECMWF_v0": self.ECMWF_v0,
             "ECMWF": self.ECMWF,
             "NOAA": self.NOAA,
+            "NOAA_LEGACY": self.NOAA_LEGACY,
             "RAP": self.RAP,
+            "RAP_LEGACY": self.RAP_LEGACY,
+            "HRRR": self.HRRR,
             "CMC": self.CMC,
             "GEFS": self.GEFS,
+            "GEFS_LEGACY": self.GEFS_LEGACY,
             "HIRESW": self.HIRESW,
             "MERRA2": self.MERRA2,
         }
 
     def get(self, model):
-        try:
-            return self.all_dictionaries[model]
-        except KeyError as e:
+        """Return a mapping dictionary by model alias (case-insensitive).
+
+        Parameters
+        ----------
+        model : str
+            Mapping alias name, such as ``"GFS"`` or ``"GFS_LEGACY"``.
+
+        Returns
+        -------
+        dict
+            Dictionary mapping RocketPy canonical weather keys to dataset
+            variable names.
+
+        Raises
+        ------
+        KeyError
+            If ``model`` is unknown or not a string.
+        """
+        if not isinstance(model, str):
             raise KeyError(
                 f"Model {model} not found in the WeatherModelMapping. "
                 f"The available models are: {self.all_dictionaries.keys()}"
-            ) from e
+            )
+
+        try:
+            return self.all_dictionaries[model]
+        except KeyError as exc:
+            model_casefold = model.casefold()
+            for key, value in self.all_dictionaries.items():
+                if key.casefold() == model_casefold:
+                    return value
+
+            raise KeyError(
+                f"Model {model} not found in the WeatherModelMapping. "
+                f"The available models are: {self.all_dictionaries.keys()}"
+            ) from exc
