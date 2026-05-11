@@ -1,3 +1,4 @@
+import math
 from inspect import signature
 from typing import Iterable
 
@@ -17,7 +18,7 @@ class _Controller:
         self,
         interactive_objects,
         controller_function,
-        sampling_rate,
+        sampling_rate=math.inf,
         initial_observed_variables=None,
         name="Controller",
     ):
@@ -72,7 +73,8 @@ class _Controller:
             relevant information in the `observed_variables` list.
 
             .. note:: The function will be called according to the sampling rate
-            specified.
+            specified. If unspecified, the default sampling rate is set to infinity, meaning that the
+            controller function will be called at every step of the simulation.
         sampling_rate : float
             The sampling rate of the controller function in Hertz (Hz). This
             means that the controller function will be called every
