@@ -154,8 +154,14 @@ class Event:
         return action
 
     def __repr__(self):
-        # TODO: Implement a more informative string representation of the Event object.
-        pass
+      # .__self__ gets the Flight object
+      # .__name__ gets the function name 'handle_out_of_rail_event'
+        return (
+          f"Event(name={self.name!r}, "
+          f"trigger={self.trigger.__name__}, "
+          f"action={self.action.__self__.__class__.__name__}.{self.action.__name__}, "
+          f"event_context={self.event_context})"
+        )
 
     def __str__(self):
         # TODO: Implement a more informative string representation of the Event object.
