@@ -5,7 +5,7 @@ the library (introduced in version 1.5.0), some functions may be modified in the
 future to improve their performance and usability.
 """
 
-import bisect
+import math
 import warnings
 
 import netCDF4
@@ -109,6 +109,63 @@ def calculate_wind_speed(u, v, w=0.0):
     return np.sqrt(u**2 + v**2 + w**2)
 
 
+def geodesic_to_lambert_conformal(lat, lon, projection_variable, x_units="m"):
+    """Convert geodesic coordinates to Lambert conformal projected coordinates.
+
+    Parameters
+    ----------
+    lat : float
+        Latitude in degrees, ranging from -90 to 90
+    lon : float
+        Longitude in degrees, ranging from -180 to 180.
+    projection_variable : netCDF4.Variable
+        Projection variable containing Lambert conformal metadata.
+    x_units : str, optional
+        Units used by the dataset x coordinate. Supported values are meters
+        and kilometers. Default is "m".
+
+    Returns
+    -------
+    tuple[float, float]
+        Projected coordinates ``(x, y)`` in the same units as ``x_units``.
+    """
+    lat_radians = math.radians(lat)
+    lon_radians = math.radians(lon % 360)
+
+    lat_origin = math.radians(float(projection_variable.latitude_of_projection_origin))
+    lon_origin = math.radians(float(projection_variable.longitude_of_central_meridian))
+
+    standard_parallel = projection_variable.standard_parallel
+    if np.ndim(standard_parallel) == 0:
+        standard_parallels = [float(standard_parallel)]
+    else:
+        standard_parallels = np.asarray(standard_parallel, dtype=float).tolist()
+
+    if len(standard_parallels) >= 2:
+        phi_1 = math.radians(standard_parallels[0])
+        phi_2 = math.radians(standard_parallels[1])
+        n = math.log(math.cos(phi_1) / math.cos(phi_2)) / math.log(
+            math.tan(math.pi / 4 + phi_2 / 2) / math.tan(math.pi / 4 + phi_1 / 2)
+        )
+    else:
+        phi_1 = math.radians(standard_parallels[0])
+        n = math.sin(phi_1)
+
+    earth_radius = float(getattr(projection_variable, "earth_radius", 6371229.0))
+    f_const = (math.cos(phi_1) * math.tan(math.pi / 4 + phi_1 / 2) ** n) / n
+
+    rho = earth_radius * f_const / (math.tan(math.pi / 4 + lat_radians / 2) ** n)
+    rho_origin = earth_radius * f_const / (math.tan(math.pi / 4 + lat_origin / 2) ** n)
+    theta = n * (lon_radians - lon_origin)
+
+    x_meters = rho * math.sin(theta)
+    y_meters = rho_origin - rho * math.cos(theta)
+
+    if str(x_units).lower().startswith("km"):
+        return x_meters / 1000.0, y_meters / 1000.0
+    return x_meters, y_meters
+
+
 ## These functions are meant to be used with netcdf4 datasets
 
 
@@ -168,6 +225,118 @@ def mask_and_clean_dataset(*args):
     return data_array
 
 
+def _normalize_longitude_value(longitude, lon_start, lon_end):
+    """Normalize longitude based on grid format [-180, 180] or [0, 360].
+
+    Parameters
+    ----------
+    longitude : float
+        The longitude to normalize.
+    lon_start : float
+        The first longitude value in the grid.
+    lon_end : float
+        The last longitude value in the grid.
+
+    Returns
+    -------
+    float
+        The normalized longitude value.
+    """
+    # Determine if file uses geographic longitudes in [-180, 180] or [0, 360].
+    # Do not remap projected x coordinates.
+    is_geographic_longitude = abs(lon_start) <= 360 and abs(lon_end) <= 360
+    if is_geographic_longitude:
+        if lon_start < 0 or lon_end < 0:
+            return longitude if longitude < 180 else -180 + longitude % 180
+        return longitude % 360
+    return longitude
+
+
+def _binary_search_coordinate_index(target_value, coord_list, is_ascending):
+    """Find insertion index for target value using binary search.
+
+    Parameters
+    ----------
+    target_value : float
+        The coordinate value to locate.
+    coord_list : list of float
+        The list of coordinate values.
+    is_ascending : bool
+        Whether the coordinate list is in ascending order.
+
+    Returns
+    -------
+    int
+        The insertion index such that coord_list[index-1] and coord_list[index]
+        bracket the target value.
+    """
+    low = 0
+    high = len(coord_list)
+    while low < high:
+        mid = (low + high) // 2
+        mid_value = float(coord_list[mid])
+        if (mid_value < target_value) if is_ascending else (mid_value > target_value):
+            low = mid + 1
+        else:
+            high = mid
+    return low
+
+
+def _adjust_boundary_coordinate_index(index, coord_list, coord_value):
+    """Adjust index for exact matches at grid boundaries.
+
+    Parameters
+    ----------
+    index : int
+        The current index from binary search.
+    coord_list : list of float
+        The list of coordinate values.
+    coord_value : float
+        The coordinate value being matched.
+
+    Returns
+    -------
+    int
+        The adjusted index after boundary handling.
+    """
+    coord_len = len(coord_list)
+    if index == 0 and math.isclose(float(coord_list[0]), coord_value):
+        return 1
+    if index == coord_len and float(coord_list[coord_len - 1]) == coord_value:
+        return index - 1
+    return index
+
+
+def _validate_coordinate_index_in_range(
+    index, coord_len, coord_start, coord_end, coord_name
+):
+    """Validate that coordinate index is within valid interpolation range.
+
+    Parameters
+    ----------
+    index : int
+        The coordinate index to validate.
+    coord_len : int
+        The length of the coordinate list.
+    coord_start : float
+        The first coordinate value in the grid.
+    coord_end : float
+        The last coordinate value in the grid.
+    coord_name : str
+        The name of the coordinate (e.g., "Longitude", "Latitude").
+
+    Raises
+    ------
+    ValueError
+        If the index is out of valid range (0 or coord_len).
+    """
+    if index in (0, coord_len):
+        raise ValueError(
+            f"{coord_name} not inside region covered by file, which is "
+            f"from {coord_start} to {coord_end}."
+        )
+
+
 def find_longitude_index(longitude, lon_list):
     """Finds the index of the given longitude in a list of longitudes.
 
@@ -188,31 +357,19 @@ def find_longitude_index(longitude, lon_list):
     ValueError
         If the longitude is not within the range covered by the list.
     """
-    # Determine if file uses -180 to 180 or 0 to 360
-    if lon_list[0] < 0 or lon_list[-1] < 0:
-        # Convert input to -180 - 180
-        lon = longitude if longitude < 180 else -180 + longitude % 180
-    else:
-        # Convert input to 0 - 360
-        lon = longitude % 360
-    # Check if reversed or sorted
-    if lon_list[0] < lon_list[-1]:
-        # Deal with sorted lon_list
-        lon_index = bisect.bisect(lon_list, lon)
-    else:
-        # Deal with reversed lon_list
-        lon_list.reverse()
-        lon_index = len(lon_list) - bisect.bisect_left(lon_list, lon)
-        lon_list.reverse()
-    # Take care of longitude value equal to maximum longitude in the grid
-    if lon_index == len(lon_list) and lon_list[lon_index - 1] == lon:
-        lon_index = lon_index - 1
-    # Check if longitude value is inside the grid
-    if lon_index == 0 or lon_index == len(lon_list):
-        raise ValueError(
-            f"Longitude {lon} not inside region covered by file, which is "
-            f"from {lon_list[0]} to {lon_list[-1]}."
-        )
+    lon_len = len(lon_list)
+    lon_start = float(lon_list[0])
+    lon_end = float(lon_list[lon_len - 1])
+
+    lon = _normalize_longitude_value(longitude, lon_start, lon_end)
+    is_ascending = lon_start < lon_end
+
+    lon_index = _binary_search_coordinate_index(lon, lon_list, is_ascending)
+    lon_index = _adjust_boundary_coordinate_index(lon_index, lon_list, lon)
+
+    _validate_coordinate_index_in_range(
+        lon_index, lon_len, lon_start, lon_end, "Longitude"
+    )
 
     return lon, lon_index
 
@@ -237,28 +394,22 @@ def find_latitude_index(latitude, lat_list):
     ValueError
         If the latitude is not within the range covered by the list.
     """
-    # Check if reversed or sorted
-    if lat_list[0] < lat_list[-1]:
-        # Deal with sorted lat_list
-        lat_index = bisect.bisect(lat_list, latitude)
-    else:
-        # Deal with reversed lat_list
-        lat_list.reverse()
-        lat_index = len(lat_list) - bisect.bisect_left(lat_list, latitude)
-        lat_list.reverse()
-    # Take care of latitude value equal to maximum longitude in the grid
-    if lat_index == len(lat_list) and lat_list[lat_index - 1] == latitude:
-        lat_index = lat_index - 1
-    # Check if latitude value is inside the grid
-    if lat_index == 0 or lat_index == len(lat_list):
-        raise ValueError(
-            f"Latitude {latitude} not inside region covered by file, "
-            f"which is from {lat_list[0]} to {lat_list[-1]}."
-        )
+    lat_len = len(lat_list)
+    lat_start = float(lat_list[0])
+    lat_end = float(lat_list[lat_len - 1])
+    is_ascending = lat_start < lat_end
+
+    lat_index = _binary_search_coordinate_index(latitude, lat_list, is_ascending)
+    lat_index = _adjust_boundary_coordinate_index(lat_index, lat_list, latitude)
+
+    _validate_coordinate_index_in_range(
+        lat_index, lat_len, lat_start, lat_end, "Latitude"
+    )
+
     return latitude, lat_index
 
 
-def find_time_index(datetime_date, time_array):
+def find_time_index(datetime_date, time_array):  # pylint: disable=too-many-statements
     """Finds the index of the given datetime in a netCDF4 time array.
 
     Parameters
@@ -280,26 +431,58 @@ def find_time_index(datetime_date, time_array):
     ValueError
         If the exact datetime is not available and the nearest datetime is used instead.
     """
-    time_index = netCDF4.date2index(
-        datetime_date, time_array, calendar="gregorian", select="nearest"
-    )
-    # Convert times do dates and numbers
-    input_time_num = netCDF4.date2num(
-        datetime_date, time_array.units, calendar="gregorian"
-    )
-    file_time_num = time_array[time_index]
-    file_time_date = netCDF4.num2date(
-        time_array[time_index], time_array.units, calendar="gregorian"
-    )
+    time_len = len(time_array)
+    time_units = time_array.units
+    input_time_num = netCDF4.date2num(datetime_date, time_units, calendar="gregorian")
+
+    first_time_num = float(time_array[0])
+    last_time_num = float(time_array[time_len - 1])
+    is_ascending = first_time_num <= last_time_num
+
+    # Binary search nearest index using scalar probing only.
+    low = 0
+    high = time_len
+    while low < high:
+        mid = (low + high) // 2
+        mid_time_num = float(time_array[mid])
+        if (
+            (mid_time_num < input_time_num)
+            if is_ascending
+            else (mid_time_num > input_time_num)
+        ):
+            low = mid + 1
+        else:
+            high = mid
+
+    right_index = min(max(low, 0), time_len - 1)
+    left_index = min(max(right_index - 1, 0), time_len - 1)
+
+    right_time_num = float(time_array[right_index])
+    left_time_num = float(time_array[left_index])
+    if abs(input_time_num - left_time_num) <= abs(right_time_num - input_time_num):
+        time_index = left_index
+        file_time_num = left_time_num
+    else:
+        time_index = right_index
+        file_time_num = right_time_num
+
+    file_time_date = netCDF4.num2date(file_time_num, time_units, calendar="gregorian")
+
     # Check if time is inside range supplied by file
-    if time_index == 0 and input_time_num < file_time_num:
+    if time_index == 0 and (
+        (is_ascending and input_time_num < file_time_num)
+        or (not is_ascending and input_time_num > file_time_num)
+    ):
         raise ValueError(
             f"The chosen launch time '{datetime_date.strftime('%Y-%m-%d-%H:')} UTC' is"
             " not available in the provided file. Please choose a time within the range"
             " of the file, which starts at "
             f"'{file_time_date.strftime('%Y-%m-%d-%H')} UTC'."
         )
-    elif time_index == len(time_array) - 1 and input_time_num > file_time_num:
+    elif time_index == time_len - 1 and (
+        (is_ascending and input_time_num > file_time_num)
+        or (not is_ascending and input_time_num < file_time_num)
+    ):
         raise ValueError(
             "Chosen launch time is not available in the provided file, "
             f"which ends at {file_time_date}."

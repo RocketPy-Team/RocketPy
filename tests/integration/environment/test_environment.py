@@ -1,7 +1,8 @@
 import time
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from unittest.mock import patch
 
+import numpy as np
 import pytest
 
 
@@ -92,6 +93,60 @@ def test_standard_atmosphere(mock_show, example_plain_env):  # pylint: disable=u
     assert example_plain_env.prints.print_earth_details() is None
 
 
+@patch("matplotlib.pyplot.show")
+def test_wind_plots_wrapping_direction(mock_show, example_plain_env):  # pylint: disable=unused-argument
+    """Tests that wind direction plots handle 360°→0° wraparound without
+    drawing a horizontal line across the graph.
+
+    Parameters
+    ----------
+    mock_show : mock
+        Mock object to replace matplotlib.pyplot.show() method.
+    example_plain_env : rocketpy.Environment
+        Example environment object to be tested.
+    """
+    # Set a custom atmosphere where wind direction wraps from ~350° to ~10°
+    # across the altitude range by choosing wind_u and wind_v to create a
+    # direction near 350° at low altitude and ~10° at higher altitude.
+    # wind_direction = (180 + atan2(wind_u, wind_v)) % 360
+    # For direction ~350°: need atan2(wind_u, wind_v) ≈ 170° → wind_u>0, wind_v<0
+    # For direction ~10°:  need atan2(wind_u, wind_v) ≈ -170° → wind_u<0, wind_v<0
+    example_plain_env.set_atmospheric_model(
+        type="custom_atmosphere",
+        pressure=None,
+        temperature=300,
+        wind_u=[(0, 1), (5000, -1)],  # changes sign across altitude
+        wind_v=[(0, -6), (5000, -6)],  # stays negative → heading near 350°/10°
+    )
+    # Verify that the wind direction actually wraps through 0°/360° in this
+    # atmosphere so the test exercises the wraparound code path.
+    low_dir = example_plain_env.wind_direction(0)
+    high_dir = example_plain_env.wind_direction(5000)
+    assert abs(low_dir - high_dir) > 180, (
+        "Test setup error: wind direction should cross 0°/360° boundary"
+    )
+    # Verify that the helper inserts NaN breaks into the direction and altitude
+    # arrays at the wraparound point, which is the core of the fix.
+    directions = np.array(
+        [example_plain_env.wind_direction(i) for i in example_plain_env.plots.grid],
+        dtype=float,
+    )
+    altitudes = np.array(example_plain_env.plots.grid, dtype=float)
+    directions_broken, altitudes_broken = (
+        example_plain_env.plots._break_direction_wraparound(directions, altitudes)
+    )
+    assert np.any(np.isnan(directions_broken)), (
+        "Expected NaN breaks in direction array at 0°/360° wraparound"
+    )
+    assert np.any(np.isnan(altitudes_broken)), (
+        "Expected NaN breaks in altitude array at 0°/360° wraparound"
+    )
+    # Verify info() and atmospheric_model() plots complete without error
+    assert example_plain_env.info() is None
+    assert example_plain_env.plots.atmospheric_model() is None
+
+
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "model_name",
     [
@@ -143,6 +198,42 @@ def test_gfs_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=un
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
+def test_aigfs_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=unused-argument
+    """Tests the Forecast model with the AIGFS file.
+
+    Parameters
+    ----------
+    mock_show : mock
+        Mock object to replace matplotlib.pyplot.show() method.
+    example_spaceport_env : rocketpy.Environment
+        Example environment object to be tested.
+    """
+    example_spaceport_env.set_atmospheric_model(type="Forecast", file="AIGFS")
+    assert example_spaceport_env.all_info() is None
+
+
+@pytest.mark.slow
+@patch("matplotlib.pyplot.show")
+def test_hrrr_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=unused-argument
+    """Tests the Forecast model with the HRRR file.
+
+    Parameters
+    ----------
+    mock_show : mock
+        Mock object to replace matplotlib.pyplot.show() method.
+    example_spaceport_env : rocketpy.Environment
+        Example environment object to be tested.
+    """
+    # Sometimes the HRRR latest-model can fail due to not having at least 24
+    # hours in the future in the forecast, so we try with 12 hours in the future
+    # only.
+    example_spaceport_env.set_date(datetime.now() + timedelta(hours=12))
+    example_spaceport_env.set_atmospheric_model(type="Forecast", file="HRRR")
+    assert example_spaceport_env.all_info() is None
+
+
+@pytest.mark.slow
+@patch("matplotlib.pyplot.show")
 def test_nam_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=unused-argument
     """Tests the Forecast model with the NAM file.
 
@@ -178,8 +269,11 @@ def test_gefs_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=u
     example_spaceport_env : rocketpy.Environment
         Example environment object to be tested.
     """
-    example_spaceport_env.set_atmospheric_model(type="Ensemble", file="GEFS")
-    assert example_spaceport_env.all_info() is None
+    with pytest.raises(
+        ValueError,
+        match="GEFS latest-model shortcut is currently unavailable",
+    ):
+        example_spaceport_env.set_atmospheric_model(type="Ensemble", file="GEFS")
 
 
 @pytest.mark.slow
@@ -234,13 +328,15 @@ def test_hiresw_ensemble_atmosphere(mock_show, example_spaceport_env):  # pylint
 
     example_spaceport_env.set_date(date_info)
 
-    example_spaceport_env.set_atmospheric_model(
-        type="Forecast",
-        file="HIRESW",
-        dictionary="HIRESW",
-    )
-
-    assert example_spaceport_env.all_info() is None
+    with pytest.raises(
+        ValueError,
+        match="HIRESW latest-model shortcut is currently unavailable",
+    ):
+        example_spaceport_env.set_atmospheric_model(
+            type="Forecast",
+            file="HIRESW",
+            dictionary="HIRESW",
+        )
 
 
 @pytest.mark.skip(reason="CMC model is currently not working")

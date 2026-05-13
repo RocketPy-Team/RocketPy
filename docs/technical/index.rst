@@ -13,6 +13,7 @@ in their code.
    Equations of Motion v0 <equations_of_motion.rst>
    Equations of Motion v1 <equations_of_motion_v1.rst>
    Elliptical Fins <aerodynamics/elliptical_fins.rst>
+   Individual Fin <aerodynamics/individual_fins.rst>
    Roll Moment <aerodynamics/roll_equations.rst>
    Sensitivity Analysis <sensitivity.rst>
    References <references.rst>

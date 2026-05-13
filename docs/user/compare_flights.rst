@@ -26,8 +26,8 @@ This is done following the same steps as in the :ref:`firstsimulation` example.
 
 .. jupyter-execute::
 
-      after_tomorrow = datetime.now() + timedelta(days=2)
-      env = Environment(latitude=-23, longitude=-49, date=after_tomorrow)
+      tomorrow = datetime.now() + timedelta(days=1)
+      env = Environment(latitude=-23, longitude=-49, date=tomorrow)
       env.set_atmospheric_model(type="Forecast", file="GFS")
 
       cesaroni_motor = SolidMotor(

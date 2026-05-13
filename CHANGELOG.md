@@ -32,7 +32,9 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
-- 
+- ENH: Auto Populate Changelog [#919](https://github.com/RocketPy-Team/RocketPy/pull/919)
+- ENH: Adaptive Monte Carlo via Convergence Criteria [#922](https://github.com/RocketPy-Team/RocketPy/pull/922)
+- TST: Add acceptance tests for 3DOF flight simulation based on Bella Lui rocket [#914](https://github.com/RocketPy-Team/RocketPy/pull/914)
 
 ### Changed
 
@@ -40,12 +42,17 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
-- 
+- BUG: Add wraparound logic for wind direction in environment plots [#939](https://github.com/RocketPy-Team/RocketPy/pull/939)
+
+## [v1.12.1] - 2026-04-03
+
+### Fixed
+
+- HOTFIX: Migrate Forecasts to UCAR THREDDS [#943](https://github.com/RocketPy-Team/RocketPy/pull/943)
 
 ## [v1.12.0] - 2026-03-08
 
 ### Added
-
 
 - ENH: Air brakes controller functions now support 8-parameter signature [#854](https://github.com/RocketPy-Team/RocketPy/pull/854)
 - TST: Add acceptance tests for 3DOF flight simulation based on Bella Lui rocket [#914] (https://github.com/RocketPy-Team/RocketPy/pull/914_
