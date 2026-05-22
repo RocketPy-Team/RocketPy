@@ -1,7 +1,9 @@
 """1D interpolation and extrapolation strategies."""
 
 from __future__ import annotations
+
 from bisect import bisect_left
+
 import numpy as np
 
 from rocketpy.mathutils.interpolation._fitting import (

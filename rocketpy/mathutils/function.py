@@ -2409,26 +2409,6 @@ class Function:  # pylint: disable=too-many-public-methods
         if return_object:
             return fig, ax
 
-    # Define all interpolation methods
-    # NOTE: These methods are kept for backward compatibility but are no longer
-    # called by the main interpolation setup path. The new _build_interp_extrap
-    # method uses the interpolation submodule factories instead.
-
-    def __interpolate_polynomial__(self):
-        """Calculate polynomial coefficients that fit the data exactly."""
-        coeffs = fit_polynomial(self.x_array, self.y_array)
-        if coeffs is None:
-            return self.set_interpolation("spline")
-        self.__polynomial_coefficients__ = coeffs
-
-    def __interpolate_spline__(self):
-        """Calculate natural spline coefficients that fit the data exactly."""
-        self.__spline_coefficients__ = fit_spline(self.x_array, self.y_array)
-
-    def __interpolate_akima__(self):
-        """Calculate akima spline coefficients that fit the data exactly."""
-        self.__akima_coefficients__ = fit_akima(self.x_array, self.y_array)
-
     def __neg__(self):
         """Negates the Function object. The result has the same effect as
         multiplying the Function by -1.
@@ -2733,10 +2713,13 @@ class Function:  # pylint: disable=too-many-public-methods
                     extrap,
                 )
             else:
+                self_callable = (
+                    self.source
+                    if self._source_type is SourceType.CALLABLE
+                    else self.get_value_opt
+                )
                 return Function(
-                    self.__make_arith_lambda(
-                        lambda_op, self.get_value_opt, other, dom_dim
-                    ),
+                    self.__make_arith_lambda(lambda_op, self_callable, other, dom_dim),
                     inputs,
                 )
 
@@ -2758,9 +2741,14 @@ class Function:  # pylint: disable=too-many-public-methods
                     f"Function ({dom_dim})."
                 )
 
+            self_callable = (
+                self.source
+                if self._source_type is SourceType.CALLABLE
+                else self.get_value_opt
+            )
             return Function(
                 self.__make_arith_lambda(
-                    lambda_op, self.get_value_opt, other_callable, dom_dim, other_dim
+                    lambda_op, self_callable, other_callable, dom_dim, other_dim
                 ),
                 inputs,
             )
@@ -2801,11 +2789,11 @@ class Function:  # pylint: disable=too-many-public-methods
                 return Function(
                     self.__make_arith_lambda(
                         lambda_op,
-                        self.get_value_opt,
                         other,
-                        dom_dim,
+                        sv,
                         other_dim,
-                        reverse=True,
+                        0,
+                        reverse=False,
                     ),
                     inputs,
                 )
@@ -2821,9 +2809,14 @@ class Function:  # pylint: disable=too-many-public-methods
                     extrap,
                 )
             else:
+                self_callable = (
+                    self.source
+                    if self._source_type is SourceType.CALLABLE
+                    else self.get_value_opt
+                )
                 return Function(
                     self.__make_arith_lambda(
-                        lambda_op, self.get_value_opt, other, dom_dim, reverse=True
+                        lambda_op, self_callable, other, dom_dim, reverse=True
                     ),
                     inputs,
                 )
@@ -2838,11 +2831,15 @@ class Function:  # pylint: disable=too-many-public-methods
                     f"({other_dim}) does not match the number of parameters of the "
                     f"Function ({dom_dim})."
                 )
-
+            self_callable = (
+                self.source
+                if self._source_type is SourceType.CALLABLE
+                else self.get_value_opt
+            )
             return Function(
                 self.__make_arith_lambda(
                     lambda_op,
-                    self.get_value_opt,
+                    self_callable,
                     other,
                     dom_dim,
                     other_dim,
@@ -4054,10 +4051,6 @@ class Function:  # pylint: disable=too-many-public-methods
         func._grid_axes = axes
         func._grid_data = grid_data
 
-        # --- DELEGATE TO THE REGISTRY (No duplicate instantiation!) ---
-        # Note: We must import build_interpolation_evaluator at the top of function.py
-        from .interpolation.registry import build_interpolation_evaluator
-
         func._evaluator = build_interpolation_evaluator(
             method="regular_grid",
             extrap_method=extrapolation,
@@ -4157,10 +4150,15 @@ class Function:  # pylint: disable=too-many-public-methods
             If True, reverses operand order: operator(other(...), func(...)).
         """
         # Optimized 1D×1D case: avoid *args overhead
-        if func_dim == 1 and other_dim == 1:
-            if reverse:
-                return lambda x: operator(other(x), func(x))
-            return lambda x: operator(func(x), other(x))
+        if func_dim == 1:
+            if other_dim == 1:
+                if reverse:
+                    return lambda x: operator(other(x), func(x))
+                return lambda x: operator(func(x), other(x))
+            elif other_dim == 0:
+                if reverse:
+                    return lambda x: operator(other, func(x))
+                return lambda x: operator(func(x), other)
 
         # Scalar case
         if other_dim == 0:

@@ -1,6 +1,7 @@
 """ND interpolation and extrapolation strategies."""
 
 from __future__ import annotations
+
 import numpy as np
 from scipy.interpolate import (
     LinearNDInterpolator,
@@ -9,6 +10,7 @@ from scipy.interpolate import (
     RegularGridInterpolator,
 )
 from scipy.spatial.distance import cdist
+
 from rocketpy.mathutils.interpolation.polation_base import PolationBase
 
 

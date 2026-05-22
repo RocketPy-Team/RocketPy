@@ -1,7 +1,9 @@
 """Routers that choose interpolation or extrapolation strategies."""
 
 from __future__ import annotations
+
 import numpy as np
+
 from rocketpy.mathutils.interpolation.polation_base import PolationBase
 
 
