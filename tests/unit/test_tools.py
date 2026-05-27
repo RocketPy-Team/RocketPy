@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from rocketpy import Environment
 from rocketpy.tools import (
     calculate_cubic_hermite_coefficients,
     euler313_to_quaternions,
@@ -100,3 +101,39 @@ def test_tuple_handler(input_value, expected_output):
 def test_tuple_handler_exceptions(input_value, expected_exception):
     with pytest.raises(expected_exception):
         tuple_handler(input_value)
+
+
+@pytest.mark.parametrize("pressure_conversion_factor", ["hPa", "mbar", "Pa", 100])
+def test_valid_pressure_conversion_factor(pressure_conversion_factor):
+    env = Environment(
+        gravity=9.81,
+        latitude=47.213476,
+        longitude=9.003336,
+        date=(2020, 2, 22, 13),
+        elevation=407,
+    )
+    env.set_atmospheric_model(
+        type="Reanalysis",
+        file="data/weather/bella_lui_weather_data_ERA5.nc",
+        dictionary="ECMWF",
+        pressure_conversion_factor=pressure_conversion_factor,
+    )
+
+
+@pytest.mark.parametrize("pressure_conversion_factor", [-1, "mPa"])
+def test_invalid_pressure_conversion_factor(pressure_conversion_factor):
+    env = Environment(
+        gravity=9.81,
+        latitude=47.213476,
+        longitude=9.003336,
+        date=(2020, 2, 22, 13),
+        elevation=407,
+    )
+
+    with pytest.raises(ValueError):
+        env.set_atmospheric_model(
+            type="Reanalysis",
+            file="data/weather/bella_lui_weather_data_ERA5.nc",
+            dictionary="ECMWF",
+            pressure_conversion_factor=pressure_conversion_factor,
+        )
