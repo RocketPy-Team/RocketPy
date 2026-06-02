@@ -18,6 +18,7 @@ RocketPy's User Guide
    Rocket <rocket/rocket.rst>
    Environment <environment.rst>
    Flight <flight.rst>
+   Event Usage <event_usage.rst>
 
 .. toctree::
    :maxdepth: 2
