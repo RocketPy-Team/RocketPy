@@ -14,7 +14,7 @@ plt.rcParams.update({"figure.max_open_warning": 0})
 )
 @patch("matplotlib.pyplot.show")
 # pylint: disable=unused-argument
-def test_all_info(mock_show, request, flight_fixture):
+def test_all_info(request, flight_fixture):
     """Test that the flight class is working as intended. This basically calls
     the all_info() method and checks if it returns None. It is not testing if
     the values are correct, but whether the method is working without errors.
@@ -38,7 +38,7 @@ def test_all_info(mock_show, request, flight_fixture):
 # RK23 is unstable and requires a very low tolerance to work
 # pylint: disable=unused-argument
 def test_all_info_different_solvers(
-    mock_show, calisto_robust, example_spaceport_env, solver_method
+    calisto_robust, example_spaceport_env, solver_method
 ):
     """Test that the flight class is working as intended with different solver
     methods. This basically calls the all_info() method and checks if it returns
@@ -69,7 +69,7 @@ def test_all_info_different_solvers(
 
 
 @patch("matplotlib.pyplot.show")
-def test_hybrid_motor_flight(mock_show, flight_calisto_hybrid_modded):  # pylint: disable=unused-argument
+def test_hybrid_motor_flight(flight_calisto_hybrid_modded):  # pylint: disable=unused-argument
     """Test the flight of a rocket with a hybrid motor. This test only validates
     that a flight simulation can be performed with a hybrid motor; it does not
     validate the results.
@@ -85,7 +85,7 @@ def test_hybrid_motor_flight(mock_show, flight_calisto_hybrid_modded):  # pylint
 
 
 @patch("matplotlib.pyplot.show")
-def test_liquid_motor_flight(mock_show, flight_calisto_liquid_modded):  # pylint: disable=unused-argument
+def test_liquid_motor_flight(flight_calisto_liquid_modded):  # pylint: disable=unused-argument
     """Test the flight of a rocket with a liquid motor. This test only validates
     that a flight simulation can be performed with a liquid motor; it does not
     validate the results.
@@ -102,7 +102,7 @@ def test_liquid_motor_flight(mock_show, flight_calisto_liquid_modded):  # pylint
 
 @pytest.mark.slow
 @patch("matplotlib.pyplot.show")
-def test_time_overshoot_false(mock_show, calisto_robust, example_spaceport_env):  # pylint: disable=unused-argument
+def test_time_overshoot(calisto_robust, example_spaceport_env):  # pylint: disable=unused-argument
     """Test the time_overshoot parameter of the Flight class. This basically
     calls the all_info() method for a simulation without time_overshoot and
     checks if it returns None. It is not testing if the values are correct,
@@ -131,7 +131,7 @@ def test_time_overshoot_false(mock_show, calisto_robust, example_spaceport_env):
 
 
 @patch("matplotlib.pyplot.show")
-def test_simpler_parachute_triggers(mock_show, example_plain_env, calisto_robust):  # pylint: disable=unused-argument
+def test_simpler_parachute_triggers(example_plain_env, calisto_robust):  # pylint: disable=unused-argument
     """Tests different types of parachute triggers. This is important to ensure
     the code is working as intended, since the parachute triggers can have very
     different format definitions. It will add 3 parachutes using different
@@ -273,7 +273,7 @@ def test_eccentricity_on_flight(  # pylint: disable=unused-argument
 
 
 @patch("matplotlib.pyplot.show")
-def test_air_brakes_flight(mock_show, flight_calisto_air_brakes):  # pylint: disable=unused-argument
+def test_air_brakes_flight(flight_calisto_air_brakes):  # pylint: disable=unused-argument
     """Test the flight of a rocket with air brakes. This test only validates
     that a flight simulation can be performed with air brakes; it does not
     validate the results.
@@ -293,6 +293,50 @@ def test_air_brakes_flight(mock_show, flight_calisto_air_brakes):  # pylint: dis
     assert air_brakes.prints.all() is None
 
 
+def test_controllers_not_duplicated_in_merge():
+    """Regression test for issue #959. Verifies TimeNodes.merge() does
+    not duplicate controller references during node merging.
+    """
+    from rocketpy.simulation.flight import Flight
+    TimeNodes = Flight.TimeNodes
+    
+    # Create two time nodes at the same time, each with one controller
+    def dummy(t, y, sol, s):
+        pass
+    
+    nodes = TimeNodes()
+    nodes.add_node(0, [], [dummy], [])
+    nodes.add_node(0, [], [dummy], [])
+    nodes.sort()
+    nodes.merge()
+    
+    # After merge, two controllers should remain (one from each node)
+    merged = nodes.list[0]._controllers
+    assert len(merged) == 2, f"Expected 2 controllers, got {len(merged)}"
+    
+    # Repeat with three nodes to verify accumulation scales
+    nodes2 = TimeNodes()
+    nodes2.add_node(0, [], [dummy], [])
+    nodes2.add_node(0, [], [dummy], [])
+    nodes2.add_node(0, [], [dummy], [])
+    nodes2.sort()
+    nodes2.merge()
+    assert len(nodes2.list[0]._controllers) == 3
+    
+    # Controllers at different times should remain separate
+    nodes3 = TimeNodes()
+    nodes3.add_node(0, [], [dummy], [])
+    nodes3.add_node(1, [], [dummy], [])
+    nodes3.add_node(0, [], [dummy], [])
+    nodes3.sort()
+    nodes3.merge()
+    assert len(nodes3.list) == 2
+    # t=0 should have 2 controllers (one from each node), t=1 should have 1
+    times = {round(n.t, 7): len(n._controllers) for n in nodes3.list}
+    assert times[0.0] == 2
+    assert times[1.0] == 1
+
+
 @patch("matplotlib.pyplot.show")
 def test_air_brakes_flight_with_overshoot(
     mock_show, flight_calisto_air_brakes_time_overshoot
@@ -307,7 +351,7 @@ def test_air_brakes_flight_with_overshoot(
 
 
 @patch("matplotlib.pyplot.show")
-def test_initial_solution(mock_show, example_plain_env, calisto_robust):  # pylint: disable=unused-argument
+def test_initial_solution(example_plain_env, calisto_robust):  # pylint: disable=unused-argument
     """Tests the initial_solution option of the Flight class. This test simply
     simulates the flight using the initial_solution option and checks if the
     all_info method returns None.
@@ -352,7 +396,7 @@ def test_initial_solution(mock_show, example_plain_env, calisto_robust):  # pyli
 
 
 @patch("matplotlib.pyplot.show")
-def test_empty_motor_flight(mock_show, example_plain_env, calisto_motorless):  # pylint: disable=unused-argument
+def test_empty_motor_flight(example_plain_env, calisto_motorless):  # pylint: disable=unused-argument
     flight = Flight(
         rocket=calisto_motorless,
         environment=example_plain_env,
