@@ -1,215 +1,337 @@
-from inspect import signature
-from typing import Iterable
-
+from rocketpy.simulation.events.event import Event
 from rocketpy.tools import from_hex_decode, to_hex_encode
 
 from ..prints.controller_prints import _ControllerPrints
 
 
 class _Controller:
-    """A class for storing and running controllers on a rocket. Controllers
-    have a controller function that is called at a specified sampling rate
-    during the simulation. The controller function can access and modify
-    the objects that are passed to it. The controller function also stores the
-    variables of interest in the objects that are passed to it."""
+    """A controller that modifies rocket state during simulation.
+
+    Controllers execute at specified sampling rates and can mutate rocket
+    objects (e.g., air brakes, fins) during flight. Like Event objects,
+    controllers use a callback pattern with persistent context, but
+    explicitly expect external object state to change.
+
+    The controller function is responsible for:
+    1. Reading simulation state and sensor data
+    2. Computing control actions
+    3. Mutating controlled_objects to apply those actions
+    4. Returning callback_log/logging information
+
+    The key difference from Event: object mutations are intentional and
+    expected. This is the controller's primary purpose.
+    """
 
     def __init__(
         self,
-        interactive_objects,
         controller_function,
+        controlled_objects,
         sampling_rate,
-        initial_observed_variables=None,
+        context=None,
         name="Controller",
+        controlled_objects_name=None,
+        enabled=True,
+        disable_on=None,
+        enable_on=None,
     ):
-        """Initialize the class with the controller function and the objects to
-        be observed.
+        """Initialize the controller.
 
         Parameters
         ----------
-        interactive_objects : list or object
-            A collection of objects that the controller function can access and
-            potentially modify. This can be either a list of objects or a single
-            object. The objects listed here are provided to the controller function
-            as the last argument, maintaining the order specified in this list if
-            it's a list. The controller function gains the ability to interact with
-            and make adjustments to these objects during its execution.
-        controller_function : function, callable
-            An user-defined function responsible for controlling the simulation.
-            This function is expected to take the following arguments, in order:
+        controller_function : callable # TODO: undo breaking change, and fix docs
+            Function that executes control logic. Signature:
 
-            1. `time` (float): The current simulation time in seconds.
-            2. `sampling_rate` (float): The rate at which the controller
-               function is called, measured in Hertz (Hz).
-            3. `state` (list): The state vector of the simulation, structured as
-               `[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]`.
-            4. `state_history` (list): A record of the rocket's state at each
-               step throughout the simulation. The state_history is organized as
-               a list of lists, with each sublist containing a state vector. The
-               last item in the list always corresponds to the previous state
-               vector, providing a chronological sequence of the rocket's
-               evolving states.
-            5. `observed_variables` (list): A list containing the variables that
-               the controller function returns. The return of each controller
-               function call is appended to the observed_variables list. The
-               initial value in the first step of the simulation of this list is
-               provided by the `initial_observed_variables` argument.
-            6. `interactive_objects` (list): A list containing the objects that
-               the controller function can interact with. The objects are
-               listed in the same order as they are provided in the
-               `interactive_objects`.
-            7. `sensors` (list): A list of sensors that are attached to the
-                rocket. The most recent measurements of the sensors are provided
-                with the ``sensor.measurement`` attribute. The sensors are
-                listed in the same order as they are added to the rocket.
-            8. `environment` (Environment): The environment object containing
-                atmospheric conditions, wind data, gravity, and other
-                environmental parameters. This allows the controller to access
-                environmental data locally without relying on global variables.
+            .. code-block:: python
 
-            This function will be called during the simulation at the specified
-            sampling rate. The function should evaluate and change the interactive
-            objects as needed. The function return statement can be used to save
-            relevant information in the `observed_variables` list.
+                def controller_function(**kwargs) -> dict:
+                    '''
+                    Computes and applies control actions.
 
-            .. note:: The function will be called according to the sampling rate
-            specified.
+                    Parameters
+                    ----------
+                    **kwargs : dict
+                        time : float
+                            Current simulation time (seconds).
+                        state : list
+                            State vector [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz].
+                        state_history : list
+                            History of previous state vectors.
+                        sensors : dict
+                            Sensor data (by sensor name).
+                        environment : Environment
+                            Environmental object.
+                        rocket : Rocket
+                            Rocket object.
+                        flight : Flight
+                            Flight object.
+                        event : Event
+                            The event object. Access context via event.context.
+                        controller : _Controller
+                            This controller instance. Access controlled_objects via
+                            controller.controlled_objects and persistent state via
+                            controller.context.
+                        (+ other standard Event kwargs)
+
+                    Returns
+                    -------
+                    dict or None
+                        callback_log/logging dict. Keys are user-defined.
+                        Return None if no callback_log needed.
+
+                    Example
+                    -------
+                    .. code-block:: python
+
+                        def my_controller(**kwargs):
+                            time = kwargs["time"]
+                            state = kwargs["state"]
+                            controller = kwargs["controller"]
+
+                            # Access persistent state
+                            context = controller.context
+                            if "counter" not in context:
+                                context["counter"] = 0
+                            context["counter"] += 1
+
+                            # Mutate controlled objects
+                            air_brakes = controller.controlled_objects
+                            if time > 5.0:
+                                air_brakes.open()
+
+                            return {"counter": context["counter"]}
+                    '''
+
+            The function should mutate controlled_objects directly.
+
+        controlled_objects : list or object
+            Object(s) that the controller can modify. Can be a single object
+            or list of objects. These are passed by reference; mutations
+            persist in the simulation.
+
         sampling_rate : float
-            The sampling rate of the controller function in Hertz (Hz). This
-            means that the controller function will be called every
-            `1/sampling_rate` seconds.
-        initial_observed_variables : list, optional
-            A list of the initial values of the variables that the controller
-            function returns. This list is used to initialize the
-            `observed_variables` argument of the controller function. The
-            default value is None, which initializes the list as an empty list.
-        name : str
-            The name of the controller. This will be used for printing and
-            plotting.
+            Rate (Hz) at which the controller executes. Controller runs
+            every 1/sampling_rate seconds.
+
+        name : str, optional
+            Controller name (for identification and logging).
+
+        context : dict, optional
+            Initial persistent state. Passed to controller_function and
+            modified in-place to track state across executions.
+            Defaults to empty dict.
+
+        enabled : bool, optional
+            Whether the wrapped event is initially enabled. If False, the
+            controller will not execute during simulation until the wrapped
+            event is enabled. Can be enabled via commands.enable().
+            Defaults to True.
+
+        disable_on : str or callable, optional
+            Condition to automatically disable this controller. Can be:
+            - A string preset: "apogee" or "burnout"
+            - A callable that returns a boolean: True when controller should be disabled
+            When the condition is met, the controller disables after the
+            current execution. Defaults to None (no automatic disabling).
+
+        enable_on : str or callable, optional
+            Condition to automatically re-enable this controller. Can be:
+            - A string preset: "apogee" or "burnout"
+            - A callable that returns a boolean: True when controller should be enabled
+            When the condition is met while the wrapped event is disabled,
+            the wrapped event re-enables before trigger evaluation.
+            Defaults to None (no automatic enabling).
 
         Returns
         -------
         None
         """
-        self.interactive_objects = interactive_objects
-        self.base_controller_function = controller_function
-        self.controller_function = self.__init_controller_function(controller_function)
+        self.controller_function = controller_function
+        self.controlled_objects = controlled_objects
+        # Optional friendly name(s) to expose controlled objects in callback kwargs
+        # Accept either a single string name or an iterable of string names
+        self.controlled_objects_name = controlled_objects_name
+        self._controlled_objects_bindings = self.__verify_controlled_objects_name()
         self.sampling_rate = sampling_rate
-        self.initial_observed_variables = initial_observed_variables
         self.name = name
+        self.context = context if context is not None else {}
         self.prints = _ControllerPrints(self)
+        self.enabled = enabled
+        self.disable_on = disable_on
+        self.enable_on = enable_on
 
-        if initial_observed_variables is not None:
-            self.observed_variables = [initial_observed_variables]
-        else:
-            self.observed_variables = []
+        # Create the event during initialization
+        self.event = self.to_event()
+        self.log = self.event.callback_log
 
-    def __init_controller_function(self, controller_function):
-        """Checks number of arguments of the controller function and initializes
-        it with the correct number of arguments. This is a workaround to allow
-        the controller function to receive sensors and environment without breaking changes"""
-        sig = signature(controller_function)
-        if len(sig.parameters) == 6:
-            # pylint: disable=unused-argument
-            def new_controller_function(
-                time,
-                sampling_rate,
-                state_vector,
-                state_history,
-                observed_variables,
-                interactive_objects,
-                sensors,
-                environment,
-            ):
-                return controller_function(
-                    time,
-                    sampling_rate,
-                    state_vector,
-                    state_history,
-                    observed_variables,
-                    interactive_objects,
-                )
-
-        elif len(sig.parameters) == 7:
-            # pylint: disable=unused-argument
-            def new_controller_function(
-                time,
-                sampling_rate,
-                state_vector,
-                state_history,
-                observed_variables,
-                interactive_objects,
-                sensors,
-                environment,
-            ):
-                return controller_function(
-                    time,
-                    sampling_rate,
-                    state_vector,
-                    state_history,
-                    observed_variables,
-                    interactive_objects,
-                    sensors,
-                )
-
-        elif len(sig.parameters) == 8:
-            new_controller_function = controller_function
-        else:
-            raise ValueError(
-                "The controller function must have 6, 7, or 8 arguments. "
-                "The arguments must be in the following order: "
-                "(time, sampling_rate, state_vector, state_history, "
-                "observed_variables, interactive_objects, sensors, environment). "
-                "Supported signatures: "
-                "6 parameters (no sensors, no environment), "
-                "7 parameters (with sensors, no environment), or "
-                "8 parameters (with sensors and environment)."
-            )
-        return new_controller_function
-
-    def __call__(self, time, state_vector, state_history, sensors, environment):
-        """Call the controller function. This is used by the simulation class.
-
-        Parameters
-        ----------
-        time : float
-            The time of the simulation in seconds.
-        state_vector : list
-            The state vector of the simulation, which is defined as:
-
-            `[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]`.
-        state_history : list
-            A list containing the state history of the simulation. The state
-            history is a list of every state vector of every step of the
-            simulation. The state history is a list of lists, where each
-            sublist is a state vector and is ordered from oldest to newest.
-        sensors : list
-            A list of sensors that are attached to the rocket. The most recent
-            measurements of the sensors are provided with the
-            ``sensor.measurement`` attribute. The sensors are listed in the same
-            order as they are added to the rocket.
-        environment : Environment
-            The environment object containing atmospheric conditions, wind data,
-            gravity, and other environmental parameters.
+    def to_event(self):
+        """Create an Event that wraps this controller for simulation execution.
 
         Returns
         -------
-        None
+        Event
+            Event configured for controller sampling rate and callback.
+
+        Notes
+        -----
+        The Event callback directly invokes the controller function with
+        proper parameters. The controller is responsible for mutating
+        controlled_objects to apply control actions.
         """
-        observed_variables = self.controller_function(
-            time,
-            self.sampling_rate,
-            state_vector,
-            state_history,
-            self.observed_variables,
-            self.interactive_objects,
-            sensors,
-            environment,
+
+        def controller_callback(**kwargs):
+            """Execute controller and handle mutations.
+
+            Parameters
+            ----------
+            **kwargs : dict
+                Event context including:
+                - time: float, simulation time
+                - state: list, state vector
+                - state_history: list, state trajectory
+                - sensors: dict, sensor measurements
+                - environment: Environment, environmental model
+                - event: Event, the event object itself
+                - controller: _Controller, this controller instance
+                - (other standard Event kwargs)
+
+            Returns
+            -------
+            dict or None
+                callback_log dict from controller function, logged to callback_log.
+            """
+            # Inject controller reference into kwargs (like kwargs["event"] for events)
+            kwargs["controller"] = self
+            kwargs["controlled_objects"] = self.controlled_objects
+
+            # Also expose controlled objects under a user-provided name
+            if self._controlled_objects_bindings:
+                kwargs.update(self._controlled_objects_bindings)
+
+            # Call controller function with kwargs directly
+            # The function can access context via kwargs["controller"].context
+            # and controlled_objects via kwargs["controlled_objects"] or
+            # via the provided friendly name.
+            callback_log = self.controller_function(**kwargs)
+            return callback_log
+
+        return Event(
+            callback=controller_callback,
+            name=f"{self.name}",
+            sampling_rate=self.sampling_rate,
+            context=self.context,  # Pass context to Event
+            changes_dynamics=True,
+            trigger_only_once=False,
+            enabled=self.enabled,
+            disable_on=self.disable_on,
+            enable_on=self.enable_on,
+            priority=3,
         )
-        if observed_variables is not None:
-            self.observed_variables.append(observed_variables)
+
+    @property
+    def enabled(self):
+        """Return the current enabled state mirrored from the wrapped event."""
+        if hasattr(self, "event"):
+            return self.event.enabled
+        return self._enabled
+
+    @enabled.setter
+    def enabled(self, value):
+        self._enabled = bool(value)
+        if hasattr(self, "event"):
+            self.event.enabled = self._enabled
 
     def __str__(self):
         return f"Controller '{self.name}' with sampling rate {self.sampling_rate} Hz."
+
+    @property
+    def log(self):
+        """Return the controller callback log."""
+        return self._log
+
+    @log.setter
+    def log(self, value):
+        self._log = value
+        if hasattr(self, "event"):
+            self.event.callback_log = value
+
+    @property
+    def return_log(self):
+        """Alias for :attr:`log`."""
+        return self.log
+
+    @return_log.setter
+    def return_log(self, value):
+        self.log = value
+
+    def __verify_controlled_objects_name(self):
+        """Validate controlled_objects_name and build callback bindings."""
+        if self.controlled_objects_name is None:
+            return None
+
+        single_name = isinstance(self.controlled_objects_name, str)
+        list_names = isinstance(self.controlled_objects_name, (list, tuple))
+        if not (single_name or list_names):
+            raise TypeError(
+                "controlled_objects_name must be a string or list/tuple of strings"
+            )
+
+        reserved = {
+            "time",
+            "state",
+            "state_history",
+            "sensors",
+            "environment",
+            "rocket",
+            "flight",
+            "event",
+            "controller",
+            "controlled_objects",
+            "step_size",
+            "state_dot",
+            "sensors_by_name",
+            "pressure",
+            "height_above_ground_level",
+            "callback_log",
+            "triggered_times",
+            "commands",
+            "context",
+        }
+
+        if single_name:
+            if self.controlled_objects_name in reserved:
+                raise ValueError(
+                    f"controlled_objects_name '{self.controlled_objects_name}' conflicts with reserved callback keywords"
+                )
+            return {self.controlled_objects_name: self.controlled_objects}
+
+        if not all(isinstance(n, str) for n in self.controlled_objects_name):
+            raise TypeError(
+                "All entries in controlled_objects_name list must be strings"
+            )
+        if len(set(self.controlled_objects_name)) != len(self.controlled_objects_name):
+            raise ValueError("controlled_objects_name entries must be unique")
+        for n in self.controlled_objects_name:
+            if n in reserved:
+                raise ValueError(
+                    f"controlled_objects_name entry '{n}' conflicts with reserved callback keywords"
+                )
+        if not isinstance(self.controlled_objects, (list, tuple)):
+            raise ValueError(
+                "controlled_objects_name is a list but controlled_objects is not a list/tuple"
+            )
+        if len(self.controlled_objects_name) != len(self.controlled_objects):
+            raise ValueError(
+                "Length of controlled_objects_name must match number of controlled_objects"
+            )
+
+        controlled_objects_by_name = dict(
+            zip(self.controlled_objects_name, self.controlled_objects)
+        )
+        controlled_objects_bindings = dict(controlled_objects_by_name)
+        controlled_objects_bindings["controlled_objects_by_name"] = (
+            controlled_objects_by_name
+        )
+        return controlled_objects_bindings
 
     def info(self):
         """Prints out summarized information about the controller."""
@@ -220,6 +342,21 @@ class _Controller:
         self.info()
 
     def to_dict(self, **kwargs):
+        """Serialize controller to dictionary.
+
+        Parameters
+        ----------
+        **kwargs : dict
+            allow_pickle : bool, optional
+                If True, serialize controller_function, disable_on, and
+                enable_on callables using hex encoding. If False, use function
+                name. Default is True.
+
+        Returns
+        -------
+        dict
+            Serialized controller state.
+        """
         allow_pickle = kwargs.get("allow_pickle", True)
 
         if allow_pickle:
@@ -227,37 +364,82 @@ class _Controller:
         else:
             controller_function = self.controller_function.__name__
 
+        # Serialize gate conditions: if callable, use hex encoding; if string or None, keep as-is
+        disable_on = self.disable_on
+        if allow_pickle and callable(disable_on):
+            disable_on = to_hex_encode(disable_on)
+
+        enable_on = self.enable_on
+        if allow_pickle and callable(enable_on):
+            enable_on = to_hex_encode(enable_on)
+
         return {
             "controller_function": controller_function,
             "sampling_rate": self.sampling_rate,
-            "initial_observed_variables": self.initial_observed_variables,
             "name": self.name,
-            "_interactive_objects_hash": hash(self.interactive_objects)
-            if not isinstance(self.interactive_objects, Iterable)
-            else [hash(obj) for obj in self.interactive_objects],
+            "controlled_objects_name": getattr(self, "controlled_objects_name", None),
+            "context": self.context.copy(),  # Preserve context state
+            "enabled": self.enabled,
+            "disable_on": disable_on,
+            "enable_on": enable_on,
+            # Note: controlled_objects are recovered in from_dict via
+            # object reference matching in Rocket deserialization
         }
 
     @classmethod
-    def from_dict(cls, data):
-        interactive_objects = data.get("interactive_objects", [])
+    def from_dict(cls, data, controlled_objects=None):
+        """Reconstruct controller from dictionary.
+
+        Parameters
+        ----------
+        data : dict
+            Serialized controller data from to_dict().
+        controlled_objects : list or object, optional
+            Objects the controller will mutate. If not provided,
+            must be set manually after reconstruction.
+
+        Returns
+        -------
+        _Controller
+            Reconstructed controller instance.
+        """
         controller_function = data.get("controller_function")
         sampling_rate = data.get("sampling_rate")
-        initial_observed_variables = data.get("initial_observed_variables")
         name = data.get("name", "Controller")
+        controlled_objects_name = data.get("controlled_objects_name")
+        context = data.get("context", {})
+        enabled = data.get("enabled", True)
+        disable_on = data.get("disable_on")
+        enable_on = data.get("enable_on")
 
         try:
             controller_function = from_hex_decode(controller_function)
         except (TypeError, ValueError):
             pass
 
-        obj = cls(
-            interactive_objects=interactive_objects,
+        # Deserialize disable_on: try hex decoding for callables, keep strings and None
+        try:
+            disable_on = from_hex_decode(disable_on)
+        except (TypeError, ValueError):
+            # If not hex-encoded, keep as string or None
+            pass
+
+        try:
+            enable_on = from_hex_decode(enable_on)
+        except (TypeError, ValueError):
+            pass
+
+        if controlled_objects is None:
+            controlled_objects = []
+
+        return cls(
             controller_function=controller_function,
+            controlled_objects=controlled_objects,
             sampling_rate=sampling_rate,
-            initial_observed_variables=initial_observed_variables,
             name=name,
+            context=context,
+            controlled_objects_name=controlled_objects_name,
+            enabled=enabled,
+            disable_on=disable_on,
+            enable_on=enable_on,
         )
-        setattr(
-            obj, "_interactive_objects_hash", data.get("_interactive_objects_hash", [])
-        )
-        return obj

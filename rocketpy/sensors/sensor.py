@@ -1,10 +1,11 @@
 import json
-import warnings
 from abc import ABC, abstractmethod
 
 import numpy as np
 
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
+
+from ..simulation.events.event import Event
 
 
 # pylint: disable=too-many-statements
@@ -117,13 +118,6 @@ class Sensor(ABC):
         --------
         TODO link to documentation on noise model
         """
-        warnings.warn(
-            "The Sensor class (and all its subclasses) is still under "
-            "experimental development. Some features may be changed in future "
-            "versions, although we will try to keep the changes to a minimum.",
-            UserWarning,
-        )
-
         self.sampling_rate = sampling_rate
         self.resolution = resolution
         self.operating_temperature = operating_temperature
@@ -160,6 +154,64 @@ class Sensor(ABC):
 
     def __call__(self, *args, **kwargs):
         return self.measure(*args, **kwargs)
+
+    def to_event(self, position):
+        """Create a simulation event for this sensor.
+
+        Parameters
+        ----------
+        position : Vector
+            The position of the sensor in the rocket frame of reference. This is
+            used to calculate the relative position of the sensor with respect to
+            the rocket's center of mass, which is needed for some sensor
+            measurements (e.g. accelerometers). The position should be given as
+            a Vector object representing the x, y and z coordinates of the
+            sensor in meters.
+
+        Returns
+        -------
+        Event
+            Event object with an always-true trigger that delegates runtime
+            execution to this sensor.
+        """
+        # Local import avoids import-time coupling with simulation package.
+
+        def sensor_callback(**kwargs):
+            time = kwargs.get("time")
+            state = kwargs.get("state")
+            state_dot = kwargs.get("state_dot")
+            rocket = kwargs.get("rocket")
+            environment = kwargs.get("environment")
+            event = kwargs.get("event")
+
+            # Get position from event context (set when sensor added to rocket)
+            position = event.context.get("position")
+
+            relative_position = position - rocket._csys * Vector(
+                [0, 0, rocket.center_of_dry_mass_position]
+            )
+
+            self.measure(
+                time,
+                u=state,
+                u_dot=state_dot,
+                relative_position=relative_position,
+                environment=environment,
+                gravity=environment.gravity.get_value_opt(state[2]),
+                pressure=environment.pressure,
+                earth_radius=environment.earth_radius,
+                initial_coordinates=(environment.latitude, environment.longitude),
+            )
+
+        return Event(
+            callback=sensor_callback,
+            name=f"{self.name} Measurement",
+            sampling_rate=self.sampling_rate,
+            context={"position": position},
+            trigger_only_once=False,
+            priority=1,
+            time_overshootable=True,
+        )
 
     def _reset(self, simulated_rocket):
         """Reset the sensor data for a new simulation."""
@@ -339,7 +391,7 @@ class InertialSensor(Sensor):
 
     def __init__(
         self,
-        sampling_rate,
+        sampling_rate, # TODO: SENSOR SAMPLING RATE CAN NOT BE NONE!!!
         orientation=(0, 0, 0),
         measurement_range=np.inf,
         resolution=0,

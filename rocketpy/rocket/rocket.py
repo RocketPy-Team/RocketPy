@@ -325,6 +325,7 @@ class Rocket:
         self.center_of_mass_without_motor = center_of_mass_without_motor
         self.radius = radius
         self.area = np.pi * self.radius**2
+        self._is_point_mass = False
 
         # Eccentricity data initialization
         self.cm_eccentricity_x = 0
@@ -339,6 +340,7 @@ class Rocket:
         self._controllers = []
         self.air_brakes = []
         self.sensors = Components()
+        self.sensors_by_name = {}
         self.aerodynamic_surfaces = Components()
         self.surfaces_cp_to_cdm = {}
         self.rail_buttons = Components()
@@ -1691,10 +1693,31 @@ class Rocket:
             position = (0, 0, position)
         position = Vector(position)
         self.sensors.add(sensor, position)
+
+        # Update sensors_by_name property
+        if sensor.name in self.sensors_by_name:
+            existing = self.sensors_by_name[sensor.name]
+            if isinstance(existing, list):
+                existing.append(sensor)
+            else:
+                self.sensors_by_name[sensor.name] = [existing, sensor]
+        else:
+            self.sensors_by_name[sensor.name] = sensor
+
+        # Keep track of how many times the sensor is attached to the rocket
         try:
             sensor._attached_rockets[self] += 1
         except KeyError:
             sensor._attached_rockets[self] = 1
+
+        # Create and store a position-specific event for this sensor-position
+        # This allows several objects of the same sensor type to be added to the
+        # rocket in different positions.
+        if not hasattr(self, "_sensor_events"):
+            self._sensor_events = []
+
+        event = sensor.to_event(position)
+        self._sensor_events.append(event)
 
     def add_air_brakes(
         self,
@@ -1704,6 +1727,7 @@ class Rocket:
         clamp=True,
         reference_area=None,
         initial_observed_variables=None,
+        context=None,
         override_rocket_drag=False,
         return_controller=False,
         name="AirBrakes",
@@ -1742,44 +1766,39 @@ class Rocket:
                 the air brakes are completely retracted and do not contribute to
                 the drag of the rocket.
 
-        controller_function : function, callable
-            An user-defined function responsible for controlling the simulation.
-            This function is expected to take the following arguments, in order:
+          controller_function : function, callable
+                An user-defined function responsible for controlling the simulation.
 
-            1. `time` (float): The current simulation time in seconds.
-            2. `sampling_rate` (float): The rate at which the controller
-               function is called, measured in Hertz (Hz).
-            3. `state` (list): The state vector of the simulation, structured as
-               `[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]`.
-            4. `state_history` (list): A record of the rocket's state at each
-               step throughout the simulation. The state_history is organized as a
-               list of lists, with each sublist containing a state vector. The last
-               item in the list always corresponds to the previous state vector,
-               providing a chronological sequence of the rocket's evolving states.
-            5. `observed_variables` (list): A list containing the variables that
-               the controller function returns. The initial value in the first
-               step of the simulation of this list is provided by the
-               `initial_observed_variables` argument.
-            6. `interactive_objects` (list): A list containing the objects that
-               the controller function can interact with. The objects are
-               listed in the same order as they are provided in the
-               `interactive_objects` argument.
-            7. `sensors` (list): A list of sensors that are attached to the
-                rocket. The most recent measurements of the sensors are provided
-                with the ``sensor.measurement`` attribute. The sensors are
-                listed in the same order as they are added to the rocket.
-            8. `environment` (Environment): The environment object containing
-                atmospheric conditions, wind data, gravity, and other
-                environmental parameters. This allows the controller to access
-                environmental data locally without relying on global variables.
+                New (preferred) API:
 
-            This function will be called during the simulation at the specified
-            sampling rate. The function should evaluate and change the observed
-            objects as needed. The function should return None.
+                - The controller function should accept keyword arguments and be
+                  called as `controller_function(**kwargs)`. During simulation the
+                  following keys will be provided to the controller via kwargs:
 
-            .. note::
+                     - `time` (float): current simulation time in seconds.
+                     - `sampling_rate` (float): controller sampling rate in Hz.
+                     - `state` (list): state vector `[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]`.
+                     - `state_history` (list): chronological list of previous states.
+                     - `observed_variables` (list): list of variables returned by the controller.
+                     - `interactive_objects` (list): objects the controller can interact with.
+                     - `sensors` (list): attached sensors; most recent measurements available via `sensor.measurement`.
+                     - `environment` (Environment): environment object with atmospheric and wind data.
 
-                The function will be called according to the sampling rate specified.
+                Backwards compatibility:
+
+                - Legacy controller functions that accept positional arguments in
+                  the historical order (time, sampling_rate, state, state_history,
+                  observed_variables, interactive_objects, sensors, environment)
+                  will continue to be supported. The library will automatically
+                  detect such functions and call them with positional args.
+
+                - To migrate, prefer the `**kwargs` style which is more flexible
+                  and allows additional context to be provided via the
+                  `context` parameter (see below).
+
+                This function will be called during the simulation at the specified
+                sampling rate. The function should evaluate and change the observed
+                objects as needed. The function should return None.
 
         sampling_rate : float
             The sampling rate of the controller function in Hertz (Hz). This
@@ -1799,6 +1818,13 @@ class Rocket:
             function returns. This list is used to initialize the
             `observed_variables` argument of the controller function. The
             default value is None, which initializes the list as an empty list.
+
+            .. deprecated:: 1.13
+                Passing `initial_observed_variables` directly to
+                ``add_air_brakes`` is deprecated. Provide initial observed
+                variables via the ``context`` parameter as
+                ``context={'observed_variables': [...]}`` instead. Support
+                for the positional argument will be removed in v1.13.
         override_rocket_drag : bool, optional
             If False, the air brakes drag coefficient will be added to the
             rocket's power off drag coefficient curve. If True, during the
@@ -1832,11 +1858,94 @@ class Rocket:
             deployment_level=0,
             name=name,
         )
+        # Prepare controller context and compatibility wrapper for
+        # controller_function. New recommended signature is
+        # `controller_function(**kwargs)`. To avoid breaking existing user
+        # code, wrap legacy functions that accept positional args.
+        # Normalize context dict
+        controller_context = context.copy() if context is not None else {}
+
+        # Map initial_observed_variables into controller context for the
+        # new API while emitting a deprecation warning for the positional
+        # argument usage.
+        if initial_observed_variables is not None:
+            warnings.warn(
+                "Passing `initial_observed_variables` to `add_air_brakes` is "
+                "deprecated; supply them via `context={'observed_variables': ...}` "
+                "instead. Support for this argument will be removed in v1.13.",
+                DeprecationWarning,
+            )
+            controller_context["observed_variables"] = initial_observed_variables.copy()
+
+        orig_controller = controller_function
+        signature = inspect.signature(orig_controller)
+        parameters = tuple(signature.parameters.values())
+        accepts_var_kwargs = any(
+            p.kind == inspect.Parameter.VAR_KEYWORD for p in parameters
+        )
+        accepts_var_args = any(
+            p.kind == inspect.Parameter.VAR_POSITIONAL for p in parameters
+        )
+        positional_parameter_count = sum(
+            p.kind
+            in (
+                inspect.Parameter.POSITIONAL_ONLY,
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            )
+            for p in parameters
+        )
+
+        if not accepts_var_kwargs and positional_parameter_count > 0:
+            warnings.warn(
+                "Calling controller_function with positional arguments is "
+                "deprecated; use controller_function(**kwargs) instead. "
+                "Support for positional controller arguments will be removed "
+                "in v1.13.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
+        def controller_wrapper(**kwargs):
+            if accepts_var_kwargs:
+                return orig_controller(**kwargs)
+
+            # Legacy positional signature expected. Build positional args in
+            # the historical order described in docs. Provide sensible fallbacks
+            # from kwargs when available.
+            time = kwargs.get("time")
+            sampling = sampling_rate
+            state = kwargs.get("state")
+            state_history = kwargs.get("state_history")
+            observed_variables = controller_context.get("observed_variables", [])
+            interactive_objects = kwargs.get("interactive_objects", air_brakes)
+            sensors = kwargs.get("sensors")
+            environment = kwargs.get("environment")
+
+            pos_args = [
+                time,
+                sampling,
+                state,
+                state_history,
+                observed_variables,
+                interactive_objects,
+                sensors,
+                environment,
+            ]
+
+            if accepts_var_args:
+                legacy_args = pos_args
+            else:
+                legacy_args = pos_args[:positional_parameter_count]
+
+            return orig_controller(*legacy_args)
+
+        # TODO: should this be in the airbrakes object instead?
         _controller = _Controller(
-            interactive_objects=air_brakes,
-            controller_function=controller_function,
+            controller_function=controller_wrapper,
+            controlled_objects=air_brakes,
+            controlled_objects_name="air_brakes",
             sampling_rate=sampling_rate,
-            initial_observed_variables=initial_observed_variables,
+            context=controller_context,
             name=controller_name,
         )
         self.air_brakes.append(air_brakes)

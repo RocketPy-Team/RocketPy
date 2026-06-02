@@ -4,8 +4,9 @@ import numpy as np
 
 from rocketpy.tools import from_hex_decode, to_hex_encode
 
-from ..mathutils.function import Function
+from ..mathutils.function import Function, funcify_method
 from ..prints.parachute_prints import _ParachutePrints
+from ..simulation.events.event import Event
 
 
 class Parachute:
@@ -116,6 +117,7 @@ class Parachute:
         calculated from the porosity of the parachute.
     """
 
+    # TODO: set sampling rate as optional??
     def __init__(
         self,
         name,
@@ -140,6 +142,7 @@ class Parachute:
         cd_s : float
             Drag coefficient times reference area of the parachute.
         trigger : callable, float, str
+            TODO: gotta make these docs more aligned with Events
             Defines the trigger condition for the parachute ejection system. It
             can be one of the following:
 
@@ -222,12 +225,13 @@ class Parachute:
 
         # Initialize derived attributes
         self.radius = self.__resolve_radius(radius, cd_s, drag_coefficient)
-        self.height = self.__resolve_height(height, self.radius)
-        self.added_mass_coefficient = self.__compute_added_mass_coefficient(
-            self.porosity
+        self.height = height or self.radius
+        self.added_mass_coefficient = 1.068 * (
+            1 - 1.465 * porosity - 0.25975 * porosity**2 + 1.2626 * porosity**3
         )
         self.__init_noise(noise)
         self.__evaluate_trigger_function(trigger)
+        self.event = self.to_event()
 
         # Prints and plots
         self.prints = _ParachutePrints(self)
@@ -239,16 +243,6 @@ class Parachute:
 
         # cd_s = Cd * S = Cd * pi * R^2  =>  R = sqrt(cd_s / (Cd * pi))
         return np.sqrt(cd_s / (drag_coefficient * np.pi))
-
-    def __resolve_height(self, height, radius):
-        """Resolves parachute height defaulting to radius when not provided."""
-        return height or radius
-
-    def __compute_added_mass_coefficient(self, porosity):
-        """Computes the added-mass coefficient from canopy porosity."""
-        return 1.068 * (
-            1 - 1.465 * porosity - 0.25975 * porosity**2 + 1.2626 * porosity**3
-        )
 
     def __init_noise(self, noise):
         """Initializes all noise-related attributes.
@@ -264,9 +258,6 @@ class Parachute:
         self.noise_bias = noise[0]
         self.noise_deviation = noise[1]
         self.noise_corr = (noise[2], (1 - noise[2] ** 2) ** 0.5)
-        self.clean_pressure_signal_function = Function(0)
-        self.noisy_pressure_signal_function = Function(0)
-        self.noise_signal_function = Function(0)
         alpha, beta = self.noise_corr
         self.noise_function = lambda: (
             alpha * self.noise_signal[-1][1]
@@ -281,21 +272,54 @@ class Parachute:
 
         # Case 1: The parachute is deployed by a custom function
         if callable(trigger):
-            # work around for having added sensors to parachute triggers
-            # to avoid breaking changes
-            triggerfunc = trigger
-            sig = signature(triggerfunc)
-            if len(sig.parameters) == 3:
+            sig = signature(trigger)
+            parameters = list(sig.parameters.values())
+            positional_param_count = sum(
+                parameter.kind
+                in (
+                    parameter.POSITIONAL_ONLY,
+                    parameter.POSITIONAL_OR_KEYWORD,
+                )
+                for parameter in parameters
+            )
+            accepts_var_positional = any(
+                parameter.kind == parameter.VAR_POSITIONAL for parameter in parameters
+            )
+            accepts_var_keyword = any(
+                parameter.kind == parameter.VAR_KEYWORD for parameter in parameters
+            )
+            keyword_only_names = {
+                parameter.name
+                for parameter in parameters
+                if parameter.kind == parameter.KEYWORD_ONLY
+            }
+            accepts_sensors_positional = (
+                accepts_var_positional or positional_param_count >= 4
+            )
 
-                def triggerfunc(p, h, y, sensors):
-                    return trigger(p, h, y)
+            def triggerfunc(p, h, y, sensors, **kwargs):
+                positional_args = [p, h, y]
+                if accepts_sensors_positional:
+                    positional_args.append(sensors)
+
+                if accepts_var_keyword:
+                    return trigger(*positional_args, **kwargs)
+
+                forwarded_kwargs = {
+                    key: value
+                    for key, value in kwargs.items()
+                    if key in keyword_only_names
+                }
+                return trigger(*positional_args, **forwarded_kwargs)
 
             self.triggerfunc = triggerfunc
 
         # Case 2: The parachute is deployed at a given height
         elif isinstance(trigger, (int, float)):
             # The parachute is deployed at a given height
-            def triggerfunc(p, h, y, sensors):
+            def triggerfunc(p, h, y, sensors, **kwargs):
+                _ = sensors
+                _ = kwargs
                 # p = pressure considering parachute noise signal
                 # h = height above ground level considering parachute noise signal
                 # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
@@ -306,7 +330,12 @@ class Parachute:
         # Case 3: The parachute is deployed at apogee
         elif trigger.lower() == "apogee":
             # The parachute is deployed at apogee
-            def triggerfunc(p, h, y, sensors):
+            # TODO make standard triggers be defined using kwargs only
+            def triggerfunc(p, h, y, sensors, **kwargs):
+                _ = p
+                _ = h
+                _ = sensors
+                _ = kwargs
                 # p = pressure considering parachute noise signal
                 # h = height above ground level considering parachute noise signal
                 # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
@@ -321,6 +350,86 @@ class Parachute:
                 + "Trigger must be a callable, a float value or the string 'apogee'. "
                 + "See the Parachute class documentation for more information."
             )
+
+    def to_event(self):
+        """Create an Event wrapper for this parachute trigger/callback pair.
+
+        Returns
+        -------
+        Event
+            Event object that encapsulates parachute trigger evaluation and
+            deployment phase transitions.
+        """
+
+        def trigger_event_wrapper(**kwargs):
+            """Bridge Event kwargs to parachute trigger signature."""
+            pressure = kwargs.get("pressure")
+            height_above_ground_level = kwargs.get("height_above_ground_level")
+            state = kwargs.get("state")
+            sensors = kwargs.get("sensors")
+            time = kwargs.get("time")
+            kwargs = {key: value for key, value in kwargs.items() if key != "sensors"}
+
+            noise = self.noise_function()
+            noisy_pressure = pressure + noise
+
+            # TODO: can we deprecate these attributes?
+            self.noise_signal.append([time, noise])
+            self.clean_pressure_signal.append([time, pressure])
+            self.noisy_pressure_signal.append([time, noisy_pressure])
+
+            # TODO: include **kwargs and change docs to suggest using everything
+            # via kwargs instead of specific arguments
+            return self.triggerfunc(
+                noisy_pressure,
+                height_above_ground_level,
+                state,
+                sensors,
+                **kwargs,
+            )
+
+        def trigger_callback(**kwargs):
+            time = kwargs.get("time", None)
+            flight = kwargs.get("flight", None)
+
+            flight._active_parachute = self
+            flight.parachute_events.append([time, self])
+
+            kwargs["event"].commands.set_derivative(flight.u_dot_parachute)
+            kwargs["event"].commands.start_flight_phase(
+                f"{self.name}_parachute_descent",
+                lag=self.lag,
+                parachute=self,
+            )
+
+        # TODO: add exact time computation for parachute trigger
+        # TODO: if sampling rate is none time_overshootable should be false
+        return Event(
+            trigger=trigger_event_wrapper,
+            callback=trigger_callback,
+            name=f"{self.name} Parachute Deployment",
+            sampling_rate=self.sampling_rate,
+            trigger_only_once=True,
+            time_overshootable=True,
+            priority=2,
+        )
+
+    def _reset_signals(self):
+        """Resets the noise, clean pressure signal and noisy pressure signal
+        attributes to their initial state. This is used when running multiple
+        simulations with the same parachute object.
+        """
+        self.noise_signal = [
+            [-1e-6, np.random.normal(self.noise_bias, self.noise_deviation)]
+        ]
+        self.noisy_pressure_signal = []
+        self.clean_pressure_signal = []
+        try:
+            del self.noise_signal_function
+            del self.clean_pressure_signal_function
+            del self.noisy_pressure_signal_function
+        except AttributeError:
+            pass
 
     def __str__(self):
         """Returns a string representation of the Parachute class.
@@ -338,6 +447,18 @@ class Parachute:
             f"<Parachute {self.name} "
             + f"(cd_s = {self.cd_s:.4f} m2, trigger = {self.trigger})>"
         )
+
+    @funcify_method("Time (s)", "Pressure Noise (Pa)", "linear", "constant")
+    def noise_signal_function(self):
+        return self.noise_signal
+
+    @funcify_method("Time (s)", "Pressure - Without Noise (Pa)", "linear", "constant")
+    def clean_pressure_signal_function(self):
+        return Function(self.clean_pressure_signal)
+
+    @funcify_method("Time (s)", "Pressure - With Noise (Pa)", "linear", "constant")
+    def noisy_pressure_signal_function(self):
+        return self.clean_pressure_signal_function + self.noise_signal_function
 
     def info(self):
         """Prints information about the Parachute class."""

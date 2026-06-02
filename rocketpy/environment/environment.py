@@ -116,6 +116,8 @@ class Environment:
         Air pressure in Pa as a function of altitude.
     Environment.barometric_height : Function
         Geometric height above sea level in m as a function of pressure.
+    Environment.height_above_ground_level : Function
+        Geometric height above ground level in m as a function of pressure.
     Environment.temperature : Function
         Air temperature in K as a function of altitude.
     Environment.speed_of_sound : Function
@@ -504,6 +506,7 @@ class Environment:
                 extrapolation="constant",
                 mutate_self=True,
             )
+        self.__reset_height_above_ground_level_function()
 
     def __set_temperature_function(self, source):
         self.temperature = Function(
@@ -567,6 +570,14 @@ class Environment:
             )
         self.barometric_height.set_inputs("Pressure (Pa)")
         self.barometric_height.set_outputs("Height Above Sea Level (m)")
+        self.__reset_height_above_ground_level_function()
+
+    def __reset_height_above_ground_level_function(self):
+        """Set height above ground level function from pressure input."""
+        self.height_above_ground_level = self.barometric_height - self.elevation
+        self.height_above_ground_level.set_inputs("Pressure (Pa)")
+        self.height_above_ground_level.set_outputs("Height Above Ground Level (m)")
+        self.height_above_ground_level.set_title("Height Above Ground Level Profile")
 
     def __reset_wind_speed_function(self):
         # NOTE: assume wind_velocity_x and wind_velocity_y as Function objects
@@ -979,6 +990,9 @@ class Environment:
             self.elevation = fetch_open_elevation(self.latitude, self.longitude)
             print(f"Elevation received: {self.elevation} m")
 
+        if hasattr(self, "barometric_height"):
+            self.__reset_height_above_ground_level_function()
+
     def set_topographic_profile(  # pylint: disable=redefined-builtin, unused-argument
         self, type, file, dictionary="netCDF4", crs=None
     ):
@@ -1251,6 +1265,9 @@ class Environment:
         :ref:`environment_other_apis`
             Building custom mapping dictionaries for NetCDF/OPeNDAP APIs.
         """
+        # TODO: run environment wiht set atmospheric model Windy GFS, BUT 
+        # Without set date. Some error occurs. We should catch lack of date
+
         # Save atmospheric model type
         self.atmospheric_model_type = type
         type = type.lower()
@@ -1336,6 +1353,7 @@ class Environment:
         # Save temperature, pressure and wind profiles
         self.pressure = self.pressure_ISA
         self.barometric_height = self.barometric_height_ISA
+        self.__reset_height_above_ground_level_function()
         self.temperature = self.temperature_ISA
 
         # Set wind profiles to zero
@@ -1430,6 +1448,7 @@ class Environment:
             # Use standard atmosphere
             self.pressure = self.pressure_ISA
             self.barometric_height = self.barometric_height_ISA
+            self.__reset_height_above_ground_level_function()
         else:
             # Use custom input
             self.__set_pressure_function(pressure)
