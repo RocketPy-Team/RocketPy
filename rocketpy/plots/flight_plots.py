@@ -1,3 +1,4 @@
+# TODO: try to improve plots and prints
 from functools import cached_property
 
 import matplotlib.pyplot as plt
@@ -14,10 +15,10 @@ class _FlightPlots:
     _FlightPlots.flight : Flight
         Flight object that will be used for the plots.
 
-    _FlightPlots.first_event_time : float
+    _FlightPlots.first_parachute_event_time : float
         Time of first event.
 
-    _FlightPlots.first_event_time_index : int
+    _FlightPlots.first_parachute_event_time_index : int
         Time index of first event.
     """
 
@@ -36,25 +37,31 @@ class _FlightPlots:
         self.flight = flight
 
     @cached_property
-    def first_event_time(self):
+    def first_parachute_event_time(self):
         """Time of the first flight event."""
         if len(self.flight.parachute_events) > 0:
-            return (
-                self.flight.parachute_events[0][0]
-                + self.flight.parachute_events[0][1].lag
-            )
+            return self.flight.parachute_events[0][0]
         else:
             return self.flight.t_final
 
     @cached_property
-    def first_event_time_index(self):
+    def first_parachute_event_time_index(self):
         """Time index of the first flight event."""
         if len(self.flight.parachute_events) > 0:
-            return np.nonzero(self.flight.x[:, 0] == self.first_event_time)[0][0]
+            return np.nonzero(self.flight.x[:, 0] == self.first_parachute_event_time)[
+                0
+            ][0]
         else:
             return -1
 
-    def trajectory_3d(self, *, filename=None):  # pylint: disable=too-many-statements
+    def trajectory_3d(
+        self,
+        *,
+        filename=None,
+        show_events=True,
+        reserved_colors=None,
+        event_palette=None,
+    ):  # pylint: disable=too-many-statements
         """Plot a 3D graph of the trajectory
 
         Parameters
@@ -64,6 +71,16 @@ class _FlightPlots:
             the plot will be shown instead of saved. Supported file endings are:
             eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
             and webp (these are the formats supported by matplotlib).
+        show_events : bool, optional
+            Whether to display event markers (Impact, Apogee, Burnout, Parachutes, etc.).
+            By default True.
+        reserved_colors : dict | None, optional
+            Custom color mapping for reserved events. Keys are event names
+            ("Impact", "Apogee", "Burnout", "Out Of Rail"), values are hex colors.
+            By default None, which uses a saturated palette.
+        event_palette : list | None, optional
+            Custom color palette for parachute and other event markers.
+            By default None, which uses a saturated palette excluding reserved colors.
 
         Returns
         -------
@@ -108,20 +125,155 @@ class _FlightPlots:
             self.flight.y[:, 1],
             self.flight.altitude[:, 1],
             linewidth="2",
+            zorder=2,
         )
         ax1.scatter(
             self.flight.x(0),
             self.flight.y(0),
             self.flight.z(0) - self.flight.env.elevation,
-            color="black",
+            s=10,
+            facecolors="#ffd400",
+            edgecolors="black",
+            linewidths=1.2,
+            zorder=0,
         )
-        ax1.scatter(
-            self.flight.x(self.flight.t_final),
-            self.flight.y(self.flight.t_final),
-            self.flight.z(self.flight.t_final) - self.flight.env.elevation,
-            color="red",
-            marker="X",
-        )
+        # Plot single-trigger events (events configured with trigger_only_once)
+        if show_events:
+            try:
+                # Set defaults for color palettes if not provided
+                if reserved_colors is None:
+                    reserved_colors = {
+                        "Impact": "#ff1f1f",
+                        "Apogee": "#46daff",
+                        "Burnout": "#ff8121",
+                        "Out Of Rail": "#8b0000",
+                    }
+
+                if event_palette is None:
+                    event_palette = [
+                        "#7de07a",
+                        "#f781bf",
+                        "#a65628",
+                        "#ff7f00",
+                        "#ffff33",
+                        "#377eb8",
+                        "#984ea3",
+                        "#66c2a5",
+                    ]
+
+                # Remove reserved colors from the palette to avoid duplication
+                available_colors = [
+                    c for c in event_palette if c not in reserved_colors.values()
+                ]
+                parachute_color_map = {}
+                default_event_color = "#66c2a5"
+
+                marker_size = 20
+
+                # burnout marker (motor burn out time)
+                try:
+                    t_burn = self.flight.rocket.motor.burn_out_time
+                    x_b = self.flight.x(t_burn)
+                    y_b = self.flight.y(t_burn)
+                    z_b = self.flight.z(t_burn) - self.flight.env.elevation
+                    ax1.scatter(
+                        x_b,
+                        y_b,
+                        z_b,
+                        color=reserved_colors.get("Burnout", "#ff6f00"),
+                        s=marker_size,
+                        label="Burnout",
+                        edgecolors="black",
+                        linewidths=0.8,
+                        zorder=5,
+                    )
+                except Exception:
+                    # ignore if burn time unavailable
+                    pass
+
+                one_time_events = [
+                    ev
+                    for ev in getattr(self.flight, "events", [])
+                    if getattr(ev, "trigger_only_once", False)
+                ]
+                for ev in one_time_events:
+                    if getattr(ev, "triggered_times", None):
+                        t_ev = ev.triggered_times[0]
+                        x_ev = self.flight.x(t_ev)
+                        y_ev = self.flight.y(t_ev)
+                        z_ev = self.flight.z(t_ev) - self.flight.env.elevation
+                        name = getattr(ev, "name", "") or ""
+                        if name == "Apogee":
+                            ax1.scatter(
+                                x_ev,
+                                y_ev,
+                                z_ev,
+                                color=reserved_colors["Apogee"],
+                                label="Apogee",
+                                s=marker_size,
+                                edgecolors="black",
+                                linewidths=0.8,
+                                zorder=6,
+                            )
+                        elif name == "Out Of Rail":
+                            # Draw behind main trajectory (low zorder) and keep small
+                            ax1.scatter(
+                                x_ev,
+                                y_ev,
+                                z_ev,
+                                color=reserved_colors.get("Out Of Rail", "#8b0000"),
+                                s=10,
+                                edgecolors="black",
+                                linewidths=0.8,
+                                zorder=1,
+                            )
+                        elif "Parachute" in name:
+                            # assign a unique saturated color per parachute name
+                            if name not in parachute_color_map:
+                                parachute_color_map[name] = available_colors[
+                                    len(parachute_color_map) % len(available_colors)
+                                ]
+                            ax1.scatter(
+                                x_ev,
+                                y_ev,
+                                z_ev,
+                                marker="s",
+                                label=name,
+                                s=45,
+                                color=parachute_color_map[name],
+                                edgecolors="black",
+                                linewidths=0.8,
+                                zorder=5,
+                            )
+                        elif name == "Impact":
+                            ax1.scatter(
+                                x_ev,
+                                y_ev,
+                                z_ev,
+                                color=reserved_colors["Impact"],
+                                marker="x",
+                                label="Landing Point",
+                                s=70,
+                                linewidths=2.0,
+                                zorder=5,
+                            )
+                        else:
+                            ax1.scatter(
+                                x_ev,
+                                y_ev,
+                                z_ev,
+                                s=marker_size,
+                                label=name or None,
+                                color=default_event_color,
+                                edgecolors="black",
+                                linewidths=0.8,
+                                zorder=5,
+                            )
+
+                ax1.legend()
+            except Exception:
+                # plotting of events should never break the main plot
+                pass
         ax1.set_xlabel("X - East (m)")
         ax1.set_ylabel("Y - North (m)")
         ax1.set_zlabel("Z - Altitude Above Ground Level (m)")
@@ -237,7 +389,7 @@ class _FlightPlots:
         ax1.plot(self.flight.e1[:, 0], self.flight.e1[:, 1], label="$e_1$")
         ax1.plot(self.flight.e2[:, 0], self.flight.e2[:, 1], label="$e_2$")
         ax1.plot(self.flight.e3[:, 0], self.flight.e3[:, 1], label="$e_3$")
-        ax1.set_xlim(0, self.first_event_time)
+        ax1.set_xlim(0, self.first_parachute_event_time)
         ax1.set_xlabel("Time (s)")
         ax1.set_ylabel("Euler Parameters")
         ax1.set_title("Euler Parameters")
@@ -246,7 +398,7 @@ class _FlightPlots:
 
         ax2 = plt.subplot(412)
         ax2.plot(self.flight.psi[:, 0], self.flight.psi[:, 1])
-        ax2.set_xlim(0, self.first_event_time)
+        ax2.set_xlim(0, self.first_parachute_event_time)
         ax2.set_xlabel("Time (s)")
         ax2.set_ylabel("ψ (°)")
         ax2.set_title("Euler Precession Angle")
@@ -254,7 +406,7 @@ class _FlightPlots:
 
         ax3 = plt.subplot(413)
         ax3.plot(self.flight.theta[:, 0], self.flight.theta[:, 1], label="θ - Nutation")
-        ax3.set_xlim(0, self.first_event_time)
+        ax3.set_xlim(0, self.first_parachute_event_time)
         ax3.set_xlabel("Time (s)")
         ax3.set_ylabel("θ (°)")
         ax3.set_title("Euler Nutation Angle")
@@ -262,7 +414,7 @@ class _FlightPlots:
 
         ax4 = plt.subplot(414)
         ax4.plot(self.flight.phi[:, 0], self.flight.phi[:, 1], label="φ - Spin")
-        ax4.set_xlim(0, self.first_event_time)
+        ax4.set_xlim(0, self.first_parachute_event_time)
         ax4.set_xlabel("Time (s)")
         ax4.set_ylabel("φ (°)")
         ax4.set_title("Euler Spin Angle")
@@ -300,7 +452,7 @@ class _FlightPlots:
             self.flight.attitude_angle[:, 1],
             label="Rocket Attitude Angle",
         )
-        ax1.set_xlim(0, self.first_event_time)
+        ax1.set_xlim(0, self.first_parachute_event_time)
         ax1.legend()
         ax1.grid(True)
         ax1.set_xlabel("Time (s)")
@@ -312,7 +464,7 @@ class _FlightPlots:
             self.flight.lateral_attitude_angle[:, 0],
             self.flight.lateral_attitude_angle[:, 1],
         )
-        ax2.set_xlim(0, self.first_event_time)
+        ax2.set_xlim(0, self.first_parachute_event_time)
         ax2.set_xlabel("Time (s)")
         ax2.set_ylabel("Lateral Attitude Angle (°)")
         ax2.set_title("Lateral Attitude Angle")
@@ -340,7 +492,7 @@ class _FlightPlots:
         plt.figure(figsize=(9, 9))
         ax1 = plt.subplot(311)
         ax1.plot(self.flight.w1[:, 0], self.flight.w1[:, 1], color="#ff7f0e")
-        ax1.set_xlim(0, self.first_event_time)
+        ax1.set_xlim(0, self.first_parachute_event_time)
         ax1.set_xlabel("Time (s)")
         ax1.set_ylabel(r"Angular Velocity - ${\omega_1}$ (rad/s)", color="#ff7f0e")
         ax1.set_title(
@@ -358,7 +510,7 @@ class _FlightPlots:
 
         ax2 = plt.subplot(312)
         ax2.plot(self.flight.w2[:, 0], self.flight.w2[:, 1], color="#ff7f0e")
-        ax2.set_xlim(0, self.first_event_time)
+        ax2.set_xlim(0, self.first_parachute_event_time)
         ax2.set_xlabel("Time (s)")
         ax2.set_ylabel(r"Angular Velocity - ${\omega_2}$ (rad/s)", color="#ff7f0e")
         ax2.set_title(
@@ -376,7 +528,7 @@ class _FlightPlots:
 
         ax3 = plt.subplot(313)
         ax3.plot(self.flight.w3[:, 0], self.flight.w3[:, 1], color="#ff7f0e")
-        ax3.set_xlim(0, self.first_event_time)
+        ax3.set_xlim(0, self.first_parachute_event_time)
         ax3.set_xlabel("Time (s)")
         ax3.set_ylabel(r"Angular Velocity - ${\omega_3}$ (rad/s)", color="#ff7f0e")
         ax3.set_title(
@@ -569,21 +721,21 @@ class _FlightPlots:
 
         ax1 = plt.subplot(411)
         ax1.plot(
-            self.flight.aerodynamic_lift[: self.first_event_time_index, 0],
-            self.flight.aerodynamic_lift[: self.first_event_time_index, 1],
+            self.flight.aerodynamic_lift[: self.first_parachute_event_time_index, 0],
+            self.flight.aerodynamic_lift[: self.first_parachute_event_time_index, 1],
             label="Resultant",
         )
         ax1.plot(
-            self.flight.R1[: self.first_event_time_index, 0],
-            self.flight.R1[: self.first_event_time_index, 1],
+            self.flight.R1[: self.first_parachute_event_time_index, 0],
+            self.flight.R1[: self.first_parachute_event_time_index, 1],
             label="R1",
         )
         ax1.plot(
-            self.flight.R2[: self.first_event_time_index, 0],
-            self.flight.R2[: self.first_event_time_index, 1],
+            self.flight.R2[: self.first_parachute_event_time_index, 0],
+            self.flight.R2[: self.first_parachute_event_time_index, 1],
             label="R2",
         )
-        ax1.set_xlim(0, self.first_event_time)
+        ax1.set_xlim(0, self.first_parachute_event_time)
         ax1.legend()
         ax1.set_xlabel("Time (s)")
         ax1.set_ylabel("Lift Force (N)")
@@ -592,10 +744,10 @@ class _FlightPlots:
 
         ax2 = plt.subplot(412)
         ax2.plot(
-            self.flight.aerodynamic_drag[: self.first_event_time_index, 0],
-            self.flight.aerodynamic_drag[: self.first_event_time_index, 1],
+            self.flight.aerodynamic_drag[: self.first_parachute_event_time_index, 0],
+            self.flight.aerodynamic_drag[: self.first_parachute_event_time_index, 1],
         )
-        ax2.set_xlim(0, self.first_event_time)
+        ax2.set_xlim(0, self.first_parachute_event_time)
         ax2.set_xlabel("Time (s)")
         ax2.set_ylabel("Drag Force (N)")
         ax2.set_title("Aerodynamic Drag Force")
@@ -603,21 +755,25 @@ class _FlightPlots:
 
         ax3 = plt.subplot(413)
         ax3.plot(
-            self.flight.aerodynamic_bending_moment[: self.first_event_time_index, 0],
-            self.flight.aerodynamic_bending_moment[: self.first_event_time_index, 1],
+            self.flight.aerodynamic_bending_moment[
+                : self.first_parachute_event_time_index, 0
+            ],
+            self.flight.aerodynamic_bending_moment[
+                : self.first_parachute_event_time_index, 1
+            ],
             label="Resultant",
         )
         ax3.plot(
-            self.flight.M1[: self.first_event_time_index, 0],
-            self.flight.M1[: self.first_event_time_index, 1],
+            self.flight.M1[: self.first_parachute_event_time_index, 0],
+            self.flight.M1[: self.first_parachute_event_time_index, 1],
             label="M1",
         )
         ax3.plot(
-            self.flight.M2[: self.first_event_time_index, 0],
-            self.flight.M2[: self.first_event_time_index, 1],
+            self.flight.M2[: self.first_parachute_event_time_index, 0],
+            self.flight.M2[: self.first_parachute_event_time_index, 1],
             label="M2",
         )
-        ax3.set_xlim(0, self.first_event_time)
+        ax3.set_xlim(0, self.first_parachute_event_time)
         ax3.legend()
         ax3.set_xlabel("Time (s)")
         ax3.set_ylabel("Bending Moment (N m)")
@@ -626,10 +782,14 @@ class _FlightPlots:
 
         ax4 = plt.subplot(414)
         ax4.plot(
-            self.flight.aerodynamic_spin_moment[: self.first_event_time_index, 0],
-            self.flight.aerodynamic_spin_moment[: self.first_event_time_index, 1],
+            self.flight.aerodynamic_spin_moment[
+                : self.first_parachute_event_time_index, 0
+            ],
+            self.flight.aerodynamic_spin_moment[
+                : self.first_parachute_event_time_index, 1
+            ],
         )
-        ax4.set_xlim(0, self.first_event_time)
+        ax4.set_xlim(0, self.first_parachute_event_time)
         ax4.set_xlabel("Time (s)")
         ax4.set_ylabel("Spin Moment (N m)")
         ax4.set_title("Aerodynamic Spin Moment")
@@ -835,7 +995,7 @@ class _FlightPlots:
         ax4.set_title("Angle of Attack")
         ax4.set_xlabel("Time (s)")
         ax4.set_ylabel("Angle of Attack (°)")
-        ax4.set_xlim(self.flight.out_of_rail_time, self.first_event_time)
+        ax4.set_xlim(self.flight.out_of_rail_time, self.first_parachute_event_time)
         ax4.set_ylim(0, self.flight.angle_of_attack(self.flight.out_of_rail_time) + 15)
         ax4.grid()
 
@@ -847,7 +1007,7 @@ class _FlightPlots:
         ax5.set_title("Partial Angle of Attack")
         ax5.set_xlabel("Time (s)")
         ax5.set_ylabel("Partial Angle of Attack (°)")
-        ax5.set_xlim(self.flight.out_of_rail_time, self.first_event_time)
+        ax5.set_xlim(self.flight.out_of_rail_time, self.first_parachute_event_time)
         ax5.set_ylim(
             0, self.flight.partial_angle_of_attack(self.flight.out_of_rail_time) + 15
         )
@@ -860,7 +1020,7 @@ class _FlightPlots:
         ax6.set_title("Angle of Sideslip")
         ax6.set_xlabel("Time (s)")
         ax6.set_ylabel("Angle of Sideslip (°)")
-        ax6.set_xlim(self.flight.out_of_rail_time, self.first_event_time)
+        ax6.set_xlim(self.flight.out_of_rail_time, self.first_parachute_event_time)
         ax6.set_ylim(
             0, self.flight.angle_of_sideslip(self.flight.out_of_rail_time) + 15
         )
@@ -894,7 +1054,7 @@ class _FlightPlots:
         ax1.set_title("Stability Margin")
         ax1.set_xlabel("Time (s)")
         ax1.set_ylabel("Stability Margin (c)")
-        ax1.set_xlim(0, self.first_event_time)
+        ax1.set_xlim(0, self.first_parachute_event_time)
         ax1.axvline(
             x=self.flight.out_of_rail_time,
             color="r",
@@ -1003,13 +1163,162 @@ class _FlightPlots:
         """
 
         if len(self.flight.parachute_events) > 0:
-            for parachute in self.flight.rocket.parachutes:
+            for event in self.flight.parachute_events:
+                trigger_time = event[0]
+                parachute = event[1]
+
                 print("\nParachute: ", parachute.name)
-                parachute.noise_signal_function()
-                parachute.noisy_pressure_signal_function()
-                parachute.clean_pressure_signal_function()
+
+                parachute.noise_signal_function.plot(0, trigger_time)
+                parachute.noisy_pressure_signal_function.plot(0, trigger_time)
+                parachute.clean_pressure_signal_function.plot(0, trigger_time)
         else:
             print("\nRocket has no parachutes. No parachute plots available")
+
+    def events_timeline(self, *, filename=None):
+        """Plots a timeline of event activations and controller callbacks.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
+
+        Returns
+        -------
+        None
+        """
+        timeline_rows = []
+        core_event_names = {"out_of_rail", "apogee", "impact"}
+
+        # Collect Core Events
+        if (
+            self.flight.out_of_rail_time is not None
+            and self.flight.out_of_rail_time > 0
+        ):
+            timeline_rows.append(("Core: Out of Rail", [self.flight.out_of_rail_time]))
+
+        if self.flight.apogee_time is not None and self.flight.apogee_time > 0:
+            timeline_rows.append(("Core: Apogee", [self.flight.apogee_time]))
+
+        if self.flight.impact_state is not None and len(self.flight.impact_state) != 0:
+            timeline_rows.append(("Core: Impact", [self.flight.t_final]))
+
+        # Group Parachute Events
+        parachute_dict = {}
+        for event in self.flight.parachute_events:
+            trigger_time = event[0]
+            parachute = event[1]
+            parachute_dict.setdefault(f"Parachute: {parachute.name}", []).append(
+                trigger_time
+            )
+
+        for name, times in parachute_dict.items():
+            timeline_rows.append((name, times))
+
+        # Collect object references to avoid duplicating events
+        parachute_event_objects = {
+            parachute.event
+            for parachute in self.flight.parachutes
+            if hasattr(parachute, "event")
+        }
+        sensor_event_objects = set(getattr(self.flight.rocket, "_sensor_events", []))
+        controller_event_objects = {
+            controller.event
+            for controller in self.flight._controllers
+            if hasattr(controller, "event")
+        }
+
+        custom_events = [
+            event
+            for event in self.flight.events
+            if getattr(event, "name", None) not in core_event_names
+            and event not in parachute_event_objects
+            and event not in sensor_event_objects
+            and event not in controller_event_objects
+        ]
+
+        # Collect Custom, Sensor, and Controller Events
+        for event in custom_events:
+            if hasattr(event, "triggered_times") and len(event.triggered_times) > 0:
+                event_name = event.name if event.name else "Unnamed Event"
+                timeline_rows.append((f"Event: {event_name}", event.triggered_times))
+
+        for event in sensor_event_objects:
+            if hasattr(event, "triggered_times") and len(event.triggered_times) > 0:
+                event_name = event.name if event.name else "Unnamed Sensor Event"
+                timeline_rows.append((f"Sensor: {event_name}", event.triggered_times))
+
+        for controller in self.flight._controllers:
+            if (
+                hasattr(controller, "event")
+                and len(controller.event.triggered_times) > 0
+            ):
+                timeline_rows.append(
+                    (f"Controller: {controller.name}", controller.event.triggered_times)
+                )
+
+        if len(timeline_rows) == 0:
+            print("\nNo event activations to plot.")
+            return
+
+        fig, ax = plt.subplots(figsize=(9, max(3, 0.4 * len(timeline_rows) + 0.5)))
+
+        # Matplotlib's default color cycle
+        color_map = {
+            "Core": "C0",
+            "Parachute": "C1",
+            "Sensor": "C2",
+            "Controller": "C3",
+            "Event": "C4",
+        }
+
+        for row_index, row in enumerate(timeline_rows):
+            label = row[0]
+            times = row[1]
+            y_values = np.full(len(times), row_index)
+
+            # Subtle background stripes
+            if row_index % 2 == 0:
+                ax.axhspan(
+                    row_index - 0.5,
+                    row_index + 0.5,
+                    color="#000000",
+                    alpha=0.03,
+                    zorder=0,
+                    lw=0,
+                )
+
+            # Determine color based on label prefix
+            category = label.split(":")[0]
+            dot_color = color_map.get(category, "C5")
+
+            # Smaller, transparent dots
+            ax.scatter(
+                times, y_values, marker="o", s=15, color=dot_color, alpha=0.4, zorder=3
+            )
+
+        # Standard text and tick styling
+        ax.set_yticks(np.arange(len(timeline_rows)))
+        ax.set_yticklabels([row[0] for row in timeline_rows])
+        ax.set_xlabel("Time (s)")
+        ax.set_title("Event, Sensor, and Controller Activation Timeline")
+
+        ax.tick_params(axis="y", length=0)
+
+        # Align Y-axis limits exactly to the bounds of the rows
+        ax.set_ylim(-0.5, len(timeline_rows) - 0.5)
+
+        if self.flight.t_final is not None and self.flight.t_final > 0:
+            ax.set_xlim(0, self.flight.t_final)
+
+        ax.grid(True, axis="x", linestyle=":", alpha=0.6, zorder=1)
+        ax.invert_yaxis()
+
+        plt.tight_layout()
+        show_or_save_plot(filename)
 
     def all(self):  # pylint: disable=too-many-statements
         """Prints out all plots available about the Flight.
@@ -1052,6 +1361,5 @@ class _FlightPlots:
         print("\n\nTrajectory Stability and Control Plots\n")
         self.stability_and_control_data()
 
-        print("\n\nRocket and Parachute Pressure Plots\n")
-        self.pressure_rocket_altitude()
-        self.pressure_signals()
+        print("\n\nEvents Timeline Plot\n")
+        self.events_timeline()

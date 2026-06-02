@@ -248,6 +248,194 @@ class _FlightPrints:
                 f"{self.flight.altitude(open_time):.3f} m (AGL)"
             )
 
+    def sensors(self):
+        """Prints details about sensors registered in the flight.
+
+        Returns
+        -------
+        None
+        """
+        print("\nSensors\n")
+
+        if len(self.flight.sensors) == 0:
+            print("No sensors were registered.")
+            return
+
+        for sensor in self.flight.sensors:
+            sensor_name = sensor.name if sensor.name else "Unnamed Sensor"
+            print(f"Sensor: {sensor_name}")
+            print(f"\tType: {sensor.__class__.__name__}")
+            print(f"\tSampling Rate: {sensor.sampling_rate:.3f} Hz")
+            print(f"\tMeasurements Recorded: {len(sensor.measured_data)}")
+            print()
+
+    def sensor_events(self):
+        """Prints details about sensor-generated events in the flight.
+
+        Returns
+        -------
+        None
+        """
+        print("\nSensor Events\n")
+
+        sensor_events = list(getattr(self.flight.rocket, "_sensor_events", []))
+        if len(sensor_events) == 0:
+            print("No sensor events were registered.")
+            return
+
+        for event in sensor_events:
+            event_name = event.name if event.name else "Unnamed Sensor Event"
+            print(f"Sensor Event: {event_name}")
+            print(f"\tEnabled at end of simulation: {event.enabled}")
+            print(f"\tParent Sensor: {event_name.removesuffix('_callback')}")
+
+            if event.sampling_rate is None:
+                print("\tSampling: Continuous")
+            else:
+                print(f"\tSampling Rate: {event.sampling_rate:.3f} Hz")
+
+            print(f"\tTrigger Only Once: {event.trigger_only_once}")
+            print(f"\tTime Overshootable: {event.time_overshootable}")
+
+            if len(event.triggered_times) == 0:
+                print("\tTriggered: No")
+            elif event.trigger_only_once:
+                print(f"\tActivation Time: {event.triggered_times[0]:.3f} s")
+            else:
+                print("\tTriggered: Yes")
+                print(f"\tTrigger Count: {len(event.triggered_times)}")
+                print(f"\tFirst Trigger Time: {event.triggered_times[0]:.3f} s")
+                print(f"\tLast Trigger Time: {event.triggered_times[-1]:.3f} s")
+
+            if len(event.callback_log) > 0:
+                print(f"\tCallback Log Entries: {len(event.callback_log)}")
+
+            if isinstance(event.context, dict):
+                print(f"\tContext Keys: {list(event.context.keys())}")
+            print()
+
+    def custom_events(self):
+        """Prints details about custom events registered in the flight.
+
+        Notes
+        -----
+        This section intentionally excludes:
+        - Core flight events (out_of_rail, apogee, impact), which already have
+          dedicated print sections.
+        - Parachute events, which are printed in ``events_registered``.
+        - Controller events, which are printed in ``controller_events``.
+
+        Returns
+        -------
+        None
+        """
+        print("\nCustom Events\n")
+
+        parachute_event_objects = {
+            parachute.event for parachute in self.flight.parachutes
+        }
+        sensor_event_objects = set(getattr(self.flight.rocket, "_sensor_events", []))
+        controller_event_objects = {
+            controller.event for controller in self.flight._controllers
+        }
+        core_event_names = {"out_of_rail", "apogee", "impact"}
+
+        custom_events = [
+            event
+            for event in self.flight.events
+            if event.name not in core_event_names
+            and event not in parachute_event_objects
+            and event not in sensor_event_objects
+            and event not in controller_event_objects
+        ]
+
+        if len(custom_events) == 0:
+            print("No custom events were registered.")
+            return
+
+        for event in custom_events:
+            event_name = event.name if event.name else "Unnamed Event"
+            print(f"Event: {event_name}")
+            print(f"\tEnabled at end of simulation: {event.enabled}")
+
+            if event.sampling_rate is None:
+                print("\tSampling: Continuous")
+            else:
+                print(f"\tSampling Rate: {event.sampling_rate:.3f} Hz")
+
+            print(f"\tTrigger Only Once: {event.trigger_only_once}")
+            print(f"\tTime Overshootable: {event.time_overshootable}")
+
+            if len(event.triggered_times) == 0:
+                print("\tTriggered: No")
+            elif event.trigger_only_once:
+                print(f"\tActivation Time: {event.triggered_times[0]:.3f} s")
+            else:
+                print("\tTriggered: Yes")
+                print(f"\tTrigger Count: {len(event.triggered_times)}")
+                print(f"\tFirst Trigger Time: {event.triggered_times[0]:.3f} s")
+                print(f"\tLast Trigger Time: {event.triggered_times[-1]:.3f} s")
+
+            if len(event.callback_log) > 0:
+                print(f"\tCallback Log Entries: {len(event.callback_log)}")
+
+            if isinstance(event.context, dict):
+                print(f"\tContext Keys: {list(event.context.keys())}")
+            print()
+
+    def controllers(self):
+        """Prints details about controllers registered in the flight.
+
+        Returns
+        -------
+        None
+        """
+        print("\nControllers\n")
+
+        if len(self.flight._controllers) == 0:
+            print("No controllers were registered.")
+            return
+
+        for controller in self.flight._controllers:
+            print(f"Controller: {controller.name}")
+            print(f"\tSampling Rate: {controller.sampling_rate:.3f} Hz")
+            print(f"\tEnabled at end of simulation: {controller.enabled}")
+            print(f"\tController Log Entries: {len(controller.log)}")
+            print()
+
+    def controller_events(self):
+        """Prints details about events generated by controllers.
+
+        Returns
+        -------
+        None
+        """
+        print("\nController Events\n")
+
+        if len(self.flight._controllers) == 0:
+            print("No controller events were registered.")
+            return
+
+        for controller in self.flight._controllers:
+            event = controller.event
+            event_name = event.name if event.name else "Unnamed Controller Event"
+
+            print(f"Controller Event: {event_name}")
+            print(f"\tParent Controller: {controller.name}")
+
+            if event.sampling_rate is None:
+                print("\tSampling: Continuous")
+            else:
+                print(f"\tSampling Rate: {event.sampling_rate:.3f} Hz")
+
+            print(f"\tTriggered Count: {len(event.triggered_times)}")
+            if len(event.triggered_times) > 0:
+                print(f"\tFirst Activation Time: {event.triggered_times[0]:.3f} s")
+                print(f"\tLast Activation Time: {event.triggered_times[-1]:.3f} s")
+
+            print(f"\tCallback Log Entries: {len(event.callback_log)}")
+            print()
+
     def impact_conditions(self):
         """Prints out the Impact Conditions available about the flight.
 
@@ -458,6 +646,21 @@ class _FlightPrints:
         print()
 
         self.rail_button_bending_moments()
+        print()
+
+        self.controllers()
+        print()
+
+        self.controller_events()
+        print()
+
+        self.sensors()
+        print()
+
+        self.sensor_events()
+        print()
+
+        self.custom_events()
         print()
 
         self.numerical_integration_settings()
