@@ -1169,6 +1169,8 @@ class Rocket:
         except TypeError:
             self._controllers.append(controllers)
 
+        return controllers
+
     def add_tail(
         self, top_radius, bottom_radius, length, position, radius=None, name="Tail"
     ):
@@ -2001,50 +2003,6 @@ class Rocket:
         self.thrust_eccentricity_x = x
         self.thrust_eccentricity_y = y
         return self
-
-    def add_discrete_controller(
-        self,
-        controller_function,
-        refresh_rate,
-        interactive_objects=None,
-        initial_observed_variables=None,
-        name="Controller",
-    ):
-        """Creates a new discrete controller, storing its parameters such as
-        controller function, refresh rate, and interactive objects. The controller
-        will be called at the specified refresh rate during the simulation."""
-
-        controller = _Controller(
-            controller_function=controller_function,
-            sampling_rate=refresh_rate,
-            interactive_objects=interactive_objects,
-            initial_observed_variables=initial_observed_variables,
-            name=name,
-        )
-
-        self._add_controllers(controller)
-
-    def add_continuous_controller(
-        self,
-        controller_function,
-        interactive_objects=None,
-        initial_observed_variables=None,
-        name="Controller",
-    ):
-        """Creates a new continuous controller, storing its parameters such as
-        controller function and interactive objects. The controller will
-        be called at every time step of the simulation."""
-
-        controller = _Controller(
-            controller_function=controller_function,
-            sampling_rate=math.inf,
-            interactive_objects=interactive_objects,
-            initial_observed_variables=initial_observed_variables,
-            name=name,
-        )
-
-        self._add_controllers(controller)
-        return controller
 
     def draw(self, vis_args=None, plane="xz", *, filename=None):
         """Draws the rocket in a matplotlib figure.
