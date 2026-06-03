@@ -577,9 +577,10 @@ def test_set_atmospheric_model_normalizes_shortcut_case_for_forecast(example_pla
 
     called_arguments = {}
 
-    def fake_process_forecast_reanalysis(dataset, dictionary):
+    def fake_process_forecast_reanalysis(dataset, dictionary, conversion_factor):
         called_arguments["dataset"] = dataset
         called_arguments["dictionary"] = dictionary
+        called_arguments["conversion_factr"] = conversion_factor
 
     environment.process_forecast_reanalysis = fake_process_forecast_reanalysis
 
@@ -618,9 +619,10 @@ def test_forecast_shortcut_and_dictionary_are_case_insensitive(
 
     captured = {}
 
-    def fake_process_forecast_reanalysis(file, dictionary):
+    def fake_process_forecast_reanalysis(file, dictionary, conversion_factor):
         captured["file"] = file
         captured["dictionary"] = dictionary
+        captured["conversion_factor"] = conversion_factor
 
     monkeypatch.setattr(
         env, "process_forecast_reanalysis", fake_process_forecast_reanalysis

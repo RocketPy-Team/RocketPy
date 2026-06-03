@@ -111,6 +111,7 @@ def environment_spaceport_america_2023():
         type="Reanalysis",
         file="data/weather/spaceport_america_pressure_levels_2023_hourly.nc",
         dictionary="ECMWF",
+        pressure_conversion_factor="hPa",
     )
 
     env.max_expected_height = 6000
