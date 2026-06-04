@@ -781,7 +781,7 @@ class Flight:
                         controller(
                             self.t,
                             self.y_sol,
-                            self.solution[:-1],
+                            [step[1:] for step in self.solution[:-1]],
                             self.sensors,
                             self.env,
                         )

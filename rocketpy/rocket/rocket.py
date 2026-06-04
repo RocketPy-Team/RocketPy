@@ -1169,8 +1169,6 @@ class Rocket:
         except TypeError:
             self._controllers.append(controllers)
 
-        return controllers
-
     def add_tail(
         self, top_radius, bottom_radius, length, position, radius=None, name="Tail"
     ):
