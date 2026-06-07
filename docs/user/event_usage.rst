@@ -104,7 +104,6 @@ The following parameters are always or conditionally available:
   ``(wx, wy, wz)`` is angular velocity.
 - ``state_dot`` (list of float, optional): The time derivative of state, 
   ``[vx, vy, vz, ax, ay, az, e0_dot, e1_dot, e2_dot, e3_dot, wx_dot, wy_dot, wz_dot]``.
-  Only present if the event requests it (``expects_derivative=True`` in constructor).
 - ``sampled_time`` (float, optional): If exact-time solving was used, the 
   original sampled time before refinement.
 - ``sampled_state`` (list of float, optional): If exact-time solving was used, 
@@ -117,6 +116,8 @@ The following parameters are always or conditionally available:
   altitude.
 - ``height_above_ground_level`` (float): Height of the rocket above ground level 
   in meters, computed from pressure.
+- ``step_size`` (float, optional): Most recent solver step size in seconds.
+  Useful for cubic-Hermite exact-time configuration.
 
 **Simulation objects:**
 
@@ -125,8 +126,6 @@ The following parameters are always or conditionally available:
 - ``rocket`` (:class:`rocketpy.Rocket`): The Rocket object being simulated.
 - ``environment`` (:class:`rocketpy.Environment`): The Environment conditions 
   for the flight.
-- ``step_size`` (float, optional): Most recent solver step size in seconds.
-  Useful for cubic-Hermite exact-time configuration.
 
 **Event and sensor data:**
 
@@ -191,7 +190,6 @@ practical examples and demonstrate proper activation.
       
       print(simple_event)
 
-.. TODO: add simpler trigger functions just like enable_on/disable_on
 **trigger** (optional)
   A callable that returns ``True`` when the event should fire. If ``None``, the
   event acts as a passive hook and always triggers when called.

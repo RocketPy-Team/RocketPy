@@ -1,3 +1,6 @@
+import warnings
+from inspect import signature
+
 from rocketpy.simulation.events.event import Event
 from rocketpy.tools import from_hex_decode, to_hex_encode
 
@@ -7,19 +10,39 @@ from ..prints.controller_prints import _ControllerPrints
 class _Controller:
     """A controller that modifies rocket state during simulation.
 
-    Controllers execute at specified sampling rates and can mutate rocket
-    objects (e.g., air brakes, fins) during flight. Like Event objects,
-    controllers use a callback pattern with persistent context, but
-    explicitly expect external object state to change.
+    Controllers execute at a fixed sampling rate and can mutate rocket
+    objects (e.g. air brakes, fins) during flight. Like :class:`Event`
+    objects, controllers use a callback pattern with persistent ``context``,
+    but they explicitly expect external object state to change.
+
+    Internally a controller is a thin wrapper around an :class:`Event`: it
+    builds an event (see :meth:`to_event`) whose callback invokes the
+    user-supplied ``controller_function``. The wrapping event is created with
+    ``changes_dynamics=True``, ``trigger_only_once=False``, and
+    ``priority=3``, and it mirrors the controller's ``enabled`` flag,
+    ``context``, ``sampling_rate``, ``disable_on`` and ``enable_on`` settings.
 
     The controller function is responsible for:
-    1. Reading simulation state and sensor data
-    2. Computing control actions
-    3. Mutating controlled_objects to apply those actions
-    4. Returning callback_log/logging information
 
-    The key difference from Event: object mutations are intentional and
-    expected. This is the controller's primary purpose.
+    1. Reading simulation state and sensor data,
+    2. Computing control actions,
+    3. Mutating ``controlled_objects`` to apply those actions,
+    4. Returning logging information (appended to :attr:`log`).
+
+    The key difference from :class:`Event` is that object mutations are
+    intentional and expected -- this is the controller's primary purpose.
+
+    Attributes
+    ----------
+    event : Event
+        The wrapping :class:`Event` consumed by the simulation loop.
+    log : list
+        Per-execution return values of ``controller_function`` (alias
+        :attr:`return_log`). Backed by the wrapped event's ``callback_log``.
+    enabled : bool
+        Current enabled state, mirrored from the wrapped event.
+    context : dict
+        Persistent state shared across executions.
     """
 
     def __init__(
@@ -38,114 +61,78 @@ class _Controller:
 
         Parameters
         ----------
-        controller_function : callable # TODO: undo breaking change, and fix docs
-            Function that executes control logic. Signature:
+        controller_function : callable
+            Function that executes the control logic, with signature
+            ``controller_function(**kwargs) -> dict or None``. It is invoked
+            once per sample and receives the standard event ``**kwargs`` (see
+            :ref:`eventusage` for the full list) plus controller-specific keys:
 
-            .. code-block:: python
+            - ``controller`` (:class:`_Controller`): this controller instance;
+              read or write persistent state via ``controller.context`` and the
+              targets via ``controller.controlled_objects``.
+            - ``controlled_objects``: the same object(s) passed as
+              ``controlled_objects``, for convenience.
+            - one entry per name in ``controlled_objects_name`` (and, for a
+              list of names, a ``controlled_objects_by_name`` mapping).
 
-                def controller_function(**kwargs) -> dict:
-                    '''
-                    Computes and applies control actions.
-
-                    Parameters
-                    ----------
-                    **kwargs : dict
-                        time : float
-                            Current simulation time (seconds).
-                        state : list
-                            State vector [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz].
-                        state_history : list
-                            History of previous state vectors.
-                        sensors : dict
-                            Sensor data (by sensor name).
-                        environment : Environment
-                            Environmental object.
-                        rocket : Rocket
-                            Rocket object.
-                        flight : Flight
-                            Flight object.
-                        event : Event
-                            The event object. Access context via event.context.
-                        controller : _Controller
-                            This controller instance. Access controlled_objects via
-                            controller.controlled_objects and persistent state via
-                            controller.context.
-                        (+ other standard Event kwargs)
-
-                    Returns
-                    -------
-                    dict or None
-                        callback_log/logging dict. Keys are user-defined.
-                        Return None if no callback_log needed.
-
-                    Example
-                    -------
-                    .. code-block:: python
-
-                        def my_controller(**kwargs):
-                            time = kwargs["time"]
-                            state = kwargs["state"]
-                            controller = kwargs["controller"]
-
-                            # Access persistent state
-                            context = controller.context
-                            if "counter" not in context:
-                                context["counter"] = 0
-                            context["counter"] += 1
-
-                            # Mutate controlled objects
-                            air_brakes = controller.controlled_objects
-                            if time > 5.0:
-                                air_brakes.open()
-
-                            return {"counter": context["counter"]}
-                    '''
-
-            The function should mutate controlled_objects directly.
-
-        controlled_objects : list or object
-            Object(s) that the controller can modify. Can be a single object
-            or list of objects. These are passed by reference; mutations
-            persist in the simulation.
-
+            Among the standard keys it also receives ``time``, ``state``,
+            ``state_history``, ``sensors``, ``environment``, ``rocket``,
+            ``flight`` and ``event``. The function should mutate
+            ``controlled_objects`` directly to apply control actions; its
+            return value (a dict of user-defined keys, or ``None``) is appended
+            to :attr:`log`.
+        controlled_objects : object or list of object
+            Object(s) the controller is allowed to modify (e.g. an air brakes
+            instance). May be a single object or a list. They are held by
+            reference, so mutations persist in the simulation.
         sampling_rate : float
-            Rate (Hz) at which the controller executes. Controller runs
-            every 1/sampling_rate seconds.
-
-        name : str, optional
-            Controller name (for identification and logging).
-
+            Rate in hertz at which the controller executes; it runs every
+            ``1 / sampling_rate`` seconds.
         context : dict, optional
-            Initial persistent state. Passed to controller_function and
-            modified in-place to track state across executions.
-            Defaults to empty dict.
-
+            Initial persistent state, passed to ``controller_function`` and
+            mutated in place to carry data across executions. The same dict is
+            shared with the wrapped event's ``context``. Defaults to an empty
+            dict.
+        name : str, optional
+            Human-readable controller name, used for identification and
+            logging. Defaults to ``"Controller"``.
+        controlled_objects_name : str or list of str, optional
+            Friendly name(s) under which the controlled objects are exposed in
+            the callback ``**kwargs``, so the function can access them as
+            ``kwargs[name]`` instead of via ``controlled_objects``. Pass a
+            single string for a single object, or a list/tuple of unique
+            strings matching the length of ``controlled_objects`` for multiple
+            objects (which also adds a ``controlled_objects_by_name`` mapping).
+            Names must not collide with reserved callback keywords. Defaults to
+            ``None`` (no friendly binding).
         enabled : bool, optional
-            Whether the wrapped event is initially enabled. If False, the
-            controller will not execute during simulation until the wrapped
-            event is enabled. Can be enabled via commands.enable().
-            Defaults to True.
+            Initial enabled state of the wrapped event. If ``False``, the
+            controller does not execute until re-enabled, either via the
+            ``enable`` command or the ``enable_on`` condition. Defaults to
+            ``True``.
+        disable_on : str or int or float or callable, optional
+            Condition that automatically disables the controller. May be a
+            string preset (``"apogee"`` or ``"burnout"``), a simulation time in
+            seconds (int or float), or a callable ``function(**kwargs)`` that
+            returns ``True`` when the controller should be disabled. The
+            condition is forwarded to the wrapped event. Defaults to ``None``
+            (no automatic disabling).
+        enable_on : str or int or float or callable, optional
+            Condition that automatically re-enables a disabled controller,
+            using the same formats as ``disable_on``. When the condition is met
+            while the controller is disabled, it re-enables before the next
+            trigger evaluation. Defaults to ``None`` (no automatic enabling).
 
-        disable_on : str or callable, optional
-            Condition to automatically disable this controller. Can be:
-            - A string preset: "apogee" or "burnout"
-            - A callable that returns a boolean: True when controller should be disabled
-            When the condition is met, the controller disables after the
-            current execution. Defaults to None (no automatic disabling).
-
-        enable_on : str or callable, optional
-            Condition to automatically re-enable this controller. Can be:
-            - A string preset: "apogee" or "burnout"
-            - A callable that returns a boolean: True when controller should be enabled
-            When the condition is met while the wrapped event is disabled,
-            the wrapped event re-enables before trigger evaluation.
-            Defaults to None (no automatic enabling).
-
-        Returns
-        -------
-        None
+        See Also
+        --------
+        to_event : Builds the :class:`Event` that wraps this controller.
+        :ref:`eventusage` : Description of the callback ``**kwargs``.
         """
-        self.controller_function = controller_function
+        # TODO: undo the breaking change of the definition of controller function here
+        # TODO: rethingk controllers
+        self.controller_function = self.__evaluate_controller_function(
+            controller_function
+        )
         self.controlled_objects = controlled_objects
         # Optional friendly name(s) to expose controlled objects in callback kwargs
         # Accept either a single string name or an iterable of string names
@@ -162,6 +149,46 @@ class _Controller:
         # Create the event during initialization
         self.event = self.to_event()
         self.log = self.event.callback_log
+
+    def __evaluate_controller_function(self, controller_function):
+        """Detect legacy positional-argument signatures and wrap them for compatibility."""
+        sig = signature(controller_function)
+        params = list(sig.parameters.values())
+        positional_count = sum(
+            p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD) for p in params
+        )
+        accepts_var_positional = any(p.kind == p.VAR_POSITIONAL for p in params)
+
+        if positional_count > 0 or accepts_var_positional:
+            warnings.warn(
+                "It is recommended not to use positional arguments when defining "
+                "a controller function. Instead, define the controller function "
+                "to accept `**kwargs` only and read values such as "
+                "`kwargs['time']`, `kwargs['state']`, `kwargs['sensors']` and "
+                "`kwargs['environment']`. See the controller documentation for "
+                "the full list of available keyword arguments.",
+                UserWarning,
+                stacklevel=3,
+            )
+
+            def wrapped(**kwargs):
+                args = [
+                    kwargs.get("time"),
+                    self.sampling_rate,
+                    kwargs.get("state"),
+                    kwargs.get("state_history"),
+                    self.log,
+                    self.controlled_objects,
+                ]
+                if positional_count >= 7 or accepts_var_positional:
+                    args.append(kwargs.get("sensors"))
+                if positional_count >= 8 or accepts_var_positional:
+                    args.append(kwargs.get("environment"))
+                return controller_function(*args)
+
+            return wrapped
+
+        return controller_function
 
     def to_event(self):
         """Create an Event that wraps this controller for simulation execution.

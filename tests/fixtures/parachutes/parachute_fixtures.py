@@ -13,9 +13,9 @@ def calisto_drogue_parachute_trigger():
         The trigger for the drogue parachute of the Calisto rocket.
     """
 
-    def drogue_trigger(p, h, y):  # pylint: disable=unused-argument
+    def drogue_trigger(**kwargs):  # pylint: disable=unused-argument
         # activate drogue when vertical velocity is negative
-        return y[5] < 0
+        return kwargs["state"][5] < 0
 
     return drogue_trigger
 

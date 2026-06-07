@@ -1,3 +1,4 @@
+import warnings
 from inspect import signature
 
 import numpy as np
@@ -25,21 +26,20 @@ class Parachute:
         This parameter defines the trigger condition for the parachute ejection
         system. It can be one of the following:
 
-        - A callable function that takes three arguments:
-          1. Freestream pressure in pascals.
-          2. Height in meters above ground level.
-          3. The state vector of the simulation, which is defined as:
+        - A callable function. The recommended signature accepts ``**kwargs``
+          only and returns ``True`` if the parachute ejection system should be
+          triggered and ``False`` otherwise. The parachute is wrapped in an
+          :class:`rocketpy.Event`, so the function receives the same keyword
+          arguments as any event trigger, including ``state``, ``pressure``,
+          ``height_above_ground_level``, ``sensors``, ``time``, ``flight``,
+          ``rocket`` and ``environment``. See the Event documentation for the
+          full list. The function is called according to the specified sampling
+          rate.
 
-             `[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]`.
-
-          4. A list of sensors that are attached to the rocket. The most recent
-             measurements of the sensors are provided with the
-             ``sensor.measurement`` attribute. The sensors are listed in the same
-             order as they are added to the rocket.
-
-          The function should return ``True`` if the parachute ejection system
-          should be triggered and False otherwise. The function will be called
-          according to the specified sampling rate.
+          .. deprecated:: 1.13
+              Defining the trigger with positional arguments
+              ``(p, h, y[, sensors])`` is deprecated and emits a
+              ``DeprecationWarning``; use a ``**kwargs``-only signature instead.
 
         - A float value, representing an absolute height in meters. In this
           case, the parachute will be ejected when the rocket reaches this height
@@ -51,11 +51,10 @@ class Parachute:
 
     Parachute.triggerfunc : function
         Trigger function created from the trigger used to evaluate the trigger
-        condition for the parachute ejection system. It is a callable function
-        that takes three arguments: Freestream pressure in Pa, Height above
-        ground level in meters, and the state vector of the simulation. The
-        returns ``True`` if the parachute ejection system should be triggered
-        and ``False`` otherwise.
+        condition for the parachute ejection system. It is a callable that
+        receives the event keyword arguments (pressure, height above ground
+        level, state vector, sensors, etc.) and returns ``True`` if the
+        parachute ejection system should be triggered and ``False`` otherwise.
 
         .. note:
 
@@ -117,7 +116,6 @@ class Parachute:
         calculated from the porosity of the parachute.
     """
 
-    # TODO: set sampling rate as optional??
     def __init__(
         self,
         name,
@@ -142,33 +140,24 @@ class Parachute:
         cd_s : float
             Drag coefficient times reference area of the parachute.
         trigger : callable, float, str
-            TODO: gotta make these docs more aligned with Events
             Defines the trigger condition for the parachute ejection system. It
             can be one of the following:
 
-            - A callable function that takes three arguments: \
-
-                1. Freestream pressure in pascals.
-                2. Height in meters above ground level.
-                3. The state vector of the simulation, which is defined as: \
-
-                    .. code-block:: python
-
-                        u = [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]
-
-                .. note::
-
-                    The function should return ``True`` if the parachute \
-                    ejection system should be triggered and ``False`` otherwise.
+            - A callable function. The recommended signature accepts \
+                ``**kwargs`` only and returns ``True`` if the parachute \
+                ejection system should be triggered and ``False`` otherwise. \
+                The parachute is wrapped in an :class:`rocketpy.Event`, so the \
+                function receives the same keyword arguments as any event \
+                trigger, including ``state`` (the state vector \
+                ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]``), \
+                ``pressure``, ``height_above_ground_level``, ``sensors``, \
+                ``time``, ``flight``, ``rocket`` and ``environment``. See the \
+                Event documentation for the full list.
             - A float value, representing an absolute height in meters. In this \
                 case, the parachute will be ejected when the rocket reaches this \
                 height above ground level.
             - The string "apogee" which triggers the parachute at apogee, i.e., \
                 when the rocket reaches its highest point and starts descending.
-
-            .. note::
-
-                The function will be called according to the sampling rate specified.
         sampling_rate : float
             Sampling rate in which the parachute trigger will be checked at.
             It is used to simulate the refresh rate of onboard sensors such
@@ -268,8 +257,6 @@ class Parachute:
         """This is used to set the triggerfunc attribute that will be used to
         interact with the Flight class.
         """
-        # pylint: disable=unused-argument, function-redefined
-
         # Case 1: The parachute is deployed by a custom function
         if callable(trigger):
             sig = signature(trigger)
@@ -296,6 +283,19 @@ class Parachute:
             accepts_sensors_positional = (
                 accepts_var_positional or positional_param_count >= 4
             )
+
+            if positional_param_count > 0 or accepts_var_positional:
+                warnings.warn(
+                    "It is recommended not to use positional arguments "
+                    "(e.g. `trigger(p, h, y)`) when defining a parachute "
+                    "trigger. Instead, define the trigger to accept `**kwargs` "
+                    "only and read values such as `kwargs['pressure']`, "
+                    "`kwargs['height_above_ground_level']` and "
+                    "`kwargs['state']`. See the Event documentation "
+                    "for the full list of available keyword arguments.",
+                    UserWarning,
+                    stacklevel=2,
+                )
 
             def triggerfunc(p, h, y, sensors, **kwargs):
                 positional_args = [p, h, y]
@@ -329,17 +329,16 @@ class Parachute:
 
         # Case 3: The parachute is deployed at apogee
         elif trigger.lower() == "apogee":
-            # The parachute is deployed at apogee
-            # TODO make standard triggers be defined using kwargs only
             def triggerfunc(p, h, y, sensors, **kwargs):
                 _ = p
                 _ = h
                 _ = sensors
-                _ = kwargs
-                # p = pressure considering parachute noise signal
-                # h = height above ground level considering parachute noise signal
-                # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
-                return y[5] < 0
+                state_history = kwargs.get("state_history")
+                if not state_history:
+                    return False
+                previous_vz = state_history[-1][5]
+                current_vz = y[5]
+                return previous_vz > 0 >= current_vz
 
             self.triggerfunc = triggerfunc
 

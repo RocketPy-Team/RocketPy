@@ -811,3 +811,69 @@ def test_environment_methods_accessible_in_controller(
 
     # Verify all environment methods were successfully called
     assert all(methods_called.values()), f"Not all methods called: {methods_called}"
+
+
+def test_air_brakes_kwargs_controller(calisto_robust, example_plain_env):
+    """Test that an air brakes controller using the recommended **kwargs API works.
+
+    Parameters
+    ----------
+    calisto_robust : rocketpy.Rocket
+        Calisto rocket without air brakes
+    example_plain_env : rocketpy.Environment
+        Environment object for the simulation
+    """
+
+    def controller_function(**kwargs):
+        time = kwargs["time"]
+        sampling_rate = kwargs["sampling_rate"]
+        state = kwargs["state"]
+        state_history = kwargs["state_history"]
+        air_brakes = kwargs["air_brakes"]
+        environment = kwargs["environment"]
+
+        altitude_agl = kwargs["height_above_ground_level"]
+        altitude_asl = state[2]
+        vx, vy, vz = state[3], state[4], state[5]
+
+        wind_x = environment.wind_velocity_x(altitude_asl)
+        wind_y = environment.wind_velocity_y(altitude_asl)
+        free_stream_speed = ((wind_x - vx) ** 2 + (wind_y - vy) ** 2 + vz**2) ** 0.5
+        mach_number = free_stream_speed / environment.speed_of_sound(altitude_asl)
+
+        if time < 3.9:
+            return None
+
+        previous_vz = state_history[-1][5] if state_history else vz
+        if altitude_agl < 1500:
+            air_brakes.deployment_level = 0
+        else:
+            new_level = air_brakes.deployment_level + 0.1 * vz + 0.01 * previous_vz**2
+            max_change = 0.2 / sampling_rate
+            new_level = max(
+                air_brakes.deployment_level - max_change,
+                min(air_brakes.deployment_level + max_change, new_level),
+            )
+            air_brakes.deployment_level = new_level
+
+        return (time, air_brakes.deployment_level, mach_number)
+
+    calisto_robust.parachutes = []
+    calisto_robust.add_air_brakes(
+        drag_coefficient_curve="data/rockets/calisto/air_brakes_cd.csv",
+        controller_function=controller_function,
+        sampling_rate=10,
+        clamp=True,
+    )
+
+    flight = Flight(
+        rocket=calisto_robust,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=True,
+    )
+
+    assert flight.t_final > 0
+    assert flight.apogee > 0

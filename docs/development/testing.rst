@@ -255,8 +255,6 @@ Consider the following integration test:
         example_plain_env : rocketpy.Environment
             Example environment object to be tested.
         """
-        # TODO:: this should be added to the set_atmospheric_model() method as a
-        #        "file" option, instead of receiving the URL as a string.
         URL = "http://weather.uwyo.edu/cgi-bin/sounding?region=samer&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=02&FROM=0500&TO=0512&STNM=83779"
         # give it at least 5 times to try to download the file
         example_plain_env.set_atmospheric_model(type="wyoming_sounding", file=URL)

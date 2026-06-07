@@ -22,7 +22,19 @@ PRESETS = {
 
 
 class Event:
-    """Event helper with trigger/callback execution and exact-time support."""
+    """Event helper with trigger/callback execution and exact-time support.
+    
+    An ``Event`` is the main way RocketPy reacts to conditions during a
+    flight. It pairs a ``trigger`` predicate with a ``callback`` action: at
+    each evaluation the trigger is checked and, when it returns ``True``,
+    the callback runs. Callbacks can inspect the simulation state, store
+    persistent data in ``context``, log return values, and queue commands
+    (through ``event.commands``) that modify the simulation, such as
+    starting a new flight phase, replacing the derivative, scheduling other
+    events, or terminating the flight.
+
+    See :ref:`eventusage` for a full guide with runnable examples.
+    """
 
     def __init__(
         self,
@@ -47,41 +59,96 @@ class Event:
         Parameters
         ----------
         callback : function
-            Required callable executed when the event triggers.
+            Required callable executed when the event triggers. It must accept
+            ``**kwargs`` (the simulation state, objects, and any custom
+            ``context`` items; see :ref:`eventusage` for the full list of keys).
+            Its return value is appended to ``self.callback_log`` for later
+            inspection. The callback may queue commands through
+            ``kwargs["event"].commands`` and read or mutate
+            ``kwargs["event"].context``.
         trigger : function, optional
-            Predicate that decides whether the event should fire.
+            Predicate with signature ``trigger(**kwargs)`` that returns ``True``
+            when the event should fire. It receives the same ``**kwargs`` as
+            ``callback``, but its return value is interpreted as a boolean
+            condition rather than logged. If ``None`` (default), the event acts
+            as a passive hook and fires every time it is evaluated.
         sampling_rate : float, optional
-            Interval in seconds between trigger evaluations.
+            Evaluation frequency in hertz. If ``None`` (default), the event is
+            evaluated continuously at every solver time step. If a float (e.g.
+            ``10``), the event is sampled at that rate, i.e. every
+            ``1 / sampling_rate`` seconds.
         context : dict, optional
-            Persistent per-event state exposed through ``kwargs["event"].context``.
+            Dictionary of persistent, mutable per-event state, exposed through
+            ``kwargs["event"].context`` inside the trigger and callback. Useful
+            for counters, thresholds, and data shared between trigger and
+            callback. Each key is also unpacked into the ``**kwargs`` passed to
+            the trigger and callback. Defaults to an empty dict. Note that
+            ``context`` is not persisted to output logs or files.
         disable_on : str or int or float or callable, optional
-            Automatic disable gate.
+            Condition that automatically disables the event. May be a string
+            preset (``"apogee"`` or ``"burnout"``), a simulation time in seconds
+            (int or float), or a callable ``function(**kwargs)`` that returns
+            ``True`` when the event should be disabled. The times at which the
+            event is disabled are recorded in ``self.disabled_times``.
         enable_on : str or int or float or callable, optional
-            Automatic enable gate.
+            Condition that automatically (re-)enables a disabled event. Uses the
+            same formats as ``disable_on`` (string preset, time threshold, or
+            callable predicate). The times at which the event is enabled are
+            recorded in ``self.enabled_times``.
         exact_time_function : function, optional
-            Function used to refine the trigger instant between solver steps.
-            It must accept the interpolated state as a mandatory first
-            argument with signature ``exact_time_function(state, **kwargs)``.
+            Callable used to refine the trigger instant to an exact time between
+            solver steps, with signature
+            ``exact_time_function(state, **kwargs) -> float``. The mandatory
+            ``state`` argument receives the interpolated solver state vector
+            (without time); additional keyword arguments are the usual event
+            kwargs. The function must return a scalar whose root (zero crossing,
+            or the configured ``target``) defines the event instant, and it must
+            derive that quantity directly from ``state`` rather than from derived
+            kwargs such as ``height_above_ground_level``. Only supported for
+            continuous events (``sampling_rate=None``).
         exact_time_config : dict, optional
-            Configuration passed to the exact-time solver.
+            Configuration for the exact-time solver. The ``"solver"`` key selects
+            the algorithm: ``"linear"``, ``"cubic_hermite"``, or ``"brentq"``
+            (the default when omitted). All solvers accept a ``target`` float
+            (default ``0.0``); ``brentq`` additionally accepts ``xtol``, ``rtol``,
+            and ``maxiter``, and ``cubic_hermite`` requires a
+            ``derivative_function``. If ``None`` or empty (default), the
+            ``brentq`` solver is used with its defaults. See :ref:`eventusage`
+            for the full list of keys.
         trigger_only_once : bool, optional
-            Disable the event after the first successful trigger.
+            If ``True``, the event disables itself after the first successful
+            trigger. Useful for one-shot actions such as deployment or
+            separation. Defaults to ``False``.
         time_overshootable : bool, optional
-            Enable overshoot-path evaluation for sampled events.
+            Enables overshoot-path evaluation for sampled events. Only relevant
+            when ``sampling_rate`` is a float. When ``True`` (default) the
+            simulation may integrate past the next sampling time and step back to
+            evaluate the event at the correct instant, allowing fewer integration
+            steps and faster simulation. When ``False`` the solver places strict
+            time nodes at multiples of the sampling interval, which is much
+            slower with no gain in accuracy. Automatically forced to ``False``
+            when ``sampling_rate`` is ``None``.
         changes_dynamics : bool, optional
-            Mark events that intentionally mutate simulation state in their
-            callback. If callback mutates he attribute of any object, this 
-            should be True. If the commands set_derivative, start_flight_phase,
-            or terminate_flight is used in the callback, this should be True.
+            Set to ``True`` when the callback changes the simulation dynamics or
+            any parameter affecting the ODE derivative. This includes mutating an
+            attribute of any simulation object, and using the
+            ``set_derivative``, ``start_flight_phase``, or ``terminate_flight``
+            commands. Defaults to ``False``.
         name : str, optional
-            Human-readable identifier. Defaults to ``"Event"``.
+            Human-readable identifier used in logs and debugging. Defaults to
+            ``"Custom Event"``.
         enabled : bool, optional
-            Initial enabled state.
+            Initial enabled state. Disabled events can be re-enabled through the
+            ``enable`` command or via the ``enable_on`` parameter. Defaults to
+            ``True``.
         verbose : bool, optional
-            Print and log extra trigger information when the event fires.
+            When ``True``, the event prints a message and stores extra execution
+            logs in ``self.verbose_log`` whenever it triggers. Defaults to
+            ``False``.
         priority : int, optional
-            Numeric event evaluation priority. Lower numbers are evaluated
-            earlier. Recommended mapping (used by built-in events):
+            Integer event evaluation priority; lower numbers are evaluated
+            earlier. String aliases are not supported. Recommended mapping (used
+            by built-in events):
 
             - 0: Core events (out of rail, apogee, landing)
             - 1: Sensor events
@@ -89,7 +156,9 @@ class Event:
             - 3: Controller events
             - 4: Custom / user-defined events (default)
 
-            The priority must be an integer; string aliases are not supported.
+        See Also
+        --------
+        :ref:`eventusage` : User guide for building and using events.
         """
         self.callback = self.__validate_callback(callback)
         self.name = name
@@ -365,8 +434,19 @@ class Event:
             )
 
     def __validate_trigger(self, trigger):
+        if isinstance(trigger, str):
+            if trigger not in PRESETS:
+                raise ValueError(
+                    f"Unknown trigger preset: {trigger!r}. Supported presets: "
+                    f"{list(PRESETS.keys())}"
+                )
+            return PRESETS[trigger]
+
+        if isinstance(trigger, Real) and not isinstance(trigger, bool):
+            return lambda **kwargs: kwargs.get("time") >= float(trigger)
+
         if not callable(trigger):
-            raise ValueError("Trigger must be a callable.")
+            raise ValueError("Trigger must be a callable, preset string, or number.")
 
         signature = inspect.signature(trigger)
         accepts_var_kwargs = any(

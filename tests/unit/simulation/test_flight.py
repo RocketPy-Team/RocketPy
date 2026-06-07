@@ -82,6 +82,32 @@ def setup_rocket_with_given_static_margin(rocket, static_margin):
 
 # Tests
 
+def test_solution_time_is_monotonically_non_decreasing(flight_calisto_robust):
+    """Test that solution timestamps never go backwards across all phase transitions.
+
+    This covers flights with exact-time events and new flight phases (drogue and
+    main parachute deployments), which are the scenarios most likely to produce
+    out-of-order timestamps at phase boundaries.
+
+    Parameters
+    ----------
+    flight_calisto_robust : rocketpy.Flight
+        Full flight with both drogue and main parachutes enabled.
+    """
+    sol = np.array(flight_calisto_robust.solution)
+    times = sol[:, 0]
+    backward_steps = np.where(np.diff(times) < 0)[0]
+    assert backward_steps.size == 0, (
+        f"Solution time goes backward at {backward_steps.size} step(s). "
+        f"First occurrence: index {backward_steps[0]}, "
+        f"t={times[backward_steps[0]]:.6f} -> t={times[backward_steps[0] + 1]:.6f}"
+    )
+    # Confirm both parachutes actually fired so the phase transitions were exercised
+    assert len(flight_calisto_robust.parachute_events) >= 2, (
+        "Expected at least 2 parachute events (drogue + main) but got "
+        f"{len(flight_calisto_robust.parachute_events)}"
+    )
+
 
 def test_get_solution_at_time(flight_calisto):
     """Test the get_solution_at_time method of the Flight class. This test

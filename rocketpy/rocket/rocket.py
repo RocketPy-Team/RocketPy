@@ -1766,39 +1766,41 @@ class Rocket:
                 the air brakes are completely retracted and do not contribute to
                 the drag of the rocket.
 
-          controller_function : function, callable
-                An user-defined function responsible for controlling the simulation.
+          controller_function : callable
+                Function that executes the control logic, with signature
+                ``controller_function(**kwargs) -> dict or None``. It is invoked
+                once per sample. The following keyword arguments are available:
 
-                New (preferred) API:
+                - ``air_brakes`` (:class:`AirBrakes`): the air brakes object;
+                  set ``air_brakes.deployment_level`` to apply the control action.
+                - ``controller`` (:class:`_Controller`): this controller instance;
+                  read or write persistent state via ``controller.context``.
+                - ``controlled_objects``: same as ``air_brakes``, for convenience.
+                - ``time`` (float): current simulation time in seconds.
+                - ``state`` (list): state vector
+                  ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]``.
+                - ``state_dot`` (list): time derivative of the state vector.
+                - ``state_history`` (list): chronological list of all previous
+                  state vectors.
+                - ``step_size`` (float): current integration step size in seconds.
+                - ``pressure`` (float): atmospheric pressure at current altitude,
+                  in Pa.
+                - ``height_above_ground_level`` (float): height above ground
+                  level, in meters.
+                - ``sensors`` (list): sensors attached to the rocket; access the
+                  latest measurement via ``sensor.measurement``.
+                - ``sensors_by_name`` (dict): same sensors, keyed by name.
+                - ``environment`` (:class:`Environment`): atmospheric and wind
+                  model.
+                - ``rocket`` (:class:`Rocket`): the rocket being simulated.
+                - ``flight`` (:class:`Flight`): the flight object.
+                - ``event`` (:class:`Event`): the wrapping event; queue commands
+                  via ``event.commands`` and access persistent state via
+                  ``event.context``.
+                - ``sampling_rate`` (float): controller sampling rate in Hz.
 
-                - The controller function should accept keyword arguments and be
-                  called as `controller_function(**kwargs)`. During simulation the
-                  following keys will be provided to the controller via kwargs:
-
-                     - `time` (float): current simulation time in seconds.
-                     - `sampling_rate` (float): controller sampling rate in Hz.
-                     - `state` (list): state vector `[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]`.
-                     - `state_history` (list): chronological list of previous states.
-                     - `observed_variables` (list): list of variables returned by the controller.
-                     - `interactive_objects` (list): objects the controller can interact with.
-                     - `sensors` (list): attached sensors; most recent measurements available via `sensor.measurement`.
-                     - `environment` (Environment): environment object with atmospheric and wind data.
-
-                Backwards compatibility:
-
-                - Legacy controller functions that accept positional arguments in
-                  the historical order (time, sampling_rate, state, state_history,
-                  observed_variables, interactive_objects, sensors, environment)
-                  will continue to be supported. The library will automatically
-                  detect such functions and call them with positional args.
-
-                - To migrate, prefer the `**kwargs` style which is more flexible
-                  and allows additional context to be provided via the
-                  `context` parameter (see below).
-
-                This function will be called during the simulation at the specified
-                sampling rate. The function should evaluate and change the observed
-                objects as needed. The function should return None.
+                The function's return value (a dict of user-defined keys, or
+                ``None``) is appended to the controller log.
 
         sampling_rate : float
             The sampling rate of the controller function in Hertz (Hz). This
