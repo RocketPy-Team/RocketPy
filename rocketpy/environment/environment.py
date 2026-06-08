@@ -1281,9 +1281,7 @@ class Environment:
                 _input_dict = (
                     dictionary.upper() if isinstance(dictionary, str) else None
                 )
-                _input_file = (
-                    file.upper() if isinstance(file, str) else None
-                )
+                _input_file = file.upper() if isinstance(file, str) else None
 
                 # Validate format of user-supplied value (if any).
                 # When None, auto-detection runs after dictionary resolution.
@@ -1380,7 +1378,7 @@ class Environment:
                     self.process_ensemble(dataset, dictionary, conversion_factor)
 
                 ground_pressure = self.pressure(self.elevation)
-                if not (30_000 <= ground_pressure <= 120_000):
+                if not 30000 <= ground_pressure <= 120_000:
                     if pressure_conversion_factor is None:
                         hint = (
                             "The unit was auto-detected from the file's pressure "
