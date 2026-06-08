@@ -278,7 +278,6 @@ Finally, we can add any number of Parachutes to the ``Rocket`` object.
         trigger=800,      # ejection altitude in meters
         sampling_rate=105,
         lag=1.5,
-        noise=(0, 8.3, 0.5),
         radius=1.5,
         height=1.5,
         porosity=0.0432,
@@ -290,7 +289,6 @@ Finally, we can add any number of Parachutes to the ``Rocket`` object.
         trigger="apogee",  # ejection at apogee
         sampling_rate=105,
         lag=1.5,
-        noise=(0, 8.3, 0.5),
         radius=1.5,
         height=1.5,
         porosity=0.0432,

@@ -188,7 +188,6 @@ Therefore we should be careful with the value of its mass.
           trigger=800,
           sampling_rate=105,
           lag=1.5,
-          noise=(0, 8.3, 0.5),
       )
 
       drogue_chute = rocket_without_payload.add_parachute(
@@ -197,7 +196,6 @@ Therefore we should be careful with the value of its mass.
           trigger="apogee",
           sampling_rate=105,
           lag=1.5,
-          noise=(0, 8.3, 0.5),
       )
 
 .. jupyter-execute::
@@ -248,7 +246,6 @@ surfaces to stabilize it, nor a motor that ignites. It does, however, have parac
           trigger="apogee",
           sampling_rate=105,
           lag=1.5,
-          noise=(0, 8.3, 0.5),
       )
 
       payload_main = payload_rocket.add_parachute(
@@ -257,7 +254,6 @@ surfaces to stabilize it, nor a motor that ignites. It does, however, have parac
           trigger=800,
           sampling_rate=105,
           lag=1.5,
-          noise=(0, 8.3, 0.5),
       )
 
 .. important::

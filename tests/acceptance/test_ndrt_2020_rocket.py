@@ -161,7 +161,6 @@ def test_ndrt_2020_rocket_data_asserts_acceptance(env_file):
         trigger=drogue_trigger,
         sampling_rate=105,
         lag=parameters.get("lag_rec")[0],
-        noise=(0, 8.3, 0.5),
     )
     NDRT2020.add_parachute(
         "Main",
@@ -169,7 +168,6 @@ def test_ndrt_2020_rocket_data_asserts_acceptance(env_file):
         trigger=main_trigger,
         sampling_rate=105,
         lag=parameters.get("lag_rec")[0],
-        noise=(0, 8.3, 0.5),
     )
 
     # Flight

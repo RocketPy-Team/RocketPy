@@ -104,7 +104,6 @@ class TestParachuteSerialization:
             "trigger": "apogee",
             "sampling_rate": 100,
             "lag": 0,
-            "noise": (0, 0, 0),
             # no drag_coefficient key — simulates old serialized data
         }
         parachute = Parachute.from_dict(data)

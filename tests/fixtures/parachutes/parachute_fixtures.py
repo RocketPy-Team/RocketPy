@@ -58,7 +58,6 @@ def calisto_main_chute(calisto_main_parachute_trigger):
         trigger=calisto_main_parachute_trigger,
         sampling_rate=105,
         lag=1.5,
-        noise=(0, 8.3, 0.5),
     )
 
 

@@ -141,7 +141,6 @@ Main = rocket.add_parachute(
     lag=analysis_parameters["parachutes_main_lag"]["mean"],
     trigger=800,
     sampling_rate=105,
-    noise=(0, 8.3, 0.5),
 )
 
 Drogue = rocket.add_parachute(
@@ -150,7 +149,6 @@ Drogue = rocket.add_parachute(
     lag=analysis_parameters["parachutes_drogue_lag"]["mean"],
     trigger="apogee",
     sampling_rate=105,
-    noise=(0, 8.3, 0.5),
 )
 
 # Flight

@@ -138,7 +138,6 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         trigger=drogue_trigger,
         sampling_rate=105,
         lag=parameters.get("lag_rec")[0],
-        noise=(0, 8.3, 0.5),
     )
 
     # Define aerodynamic drag coefficients
