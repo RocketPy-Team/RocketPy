@@ -1120,7 +1120,7 @@ class Environment:
         temperature=None,
         wind_u=0,
         wind_v=0,
-        pressure_conversion_factor="Pa",
+        pressure_conversion_factor=None,
     ):
         """Define the atmospheric model for this Environment.
 
@@ -1219,10 +1219,14 @@ class Environment:
             return a corresponding wind-v in m/s.
         pressure_conversion_factor : string, int, float
             This defines the pressure conversion factor to Pa when type is
-            ``forecast`` or ``reanalysis``. The pressure unit from the data may
-            not be in Pascal, so the correction is necessary. Valid strings are
-            ("mbar", "hPa", "Pa"), or a strictly positive number if using a
-            custom pressure unit.
+            ``forecast``, ``reanalysis``, or ``ensemble``. The pressure unit
+            from the data may not be in Pascal, so the correction is necessary.
+            Valid strings are ``"mbar"``, ``"hPa"``, or ``"Pa"``, or a strictly
+            positive number if using a custom pressure unit. ERA5 and ECMWF
+            reanalysis ``.nc`` files store pressure in hPa; use ``"hPa"`` for
+            those. MERRA2 files and online forecast models (GFS, NAM, RAP,
+            HRRR) store pressure in Pa; the default ``"Pa"`` is correct for
+            these.
 
         Returns
         -------
@@ -1272,27 +1276,36 @@ class Environment:
             case "windy":
                 self.process_windy_atmosphere(file)
             case "forecast" | "reanalysis" | "ensemble":
-                conversion_factor = 1
-                if not isinstance(pressure_conversion_factor, (float, int, str)):
-                    raise ValueError(
-                        "Argument 'pressure_conversion_factor' must be numeric or a standard pressure unit ('mbar', 'hPa', 'Pa')!"
-                    )
-                if isinstance(pressure_conversion_factor, (float, int)):
-                    if pressure_conversion_factor <= 0:
+                # Capture the user-supplied names before __validate_dictionary
+                # converts them to dicts, so they can drive auto-detection.
+                _input_dict = (
+                    dictionary.upper() if isinstance(dictionary, str) else None
+                )
+                _input_file = (
+                    file.upper() if isinstance(file, str) else None
+                )
+
+                # Validate format of user-supplied value (if any).
+                # When None, auto-detection runs after dictionary resolution.
+                if pressure_conversion_factor is not None:
+                    if not isinstance(pressure_conversion_factor, (float, int, str)):
                         raise ValueError(
-                            "Argument 'pressure_conversion_factor' must be strictly positive!"
+                            "Argument 'pressure_conversion_factor' must be numeric or a standard pressure unit ('mbar', 'hPa', 'Pa')!"
                         )
-                    else:
-                        conversion_factor = pressure_conversion_factor
-                if isinstance(pressure_conversion_factor, str):
-                    if pressure_conversion_factor.lower() in ("mbar", "hpa"):
-                        conversion_factor = 100
-                    elif pressure_conversion_factor.lower() == "pa":
-                        conversion_factor = 1
-                    else:
-                        raise ValueError(
-                            "Argument 'pressure_conversion_factor' unit must be a standard pressure unit ('mbar', 'hPa', 'Pa')!"
-                        )
+                    if isinstance(pressure_conversion_factor, (float, int)):
+                        if pressure_conversion_factor <= 0:
+                            raise ValueError(
+                                "Argument 'pressure_conversion_factor' must be strictly positive!"
+                            )
+                    if isinstance(pressure_conversion_factor, str):
+                        if pressure_conversion_factor.lower() not in (
+                            "mbar",
+                            "hpa",
+                            "pa",
+                        ):
+                            raise ValueError(
+                                "Argument 'pressure_conversion_factor' unit must be a standard pressure unit ('mbar', 'hPa', 'Pa')!"
+                            )
 
                 if isinstance(file, str):
                     shortcut_map = self.__atm_type_file_to_function_map.get(type, {})
@@ -1325,6 +1338,32 @@ class Environment:
                         )
 
                 dictionary = self.__validate_dictionary(file, dictionary)
+
+                # Determine the numeric conversion factor (pressure → Pa).
+                if pressure_conversion_factor is not None:
+                    # User explicitly supplied a value — honour it.
+                    if isinstance(pressure_conversion_factor, str):
+                        conversion_factor = (
+                            100
+                            if pressure_conversion_factor.lower() in ("mbar", "hpa")
+                            else 1
+                        )
+                    else:
+                        conversion_factor = pressure_conversion_factor
+                else:
+                    # Auto-detect.  Primary source: known-model lookup table.
+                    # Fallback: units attribute inside the file (handled inside
+                    # get_pressure_levels_from_file when conversion_factor=None).
+                    _hpa_dicts = {"ECMWF", "ECMWF_V0", "ERA5", "MERRA2"}
+                    _pa_files = {"GFS", "NAM", "RAP", "HRRR", "AIGFS", "HIRESW", "GEFS"}
+                    if _input_dict in _hpa_dicts or _input_file in _hpa_dicts:
+                        conversion_factor = 100
+                    elif _input_file in _pa_files:
+                        conversion_factor = 1
+                    else:
+                        # Unknown model or custom dict: read units from file.
+                        conversion_factor = None
+
                 try:
                     fetch_function = self.__atm_type_file_to_function_map[type][file]
                 except KeyError:
@@ -1339,6 +1378,30 @@ class Environment:
                     )
                 else:
                     self.process_ensemble(dataset, dictionary, conversion_factor)
+
+                ground_pressure = self.pressure(self.elevation)
+                if not (30_000 <= ground_pressure <= 120_000):
+                    if pressure_conversion_factor is None:
+                        hint = (
+                            "The unit was auto-detected from the file's pressure "
+                            "level variable, but the result is still out of range. "
+                            "Override by passing pressure_conversion_factor explicitly "
+                            "('hPa' for ERA5/ECMWF files, 'Pa' for MERRA2 and online "
+                            "forecast models such as GFS, NAM, RAP, HRRR)."
+                        )
+                    else:
+                        hint = (
+                            f"pressure_conversion_factor='{pressure_conversion_factor}' "
+                            f"may be wrong. ERA5/ECMWF reanalysis files store pressure "
+                            f"in hPa — use 'hPa'. MERRA2 and online forecast models "
+                            f"(GFS, NAM, RAP, HRRR) store pressure in Pa — use 'Pa'."
+                        )
+                    warnings.warn(
+                        f"Ground-level pressure is {ground_pressure:.0f} Pa, which is "
+                        f"outside the expected range [30 000 Pa, 120 000 Pa]. {hint}",
+                        UserWarning,
+                        stacklevel=2,
+                    )
             case _:  # pragma: no cover
                 raise ValueError(f"Unknown model type '{type}'.")
 
