@@ -298,6 +298,17 @@ class Parachute:
                 )
 
             def triggerfunc(p, h, y, sensors, **kwargs):
+                if not positional_param_count and not accepts_var_positional:
+                    # New-style kwargs-only trigger: no positional args accepted.
+                    # Restore sensors (removed by trigger_event_wrapper) and
+                    # override pressure with the noisy value before forwarding.
+                    merged = {**kwargs, "pressure": p, "sensors": sensors}
+                    if accepts_var_keyword:
+                        return trigger(**merged)
+                    return trigger(
+                        **{k: v for k, v in merged.items() if k in keyword_only_names}
+                    )
+
                 positional_args = [p, h, y]
                 if accepts_sensors_positional:
                     positional_args.append(sensors)
@@ -305,12 +316,10 @@ class Parachute:
                 if accepts_var_keyword:
                     return trigger(*positional_args, **kwargs)
 
-                forwarded_kwargs = {
-                    key: value
-                    for key, value in kwargs.items()
-                    if key in keyword_only_names
-                }
-                return trigger(*positional_args, **forwarded_kwargs)
+                return trigger(
+                    *positional_args,
+                    **{k: v for k, v in kwargs.items() if k in keyword_only_names},
+                )
 
             self.triggerfunc = triggerfunc
 

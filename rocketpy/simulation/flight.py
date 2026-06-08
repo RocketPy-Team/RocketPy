@@ -2723,7 +2723,23 @@ class Flight:
         alternative="Access the desired variables via controller.log",
     )
     def get_controller_observed_variables(self):
-        return None
+        """Retrieve the observed variables from each controller.
+
+        If there is only one controller, its log is returned directly. If
+        there are multiple controllers, a list of logs is returned.
+
+        Returns
+        -------
+        list
+            Controller log(s) containing the return values of each
+            controller function call.
+        """
+        observed_variables = [controller.log for controller in self._controllers]
+        return (
+            observed_variables[0]
+            if len(observed_variables) == 1
+            else observed_variables
+        )
 
     @deprecated(
         reason="Prefer direct pair iteration (for example zip(seq, seq[1:]))",

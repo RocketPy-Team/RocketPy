@@ -1877,7 +1877,7 @@ class Rocket:
                 "instead. Support for this argument will be removed in v1.13.",
                 DeprecationWarning,
             )
-            controller_context["observed_variables"] = initial_observed_variables.copy()
+            controller_context["observed_variables"] = initial_observed_variables
 
         orig_controller = controller_function
         signature = inspect.signature(orig_controller)
