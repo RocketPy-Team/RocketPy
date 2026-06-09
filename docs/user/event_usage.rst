@@ -24,20 +24,26 @@ time nodes, see :doc:`../technical/phases_and_nodes`.
 
 .. important::
   **Performance Considerations**
-  
-  Adding events to a flight simulation can impact computational performance, 
+
+  Adding events to a flight simulation can impact computational performance,
   especially in the following scenarios:
-  
-  - **Large sampling rates**: Events with very small sampling intervals 
+
+  - **Large sampling rates**: Events with very small sampling intervals
     (e.g., 0.01 seconds) will be evaluated more frequently, increasing overhead.
-  - **Exact-time solving**: Events with ``exact_time_function`` require root-finding 
-    iterations to pinpoint the exact trigger time, which adds computational cost 
+  - **Exact-time solving**: Events with ``exact_time_function`` require root-finding
+    iterations to pinpoint the exact trigger time, which adds computational cost
     per event call.
-  - **Callbacks with expensive computations**: Callback functions that perform 
-    heavy calculations (large matrix operations, I/O, external API calls) directly 
+  - **Callbacks with expensive computations**: Callback functions that perform
+    heavy calculations (large matrix operations, I/O, external API calls) directly
     affect flight simulation speed. Try to keep callbacks lightweight or cache results.
-  
-  As a general practice, use events judiciously and test performance with your 
+  - **The ``needs`` parameter**: By default the simulation computes none of the
+    expensive kwargs (``state_dot``, ``pressure``, ``state_history``). If your
+    event accesses any of these, declare them via ``needs=['pressure']`` (or
+    whichever keys apply) so the runtime computes them. Omitting a required key
+    raises a ``KeyError`` with a message telling you exactly which key to add.
+    See the ``needs`` parameter description below for details.
+
+  As a general practice, use events judiciously and test performance with your
   specific number of events, derivatives, and payload callbacks.
 
 .. Hidden setup block for environment, motor, and rocket
@@ -99,23 +105,25 @@ The following parameters are always or conditionally available:
 
 - ``time`` (float): The current simulation time in seconds.
 - ``state`` (list of float): The state vector ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]``
-  where ``(x, y, z)`` is position, ``(vx, vy, vz)`` is velocity, 
-  ``(e0, e1, e2, e3)`` are quaternion orientation components, and 
+  where ``(x, y, z)`` is position, ``(vx, vy, vz)`` is velocity,
+  ``(e0, e1, e2, e3)`` are quaternion orientation components, and
   ``(wx, wy, wz)`` is angular velocity.
-- ``state_dot`` (list of float, optional): The time derivative of state, 
+- ``height_above_ground_level`` (float): Height of the rocket above ground level
+  in meters, computed as ``state[2] - env.elevation``. Always present.
+- ``state_dot`` (list of float, **conditional**): The time derivative of state,
   ``[vx, vy, vz, ax, ay, az, e0_dot, e1_dot, e2_dot, e3_dot, wx_dot, wy_dot, wz_dot]``.
-- ``sampled_time`` (float, optional): If exact-time solving was used, the 
+  Only injected when the event declares ``needs=['state_dot']``.
+- ``pressure`` (float, **conditional**): Current atmospheric pressure in Pa at
+  the rocket's altitude. Only injected when the event declares
+  ``needs=['pressure']``.
+- ``state_history`` (list of list, **conditional**): History of state vectors
+  from the beginning of the simulation up to the current step. Each entry is
+  ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]``. Only injected when
+  the event declares ``needs=['state_history']``.
+- ``sampled_time`` (float, optional): If exact-time solving was used, the
   original sampled time before refinement.
-- ``sampled_state`` (list of float, optional): If exact-time solving was used, 
+- ``sampled_state`` (list of float, optional): If exact-time solving was used,
   the interpolated state at the originally sampled time.
-- ``event_time`` (float, optional): If exact-time solving was used, the refined 
-  event trigger time.
-- ``event_state`` (list of float, optional): If exact-time solving was used, 
-  the state at the refined event time.
-- ``pressure`` (float): Current atmospheric pressure in Pa at the rocket's 
-  altitude.
-- ``height_above_ground_level`` (float): Height of the rocket above ground level 
-  in meters, computed from pressure.
 - ``step_size`` (float, optional): Most recent solver step size in seconds.
   Useful for cubic-Hermite exact-time configuration.
 
@@ -685,6 +693,19 @@ practical examples and demonstrate proper activation.
   When ``True``, the event prints a message and stores extra execution logs
   whenever it triggers.
 
+**needs** (optional)
+  Declares which expensive simulation values the event's trigger and callback
+  actually access. Pass a list (or frozenset) containing any combination of
+  ``'state_dot'``, ``'pressure'``, and ``'state_history'``.
+  When ``None`` (the default), none of the expensive values are computed,
+  equivalent to passing an empty list.
+
+  The most expensive value is ``'state_dot'``, which requires a full ODE
+  right-hand-side evaluation. ``'state_history'`` is also non-trivial
+  (a list copy that grows with simulation time). ``'pressure'`` requires one
+  interpolation lookup.
+
+  
 .. _event_commands:
 
 Using Commands to Modify Simulation State

@@ -286,31 +286,26 @@ def test_commands_api_records_expected_payloads():
     commands.disable()
     commands.add_event(event)
     commands.disable_event(event)
-    commands.add_controller(controller)
-    commands.disable_controller(controller)
     commands.set_derivative(lambda *_args, **_kwargs: None)
     commands.start_flight_phase("descent", lag=1.5, parachute="main")
     commands.terminate_flight()
 
-    assert commands.results["disable"] is True
-    assert commands.results["new_events"] == [event]
-    assert commands.results["disable_events"] == [event]
-    assert commands.results["new_controllers"] == [controller]
-    assert commands.results["disable_controllers"] == [controller]
-    assert commands.results["new_derivative_set"] is True
-    assert commands.results["new_flight_phase"] is True
-    assert commands.results["new_flight_phase_name"] == "descent"
-    assert commands.results["new_flight_phase_lag"] == 1.5
-    assert commands.results["new_flight_phase_parachute"] == "main"
-    assert commands.results["terminate_flight"] is True
+    assert commands._disabled is True
+    assert commands.new_events == [event]
+    assert commands.disable_events == [event]
+    assert commands.new_derivative_set is True
+    assert commands.new_flight_phase is True
+    assert commands.new_flight_phase_name == "descent"
+    assert commands.new_flight_phase_lag == 1.5
+    assert commands.new_flight_phase_parachute == "main"
+    assert commands._terminate is True
 
     commands.reset()
 
-    assert commands.results["disable"] is None
-    assert commands.results["new_events"] == []
-    assert commands.results["new_controllers"] == []
-    assert commands.results["new_derivative"] is None
-    assert commands.results["terminate_flight"] is False
+    assert commands._disabled is None
+    assert commands.new_events == []
+    assert commands.new_derivative is None
+    assert commands._terminate is False
 
 
 def test_core_event_builders_update_flight_state_and_commands():
@@ -352,9 +347,9 @@ def test_core_event_builders_update_flight_state_and_commands():
     assert flight.out_of_rail_time == pytest.approx(0.5)
     assert flight.out_of_rail_time_index == 1
     assert np.allclose(flight.out_of_rail_state, out_of_rail_state[1:])
-    assert out_of_rail_event.commands.results["new_derivative"] == flight.u_dot_generalized
-    assert out_of_rail_event.commands.results["new_flight_phase"] is True
-    assert out_of_rail_event.commands.results["new_flight_phase_name"] == "free_flight"
+    assert out_of_rail_event.commands.new_derivative == flight.u_dot_generalized
+    assert out_of_rail_event.commands.new_flight_phase is True
+    assert out_of_rail_event.commands.new_flight_phase_name == "free_flight"
 
     assert apogee_trigger(flight=flight, state=_sample_state(1.0, -1.0)[1:])
     apogee_result = apogee_callback(
@@ -368,7 +363,7 @@ def test_core_event_builders_update_flight_state_and_commands():
     assert flight.apogee_x == pytest.approx(0.0)
     assert flight.apogee_y == pytest.approx(0.0)
     assert flight.apogee == pytest.approx(0.0)
-    assert apogee_event.commands.results["terminate_flight"] is True
+    assert apogee_event.commands._terminate is True
 
     impact_state = _sample_state(2.0, -1.0)
     impact_state[1] = 2.0
@@ -387,7 +382,7 @@ def test_core_event_builders_update_flight_state_and_commands():
     assert flight.y_impact == pytest.approx(-3.0)
     assert flight.z_impact == pytest.approx(-4.0)
     assert flight.impact_velocity == pytest.approx(-4.0)
-    assert impact_event.commands.results["terminate_flight"] is True
+    assert impact_event.commands._terminate is True
 
     assert out_of_rail_exact_time_function(out_of_rail_state[1:], flight=flight) == pytest.approx(0.0)
     assert out_of_rail_exact_time_derivative(out_of_rail_state[1:], flight=flight) == pytest.approx(0.0)
@@ -415,7 +410,6 @@ def test_apogee_trigger_returns_false_without_complete_history(
     assert apogee_trigger(flight=flight, state=_sample_state(1.0, -1.0)[1:]) is False
 
 
-@pytest.mark.slow
 def test_flight_with_disable_and_enable_examples_from_docs():
     """The docs-style disable_on and enable_on examples should work in Flight."""
 
@@ -484,7 +478,6 @@ def test_flight_with_disable_and_enable_examples_from_docs():
     assert altitude_gated.disabled_times[0] > 0.0
 
 
-@pytest.mark.slow
 def test_flight_with_exact_time_example_from_docs():
     """The docs-style exact-time event should be more precise than sampling."""
 

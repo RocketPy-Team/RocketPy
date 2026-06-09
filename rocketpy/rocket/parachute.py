@@ -128,6 +128,7 @@ class Parachute:
         height=None,
         porosity=0.0432,
         drag_coefficient=1.4,
+        trigger_needs=None,
     ):
         """Initializes Parachute class.
 
@@ -143,21 +144,30 @@ class Parachute:
             Defines the trigger condition for the parachute ejection system. It
             can be one of the following:
 
-            - A callable function. The recommended signature accepts \
-                ``**kwargs`` only and returns ``True`` if the parachute \
-                ejection system should be triggered and ``False`` otherwise. \
-                The parachute is wrapped in an :class:`rocketpy.Event`, so the \
-                function receives the same keyword arguments as any event \
-                trigger, including ``state`` (the state vector \
-                ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]``), \
-                ``pressure``, ``height_above_ground_level``, ``sensors``, \
-                ``time``, ``flight``, ``rocket`` and ``environment``. See the \
-                Event documentation for the full list.
-            - A float value, representing an absolute height in meters. In this \
-                case, the parachute will be ejected when the rocket reaches this \
-                height above ground level.
-            - The string "apogee" which triggers the parachute at apogee, i.e., \
-                when the rocket reaches its highest point and starts descending.
+            - A float value, representing an absolute height in meters. In this 
+              case, the parachute will be ejected when the rocket reaches this
+              height above ground level.
+            - The string "apogee" which triggers the parachute at apogee, i.e., 
+              when the rocket reaches its highest point and starts descending.
+            - A callable function. The recommended signature accepts
+              ``**kwargs`` only and returns ``True`` if the parachute
+              ejection system should be triggered and ``False`` otherwise.
+              The following keys are always available in ``kwargs``:
+              ``time`` (float, s),
+              ``state`` (list ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]``),
+              ``sensors`` (list of sensor objects),
+              ``sensors_by_name`` (dict of sensor objects),
+              ``environment`` (:class:`rocketpy.Environment`),
+              ``rocket`` (:class:`rocketpy.Rocket`),
+              ``flight`` (:class:`rocketpy.Flight`),
+              ``phase`` (current flight phase),
+              ``step_size`` (float, s),
+              ``height_above_ground_level`` (float, m).
+              The following keys are only injected when declared via
+              ``trigger_needs``:
+              ``pressure`` (float, Pa),
+              ``state_dot`` (list, time derivative of ``state``),
+              ``state_history`` (list of past state vectors).
         sampling_rate : float
             Sampling rate in which the parachute trigger will be checked at.
             It is used to simulate the refresh rate of onboard sensors such
@@ -200,6 +210,14 @@ class Parachute:
             - **1.5** — extended-skirt canopy
 
             Has no effect when ``radius`` is explicitly provided.
+        trigger_needs : list or frozenset of str or None, optional
+            Declares which expensive simulation values the trigger function
+            actually accesses. Valid keys: ``'state_dot'``, ``'pressure'``,
+            ``'state_history'``.
+            When ``None`` (default), built-in trigger types (``'apogee'``
+            string, numeric height) have their needs set automatically.
+            For callable triggers no needs are assumed; pass an explicit list
+            or frozenset if your trigger accesses any of the keys above.
         """
 
         # Save arguments as attributes
@@ -211,6 +229,7 @@ class Parachute:
         self.noise = noise
         self.drag_coefficient = drag_coefficient
         self.porosity = porosity
+        self.trigger_needs = trigger_needs
 
         # Initialize derived attributes
         self.radius = self.__resolve_radius(radius, cd_s, drag_coefficient)
@@ -241,6 +260,16 @@ class Parachute:
         noise : tuple, list
             List in the format (mean, standard deviation, time-correlation).
         """
+        if noise[0] != 0 or noise[1] != 0 or noise[2] != 0:
+            warnings.warn(
+                "The `noise` parameter on Parachute is deprecated and has no "
+                "effect; it will be removed in v1.13. Use a Sensor (e.g. a "
+                "Barometer) with built-in noise instead, and read the noisy "
+                "measurement via `kwargs['sensors_by_name']` in your trigger "
+                "function.",
+                DeprecationWarning,
+                stacklevel=3,
+            )
         self.noise_signal = [[-1e-6, np.random.normal(noise[0], noise[1])]]
         self.noisy_pressure_signal = []
         self.clean_pressure_signal = []
@@ -254,9 +283,7 @@ class Parachute:
         )
 
     def __evaluate_trigger_function(self, trigger):
-        """This is used to set the triggerfunc attribute that will be used to
-        interact with the Flight class.
-        """
+        """Sets triggerfunc and _trigger_is_positional based on trigger type."""
         # Case 1: The parachute is deployed by a custom function
         if callable(trigger):
             sig = signature(trigger)
@@ -272,84 +299,57 @@ class Parachute:
             accepts_var_positional = any(
                 parameter.kind == parameter.VAR_POSITIONAL for parameter in parameters
             )
-            accepts_var_keyword = any(
-                parameter.kind == parameter.VAR_KEYWORD for parameter in parameters
-            )
-            keyword_only_names = {
-                parameter.name
-                for parameter in parameters
-                if parameter.kind == parameter.KEYWORD_ONLY
-            }
-            accepts_sensors_positional = (
-                accepts_var_positional or positional_param_count >= 4
-            )
 
             if positional_param_count > 0 or accepts_var_positional:
+                # Legacy positional-style trigger: (p, h, y[, sensors])
                 warnings.warn(
-                    "It is recommended not to use positional arguments "
-                    "(e.g. `trigger(p, h, y)`) when defining a parachute "
-                    "trigger. Instead, define the trigger to accept `**kwargs` "
-                    "only and read values such as `kwargs['pressure']`, "
-                    "`kwargs['height_above_ground_level']` and "
-                    "`kwargs['state']`. See the Event documentation "
-                    "for the full list of available keyword arguments.",
-                    UserWarning,
+                    "Positional-argument parachute triggers (e.g. `trigger(p, h, y)`) "
+                    "are deprecated and will be removed in v1.13. Define the trigger "
+                    "to accept `**kwargs` only and read values such as "
+                    "`kwargs['pressure']`, `kwargs['height_above_ground_level']` and "
+                    "`kwargs['state']`. See the Event documentation for the full list "
+                    "of available keyword arguments.",
+                    DeprecationWarning,
                     stacklevel=2,
                 )
-
-            def triggerfunc(p, h, y, sensors, **kwargs):
-                if not positional_param_count and not accepts_var_positional:
-                    # New-style kwargs-only trigger: no positional args accepted.
-                    # Restore sensors (removed by trigger_event_wrapper) and
-                    # override pressure with the noisy value before forwarding.
-                    merged = {**kwargs, "pressure": p, "sensors": sensors}
-                    if accepts_var_keyword:
-                        return trigger(**merged)
-                    return trigger(
-                        **{k: v for k, v in merged.items() if k in keyword_only_names}
-                    )
-
-                positional_args = [p, h, y]
-                if accepts_sensors_positional:
-                    positional_args.append(sensors)
-
-                if accepts_var_keyword:
-                    return trigger(*positional_args, **kwargs)
-
-                return trigger(
-                    *positional_args,
-                    **{k: v for k, v in kwargs.items() if k in keyword_only_names},
-                )
+                accepts_sensors = accepts_var_positional or positional_param_count >= 4
+                if accepts_sensors:
+                    def triggerfunc(p, h, y, sensors):
+                        return trigger(p, h, y, sensors)
+                else:
+                    def triggerfunc(p, h, y, _):
+                        return trigger(p, h, y)
+                self._trigger_is_positional = True
+                self._trigger_needs = frozenset({"pressure"})
+            else:
+                # New kwargs-only trigger: forward everything directly.
+                # Needs are unknown — caller may access any expensive kwarg.
+                triggerfunc = trigger
+                self._trigger_is_positional = False
+                self._trigger_needs = frozenset()
 
             self.triggerfunc = triggerfunc
 
         # Case 2: The parachute is deployed at a given height
         elif isinstance(trigger, (int, float)):
-            # The parachute is deployed at a given height
-            def triggerfunc(p, h, y, sensors, **kwargs):
-                _ = sensors
-                _ = kwargs
-                # p = pressure considering parachute noise signal
-                # h = height above ground level considering parachute noise signal
-                # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
-                return y[5] < 0 and h < trigger
+            def triggerfunc(**kwargs):
+                return kwargs["state"][5] < 0 and kwargs["height_above_ground_level"] < trigger
 
             self.triggerfunc = triggerfunc
+            self._trigger_is_positional = False
+            self._trigger_needs = frozenset()
 
         # Case 3: The parachute is deployed at apogee
         elif trigger.lower() == "apogee":
-            def triggerfunc(p, h, y, sensors, **kwargs):
-                _ = p
-                _ = h
-                _ = sensors
+            def triggerfunc(**kwargs):
                 state_history = kwargs.get("state_history")
                 if not state_history:
                     return False
-                previous_vz = state_history[-1][5]
-                current_vz = y[5]
-                return previous_vz > 0 >= current_vz
+                return state_history[-1][5] > 0 >= kwargs["state"][5]
 
             self.triggerfunc = triggerfunc
+            self._trigger_is_positional = False
+            self._trigger_needs = frozenset({"state_history"})
 
         # Case 4: Invalid trigger input
         else:
@@ -369,32 +369,17 @@ class Parachute:
             deployment phase transitions.
         """
 
-        def trigger_event_wrapper(**kwargs):
-            """Bridge Event kwargs to parachute trigger signature."""
-            pressure = kwargs.get("pressure")
-            height_above_ground_level = kwargs.get("height_above_ground_level")
-            state = kwargs.get("state")
-            sensors = kwargs.get("sensors")
-            time = kwargs.get("time")
-            kwargs = {key: value for key, value in kwargs.items() if key != "sensors"}
-
-            noise = self.noise_function()
-            noisy_pressure = pressure + noise
-
-            # TODO: can we deprecate these attributes?
-            self.noise_signal.append([time, noise])
-            self.clean_pressure_signal.append([time, pressure])
-            self.noisy_pressure_signal.append([time, noisy_pressure])
-
-            # TODO: include **kwargs and change docs to suggest using everything
-            # via kwargs instead of specific arguments
-            return self.triggerfunc(
-                noisy_pressure,
-                height_above_ground_level,
-                state,
-                sensors,
-                **kwargs,
-            )
+        if self._trigger_is_positional:
+            def trigger_event_wrapper(**kwargs):
+                return self.triggerfunc(
+                    kwargs["pressure"],
+                    kwargs["height_above_ground_level"],
+                    kwargs["state"],
+                    kwargs.get("sensors"),
+                )
+        else:
+            def trigger_event_wrapper(**kwargs):
+                return self.triggerfunc(**kwargs)
 
         def trigger_callback(**kwargs):
             time = kwargs.get("time", None)
@@ -410,8 +395,10 @@ class Parachute:
                 parachute=self,
             )
 
-        # TODO: add exact time computation for parachute trigger
-        # TODO: if sampling rate is none time_overshootable should be false
+        # Resolve effective needs: explicit override > auto-detected default.
+        effective_needs = (
+            self.trigger_needs if self.trigger_needs is not None else self._trigger_needs
+        )
         return Event(
             trigger=trigger_event_wrapper,
             callback=trigger_callback,
@@ -420,6 +407,7 @@ class Parachute:
             trigger_only_once=True,
             time_overshootable=True,
             priority=2,
+            needs=effective_needs,
         )
 
     def _reset_signals(self):
@@ -458,14 +446,32 @@ class Parachute:
 
     @funcify_method("Time (s)", "Pressure Noise (Pa)", "linear", "constant")
     def noise_signal_function(self):
+        warnings.warn(
+            "noise_signal_function is deprecated and will be removed in v1.13. "
+            "Use a Sensor with built-in noise instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.noise_signal
 
     @funcify_method("Time (s)", "Pressure - Without Noise (Pa)", "linear", "constant")
     def clean_pressure_signal_function(self):
+        warnings.warn(
+            "clean_pressure_signal_function is deprecated and will be removed "
+            "in v1.13. Use a Sensor with built-in noise instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return Function(self.clean_pressure_signal)
 
     @funcify_method("Time (s)", "Pressure - With Noise (Pa)", "linear", "constant")
     def noisy_pressure_signal_function(self):
+        warnings.warn(
+            "noisy_pressure_signal_function is deprecated and will be removed "
+            "in v1.13. Use a Sensor with built-in noise instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.clean_pressure_signal_function + self.noise_signal_function
 
     def info(self):

@@ -1568,6 +1568,7 @@ class Rocket:
         height=None,
         porosity=0.0432,
         drag_coefficient=1.4,
+        trigger_needs=None,
     ):
         """Creates a new parachute, storing its parameters such as
         opening delay, drag coefficients and trigger function.
@@ -1647,6 +1648,13 @@ class Rocket:
             `radius` is not provided. Typical values: 1.4 for hemispherical
             canopies (default), 0.75 for flat circular canopies, 1.5 for
             extended-skirt canopies. Has no effect when `radius` is given.
+        trigger_needs : list or frozenset of str or None, optional
+            Declares which expensive simulation values the trigger function
+            accesses. Valid keys: ``'state_dot'``, ``'pressure'``,
+            ``'state_history'``. When ``None`` (default), built-in trigger
+            types (``'apogee'`` string, numeric height) have their needs set
+            automatically. For callable triggers no needs are assumed; pass
+            an explicit list if your trigger accesses any of the keys above.
 
         Returns
         -------
@@ -1667,6 +1675,7 @@ class Rocket:
             height,
             porosity,
             drag_coefficient,
+            trigger_needs,
         )
         self.parachutes.append(parachute)
         return self.parachutes[-1]
@@ -1732,6 +1741,7 @@ class Rocket:
         return_controller=False,
         name="AirBrakes",
         controller_name="AirBrakes Controller",
+        controller_needs=None,
     ):
         """Creates a new air brakes system, storing its parameters such as
         drag coefficient curve, controller function, sampling rate, and
@@ -1768,39 +1778,31 @@ class Rocket:
 
           controller_function : callable
                 Function that executes the control logic, with signature
-                ``controller_function(**kwargs) -> dict or None``. It is invoked
-                once per sample. The following keyword arguments are available:
-
-                - ``air_brakes`` (:class:`AirBrakes`): the air brakes object;
-                  set ``air_brakes.deployment_level`` to apply the control action.
-                - ``controller`` (:class:`_Controller`): this controller instance;
-                  read or write persistent state via ``controller.context``.
-                - ``controlled_objects``: same as ``air_brakes``, for convenience.
-                - ``time`` (float): current simulation time in seconds.
-                - ``state`` (list): state vector
-                  ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]``.
-                - ``state_dot`` (list): time derivative of the state vector.
-                - ``state_history`` (list): chronological list of all previous
-                  state vectors.
-                - ``step_size`` (float): current integration step size in seconds.
-                - ``pressure`` (float): atmospheric pressure at current altitude,
-                  in Pa.
-                - ``height_above_ground_level`` (float): height above ground
-                  level, in meters.
-                - ``sensors`` (list): sensors attached to the rocket; access the
-                  latest measurement via ``sensor.measurement``.
-                - ``sensors_by_name`` (dict): same sensors, keyed by name.
-                - ``environment`` (:class:`Environment`): atmospheric and wind
-                  model.
-                - ``rocket`` (:class:`Rocket`): the rocket being simulated.
-                - ``flight`` (:class:`Flight`): the flight object.
-                - ``event`` (:class:`Event`): the wrapping event; queue commands
-                  via ``event.commands`` and access persistent state via
-                  ``event.context``.
-                - ``sampling_rate`` (float): controller sampling rate in Hz.
-
-                The function's return value (a dict of user-defined keys, or
-                ``None``) is appended to the controller log.
+                ``controller_function(**kwargs) -> dict or None``. Invoked
+                once per sample; its return value is appended to the
+                controller log. Set ``air_brakes.deployment_level`` to apply
+                the control action.
+                The following keys are always available in ``kwargs``:
+                ``time`` (float, s),
+                ``state`` (list ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]``),
+                ``sensors`` (list of sensor objects),
+                ``sensors_by_name`` (dict of sensor objects),
+                ``environment`` (:class:`rocketpy.Environment`),
+                ``rocket`` (:class:`rocketpy.Rocket`),
+                ``flight`` (:class:`rocketpy.Flight`),
+                ``phase`` (current flight phase),
+                ``step_size`` (float, s),
+                ``height_above_ground_level`` (float, m),
+                ``event`` (:class:`Event` wrapping this controller),
+                ``sampling_rate`` (float, Hz),
+                ``controller`` (this :class:`_Controller` instance),
+                ``controlled_objects`` (same as ``air_brakes``),
+                ``air_brakes`` (:class:`AirBrakes`).
+                The following keys are only injected when declared via
+                ``controller_needs``:
+                ``pressure`` (float, Pa),
+                ``state_dot`` (list, time derivative of ``state``),
+                ``state_history`` (list of past state vectors).
 
         sampling_rate : float
             The sampling rate of the controller function in Hertz (Hz). This
@@ -1843,6 +1845,12 @@ class Rocket:
         controller_name : string, optional
             Controller name. Has no impact in simulation, as it is only used to
             display data in a more organized matter.
+        controller_needs : list or frozenset of str or None, optional
+            Declares which expensive simulation values the controller function
+            accesses. Valid keys:
+            ``'state_dot'``, ``'pressure'``, ``'state_history'``.
+            ``None`` (default) assumes no needs; pass an explicit list if your
+            controller accesses any of the keys above.
 
         Returns
         -------
@@ -1949,6 +1957,7 @@ class Rocket:
             sampling_rate=sampling_rate,
             context=controller_context,
             name=controller_name,
+            controller_needs=controller_needs,
         )
         self.air_brakes.append(air_brakes)
         self._add_controllers(_controller)

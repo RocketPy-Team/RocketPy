@@ -34,7 +34,7 @@ def apply_event_commands(
         This function updates the flight, phase, and event objects in place.
     """
     apply_exact_time_result(flight, event_results)
-    t_apply = event_results.get("exact_time")
+    t_apply = event_results.exact_time
     if t_apply is None:
         t_apply = command_time
 
@@ -127,8 +127,8 @@ def apply_disable_commands(_, event_results, node_index, event, phase, time):
         ``True`` if time_nodes structure was modified, ``False`` otherwise.
     """
     nodes_modified = False
-    if event_results.get("disable_events"):
-        disable_events = event_results["disable_events"]
+    if event_results.disable_events:
+        disable_events = event_results.disable_events
         if not isinstance(disable_events, (list, tuple)):
             disable_events = [disable_events]
 
@@ -143,7 +143,7 @@ def apply_disable_commands(_, event_results, node_index, event, phase, time):
             )
         nodes_modified = True
 
-    if event_results["disable"]:
+    if event_results._disabled:
         event.enabled = False
         event.disabled_times.append(time)
         _safe_disable_time_nodes_event(
@@ -177,8 +177,8 @@ def apply_enable_commands(flight, event_results, node_index, event, phase, time)
         ``True`` if time_nodes structure was modified, ``False`` otherwise.
     """
     nodes_modified = False
-    if event_results.get("enable_events"):
-        enable_events = event_results["enable_events"]
+    if event_results.enable_events:
+        enable_events = event_results.enable_events
         if not isinstance(enable_events, (list, tuple)):
             enable_events = [enable_events]
 
@@ -194,8 +194,8 @@ def apply_enable_commands(flight, event_results, node_index, event, phase, time)
                 )
         nodes_modified = True
 
-    # Commands API uses `disable` flag: True -> disable, False -> enable
-    if event_results.get("disable") is False:
+    # Commands API uses `_disabled` flag: True -> disable, False -> enable
+    if event_results._disabled is False:
         event.enabled = True
         event.enabled_times.append(time)
         nodes_modified = True
@@ -233,11 +233,11 @@ def apply_exact_time_result(flight, event_results):
     # CASE I BELIVE. SO IF CONTINUOUS EVENTS WITH DYNAMICS CHANGES ARE NEEDED,
     # THE EVENT SHOULD NOT ACCEPT EXACT TIME FUNCTION.
     if (
-        event_results["exact_time"] is not None
-        and event_results["exact_state"] is not None
+        event_results.exact_time is not None
+        and event_results.exact_state is not None
     ):
-        t_exact = event_results["exact_time"]
-        y_exact = event_results["exact_state"]
+        t_exact = event_results.exact_time
+        y_exact = event_results.exact_state
 
         # Prefer inserting the exact point between the previous and last
         # stored solution points so we don't clobber the step-end data.
@@ -292,8 +292,8 @@ def apply_new_phase_or_derivative(
         This function mutates the flight phase list and time-node state in place.
     """
     if (
-        event_results["new_flight_phase"] is None
-        and event_results["new_derivative"] is None
+        event_results.new_flight_phase is None
+        and event_results.new_derivative is None
     ):
         return
 
@@ -302,22 +302,22 @@ def apply_new_phase_or_derivative(
     # Check if there was exact time point insertion in solution for this event
     # If so, remove the point after the exact time point, so the solution vector
     # and the new phase start time are consistent
-    if (event_results["exact_time"] is not None
-        and event_results["exact_state"] is not None
+    if (event_results.exact_time is not None
+        and event_results.exact_state is not None
         and flight.solution[-1][0] > when_time
     ):
         flight.solution.pop(-1)
 
     derivative = phase.derivative
-    if event_results["new_derivative"] is not None:
-        derivative = event_results["new_derivative"]
+    if event_results.new_derivative is not None:
+        derivative = event_results.new_derivative
 
     flight.flight_phases.add_phase(
-        when_time + event_results["new_flight_phase_lag"],
+        when_time + event_results.new_flight_phase_lag,
         derivatives=derivative,
         index=phase_index + 1,
-        name=event_results["new_flight_phase_name"],
-        parachute=event_results["new_flight_phase_parachute"],
+        name=event_results.new_flight_phase_name,
+        parachute=event_results.new_flight_phase_parachute,
     )
 
     # Prepare to leave loops and start new flight phase
@@ -351,13 +351,13 @@ def apply_termination(flight, event_results, phase, phase_index, node_index, tim
         This function mutates the flight and phase objects in place when the
         event requests termination.
     """
-    if not event_results["terminate_flight"]:
+    if not event_results._terminate:
         return
 
     when_time = time
 
-    if (event_results["exact_time"] is not None
-        and event_results["exact_state"] is not None
+    if (event_results.exact_time is not None
+        and event_results.exact_state is not None
         and flight.solution[-1][0] > when_time
     ):
         flight.solution.pop(-1)
@@ -396,9 +396,9 @@ def apply_event_list_updates(flight, event_results, phase, time):
     bool
         ``True`` if time_nodes structure was modified, ``False`` otherwise.
     """
-    if event_results["new_events"]:
+    if event_results.new_events:
         # Normalize new_events to always be a list for consistent iteration
-        new_events = event_results["new_events"]
+        new_events = event_results.new_events
         if isinstance(new_events, Event):
             new_events = [new_events]
 

@@ -1147,33 +1147,20 @@ class _FlightPlots:
         show_or_save_plot(filename)
 
     def pressure_signals(self):
-        """Plots out all Parachute Trigger Pressure Signals.
-        This function can be called also for plot pressure data for flights
-        without Parachutes, in this case the Pressure Signals will be simply
-        the pressure provided by the atmosphericModel, at Flight z positions.
-        This means that no noise will be considered if at least one parachute
-        has not been added.
+        """Deprecated. Pressure signal plots have been removed.
 
-        This function aims to help the engineer to visually check if there
-        are anomalies with the Flight Simulation.
-
-        Returns
-        -------
-        None
+        Use a Sensor (e.g. a Barometer) with built-in noise and access its
+        recorded measurements via ``flight.sensor_data`` instead.
         """
+        import warnings
 
-        if len(self.flight.parachute_events) > 0:
-            for event in self.flight.parachute_events:
-                trigger_time = event[0]
-                parachute = event[1]
-
-                print("\nParachute: ", parachute.name)
-
-                parachute.noise_signal_function.plot(0, trigger_time)
-                parachute.noisy_pressure_signal_function.plot(0, trigger_time)
-                parachute.clean_pressure_signal_function.plot(0, trigger_time)
-        else:
-            print("\nRocket has no parachutes. No parachute plots available")
+        warnings.warn(
+            "pressure_signals() is deprecated and will be removed in v1.13. "
+            "Use a Barometer Sensor with built-in noise and access its data "
+            "via flight.sensor_data instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
     def events_timeline(self, *, filename=None):
         """Plots a timeline of event activations and controller callbacks.

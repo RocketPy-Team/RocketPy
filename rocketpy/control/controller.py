@@ -56,6 +56,7 @@ class _Controller:
         enabled=True,
         disable_on=None,
         enable_on=None,
+        controller_needs=None,
     ):
         """Initialize the controller.
 
@@ -63,24 +64,31 @@ class _Controller:
         ----------
         controller_function : callable
             Function that executes the control logic, with signature
-            ``controller_function(**kwargs) -> dict or None``. It is invoked
-            once per sample and receives the standard event ``**kwargs`` (see
-            :ref:`eventusage` for the full list) plus controller-specific keys:
-
-            - ``controller`` (:class:`_Controller`): this controller instance;
-              read or write persistent state via ``controller.context`` and the
-              targets via ``controller.controlled_objects``.
-            - ``controlled_objects``: the same object(s) passed as
-              ``controlled_objects``, for convenience.
-            - one entry per name in ``controlled_objects_name`` (and, for a
-              list of names, a ``controlled_objects_by_name`` mapping).
-
-            Among the standard keys it also receives ``time``, ``state``,
-            ``state_history``, ``sensors``, ``environment``, ``rocket``,
-            ``flight`` and ``event``. The function should mutate
-            ``controlled_objects`` directly to apply control actions; its
-            return value (a dict of user-defined keys, or ``None``) is appended
-            to :attr:`log`.
+            ``controller_function(**kwargs) -> dict or None``. Invoked once
+            per sample; its return value is appended to :attr:`log`. Mutate
+            ``controlled_objects`` directly to apply control actions.
+            The following keys are always available in ``kwargs``:
+            ``time`` (float, s),
+            ``state`` (list ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]``),
+            ``sensors`` (list of sensor objects),
+            ``sensors_by_name`` (dict of sensor objects),
+            ``environment`` (:class:`rocketpy.Environment`),
+            ``rocket`` (:class:`rocketpy.Rocket`),
+            ``flight`` (:class:`rocketpy.Flight`),
+            ``phase`` (current flight phase),
+            ``step_size`` (float, s),
+            ``height_above_ground_level`` (float, m),
+            ``event`` (:class:`Event` wrapping this controller),
+            ``sampling_rate`` (float, Hz),
+            ``controller`` (this :class:`_Controller` instance),
+            ``controlled_objects`` (the object(s) to mutate).
+            If ``controlled_objects_name`` was set, those friendly names are
+            also injected (plus ``controlled_objects_by_name`` for lists).
+            The following keys are only injected when declared via
+            ``controller_needs``:
+            ``pressure`` (float, Pa),
+            ``state_dot`` (list, time derivative of ``state``),
+            ``state_history`` (list of past state vectors).
         controlled_objects : object or list of object
             Object(s) the controller is allowed to modify (e.g. an air brakes
             instance). May be a single object or a list. They are held by
@@ -122,14 +130,20 @@ class _Controller:
             using the same formats as ``disable_on``. When the condition is met
             while the controller is disabled, it re-enables before the next
             trigger evaluation. Defaults to ``None`` (no automatic enabling).
+        controller_needs : list or frozenset of str or None, optional
+            Declares which expensive simulation values the controller function
+            accesses. Valid keys: ``'state_dot'``, ``'pressure'``,
+            ``'state_history'``. When ``None`` (default), all values are
+            computed on every call. Pass an explicit list or frozenset to skip
+            computing values the controller does not use.
 
         See Also
         --------
         to_event : Builds the :class:`Event` that wraps this controller.
         :ref:`eventusage` : Description of the callback ``**kwargs``.
         """
-        # TODO: undo the breaking change of the definition of controller function here
         # TODO: rethingk controllers
+        self.controller_needs = controller_needs
         self.controller_function = self.__evaluate_controller_function(
             controller_function
         )
@@ -252,6 +266,7 @@ class _Controller:
             disable_on=self.disable_on,
             enable_on=self.enable_on,
             priority=3,
+            needs=self.controller_needs if self.controller_needs is not None else frozenset(),
         )
 
     @property

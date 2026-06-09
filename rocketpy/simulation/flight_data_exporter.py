@@ -27,15 +27,16 @@ class FlightDataExporter:
         return f"FlightDataExporter(name='{self.name}', flight='{type(self._flight).__name__}')"
 
     def export_pressures(self, file_name, time_step):
-        """Exports the pressure experienced by the rocket during the flight to
-        an external file, the '.csv' format is recommended, as the columns will
-        be separated by commas. It can handle flights with or without
-        parachutes, although it is not possible to get a noisy pressure signal
-        if no parachute is added.
+        """Exports the static pressure experienced by the rocket during flight
+        to an external file. The '.csv' format is recommended; columns are
+        separated by commas.
 
-        If a parachute is added, the file will contain 3 columns: time in
-        seconds, clean pressure in Pascals and noisy pressure in Pascals.
-        For flights without parachutes, the third column will be discarded
+        The file contains 2 columns: time in seconds and static pressure in Pa.
+
+        .. note::
+            Noisy pressure signal export has been removed. To export noisy
+            pressure readings, add a Barometer Sensor with the desired noise
+            model to the rocket and access its data via ``flight.sensor_data``.
 
         This function was created especially for the 'Projeto Jupiter'
         Electronics Subsystems team and aims to help in configuring
@@ -56,18 +57,8 @@ class FlightDataExporter:
         time_points = np.arange(0, f.t_final, time_step)
         # pylint: disable=W1514, E1121
         with open(file_name, "w") as file:
-            if len(f.rocket.parachutes) == 0:
-                print("No parachutes in the rocket, saving static pressure.")
-                for t in time_points:
-                    file.write(f"{t:f}, {f.pressure.get_value_opt(t):.5f}\n")
-            else:
-                for parachute in f.rocket.parachutes:
-                    for t in time_points:
-                        p_cl = parachute.clean_pressure_signal_function.get_value_opt(t)
-                        p_ns = parachute.noisy_pressure_signal_function.get_value_opt(t)
-                        file.write(f"{t:f}, {p_cl:.5f}, {p_ns:.5f}\n")
-                    # We need to save only 1 parachute data
-                    break
+            for t in time_points:
+                file.write(f"{t:f}, {f.pressure.get_value_opt(t):.5f}\n")
 
     def export_data(self, file_name, *variables, time_step=None):
         """Exports flight data to a comma separated value file (.csv).

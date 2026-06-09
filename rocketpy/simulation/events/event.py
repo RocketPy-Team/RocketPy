@@ -10,6 +10,8 @@ from .exact_time_solvers import (
     solve_exact_time_brentq,
 )
 
+NEEDS_KEYS = frozenset({"state_dot", "pressure", "state_history"})
+
 PRESETS = {
     "apogee": lambda **kwargs: (
         len(kwargs["flight"].solution) >= 2
@@ -53,6 +55,7 @@ class Event:
         enabled=True,
         verbose=False,
         priority=4,
+        needs=None,
     ):
         """Initialize an Event object.
 
@@ -60,18 +63,32 @@ class Event:
         ----------
         callback : function
             Required callable executed when the event triggers. It must accept
-            ``**kwargs`` (the simulation state, objects, and any custom
-            ``context`` items; see :ref:`eventusage` for the full list of keys).
-            Its return value is appended to ``self.callback_log`` for later
-            inspection. The callback may queue commands through
-            ``kwargs["event"].commands`` and read or mutate
+            ``**kwargs`` and return ``None`` or a ``dict`` (appended to
+            ``self.callback_log``). Queue commands via
+            ``kwargs["event"].commands`` and access persistent state via
             ``kwargs["event"].context``.
+            The following keys are always available in ``kwargs``:
+            ``time`` (float, s),
+            ``state`` (list ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]``),
+            ``sensors`` (list of sensor objects),
+            ``sensors_by_name`` (dict of sensor objects),
+            ``environment`` (:class:`rocketpy.Environment`),
+            ``rocket`` (:class:`rocketpy.Rocket`),
+            ``flight`` (:class:`rocketpy.Flight`),
+            ``phase`` (current flight phase),
+            ``step_size`` (float, s),
+            ``height_above_ground_level`` (float, m),
+            ``event`` (this :class:`Event` instance),
+            ``sampling_rate`` (float, Hz or ``None``).
+            The following keys are only injected when declared via ``needs``:
+            ``pressure`` (float, Pa),
+            ``state_dot`` (list, time derivative of ``state``),
+            ``state_history`` (list of past state vectors).
         trigger : function, optional
-            Predicate with signature ``trigger(**kwargs)`` that returns ``True``
-            when the event should fire. It receives the same ``**kwargs`` as
-            ``callback``, but its return value is interpreted as a boolean
-            condition rather than logged. If ``None`` (default), the event acts
-            as a passive hook and fires every time it is evaluated.
+            Predicate that returns ``True`` when the event should fire. It
+            receives the same ``**kwargs`` as ``callback`` (see above), but
+            its return value is interpreted as a boolean rather than logged.
+            If ``None`` (default), the event fires every time it is evaluated.
         sampling_rate : float, optional
             Evaluation frequency in hertz. If ``None`` (default), the event is
             evaluated continuously at every solver time step. If a float (e.g.
@@ -155,6 +172,13 @@ class Event:
             - 2: Parachute events
             - 3: Controller events
             - 4: Custom / user-defined events (default)
+        needs : list of str or None, optional
+            Declares which expensive simulation values the event's trigger and
+            callback actually access. Valid keys are ``'state_dot'``,
+            ``'pressure'``, and ``'state_history'``. The default``None`` is
+            treated as an empty set and no expensive kwargs are computed. 
+            Supply a list with the keys this event accesses so the runtime 
+            computes them.
 
         See Also
         --------
@@ -162,6 +186,15 @@ class Event:
         """
         self.callback = self.__validate_callback(callback)
         self.name = name
+        needs_set = frozenset(needs) if needs is not None else frozenset()
+        invalid = needs_set - NEEDS_KEYS
+        if invalid:
+            raise ValueError(
+                f"Unknown needs keys: {invalid!r}. Valid keys: {sorted(NEEDS_KEYS)!r}. "
+                "Note: 'height_above_ground_level' is always computed and does "
+                "not need to be declared."
+            )
+        self.needs = needs_set
         self.trigger = self.__validate_trigger(trigger) if trigger is not None else None
         self.context = context if context is not None else {}
         self.sampling_rate = sampling_rate
@@ -189,8 +222,8 @@ class Event:
         self.enabled_times = []
         self.disabled_times = []
         self._initial_context = deepcopy(self.context)
-        self._initial_enabled_times = deepcopy(self.enabled_times)
-        self._initial_disabled_times = deepcopy(self.disabled_times)
+        self._initial_enabled_times = list(self.enabled_times)
+        self._initial_disabled_times = list(self.disabled_times)
 
         self.commands = Commands()
 
@@ -241,8 +274,8 @@ class Event:
         self.context = deepcopy(self._initial_context)
 
         # Restore enable/disable time history to initial snapshot
-        self.enabled_times = deepcopy(self._initial_enabled_times)
-        self.disabled_times = deepcopy(self._initial_disabled_times)
+        self.enabled_times = list(self._initial_enabled_times)
+        self.disabled_times = list(self._initial_disabled_times)
 
     def __repr__(self):
         return (
@@ -306,7 +339,16 @@ class Event:
         # --- Callback Phase ---
         kwargs = self._call_exact_time(**kwargs)
 
-        callback_log = self.callback(**kwargs)
+        try:
+            callback_log = self.callback(**kwargs)
+        except KeyError as exc:
+            key = exc.args[0] if exc.args else None
+            if isinstance(key, str) and key in NEEDS_KEYS:
+                raise KeyError(
+                    f"{key!r} is not available in event '{self.name}' callback kwargs. "
+                    f"Add it to the event's needs parameter: Event(..., needs=[{key!r}])"
+                ) from exc
+            raise
 
         self.callback_log.append(callback_log)
         self.triggered_times.append(kwargs.get("time"))
@@ -342,9 +384,20 @@ class Event:
                 return False
 
     def _call_trigger(self, **kwargs):
-        if self.trigger is not None and not self.trigger(**kwargs):
-            self._log(triggered=False, kwargs=kwargs)
-            return False
+        if self.trigger is not None:
+            try:
+                result = self.trigger(**kwargs)
+            except KeyError as exc:
+                key = exc.args[0] if exc.args else None
+                if isinstance(key, str) and key in NEEDS_KEYS:
+                    raise KeyError(
+                        f"{key!r} is not available in event '{self.name}' trigger kwargs. "
+                        f"Add it to the event's needs parameter: Event(..., needs=[{key!r}])"
+                    ) from exc
+                raise
+            if not result:
+                self._log(triggered=False, kwargs=kwargs)
+                return False
         return True
 
     def _call_exact_time(self, **kwargs):
@@ -400,8 +453,8 @@ class Event:
             **kwargs,
         )
 
-        self.commands.results["exact_time"] = exact_time_result["event_time"]
-        self.commands.results["exact_state"] = exact_time_result["event_state"]
+        self.commands.exact_time = exact_time_result["event_time"]
+        self.commands.exact_state = exact_time_result["event_state"]
 
         return exact_time_result
 

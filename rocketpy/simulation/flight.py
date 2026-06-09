@@ -31,6 +31,7 @@ from .helpers.flight_derivatives import (
 from .helpers.event_calling import (
     call_events,
     build_event_kwargs,
+    compute_needs_union,
     infer_step_size,
     process_overshootable_event,
     update_overshootable_event_kwargs,
@@ -1023,6 +1024,7 @@ class Flight:
             time=node.t,
             state=self.solution[-1][1:],
             step_size=infer_step_size(self, node.t),
+            needs=compute_needs_union(node.events),
         )
 
     def __run_node_solver_loop(self, phase, phase_index, node_index):
@@ -1065,6 +1067,7 @@ class Flight:
             time=time,
             state=state,
             step_size=infer_step_size(self, time),
+            needs=compute_needs_union(events_to_evaluate),
         )
 
         # 4. If overshoot processing rolled back the state but no command
@@ -1081,7 +1084,9 @@ class Flight:
         if len(overshootable_nodes) < 2:
             return self.t, self.y_sol, [], False  # Early exit
 
-        # Evaluate common kwargs parameters for event triggers
+        # Evaluate common kwargs parameters for event triggers.
+        # Use needs from all currently-enabled overshootable events.
+        step_needs = compute_needs_union(self._overshootable_events)
         event_kwargs = build_event_kwargs(
             self,
             self.t,
@@ -1089,6 +1094,7 @@ class Flight:
             phase.solver.step_size,
             phase,
             rollback=True,
+            needs=step_needs,
         )
 
         # Feed overshootable time nodes trigger
@@ -1098,12 +1104,15 @@ class Flight:
             interpolated_state = interpolator(overshootable_node.t)
             interpolated_time = overshootable_node.t
 
+            # Per-node needs: only enabled events scheduled at this node.
+            node_needs = compute_needs_union(overshootable_node.events)
             event_kwargs = update_overshootable_event_kwargs(
                 flight=self,
                 phase=phase,
                 event_kwargs=event_kwargs,
                 interpolated_time=interpolated_time,
                 interpolated_state=interpolated_state,
+                needs=node_needs,
             )
 
             # Check events for current node

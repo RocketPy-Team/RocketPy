@@ -266,7 +266,7 @@ def test_reset_restores_initial_runtime_state():
     assert event.triggered_times == []
     assert event.enabled_times == []
     assert event.disabled_times == []
-    assert event.commands.results["disable"] is None
+    assert event.commands._disabled is None
     assert event._trigger_checked is False
 
 
@@ -313,7 +313,7 @@ def test_call_supports_trigger_only_callback_only_and_disable_commands():
     assert triggered == [3.0]
     assert event.callback_log[0]["time"] == 3.0
     assert event.triggered_times == [3.0]
-    assert event.commands.results["disable"] is True
+    assert event.commands._disabled is True
 
 
 def test_call_returns_false_when_enable_gate_is_absent_or_raises():
@@ -355,7 +355,7 @@ def test_call_returns_false_when_enable_gate_is_absent_or_raises():
         phase=SimpleNamespace(derivative=lambda *_args, **_kwargs: np.zeros(13)),
         state=np.zeros(13),
     ) is None
-    assert enabled_gate_event.commands.results["disable"] is False
+    assert enabled_gate_event.commands._disabled is False
 
     blocked_gate_event = Event(
         callback=_callback_record_kwargs,
@@ -439,8 +439,8 @@ def test_call_refines_exact_time_and_tracks_sampled_values():
     assert event.callback_log[0]["time"] == pytest.approx(0.5)
     assert event.callback_log[0]["sampled_time"] == pytest.approx(1.0)
     assert event.callback_log[0]["state"][5] == pytest.approx(0.0)
-    assert event.commands.results["exact_time"] == pytest.approx(0.5)
-    assert event.commands.results["exact_state"][5] == pytest.approx(0.0)
+    assert event.commands.exact_time == pytest.approx(0.5)
+    assert event.commands.exact_state[5] == pytest.approx(0.0)
 
 
 def test_call_falls_back_to_sampled_time_when_exact_time_solver_fails():
@@ -474,8 +474,8 @@ def test_call_falls_back_to_sampled_time_when_exact_time_solver_fails():
     assert event.triggered_times == [1.0]
     assert event.callback_log[0]["time"] == 1.0
     assert event.callback_log[0]["sampled_time"] is None
-    assert event.commands.results["exact_time"] is None
-    assert event.commands.results["exact_state"] is None
+    assert event.commands.exact_time is None
+    assert event.commands.exact_state is None
 
 
 def test_compute_exact_time_returns_none_when_solution_history_is_short():
@@ -535,3 +535,64 @@ def test_repr_and_str_include_key_configuration():
     assert "Example" in string_value
     assert "sampling_rate=4.0" in string_value
     assert "trigger_only_once=True" in string_value
+
+
+def test_needs_validation_rejects_unknown_keys():
+    """Unknown needs keys should fail fast with a descriptive error."""
+
+    with pytest.raises(ValueError, match="Unknown needs keys"):
+        Event(callback=_callback_record_kwargs, needs=["not_a_valid_key"])
+
+
+def test_needs_key_error_in_trigger_gives_helpful_message():
+    """KeyError on a NEEDS_KEYS value inside a trigger should surface a clear
+    hint to add the missing key to needs."""
+
+    def trigger_accesses_state_dot(**kwargs):
+        return bool(kwargs["state_dot"])  # state_dot not in needs → KeyError
+
+    event = Event(
+        callback=_callback_record_kwargs,
+        trigger=trigger_accesses_state_dot,
+        needs=[],  # deliberately empty
+    )
+
+    with pytest.raises(KeyError, match="state_dot.*needs"):
+        event._call_trigger(time=0.0, state=np.zeros(13))
+
+
+def test_needs_key_error_in_callback_gives_helpful_message():
+    """KeyError on a NEEDS_KEYS value inside a callback should surface a clear
+    hint to add the missing key to needs."""
+
+    def callback_accesses_pressure(**kwargs):
+        _ = kwargs["pressure"]  # pressure not in needs → KeyError
+
+    event = Event(
+        callback=callback_accesses_pressure,
+        needs=[],  # deliberately empty
+    )
+
+    with pytest.raises(KeyError, match="pressure.*needs"):
+        event(
+            flight=SimpleNamespace(solution=[]),
+            phase=SimpleNamespace(derivative=lambda *_args, **_kwargs: np.zeros(13)),
+            time=1.0,
+            state=np.zeros(13),
+        )
+
+
+def test_needs_key_error_unrelated_key_is_reraised():
+    """KeyError for a key not in NEEDS_KEYS should be re-raised unchanged."""
+
+    def trigger_accesses_missing_dict_key(**kwargs):
+        d = {}
+        return d["some_user_key"]  # unrelated KeyError
+
+    event = Event(
+        callback=_callback_record_kwargs,
+        trigger=trigger_accesses_missing_dict_key,
+    )
+
+    with pytest.raises(KeyError, match="some_user_key"):
+        event._call_trigger(time=0.0, state=np.zeros(13))

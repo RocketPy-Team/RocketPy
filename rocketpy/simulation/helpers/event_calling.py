@@ -1,5 +1,15 @@
 from .event_commands import apply_event_commands, apply_rollback_command
 
+
+def compute_needs_union(events):
+    """Return the union of ``Event.needs`` for all enabled events."""
+    result = frozenset()
+    for event in events:
+        if not event.enabled:
+            continue
+        result = result | event.needs
+    return result
+
 def infer_step_size(flight, time):
     """Infer the elapsed step size for an event at ``time``.
 
@@ -11,23 +21,20 @@ def infer_step_size(flight, time):
         return 0.0
     return max(0.0, time - flight.solution[-2][0])
 
-def build_event_kwargs(flight, time, state, step_size, phase, rollback=False):
-    """Build the keyword arguments shared by event triggers and callbacks."""
-    state_dot = phase.derivative(time, state)
-    pressure = flight.env.pressure.get_value_opt(state[2])
-    height_above_ground_level = flight.env.height_above_ground_level.get_value_opt(
-        pressure
-    )
-    # Extract previous state vectors from solution history.
-    # If rolling back, keep one extra sample so the history excludes the step
-    # currently being re-evaluated.
-    index = 2 if rollback else 1
-    state_history = SafeStateHistory([sol[1:] for sol in flight.solution[:-index]])
-    return {
+def build_event_kwargs(flight, time, state, step_size, phase, rollback=False, needs=frozenset()):
+    """Build the keyword arguments shared by event triggers and callbacks.
+
+    Parameters
+    ----------
+    needs : frozenset of str, optional
+        Union of ``Event.needs`` across all events that will consume the
+        returned dict. Only keys present in ``needs`` are computed for the
+        expensive values: ``state_dot``, ``pressure``, ``state_history``.
+        Defaults to empty (compute nothing expensive).
+    """
+    kwargs = {
         "time": time,
         "state": state,
-        "state_dot": state_dot,
-        "state_history": state_history,
         "sensors": flight.sensors,
         "sensors_by_name": flight.sensors_by_name,
         "environment": flight.env,
@@ -35,29 +42,18 @@ def build_event_kwargs(flight, time, state, step_size, phase, rollback=False):
         "flight": flight,
         "phase": phase,
         "step_size": step_size,
-        "pressure": pressure,
-        "height_above_ground_level": height_above_ground_level,
+        "height_above_ground_level": state[2] - flight.env.elevation,
     }
-
-def update_event_kwargs(
-    event_kwargs,
-    time,
-    state,
-    state_dot,
-    step_size,
-    pressure,
-    height_above_ground_level,
-):
-    """Update shared event kwargs with step-specific values."""
-    event_kwargs.update(
-        time=time,
-        state=state,
-        state_dot=state_dot,
-        step_size=step_size,
-        pressure=pressure,
-        height_above_ground_level=height_above_ground_level,
-    )
-    return event_kwargs
+    if "state_dot" in needs:
+        kwargs["state_dot"] = phase.derivative(time, state)
+    if "pressure" in needs:
+        kwargs["pressure"] = flight.env.pressure.get_value_opt(state[2])
+    if "state_history" in needs:
+        index = 2 if rollback else 1
+        kwargs["state_history"] = SafeStateHistory(
+            [sol[1:] for sol in flight.solution[:-index]]
+        )
+    return kwargs
 
 
 def update_overshootable_event_kwargs(
@@ -66,22 +62,27 @@ def update_overshootable_event_kwargs(
     event_kwargs,
     interpolated_time,
     interpolated_state,
+    needs=frozenset(),
 ):
-    """Refresh event kwargs for a specific overshootable node."""
-    pressure = flight.env.pressure.get_value_opt(interpolated_state[2])
-    height_above_ground_level = flight.env.height_above_ground_level.get_value_opt(
-        pressure
-    )
-    state_dot = phase.derivative(interpolated_time, interpolated_state)
-    return update_event_kwargs(
-        event_kwargs,
-        time=interpolated_time,
-        state=interpolated_state,
-        state_dot=state_dot,
-        step_size=infer_step_size(flight, interpolated_time),
-        pressure=pressure,
-        height_above_ground_level=height_above_ground_level,
-    )
+    """Refresh event kwargs for a specific overshootable node.
+
+    Parameters
+    ----------
+    needs : frozenset of str, optional
+        Union of ``Event.needs`` across all overshootable events at this node.
+        Expensive values are skipped when absent from ``needs``. Defaults to
+        empty (compute nothing expensive).
+    """
+    event_kwargs["time"] = interpolated_time
+    event_kwargs["state"] = interpolated_state
+    event_kwargs["step_size"] = infer_step_size(flight, interpolated_time)
+    event_kwargs["height_above_ground_level"] = interpolated_state[2] - flight.env.elevation
+    if "state_dot" in needs:
+        event_kwargs["state_dot"] = phase.derivative(interpolated_time, interpolated_state)
+    if "pressure" in needs:
+        event_kwargs["pressure"] = flight.env.pressure.get_value_opt(interpolated_state[2])
+    # state_history does not change per node — already set by build_event_kwargs
+    return event_kwargs
 
 def process_overshootable_event(
     flight,
@@ -106,7 +107,7 @@ def process_overshootable_event(
         apply_event_commands(
             flight=flight,
             event=event,
-            event_results=event.commands.results,
+            event_results=event.commands,
             phase=phase,
             phase_index=phase_index,
             node_index=node_index,
@@ -122,13 +123,14 @@ def process_overshootable_event(
     return rolled_back, False
 
 
-def call_events(flight, events, phase, phase_index, node_index, time, state, step_size):
+def call_events(flight, events, phase, phase_index, node_index, time, state, step_size, needs=frozenset()):
     event_kwargs = build_event_kwargs(
         flight=flight,
         time=time,
         state=state,
         step_size=step_size,
         phase=phase,
+        needs=needs,
     )
 
     for event in events:
@@ -138,7 +140,7 @@ def call_events(flight, events, phase, phase_index, node_index, time, state, ste
             apply_event_commands(
                 flight=flight,
                 event=event,
-                event_results=event.commands.results,
+                event_results=event.commands,
                 phase=phase,
                 phase_index=phase_index,
                 node_index=node_index,

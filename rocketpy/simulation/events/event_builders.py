@@ -292,6 +292,7 @@ def build_core_events():
         trigger_only_once=True,
         time_overshootable=False,
         priority=0,
+        needs=frozenset(),
     )
 
     apogee_event = Event(
@@ -304,6 +305,7 @@ def build_core_events():
         trigger_only_once=True,
         time_overshootable=False,
         priority=0,
+        needs=frozenset(),
     )
 
     impact_event = Event(
@@ -322,6 +324,7 @@ def build_core_events():
         trigger_only_once=True,
         time_overshootable=False,
         priority=0,
+        needs=frozenset(),
     )
 
     return out_of_rail_event, apogee_event, impact_event
