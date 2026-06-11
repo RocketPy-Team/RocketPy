@@ -17,6 +17,7 @@ from ..tools import (
     deprecated,
     euler313_to_quaternions,
     find_closest,
+    inverted_haversine_arr,
     quaternions_to_nutation,
     quaternions_to_precession,
     quaternions_to_spin,
@@ -646,7 +647,7 @@ class Flight:
         self.exporter = FlightDataExporter(self)
 
         # Initialize prints and plots objects
-        # TODO: review prints, try to improve more plots with events contexts??
+        # TODO: add sensors outputs to plots/prints
         self.prints = _FlightPrints(self)
         self.plots = _FlightPlots(self)
 
@@ -996,7 +997,8 @@ class Flight:
         """Run all nodes for a phase until completion."""
         for node_index, node in phase.time_nodes:
             self.__prepare_node_solver(phase, node, node_index)
-            self.__evaluate_node_events(phase, phase_index, node, node_index)
+            if self.__evaluate_node_events(phase, phase_index, node, node_index):
+                self.__sync_node_solver_bound(phase, node, node_index)
             self.__run_node_solver_loop(phase, phase_index, node_index)
 
     def __prepare_node_solver(self, phase, node, node_index):
@@ -1015,7 +1017,7 @@ class Flight:
 
     def __evaluate_node_events(self, phase, phase_index, node, node_index):
         """Node boundary event evaluation is handled by the scheduler loop."""
-        call_events(
+        return call_events(
             flight=self,
             events=node.events,
             phase=phase,
@@ -1026,6 +1028,17 @@ class Flight:
             step_size=infer_step_size(self, node.t),
             needs=compute_needs_union(node.events),
         )
+
+    def __sync_node_solver_bound(self, phase, node, node_index):
+        """Re-synchronize solver t_bound after node events modified the schedule."""
+        next_node = phase.time_nodes[node_index + 1]
+        node.time_bound = next_node.t
+        phase.solver.t_bound = node.time_bound
+        if self.__is_lsoda:
+            phase.solver._lsoda_solver._integrator.rwork[0] = phase.solver.t_bound
+            phase.solver._lsoda_solver._integrator.call_args[4] = (
+                phase.solver._lsoda_solver._integrator.rwork
+            )
 
     def __run_node_solver_loop(self, phase, phase_index, node_index):
         """Advance solver for node interval while it remains running."""
@@ -1150,8 +1163,6 @@ class Flight:
 
         # Reinitialize the solver in-place so integration continues from the
         # rolled-back time/state using the same derivative and solver settings.
-        # TODO: i believe this can actually be simplified with what is done
-        # in __prepare_node_solver
         phase.solver = self._solver(
             phase.derivative,
             t0=self.t,
@@ -1799,7 +1810,6 @@ class Flight:
     @funcify_method("Time (s)", "Lateral Attitude Angle (°)")
     def lateral_attitude_angle(self):
         """Rocket lateral attitude angle as a Function of time."""
-        # TODO: complex method, it should be defined elsewhere.
         lateral_vector_angle = (np.pi / 180) * (self.heading - 90)
         lateral_vector_x = np.sin(lateral_vector_angle)
         lateral_vector_y = np.cos(lateral_vector_angle)
@@ -2055,7 +2065,6 @@ class Flight:
         """Potential energy as a Function of time in relation to sea
         level."""
         # Constants
-        # TODO: this constant should come from Environment.
         standard_gravitational_parameter = 3.986004418e14
         # Redefine total_mass time grid to allow for efficient Function algebra
         total_mass = deepcopy(self.rocket.total_mass)
@@ -2531,44 +2540,27 @@ class Flight:
 
     @funcify_method("Time (s)", "Latitude (°)", "linear", "constant")
     def latitude(self):
-        """Rocket latitude coordinate, in degrees, as a Function of
-        time.
-        """
-        lat1 = np.deg2rad(self.env.latitude)  # Launch lat point converted to radians
-
-        # Applies the haversine equation to find final lat/lon coordinates
-        latitude = np.rad2deg(
-            np.arcsin(
-                np.sin(lat1) * np.cos(self.drift[:, 1] / self.env.earth_radius)
-                + np.cos(lat1)
-                * np.sin(self.drift[:, 1] / self.env.earth_radius)
-                * np.cos(np.deg2rad(self.bearing[:, 1]))
-            )
+        """Rocket latitude coordinate, in degrees, as a Function of time."""
+        lat, _ = inverted_haversine_arr(
+            self.env.latitude,
+            self.env.longitude,
+            self.drift[:, 1],
+            self.bearing[:, 1],
+            earth_radius=self.env.earth_radius,
         )
-        return np.column_stack((self.time, latitude))
+        return np.column_stack((self.time, lat))
 
-    # TODO: haversine should be defined in tools.py so we just invoke it in here.
     @funcify_method("Time (s)", "Longitude (°)", "linear", "constant")
     def longitude(self):
-        """Rocket longitude coordinate, in degrees, as a Function of
-        time.
-        """
-        lat1 = np.deg2rad(self.env.latitude)  # Launch lat point converted to radians
-        lon1 = np.deg2rad(self.env.longitude)  # Launch lon point converted to radians
-
-        # Applies the haversine equation to find final lat/lon coordinates
-        longitude = np.rad2deg(
-            lon1
-            + np.arctan2(
-                np.sin(np.deg2rad(self.bearing[:, 1]))
-                * np.sin(self.drift[:, 1] / self.env.earth_radius)
-                * np.cos(lat1),
-                np.cos(self.drift[:, 1] / self.env.earth_radius)
-                - np.sin(lat1) * np.sin(np.deg2rad(self.latitude[:, 1])),
-            )
+        """Rocket longitude coordinate, in degrees, as a Function of time."""
+        _, lon = inverted_haversine_arr(
+            self.env.latitude,
+            self.env.longitude,
+            self.drift[:, 1],
+            self.bearing[:, 1],
+            earth_radius=self.env.earth_radius,
         )
-
-        return np.column_stack((self.time, longitude))
+        return np.column_stack((self.time, lon))
 
     # TODO: move to utilities?
     # TODO: This is so useful, should be in getting_started or first simulation

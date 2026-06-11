@@ -207,10 +207,11 @@ class Sensor(ABC):
             callback=sensor_callback,
             name=f"{self.name} Measurement",
             sampling_rate=self.sampling_rate,
-            context={"position": position},
+            context={"position": position, "sensor": self},
             trigger_only_once=False,
             priority=1,
             time_overshootable=True,
+            needs=["pressure", "state_dot"],
         )
 
     def _reset(self, simulated_rocket):

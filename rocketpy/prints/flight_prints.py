@@ -90,6 +90,9 @@ class _FlightPrints:
         None
         """
         print("\nNumerical Integration Settings\n")
+        print(f"Simulation Mode: {self.flight.simulation_mode}")
+        print(f"Equations of Motion: {self.flight.equations_of_motion}")
+        print(f"ODE Solver: {self.flight.ode_solver}")
         print(f"Maximum Allowed Flight Time: {self.flight.max_time:.2f} s")
         print(f"Maximum Allowed Time Step: {self.flight.max_time_step:.2f} s")
         print(f"Minimum Allowed Time Step: {self.flight.min_time_step:.2e} s")
@@ -217,6 +220,8 @@ class _FlightPrints:
         print(f"Apogee Freestream Speed: {self.flight.apogee_freestream_speed:.3f} m/s")
         print(f"Apogee X position: {self.flight.x(self.flight.apogee_time):.3f} m")
         print(f"Apogee Y position: {self.flight.y(self.flight.apogee_time):.3f} m")
+        print(f"Apogee Drift: {self.flight.drift(self.flight.apogee_time):.3f} m")
+        print(f"Apogee Bearing: {self.flight.bearing(self.flight.apogee_time):.3f}°")
         print(f"Apogee latitude: {self.flight.latitude(self.flight.apogee_time):.7f}°")
         print(
             f"Apogee longitude: {self.flight.longitude(self.flight.apogee_time):.7f}°"
@@ -287,7 +292,9 @@ class _FlightPrints:
             event_name = event.name if event.name else "Unnamed Sensor Event"
             print(f"Sensor Event: {event_name}")
             print(f"\tEnabled at end of simulation: {event.enabled}")
-            print(f"\tParent Sensor: {event_name.removesuffix('_callback')}")
+            parent_sensor = event.context.get("sensor") if isinstance(event.context, dict) else None
+            parent_name = parent_sensor.name if parent_sensor is not None else event_name
+            print(f"\tParent Sensor: {parent_name}")
 
             if event.sampling_rate is None:
                 print("\tSampling: Continuous")
@@ -317,37 +324,15 @@ class _FlightPrints:
     def custom_events(self):
         """Prints details about custom events registered in the flight.
 
-        Notes
-        -----
-        This section intentionally excludes:
-        - Core flight events (out_of_rail, apogee, impact), which already have
-          dedicated print sections.
-        - Parachute events, which are printed in ``events_registered``.
-        - Controller events, which are printed in ``controller_events``.
-
         Returns
         -------
         None
         """
         print("\nCustom Events\n")
 
-        parachute_event_objects = {
-            parachute.event for parachute in self.flight.parachutes
-        }
-        sensor_event_objects = set(getattr(self.flight.rocket, "_sensor_events", []))
-        controller_event_objects = {
-            controller.event for controller in self.flight._controllers
-        }
-        core_event_names = {"out_of_rail", "apogee", "impact"}
-
-        custom_events = [
-            event
-            for event in self.flight.events
-            if event.name not in core_event_names
-            and event not in parachute_event_objects
-            and event not in sensor_event_objects
-            and event not in controller_event_objects
-        ]
+        custom_events = self.flight.custom_events
+        if not isinstance(custom_events, list):
+            custom_events = [custom_events]
 
         if len(custom_events) == 0:
             print("No custom events were registered.")
@@ -448,6 +433,8 @@ class _FlightPrints:
             print(f"Time of impact: {self.flight.t_final:.3f} s")
             print(f"X impact: {self.flight.x_impact:.3f} m")
             print(f"Y impact: {self.flight.y_impact:.3f} m")
+            print(f"Drift: {self.flight.drift(self.flight.t_final):.3f} m")
+            print(f"Bearing: {self.flight.bearing(self.flight.t_final):.3f}°")
             print(
                 f"Altitude impact: {self.flight.z(self.flight.t_final):.3f} m (ASL) | "
                 f"{self.flight.altitude(self.flight.t_final):.3f} m (AGL) "
@@ -497,6 +484,10 @@ class _FlightPrints:
         print(
             f"Maximum Dynamic Pressure: {self.flight.max_dynamic_pressure:.3e} Pa "
             f"at {self.flight.max_dynamic_pressure_time:.2f} s"
+        )
+        print(
+            f"Maximum Total Pressure: {self.flight.max_total_pressure:.3e} Pa "
+            f"at {self.flight.max_total_pressure_time:.2f} s"
         )
         print(
             "Maximum Acceleration During Motor Burn: "
@@ -633,8 +624,9 @@ class _FlightPrints:
         self.apogee_conditions()
         print()
 
-        self.events_registered()
-        print()
+        if self.flight.parachute_events:
+            self.events_registered()
+            print()
 
         self.impact_conditions()
         print()
@@ -648,20 +640,24 @@ class _FlightPrints:
         self.rail_button_bending_moments()
         print()
 
-        self.controllers()
-        print()
+        if self.flight._controllers:
+            self.controllers()
+            print()
 
-        self.controller_events()
-        print()
+            self.controller_events()
+            print()
 
-        self.sensors()
-        print()
+        if self.flight.sensors:
+            self.sensors()
+            print()
 
-        self.sensor_events()
-        print()
+        if list(getattr(self.flight.rocket, "_sensor_events", [])):
+            self.sensor_events()
+            print()
 
-        self.custom_events()
-        print()
+        if self.flight.custom_events:
+            self.custom_events()
+            print()
 
         self.numerical_integration_settings()
         print()

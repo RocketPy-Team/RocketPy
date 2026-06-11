@@ -133,11 +133,12 @@ def call_events(flight, events, phase, phase_index, node_index, time, state, ste
         needs=needs,
     )
 
+    nodes_modified = False
     for event in events:
         trigger_result = event._trigger_checked
         trigger_result = event(callback_only=trigger_result, **event_kwargs)
         if trigger_result:
-            apply_event_commands(
+            nodes_modified |= apply_event_commands(
                 flight=flight,
                 event=event,
                 event_results=event.commands,
@@ -147,6 +148,7 @@ def call_events(flight, events, phase, phase_index, node_index, time, state, ste
                 command_time=event_kwargs["time"],
             )
         event._trigger_checked = False
+    return nodes_modified
 
 
 class SafeStateHistory(list):

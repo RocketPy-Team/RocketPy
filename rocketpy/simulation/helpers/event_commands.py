@@ -30,8 +30,10 @@ def apply_event_commands(
 
     Returns
     -------
-    None
-        This function updates the flight, phase, and event objects in place.
+    bool
+        ``True`` if the time-node schedule was modified (new events added or
+        events enabled/disabled), ``False`` otherwise. The caller should
+        re-synchronize the solver ``t_bound`` when this is ``True``.
     """
     apply_exact_time_result(flight, event_results)
     t_apply = event_results.exact_time
@@ -57,27 +59,7 @@ def apply_event_commands(
         flight, event_results, node_index, event, phase, time=t_apply
     )
 
-    # Synchronize solver bounds only when processing discrete events in the
-    # main node loop, not during overshoot processing. Overshootable events are
-    # evaluated on interpolated step points with rolled-back solver state and
-    # should not trigger bound updates mid-overshoot context.
-    # TODO: this sould not be here? this is for addition of events
-    if (
-        event.sampling_rate is not None
-        and not event.time_overshootable
-        and nodes_modified
-    ):
-        node = phase.time_nodes[node_index]
-        next_node = phase.time_nodes[node_index + 1]
-        # Determine time bound for this time node
-        node.time_bound = next_node.t
-        # Update solver time bound and status to run until next node
-        phase.solver.t_bound = node.time_bound
-        if flight._Flight__is_lsoda:
-            phase.solver._lsoda_solver._integrator.rwork[0] = phase.solver.t_bound
-            phase.solver._lsoda_solver._integrator.call_args[4] = (
-                phase.solver._lsoda_solver._integrator.rwork
-            )
+    return nodes_modified
 
 
 def apply_rollback_command(flight, time, state):

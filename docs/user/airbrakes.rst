@@ -379,13 +379,6 @@ controller function. If you want to disable this feature, set ``clamp`` to
 Simulating a Flight
 -------------------
 
-.. important::
-
-    To simulate the air brakes successfully, we must set ``time_overshoot`` to
-    ``False``. This way the simulation will run at the time step defined by our
-    controller sampling rate. Be aware that this will make the simulation run
-    **much** slower.
-
 We will be terminating the simulation at apogee, by setting
 ``terminate_at_apogee`` to ``True``. This way the simulation will stop when the
 rocket reaches apogee, and we will save some time.
@@ -398,7 +391,6 @@ rocket reaches apogee, and we will save some time.
         rail_length=5.2,
         inclination=85,
         heading=0,
-        time_overshoot=False,
         terminate_on_apogee=True,
     )
 
