@@ -5,12 +5,12 @@ returns a router strategy that selects interpolation or extrapolation
 based on the input bounds.
 """
 
-from rocketpy.mathutils.interpolation.evaluator import (
+from rocketpy.mathutils._calc.evaluator import (
     PolationEvaluator1D,
     PolationEvaluatorND,
     RegularGridEvaluator,
 )
-from rocketpy.mathutils.interpolation.polation_1d import (
+from rocketpy.mathutils._calc.polation_1d import (
     Akima1DPolation,
     Constant1DExtrapolation,
     Linear1DPolation,
@@ -19,7 +19,7 @@ from rocketpy.mathutils.interpolation.polation_1d import (
     Spline1DPolation,
     Zero1DExtrapolation,
 )
-from rocketpy.mathutils.interpolation.polation_nd import (
+from rocketpy.mathutils._calc.polation_nd import (
     ConstantNDExtrapolation,
     LinearNDPolation,
     RbfNaturalNDExtrapolation,
@@ -31,10 +31,6 @@ from rocketpy.mathutils.interpolation.polation_nd import (
     ShepardNDPolation,
     ZeroNDExtrapolation,
 )
-
-# ==============================================================================
-# 1. DIRECT INTERPOLATION REGISTRIES (Classes, not wrappers)
-# ==============================================================================
 
 _INTERP_1D = {
     "linear": Linear1DPolation,
@@ -49,10 +45,6 @@ _INTERP_ND = {
     "rbf": RbfNDPolation,
     "shepard": ShepardNDPolation,
 }
-
-# ==============================================================================
-# 2. EXTRAPOLATION REGISTRIES (Using Lambdas for clean instantiation)
-# ==============================================================================
 
 _EXTRAP_1D = {
     "zero": lambda interp, x, y: Zero1DExtrapolation(),
@@ -86,11 +78,6 @@ _EXTRAP_GRID = {
 }
 
 
-# ==============================================================================
-# 3. MAIN EVALUATOR BUILDER (Clean separation of concerns)
-# ==============================================================================
-
-
 def build_interpolation_evaluator(
     method,
     extrap_method,
@@ -107,8 +94,6 @@ def build_interpolation_evaluator(
     Routes to the correct 1D, ND, or Regular Grid construction path early
     to avoid passing unused arguments to the underlying classes.
     """
-
-    # --- Path A: Regular Grid ---
     if method == "regular_grid":
         if grid_axes is None or grid_data is None:
             raise ValueError("Regular grid requires both grid_axes and grid_data.")
@@ -117,10 +102,8 @@ def build_interpolation_evaluator(
         extrap_cls = _EXTRAP_GRID.get(extrap_method, _EXTRAP_GRID["constant"])
         extrap = extrap_cls(interp, grid_axes, grid_data)
 
-        # ALWAYS return the Evaluator so it can handle *args formatting and .expose()
         return RegularGridEvaluator(interp, extrap, grid_axes)
 
-    # --- Path B: 1-Dimensional ---
     if dom_dim == 1:
         interp_cls = _INTERP_1D.get(method, Spline1DPolation)
         interp = interp_cls(x, y)
@@ -130,7 +113,6 @@ def build_interpolation_evaluator(
 
         return PolationEvaluator1D(interp, extrap, x)
 
-    # --- Path C: N-Dimensional ---
     interp_cls = _INTERP_ND.get(method, ShepardNDPolation)
     interp = interp_cls(domain, image)
 

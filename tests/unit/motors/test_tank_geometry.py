@@ -125,8 +125,8 @@ def test_tank_inertia(params, request):
 
     # For higher accuracy: geometry.Ix_volume(geometry.bottom, h)(h)
     assert np.allclose(
-        expected_inertia[1:],
-        geometry.Ix_volume(geometry.bottom, geometry.top)(heights[1:]),
+        expected_inertia,
+        geometry.Ix_volume(geometry.bottom, geometry.top)(heights),
         rtol=1e-5,
         atol=1e-9,
     )

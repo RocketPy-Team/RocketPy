@@ -10,10 +10,6 @@ import warnings
 import numpy as np
 from scipy import linalg
 
-# ---------------------------------------------------------------------------
-# Polynomial
-# ---------------------------------------------------------------------------
-
 
 def fit_polynomial(x, y):
     """Fit a single polynomial of degree ``len(x) - 1`` through all points.
@@ -39,11 +35,6 @@ def fit_polynomial(x, y):
         return None  # caller should fall back to spline
     V = np.vander(x, increasing=True)
     return np.linalg.solve(V, y)
-
-
-# ---------------------------------------------------------------------------
-# Natural cubic spline
-# ---------------------------------------------------------------------------
 
 
 def fit_spline(x, y):
@@ -84,11 +75,6 @@ def fit_spline(x, y):
     d = (c[1:] - c[:-1]) / (3.0 * h)
 
     return np.vstack([y[:-1], b, c[:-1], d])
-
-
-# ---------------------------------------------------------------------------
-# Akima  (vectorised – no Python loop, no linalg.solve per interval)
-# ---------------------------------------------------------------------------
 
 
 def fit_akima(x, y):
@@ -153,11 +139,6 @@ def fit_akima(x, y):
     d_coeff = (t[:-1] + t[1:] - 2.0 * m) / (h * h)
 
     return np.vstack([a, b, c_coeff, d_coeff])
-
-
-# ---------------------------------------------------------------------------
-# PCHIP  (Fritsch–Carlson monotone-preserving Hermite)
-# ---------------------------------------------------------------------------
 
 
 def fit_pchip(x, y):
@@ -226,11 +207,6 @@ def _pchip_edge_slope(h0, h1, m0, m1):
     elif np.sign(m0) != np.sign(m1) and np.abs(t) > 3.0 * np.abs(m0):
         t = 3.0 * m0
     return t
-
-
-# ---------------------------------------------------------------------------
-# Pre-computed data for analytical derivatives and integrals
-# ---------------------------------------------------------------------------
 
 
 def precompute_linear_deriv_integral(x, y):

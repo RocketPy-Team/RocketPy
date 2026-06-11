@@ -11,16 +11,14 @@ import warnings
 from collections.abc import Iterable
 from copy import deepcopy
 from enum import Enum
-from functools import cached_property
 from inspect import signature
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import integrate, optimize
-from scipy.interpolate import RegularGridInterpolator
 
-from rocketpy.mathutils.interpolation import build_interpolation_evaluator
+from rocketpy.mathutils._calc import build_interpolation_evaluator
 from scipy.spatial import Delaunay  # pylint: disable=no-name-in-module
 
 from rocketpy.plots.plot_helpers import show_or_save_plot
@@ -798,59 +796,16 @@ class Function:  # pylint: disable=too-many-public-methods
         y : float or ndarray
             The constant scalar value, or an array filled with it.
         """
-        # Retrieve general info
-        x_data = self.x_array
-        y_data = self.y_array
-        x_min, x_max = self.x_initial, self.x_final
-        coeffs = self._coeffs
-        if x_min <= x <= x_max:
-            y = self._interpolation_func(x, x_min, x_max, x_data, y_data, coeffs)
-        else:
-            y = self._extrapolation_func(x, x_min, x_max, x_data, y_data, coeffs)
-        return y
+        if hasattr(x, "__iter__"):
+            return np.full_like(x, self._scalar_value, dtype=float)
+        return self._scalar_value
 
-    def __get_value_opt_nd(self, *args):
-        """Evaluate the Function in a vectorized fashion for N-D domains.
+    def __resolve_bounds(self, lower, upper, samples):
+        """Normalize lower, upper and samples to lists of length ``dom_dim``.
 
-        Parameters
-        ----------
-        args : tuple
-            Values where the Function is to be evaluated.
-
-        Returns
-        -------
-        result : scalar, ndarray
-            Value of the Function at the specified points.
-        """
-        args = np.column_stack(args)
-        arg_qty = len(args)
-        result = np.empty(arg_qty)
-
-        min_domain = self._domain.T.min(axis=1)
-        max_domain = self._domain.T.max(axis=1)
-
-        if self.__interpolation__ == "linear" and hasattr(self, "_nd_triangulation"):
-            extrap = self._nd_triangulation.find_simplex(args) < 0
-        else:
-            lower, upper = args < min_domain, args > max_domain
-            extrap = np.logical_or(lower.any(axis=1), upper.any(axis=1))
-
-        if extrap.any():
-            result[extrap] = self._extrapolation_func(
-                args[extrap], min_domain, max_domain, self._domain, self._image, None
-            )
-        if (~extrap).any():
-            result[~extrap] = self._interpolation_func(
-                args[~extrap], min_domain, max_domain, self._domain, self._image, None
-            )
-
-        if arg_qty == 1:
-            return float(result[0])
-
-        return result
-
-    def __determine_1d_domain_bounds(self, lower, upper):
-        """Determine domain bounds for 1-D function discretization.
+        For callable sources the default domain is ``[0, 10]`` per dimension.
+        Cropped-domain constraints are applied first; explicitly supplied
+        values always take precedence.
 
         Parameters
         ----------
@@ -935,7 +890,7 @@ class Function:  # pylint: disable=too-many-public-methods
         samples=200,
         interpolation="spline",
         extrapolation="constant",
-        one_by_one=True,
+        one_by_one=True,  # pylint: disable=unused-argument
         mutate_self=True,
     ):
         """This method discretizes a 1-D or 2-D Function by evaluating it at
@@ -1008,7 +963,7 @@ class Function:  # pylint: disable=too-many-public-methods
 
     def set_discrete_based_on_model(
         self, model_function, one_by_one=True, keep_self=True, mutate_self=True
-    ):
+    ):  # pylint: disable=unused-argument
         """This method transforms the domain of an N-D Function instance into a
         list of discrete points based on the domain of a model Function
         instance. It does so by retrieving the domain, domain name,
@@ -1509,59 +1464,44 @@ class Function:  # pylint: disable=too-many-public-methods
             )
 
         source_type = self._source_type
+        arg = args[0]
+        _is_iterable = hasattr(arg, "__iter__")
 
-        # ------------------------------------------------------------------
-        # HOT PATH: ARRAY SOURCE (Delegates safely to vectorized get_value_opt)
-        # ------------------------------------------------------------------
         if source_type is SourceType.ARRAY:
             if self.__dom_dim__ == 1:
-                arg = args[0]
-                if type(arg) in (list, tuple):
+                if not _is_iterable:
+                    return self.get_value_opt(arg, _is_iterable=False)
+                else:
                     if len(arg) < _LIST_VECTORIZE_THRESHOLD:
-                        return [self.get_value_opt(x) for x in arg]
-                    res = self.get_value_opt(np.asarray(arg, dtype=float))
-                    return res.tolist() if isinstance(res, np.ndarray) else res
-                return self.get_value_opt(arg)
+                        return np.array(
+                            [self.get_value_opt(x) for x in arg], dtype=float
+                        )
+                    return self.get_value_opt(
+                        np.asarray(arg, dtype=float), _is_iterable=True
+                    )
             else:
-                result = self.get_value_opt(*args)
-                # Convert back to list only if user provided a list
-                if type(args[0]) in (list, tuple):
-                    return list(result)
-                return result
+                return self.get_value_opt(*args, _is_iterable=_is_iterable)
 
-        # ------------------------------------------------------------------
-        # SCALAR SOURCE
-        # ------------------------------------------------------------------
         if source_type is SourceType.SCALAR:
-            val = self._scalar_value
-            arg = args[0]
-            if type(arg) in (float, int) or isinstance(arg, np.number):
-                return val
-            if isinstance(arg, np.ndarray):
-                if arg.ndim == 0:
-                    return val
-                return np.full_like(arg, val, dtype=float)
-            if isinstance(arg, (list, tuple)):
-                return [val] * len(arg)
-            # Catch generators/iterables without double-evaluating
-            return [val] * sum(1 for _ in arg)
+            if not _is_iterable:
+                return self._scalar_value
+            else:
+                return np.full_like(arg, self._scalar_value, dtype=float)
 
-        # ------------------------------------------------------------------
-        # CALLABLE SOURCE
-        # ------------------------------------------------------------------
         if source_type is SourceType.CALLABLE:
             if self.__dom_dim__ == 1:
-                arg = args[0]
-                if type(arg) in (float, int) or isinstance(arg, np.number):
+                if not _is_iterable:
                     return self.source(arg)
-                if type(arg) is np.ndarray and arg.ndim == 0:
-                    return self.source(arg.item())
-                return [self.source(x) for x in arg]
-
-            # N-D Callable
-            if all(type(a) in (float, int) or isinstance(a, np.number) for a in args):
-                return self.source(*args)
-            return [self.source(*a) for a in zip(*args)]
+                else:
+                    return np.array([self.source(x) for x in arg], dtype=float)
+            else:
+                if not _is_iterable:
+                    return self.source(*args)
+                else:
+                    broadcasted = np.broadcast_arrays(*args)
+                    return np.array(
+                        [self.source(*a) for a in zip(*broadcasted)], dtype=float
+                    )
 
     def __getitem__(self, args):
         """Returns item of the Function source. If the source is not an array,
@@ -1910,33 +1850,6 @@ class Function:  # pylint: disable=too-many-public-methods
         if not args:
             return self.plot(filename=filename)
 
-        # Hot-path delegation to avoid the `get_value` wrapper overhead
-        # when users use `func(x)` in high-performance loops.
-        if self._source_type is SourceType.ARRAY:
-            if self.__dom_dim__ == 1:
-                arg = args[0]
-                # Vectorize lists for larger inputs
-                if type(arg) in (list, tuple):
-                    if len(arg) < _LIST_VECTORIZE_THRESHOLD:
-                        return [self.get_value_opt(x) for x in arg]
-                    res = self.get_value_opt(np.array(arg, dtype=float))
-                    return res.tolist() if isinstance(res, np.ndarray) else res
-                return self.get_value_opt(arg)
-
-            # N-D array path
-            if all(type(a) in (list, tuple) for a in args):
-                first_len = len(args[0])
-                if all(len(a) == first_len for a in args):
-                    if first_len < _LIST_VECTORIZE_THRESHOLD:
-                        return [self.get_value_opt(*vals) for vals in zip(*args)]
-            result = self.get_value_opt(*args)
-            if isinstance(result, np.ndarray) and any(
-                type(a) in (list, tuple) for a in args
-            ):
-                return result.tolist()
-            return result
-
-        # Fallback to get_value for Callables and Scalars
         return self.get_value(*args)
 
     def __str__(self):
@@ -2075,11 +1988,13 @@ class Function:  # pylint: disable=too-many-public-methods
         if self._source_type is not SourceType.ARRAY:
             # Determine boundaries
             domain = [0, 10]
+            # pylint: disable=unsubscriptable-object
             if (
                 self.__cropped_domain__ is not None
                 and self.__cropped_domain__[0] is not None
             ):
                 lo, hi = self.__cropped_domain__[0]
+                # pylint: enable=unsubscriptable-object
                 if lo is not None and lo > domain[0]:
                     domain[0] = lo
                 if hi is not None and hi < domain[1]:
@@ -2605,6 +2520,7 @@ class Function:  # pylint: disable=too-many-public-methods
 
     # Define all possible algebraic operations
     def __arithmetic_operation(self, other, op):
+        # pylint: disable=too-many-statements
         """Generic handler for arithmetic operations between a Function and
         another operand.
 
@@ -3193,8 +3109,6 @@ class Function:  # pylint: disable=too-many-public-methods
         result : Function
             A Function object that corresponds to the identity mapping.
         """
-
-        # Check if Function object source is array
         if self._source_type is SourceType.ARRAY:
             return Function(
                 np.column_stack((self.x_array, self.x_array)),
@@ -3235,18 +3149,15 @@ class Function:  # pylint: disable=too-many-public-methods
         if self._source_type is SourceType.ARRAY:
             if self.__dom_dim__ == 1 and hasattr(self._evaluator, "derivative"):
                 xs = self.x_array
-                if order == 1:
-                    ys = self._evaluator.derivative(xs)
-                else:
-                    ys = self._evaluator.second_derivative(xs)
+                ys = (
+                    self._evaluator.derivative(xs)
+                    if order == 1
+                    else self._evaluator.second_derivative(xs)
+                )
                 source = np.column_stack((xs, ys))
             else:
-                if order == 1:
-                    ys = np.gradient(self.y_array, self.x_array)
-                else:
-                    dy = np.gradient(self.y_array, self.x_array)
-                    ys = np.gradient(dy, self.x_array)
-
+                dy = np.gradient(self.y_array, self.x_array)
+                ys = dy if order == 1 else np.gradient(dy, self.x_array)
                 source = np.column_stack((self.x_array, ys))
         else:
 
@@ -4131,6 +4042,7 @@ class Function:  # pylint: disable=too-many-public-methods
     def __make_arith_lambda(
         operator, func, other, func_dim, other_dim=0, reverse=False
     ):
+        # pylint: disable=function-redefined
         """Creates a callable for arithmetic operations between
         multidimensional functions, without using eval.
 

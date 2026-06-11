@@ -1,0 +1,818 @@
+"""1D interpolation and extrapolation strategies."""
+
+from __future__ import annotations
+
+from bisect import bisect_left
+
+import numpy as np
+from numpy.typing import NDArray
+
+from rocketpy.mathutils._calc._fitting import (
+    fit_akima,
+    fit_pchip,
+    fit_polynomial,
+    fit_spline,
+    precompute_cubic_cumulative_integrals,
+    precompute_linear_deriv_integral,
+)
+from rocketpy.mathutils._calc.polation_base import PolationBase
+
+
+def _find_index(
+    x_arr: NDArray[np.float64],
+    xq: float | NDArray[np.float64] | complex,
+    n: int,
+    _is_iterable: bool | None = None,
+) -> int | NDArray[np.int_]:
+    """Find the index in a sorted 1D array corresponding to a query value.
+
+    Parameters
+    ----------
+    x_arr : np.ndarray
+        Sorted 1D array of x-coordinates.
+    xq : float or np.ndarray or complex
+        The query coordinate(s).
+    n : int
+        The size of x_arr.
+    _is_iterable : bool, optional
+        Whether the query value represents a batch of points. Default is None.
+
+    Returns
+    -------
+    int or np.ndarray
+        The index or indices representing the interval.
+    """
+    if _is_iterable is None:
+        _is_iterable = hasattr(xq, "__iter__")
+
+    if not _is_iterable:
+        # Both real and complex scalars have the .real property
+        idx = bisect_left(x_arr, xq.real)
+        return 1 if idx < 1 else (idx if idx < n else n - 1)
+    else:
+        idx = np.searchsorted(x_arr, xq, side="left")
+        return np.clip(idx, 1, n - 1)
+
+
+def _cubic_eval_vec(
+    t: float | NDArray[np.float64],
+    a: float | NDArray[np.float64],
+    b: float | NDArray[np.float64],
+    c: float | NDArray[np.float64],
+    d: float | NDArray[np.float64],
+) -> float | NDArray[np.float64]:
+    """Evaluate a cubic polynomial: a + t * (b + t * (c + t * d)).
+
+    Parameters
+    ----------
+    t : float or np.ndarray
+        The relative parameter values.
+    a : float or np.ndarray
+        Constant coefficients.
+    b : float or np.ndarray
+        Linear coefficients.
+    c : float or np.ndarray
+        Quadratic coefficients.
+    d : float or np.ndarray
+        Cubic coefficients.
+
+    Returns
+    -------
+    float or np.ndarray
+        The evaluated cubic polynomial value(s).
+    """
+    return a + t * (b + t * (c + t * d))
+
+
+class Linear1DPolation(PolationBase):
+    """Linear 1D interpolation and extrapolation.
+
+    Attributes
+    ----------
+    _x : np.ndarray
+        The x-coordinates of the data points.
+    _y : np.ndarray
+        The y-coordinates of the data points.
+    _n : int
+        The number of data points.
+    _slopes : np.ndarray
+        The calculated slopes between consecutive points.
+    _cum_int : np.ndarray
+        The cumulative integral values at each data point.
+    """
+
+    def __init__(self, x: NDArray[np.float64], y: NDArray[np.float64]) -> None:
+        """Initialize the Linear1DPolation.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            The x-coordinates of the data points.
+        y : np.ndarray
+            The y-coordinates of the data points.
+        """
+        self._x = np.asarray(x, dtype=float)
+        self._y = np.asarray(y, dtype=float)
+        self._n = self._x.size
+        self._slopes, self._cum_int = precompute_linear_deriv_integral(self._x, self._y)
+
+    def evaluate(
+        self, x: float | NDArray[np.float64], _is_iterable: bool | None = None
+    ) -> float | NDArray[np.float64]:
+        """Evaluate the linear interpolation.
+
+        Parameters
+        ----------
+        x : float or np.ndarray
+            The coordinates where the function is to be evaluated.
+        _is_iterable : bool, optional
+            Whether the input is iterable. Default is None.
+
+        Returns
+        -------
+        float or np.ndarray
+            The interpolated values.
+        """
+        x_arr = self._x
+        i = _find_index(x_arr, x, self._n, _is_iterable) - 1
+        return self._y[i] + self._slopes[i] * (x - x_arr[i])
+
+    def derivative(
+        self, x: float | NDArray[np.float64], _is_iterable: bool | None = None
+    ) -> float | NDArray[np.float64]:
+        """Evaluate the first derivative.
+
+        Parameters
+        ----------
+        x : float or np.ndarray
+            The coordinates where the derivative is to be evaluated.
+        _is_iterable : bool, optional
+            Whether the input is iterable. Default is None.
+
+        Returns
+        -------
+        float or np.ndarray
+            The first derivative values.
+        """
+        i = _find_index(self._x, x, self._n, _is_iterable) - 1
+        return self._slopes[i]
+
+    def second_derivative(
+        self, _x: float | NDArray[np.float64], _is_iterable: bool | None = None
+    ) -> float | NDArray[np.float64]:
+        """Evaluate the second derivative.
+
+        Parameters
+        ----------
+        _x : float or np.ndarray
+            The coordinates where the second derivative is to be evaluated.
+        _is_iterable : bool, optional
+            Whether the input is iterable. Default is None.
+
+        Returns
+        -------
+        float or np.ndarray
+            The second derivative values, which are zero.
+        """
+        if _is_iterable is None:
+            _is_iterable = hasattr(_x, "__iter__")
+        return np.zeros_like(_x, dtype=float) if _is_iterable else 0.0
+
+    def integral(
+        self, x: float | NDArray[np.float64], _is_iterable: bool | None = None
+    ) -> float | NDArray[np.float64]:
+        """Evaluate the antiderivative.
+
+        Parameters
+        ----------
+        x : float or np.ndarray
+            The coordinates where the antiderivative is to be evaluated.
+        _is_iterable : bool, optional
+            Whether the input is iterable. Default is None.
+
+        Returns
+        -------
+        float or np.ndarray
+            The antiderivative values.
+        """
+        i = _find_index(self._x, x, self._n, _is_iterable) - 1
+        return (
+            self._cum_int[i]
+            + self._y[i] * (x - self._x[i])
+            + self._slopes[i] * (x - self._x[i]) ** 2 / 2
+        )
+
+
+class Polynomial1DPolation(PolationBase):
+    """Polynomial 1D interpolation.
+
+    Attributes
+    ----------
+    _coeffs : np.ndarray
+        The polynomial coefficients.
+    _c_desc : np.ndarray
+        Descending order coefficients for evaluate.
+    _c_first : float
+        The first coefficient of _c_desc.
+    _c_rest : list of float
+        The rest of the coefficients of _c_desc.
+    _d_desc : np.ndarray
+        Descending order coefficients for derivative.
+    _d_first : float
+        The first coefficient of _d_desc.
+    _d_rest : list of float
+        The rest of the coefficients of _d_desc.
+    _d2_desc : np.ndarray
+        Descending order coefficients for second derivative.
+    _d2_first : float
+        The first coefficient of _d2_desc.
+    _d2_rest : list of float
+        The rest of the coefficients of _d2_desc.
+    _i_desc : np.ndarray
+        Descending order coefficients for integral.
+    _i_first : float
+        The first coefficient of _i_desc.
+    _i_rest : list of float
+        The rest of the coefficients of _i_desc.
+    """
+
+    def __init__(self, x: NDArray[np.float64], y: NDArray[np.float64]) -> None:
+        """Initialize the Polynomial1DPolation.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            The x-coordinates of the data points.
+        y : np.ndarray
+            The y-coordinates of the data points.
+        """
+        coeffs = fit_polynomial(x, y)
+        self._coeffs = np.asarray(coeffs, dtype=float)
+
+        # Calculate derived coefficients
+        d_coeffs = (
+            self._coeffs[1:] * np.arange(1, len(self._coeffs))
+            if len(self._coeffs) > 1
+            else np.array([0.0])
+        )
+        d2_coeffs = (
+            d_coeffs[1:] * np.arange(1, len(d_coeffs))
+            if len(d_coeffs) > 1
+            else np.array([0.0])
+        )
+        i_coeffs = np.empty(len(self._coeffs) + 1)
+        i_coeffs[0] = 0.0
+        i_coeffs[1:] = self._coeffs / np.arange(1, len(self._coeffs) + 1)
+
+        # Pre-slice lists for high-speed Horner evaluation
+        self._c_desc = self._coeffs[::-1].copy()
+        c_list = self._c_desc.tolist()
+        self._c_first, self._c_rest = c_list[0], c_list[1:]
+
+        self._d_desc = d_coeffs[::-1].copy()
+        d_list = self._d_desc.tolist()
+        self._d_first, self._d_rest = d_list[0], d_list[1:]
+
+        self._d2_desc = d2_coeffs[::-1].copy()
+        d2_list = self._d2_desc.tolist()
+        self._d2_first, self._d2_rest = d2_list[0], d2_list[1:]
+
+        self._i_desc = i_coeffs[::-1].copy()
+        i_list = self._i_desc.tolist()
+        self._i_first, self._i_rest = i_list[0], i_list[1:]
+
+    def _horner(
+        self,
+        xq: float | NDArray[np.float64],
+        first: float,
+        rest: list[float],
+        desc: NDArray[np.float64],
+        _is_iterable: bool | None = None,
+    ) -> float | NDArray[np.float64]:
+        """Unified Horner evaluation logic.
+
+        Parameters
+        ----------
+        xq : float or np.ndarray
+            The coordinates to evaluate.
+        first : float
+            The first coefficient of the polynomial.
+        rest : list of float
+            The remaining coefficients of the polynomial.
+        desc : np.ndarray
+            The descending coefficients.
+        _is_iterable : bool, optional
+            Whether the input is iterable. Default is None.
+
+        Returns
+        -------
+        float or np.ndarray
+            The evaluated polynomial value.
+        """
+        if _is_iterable is None:
+            _is_iterable = hasattr(xq, "__iter__")
+
+        if not _is_iterable:
+            r = first
+            for c in rest:
+                r = r * xq + c
+            return r
+        else:
+            return np.polyval(desc, xq)
+
+    def evaluate(
+        self, x: float | NDArray[np.float64], _is_iterable: bool | None = None
+    ) -> float | NDArray[np.float64]:
+        """Evaluate the polynomial.
+
+        Parameters
+        ----------
+        x : float or np.ndarray
+            The coordinates where the polynomial is to be evaluated.
+        _is_iterable : bool, optional
+            Whether the input is iterable. Default is None.
+
+        Returns
+        -------
+        float or np.ndarray
+            The polynomial values.
+        """
+        return self._horner(x, self._c_first, self._c_rest, self._c_desc, _is_iterable)
+
+    def derivative(
+        self, x: float | NDArray[np.float64], _is_iterable: bool | None = None
+    ) -> float | NDArray[np.float64]:
+        """Evaluate the first derivative.
+
+        Parameters
+        ----------
+        x : float or np.ndarray
+            The coordinates where the derivative is to be evaluated.
+        _is_iterable : bool, optional
+            Whether the input is iterable. Default is None.
+
+        Returns
+        -------
+        float or np.ndarray
+            The first derivative values.
+        """
+        return self._horner(x, self._d_first, self._d_rest, self._d_desc, _is_iterable)
+
+    def second_derivative(
+        self, x: float | NDArray[np.float64], _is_iterable: bool | None = None
+    ) -> float | NDArray[np.float64]:
+        """Evaluate the second derivative.
+
+        Parameters
+        ----------
+        x : float or np.ndarray
+            The coordinates where the second derivative is to be evaluated.
+        _is_iterable : bool, optional
+            Whether the input is iterable. Default is None.
+
+        Returns
+        -------
+        float or np.ndarray
+            The second derivative values.
+        """
+        return self._horner(
+            x, self._d2_first, self._d2_rest, self._d2_desc, _is_iterable
+        )
+
+    def integral(
+        self, x: float | NDArray[np.float64], _is_iterable: bool | None = None
+    ) -> float | NDArray[np.float64]:
+        """Evaluate the antiderivative.
+
+        Parameters
+        ----------
+        x : float or np.ndarray
+            The coordinates where the antiderivative is to be evaluated.
+        _is_iterable : bool, optional
+            Whether the input is iterable. Default is None.
+
+        Returns
+        -------
+        float or np.ndarray
+            The antiderivative values.
+        """
+        return self._horner(x, self._i_first, self._i_rest, self._i_desc, _is_iterable)
+
+    def coefficients(self) -> NDArray[np.float64]:
+        """Get the polynomial coefficients.
+
+        Returns
+        -------
+        np.ndarray
+            The polynomial coefficients.
+        """
+        return self._coeffs
+
+
+class Cubic1DPolation(PolationBase):
+    """Cubic piecewise 1D interpolation.
+
+    Attributes
+    ----------
+    _x : np.ndarray
+        The x-coordinates of the data points.
+    _n : int
+        The number of data points.
+    _a : np.ndarray
+        The coefficients for the constant term.
+    _b : np.ndarray
+        The coefficients for the linear term.
+    _c : np.ndarray
+        The coefficients for the quadratic term.
+    _d : np.ndarray
+        The coefficients for the cubic term.
+    _cum_int : np.ndarray
+        The cumulative integral values at each data point.
+    """
+
+    def __init__(
+        self,
+        x: NDArray[np.float64],
+        coeffs: tuple[
+            NDArray[np.float64],
+            NDArray[np.float64],
+            NDArray[np.float64],
+            NDArray[np.float64],
+        ],
+    ) -> None:
+        """Initialize the Cubic1DPolation.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            The x-coordinates of the data points.
+        coeffs : tuple of np.ndarray
+            A tuple (a, b, c, d) of numpy arrays representing the piecewise cubic coefficients.
+        """
+        self._x = np.asarray(x, dtype=float)
+        self._n = self._x.size
+        self._a, self._b, self._c, self._d = coeffs
+        self._cum_int = precompute_cubic_cumulative_integrals(
+            self._x, (self._a, self._b, self._c, self._d)
+        )
+
+    def evaluate(
+        self, x: float | NDArray[np.float64], _is_iterable: bool | None = None
+    ) -> float | NDArray[np.float64]:
+        """Evaluate the cubic piecewise interpolation.
+
+        Parameters
+        ----------
+        x : float or np.ndarray
+            The coordinates where the function is to be evaluated.
+        _is_iterable : bool, optional
+            Whether the input is iterable. Default is None.
+
+        Returns
+        -------
+        float or np.ndarray
+            The interpolated values.
+        """
+        i = _find_index(self._x, x, self._n, _is_iterable) - 1
+        t = x - self._x[i]
+        return _cubic_eval_vec(t, self._a[i], self._b[i], self._c[i], self._d[i])
+
+    def derivative(
+        self, x: float | NDArray[np.float64], _is_iterable: bool | None = None
+    ) -> float | NDArray[np.float64]:
+        """Evaluate the first derivative.
+
+        Parameters
+        ----------
+        x : float or np.ndarray
+            The coordinates where the derivative is to be evaluated.
+        _is_iterable : bool, optional
+            Whether the input is iterable. Default is None.
+
+        Returns
+        -------
+        float or np.ndarray
+            The first derivative values.
+        """
+        i = _find_index(self._x, x, self._n, _is_iterable) - 1
+        t = x - self._x[i]
+        return self._b[i] + 2 * self._c[i] * t + 3 * self._d[i] * t**2
+
+    def second_derivative(
+        self, x: float | NDArray[np.float64], _is_iterable: bool | None = None
+    ) -> float | NDArray[np.float64]:
+        """Evaluate the second derivative.
+
+        Parameters
+        ----------
+        x : float or np.ndarray
+            The coordinates where the second derivative is to be evaluated.
+        _is_iterable : bool, optional
+            Whether the input is iterable. Default is None.
+
+        Returns
+        -------
+        float or np.ndarray
+            The second derivative values.
+        """
+        i = _find_index(self._x, x, self._n, _is_iterable) - 1
+        t = x - self._x[i]
+        return 2 * self._c[i] + 6 * self._d[i] * t
+
+    def integral(
+        self, x: float | NDArray[np.float64], _is_iterable: bool | None = None
+    ) -> float | NDArray[np.float64]:
+        """Evaluate the antiderivative.
+
+        Parameters
+        ----------
+        x : float or np.ndarray
+            The coordinates where the antiderivative is to be evaluated.
+        _is_iterable : bool, optional
+            Whether the input is iterable. Default is None.
+
+        Returns
+        -------
+        float or np.ndarray
+            The antiderivative values.
+        """
+        i = _find_index(self._x, x, self._n, _is_iterable) - 1
+        t = x - self._x[i]
+        return (
+            self._cum_int[i]
+            + self._a[i] * t
+            + self._b[i] * t**2 / 2
+            + self._c[i] * t**3 / 3
+            + self._d[i] * t**4 / 4
+        )
+
+    def coefficients(self) -> list[NDArray[np.float64]]:
+        """Get the cubic coefficients.
+
+        Returns
+        -------
+        list of np.ndarray
+            A list [a, b, c, d] of the cubic coefficients.
+        """
+        return [self._a, self._b, self._c, self._d]
+
+
+class Spline1DPolation(Cubic1DPolation):
+    """Spline 1D interpolation."""
+
+    def __init__(self, x: NDArray[np.float64], y: NDArray[np.float64]) -> None:
+        """Initialize the Spline1DPolation.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            The x-coordinates of the data points.
+        y : np.ndarray
+            The y-coordinates of the data points.
+        """
+        super().__init__(x, fit_spline(x, y))
+
+
+class Akima1DPolation(Cubic1DPolation):
+    """Akima 1D interpolation."""
+
+    def __init__(self, x: NDArray[np.float64], y: NDArray[np.float64]) -> None:
+        """Initialize the Akima1DPolation.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            The x-coordinates of the data points.
+        y : np.ndarray
+            The y-coordinates of the data points.
+        """
+        super().__init__(x, fit_akima(x, y))
+
+
+class Pchip1DPolation(Cubic1DPolation):
+    """PCHIP (Piecewise Cubic Hermite Interpolating Polynomial) 1D interpolation."""
+
+    def __init__(self, x: NDArray[np.float64], y: NDArray[np.float64]) -> None:
+        """Initialize the Pchip1DPolation.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            The x-coordinates of the data points.
+        y : np.ndarray
+            The y-coordinates of the data points.
+        """
+        super().__init__(x, fit_pchip(x, y))
+
+
+class Constant1DExtrapolation(PolationBase):
+    """Constant 1D extrapolation.
+
+    Attributes
+    ----------
+    _x_min : float
+        The minimum x-coordinate of the boundary.
+    _x_max : float
+        The maximum x-coordinate of the boundary.
+    _y_min : float
+        The value at the minimum boundary.
+    _y_max : float
+        The value at the maximum boundary.
+    """
+
+    def __init__(self, x: NDArray[np.float64], y: NDArray[np.float64]) -> None:
+        """Initialize the Constant1DExtrapolation.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            The x-coordinates of the data points.
+        y : np.ndarray
+            The y-coordinates of the data points.
+        """
+        self._x_min = float(x[0])
+        self._x_max = float(x[-1])
+        self._y_min = float(y[0])
+        self._y_max = float(y[-1])
+
+    def evaluate(
+        self, x: float | NDArray[np.float64], _is_iterable: bool | None = None
+    ) -> float | NDArray[np.float64]:
+        """Evaluate the constant extrapolation.
+
+        Parameters
+        ----------
+        x : float or np.ndarray
+            The coordinates to extrapolate.
+        _is_iterable : bool, optional
+            Whether the input is iterable. Default is None.
+
+        Returns
+        -------
+        float or np.ndarray
+            The extrapolated constant values at boundary exceedances, or NaN.
+        """
+        if _is_iterable is None:
+            _is_iterable = hasattr(x, "__iter__")
+        if _is_iterable:
+            x = np.asarray(x, dtype=float)
+            x_real = x.real
+            result = np.empty_like(x_real, dtype=float)
+            lower = x_real < self._x_min
+            upper = x_real > self._x_max
+            inside = ~(lower | upper)
+
+            result[lower] = self._y_min
+            result[upper] = self._y_max
+            result[inside] = np.nan
+            return result
+
+        x_real = x.real
+        if x_real < self._x_min:
+            return self._y_min
+        if x_real > self._x_max:
+            return self._y_max
+        return np.nan
+
+    def definite_integral(self, a: float, b: float) -> float:
+        """Evaluate the definite integral over a constant extrapolation range.
+
+        Parameters
+        ----------
+        a : float
+            Lower bound of integration.
+        b : float
+            Upper bound of integration.
+
+        Returns
+        -------
+        float
+            The definite integral value.
+        """
+        return self.evaluate((a + b) / 2.0, _is_iterable=False) * (b - a)
+
+    def derivative(
+        self, x: float | NDArray[np.float64], _is_iterable: bool | None = None
+    ) -> float | NDArray[np.float64]:
+        """Evaluate the derivative, which is zero.
+
+        Parameters
+        ----------
+        x : float or np.ndarray
+            The coordinates where the derivative is to be evaluated.
+        _is_iterable : bool, optional
+            Whether the input is iterable. Default is None.
+
+        Returns
+        -------
+        float or np.ndarray
+            An array of zeros or a scalar zero.
+        """
+        if _is_iterable is None:
+            _is_iterable = hasattr(x, "__iter__")
+        return np.zeros_like(x, dtype=float) if _is_iterable else 0.0
+
+    def second_derivative(
+        self, x: float | NDArray[np.float64], _is_iterable: bool | None = None
+    ) -> float | NDArray[np.float64]:
+        """Evaluate the second derivative, which is zero.
+
+        Parameters
+        ----------
+        x : float or np.ndarray
+            The coordinates where the second derivative is to be evaluated.
+        _is_iterable : bool, optional
+            Whether the input is iterable. Default is None.
+
+        Returns
+        -------
+        float or np.ndarray
+            An array of zeros or a scalar zero.
+        """
+        if _is_iterable is None:
+            _is_iterable = hasattr(x, "__iter__")
+        return np.zeros_like(x, dtype=float) if _is_iterable else 0.0
+
+
+class Zero1DExtrapolation(PolationBase):
+    """Zero 1D extrapolation."""
+
+    def evaluate(
+        self, x: float | NDArray[np.float64], _is_iterable: bool | None = None
+    ) -> float | NDArray[np.float64]:
+        """Evaluate the zero extrapolation.
+
+        Parameters
+        ----------
+        x : float or np.ndarray
+            The coordinates to extrapolate.
+        _is_iterable : bool, optional
+            Whether the input is iterable. Default is None.
+
+        Returns
+        -------
+        float or np.ndarray
+            An array of zeros or a scalar zero.
+        """
+        if _is_iterable is None:
+            _is_iterable = hasattr(x, "__iter__")
+        return np.zeros_like(x, dtype=float) if _is_iterable else 0.0
+
+    def definite_integral(self, a: float, b: float) -> float:
+        """Evaluate the definite integral, which is zero.
+
+        Parameters
+        ----------
+        a : float
+            Lower bound of integration.
+        b : float
+            Upper bound of integration.
+
+        Returns
+        -------
+        float
+            Zero.
+        """
+        return 0.0
+
+    def derivative(
+        self, x: float | NDArray[np.float64], _is_iterable: bool | None = None
+    ) -> float | NDArray[np.float64]:
+        """Evaluate the derivative, which is zero.
+
+        Parameters
+        ----------
+        x : float or np.ndarray
+            The coordinates where the derivative is to be evaluated.
+        _is_iterable : bool, optional
+            Whether the input is iterable. Default is None.
+
+        Returns
+        -------
+        float or np.ndarray
+            An array of zeros or a scalar zero.
+        """
+        if _is_iterable is None:
+            _is_iterable = hasattr(x, "__iter__")
+        return np.zeros_like(x, dtype=float) if _is_iterable else 0.0
+
+    def second_derivative(
+        self, x: float | NDArray[np.float64], _is_iterable: bool | None = None
+    ) -> float | NDArray[np.float64]:
+        """Evaluate the second derivative, which is zero.
+
+        Parameters
+        ----------
+        x : float or np.ndarray
+            The coordinates where the second derivative is to be evaluated.
+        _is_iterable : bool, optional
+            Whether the input is iterable. Default is None.
+
+        Returns
+        -------
+        float or np.ndarray
+            An array of zeros or a scalar zero.
+        """
+        if _is_iterable is None:
+            _is_iterable = hasattr(x, "__iter__")
+        return np.zeros_like(x, dtype=float) if _is_iterable else 0.0

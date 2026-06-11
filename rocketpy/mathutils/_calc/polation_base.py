@@ -7,16 +7,16 @@ class PolationBase(ABC):
     """Base strategy for evaluation and optional derivatives/integrals."""
 
     @abstractmethod
-    def evaluate(self, x):
+    def evaluate(self, x, _is_iterable=None):
         """Evaluate the strategy at the given input(s)."""
 
-    def derivative(self, x):
+    def derivative(self, x, _is_iterable=None):
         raise NotImplementedError("Analytical derivative not available.")
 
-    def second_derivative(self, x):
+    def second_derivative(self, x, _is_iterable=None):
         raise NotImplementedError("Analytical 2nd derivative not available.")
 
-    def integral(self, x):
+    def integral(self, x, _is_iterable=None):
         raise NotImplementedError("Analytical antiderivative not available.")
 
     def definite_integral(self, a, b):
