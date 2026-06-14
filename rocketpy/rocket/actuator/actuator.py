@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-
+import warnings
 import numpy as np
 
 
@@ -86,8 +86,8 @@ class Actuator(ABC):
                     self.actuator_time_constant + demand_period
                 )
             else:
-                print(
-                    f"Warning: Actuator time constant currently only implemented on discrete controllers. '{self.name}' dynamics not applied."
+                warnings.warn(
+                    f"Actuator time constant currently only implemented on discrete controllers. '{self.name}' dynamics not applied."
                 )
                 self._alpha = 1.0  # No filtering, direct pass-through
         else:
@@ -120,12 +120,12 @@ class Actuator(ABC):
                 change = value - self._actuator_output
                 if abs(change) > max_change:
                     value = self._actuator_output + np.sign(change) * max_change
-                    print(
-                        f"Warning: Actuator '{self.name}' output change {change:.3f} exceeds rate limit of {max_change:.3f} per time step."
+                    warnings.warn(
+                        f"Actuator '{self.name}' output change {change:.3f} exceeds rate limit of {max_change:.3f} per time step."
                     )
             else:
-                print(
-                    f"Warning: Actuator rate limit currently only implemented for discrete controllers. '{self.name}' rate limit not applied."
+                warnings.warn(
+                    f"Actuator rate limit currently only implemented for discrete controllers. '{self.name}' rate limit not applied."
                 )
 
         # Apply range limits if specified
@@ -133,8 +133,8 @@ class Actuator(ABC):
             value = np.clip(value, self.actuator_range[0], self.actuator_range[1])
         else:
             if value < self.actuator_range[0] or value > self.actuator_range[1]:
-                print(
-                    f"Warning: Actuator '{self.name}' output {value:.3f} exceeds range limits {self.actuator_range}."
+                warnings.warn(
+                    f"Actuator '{self.name}' output {value:.3f} exceeds range limits {self.actuator_range}."
                 )
 
         self._actuator_output = value
