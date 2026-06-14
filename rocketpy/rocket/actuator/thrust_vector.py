@@ -164,8 +164,8 @@ class ThrustVectorActuator2D:
         Time constant for the thrust vector actuator dynamics (first-order IIR filter) in seconds.
     ThrustVectorActuator2D.actuator_initial_output : float
         Initial thrust  gimbal angles in deg.
-    ThrustVectorActuator2D.actuator_output : float
-        Current thrust vector gimble angles in deg.
+    ThrustVectorActuator2D.actuator_output : tuple[float, float]
+        Current thrust vector gimbal angles (x, y) in deg.
 
     """
 

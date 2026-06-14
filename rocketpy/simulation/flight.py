@@ -1878,7 +1878,7 @@ class Flight:
                 getattr(self.rocket, "throttle_control", None), "throttle", 1.0
             )
 
-            # Thrust Vector Control (TVC))
+            # Thrust Vector Control (TVC)
             if hasattr(self.rocket, "thrust_vector_control"):
                 # TVC Fz thrust: F = T * sqrt(1 - sin(gimbal_angle_x)**2 - sin(gimbal_angle_y)**2)
                 thrust3 = effective_thrust * np.sqrt(
