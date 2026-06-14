@@ -184,7 +184,7 @@ class ThrustVectorActuator2D:
         Parameters
         ----------
         name : str, optional
-            Name of the dual-axis thrust vector actuator. Default is "Thrust Vector Control".
+            Name of the dual-axis thrust vector actuator. Default is "Thrust Vector Control (X/Y)-axis".
         demand_rate : int, optional
             Demand rate of the dual-axis thrust vector actuator in Hz. Default is 100 Hz.
             None indicates a continuous-time actuator.
@@ -201,19 +201,20 @@ class ThrustVectorActuator2D:
             exceeds the maximum value. Default is True.
         initial_gimbal_angle : float, optional
             Initial gimbal angle in deg. Default is 0.0 (no gimbal).
-        roll_torque_time_constant : float, optional
-            Time constant for the roll torque actuator dynamics (first-order IIR
+        gimbal_time_constant : float, optional
+            Time constant for the gimbal actuator dynamics (first-order IIR
             filter) in seconds. If None, no actuator dynamics are applied.
-            Must be non-negative. Default is None. demand_rate must be specified if roll_torque_time_constant is not None.
+            Must be non-negative. Default is None. demand_rate must be specified if gimbal_time_constant is not None.
 
 
         Returns
         -------
         None
         """
+        self.name = name
 
         self.x = ThrustVectorActuator(
-            name=name + " X-axis",
+            name=self.name + " X-axis",
             demand_rate=demand_rate,
             max_gimbal_angle=max_gimbal_angle,
             gimbal_rate_limit=gimbal_rate_limit,
@@ -222,7 +223,7 @@ class ThrustVectorActuator2D:
             gimbal_time_constant=gimbal_time_constant,
         )
         self.y = ThrustVectorActuator(
-            name=name + " Y-axis",
+            name=self.name + " Y-axis",
             demand_rate=demand_rate,
             max_gimbal_angle=max_gimbal_angle,
             gimbal_rate_limit=gimbal_rate_limit,
@@ -233,7 +234,7 @@ class ThrustVectorActuator2D:
 
     @property
     def gimbal_angle_x(self):
-        """Returns the current gimbal angle around the y-axis (yaw)."""
+        """Returns the current gimbal angle around the x-axis (pitch)."""
         return self.x.gimbal_angle
 
     @gimbal_angle_x.setter
@@ -267,3 +268,45 @@ class ThrustVectorActuator2D:
         """
         self.gimbal_angle_x = value[0]
         self.gimbal_angle_y = value[1]
+
+    def info(self):
+        """Prints summarized information of the thrust vector actuator.
+
+        Returns
+        -------
+        None
+        """
+        self.x.info()
+        self.y.info()
+
+    def all_info(self):
+        """Prints all information of the thrust vector actuator.
+
+        Returns
+        -------
+        None
+        """
+        self.info()
+
+    def to_dict(self, **kwargs):  # pylint: disable=unused-argument
+        return {
+            "name": self.name,
+            "demand_rate": self.x.demand_rate,
+            "max_gimbal_angle": self.x.actuator_range[1],
+            "gimbal_rate_limit": self.x.actuator_rate_limit,
+            "clamp": self.x.clamp,
+            "initial_gimbal_angle": self.x.actuator_initial_output,
+            "gimbal_time_constant": self.x.actuator_time_constant,
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            name=data.get("name"),
+            demand_rate=data.get("demand_rate"),
+            max_gimbal_angle=data.get("max_gimbal_angle"),
+            gimbal_rate_limit=data.get("gimbal_rate_limit"),
+            clamp=data.get("clamp"),
+            initial_gimbal_angle=data.get("initial_gimbal_angle"),
+            gimbal_time_constant=data.get("gimbal_time_constant"),
+        )

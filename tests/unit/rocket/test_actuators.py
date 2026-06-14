@@ -326,6 +326,89 @@ class TestThrustVectorActuator2D:
         actuator.y.actuator_output = -15.0
         assert actuator.gimbal_angle_y == -10.0
 
+    def test_to_dict(self):
+        """Test to_dict serialization for ThrustVectorActuator2D."""
+        actuator = ThrustVectorActuator2D(
+            name="Custom 2D TVC",
+            demand_rate=50,
+            max_gimbal_angle=8.0,
+            gimbal_rate_limit=3.0,
+            clamp=True,
+            initial_gimbal_angle=2.0,
+            gimbal_time_constant=0.1,
+        )
+        data = actuator.to_dict()
+        assert data["name"] == "Custom 2D TVC"
+        assert data["demand_rate"] == 50
+        assert data["max_gimbal_angle"] == 8.0
+        assert data["gimbal_rate_limit"] == 3.0
+        assert data["clamp"] is True
+        assert data["initial_gimbal_angle"] == 2.0
+        assert data["gimbal_time_constant"] == 0.1
+
+    def test_from_dict(self):
+        """Test from_dict deserialization for ThrustVectorActuator2D."""
+        data = {
+            "name": "Test 2D TVC",
+            "demand_rate": 75,
+            "max_gimbal_angle": 12.0,
+            "gimbal_rate_limit": 4.0,
+            "clamp": False,
+            "initial_gimbal_angle": 3.0,
+            "gimbal_time_constant": 0.2,
+        }
+        actuator = ThrustVectorActuator2D.from_dict(data)
+        assert actuator.x.name == "Test 2D TVC X-axis"
+        assert actuator.y.name == "Test 2D TVC Y-axis"
+        assert actuator.x.demand_rate == 75
+        assert actuator.y.demand_rate == 75
+        assert actuator.gimbal_angles == (3.0, 3.0)
+        assert actuator.x.actuator_range == (-12.0, 12.0)
+
+    def test_from_dict_roundtrip(self):
+        """Test roundtrip serialization/deserialization."""
+        original = ThrustVectorActuator2D(
+            name="Roundtrip Test",
+            demand_rate=60,
+            max_gimbal_angle=9.0,
+            gimbal_rate_limit=2.5,
+            clamp=True,
+            initial_gimbal_angle=1.5,
+            gimbal_time_constant=0.15,
+        )
+        data = original.to_dict()
+        reconstructed = ThrustVectorActuator2D.from_dict(data)
+        assert reconstructed.x.name == original.x.name
+        assert reconstructed.x.demand_rate == original.x.demand_rate
+        assert reconstructed.gimbal_angles == original.gimbal_angles
+
+    def test_info_methods(self):
+        """Test info and all_info methods for ThrustVectorActuator2D."""
+        actuator = ThrustVectorActuator2D(
+            name="Test 2D TVC",
+            max_gimbal_angle=10.0,
+            initial_gimbal_angle=2.0,
+        )
+        # These should not raise exceptions
+        actuator.info()
+        actuator.all_info()
+
+    def test_info_methods_with_custom_parameters(self):
+        """Test info methods with custom gimbal angles."""
+        actuator = ThrustVectorActuator2D(
+            name="Custom Info Test",
+            demand_rate=200,
+            max_gimbal_angle=15.0,
+            gimbal_rate_limit=10.0,
+            initial_gimbal_angle=5.0,
+            gimbal_time_constant=0.05,
+        )
+        actuator.gimbal_angle_x = 7.5
+        actuator.gimbal_angle_y = -3.2
+        # These should not raise exceptions and reflect current state
+        actuator.info()
+        actuator.all_info()
+
 
 class TestActuatorDynamics:
     """Test suite for actuator dynamics (rate limiting, time constants)."""
