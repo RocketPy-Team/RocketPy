@@ -2649,12 +2649,9 @@ class Flight:
         if hasattr(self.rocket, "roll_control"):
             M3 += self.rocket.roll_control.roll_torque
 
-        # Calculate weight with buoyancy: F_net = -total_mass * g + rho * V * g
-        gravity_accel = self.env.gravity.get_value_opt(z)
-        net_gravitational_force = (
-            -total_mass * gravity_accel + rho * self.rocket.volume * gravity_accel
+        weight_in_body_frame = Kt @ Vector(
+            [0, 0, -total_mass * self.env.gravity.get_value_opt(z)]
         )
-        weight_in_body_frame = Kt @ Vector([0, 0, net_gravitational_force])
 
         T00 = total_mass * r_CM
         T03 = 2 * total_mass_dot * (r_NOZ - r_CM) - 2 * total_mass * r_CM_dot
