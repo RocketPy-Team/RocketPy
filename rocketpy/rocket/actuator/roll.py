@@ -45,7 +45,7 @@ class RollActuator(Actuator):
         initial_roll_torque=0.0,
         roll_torque_time_constant=None,
     ):
-        """Initializes the RollControl class.
+        """Initializes the RollActuator class.
 
         Parameters
         ----------
