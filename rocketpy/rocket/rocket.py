@@ -1950,7 +1950,7 @@ class Rocket:
         """
         if hasattr(self, "thrust_vector_control"):
             # pylint: disable=access-member-before-definition
-            print(
+            warnings.warn(
                 "Only one thrust_vector_control per rocket is currently supported. "
                 + "Overwriting previous thrust_vector_control and controllers."
             )
@@ -2052,7 +2052,7 @@ class Rocket:
             If True, the simulation will clamp roll torque to the range
             [-max_roll_torque, max_roll_torque]. If False, a warning is
             issued when roll torque exceeds the range. Default is True.
-        Initial_roll_torque : int, float
+        initial_roll_torque : int, float
             Initial roll torque in N·m. Default is 0.0.
         roll_torque_time_constant : float, optional
             Time constant for the roll torque dynamics in seconds. Default is None, no dynamics are applied.
@@ -2082,7 +2082,7 @@ class Rocket:
         """
         if hasattr(self, "roll_control"):
             # pylint: disable=access-member-before-definition
-            print(
+            warnings.warn(
                 "Only one roll control per rocket is currently supported. "
                 + "Overwriting previous roll control and controllers."
             )
@@ -2120,7 +2120,7 @@ class Rocket:
         controller_function,
         sampling_rate,
         throttle_range=(0, 1),
-        throttle_rate_limit=0,
+        throttle_rate_limit=None,
         clamp=True,
         initial_throttle=1.0,
         throttle_time_constant=None,
@@ -2207,14 +2207,14 @@ class Rocket:
 
         Returns
         -------
-        throttle_control : ThrottleControl
-            ThrottleControl object created.
+        throttle_control : ThrottleActuator
+            ThrottleActuator object created.
         controller : Controller, optional
             Controller object created (only if return_controller is True).
         """
 
         if hasattr(self, "throttle_control"):
-            print(
+            warnings.warn(
                 "Only one throttle control per rocket is currently supported. "
                 + "Overwriting previous throttle control and controllers."
             )
