@@ -106,14 +106,14 @@ class TestThrottleActuator:
         assert actuator.name == "Throttle Control"
         assert actuator.demand_rate == 100
         assert actuator.actuator_range == (0, 1)
-        assert actuator.throttle == 0.0
+        assert actuator.throttle == 1.0
 
     def test_initialization_custom(self):
         """Test ThrottleActuator initialization with custom parameters."""
         actuator = ThrottleActuator(
             name="Custom Throttle",
             demand_rate=50,
-            max_throttle=0.8,
+            throttle_range=(0, 0.8),
             throttle_rate_limit=0.1,
             initial_throttle=0.5,
         )
@@ -123,13 +123,13 @@ class TestThrottleActuator:
 
     def test_throttle_property(self):
         """Test throttle getter and setter."""
-        actuator = ThrottleActuator(max_throttle=1.0)
+        actuator = ThrottleActuator(throttle_range=(0, 1.0))
         actuator.throttle = 0.5
         assert actuator.throttle == 0.5
 
     def test_throttle_clamping(self):
         """Test throttle clamping to range."""
-        actuator = ThrottleActuator(max_throttle=1.0, clamp=True)
+        actuator = ThrottleActuator(throttle_range=(0, 1.0), clamp=True)
         actuator.actuator_output = 1.5
         assert actuator.throttle == 1.0
         actuator.actuator_output = -0.5
@@ -139,13 +139,13 @@ class TestThrottleActuator:
         """Test to_dict serialization."""
         actuator = ThrottleActuator(
             name="Test Throttle",
-            max_throttle=0.8,
+            throttle_range=(0, 0.8),
             throttle_rate_limit=0.1,
             initial_throttle=0.3,
         )
         data = actuator.to_dict()
         assert data["name"] == "Test Throttle"
-        assert data["max_throttle"] == 0.8
+        assert data["throttle_range"] == (0, 0.8)
         assert data["throttle_rate_limit"] == 0.1
         assert data["initial_throttle"] == 0.3
 
@@ -154,7 +154,7 @@ class TestThrottleActuator:
         data = {
             "name": "Test Throttle",
             "demand_rate": 50,
-            "max_throttle": 0.8,
+            "throttle_range": (0, 0.8),
             "throttle_rate_limit": 0.1,
             "clamp": True,
             "initial_throttle": 0.3,
@@ -355,9 +355,10 @@ class TestActuatorDynamics:
     def test_time_constant_iir_filter(self):
         """Test IIR filter behavior with time constant."""
         actuator = ThrottleActuator(
-            max_throttle=1.0,
+            throttle_range=(0, 1.0),
             demand_rate=100,
             throttle_time_constant=0.1,
+            initial_throttle=0.0,
         )
         # With time constant, output should be filtered
         # alpha = Ts / (tau + Ts) = 0.01 / (0.1 + 0.01) ≈ 0.0909
