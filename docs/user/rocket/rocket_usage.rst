@@ -359,7 +359,7 @@ arguments described in :ref:`eventusage`, and includes (among others):
   components, so ``state_dot[5]`` is the vertical acceleration.
 - ``pressure`` (float): current atmospheric pressure in Pa at the rocket's
   altitude.
-- ``height_above_ground_level`` (float): height above ground level in meters.
+- ``height_agl`` (float): height above ground level in meters.
 - ``step_size`` (float, optional): most recent solver step size in seconds.
 
 **Simulation objects:**
@@ -397,7 +397,7 @@ available values. For example, you can use the acceleration components from
     def main_trigger(**kwargs):
         vz = kwargs["state"][5]  # vertical velocity
         az = kwargs["state_dot"][5]  # vertical acceleration
-        h = kwargs["height_above_ground_level"]
+        h = kwargs["height_agl"]
         time = kwargs["time"]
 
         # activate main when descending (vz < 0) and decelerating (az > 0),
@@ -424,7 +424,7 @@ reading them from ``**kwargs``:
 
 .. note::
     The legacy positional ``p`` and ``h`` carry the parachute noise signal,
-    whereas the ``pressure`` and ``height_above_ground_level`` keyword arguments
+    whereas the ``pressure`` and ``height_agl`` keyword arguments
     are the clean, noise-free values. For of pressure/height signals with noise,
     use Sensor objects instead.
 

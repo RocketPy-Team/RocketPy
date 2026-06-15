@@ -1,3 +1,5 @@
+.. _airbrakes:
+
 Air Brakes
 ==========
 
@@ -175,7 +177,7 @@ Lets define the controller function:
         environment = kwargs["environment"]
         air_brakes = kwargs["air_brakes"]
         altitude_ASL = state[2]
-        altitude_AGL = kwargs["height_above_ground_level"]
+        altitude_AGL = kwargs["height_agl"]
         vx, vy, vz = state[3], state[4], state[5]
 
         # Get winds in x and y directions
@@ -360,6 +362,7 @@ controller function. If you want to disable this feature, set ``clamp`` to
         initial_observed_variables=[0, 0, 0],
         override_rocket_drag=False,
         name="Air Brakes",
+        controller_needs=["state_history"],
     )
 
     air_brakes.all_info()

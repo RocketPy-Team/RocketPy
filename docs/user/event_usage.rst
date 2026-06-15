@@ -108,7 +108,7 @@ The following parameters are always or conditionally available:
   where ``(x, y, z)`` is position, ``(vx, vy, vz)`` is velocity,
   ``(e0, e1, e2, e3)`` are quaternion orientation components, and
   ``(wx, wy, wz)`` is angular velocity.
-- ``height_above_ground_level`` (float): Height of the rocket above ground level
+- ``height_agl`` (float): Height of the rocket above ground level
   in meters, computed as ``state[2] - env.elevation``. Always present.
 - ``state_dot`` (list of float, **conditional**): The time derivative of state,
   ``[vx, vy, vz, ax, ay, az, e0_dot, e1_dot, e2_dot, e3_dot, wx_dot, wy_dot, wz_dot]``.
@@ -383,7 +383,7 @@ practical examples and demonstrate proper activation.
     # Disable via custom condition
     def disable_above_altitude(**kwargs):
         # return True to disable when altitude above 1000m AGL
-        return kwargs["height_above_ground_level"] > 700.0
+        return kwargs["height_agl"] > 700.0
 
     altitude_gated = Event(
         callback=my_callback,
@@ -460,7 +460,7 @@ practical examples and demonstrate proper activation.
 
     # Re-enable via custom condition
     def enable_above_altitude(**kwargs):
-        return kwargs["height_above_ground_level"] > 500.0
+        return kwargs["height_agl"] > 500.0
 
     altitude_enabled = Event(
         callback=my_callback,
@@ -522,7 +522,7 @@ practical examples and demonstrate proper activation.
   .. important::
     Exact-time functions must derive their root quantity directly from the 
     interpolated ``state`` argument. Do not use derived kwargs like
-    ``height_above_ground_level``. The root solver can only refine roots
+    ``height_agl``. The root solver can only refine roots
     based on values present in the interpolated state.
 
   **exact_time_config** is a dictionary specifying which solver to use and its 
@@ -595,7 +595,7 @@ practical examples and demonstrate proper activation.
 
     Exact-time functions must compute their crossing value from the interpolated
     ``state`` argument. Do not rely on derived kwargs such as
-    ``height_above_ground_level`` inside ``exact_time_function`` because those
+    ``height_agl`` inside ``exact_time_function`` because those
     values are evaluated at the sampled step, not at the refined root time.
 
     Configure the exact-time solver only if you have specific requirements 

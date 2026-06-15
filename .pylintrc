@@ -356,7 +356,7 @@ max-public-methods=25
 max-returns=25
 
 # Maximum number of statements in function / method body.
-max-statements=25
+max-statements=50
 
 # Minimum number of public methods for a class (see R0903).
 min-public-methods=0
@@ -481,6 +481,7 @@ disable=raw-checker-failed,
         use-symbolic-message-instead,
         use-implicit-booleaness-not-comparison-to-string,
         use-implicit-booleaness-not-comparison-to-zero,
+        use-implicit-booleaness-not-comparison, # explicit == [] is clearer, esp. in tests
         no-else-return, # this is a style preference, we don't need to follow it
         inconsistent-return-statements,
         unspecified-encoding, # this is not a relevant issue.

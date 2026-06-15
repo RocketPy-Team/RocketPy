@@ -77,7 +77,7 @@ class _Controller:
             ``flight`` (:class:`rocketpy.Flight`),
             ``phase`` (current flight phase),
             ``step_size`` (float, s),
-            ``height_above_ground_level`` (float, m),
+            ``height_agl`` (float, m),
             ``event`` (:class:`Event` wrapping this controller),
             ``sampling_rate`` (float, Hz),
             ``controller`` (this :class:`_Controller` instance),
@@ -142,7 +142,7 @@ class _Controller:
         to_event : Builds the :class:`Event` that wraps this controller.
         :ref:`eventusage` : Description of the callback ``**kwargs``.
         """
-        # TODO: rethingk controllers
+        # TODO: rethink controllers
         self.controller_needs = controller_needs
         self.controller_function = self.__evaluate_controller_function(
             controller_function
@@ -266,7 +266,9 @@ class _Controller:
             disable_on=self.disable_on,
             enable_on=self.enable_on,
             priority=3,
-            needs=self.controller_needs if self.controller_needs is not None else frozenset(),
+            needs=self.controller_needs
+            if self.controller_needs is not None
+            else frozenset(),
         )
 
     @property
@@ -332,7 +334,7 @@ class _Controller:
             "state_dot",
             "sensors_by_name",
             "pressure",
-            "height_above_ground_level",
+            "height_agl",
             "callback_log",
             "triggered_times",
             "commands",

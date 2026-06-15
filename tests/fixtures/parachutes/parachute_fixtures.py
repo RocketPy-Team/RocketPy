@@ -30,8 +30,10 @@ def calisto_main_parachute_trigger():
         The trigger for the main parachute of the Calisto rocket.
     """
 
-    def main_trigger(p, h, y):  # pylint: disable=unused-argument
+    def main_trigger(**kwargs):  # pylint: disable=unused-argument
         # activate main when vertical velocity is <0 and altitude is below 800m
+        y = kwargs["state"]
+        h = kwargs["height_agl"]
         return y[5] < 0 and h < 800
 
     return main_trigger

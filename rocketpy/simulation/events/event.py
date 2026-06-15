@@ -3,11 +3,12 @@ import warnings
 from copy import deepcopy
 from numbers import Real
 
+from ..._logging import logger
 from .commands import Commands
 from .exact_time_solvers import (
+    solve_exact_time_brentq,
     solve_exact_time_cubic_hermite,
     solve_exact_time_linear,
-    solve_exact_time_brentq,
 )
 
 NEEDS_KEYS = frozenset({"state_dot", "pressure", "state_history"})
@@ -25,7 +26,7 @@ PRESETS = {
 
 class Event:
     """Event helper with trigger/callback execution and exact-time support.
-    
+
     An ``Event`` is the main way RocketPy reacts to conditions during a
     flight. It pairs a ``trigger`` predicate with a ``callback`` action: at
     each evaluation the trigger is checked and, when it returns ``True``,
@@ -38,7 +39,7 @@ class Event:
     See :ref:`eventusage` for a full guide with runnable examples.
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         callback,
         trigger=None,
@@ -77,7 +78,7 @@ class Event:
             ``flight`` (:class:`rocketpy.Flight`),
             ``phase`` (current flight phase),
             ``step_size`` (float, s),
-            ``height_above_ground_level`` (float, m),
+            ``height_agl`` (float, m),
             ``event`` (this :class:`Event` instance),
             ``sampling_rate`` (float, Hz or ``None``).
             The following keys are only injected when declared via ``needs``:
@@ -121,7 +122,7 @@ class Event:
             kwargs. The function must return a scalar whose root (zero crossing,
             or the configured ``target``) defines the event instant, and it must
             derive that quantity directly from ``state`` rather than from derived
-            kwargs such as ``height_above_ground_level``. Only supported for
+            kwargs such as ``height_agl``. Only supported for
             continuous events (``sampling_rate=None``).
         exact_time_config : dict, optional
             Configuration for the exact-time solver. The ``"solver"`` key selects
@@ -176,8 +177,8 @@ class Event:
             Declares which expensive simulation values the event's trigger and
             callback actually access. Valid keys are ``'state_dot'``,
             ``'pressure'``, and ``'state_history'``. The default``None`` is
-            treated as an empty set and no expensive kwargs are computed. 
-            Supply a list with the keys this event accesses so the runtime 
+            treated as an empty set and no expensive kwargs are computed.
+            Supply a list with the keys this event accesses so the runtime
             computes them.
 
         See Also
@@ -191,7 +192,7 @@ class Event:
         if invalid:
             raise ValueError(
                 f"Unknown needs keys: {invalid!r}. Valid keys: {sorted(NEEDS_KEYS)!r}. "
-                "Note: 'height_above_ground_level' is always computed and does "
+                "Note: 'height_agl' is always computed and does "
                 "not need to be declared."
             )
         self.needs = needs_set
@@ -485,6 +486,14 @@ class Event:
                     "skip_reason": skip_reason,
                 }
             )
+        logger.debug(
+            "Event '%s' at t=%s: triggered=%s, callback_executed=%s, skip_reason=%s",
+            self.name,
+            kwargs.get("time"),
+            triggered,
+            callback_executed,
+            skip_reason,
+        )
 
     def __validate_trigger(self, trigger):
         if isinstance(trigger, str):

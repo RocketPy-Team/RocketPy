@@ -473,15 +473,11 @@ def inverted_haversine_array(lat0, lon0, distance, bearing, earth_radius=6.3781e
 
     lat1_rad = np.arcsin(
         np.sin(lat0_rad) * np.cos(distance / earth_radius)
-        + np.cos(lat0_rad)
-        * np.sin(distance / earth_radius)
-        * np.cos(bearing_rad)
+        + np.cos(lat0_rad) * np.sin(distance / earth_radius) * np.cos(bearing_rad)
     )
 
     lon1_rad = lon0_rad + np.arctan2(
-        np.sin(bearing_rad)
-        * np.sin(distance / earth_radius)
-        * np.cos(lat0_rad),
+        np.sin(bearing_rad) * np.sin(distance / earth_radius) * np.cos(lat0_rad),
         np.cos(distance / earth_radius) - np.sin(lat0_rad) * np.sin(lat1_rad),
     )
 
@@ -856,7 +852,7 @@ def load_monte_carlo_data(
     output_filename,
     parameters_list,
     target_variables_list,
-):  # pylint: disable=too-many-statements
+):
     """Reads MonteCarlo simulation data file and builds parameters and flight
     variables matrices
 

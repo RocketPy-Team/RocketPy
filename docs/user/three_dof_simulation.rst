@@ -262,14 +262,11 @@ The following plots are available for 3-DOF simulations:
 Export Data
 ^^^^^^^^^^^
 
-Export trajectory data to CSV:
+Export trajectory data to CSV using the flight's ``exports`` attribute:
 
 .. jupyter-execute::
 
-    from rocketpy.simulation import FlightDataExporter
-
-    exporter = FlightDataExporter(flight)
-    exporter.export_data(
+    flight.exports.data(
         "trajectory_3dof.csv",
         "x",
         "y",

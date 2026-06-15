@@ -1,5 +1,6 @@
 from ..events.event import Event
 
+
 def out_of_rail_trigger(**kwargs):
     """Check whether the rocket has left the launch rail.
 
@@ -46,7 +47,6 @@ def out_of_rail_callback(**kwargs):
 
     event.commands.set_derivative(flight.u_dot_generalized)
     event.commands.start_flight_phase("free_flight")
-
 
 
 def out_of_rail_exact_time_function(state, **kwargs):

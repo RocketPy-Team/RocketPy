@@ -2,6 +2,7 @@ import warnings
 
 from ..events import Event
 
+
 def apply_event_commands(
     flight,
     event,
@@ -86,7 +87,6 @@ def apply_rollback_command(flight, time, state):
     flight.t = time
     flight.y_sol = state
     flight.solution[-1] = [time, *state]
-    return None
 
 
 def apply_disable_commands(_, event_results, node_index, event, phase, time):
@@ -210,14 +210,7 @@ def apply_exact_time_result(flight, event_results):
         This function updates ``flight.t``, ``flight.y_sol``, and the last stored
         solution row in place when an exact-time result is available.
     """
-    # TODO: CONTINUOS EVENTS WITH CHANGE DUNAMICS SHOULD NOT JUST INSERT INTO
-    # SOLUTION. THEY HAVE TO ROLLBACK ALSO. HOWEVER, THIS IS NOT A VALID USE
-    # CASE I BELIVE. SO IF CONTINUOUS EVENTS WITH DYNAMICS CHANGES ARE NEEDED,
-    # THE EVENT SHOULD NOT ACCEPT EXACT TIME FUNCTION.
-    if (
-        event_results.exact_time is not None
-        and event_results.exact_state is not None
-    ):
+    if event_results.exact_time is not None and event_results.exact_state is not None:
         t_exact = event_results.exact_time
         y_exact = event_results.exact_state
 
@@ -231,7 +224,7 @@ def apply_exact_time_result(flight, event_results):
             # stored times to avoid duplicate timestamps.
             if t_prev < t_exact < t_last:
                 flight.solution.insert(-1, [t_exact, *y_exact])
-            elif t_exact == t_last or t_exact == t_prev:
+            elif t_exact in (t_last, t_prev):
                 # exact time matches previous or last point: nothing to insert
                 pass
             else:
@@ -273,10 +266,7 @@ def apply_new_phase_or_derivative(
     None
         This function mutates the flight phase list and time-node state in place.
     """
-    if (
-        event_results.new_flight_phase is None
-        and event_results.new_derivative is None
-    ):
+    if event_results.new_flight_phase is None and event_results.new_derivative is None:
         return
 
     when_time = time
@@ -284,7 +274,8 @@ def apply_new_phase_or_derivative(
     # Check if there was exact time point insertion in solution for this event
     # If so, remove the point after the exact time point, so the solution vector
     # and the new phase start time are consistent
-    if (event_results.exact_time is not None
+    if (
+        event_results.exact_time is not None
         and event_results.exact_state is not None
         and flight.solution[-1][0] > when_time
     ):
@@ -338,7 +329,8 @@ def apply_termination(flight, event_results, phase, phase_index, node_index, tim
 
     when_time = time
 
-    if (event_results.exact_time is not None
+    if (
+        event_results.exact_time is not None
         and event_results.exact_state is not None
         and flight.solution[-1][0] > when_time
     ):
@@ -468,5 +460,3 @@ def _safe_enable_time_nodes_event(phase, node_index, event, time):
             ),
             UserWarning,
         )
-
-

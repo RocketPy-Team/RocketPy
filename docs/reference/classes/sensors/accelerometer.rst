@@ -1,5 +1,5 @@
 Accelerometer Class
 -------------------
 
-.. autoclass:: rocketpy.sensors.Accelerometer
+.. autoclass:: rocketpy.Accelerometer
     :members:
