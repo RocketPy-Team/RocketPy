@@ -2869,7 +2869,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             i += 1
 
     @staticmethod
-    def FlightPhases(*_, **_):  # pylint: disable=invalid-name
+    def FlightPhases(*_args, **_kwargs):  # pylint: disable=invalid-name
         warnings.warn(
             "FlightPhases is deprecated and will be removed in v1.13. "
             "Use _FlightPhases class directly.",
@@ -2877,7 +2877,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         )
 
     @staticmethod
-    def FlightPhase(*_, **_):  # pylint: disable=invalid-name
+    def FlightPhase(*_args, **_kwargs):  # pylint: disable=invalid-name
         warnings.warn(
             "FlightPhase is deprecated and will be removed in v1.13. "
             "Use the _FlightPhase class directly.",
@@ -2885,7 +2885,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         )
 
     @staticmethod
-    def TimeNodes(*_, **_):  # pylint: disable=invalid-name
+    def TimeNodes(*_args, **_kwargs):  # pylint: disable=invalid-name
         warnings.warn(
             "TimeNodes is deprecated and will be removed in v1.13. "
             "Use _TimeNodes class directly.",
@@ -2893,7 +2893,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         )
 
     @staticmethod
-    def TimeNode(*_, **_):  # pylint: disable=invalid-name
+    def TimeNode(*_args, **_kwargs):  # pylint: disable=invalid-name
         warnings.warn(
             "TimeNode is deprecated and will be removed in v1.13. "
             "Use the _TimeNode class directly.",
