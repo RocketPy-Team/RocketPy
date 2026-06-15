@@ -26,7 +26,7 @@ def test_export_pressures_writes_csv_rows(flight_calisto_robust, tmp_path):
         Pytest fixture for temporary directories.
     """
     out = tmp_path / "pressures.csv"
-    FlightDataExporter(flight_calisto_robust).export_pressures(str(out), time_step=0.2)
+    FlightDataExporter(flight_calisto_robust).pressures(str(out), time_step=0.2)
     lines = out.read_text(encoding="utf-8").strip().splitlines()
     assert len(lines) > 5
     # Basic CSV shape "t, value" or "t, clean, noisy"
@@ -62,7 +62,7 @@ def test_export_sensor_data_writes_json(flight_calisto, tmp_path, monkeypatch):
     )
     out = tmp_path / "sensors.json"
 
-    FlightDataExporter(flight_calisto).export_sensor_data(str(out))
+    FlightDataExporter(flight_calisto).sensor_data(str(out))
 
     data = json.loads(out.read_text(encoding="utf-8"))
     assert data["DummySensor"] == [1.0, 2.0, 3.0]
@@ -83,7 +83,7 @@ def test_export_data_default_variables(flight_calisto, tmp_path):
         Pytest fixture for temporary directories.
     """
     file_name = tmp_path / "flight_data.csv"
-    FlightDataExporter(flight_calisto).export_data(str(file_name))
+    FlightDataExporter(flight_calisto).data(str(file_name))
 
     test_data = np.loadtxt(file_name, delimiter=",", skiprows=1)
 
@@ -128,7 +128,7 @@ def test_export_data_custom_variables_and_time_step(flight_calisto, tmp_path):
     file_name = tmp_path / "custom_flight_data.csv"
     time_step = 0.1
 
-    FlightDataExporter(flight_calisto).export_data(
+    FlightDataExporter(flight_calisto).data(
         str(file_name),
         "z",
         "vz",
@@ -168,7 +168,7 @@ def test_export_kml_trajectory(flight_calisto_robust, tmp_path):
         Pytest fixture for temporary directories.
     """
     file_name = tmp_path / "trajectory.kml"
-    FlightDataExporter(flight_calisto_robust).export_kml(
+    FlightDataExporter(flight_calisto_robust).kml(
         str(file_name), time_step=None, extrude=True, altitude_mode="absolute"
     )
 
@@ -212,9 +212,7 @@ def test_export_data_csv_column_names_no_leading_spaces(flight_calisto, tmp_path
         Pytest fixture for temporary directories.
     """
     file_name = tmp_path / "flight_data_columns.csv"
-    FlightDataExporter(flight_calisto).export_data(
-        str(file_name), "z", "vz", "altitude"
-    )
+    FlightDataExporter(flight_calisto).data(str(file_name), "z", "vz", "altitude")
 
     # Read the header line directly
     with open(file_name, "r") as f:

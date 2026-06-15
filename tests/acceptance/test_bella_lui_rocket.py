@@ -126,11 +126,11 @@ def test_bella_lui_rocket_data_asserts_acceptance():
     )
 
     # Parachute set-up
-    def drogue_trigger(p, h, y):
+    def drogue_trigger(**kwargs):
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate drogue when vz < 0 m/s.
-        return True if y[5] < 0 else False
+        return True if kwargs.get("state")[5] < 0 else False
 
     BellaLui.add_parachute(
         "Drogue",

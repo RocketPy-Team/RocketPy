@@ -82,6 +82,7 @@ def setup_rocket_with_given_static_margin(rocket, static_margin):
 
 # Tests
 
+
 def test_solution_time_is_monotonically_non_decreasing(flight_calisto_robust):
     """Test that solution timestamps never go backwards across all phase transitions.
 
@@ -523,49 +524,6 @@ def test_surface_wind(flight_calisto_custom_wind):
     atol = 1e-8
     assert pytest.approx(2.0, abs=atol) == test.frontal_surface_wind
     assert pytest.approx(-5.0, abs=atol) == test.lateral_surface_wind
-
-
-@pytest.mark.skip(reason="legacy tests")
-@pytest.mark.parametrize(
-    "rail_length, out_of_rail_time",
-    [
-        (0.52, 0.5180212542878443),
-        (5.2, 5.180378138072207),
-        (50.2, 50.00897551720473),
-        (100000, 100003.35594050681),
-    ],
-)
-def test_rail_length(calisto_robust, example_plain_env, rail_length, out_of_rail_time):
-    """Tests the rail length parameter of the Flight class. This test simply
-    simulate the flight using different rail lengths and checks if the expected
-    out of rail altitude is achieved. Four different rail lengths are
-    tested: 0.001, 1, 10, and 100000 meters. This provides a good test range.
-    Currently, if a rail length of 0 is used, the simulation will fail in a
-    ZeroDivisionError, which is not being tested here.
-
-    Parameters
-    ----------
-    calisto_robust : rocketpy.Rocket
-        The rocket to be simulated. In this case, the fixture rocket is used.
-        See the conftest.py file for more information.
-    example_plain_env : rocketpy.Environment
-        The environment to be simulated. In this case, the fixture environment
-        is used. See the conftest.py file for more information.
-    rail_length : float, int
-        The length of the rail in meters. It must be a positive number. See the
-        Flight class documentation for more information.
-    out_of_rail_time : float, int
-        The expected time at which the rocket leaves the rail in seconds.
-    """
-    test_flight = Flight(
-        rocket=calisto_robust,
-        environment=example_plain_env,
-        rail_length=rail_length,
-        inclination=85,
-        heading=0,
-        terminate_on_apogee=True,
-    )
-    assert abs(test_flight.z(test_flight.out_of_rail_time) - out_of_rail_time) < 1e-6
 
 
 @patch("matplotlib.pyplot.show")

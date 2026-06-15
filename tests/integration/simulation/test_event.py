@@ -5,8 +5,7 @@ import numpy as np
 import pytest
 
 from rocketpy import Environment, Event, Flight, Rocket, SolidMotor
-from rocketpy.simulation.events import Commands
-import rocketpy.simulation.events.exact_time_solvers as exact_time_solvers
+from rocketpy.simulation.events import Commands, exact_time_solvers
 from rocketpy.simulation.events.event_builders import (
     apogee_callback,
     apogee_event_exact_time_function,
@@ -223,7 +222,9 @@ def test_exact_time_brentq_wraps_runtime_errors_from_brentq(monkeypatch):
         solve_exact_time_brentq(
             previous_state=previous_state,
             current_state=current_state,
-            interpolator=lambda time: np.array([time, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            interpolator=lambda time: np.array(
+                [time, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+            ),
             event_function=lambda state, **_kwargs: state[0] - 0.5,
             no_root_error_message="no root",
         )
@@ -280,7 +281,6 @@ def test_commands_api_records_expected_payloads():
 
     commands = Commands()
     event = SimpleNamespace(name="other")
-    controller = SimpleNamespace(name="controller")
 
     commands.enable()
     commands.disable()
@@ -384,11 +384,21 @@ def test_core_event_builders_update_flight_state_and_commands():
     assert flight.impact_velocity == pytest.approx(-4.0)
     assert impact_event.commands._terminate is True
 
-    assert out_of_rail_exact_time_function(out_of_rail_state[1:], flight=flight) == pytest.approx(0.0)
-    assert out_of_rail_exact_time_derivative(out_of_rail_state[1:], flight=flight) == pytest.approx(0.0)
-    assert apogee_event_exact_time_function(_sample_state(1.0, -1.0)[1:]) == pytest.approx(-1.0)
-    assert impact_event_exact_time_function(impact_state[1:], flight=flight) == pytest.approx(-4.0)
-    assert impact_event_exact_time_derivative(impact_state[1:], flight=flight) == pytest.approx(-4.0)
+    assert out_of_rail_exact_time_function(
+        out_of_rail_state[1:], flight=flight
+    ) == pytest.approx(0.0)
+    assert out_of_rail_exact_time_derivative(
+        out_of_rail_state[1:], flight=flight
+    ) == pytest.approx(0.0)
+    assert apogee_event_exact_time_function(
+        _sample_state(1.0, -1.0)[1:]
+    ) == pytest.approx(-1.0)
+    assert impact_event_exact_time_function(
+        impact_state[1:], flight=flight
+    ) == pytest.approx(-4.0)
+    assert impact_event_exact_time_derivative(
+        impact_state[1:], flight=flight
+    ) == pytest.approx(-4.0)
     assert impact_step_end_function(step_size=0.25) == pytest.approx(0.25)
 
 
@@ -417,10 +427,10 @@ def test_flight_with_disable_and_enable_examples_from_docs():
         return {"time": kwargs["time"]}
 
     def disable_above_altitude(**kwargs):
-        return kwargs["height_above_ground_level"] > 700.0
+        return kwargs["height_agl"] > 700.0
 
     def enable_above_altitude(**kwargs):
-        return kwargs["height_above_ground_level"] > 500.0
+        return kwargs["height_agl"] > 500.0
 
     time_gated = Event(
         callback=my_callback,

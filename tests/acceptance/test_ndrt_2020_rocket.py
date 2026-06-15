@@ -143,17 +143,21 @@ def test_ndrt_2020_rocket_data_asserts_acceptance(env_file):
     )
 
     # Parachute set-up
-    def drogue_trigger(p, h, y):  # pylint: disable=unused-argument
+    def drogue_trigger(**kwargs):  # pylint: disable=unused-argument
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate drogue when vz < 0 m/s.
-        return True if y[5] < 0 else False
+        return True if kwargs.get("state")[5] < 0 else False
 
-    def main_trigger(p, h, y):  # pylint: disable=unused-argument
+    def main_trigger(**kwargs):  # pylint: disable=unused-argument
         # p = pressure
         # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
         # activate main when vz < 0 m/s and z < 167.64 m (AGL) or 550 ft (AGL)
-        return True if y[5] < 0 and h < 167.64 else False
+        return (
+            True
+            if kwargs.get("state")[5] < 0 and kwargs.get("height_agl") < 167.64
+            else False
+        )
 
     NDRT2020.add_parachute(
         "Drogue",

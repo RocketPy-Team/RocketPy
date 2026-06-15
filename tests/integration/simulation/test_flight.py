@@ -503,10 +503,10 @@ def test_air_brakes_with_environment_parameter(
     controllers = [c for c in calisto_robust._controllers if "AirBrakes" in c.name]
     assert len(controllers) > 0
     controller = controllers[0]
-    assert len(controller.observed_variables) > 0
+    assert len(controller.log) > 0
 
     # Verify observed variables contain expected data (time, deployment_level, mach_number)
-    for observed in controller.observed_variables:
+    for observed in controller.log:
         if observed is not None:
             assert len(observed) == 3
             time, deployment_level, mach_number = observed
@@ -665,56 +665,112 @@ def test_7_parameter_controller_with_sensors(calisto_robust, example_plain_env):
     assert flight.apogee > 0
 
 
-def test_invalid_controller_parameter_count(calisto_robust):
-    """Test that controllers with invalid parameter counts raise ValueError.
+@pytest.mark.parametrize("param_count", [5, 9])
+def test_invalid_controller_parameter_count(calisto_robust, param_count):
+    """Test that positional controllers with an invalid parameter count raise
+    ValueError. Only 6, 7 or 8 positional arguments are supported.
 
     Parameters
     ----------
     calisto_robust : rocketpy.Rocket
         Calisto rocket without air brakes
+    param_count : int
+        Number of positional parameters of the invalid controller function.
+    """
+    arg_names = [
+        "time",
+        "sampling_rate",
+        "state",
+        "state_history",
+        "observed_variables",
+        "air_brakes",
+        "sensors",
+        "environment",
+        "extra_param",
+    ][:param_count]
+    namespace = {}
+    exec(  # pylint: disable=exec-used
+        f"def invalid_controller({', '.join(arg_names)}): return None",
+        namespace,
+    )
+    invalid_controller = namespace["invalid_controller"]
+
+    calisto_robust.parachutes = []
+
+    with pytest.raises(ValueError, match="must have 6, 7, or 8"):
+        calisto_robust.add_air_brakes(
+            drag_coefficient_curve="data/rockets/calisto/air_brakes_cd.csv",
+            controller_function=invalid_controller,
+            sampling_rate=10,
+            clamp=True,
+        )
+
+
+@pytest.mark.parametrize("param_count", [6, 7, 8])
+def test_deprecated_positional_controller(calisto_robust, param_count):
+    """Test that positional controllers with a valid parameter count (6, 7 or
+    8) are accepted but emit a DeprecationWarning.
+
+    Parameters
+    ----------
+    calisto_robust : rocketpy.Rocket
+        Calisto rocket without air brakes
+    param_count : int
+        Number of positional parameters of the controller function.
+    """
+    arg_names = [
+        "time",
+        "sampling_rate",
+        "state",
+        "state_history",
+        "observed_variables",
+        "air_brakes",
+        "sensors",
+        "environment",
+    ][:param_count]
+    namespace = {}
+    exec(  # pylint: disable=exec-used
+        f"def positional_controller({', '.join(arg_names)}): return None",
+        namespace,
+    )
+    positional_controller = namespace["positional_controller"]
+
+    calisto_robust.parachutes = []
+
+    with pytest.warns(DeprecationWarning, match="positional arguments is"):
+        calisto_robust.add_air_brakes(
+            drag_coefficient_curve="data/rockets/calisto/air_brakes_cd.csv",
+            controller_function=positional_controller,
+            sampling_rate=10,
+            clamp=True,
+        )
+
+
+def test_kwargs_controller_no_warning(calisto_robust, recwarn):
+    """Test that a controller using the recommended ``**kwargs`` signature is
+    accepted without raising or emitting a deprecation warning.
+
+    Parameters
+    ----------
+    calisto_robust : rocketpy.Rocket
+        Calisto rocket without air brakes
+    recwarn : pytest.WarningsRecorder
+        Fixture that records warnings raised during the test.
     """
 
-    # Define controller with wrong number of parameters (5)
-    def invalid_controller_5_params(  # pylint: disable=unused-argument
-        time, sampling_rate, state, state_history, observed_variables
-    ):
-        """Invalid controller with only 5 parameters."""
-        return None
-
-    # Define controller with wrong number of parameters (9)
-    def invalid_controller_9_params(  # pylint: disable=unused-argument
-        time,
-        sampling_rate,
-        state,
-        state_history,
-        observed_variables,
-        air_brakes,
-        sensors,
-        environment,
-        extra_param,
-    ):
-        """Invalid controller with 9 parameters."""
+    def kwargs_controller(**kwargs):  # pylint: disable=unused-argument
         return None
 
     calisto_robust.parachutes = []
 
-    # Test that 5-parameter controller raises ValueError
-    with pytest.raises(ValueError, match="must have 6, 7, or 8 arguments"):
-        calisto_robust.add_air_brakes(
-            drag_coefficient_curve="data/rockets/calisto/air_brakes_cd.csv",
-            controller_function=invalid_controller_5_params,
-            sampling_rate=10,
-            clamp=True,
-        )
+    calisto_robust.add_air_brakes(
+        drag_coefficient_curve="data/rockets/calisto/air_brakes_cd.csv",
+        controller_function=kwargs_controller,
+        sampling_rate=10,
+        clamp=True,
+    )
 
-    # Test that 9-parameter controller raises ValueError
-    with pytest.raises(ValueError, match="must have 6, 7, or 8 arguments"):
-        calisto_robust.add_air_brakes(
-            drag_coefficient_curve="data/rockets/calisto/air_brakes_cd.csv",
-            controller_function=invalid_controller_9_params,
-            sampling_rate=10,
-            clamp=True,
-        )
+    assert not any(issubclass(w.category, DeprecationWarning) for w in recwarn.list)
 
 
 def make_controller_test_environment_access(methods_called):
@@ -832,7 +888,7 @@ def test_air_brakes_kwargs_controller(calisto_robust, example_plain_env):
         air_brakes = kwargs["air_brakes"]
         environment = kwargs["environment"]
 
-        altitude_agl = kwargs["height_above_ground_level"]
+        altitude_agl = kwargs["height_agl"]
         altitude_asl = state[2]
         vx, vy, vz = state[3], state[4], state[5]
 
@@ -864,6 +920,7 @@ def test_air_brakes_kwargs_controller(calisto_robust, example_plain_env):
         controller_function=controller_function,
         sampling_rate=10,
         clamp=True,
+        controller_needs=["state_history"],
     )
 
     flight = Flight(

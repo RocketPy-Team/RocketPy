@@ -158,6 +158,7 @@ def test_animate_propellant_mass(cesaroni_m1670):
     os.remove("cesaroni_m1670.gif")
 
 
+@pytest.mark.slow
 def test_animate_fluid_volume(example_mass_flow_rate_based_tank_seblm):
     """Test that animate_fluid_volume saves a .gif file correctly."""
 

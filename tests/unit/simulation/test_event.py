@@ -86,14 +86,20 @@ def test_initialization_sets_sampling_interval_and_gate_presets():
     assert event.time_overshootable is True
     assert event.disable_on(time=2.9) is False
     assert event.disable_on(time=3.0) is True
-    assert event.enable_on(
-        time=1.0,
-        rocket=SimpleNamespace(motor=SimpleNamespace(burn_out_time=2.0)),
-    ) is False
-    assert event.enable_on(
-        time=2.0,
-        rocket=SimpleNamespace(motor=SimpleNamespace(burn_out_time=2.0)),
-    ) is True
+    assert (
+        event.enable_on(
+            time=1.0,
+            rocket=SimpleNamespace(motor=SimpleNamespace(burn_out_time=2.0)),
+        )
+        is False
+    )
+    assert (
+        event.enable_on(
+            time=2.0,
+            rocket=SimpleNamespace(motor=SimpleNamespace(burn_out_time=2.0)),
+        )
+        is True
+    )
 
     continuous_event = Event(callback=_callback_record_kwargs)
     assert continuous_event.time_overshootable is False
@@ -115,10 +121,14 @@ def test_trigger_accepts_string_presets_and_numeric_thresholds():
         trigger=3.0,
     )
 
-    apogee_flight = SimpleNamespace(solution=[_sample_state(0.0, 1.0), _sample_state(1.0, -1.0)])
+    apogee_flight = SimpleNamespace(
+        solution=[_sample_state(0.0, 1.0), _sample_state(1.0, -1.0)]
+    )
     burnout_flight = SimpleNamespace(motor=SimpleNamespace(burn_out_time=2.0))
 
-    assert apogee_event.trigger(flight=apogee_flight, state=_sample_state(1.0, -1.0)[1:])
+    assert apogee_event.trigger(
+        flight=apogee_flight, state=_sample_state(1.0, -1.0)[1:]
+    )
     assert burnout_event.trigger(time=2.0, rocket=burnout_flight)
     assert time_event.trigger(time=3.0)
     assert time_event.trigger(time=2.9) is False
@@ -209,7 +219,10 @@ def test_exact_time_configuration_rejects_invalid_solver_and_sampling_mix():
     with pytest.raises(ValueError, match="Unknown disable_on or enable_on preset"):
         Event(callback=_callback_record_kwargs, disable_on="invalid")
 
-    with pytest.raises(TypeError, match="disable_on must be None, a string preset, a number, or a callable"):
+    with pytest.raises(
+        TypeError,
+        match="disable_on must be None, a string preset, a number, or a callable",
+    ):
         Event(callback=_callback_record_kwargs, disable_on=[])
 
     with pytest.raises(ValueError, match="Unknown exact-time solver"):
@@ -227,7 +240,10 @@ def test_exact_time_configuration_rejects_invalid_solver_and_sampling_mix():
             "derivative_function": lambda state, **kwargs: 0.0,
         },
     )
-    assert cubic_hermite_event.exact_time_solver.__name__ == "solve_exact_time_cubic_hermite"
+    assert (
+        cubic_hermite_event.exact_time_solver.__name__
+        == "solve_exact_time_cubic_hermite"
+    )
 
     with pytest.raises(ValueError, match="only supported for continuous hooks"):
         Event(
@@ -294,7 +310,9 @@ def test_call_supports_trigger_only_callback_only_and_disable_commands():
         flight=SimpleNamespace(solution=[]),
         phase=SimpleNamespace(derivative=lambda *_args, **_kwargs: np.zeros(13)),
         time=1.0,
-        state=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+        state=np.array(
+            [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        ),
     )
 
     assert trigger_only_result is True
@@ -306,7 +324,9 @@ def test_call_supports_trigger_only_callback_only_and_disable_commands():
         flight=SimpleNamespace(solution=[]),
         phase=SimpleNamespace(derivative=lambda *_args, **_kwargs: np.zeros(13)),
         time=3.0,
-        state=np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+        state=np.array(
+            [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        ),
     )
 
     assert callback_only_result is True
@@ -324,12 +344,15 @@ def test_call_returns_false_when_enable_gate_is_absent_or_raises():
         callback=_callback_record_kwargs,
         enabled=False,
     )
-    assert disabled_event(
-        flight=SimpleNamespace(solution=[]),
-        phase=SimpleNamespace(derivative=lambda *_args, **_kwargs: np.zeros(13)),
-        time=1.0,
-        state=np.zeros(13),
-    ) is False
+    assert (
+        disabled_event(
+            flight=SimpleNamespace(solution=[]),
+            phase=SimpleNamespace(derivative=lambda *_args, **_kwargs: np.zeros(13)),
+            time=1.0,
+            state=np.zeros(13),
+        )
+        is False
+    )
 
     gated_event = Event(
         callback=_callback_record_kwargs,
@@ -337,24 +360,32 @@ def test_call_returns_false_when_enable_gate_is_absent_or_raises():
         enable_on=_enable_on_raises,
     )
     with pytest.warns(UserWarning, match="Error evaluating enable_on"):
-        assert gated_event._call_enable_on(
-            time=1.0,
-            flight=SimpleNamespace(solution=[]),
-            phase=SimpleNamespace(derivative=lambda *_args, **_kwargs: np.zeros(13)),
-            state=np.zeros(13),
-        ) is False
+        assert (
+            gated_event._call_enable_on(
+                time=1.0,
+                flight=SimpleNamespace(solution=[]),
+                phase=SimpleNamespace(
+                    derivative=lambda *_args, **_kwargs: np.zeros(13)
+                ),
+                state=np.zeros(13),
+            )
+            is False
+        )
 
     enabled_gate_event = Event(
         callback=_callback_record_kwargs,
         enabled=False,
         enable_on=lambda **kwargs: True,
     )
-    assert enabled_gate_event._call_enable_on(
-        time=1.0,
-        flight=SimpleNamespace(solution=[]),
-        phase=SimpleNamespace(derivative=lambda *_args, **_kwargs: np.zeros(13)),
-        state=np.zeros(13),
-    ) is None
+    assert (
+        enabled_gate_event._call_enable_on(
+            time=1.0,
+            flight=SimpleNamespace(solution=[]),
+            phase=SimpleNamespace(derivative=lambda *_args, **_kwargs: np.zeros(13)),
+            state=np.zeros(13),
+        )
+        is None
+    )
     assert enabled_gate_event.commands._disabled is False
 
     blocked_gate_event = Event(
@@ -362,24 +393,30 @@ def test_call_returns_false_when_enable_gate_is_absent_or_raises():
         enabled=False,
         enable_on=lambda **kwargs: False,
     )
-    assert blocked_gate_event._call_enable_on(
-        time=1.0,
-        flight=SimpleNamespace(solution=[]),
-        phase=SimpleNamespace(derivative=lambda *_args, **_kwargs: np.zeros(13)),
-        state=np.zeros(13),
-    ) is False
+    assert (
+        blocked_gate_event._call_enable_on(
+            time=1.0,
+            flight=SimpleNamespace(solution=[]),
+            phase=SimpleNamespace(derivative=lambda *_args, **_kwargs: np.zeros(13)),
+            state=np.zeros(13),
+        )
+        is False
+    )
 
     trigger_phase_blocked_event = Event(
         callback=_callback_record_kwargs,
         trigger=_always_true,
     )
     trigger_phase_blocked_event._call_enable_on = lambda **kwargs: False
-    assert trigger_phase_blocked_event(
-        flight=SimpleNamespace(solution=[]),
-        phase=SimpleNamespace(derivative=lambda *_args, **_kwargs: np.zeros(13)),
-        time=1.0,
-        state=np.zeros(13),
-    ) is False
+    assert (
+        trigger_phase_blocked_event(
+            flight=SimpleNamespace(solution=[]),
+            phase=SimpleNamespace(derivative=lambda *_args, **_kwargs: np.zeros(13)),
+            time=1.0,
+            state=np.zeros(13),
+        )
+        is False
+    )
 
 
 def test_call_returns_false_when_trigger_fails_and_disable_gate_handles_errors():
@@ -391,21 +428,37 @@ def test_call_returns_false_when_trigger_fails_and_disable_gate_handles_errors()
         disable_on=_disable_on_raises,
     )
 
-    assert event._call_trigger(time=1.0, flight=SimpleNamespace(solution=[]), phase=None, state=np.zeros(13)) is True
+    assert (
+        event._call_trigger(
+            time=1.0,
+            flight=SimpleNamespace(solution=[]),
+            phase=None,
+            state=np.zeros(13),
+        )
+        is True
+    )
 
     false_trigger_event = Event(
         callback=_callback_record_kwargs,
         trigger=lambda **kwargs: False,
     )
-    assert false_trigger_event(
-        flight=SimpleNamespace(solution=[]),
-        phase=SimpleNamespace(derivative=lambda *_args, **_kwargs: np.zeros(13)),
-        time=1.0,
-        state=np.zeros(13),
-    ) is False
+    assert (
+        false_trigger_event(
+            flight=SimpleNamespace(solution=[]),
+            phase=SimpleNamespace(derivative=lambda *_args, **_kwargs: np.zeros(13)),
+            time=1.0,
+            state=np.zeros(13),
+        )
+        is False
+    )
 
     with pytest.warns(UserWarning, match="Error evaluating disable_on"):
-        event._call_disable_on(time=1.0, flight=SimpleNamespace(solution=[]), phase=None, state=np.zeros(13))
+        event._call_disable_on(
+            time=1.0,
+            flight=SimpleNamespace(solution=[]),
+            phase=None,
+            state=np.zeros(13),
+        )
 
 
 def test_call_refines_exact_time_and_tracks_sampled_values():
@@ -490,7 +543,12 @@ def test_compute_exact_time_returns_none_when_solution_history_is_short():
     flight = SimpleNamespace(solution=[_sample_state(0.0, 1.0)])
     phase = _FakePhase(_linear_interpolator)
 
-    assert event._compute_exact_time(flight=flight, phase=phase, time=0.0, state=np.zeros(13)) is None
+    assert (
+        event._compute_exact_time(
+            flight=flight, phase=phase, time=0.0, state=np.zeros(13)
+        )
+        is None
+    )
     assert event.verbose_log[-1]["skip_reason"].startswith(
         "Trigger condition met, but callback was not executed"
     )
@@ -505,7 +563,7 @@ def test_exact_time_validation_rejects_no_params_and_non_positional_state():
             exact_time_function=lambda: 0.0,
         )
 
-    def keyword_only_state(*, state, **kwargs):
+    def keyword_only_state(*, state, **_kwargs):
         return state
 
     with pytest.raises(ValueError, match="must accept 'state' as its first argument"):
@@ -585,7 +643,7 @@ def test_needs_key_error_in_callback_gives_helpful_message():
 def test_needs_key_error_unrelated_key_is_reraised():
     """KeyError for a key not in NEEDS_KEYS should be re-raised unchanged."""
 
-    def trigger_accesses_missing_dict_key(**kwargs):
+    def trigger_accesses_missing_dict_key(**_kwargs):
         d = {}
         return d["some_user_key"]  # unrelated KeyError
 
