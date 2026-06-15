@@ -511,9 +511,7 @@ class Function:  # pylint: disable=too-many-public-methods
             case 0:  # linear
                 if self.__dom_dim__ == 1:
 
-                    def linear_interpolation(
-                        x, x_min, x_max, x_data, y_data, coeffs
-                    ):  # pylint: disable=unused-argument
+                    def linear_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                         x_interval = bisect_left(x_data, x)
                         x_left = x_data[x_interval - 1]
                         y_left = y_data[x_interval - 1]
@@ -526,27 +524,21 @@ class Function:  # pylint: disable=too-many-public-methods
                     interpolator = LinearNDInterpolator(tri, self._image)
                     self._nd_triangulation = tri
 
-                    def linear_interpolation(
-                        x, x_min, x_max, x_data, y_data, coeffs
-                    ):  # pylint: disable=unused-argument
+                    def linear_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                         return interpolator(x)
 
                 self._interpolation_func = linear_interpolation
 
             case 1:  # polynomial
 
-                def polynomial_interpolation(
-                    x, x_min, x_max, x_data, y_data, coeffs
-                ):  # pylint: disable=unused-argument
+                def polynomial_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                     return np.sum(coeffs * x ** np.arange(len(coeffs)))
 
                 self._interpolation_func = polynomial_interpolation
 
             case 2:  # akima
 
-                def akima_interpolation(
-                    x, x_min, x_max, x_data, y_data, coeffs
-                ):  # pylint: disable=unused-argument
+                def akima_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                     x_interval = bisect_left(x_data, x)
                     x_interval = x_interval if x_interval != 0 else 1
                     a = coeffs[4 * x_interval - 4 : 4 * x_interval]
@@ -556,9 +548,7 @@ class Function:  # pylint: disable=too-many-public-methods
 
             case 3:  # spline
 
-                def spline_interpolation(
-                    x, x_min, x_max, x_data, y_data, coeffs
-                ):  # pylint: disable=unused-argument
+                def spline_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                     x_interval = bisect_left(x_data, x)
                     x_interval = max(x_interval, 1)
                     a = coeffs[:, x_interval - 1]
@@ -594,9 +584,7 @@ class Function:  # pylint: disable=too-many-public-methods
             case 5:  # RBF
                 interpolator = RBFInterpolator(self._domain, self._image, neighbors=100)
 
-                def rbf_interpolation(
-                    x, x_min, x_max, x_data, y_data, coeffs
-                ):  # pylint: disable=unused-argument
+                def rbf_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                     return interpolator(x)
 
                 self._interpolation_func = rbf_interpolation
@@ -617,9 +605,7 @@ class Function:  # pylint: disable=too-many-public-methods
                 # Store so extrapolation funcs can reuse it
                 self._grid_interpolator = grid_interpolator
 
-                def grid_interpolation(
-                    x, x_min, x_max, x_data, y_data, coeffs
-                ):  # pylint: disable=unused-argument
+                def grid_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                     return grid_interpolator(x)
 
                 self._interpolation_func = grid_interpolation
@@ -639,9 +625,7 @@ class Function:  # pylint: disable=too-many-public-methods
         match extrapolation:
             case 0:  # zero
 
-                def zero_extrapolation(
-                    x, x_min, x_max, x_data, y_data, coeffs
-                ):  # pylint: disable=unused-argument
+                def zero_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                     return 0
 
                 self._extrapolation_func = zero_extrapolation
@@ -758,18 +742,14 @@ class Function:  # pylint: disable=too-many-public-methods
             case 2:  # constant
                 if self.__dom_dim__ == 1:
 
-                    def constant_extrapolation(
-                        x, x_min, x_max, x_data, y_data, coeffs
-                    ):  # pylint: disable=unused-argument
+                    def constant_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                         return y_data[0] if x < x_min else y_data[-1]
 
                 elif self.__interpolation__ == "regular_grid":
                     grid_axes = self._grid_axes
                     grid_interpolator_const = self._grid_interpolator
 
-                    def constant_extrapolation(
-                        x, x_min, x_max, x_data, y_data, coeffs
-                    ):  # pylint: disable=unused-argument
+                    def constant_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                         # Clamp each coordinate to its axis bounds, then interpolate
                         x_clamped = np.copy(x)
                         for i, axis in enumerate(grid_axes):
@@ -781,9 +761,7 @@ class Function:  # pylint: disable=too-many-public-methods
                 else:
                     extrapolator = NearestNDInterpolator(self._domain, self._image)
 
-                    def constant_extrapolation(
-                        x, x_min, x_max, x_data, y_data, coeffs
-                    ):  # pylint: disable=unused-argument
+                    def constant_extrapolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                         return extrapolator(x)
 
                 self._extrapolation_func = constant_extrapolation
