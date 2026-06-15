@@ -28,7 +28,6 @@ RocketPy's User Guide
    Deployable Payload <deployable.rst>
    Air Brakes Example <airbrakes.rst>
    Sensors <sensors_usage.rst>
-   ../notebooks/sensors.ipynb
    ../matlab/matlab.rst
 
 .. toctree::
