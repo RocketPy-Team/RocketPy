@@ -2868,26 +2868,34 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             yield i, node_list[i]
             i += 1
 
-    FlightPhases = lambda *args, **kwargs: warnings.warn(
-        "FlightPhases is deprecated and will be removed in v1.13. "
-        "Use _FlightPhases class directly.",
-        DeprecationWarning,
-    )
+    @staticmethod
+    def FlightPhases(*args, **kwargs):  # pylint: disable=invalid-name
+        warnings.warn(
+            "FlightPhases is deprecated and will be removed in v1.13. "
+            "Use _FlightPhases class directly.",
+            DeprecationWarning,
+        )
 
-    FlightPhase = lambda *args, **kwargs: warnings.warn(
-        "FlightPhase is deprecated and will be removed in v1.13. "
-        "Use the _FlightPhase class directly.",
-        DeprecationWarning,
-    )
+    @staticmethod
+    def FlightPhase(*args, **kwargs):  # pylint: disable=invalid-name
+        warnings.warn(
+            "FlightPhase is deprecated and will be removed in v1.13. "
+            "Use the _FlightPhase class directly.",
+            DeprecationWarning,
+        )
 
-    TimeNodes = lambda *args, **kwargs: warnings.warn(
-        "TimeNodes is deprecated and will be removed in v1.13. "
-        "Use _TimeNodes class directly.",
-        DeprecationWarning,
-    )
+    @staticmethod
+    def TimeNodes(*args, **kwargs):  # pylint: disable=invalid-name
+        warnings.warn(
+            "TimeNodes is deprecated and will be removed in v1.13. "
+            "Use _TimeNodes class directly.",
+            DeprecationWarning,
+        )
 
-    TimeNode = lambda *args, **kwargs: warnings.warn(
-        "TimeNode is deprecated and will be removed in v1.13. "
-        "Use the _TimeNode class directly.",
-        DeprecationWarning,
-    )
+    @staticmethod
+    def TimeNode(*args, **kwargs):  # pylint: disable=invalid-name
+        warnings.warn(
+            "TimeNode is deprecated and will be removed in v1.13. "
+            "Use the _TimeNode class directly.",
+            DeprecationWarning,
+        )

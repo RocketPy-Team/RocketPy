@@ -143,6 +143,7 @@ def test_show_or_save_animation_unsupported_format():
         show_or_save_animation(animation, "test.mp4")
 
 
+@pytest.mark.slow
 def test_animate_propellant_mass(cesaroni_m1670):
     """Test that animate_propellant_mass saves a .gif file correctly."""
 
