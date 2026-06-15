@@ -1792,7 +1792,7 @@ class Rocket:
                 ``flight`` (:class:`rocketpy.Flight`),
                 ``phase`` (current flight phase),
                 ``step_size`` (float, s),
-                ``height_above_ground_level`` (float, m),
+                ``height_agl`` (float, m),
                 ``event`` (:class:`Event` wrapping this controller),
                 ``sampling_rate`` (float, Hz),
                 ``controller`` (this :class:`_Controller` instance),
@@ -1906,6 +1906,16 @@ class Rocket:
         )
 
         if not accepts_var_kwargs and positional_parameter_count > 0:
+            # A legacy positional controller must accept one of the supported
+            # signatures (6, 7 or 8 arguments). Reject any other count early so
+            # the user gets a clear error instead of a runtime failure mid-flight.
+            if not accepts_var_args and positional_parameter_count not in (6, 7, 8):
+                raise ValueError(
+                    "A positional controller_function must have 6, 7, or 8 "
+                    f"arguments, but {positional_parameter_count} were given. "
+                    "Alternatively, define the controller function to accept "
+                    "`**kwargs` only."
+                )
             warnings.warn(
                 "Calling controller_function with positional arguments is "
                 "deprecated; use controller_function(**kwargs) instead. "
@@ -1914,6 +1924,17 @@ class Rocket:
                 DeprecationWarning,
                 stacklevel=2,
             )
+
+        # Legacy positional controllers historically always received
+        # ``state_history`` as their 4th argument. The event system only
+        # computes it when declared in ``needs``, so request it here when the
+        # legacy signature will actually consume it.
+        if not accepts_var_kwargs and (
+            accepts_var_args or positional_parameter_count >= 4
+        ):
+            needs = set(controller_needs) if controller_needs else set()
+            needs.add("state_history")
+            controller_needs = frozenset(needs)
 
         def controller_wrapper(**kwargs):
             if accepts_var_kwargs:

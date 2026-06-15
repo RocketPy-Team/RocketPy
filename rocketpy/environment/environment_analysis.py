@@ -27,7 +27,7 @@ from .environment import Environment
 # TODO: the average_wind_speed_profile_by_hour and similar methods could be more abstract than currently are
 
 
-class EnvironmentAnalysis:
+class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
     """Class for analyzing the environment.
 
     List of properties currently implemented:
@@ -93,7 +93,7 @@ class EnvironmentAnalysis:
           average max wind gust, and average day wind rose.
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-statements
         self,
         start_date,
         end_date,
@@ -552,6 +552,7 @@ class EnvironmentAnalysis:
 
     # General properties
 
+    # pylint: disable=too-many-locals, too-many-statements
     @cached_property
     def __parse_pressure_level_data(self):
         """
@@ -810,7 +811,7 @@ class EnvironmentAnalysis:
         return self.__parse_pressure_level_data[4]
 
     @cached_property
-    def __parse_surface_data(self):
+    def __parse_surface_data(self):  # pylint: disable=too-many-statements
         """
         Parse surface data from a weather file.
         Currently only supports files from ECMWF.

@@ -31,7 +31,7 @@ class Parachute:
           triggered and ``False`` otherwise. The parachute is wrapped in an
           :class:`rocketpy.Event`, so the function receives the same keyword
           arguments as any event trigger, including ``state``, ``pressure``,
-          ``height_above_ground_level``, ``sensors``, ``time``, ``flight``,
+          ``height_agl``, ``sensors``, ``time``, ``flight``,
           ``rocket`` and ``environment``. See the Event documentation for the
           full list. The function is called according to the specified sampling
           rate.
@@ -144,10 +144,10 @@ class Parachute:
             Defines the trigger condition for the parachute ejection system. It
             can be one of the following:
 
-            - A float value, representing an absolute height in meters. In this 
+            - A float value, representing an absolute height in meters. In this
               case, the parachute will be ejected when the rocket reaches this
               height above ground level.
-            - The string "apogee" which triggers the parachute at apogee, i.e., 
+            - The string "apogee" which triggers the parachute at apogee, i.e.,
               when the rocket reaches its highest point and starts descending.
             - A callable function. The recommended signature accepts
               ``**kwargs`` only and returns ``True`` if the parachute
@@ -162,7 +162,7 @@ class Parachute:
               ``flight`` (:class:`rocketpy.Flight`),
               ``phase`` (current flight phase),
               ``step_size`` (float, s),
-              ``height_above_ground_level`` (float, m).
+              ``height_agl`` (float, m).
               The following keys are only injected when declared via
               ``trigger_needs``:
               ``pressure`` (float, Pa),
@@ -306,7 +306,7 @@ class Parachute:
                     "Positional-argument parachute triggers (e.g. `trigger(p, h, y)`) "
                     "are deprecated and will be removed in v1.13. Define the trigger "
                     "to accept `**kwargs` only and read values such as "
-                    "`kwargs['pressure']`, `kwargs['height_above_ground_level']` and "
+                    "`kwargs['pressure']`, `kwargs['height_agl']` and "
                     "`kwargs['state']`. See the Event documentation for the full list "
                     "of available keyword arguments.",
                     DeprecationWarning,
@@ -314,11 +314,14 @@ class Parachute:
                 )
                 accepts_sensors = accepts_var_positional or positional_param_count >= 4
                 if accepts_sensors:
+
                     def triggerfunc(p, h, y, sensors):
                         return trigger(p, h, y, sensors)
                 else:
+
                     def triggerfunc(p, h, y, _):
                         return trigger(p, h, y)
+
                 self._trigger_is_positional = True
                 self._trigger_needs = frozenset({"pressure"})
             else:
@@ -332,8 +335,9 @@ class Parachute:
 
         # Case 2: The parachute is deployed at a given height
         elif isinstance(trigger, (int, float)):
+
             def triggerfunc(**kwargs):
-                return kwargs["state"][5] < 0 and kwargs["height_above_ground_level"] < trigger
+                return kwargs["state"][5] < 0 and kwargs["height_agl"] < trigger
 
             self.triggerfunc = triggerfunc
             self._trigger_is_positional = False
@@ -341,6 +345,7 @@ class Parachute:
 
         # Case 3: The parachute is deployed at apogee
         elif trigger.lower() == "apogee":
+
             def triggerfunc(**kwargs):
                 state_history = kwargs.get("state_history")
                 if not state_history:
@@ -370,14 +375,16 @@ class Parachute:
         """
 
         if self._trigger_is_positional:
+
             def trigger_event_wrapper(**kwargs):
                 return self.triggerfunc(
                     kwargs["pressure"],
-                    kwargs["height_above_ground_level"],
+                    kwargs["height_agl"],
                     kwargs["state"],
                     kwargs.get("sensors"),
                 )
         else:
+
             def trigger_event_wrapper(**kwargs):
                 return self.triggerfunc(**kwargs)
 
@@ -397,7 +404,9 @@ class Parachute:
 
         # Resolve effective needs: explicit override > auto-detected default.
         effective_needs = (
-            self.trigger_needs if self.trigger_needs is not None else self._trigger_needs
+            self.trigger_needs
+            if self.trigger_needs is not None
+            else self._trigger_needs
         )
         return Event(
             trigger=trigger_event_wrapper,
@@ -499,7 +508,6 @@ class Parachute:
             "trigger": trigger,
             "sampling_rate": self.sampling_rate,
             "lag": self.lag,
-            "noise": self.noise,
             "radius": self.radius,
             "drag_coefficient": self.drag_coefficient,
             "height": self.height,
@@ -533,7 +541,6 @@ class Parachute:
             trigger=trigger,
             sampling_rate=data["sampling_rate"],
             lag=data["lag"],
-            noise=data["noise"],
             radius=data.get("radius", None),
             drag_coefficient=data.get("drag_coefficient", 1.4),
             height=data.get("height", None),

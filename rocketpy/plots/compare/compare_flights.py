@@ -1,12 +1,8 @@
-# TODO: remove this disable once the code is refactored
-# pylint: disable=nested-min-max
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ..plot_helpers import show_or_save_fig, show_or_save_plot
+from ..plot_helpers import show_or_save_plot
 from .compare import Compare
-
-# TODO: needs to refactor this class to use the show_or_save_plot
 
 
 class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
@@ -75,29 +71,6 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             x_lim[1] = self.apogee_time if x_lim[1] == "apogee" else x_lim[1]
         return x_lim
 
-    def __process_savefig(self, filename, fig):
-        """Function to either save the plot or show it, depending on the
-        filename key word argument. This way we do not repeat the same code
-        for each plot.
-
-        Parameters
-        ----------
-        filename : str, optional
-            If a filename is provided, the plot will be saved to a file, by
-            default None. Image options are: png, pdf, ps, eps and svg.
-        fig : matplotlib.figure.Figure
-            The figure to be saved or shown.
-
-        Returns
-        -------
-        None
-        """
-        show_or_save_fig(fig, filename)
-        if filename:
-            print("Plot saved to file: " + filename)
-        else:
-            plt.show()
-
     def __process_legend(self, legend, fig):
         """Function to add a legend to the plot, if the legend key word
         argument is set to True. This way we do not repeat the same code for
@@ -152,7 +125,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
-        fig, _ = super().create_comparison_figure(
+        super().create_comparison_figure(
             y_attributes=["x", "y", "z"],
             n_rows=3,
             n_cols=1,
@@ -167,7 +140,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
 
         # Saving the plot to a file if a filename is provided, showing the plot
         # otherwise
-        self.__process_savefig(filename, fig)
+        show_or_save_plot(filename)
 
     def velocities(
         self,
@@ -210,7 +183,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
-        fig, _ = super().create_comparison_figure(
+        super().create_comparison_figure(
             y_attributes=["speed", "vx", "vy", "vz"],
             n_rows=4,
             n_cols=1,
@@ -223,7 +196,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             y_lim=y_lim,
         )
 
-        self.__process_savefig(filename, fig)
+        show_or_save_plot(filename)
 
     def stream_velocities(
         self,
@@ -267,7 +240,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
-        fig, _ = super().create_comparison_figure(
+        super().create_comparison_figure(
             y_attributes=[
                 "free_stream_speed",
                 "stream_velocity_x",
@@ -290,7 +263,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             y_lim=y_lim,
         )
 
-        self.__process_savefig(filename, fig)
+        show_or_save_plot(filename)
 
     def accelerations(
         self,
@@ -333,7 +306,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
-        fig, _ = super().create_comparison_figure(
+        super().create_comparison_figure(
             y_attributes=["acceleration", "ax", "ay", "az"],
             n_rows=4,
             n_cols=1,
@@ -351,7 +324,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             y_lim=y_lim,
         )
 
-        self.__process_savefig(filename, fig)
+        show_or_save_plot(filename)
 
     def euler_angles(
         self, figsize=(7, 10), x_lim=None, y_lim=None, legend=True, filename=None
@@ -389,7 +362,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
-        fig, _ = super().create_comparison_figure(
+        super().create_comparison_figure(
             y_attributes=["phi", "theta", "psi"],
             n_rows=3,
             n_cols=1,
@@ -406,7 +379,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             y_lim=y_lim,
         )
 
-        self.__process_savefig(filename, fig)
+        show_or_save_plot(filename)
 
     def quaternions(
         self,
@@ -449,7 +422,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
-        fig, _ = super().create_comparison_figure(
+        super().create_comparison_figure(
             y_attributes=["e0", "e1", "e2", "e3"],
             n_rows=4,
             n_cols=1,
@@ -467,7 +440,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             y_lim=y_lim,
         )
 
-        self.__process_savefig(filename, fig)
+        show_or_save_plot(filename)
 
     def attitude_angles(
         self, figsize=(7, 10), x_lim=None, y_lim=None, legend=True, filename=None
@@ -505,7 +478,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
-        fig, _ = super().create_comparison_figure(
+        super().create_comparison_figure(
             y_attributes=["path_angle", "attitude_angle", "lateral_attitude_angle"],
             n_rows=3,
             n_cols=1,
@@ -522,7 +495,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             y_lim=y_lim,
         )
 
-        self.__process_savefig(filename, fig)
+        show_or_save_plot(filename)
 
     def angular_velocities(
         self, figsize=(7, 10), x_lim=None, y_lim=None, legend=True, filename=None
@@ -560,7 +533,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
-        fig, _ = super().create_comparison_figure(
+        super().create_comparison_figure(
             y_attributes=["w1", "w2", "w3"],
             n_rows=3,
             n_cols=1,
@@ -577,7 +550,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             y_lim=y_lim,
         )
 
-        self.__process_savefig(filename, fig)
+        show_or_save_plot(filename)
 
     def angular_accelerations(
         self, figsize=(7, 10), x_lim=None, y_lim=None, legend=True, filename=None
@@ -615,7 +588,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
-        fig, _ = super().create_comparison_figure(
+        super().create_comparison_figure(
             y_attributes=["alpha1", "alpha2", "alpha3"],
             n_rows=3,
             n_cols=1,
@@ -632,7 +605,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             y_lim=y_lim,
         )
 
-        self.__process_savefig(filename, fig)
+        show_or_save_plot(filename)
 
     def aerodynamic_forces(
         self,
@@ -675,23 +648,30 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
-        fig, _ = super().create_comparison_figure(
-            y_attributes=["aerodynamic_drag", "aerodynamic_lift"],
-            n_rows=2,
+        super().create_comparison_figure(
+            y_attributes=[
+                "aerodynamic_normal_force",
+                "aerodynamic_axial_force",
+                "aerodynamic_lift",
+                "aerodynamic_drag",
+            ],
+            n_rows=4,
             n_cols=1,
             figsize=figsize,
             legend=legend,
             title="Comparison of the aerodynamic forces of the flights",
-            x_labels=["Time (s)", "Time (s)"],
+            x_labels=["Time (s)"] * 4,
             y_labels=[
-                "Drag Force (N)",
+                "Normal Force (N)",
+                "Axial Force (N)",
                 "Lift Force (N)",
+                "Drag Force (N)",
             ],
             x_lim=x_lim,
             y_lim=y_lim,
         )
 
-        self.__process_savefig(filename, fig)
+        show_or_save_plot(filename)
 
     def aerodynamic_moments(
         self,
@@ -734,7 +714,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
-        fig, _ = super().create_comparison_figure(
+        super().create_comparison_figure(
             y_attributes=["aerodynamic_bending_moment", "aerodynamic_spin_moment"],
             n_rows=2,
             n_cols=1,
@@ -750,7 +730,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             y_lim=y_lim,
         )
 
-        self.__process_savefig(filename, fig)
+        show_or_save_plot(filename)
 
     def energies(
         self, figsize=(7, 10), x_lim=None, y_lim=None, legend=True, filename=None
@@ -788,7 +768,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
-        fig, _ = super().create_comparison_figure(
+        super().create_comparison_figure(
             y_attributes=["kinetic_energy", "potential_energy", "total_energy"],
             n_rows=3,
             n_cols=1,
@@ -805,7 +785,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             y_lim=y_lim,
         )
 
-        self.__process_savefig(filename, fig)
+        show_or_save_plot(filename)
 
     def powers(
         self,
@@ -847,7 +827,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         # Check if key word is used for x_limit
         x_lim = self.__process_xlim(x_lim)
 
-        fig, _ = super().create_comparison_figure(
+        super().create_comparison_figure(
             y_attributes=["thrust_power", "drag_power"],
             n_rows=2,
             n_cols=1,
@@ -860,7 +840,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             y_lim=y_lim,
         )
 
-        self.__process_savefig(filename, fig)
+        show_or_save_plot(filename)
 
     def rail_buttons_forces(
         self,
@@ -903,7 +883,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
-        fig, _ = super().create_comparison_figure(
+        super().create_comparison_figure(
             y_attributes=[
                 "rail_button1_normal_force",
                 "rail_button1_shear_force",
@@ -926,7 +906,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             y_lim=y_lim,
         )
 
-        self.__process_savefig(filename, fig)
+        show_or_save_plot(filename)
 
     def angles_of_attack(
         self,
@@ -969,7 +949,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
-        fig, _ = super().create_comparison_figure(
+        super().create_comparison_figure(
             y_attributes=["angle_of_attack"],
             n_rows=1,
             n_cols=1,
@@ -982,7 +962,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             y_lim=y_lim,
         )
 
-        self.__process_savefig(filename, fig)
+        show_or_save_plot(filename)
 
     def fluid_mechanics(
         self,
@@ -1025,7 +1005,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         x_lim = self.__process_xlim(x_lim)
 
         # Create the figure
-        fig, _ = super().create_comparison_figure(
+        super().create_comparison_figure(
             y_attributes=[
                 "mach_number",
                 "reynolds_number",
@@ -1048,7 +1028,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             y_lim=y_lim,
         )
 
-        self.__process_savefig(filename, fig)
+        show_or_save_plot(filename)
 
     def stability_margin(
         self, figsize=(7, 10), x_lim=None, y_lim=None, legend=True, filename=None
@@ -1197,14 +1177,14 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             x, y, z = flight
 
             # Update mx and min values to set the limits of the plot
-            max_x = max(max_x, max(x))
-            max_y = max(max_y, max(y))
-            max_z = max(max_z, max(z))
-            min_x = min(min_x, min(x))
-            min_y = min(min_y, min(y))
-            min_z = min(min_z, min(z))
-            max_xy = max(max_xy, max(max(x), max(y)))
-            min_xy = min(min_xy, min(min(x), min(y)))
+            max_x = max(max_x, np.max(x))
+            max_y = max(max_y, np.max(y))
+            max_z = max(max_z, np.max(z))
+            min_x = min(min_x, np.min(x))
+            min_y = min(min_y, np.min(y))
+            min_z = min(min_z, np.min(z))
+            max_xy = max(max_xy, np.max(x), np.max(y))
+            min_xy = min(min_xy, np.min(x), np.min(y))
 
             # Add Trajectory as a plot in main figure
             ax1.plot(x, y, z, linewidth="2", label=names_list[index])
@@ -1375,12 +1355,12 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             x, y, _ = flight
 
             # Update mx and min values to set the limits of the plot
-            max_x = max(max_x, max(x))
-            max_y = max(max_y, max(y))
-            max_xy = max(max_xy, max(max(x), max(y)))
-            min_x = min(min_x, min(x))
-            min_y = min(min_y, min(y))
-            min_xy = min(min_xy, min(min(x), min(y)))
+            max_x = max(max_x, np.max(x))
+            max_y = max(max_y, np.max(y))
+            max_xy = max(max_xy, np.max(x), np.max(y))
+            min_x = min(min_x, np.min(x))
+            min_y = min(min_y, np.min(y))
+            min_xy = min(min_xy, np.min(x), np.min(y))
 
             # Add Trajectory as a plot in main figure
             ax.plot(x, y, linewidth="2", label=names_list[index])
@@ -1398,7 +1378,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         fig.tight_layout()
 
         # Save figure
-        self.__process_savefig(filename, fig)
+        show_or_save_plot(filename)
 
     def __plot_xz(  # pylint: disable=too-many-statements
         self, flights, names_list, figsize=(7, 7), legend=None, filename=None
@@ -1441,12 +1421,12 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             x, _, z = flight
 
             # Update mx and min values to set the limits of the plot
-            max_x = max(max_x, max(x))
-            max_z = max(max_z, max(z))
-            max_xy = max(max_xy, max(max(x), max(z)))
-            min_x = min(min_x, min(x))
-            min_z = min(min_z, min(z))
-            min_xy = min(min_xy, min(min(x), min(z)))
+            max_x = max(max_x, np.max(x))
+            max_z = max(max_z, np.max(z))
+            max_xy = max(max_xy, np.max(x), np.max(z))
+            min_x = min(min_x, np.min(x))
+            min_z = min(min_z, np.min(z))
+            min_xy = min(min_xy, np.min(x), np.min(z))
 
             # Add Trajectory as a plot in main figure
             ax.plot(x, z, linewidth="2", label=names_list[index])
@@ -1502,12 +1482,12 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
             _, y, z = flight
 
             # Update mx and min values to set the limits of the plot
-            max_y = max(max_y, max(y))
-            max_z = max(max_z, max(z))
-            max_xy = max(max_xy, max(max(y), max(z)))
-            min_y = min(min_y, min(y))
-            min_z = min(min_z, min(z))
-            min_xy = min(min_xy, min(min(y), min(z)))
+            max_y = max(max_y, np.max(y))
+            max_z = max(max_z, np.max(z))
+            max_xy = max(max_xy, np.max(y), np.max(z))
+            min_y = min(min_y, np.min(y))
+            min_z = min(min_z, np.min(z))
+            min_xy = min(min_xy, np.min(y), np.min(z))
 
             # Add Trajectory as a plot in main figure
             ax.plot(y, z, linewidth="2", label=names_list[index])
@@ -1525,7 +1505,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         fig.tight_layout()
 
         # Save figure
-        self.__process_savefig(filename, fig)
+        show_or_save_plot(filename)
 
     def all(self):
         """Prints out all data and graphs available about the Flight.

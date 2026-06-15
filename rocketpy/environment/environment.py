@@ -1272,7 +1272,7 @@ class Environment:
         :ref:`environment_other_apis`
             Building custom mapping dictionaries for NetCDF/OPeNDAP APIs.
         """
-        # TODO: run environment wiht set atmospheric model Windy GFS, BUT 
+        # TODO: run environment with set atmospheric model Windy GFS, BUT
         # Without set date. Some error occurs. We should catch lack of date
 
         # Save atmospheric model type
