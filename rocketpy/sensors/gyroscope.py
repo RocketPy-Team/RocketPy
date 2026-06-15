@@ -1,6 +1,7 @@
 import numpy as np
 
 from ..mathutils.vector_matrix import Vector
+from ..plots.sensors_plots import _GyroscopePlots
 from ..prints.sensors_prints import _GyroscopePrints
 from ..sensors.sensor import InertialSensor
 
@@ -60,6 +61,7 @@ class Gyroscope(InertialSensor):
     """
 
     units = "rad/s"
+    channels = [("wx", "rad/s"), ("wy", "rad/s"), ("wz", "rad/s")]
 
     def __init__(
         self,
@@ -176,7 +178,7 @@ class Gyroscope(InertialSensor):
 
         See Also
         --------
-        TODO link to documentation on noise model
+        :ref:`sensorsusage` : More details on sensor usage.
         """
         super().__init__(
             sampling_rate,
@@ -198,6 +200,7 @@ class Gyroscope(InertialSensor):
             acceleration_sensitivity, "acceleration_sensitivity"
         )
         self.prints = _GyroscopePrints(self)
+        self.plots = _GyroscopePlots(self)
 
     def measure(self, time, **kwargs):
         """Measure the angular velocity of the rocket

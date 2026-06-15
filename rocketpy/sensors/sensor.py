@@ -116,8 +116,10 @@ class Sensor(ABC):
 
         See Also
         --------
-        TODO link to documentation on noise model
+        :ref:`sensorsusage` : More details on sensor usage.
         """
+        if sampling_rate is None or sampling_rate <= 0:
+            raise ValueError("Sensor sampling_rate must be a positive number.")
         self.sampling_rate = sampling_rate
         self.resolution = resolution
         self.operating_temperature = operating_temperature
@@ -154,6 +156,15 @@ class Sensor(ABC):
 
     def __call__(self, *args, **kwargs):
         return self.measure(*args, **kwargs)
+
+    def info(self):
+        """Prints the sensor specifications and a summary of measured data."""
+        self.prints.all()
+
+    def all_info(self):
+        """Prints the sensor specifications and plots all measured data."""
+        self.info()
+        self.plots.all()
 
     def to_event(self, position):
         """Create a simulation event for this sensor.
@@ -392,7 +403,7 @@ class InertialSensor(Sensor):
 
     def __init__(
         self,
-        sampling_rate, # TODO: SENSOR SAMPLING RATE CAN NOT BE NONE!!!
+        sampling_rate,
         orientation=(0, 0, 0),
         measurement_range=np.inf,
         resolution=0,
@@ -499,7 +510,7 @@ class InertialSensor(Sensor):
 
         See Also
         --------
-        TODO link to documentation on noise model
+        :ref:`sensorsusage` : More details on sensor usage.
         """
         super().__init__(
             sampling_rate=sampling_rate,
@@ -610,9 +621,15 @@ class InertialSensor(Sensor):
         ) & (self.noise_density * self.sampling_rate**0.5)
 
         # random walk
-        self._random_walk_drift = self._random_walk_drift + Vector(
-            [np.random.normal(0, self.random_walk_variance[i] ** 0.5) for i in range(3)]
-        ) & (self.random_walk_density / self.sampling_rate**0.5)
+        self._random_walk_drift = self._random_walk_drift + (
+            Vector(
+                [
+                    np.random.normal(0, self.random_walk_variance[i] ** 0.5)
+                    for i in range(3)
+                ]
+            )
+            & (self.random_walk_density / self.sampling_rate**0.5)
+        )
 
         # add noise
         value += white_noise + self._random_walk_drift + self.constant_bias
@@ -764,7 +781,7 @@ class ScalarSensor(Sensor):
 
         See Also
         --------
-        TODO link to documentation on noise model
+        :ref:`sensorsusage` : More details on sensor usage.
         """
         super().__init__(
             sampling_rate=sampling_rate,

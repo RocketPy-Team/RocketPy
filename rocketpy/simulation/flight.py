@@ -1,5 +1,5 @@
-import math
 import warnings
+from bisect import bisect_left, bisect_right
 from copy import deepcopy
 from functools import cached_property
 
@@ -8,6 +8,7 @@ from scipy.integrate import BDF, DOP853, LSODA, RK23, RK45, OdeSolver, Radau
 
 from rocketpy.simulation.flight_data_exporter import FlightDataExporter
 
+from .._logging import enable_logging, logger
 from ..mathutils.function import Function, funcify_method
 from ..mathutils.vector_matrix import Matrix
 from ..motors.solid_motor import SolidMotor
@@ -17,10 +18,19 @@ from ..tools import (
     deprecated,
     euler313_to_quaternions,
     find_closest,
-    inverted_haversine_arr,
+    inverted_haversine_array,
     quaternions_to_nutation,
     quaternions_to_precession,
     quaternions_to_spin,
+)
+from .events.event_builders import build_core_events
+from .helpers.event_calling import (
+    build_event_kwargs,
+    call_events,
+    compute_needs_union,
+    infer_step_size,
+    process_overshootable_event,
+    update_overshootable_event_kwargs,
 )
 from .helpers.flight_derivatives import (
     u_dot,
@@ -28,17 +38,9 @@ from .helpers.flight_derivatives import (
     u_dot_generalized_3dof,
     u_dot_parachute,
     udot_rail1,
-)
-from .helpers.event_calling import (
-    call_events,
-    build_event_kwargs,
-    compute_needs_union,
-    infer_step_size,
-    process_overshootable_event,
-    update_overshootable_event_kwargs,
+    udot_rail2,
 )
 from .helpers.flight_phase import _FlightPhases, _TimeNodes
-from .events.event_builders import build_core_events
 
 ODE_SOLVER_MAP = {
     "RK23": RK23,
@@ -50,9 +52,7 @@ ODE_SOLVER_MAP = {
 }
 
 
-# TODO: improve verbose
-# TODO: add proper logging.
-class Flight:
+class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-methods
     """Keeps all flight information and has a method to simulate flight.
 
     Attributes
@@ -338,16 +338,21 @@ class Flight:
         This is the actual thrust force experienced by the rocket.
         It may be corrected with the atmospheric pressure if a reference
         pressure is defined.
+    Flight.aerodynamic_normal_force : Function
+        Resultant aerodynamic force perpendicular to the rocket's longitudinal
+        axis in the body frame, as a function of time. Equal to sqrt(R1² + R2²).
+        Units in N. Can be called or accessed as array.
+    Flight.aerodynamic_axial_force : Function
+        Aerodynamic force along the rocket's longitudinal axis in the body
+        frame, as a function of time. Equal to -R3. Units in N. Can be called
+        or accessed as array.
     Flight.aerodynamic_lift : Function
-        Resultant force perpendicular to rockets axis due to
-        aerodynamic effects as a function of time. Units in N.
-        Expressed as a function of time. Can be called or accessed
-        as array.
+        Aerodynamic lift force in the aerodynamic frame (perpendicular to
+        freestream), as a function of time. Computed as N·cos(α) - A·sin(α).
+        Units in N.
     Flight.aerodynamic_drag : Function
-        Resultant force aligned with the rockets axis due to
-        aerodynamic effects as a function of time. Units in N.
-        Expressed as a function of time. Can be called or accessed
-        as array.
+        Aerodynamic drag force in the aerodynamic frame (opposing freestream),
+        as a function of time. Computed as N·sin(α) + A·cos(α). Units in N.
     Flight.aerodynamic_bending_moment : Function
         Resultant moment perpendicular to rocket's axis due to
         aerodynamic effects as a function of time. Units in N m.
@@ -579,8 +584,15 @@ class Flight:
             necessary trigger function evaluation points and then interpolation
             is used to calculate them and feed the triggers. Can greatly improve
             run time in some cases. Default is True.
-        verbose : bool, optional
-            If true, verbose mode is activated. Default is False.
+        verbose : bool or str, optional
+            If truthy, shows a live readout of the current simulation time and
+            enables console logging for milestones such as phase transitions and
+            completion. ``True`` uses the ``INFO`` level; pass a level name
+            instead (e.g. ``"debug"``, ``"warning"``) to control how much detail
+            is shown. This is a convenience wrapper around
+            :func:`rocketpy.enable_logging`; for finer control configure the
+            ``"rocketpy"`` logger directly (e.g. via
+            :func:`rocketpy.set_log_level`). Default is False.
         name : str, optional
             Name of the flight. Default is "Flight".
         equations_of_motion : str, optional
@@ -631,6 +643,13 @@ class Flight:
         self.simulation_mode = simulation_mode
         self.ode_solver = ode_solver
         self.verbose = verbose
+        if verbose:
+            # Convenience: route progress/diagnostics to the console. ``verbose``
+            # may also be a logging level name (e.g. "debug") to control how much
+            # detail is shown; True maps to "INFO". Users who manage logging
+            # themselves can leave verbose=False and configure the "rocketpy"
+            # logger directly.
+            enable_logging("INFO" if verbose is True else verbose)
         self.custom_events = [] if custom_events is None else custom_events
 
         # Flight initialization
@@ -643,11 +662,9 @@ class Flight:
         self.__simulate()
 
         # Initialize data exporter object
-        # TODO: change docs of data exporter. Improve usage overall
-        self.exporter = FlightDataExporter(self)
+        self.exports = FlightDataExporter(self)
 
         # Initialize prints and plots objects
-        # TODO: add sensors outputs to plots/prints
         self.prints = _FlightPrints(self)
         self.plots = _FlightPlots(self)
 
@@ -695,14 +712,18 @@ class Flight:
         self._has_change_dynamics_events = False
         for event in self.events:
             # Separate time overshootable and non overshootable events
-            if self.time_overshoot and event.sampling_rate is not None and event.time_overshootable:
+            if (
+                self.time_overshoot
+                and event.sampling_rate is not None
+                and event.time_overshootable
+            ):
                 self._overshootable_events.append(event)
             else:
                 self._non_overshootable_events.append(event)
 
             self._has_change_dynamics_events |= event.changes_dynamics
 
-            event.reset() # Reset event state (commands/logs/enabled flag)
+            event.reset()  # Reset event state (commands/logs/enabled flag)
 
         # Sort by canonical order (lower priority runs first)
         self._overshootable_events.sort(key=lambda x: x.priority)
@@ -758,6 +779,9 @@ class Flight:
             self, t, u, post_processing
         )
         self.udot_rail1 = lambda t, u, post_processing=False: udot_rail1(
+            self, t, u, post_processing
+        )
+        self.udot_rail2 = lambda t, u, post_processing=False: udot_rail2(
             self, t, u, post_processing
         )
 
@@ -933,7 +957,14 @@ class Flight:
         """Simulate the flight trajectory."""
         self.__initialize_flight_phases()
 
+        logger.info("Starting flight simulation of '%s'.", self.name)
         for phase_index, phase in self.flight_phases:
+            if phase.name:
+                logger.info(
+                    "Entering flight phase '%s' at t=%.3f s.",
+                    phase.name,
+                    phase.t,
+                )
             self.__simulate_phase(phase, phase_index)
 
         self.__finalize_simulation()
@@ -983,7 +1014,9 @@ class Flight:
         phase.time_nodes.add_node(phase.time_bound, [])
 
         # Add non-overshootable events as time nodes
-        phase.time_nodes.add_event_list(self._non_overshootable_events, phase.t, phase.time_bound)
+        phase.time_nodes.add_event_list(
+            self._non_overshootable_events, phase.t, phase.time_bound
+        )
 
         # Organize time nodes
         phase.time_nodes.sort()
@@ -1057,13 +1090,16 @@ class Flight:
         # Update time and state
         self.t = phase.solver.t
         self.y_sol = phase.solver.y
+        logger.debug("Current simulation time: %.4f s", self.t)
+        # Live single-line progress readout (overwritten in place via carriage
+        # return). This is a console UX nicety, kept separate from logging.
         if self.verbose:
             print(f"Current Simulation Time: {self.t:3.4f} s", end="\r")
 
     def __process_events(self, phase, phase_index, node_index):
         # 1. Determine if we must rollback
-        time, state, events_to_evaluate, rolled_back = self.__process_overshootable_nodes(
-            phase, phase_index, node_index
+        time, state, events_to_evaluate, rolled_back = (
+            self.__process_overshootable_nodes(phase, phase_index, node_index)
         )
 
         # 2. Add continuous events to the pool and order based on priority
@@ -1226,8 +1262,7 @@ class Flight:
             self.__evaluate_post_process = np.array(self.__post_processed_variables)
         if self.sensors:
             self.__cache_sensor_data()
-        if self.verbose:
-            print(f"\n>>> Simulation Completed at Time: {self.t:3.4f} s")
+        logger.info("Simulation completed at time: %.4f s", self.t)
 
     def __cache_sensor_data(self):
         """Cache sensor data for simulations with sensors."""
@@ -1460,18 +1495,22 @@ class Flight:
             [t, ax, ay, az, alpha1, alpha2, alpha3, R1, R2, R3, M1, M2, M3, net_thrust]
         """
         self.__post_processed_variables = []
+        step_times = [step[0] for step in self.solution]
         for phase_index, phase in self.flight_phases:
             init_time = phase.t
             final_time = self.flight_phases[phase_index + 1].t
             current_derivative = phase.derivative
             self._active_parachute = phase.parachute
-            # TODO no need to loop through all steps, just the ones in the
-            # current phase
-            for step in self.solution:
-                if init_time < step[0] <= final_time or (
-                    init_time == self.t_initial and step[0] == self.t_initial
-                ):
-                    current_derivative(step[0], step[1:], post_processing=True)
+            # Select the steps with init_time < t <= final_time. The first
+            # phase also includes the step at exactly t_initial, which the
+            # strict lower bound would otherwise drop.
+            if init_time == self.t_initial:
+                start = bisect_left(step_times, init_time)
+            else:
+                start = bisect_right(step_times, init_time)
+            end = bisect_right(step_times, final_time)
+            for step in self.solution[start:end]:
+                current_derivative(step[0], step[1:], post_processing=True)
 
         return np.array(self.__post_processed_variables)
 
@@ -2008,19 +2047,53 @@ class Flight:
 
     # Dynamics functions and variables
 
-    #  Aerodynamic Lift and Drag
-    # TODO: These are not lift and drag, they are the aerodynamic forces in
-    # the rocket frame, meaning they are normal and axial forces. They should
-    # be renamed.
+    #  Aerodynamic Normal and Axial Forces (body frame)
+    @funcify_method("Time (s)", "Aerodynamic Normal Force (N)", "spline", "zero")
+    def aerodynamic_normal_force(self):
+        """Aerodynamic normal force in the body frame as a Function of time.
+
+        Equal to the resultant of the transverse forces: sqrt(R1² + R2²).
+        """
+        return (self.R1**2 + self.R2**2) ** 0.5
+
+    @funcify_method("Time (s)", "Aerodynamic Axial Force (N)", "spline", "zero")
+    def aerodynamic_axial_force(self):
+        """Aerodynamic axial force in the body frame as a Function of time.
+
+        Equal to -R3, the drag component along the rocket's longitudinal axis.
+        """
+        return -1 * self.R3
+
+    #  Aerodynamic Lift and Drag (aerodynamic frame)
     @funcify_method("Time (s)", "Aerodynamic Lift Force (N)", "spline", "zero")
     def aerodynamic_lift(self):
-        """Aerodynamic lift force as a Function of time."""
-        return (self.R1**2 + self.R2**2) ** 0.5
+        """Aerodynamic lift force in the aerodynamic frame as a Function of time.
+
+        Lift is the aerodynamic force perpendicular to the freestream velocity.
+        Computed from the body-frame normal (N) and axial (A) forces and the
+        angle of attack (α): L = N·cos(α) − A·sin(α).
+        """
+        alpha_rad = np.deg2rad(self.angle_of_attack.y_array)
+        N = self.aerodynamic_normal_force.y_array
+        A = self.aerodynamic_axial_force.y_array
+        return np.column_stack(
+            (self.time, N * np.cos(alpha_rad) - A * np.sin(alpha_rad))
+        )
 
     @funcify_method("Time (s)", "Aerodynamic Drag Force (N)", "spline", "zero")
     def aerodynamic_drag(self):
-        """Aerodynamic drag force as a Function of time."""
-        return -1 * self.R3
+        """Aerodynamic drag force in the aerodynamic frame as a Function of time.
+
+        Drag is the aerodynamic force opposing the freestream velocity.
+        Computed from the body-frame normal (N) and axial (A) forces and the
+        angle of attack (α): D = N·sin(α) + A·cos(α).
+        """
+        alpha_rad = np.deg2rad(self.angle_of_attack.y_array)
+        N = self.aerodynamic_normal_force.y_array
+        A = self.aerodynamic_axial_force.y_array
+        return np.column_stack(
+            (self.time, N * np.sin(alpha_rad) + A * np.cos(alpha_rad))
+        )
 
     @funcify_method("Time (s)", "Aerodynamic Bending Moment (Nm)", "spline", "zero")
     def aerodynamic_bending_moment(self):
@@ -2541,7 +2614,7 @@ class Flight:
     @funcify_method("Time (s)", "Latitude (°)", "linear", "constant")
     def latitude(self):
         """Rocket latitude coordinate, in degrees, as a Function of time."""
-        lat, _ = inverted_haversine_arr(
+        lat, _ = inverted_haversine_array(
             self.env.latitude,
             self.env.longitude,
             self.drift[:, 1],
@@ -2553,7 +2626,7 @@ class Flight:
     @funcify_method("Time (s)", "Longitude (°)", "linear", "constant")
     def longitude(self):
         """Rocket longitude coordinate, in degrees, as a Function of time."""
-        _, lon = inverted_haversine_arr(
+        _, lon = inverted_haversine_array(
             self.env.latitude,
             self.env.longitude,
             self.drift[:, 1],
@@ -2561,49 +2634,6 @@ class Flight:
             earth_radius=self.env.earth_radius,
         )
         return np.column_stack((self.time, lon))
-
-    # TODO: move to utilities?
-    # TODO: This is so useful, should be in getting_started or first simulation
-    # TODO: make Analysis class. Get useful utilities functions, put it in there
-    # and put this one in there as well... Create one for maxq, and so on
-    def calculate_stall_wind_velocity(self, stall_angle):
-        """Function to calculate the maximum wind velocity before the angle of
-        attack exceeds a desired angle, at the instant of departing rail launch.
-        Can be helpful if you know the exact stall angle of all aerodynamics
-        surfaces.
-
-        Parameters
-        ----------
-        stall_angle : float
-            Angle, in degrees, for which you would like to know the maximum wind
-            speed before the angle of attack exceeds it
-
-        Return
-        ------
-        None
-        """
-        v_f = self.out_of_rail_velocity
-
-        theta = np.radians(self.inclination)
-        stall_angle = np.radians(stall_angle)
-
-        c = (math.cos(stall_angle) ** 2 - math.cos(theta) ** 2) / math.sin(
-            stall_angle
-        ) ** 2
-        w_v = (
-            2 * v_f * math.cos(theta) / c
-            + (
-                4 * v_f * v_f * math.cos(theta) * math.cos(theta) / (c**2)
-                + 4 * 1 * v_f * v_f / c
-            )
-            ** 0.5
-        ) / 2
-
-        stall_angle = np.degrees(stall_angle)
-        print(
-            "Maximum wind velocity at Rail Departure time before angle"
-            + f" of attack exceeds {stall_angle:.3f}°: {w_v:.3f} m/s"
-        )
 
     def info(self):
         """Prints out a summary of the data available about the Flight."""
@@ -2631,6 +2661,8 @@ class Flight:
             "time_overshoot": self.time_overshoot,
             "name": self.name,
             "equations_of_motion": self.equations_of_motion,
+            "ode_solver": self.ode_solver,
+            "simulation_mode": self.simulation_mode,
             # The following outputs are essential to run all_info method
             "solution": self.solution,
             "out_of_rail_time": self.out_of_rail_time,
@@ -2715,6 +2747,8 @@ class Flight:
             time_overshoot=data["time_overshoot"],
             name=data["name"],
             equations_of_motion=data["equations_of_motion"],
+            ode_solver=data.get("ode_solver", "LSODA"),
+            simulation_mode=data.get("simulation_mode", "6DOF"),
         )
 
     # These should be deprecated on v1.13
@@ -2741,6 +2775,86 @@ class Flight:
             if len(observed_variables) == 1
             else observed_variables
         )
+
+    @deprecated(
+        reason="Moved to FlightDataExporter.export_pressures()",
+        version="v1.12.0",
+        alternative="rocketpy.simulation.flight_data_exporter.FlightDataExporter.export_pressures",
+    )
+    def export_pressures(self, file_name, time_step):
+        """
+        .. deprecated:: 1.11
+           Use :class:`rocketpy.simulation.flight_data_exporter.FlightDataExporter`
+           and call ``.export_pressures(...)``.
+        """
+        return self.exports.export_pressures(file_name, time_step)
+
+    @deprecated(
+        reason="Moved to FlightDataExporter.export_data()",
+        version="v1.12.0",
+        alternative="rocketpy.simulation.flight_data_exporter.FlightDataExporter.export_data",
+    )
+    def export_data(self, file_name, *variables, time_step=None):
+        """
+        .. deprecated:: 1.11
+           Use :class:`rocketpy.simulation.flight_data_exporter.FlightDataExporter`
+           and call ``.export_data(...)``.
+        """
+        return self.exports.export_data(file_name, *variables, time_step=time_step)
+
+    @deprecated(
+        reason="Moved to FlightDataExporter.export_sensor_data()",
+        version="v1.12.0",
+        alternative="rocketpy.simulation.flight_data_exporter.FlightDataExporter.export_sensor_data",
+    )
+    def export_sensor_data(self, file_name, sensor=None):
+        """
+        .. deprecated:: 1.11
+           Use :class:`rocketpy.simulation.flight_data_exporter.FlightDataExporter`
+           and call ``.export_sensor_data(...)``.
+        """
+        return self.exports.export_sensor_data(file_name, sensor=sensor)
+
+    @deprecated(
+        reason="Moved to FlightDataExporter.export_kml()",
+        version="v1.12.0",
+        alternative="rocketpy.simulation.flight_data_exporter.FlightDataExporter.export_kml",
+    )
+    def export_kml(
+        self,
+        file_name="trajectory.kml",
+        time_step=None,
+        extrude=True,
+        color="641400F0",
+        altitude_mode="absolute",
+    ):
+        """
+        .. deprecated:: 1.11
+           Use :class:`rocketpy.simulation.flight_data_exporter.FlightDataExporter`
+           and call ``.export_kml(...)``.
+        """
+        return self.exports.export_kml(
+            file_name=file_name,
+            time_step=time_step,
+            extrude=extrude,
+            color=color,
+            altitude_mode=altitude_mode,
+        )
+
+    @deprecated(
+        reason="Moved to rocketpy.utilities.calculate_stall_wind_velocity",
+        version="v1.13.0",
+        alternative="rocketpy.utilities.calculate_stall_wind_velocity",
+    )
+    def calculate_stall_wind_velocity(self, stall_angle):
+        """Deprecated. See
+        :func:`rocketpy.utilities.calculate_stall_wind_velocity`."""
+        # Local import avoids a circular import (utilities imports flight).
+        from ..utilities import (  # pylint: disable=import-outside-toplevel
+            calculate_stall_wind_velocity,
+        )
+
+        return calculate_stall_wind_velocity(self, stall_angle)
 
     @deprecated(
         reason="Prefer direct pair iteration (for example zip(seq, seq[1:]))",

@@ -1,5 +1,7 @@
 import math
 
+from ..._logging import logger
+
 
 class _FlightPhases:
     """Class to handle flight phases. It is used to store the derivatives
@@ -64,16 +66,17 @@ class _FlightPhases:
 
         Notes
         -----
-        This method only prints when `self.verbose` is True. It exists to
-        centralize the exact warning wording used across insertion helpers.
+        The message is emitted through the ``"rocketpy"`` logger at WARNING
+        level, so visibility is controlled by the logging configuration (or by
+        passing ``verbose=True`` to ``Flight``). It exists to centralize the
+        exact warning wording used across insertion helpers.
         """
-        if self.verbose:
-            message = (
-                f"Trying to add flight phase starting {instant} with the "
-                f"one {order} it. This may be caused by multiple events "
-                "being triggered simultaneously."
-            )
-            print("WARNING:", message)
+        logger.warning(
+            "Trying to add flight phase starting %s with the one %s it. This "
+            "may be caused by multiple events being triggered simultaneously.",
+            instant,
+            order,
+        )
 
     def _try_append_to_tail(self, flight_phase):
         """Attempt to append `flight_phase` at the timeline tail.
@@ -369,7 +372,9 @@ class _FlightPhase:
 
     def __repr__(self):
         """Return compact machine-readable representation."""
-        derivative_name = getattr(self.derivative, "__name__", self.derivative.__class__.__name__)
+        derivative_name = getattr(
+            self.derivative, "__name__", self.derivative.__class__.__name__
+        )
         return (
             "_FlightPhase("
             f"t={self.t!r}, "
@@ -477,17 +482,11 @@ class _TimeNodes:
             # `enable_on` cannot become enabled again and are therefore
             # skipped here to avoid scheduling unnecessary checks.
             if (
-                (not event.enabled and event.enable_on is None)
-                or event.sampling_rate is None
-            ):
+                not event.enabled and event.enable_on is None
+            ) or event.sampling_rate is None:
                 continue
 
             sampling_interval = event.sampling_interval
-            # TODO: this is the inefficient part of the code
-            # we are creating a list of time nodes for each event and then we 
-            # are merging them later
-            # A smarter way to do this is to only create the next time node
-            # when needed. Too complex though
             node_list = [
                 _TimeNode(
                     i * sampling_interval,

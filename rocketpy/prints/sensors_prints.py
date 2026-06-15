@@ -1,5 +1,7 @@
 from abc import ABC
 
+import numpy as np
+
 
 class _SensorPrints(ABC):
     def __init__(self, sensor):
@@ -65,6 +67,45 @@ class _SensorPrints(ABC):
         self.identity()
         self.quantization()
         self.noise()
+
+    def data_summary(self, data=None):
+        """Prints a per-channel summary (min, max, mean) of the measured data.
+
+        Handles sensors added to the rocket a single time (a flat list of
+        measurements) and multiple times (one measurement run per instance).
+
+        Parameters
+        ----------
+        data : list, optional
+            Measured data to summarize. When ``None`` (default) the sensor's
+            own ``measured_data`` buffer is used. Flight-scoped callers should
+            pass ``flight.sensor_data[sensor]`` so the summary reflects that
+            specific flight rather than the sensor's most recent run.
+        """
+        if data is None:
+            data = self.sensor.measured_data
+        if not data:
+            print("\tNo measured data recorded.")
+            return
+
+        runs = data if isinstance(data[0], list) else [data]
+        channels = self.sensor.channels
+        print("\tMeasured Data Summary:")
+        for run_index, run in enumerate(runs):
+            if not run:
+                continue
+            if len(runs) > 1:
+                print(f"\t  Instance {run_index + 1}:")
+                indent = "\t    "
+            else:
+                indent = "\t  "
+            array = np.array(run, dtype=float)
+            for column, (label, unit) in enumerate(channels):
+                values = array[:, column + 1]
+                print(
+                    f"{indent}{label}: min={values.min():.4g}, "
+                    f"max={values.max():.4g}, mean={values.mean():.4g} ({unit})"
+                )
 
 
 class _InertialSensorPrints(_SensorPrints):

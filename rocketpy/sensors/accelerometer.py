@@ -1,6 +1,7 @@
 import numpy as np
 
 from ..mathutils.vector_matrix import Matrix, Vector
+from ..plots.sensors_plots import _AccelerometerPlots
 from ..prints.sensors_prints import _InertialSensorPrints
 from ..sensors.sensor import InertialSensor
 
@@ -60,6 +61,7 @@ class Accelerometer(InertialSensor):
     """
 
     units = "m/s^2"
+    channels = [("ax", "m/s^2"), ("ay", "m/s^2"), ("az", "m/s^2")]
 
     def __init__(
         self,
@@ -176,7 +178,7 @@ class Accelerometer(InertialSensor):
 
         See Also
         --------
-        TODO link to documentation on noise model
+        :ref:`sensorsusage` : More details on sensor usage.
         """
         super().__init__(
             sampling_rate,
@@ -196,6 +198,7 @@ class Accelerometer(InertialSensor):
         )
         self.consider_gravity = consider_gravity
         self.prints = _InertialSensorPrints(self)
+        self.plots = _AccelerometerPlots(self)
 
     def measure(self, time, **kwargs):
         """Measure the acceleration of the rocket

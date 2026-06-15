@@ -1,7 +1,10 @@
+import warnings
 from functools import cached_property
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.ticker import MaxNLocator, MultipleLocator
 
 from .plot_helpers import show_or_save_plot
 
@@ -69,8 +72,14 @@ class _FlightPlots:
         "Out Of Rail": "#8b0000",
     }
     _COLOR_CYCLE = [
-        "#7de07a", "#f781bf", "#a65628", "#ff7f00",
-        "#ffff33", "#377eb8", "#984ea3", "#66c2a5",
+        "#7de07a",
+        "#f781bf",
+        "#a65628",
+        "#ff7f00",
+        "#ffff33",
+        "#377eb8",
+        "#984ea3",
+        "#66c2a5",
     ]
 
     def _collect_events(self):
@@ -83,11 +92,12 @@ class _FlightPlots:
             events.append(
                 (t_burn, "Burnout", "o", self._RESERVED_COLORS["Burnout"], 40)
             )
-        except Exception:
+        except AttributeError:
             pass
 
         one_time_events = [
-            ev for ev in getattr(self.flight, "events", [])
+            ev
+            for ev in getattr(self.flight, "events", [])
             if getattr(ev, "trigger_only_once", False)
         ]
         for ev in one_time_events:
@@ -135,9 +145,7 @@ class _FlightPlots:
             leg, "legendHandles", []
         )
         labels = [t.get_text() for t in leg.get_texts()]
-        combined = sorted(
-            zip(labels, handles), key=lambda p: event_times.get(p[0], -1)
-        )
+        combined = sorted(zip(labels, handles), key=lambda p: event_times.get(p[0], -1))
         if combined:
             labels_s, handles_s = zip(*combined)
             ax.legend(list(handles_s), list(labels_s))
@@ -152,14 +160,26 @@ class _FlightPlots:
         for t_ev, label, _marker, color, _size in self._collect_events():
             if label in ("Out Of Rail", "Landing"):
                 continue
-            if not (xlim[0] <= t_ev <= xlim[1]):
+            if not xlim[0] <= t_ev <= xlim[1]:
                 continue
             if label == "Burnout":
-                ax.axvline(x=t_ev, color=self._BURNOUT_LINE_COLOR, linestyle="--",
-                           linewidth=self._EVENT_LINE_WIDTH, alpha=1.0, label=label)
+                ax.axvline(
+                    x=t_ev,
+                    color=self._BURNOUT_LINE_COLOR,
+                    linestyle="--",
+                    linewidth=self._EVENT_LINE_WIDTH,
+                    alpha=1.0,
+                    label=label,
+                )
             else:
-                ax.axvline(x=t_ev, color=color, linestyle="--",
-                           linewidth=self._EVENT_LINE_WIDTH, alpha=1.0, label=label)
+                ax.axvline(
+                    x=t_ev,
+                    color=color,
+                    linestyle="--",
+                    linewidth=self._EVENT_LINE_WIDTH,
+                    alpha=1.0,
+                    label=label,
+                )
         if legend:
             self._sorted_legend(ax)
 
@@ -201,17 +221,33 @@ class _FlightPlots:
                 continue
             if labels is not None and label not in labels:
                 continue
-            if not (xlim[0] <= t_ev <= xlim[1]):
+            if not xlim[0] <= t_ev <= xlim[1]:
                 continue
             y_ev = float(np.interp(t_ev, xdata, ydata))
             line_color = self._BURNOUT_LINE_COLOR if label == "Burnout" else color
-            lw = self._EVENT_LINE_WIDTH if label == "Burnout" else self._EVENT_LINE_WIDTH
-            ax.vlines(t_ev, y_bottom, y_ev, colors=line_color, linestyles="--", linewidth=lw, alpha=1.0)
+            lw = (
+                self._EVENT_LINE_WIDTH if label == "Burnout" else self._EVENT_LINE_WIDTH
+            )
+            ax.vlines(
+                t_ev,
+                y_bottom,
+                y_ev,
+                colors=line_color,
+                linestyles="--",
+                linewidth=lw,
+                alpha=1.0,
+            )
             if label == "Apogee":
                 deferred_apogee = (t_ev, y_ev, label, marker, color, size)
                 continue
             s2d = size if marker == "s" else size * 0.5
-            kw = dict(marker=marker, color=color, s=s2d, label=label, zorder=10)
+            kw = {
+                "marker": marker,
+                "color": color,
+                "s": s2d,
+                "label": label,
+                "zorder": 10,
+            }
             if marker != "x":
                 kw["edgecolors"] = "black"
                 kw["linewidths"] = 0.8
@@ -220,7 +256,13 @@ class _FlightPlots:
             ax.scatter(t_ev, y_ev, **kw)
         if deferred_apogee is not None:
             t_ev, y_ev, label, marker, color, size = deferred_apogee
-            kw = dict(marker=marker, color=color, s=size * 0.5, label=label, zorder=20)
+            kw = {
+                "marker": marker,
+                "color": color,
+                "s": size * 0.5,
+                "label": label,
+                "zorder": 20,
+            }
             kw["edgecolors"] = "black"
             kw["linewidths"] = 0.8
             ax.scatter(t_ev, y_ev, **kw)
@@ -314,7 +356,7 @@ class _FlightPlots:
             depthshade=False,
         )
         # Plot single-trigger events (events configured with trigger_only_once)
-        if show_events:
+        if show_events:  # pylint: disable=too-many-nested-blocks
             try:
                 # Set defaults for color palettes if not provided
                 if reserved_colors is None:
@@ -363,7 +405,7 @@ class _FlightPlots:
                         linewidths=0.8,
                         zorder=5,
                     )
-                except Exception:
+                except AttributeError:
                     # ignore if burn time unavailable
                     pass
 
@@ -445,7 +487,7 @@ class _FlightPlots:
                     )
 
                 self._sorted_legend(ax1)
-            except Exception:
+            except Exception:  # pylint: disable=broad-exception-caught
                 # plotting of events should never break the main plot
                 pass
         ax1.set_xlabel("X - East (m)")
@@ -895,12 +937,16 @@ class _FlightPlots:
         -------
         None
         """
-        plt.figure(figsize=(9, 12))
+        plt.figure(figsize=(9, 18))
 
-        ax1 = plt.subplot(411)
+        ax1 = plt.subplot(611)
         ax1.plot(
-            self.flight.aerodynamic_lift[: self.first_parachute_event_time_index, 0],
-            self.flight.aerodynamic_lift[: self.first_parachute_event_time_index, 1],
+            self.flight.aerodynamic_normal_force[
+                : self.first_parachute_event_time_index, 0
+            ],
+            self.flight.aerodynamic_normal_force[
+                : self.first_parachute_event_time_index, 1
+            ],
             label="Resultant",
         )
         ax1.plot(
@@ -915,23 +961,50 @@ class _FlightPlots:
         )
         ax1.set_xlim(0, self.first_parachute_event_time)
         ax1.set_xlabel("Time (s)")
-        ax1.set_ylabel("Lift Force (N)")
-        ax1.set_title("Aerodynamic Lift Resultant Force")
+        ax1.set_ylabel("Normal Force (N)")
+        ax1.set_title("Aerodynamic Normal Force (Body Frame)")
+        ax1.legend()
         ax1.grid()
 
-        ax2 = plt.subplot(412)
+        ax2 = plt.subplot(612)
         ax2.plot(
-            self.flight.aerodynamic_drag[: self.first_parachute_event_time_index, 0],
-            self.flight.aerodynamic_drag[: self.first_parachute_event_time_index, 1],
+            self.flight.aerodynamic_axial_force[
+                : self.first_parachute_event_time_index, 0
+            ],
+            self.flight.aerodynamic_axial_force[
+                : self.first_parachute_event_time_index, 1
+            ],
         )
         ax2.set_xlim(0, self.first_parachute_event_time)
         ax2.set_xlabel("Time (s)")
-        ax2.set_ylabel("Drag Force (N)")
-        ax2.set_title("Aerodynamic Drag Force")
+        ax2.set_ylabel("Axial Force (N)")
+        ax2.set_title("Aerodynamic Axial Force (Body Frame)")
         ax2.grid()
 
-        ax3 = plt.subplot(413)
+        ax3 = plt.subplot(613)
         ax3.plot(
+            self.flight.aerodynamic_lift[: self.first_parachute_event_time_index, 0],
+            self.flight.aerodynamic_lift[: self.first_parachute_event_time_index, 1],
+        )
+        ax3.set_xlim(0, self.first_parachute_event_time)
+        ax3.set_xlabel("Time (s)")
+        ax3.set_ylabel("Lift Force (N)")
+        ax3.set_title("Aerodynamic Lift Force (Aerodynamic Frame)")
+        ax3.grid()
+
+        ax4 = plt.subplot(614)
+        ax4.plot(
+            self.flight.aerodynamic_drag[: self.first_parachute_event_time_index, 0],
+            self.flight.aerodynamic_drag[: self.first_parachute_event_time_index, 1],
+        )
+        ax4.set_xlim(0, self.first_parachute_event_time)
+        ax4.set_xlabel("Time (s)")
+        ax4.set_ylabel("Drag Force (N)")
+        ax4.set_title("Aerodynamic Drag Force (Aerodynamic Frame)")
+        ax4.grid()
+
+        ax5 = plt.subplot(615)
+        ax5.plot(
             self.flight.aerodynamic_bending_moment[
                 : self.first_parachute_event_time_index, 0
             ],
@@ -940,25 +1013,25 @@ class _FlightPlots:
             ],
             label="Resultant",
         )
-        ax3.plot(
+        ax5.plot(
             self.flight.M1[: self.first_parachute_event_time_index, 0],
             self.flight.M1[: self.first_parachute_event_time_index, 1],
             label="M1",
         )
-        ax3.plot(
+        ax5.plot(
             self.flight.M2[: self.first_parachute_event_time_index, 0],
             self.flight.M2[: self.first_parachute_event_time_index, 1],
             label="M2",
         )
-        ax3.set_xlim(0, self.first_parachute_event_time)
-        ax3.legend()
-        ax3.set_xlabel("Time (s)")
-        ax3.set_ylabel("Bending Moment (N m)")
-        ax3.set_title("Aerodynamic Bending Resultant Moment")
-        ax3.grid()
+        ax5.set_xlim(0, self.first_parachute_event_time)
+        ax5.legend()
+        ax5.set_xlabel("Time (s)")
+        ax5.set_ylabel("Bending Moment (N m)")
+        ax5.set_title("Aerodynamic Bending Resultant Moment")
+        ax5.grid()
 
-        ax4 = plt.subplot(414)
-        ax4.plot(
+        ax6 = plt.subplot(616)
+        ax6.plot(
             self.flight.aerodynamic_spin_moment[
                 : self.first_parachute_event_time_index, 0
             ],
@@ -966,11 +1039,11 @@ class _FlightPlots:
                 : self.first_parachute_event_time_index, 1
             ],
         )
-        ax4.set_xlim(0, self.first_parachute_event_time)
-        ax4.set_xlabel("Time (s)")
-        ax4.set_ylabel("Spin Moment (N m)")
-        ax4.set_title("Aerodynamic Spin Moment")
-        ax4.grid()
+        ax6.set_xlim(0, self.first_parachute_event_time)
+        ax6.set_xlabel("Time (s)")
+        ax6.set_ylabel("Spin Moment (N m)")
+        ax6.set_title("Aerodynamic Spin Moment")
+        ax6.grid()
 
         plt.subplots_adjust(hspace=0.5)
         show_or_save_plot(filename)
@@ -1275,8 +1348,6 @@ class _FlightPlots:
         Use a Sensor (e.g. a Barometer) with built-in noise and access its
         recorded measurements via ``flight.sensor_data`` instead.
         """
-        import warnings
-
         warnings.warn(
             "pressure_signals() is deprecated and will be removed in v1.13. "
             "Use a Barometer Sensor with built-in noise and access its data "
@@ -1284,6 +1355,39 @@ class _FlightPlots:
             DeprecationWarning,
             stacklevel=2,
         )
+
+    def sensor_data(self, *, filename=None):
+        """Plots the measured data of every sensor attached to the flight.
+
+        Delegates to each sensor's own ``plots`` object. A sensor added to the
+        rocket multiple times appears once in the output.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plots should be saved to. By default None, in which
+            case the plots will be shown instead of saved. When given, a
+            per-sensor suffix is appended to keep one file per sensor.
+        """
+        if not self.flight.sensors:
+            print("No sensors were registered in this flight.")
+            return
+
+        seen = []
+        for sensor in self.flight.sensors:
+            if sensor in seen:  # a multiply-added sensor is listed more than once
+                continue
+            seen.append(sensor)
+            measured_data = self.flight.sensor_data[sensor]
+            print(f"\n\n{sensor.name} Sensor Data\n")
+            if filename is None:
+                sensor.plots.all(data=measured_data)
+            else:
+                path = Path(filename)
+                sensor_filename = str(
+                    path.with_name(f"{path.stem}_{sensor.name}{path.suffix}")
+                )
+                sensor.plots.time_series(filename=sensor_filename, data=measured_data)
 
     def altitude_data(self, *, filename=None):
         """Plots altitude AGL vs time with event markers.
@@ -1321,17 +1425,33 @@ class _FlightPlots:
         for t_ev, label, marker, color, size in self._collect_events():
             if label in ("Out Of Rail", "Landing"):
                 continue
-            if not (xlim[0] <= t_ev <= xlim[1]):
+            if not xlim[0] <= t_ev <= xlim[1]:
                 continue
             alt_ev = float(np.interp(t_ev, z_times, z_agl))
             line_color = self._BURNOUT_LINE_COLOR if label == "Burnout" else color
-            lw = self._EVENT_LINE_WIDTH if label == "Burnout" else self._EVENT_LINE_WIDTH
-            ax1.vlines(t_ev, 0, alt_ev, colors=line_color, linestyles="--", linewidth=lw, alpha=1.0)
+            lw = (
+                self._EVENT_LINE_WIDTH if label == "Burnout" else self._EVENT_LINE_WIDTH
+            )
+            ax1.vlines(
+                t_ev,
+                0,
+                alt_ev,
+                colors=line_color,
+                linestyles="--",
+                linewidth=lw,
+                alpha=1.0,
+            )
             if label == "Apogee":
                 deferred_apogee = (t_ev, label, marker, color, size, alt_ev)
                 continue
             s2d = size if marker == "s" else size * 0.5
-            kw = dict(marker=marker, color=color, s=s2d, label=label, zorder=10)
+            kw = {
+                "marker": marker,
+                "color": color,
+                "s": s2d,
+                "label": label,
+                "zorder": 10,
+            }
             if marker != "x":
                 kw["edgecolors"] = "black"
                 kw["linewidths"] = 0.8
@@ -1340,8 +1460,17 @@ class _FlightPlots:
             ax1.scatter(t_ev, alt_ev, **kw)
         if deferred_apogee is not None:
             t_ev, label, marker, color, size, alt_ev = deferred_apogee
-            ax1.scatter(t_ev, alt_ev, marker=marker, color=color, s=size * 0.5,
-                        label=label, zorder=20, edgecolors="black", linewidths=0.8)
+            ax1.scatter(
+                t_ev,
+                alt_ev,
+                marker=marker,
+                color=color,
+                s=size * 0.5,
+                label=label,
+                zorder=20,
+                edgecolors="black",
+                linewidths=0.8,
+            )
         self._sorted_legend(ax1)
 
         plt.tight_layout()
@@ -1362,10 +1491,16 @@ class _FlightPlots:
         -------
         None
         """
-        plt.figure(figsize=(7, 7))
+        plt.figure(figsize=(6, 6))
 
         ax1 = plt.subplot(111)
-        ax1.plot(self.flight.x[:, 1], self.flight.y[:, 1], color=self._TRAJECTORY_COLOR, label="Trajectory", zorder=1)
+        ax1.plot(
+            self.flight.x[:, 1],
+            self.flight.y[:, 1],
+            color=self._TRAJECTORY_COLOR,
+            label="_nolegend_",
+            zorder=1,
+        )
         # Launch point (t=0 is not a trigger-once event, so add it explicitly)
         ax1.scatter(
             [self.flight.x(0)],
@@ -1391,7 +1526,13 @@ class _FlightPlots:
                 s2d = size * 0.9
             else:
                 s2d = size * 0.5
-            kw = dict(marker=marker, color=color, s=s2d, label=label, zorder=10)
+            kw = {
+                "marker": marker,
+                "color": color,
+                "s": s2d,
+                "label": label,
+                "zorder": 10,
+            }
             if marker != "x":
                 kw["edgecolors"] = "black"
                 kw["linewidths"] = 0.8
@@ -1401,9 +1542,15 @@ class _FlightPlots:
         if deferred_apogee is not None:
             t_ev, label, marker, color, size = deferred_apogee
             ax1.scatter(
-                [self.flight.x(t_ev)], [self.flight.y(t_ev)],
-                marker=marker, color=color, s=size * 0.5, label=label,
-                edgecolors="black", linewidths=0.8, zorder=20,
+                [self.flight.x(t_ev)],
+                [self.flight.y(t_ev)],
+                marker=marker,
+                color=color,
+                s=size * 0.5,
+                label=label,
+                edgecolors="black",
+                linewidths=0.8,
+                zorder=20,
             )
         ax1.set_title("Ground Track")
         ax1.set_xlabel("East (m)")
@@ -1415,13 +1562,23 @@ class _FlightPlots:
         y_data = self.flight.y[:, 1]
         x_center = (float(x_data.max()) + float(x_data.min())) / 2
         y_center = (float(y_data.max()) + float(y_data.min())) / 2
-        half = max(
-            float(x_data.max()) - float(x_data.min()),
-            float(y_data.max()) - float(y_data.min()),
-        ) / 2 * 1.1 + 1
+        half = (
+            max(
+                float(x_data.max()) - float(x_data.min()),
+                float(y_data.max()) - float(y_data.min()),
+            )
+            / 2
+            * 1.1
+            + 1
+        )
         ax1.set_xlim(x_center - half, x_center + half)
         ax1.set_ylim(y_center - half, y_center + half)
         ax1.set_aspect("equal", adjustable="box")
+        # Use the same tick spacing on both axes so the square grid is uniform
+        tick_values = MaxNLocator(nbins=6).tick_values(-half, half)
+        step = tick_values[1] - tick_values[0]
+        ax1.xaxis.set_major_locator(MultipleLocator(step))
+        ax1.yaxis.set_major_locator(MultipleLocator(step))
 
         plt.tight_layout()
         show_or_save_plot(filename)
@@ -1444,7 +1601,11 @@ class _FlightPlots:
         plt.figure(figsize=(9, 6))
 
         ax1 = plt.subplot(211)
-        ax1.plot(self.flight.drift[:, 0], self.flight.drift[:, 1], color=self._TRAJECTORY_COLOR)
+        ax1.plot(
+            self.flight.drift[:, 0],
+            self.flight.drift[:, 1],
+            color=self._TRAJECTORY_COLOR,
+        )
         ax1.set_xlim(0, self.flight.t_final)
         ax1.set_ylim(bottom=0)
         ax1.set_title("Drift from Launch")
@@ -1454,7 +1615,11 @@ class _FlightPlots:
         self._add_event_markers_dropline(ax1, y_bottom=0)
 
         ax2 = plt.subplot(212)
-        ax2.plot(self.flight.bearing[:, 0], self.flight.bearing[:, 1], color=self._TRAJECTORY_COLOR)
+        ax2.plot(
+            self.flight.bearing[:, 0],
+            self.flight.bearing[:, 1],
+            color=self._TRAJECTORY_COLOR,
+        )
         ax2.set_xlim(0, self.flight.t_final)
         ax2.set_title("Bearing from Launch")
         ax2.set_xlabel("Time (s)")
@@ -1586,3 +1751,7 @@ class _FlightPlots:
 
         print("\n\nTrajectory Stability and Control Plots\n")
         self.stability_and_control_data()
+
+        if self.flight.sensors:
+            print("\n\nSensor Data Plots\n")
+            self.sensor_data()

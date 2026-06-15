@@ -268,10 +268,12 @@ class _FlightPrints:
 
         for sensor in self.flight.sensors:
             sensor_name = sensor.name if sensor.name else "Unnamed Sensor"
+            measured_data = self.flight.sensor_data[sensor]
             print(f"Sensor: {sensor_name}")
             print(f"\tType: {sensor.__class__.__name__}")
             print(f"\tSampling Rate: {sensor.sampling_rate:.3f} Hz")
-            print(f"\tMeasurements Recorded: {len(sensor.measured_data)}")
+            print(f"\tMeasurements Recorded: {len(measured_data)}")
+            sensor.prints.data_summary(data=measured_data)
             print()
 
     def sensor_events(self):
@@ -292,8 +294,12 @@ class _FlightPrints:
             event_name = event.name if event.name else "Unnamed Sensor Event"
             print(f"Sensor Event: {event_name}")
             print(f"\tEnabled at end of simulation: {event.enabled}")
-            parent_sensor = event.context.get("sensor") if isinstance(event.context, dict) else None
-            parent_name = parent_sensor.name if parent_sensor is not None else event_name
+            parent_sensor = (
+                event.context.get("sensor") if isinstance(event.context, dict) else None
+            )
+            parent_name = (
+                parent_sensor.name if parent_sensor is not None else event_name
+            )
             print(f"\tParent Sensor: {parent_name}")
 
             if event.sampling_rate is None:
@@ -512,6 +518,34 @@ class _FlightPrints:
         print(
             f"Maximum Stability Margin: {self.flight.max_stability_margin:.3f} c "
             f"at {self.flight.max_stability_margin_time:.2f} s"
+        )
+        normal_arr = self.flight.aerodynamic_normal_force[:, 1]
+        normal_t = self.flight.aerodynamic_normal_force[:, 0]
+        idx = int(normal_arr.argmax())
+        print(
+            f"Maximum Aerodynamic Normal Force: {normal_arr[idx]:.3f} N "
+            f"at {normal_t[idx]:.2f} s"
+        )
+        axial_arr = self.flight.aerodynamic_axial_force[:, 1]
+        axial_t = self.flight.aerodynamic_axial_force[:, 0]
+        idx = int(axial_arr.argmax())
+        print(
+            f"Maximum Aerodynamic Axial Force: {axial_arr[idx]:.3f} N "
+            f"at {axial_t[idx]:.2f} s"
+        )
+        lift_arr = self.flight.aerodynamic_lift[:, 1]
+        lift_t = self.flight.aerodynamic_lift[:, 0]
+        idx = int(lift_arr.argmax())
+        print(
+            f"Maximum Aerodynamic Lift Force: {lift_arr[idx]:.3f} N "
+            f"at {lift_t[idx]:.2f} s"
+        )
+        drag_arr = self.flight.aerodynamic_drag[:, 1]
+        drag_t = self.flight.aerodynamic_drag[:, 0]
+        idx = int(drag_arr.argmax())
+        print(
+            f"Maximum Aerodynamic Drag Force: {drag_arr[idx]:.3f} N "
+            f"at {drag_t[idx]:.2f} s"
         )
 
         if (

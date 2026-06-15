@@ -1,6 +1,7 @@
 import numpy as np
 
 from ..mathutils.vector_matrix import Matrix
+from ..plots.sensors_plots import _BarometerPlots
 from ..prints.sensors_prints import _SensorPrints
 from ..sensors.sensor import ScalarSensor
 
@@ -47,6 +48,7 @@ class Barometer(ScalarSensor):
     """
 
     units = "Pa"
+    channels = [("pressure", "Pa")]
 
     def __init__(
         self,
@@ -117,7 +119,7 @@ class Barometer(ScalarSensor):
 
         See Also
         --------
-        TODO link to documentation on noise model
+        :ref:`sensorsusage` : More details on sensor usage.
         """
         super().__init__(
             sampling_rate=sampling_rate,
@@ -134,6 +136,7 @@ class Barometer(ScalarSensor):
             name=name,
         )
         self.prints = _SensorPrints(self)
+        self.plots = _BarometerPlots(self)
 
     def measure(self, time, **kwargs):
         """Measures the pressure at barometer location

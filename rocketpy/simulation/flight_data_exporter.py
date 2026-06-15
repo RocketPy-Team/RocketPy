@@ -7,6 +7,8 @@ import json
 import numpy as np
 import simplekml
 
+from rocketpy.tools import deprecated
+
 
 class FlightDataExporter:
     """Export data from a rocketpy.Flight object to various formats."""
@@ -26,7 +28,7 @@ class FlightDataExporter:
     def __repr__(self):
         return f"FlightDataExporter(name='{self.name}', flight='{type(self._flight).__name__}')"
 
-    def export_pressures(self, file_name, time_step):
+    def pressures(self, file_name, time_step):
         """Exports the static pressure experienced by the rocket during flight
         to an external file. The '.csv' format is recommended; columns are
         separated by commas.
@@ -60,7 +62,7 @@ class FlightDataExporter:
             for t in time_points:
                 file.write(f"{t:f}, {f.pressure.get_value_opt(t):.5f}\n")
 
-    def export_data(self, file_name, *variables, time_step=None):
+    def data(self, file_name, *variables, time_step=None):
         """Exports flight data to a comma separated value file (.csv).
 
         Data is exported in columns, with the first column representing time
@@ -76,7 +78,7 @@ class FlightDataExporter:
         variables : strings, optional
             Names of the data variables which shall be exported. Must be Flight
             class attributes which are instances of the Function class. Usage
-            example: test_flight.export_data('test.csv', 'z', 'angle_of_attack',
+            example: test_flight.exports.data('test.csv', 'z', 'angle_of_attack',
             'mach_number').
         time_step : float, optional
             Time step desired for the data. If None, all integration time steps
@@ -160,7 +162,7 @@ class FlightDataExporter:
             encoding="utf-8",
         )
 
-    def export_sensor_data(self, file_name, sensor=None):
+    def sensor_data(self, file_name, sensor=None):
         """Exports sensors data to a file. The file format can be either .csv or
         .json.
 
@@ -203,7 +205,7 @@ class FlightDataExporter:
             json.dump(data_dict, file)
         print("Sensor data exported to: ", file_name)
 
-    def export_kml(
+    def kml(
         self,
         file_name="trajectory.kml",
         time_step=None,
@@ -287,3 +289,21 @@ class FlightDataExporter:
         # Save the KML
         kml.save(file_name)
         print("File ", file_name, " saved with success!")
+
+    # Deprecated aliases -- kept for backward compatibility with the
+    # ``export_*`` method names used prior to v1.13.
+    @deprecated(version="v1.14.0", alternative="pressures")
+    def export_pressures(self, file_name, time_step):
+        return self.pressures(file_name, time_step)
+
+    @deprecated(version="v1.14.0", alternative="data")
+    def export_data(self, file_name, *variables, time_step=None):
+        return self.data(file_name, *variables, time_step=time_step)
+
+    @deprecated(version="v1.14.0", alternative="sensor_data")
+    def export_sensor_data(self, file_name, sensor=None):
+        return self.sensor_data(file_name, sensor)
+
+    @deprecated(version="v1.14.0", alternative="kml")
+    def export_kml(self, *args, **kwargs):
+        return self.kml(*args, **kwargs)

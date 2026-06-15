@@ -47,3 +47,20 @@ class Commands:
 
     def terminate_flight(self):
         self._terminate = True
+
+    @property
+    def alters_trajectory(self):
+        """Whether these commands change what happens at/after the trigger.
+
+        Returns ``True`` when the queued commands start a new flight phase,
+        set a new derivative, or terminate the flight. In all three cases the
+        trajectory past the trigger is no longer valid, so during time
+        overshoot the simulation must be rolled back to the exact trigger
+        crossing before the commands are applied. Pure scheduling changes
+        (enabling/disabling or adding events) do not require a rollback.
+        """
+        return (
+            self.new_flight_phase is not None
+            or self.new_derivative_set
+            or self._terminate
+        )

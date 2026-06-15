@@ -240,7 +240,9 @@ class GenericSurface:
         rho,
         cp,
         omega,
-        reynolds,
+        density,
+        dynamic_viscosity,
+        z,
     ):
         """Computes the forces and moments acting on the aerodynamic surface.
         Used in each time step of the simulation.  This method is valid for
@@ -260,10 +262,15 @@ class GenericSurface:
             Center of pressure coordinates in the body frame.
         omega: tuple[float, float, float]
             Tuple containing angular velocities around the x, y, z axes.
-        reynolds : float
-            Reynolds number.
-        omega: tuple of float
-            Tuple containing angular velocities around the x, y, z axes.
+        density : Function
+            Atmospheric density as a function of altitude. Used to compute the
+            Reynolds number at the surface altitude.
+        dynamic_viscosity : Function
+            Atmospheric dynamic viscosity as a function of altitude. Used to
+            compute the Reynolds number at the surface altitude.
+        z : float
+            Altitude of the surface, used to evaluate ``density`` and
+            ``dynamic_viscosity``.
 
         Returns
         -------
@@ -271,6 +278,16 @@ class GenericSurface:
             The aerodynamic forces (lift, side_force, drag) and moments
             (pitch, yaw, roll) in the body frame.
         """
+        # Reynolds number at the surface altitude. Computed here (rather than in
+        # the flight loop) since it is only needed by generic surfaces.
+        comp_density = density.get_value_opt(z)
+        comp_dynamic_viscosity = dynamic_viscosity.get_value_opt(z)
+        reynolds = (
+            comp_density * stream_speed * self.reference_length / comp_dynamic_viscosity
+            if comp_dynamic_viscosity > 0
+            else 0
+        )
+
         # Stream velocity in standard aerodynamic frame
         stream_velocity = -stream_velocity
 

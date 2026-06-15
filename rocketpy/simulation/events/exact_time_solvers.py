@@ -5,12 +5,13 @@ keeping numerical primitives in ``rocketpy.tools`` while exposing simulation-
 level policies for valid-root selection.
 """
 
+from scipy.optimize import brentq
+
 from ...tools import (
     calculate_cubic_hermite_coefficients,
     find_root_linear_interpolation,
     find_roots_cubic_function,
 )
-from scipy.optimize import brentq
 
 
 def filter_roots_by_policy(

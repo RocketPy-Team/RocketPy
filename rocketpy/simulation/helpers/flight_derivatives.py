@@ -1,5 +1,8 @@
+# pylint: disable=too-many-locals,too-many-statements
 import numpy as np
-from ...mathutils import Vector, Matrix
+
+from ...mathutils import Matrix, Vector
+
 
 def _compute_drag_7d_inputs(
     flight,
@@ -154,7 +157,7 @@ def udot_rail2(flight, t, u, post_processing=False):  # pragma: no cover
     return flight.u_dot_generalized(t, u, post_processing=post_processing)
 
 
-def u_dot(flight, t, u, post_processing=False):  # pylint: disable=too-many-locals,too-many-statements
+def u_dot(flight, t, u, post_processing=False):
     """Compute the simplified 6DOF free-flight derivative.
 
     This solver is used for powered ascent and coasting descent without parachutes.
@@ -340,17 +343,6 @@ def u_dot(flight, t, u, post_processing=False):  # pylint: disable=too-many-loca
         comp_stream_velocity = comp_wind_vb - comp_vb
         comp_stream_speed = abs(comp_stream_velocity)
         comp_stream_mach = comp_stream_speed / speed_of_sound
-        # Reynolds at component altitude
-        # TODO: Reynolds is only used in generic surfaces. This calculation
-        # should be moved to the surface class for efficiency
-        comp_density = flight.env.density.get_value_opt(comp_z)
-        comp_dynamic_viscosity = flight.env.dynamic_viscosity.get_value_opt(comp_z)
-        comp_reynolds = (
-            comp_density
-            * comp_stream_speed
-            * aero_surface.reference_length
-            / comp_dynamic_viscosity
-        )
         # Forces and moments
         X, Y, Z, M, N, L = aero_surface.compute_forces_and_moments(
             comp_stream_velocity,
@@ -359,7 +351,9 @@ def u_dot(flight, t, u, post_processing=False):  # pylint: disable=too-many-loca
             rho,
             comp_cp,
             w,
-            comp_reynolds,
+            flight.env.density,
+            flight.env.dynamic_viscosity,
+            comp_z,
         )
         R1 += X
         R2 += Y
@@ -597,14 +591,16 @@ def u_dot_generalized_3dof(flight, t, u, post_processing=False):
         rel_speed = abs(rel_velocity)
         rel_mach = rel_speed / speed_of_sound
 
-        comp_density = flight.env.density.get_value_opt(comp_z)
-        comp_dynamic_viscosity = flight.env.dynamic_viscosity.get_value_opt(comp_z)
-        reynolds = (
-            comp_density * rel_speed * surface.reference_length / comp_dynamic_viscosity
-        )
-
         fx, fy, fz, *_ = surface.compute_forces_and_moments(
-            rel_velocity, rel_speed, rel_mach, rho, cp, w, reynolds
+            rel_velocity,
+            rel_speed,
+            rel_mach,
+            rho,
+            cp,
+            w,
+            flight.env.density,
+            flight.env.dynamic_viscosity,
+            comp_z,
         )
         R1 += fx
         R2 += fy
@@ -719,7 +715,7 @@ def u_dot_generalized_3dof(flight, t, u, post_processing=False):
     return u_dot
 
 
-def u_dot_generalized(flight, t, u, post_processing=False):  # pylint: disable=too-many-locals,too-many-statements
+def u_dot_generalized(flight, t, u, post_processing=False):
     """Compute the full 6DOF generalized flight derivative.
 
     This is the highest-fidelity rigid-body flight solver in this module. It accounts
@@ -864,17 +860,6 @@ def u_dot_generalized(flight, t, u, post_processing=False):  # pylint: disable=t
         comp_stream_velocity = comp_wind_vb - comp_vb
         comp_stream_speed = abs(comp_stream_velocity)
         comp_stream_mach = comp_stream_speed / speed_of_sound
-        # Reynolds at component altitude
-        # TODO: Reynolds is only used in generic surfaces. This calculation
-        # should be moved to the surface class for efficiency
-        comp_density = flight.env.density.get_value_opt(comp_z)
-        comp_dynamic_viscosity = flight.env.dynamic_viscosity.get_value_opt(comp_z)
-        comp_reynolds = (
-            comp_density
-            * comp_stream_speed
-            * aero_surface.reference_length
-            / comp_dynamic_viscosity
-        )
         # Forces and moments
         X, Y, Z, M, N, L = aero_surface.compute_forces_and_moments(
             comp_stream_velocity,
@@ -883,7 +868,9 @@ def u_dot_generalized(flight, t, u, post_processing=False):  # pylint: disable=t
             rho,
             comp_cp,
             w,
-            comp_reynolds,
+            flight.env.density,
+            flight.env.dynamic_viscosity,
+            comp_z,
         )
         R1 += X
         R2 += Y
