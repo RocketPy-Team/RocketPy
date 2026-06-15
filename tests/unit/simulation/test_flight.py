@@ -162,7 +162,10 @@ def test_get_controller_observed_variables(flight_calisto_air_brakes):
     working as intended."""
     obs_vars = flight_calisto_air_brakes.get_controller_observed_variables()
     assert isinstance(obs_vars, list)
-    assert len(obs_vars) == 0
+    # The basic air brakes controller mutates the deployment level but does not
+    # return observed variables, so every logged entry is None.
+    assert len(obs_vars) > 0
+    assert all(var is None for var in obs_vars)
 
 
 def test_initial_stability_margin(flight_calisto_custom_wind):
