@@ -830,7 +830,7 @@ class Function:  # pylint: disable=too-many-public-methods
         min_domain = self._domain.T.min(axis=1)
         max_domain = self._domain.T.max(axis=1)
 
-        if hasattr(self, "_nd_triangulation"):
+        if self.__interpolation__ == "linear" and hasattr(self, "_nd_triangulation"):
             extrap = self._nd_triangulation.find_simplex(args) < 0
         else:
             lower, upper = args < min_domain, args > max_domain
