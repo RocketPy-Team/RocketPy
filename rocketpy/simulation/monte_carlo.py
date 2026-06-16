@@ -13,6 +13,7 @@ change in future versions. Users are encouraged to check for updates and read th
 latest documentation.
 """
 
+import csv
 import json
 import os
 import traceback
@@ -1016,6 +1017,71 @@ class MonteCarlo:
         self.import_errors(filename=filename)
 
     # Export methods
+
+    def export_results_to_csv(self, filename=None):
+        """Export Monte Carlo results to a CSV file.
+
+        Each column corresponds to one exported variable (e.g. ``apogee``,
+        ``max_mach_number``) and each row corresponds to one simulation run.
+        Results are read from :attr:`results`, so make sure to call
+        :meth:`set_results` (or run/import a simulation) before calling this
+        method.
+
+        Parameters
+        ----------
+        filename : str or Path, optional
+            Destination file path. If ``None``, defaults to
+            ``<self.filename>.results.csv``.
+
+        Returns
+        -------
+        Path
+            The path to the written CSV file.
+        """
+        if not self.results:
+            self.set_results()
+
+        filepath = Path(filename) if filename else self.filename.with_suffix(".results.csv")
+        fieldnames = list(self.results.keys())
+        n_rows = len(next(iter(self.results.values())))
+
+        with open(filepath, "w", newline="", encoding="utf-8") as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+            for i in range(n_rows):
+                writer.writerow({key: self.results[key][i] for key in fieldnames})
+
+        print(f"Results exported to {filepath}")
+        return filepath
+
+    def export_results_to_json(self, filename=None):
+        """Export Monte Carlo results to a JSON file.
+
+        The JSON file contains a single object whose keys are variable names
+        and whose values are lists of results across all simulation runs,
+        mirroring the structure of :attr:`results`.
+
+        Parameters
+        ----------
+        filename : str or Path, optional
+            Destination file path. If ``None``, defaults to
+            ``<self.filename>.results.json``.
+
+        Returns
+        -------
+        Path
+            The path to the written JSON file.
+        """
+        if not self.results:
+            self.set_results()
+
+        filepath = Path(filename) if filename else self.filename.with_suffix(".results.json")
+
+        with open(filepath, "w", encoding="utf-8") as jsonfile:
+            json.dump(self.results, jsonfile, cls=RocketPyEncoder, indent=2)
+
+        print(f"Results exported to {filepath}")
+        return filepath
 
     def export_ellipses_to_kml(  # pylint: disable=too-many-statements
         self,
