@@ -43,7 +43,7 @@ def _find_index(
         The index or indices representing the interval.
     """
     if _is_iterable is None:
-        _is_iterable = hasattr(xq, "__iter__")
+        _is_iterable = hasattr(xq, "__iter__") and np.ndim(xq) > 0
 
     if not _is_iterable:
         # Both real and complex scalars have the .real property
@@ -85,21 +85,9 @@ def _cubic_eval_vec(
 
 
 class Linear1DPolation(PolationBase):
-    """Linear 1D interpolation and extrapolation.
+    """Linear 1D interpolation and extrapolation."""
 
-    Attributes
-    ----------
-    _x : np.ndarray
-        The x-coordinates of the data points.
-    _y : np.ndarray
-        The y-coordinates of the data points.
-    _n : int
-        The number of data points.
-    _slopes : np.ndarray
-        The calculated slopes between consecutive points.
-    _cum_int : np.ndarray
-        The cumulative integral values at each data point.
-    """
+    __slots__ = ("_x", "_y", "_n", "_slopes", "_cum_int")
 
     def __init__(self, x: NDArray[np.float64], y: NDArray[np.float64]) -> None:
         """Initialize the Linear1DPolation.
@@ -114,7 +102,21 @@ class Linear1DPolation(PolationBase):
         self._x = np.asarray(x, dtype=float)
         self._y = np.asarray(y, dtype=float)
         self._n = self._x.size
-        self._slopes, self._cum_int = precompute_linear_deriv_integral(self._x, self._y)
+        self._slopes = np.diff(self._y) / np.diff(self._x)
+        self._cum_int = None
+
+    def _slopes_at(self, i):
+        """Return cached or on-demand linear slopes for interval
+        index/indices.
+        """
+        return self._slopes[i]
+
+    def _ensure_integral_cache(self):
+        """Populate linear slopes and cumulative integrals on
+        first integral use.
+        """
+        if self._cum_int is None:
+            _, self._cum_int = precompute_linear_deriv_integral(self._x, self._y)
 
     def evaluate(
         self, x: float | NDArray[np.float64], _is_iterable: bool | None = None
@@ -135,7 +137,7 @@ class Linear1DPolation(PolationBase):
         """
         x_arr = self._x
         i = _find_index(x_arr, x, self._n, _is_iterable) - 1
-        return self._y[i] + self._slopes[i] * (x - x_arr[i])
+        return self._y[i] + self._slopes_at(i) * (x - x_arr[i])
 
     def derivative(
         self, x: float | NDArray[np.float64], _is_iterable: bool | None = None
@@ -155,7 +157,7 @@ class Linear1DPolation(PolationBase):
             The first derivative values.
         """
         i = _find_index(self._x, x, self._n, _is_iterable) - 1
-        return self._slopes[i]
+        return self._slopes_at(i)
 
     def second_derivative(
         self, _x: float | NDArray[np.float64], _is_iterable: bool | None = None
@@ -175,7 +177,7 @@ class Linear1DPolation(PolationBase):
             The second derivative values, which are zero.
         """
         if _is_iterable is None:
-            _is_iterable = hasattr(_x, "__iter__")
+            _is_iterable = hasattr(_x, "__iter__") and np.ndim(_x) > 0
         return np.zeros_like(_x, dtype=float) if _is_iterable else 0.0
 
     def integral(
@@ -195,6 +197,7 @@ class Linear1DPolation(PolationBase):
         float or np.ndarray
             The antiderivative values.
         """
+        self._ensure_integral_cache()
         i = _find_index(self._x, x, self._n, _is_iterable) - 1
         return (
             self._cum_int[i]
@@ -204,37 +207,7 @@ class Linear1DPolation(PolationBase):
 
 
 class Polynomial1DPolation(PolationBase):
-    """Polynomial 1D interpolation.
-
-    Attributes
-    ----------
-    _coeffs : np.ndarray
-        The polynomial coefficients.
-    _c_desc : np.ndarray
-        Descending order coefficients for evaluate.
-    _c_first : float
-        The first coefficient of _c_desc.
-    _c_rest : list of float
-        The rest of the coefficients of _c_desc.
-    _d_desc : np.ndarray
-        Descending order coefficients for derivative.
-    _d_first : float
-        The first coefficient of _d_desc.
-    _d_rest : list of float
-        The rest of the coefficients of _d_desc.
-    _d2_desc : np.ndarray
-        Descending order coefficients for second derivative.
-    _d2_first : float
-        The first coefficient of _d2_desc.
-    _d2_rest : list of float
-        The rest of the coefficients of _d2_desc.
-    _i_desc : np.ndarray
-        Descending order coefficients for integral.
-    _i_first : float
-        The first coefficient of _i_desc.
-    _i_rest : list of float
-        The rest of the coefficients of _i_desc.
-    """
+    """Polynomial 1D interpolation."""
 
     def __init__(self, x: NDArray[np.float64], y: NDArray[np.float64]) -> None:
         """Initialize the Polynomial1DPolation.
@@ -249,34 +222,55 @@ class Polynomial1DPolation(PolationBase):
         coeffs = fit_polynomial(x, y)
         self._coeffs = np.asarray(coeffs, dtype=float)
 
-        # Calculate derived coefficients
+        # Pre-slice value coefficients for high-speed Horner evaluation.
+        # Derivative and integral coefficients are built lazily.
+        self._c_desc = self._coeffs[::-1].copy()
+        c_list = self._c_desc.tolist()
+        self._c_first, self._c_rest = c_list[0], c_list[1:]
+
+        self._d_desc = None
+        self._d_first = None
+        self._d_rest = None
+        self._d2_desc = None
+        self._d2_first = None
+        self._d2_rest = None
+        self._i_desc = None
+        self._i_first = None
+        self._i_rest = None
+
+    def _ensure_derivative_coefficients(self):
+        """Build first-derivative Horner coefficients on first derivative use."""
+        if self._d_desc is not None:
+            return
         d_coeffs = (
             self._coeffs[1:] * np.arange(1, len(self._coeffs))
             if len(self._coeffs) > 1
             else np.array([0.0])
         )
-        d2_coeffs = (
-            d_coeffs[1:] * np.arange(1, len(d_coeffs))
-            if len(d_coeffs) > 1
-            else np.array([0.0])
-        )
-        i_coeffs = np.empty(len(self._coeffs) + 1)
-        i_coeffs[0] = 0.0
-        i_coeffs[1:] = self._coeffs / np.arange(1, len(self._coeffs) + 1)
-
-        # Pre-slice lists for high-speed Horner evaluation
-        self._c_desc = self._coeffs[::-1].copy()
-        c_list = self._c_desc.tolist()
-        self._c_first, self._c_rest = c_list[0], c_list[1:]
-
         self._d_desc = d_coeffs[::-1].copy()
         d_list = self._d_desc.tolist()
         self._d_first, self._d_rest = d_list[0], d_list[1:]
 
+    def _ensure_second_derivative_coefficients(self):
+        """Build second-derivative Horner coefficients on first use."""
+        if self._d2_desc is not None:
+            return
+        self._ensure_derivative_coefficients()
+        d_asc = self._d_desc[::-1]
+        d2_coeffs = (
+            d_asc[1:] * np.arange(1, len(d_asc)) if len(d_asc) > 1 else np.array([0.0])
+        )
         self._d2_desc = d2_coeffs[::-1].copy()
         d2_list = self._d2_desc.tolist()
         self._d2_first, self._d2_rest = d2_list[0], d2_list[1:]
 
+    def _ensure_integral_coefficients(self):
+        """Build antiderivative Horner coefficients on first integral use."""
+        if self._i_desc is not None:
+            return
+        i_coeffs = np.empty(len(self._coeffs) + 1)
+        i_coeffs[0] = 0.0
+        i_coeffs[1:] = self._coeffs / np.arange(1, len(self._coeffs) + 1)
         self._i_desc = i_coeffs[::-1].copy()
         i_list = self._i_desc.tolist()
         self._i_first, self._i_rest = i_list[0], i_list[1:]
@@ -310,7 +304,7 @@ class Polynomial1DPolation(PolationBase):
             The evaluated polynomial value.
         """
         if _is_iterable is None:
-            _is_iterable = hasattr(xq, "__iter__")
+            _is_iterable = hasattr(xq, "__iter__") and np.ndim(xq) > 0
 
         if not _is_iterable:
             r = first
@@ -356,6 +350,7 @@ class Polynomial1DPolation(PolationBase):
         float or np.ndarray
             The first derivative values.
         """
+        self._ensure_derivative_coefficients()
         return self._horner(x, self._d_first, self._d_rest, self._d_desc, _is_iterable)
 
     def second_derivative(
@@ -375,6 +370,7 @@ class Polynomial1DPolation(PolationBase):
         float or np.ndarray
             The second derivative values.
         """
+        self._ensure_second_derivative_coefficients()
         return self._horner(
             x, self._d2_first, self._d2_rest, self._d2_desc, _is_iterable
         )
@@ -396,6 +392,7 @@ class Polynomial1DPolation(PolationBase):
         float or np.ndarray
             The antiderivative values.
         """
+        self._ensure_integral_coefficients()
         return self._horner(x, self._i_first, self._i_rest, self._i_desc, _is_iterable)
 
     def coefficients(self) -> NDArray[np.float64]:
@@ -410,25 +407,9 @@ class Polynomial1DPolation(PolationBase):
 
 
 class Cubic1DPolation(PolationBase):
-    """Cubic piecewise 1D interpolation.
+    """Cubic piecewise 1D interpolation."""
 
-    Attributes
-    ----------
-    _x : np.ndarray
-        The x-coordinates of the data points.
-    _n : int
-        The number of data points.
-    _a : np.ndarray
-        The coefficients for the constant term.
-    _b : np.ndarray
-        The coefficients for the linear term.
-    _c : np.ndarray
-        The coefficients for the quadratic term.
-    _d : np.ndarray
-        The coefficients for the cubic term.
-    _cum_int : np.ndarray
-        The cumulative integral values at each data point.
-    """
+    __slots__ = ("_x", "_n", "_a", "_b", "_c", "_d", "_cum_int")
 
     def __init__(
         self,
@@ -447,14 +428,13 @@ class Cubic1DPolation(PolationBase):
         x : np.ndarray
             The x-coordinates of the data points.
         coeffs : tuple of np.ndarray
-            A tuple (a, b, c, d) of numpy arrays representing the piecewise cubic coefficients.
+            A tuple (a, b, c, d) of numpy arrays representing the
+            piecewise cubic coefficients.
         """
         self._x = np.asarray(x, dtype=float)
         self._n = self._x.size
         self._a, self._b, self._c, self._d = coeffs
-        self._cum_int = precompute_cubic_cumulative_integrals(
-            self._x, (self._a, self._b, self._c, self._d)
-        )
+        self._cum_int = None
 
     def evaluate(
         self, x: float | NDArray[np.float64], _is_iterable: bool | None = None
@@ -536,6 +516,11 @@ class Cubic1DPolation(PolationBase):
         float or np.ndarray
             The antiderivative values.
         """
+        if self._cum_int is None:
+            self._cum_int = precompute_cubic_cumulative_integrals(
+                self._x, (self._a, self._b, self._c, self._d)
+            )
+
         i = _find_index(self._x, x, self._n, _is_iterable) - 1
         t = x - self._x[i]
         return (
@@ -560,6 +545,8 @@ class Cubic1DPolation(PolationBase):
 class Spline1DPolation(Cubic1DPolation):
     """Spline 1D interpolation."""
 
+    __slots__ = ()
+
     def __init__(self, x: NDArray[np.float64], y: NDArray[np.float64]) -> None:
         """Initialize the Spline1DPolation.
 
@@ -575,6 +562,8 @@ class Spline1DPolation(Cubic1DPolation):
 
 class Akima1DPolation(Cubic1DPolation):
     """Akima 1D interpolation."""
+
+    __slots__ = ()
 
     def __init__(self, x: NDArray[np.float64], y: NDArray[np.float64]) -> None:
         """Initialize the Akima1DPolation.
@@ -592,6 +581,8 @@ class Akima1DPolation(Cubic1DPolation):
 class Pchip1DPolation(Cubic1DPolation):
     """PCHIP (Piecewise Cubic Hermite Interpolating Polynomial) 1D interpolation."""
 
+    __slots__ = ()
+
     def __init__(self, x: NDArray[np.float64], y: NDArray[np.float64]) -> None:
         """Initialize the Pchip1DPolation.
 
@@ -606,19 +597,9 @@ class Pchip1DPolation(Cubic1DPolation):
 
 
 class Constant1DExtrapolation(PolationBase):
-    """Constant 1D extrapolation.
+    """Constant 1D extrapolation."""
 
-    Attributes
-    ----------
-    _x_min : float
-        The minimum x-coordinate of the boundary.
-    _x_max : float
-        The maximum x-coordinate of the boundary.
-    _y_min : float
-        The value at the minimum boundary.
-    _y_max : float
-        The value at the maximum boundary.
-    """
+    __slots__ = ("_x_min", "_x_max", "_y_min", "_y_max")
 
     def __init__(self, x: NDArray[np.float64], y: NDArray[np.float64]) -> None:
         """Initialize the Constant1DExtrapolation.
@@ -653,7 +634,7 @@ class Constant1DExtrapolation(PolationBase):
             The extrapolated constant values at boundary exceedances, or NaN.
         """
         if _is_iterable is None:
-            _is_iterable = hasattr(x, "__iter__")
+            _is_iterable = hasattr(x, "__iter__") and np.ndim(x) > 0
         if _is_iterable:
             x = np.asarray(x, dtype=float)
             x_real = x.real
@@ -689,7 +670,9 @@ class Constant1DExtrapolation(PolationBase):
         float
             The definite integral value.
         """
-        return self.evaluate((a + b) / 2.0, _is_iterable=False) * (b - a)
+        midpoint = (a + b) / 2.0
+        is_iterable = hasattr(midpoint, "__iter__") and np.ndim(midpoint) > 0
+        return self.evaluate(midpoint, _is_iterable=is_iterable) * (b - a)
 
     def derivative(
         self, x: float | NDArray[np.float64], _is_iterable: bool | None = None
@@ -709,7 +692,7 @@ class Constant1DExtrapolation(PolationBase):
             An array of zeros or a scalar zero.
         """
         if _is_iterable is None:
-            _is_iterable = hasattr(x, "__iter__")
+            _is_iterable = hasattr(x, "__iter__") and np.ndim(x) > 0
         return np.zeros_like(x, dtype=float) if _is_iterable else 0.0
 
     def second_derivative(
@@ -730,12 +713,14 @@ class Constant1DExtrapolation(PolationBase):
             An array of zeros or a scalar zero.
         """
         if _is_iterable is None:
-            _is_iterable = hasattr(x, "__iter__")
+            _is_iterable = hasattr(x, "__iter__") and np.ndim(x) > 0
         return np.zeros_like(x, dtype=float) if _is_iterable else 0.0
 
 
 class Zero1DExtrapolation(PolationBase):
     """Zero 1D extrapolation."""
+
+    __slots__ = ()
 
     def evaluate(
         self, x: float | NDArray[np.float64], _is_iterable: bool | None = None
@@ -755,7 +740,7 @@ class Zero1DExtrapolation(PolationBase):
             An array of zeros or a scalar zero.
         """
         if _is_iterable is None:
-            _is_iterable = hasattr(x, "__iter__")
+            _is_iterable = hasattr(x, "__iter__") and np.ndim(x) > 0
         return np.zeros_like(x, dtype=float) if _is_iterable else 0.0
 
     def definite_integral(self, a: float, b: float) -> float:
@@ -771,7 +756,7 @@ class Zero1DExtrapolation(PolationBase):
         Returns
         -------
         float
-            Zero.
+            Scalar zero.
         """
         return 0.0
 
@@ -793,7 +778,7 @@ class Zero1DExtrapolation(PolationBase):
             An array of zeros or a scalar zero.
         """
         if _is_iterable is None:
-            _is_iterable = hasattr(x, "__iter__")
+            _is_iterable = hasattr(x, "__iter__") and np.ndim(x) > 0
         return np.zeros_like(x, dtype=float) if _is_iterable else 0.0
 
     def second_derivative(
@@ -814,5 +799,5 @@ class Zero1DExtrapolation(PolationBase):
             An array of zeros or a scalar zero.
         """
         if _is_iterable is None:
-            _is_iterable = hasattr(x, "__iter__")
+            _is_iterable = hasattr(x, "__iter__") and np.ndim(x) > 0
         return np.zeros_like(x, dtype=float) if _is_iterable else 0.0

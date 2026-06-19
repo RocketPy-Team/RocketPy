@@ -1,6 +1,5 @@
 import logging
 from cmath import isclose
-from functools import cached_property
 from itertools import product
 
 from rocketpy.tools import euler313_to_quaternions, normalize_quaternions
@@ -97,6 +96,7 @@ class Vector:
     """
 
     __array_ufunc__ = None
+    __slots__ = ("components", "x", "y", "z", "_unit_vector", "_cross_matrix")
 
     def __init__(self, components):
         """Vector class constructor.
@@ -154,15 +154,17 @@ class Vector:
     def __len__(self):
         return 3
 
-    @cached_property
+    @property
     def unit_vector(self):
         """R3 vector with the same direction of self, but normalized."""
-        try:
-            return self / abs(self)
-        except ZeroDivisionError:
-            return self
+        if not hasattr(self, "_unit_vector"):
+            try:
+                self._unit_vector = self / abs(self)
+            except ZeroDivisionError:
+                self._unit_vector = self
+        return self._unit_vector
 
-    @cached_property
+    @property
     def cross_matrix(self):
         """Skew symmetric matrix used for cross product.
 
@@ -179,9 +181,12 @@ class Vector:
         >>> (v ^ u) == v.cross_matrix @ u
         True
         """
-        return Matrix(
-            [[0, -self.z, self.y], [self.z, 0, -self.x], [-self.y, self.x, 0]]
-        )
+        if not hasattr(self, "_cross_matrix"):
+            self._cross_matrix = Matrix(
+                [[0, -self.z, self.y], [self.z, 0, -self.x], [-self.y, self.x, 0]]
+            )
+
+        return self._cross_matrix
 
     def __abs__(self):
         """R3 vector norm, magnitude or absolute value."""
@@ -560,6 +565,27 @@ class Matrix:
     """
 
     __array_ufunc__ = None
+    __slots__ = (
+        "components",
+        "x",
+        "y",
+        "z",
+        "xx",
+        "xy",
+        "xz",
+        "yx",
+        "yy",
+        "yz",
+        "zx",
+        "zy",
+        "zz",
+        "_shape",
+        "_trace",
+        "_transpose",
+        "_det",
+        "_is_diagonal",
+        "_inverse",
+    )
 
     def __init__(self, components):
         """Matrix class constructor.
@@ -630,33 +656,39 @@ class Matrix:
         """Adds support for the len() function."""
         return 3
 
-    @cached_property
+    @property
     def shape(self):
         """tuple: Shape of the matrix."""
         return (3, 3)
 
-    @cached_property
+    @property
     def trace(self):
         """Matrix trace, sum of its diagonal components."""
-        return self.xx + self.yy + self.zz
+        if not hasattr(self, "_trace"):
+            self._trace = self.xx + self.yy + self.zz
+        return self._trace
 
-    @cached_property
+    @property
     def transpose(self):
         """Matrix transpose."""
-        return Matrix(
-            [
-                [self.xx, self.yx, self.zx],
-                [self.xy, self.yy, self.zy],
-                [self.xz, self.yz, self.zz],
-            ]
-        )
+        if not hasattr(self, "_transpose"):
+            self._transpose = Matrix(
+                [
+                    [self.xx, self.yx, self.zx],
+                    [self.xy, self.yy, self.zy],
+                    [self.xz, self.yz, self.zz],
+                ]
+            )
+        return self._transpose
 
-    @cached_property
+    @property
     def det(self):
         """Matrix determinant."""
-        return abs(self)
+        if not hasattr(self, "_det"):
+            self._det = abs(self)
+        return self._det
 
-    @cached_property
+    @property
     def is_diagonal(self):
         """Boolean indicating if matrix is diagonal.
 
@@ -679,14 +711,15 @@ class Matrix:
         >>> M.is_diagonal
         False
         """
-        for i, j in product(range(3), range(3)):
-            if i == j:
-                continue
-            if abs(self[i, j]) > 1e-6:
-                return False
-        return True
+        if not hasattr(self, "_is_diagonal"):
+            self._is_diagonal = all(
+                abs(self[i, j]) <= 1e-6
+                for i, j in product(range(3), range(3))
+                if i != j
+            )
+        return self._is_diagonal
 
-    @cached_property
+    @property
     def inverse(self):
         """Matrix inverse.
 
@@ -706,23 +739,25 @@ class Matrix:
         ZeroDivisionError
             If the matrix is singular.
         """
-        ixx = self.yy * self.zz - self.zy * self.yz
-        iyx = self.zx * self.yz - self.yx * self.zz
-        izx = self.yx * self.zy - self.zx * self.yy
-        ixy = self.zy * self.xz - self.xy * self.zz
-        iyy = self.xx * self.zz - self.zx * self.xz
-        izy = self.zx * self.xy - self.xx * self.zy
-        ixz = self.xy * self.yz - self.yy * self.xz
-        iyz = self.yx * self.xz - self.yz * self.xx
-        izz = self.xx * self.yy - self.yx * self.xy
-        det = self.xx * ixx + self.xy * iyx + self.xz * izx
-        return Matrix(
-            [
-                [ixx / det, ixy / det, ixz / det],
-                [iyx / det, iyy / det, iyz / det],
-                [izx / det, izy / det, izz / det],
-            ]
-        )
+        if not hasattr(self, "_inverse"):
+            ixx = self.yy * self.zz - self.zy * self.yz
+            iyx = self.zx * self.yz - self.yx * self.zz
+            izx = self.yx * self.zy - self.zx * self.yy
+            ixy = self.zy * self.xz - self.xy * self.zz
+            iyy = self.xx * self.zz - self.zx * self.xz
+            izy = self.zx * self.xy - self.xx * self.zy
+            ixz = self.xy * self.yz - self.yy * self.xz
+            iyz = self.yx * self.xz - self.yz * self.xx
+            izz = self.xx * self.yy - self.yx * self.xy
+            det = self.xx * ixx + self.xy * iyx + self.xz * izx
+            self._inverse = Matrix(
+                [
+                    [ixx / det, ixy / det, ixz / det],
+                    [iyx / det, iyy / det, iyz / det],
+                    [izx / det, izy / det, izz / det],
+                ]
+            )
+        return self._inverse
 
     def __abs__(self):
         """Matrix determinant."""

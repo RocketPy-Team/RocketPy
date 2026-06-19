@@ -900,7 +900,7 @@ class Environment:
         >>> g_0 = 9.80665
         >>> env_cte_g = Environment(gravity=g_0)
         >>> env_cte_g.gravity([0, 100, 1000])
-        [np.float64(9.80665), np.float64(9.80665), np.float64(9.80665)]
+        array([9.80665, 9.80665, 9.80665])
 
         It's also possible to variate the gravity acceleration by defining
         its function of height:

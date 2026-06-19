@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from rocketpy import Function
+from rocketpy.mathutils._calc.polation_nd import LinearNDPolation
 from rocketpy.mathutils.function import SourceType
 
 plt.rcParams.update({"figure.max_open_warning": 0})
@@ -118,6 +119,125 @@ def test_get_value():
     """
     func = Function(lambda x: 2 * x)
     assert isinstance(func.get_value(1), (int, float))
+
+
+def test_get_value_treats_zero_dimensional_numpy_arrays_as_scalars():
+    """NumPy 0-D arrays expose __iter__, but Function should treat them as scalars."""
+    func = Function([(0, 0), (1, 2), (2, 4)], interpolation="linear")
+    scalar_arg = np.array(1.0)
+
+    assert np.isclose(func.get_value(scalar_arg), 2.0)
+    assert np.isclose(func.get_value_opt(scalar_arg), 2.0)
+    assert Function(3.0).get_value(scalar_arg) == 3.0
+
+
+def test_vectorized_callable_opt_in_and_arithmetic_propagation():
+    """Callable vectorization is opt-in and propagates through safe arithmetic."""
+    calls = {"count": 0}
+
+    def vectorized_source(x):
+        calls["count"] += 1
+        return np.asarray(x) * 2
+
+    vectorized = Function(vectorized_source, vectorized_callable=True)
+    plain = Function(lambda x: x * 2)
+    points = np.array([1.0, 2.0, 3.0])
+
+    assert np.array_equal(vectorized.get_value(points), np.array([2.0, 4.0, 6.0]))
+    assert calls["count"] == 1
+
+    calls["count"] = 0
+    assert np.array_equal((vectorized + 1).get_value(points), np.array([3.0, 5.0, 7.0]))
+    assert calls["count"] == 1
+
+    calls["count"] = 0
+    assert np.array_equal(
+        (vectorized + plain).get_value(points), np.array([4.0, 8.0, 12.0])
+    )
+    assert calls["count"] == len(points)
+
+    array_func = Function([(1, 10), (2, 20), (3, 30)], interpolation="linear")
+    calls["count"] = 0
+    assert np.array_equal(
+        (vectorized + array_func).get_value(points), np.array([12.0, 24.0, 36.0])
+    )
+    assert calls["count"] == 1
+
+    calls["count"] = 0
+    assert np.array_equal(
+        (vectorized + array_func).get_value(points.tolist()),
+        np.array([12.0, 24.0, 36.0]),
+    )
+    assert calls["count"] == 1
+
+
+def test_get_value_broadcasts_nd_scalar_and_vector_inputs():
+    """ND evaluation should treat any vector argument as a batch."""
+    func = Function(lambda x, y: x + y, inputs=["x", "y"])
+    result = func.get_value(1.0, np.array([2.0, 3.0]))
+
+    assert np.array_equal(result, np.array([3.0, 4.0]))
+
+
+def test_regular_grid_get_value_opt_broadcasts_scalar_and_vector_inputs():
+    """Regular-grid fast evaluation should also broadcast mixed ND inputs."""
+    grid_data = np.array([[0.0, 1.0], [10.0, 11.0]])
+    func = Function.from_grid(
+        grid_data,
+        [np.array([0.0, 1.0]), np.array([0.0, 1.0])],
+        interpolation="Regular_Grid",
+        extrapolation="Natural",
+    )
+
+    assert func.get_interpolation_method() == "regular_grid"
+    assert func.get_extrapolation_method() == "natural"
+    assert np.array_equal(
+        func.get_value(1.0, np.array([0.0, 1.0])), np.array([10.0, 11.0])
+    )
+    assert np.array_equal(
+        func.get_value_opt(1.0, np.array([0.0, 1.0])), np.array([10.0, 11.0])
+    )
+
+
+def test_interpolation_and_extrapolation_names_are_normalized():
+    """Supported method names should be case-insensitive without changing behavior."""
+    func = Function(
+        [(0, 0), (1, 1), (2, 2)],
+        interpolation="Linear",
+        extrapolation="Natural",
+    )
+
+    assert func.get_interpolation_method() == "linear"
+    assert func.get_extrapolation_method() == "natural"
+    assert np.isclose(func.get_value(-1), -1.0)
+
+
+def test_1d_array_source_internal_data_is_sorted():
+    """For 1-D array sources, source, domain and image should share sorted order."""
+    func = Function([(2, 4), (0, 0), (1, 1)], interpolation="linear")
+
+    assert np.array_equal(func.source[:, 0], np.array([0.0, 1.0, 2.0]))
+    assert np.array_equal(func._domain[:, 0], np.array([0.0, 1.0, 2.0]))
+    assert np.array_equal(func._image, np.array([0.0, 1.0, 4.0]))
+
+
+def test_nd_callable_negation_does_not_require_eval():
+    """ND callable negation should preserve behavior with a normal closure."""
+    func = Function(lambda x, y: x + 2 * y, inputs=["x", "y"])
+
+    assert (-func).get_value(1.0, 2.0) == -5.0
+
+
+def test_vectorized_constant_extrapolation_integrals():
+    """Constant extrapolation definite integrals should accept vector bounds."""
+    func = Function(
+        [(0, 0), (1, 1)],
+        interpolation="linear",
+        extrapolation="constant",
+    )
+
+    assert np.allclose(func._evaluator.integral(np.array([-2.0, -1.0])), [0.0, 0.0])
+    assert np.allclose(func._evaluator.integral(np.array([1.0, 2.0])), [0.5, 1.5])
 
 
 def test_identity_function():
@@ -1845,11 +1965,13 @@ def test_2d_linear_interpolation_no_nan_outside_convex_hull():
     ]
     func = Function(data, interpolation="linear")
     result = func(0.3, 0.3)
+    linear_nd = LinearNDPolation(np.array(data)[:, :-1], np.array(data)[:, -1])
 
     assert not np.isnan(result), (
         "f(0.3, 0.3) returned NaN. Point is outside the convex hull and "
         "should be routed to extrapolation, not silently return NaN."
     )
+    assert linear_nd.extrapolation_mask(np.array([[0.3, 0.3]])).item()
 
 
 def test_3d_linear_interpolation_no_nan_outside_convex_hull():

@@ -771,9 +771,11 @@ def load_from_rpy(filename: str, resimulate=False):
             version("rocketpy")
         ):
             warnings.warn(
-                "The file was saved in an updated version of",
-                f"RocketPy (v{data['version']}), the current",
+                "The file was saved in an updated version of "
+                f"RocketPy (v{data['version']}), the current "
                 f"imported module is v{version('rocketpy')}",
+                UserWarning,
+                stacklevel=2,
             )
         simulation = json.dumps(data["simulation"])
         flight = json.loads(simulation, cls=RocketPyDecoder, resimulate=resimulate)

@@ -10,19 +10,16 @@ from scipy.interpolate import (
     RBFInterpolator,
     RegularGridInterpolator,
 )
+from scipy.spatial import Delaunay  # pylint: disable=no-name-in-module
 from scipy.spatial.distance import cdist
 
 from rocketpy.mathutils._calc.polation_base import PolationBase
 
 
 class LinearNDPolation(PolationBase):
-    """Linear interpolation for N-dimensional scattered data.
+    """Linear interpolation for N-dimensional scattered data."""
 
-    Attributes
-    ----------
-    _interpolator : scipy.interpolate.LinearNDInterpolator
-        The underlying linear ND interpolator instance.
-    """
+    __slots__ = ("_interpolator", "_triangulation")
 
     def __init__(self, domain: NDArray[np.float64], image: NDArray[np.float64]) -> None:
         """Initialize the LinearNDPolation.
@@ -32,9 +29,11 @@ class LinearNDPolation(PolationBase):
         domain : np.ndarray
             The domain coordinates of shape (n_samples, n_dimensions).
         image : np.ndarray
-            The function values at the domain coordinates of shape (n_samples,).
+            The function values at the domain coordinates of shape
+            (n_samples,).
         """
-        self._interpolator = LinearNDInterpolator(domain, image)
+        self._triangulation = Delaunay(domain)
+        self._interpolator = LinearNDInterpolator(self._triangulation, image)
 
     def evaluate(
         self, x: NDArray[np.float64], _is_iterable: bool | None = None
@@ -44,7 +43,8 @@ class LinearNDPolation(PolationBase):
         Parameters
         ----------
         x : np.ndarray
-            The points where the function is to be evaluated, of shape (n_points, n_dimensions).
+            The points where the function is to be evaluated, of shape
+            (n_points, n_dimensions).
         _is_iterable : bool, optional
             Whether the input represents a batch of points. Default is None.
 
@@ -55,15 +55,21 @@ class LinearNDPolation(PolationBase):
         """
         return self._interpolator(x)
 
+    def extrapolation_mask(self, x: NDArray[np.float64]) -> NDArray[np.bool_]:
+        """Return True for points outside the Delaunay triangulation.
+
+        ``LinearNDInterpolator`` returns NaN outside the convex hull even when
+        a point is inside the axis-aligned bounds. Pre-checking the simplex
+        lets the evaluator route those points directly to extrapolation.
+        """
+        points = np.asarray(x, dtype=float)
+        return self._triangulation.find_simplex(points) < 0
+
 
 class RbfNDPolation(PolationBase):
-    """Radial Basis Function (RBF) interpolation for N-dimensional scattered data.
+    """Radial Basis Function (RBF) interpolation for N-dimensional scattered data."""
 
-    Attributes
-    ----------
-    _interpolator : scipy.interpolate.RBFInterpolator
-        The underlying RBF interpolator instance.
-    """
+    __slots__ = ("_interpolator",)
 
     def __init__(
         self,
@@ -92,7 +98,8 @@ class RbfNDPolation(PolationBase):
         Parameters
         ----------
         x : np.ndarray
-            The points where the function is to be evaluated, of shape (n_points, n_dimensions).
+            The points where the function is to be evaluated, of shape
+            (n_points, n_dimensions).
         _is_iterable : bool, optional
             Whether the input represents a batch of points. Default is None.
 
@@ -105,15 +112,9 @@ class RbfNDPolation(PolationBase):
 
 
 class ShepardNDPolation(PolationBase):
-    """Shepard (IDW) interpolation for scattered ND data.
+    """Shepard (IDW) interpolation for scattered ND data."""
 
-    Attributes
-    ----------
-    _domain : np.ndarray
-        The domain coordinates of shape (n_samples, n_dimensions).
-    _image : np.ndarray
-        The function values at the domain coordinates of shape (n_samples,).
-    """
+    __slots__ = ("_domain", "_image")
 
     def __init__(self, domain: NDArray[np.float64], image: NDArray[np.float64]) -> None:
         """Initialize the ShepardNDPolation.
@@ -123,7 +124,8 @@ class ShepardNDPolation(PolationBase):
         domain : np.ndarray
             The domain coordinates of shape (n_samples, n_dimensions).
         image : np.ndarray
-            The function values at the domain coordinates of shape (n_samples,).
+            The function values at the domain coordinates of shape
+            (n_samples,).
         """
         self._domain = np.asarray(domain, dtype=float)
         self._image = np.asarray(image, dtype=float)
@@ -136,7 +138,8 @@ class ShepardNDPolation(PolationBase):
         Parameters
         ----------
         x : np.ndarray
-            The points where the function is to be evaluated, of shape (n_points, n_dimensions).
+            The points where the function is to be evaluated, of shape
+            (n_points, n_dimensions).
         _is_iterable : bool, optional
             Whether the input represents a batch of points. Default is None.
 
@@ -172,13 +175,9 @@ class ShepardNDPolation(PolationBase):
 
 
 class ConstantNDExtrapolation(PolationBase):
-    """Constant extrapolation for N-dimensional data using nearest neighbors.
+    """Constant extrapolation for N-dimensional data using nearest neighbors."""
 
-    Attributes
-    ----------
-    _interpolator : scipy.interpolate.NearestNDInterpolator
-        The underlying nearest ND interpolator instance.
-    """
+    __slots__ = ("_interpolator",)
 
     def __init__(self, domain: NDArray[np.float64], image: NDArray[np.float64]) -> None:
         """Initialize the ConstantNDExtrapolation.
@@ -188,7 +187,8 @@ class ConstantNDExtrapolation(PolationBase):
         domain : np.ndarray
             The domain coordinates of shape (n_samples, n_dimensions).
         image : np.ndarray
-            The function values at the domain coordinates of shape (n_samples,).
+            The function values at the domain coordinates of shape
+            (n_samples,).
         """
         self._interpolator = NearestNDInterpolator(domain, image)
 
@@ -200,7 +200,8 @@ class ConstantNDExtrapolation(PolationBase):
         Parameters
         ----------
         x : np.ndarray
-            The points where the function is to be evaluated, of shape (n_points, n_dimensions).
+            The points where the function is to be evaluated, of shape
+            (n_points, n_dimensions).
         _is_iterable : bool, optional
             Whether the input represents a batch of points. Default is None.
 
@@ -213,7 +214,11 @@ class ConstantNDExtrapolation(PolationBase):
 
 
 class ZeroNDExtrapolation(PolationBase):
-    """Zero extrapolation for N-dimensional data, returning zero for all points."""
+    """Zero extrapolation for N-dimensional data, returning zero
+    for all points.
+    """
+
+    __slots__ = ()
 
     def evaluate(
         self, x: NDArray[np.float64], _is_iterable: bool | None = None
@@ -223,7 +228,8 @@ class ZeroNDExtrapolation(PolationBase):
         Parameters
         ----------
         x : np.ndarray
-            The points where the function is to be evaluated, of shape (n_points, n_dimensions).
+            The points where the function is to be evaluated, of shape
+            (n_points, n_dimensions).
         _is_iterable : bool, optional
             Whether the input represents a batch of points. Default is None.
 
@@ -237,13 +243,9 @@ class ZeroNDExtrapolation(PolationBase):
 
 
 class RbfNaturalNDExtrapolation(PolationBase):
-    """Natural RBF extrapolation for N-dimensional data.
+    """Natural RBF extrapolation for N-dimensional data."""
 
-    Attributes
-    ----------
-    _interpolator : scipy.interpolate.RBFInterpolator
-        The underlying RBF interpolator instance used for natural extrapolation.
-    """
+    __slots__ = ("_interpolator",)
 
     def __init__(self, domain: NDArray[np.float64], image: NDArray[np.float64]) -> None:
         """Initialize the RbfNaturalNDExtrapolation.
@@ -253,7 +255,8 @@ class RbfNaturalNDExtrapolation(PolationBase):
         domain : np.ndarray
             The domain coordinates of shape (n_samples, n_dimensions).
         image : np.ndarray
-            The function values at the domain coordinates of shape (n_samples,).
+            The function values at the domain coordinates of shape
+            (n_samples,).
         """
         self._interpolator = RBFInterpolator(domain, image)
 
@@ -265,7 +268,8 @@ class RbfNaturalNDExtrapolation(PolationBase):
         Parameters
         ----------
         x : np.ndarray
-            The points where the function is to be evaluated, of shape (n_points, n_dimensions).
+            The points where the function is to be evaluated, of shape
+            (n_points, n_dimensions).
         _is_iterable : bool, optional
             Whether the input represents a batch of points. Default is None.
 
@@ -278,13 +282,9 @@ class RbfNaturalNDExtrapolation(PolationBase):
 
 
 class RegularGridInterpolation(PolationBase):
-    """Interpolation for N-dimensional data defined on a regular grid.
+    """Interpolation for N-dimensional data defined on a regular grid."""
 
-    Attributes
-    ----------
-    _interpolator : scipy.interpolate.RegularGridInterpolator
-        The underlying regular grid interpolator instance.
-    """
+    __slots__ = ("_grid_axes", "_interpolator")
 
     def __init__(
         self, grid_axes: list[NDArray[np.float64]], grid_data: NDArray[np.float64]
@@ -294,9 +294,11 @@ class RegularGridInterpolation(PolationBase):
         Parameters
         ----------
         grid_axes : list of np.ndarray
-            A list containing 1D arrays defining the grid coordinates for each dimension.
+            A list containing 1D arrays defining the grid coordinates
+            for each dimension.
         grid_data : np.ndarray
-            The N-dimensional array containing the function values at the grid points.
+            The N-dimensional array containing the function values at
+            the grid points.
         """
         self._interpolator = RegularGridInterpolator(
             grid_axes, grid_data, bounds_error=True
@@ -310,7 +312,8 @@ class RegularGridInterpolation(PolationBase):
         Parameters
         ----------
         x : np.ndarray
-            The points where the function is to be evaluated, of shape (n_points, n_dimensions).
+            The points where the function is to be evaluated, of shape
+            (n_points, n_dimensions).
         _is_iterable : bool, optional
             Whether the input represents a batch of points. Default is None.
 
@@ -323,13 +326,9 @@ class RegularGridInterpolation(PolationBase):
 
 
 class RegularGridNaturalExtrapolation(PolationBase):
-    """Natural extrapolation for N-dimensional data defined on a regular grid.
+    """Natural extrapolation for N-dimensional data defined on a regular grid."""
 
-    Attributes
-    ----------
-    _interpolator : scipy.interpolate.RegularGridInterpolator
-        The underlying regular grid interpolator instance configured for extrapolation.
-    """
+    __slots__ = ("_grid_axes", "_interpolator")
 
     def __init__(
         self, grid_axes: list[NDArray[np.float64]], grid_data: NDArray[np.float64]
@@ -339,9 +338,11 @@ class RegularGridNaturalExtrapolation(PolationBase):
         Parameters
         ----------
         grid_axes : list of np.ndarray
-            A list containing 1D arrays defining the grid coordinates for each dimension.
+            A list containing 1D arrays defining the grid coordinates
+            for each dimension.
         grid_data : np.ndarray
-            The N-dimensional array containing the function values at the grid points.
+            The N-dimensional array containing the function values at
+            the grid points.
         """
         self._interpolator = RegularGridInterpolator(
             grid_axes, grid_data, bounds_error=False, fill_value=None
@@ -350,12 +351,14 @@ class RegularGridNaturalExtrapolation(PolationBase):
     def evaluate(
         self, x: NDArray[np.float64], _is_iterable: bool | None = None
     ) -> NDArray[np.float64]:
-        """Evaluate the natural regular grid extrapolation at the given coordinates.
+        """Evaluate the natural regular grid extrapolation at
+        the given coordinates.
 
         Parameters
         ----------
         x : np.ndarray
-            The points where the function is to be evaluated, of shape (n_points, n_dimensions).
+            The points where the function is to be evaluated, of shape
+            (n_points, n_dimensions).
         _is_iterable : bool, optional
             Whether the input represents a batch of points. Default is None.
 
@@ -368,15 +371,11 @@ class RegularGridNaturalExtrapolation(PolationBase):
 
 
 class RegularGridConstantExtrapolation(PolationBase):
-    """Constant extrapolation for N-dimensional data defined on a regular grid by clamping coordinates.
-
-    Attributes
-    ----------
-    _grid_axes : list of np.ndarray
-        A list containing 1D arrays defining the grid coordinates for each dimension.
-    _interpolator : scipy.interpolate.RegularGridInterpolator
-        The underlying regular grid interpolator instance.
+    """Constant extrapolation for N-dimensional data defined on a
+    regular grid by clamping coordinates.
     """
+
+    __slots__ = ("_grid_axes", "_interpolator")
 
     def __init__(
         self, grid_axes: list[NDArray[np.float64]], grid_data: NDArray[np.float64]
@@ -386,9 +385,11 @@ class RegularGridConstantExtrapolation(PolationBase):
         Parameters
         ----------
         grid_axes : list of np.ndarray
-            A list containing 1D arrays defining the grid coordinates for each dimension.
+            A list containing 1D arrays defining the grid coordinates
+            for each dimension.
         grid_data : np.ndarray
-            The N-dimensional array containing the function values at the grid points.
+            The N-dimensional array containing the function values
+            at the grid points.
         """
         self._grid_axes = grid_axes
         self._interpolator = RegularGridInterpolator(
@@ -398,12 +399,14 @@ class RegularGridConstantExtrapolation(PolationBase):
     def evaluate(
         self, x: NDArray[np.float64], _is_iterable: bool | None = None
     ) -> NDArray[np.float64]:
-        """Evaluate the constant regular grid extrapolation at the given coordinates.
+        """Evaluate the constant regular grid extrapolation
+        at the given coordinates.
 
         Parameters
         ----------
         x : np.ndarray
-            The points where the function is to be evaluated, of shape (n_points, n_dimensions).
+            The points where the function is to be evaluated,
+            of shape (n_points, n_dimensions).
         _is_iterable : bool, optional
             Whether the input represents a batch of points. Default is None.
 
@@ -421,6 +424,8 @@ class RegularGridConstantExtrapolation(PolationBase):
 class RegularGridZeroExtrapolation(PolationBase):
     """Regular grid extrapolation using zeros."""
 
+    __slots__ = ()
+
     def evaluate(
         self, x: NDArray[np.float64], _is_iterable: bool | None = None
     ) -> NDArray[np.float64]:
@@ -429,7 +434,8 @@ class RegularGridZeroExtrapolation(PolationBase):
         Parameters
         ----------
         x : np.ndarray
-            The points where the function is to be evaluated, of shape (n_points, n_dimensions).
+            The points where the function is to be evaluated,
+            of shape (n_points, n_dimensions).
         _is_iterable : bool, optional
             Whether the input represents a batch of points. Default is None.
 

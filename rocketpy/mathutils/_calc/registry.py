@@ -55,7 +55,13 @@ _EXTRAP_1D = {
 
 
 def _build_natural_nd(interp, method, domain, image):
-    """Handles the specific quirks of ND Natural extrapolation."""
+    """Build scattered-ND natural extrapolation.
+
+    Natural extrapolation normally reuses the interpolation strategy. The
+    exception is scattered linear interpolation: SciPy's LinearNDInterpolator
+    does not extrapolate outside the convex hull, so RocketPy falls back to an
+    RBF extrapolator for out-of-domain points.
+    """
     if interp and method in ("rbf", "shepard"):
         return interp
     if method == "linear":
@@ -74,6 +80,8 @@ _EXTRAP_ND = {
 _EXTRAP_GRID = {
     "zero": lambda interp, axes, data: RegularGridZeroExtrapolation(),
     "constant": lambda interp, axes, data: RegularGridConstantExtrapolation(axes, data),
+    # RegularGridInterpolator extrapolates with fill_value=None when
+    # bounds_error=False. This is the regular-grid natural policy.
     "natural": lambda interp, axes, data: RegularGridNaturalExtrapolation(axes, data),
 }
 
@@ -106,7 +114,11 @@ def build_interpolation_evaluator(
 
     if dom_dim == 1:
         interp_cls = _INTERP_1D.get(method, Spline1DPolation)
-        interp = interp_cls(x, y)
+        try:
+            interp = interp_cls(x, y)
+        except TypeError:
+            # fit_polynomial may overflow and return None; fall back to spline.
+            interp = Spline1DPolation(x, y)
 
         extrap_cls = _EXTRAP_1D.get(extrap_method, _EXTRAP_1D["constant"])
         extrap = extrap_cls(interp, x, y)

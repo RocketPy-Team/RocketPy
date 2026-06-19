@@ -7,6 +7,6 @@ The registry helper :func:`build_interpolation_evaluator` is the main
 entry point consumed by :class:`rocketpy.mathutils.function.Function`.
 """
 
-from .registry import (  # noqa: F401
-    build_interpolation_evaluator,
-)
+from .registry import build_interpolation_evaluator
+
+__all__ = ["build_interpolation_evaluator"]

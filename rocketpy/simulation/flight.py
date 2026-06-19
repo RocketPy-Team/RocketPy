@@ -1350,8 +1350,8 @@ class Flight:
         """
         for parachute in overshootable_node.parachutes:
             is_ascending = overshootable_node.y_sol[5] >= 0
-            trigger_falling_only = getattr(parachute, "trigger_falling_only", False)
-            trigger_needs_height = getattr(parachute, "trigger_needs_height", True)
+            trigger_falling_only = getattr(parachute, "_trigger_falling_only", False)
+            trigger_needs_height = getattr(parachute, "_trigger_needs_height", True)
 
             if trigger_falling_only and is_ascending:
                 # Fast path

@@ -130,6 +130,42 @@ def test_mass_based_tank_net_mass_flow_rate(params, request):
     )
 
 
+def test_variable_density_mass_tank(cylindrical_variable_density_oxidizer_tank):
+    """Test variable-density mass, volume, and density consistency.
+
+    Parameters
+    ----------
+    cylindrical_variable_density_oxidizer_tank : MassBasedTank
+        The variable-density oxidizer tank to be tested.
+    """
+    tank = cylindrical_variable_density_oxidizer_tank
+    time = np.linspace(*tank.flux_time, 75)
+
+    liquid_density = tank._liquid_density(time)
+    gas_density = tank._gas_density(time)
+
+    assert np.all(liquid_density > 0)
+    assert np.all(gas_density > 0)
+    assert np.all(liquid_density < 1e5)
+    assert np.all(gas_density < 1e5)
+
+    npt.assert_allclose(
+        tank.liquid_mass(time),
+        tank.liquid_volume(time) * liquid_density,
+        atol=1e-2,
+    )
+    npt.assert_allclose(
+        tank.gas_mass(time),
+        tank.gas_volume(time) * gas_density,
+        atol=1e-2,
+    )
+    npt.assert_allclose(
+        tank.gas_mass(time),
+        0,
+        atol=1e-4,
+    )
+
+
 def test_level_based_tank_liquid_level(real_level_based_tank_seblm):
     """Test the liquid_level property of LevelBasedTank
     subclass of Tank.

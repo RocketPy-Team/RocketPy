@@ -122,10 +122,12 @@ def fit_akima(x, y):
     m_right = m_ext[2:-1]  # m_i
 
     wsum = w1 + w2
-    t = np.where(
-        wsum > 0,
-        (w1 * m_left + w2 * m_right) / wsum,
-        0.5 * (m_left + m_right),
+    t = 0.5 * (m_left + m_right)
+    np.divide(
+        w1 * m_left + w2 * m_right,
+        wsum,
+        out=t,
+        where=wsum > 0,
     )
 
     # Hermite-to-local coefficients:

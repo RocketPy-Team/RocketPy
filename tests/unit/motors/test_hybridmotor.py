@@ -60,30 +60,30 @@ def test_hybrid_motor_thrust_parameters(hybrid_motor, oxidizer_tank):
     ----------
     hybrid_motor : rocketpy.HybridMotor
         The HybridMotor object to be used in the tests.
-    spherical_oxidizer_tank : rocketpy.SphericalTank
-        The SphericalTank object to be used in the tests.
+    oxidizer_tank : rocketpy.Tank
+        The oxidizer tank object to be used in the tests.
     """
-    t_array = np.linspace(0, 10, 50)
-    expected_thrust_values = thrust_function(t_array)
-
+    time = np.linspace(0, BURN_TIME, 100)
     expected_total_impulse = 15000
-
-    initial_grain_mass = (
-        GRAIN_DENSITY
-        * np.pi
-        * (GRAIN_OUTER_RADIUS**2 - GRAIN_INITIAL_INNER_RADIUS**2)
-        * GRAIN_INITIAL_HEIGHT
-        * GRAIN_NUMBER
+    expected_exhaust_velocity = (
+        expected_total_impulse / hybrid_motor.propellant_initial_mass
+    )
+    expected_thrust_values = thrust_function(time)
+    expected_mass_flow_rate = -expected_thrust_values / expected_exhaust_velocity
+    expected_grain_mass_flow_rate = (
+        expected_mass_flow_rate - oxidizer_tank.net_mass_flow_rate(time)
     )
 
-    initial_oxidizer_mass = oxidizer_tank.fluid_mass(0)
-    initial_mass = initial_grain_mass + initial_oxidizer_mass
-
-    expected_exhaust_velocity = expected_total_impulse / initial_mass
-
-    npt.assert_allclose(hybrid_motor.thrust(t_array), expected_thrust_values)
+    npt.assert_allclose(hybrid_motor.thrust(time), expected_thrust_values)
     npt.assert_allclose(hybrid_motor.total_impulse, expected_total_impulse)
     npt.assert_allclose(hybrid_motor.exhaust_velocity(0), expected_exhaust_velocity)
+    npt.assert_allclose(
+        hybrid_motor.total_mass_flow_rate(time), expected_mass_flow_rate
+    )
+    npt.assert_allclose(
+        hybrid_motor.solid.mass_flow_rate(time),
+        expected_grain_mass_flow_rate,
+    )
 
 
 def test_hybrid_motor_center_of_mass(hybrid_motor, oxidizer_tank):
