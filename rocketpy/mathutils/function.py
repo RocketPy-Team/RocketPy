@@ -25,6 +25,7 @@ from scipy.interpolate import (
     RBFInterpolator,
     RegularGridInterpolator,
 )
+from scipy.spatial import Delaunay  # pylint: disable=no-name-in-module
 
 from rocketpy.plots.plot_helpers import show_or_save_plot
 from rocketpy.tools import deprecated, from_hex_decode, to_hex_encode
@@ -519,7 +520,9 @@ class Function:  # pylint: disable=too-many-public-methods
                         return (x - x_left) * (dy / dx) + y_left
 
                 else:
-                    interpolator = LinearNDInterpolator(self._domain, self._image)
+                    tri = Delaunay(self._domain)
+                    interpolator = LinearNDInterpolator(tri, self._image)
+                    self._nd_triangulation = tri
 
                     def linear_interpolation(x, x_min, x_max, x_data, y_data, coeffs):  # pylint: disable=unused-argument
                         return interpolator(x)
@@ -827,8 +830,11 @@ class Function:  # pylint: disable=too-many-public-methods
         min_domain = self._domain.T.min(axis=1)
         max_domain = self._domain.T.max(axis=1)
 
-        lower, upper = args < min_domain, args > max_domain
-        extrap = np.logical_or(lower.any(axis=1), upper.any(axis=1))
+        if self.__interpolation__ == "linear" and hasattr(self, "_nd_triangulation"):
+            extrap = self._nd_triangulation.find_simplex(args) < 0
+        else:
+            lower, upper = args < min_domain, args > max_domain
+            extrap = np.logical_or(lower.any(axis=1), upper.any(axis=1))
 
         if extrap.any():
             result[extrap] = self._extrapolation_func(
