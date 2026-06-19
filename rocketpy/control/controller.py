@@ -71,13 +71,14 @@ class _Controller:
             objects as needed. The function return statement can be used to save
             relevant information in the `observed_variables` list.
 
-            .. note:: The function will be called according to the sampling rate
-            specified. If unspecified, the default sampling rate is set to None, meaning that the
-            controller function will be called at every solver step of the simulation.
-        sampling_rate : float
+            .. note:: The function will be called according to the sampling
+               rate specified. If `sampling_rate` is None, the controller
+               function is called at every solver step of the simulation.
+        sampling_rate : float, optional
             The sampling rate of the controller function in Hertz (Hz). This
             means that the controller function will be called every
-            `1/sampling_rate` seconds.
+            `1/sampling_rate` seconds. If None, it is treated as a
+            continuous controller and called at every solver step.
         initial_observed_variables : list, optional
             A list of the initial values of the variables that the controller
             function returns. This list is used to initialize the

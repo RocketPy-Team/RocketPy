@@ -2,7 +2,7 @@
 TimeNode.
 """
 
-# from rocketpy.rocket import Parachute, _Controller
+from rocketpy.control.controller import _Controller
 
 
 def test_time_nodes_init(flight_calisto):
@@ -47,6 +47,32 @@ def test_time_nodes_add_node(flight_calisto):
 
 # def test_time_nodes_add_controllers(flight_calisto):
 # TODO: implement this test
+
+
+def test_time_nodes_add_controllers_skips_continuous_controllers(flight_calisto):
+    """Ensure only discrete controllers create time nodes."""
+    # Arrange
+    discrete_controller = _Controller(
+        interactive_objects=[],
+        controller_function=lambda t, sr, sv, sh, ov, io: None,
+        sampling_rate=10,
+        name="Discrete",
+    )
+    continuous_controller = _Controller(
+        interactive_objects=[],
+        controller_function=lambda t, sr, sv, sh, ov, io: None,
+        sampling_rate=None,
+        name="Continuous",
+    )
+    time_nodes = flight_calisto.TimeNodes()
+
+    # Act
+    time_nodes.add_controllers([discrete_controller, continuous_controller], 0, 1)
+
+    # Assert
+    assert len(time_nodes) == 11
+    assert all(node._controllers == [discrete_controller] for node in time_nodes)
+    assert all(continuous_controller not in node._controllers for node in time_nodes)
 
 
 def test_time_nodes_sort(flight_calisto):
