@@ -422,8 +422,8 @@ class CylindricalTank(TankGeometry):
                     "'radius' arguments. Use 'radius_function' instead."
                 )
             warnings.warn(
-                "The 'radius' argument in CylindricalTank is deprecated. "
-                "Use 'radius_function' instead.",
+                "The 'radius' argument in CylindricalTank is deprecated in v1.13.0 "
+                "and will be removed in v2.0.0. Use 'radius_function' instead.",
                 DeprecationWarning,
                 stacklevel=2,
             )
@@ -502,7 +502,8 @@ class CylindricalTank(TankGeometry):
         else:
             warnings.warn(
                 "The 'radius' key in CylindricalTank serialized data is "
-                "deprecated. Use 'radius_function' instead.",
+                "deprecated in v1.13.0 and will be removed in v2.0.0. "
+                "Use 'radius_function' instead.",
                 DeprecationWarning,
                 stacklevel=2,
             )
@@ -540,8 +541,8 @@ class SphericalTank(TankGeometry):
                     "'radius' arguments. Use 'radius_function' instead."
                 )
             warnings.warn(
-                "The 'radius' argument in SphericalTank is deprecated. "
-                "Use 'radius_function' instead.",
+                "The 'radius' argument in SphericalTank is deprecated in v1.13.0 "
+                "and will be removed in v2.0.0. Use 'radius_function' instead.",
                 DeprecationWarning,
                 stacklevel=2,
             )
@@ -573,7 +574,8 @@ class SphericalTank(TankGeometry):
         else:
             warnings.warn(
                 "The 'radius' key in SphericalTank serialized data is "
-                "deprecated. Use 'radius_function' instead.",
+                "deprecated in v1.13.0 and will be removed in v2.0.0. "
+                "Use 'radius_function' instead.",
                 DeprecationWarning,
                 stacklevel=2,
             )
