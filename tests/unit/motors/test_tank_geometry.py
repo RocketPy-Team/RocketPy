@@ -1,9 +1,12 @@
+import warnings
 from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
 import pytest
 
+from rocketpy import CylindricalTank, SphericalTank
+from rocketpy.mathutils.function import Function
 from rocketpy.motors import TankGeometry
 
 PRESSURANT_PARAMS = (0.135 / 2, 0.981)
@@ -139,9 +142,6 @@ def test_cylindrical_tank_radius_function_attribute():
     and that it does not conflict with the 'radius' property (a Function of
     height).
     """
-    from rocketpy import CylindricalTank
-    from rocketpy.mathutils.function import Function
-
     r = 0.1
     tank = CylindricalTank(r, 2.0)
 
@@ -159,9 +159,6 @@ def test_spherical_tank_radius_function_attribute():
     and that it does not conflict with the 'radius' property (a Function of
     height).
     """
-    from rocketpy import SphericalTank
-    from rocketpy.mathutils.function import Function
-
     r = 0.05
     tank = SphericalTank(r)
 
@@ -178,10 +175,6 @@ def test_cylindrical_tank_deprecated_radius_kwarg():
     """Test that CylindricalTank issues a DeprecationWarning when the old
     'radius' keyword argument is used, and still works correctly.
     """
-    import warnings
-
-    from rocketpy import CylindricalTank
-
     r = 0.1
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
@@ -197,10 +190,6 @@ def test_spherical_tank_deprecated_radius_kwarg():
     """Test that SphericalTank issues a DeprecationWarning when the old
     'radius' keyword argument is used, and still works correctly.
     """
-    import warnings
-
-    from rocketpy import SphericalTank
-
     r = 0.05
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
@@ -214,8 +203,6 @@ def test_spherical_tank_deprecated_radius_kwarg():
 
 def test_cylindrical_tank_to_dict_uses_radius_function_key():
     """Test that CylindricalTank.to_dict() uses the 'radius_function' key."""
-    from rocketpy import CylindricalTank
-
     tank = CylindricalTank(0.1, 2.0)
     data = tank.to_dict()
     assert "radius_function" in data
@@ -225,8 +212,6 @@ def test_cylindrical_tank_to_dict_uses_radius_function_key():
 
 def test_spherical_tank_to_dict_uses_radius_function_key():
     """Test that SphericalTank.to_dict() uses the 'radius_function' key."""
-    from rocketpy import SphericalTank
-
     tank = SphericalTank(0.05)
     data = tank.to_dict()
     assert "radius_function" in data
@@ -238,10 +223,6 @@ def test_cylindrical_tank_from_dict_deprecated_radius_key():
     """Test that CylindricalTank.from_dict() issues a DeprecationWarning when
     the serialized data contains the old 'radius' key.
     """
-    import warnings
-
-    from rocketpy import CylindricalTank
-
     old_data = {"radius": 0.1, "height": 2.0, "spherical_caps": False}
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
@@ -256,10 +237,6 @@ def test_spherical_tank_from_dict_deprecated_radius_key():
     """Test that SphericalTank.from_dict() issues a DeprecationWarning when
     the serialized data contains the old 'radius' key.
     """
-    import warnings
-
-    from rocketpy import SphericalTank
-
     old_data = {"radius": 0.05}
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
