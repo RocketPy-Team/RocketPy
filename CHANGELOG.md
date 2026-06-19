@@ -44,6 +44,10 @@ Attention: The newest changes should be on top -->
 
 - 
 
+### Deprecated
+
+- MNT: Rename `radius` to `radius_function` in `CylindricalTank` and `SphericalTank`; old `radius=` keyword argument now raises `DeprecationWarning` [#957](https://github.com/RocketPy-Team/RocketPy/pull/957)
+
 ### Fixed
 
 - BUG: fix NaN in ND linear interpolation outside convex hull [#926](https://github.com/RocketPy-Team/RocketPy/issues/926)
