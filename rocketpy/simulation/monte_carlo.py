@@ -38,7 +38,7 @@ from rocketpy.tools import (
 # TODO: Create evolution plots to analyze convergence
 
 
-class MonteCarlo:
+class MonteCarlo:  # pylint: disable=too-many-public-methods
     """Class to run a Monte Carlo simulation of a rocket flight.
 
     Attributes
@@ -965,7 +965,7 @@ class MonteCarlo:
             elif fmt == "json":
                 content = f.read().strip()
                 if content:
-                    result = json.load(open(filepath, encoding="utf-8"))
+                    result = json.loads(content)
             elif fmt == "csv":
                 reader = csv.DictReader(f)
                 for row in reader:
