@@ -25,7 +25,7 @@ from scipy.interpolate import (
     RBFInterpolator,
     RegularGridInterpolator,
 )
-from scipy.spatial import Delaunay # pylint: disable=no-name-in-module
+from scipy.spatial import Delaunay  # pylint: disable=no-name-in-module
 
 from rocketpy.plots.plot_helpers import show_or_save_plot
 from rocketpy.tools import deprecated, from_hex_decode, to_hex_encode
