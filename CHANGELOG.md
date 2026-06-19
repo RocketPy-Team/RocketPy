@@ -32,7 +32,6 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
-- ENH: ENH: Auto-Detection of Pressure Conversion Factor [#966](https://github.com/RocketPy-Team/RocketPy/pull/966)
 - ENH: Auto-Detection of Pressure Conversion Factor [#966](https://github.com/RocketPy-Team/RocketPy/pull/966)
 - ENH: MNT: introduce pressure unit conversion when using forecast/reanalysis/ensemble data [#955](https://github.com/RocketPy-Team/RocketPy/pull/955)
 - ENH: Auto Populate Changelog [#919](https://github.com/RocketPy-Team/RocketPy/pull/919)
@@ -42,6 +41,10 @@ Attention: The newest changes should be on top -->
 ### Changed
 
 - 
+
+### Deprecated
+
+- MNT: Rename `radius` to `radius_function` in `CylindricalTank` and `SphericalTank`; old `radius=` keyword argument now raises `DeprecationWarning` [#957](https://github.com/RocketPy-Team/RocketPy/pull/957)
 
 ### Fixed
 
