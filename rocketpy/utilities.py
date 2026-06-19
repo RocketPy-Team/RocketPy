@@ -16,7 +16,13 @@ from .environment.environment import Environment
 from .mathutils.function import Function
 from .plots.plot_helpers import show_or_save_plot
 from .rocket.aero_surface import TrapezoidalFins
-from .simulation.flight import Flight
+
+# Importing Flight here closes a flight <-> utilities import cycle that is
+# intentional (utilities operate on Flight objects)
+from .simulation.flight import Flight  # pylint: disable=cyclic-import
+
+# TODO: A lot of the functions here are really useful. More attention should be
+# given to them in the documentation
 
 
 def compute_cd_s_from_drop_test(
@@ -202,7 +208,6 @@ def calculate_equilibrium_altitude(
     return altitude_function, velocity_function, final_sol
 
 
-# pylint: disable=too-many-statements
 def fin_flutter_analysis(
     fin_thickness,
     shear_modulus,
@@ -581,6 +586,48 @@ def liftoff_speed_by_mass(flight, min_mass, max_mass, points=10, plot=True):
     if plot:
         retfunc.plot(min_mass, max_mass, points)
     return retfunc
+
+
+def calculate_stall_wind_velocity(flight, stall_angle):
+    """Calculate the maximum wind velocity before the angle of attack exceeds a
+    desired angle, at the instant of departing rail launch. Can be helpful if
+    you know the exact stall angle of all aerodynamic surfaces.
+
+    Parameters
+    ----------
+    flight : rocketpy.Flight
+        Flight object to be analyzed.
+    stall_angle : float
+        Angle, in degrees, for which you would like to know the maximum wind
+        speed before the angle of attack exceeds it.
+
+    Returns
+    -------
+    w_v : float
+        Maximum wind velocity, in m/s, at rail departure time before the angle
+        of attack exceeds ``stall_angle``.
+    """
+    v_f = flight.out_of_rail_velocity
+
+    theta = np.radians(flight.inclination)
+    stall_angle = np.radians(stall_angle)
+
+    c = (np.cos(stall_angle) ** 2 - np.cos(theta) ** 2) / np.sin(stall_angle) ** 2
+    w_v = (
+        2 * v_f * np.cos(theta) / c
+        + (
+            4 * v_f * v_f * np.cos(theta) * np.cos(theta) / (c**2)
+            + 4 * 1 * v_f * v_f / c
+        )
+        ** 0.5
+    ) / 2
+
+    stall_angle = np.degrees(stall_angle)
+    print(
+        "Maximum wind velocity at Rail Departure time before angle"
+        + f" of attack exceeds {stall_angle:.3f}°: {w_v:.3f} m/s"
+    )
+    return w_v
 
 
 def get_instance_attributes(instance):

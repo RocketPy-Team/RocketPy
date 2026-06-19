@@ -1,5 +1,4 @@
 # pylint: disable=too-many-statements
-
 from abc import ABC, abstractmethod
 
 import matplotlib.pyplot as plt

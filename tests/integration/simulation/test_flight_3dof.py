@@ -111,7 +111,7 @@ def test_simulation_mode_sets_3dof_with_point_mass_rocket(flight_3dof):
     flight_3dof : rocketpy.simulation.flight.Flight
         A Flight fixture configured for 3-DOF simulation with a PointMassRocket.
     """
-    assert flight_3dof.simulation_mode == "3 DOF"
+    assert flight_3dof.simulation_mode == "3DOF"
 
 
 def test_3dof_simulation_mode_warning(example_plain_env, point_mass_rocket):
@@ -134,7 +134,7 @@ def test_3dof_simulation_mode_warning(example_plain_env, point_mass_rocket):
             rail_length=1,
             simulation_mode="6 DOF",
         )
-        assert flight.simulation_mode == "3 DOF"
+        assert flight.simulation_mode == "3DOF"
 
 
 def test_u_dot_generalized_3dof_returns_valid_result(flight_3dof):

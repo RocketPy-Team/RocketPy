@@ -1,3 +1,5 @@
+.. _airbrakes:
+
 Air Brakes
 ==========
 
@@ -166,12 +168,16 @@ Lets define the controller function:
 
 .. jupyter-execute::
 
-    def controller_function(
-        time, sampling_rate, state, state_history, observed_variables, air_brakes, sensors, environment
-    ):
+    def controller_function(**kwargs):
         # state = [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]
+        time = kwargs["time"]
+        state = kwargs["state"]
+        sampling_rate = kwargs["sampling_rate"]
+        motor = kwargs["rocket"].motor
+        environment = kwargs["environment"]
+        air_brakes = kwargs["air_brakes"]
         altitude_ASL = state[2]
-        altitude_AGL = altitude_ASL - environment.elevation
+        altitude_AGL = kwargs["height_agl"]
         vx, vy, vz = state[3], state[4], state[5]
 
         # Get winds in x and y directions
@@ -184,15 +190,15 @@ Lets define the controller function:
         mach_number = free_stream_speed / environment.speed_of_sound(altitude_ASL)
 
         # Get previous state from state_history
-        previous_state = state_history[-1]
+        previous_state = kwargs["state_history"][-1]
         previous_vz = previous_state[5]
 
         # If we wanted to we could get the returned values from observed_variables:
         # returned_time, deployment_level, drag_coefficient = observed_variables[-1]
 
         # Check if the rocket has reached burnout
-        if time < Pro75M1670.burn_out_time:
-            return None
+        if time < motor.burn_out_time:
+            air_brakes.deployment_level = 0
 
         # If below 1500 meters above ground level, air_brakes are not deployed
         if altitude_AGL < 1500:
@@ -356,6 +362,7 @@ controller function. If you want to disable this feature, set ``clamp`` to
         initial_observed_variables=[0, 0, 0],
         override_rocket_drag=False,
         name="Air Brakes",
+        controller_needs=["state_history"],
     )
 
     air_brakes.all_info()
@@ -375,13 +382,6 @@ controller function. If you want to disable this feature, set ``clamp`` to
 Simulating a Flight
 -------------------
 
-.. important::
-
-    To simulate the air brakes successfully, we must set ``time_overshoot`` to
-    ``False``. This way the simulation will run at the time step defined by our
-    controller sampling rate. Be aware that this will make the simulation run
-    **much** slower.
-
 We will be terminating the simulation at apogee, by setting
 ``terminate_at_apogee`` to ``True``. This way the simulation will stop when the
 rocket reaches apogee, and we will save some time.
@@ -394,7 +394,6 @@ rocket reaches apogee, and we will save some time.
         rail_length=5.2,
         inclination=85,
         heading=0,
-        time_overshoot=False,
         terminate_on_apogee=True,
     )
 
@@ -417,7 +416,7 @@ Then we can plot the data we want.
 
     time_list, deployment_level_list, drag_coefficient_list = [], [], []
 
-    obs_vars = test_flight.get_controller_observed_variables()
+    obs_vars = test_flight._controllers[0].log
 
     for time, deployment_level, drag_coefficient in obs_vars:
         time_list.append(time)

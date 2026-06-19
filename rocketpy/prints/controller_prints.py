@@ -35,13 +35,16 @@ class _ControllerPrints:
         None
         """
         if self.controller.controller_function.__name__ == "<lambda>":
-            line = getsourcelines(self.controller.trigger)[0][0]
+            line = getsourcelines(self.controller.controller_function)[0][0]
             print("Controller function: " + line.split("=")[0].strip())
         else:
             print(
                 "Controller function: " + self.controller.controller_function.__name__
             )
-        print(f"Controller refresh rate: {self.controller.sampling_rate:.3f} Hz")
+        if self.controller.sampling_rate is None:
+            print("Controller refresh rate: continuous")
+        else:
+            print(f"Controller refresh rate: {self.controller.sampling_rate:.3f} Hz")
 
     def interactive_objects(self):
         """Prints interactive objects."""

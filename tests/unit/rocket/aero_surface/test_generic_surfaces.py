@@ -112,6 +112,8 @@ def test_compute_forces_and_moments():
         rho=0,
         cp=Vector((0, 0, 0)),
         omega=(0, 0, 0),
-        reynolds=0,
+        density=Function(1.0),
+        dynamic_viscosity=Function(1.0),
+        z=0,
     )
     assert forces_and_moments == (0, 0, 0, 0, 0, 0)

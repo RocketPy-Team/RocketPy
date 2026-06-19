@@ -772,11 +772,15 @@ class StochasticRocket(StochasticModel):
 
         for air_brake in self.air_brakes:
             air_brake = self._create_air_brake(air_brake)
+            base_controller = self.air_brake_controller
             _controller = _Controller(
-                interactive_objects=air_brake,
-                controller_function=self.air_brake_controller.base_controller_function,
-                sampling_rate=self.air_brake_controller.sampling_rate,
-                initial_observed_variables=self.air_brake_controller.initial_observed_variables,
+                controller_function=base_controller.controller_function,
+                controlled_objects=air_brake,
+                controlled_objects_name=base_controller.controlled_objects_name,
+                sampling_rate=base_controller.sampling_rate,
+                context=base_controller.context.copy(),
+                name=base_controller.name,
+                controller_needs=base_controller.controller_needs,
             )
             rocket.air_brakes.append(air_brake)
             rocket._add_controllers(_controller)

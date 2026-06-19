@@ -9,6 +9,7 @@ from rocketpy.prints.aero_surface_prints import _AirBrakesPrints
 from .aero_surface import AeroSurface
 
 
+# TODO: review airbrakes implementation to make it more in line with events
 class AirBrakes(AeroSurface):
     """AirBrakes class. Inherits from AeroSurface.
 
@@ -101,10 +102,13 @@ class AirBrakes(AeroSurface):
         """
         super().__init__(name, reference_area, None)
         self.drag_coefficient_curve = drag_coefficient_curve
+        # TODO: this drag coefficient needs to be a function of more parameters
+        # just like generic surface coefficients
         self.drag_coefficient = Function(
             drag_coefficient_curve,
             inputs=["Deployment Level", "Mach"],
             outputs="Drag Coefficient",
+            interpolation="linear",
         )
         self.clamp = clamp
         self.override_rocket_drag = override_rocket_drag

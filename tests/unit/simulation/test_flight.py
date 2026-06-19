@@ -83,6 +83,33 @@ def setup_rocket_with_given_static_margin(rocket, static_margin):
 # Tests
 
 
+def test_solution_time_is_monotonically_non_decreasing(flight_calisto_robust):
+    """Test that solution timestamps never go backwards across all phase transitions.
+
+    This covers flights with exact-time events and new flight phases (drogue and
+    main parachute deployments), which are the scenarios most likely to produce
+    out-of-order timestamps at phase boundaries.
+
+    Parameters
+    ----------
+    flight_calisto_robust : rocketpy.Flight
+        Full flight with both drogue and main parachutes enabled.
+    """
+    sol = np.array(flight_calisto_robust.solution)
+    times = sol[:, 0]
+    backward_steps = np.where(np.diff(times) < 0)[0]
+    assert backward_steps.size == 0, (
+        f"Solution time goes backward at {backward_steps.size} step(s). "
+        f"First occurrence: index {backward_steps[0]}, "
+        f"t={times[backward_steps[0]]:.6f} -> t={times[backward_steps[0] + 1]:.6f}"
+    )
+    # Confirm both parachutes actually fired so the phase transitions were exercised
+    assert len(flight_calisto_robust.parachute_events) >= 2, (
+        "Expected at least 2 parachute events (drogue + main) but got "
+        f"{len(flight_calisto_robust.parachute_events)}"
+    )
+
+
 def test_get_solution_at_time(flight_calisto):
     """Test the get_solution_at_time method of the Flight class. This test
     simply calls the method at the initial and final time and checks if the
@@ -135,7 +162,10 @@ def test_get_controller_observed_variables(flight_calisto_air_brakes):
     working as intended."""
     obs_vars = flight_calisto_air_brakes.get_controller_observed_variables()
     assert isinstance(obs_vars, list)
-    assert len(obs_vars) == 0
+    # The basic air brakes controller mutates the deployment level but does not
+    # return observed variables, so every logged entry is None.
+    assert len(obs_vars) > 0
+    assert all(var is None for var in obs_vars)
 
 
 def test_initial_stability_margin(flight_calisto_custom_wind):
@@ -497,49 +527,6 @@ def test_surface_wind(flight_calisto_custom_wind):
     atol = 1e-8
     assert pytest.approx(2.0, abs=atol) == test.frontal_surface_wind
     assert pytest.approx(-5.0, abs=atol) == test.lateral_surface_wind
-
-
-@pytest.mark.skip(reason="legacy tests")
-@pytest.mark.parametrize(
-    "rail_length, out_of_rail_time",
-    [
-        (0.52, 0.5180212542878443),
-        (5.2, 5.180378138072207),
-        (50.2, 50.00897551720473),
-        (100000, 100003.35594050681),
-    ],
-)
-def test_rail_length(calisto_robust, example_plain_env, rail_length, out_of_rail_time):
-    """Tests the rail length parameter of the Flight class. This test simply
-    simulate the flight using different rail lengths and checks if the expected
-    out of rail altitude is achieved. Four different rail lengths are
-    tested: 0.001, 1, 10, and 100000 meters. This provides a good test range.
-    Currently, if a rail length of 0 is used, the simulation will fail in a
-    ZeroDivisionError, which is not being tested here.
-
-    Parameters
-    ----------
-    calisto_robust : rocketpy.Rocket
-        The rocket to be simulated. In this case, the fixture rocket is used.
-        See the conftest.py file for more information.
-    example_plain_env : rocketpy.Environment
-        The environment to be simulated. In this case, the fixture environment
-        is used. See the conftest.py file for more information.
-    rail_length : float, int
-        The length of the rail in meters. It must be a positive number. See the
-        Flight class documentation for more information.
-    out_of_rail_time : float, int
-        The expected time at which the rocket leaves the rail in seconds.
-    """
-    test_flight = Flight(
-        rocket=calisto_robust,
-        environment=example_plain_env,
-        rail_length=rail_length,
-        inclination=85,
-        heading=0,
-        terminate_on_apogee=True,
-    )
-    assert abs(test_flight.z(test_flight.out_of_rail_time) - out_of_rail_time) < 1e-6
 
 
 @patch("matplotlib.pyplot.show")

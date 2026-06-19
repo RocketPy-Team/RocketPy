@@ -194,6 +194,26 @@ def set_minimal_flight_attributes(flight, obj):
 
     flight.t_initial = flight.initial_solution[0]
 
+    # Integration settings serialized by to_dict. Defaults cover older .rpy
+    # files saved before these fields existed.
+    flight.equations_of_motion = obj.get("equations_of_motion", "standard")
+    flight.ode_solver = obj.get("ode_solver", "LSODA")
+    flight.simulation_mode = obj.get("simulation_mode", "6DOF")
+
+    # Controllers, sensors and custom events are derived by Flight.__init__
+    # from the (already-decoded) rocket and constructor args; they are not
+    # serialized separately. Mirror that derivation here so prints/plots that
+    # iterate them work on flights loaded from .rpy files (which bypass
+    # __init__).
+    flight._controllers = getattr(flight.rocket, "_controllers", [])[:]
+    flight.sensors = flight.rocket.sensors.get_components()
+    flight.sensors_by_name = flight.rocket.sensors_by_name
+    # TODO: custom_events are lost when loading from .rpy because they hold
+    # user-defined callables that are not currently serialized. Add proper
+    # serialization/deserialization for custom_events and restore them here
+    # instead of defaulting to an empty list.
+    flight.custom_events = []
+
 
 def get_class_signature(obj):
     """Returns the signature of a class so it can be identified on

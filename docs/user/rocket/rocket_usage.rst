@@ -301,7 +301,6 @@ apogee and another that will be deployed at 800 meters above ground level:
         trigger=800,
         sampling_rate=105,
         lag=1.5,
-        noise=(0, 8.3, 0.5),
         radius=1.5,
         height=1.5,
         porosity=0.0432,
@@ -313,7 +312,6 @@ apogee and another that will be deployed at 800 meters above ground level:
         trigger="apogee",
         sampling_rate=105,
         lag=1.5,
-        noise=(0, 8.3, 0.5),
         radius=1.5,
         height=1.5,
         porosity=0.0432,
@@ -334,49 +332,110 @@ The parachute trigger is a very important parameter. It is used to determine
 when the parachute will be deployed. It can be either a number, a string
 ``"apogee"``, or a callable.
 
-If it is a number, it is the altitude at which the parachute will be deployed.
+If it is a number, it is the altitude (height above ground level, in meters) at
+which the parachute will be deployed during descent.
 
 If it is a string ``"apogee"``, the parachute will be deployed at apogee.
 
-If it is a callable, it must be a function that takes three parameters:
+If it is a callable, it must return ``True`` when the parachute should be
+deployed and ``False`` otherwise. Internally, the parachute is wrapped in an
+:class:`rocketpy.Event`, so the trigger receives the same information available
+to any event trigger.
 
-- ``p``: pressure considering parachute noise signal.
-- ``h``: height above ground level considering parachute noise signal.
-- ``y``: state vector in the from ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]``.
+The trigger must be defined as a function that accepts ``**kwargs``. This allows
+you to access the values you need from it. This is the same set of keyword 
+arguments described in :ref:`eventusage`, and includes (among others):
 
-The function must return ``True`` if the parachute should be deployed and
-``False`` otherwise.
+**Simulation time and state:**
 
-The ``p`` and ``h`` parameters are useful if you want to deploy the parachute
-based on the pressure or height above ground level. The ``y`` parameter is
-useful if you want to deploy the parachute based on the state vector (velocity,
-attitude angle, etc).
+- ``time`` (float): current simulation time in seconds.
+- ``state`` (list of float): state vector
+  ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]`` where ``(x, y, z)`` is
+  position, ``(vx, vy, vz)`` is velocity, ``(e0, e1, e2, e3)`` are the
+  quaternion orientation components, and ``(w1, w2, w3)`` is angular velocity.
+- ``state_dot`` (list of float): time derivative of the state vector,
+  ``[vx, vy, vz, ax, ay, az, e0_dot, e1_dot, e2_dot, e3_dot, w1_dot, w2_dot, w3_dot]``.
+  In particular, ``(ax, ay, az)`` at indices 3, 4 and 5 are the acceleration
+  components, so ``state_dot[5]`` is the vertical acceleration.
+- ``pressure`` (float): current atmospheric pressure in Pa at the rocket's
+  altitude.
+- ``height_agl`` (float): height above ground level in meters.
+- ``step_size`` (float, optional): most recent solver step size in seconds.
+
+**Simulation objects:**
+
+- ``flight`` (:class:`rocketpy.Flight`): the Flight instance orchestrating the
+  simulation.
+- ``rocket`` (:class:`rocketpy.Rocket`): the Rocket object being simulated.
+- ``environment`` (:class:`rocketpy.Environment`): the Environment conditions
+  for the flight.
+
+**Sensor and Event data:**
+
+- ``sensors`` (dict): dictionary mapping sensor names (or class names) to sensor
+  instances, each exposing its most recent ``measurement``. If several sensors
+  share a name, the value is a list.
+- ``sampling_rate`` (float or None): the sampling rate of the parachute trigger
+  in Hz (or ``None`` for a continuous trigger).
+- ``event`` (:class:`rocketpy.Event`): a reference to the wrapping Event object,
+  giving access to ``context``, ``commands``, and other event state. See the
+  :ref:`eventusage` section for more information.
 
 This function is called throughout the simulation. Therefore, you can
 use it to deploy the parachute at any time.
 
-The following example shows how to define a callable trigger function that will
-deploy the drogue parachute when the vertical velocity is negative (apogee)
-and will deploy the main parachute when the vertical velocity is negative
+The following example shows how to define trigger functions that will
+deploy the parachute when the vertical velocity is negative
 (post-apogee) and the height above ground level is less than 800 meters:
+
+Because ``**kwargs`` exposes the full event context, you can combine any of the
+available values. For example, you can use the acceleration components from
+``state_dot`` (and the simulation time) to gate deployment:
 
 .. jupyter-input::
 
-    def drogue_trigger(p, h, y):
+    def main_trigger(**kwargs):
+        vz = kwargs["state"][5]  # vertical velocity
+        az = kwargs["state_dot"][5]  # vertical acceleration
+        h = kwargs["height_agl"]
+        time = kwargs["time"]
 
-        # activate drogue when vz < 0 m/s.
-        return True if y[5] < 0 else False
-
-
-    def main_trigger(p, h, y):
-
-        # activate main when vz < 0 m/s and z < 800 m
-        return True if y[5] < 0 and h < 800 else False
+        # activate main when descending (vz < 0) and decelerating (az > 0),
+        # below 800 m, and at least 5 s into the flight
+        return vz < 0 and az > 0 and h < 800 and time > 5.0
 
 .. note::
     You can import ``c`` or ``cpp`` code into Python and use it as a callable
     trigger function. This allows you to simulate the parachute trigger system
     that will be used in the real rocket.
+
+Legacy positional trigger signature
+""""""""""""""""""""""""""""""""""""
+
+Older trigger functions declared the following positional arguments instead of
+reading them from ``**kwargs``:
+
+- ``p`` (float): pressure in Pa **considering the parachute noise signal**.
+- ``h`` (float): height above ground level in meters, **considering the
+  parachute noise signal**.
+- ``y`` (list of float): the state vector (same content as the ``state`` kwarg).
+- ``sensors`` (dict, optional fourth argument): the same dictionary as the
+  ``sensors`` kwarg.
+
+.. note::
+    The legacy positional ``p`` and ``h`` carry the parachute noise signal,
+    whereas the ``pressure`` and ``height_agl`` keyword arguments
+    are the clean, noise-free values. For of pressure/height signals with noise,
+    use Sensor objects instead.
+
+A legacy trigger therefore looked like this:
+
+.. jupyter-input::
+
+    def main_trigger(p, h, y):
+
+        # activate main when vz < 0 m/s and h < 800 m
+        return y[5] < 0 and h < 800
 
 5. Setting Rail Guides
 ----------------------

@@ -284,6 +284,7 @@ class Motor(ABC):
         self.nozzle_area = np.pi * nozzle_radius**2
         self.center_of_dry_mass_position = center_of_dry_mass_position
         self.reference_pressure = reference_pressure
+        self._is_point_mass = False
 
         # Inertia tensor setup
         inertia = (*dry_inertia, 0, 0, 0) if len(dry_inertia) == 3 else dry_inertia

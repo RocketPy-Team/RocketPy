@@ -57,6 +57,9 @@ class PointMassMotor(Motor):
             coordinate_system_orientation="nozzle_to_combustion_chamber",
         )
 
+        # Flag to indicate point mass model for flight class to avoid imports
+        self._is_point_mass = True
+
     @property
     def propellant_initial_mass(self):
         return self._propellant_initial_mass

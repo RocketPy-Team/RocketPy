@@ -1,5 +1,5 @@
 Gyroscope Class
 ---------------
 
-.. autoclass:: rocketpy.sensors.Gyroscope
+.. autoclass:: rocketpy.Gyroscope
     :members:

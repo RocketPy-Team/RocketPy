@@ -17,6 +17,7 @@ in their code.
    Roll Moment <aerodynamics/roll_equations.rst>
    Sensitivity Analysis <sensitivity.rst>
    References <references.rst>
+   Simulation Loop <simulation_loop.rst>
 
 This section is still a work in progress, however, and not everything is documented yet.
 If you have any questions, please contact the maintainers of RocketPy.

@@ -104,6 +104,9 @@ class PointMassRocket(Rocket):
             center_of_mass_without_motor=center_of_mass_without_motor,
         )
 
+        # Flag to avoid unnecessary imports in flight class
+        self._is_point_mass = True
+
     def evaluate_dry_inertias(self):
         """Override to ensure inertias remain zero for point mass model.
 

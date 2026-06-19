@@ -443,6 +443,47 @@ def inverted_haversine(lat0, lon0, distance, bearing, earth_radius=6.3781e6):
     return lat1_deg, lon1_deg
 
 
+def inverted_haversine_array(lat0, lon0, distance, bearing, earth_radius=6.3781e6):
+    """Array-capable inverse haversine. Identical to :func:`inverted_haversine`
+    but uses numpy ufuncs so ``distance`` and ``bearing`` may be numpy arrays.
+
+    Parameters
+    ----------
+    lat0 : float
+        Origin latitude coordinate, in degrees.
+    lon0 : float
+        Origin longitude coordinate, in degrees.
+    distance : float or np.ndarray
+        Distance from the origin point, in meters.
+    bearing : float or np.ndarray
+        Azimuth (or bearing compass) from the origin point, in degrees.
+    earth_radius : float, optional
+        Earth radius, in meters. Default value is 6.3781e6.
+
+    Returns
+    -------
+    lat1 : float or np.ndarray
+        New latitude coordinate(s), in degrees.
+    lon1 : float or np.ndarray
+        New longitude coordinate(s), in degrees.
+    """
+    lat0_rad = np.deg2rad(lat0)
+    lon0_rad = np.deg2rad(lon0)
+    bearing_rad = np.deg2rad(bearing)
+
+    lat1_rad = np.arcsin(
+        np.sin(lat0_rad) * np.cos(distance / earth_radius)
+        + np.cos(lat0_rad) * np.sin(distance / earth_radius) * np.cos(bearing_rad)
+    )
+
+    lon1_rad = lon0_rad + np.arctan2(
+        np.sin(bearing_rad) * np.sin(distance / earth_radius) * np.cos(lat0_rad),
+        np.cos(distance / earth_radius) - np.sin(lat0_rad) * np.sin(lat1_rad),
+    )
+
+    return np.rad2deg(lat1_rad), np.rad2deg(lon1_rad)
+
+
 def mercator_to_wgs84(x, y, earth_radius=6.3781e6):
     """Convert Web Mercator (EPSG:3857) coordinates to WGS84 (EPSG:4326) coordinates.
 

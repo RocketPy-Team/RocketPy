@@ -89,7 +89,6 @@ This is done following the same steps as in the :ref:`firstsimulation` example.
           trigger=800,
           sampling_rate=105,
           lag=1.5,
-          noise=(0, 8.3, 0.5),
       )
 
       drogue_chute = calisto.add_parachute(
@@ -98,7 +97,6 @@ This is done following the same steps as in the :ref:`firstsimulation` example.
           trigger="apogee",
           sampling_rate=105,
           lag=1.5,
-          noise=(0, 8.3, 0.5),
       )
 
 Creating the Flight objects

@@ -5,6 +5,7 @@ import numpy as np
 from rocketpy.tools import inverted_haversine
 
 from ..mathutils.vector_matrix import Matrix, Vector
+from ..plots.sensors_plots import _GnssReceiverPlots
 from ..prints.sensors_prints import _GnssReceiverPrints
 from .sensor import ScalarSensor
 
@@ -33,6 +34,7 @@ class GnssReceiver(ScalarSensor):
     """
 
     units = "°, m"
+    channels = [("latitude", "°"), ("longitude", "°"), ("altitude", "m")]
 
     def __init__(
         self,
@@ -61,6 +63,7 @@ class GnssReceiver(ScalarSensor):
         self.altitude_accuracy = altitude_accuracy
 
         self.prints = _GnssReceiverPrints(self)
+        self.plots = _GnssReceiverPlots(self)
 
     def measure(self, time, **kwargs):
         """Measure the position of the rocket in latitude, longitude and

@@ -90,6 +90,9 @@ class _FlightPrints:
         None
         """
         print("\nNumerical Integration Settings\n")
+        print(f"Simulation Mode: {self.flight.simulation_mode}")
+        print(f"Equations of Motion: {self.flight.equations_of_motion}")
+        print(f"ODE Solver: {self.flight.ode_solver}")
         print(f"Maximum Allowed Flight Time: {self.flight.max_time:.2f} s")
         print(f"Maximum Allowed Time Step: {self.flight.max_time_step:.2f} s")
         print(f"Minimum Allowed Time Step: {self.flight.min_time_step:.2e} s")
@@ -217,6 +220,8 @@ class _FlightPrints:
         print(f"Apogee Freestream Speed: {self.flight.apogee_freestream_speed:.3f} m/s")
         print(f"Apogee X position: {self.flight.x(self.flight.apogee_time):.3f} m")
         print(f"Apogee Y position: {self.flight.y(self.flight.apogee_time):.3f} m")
+        print(f"Apogee Drift: {self.flight.drift(self.flight.apogee_time):.3f} m")
+        print(f"Apogee Bearing: {self.flight.bearing(self.flight.apogee_time):.3f}°")
         print(f"Apogee latitude: {self.flight.latitude(self.flight.apogee_time):.7f}°")
         print(
             f"Apogee longitude: {self.flight.longitude(self.flight.apogee_time):.7f}°"
@@ -248,6 +253,180 @@ class _FlightPrints:
                 f"{self.flight.altitude(open_time):.3f} m (AGL)"
             )
 
+    def sensors(self):
+        """Prints details about sensors registered in the flight.
+
+        Returns
+        -------
+        None
+        """
+        print("\nSensors\n")
+
+        if len(self.flight.sensors) == 0:
+            print("No sensors were registered.")
+            return
+
+        for sensor in self.flight.sensors:
+            sensor_name = sensor.name if sensor.name else "Unnamed Sensor"
+            measured_data = self.flight.sensor_data[sensor]
+            print(f"Sensor: {sensor_name}")
+            print(f"\tType: {sensor.__class__.__name__}")
+            print(f"\tSampling Rate: {sensor.sampling_rate:.3f} Hz")
+            print(f"\tMeasurements Recorded: {len(measured_data)}")
+            sensor.prints.data_summary(data=measured_data)
+            print()
+
+    def sensor_events(self):
+        """Prints details about sensor-generated events in the flight.
+
+        Returns
+        -------
+        None
+        """
+        print("\nSensor Events\n")
+
+        sensor_events = list(getattr(self.flight.rocket, "_sensor_events", []))
+        if len(sensor_events) == 0:
+            print("No sensor events were registered.")
+            return
+
+        for event in sensor_events:
+            event_name = event.name if event.name else "Unnamed Sensor Event"
+            print(f"Sensor Event: {event_name}")
+            print(f"\tEnabled at end of simulation: {event.enabled}")
+            parent_sensor = (
+                event.context.get("sensor") if isinstance(event.context, dict) else None
+            )
+            parent_name = (
+                parent_sensor.name if parent_sensor is not None else event_name
+            )
+            print(f"\tParent Sensor: {parent_name}")
+
+            if event.sampling_rate is None:
+                print("\tSampling: Continuous")
+            else:
+                print(f"\tSampling Rate: {event.sampling_rate:.3f} Hz")
+
+            print(f"\tTrigger Only Once: {event.trigger_only_once}")
+            print(f"\tTime Overshootable: {event.time_overshootable}")
+
+            if len(event.triggered_times) == 0:
+                print("\tTriggered: No")
+            elif event.trigger_only_once:
+                print(f"\tActivation Time: {event.triggered_times[0]:.3f} s")
+            else:
+                print("\tTriggered: Yes")
+                print(f"\tTrigger Count: {len(event.triggered_times)}")
+                print(f"\tFirst Trigger Time: {event.triggered_times[0]:.3f} s")
+                print(f"\tLast Trigger Time: {event.triggered_times[-1]:.3f} s")
+
+            if len(event.callback_log) > 0:
+                print(f"\tCallback Log Entries: {len(event.callback_log)}")
+
+            if isinstance(event.context, dict):
+                print(f"\tContext Keys: {list(event.context.keys())}")
+            print()
+
+    def custom_events(self):
+        """Prints details about custom events registered in the flight.
+
+        Returns
+        -------
+        None
+        """
+        print("\nCustom Events\n")
+
+        custom_events = self.flight.custom_events
+        if not isinstance(custom_events, list):
+            custom_events = [custom_events]
+
+        if len(custom_events) == 0:
+            print("No custom events were registered.")
+            return
+
+        for event in custom_events:
+            event_name = event.name if event.name else "Unnamed Event"
+            print(f"Event: {event_name}")
+            print(f"\tEnabled at end of simulation: {event.enabled}")
+
+            if event.sampling_rate is None:
+                print("\tSampling: Continuous")
+            else:
+                print(f"\tSampling Rate: {event.sampling_rate:.3f} Hz")
+
+            print(f"\tTrigger Only Once: {event.trigger_only_once}")
+            print(f"\tTime Overshootable: {event.time_overshootable}")
+
+            if len(event.triggered_times) == 0:
+                print("\tTriggered: No")
+            elif event.trigger_only_once:
+                print(f"\tActivation Time: {event.triggered_times[0]:.3f} s")
+            else:
+                print("\tTriggered: Yes")
+                print(f"\tTrigger Count: {len(event.triggered_times)}")
+                print(f"\tFirst Trigger Time: {event.triggered_times[0]:.3f} s")
+                print(f"\tLast Trigger Time: {event.triggered_times[-1]:.3f} s")
+
+            if len(event.callback_log) > 0:
+                print(f"\tCallback Log Entries: {len(event.callback_log)}")
+
+            if isinstance(event.context, dict):
+                print(f"\tContext Keys: {list(event.context.keys())}")
+            print()
+
+    def controllers(self):
+        """Prints details about controllers registered in the flight.
+
+        Returns
+        -------
+        None
+        """
+        print("\nControllers\n")
+
+        if len(self.flight._controllers) == 0:
+            print("No controllers were registered.")
+            return
+
+        for controller in self.flight._controllers:
+            print(f"Controller: {controller.name}")
+            print(f"\tSampling Rate: {controller.sampling_rate:.3f} Hz")
+            print(f"\tEnabled at end of simulation: {controller.enabled}")
+            print(f"\tController Log Entries: {len(controller.log)}")
+            print()
+
+    def controller_events(self):
+        """Prints details about events generated by controllers.
+
+        Returns
+        -------
+        None
+        """
+        print("\nController Events\n")
+
+        if len(self.flight._controllers) == 0:
+            print("No controller events were registered.")
+            return
+
+        for controller in self.flight._controllers:
+            event = controller.event
+            event_name = event.name if event.name else "Unnamed Controller Event"
+
+            print(f"Controller Event: {event_name}")
+            print(f"\tParent Controller: {controller.name}")
+
+            if event.sampling_rate is None:
+                print("\tSampling: Continuous")
+            else:
+                print(f"\tSampling Rate: {event.sampling_rate:.3f} Hz")
+
+            print(f"\tTriggered Count: {len(event.triggered_times)}")
+            if len(event.triggered_times) > 0:
+                print(f"\tFirst Activation Time: {event.triggered_times[0]:.3f} s")
+                print(f"\tLast Activation Time: {event.triggered_times[-1]:.3f} s")
+
+            print(f"\tCallback Log Entries: {len(event.callback_log)}")
+            print()
+
     def impact_conditions(self):
         """Prints out the Impact Conditions available about the flight.
 
@@ -260,6 +439,8 @@ class _FlightPrints:
             print(f"Time of impact: {self.flight.t_final:.3f} s")
             print(f"X impact: {self.flight.x_impact:.3f} m")
             print(f"Y impact: {self.flight.y_impact:.3f} m")
+            print(f"Drift: {self.flight.drift(self.flight.t_final):.3f} m")
+            print(f"Bearing: {self.flight.bearing(self.flight.t_final):.3f}°")
             print(
                 f"Altitude impact: {self.flight.z(self.flight.t_final):.3f} m (ASL) | "
                 f"{self.flight.altitude(self.flight.t_final):.3f} m (AGL) "
@@ -311,6 +492,10 @@ class _FlightPrints:
             f"at {self.flight.max_dynamic_pressure_time:.2f} s"
         )
         print(
+            f"Maximum Total Pressure: {self.flight.max_total_pressure:.3e} Pa "
+            f"at {self.flight.max_total_pressure_time:.2f} s"
+        )
+        print(
             "Maximum Acceleration During Motor Burn: "
             f"{self.flight.max_acceleration_power_on:.3f} m/s² "
             f"at {self.flight.max_acceleration_power_on_time:.2f} s"
@@ -333,6 +518,34 @@ class _FlightPrints:
         print(
             f"Maximum Stability Margin: {self.flight.max_stability_margin:.3f} c "
             f"at {self.flight.max_stability_margin_time:.2f} s"
+        )
+        normal_arr = self.flight.aerodynamic_normal_force[:, 1]
+        normal_t = self.flight.aerodynamic_normal_force[:, 0]
+        idx = int(normal_arr.argmax())
+        print(
+            f"Maximum Aerodynamic Normal Force: {normal_arr[idx]:.3f} N "
+            f"at {normal_t[idx]:.2f} s"
+        )
+        axial_arr = self.flight.aerodynamic_axial_force[:, 1]
+        axial_t = self.flight.aerodynamic_axial_force[:, 0]
+        idx = int(axial_arr.argmax())
+        print(
+            f"Maximum Aerodynamic Axial Force: {axial_arr[idx]:.3f} N "
+            f"at {axial_t[idx]:.2f} s"
+        )
+        lift_arr = self.flight.aerodynamic_lift[:, 1]
+        lift_t = self.flight.aerodynamic_lift[:, 0]
+        idx = int(lift_arr.argmax())
+        print(
+            f"Maximum Aerodynamic Lift Force: {lift_arr[idx]:.3f} N "
+            f"at {lift_t[idx]:.2f} s"
+        )
+        drag_arr = self.flight.aerodynamic_drag[:, 1]
+        drag_t = self.flight.aerodynamic_drag[:, 0]
+        idx = int(drag_arr.argmax())
+        print(
+            f"Maximum Aerodynamic Drag Force: {drag_arr[idx]:.3f} N "
+            f"at {drag_t[idx]:.2f} s"
         )
 
         if (
@@ -445,8 +658,9 @@ class _FlightPrints:
         self.apogee_conditions()
         print()
 
-        self.events_registered()
-        print()
+        if self.flight.parachute_events:
+            self.events_registered()
+            print()
 
         self.impact_conditions()
         print()
@@ -459,6 +673,25 @@ class _FlightPrints:
 
         self.rail_button_bending_moments()
         print()
+
+        if self.flight._controllers:
+            self.controllers()
+            print()
+
+            self.controller_events()
+            print()
+
+        if self.flight.sensors:
+            self.sensors()
+            print()
+
+        if list(getattr(self.flight.rocket, "_sensor_events", [])):
+            self.sensor_events()
+            print()
+
+        if self.flight.custom_events:
+            self.custom_events()
+            print()
 
         self.numerical_integration_settings()
         print()

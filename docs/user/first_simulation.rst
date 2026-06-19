@@ -278,7 +278,6 @@ Finally, we can add any number of Parachutes to the ``Rocket`` object.
         trigger=800,      # ejection altitude in meters
         sampling_rate=105,
         lag=1.5,
-        noise=(0, 8.3, 0.5),
         radius=1.5,
         height=1.5,
         porosity=0.0432,
@@ -290,7 +289,6 @@ Finally, we can add any number of Parachutes to the ``Rocket`` object.
         trigger="apogee",  # ejection at apogee
         sampling_rate=105,
         lag=1.5,
-        noise=(0, 8.3, 0.5),
         radius=1.5,
         height=1.5,
         porosity=0.0432,
@@ -338,6 +336,36 @@ rail.
         )
 
 All simulation information will be saved in the ``test_flight`` object.
+
+.. tip::
+
+    Pass ``verbose=True`` to ``Flight`` to print simulation progress messages
+    to the console:
+
+    .. jupyter-input::
+
+        test_flight = Flight(
+            rocket=calisto, environment=env, rail_length=5.2,
+            inclination=85, heading=0, verbose=True,
+        )
+
+    ``verbose=True`` is a shortcut that enables RocketPy's logging at the
+    ``INFO`` level. You can also pass a level name directly to control the
+    amount of detail, for example ``verbose="debug"``. If you manage logging
+    yourself, leave ``verbose=False`` and configure the ``"rocketpy"`` logger
+    directly. RocketPy is silent by default (it attaches a
+    :class:`logging.NullHandler`), so nothing is printed unless you opt in:
+
+    .. jupyter-input::
+
+        import logging
+        import rocketpy
+
+        # Quick console output (attaches a handler for you):
+        rocketpy.enable_logging("DEBUG")
+
+        # Or, if you already configured logging, just set the level:
+        rocketpy.set_log_level(logging.INFO)
 
 RocketPy has two submodules to access the results of the simulation: ``prints``
 and ``plots``. Each class has its ``prints`` and ``plots`` submodule imported as
@@ -566,15 +594,14 @@ rocket:
 Visualizing the Trajectory in Google Earth
 ------------------------------------------
 
-We can export the trajectory to ``.kml`` to visualize it in Google Earth:
+We can export the trajectory to ``.kml`` to visualize it in Google Earth.
 
-Use the dedicated exporter class:
+Every ``Flight`` object exposes a ready-to-use data exporter through its
+``exports`` attribute:
 
 .. jupyter-input::
 
-    from rocketpy.simulation import FlightDataExporter
-
-    FlightDataExporter(test_flight).export_kml(
+    test_flight.exports.kml(
         file_name="trajectory.kml",
         extrude=True,
         altitude_mode="relativetoground",
@@ -588,7 +615,7 @@ Use the dedicated exporter class:
 .. note::
 
     The legacy method ``Flight.export_kml`` is deprecated. Use
-    :meth:`rocketpy.simulation.flight_data_exporter.FlightDataExporter.export_kml`.
+    ``test_flight.exports.kml()`` instead.
 
 Manipulating results
 --------------------
@@ -621,19 +648,17 @@ In this section, we will explore how to export specific data from your RocketPy
 simulations to CSV files. This is particularly useful if you want to insert the
 data into spreadsheets or other software for further analysis.
 
-The recommended API is
-:meth:`rocketpy.simulation.flight_data_exporter.FlightDataExporter.export_data`,
-which exports selected flight attributes to a CSV file. In this first example,
+Every ``Flight`` object exposes a data exporter through its ``exports``
+attribute. Its
+:meth:`rocketpy.simulation.flight_data_exporter.FlightDataExporter.data`
+method exports selected flight attributes to a CSV file. In this first example,
 we export the rocket angle of attack (see :meth:`rocketpy.Flight.angle_of_attack`)
 and the rocket Mach number (see :meth:`rocketpy.Flight.mach_number`) to the file
 ``calisto_flight_data.csv``.
 
 .. jupyter-execute::
 
-    from rocketpy.simulation import FlightDataExporter
-
-    exporter = FlightDataExporter(test_flight)
-    exporter.export_data(
+    test_flight.exports.data(
         "calisto_flight_data.csv",
         "angle_of_attack",
         "mach_number",
@@ -657,7 +682,7 @@ and the rocket Mach number (see :meth:`rocketpy.Flight.mach_number`) to the file
 
 .. jupyter-execute::
 
-    exporter.export_data(
+    test_flight.exports.data(
         "calisto_flight_data.csv",
         "angle_of_attack",
         "mach_number",
@@ -669,13 +694,13 @@ and the rocket Mach number (see :meth:`rocketpy.Flight.mach_number`) to the file
 This exports the same data at a sampling rate of 1 second. The flight data is
 interpolated to match the new sampling rate.
 
-Finally, ``FlightDataExporter.export_data`` also provides a convenient way to
+Finally, ``test_flight.exports.data`` also provides a convenient way to
 export the entire flight solution (see :meth:`rocketpy.Flight.solution_array`)
 by not passing any attribute names:
 
 .. jupyter-execute::
 
-    exporter.export_data("calisto_flight_data.csv")
+    test_flight.exports.data("calisto_flight_data.csv")
 
 .. jupyter-execute::
     :hide-code:
@@ -688,7 +713,7 @@ by not passing any attribute names:
 .. note::
 
     The legacy method ``Flight.export_data`` is deprecated. Use
-    :meth:`rocketpy.simulation.flight_data_exporter.FlightDataExporter.export_data`.
+    ``test_flight.exports.data()`` instead.
 
 Saving and Storing Plots
 ------------------------
