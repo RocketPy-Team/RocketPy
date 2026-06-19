@@ -37,6 +37,7 @@ Attention: The newest changes should be on top -->
 - ENH: BUG: fix wind heading and direction wraparound interpolation [#974](https://github.com/RocketPy-Team/RocketPy/pull/974)
 - ENH: MNT: Sync develop's Renovate config with master (#1039) [#1040](https://github.com/RocketPy-Team/RocketPy/pull/1040)
 - ENH: MNT: Configure Renovate Bot targeting develop branch [#972](https://github.com/RocketPy-Team/RocketPy/pull/972)
+- MNT: Refactor parachute implementation with abstract base and hemispherical model split [#958](https://github.com/RocketPy-Team/RocketPy/pull/958)
 - ENH: Monte Carlo Formatting Options [#947](https://github.com/RocketPy-Team/RocketPy/pull/947)
 - ENH: ENH: Auto-Detection of Pressure Conversion Factor [#966](https://github.com/RocketPy-Team/RocketPy/pull/966)
 - ENH: Auto-Detection of Pressure Conversion Factor [#966](https://github.com/RocketPy-Team/RocketPy/pull/966)

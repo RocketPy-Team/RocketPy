@@ -52,10 +52,10 @@ class Parachute(ABC):
     Parachute.triggerfunc : function
         Trigger function created from the trigger used to evaluate the trigger
         condition for the parachute ejection system. It is a callable function
-        that takes three arguments: Freestream pressure in Pa, Height above
-        ground level in meters, and the state vector of the simulation. The
-        returns ``True`` if the parachute ejection system should be triggered
-        and ``False`` otherwise.
+        that takes four arguments: freestream pressure in Pa, height above
+        ground level in meters, the state vector of the simulation and the list
+        of sensors attached to the rocket. It returns ``True`` if the parachute
+        ejection system should be triggered and ``False`` otherwise.
 
         .. note:
 
@@ -118,7 +118,7 @@ class Parachute(ABC):
             Defines the trigger condition for the parachute ejection system. It
             can be one of the following:
 
-            - A callable function that takes three arguments: \
+            - A callable function that takes three or four arguments: \
 
                 1. Freestream pressure in pascals.
                 2. Height in meters above ground level.
@@ -127,6 +127,8 @@ class Parachute(ABC):
                     .. code-block:: python
 
                         u = [x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]
+
+                4. (optional) A list of sensors attached to the rocket.
 
                 .. note::
 
