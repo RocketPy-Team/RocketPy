@@ -4,13 +4,13 @@ import warnings
 import matplotlib.pyplot as plt
 import numpy as np
 
-logger = logging.getLogger(__name__)
-
 from rocketpy.mathutils import Function
 from rocketpy.simulation.flight import Flight
 from rocketpy.simulation.flight_data_importer import FlightDataImporter
 
 from ..plots.plot_helpers import show_or_save_fig
+
+logger = logging.getLogger(__name__)
 
 
 class FlightComparator:

@@ -4,7 +4,6 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 
-logger = logging.getLogger(__name__)
 import numpy as np
 from matplotlib.transforms import offset_copy
 from PIL import UnidentifiedImageError
@@ -16,6 +15,8 @@ from ..tools import (
     import_optional_dependency,
 )
 from .plot_helpers import show_or_save_plot
+
+logger = logging.getLogger(__name__)
 
 
 class _MonteCarloPlots:

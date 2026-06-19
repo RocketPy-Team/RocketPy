@@ -1,12 +1,12 @@
 ﻿import logging
 
-logger = logging.getLogger(__name__)
-
 # pylint: disable=missing-function-docstring, line-too-long, # TODO: fix this.
 
 import numpy as np
 
 from ..units import convert_units
+
+logger = logging.getLogger(__name__)
 
 
 class _EnvironmentAnalysisPrints:

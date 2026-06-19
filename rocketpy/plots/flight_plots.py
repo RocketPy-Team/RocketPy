@@ -3,8 +3,9 @@ from functools import cached_property
 
 import matplotlib.pyplot as plt
 
-logger = logging.getLogger(__name__)
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 from .plot_helpers import show_or_save_plot
 

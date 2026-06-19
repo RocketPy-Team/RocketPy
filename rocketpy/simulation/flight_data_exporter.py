@@ -7,8 +7,9 @@ import logging
 
 import numpy as np
 
-logger = logging.getLogger(__name__)
 import simplekml
+
+logger = logging.getLogger(__name__)
 
 
 class FlightDataExporter:

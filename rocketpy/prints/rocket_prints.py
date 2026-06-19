@@ -1,8 +1,8 @@
 ﻿import logging
 
-logger = logging.getLogger(__name__)
-
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
+
+logger = logging.getLogger(__name__)
 
 
 class _RocketPrints:

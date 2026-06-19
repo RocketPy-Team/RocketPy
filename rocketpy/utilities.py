@@ -4,7 +4,6 @@ import logging
 import os
 import warnings
 
-logger = logging.getLogger(__name__)
 from datetime import date
 from importlib.metadata import version
 from pathlib import Path
@@ -20,6 +19,8 @@ from .mathutils.function import Function
 from .plots.plot_helpers import show_or_save_plot
 from .rocket.aero_surface import TrapezoidalFins
 from .simulation.flight import Flight
+
+logger = logging.getLogger(__name__)
 
 
 def compute_cd_s_from_drop_test(

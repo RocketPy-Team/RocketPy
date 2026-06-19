@@ -5,9 +5,10 @@ from abc import ABC, abstractmethod
 
 import matplotlib.pyplot as plt
 
-logger = logging.getLogger(__name__)
 import numpy as np
 from matplotlib.patches import Ellipse
+
+logger = logging.getLogger(__name__)
 
 from .plot_helpers import show_or_save_plot
 

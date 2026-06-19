@@ -3,9 +3,9 @@ from cmath import isclose
 from functools import cached_property
 from itertools import product
 
-logger = logging.getLogger(__name__)
-
 from rocketpy.tools import euler313_to_quaternions, normalize_quaternions
+
+logger = logging.getLogger(__name__)
 
 
 class Vector:

@@ -2,14 +2,14 @@ import logging
 import warnings
 from functools import cached_property
 
-logger = logging.getLogger(__name__)
-
 import numpy as np
 
 from ..mathutils.function import Function, funcify_method
 from ..mathutils.piecewise_function import PiecewiseFunction
 from ..plots.tank_geometry_plots import _TankGeometryPlots
 from ..prints.tank_geometry_prints import _TankGeometryPrints
+
+logger = logging.getLogger(__name__)
 
 try:
     from functools import cache

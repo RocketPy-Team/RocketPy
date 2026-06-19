@@ -3,7 +3,6 @@ import logging
 import math
 import warnings
 
-logger = logging.getLogger(__name__)
 from copy import deepcopy
 from functools import cached_property
 
@@ -29,6 +28,8 @@ from ..tools import (
     quaternions_to_precession,
     quaternions_to_spin,
 )
+
+logger = logging.getLogger(__name__)
 
 ODE_SOLVER_MAP = {
     "RK23": RK23,

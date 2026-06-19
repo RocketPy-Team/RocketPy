@@ -1,8 +1,8 @@
 ﻿import logging
 
-logger = logging.getLogger(__name__)
-
 from .motor_prints import _MotorPrints
+
+logger = logging.getLogger(__name__)
 
 
 class _SolidMotorPrints(_MotorPrints):

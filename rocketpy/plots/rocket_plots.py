@@ -5,10 +5,11 @@ import numpy as np
 
 from rocketpy.mathutils.vector_matrix import Vector
 
-logger = logging.getLogger(__name__)
 from rocketpy.motors import EmptyMotor, HybridMotor, LiquidMotor, SolidMotor
 from rocketpy.rocket.aero_surface import Fin, Fins, NoseCone, Tail
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
+
+logger = logging.getLogger(__name__)
 
 from .plot_helpers import show_or_save_plot
 

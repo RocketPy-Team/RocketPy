@@ -5,7 +5,6 @@ import logging
 import re
 import warnings
 
-logger = logging.getLogger(__name__)
 from collections import namedtuple
 from datetime import datetime
 
@@ -49,6 +48,8 @@ from rocketpy.tools import (
     bilinear_interpolation,
     geopotential_height_to_geometric_height,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class Environment:

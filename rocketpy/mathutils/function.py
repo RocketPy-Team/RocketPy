@@ -9,7 +9,6 @@ import logging
 import operator
 import warnings
 
-logger = logging.getLogger(__name__)
 from bisect import bisect_left
 from collections.abc import Iterable
 from copy import deepcopy
@@ -32,6 +31,8 @@ from scipy.spatial import Delaunay  # pylint: disable=no-name-in-module
 
 from rocketpy.plots.plot_helpers import show_or_save_plot
 from rocketpy.tools import deprecated, from_hex_decode, to_hex_encode
+
+logger = logging.getLogger(__name__)
 
 NUMERICAL_TYPES = (float, int, complex, np.integer, np.floating)
 INTERPOLATION_TYPES = {

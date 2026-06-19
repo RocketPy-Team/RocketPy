@@ -1,8 +1,7 @@
 ﻿import logging
+from abc import ABC, abstractmethod
 
 logger = logging.getLogger(__name__)
-
-from abc import ABC, abstractmethod
 
 
 # TODO: the rocketpy/prints/aero_surface_prints.py file could be separated into different, smaller files.

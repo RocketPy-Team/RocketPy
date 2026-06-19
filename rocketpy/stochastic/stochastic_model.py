@@ -8,12 +8,12 @@ from random import choice
 
 import numpy as np
 
-logger = logging.getLogger(__name__)
-
 from rocketpy.mathutils.function import Function
 from rocketpy.stochastic.custom_sampler import CustomSampler
 
 from ..tools import get_distribution
+
+logger = logging.getLogger(__name__)
 
 # TODO: Stop using assert in production code. Use exceptions instead.
 # TODO: Each validation method should have a test case.

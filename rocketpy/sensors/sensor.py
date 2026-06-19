@@ -3,11 +3,11 @@ import logging
 import warnings
 from abc import ABC, abstractmethod
 
-logger = logging.getLogger(__name__)
-
 import numpy as np
 
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
+
+logger = logging.getLogger(__name__)
 
 
 # pylint: disable=too-many-statements

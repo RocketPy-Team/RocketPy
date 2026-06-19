@@ -1,8 +1,7 @@
 ﻿import logging
+from inspect import getsourcelines
 
 logger = logging.getLogger(__name__)
-
-from inspect import getsourcelines
 
 
 class _ControllerPrints:

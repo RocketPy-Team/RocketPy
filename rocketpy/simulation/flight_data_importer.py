@@ -6,12 +6,12 @@ import logging
 from os import listdir
 from os.path import isfile, join
 
-logger = logging.getLogger(__name__)
-
 import numpy as np
 
 from rocketpy.mathutils import Function
 from rocketpy.units import UNITS_CONVERSION_DICT
+
+logger = logging.getLogger(__name__)
 
 FLIGHT_LABEL_MAP = {
     # "name of Flight Attribute": "Label to be displayed"

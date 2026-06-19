@@ -22,8 +22,6 @@ import warnings
 from pathlib import Path
 from time import time
 
-logger = logging.getLogger(__name__)
-
 import numpy as np
 import simplekml
 from scipy.stats import bootstrap
@@ -37,6 +35,8 @@ from rocketpy.tools import (
     generate_monte_carlo_ellipses_coordinates,
     import_optional_dependency,
 )
+
+logger = logging.getLogger(__name__)
 
 # TODO: Create evolution plots to analyze convergence
 

@@ -8,13 +8,14 @@ future to improve their performance and usability.
 import logging
 import math
 
-logger = logging.getLogger(__name__)
 import warnings
 
 import netCDF4
 import numpy as np
 
 from rocketpy.tools import bilinear_interpolation
+
+logger = logging.getLogger(__name__)
 
 ## Wind data functions
 

@@ -4,7 +4,6 @@ import logging
 import math
 import warnings
 
-logger = logging.getLogger(__name__)
 from typing import Iterable
 
 import numpy as np
@@ -36,6 +35,8 @@ from rocketpy.tools import (
     find_obj_from_hash,
     parallel_axis_theorem_from_com,
 )
+
+logger = logging.getLogger(__name__)
 
 
 # pylint: disable=too-many-instance-attributes, too-many-public-methods, too-many-instance-attributes

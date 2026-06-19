@@ -3,10 +3,10 @@ import logging
 import numpy as np
 
 from rocketpy.plots.sensitivity_plots import _SensitivityModelPlots
-
-logger = logging.getLogger(__name__)
 from rocketpy.prints.sensitivity_prints import _SensitivityModelPrints
 from rocketpy.tools import check_requirement_version, import_optional_dependency
+
+logger = logging.getLogger(__name__)
 
 
 class SensitivityModel:

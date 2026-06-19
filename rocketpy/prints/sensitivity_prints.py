@@ -1,10 +1,10 @@
 ﻿import logging
 
-logger = logging.getLogger(__name__)
-
 from scipy.stats import norm
 
 from rocketpy.tools import import_optional_dependency
+
+logger = logging.getLogger(__name__)
 
 
 class _SensitivityModelPrints:

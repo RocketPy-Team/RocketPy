@@ -5,9 +5,9 @@ import logging
 import matplotlib.pyplot as plt
 import numpy as np
 
-logger = logging.getLogger(__name__)
-
 from ..plot_helpers import show_or_save_fig, show_or_save_plot
+
+logger = logging.getLogger(__name__)
 from .compare import Compare
 
 # TODO: needs to refactor this class to use the show_or_save_plot

@@ -1,10 +1,10 @@
 ﻿import logging
 
-logger = logging.getLogger(__name__)
-
 import numpy as np
 
 from .motor_prints import _MotorPrints
+
+logger = logging.getLogger(__name__)
 
 
 class _HybridMotorPrints(_MotorPrints):

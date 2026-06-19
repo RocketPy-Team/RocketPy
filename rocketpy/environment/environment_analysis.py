@@ -5,7 +5,6 @@ import json
 import logging
 import warnings
 
-logger = logging.getLogger(__name__)
 from collections import defaultdict
 from functools import cached_property
 
@@ -26,6 +25,8 @@ from ..tools import (
 )
 from ..units import convert_units
 from .environment import Environment
+
+logger = logging.getLogger(__name__)
 
 # TODO: the average_wind_speed_profile_by_hour and similar methods could be more abstract than currently are
 

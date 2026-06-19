@@ -17,7 +17,6 @@ import re
 import time
 import warnings
 
-logger = logging.getLogger(__name__)
 from bisect import bisect_left
 
 import dill
@@ -27,6 +26,8 @@ import pytz
 from cftime import num2pydate
 from matplotlib.patches import Ellipse
 from packaging import version as packaging_version
+
+logger = logging.getLogger(__name__)
 
 # Mapping of module name and the name of the package that should be installed
 INSTALL_MAPPING = {"IPython": "ipython"}

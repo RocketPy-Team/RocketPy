@@ -8,10 +8,10 @@ import re
 import time
 from datetime import datetime, timedelta, timezone
 
-logger = logging.getLogger(__name__)
-
 import netCDF4
 import requests
+
+logger = logging.getLogger(__name__)
 
 from rocketpy.tools import exponential_backoff
 

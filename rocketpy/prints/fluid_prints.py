@@ -1,8 +1,8 @@
 ﻿import logging
 
-logger = logging.getLogger(__name__)
-
 from ..mathutils.function import NUMERICAL_TYPES
+
+logger = logging.getLogger(__name__)
 
 
 class _FluidPrints:
