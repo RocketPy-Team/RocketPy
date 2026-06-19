@@ -7,8 +7,9 @@ import numpy as np
 
 from ..plot_helpers import show_or_save_fig, show_or_save_plot
 
-logger = logging.getLogger(__name__)
 from .compare import Compare
+
+logger = logging.getLogger(__name__)
 
 # TODO: needs to refactor this class to use the show_or_save_plot
 

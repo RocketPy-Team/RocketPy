@@ -11,9 +11,9 @@ from datetime import datetime, timedelta, timezone
 import netCDF4
 import requests
 
-logger = logging.getLogger(__name__)
-
 from rocketpy.tools import exponential_backoff
+
+logger = logging.getLogger(__name__)
 
 MAX_RETRY_DELAY_SECONDS = 600
 

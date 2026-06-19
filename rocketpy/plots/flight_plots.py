@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 
 import numpy as np
 
-logger = logging.getLogger(__name__)
-
 from .plot_helpers import show_or_save_plot
+
+logger = logging.getLogger(__name__)
 
 
 class _FlightPlots:

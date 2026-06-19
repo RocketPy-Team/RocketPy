@@ -8,9 +8,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Ellipse
 
-logger = logging.getLogger(__name__)
-
 from .plot_helpers import show_or_save_plot
+
+logger = logging.getLogger(__name__)
 
 
 class _AeroSurfacePlots(ABC):
