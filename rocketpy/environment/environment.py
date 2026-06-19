@@ -1111,7 +1111,7 @@ class Environment:
 
         return elevation
 
-    def set_atmospheric_model(  # pylint: disable=too-many-statements
+    def set_atmospheric_model(  # pylint: disable=too-many-statements, too-many-branches
         self,
         type,  # pylint: disable=redefined-builtin
         file=None,
