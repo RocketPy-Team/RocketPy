@@ -1,6 +1,9 @@
+import logging
 from functools import cached_property
 
 import matplotlib.pyplot as plt
+
+logger = logging.getLogger(__name__)
 import numpy as np
 
 from .plot_helpers import show_or_save_plot
@@ -411,16 +414,20 @@ class _FlightPlots:
         None
         """
         if len(self.flight.rocket.rail_buttons) == 0:
-            print(
+            logger.warning(
                 "No rail buttons were defined. Skipping rail button bending moment plots."
             )
         elif self.flight.out_of_rail_time_index == 0:
-            print("No rail phase was found. Skipping rail button bending moment plots.")
+            logger.warning(
+                "No rail phase was found. Skipping rail button bending moment plots."
+            )
         else:
             # Check if button_height is defined
             rail_buttons_tuple = self.flight.rocket.rail_buttons[0]
             if rail_buttons_tuple.component.button_height is None:
-                print("Rail button height not defined. Skipping bending moment plots.")
+                logger.warning(
+                    "Rail button height not defined. Skipping bending moment plots."
+                )
             else:
                 plt.figure(figsize=(9, 3))
 
@@ -475,9 +482,9 @@ class _FlightPlots:
         None
         """
         if len(self.flight.rocket.rail_buttons) == 0:
-            print("No rail buttons were defined. Skipping rail button plots.")
+            logger.warning("No rail buttons were defined. Skipping rail button plots.")
         elif self.flight.out_of_rail_time_index == 0:
-            print("No rail phase was found. Skipping rail button plots.")
+            logger.warning("No rail phase was found. Skipping rail button plots.")
         else:
             plt.figure(figsize=(9, 6))
 
@@ -1004,12 +1011,12 @@ class _FlightPlots:
 
         if len(self.flight.parachute_events) > 0:
             for parachute in self.flight.rocket.parachutes:
-                print("\nParachute: ", parachute.name)
+                logger.info("Parachute: %s", parachute.name)
                 parachute.noise_signal_function()
                 parachute.noisy_pressure_signal_function()
                 parachute.clean_pressure_signal_function()
         else:
-            print("\nRocket has no parachutes. No parachute plots available")
+            logger.warning("Rocket has no parachutes. No parachute plots available.")
 
     def all(self):  # pylint: disable=too-many-statements
         """Prints out all plots available about the Flight.
@@ -1019,39 +1026,39 @@ class _FlightPlots:
         None
         """
 
-        print("\n\nTrajectory 3d Plot\n")
+        logger.info("Trajectory 3d Plot")
         self.trajectory_3d()
 
-        print("\n\nTrajectory Kinematic Plots\n")
+        logger.info("Trajectory Kinematic Plots")
         self.linear_kinematics_data()
 
-        print("\n\nAngular Position Plots\n")
+        logger.info("Angular Position Plots")
         self.flight_path_angle_data()
 
-        print("\n\nPath, Attitude and Lateral Attitude Angle plots\n")
+        logger.info("Path, Attitude and Lateral Attitude Angle Plots")
         self.attitude_data()
 
-        print("\n\nTrajectory Angular Velocity and Acceleration Plots\n")
+        logger.info("Trajectory Angular Velocity and Acceleration Plots")
         self.angular_kinematics_data()
 
-        print("\n\nAerodynamic Forces Plots\n")
+        logger.info("Aerodynamic Forces Plots")
         self.aerodynamic_forces()
 
-        print("\n\nRail Buttons Bending Moments Plots\n")
+        logger.info("Rail Buttons Bending Moments Plots")
         self.rail_buttons_bending_moments()
 
-        print("\n\nRail Buttons Forces Plots\n")
+        logger.info("Rail Buttons Forces Plots")
         self.rail_buttons_forces()
 
-        print("\n\nTrajectory Energy Plots\n")
+        logger.info("Trajectory Energy Plots")
         self.energy_data()
 
-        print("\n\nTrajectory Fluid Mechanics Plots\n")
+        logger.info("Trajectory Fluid Mechanics Plots")
         self.fluid_mechanics_data()
 
-        print("\n\nTrajectory Stability and Control Plots\n")
+        logger.info("Trajectory Stability and Control Plots")
         self.stability_and_control_data()
 
-        print("\n\nRocket and Parachute Pressure Plots\n")
+        logger.info("Rocket and Parachute Pressure Plots")
         self.pressure_rocket_altitude()
         self.pressure_signals()

@@ -2,8 +2,11 @@
 and build a rocketpy.Flight object from it.
 """
 
+import logging
 from os import listdir
 from os.path import isfile, join
+
+logger = logging.getLogger(__name__)
 
 import numpy as np
 
@@ -285,7 +288,7 @@ class FlightDataImporter:
             # Convert units if necessary
             if units and col in units:
                 values /= UNITS_CONVERSION_DICT[units[col]]
-                print(f"Attribute '{name}' converted from {units[col]} to SI")
+                logger.debug("Attribute '%s' converted from %s to SI", name, units[col])
 
             # Create Function object and set as attribute
             setattr(
@@ -301,9 +304,8 @@ class FlightDataImporter:
             )
             created.append(name)
 
-        print(
-            "The following attributes were create and are now available to be used: ",
-            created,
+        logger.info(
+            "The following attributes were created and are now available: %s", created
         )
 
     def read_data(

@@ -1,6 +1,10 @@
+import logging
+
 import numpy as np
 
 from rocketpy.plots.sensitivity_plots import _SensitivityModelPlots
+
+logger = logging.getLogger(__name__)
 from rocketpy.prints.sensitivity_prints import _SensitivityModelPrints
 from rocketpy.tools import check_requirement_version, import_optional_dependency
 
@@ -354,11 +358,13 @@ class SensitivityModel:
                 check_requirement_version(module_name, version)
             except (ValueError, ImportError) as e:  # pragma: no cover
                 has_error = True
-                print(
-                    f"The following error occurred while importing {module_name}: {e}"
+                logger.error(
+                    "The following error occurred while importing %s: %s",
+                    module_name,
+                    e,
                 )
         if has_error:  # pragma: no cover
-            print(
+            logger.error(
                 "Given the above errors, some methods may not work. Please run "
-                + "'pip install rocketpy[sensitivity]' to install extra requirements."
+                "'pip install rocketpy[sensitivity]' to install extra requirements."
             )

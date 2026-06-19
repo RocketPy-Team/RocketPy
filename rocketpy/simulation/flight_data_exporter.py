@@ -3,8 +3,11 @@ Exports a rocketpy.Flight object's data to external files.
 """
 
 import json
+import logging
 
 import numpy as np
+
+logger = logging.getLogger(__name__)
 import simplekml
 
 
@@ -57,7 +60,7 @@ class FlightDataExporter:
         # pylint: disable=W1514, E1121
         with open(file_name, "w") as file:
             if len(f.rocket.parachutes) == 0:
-                print("No parachutes in the rocket, saving static pressure.")
+                logger.info("No parachutes in the rocket, saving static pressure.")
                 for t in time_points:
                     file.write(f"{t:f}, {f.pressure.get_value_opt(t):.5f}\n")
             else:
@@ -210,7 +213,7 @@ class FlightDataExporter:
 
         with open(file_name, "w") as file:
             json.dump(data_dict, file)
-        print("Sensor data exported to: ", file_name)
+        logger.info("Sensor data exported to: %s", file_name)
 
     def export_kml(
         self,
@@ -295,4 +298,4 @@ class FlightDataExporter:
 
         # Save the KML
         kml.save(file_name)
-        print("File ", file_name, " saved with success!")
+        logger.info("File %s saved with success!", file_name)

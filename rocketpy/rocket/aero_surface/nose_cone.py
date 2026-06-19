@@ -1,6 +1,9 @@
+import logging
 import warnings
 
 import numpy as np
+
+logger = logging.getLogger(__name__)
 from scipy.optimize import fsolve
 
 from rocketpy.mathutils.function import Function
@@ -445,9 +448,10 @@ class NoseCone(AeroSurface):
         self.shape_vec = [nosecone_x, nosecone_y]
         if abs(nosecone_x[-1] - self.length) >= 0.001:  # 1 millimeter
             self._length = nosecone_x[-1]
-            print(
-                "Due to the chosen bluffness ratio, the nose "
-                f"cone length was reduced to {self.length} m."
+            logger.warning(
+                "Due to the chosen bluffness ratio, the nose cone length was "
+                "reduced to %.4f m.",
+                self.length,
             )
         self.fineness_ratio = self.length / (2 * self.base_radius)
 

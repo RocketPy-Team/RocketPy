@@ -1,3 +1,7 @@
+﻿import logging
+
+logger = logging.getLogger(__name__)
+
 class _MonteCarloPrints:
     """Class to print the monte carlo analysis results."""
 
@@ -17,21 +21,21 @@ class _MonteCarloPrints:
         None
 
         """
-        print("Monte Carlo Simulation by RocketPy")
-        print("Data Source: ", self.monte_carlo.filename)
-        print("Number of simulations: ", self.monte_carlo.num_of_loaded_sims)
-        print("Results: \n")
-        print(
+        logger.info("Monte Carlo Simulation by RocketPy")
+        logger.info("Data Source: ", self.monte_carlo.filename)
+        logger.info("Number of simulations: ", self.monte_carlo.num_of_loaded_sims)
+        logger.info("Results: \n")
+        logger.info(
             f"{'Parameter':>25} {'Mean':>15} {'Median':>15} {'Std. Dev.':>15} {'95% PI Lower':>15} {'95% PI Upper':>15}"
         )
-        print("-" * 110)
+        logger.info("-" * 110)
         for key, value in self.monte_carlo.processed_results.items():
             try:
-                print(
+                logger.info(
                     f"{key:>25} {value[0]:>15.3f} {value[1]:>15.3f} {value[2]:>15.3f} {value[3]:>15.3f} {value[4]:>15.3f}"
                 )
             except TypeError:
-                print(
+                logger.info(
                     f"{key:>25} {'N/A':>15} {'N/A':>15} {'N/A':>15} {'N/A':>15} {'N/A':>15}"
                 )
 
@@ -60,39 +64,39 @@ class _MonteCarloPrints:
         symmetric_diff_set = original_parameters_set.symmetric_difference(
             other_parameters_set
         )
-        print("Comparison of Monte Carlo Simulation by RocketPy")
-        print("Original data Source: ", self.monte_carlo.filename)
-        print("Comparison data Source: ", other_monte_carlo.filename)
-        print("Original number of simulations: ", self.monte_carlo.num_of_loaded_sims)
-        print(
+        logger.info("Comparison of Monte Carlo Simulation by RocketPy")
+        logger.info("Original data Source: ", self.monte_carlo.filename)
+        logger.info("Comparison data Source: ", other_monte_carlo.filename)
+        logger.info("Original number of simulations: ", self.monte_carlo.num_of_loaded_sims)
+        logger.info(
             "Comparison number of simulations: ", other_monte_carlo.num_of_loaded_sims
         )
         if len(symmetric_diff_set) > 0:
-            print(
+            logger.info(
                 f"The following parameters were not in both simulations: {symmetric_diff_set}\n"
             )
-        print("Results: \n")
-        print(
+        logger.info("Results: \n")
+        logger.info(
             f"{'Parameter':>35} {'Source':>15} {'Mean':>15} {'Median':>15} {'Std. Dev.':>15} {'95% PI Lower':>15} {'95% PI Upper':>15}"
         )
-        print("-" * 140)
+        logger.info("-" * 140)
         for parameter in intersection_set:
             original_value = self.monte_carlo.processed_results[parameter]
             try:
-                print(
+                logger.info(
                     f"{parameter:>35} {'Original':>15} {original_value[0]:>15.3f} {original_value[1]:>15.3f} {original_value[2]:>15.3f} {original_value[3]:>15.3f} {original_value[4]:>15.3f}"
                 )
             except TypeError:
-                print(
+                logger.info(
                     f"{parameter:>35} {'Original':>15} {'N/A':>15} {'N/A':>15} {'N/A':>15} {'N/A':>15} {'N/A':>15}"
                 )
 
             other_value = other_monte_carlo.processed_results[parameter]
             try:
-                print(
+                logger.info(
                     f"{parameter:>35} {'Other':>15} {other_value[0]:>15.3f} {other_value[1]:>15.3f} {other_value[2]:>15.3f} {other_value[3]:>15.3f} {other_value[4]:>15.3f}"
                 )
             except TypeError:
-                print(
+                logger.info(
                     f"{parameter:>35} {'Other':>15} {'N/A':>15} {'N/A':>15} {'N/A':>15} {'N/A':>15} {'N/A':>15}"
                 )

@@ -1,3 +1,7 @@
+import logging
+
+logging.getLogger(__name__).addHandler(logging.NullHandler())
+
 from .control import _Controller
 from .environment import Environment, EnvironmentAnalysis
 from .mathutils import (

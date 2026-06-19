@@ -5,7 +5,10 @@ the library (introduced in version 1.5.0), some functions may be modified in the
 future to improve their performance and usability.
 """
 
+import logging
 import math
+
+logger = logging.getLogger(__name__)
 import warnings
 
 import netCDF4
@@ -850,6 +853,6 @@ if __name__ == "__main__":  # pragma: no cover
 
     results = doctest.testmod()
     if results.failed < 1:
-        print(f"All the {results.attempted} tests passed!")
+        logger.info("All the %d tests passed!", results.attempted)
     else:
-        print(f"{results.failed} out of {results.attempted} tests failed.")
+        logger.warning("%d out of %d tests failed.", results.failed, results.attempted)

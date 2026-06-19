@@ -1,3 +1,7 @@
+﻿import logging
+
+logger = logging.getLogger(__name__)
+
 from inspect import getsourcelines
 
 
@@ -36,23 +40,23 @@ class _ControllerPrints:
         """
         if self.controller.controller_function.__name__ == "<lambda>":
             line = getsourcelines(self.controller.trigger)[0][0]
-            print("Controller function: " + line.split("=")[0].strip())
+            logger.info("Controller function: " + line.split("=")[0].strip())
         else:
-            print(
+            logger.info(
                 "Controller function: " + self.controller.controller_function.__name__
             )
-        print(f"Controller refresh rate: {self.controller.sampling_rate:.3f} Hz")
+        logger.info(f"Controller refresh rate: {self.controller.sampling_rate:.3f} Hz")
 
     def interactive_objects(self):
         """Prints interactive objects."""
-        print("interactive Objects")
+        logger.info("interactive Objects")
         # check if is list
         if isinstance(self.controller.interactive_objects, list):
             for obj in self.controller.interactive_objects:
-                print(getattr(obj, "name", str(obj)))
+                logger.info(getattr(obj, "name", str(obj)))
         else:
             obj = self.controller.interactive_objects
-            print(getattr(obj, "name", str(obj)))
+            logger.info(getattr(obj, "name", str(obj)))
 
     def all(self):
         """Prints all information about the parachute.
@@ -62,7 +66,7 @@ class _ControllerPrints:
         None
         """
 
-        print("\nController Details\n")
-        print(self.controller)
+        logger.info("\nController Details\n")
+        logger.info(self.controller)
         self.controller_function()
         self.interactive_objects()

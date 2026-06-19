@@ -11,10 +11,13 @@ import functools
 import importlib
 import importlib.metadata
 import json
+import logging
 import math
 import re
 import time
 import warnings
+
+logger = logging.getLogger(__name__)
 from bisect import bisect_left
 
 import dill
@@ -1469,6 +1472,6 @@ if __name__ == "__main__":  # pragma: no cover
 
     res = doctest.testmod()
     if res.failed < 1:
-        print(f"All the {res.attempted} tests passed!")
+        logger.info("All the %d tests passed!", res.attempted)
     else:
-        print(f"{res.failed} out of {res.attempted} tests failed.")
+        logger.warning("%d out of %d tests failed.", res.failed, res.attempted)

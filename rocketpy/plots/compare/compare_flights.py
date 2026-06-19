@@ -1,7 +1,11 @@
 # TODO: remove this disable once the code is refactored
 # pylint: disable=nested-min-max
+import logging
+
 import matplotlib.pyplot as plt
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 from ..plot_helpers import show_or_save_fig, show_or_save_plot
 from .compare import Compare
@@ -94,7 +98,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         """
         show_or_save_fig(fig, filename)
         if filename:
-            print("Plot saved to file: " + filename)
+            logger.info("Plot saved to file: %s", filename)
         else:
             plt.show()
 
@@ -1084,7 +1088,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         None
         """
 
-        print("This method is not implemented yet")
+        logger.warning("This method is not implemented yet.")
 
     def attitude_frequency(
         self,
@@ -1123,7 +1127,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         None
         """
 
-        print("This method is not implemented yet")
+        logger.warning("This method is not implemented yet.")
 
     @staticmethod
     def compare_trajectories_3d(  # pylint: disable=too-many-statements

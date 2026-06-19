@@ -1,3 +1,7 @@
+﻿import logging
+
+logger = logging.getLogger(__name__)
+
 import numpy as np
 
 from .motor_prints import _MotorPrints
@@ -39,12 +43,12 @@ class _HybridMotorPrints(_MotorPrints):
         None
         """
         # Print nozzle details
-        print("Nozzle Details")
-        print(f"Outlet Radius: {self.hybrid_motor.nozzle_radius} m")
-        print(f"Throat Radius: {self.hybrid_motor.solid.throat_radius} m")
-        print(f"Outlet Area: {np.pi * self.hybrid_motor.nozzle_radius**2:.6f} m²")
-        print(f"Throat Area: {np.pi * self.hybrid_motor.solid.throat_radius**2:.6f} m²")
-        print(f"Position: {self.hybrid_motor.nozzle_position} m\n")
+        logger.info("Nozzle Details")
+        logger.info(f"Outlet Radius: {self.hybrid_motor.nozzle_radius} m")
+        logger.info(f"Throat Radius: {self.hybrid_motor.solid.throat_radius} m")
+        logger.info(f"Outlet Area: {np.pi * self.hybrid_motor.nozzle_radius**2:.6f} m²")
+        logger.info(f"Throat Area: {np.pi * self.hybrid_motor.solid.throat_radius**2:.6f} m²")
+        logger.info(f"Position: {self.hybrid_motor.nozzle_position} m\n")
 
     def grain_details(self):
         """Prints out all data available about the Grain.
@@ -53,18 +57,18 @@ class _HybridMotorPrints(_MotorPrints):
         -------
         None
         """
-        print("Grain Details")
-        print(f"Number of Grains: {self.hybrid_motor.solid.grain_number}")
-        print(f"Grain Spacing: {self.hybrid_motor.solid.grain_separation} m")
-        print(f"Grain Density: {self.hybrid_motor.solid.grain_density} kg/m3")
-        print(f"Grain Outer Radius: {self.hybrid_motor.solid.grain_outer_radius} m")
-        print(
+        logger.info("Grain Details")
+        logger.info(f"Number of Grains: {self.hybrid_motor.solid.grain_number}")
+        logger.info(f"Grain Spacing: {self.hybrid_motor.solid.grain_separation} m")
+        logger.info(f"Grain Density: {self.hybrid_motor.solid.grain_density} kg/m3")
+        logger.info(f"Grain Outer Radius: {self.hybrid_motor.solid.grain_outer_radius} m")
+        logger.info(
             "Grain Inner Radius: "
             f"{self.hybrid_motor.solid.grain_initial_inner_radius} m"
         )
-        print(f"Grain Height: {self.hybrid_motor.solid.grain_initial_height} m")
-        print(f"Grain Volume: {self.hybrid_motor.solid.grain_initial_volume:.3f} m3")
-        print(f"Grain Mass: {self.hybrid_motor.solid.grain_initial_mass:.3f} kg\n")
+        logger.info(f"Grain Height: {self.hybrid_motor.solid.grain_initial_height} m")
+        logger.info(f"Grain Volume: {self.hybrid_motor.solid.grain_initial_volume:.3f} m3")
+        logger.info(f"Grain Mass: {self.hybrid_motor.solid.grain_initial_mass:.3f} kg\n")
 
     def all(self):
         """Prints out all data available about the HybridMotor.

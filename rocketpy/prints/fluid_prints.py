@@ -1,3 +1,7 @@
+﻿import logging
+
+logger = logging.getLogger(__name__)
+
 from ..mathutils.function import NUMERICAL_TYPES
 
 
@@ -35,8 +39,8 @@ class _FluidPrints:
         -------
         None
         """
-        print(f"Name: {self.fluid.name}")
+        logger.info(f"Name: {self.fluid.name}")
         if isinstance(self.fluid.density, NUMERICAL_TYPES):
-            print(f"Density: {self.fluid.density:.4f} kg/m^3")
+            logger.info(f"Density: {self.fluid.density:.4f} kg/m^3")
         else:
-            print(f"Density: {self.fluid.density_function}")
+            logger.info(f"Density: {self.fluid.density_function}")

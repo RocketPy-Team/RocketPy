@@ -1,7 +1,10 @@
 import inspect
 import json
+import logging
 import os
 import warnings
+
+logger = logging.getLogger(__name__)
 from datetime import date
 from importlib.metadata import version
 from pathlib import Path
@@ -428,18 +431,26 @@ def _flutter_prints(
     min_sf = safety_factor[time_index, 1]
     altitude_min_sf = flight.z(time_min_sf) - flight.env.elevation
 
-    print("\nFin's parameters")
-    print(f"Surface area (S): {surface_area:.4f} m2")
-    print(f"Aspect ratio (AR): {aspect_ratio:.3f}")
-    print(f"tip_chord/root_chord ratio = \u03bb = {lambda_:.3f}")
-    print(f"Fin Thickness: {fin_thickness:.5f} m")
-    print(f"Shear Modulus (G): {shear_modulus:.3e} Pa")
-
-    print("\nFin Flutter Analysis")
-    print(f"Minimum Fin Flutter Velocity: {min_vel:.3f} m/s at {time_min_mach:.2f} s")
-    print(f"Minimum Fin Flutter Mach Number: {min_mach:.3f} ")
-    print(f"Minimum Safety Factor: {min_sf:.3f} at {time_min_sf:.2f} s")
-    print(f"Altitude of minimum Safety Factor: {altitude_min_sf:.3f} m (AGL)\n")
+    logger.info(
+        "Fin's parameters: Surface area (S)=%.4f m2 | AR=%.3f | \u03bb=%.3f"
+        " | Thickness=%.5f m | Shear Modulus (G)=%.3e Pa",
+        surface_area,
+        aspect_ratio,
+        lambda_,
+        fin_thickness,
+        shear_modulus,
+    )
+    logger.info(
+        "Fin Flutter Analysis: Min flutter velocity=%.3f m/s at t=%.2f s"
+        " | Min flutter Mach=%.3f | Min safety factor=%.3f at t=%.2f s"
+        " | Altitude of min safety factor=%.3f m (AGL)",
+        min_vel,
+        time_min_mach,
+        min_mach,
+        min_sf,
+        time_min_sf,
+        altitude_min_sf,
+    )
 
 
 def apogee_by_mass(flight, min_mass, max_mass, points=10, plot=True):

@@ -1,3 +1,7 @@
+﻿import logging
+
+logger = logging.getLogger(__name__)
+
 class _TankPrints:
     """Class that holds prints methods for Tank class.
 
@@ -32,10 +36,10 @@ class _TankPrints:
         -------
         None
         """
-        print(f"Tank '{self.tank.name}' Fluid Parameters:")
-        print("\nLiquid Fluid")
+        logger.info(f"Tank '{self.tank.name}' Fluid Parameters:")
+        logger.info("\nLiquid Fluid")
         self.tank.liquid.prints.all()
-        print("\nGas Fluid")
+        logger.info("\nGas Fluid")
         self.tank.gas.prints.all()
 
     def mass_flux(self):
@@ -46,15 +50,15 @@ class _TankPrints:
         None
         """
         initial_time, final_time = self.tank.flux_time
-        print(f"\nTank '{self.tank.name}' Mass Flux Data:")
-        print(f"\nInitial Quantities at t = {initial_time:.2f} s:")
-        print(f"Initial Fluid Mass: {self.tank.fluid_mass(initial_time):.3e} kg")
-        print(f"Initial Liquid Volume: {self.tank.liquid_volume(initial_time):.3e} m^3")
-        print(f"Initial Liquid Level: {self.tank.liquid_height(initial_time):.3e} m")
-        print(f"\nFinal Quantities at t = {final_time:.2f} s:")
-        print(f"Final Fluid Mass: {self.tank.fluid_mass(final_time):.3e} kg")
-        print(f"Final Liquid Volume: {self.tank.liquid_volume(final_time):.3e} m^3")
-        print(f"Final Liquid Level: {self.tank.liquid_height(final_time):.3e} m")
+        logger.info(f"\nTank '{self.tank.name}' Mass Flux Data:")
+        logger.info(f"\nInitial Quantities at t = {initial_time:.2f} s:")
+        logger.info(f"Initial Fluid Mass: {self.tank.fluid_mass(initial_time):.3e} kg")
+        logger.info(f"Initial Liquid Volume: {self.tank.liquid_volume(initial_time):.3e} m^3")
+        logger.info(f"Initial Liquid Level: {self.tank.liquid_height(initial_time):.3e} m")
+        logger.info(f"\nFinal Quantities at t = {final_time:.2f} s:")
+        logger.info(f"Final Fluid Mass: {self.tank.fluid_mass(final_time):.3e} kg")
+        logger.info(f"Final Liquid Volume: {self.tank.liquid_volume(final_time):.3e} m^3")
+        logger.info(f"Final Liquid Level: {self.tank.liquid_height(final_time):.3e} m")
 
     def all(self):
         """Prints out all data available about the Tank.
@@ -63,7 +67,7 @@ class _TankPrints:
         -------
         None
         """
-        print(f"\nTank '{self.tank.name}' Data:\n")
+        logger.info(f"\nTank '{self.tank.name}' Data:\n")
         self.tank.geometry.prints.all()
         self.fluid_parameters()
         self.mass_flux()

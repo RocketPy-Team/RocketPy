@@ -1,7 +1,10 @@
+import logging
 import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 from rocketpy.mathutils import Function
 from rocketpy.simulation.flight import Flight
@@ -208,8 +211,10 @@ class FlightComparator:
             warnings.warn(f"Data source '{label}' already exists. Overwriting.")
 
         self.data_sources[label] = processed_data
-        print(
-            f"Added data source '{label}' with variables: {list(processed_data.keys())}"
+        logger.info(
+            "Added data source '%s' with variables: %s",
+            label,
+            list(processed_data.keys()),
         )
 
     def _process_time_range(self, time_range):
@@ -369,9 +374,7 @@ class FlightComparator:
         """
         has_plots = False
 
-        print(f"\n{'-' * 20}")
-        print(f"COMPARISON REPORT: {attribute}")
-        print(f"{'-' * 20}")
+        logger.info("COMPARISON REPORT: %s", attribute)
 
         for label, dataset in self.data_sources.items():
             if attribute not in dataset:
@@ -396,12 +399,15 @@ class FlightComparator:
                 (rmse / mean_abs_y_sim) * 100 if mean_abs_y_sim != 0 else np.inf
             )
 
-            # Print Metrics
-            print(f"Source: {label}")
-            print(f"  - MAE:            {mae:.4f}")
-            print(f"  - RMSE:           {rmse:.4f}")
-            print(f"  - Max Deviation:  {max_dev:.4f}")
-            print(f"  - Relative Error: {relative_error_pct:.2f}%")
+            logger.info(
+                "Source: %s | MAE: %.4f | RMSE: %.4f | "
+                "Max Deviation: %.4f | Relative Error: %.2f%%",
+                label,
+                mae,
+                rmse,
+                max_dev,
+                relative_error_pct,
+            )
 
             # Plot Data
             ax_values.plot(t_grid, y_ext, label=label, linestyle="--")
@@ -449,7 +455,7 @@ class FlightComparator:
         fig.tight_layout()
         show_or_save_fig(fig, filename)
         if filename:
-            print(f"Plot saved to file: {filename}")
+            logger.info("Plot saved to file: %s", filename)
 
     def compare(  # pylint: disable=too-many-statements
         self,
@@ -739,37 +745,34 @@ class FlightComparator:
         -------
         None
         """
-        print("\n" + "=" * 60)
-        print("FLIGHT COMPARISON SUMMARY")
-        print("=" * 60)
-
-        print("\nRocketPy Simulation:")
-        print(
-            f"  - Apogee: {self.flight.apogee:.2f} m at t={self.flight.apogee_time:.2f} s"
+        logger.info("FLIGHT COMPARISON SUMMARY")
+        logger.info(
+            "RocketPy Simulation: Apogee=%.2f m at t=%.2f s | "
+            "Max velocity=%.2f m/s | Impact velocity=%.2f m/s | "
+            "Flight duration=%.2f s",
+            self.flight.apogee,
+            self.flight.apogee_time,
+            self.flight.max_speed,
+            self.flight.impact_velocity,
+            self.flight.t_final,
         )
-        print(f"  - Max velocity: {self.flight.max_speed:.2f} m/s")
-        print(f"  - Impact velocity: {self.flight.impact_velocity:.2f} m/s")
-        print(f"  - Flight duration: {self.flight.t_final:.2f} s")
-
-        print(f"\nExternal Data Sources: {list(self.data_sources.keys())}")
+        logger.info("External Data Sources: %s", list(self.data_sources.keys()))
 
         try:
             events_results = self.compare_key_events()
-            print("\n" + self._format_key_events_table(events_results))
-            print(
-                "\nNote: Values marked with * are approximations "
+            logger.info("\n%s", self._format_key_events_table(events_results))
+            logger.info(
+                "Note: Values marked with * are approximations "
                 "(e.g., speed from vz only)"
             )
         except (KeyError, AttributeError, ValueError) as exc:
-            print(
+            logger.warning(
                 "Could not generate key events table. "
                 "Ensure external data sources contain compatible variables "
                 "such as 'altitude' or 'z' for altitude and 'speed' or 'vz' "
-                "for velocity. Details: "
-                f"{exc}"
+                "for velocity. Details: %s",
+                exc,
             )
-
-        print("\n" + "=" * 60)
 
     def all(self, time_range=None, figsize=(10, 8), legend=True):
         """
@@ -816,10 +819,10 @@ class FlightComparator:
                         break
 
         if not available_vars:
-            print("No common variables found for comparison.")
+            logger.warning("No common variables found for comparison.")
             return
 
-        print(f"\nGenerating comparison plots for: {', '.join(available_vars)}\n")
+        logger.info("Generating comparison plots for: %s", ", ".join(available_vars))
 
         # Generate a plot for each available variable
         for var in available_vars:
@@ -901,4 +904,4 @@ class FlightComparator:
 
         show_or_save_fig(fig, filename)
         if filename:
-            print(f"Plot saved to file: {filename}")
+            logger.info("Plot saved to file: %s", filename)

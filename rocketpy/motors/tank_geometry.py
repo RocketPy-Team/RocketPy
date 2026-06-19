@@ -1,5 +1,8 @@
+import logging
 import warnings
 from functools import cached_property
+
+logger = logging.getLogger(__name__)
 
 import numpy as np
 
@@ -458,11 +461,12 @@ class CylindricalTank(TankGeometry):
         part. The height is not modified, meaning that the total volume of
         the tank will decrease.
         """
-        print(
-            "Warning: Adding spherical caps to the tank will not modify the "
-            + f"total height of the tank {self.height} m. "
-            + "Its cylindrical portion height will be reduced to "
-            + f"{self.height - 2 * self.radius_function} m."
+        logger.warning(
+            "Adding spherical caps to the tank will not modify the total height "
+            "of the tank (%.4f m). Its cylindrical portion height will be "
+            "reduced to %s m.",
+            self.height,
+            self.height - 2 * self.radius_function,
         )
 
         if not self.has_caps:
