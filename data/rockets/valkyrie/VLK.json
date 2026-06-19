@@ -1,0 +1,76 @@
+{
+    "VLK": {
+        "rocket": {
+            "rocket_mass":              {"value": 5.65, "dispersion": 0.2},
+            "rocket_center_of_mass_without_motor":          {"value": 0.844, "dispersion": 0.01},
+            "rocket_coordinate_system_orientation":         "tail_to_nose",
+            "rocket_inertia_11":        {"value": 1.806, "dispersion": 0.1},
+            "rocket_inertia_33":        {"value": 0.0183, "dispersion": 0.001},
+            "rocket_radius":            {"value": 0.055, "dispersion": 0.0001},
+            "motor_position":           {"value": 0, "dispersion": 0}
+        },
+        "motor": {
+            "motor_coordinate_system_orientation":      "nozzle_to_combustion_chamber",
+            "motor_thrust_source":              "./data/motors/cesaroni/Cesaroni_1997K650-21A.eng",
+            "motor_dry_mass":                   {"value": 0.6449, "dispersion": 0.001},
+            "motor_inertia_11":                 {"value": 0.0343, "dispersion": 0.0001},
+            "motor_inertia_33":                 {"value": 0.0008, "dispersion": 0.0001},
+            "motor_dry_mass_position":          {"value": 0.246, "dispersion": 0.001},
+            "motor_impulse":                    {"value": 2300, "dispersion": 20},
+            "motor_burn_time":                  {"value": 3.5, "dispersion": 0.1},
+            "nozzle_radius":                    {"value": 0.045, "dispersion": 0.0005},
+            "nozzle_position":                  {"value": 0},
+            "throat_radius":                    {"value": 0.023, "dispersion": 0.0005},
+            "grain_number":                     {"value": 5},
+            "grain_separation":                 {"value": 0.001, "dispersion": 0.0001},
+            "grain_density":                    {"value": 1170, "dispersion": 10},
+            "grain_outer_radius":               {"value": 0.025, "dispersion": 0.001},
+            "grain_initial_inner_radius":       {"value": 0.01, "dispersion": 0.000375},
+            "grain_initial_height":             {"value": 0.0966, "dispersion": 0.001},
+            "grains_center_of_mass_position":   {"value": 0.246, "dispersion": 0.003},
+            "power_off_drag":                   {"value": 0.35, "dispersion": 0.05},
+            "power_on_drag":                    {"value": 0.35, "dispersion": 0.05}
+        },
+        "nose": {
+            "nose_length":          {"value": 0.20, "dispersion": 0.01},
+            "nose_kind":            "elliptical",
+            "nose_power":           {"value": null, "dispersion": null},
+            "nose_position":        {"value": 1.84, "dispersion": 0}
+        },
+        "fins": {
+            "fin_span":                 {"value": 0.0768, "dispersion": 0.001},
+            "fin_root_chord":           {"value": 0.17, "dispersion": 0.005},
+            "fin_tip_chord":            {"value": 0.14, "dispersion": 0.005},
+            "fin_sweep_length":         {"value": 0.10, "dispersion": 0.003},
+            "fin_airfoil":              "None",
+            "fin_position":             {"value": 0.148, "dispersion": 0.001},
+            "fin_cant_angle":           {"value": 0, "dispersion": 0},
+            "fin_n":                    {"value": 4, "dispersion": 0}
+        },
+        "tail": {
+            "top_radius":           {"value": 0.055, "dispersion": 0.001},
+            "bottom_radius":        {"value": 0.03, "dispersion": 0.005},
+            "length":               {"value": 0.15, "dispersion": 0.005},
+            "position":             {"value": 0, "dispersion": 0}
+        },
+        "main_chute": {
+            "cd_s_main":                {"value": 5.786483801, "dispersion": 0.07},
+            "main_lag":                 {"value": 1.73, "dispersion": 0.4},
+            "main_sampling_rate":       {"value": 105},
+            "Funcion de Deploy":        {"value": 0},
+            "main_noise":               [0, 8.3, 0.5]
+        },
+        "drogue_chute": {
+            "cd_s_drogue":              {"value": 0.258940616, "dispersion": 0.07},
+            "drogue_lag":               {"value": 1.73, "dispersion": 0.4},
+            "drogue_sampling_rate":     {"value": 105},
+            "Funcion de Deploy":        {"value": 0},
+            "drogue_noise":             [0, 8.3, 0.5]
+        },
+        "rail_buttons": {
+            "upper_button_position":        {"value": 1.13, "dispersion": 0},
+            "lower_button_position":        {"value": 0.383, "dispersion": 0},
+            "rail_angular_position":        {"value": 0, "dispersion": 0}
+        }
+    }
+}
