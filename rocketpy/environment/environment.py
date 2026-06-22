@@ -2977,6 +2977,6 @@ if __name__ == "__main__":  # pragma: no cover
 
     results = doctest.testmod()
     if results.failed < 1:
-        logger.info("All the %d tests passed!", results.attempted)
+        logger.debug("All the %d tests passed!", results.attempted)
     else:
         logger.warning("%d out of %d tests failed.", results.failed, results.attempted)
