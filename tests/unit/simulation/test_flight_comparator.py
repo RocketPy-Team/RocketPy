@@ -5,6 +5,7 @@ simulations against external data sources such as flight logs, OpenRocket
 simulations, and RASAero simulations.
 """
 
+import logging
 import os
 
 import numpy as np
@@ -322,8 +323,6 @@ def test_summary(flight_calisto, caplog):
     caplog :
         Pytest fixture to capture log records.
     """
-    import logging
-
     comparator = FlightComparator(flight_calisto)
 
     time_data = np.linspace(0, flight_calisto.t_final, 100)
@@ -374,8 +373,6 @@ def test_all_no_common_variables(flight_calisto, caplog):
     caplog :
         Pytest fixture to capture log records.
     """
-    import logging
-
     comparator = FlightComparator(flight_calisto)
 
     with caplog.at_level(logging.WARNING, logger="rocketpy"):

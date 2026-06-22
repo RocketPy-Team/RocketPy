@@ -4,6 +4,7 @@ These tests focus on verifying the mathematical correctness and realism
 of the calculate_rail_button_bending_moments method in isolation.
 """
 
+import logging
 import warnings
 
 import matplotlib.pyplot as plt
@@ -209,8 +210,6 @@ def test_rail_button_bending_moments_plot_without_height(flight_calisto_robust, 
     caplog : pytest fixture
         Captures log records.
     """
-    import logging
-
     # Ensure button_height is None (it should be by default now)
     flight_calisto_robust.rocket.rail_buttons[0].component.button_height = None
 
