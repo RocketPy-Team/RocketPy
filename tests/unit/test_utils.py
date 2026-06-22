@@ -23,7 +23,9 @@ def test_enable_logging_adds_stream_handler():
     rocketpy.utils.enable_logging(level="INFO")
 
     logger = logging.getLogger("rocketpy")
-    stream_handlers = [h for h in logger.handlers if isinstance(h, logging.StreamHandler)]
+    stream_handlers = [
+        h for h in logger.handlers if isinstance(h, logging.StreamHandler)
+    ]
     assert len(stream_handlers) >= 1
 
 
@@ -42,7 +44,9 @@ def test_enable_logging_no_duplicate_handlers():
     rocketpy.utils.enable_logging(level="INFO")
 
     logger = logging.getLogger("rocketpy")
-    stream_handlers = [h for h in logger.handlers if isinstance(h, logging.StreamHandler)]
+    stream_handlers = [
+        h for h in logger.handlers if isinstance(h, logging.StreamHandler)
+    ]
     assert len(stream_handlers) == 1
 
 
@@ -52,7 +56,9 @@ def test_enable_logging_replaces_handler_on_level_change():
     rocketpy.utils.enable_logging(level="DEBUG")
 
     logger = logging.getLogger("rocketpy")
-    stream_handlers = [h for h in logger.handlers if isinstance(h, logging.StreamHandler)]
+    stream_handlers = [
+        h for h in logger.handlers if isinstance(h, logging.StreamHandler)
+    ]
     assert len(stream_handlers) == 1
     assert logger.level == logging.DEBUG
 

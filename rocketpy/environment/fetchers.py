@@ -40,7 +40,9 @@ def fetch_open_elevation(lat, lon):
     RuntimeError
         If there is a problem reaching the Open-Elevation API servers.
     """
-    logger.debug("Fetching elevation from open-elevation.com for lat=%s, lon=%s", lat, lon)
+    logger.debug(
+        "Fetching elevation from open-elevation.com for lat=%s, lon=%s", lat, lon
+    )
     request_url = f"https://api.open-elevation.com/api/v1/lookup?locations={lat},{lon}"
     try:
         response = requests.get(request_url)
