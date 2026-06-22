@@ -1,8 +1,4 @@
-﻿import logging
-
 from .motor_prints import _MotorPrints
-
-logger = logging.getLogger(__name__)
 
 
 class _LiquidMotorPrints(_MotorPrints):
@@ -40,8 +36,8 @@ class _LiquidMotorPrints(_MotorPrints):
         -------
         None
         """
-        logger.info("Nozzle Details")
-        logger.info("Nozzle Radius: " + str(self.liquid_motor.nozzle_radius) + " m\n")
+        print("Nozzle Details")
+        print("Nozzle Radius: " + str(self.liquid_motor.nozzle_radius) + " m\n")
 
     def all(self):
         """Prints out all data available about the LiquidMotor.

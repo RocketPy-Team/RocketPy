@@ -1,7 +1,3 @@
-﻿import logging
-
-logger = logging.getLogger(__name__)
-
 class _TankGeometryPrints:
     """Class that holds prints methods for TankGeometry class.
 
@@ -36,12 +32,12 @@ class _TankGeometryPrints:
         -------
         None
         """
-        logger.info("Tank Geometry:")
-        logger.info(f"Average radius {self.tank_geometry.average_radius:.3f} m")
-        logger.info(f"Bottom: {self.tank_geometry.bottom} m")
-        logger.info(f"Top: {self.tank_geometry.top} m")
-        logger.info(f"Total height: {self.tank_geometry.total_height} m")
-        logger.info(f"Total volume: {self.tank_geometry.total_volume:.6f} m^3\n")
+        print("Tank Geometry:")
+        print(f"Average radius {self.tank_geometry.average_radius:.3f} m")
+        print(f"Bottom: {self.tank_geometry.bottom} m")
+        print(f"Top: {self.tank_geometry.top} m")
+        print(f"Total height: {self.tank_geometry.total_height} m")
+        print(f"Total volume: {self.tank_geometry.total_volume:.6f} m^3\n")
 
     def all(self):
         """Prints out all data available about the TankGeometry.

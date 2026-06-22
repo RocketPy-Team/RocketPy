@@ -1,7 +1,4 @@
-﻿import logging
 from inspect import getsourcelines
-
-logger = logging.getLogger(__name__)
 
 
 class _ParachutePrints:
@@ -39,18 +36,18 @@ class _ParachutePrints:
         if callable(self.parachute.trigger):
             if self.parachute.trigger.__name__ == "<lambda>":
                 line = getsourcelines(self.parachute.trigger)[0][0]
-                logger.info("Ejection signal trigger: " + line.split("=")[0].strip())
+                print("Ejection signal trigger: " + line.split("=")[0].strip())
             else:
-                logger.info("Ejection signal trigger: " + self.parachute.trigger.__name__)
+                print("Ejection signal trigger: " + self.parachute.trigger.__name__)
         elif isinstance(self.parachute.trigger, (int, float)):
-            logger.info(
+            print(
                 "Ejection signal trigger: " + str(self.parachute.trigger) + " m (AGL)"
             )
         elif isinstance(self.parachute.trigger, str):
-            logger.info("Ejection signal trigger: At Apogee")
+            print("Ejection signal trigger: At Apogee")
 
-        logger.info(f"Ejection system refresh rate: {self.parachute.sampling_rate:.3f} Hz")
-        logger.info(
+        print(f"Ejection system refresh rate: {self.parachute.sampling_rate:.3f} Hz")
+        print(
             f"Time between ejection signal is triggered and the parachute is fully opened: {self.parachute.lag:.1f} s\n"
         )
 
@@ -66,7 +63,7 @@ class _ParachutePrints:
         None
         """
 
-        logger.info("\nParachute Details\n")
-        logger.info(str(self.parachute))
+        print("\nParachute Details\n")
+        print(str(self.parachute))
         self.trigger()
         self.noise()

@@ -1,7 +1,4 @@
-﻿import logging
 from abc import ABC
-
-logger = logging.getLogger(__name__)
 
 
 class _SensorPrints(ABC):
@@ -11,17 +8,17 @@ class _SensorPrints(ABC):
 
     def _print_aligned(self, label, value):
         """Prints a label and a value aligned vertically."""
-        logger.info(f"{label:<26} {value}")
+        print(f"{label:<26} {value}")
 
     def identity(self):
         """Prints the identity of the sensor."""
-        logger.info("Identification:\n")
+        print("Identification:\n")
         self._print_aligned("Name:", self.sensor.name)
         self._print_aligned("Type:", self.sensor.__class__.__name__)
 
     def quantization(self):
         """Prints the quantization of the sensor."""
-        logger.info("\nQuantization:\n")
+        print("\nQuantization:\n")
         self._print_aligned(
             "Measurement Range:",
             f"{self.sensor.measurement_range[0]} "
@@ -35,7 +32,7 @@ class _SensorPrints(ABC):
 
     def _general_noise(self):
         """Prints the noise of the sensor."""
-        logger.info("\nNoise:\n")
+        print("\nNoise:\n")
         self._print_aligned(
             "Noise Density:", f"{self.sensor.noise_density} {self.units}/√Hz"
         )
@@ -73,10 +70,10 @@ class _SensorPrints(ABC):
 class _InertialSensorPrints(_SensorPrints):
     def orientation(self):
         """Prints the orientation of the sensor."""
-        logger.info("\nOrientation of the Sensor:\n")
+        print("\nOrientation of the Sensor:\n")
         self._print_aligned("Orientation:", self.sensor.orientation)
         self._print_aligned("Normal Vector:", self.sensor.normal_vector)
-        logger.info("Rotation Matrix:")
+        print("Rotation Matrix:")
         for row in self.sensor.rotation_sensor_to_body:
             value = " ".join(f"{val:.2f}" for val in row)
             value = [float(val) for val in value.split()]
@@ -113,7 +110,7 @@ class _GnssReceiverPrints(_SensorPrints):
 
     def accuracy(self):
         """Prints the accuracy of the sensor."""
-        logger.info("\nAccuracy:\n")
+        print("\nAccuracy:\n")
         self._print_aligned("Position Accuracy:", f"{self.sensor.position_accuracy} m")
         self._print_aligned("Altitude Accuracy:", f"{self.sensor.altitude_accuracy} m")
 

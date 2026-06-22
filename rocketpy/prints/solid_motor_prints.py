@@ -1,8 +1,4 @@
-﻿import logging
-
 from .motor_prints import _MotorPrints
-
-logger = logging.getLogger(__name__)
 
 
 class _SolidMotorPrints(_MotorPrints):
@@ -40,9 +36,9 @@ class _SolidMotorPrints(_MotorPrints):
         -------
         None
         """
-        logger.info("Nozzle Details")
-        logger.info(f"Nozzle Radius: {self.solid_motor.nozzle_radius} m")
-        logger.info(f"Nozzle Throat Radius: {self.solid_motor.throat_radius} m\n")
+        print("Nozzle Details")
+        print(f"Nozzle Radius: {self.solid_motor.nozzle_radius} m")
+        print(f"Nozzle Throat Radius: {self.solid_motor.throat_radius} m\n")
 
     def grain_details(self):
         """Prints out all data available about the SolidMotor grain.
@@ -51,15 +47,15 @@ class _SolidMotorPrints(_MotorPrints):
         -------
         None
         """
-        logger.info("Grain Details")
-        logger.info(f"Number of Grains: {self.solid_motor.grain_number}")
-        logger.info(f"Grain Spacing: {self.solid_motor.grain_separation} m")
-        logger.info(f"Grain Density: {self.solid_motor.grain_density} kg/m3")
-        logger.info(f"Grain Outer Radius: {self.solid_motor.grain_outer_radius} m")
-        logger.info(f"Grain Inner Radius: {self.solid_motor.grain_initial_inner_radius} m")
-        logger.info(f"Grain Height: {self.solid_motor.grain_initial_height} m")
-        logger.info(f"Grain Volume: {self.solid_motor.grain_initial_volume:.3f} m3")
-        logger.info(f"Grain Mass: {self.solid_motor.grain_initial_mass:.3f} kg\n")
+        print("Grain Details")
+        print(f"Number of Grains: {self.solid_motor.grain_number}")
+        print(f"Grain Spacing: {self.solid_motor.grain_separation} m")
+        print(f"Grain Density: {self.solid_motor.grain_density} kg/m3")
+        print(f"Grain Outer Radius: {self.solid_motor.grain_outer_radius} m")
+        print(f"Grain Inner Radius: {self.solid_motor.grain_initial_inner_radius} m")
+        print(f"Grain Height: {self.solid_motor.grain_initial_height} m")
+        print(f"Grain Volume: {self.solid_motor.grain_initial_volume:.3f} m3")
+        print(f"Grain Mass: {self.solid_motor.grain_initial_mass:.3f} kg\n")
 
     def all(self):
         """Prints out all data available about the SolidMotor.

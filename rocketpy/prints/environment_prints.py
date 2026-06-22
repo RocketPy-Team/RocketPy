@@ -1,7 +1,3 @@
-﻿import logging
-
-logger = logging.getLogger(__name__)
-
 class _EnvironmentPrints:
     """Class that holds prints methods for Environment class.
 
@@ -40,9 +36,9 @@ class _EnvironmentPrints:
         max_expected_height = self.environment.max_expected_height
         surface_gravity = self.environment.gravity([elevation])
         ceiling_gravity = self.environment.gravity([max_expected_height])
-        logger.info("\nGravity Details\n")
-        logger.info(f"Acceleration of gravity at surface level: {surface_gravity:9.4f} m/s²")
-        logger.info(
+        print("\nGravity Details\n")
+        print(f"Acceleration of gravity at surface level: {surface_gravity:9.4f} m/s²")
+        print(
             f"Acceleration of gravity at {max_expected_height / 1000:7.3f} "
             f"km (ASL): {ceiling_gravity:.4f} m/s²\n"
         )
@@ -54,13 +50,13 @@ class _EnvironmentPrints:
         -------
         None
         """
-        logger.info("\nLaunch Site Details\n")
+        print("\nLaunch Site Details\n")
         time_format = "%Y-%m-%d %H:%M:%S"
         if (
             self.environment.datetime_date is not None
             and "UTC" not in self.environment.timezone
         ):
-            logger.info(
+            print(
                 "Launch Date:",
                 self.environment.datetime_date.strftime(time_format),
                 "UTC |",
@@ -68,7 +64,7 @@ class _EnvironmentPrints:
                 self.environment.timezone,
             )
         elif self.environment.datetime_date is not None:
-            logger.info(
+            print(
                 "Launch Date:",
                 self.environment.datetime_date.strftime(time_format),
                 "UTC",
@@ -77,20 +73,20 @@ class _EnvironmentPrints:
             self.environment.latitude is not None
             and self.environment.longitude is not None
         ):
-            logger.info(f"Launch Site Latitude: {self.environment.latitude:.5f}°")
-            logger.info(f"Launch Site Longitude: {self.environment.longitude:.5f}°")
-        logger.info(f"Reference Datum: {self.environment.datum}")
+            print(f"Launch Site Latitude: {self.environment.latitude:.5f}°")
+            print(f"Launch Site Longitude: {self.environment.longitude:.5f}°")
+        print(f"Reference Datum: {self.environment.datum}")
         if self.environment.initial_east:
-            logger.info(
+            print(
                 f"Launch Site UTM coordinates: {self.environment.initial_east:.2f} "
                 f"{self.environment.initial_ew}    {self.environment.initial_north:.2f} "
                 f"{self.environment.initial_hemisphere}"
             )
-            logger.info(
+            print(
                 f"Launch Site UTM zone: {self.environment.initial_utm_zone}"
                 f"{self.environment.initial_utm_letter}"
             )
-        logger.info(f"Launch Site Surface Elevation: {self.environment.elevation:.1f} m\n")
+        print(f"Launch Site Surface Elevation: {self.environment.elevation:.1f} m\n")
 
     def atmospheric_model_details(self):
         """Prints atmospheric model details.
@@ -99,10 +95,10 @@ class _EnvironmentPrints:
         -------
         None
         """
-        logger.info("\nAtmospheric Model Details\n")
+        print("\nAtmospheric Model Details\n")
         model_type = self.environment.atmospheric_model_type
-        logger.info("Atmospheric Model Type:", model_type)
-        logger.info(
+        print("Atmospheric Model Type:", model_type)
+        print(
             f"{model_type} Maximum Height: "
             f"{self.environment.max_expected_height / 1000:.3f} km"
         )
@@ -111,20 +107,20 @@ class _EnvironmentPrints:
             init_date = self.environment.atmospheric_model_init_date
             end_date = self.environment.atmospheric_model_end_date
             interval = self.environment.atmospheric_model_interval
-            logger.info(f"{model_type} Time Period: from {init_date} to {end_date} utc")
-            logger.info(f"{model_type} Hour Interval: {interval} hrs")
+            print(f"{model_type} Time Period: from {init_date} to {end_date} utc")
+            print(f"{model_type} Hour Interval: {interval} hrs")
             # Determine latitude and longitude range
             init_lat = self.environment.atmospheric_model_init_lat
             end_lat = self.environment.atmospheric_model_end_lat
             init_lon = self.environment.atmospheric_model_init_lon
             end_lon = self.environment.atmospheric_model_end_lon
-            logger.info(f"{model_type} Latitude Range: From {init_lat}° to {end_lat}°")
-            logger.info(f"{model_type} Longitude Range: From {init_lon}° to {end_lon}°")
+            print(f"{model_type} Latitude Range: From {init_lat}° to {end_lat}°")
+            print(f"{model_type} Longitude Range: From {init_lon}° to {end_lon}°")
         if model_type == "Ensemble":
-            logger.info(
+            print(
                 f"Number of Ensemble Members: {self.environment.num_ensemble_members}"
             )
-            logger.info(
+            print(
                 f"Selected Ensemble Member: {self.environment.ensemble_member} "
                 "(Starts from 0)\n"
             )
@@ -136,7 +132,7 @@ class _EnvironmentPrints:
         -------
         None
         """
-        logger.info("\nSurface Atmospheric Conditions\n")
+        print("\nSurface Atmospheric Conditions\n")
         wind_speed = self.environment.wind_speed(self.environment.elevation)
         wind_direction = self.environment.wind_direction(self.environment.elevation)
         wind_heading = self.environment.wind_heading(self.environment.elevation)
@@ -144,28 +140,28 @@ class _EnvironmentPrints:
         temperature = self.environment.temperature(self.environment.elevation)
         air_density = self.environment.density(self.environment.elevation)
         speed_of_sound = self.environment.speed_of_sound(self.environment.elevation)
-        logger.info(f"Surface Wind Speed: {wind_speed:.2f} m/s")
-        logger.info(f"Surface Wind Direction: {wind_direction:.2f}°")
-        logger.info(f"Surface Wind Heading: {wind_heading:.2f}°")
-        logger.info(f"Surface Pressure: {pressure:.2f} hPa")
-        logger.info(f"Surface Temperature: {temperature:.2f} K")
-        logger.info(f"Surface Air Density: {air_density:.3f} kg/m³")
-        logger.info(f"Surface Speed of Sound: {speed_of_sound:.2f} m/s\n")
+        print(f"Surface Wind Speed: {wind_speed:.2f} m/s")
+        print(f"Surface Wind Direction: {wind_direction:.2f}°")
+        print(f"Surface Wind Heading: {wind_heading:.2f}°")
+        print(f"Surface Pressure: {pressure:.2f} hPa")
+        print(f"Surface Temperature: {temperature:.2f} K")
+        print(f"Surface Air Density: {air_density:.3f} kg/m³")
+        print(f"Surface Speed of Sound: {speed_of_sound:.2f} m/s\n")
 
     def print_earth_details(self):
         """
         Function to print information about the Earth Model used in the
         Environment Class
         """
-        logger.info("\nEarth Model Details\n")
+        print("\nEarth Model Details\n")
         earth_radius = self.environment.earth_radius
         semi_major_axis = self.environment.ellipsoid.semi_major_axis
         flattening = self.environment.ellipsoid.flattening
         semi_minor_axis = semi_major_axis * (1 - flattening)
-        logger.info(f"Earth Radius at Launch site: {earth_radius / 1000:.2f} km")
-        logger.info(f"Semi-major Axis: {semi_major_axis / 1000:.2f} km")
-        logger.info(f"Semi-minor Axis: {semi_minor_axis / 1000:.2f} km")
-        logger.info(f"Flattening: {flattening:.4f}\n")
+        print(f"Earth Radius at Launch site: {earth_radius / 1000:.2f} km")
+        print(f"Semi-major Axis: {semi_major_axis / 1000:.2f} km")
+        print(f"Semi-minor Axis: {semi_minor_axis / 1000:.2f} km")
+        print(f"Flattening: {flattening:.4f}\n")
 
     def all(self):
         """Prints all print methods about the Environment.

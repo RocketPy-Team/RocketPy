@@ -1,10 +1,6 @@
-﻿import logging
-
 from scipy.stats import norm
 
 from rocketpy.tools import import_optional_dependency
-
-logger = logging.getLogger(__name__)
 
 
 class _SensitivityModelPrints:
@@ -114,8 +110,8 @@ class _SensitivityModelPrints:
                 (column_width - 4) * " "
             ]  # Make tables borders match
 
-            logger.info(sensitivity_table)
-            logger.info(prediction_table)
+            print(sensitivity_table)
+            print(prediction_table)
 
     def all(self):
         """Prints all sensitivity analysis plots"""
