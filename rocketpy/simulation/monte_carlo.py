@@ -1654,19 +1654,36 @@ class _SimMonitor:
         msg += f" | Average Time per Iteration: {average_time:.3f} s"
         msg += f" | Estimated time left: {estimated_time} s"
 
-        logger.debug(msg)
+        _SimMonitor.reprint(msg, end="\r", flush=True)
 
     def print_final_status(self):
-        """Logs the final status of the simulation."""
-        logger.info(
-            "Completed %d iterations. In total, %d simulations are exported. "
-            "Total wall time: %.1f s",
-            self.count - self.initial_count,
-            self.count,
-            time() - self.start_time,
-        )
+        """Prints the final status of the simulation."""
+        print()
+        msg = f"Completed {self.count - self.initial_count} iterations."
+        msg += f" In total, {self.count} simulations are exported.\n"
+        msg += f"Total wall time: {time() - self.start_time:.1f} s"
+        _SimMonitor.reprint(msg, end="\n", flush=True)
 
     @staticmethod
-    def reprint(msg, end="\n", flush=True):  # pylint: disable=unused-argument
-        """Logs a message at INFO level. Kept for backwards compatibility."""
-        logger.info(msg)
+    def reprint(msg, end="\n", flush=True):
+        """Prints a message replacing the previous line to avoid cluttering
+        the terminal output during concurrent simulation progress updates.
+
+        Parameters
+        ----------
+        msg : str
+            Message to be printed.
+        end : str, optional
+            String appended after the message. Default is a new line.
+        flush : bool, optional
+            If True, the output is flushed. Default is True.
+
+        Returns
+        -------
+        None
+        """
+        padding = ""
+        if len(msg) < _SimMonitor._last_print_len:
+            padding = " " * (_SimMonitor._last_print_len - len(msg))
+        print(msg + padding, end=end, flush=flush)
+        _SimMonitor._last_print_len = len(msg)
