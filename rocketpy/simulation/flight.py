@@ -781,7 +781,7 @@ class Flight:
                     self.y_sol = phase.solver.y
                     if verbose:
                         print(f"Current Simulation Time: {self.t:3.4f} s", end="\r")
-                    logger.debug("Current Simulation Time: %3.4f s", self.t)
+                        logger.debug("Current Simulation Time: %3.4f s", self.t)
 
                     if self.__check_simulation_events(phase, phase_index, node_index):
                         break  # Stop if simulation termination event occurred

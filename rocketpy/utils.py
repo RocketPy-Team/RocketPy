@@ -4,9 +4,10 @@ import logging
 def enable_logging(level="WARNING"):
     """Enable RocketPy logging output to the console.
 
-    Attaches a StreamHandler to RocketPy's root logger so that internal
+    Attaches a StreamHandler to the ``rocketpy`` logger so that internal
     runtime events (simulation progress, warnings, errors) are printed to
-    the terminal. By default, only WARNING and above are shown.
+    the terminal. Only RocketPy logs are affected — global/root logging
+    is not modified. By default, only WARNING and above are shown.
 
     Parameters
     ----------

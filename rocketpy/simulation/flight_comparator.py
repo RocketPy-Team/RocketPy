@@ -739,7 +739,7 @@ class FlightComparator:
 
     def summary(self):  # pylint: disable=too-many-statements
         """
-        Print comprehensive comparison summary including key events and metrics.
+        Log comprehensive comparison summary including key events and metrics.
 
         Returns
         -------
