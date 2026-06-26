@@ -1475,4 +1475,4 @@ if __name__ == "__main__":  # pragma: no cover
     if res.failed < 1:
         logger.info("All the %d tests passed!", res.attempted)
     else:
-        logger.warning("%d out of %d tests failed.", res.failed, res.attempted)
+        logger.error("%d out of %d tests failed.", res.failed, res.attempted)

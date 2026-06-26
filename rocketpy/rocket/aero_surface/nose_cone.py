@@ -449,10 +449,11 @@ class NoseCone(AeroSurface):
         self.shape_vec = [nosecone_x, nosecone_y]
         if abs(nosecone_x[-1] - self.length) >= 0.001:  # 1 millimeter
             self._length = nosecone_x[-1]
-            logger.warning(
-                "Due to the chosen bluffness ratio, the nose cone length was "
-                "reduced to %.4f m.",
-                self.length,
+            warnings.warn(
+                f"Due to the chosen bluffness ratio, the nose cone length was "
+                f"reduced to {self.length:.4f} m.",
+                UserWarning,
+                stacklevel=2,
             )
         self.fineness_ratio = self.length / (2 * self.base_radius)
 
