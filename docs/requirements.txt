@@ -8,7 +8,7 @@ accessible-pygments==0.0.5
     # via pydata-sphinx-theme
 alabaster==1.0.0
     # via sphinx
-asttokens==3.0.0
+asttokens==3.0.1
     # via stack-data
 attrs==25.3.0
     # via
