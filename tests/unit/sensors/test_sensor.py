@@ -8,6 +8,15 @@ from pytest import approx
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
 from rocketpy.tools import euler313_to_quaternions
 
+
+@pytest.fixture(autouse=True)
+def _seed_rng():
+    """Seed NumPy's global RNG before each test so that the noise-based
+    sensor measurements are deterministic. Without this, tests such as
+    ``test_noisy_barometer`` are flaky because the random white noise can
+    occasionally exceed the assertion tolerance."""
+    np.random.seed(42)
+
 # calisto standard simulation no wind solution index 200
 TIME = 3.338513236767685
 U = [
