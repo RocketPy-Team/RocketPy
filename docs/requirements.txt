@@ -218,7 +218,7 @@ sphinxcontrib-serializinghtml==2.0.0
     # via sphinx
 stack-data==0.6.3
     # via ipython
-tinycss2==1.4.0
+tinycss2==1.5.1
     # via bleach
 tornado==6.5.2
     # via
