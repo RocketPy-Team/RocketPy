@@ -587,6 +587,9 @@ class Flight:
             A custom ``scipy.integrate.OdeSolver`` can be passed as well.
             For more information on the integration methods, see the scipy
             documentation [1]_.
+        simulation_mode : str, optional
+            Simulation mode to use. Can be "6 DOF" for 6 degrees of freedom or
+            "3 DOF" for 3 degrees of freedom. Default is "6 DOF".
         Returns
         -------
         None
@@ -706,11 +709,14 @@ class Flight:
                     ) = self.__calculate_and_save_pressure_signals(
                         parachute, node.t, self.y_sol[2]
                     )
-                    if parachute.triggerfunc(
+                    if self._evaluate_parachute_trigger(
+                        parachute,
                         noisy_pressure,
                         height_above_ground_level,
                         self.y_sol,
                         self.sensors,
+                        phase.derivative,
+                        self.t,
                     ):
                         # Remove parachute from flight parachutes
                         self.parachutes.remove(parachute)
@@ -923,11 +929,14 @@ class Flight:
             ) = self.__calculate_and_save_pressure_signals(
                 parachute, node.t, self.y_sol[2]
             )
-            if not parachute.triggerfunc(
+            if not self._evaluate_parachute_trigger(
+                parachute,
                 noisy_pressure,
                 height_above_ground_level,
                 self.y_sol,
                 self.sensors,
+                phase.derivative,
+                node.t,
             ):
                 continue  # Check next parachute
 
@@ -1334,11 +1343,14 @@ class Flight:
             )
 
             # Check for parachute trigger
-            if not parachute.triggerfunc(
+            if not self._evaluate_parachute_trigger(
+                parachute,
                 noisy_pressure,
                 height_above_ground_level,
                 overshootable_node.y_sol,
                 self.sensors,
+                phase.derivative,
+                overshootable_node.t,
             ):
                 continue  # Check next parachute
 
@@ -1438,6 +1450,51 @@ class Flight:
         )
 
         return noisy_pressure, height_above_ground_level
+
+    def _evaluate_parachute_trigger(
+        self, parachute, pressure, height, y, sensors, derivative_func, t
+    ):
+        """Evaluate parachute trigger, passing both sensors and u_dot to wrapper.
+
+        This helper preserves backward compatibility with existing trigger
+        signatures. The wrapper in Parachute always expects (p, h, y, sensors, u_dot)
+        and Flight computes u_dot only when the trigger requests it (optimization).
+
+        Parameters
+        ----------
+        parachute : Parachute
+            Parachute object.
+        pressure : float
+            Noisy pressure value passed to trigger.
+        height : float
+            Height above ground level passed to trigger.
+        y : array
+            State vector at evaluation time.
+        sensors : list
+            Sensors list passed to trigger.
+        derivative_func : callable
+            Function to compute derivatives: derivative_func(t, y)
+        t : float
+            Time at which to evaluate derivatives.
+
+        Returns
+        -------
+        bool
+            True if trigger condition met, False otherwise.
+        """
+        triggerfunc = parachute.triggerfunc
+
+        # Check wrapper metadata for expectations
+        expects_udot = getattr(triggerfunc, "_expects_udot", False)
+
+        # Compute u_dot only if needed (performance optimization)
+        u_dot = None
+        if expects_udot:
+            u_dot = derivative_func(t, y)
+
+        # Call the wrapper with both sensors and u_dot
+        # The wrapper will decide which args to pass to the user's function
+        return triggerfunc(pressure, height, y, sensors, u_dot)
 
     def __init_solution_monitors(self):
         # Initialize solution monitors
