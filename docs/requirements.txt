@@ -153,7 +153,7 @@ ptyprocess==0.7.0
     # via pexpect
 pure-eval==0.2.3
     # via stack-data
-pydata-sphinx-theme==0.16.1
+pydata-sphinx-theme==0.19.0
     # via -r docs/requirements.in
 pygments==2.19.2
     # via
