@@ -1,6 +1,6 @@
 pytest
 pytest-coverage
 pandas
-numericalunits==1.25
+numericalunits==1.28
 pylint
 ruff>=0.9

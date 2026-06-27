@@ -47,7 +47,7 @@ tests = [
     "flake8-black",
     "flake8-pyproject",
     "pandas",
-    "numericalunits==1.25",
+    "numericalunits==1.28",
     "pylint",
     "isort"
 ]
