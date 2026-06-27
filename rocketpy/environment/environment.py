@@ -537,20 +537,42 @@ class Environment:
             interpolation="linear",
         )
 
+    def __set_wind_angle_function(self, source, attribute, output):
+        """Set ``attribute`` (e.g. ``wind_direction``) as a Function of height.
+        For 2D-array sources the angles are unwrapped across the 360/0 boundary
+        before linear interpolation, avoiding spurious spikes near the wrap."""
+        if isinstance(source, (np.ndarray, list, tuple)) and np.ndim(source) == 2:
+            array = np.asarray(source)
+            unwrapped_deg = np.rad2deg(np.unwrap(np.deg2rad(array[:, 1])))
+            unwrapped = Function(
+                np.column_stack((array[:, 0], unwrapped_deg)),
+                inputs="Height Above Sea Level (m)",
+                outputs=output,
+                interpolation="linear",
+            )
+            setattr(self, f"{attribute}_unwrapped", unwrapped)
+            source = Function(
+                lambda h: unwrapped(h) % 360,
+                inputs="Height Above Sea Level (m)",
+                outputs=output,
+            )
+        else:
+            source = Function(
+                source,
+                inputs="Height Above Sea Level (m)",
+                outputs=output,
+                interpolation="linear",
+            )
+        setattr(self, attribute, source)
+
     def __set_wind_direction_function(self, source):
-        self.wind_direction = Function(
-            source,
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Direction (Deg True)",
-            interpolation="linear",
+        self.__set_wind_angle_function(
+            source, "wind_direction", "Wind Direction (Deg True)"
         )
 
     def __set_wind_heading_function(self, source):
-        self.wind_heading = Function(
-            source,
-            inputs="Height Above Sea Level (m)",
-            outputs="Wind Heading (Deg True)",
-            interpolation="linear",
+        self.__set_wind_angle_function(
+            source, "wind_heading", "Wind Heading (Deg True)"
         )
 
     def __reset_barometric_height_function(self):
