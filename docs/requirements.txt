@@ -107,7 +107,7 @@ matplotlib-inline==0.1.7
     #   ipython
 mistune==3.1.4
     # via nbconvert
-narwhals==2.5.0
+narwhals==2.22.1
     # via plotly
 nbclient==0.10.2
     # via nbconvert
