@@ -32,7 +32,7 @@ comm==0.2.3
     # via
     #   ipykernel
     #   ipywidgets
-debugpy==1.8.17
+debugpy==1.8.21
     # via ipykernel
 decorator==5.2.1
     # via ipython
