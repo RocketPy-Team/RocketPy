@@ -29,7 +29,9 @@
   - `make coverage-report`
   - `make build-docs`
 - Before finishing code changes, run focused tests first, then broader relevant suites.
-- When running Python directly in this workspace, prefer `.venv/Scripts/python.exe`.
+- When running Python directly in this workspace, prefer the project virtual
+  environment interpreter: `.venv/bin/python` on Unix/macOS or
+  `.venv/Scripts/python.exe` on Windows.
 - Slow tests are explicitly marked with `@pytest.mark.slow` and are run with `make pytest-slow`.
 - For docs changes, check `make build-docs` output and resolve warnings/errors when practical.
 

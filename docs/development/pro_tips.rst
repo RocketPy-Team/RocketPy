@@ -56,14 +56,22 @@ Code assistance
 Artificial Intelligence (AI) assistance has become more and more common in
 software development.
 Some editors have AI assistance built-in.
-Famous options are Google Antigravity, GitHub Copilot, Claude Code, JetBrains AI, and TabNine.
+Famous options are Google Antigravity, GitHub Copilot, Claude Code,
+JetBrains AI, and TabNine.
 
-At this repo, the use of AI tools is welcome, we don't have any restrictions
-against it. To help AI tools perform better and follow our standards, we provide pre-configured instruction and skill files within the repository:
+In this repository, the use of AI tools is welcome; we don't have any
+restrictions against it. To help AI tools perform better and follow our
+standards, we provide pre-configured instructions and skill files within
+the repository:
 
-* **GitHub Copilot**: Uses ``.github/copilot-instructions.md`` (general codebase rules).
-* **Google Antigravity**: Uses the ``.agents/`` folder, containing general workspace rules (``.agents/AGENTS.md``) and contextual workflows (``.agents/skills/``) for simulation safety, test authoring, documentation, and code review.
-* **Claude / Claude Code**: Permissions configured via ``.claude/settings.json``.
+* **GitHub Copilot**: Uses ``.github/copilot-instructions.md`` (general
+  codebase rules).
+* **Google Antigravity**: Uses the ``.agents/`` folder, containing general
+  workspace rules (``.agents/AGENTS.md``) and contextual workflows
+  (``.agents/skills/``) for simulation safety, test authoring,
+  documentation, and code review.
+* **Claude / Claude Code**: Permissions configured via
+  ``.claude/settings.json``.
 
 A few possible applications of AI tools are:
 
@@ -73,7 +81,9 @@ A few possible applications of AI tools are:
 
 .. tip::
 
-    Using these pre-configured rules ensures that your AI assistant adheres to RocketPy's style guides (snake_case, NumPy docstrings, 88-char line limits) and testing conventions (AAA structure).
+    Using these pre-configured rules ensures that your AI assistant adheres
+    to RocketPy's style guides (snake_case, NumPy docstrings, 88-char line
+    limits) and testing conventions (AAA structure).
 
 If you are against the use of AI tools, do not worry, you can still contribute
 to the project without using them.

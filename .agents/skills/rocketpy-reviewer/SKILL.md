@@ -1,7 +1,7 @@
 ---
 description: "Physics-safe RocketPy code review agent. Use for pull request review, unit consistency checks, coordinate-frame validation, cached-property risk detection, and regression-focused test-gap analysis."
 name: "RocketPy Reviewer"
-tools: [read, search, execute]
+tools: [read, search]
 argument-hint: "Review these changes for physics correctness and regression risk: <scope or files>"
 user-invocable: true
 ---
