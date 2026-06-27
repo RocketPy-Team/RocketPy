@@ -6,6 +6,7 @@ from importlib import resources
 import matplotlib.pyplot as plt
 import numpy as np
 
+from ..mathutils import Function
 from ..tools import import_optional_dependency
 from .plot_helpers import show_or_save_plot
 
@@ -1253,6 +1254,63 @@ class _FlightPlots:
         else:
             print("\nRocket has no parachutes. No parachute plots available")
 
+    def parachutes_info(self, parachute_name="all"):
+        """Plots parachute dynamic information.
+        This function plots the dynamic relevant information to each parachute.
+        Different parachute models have different dynamic variables. It is
+        assumed that the 'parachutes_info' members have the dynamic variables
+        together with their respective time
+
+        Parameters
+        ----------
+        parachute_name : str | optional
+            The parachute name to display information. Default is 'all', in
+            which case information about all parachutes are plotted.
+
+        Returns
+        -------
+        None
+        """
+        if not hasattr(self.flight, "parachutes_info"):
+            print("\nFlight has no parachute dynamic information available.")
+            return
+
+        if parachute_name == "all":
+            for name, parachute_variables in self.flight.parachutes_info.items():
+                t_values = parachute_variables["t"]
+                variable_names = parachute_variables.keys()
+                for variable in variable_names:
+                    if variable != "t":
+                        variable_values = parachute_variables[variable]
+                        variable_func = Function(
+                            source=[
+                                [t, value]
+                                for t, value in zip(t_values, variable_values)
+                            ],
+                            inputs="time",
+                            outputs=variable,
+                            title=f"{variable} x time for parachute {name}",
+                            interpolation="linear",
+                        )
+                        variable_func()
+        else:
+            parachute_variables = self.flight.parachutes_info[parachute_name]
+            t_values = parachute_variables["t"]
+            variable_names = parachute_variables.keys()
+            for variable in variable_names:
+                if variable != "t":
+                    variable_values = parachute_variables[variable]
+                    variable_func = Function(
+                        source=[
+                            [t, value] for t, value in zip(t_values, variable_values)
+                        ],
+                        inputs="time",
+                        outputs=variable,
+                        title=f"{variable} x Time for parachute {parachute_name}",
+                        interpolation="linear",
+                    )
+                    variable_func()
+
     def all(self):  # pylint: disable=too-many-statements
         """Prints out all plots available about the Flight.
 
@@ -1297,3 +1355,4 @@ class _FlightPlots:
         print("\n\nRocket and Parachute Pressure Plots\n")
         self.pressure_rocket_altitude()
         self.pressure_signals()
+        self.parachutes_info()

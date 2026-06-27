@@ -6,7 +6,14 @@ import matplotlib as mpl
 import numpy as np
 from scipy.signal import savgol_filter
 
-from rocketpy import Environment, Flight, Function, Rocket, SolidMotor
+from rocketpy import (
+    Environment,
+    Flight,
+    Function,
+    HemisphericalParachute,
+    Rocket,
+    SolidMotor,
+)
 
 mpl.rc("figure", max_open_warning=0)  # Prevent matplotlib warnings
 
@@ -132,7 +139,7 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         # activate drogue when vz < 0 m/s.
         return True if y[5] < 0 else False
 
-    BellaLui.add_parachute(
+    drogue = HemisphericalParachute(
         "Drogue",
         cd_s=parameters.get("CdS_drogue")[0],
         trigger=drogue_trigger,
@@ -140,6 +147,7 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         lag=parameters.get("lag_rec")[0],
         noise=(0, 8.3, 0.5),
     )
+    BellaLui.add_parachute(parachute=drogue)
 
     # Define aerodynamic drag coefficients
     power_off_drag_by_mach = Function(

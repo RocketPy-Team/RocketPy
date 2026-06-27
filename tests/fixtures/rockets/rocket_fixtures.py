@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from rocketpy import Rocket
+from rocketpy import HemisphericalParachute, Rocket
 
 
 @pytest.fixture
@@ -404,14 +404,18 @@ def prometheus_rocket(generic_motor_cesaroni_M1520):
         position=0.273,
         sweep_length=0.066,
     )
-    prometheus.add_parachute(
+    drogue = HemisphericalParachute(
         "Drogue",
         cd_s=1.6 * np.pi * 0.3048**2,  # Cd = 1.6, D_chute = 24 in
         trigger="apogee",
+        sampling_rate=100,
     )
-    prometheus.add_parachute(
+    main = HemisphericalParachute(
         "Main",
         cd_s=2.2 * np.pi * 0.9144**2,  # Cd = 2.2, D_chute = 72 in
         trigger=457.2,  # 1500 ft
+        sampling_rate=100,
     )
+    prometheus.add_parachute(parachute=drogue)
+    prometheus.add_parachute(parachute=main)
     return prometheus

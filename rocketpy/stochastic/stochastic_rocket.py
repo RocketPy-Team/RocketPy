@@ -17,7 +17,7 @@ from rocketpy.rocket.aero_surface import (
     TrapezoidalFins,
 )
 from rocketpy.rocket.components import Components
-from rocketpy.rocket.parachute import Parachute
+from rocketpy.rocket.parachutes.parachute import Parachute
 from rocketpy.rocket.rocket import Rocket
 from rocketpy.stochastic.stochastic_generic_motor import StochasticGenericMotor
 from rocketpy.stochastic.stochastic_motor_model import StochasticMotorModel
@@ -362,7 +362,7 @@ class StochasticRocket(StochasticModel):
         # checks if input is a StochasticParachute type
         if not isinstance(parachute, (Parachute, StochasticParachute)):
             raise TypeError(
-                "`parachute` must be of Parachute or StochasticParachute type"
+                "`parachute` must be of valid parachute model or StochasticParachute type"
             )
         if isinstance(parachute, Parachute):
             parachute = StochasticParachute(parachute=parachute)
@@ -795,13 +795,6 @@ class StochasticRocket(StochasticModel):
 
         for parachute in self.parachutes:
             parachute = self._create_parachute(parachute)
-            rocket.add_parachute(
-                name=parachute.name,
-                cd_s=parachute.cd_s,
-                trigger=parachute.trigger,
-                sampling_rate=parachute.sampling_rate,
-                lag=parachute.lag,
-                noise=parachute.noise,
-            )
+            rocket.add_parachute(parachute=parachute)
 
         return rocket
