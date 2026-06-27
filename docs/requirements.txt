@@ -111,7 +111,7 @@ narwhals==2.5.0
     # via plotly
 nbclient==0.10.2
     # via nbconvert
-nbconvert==7.16.6
+nbconvert==7.17.1
     # via
     #   jupyter-sphinx
     #   nbsphinx
