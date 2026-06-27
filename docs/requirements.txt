@@ -93,7 +93,7 @@ jupyterlab-pygments==0.3.0
     # via nbconvert
 jupyterlab-widgets==3.0.15
     # via ipywidgets
-lxml==6.0.1
+lxml==6.1.1
     # via lxml-html-clean
 lxml-html-clean==0.4.2
     # via -r docs/requirements.in
