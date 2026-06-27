@@ -125,7 +125,7 @@ nbsphinx==0.9.7
     # via -r docs/requirements.in
 nest-asyncio==1.6.0
     # via ipykernel
-numpy==2.3.3
+numpy==2.5.0
     # via pandas
 packaging==25.0
     # via
