@@ -29,6 +29,7 @@ from rocketpy.rocket.aero_surface.fins.trapezoidal_fin import TrapezoidalFin
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachutes.hemispherical_parachute import HemisphericalParachute
+from rocketpy.rocket.parachutes.parachute import Parachute
 from rocketpy.tools import (
     deprecated,
     find_obj_from_hash,
@@ -1664,6 +1665,11 @@ class Rocket:
             in future versions.
         """
         if parachute is not None:
+            if not isinstance(parachute, Parachute):
+                raise TypeError(
+                    "The 'parachute' argument must be an instance of a Parachute "
+                    "subclass (e.g. 'HemisphericalParachute')."
+                )
             self.parachutes.append(parachute)
         else:
             # For backwards compatibility

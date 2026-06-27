@@ -160,8 +160,8 @@ Drogue = HemisphericalParachute(
     noise=(0, 8.3, 0.5),
 )
 
-rocket.add_parachute(Main)
-rocket.add_parachute(Drogue)
+rocket.add_parachute(parachute=Main)
+rocket.add_parachute(parachute=Drogue)
 
 # Flight
 test_flight = Flight(

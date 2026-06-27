@@ -258,7 +258,7 @@ class Parachute(ABC):
         """Representation method for the class, useful when debugging."""
         return (
             f"<Parachute {self.name} of type {self.parachute_type} "
-            + f"(lag = {self.lag:.4f} m2, trigger = {self.trigger})>"
+            + f"(lag = {self.lag:.4f} s, trigger = {self.trigger})>"
         )
 
     def info(self):
