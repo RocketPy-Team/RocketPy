@@ -32,6 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- ENH: Add RingClusterMotor for annular clustered motor modeling [#924](https://github.com/RocketPy-Team/RocketPy/pull/924)
 - ENH: Pass acceleration (`u_dot`) data to parachute trigger functions [#911](https://github.com/RocketPy-Team/RocketPy/pull/911)
 - ENH: Add 3D flight trajectory and attitude animations in Flight plots layer [#909](https://github.com/RocketPy-Team/RocketPy/pull/909)
 - ENH: DOC: Configure AI instructions and update developer docs [#975](https://github.com/RocketPy-Team/RocketPy/pull/975)
