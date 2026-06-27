@@ -56,7 +56,7 @@ ipykernel==6.30.1
     # via
     #   -r docs/requirements.in
     #   jupyter-sphinx
-ipython==9.5.0
+ipython==9.15.0
     # via
     #   ipykernel
     #   ipywidgets
