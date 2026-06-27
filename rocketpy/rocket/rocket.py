@@ -23,6 +23,7 @@ from rocketpy.rocket.aero_surface import (
 )
 from rocketpy.rocket.aero_surface.fins.free_form_fins import FreeFormFins
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
+from rocketpy.exceptions import InvalidInertiaError, InvalidParameterError, UnstableRocketWarning
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
 from rocketpy.tools import (
@@ -307,6 +308,22 @@ class Rocket:
                     "Invalid coordinate system orientation. Please choose between "
                     + '"tail_to_nose" and "nose_to_tail".'
                 )
+
+        # Validate inputs
+        if not isinstance(radius, (int, float)) or radius <= 0:
+            raise InvalidParameterError(
+                f"Rocket radius must be a positive number, got {radius!r}."
+            )
+        if not isinstance(mass, (int, float)) or mass <= 0:
+            raise InvalidParameterError(
+                f"Rocket mass must be a positive number, got {mass!r}."
+            )
+        if not isinstance(inertia, (tuple, list)) or len(inertia) not in (3, 6):
+            raise InvalidInertiaError(
+                "Inertia must be a tuple or list with 3 components (I_11, I_22, I_33) "
+                "or 6 components (I_11, I_22, I_33, I_12, I_13, I_23), "
+                f"got length {len(inertia) if isinstance(inertia, (tuple, list)) else 'N/A'}."
+            )
 
         # Define rocket inertia attributes in SI units
         self.mass = mass
@@ -725,6 +742,17 @@ class Rocket:
         self.static_margin.set_discrete(
             lower=0, upper=self.motor.burn_out_time, samples=200
         )
+        # Warn the user if the rocket is aerodynamically unstable at ignition
+        initial_static_margin = self.static_margin.get_value_opt(0)
+        if initial_static_margin < 0:
+            warnings.warn(
+                f"The rocket has a negative static margin ({initial_static_margin:.2f} cal) "
+                "at motor ignition (t=0), indicating an aerodynamically unstable "
+                "configuration. Check the placement of fins and nose cone relative "
+                "to the center of mass.",
+                UnstableRocketWarning,
+                stacklevel=2,
+            )
         return self.static_margin
 
     def evaluate_dry_inertias(self):
