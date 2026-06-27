@@ -127,7 +127,7 @@ nest-asyncio==1.6.0
     # via ipykernel
 numpy==2.3.3
     # via pandas
-packaging==25.0
+packaging==26.2
     # via
     #   ipykernel
     #   nbconvert
