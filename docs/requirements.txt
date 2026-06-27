@@ -101,7 +101,7 @@ markupsafe==3.0.2
     # via
     #   jinja2
     #   nbconvert
-matplotlib-inline==0.1.7
+matplotlib-inline==0.2.2
     # via
     #   ipykernel
     #   ipython
