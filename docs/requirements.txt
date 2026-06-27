@@ -147,7 +147,7 @@ plotly==6.3.0
     # via -r docs/requirements.in
 prompt-toolkit==3.0.52
     # via ipython
-psutil==7.1.0
+psutil==7.2.2
     # via ipykernel
 ptyprocess==0.7.0
     # via pexpect
