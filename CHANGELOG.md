@@ -32,6 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- ENH: BUG: fix wind heading and direction wraparound interpolation [#974](https://github.com/RocketPy-Team/RocketPy/pull/974)
 - ENH: MNT: Sync develop's Renovate config with master (#1039) [#1040](https://github.com/RocketPy-Team/RocketPy/pull/1040)
 - ENH: MNT: Configure Renovate Bot targeting develop branch [#972](https://github.com/RocketPy-Team/RocketPy/pull/972)
 - ENH: Monte Carlo Formatting Options [#947](https://github.com/RocketPy-Team/RocketPy/pull/947)
