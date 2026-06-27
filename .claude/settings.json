@@ -1,7 +1,6 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python -c \"import sys, json; data=json.load\\(sys.stdin\\); [print\\(f\\\\\"--- {c['path']}:{c.get\\('line'\\) or c.get\\('original_line'\\)} ---\\\\n{c['body']}\\\\n\\\\\"\\) for c in data]\")",
       "Bash(git fetch *)",
       "Bash(git merge *)",
       "Bash(git checkout *)",
