@@ -63,7 +63,7 @@ ipython==9.5.0
     #   jupyter-sphinx
 ipython-pygments-lexers==1.1.1
     # via ipython
-ipywidgets==8.1.7
+ipywidgets==8.1.8
     # via jupyter-sphinx
 jedi==0.19.2
     # via ipython
