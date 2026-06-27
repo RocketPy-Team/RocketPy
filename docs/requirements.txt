@@ -22,7 +22,7 @@ beautifulsoup4==4.13.5
     # via
     #   nbconvert
     #   pydata-sphinx-theme
-bleach[css]==6.2.0
+bleach[css]==6.4.0
     # via nbconvert
 certifi==2025.8.3
     # via requests
