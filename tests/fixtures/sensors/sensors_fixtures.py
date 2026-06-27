@@ -58,7 +58,7 @@ def noisy_barometer():
         noise_density=19,
         noise_variance=19,
         random_walk_density=0.01,
-        constant_bias=1000,
+        constant_bias=0.5,
         operating_temperature=25 + 273.15,
         temperature_bias=0.02,
         temperature_scale_factor=0.02,
