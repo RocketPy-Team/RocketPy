@@ -97,7 +97,7 @@ lxml==6.0.1
     # via lxml-html-clean
 lxml-html-clean==0.4.2
     # via -r docs/requirements.in
-markupsafe==3.0.2
+markupsafe==3.0.3
     # via
     #   jinja2
     #   nbconvert
