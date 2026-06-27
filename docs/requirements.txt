@@ -250,5 +250,5 @@ webencodings==0.5.1
     # via
     #   bleach
     #   tinycss2
-widgetsnbextension==4.0.14
+widgetsnbextension==4.0.15
     # via ipywidgets
