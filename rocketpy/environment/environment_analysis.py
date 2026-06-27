@@ -2,7 +2,9 @@ import bisect
 import copy
 import datetime
 import json
+import logging
 import warnings
+
 from collections import defaultdict
 from functools import cached_property
 
@@ -23,6 +25,8 @@ from ..tools import (
 )
 from ..units import convert_units
 from .environment import Environment
+
+logger = logging.getLogger(__name__)
 
 # TODO: the average_wind_speed_profile_by_hour and similar methods could be more abstract than currently are
 
@@ -236,13 +240,15 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
                 check_requirement_version(module_name, version)
             except (ValueError, ImportError) as e:
                 has_error = True
-                print(
-                    f"The following error occurred while importing {module_name}: {e}"
+                logger.error(
+                    "The following error occurred while importing %s: %s",
+                    module_name,
+                    e,
                 )
         if has_error:
-            print(
+            logger.error(
                 "Given the above errors, some methods may not work. Please run "
-                + "'pip install rocketpy[env_analysis]' to install extra requirements."
+                "'pip install rocketpy[env_analysis]' to install extra requirements."
             )
 
     def __init_surface_dictionary(self):
@@ -508,8 +514,9 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
             }
         else:
             # Default to SI
-            print(
-                f"Defaulting to SI unit system, the {self.unit_system_string} was not found."
+            logger.warning(
+                "Defaulting to SI unit system, the '%s' unit system was not found.",
+                self.unit_system_string,
             )
             self.unit_system = {
                 "length": "m",
@@ -2843,9 +2850,10 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
                     self.export_dictionary, sort_keys=False, indent=4, default=str
                 )
             )
-        print(
-            f"Your Environment Analysis file was saved, check it out: {filename}.json\n"
-            "You can use it to set a `customAtmosphere` atmospheric model"
+        logger.info(
+            "Your Environment Analysis file was saved: %s.json. "
+            "You can use it to set a customAtmosphere atmospheric model.",
+            filename,
         )
 
     @classmethod
@@ -2884,7 +2892,7 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
         file = open(filename, "w")  # pylint: disable=consider-using-with
         file.write(encoded_class)
         file.close()
-        print("Your Environment Analysis file was saved, check it out: " + filename)
+        logger.info("Your Environment Analysis file was saved: %s", filename)
 
     def create_environment_object(
         self, gravity=None, date=None, datum="SIRGAS2000", max_expected_height=80000.0

@@ -1,12 +1,17 @@
+import logging
+
 import matplotlib.pyplot as plt
 import numpy as np
 
 from rocketpy.mathutils.vector_matrix import Vector
+
 from rocketpy.motors import EmptyMotor, HybridMotor, LiquidMotor, SolidMotor
 from rocketpy.rocket.aero_surface import Fin, Fins, NoseCone, Tail
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 
 from .plot_helpers import show_or_save_plot
+
+logger = logging.getLogger(__name__)
 
 
 class _RocketPlots:
@@ -706,32 +711,26 @@ class _RocketPlots:
 
         # Rocket draw
         if len(self.rocket.aerodynamic_surfaces) > 0:
-            print("\nRocket Drawing")
-            print("-" * 40)
+            logger.info("Rocket Drawing")
             self.draw()
 
         # Mass Plots
-        print("\nMass Plots")
-        print("-" * 40)
+        logger.info("Mass Plots")
         self.total_mass()
         self.reduced_mass()
 
         # Aerodynamics Plots
-        print("\nAerodynamics Plots")
-        print("-" * 40)
+        logger.info("Aerodynamics Plots")
 
         # Drag Plots
-        print("Drag Plots")
-        print("-" * 20)  # Separator for Drag Plots
+        logger.info("Drag Plots")
         self.drag_curves()
 
         # Stability Plots
-        print("\nStability Plots")
-        print("-" * 20)  # Separator for Stability Plots
+        logger.info("Stability Plots")
         self.static_margin()
         self.stability_margin()
 
         # Thrust-to-Weight Plot
-        print("\nThrust-to-Weight Plot")
-        print("-" * 40)
+        logger.info("Thrust-to-Weight Plot")
         self.thrust_to_weight()

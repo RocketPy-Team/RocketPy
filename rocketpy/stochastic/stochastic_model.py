@@ -3,6 +3,7 @@ Defines the `StochasticModel` class, which is used as a base class for all other
 Stochastic classes.
 """
 
+import logging
 from random import choice
 
 import numpy as np
@@ -11,6 +12,8 @@ from rocketpy.mathutils.function import Function
 from rocketpy.stochastic.custom_sampler import CustomSampler
 
 from ..tools import get_distribution
+
+logger = logging.getLogger(__name__)
 
 # TODO: Stop using assert in production code. Use exceptions instead.
 # TODO: Each validation method should have a test case.
@@ -630,4 +633,4 @@ class StochasticModel:
                 format_attribute(attr, attributes[attr]) for attr in custom_attributes
             )
 
-        print("\n".join(filter(None, report)))
+        logger.info("\n".join(filter(None, report)))

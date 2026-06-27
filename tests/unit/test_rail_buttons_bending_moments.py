@@ -4,6 +4,7 @@ These tests focus on verifying the mathematical correctness and realism
 of the calculate_rail_button_bending_moments method in isolation.
 """
 
+import logging
 import warnings
 
 import matplotlib.pyplot as plt
@@ -199,24 +200,20 @@ def test_rail_button_bending_moments_plot_with_height(flight_calisto_robust):
     plt.close("all")
 
 
-def test_rail_button_bending_moments_plot_without_height(flight_calisto_robust, capsys):
+def test_rail_button_bending_moments_plot_without_height(flight_calisto_robust, caplog):
     """Test that bending moments plot is skipped when button_height is None.
 
     Parameters
     ----------
     flight_calisto_robust : rocketpy.Flight
         Flight fixture with motor and rail buttons.
-    capsys : pytest fixture
-        Captures stdout/stderr.
+    caplog : pytest fixture
+        Captures log records.
     """
     # Ensure button_height is None (it should be by default now)
     flight_calisto_robust.rocket.rail_buttons[0].component.button_height = None
 
-    # Call plot method
-    flight_calisto_robust.plots.rail_buttons_bending_moments()
+    with caplog.at_level(logging.WARNING, logger="rocketpy"):
+        flight_calisto_robust.plots.rail_buttons_bending_moments()
 
-    # Capture output
-    captured = capsys.readouterr()
-
-    # Should print skip message
-    assert "height not defined" in captured.out
+    assert "height not defined" in caplog.text

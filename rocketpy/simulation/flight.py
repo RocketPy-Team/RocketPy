@@ -1,6 +1,8 @@
 # pylint: disable=too-many-lines
+import logging
 import math
 import warnings
+
 from copy import deepcopy
 from functools import cached_property
 
@@ -26,6 +28,8 @@ from ..tools import (
     quaternions_to_precession,
     quaternions_to_spin,
 )
+
+logger = logging.getLogger(__name__)
 
 ODE_SOLVER_MAP = {
     "RK23": RK23,
@@ -777,6 +781,7 @@ class Flight:
                     self.y_sol = phase.solver.y
                     if verbose:
                         print(f"Current Simulation Time: {self.t:3.4f} s", end="\r")
+                        logger.debug("Current Simulation Time: %3.4f s", self.t)
 
                     if self.__check_simulation_events(phase, phase_index, node_index):
                         break  # Stop if simulation termination event occurred
@@ -801,6 +806,7 @@ class Flight:
             self.__cache_sensor_data()
         if verbose:
             print(f"\n>>> Simulation Completed at Time: {self.t:3.4f} s")
+        logger.info("Simulation completed at time: %3.4f s", self.t)
 
     def __setup_phase_time_nodes(self, phase):
         """Set up time nodes for the current phase.
@@ -4051,9 +4057,11 @@ class Flight:
         ) / 2
 
         stall_angle = np.degrees(stall_angle)
-        print(
-            "Maximum wind velocity at Rail Departure time before angle"
-            + f" of attack exceeds {stall_angle:.3f}°: {w_v:.3f} m/s"
+        logger.info(
+            "Maximum wind velocity at Rail Departure time before angle "
+            "of attack exceeds %.3f°: %.3f m/s",
+            stall_angle,
+            w_v,
         )
 
     @deprecated(
@@ -4267,8 +4275,8 @@ class Flight:
             return str(self.list)
 
         def display_warning(self, *messages):  # pragma: no cover
-            """A simple function to print a warning message."""
-            print("WARNING:", *messages)
+            """A simple function to log a warning message."""
+            logger.warning(" ".join(str(m) for m in messages))
 
         def add(self, flight_phase, index=None):  # TODO: quite complex method
             """Add a flight phase to the list. It will be inserted in the

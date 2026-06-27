@@ -1,8 +1,11 @@
+import logging
 from cmath import isclose
 from functools import cached_property
 from itertools import product
 
 from rocketpy.tools import euler313_to_quaternions, normalize_quaternions
+
+logger = logging.getLogger(__name__)
 
 
 class Vector:
@@ -1108,6 +1111,6 @@ if __name__ == "__main__":  # pragma: no cover
 
     results = doctest.testmod()
     if results.failed < 1:
-        print(f"All the {results.attempted} tests passed!")
+        logger.info("All the %d tests passed!", results.attempted)
     else:
-        print(f"{results.failed} out of {results.attempted} tests failed.")
+        logger.error("%d out of %d tests failed.", results.failed, results.attempted)

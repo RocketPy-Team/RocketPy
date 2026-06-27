@@ -42,6 +42,7 @@ Attention: The newest changes should be on top -->
 - ENH: Auto Populate Changelog [#919](https://github.com/RocketPy-Team/RocketPy/pull/919)
 - ENH: Adaptive Monte Carlo via Convergence Criteria [#922](https://github.com/RocketPy-Team/RocketPy/pull/922)
 - TST: Add acceptance tests for 3DOF flight simulation based on Bella Lui rocket [#914](https://github.com/RocketPy-Team/RocketPy/pull/914)
+- ENH: adopt built-in Python logging instead of print() calls [#450](https://github.com/RocketPy-Team/RocketPy/issues/450)
 
 ### Changed
 
