@@ -50,6 +50,10 @@ Attention: The newest changes should be on top -->
 
 - MNT: Rename `radius` to `radius_function` in `CylindricalTank` and `SphericalTank`; old `radius=` keyword argument now raises `DeprecationWarning` [#957](https://github.com/RocketPy-Team/RocketPy/pull/957)
 
+### Removed
+
+- MNT: Remove redundant, unused per-level `wind_heading`/`wind_direction` functions from `EnvironmentAnalysis` pressure-level data (derivable from `wind_velocity_x`/`wind_velocity_y`) [#1041](https://github.com/RocketPy-Team/RocketPy/pull/1041)
+
 ### Fixed
 
 - BUG: fix NaN in ND linear interpolation outside convex hull [#926](https://github.com/RocketPy-Team/RocketPy/issues/926)
