@@ -52,7 +52,7 @@ idna==3.10
     # via requests
 imagesize==1.4.1
     # via sphinx
-ipykernel==6.30.1
+ipykernel==6.31.0
     # via
     #   -r docs/requirements.in
     #   jupyter-sphinx
