@@ -168,7 +168,7 @@ python-dateutil==2.9.0.post0
     # via
     #   jupyter-client
     #   pandas
-pytz==2025.2
+pytz==2026.2
     # via pandas
 pyzmq==27.1.0
     # via
