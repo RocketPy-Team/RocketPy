@@ -460,8 +460,6 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
             "height_ASL": "m",
             "pressure": "hPa",
             "temperature": "K",
-            "wind_direction": "deg",
-            "wind_heading": "deg",
             "wind_speed": "m/s",
             "wind_velocity_x": "m/s",
             "wind_velocity_y": "m/s",
@@ -570,8 +568,6 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
         Must compute the following for each date and hour available in the dataset:
         - pressure = Function(..., inputs="Height Above Ground Level (m)", outputs="Pressure (Pa)")
         - temperature = Function(..., inputs="Height Above Ground Level (m)", outputs="Temperature (K)")
-        - wind_direction = Function(..., inputs="Height Above Ground Level (m)", outputs="Wind Direction (Deg True)")
-        - wind_heading = Function(..., inputs="Height Above Ground Level (m)", outputs="Wind Heading (Deg True)")
         - wind_speed = Function(..., inputs="Height Above Ground Level (m)", outputs="Wind Speed (m/s)")
         - wind_velocity_x = Function(..., inputs="Height Above Ground Level (m)", outputs="Wind Velocity X (m/s)")
         - wind_velocity_y = Function(..., inputs="Height Above Ground Level (m)", outputs="Wind Velocity Y (m/s)")
@@ -721,39 +717,6 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
                 extrapolation="constant",
             )
             dictionary[date_string][hour_string]["wind_speed"] = wind_speed_function
-
-            # Create function for wind heading levels
-            wind_heading_array = (
-                np.arctan2(wind_velocity_x_array, wind_velocity_y_array)
-                * (180 / np.pi)
-                % 360
-            )
-
-            wind_heading_points_array = np.array(
-                [height_above_ground_level_array, wind_heading_array]
-            ).T
-            wind_heading_function = Function(
-                wind_heading_points_array,
-                inputs="Height Above Ground Level (m)",
-                outputs="Wind Heading (Deg True)",
-                extrapolation="constant",
-            )
-            dictionary[date_string][hour_string]["wind_heading"] = wind_heading_function
-
-            # Create function for wind direction levels
-            wind_direction_array = (wind_heading_array - 180) % 360
-            wind_direction_points_array = np.array(
-                [height_above_ground_level_array, wind_direction_array]
-            ).T
-            wind_direction_function = Function(
-                wind_direction_points_array,
-                inputs="Height Above Ground Level (m)",
-                outputs="Wind Direction (Deg True)",
-                extrapolation="constant",
-            )
-            dictionary[date_string][hour_string]["wind_direction"] = (
-                wind_direction_function
-            )
 
         return (dictionary, lat0, lat1, lon0, lon1)
 
@@ -985,8 +948,6 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
         conversion_dict = {
             "pressure": self.unit_system["pressure"],
             "temperature": self.unit_system["temperature"],
-            "wind_direction": self.unit_system["angle"],
-            "wind_heading": self.unit_system["angle"],
             "wind_speed": self.unit_system["wind_speed"],
             "wind_velocity_x": self.unit_system["wind_speed"],
             "wind_velocity_y": self.unit_system["wind_speed"],
