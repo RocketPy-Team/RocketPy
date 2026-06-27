@@ -91,7 +91,7 @@ jupyter-sphinx==0.5.3
     # via -r docs/requirements.in
 jupyterlab-pygments==0.3.0
     # via nbconvert
-jupyterlab-widgets==3.0.15
+jupyterlab-widgets==3.0.16
     # via ipywidgets
 lxml==6.0.1
     # via lxml-html-clean
