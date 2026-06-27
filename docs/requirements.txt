@@ -242,7 +242,7 @@ typing-extensions==4.15.0
     #   pydata-sphinx-theme
 tzdata==2025.2
     # via pandas
-urllib3==2.5.0
+urllib3==2.7.0
     # via requests
 wcwidth==0.2.13
     # via prompt-toolkit
