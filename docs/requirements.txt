@@ -38,7 +38,7 @@ decorator==5.2.1
     # via ipython
 defusedxml==0.7.1
     # via nbconvert
-docutils==0.21.2
+docutils==0.23
     # via
     #   nbsphinx
     #   pydata-sphinx-theme
