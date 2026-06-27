@@ -777,7 +777,16 @@ class Flight:
                     self.y_sol = phase.solver.y
                     if verbose:
                         print(f"Current Simulation Time: {self.t:3.4f} s", end="\r")
-
+                    if self._continuous_controllers:
+                        for controller in self._continuous_controllers:
+                            controller(
+                                self.t,
+                                self.y_sol,
+                                self._controller_state_history,
+                                self.sensors,
+                                self.env,
+                            )
+                        self._controller_state_history.append(list(self.y_sol))
                     if self.__check_simulation_events(phase, phase_index, node_index):
                         break  # Stop if simulation termination event occurred
 
@@ -1537,6 +1546,7 @@ class Flight:
 
         self.t_initial = self.initial_solution[0]
         self.solution.append(self.initial_solution)
+        self._controller_state_history = [self.initial_solution[1:]]
         self.t = self.solution[-1][0]
         self.y_sol = self.solution[-1][1:]
 
@@ -1576,6 +1586,9 @@ class Flight:
     def __init_controllers(self):
         """Initialize controllers and sensors"""
         self._controllers = self.rocket._controllers[:]
+        self._continuous_controllers = [
+            c for c in self._controllers if c.sampling_rate is None
+        ]
         self.sensors = self.rocket.sensors.get_components()
 
         # reset controllable object to initial state (only airbrakes for now)
@@ -4488,6 +4501,9 @@ class Flight:
 
         def add_controllers(self, controllers, t_init, t_end):
             for controller in controllers:
+                # Skip node creation for continuous controllers
+                if controller.sampling_rate is None:
+                    continue
                 # Calculate start of sampling time nodes
                 controller_time_step = 1 / controller.sampling_rate
                 controller_node_list = [
