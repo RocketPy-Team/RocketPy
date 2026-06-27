@@ -52,6 +52,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+- BUG: fix wind heading and direction wraparound interpolation [#974](https://github.com/RocketPy-Team/RocketPy/pull/974)
 - BUG: fix NaN in ND linear interpolation outside convex hull [#926](https://github.com/RocketPy-Team/RocketPy/issues/926)
 - BUG: Add wraparound logic for wind direction in environment plots [#939](https://github.com/RocketPy-Team/RocketPy/pull/939)
 
