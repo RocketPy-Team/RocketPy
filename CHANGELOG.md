@@ -32,6 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- ENH: Add 3D flight trajectory and attitude animations in Flight plots layer [#909](https://github.com/RocketPy-Team/RocketPy/pull/909)
 - ENH: DOC: Configure AI instructions and update developer docs [#975](https://github.com/RocketPy-Team/RocketPy/pull/975)
 - ENH: BUG: fix wind heading and direction wraparound interpolation [#974](https://github.com/RocketPy-Team/RocketPy/pull/974)
 - ENH: MNT: Sync develop's Renovate config with master (#1039) [#1040](https://github.com/RocketPy-Team/RocketPy/pull/1040)
@@ -94,8 +95,6 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
-- BUG: Restore `Rocket.power_off_drag` and `Rocket.power_on_drag` as `Function` objects while preserving raw inputs in `power_off_drag_input` and `power_on_drag_input` [#941](https://github.com/RocketPy-Team/RocketPy/pull/941)
-- BUG: Add explicit timeouts to ThrustCurve API requests [#935](https://github.com/RocketPy-Team/RocketPy/pull/935)
 - BUG: Fix hard-coded radius value for parachute added mass calculation [#889](https://github.com/RocketPy-Team/RocketPy/pull/889)
 - DOC: Fix documentation build [#908](https://github.com/RocketPy-Team/RocketPy/pull/908)
 - BUG: energy_data plot not working for 3 dof sims [[#906](https://github.com/RocketPy-Team/RocketPy/issues/906)]
@@ -103,8 +102,6 @@ Attention: The newest changes should be on top -->
 - BUG: Fix parallel Monte Carlo simulation showing incorrect iteration count [#806](https://github.com/RocketPy-Team/RocketPy/pull/806)
 - BUG: Fix missing titles in roll parameter plots for fin sets [#934](https://github.com/RocketPy-Team/RocketPy/pull/934)
 - BUG: Duplicate _controllers in Flight.TimeNodes.merge() [#931](https://github.com/RocketPy-Team/RocketPy/pull/931)
-- BUG: Fix incorrect Jacobian in `only_radial_burn` branch of `SolidMotor.evaluate_geometry` [#935](https://github.com/RocketPy-Team/RocketPy/pull/935)
-- BUG: Add explicit timeouts to ThrustCurve API requests [#935](https://github.com/RocketPy-Team/RocketPy/pull/935)
 
 ## [v1.11.0] - 2025-11-01
 
@@ -354,7 +351,6 @@ You can install this version by running `pip install rocketpy==1.4.0`
 - ENH: CP and Thrust Eccentricity Effects Generate Roll Moment [#617](https://github.com/RocketPy-Team/RocketPy/pull/617)
 - ENH: Add Prandtl-Gauss transformation to NoseCone and Tail [#609](https://github.com/RocketPy-Team/RocketPy/pull/609)
 - ENH: Implement power series nose cones [#603](https://github.com/RocketPy-Team/RocketPy/pull/603)
-- DOC: Valkyrie-Bisky Team Flight Example [#xxx] (xxx)
 
 ### Changed
 

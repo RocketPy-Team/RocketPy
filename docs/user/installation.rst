@@ -138,22 +138,40 @@ To update Scipy and install netCDF4 using Conda, the following code is used:
 Optional Packages
 ^^^^^^^^^^^^^^^^^
 
-The EnvironmentAnalysis class requires a few extra packages to be installed.
-In case you want to use this class, you will need to install the following packages:
+RocketPy has several optional feature sets that can be installed individually.
 
-- `timezonefinder` : to allow for automatic timezone detection,
-- `windrose` : to allow for windrose plots,
-- `ipywidgets` : to allow for GIFs generation,
-- `jsonpickle` : to allow for saving and loading of class instances.
+**Environment Analysis** — extra plots and tools for the
+:class:`rocketpy.EnvironmentAnalysis` class:
 
-You can install all these packages by simply running the following lines in your preferred terminal:
+- `timezonefinder` : automatic timezone detection
+- `windrose` : windrose plots
+- `ipywidgets` : GIF generation
+- `jsonpickle` : saving and loading class instances
 
 .. code-block:: shell
 
     pip install rocketpy[env_analysis]
 
+**3D Flight Animation** — interactive 3D animations of rocket trajectory and
+attitude using `vedo <https://vedo.embl.es/>`_ (requires a desktop environment):
 
-Alternatively, you can instal all extra packages by running the following line in your preferred terminal:
+.. code-block:: shell
+
+    pip install rocketpy[animation]
+
+Once installed, you can render animations from a :class:`rocketpy.Flight` object:
+
+.. code-block:: python
+
+    # Animate rocket moving through 3D space
+    flight.plots.animate_trajectory(start=0, stop=flight.t_final, time_step=0.05)
+
+    # Animate attitude changes only (rocket stays centred)
+    flight.plots.animate_rotate(start=0, stop=flight.t_final, time_step=0.05)
+
+See :ref:`flightusage` for full details and parameter descriptions.
+
+**All extras** — install every optional dependency at once:
 
 .. code-block:: shell
 
