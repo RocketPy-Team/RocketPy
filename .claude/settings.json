@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import sys, json; data=json.load\\(sys.stdin\\); [print\\(f\\\\\"--- {c['path']}:{c.get\\('line'\\) or c.get\\('original_line'\\)} ---\\\\n{c['body']}\\\\n\\\\\"\\) for c in data]\")",
+      "Bash(git fetch *)",
+      "Bash(git merge *)",
+      "Bash(git checkout *)",
+      "Bash(python -m ruff --version)",
+      "Bash(python -m pylint --version)",
+      "Bash(python -m ruff check rocketpy/plots/flight_plots.py tests/unit/test_plots.py)",
+      "Bash(python -m ruff format --check rocketpy/plots/flight_plots.py tests/unit/test_plots.py)",
+      "Bash(python -m ruff check .)",
+      "Bash(python -m ruff format --check .)",
+      "Bash(python -m pylint rocketpy/plots/flight_plots.py tests/unit/test_plots.py)",
+      "Bash(python -m ruff check rocketpy/plots/flight_plots.py)",
+      "Bash(python -m ruff format --check rocketpy/plots/flight_plots.py)",
+      "Bash(python -m pytest tests/unit/test_plots.py -k \"animate_trajectory or animate_rotate\" -p no:cacheprovider -q)",
+      "Bash(python -m pytest tests/unit/test_plots.py -p no:cacheprovider -q)"
+    ]
+  }
+}
