@@ -244,7 +244,7 @@ tzdata==2025.2
     # via pandas
 urllib3==2.5.0
     # via requests
-wcwidth==0.2.13
+wcwidth==0.8.1
     # via prompt-toolkit
 webencodings==0.5.1
     # via
