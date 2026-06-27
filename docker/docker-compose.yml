@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   python39-linux:
-    image: python:3.9
+    image: python:3.14
     volumes:
       - .:/app
     working_dir: /app
@@ -13,7 +13,7 @@ services:
         max-file: "3"
 
   python312-linux:
-    image: python:3.12
+    image: python:3.14
     volumes:
       - .:/app
     working_dir: /app
