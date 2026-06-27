@@ -32,6 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- ENH: MNT: Sync develop's Renovate config with master (#1039) [#1040](https://github.com/RocketPy-Team/RocketPy/pull/1040)
 - ENH: MNT: Configure Renovate Bot targeting develop branch [#972](https://github.com/RocketPy-Team/RocketPy/pull/972)
 - ENH: Monte Carlo Formatting Options [#947](https://github.com/RocketPy-Team/RocketPy/pull/947)
 - ENH: ENH: Auto-Detection of Pressure Conversion Factor [#966](https://github.com/RocketPy-Team/RocketPy/pull/966)
