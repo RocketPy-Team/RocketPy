@@ -48,7 +48,7 @@ executing==2.2.1
     # via stack-data
 fastjsonschema==2.21.2
     # via nbformat
-idna==3.10
+idna==3.18
     # via requests
 imagesize==1.4.1
     # via sphinx
