@@ -95,7 +95,7 @@ jupyterlab-widgets==3.0.15
     # via ipywidgets
 lxml==6.0.1
     # via lxml-html-clean
-lxml-html-clean==0.4.2
+lxml-html-clean==0.4.5
     # via -r docs/requirements.in
 markupsafe==3.0.2
     # via
