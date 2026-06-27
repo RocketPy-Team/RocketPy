@@ -65,7 +65,7 @@ ipython-pygments-lexers==1.1.1
     # via ipython
 ipywidgets==8.1.7
     # via jupyter-sphinx
-jedi==0.19.2
+jedi==0.20.0
     # via ipython
 jinja2==3.1.6
     # via
