@@ -273,7 +273,7 @@ def test_trapezoidal_fins_encoder(fin_name, request):
     assert np.isclose(fin_to_encode.tip_chord, fin_loaded.tip_chord)
     assert np.isclose(fin_to_encode.rocket_radius, fin_loaded.rocket_radius)
     assert np.isclose(fin_to_encode.sweep_length, fin_loaded.sweep_length)
-    if fin_to_encode._sweep_angle is not None and fin_loaded._sweep_angle is not None:
+    if fin_to_encode.sweep_angle is not None and fin_loaded.sweep_angle is not None:
         assert np.isclose(fin_to_encode.sweep_angle, fin_loaded.sweep_angle)
 
 

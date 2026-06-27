@@ -48,11 +48,11 @@ class WeatherModelMapping:
         "u_wind": "ugrdprs",
         "v_wind": "vgrdprs",
     }
-    NAM = {
+    AIGFS = {
         "time": "time",
-        "latitude": "y",
-        "longitude": "x",
-        "projection": "LambertConformal_Projection",
+        "latitude": "lat",
+        "longitude": "lon",
+        "projection": "LatLon_Projection",
         "level": "isobaric",
         "temperature": "Temperature_isobaric",
         "surface_geopotential_height": None,
@@ -72,6 +72,19 @@ class WeatherModelMapping:
         "geopotential": None,
         "u_wind": "ugrdprs",
         "v_wind": "vgrdprs",
+    }
+    NAM = {
+        "time": "time",
+        "latitude": "y",
+        "longitude": "x",
+        "projection": "LambertConformal_Projection",
+        "level": "isobaric",
+        "temperature": "Temperature_isobaric",
+        "surface_geopotential_height": None,
+        "geopotential_height": "Geopotential_height_isobaric",
+        "geopotential": None,
+        "u_wind": "u-component_of_wind_isobaric",
+        "v_wind": "v-component_of_wind_isobaric",
     }
     ECMWF_v0 = {
         "time": "time",
@@ -148,20 +161,20 @@ class WeatherModelMapping:
         "u_wind": "ugrdprs",
         "v_wind": "vgrdprs",
     }
-    CMC = {
+    HRRR = {
         "time": "time",
-        "latitude": "lat",
-        "longitude": "lon",
-        "level": "lev",
-        "ensemble": "ens",
-        "temperature": "tmpprs",
+        "latitude": "y",
+        "longitude": "x",
+        "projection": "LambertConformal_Projection",
+        "level": "isobaric",
+        "temperature": "Temperature_isobaric",
         "surface_geopotential_height": None,
-        "geopotential_height": "hgtprs",
+        "geopotential_height": "Geopotential_height_isobaric",
         "geopotential": None,
-        "u_wind": "ugrdprs",
-        "v_wind": "vgrdprs",
+        "u_wind": "u-component_of_wind_isobaric",
+        "v_wind": "v-component_of_wind_isobaric",
     }
-    CMC_LEGACY = {
+    CMC = {
         "time": "time",
         "latitude": "lat",
         "longitude": "lon",
@@ -211,17 +224,6 @@ class WeatherModelMapping:
         "u_wind": "ugrdprs",
         "v_wind": "vgrdprs",
     }
-    HIRESW_LEGACY = {
-        "time": "time",
-        "latitude": "lat",
-        "longitude": "lon",
-        "level": "lev",
-        "temperature": "tmpprs",
-        "surface_geopotential_height": "hgtsfc",
-        "geopotential_height": "hgtprs",
-        "u_wind": "ugrdprs",
-        "v_wind": "vgrdprs",
-    }
     MERRA2 = {
         "time": "time",
         "latitude": "lat",
@@ -235,19 +237,6 @@ class WeatherModelMapping:
         "u_wind": "U",
         "v_wind": "V",
     }
-    MERRA2_LEGACY = {
-        "time": "time",
-        "latitude": "lat",
-        "longitude": "lon",
-        "level": "lev",
-        "temperature": "T",
-        "surface_geopotential_height": None,
-        "surface_geopotential": "PHIS",
-        "geopotential_height": "H",
-        "geopotential": None,
-        "u_wind": "U",
-        "v_wind": "V",
-    }
 
     def __init__(self):
         """Build the lookup table with default and legacy mapping aliases."""
@@ -255,6 +244,7 @@ class WeatherModelMapping:
         self.all_dictionaries = {
             "GFS": self.GFS,
             "GFS_LEGACY": self.GFS_LEGACY,
+            "AIGFS": self.AIGFS,
             "NAM": self.NAM,
             "NAM_LEGACY": self.NAM_LEGACY,
             "ECMWF_v0": self.ECMWF_v0,
@@ -263,14 +253,12 @@ class WeatherModelMapping:
             "NOAA_LEGACY": self.NOAA_LEGACY,
             "RAP": self.RAP,
             "RAP_LEGACY": self.RAP_LEGACY,
+            "HRRR": self.HRRR,
             "CMC": self.CMC,
-            "CMC_LEGACY": self.CMC_LEGACY,
             "GEFS": self.GEFS,
             "GEFS_LEGACY": self.GEFS_LEGACY,
             "HIRESW": self.HIRESW,
-            "HIRESW_LEGACY": self.HIRESW_LEGACY,
             "MERRA2": self.MERRA2,
-            "MERRA2_LEGACY": self.MERRA2_LEGACY,
         }
 
     def get(self, model):

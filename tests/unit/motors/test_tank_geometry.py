@@ -1,9 +1,12 @@
+import warnings
 from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
 import pytest
 
+from rocketpy import CylindricalTank, SphericalTank
+from rocketpy.mathutils.function import Function
 from rocketpy.motors import TankGeometry
 
 PRESSURANT_PARAMS = (0.135 / 2, 0.981)
@@ -132,3 +135,113 @@ def test_tank_inertia(params, request):
 @patch("matplotlib.pyplot.show")
 def test_tank_geometry_plots_info(mock_show):  # pylint: disable=unused-argument
     assert TankGeometry({(0, 5): 1}).plots.all() is None
+
+
+def test_cylindrical_tank_radius_function_attribute():
+    """Test that CylindricalTank stores the input radius as 'radius_function'
+    and that it does not conflict with the 'radius' property (a Function of
+    height).
+    """
+    r = 0.1
+    tank = CylindricalTank(r, 2.0)
+
+    # radius_function stores the raw input scalar
+    assert tank.radius_function == r
+    # radius property is a callable Function, not the scalar
+    assert callable(tank.radius)
+    assert isinstance(tank.radius, Function)
+    # The two must differ in type
+    assert not isinstance(tank.radius_function, Function)
+
+
+def test_spherical_tank_radius_function_attribute():
+    """Test that SphericalTank stores the input radius as 'radius_function'
+    and that it does not conflict with the 'radius' property (a Function of
+    height).
+    """
+    r = 0.05
+    tank = SphericalTank(r)
+
+    # radius_function stores the raw input scalar
+    assert tank.radius_function == r
+    # radius property is a callable Function, not the scalar
+    assert callable(tank.radius)
+    assert isinstance(tank.radius, Function)
+    # The two must differ in type
+    assert not isinstance(tank.radius_function, Function)
+
+
+def test_cylindrical_tank_deprecated_radius_kwarg():
+    """Test that CylindricalTank issues a DeprecationWarning when the old
+    'radius' keyword argument is used, and still works correctly.
+    """
+    r = 0.1
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        tank = CylindricalTank(radius=r, height=2.0)
+        assert len(w) == 1
+        assert issubclass(w[0].category, DeprecationWarning)
+        assert "radius_function" in str(w[0].message)
+
+    assert tank.radius_function == r
+
+
+def test_spherical_tank_deprecated_radius_kwarg():
+    """Test that SphericalTank issues a DeprecationWarning when the old
+    'radius' keyword argument is used, and still works correctly.
+    """
+    r = 0.05
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        tank = SphericalTank(radius=r)
+        assert len(w) == 1
+        assert issubclass(w[0].category, DeprecationWarning)
+        assert "radius_function" in str(w[0].message)
+
+    assert tank.radius_function == r
+
+
+def test_cylindrical_tank_to_dict_uses_radius_function_key():
+    """Test that CylindricalTank.to_dict() uses the 'radius_function' key."""
+    tank = CylindricalTank(0.1, 2.0)
+    data = tank.to_dict()
+    assert "radius_function" in data
+    assert "radius" not in data
+    assert data["radius_function"] == 0.1
+
+
+def test_spherical_tank_to_dict_uses_radius_function_key():
+    """Test that SphericalTank.to_dict() uses the 'radius_function' key."""
+    tank = SphericalTank(0.05)
+    data = tank.to_dict()
+    assert "radius_function" in data
+    assert "radius" not in data
+    assert data["radius_function"] == 0.05
+
+
+def test_cylindrical_tank_from_dict_deprecated_radius_key():
+    """Test that CylindricalTank.from_dict() issues a DeprecationWarning when
+    the serialized data contains the old 'radius' key.
+    """
+    old_data = {"radius": 0.1, "height": 2.0, "spherical_caps": False}
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        tank = CylindricalTank.from_dict(old_data)
+        assert len(w) == 1
+        assert issubclass(w[0].category, DeprecationWarning)
+
+    assert tank.radius_function == 0.1
+
+
+def test_spherical_tank_from_dict_deprecated_radius_key():
+    """Test that SphericalTank.from_dict() issues a DeprecationWarning when
+    the serialized data contains the old 'radius' key.
+    """
+    old_data = {"radius": 0.05}
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        tank = SphericalTank.from_dict(old_data)
+        assert len(w) == 1
+        assert issubclass(w[0].category, DeprecationWarning)
+
+    assert tank.radius_function == 0.05

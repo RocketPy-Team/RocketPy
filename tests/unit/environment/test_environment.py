@@ -336,8 +336,8 @@ def test_resolve_dictionary_keeps_compatible_mapping(example_plain_env):
     assert resolved is gfs_mapping
 
 
-def test_resolve_dictionary_falls_back_to_legacy_mapping(example_plain_env):
-    """Fallback to a compatible built-in mapping for legacy NOMADS-style files."""
+def test_resolve_dictionary_falls_back_to_first_compatible_mapping(example_plain_env):
+    """Fallback to the first compatible built-in mapping for legacy-style files."""
     thredds_gfs_mapping = example_plain_env._Environment__weather_model_map.get("GFS")
     dataset = _DummyDataset(
         [
@@ -356,7 +356,6 @@ def test_resolve_dictionary_falls_back_to_legacy_mapping(example_plain_env):
         thredds_gfs_mapping, dataset
     )
 
-    # Explicit legacy mappings should be preferred over unrelated model mappings.
     assert resolved == example_plain_env._Environment__weather_model_map.get(
         "GFS_LEGACY"
     )
@@ -578,9 +577,10 @@ def test_set_atmospheric_model_normalizes_shortcut_case_for_forecast(example_pla
 
     called_arguments = {}
 
-    def fake_process_forecast_reanalysis(dataset, dictionary):
+    def fake_process_forecast_reanalysis(dataset, dictionary, conversion_factor):
         called_arguments["dataset"] = dataset
         called_arguments["dictionary"] = dictionary
+        called_arguments["conversion_factr"] = conversion_factor
 
     environment.process_forecast_reanalysis = fake_process_forecast_reanalysis
 
@@ -602,3 +602,80 @@ def test_set_atmospheric_model_raises_for_unknown_model_type(example_plain_env):
     # Act / Assert
     with pytest.raises(ValueError, match="Unknown model type"):
         environment.set_atmospheric_model(type="unknown_type")
+
+
+def test_wind_heading_direction_wraparound_interpolation(example_plain_env):
+    """Test that wind heading and direction interpolation wraps around correctly
+    across the 360°/0° boundary when initialized with a 2D array.
+    """
+    # Create discrete points at 1000m and 1100m
+    # 350 deg at 1000m, 10 deg at 1100m.
+    # Midpoint should be 360 deg or 0 deg, NOT 180 deg.
+    heading_data = np.array([[1000, 350], [1100, 10]])
+    direction_data = np.array([[1000, 350], [1100, 10]])
+
+    example_plain_env._Environment__set_wind_heading_function(heading_data)
+    example_plain_env._Environment__set_wind_direction_function(direction_data)
+
+    # Evaluate at midpoint (1050m)
+    mid_heading = example_plain_env.wind_heading(1050)
+    mid_direction = example_plain_env.wind_direction(1050)
+
+    # Check that it's close to 0 or 360 (which is also 0 modulo 360)
+    assert np.isclose(mid_heading, 0.0) or np.isclose(mid_heading, 360.0)
+    assert np.isclose(mid_direction, 0.0) or np.isclose(mid_direction, 360.0)
+
+    # Also test another wrap-around case, e.g. 10 to 350
+    heading_data2 = np.array([[1000, 10], [1100, 350]])
+    example_plain_env._Environment__set_wind_heading_function(heading_data2)
+    mid_heading2 = example_plain_env.wind_heading(1050)
+    assert np.isclose(mid_heading2, 0.0) or np.isclose(mid_heading2, 360.0)
+
+
+@pytest.mark.parametrize("shortcut_name", ["AIGFS", "HRRR"])
+def test_forecast_shortcut_and_dictionary_are_case_insensitive(
+    monkeypatch, shortcut_name
+):
+    """Ensure forecast shortcuts and built-in dictionaries ignore input casing."""
+    # Arrange
+    env = Environment(date=(2026, 3, 17, 12), latitude=32.99, longitude=-106.97)
+
+    sentinel_dataset = object()
+    env._Environment__atm_type_file_to_function_map["forecast"][shortcut_name] = (
+        lambda: sentinel_dataset
+    )
+
+    captured = {}
+
+    def fake_process_forecast_reanalysis(file, dictionary, conversion_factor):
+        captured["file"] = file
+        captured["dictionary"] = dictionary
+        captured["conversion_factor"] = conversion_factor
+
+    monkeypatch.setattr(
+        env, "process_forecast_reanalysis", fake_process_forecast_reanalysis
+    )
+    monkeypatch.setattr(env, "calculate_density_profile", lambda: None)
+    monkeypatch.setattr(env, "calculate_speed_of_sound_profile", lambda: None)
+    monkeypatch.setattr(env, "calculate_dynamic_viscosity", lambda: None)
+
+    # Act
+    env.set_atmospheric_model(
+        type="forecast",
+        file=shortcut_name.lower(),
+        dictionary=shortcut_name.lower(),
+    )
+
+    # Assert
+    expected_dictionary = env._Environment__weather_model_map.get(shortcut_name)
+    assert captured["file"] is sentinel_dataset
+    assert captured["dictionary"] == expected_dictionary
+    assert env.atmospheric_model_file == shortcut_name
+    assert env.atmospheric_model_dict == expected_dictionary
+
+
+def test_weather_model_mapping_get_is_case_insensitive():
+    """Ensure built-in mapping names are resolved regardless of casing."""
+    mapping = WeatherModelMapping()
+    assert mapping.get("aigfs") == mapping.get("AIGFS")
+    assert mapping.get("ecmwf_v0") == mapping.get("ECMWF_v0")

@@ -1,5 +1,5 @@
 import time
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from unittest.mock import patch
 
 import numpy as np
@@ -39,6 +39,21 @@ def test_era5_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=u
         Mock object to replace matplotlib.pyplot.show() method.
     example_spaceport_env : rocketpy.Environment
         Example environment object to be tested.
+    """
+    example_spaceport_env.set_date((2018, 10, 15, 12))
+    example_spaceport_env.set_atmospheric_model(
+        type="Reanalysis",
+        file="data/weather/SpaceportAmerica_2018_ERA-5.nc",
+        dictionary="ECMWF",
+        pressure_conversion_factor="hPa",
+    )
+    assert example_spaceport_env.all_info() is None
+
+
+@patch("matplotlib.pyplot.show")
+def test_era5_atmosphere_auto_detect_pressure(mock_show, example_spaceport_env):  # pylint: disable=unused-argument
+    """Tests the Reanalysis model with the ERA5 file using the default
+    pressure_conversion_factor=None (auto-detection).
     """
     example_spaceport_env.set_date((2018, 10, 15, 12))
     example_spaceport_env.set_atmospheric_model(
@@ -146,6 +161,7 @@ def test_wind_plots_wrapping_direction(mock_show, example_plain_env):  # pylint:
     assert example_plain_env.plots.atmospheric_model() is None
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(
     "model_name",
     [
@@ -192,6 +208,42 @@ def test_gfs_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=un
         Example environment object to be tested.
     """
     example_spaceport_env.set_atmospheric_model(type="Forecast", file="GFS")
+    assert example_spaceport_env.all_info() is None
+
+
+@pytest.mark.slow
+@patch("matplotlib.pyplot.show")
+def test_aigfs_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=unused-argument
+    """Tests the Forecast model with the AIGFS file.
+
+    Parameters
+    ----------
+    mock_show : mock
+        Mock object to replace matplotlib.pyplot.show() method.
+    example_spaceport_env : rocketpy.Environment
+        Example environment object to be tested.
+    """
+    example_spaceport_env.set_atmospheric_model(type="Forecast", file="AIGFS")
+    assert example_spaceport_env.all_info() is None
+
+
+@pytest.mark.slow
+@patch("matplotlib.pyplot.show")
+def test_hrrr_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=unused-argument
+    """Tests the Forecast model with the HRRR file.
+
+    Parameters
+    ----------
+    mock_show : mock
+        Mock object to replace matplotlib.pyplot.show() method.
+    example_spaceport_env : rocketpy.Environment
+        Example environment object to be tested.
+    """
+    # Sometimes the HRRR latest-model can fail due to not having at least 24
+    # hours in the future in the forecast, so we try with 12 hours in the future
+    # only.
+    example_spaceport_env.set_date(datetime.now() + timedelta(hours=12))
+    example_spaceport_env.set_atmospheric_model(type="Forecast", file="HRRR")
     assert example_spaceport_env.all_info() is None
 
 
