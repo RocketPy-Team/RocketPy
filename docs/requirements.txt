@@ -155,7 +155,7 @@ pure-eval==0.2.3
     # via stack-data
 pydata-sphinx-theme==0.16.1
     # via -r docs/requirements.in
-pygments==2.19.2
+pygments==2.20.0
     # via
     #   accessible-pygments
     #   ipython
