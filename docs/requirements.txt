@@ -143,7 +143,7 @@ pexpect==4.9.0
     # via ipython
 platformdirs==4.4.0
     # via jupyter-core
-plotly==6.3.0
+plotly==6.8.0
     # via -r docs/requirements.in
 prompt-toolkit==3.0.52
     # via ipython
