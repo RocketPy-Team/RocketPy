@@ -1,3 +1,4 @@
+import warnings
 from functools import cached_property
 
 import numpy as np
@@ -384,14 +385,21 @@ class CylindricalTank(TankGeometry):
     for more information on its attributes and methods.
     """
 
-    def __init__(self, radius, height, spherical_caps=False, geometry_dict=None):
+    def __init__(
+        self,
+        radius_function=None,
+        height=None,
+        spherical_caps=False,
+        geometry_dict=None,
+        **kwargs,
+    ):
         """Initialize CylindricalTank class. The zero reference point of the
         cylinder is its center (i.e. half of its height). Therefore the its
         height coordinate span is (-height/2, height/2).
 
         Parameters
         ----------
-        radius : float
+        radius_function : int, float
             Radius of the cylindrical tank, in meters.
         height : float
             Height of the cylindrical tank, in meters.
@@ -401,17 +409,47 @@ class CylindricalTank(TankGeometry):
             will have flat caps at the top and bottom. Defaults to False.
         geometry_dict : Union[dict, None], optional
             Dictionary containing the geometry of the tank. See TankGeometry.
+
+        Notes
+        -----
+        The ``radius`` keyword argument is deprecated. Use ``radius_function``
+        instead.
         """
+        if "radius" in kwargs:
+            if radius_function is not None:
+                raise TypeError(
+                    "Cannot specify both 'radius_function' and deprecated "
+                    "'radius' arguments. Use 'radius_function' instead."
+                )
+            warnings.warn(
+                "The 'radius' argument in CylindricalTank is deprecated in v1.13.0 "
+                "and will be removed in v2.0.0. Use 'radius_function' instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            radius_function = kwargs.pop("radius")
+        if radius_function is None:
+            raise TypeError(
+                "CylindricalTank.__init__() missing required argument: "
+                "'radius_function'"
+            )
+        if height is None:
+            raise TypeError(
+                "CylindricalTank.__init__() missing required argument: 'height'"
+            )
         geometry_dict = geometry_dict or {}
         super().__init__(geometry_dict)
-        self.__input_radius = radius
+        self.radius_function = radius_function
         self.height = height
         self.has_caps = False
         if spherical_caps:
-            self.add_geometry((-height / 2 + radius, height / 2 - radius), radius)
+            self.add_geometry(
+                (-height / 2 + radius_function, height / 2 - radius_function),
+                radius_function,
+            )
             self.add_spherical_caps()
         else:
-            self.add_geometry((-height / 2, height / 2), radius)
+            self.add_geometry((-height / 2, height / 2), radius_function)
 
     def add_spherical_caps(self):
         """
@@ -424,11 +462,11 @@ class CylindricalTank(TankGeometry):
             "Warning: Adding spherical caps to the tank will not modify the "
             + f"total height of the tank {self.height} m. "
             + "Its cylindrical portion height will be reduced to "
-            + f"{self.height - 2 * self.__input_radius} m."
+            + f"{self.height - 2 * self.radius_function} m."
         )
 
         if not self.has_caps:
-            radius = self.__input_radius
+            radius = self.radius_function
             height = self.height
             bottom_cap_range = (-height / 2, -height / 2 + radius)
             upper_cap_range = (height / 2 - radius, height / 2)
@@ -447,7 +485,7 @@ class CylindricalTank(TankGeometry):
 
     def to_dict(self, **kwargs):
         data = {
-            "radius": self.__input_radius,
+            "radius_function": self.radius_function,
             "height": self.height,
             "spherical_caps": self.has_caps,
         }
@@ -459,7 +497,18 @@ class CylindricalTank(TankGeometry):
 
     @classmethod
     def from_dict(cls, data):
-        return cls(data["radius"], data["height"], data["spherical_caps"])
+        if "radius_function" in data:
+            radius_function = data["radius_function"]
+        else:
+            warnings.warn(
+                "The 'radius' key in CylindricalTank serialized data is "
+                "deprecated in v1.13.0 and will be removed in v2.0.0. "
+                "Use 'radius_function' instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            radius_function = data["radius"]
+        return cls(radius_function, data["height"], data["spherical_caps"])
 
 
 class SphericalTank(TankGeometry):
@@ -468,25 +517,50 @@ class SphericalTank(TankGeometry):
     inherits from the TankGeometry class. See the TankGeometry class for
     more information on its attributes and methods."""
 
-    def __init__(self, radius, geometry_dict=None):
+    def __init__(self, radius_function=None, geometry_dict=None, **kwargs):
         """Initialize SphericalTank class. The zero reference point of the
         sphere is its center (i.e. half of its height). Therefore, its height
-        coordinate ranges between (-radius, radius).
+        coordinate ranges between (-radius_function, radius_function).
 
         Parameters
         ----------
-        radius : float
-            Radius of the spherical tank.
+        radius_function : int, float
+            Radius of the spherical tank, in meters.
         geometry_dict : Union[dict, None], optional
             Dictionary containing the geometry of the tank. See TankGeometry.
+
+        Notes
+        -----
+        The ``radius`` keyword argument is deprecated. Use ``radius_function``
+        instead.
         """
+        if "radius" in kwargs:
+            if radius_function is not None:
+                raise TypeError(
+                    "Cannot specify both 'radius_function' and deprecated "
+                    "'radius' arguments. Use 'radius_function' instead."
+                )
+            warnings.warn(
+                "The 'radius' argument in SphericalTank is deprecated in v1.13.0 "
+                "and will be removed in v2.0.0. Use 'radius_function' instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            radius_function = kwargs.pop("radius")
+        if radius_function is None:
+            raise TypeError(
+                "SphericalTank.__init__() missing required argument: 'radius_function'"
+            )
         geometry_dict = geometry_dict or {}
         super().__init__(geometry_dict)
-        self.__input_radius = radius
-        self.add_geometry((-radius, radius), lambda h: (radius**2 - h**2) ** 0.5)
+        self.radius_function = radius_function
+        self.add_geometry(
+            (-radius_function, radius_function),
+            lambda h: (radius_function**2 - h**2) ** 0.5,
+        )
 
     def to_dict(self, **kwargs):
-        data = {"radius": self.__input_radius}
+        data = {"radius_function": self.radius_function}
 
         if kwargs.get("include_outputs", False):
             data.update(super().to_dict(**kwargs))
@@ -495,4 +569,15 @@ class SphericalTank(TankGeometry):
 
     @classmethod
     def from_dict(cls, data):
-        return cls(data["radius"])
+        if "radius_function" in data:
+            radius_function = data["radius_function"]
+        else:
+            warnings.warn(
+                "The 'radius' key in SphericalTank serialized data is "
+                "deprecated in v1.13.0 and will be removed in v2.0.0. "
+                "Use 'radius_function' instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            radius_function = data["radius"]
+        return cls(radius_function)

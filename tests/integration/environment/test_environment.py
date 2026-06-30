@@ -51,6 +51,20 @@ def test_era5_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=u
 
 
 @patch("matplotlib.pyplot.show")
+def test_era5_atmosphere_auto_detect_pressure(mock_show, example_spaceport_env):  # pylint: disable=unused-argument
+    """Tests the Reanalysis model with the ERA5 file using the default
+    pressure_conversion_factor=None (auto-detection).
+    """
+    example_spaceport_env.set_date((2018, 10, 15, 12))
+    example_spaceport_env.set_atmospheric_model(
+        type="Reanalysis",
+        file="data/weather/SpaceportAmerica_2018_ERA-5.nc",
+        dictionary="ECMWF",
+    )
+    assert example_spaceport_env.all_info() is None
+
+
+@patch("matplotlib.pyplot.show")
 def test_custom_atmosphere(mock_show, example_plain_env):  # pylint: disable=unused-argument
     """Tests the custom atmosphere model in the environment object.
 

@@ -1505,3 +1505,27 @@ def test_regular_grid_invalid_source_raises(bad_source, match):
             outputs=["z"],
             interpolation="regular_grid",
         )
+
+
+def test_2d_linear_interpolation_no_nan_outside_convex_hull():
+    """Test that querying a point inside the bounding box but outside the
+    convex hull does not silently return NaN.
+
+    Regression test for https://github.com/RocketPy-Team/RocketPy/issues/926.
+    The point (0.3, 0.3) lies within the axis-aligned bounding box of the
+    data but outside the convex hull, so LinearNDInterpolator would return
+    NaN without proper hull detection.
+    """
+    data = [
+        [0.0, 0.0, 0.000],
+        [0.0, 0.1, 0.100],
+        [0.0, 0.4, 0.400],
+        [0.3, 0.2, 0.150],
+    ]
+    func = Function(data, interpolation="linear")
+    result = func(0.3, 0.3)
+
+    assert not np.isnan(result), (
+        "f(0.3, 0.3) returned NaN. Point is outside the convex hull and "
+        "should be routed to extrapolation, not silently return NaN."
+    )
