@@ -1,6 +1,10 @@
 from .control import _Controller
 from .environment import Environment, EnvironmentAnalysis
-from .exceptions import InvalidInertiaError, InvalidParameterError, UnstableRocketWarning
+from .exceptions import (
+    InvalidInertiaError,
+    InvalidParameterError,
+    UnstableRocketWarning,
+)
 from .mathutils import (
     Function,
     PiecewiseFunction,

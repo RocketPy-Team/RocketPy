@@ -16,4 +16,10 @@ class InvalidInertiaError(RocketPyError, ValueError):
 
 class UnstableRocketWarning(UserWarning):
     """Issued when the rocket's static margin is negative at motor ignition,
-    indicating an aerodynamically unstable configuration."""
+    indicating an aerodynamically unstable configuration.
+
+    Not issued when the rocket has any ``GenericSurface`` aerodynamic
+    surfaces, since their lift coefficient derivative is not accounted for
+    in the center of pressure calculation, making the static margin
+    unreliable for this check in that case.
+    """

@@ -5,8 +5,12 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
-from rocketpy import Function, NoseCone, Rocket, SolidMotor
-from rocketpy.exceptions import InvalidInertiaError, InvalidParameterError
+from rocketpy import Function, GenericSurface, NoseCone, Rocket, SolidMotor
+from rocketpy.exceptions import (
+    InvalidInertiaError,
+    InvalidParameterError,
+    UnstableRocketWarning,
+)
 from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.motors.empty_motor import EmptyMotor
 from rocketpy.motors.motor import Motor
@@ -878,3 +882,43 @@ def test_rocket_invalid_inertia_length_raises(inertia):
             power_on_drag=0.3,
             center_of_mass_without_motor=0,
         )
+
+
+def test_unstable_rocket_warning_raised(calisto):
+    """UnstableRocketWarning must be raised when the static margin at motor
+    ignition is negative."""
+    nose = NoseCone(
+        length=0.55829,
+        kind="vonkarman",
+        base_radius=0.0635,
+        rocket_radius=0.0635,
+        name="Nose Cone",
+    )
+    with pytest.warns(UnstableRocketWarning):
+        calisto.add_surfaces(nose, 1.16)
+    assert calisto.static_margin(0) < 0
+
+
+def test_unstable_rocket_warning_skipped_with_generic_surface(calisto):
+    """UnstableRocketWarning must not be raised when the rocket has a
+    GenericSurface, since its lift coefficient derivative is not accounted
+    for in the center of pressure calculation, making the static margin
+    unreliable for this check."""
+    nose = NoseCone(
+        length=0.55829,
+        kind="vonkarman",
+        base_radius=0.0635,
+        rocket_radius=0.0635,
+        name="Nose Cone",
+    )
+    generic_surface = GenericSurface(
+        reference_area=None,
+        reference_length=None,
+        coefficients={
+            "cL": lambda alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate: 1
+        },
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", UnstableRocketWarning)
+        calisto.add_surfaces([nose, generic_surface], [1.16, 0])
+    assert calisto.static_margin(0) < 0
