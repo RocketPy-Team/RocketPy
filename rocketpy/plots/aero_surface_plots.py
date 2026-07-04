@@ -1,6 +1,5 @@
 # pylint: disable=too-many-statements
 
-import logging
 from abc import ABC, abstractmethod
 
 import matplotlib.pyplot as plt
@@ -9,8 +8,6 @@ import numpy as np
 from matplotlib.patches import Ellipse
 
 from .plot_helpers import show_or_save_plot
-
-logger = logging.getLogger(__name__)
 
 
 class _AeroSurfacePlots(ABC):
@@ -161,7 +158,7 @@ class _FinsPlots(_AeroSurfacePlots):
         """
 
         if self.aero_surface.airfoil:
-            logger.info("Airfoil lift curve:")
+            print("Airfoil lift curve:")
             self.aero_surface.airfoil_cl.plot_1d(force_data=True, filename=filename)
 
     def roll(self, *, filename=None):
@@ -177,7 +174,7 @@ class _FinsPlots(_AeroSurfacePlots):
         -------
         None
         """
-        logger.info("Roll parameters:")
+        print("Roll parameters:")
         self.aero_surface.roll_parameters[0](filename=filename)
         self.aero_surface.roll_parameters[1](filename=filename)
 
@@ -198,7 +195,7 @@ class _FinsPlots(_AeroSurfacePlots):
         -------
         None
         """
-        logger.info("Lift coefficient:")
+        print("Lift coefficient:")
         self.aero_surface.cl(filename=filename)
         self.aero_surface.clalpha_single_fin(filename=filename)
         self.aero_surface.clalpha_multiple_fins(filename=filename)
@@ -242,7 +239,7 @@ class _FinPlots(_AeroSurfacePlots):
         """
 
         if self.aero_surface.airfoil:
-            logger.info("Airfoil lift curve:")
+            print("Airfoil lift curve:")
             self.aero_surface.airfoil_cl.plot_1d(force_data=True, filename=filename)
 
     def roll(self, *, filename=None):
@@ -258,7 +255,7 @@ class _FinPlots(_AeroSurfacePlots):
         -------
         None
         """
-        logger.info("Roll parameters:")
+        print("Roll parameters:")
         self.aero_surface.roll_parameters[0](filename=filename)
         self.aero_surface.roll_parameters[1](filename=filename)
 
@@ -279,7 +276,7 @@ class _FinPlots(_AeroSurfacePlots):
         -------
         None
         """
-        logger.info("Lift coefficient:")
+        print("Lift coefficient:")
         self.aero_surface.cl(filename=filename)
         self.aero_surface.clalpha_single_fin(filename=filename)
 

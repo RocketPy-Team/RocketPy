@@ -1,11 +1,7 @@
-import logging
-
 import matplotlib.pyplot as plt
 import numpy as np
 
 from .plot_helpers import show_or_save_plot
-
-logger = logging.getLogger(__name__)
 
 
 class _EnvironmentPlots:
@@ -407,7 +403,7 @@ class _EnvironmentPlots:
         -------
         None
         """
-        logger.info("Atmospheric Model Plots")
+        print("Atmospheric Model Plots")
         plt.figure(figsize=(9, 4.5))
         # Create wind speed and wind direction subplot
         ax1 = plt.subplot(121)
@@ -431,13 +427,13 @@ class _EnvironmentPlots:
         """
 
         # Plot graphs
-        logger.info("Gravity Model Plots")
+        print("Gravity Model Plots")
         self.gravity_model()
 
-        logger.info("Atmospheric Model Plots")
+        print("Atmospheric Model Plots")
         self.atmospheric_model()
 
         # Plot ensemble member comparison
         if self.environment.atmospheric_model_type == "Ensemble":
-            logger.info("Ensemble Members Comparison")
+            print("Ensemble Members Comparison")
             self.ensemble_member_comparison()

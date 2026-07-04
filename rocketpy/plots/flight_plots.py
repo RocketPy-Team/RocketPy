@@ -1012,7 +1012,7 @@ class _FlightPlots:
 
         if len(self.flight.parachute_events) > 0:
             for parachute in self.flight.rocket.parachutes:
-                logger.info("Parachute: %s", parachute.name)
+                print(f"Parachute: {parachute.name}")
                 parachute.noise_signal_function()
                 parachute.noisy_pressure_signal_function()
                 parachute.clean_pressure_signal_function()
@@ -1027,39 +1027,39 @@ class _FlightPlots:
         None
         """
 
-        logger.info("Trajectory 3d Plot")
+        print("Trajectory 3d Plot")
         self.trajectory_3d()
 
-        logger.info("Trajectory Kinematic Plots")
+        print("Trajectory Kinematic Plots")
         self.linear_kinematics_data()
 
-        logger.info("Angular Position Plots")
+        print("Angular Position Plots")
         self.flight_path_angle_data()
 
-        logger.info("Path, Attitude and Lateral Attitude Angle Plots")
+        print("Path, Attitude and Lateral Attitude Angle Plots")
         self.attitude_data()
 
-        logger.info("Trajectory Angular Velocity and Acceleration Plots")
+        print("Trajectory Angular Velocity and Acceleration Plots")
         self.angular_kinematics_data()
 
-        logger.info("Aerodynamic Forces Plots")
+        print("Aerodynamic Forces Plots")
         self.aerodynamic_forces()
 
-        logger.info("Rail Buttons Bending Moments Plots")
+        print("Rail Buttons Bending Moments Plots")
         self.rail_buttons_bending_moments()
 
-        logger.info("Rail Buttons Forces Plots")
+        print("Rail Buttons Forces Plots")
         self.rail_buttons_forces()
 
-        logger.info("Trajectory Energy Plots")
+        print("Trajectory Energy Plots")
         self.energy_data()
 
-        logger.info("Trajectory Fluid Mechanics Plots")
+        print("Trajectory Fluid Mechanics Plots")
         self.fluid_mechanics_data()
 
-        logger.info("Trajectory Stability and Control Plots")
+        print("Trajectory Stability and Control Plots")
         self.stability_and_control_data()
 
-        logger.info("Rocket and Parachute Pressure Plots")
+        print("Rocket and Parachute Pressure Plots")
         self.pressure_rocket_altitude()
         self.pressure_signals()

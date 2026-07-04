@@ -7,7 +7,8 @@ Utils functions
 
    tools
    units
-   utilities   
+   utilities
    vector
    matrix
-   
+   logging
+

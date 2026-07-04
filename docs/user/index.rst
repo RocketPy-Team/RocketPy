@@ -47,3 +47,4 @@ RocketPy's User Guide
 
    Function <function.rst>
    Utilities <analysis.rst>
+   Logging <logging.rst>

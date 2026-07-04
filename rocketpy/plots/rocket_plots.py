@@ -1,5 +1,3 @@
-import logging
-
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -10,8 +8,6 @@ from rocketpy.rocket.aero_surface import Fin, Fins, NoseCone, Tail
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 
 from .plot_helpers import show_or_save_plot
-
-logger = logging.getLogger(__name__)
 
 
 class _RocketPlots:
@@ -711,26 +707,26 @@ class _RocketPlots:
 
         # Rocket draw
         if len(self.rocket.aerodynamic_surfaces) > 0:
-            logger.info("Rocket Drawing")
+            print("Rocket Drawing")
             self.draw()
 
         # Mass Plots
-        logger.info("Mass Plots")
+        print("Mass Plots")
         self.total_mass()
         self.reduced_mass()
 
         # Aerodynamics Plots
-        logger.info("Aerodynamics Plots")
+        print("Aerodynamics Plots")
 
         # Drag Plots
-        logger.info("Drag Plots")
+        print("Drag Plots")
         self.drag_curves()
 
         # Stability Plots
-        logger.info("Stability Plots")
+        print("Stability Plots")
         self.static_margin()
         self.stability_margin()
 
         # Thrust-to-Weight Plot
-        logger.info("Thrust-to-Weight Plot")
+        print("Thrust-to-Weight Plot")
         self.thrust_to_weight()
