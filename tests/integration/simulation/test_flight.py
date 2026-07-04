@@ -873,3 +873,47 @@ def test_environment_methods_accessible_in_controller(
 
     # Verify all environment methods were successfully called
     assert all(methods_called.values()), f"Not all methods called: {methods_called}"
+
+
+def test_continuous_controller_invoked_every_step(calisto_robust, example_plain_env):
+    """A continuous controller (sampling_rate=None) must be called on every
+    solver step and receive the same state_history layout as a discrete one:
+    time-prefixed rows (`[t, *state]`), one element longer than ``state``.
+    This locks in the discrete/continuous parity contract."""
+    calls = {"count": 0, "sampling_rates": set(), "row_len_matches": True}
+
+    def recording_controller(  # pylint: disable=unused-argument
+        time, sampling_rate, state, state_history, observed_variables, air_brakes
+    ):
+        calls["count"] += 1
+        calls["sampling_rates"].add(sampling_rate)
+        # state_history rows are time-prefixed: exactly one longer than state
+        if len(state_history[-1]) != len(state) + 1:
+            calls["row_len_matches"] = False
+        return None
+
+    calisto_robust.parachutes = []
+    calisto_robust.add_air_brakes(
+        drag_coefficient_curve="data/rockets/calisto/air_brakes_cd.csv",
+        controller_function=recording_controller,
+        sampling_rate=None,  # continuous
+        clamp=True,
+    )
+
+    flight = Flight(
+        rocket=calisto_robust,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        time_overshoot=False,
+        terminate_on_apogee=True,
+    )
+
+    assert flight.t_final > 0
+    # Called many times (once per solver step), far more than any fixed rate
+    assert calls["count"] > 50
+    # The controller always saw sampling_rate=None (continuous)
+    assert calls["sampling_rates"] == {None}
+    # And time-prefixed rows, consistent with the discrete controller path
+    assert calls["row_len_matches"]
