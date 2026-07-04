@@ -32,6 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- ENH: Add custom exceptions and unstable rocket warning [#970](https://github.com/RocketPy-Team/RocketPy/pull/970)
 - ENH: MNT: Remove redundant wind_heading/wind_direction functions from EnvironmentAnalysis [#1041](https://github.com/RocketPy-Team/RocketPy/pull/1041)
 - ENH: Pass acceleration (`u_dot`) data to parachute trigger functions [#911](https://github.com/RocketPy-Team/RocketPy/pull/911)
 - ENH: Add 3D flight trajectory and attitude animations in Flight plots layer [#909](https://github.com/RocketPy-Team/RocketPy/pull/909)
