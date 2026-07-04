@@ -890,7 +890,6 @@ def test_continuous_controller_invoked_every_step(calisto_robust, example_plain_
         # state_history rows are time-prefixed: exactly one longer than state
         if len(state_history[-1]) != len(state) + 1:
             calls["row_len_matches"] = False
-        return None
 
     calisto_robust.parachutes = []
     calisto_robust.add_air_brakes(
