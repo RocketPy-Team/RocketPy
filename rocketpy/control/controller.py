@@ -210,7 +210,15 @@ class _Controller:
         if observed_variables is not None:
             self.observed_variables.append(observed_variables)
 
+    @property
+    def is_continuous(self):
+        """bool: True if the controller runs at every solver step (i.e.
+        ``sampling_rate`` is None), False if it is sampled at a fixed rate."""
+        return self.sampling_rate is None
+
     def __str__(self):
+        if self.is_continuous:
+            return f"Controller '{self.name}' with continuous sampling."
         return f"Controller '{self.name}' with sampling rate {self.sampling_rate} Hz."
 
     def info(self):

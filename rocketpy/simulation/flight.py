@@ -1594,7 +1594,7 @@ class Flight:
         """Initialize controllers and sensors"""
         self._controllers = self.rocket._controllers[:]
         self._continuous_controllers = [
-            c for c in self._controllers if c.sampling_rate is None
+            c for c in self._controllers if c.is_continuous
         ]
         self.sensors = self.rocket.sensors.get_components()
 
@@ -4480,7 +4480,7 @@ class Flight:
         def add_controllers(self, controllers, t_init, t_end):
             for controller in controllers:
                 # Skip node creation for continuous controllers
-                if controller.sampling_rate is None:
+                if controller.is_continuous:
                     continue
                 # Calculate start of sampling time nodes
                 controller_time_step = 1 / controller.sampling_rate

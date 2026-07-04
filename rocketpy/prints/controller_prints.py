@@ -41,7 +41,10 @@ class _ControllerPrints:
             print(
                 "Controller function: " + self.controller.controller_function.__name__
             )
-        print(f"Controller refresh rate: {self.controller.sampling_rate:.3f} Hz")
+        if self.controller.is_continuous:
+            print("Controller refresh rate: continuous (every solver step)")
+        else:
+            print(f"Controller refresh rate: {self.controller.sampling_rate:.3f} Hz")
 
     def interactive_objects(self):
         """Prints interactive objects."""
