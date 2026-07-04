@@ -24,25 +24,34 @@ class Parachute:
         This parameter defines the trigger condition for the parachute ejection
         system. It can be one of the following:
 
-        - A callable function that takes three arguments:
-          1. Freestream pressure in pascals.
-          2. Height in meters above ground level.
-          3. The state vector of the simulation, which is defined as:
+        - A callable function that can take 3, 4, or 5 arguments:
 
-             `[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]`.
+          **3 arguments**:
+            1. Freestream pressure in pascals.
+            2. Height in meters above ground level.
+            3. The state vector: ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]``
 
-          4. A list of sensors that are attached to the rocket. The most recent
-             measurements of the sensors are provided with the
-             ``sensor.measurement`` attribute. The sensors are listed in the same
-             order as they are added to the rocket.
+          **4 arguments** (sensors OR acceleration):
+            1. Freestream pressure in pascals.
+            2. Height in meters above ground level.
+            3. The state vector.
+            4. Either:
+               - ``sensors``: List of sensor objects attached to the rocket, OR
+               - ``u_dot``: State derivative including accelerations at indices [3:6]
 
-          The function should return ``True`` if the parachute ejection system
-          should be triggered and False otherwise. The function will be called
-          according to the specified sampling rate.
+          **5 arguments** (sensors AND acceleration):
+            1. Freestream pressure in pascals.
+            2. Height in meters above ground level.
+            3. The state vector.
+            4. ``sensors``: List of sensor objects.
+            5. ``u_dot``: State derivative with accelerations ``[vx, vy, vz, ax, ay, az, ...]``
+
+          The function should return ``True`` to trigger deployment, ``False`` otherwise.
+          The function will be called according to the specified sampling rate.
 
         - A float value, representing an absolute height in meters. In this
           case, the parachute will be ejected when the rocket reaches this height
-          above ground level.
+          above ground level while descending.
 
         - The string "apogee" which triggers the parachute at apogee, i.e.,
           when the rocket reaches its highest point and starts descending.
@@ -51,12 +60,12 @@ class Parachute:
     Parachute.triggerfunc : function
         Trigger function created from the trigger used to evaluate the trigger
         condition for the parachute ejection system. It is a callable function
-        that takes three arguments: Freestream pressure in Pa, Height above
-        ground level in meters, and the state vector of the simulation. The
-        returns ``True`` if the parachute ejection system should be triggered
+        that takes five arguments: Freestream pressure in Pa, Height above
+        ground level in meters, the state vector, sensors list, and u_dot.
+        Returns ``True`` if the parachute ejection system should be triggered
         and ``False`` otherwise.
 
-        .. note:
+        .. note::
 
             The function will be called according to the sampling rate specified.
 
@@ -273,54 +282,89 @@ class Parachute:
             + beta * np.random.normal(noise[0], noise[1])
         )
 
-    def __evaluate_trigger_function(self, trigger):
+    def __evaluate_trigger_function(self, trigger):  # pylint: disable=too-many-statements
         """This is used to set the triggerfunc attribute that will be used to
         interact with the Flight class.
+
+        Notes
+        -----
+        The resulting triggerfunc always has signature (p, h, y, sensors, u_dot)
+        so Flight can pass both sensors and u_dot when needed.
         """
         # pylint: disable=unused-argument, function-redefined
 
-        # Case 1: The parachute is deployed by a custom function
+        # Helper to wrap any callable to the internal (p, h, y, sensors, u_dot) API
+        def _make_wrapper(fn):
+            sig = signature(fn)
+            params = list(sig.parameters.keys())
+
+            # detect if user function expects acceleration-like argument
+            expects_udot = any(
+                name.lower() in ("u_dot", "udot", "acc", "acceleration")
+                for name in params[3:]
+            )
+
+            def wrapper(p, h, y, sensors, u_dot):
+                # Support 3, 4, and 5-arg user functions
+                num_params = len(sig.parameters)
+                if num_params == 3:
+                    return fn(p, h, y)
+                if num_params == 4:
+                    # Check which 4th arg to pass
+                    fourth_param = params[3].lower()
+                    if fourth_param in ("u_dot", "udot", "acc", "acceleration"):
+                        return fn(p, h, y, u_dot)
+                    else:
+                        return fn(p, h, y, sensors)
+                if num_params >= 5:
+                    # Pass both sensors and u_dot
+                    return fn(p, h, y, sensors, u_dot)
+                # If function signature is not supported, raise an error
+                raise TypeError(
+                    f"Trigger function '{fn.__name__}' has unsupported signature: "
+                    f"expected 3, 4, or 5+ arguments, got {num_params}. "
+                    "Please check the function definition."
+                )
+
+            # attach metadata so Flight can decide whether to compute u_dot
+            wrapper._expects_udot = expects_udot
+            return wrapper
+
+        # Callable provided by user
         if callable(trigger):
-            # work around for having added sensors to parachute triggers
-            # to avoid breaking changes
-            triggerfunc = trigger
-            sig = signature(triggerfunc)
-            if len(sig.parameters) == 3:
+            self.triggerfunc = _make_wrapper(trigger)
+            return
 
-                def triggerfunc(p, h, y, sensors):
-                    return trigger(p, h, y)
+        # Numeric altitude trigger
+        if isinstance(trigger, (int, float)):
 
-            self.triggerfunc = triggerfunc
-
-        # Case 2: The parachute is deployed at a given height
-        elif isinstance(trigger, (int, float)):
-            # The parachute is deployed at a given height
-            def triggerfunc(p, h, y, sensors):
+            def triggerfunc(p, h, y, sensors, u_dot):  # pylint: disable=unused-argument
                 # p = pressure considering parachute noise signal
                 # h = height above ground level considering parachute noise signal
                 # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
                 return y[5] < 0 and h < trigger
 
+            triggerfunc._expects_udot = False
             self.triggerfunc = triggerfunc
+            return
 
-        # Case 3: The parachute is deployed at apogee
-        elif trigger.lower() == "apogee":
-            # The parachute is deployed at apogee
-            def triggerfunc(p, h, y, sensors):
-                # p = pressure considering parachute noise signal
-                # h = height above ground level considering parachute noise signal
-                # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
+        # Special case: "apogee"
+        if isinstance(trigger, str) and trigger.lower() == "apogee":
+
+            def triggerfunc(p, h, y, sensors, u_dot):  # pylint: disable=unused-argument
                 return y[5] < 0
 
+            triggerfunc._expects_udot = False
             self.triggerfunc = triggerfunc
+            return
 
-        # Case 4: Invalid trigger input
-        else:
-            raise ValueError(
-                f"Unable to set the trigger function for parachute '{self.name}'. "
-                + "Trigger must be a callable, a float value or the string 'apogee'. "
-                + "See the Parachute class documentation for more information."
-            )
+        # If we reach this point, the trigger is invalid
+        raise ValueError(
+            f"Unable to set the trigger function for parachute '{self.name}'. "
+            + "Trigger must be a callable, a float value or one of the strings "
+            + "('apogee'). "
+            + "See the Parachute class documentation for more information."
+        )
 
     def __str__(self):
         """Returns a string representation of the Parachute class.

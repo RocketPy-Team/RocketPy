@@ -274,7 +274,7 @@ During the rail launch phase, RocketPy calculates reaction forces and internal b
 **Rail Button Forces (N):**
 
 - ``rail_button1_normal_force`` : Normal reaction force at upper rail button
-- ``rail_button1_shear_force`` : Shear (tangential) reaction force at upper rail button  
+- ``rail_button1_shear_force`` : Shear (tangential) reaction force at upper rail button
 - ``rail_button2_normal_force`` : Normal reaction force at lower rail button
 - ``rail_button2_shear_force`` : Shear (tangential) reaction force at lower rail button
 
@@ -282,7 +282,7 @@ During the rail launch phase, RocketPy calculates reaction forces and internal b
 
 - ``rail_button1_bending_moment`` : Time-dependent bending moment at upper rail button attachment
 - ``max_rail_button1_bending_moment`` : Maximum absolute bending moment at upper rail button
-- ``rail_button2_bending_moment`` : Time-dependent bending moment at lower rail button attachment  
+- ``rail_button2_bending_moment`` : Time-dependent bending moment at lower rail button attachment
 - ``max_rail_button2_bending_moment`` : Maximum absolute bending moment at lower rail button
 
 **Calculation Method:**
@@ -453,6 +453,122 @@ Flight Data Plots
 
     # Flight path and orientation
     flight.plots.flight_path_angle_data()
+
+3D Flight Animation
+~~~~~~~~~~~~~~~~~~~
+
+RocketPy can produce real-time interactive 3D animations of the simulated
+flight using `vedo <https://vedo.embl.es/>`_, a scientific visualization
+library built on top of VTK.  Two complementary animation modes are provided:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Method
+     - What it shows
+   * - ``flight.plots.animate_trajectory()``
+     - The rocket 3D model moves through space following the simulated
+       trajectory; a black trail line is drawn behind it.
+   * - ``flight.plots.animate_rotate()``
+     - The rocket 3D model stays centred in the scene; only its attitude
+       (orientation derived from the quaternion solution) is animated.
+
+.. note::
+
+    The animation window opens on the desktop via VTK.  It will **not** render
+    inside headless environments such as Google Colab.  For notebook use, run
+    the cell on a local Jupyter server or JupyterLab installation.
+
+**Installation**
+
+The ``vedo`` dependency is not installed by default.  Add the optional extra
+before calling either animation method:
+
+.. code-block:: bash
+
+    pip install rocketpy[animation]
+
+If ``vedo`` is not available when an animation method is called, RocketPy
+raises an :class:`ImportError` with the above install command embedded in the
+message.
+
+**animate_trajectory — full 6-DOF trajectory animation**
+
+.. code-block:: python
+
+    # Quickstart: uses RocketPy's built-in default STL rocket model
+    flight.plots.animate_trajectory()
+
+    # Customise the time window and frame rate
+    flight.plots.animate_trajectory(
+        start=0.0,                    # start time in seconds (default: 0)
+        stop=flight.t_final,          # end time in seconds (default: t_final)
+        time_step=0.05,               # seconds per frame (default: 0.1)
+    )
+
+    # Provide your own 3D model (any STL file)
+    flight.plots.animate_trajectory(
+        file_name="my_rocket.stl",
+        start=0.0,
+        stop=flight.t_final,
+        time_step=0.05,
+    )
+
+**animate_rotate — attitude-only animation**
+
+Useful for inspecting roll, pitch, and yaw behaviour without the distraction of
+the trajectory translation.  The rocket mesh is fixed at its position at
+``start`` and only rotated according to the quaternion solution.
+
+.. code-block:: python
+
+    flight.plots.animate_rotate(
+        start=0.0,
+        stop=flight.t_final,
+        time_step=0.05,
+    )
+
+**Parameters**
+
+Both methods share the same signature:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 15 65
+
+   * - Parameter
+     - Default
+     - Description
+   * - ``file_name``
+     - ``None``
+     - Path to a ``.stl`` model file.  When ``None``, the built-in default
+       rocket shape packaged with RocketPy is used.
+   * - ``start``
+     - ``0``
+     - Animation start time in seconds.  Must be within
+       ``[0, flight.t_final]``.
+   * - ``stop``
+     - ``None``
+     - Animation end time in seconds.  ``None`` defaults to
+       ``flight.t_final``.
+   * - ``time_step``
+     - ``0.1``
+     - Duration of each frame in seconds.  Smaller values produce smoother
+       animations at the cost of longer render times.  Must be > 0.
+   * - ``**kwargs``
+     - —
+     - Additional keyword arguments forwarded to ``vedo.Plotter.show``
+       (e.g. ``viewup``, ``azimuth``, ``elevation``).
+
+**Tips**
+
+- A ``time_step`` of ``0.05`` (20 fps) is a good balance between smoothness
+  and performance for flights lasting tens of seconds.
+- Press **Escape** or close the vedo window to exit the animation loop early.
+- Both methods validate ``start``, ``stop``, ``time_step``, and the STL path
+  before any rendering begins, raising a :class:`ValueError` with a descriptive
+  message on invalid input.
 
 Forces and Moments
 ~~~~~~~~~~~~~~~~~~

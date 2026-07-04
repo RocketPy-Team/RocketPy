@@ -35,6 +35,12 @@ Motors Usage
 
 .. toctree::
     :maxdepth: 3
+    :caption: Ring Cluster Motors
+
+    Ring Cluster Motor Usage <ringclustermotor.rst>
+
+.. toctree::
+    :maxdepth: 3
     :caption: Tanks and Fluid
 
     Tank Classes Usage <tanks.rst>

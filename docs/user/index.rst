@@ -24,6 +24,7 @@ RocketPy's User Guide
    :caption: Special Case Simulations
 
    Compare Flights Class<compare_flights.rst>
+   Parachute Triggers (Acceleration-Based) <parachute_triggers.rst>
    Deployable Payload <deployable.rst>
    Air Brakes Example <airbrakes.rst>
    ../notebooks/sensors.ipynb
@@ -47,4 +48,5 @@ RocketPy's User Guide
 
    Function <function.rst>
    Utilities <analysis.rst>
+   Aerodynamic Surfaces <aerodynamics/surfaces.rst>
    Logging <logging.rst>
