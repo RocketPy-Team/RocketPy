@@ -5,7 +5,6 @@ simulations against external data sources such as flight logs, OpenRocket
 simulations, and RASAero simulations.
 """
 
-import logging
 import os
 
 import numpy as np
@@ -313,28 +312,28 @@ def test_compare_key_events_multiple_sources(flight_calisto):
 
 
 # Test summary method
-def test_summary(flight_calisto, caplog):
-    """Test summary method logs correct information.
+def test_summary(flight_calisto, capsys):
+    """Test summary method prints correct information.
 
     Parameters
     ----------
     flight_calisto : rocketpy.Flight
         Flight object to be tested. See conftest.py for more info.
-    caplog :
-        Pytest fixture to capture log records.
+    capsys :
+        Pytest fixture to capture stdout/stderr.
     """
     comparator = FlightComparator(flight_calisto)
 
     time_data = np.linspace(0, flight_calisto.t_final, 100)
     comparator.add_data("Test", {"z": (time_data, flight_calisto.z(time_data))})
 
-    with caplog.at_level(logging.INFO, logger="rocketpy"):
-        comparator.summary()
+    comparator.summary()
 
-    assert "FLIGHT COMPARISON SUMMARY" in caplog.text
-    assert "RocketPy Simulation:" in caplog.text
-    assert "External Data Sources:" in caplog.text
-    assert "Test" in caplog.text
+    captured = capsys.readouterr()
+    assert "FLIGHT COMPARISON SUMMARY" in captured.out
+    assert "RocketPy Simulation:" in captured.out
+    assert "External Data Sources:" in captured.out
+    assert "Test" in captured.out
 
 
 # Test all method
@@ -363,22 +362,23 @@ def test_all_plots(flight_calisto):
     comparator.all()
 
 
-def test_all_no_common_variables(flight_calisto, caplog):
+def test_all_no_common_variables(flight_calisto, capsys):
     """Test all() when no common variables exist.
 
     Parameters
     ----------
     flight_calisto : rocketpy.Flight
         Flight object to be tested. See conftest.py for more info.
-    caplog :
-        Pytest fixture to capture log records.
+    capsys :
+        Pytest fixture to capture stdout/stderr.
     """
     comparator = FlightComparator(flight_calisto)
 
-    with caplog.at_level(logging.WARNING, logger="rocketpy"):
-        comparator.all()
+    # Don't add any data
+    comparator.all()
 
-    assert "No common variables found" in caplog.text
+    captured = capsys.readouterr()
+    assert "No common variables found" in captured.out
 
 
 # Test trajectories_2d method
