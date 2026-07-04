@@ -1308,9 +1308,7 @@ class _FlightPlots:
                 if variable == "t":
                     continue
                 variable_func = Function(
-                    source=[
-                        [t, value] for t, value in zip(t_values, variable_values)
-                    ],
+                    source=[[t, value] for t, value in zip(t_values, variable_values)],
                     inputs="time",
                     outputs=variable,
                     title=f"{variable} x time for parachute {name}",

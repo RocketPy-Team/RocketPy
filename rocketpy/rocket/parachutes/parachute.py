@@ -394,15 +394,10 @@ class Parachute(ABC):
             return trigger
 
     @classmethod
+    @abstractmethod
     def from_dict(cls, data):
-        """Reconstructs a parachute from the fields shared by every model.
-        Subclasses with additional constructor arguments (e.g. ``cd_s``) must
-        override this method; ``parachute_type`` is not forwarded because each
-        concrete model sets it itself."""
-        return cls(
-            name=data["name"],
-            trigger=cls._decode_trigger(data["trigger"]),
-            sampling_rate=data["sampling_rate"],
-            lag=data["lag"],
-            noise=data["noise"],
-        )
+        """Reconstructs a parachute from a serialized dictionary.
+
+        Each concrete model must implement this using its own constructor,
+        since the required arguments differ per model. The shared
+        ``_decode_trigger`` helper handles the ``trigger`` field."""
