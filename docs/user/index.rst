@@ -24,6 +24,7 @@ RocketPy's User Guide
    :caption: Special Case Simulations
 
    Compare Flights Class<compare_flights.rst>
+   Flight Comparator Class <flight_comparator.rst>
    Parachute Triggers (Acceleration-Based) <parachute_triggers.rst>
    Deployable Payload <deployable.rst>
    Air Brakes Example <airbrakes.rst>

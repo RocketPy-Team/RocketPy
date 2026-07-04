@@ -22,7 +22,14 @@ http://weather.uwyo.edu/cgi-bin/sounding?region=samer&TYPE=TEXT%3ALIST&YEAR=2019
 
 Initialize a new Environment instance:
 
-.. jupyter-execute::
+.. note::
+
+    The example below is shown as static code (it is not executed during the
+    documentation build) because it requires a live network request to an
+    external University of Wyoming service. Run it locally to fetch the
+    sounding and see the resulting atmospheric plots.
+
+.. code-block:: python
 
     from rocketpy import Environment
 
