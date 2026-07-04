@@ -3,7 +3,7 @@ import numpy as np
 
 from rocketpy.mathutils.vector_matrix import Vector
 
-from rocketpy.motors import EmptyMotor, HybridMotor, LiquidMotor, SolidMotor
+from rocketpy.motors import HybridMotor, LiquidMotor, SolidMotor
 from rocketpy.rocket.aero_surface import Fin, Fins, NoseCone, Tail
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 
@@ -732,26 +732,32 @@ class _RocketPlots:
 
         # Rocket draw
         if len(self.rocket.aerodynamic_surfaces) > 0:
-            print("Rocket Drawing")
+            print("\nRocket Drawing")
+            print("-" * 40)
             self.draw()
 
         # Mass Plots
-        print("Mass Plots")
+        print("\nMass Plots")
+        print("-" * 40)
         self.total_mass()
         self.reduced_mass()
 
         # Aerodynamics Plots
-        print("Aerodynamics Plots")
+        print("\nAerodynamics Plots")
+        print("-" * 40)
 
         # Drag Plots
         print("Drag Plots")
+        print("-" * 20)  # Separator for Drag Plots
         self.drag_curves()
 
         # Stability Plots
-        print("Stability Plots")
+        print("\nStability Plots")
+        print("-" * 20)  # Separator for Stability Plots
         self.static_margin()
         self.stability_margin()
 
         # Thrust-to-Weight Plot
-        print("Thrust-to-Weight Plot")
+        print("\nThrust-to-Weight Plot")
+        print("-" * 40)
         self.thrust_to_weight()

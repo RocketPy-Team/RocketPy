@@ -1254,7 +1254,7 @@ class _FlightPlots:
 
         if len(self.flight.parachute_events) > 0:
             for parachute in self.flight.rocket.parachutes:
-                print(f"Parachute: {parachute.name}")
+                print(f"\nParachute: {parachute.name}")
                 parachute.noise_signal_function()
                 parachute.noisy_pressure_signal_function()
                 parachute.clean_pressure_signal_function()
@@ -1269,39 +1269,39 @@ class _FlightPlots:
         None
         """
 
-        print("Trajectory 3d Plot")
+        print("\n\nTrajectory 3d Plot\n")
         self.trajectory_3d()
 
-        print("Trajectory Kinematic Plots")
+        print("\n\nTrajectory Kinematic Plots\n")
         self.linear_kinematics_data()
 
-        print("Angular Position Plots")
+        print("\n\nAngular Position Plots\n")
         self.flight_path_angle_data()
 
-        print("Path, Attitude and Lateral Attitude Angle Plots")
+        print("\n\nPath, Attitude and Lateral Attitude Angle Plots\n")
         self.attitude_data()
 
-        print("Trajectory Angular Velocity and Acceleration Plots")
+        print("\n\nTrajectory Angular Velocity and Acceleration Plots\n")
         self.angular_kinematics_data()
 
-        print("Aerodynamic Forces Plots")
+        print("\n\nAerodynamic Forces Plots\n")
         self.aerodynamic_forces()
 
-        print("Rail Buttons Bending Moments Plots")
+        print("\n\nRail Buttons Bending Moments Plots\n")
         self.rail_buttons_bending_moments()
 
-        print("Rail Buttons Forces Plots")
+        print("\n\nRail Buttons Forces Plots\n")
         self.rail_buttons_forces()
 
-        print("Trajectory Energy Plots")
+        print("\n\nTrajectory Energy Plots\n")
         self.energy_data()
 
-        print("Trajectory Fluid Mechanics Plots")
+        print("\n\nTrajectory Fluid Mechanics Plots\n")
         self.fluid_mechanics_data()
 
-        print("Trajectory Stability and Control Plots")
+        print("\n\nTrajectory Stability and Control Plots\n")
         self.stability_and_control_data()
 
-        print("Rocket and Parachute Pressure Plots")
+        print("\n\nRocket and Parachute Pressure Plots\n")
         self.pressure_rocket_altitude()
         self.pressure_signals()

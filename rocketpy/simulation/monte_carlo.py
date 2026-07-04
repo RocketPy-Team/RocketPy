@@ -15,7 +15,6 @@ latest documentation.
 
 import csv
 import json
-import logging
 import os
 import traceback
 import warnings
@@ -35,8 +34,6 @@ from rocketpy.tools import (
     generate_monte_carlo_ellipses_coordinates,
     import_optional_dependency,
 )
-
-logger = logging.getLogger(__name__)
 
 # TODO: Create evolution plots to analyze convergence
 
@@ -226,7 +223,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         self.number_of_simulations = number_of_simulations
         self._initial_sim_idx = self.num_of_loaded_sims if append else 0
 
-        logger.info("Starting Monte Carlo analysis")
+        print("Starting Monte Carlo analysis")
 
         self.__setup_files(append)
 
@@ -302,12 +299,12 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             sim_monitor.print_final_status()
 
         except KeyboardInterrupt:
-            logger.warning("Keyboard interrupt received. Files saved.")
+            print("Keyboard interrupt received. Files saved.")
             with open(self._error_file, "a", encoding="utf-8") as f:
                 f.write(inputs_json)
 
         except Exception as error:
-            logger.error("Error on iteration %d: %s", sim_monitor.count, error)
+            print(f"Error on iteration {sim_monitor.count}: {error}")
             with open(self._error_file, "a", encoding="utf-8") as f:
                 f.write(inputs_json)
             raise error
@@ -328,7 +325,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         """
         n_workers = self.__validate_number_of_workers(n_workers)
 
-        logger.info("Running Monte Carlo simulation with %d workers.", n_workers)
+        print(f"Running Monte Carlo simulation with {n_workers} workers.")
 
         multiprocess, managers = _import_multiprocess()
 
@@ -421,9 +418,13 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                 try:
                     mutex.acquire()
                     if error_event.is_set():
-                        logger.warning(
-                            "Simulation interrupt. Files from simulation %d saved.",
-                            sim_idx,
+                        # Runs in a worker process spawned via multiprocessing:
+                        # logging handlers configured in the main process are
+                        # not guaranteed to be inherited (e.g. Windows "spawn"),
+                        # so this must use print() to remain visible.
+                        _SimMonitor.reprint(
+                            f"Simulation interrupt. Files from simulation "
+                            f"{sim_idx} saved."
                         )
                         with open(self.error_file, "a", encoding="utf-8") as f:
                             f.write(inputs_json)
@@ -444,7 +445,11 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             with open(self.error_file, "a", encoding="utf-8") as f:
                 f.write(inputs_json)
 
-            logger.error("Error on iteration %d:\n%s", sim_idx, traceback.format_exc())
+            # See note above: must use print() to remain visible from a
+            # multiprocessing worker process.
+            _SimMonitor.reprint(
+                f"Error on iteration {sim_idx}:\n{traceback.format_exc()}"
+            )
             error_event.set()
             mutex.release()
 
@@ -671,7 +676,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         self.output_file = self._output_file
         self.error_file = self._error_file
 
-        logger.info("Results saved to %s", self._output_file)
+        print(f"Results saved to {self._output_file}")
 
     def __check_export_list(self, export_list):
         """
@@ -1188,10 +1193,9 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             with open(filepath, "w+", encoding="utf-8"):
                 self.output_file = filepath
 
-        logger.info(
-            "A total of %d simulation results were loaded from: %s",
-            self.num_of_loaded_sims,
-            self.output_file,
+        print(
+            f"A total of {self.num_of_loaded_sims} simulation results were "
+            f"loaded from: {self.output_file}"
         )
 
     def import_inputs(self, filename=None):
@@ -1219,7 +1223,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             with open(filepath, "w+", encoding="utf-8"):
                 self.input_file = filepath
 
-        logger.info("The following input file was imported: %s", self.input_file)
+        print(f"The following input file was imported: {self.input_file}")
 
     def import_errors(self, filename=None):
         """
@@ -1246,7 +1250,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             with open(filepath, "w+", encoding="utf-8"):
                 self.error_file = filepath
 
-        logger.info("The following error file was imported: %s", self.error_file)
+        print(f"The following error file was imported: {self.error_file}")
 
     def import_results(self, filename=None):
         """

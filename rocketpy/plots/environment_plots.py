@@ -403,7 +403,7 @@ class _EnvironmentPlots:
         -------
         None
         """
-        print("Atmospheric Model Plots")
+        print("\nAtmospheric Model Plots\n")
         plt.figure(figsize=(9, 4.5))
         # Create wind speed and wind direction subplot
         ax1 = plt.subplot(121)
@@ -427,13 +427,13 @@ class _EnvironmentPlots:
         """
 
         # Plot graphs
-        print("Gravity Model Plots")
+        print("\n\nGravity Model Plots")
         self.gravity_model()
 
-        print("Atmospheric Model Plots")
+        print("\n\nAtmospheric Model Plots")
         self.atmospheric_model()
 
         # Plot ensemble member comparison
         if self.environment.atmospheric_model_type == "Ensemble":
-            print("Ensemble Members Comparison")
+            print("\n\nEnsemble Members Comparison")
             self.ensemble_member_comparison()
