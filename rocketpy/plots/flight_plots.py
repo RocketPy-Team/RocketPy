@@ -1279,7 +1279,13 @@ class _FlightPlots:
         -------
         None
         """
-        if not hasattr(self.flight, "parachutes_info"):
+        # Parachute dynamic information (e.g. drag) is saved during
+        # post-processing, which is evaluated lazily. Accessing a post-processed
+        # variable forces it to run, so this plot works even when called before
+        # any other post-processed variable has been accessed.
+        _ = self.flight.ax
+
+        if not getattr(self.flight, "parachutes_info", None):
             print("\nFlight has no parachute dynamic information available.")
             return
 

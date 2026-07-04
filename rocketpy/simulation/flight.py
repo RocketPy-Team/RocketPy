@@ -2652,29 +2652,25 @@ class Flight:
         }
 
         def u_dot_parachute(t, u, post_processing=False):
+            parachute_output = parachute.u_dot(
+                t=t,
+                u=u,
+                flight_information=flight_information,
+                post_processing=post_processing,
+            )
+            state = parachute_output["state"]
             if post_processing:
-                data_dict = parachute.u_dot(
-                    t=t,
-                    u=u,
-                    flight_information=flight_information,
-                    post_processing=post_processing,
-                )
-                state = data_dict["state"]
-                post_processing_info = data_dict["post_processing_information"]
+                # The parachute dynamic information (e.g. drag) must be saved
+                # over the accepted solution steps, which are only replayed
+                # during post-processing. Saving it during the raw integration
+                # would also store the solver's internal and rejected steps,
+                # polluting the ``parachutes_info`` time series.
+                post_processing_info = parachute_output["post_processing_information"]
                 self.__post_processed_variables.append(post_processing_info)
-                return state
-            else:
-                parachute_output = parachute.u_dot(
-                    t=t,
-                    u=u,
-                    flight_information=flight_information,
-                    post_processing=post_processing,
+                parachute.add_information_to_flight(
+                    self, parachute_output["additional_info"]
                 )
-                state = parachute_output["state"]
-                additional_info = parachute_output["additional_info"]
-                parachute.add_information_to_flight(self, additional_info)
-
-                return state
+            return state
 
         return u_dot_parachute
 
