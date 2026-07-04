@@ -143,7 +143,7 @@ The following image shows how the four main classes interact with each other:
 A typical workflow starts with importing these classes from RocketPy:
 
 ```python
-from rocketpy import Environment, Rocket, SolidMotor, Flight
+from rocketpy import Environment, Rocket, SolidMotor, Flight, HemisphericalParachute
 ```
 
 An optional step is to import datetime, which is used to define the date of the simulation:
@@ -255,7 +255,7 @@ tail = calisto.add_tail(
 You may want to add parachutes to your rocket as well:
 
 ```python
-main = calisto.add_parachute(
+main = HemisphericalParachute(
     name="main",
     cd_s=10.0,
     trigger=800,  # ejection altitude in meters
@@ -267,7 +267,7 @@ main = calisto.add_parachute(
     porosity=0.0432,
 )
 
-drogue = calisto.add_parachute(
+drogue = HemisphericalParachute(
     name="drogue",
     cd_s=1.0,
     trigger="apogee",  # ejection at apogee
@@ -278,6 +278,9 @@ drogue = calisto.add_parachute(
     height=1.5,
     porosity=0.0432,
 )
+
+calisto.add_parachute(parachute = main)
+calisto.add_parachute(parachute = drogue)
 ```
 
 Finally, you can create a Flight object to simulate your trajectory. To get help on the Flight class, use:

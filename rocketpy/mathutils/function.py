@@ -5,8 +5,10 @@ and more. This is a core class of our package, and should be maintained
 carefully as it may impact all the rest of the project.
 """
 
+import logging
 import operator
 import warnings
+
 from bisect import bisect_left
 from collections.abc import Iterable
 from copy import deepcopy
@@ -29,6 +31,8 @@ from scipy.spatial import Delaunay  # pylint: disable=no-name-in-module
 
 from rocketpy.plots.plot_helpers import show_or_save_plot
 from rocketpy.tools import deprecated, from_hex_decode, to_hex_encode
+
+logger = logging.getLogger(__name__)
 
 NUMERICAL_TYPES = (float, int, complex, np.integer, np.floating)
 INTERPOLATION_TYPES = {
@@ -2018,7 +2022,7 @@ class Function:  # pylint: disable=too-many-public-methods
             elif self.__dom_dim__ == 2:
                 self.plot_2d(*args, **kwargs)
             else:
-                print("Error: Only functions with 1D or 2D domains can be plotted.")
+                logger.error("Only functions with 1D or 2D domains can be plotted.")
 
     @deprecated(
         reason="The `Function.plot1D` method is set to be deprecated and fully "
@@ -4405,6 +4409,6 @@ if __name__ == "__main__":  # pragma: no cover
 
     results = doctest.testmod()
     if results.failed < 1:
-        print(f"All the {results.attempted} tests passed!")
+        logger.info("All the %d tests passed!", results.attempted)
     else:
-        print(f"{results.failed} out of {results.attempted} tests failed.")
+        logger.error("%d out of %d tests failed.", results.failed, results.attempted)

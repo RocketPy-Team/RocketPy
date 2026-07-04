@@ -1,10 +1,13 @@
 import json
+import logging
 import warnings
 from abc import ABC, abstractmethod
 
 import numpy as np
 
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
+
+logger = logging.getLogger(__name__)
 
 
 # pylint: disable=too-many-statements
@@ -235,24 +238,25 @@ class Sensor(ABC):
         if file_format.lower() == "csv":
             # if sensor has been added multiple times to the simulated rocket
             if isinstance(self.measured_data[0], list):
-                print("Data saved to", end=" ")
+                saved = []
                 for i, data in enumerate(self.measured_data):
                     with open(filename + f"_{i + 1}", "w") as f:
                         f.write(",".join(data_labels) + "\n")
                         for entry in data:
                             f.write(",".join(map(str, entry)) + "\n")
-                    print(filename + f"_{i + 1},", end=" ")
+                    saved.append(filename + f"_{i + 1}")
+                logger.info("Data saved to: %s", ", ".join(saved))
             else:
                 with open(filename, "w") as f:
                     f.write(",".join(data_labels) + "\n")
                     for entry in self.measured_data:
                         f.write(",".join(map(str, entry)) + "\n")
-                print(f"Data saved to {filename}")
+                logger.info("Data saved to %s", filename)
             return
 
         if file_format.lower() == "json":
             if isinstance(self.measured_data[0], list):
-                print("Data saved to", end=" ")
+                saved = []
                 for i, data in enumerate(self.measured_data):
                     data_dict = {label: [] for label in data_labels}
                     for entry in data:
@@ -260,7 +264,8 @@ class Sensor(ABC):
                             data_dict[label].append(value)
                     with open(filename + f"_{i + 1}", "w") as f:
                         json.dump(data_dict, f)
-                    print(filename + f"_{i + 1},", end=" ")
+                    saved.append(filename + f"_{i + 1}")
+                logger.info("Data saved to: %s", ", ".join(saved))
             else:
                 data_dict = {label: [] for label in data_labels}
                 for entry in self.measured_data:
@@ -268,7 +273,7 @@ class Sensor(ABC):
                         data_dict[label].append(value)
                 with open(filename, "w") as f:
                     json.dump(data_dict, f)
-                print(f"Data saved to {filename}")
+                logger.info("Data saved to %s", filename)
             return
 
     # pylint: disable=unused-argument

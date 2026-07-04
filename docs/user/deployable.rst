@@ -8,7 +8,7 @@ Let's start by importing the rocketpy classes we will use.
 
 .. jupyter-execute::
 
-      from rocketpy import Environment, SolidMotor, Rocket, Flight
+      from rocketpy import Environment, SolidMotor, Rocket, Flight, HemisphericalParachute
 
 
 Creating Environment
@@ -182,7 +182,7 @@ Therefore we should be careful with the value of its mass.
 
 
       # Define Parachutes for the rocket
-      main_chute = rocket_without_payload.add_parachute(
+      main_chute = HemisphericalParachute(
           "Main",
           cd_s=7.2,
           trigger=800,
@@ -191,7 +191,7 @@ Therefore we should be careful with the value of its mass.
           noise=(0, 8.3, 0.5),
       )
 
-      drogue_chute = rocket_without_payload.add_parachute(
+      drogue_chute = HemisphericalParachute(
           "Drogue",
           cd_s=0.72,
           trigger="apogee",
@@ -199,6 +199,8 @@ Therefore we should be careful with the value of its mass.
           lag=1.5,
           noise=(0, 8.3, 0.5),
       )
+      rocket_without_payload.add_parachute(parachute = main_chute)
+      rocket_without_payload.add_parachute(parachute = drogue_chute)
 
 .. jupyter-execute::
 
@@ -242,7 +244,7 @@ surfaces to stabilize it, nor a motor that ignites. It does, however, have parac
           center_of_mass_without_motor=0,
       )
 
-      payload_drogue = payload_rocket.add_parachute(
+      payload_drogue = HemisphericalParachute(
           "Drogue",
           cd_s=0.35,
           trigger="apogee",
@@ -251,7 +253,7 @@ surfaces to stabilize it, nor a motor that ignites. It does, however, have parac
           noise=(0, 8.3, 0.5),
       )
 
-      payload_main = payload_rocket.add_parachute(
+      payload_main = HemisphericalParachute(
           "Main",
           cd_s=4.0,
           trigger=800,
@@ -259,6 +261,8 @@ surfaces to stabilize it, nor a motor that ignites. It does, however, have parac
           lag=1.5,
           noise=(0, 8.3, 0.5),
       )
+      payload_rocket.add_parachute(parachute = payload_drogue)
+      payload_rocket.add_parachute(parachute = payload_main)
 
 .. important::
 

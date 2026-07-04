@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 from scipy.signal import savgol_filter
 
-from rocketpy import Environment, Flight, Rocket, SolidMotor
+from rocketpy import Environment, Flight, HemisphericalParachute, Rocket, SolidMotor
 
 
 @pytest.mark.parametrize(
@@ -155,7 +155,7 @@ def test_ndrt_2020_rocket_data_asserts_acceptance(env_file):
         # activate main when vz < 0 m/s and z < 167.64 m (AGL) or 550 ft (AGL)
         return True if y[5] < 0 and h < 167.64 else False
 
-    NDRT2020.add_parachute(
+    drogue = HemisphericalParachute(
         "Drogue",
         cd_s=parameters.get("cd_s_drogue")[0],
         trigger=drogue_trigger,
@@ -163,7 +163,7 @@ def test_ndrt_2020_rocket_data_asserts_acceptance(env_file):
         lag=parameters.get("lag_rec")[0],
         noise=(0, 8.3, 0.5),
     )
-    NDRT2020.add_parachute(
+    main = HemisphericalParachute(
         "Main",
         cd_s=parameters.get("cd_s_main")[0],
         trigger=main_trigger,
@@ -171,6 +171,8 @@ def test_ndrt_2020_rocket_data_asserts_acceptance(env_file):
         lag=parameters.get("lag_rec")[0],
         noise=(0, 8.3, 0.5),
     )
+    NDRT2020.add_parachute(parachute=drogue)
+    NDRT2020.add_parachute(parachute=main)
 
     # Flight
     rocketpy_flight = Flight(

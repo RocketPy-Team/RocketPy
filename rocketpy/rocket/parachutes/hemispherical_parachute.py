@@ -1,30 +1,27 @@
-from inspect import signature
-
 import numpy as np
 
-from rocketpy.tools import from_hex_decode, to_hex_encode
-
-from ..mathutils.function import Function
-from ..prints.parachute_prints import _ParachutePrints
+from .parachute import Parachute
 
 
-class Parachute:
-    """Keeps information of the parachute, which is modeled as a hemispheroid.
+class HemisphericalParachute(Parachute):
+    """Implements a hemispherical parachute.
 
     Attributes
     ----------
-    Parachute.name : string
+    HemisphericalParachute.name : string
         Parachute name, such as drogue and main. Has no impact in
         simulation, as it is only used to display data in a more
         organized matter.
-    Parachute.cd_s : float
+    HemisphericalParachute.parachute_type : string
+        Parachute type, such as hemispherical and parafoil.
+    HemisphericalParachute.cd_s : float
         Drag coefficient times reference area for parachute. It has units of
         area and must be given in squared meters.
-    Parachute.trigger : callable, float, str
+    HemisphericalParachute.trigger : callable, float, str
         This parameter defines the trigger condition for the parachute ejection
         system. It can be one of the following:
 
-        - A callable function that takes three arguments:
+        - A callable function that takes four arguments:
           1. Freestream pressure in pascals.
           2. Height in meters above ground level.
           3. The state vector of the simulation, which is defined as:
@@ -48,7 +45,7 @@ class Parachute:
           when the rocket reaches its highest point and starts descending.
 
 
-    Parachute.triggerfunc : function
+    HemisphericalParachute.triggerfunc : function
         Trigger function created from the trigger used to evaluate the trigger
         condition for the parachute ejection system. It is a callable function
         that takes three arguments: Freestream pressure in Pa, Height above
@@ -60,58 +57,58 @@ class Parachute:
 
             The function will be called according to the sampling rate specified.
 
-    Parachute.sampling_rate : float
+    HemisphericalParachute.sampling_rate : float
         Sampling rate, in Hz, for the trigger function.
-    Parachute.lag : float
+    HemisphericalParachute.lag : float
         Time, in seconds, between the parachute ejection system is triggered
         and the parachute is fully opened.
-    Parachute.noise : tuple, list
+    HemisphericalParachute.noise : tuple, list
         List in the format (mean, standard deviation, time-correlation).
         The values are used to add noise to the pressure signal which is passed
         to the trigger function. Default value is (0, 0, 0). Units are in Pa.
-    Parachute.noise_bias : float
+    HemisphericalParachute.noise_bias : float
         Mean value of the noise added to the pressure signal, which is
         passed to the trigger function. Unit is in Pa.
-    Parachute.noise_deviation : float
+    HemisphericalParachute.noise_deviation : float
         Standard deviation of the noise added to the pressure signal,
         which is passed to the trigger function. Unit is in Pa.
-    Parachute.noise_corr : tuple, list
+    HemisphericalParachute.noise_corr : tuple, list
         Tuple with the correlation between noise and time.
-    Parachute.noise_signal : list of tuple
+    HemisphericalParachute.noise_signal : list of tuple
         List of (t, noise signal) corresponding to signal passed to
         trigger function. Completed after running a simulation.
-    Parachute.noisy_pressure_signal : list of tuple
+    HemisphericalParachute.noisy_pressure_signal : list of tuple
         List of (t, noisy pressure signal) that is passed to the
         trigger function. Completed after running a simulation.
-    Parachute.clean_pressure_signal : list of tuple
+    HemisphericalParachute.clean_pressure_signal : list of tuple
         List of (t, clean pressure signal) corresponding to signal passed to
         trigger function. Completed after running a simulation.
-    Parachute.noise_signal_function : Function
+    HemisphericalParachute.noise_signal_function : Function
         Function of noiseSignal.
-    Parachute.noisy_pressure_signal_function : Function
+    HemisphericalParachute.noisy_pressure_signal_function : Function
         Function of noisy_pressure_signal.
-    Parachute.clean_pressure_signal_function : Function
+    HemisphericalParachute.clean_pressure_signal_function : Function
         Function of clean_pressure_signal.
-    Parachute.drag_coefficient : float
+    HemisphericalParachute.drag_coefficient : float
         Drag coefficient of the inflated canopy shape, used only when
         ``radius`` is not provided to estimate the parachute radius from
         ``cd_s``: ``R = sqrt(cd_s / (drag_coefficient * pi))``. Typical
         values: 1.4 for hemispherical canopies (default), 0.75 for flat
         circular canopies, 1.5 for extended-skirt canopies.
-    Parachute.radius : float
-        Length of the non-unique semi-axis (radius) of the inflated hemispheroid
+    HemisphericalParachute.radius : float
+        Length of the non-unique semi-axis (radius) of the inflated hemispherical
         parachute in meters. If not provided at construction time, it is
         estimated from ``cd_s`` and ``drag_coefficient``.
-    Parachute.height : float
-        Length of the unique semi-axis (height) of the inflated hemispheroid
+    HemisphericalParachute.height : float
+        Length of the unique semi-axis (height) of the inflated hemispherical
         parachute in meters.
-    Parachute.porosity : float
+    HemisphericalParachute.porosity : float
         Geometric porosity of the canopy (ratio of open area to total canopy
         area), in [0, 1]. Affects only the added-mass scaling during descent;
         it does not change ``cd_s`` (drag). The default value of 0.0432 is
         chosen so that the resulting ``added_mass_coefficient`` equals
         approximately 1.0 ("neutral" added-mass behavior).
-    Parachute.added_mass_coefficient : float
+    HemisphericalParachute.added_mass_coefficient : float
         Coefficient used to calculate the added-mass due to dragged air. It is
         calculated from the porosity of the parachute.
     """
@@ -182,12 +179,12 @@ class Parachute:
             Units are in Pa.
         radius : float, optional
             Length of the non-unique semi-axis (radius) of the inflated
-            hemispheroid parachute. If not provided, it is estimated from
+            hemispherical parachute. If not provided, it is estimated from
             ``cd_s`` and ``drag_coefficient`` using:
             ``radius = sqrt(cd_s / (drag_coefficient * pi))``.
             Units are in meters.
         height : float, optional
-            Length of the unique semi-axis (height) of the inflated hemispheroid
+            Length of the unique semi-axis (height) of the inflated hemispherical
             parachute. Default value is the radius of the parachute.
             Units are in meters.
         porosity : float, optional
@@ -210,13 +207,17 @@ class Parachute:
             Has no effect when ``radius`` is explicitly provided.
         """
 
-        # Save arguments as attributes
-        self.name = name
+        parachute_type = "hemispherical"
+        super().__init__(
+            name=name,
+            parachute_type=parachute_type,
+            trigger=trigger,
+            sampling_rate=sampling_rate,
+            lag=lag,
+            noise=noise,
+        )
         self.cd_s = cd_s
         self.trigger = trigger
-        self.sampling_rate = sampling_rate
-        self.lag = lag
-        self.noise = noise
         self.drag_coefficient = drag_coefficient
         self.porosity = porosity
 
@@ -226,11 +227,6 @@ class Parachute:
         self.added_mass_coefficient = self.__compute_added_mass_coefficient(
             self.porosity
         )
-        self.__init_noise(noise)
-        self.__evaluate_trigger_function(trigger)
-
-        # Prints and plots
-        self.prints = _ParachutePrints(self)
 
     def __resolve_radius(self, radius, cd_s, drag_coefficient):
         """Resolves parachute radius from input or aerodynamic relation."""
@@ -250,152 +246,149 @@ class Parachute:
             1 - 1.465 * porosity - 0.25975 * porosity**2 + 1.2626 * porosity**3
         )
 
-    def __init_noise(self, noise):
-        """Initializes all noise-related attributes.
+    def add_information_to_flight(self, flight_obj, additional_info):
+        """Adds parachute information to flight"""
+        drag = additional_info["drag"]
+        t = additional_info["t"]
+        if self.name not in flight_obj.parachutes_info.keys():
+            flight_obj.parachutes_info[self.name] = {"drag": [], "t": []}
+            flight_obj.parachutes_info[self.name]["drag"].append(drag)
+            flight_obj.parachutes_info[self.name]["t"].append(t)
+        else:
+            # LSODA did not accept last solution, we replace it
+            if t == flight_obj.parachutes_info[self.name]["t"][-1]:
+                flight_obj.parachutes_info[self.name]["drag"][-1] = drag
+                flight_obj.parachutes_info[self.name]["t"][-1] = t
+            else:
+                flight_obj.parachutes_info[self.name]["drag"].append(drag)
+                flight_obj.parachutes_info[self.name]["t"].append(t)
+
+    # pylint: disable=too-many-locals, too-many-statements
+    def u_dot(self, t, u, flight_information, post_processing=False):
+        """Calculates derivative of u state vector with respect to time
+        when rocket is flying under parachute. Each parachute type has
+
 
         Parameters
         ----------
-        noise : tuple, list
-            List in the format (mean, standard deviation, time-correlation).
+        t : float
+            Time in seconds
+        u : list
+            State vector defined by u = [x, y, z, vx, vy, vz, e0, e1,
+            e2, e3, omega1, omega2, omega3].
+        flight_information : dictionary
+            A dictionary containing additional information used in
+            the parachute equations of motion. Examples are
+            Environment and Rocket data
+        post_processing : bool, optional
+            If True, adds flight data information directly to self
+            variables such as self.angle_of_attack. Default is False.
+
+        Return
+        ------
+        u_dot : dict
+            A dictionary containing two or three keys
+            1) state: State vector which depends on the parachute model.
+            2) additional_information: information as dict that is added
+            to the  'parachutes_info' attribute in the Flight class.
+            3) post_processing_information: State vector containing
+            post processing information.
+
         """
-        self.noise_signal = [[-1e-6, np.random.normal(noise[0], noise[1])]]
-        self.noisy_pressure_signal = []
-        self.clean_pressure_signal = []
-        self.noise_bias = noise[0]
-        self.noise_deviation = noise[1]
-        self.noise_corr = (noise[2], (1 - noise[2] ** 2) ** 0.5)
-        self.clean_pressure_signal_function = Function(0)
-        self.noisy_pressure_signal_function = Function(0)
-        self.noise_signal_function = Function(0)
-        alpha, beta = self.noise_corr
-        self.noise_function = lambda: (
-            alpha * self.noise_signal[-1][1]
-            + beta * np.random.normal(noise[0], noise[1])
+        # Get relevant state data
+        z, vx, vy, vz = u[2:6]
+
+        env = flight_information["env"]
+        rocket = flight_information["rocket"]
+
+        # Get atmospheric data
+        rho = env.density.get_value_opt(z)
+        wind_velocity_x = env.wind_velocity_x.get_value_opt(z)
+        wind_velocity_y = env.wind_velocity_y.get_value_opt(z)
+
+        # Get the mass of the rocket
+        mp = rocket.dry_mass
+
+        # Calculate added mass
+        ma = (
+            self.added_mass_coefficient
+            * rho
+            * (2 / 3)
+            * np.pi
+            * self.radius**2
+            * self.height
         )
 
-    def __evaluate_trigger_function(self, trigger):
-        """This is used to set the triggerfunc attribute that will be used to
-        interact with the Flight class.
-        """
-        # pylint: disable=unused-argument, function-redefined
+        # Calculate freestream speed
+        freestream_x = vx - wind_velocity_x
+        freestream_y = vy - wind_velocity_y
+        freestream_z = vz
+        free_stream_speed = (freestream_x**2 + freestream_y**2 + freestream_z**2) ** 0.5
 
-        # Case 1: The parachute is deployed by a custom function
-        if callable(trigger):
-            # work around for having added sensors to parachute triggers
-            # to avoid breaking changes
-            triggerfunc = trigger
-            sig = signature(triggerfunc)
-            if len(sig.parameters) == 3:
+        # Determine drag force
+        pseudo_drag = -0.5 * rho * self.cd_s * free_stream_speed
+        Dx = pseudo_drag * freestream_x
+        Dy = pseudo_drag * freestream_y
+        Dz = pseudo_drag * freestream_z
+        total_drag = np.sqrt(Dx**2 + Dy**2 + Dz**2)
+        ax = Dx / (mp + ma)
+        ay = Dy / (mp + ma)
+        az = (Dz - mp * env.gravity.get_value_opt(z)) / (mp + ma)
 
-                def triggerfunc(p, h, y, sensors):
-                    return trigger(p, h, y)
+        # Add coriolis acceleration
+        _, w_earth_y, w_earth_z = env.earth_rotation_vector
+        ax -= 2 * (vz * w_earth_y - vy * w_earth_z)
+        ay -= 2 * (vx * w_earth_z)
+        az -= 2 * (-vx * w_earth_y)
 
-            self.triggerfunc = triggerfunc
-
-        # Case 2: The parachute is deployed at a given height
-        elif isinstance(trigger, (int, float)):
-            # The parachute is deployed at a given height
-            def triggerfunc(p, h, y, sensors):
-                # p = pressure considering parachute noise signal
-                # h = height above ground level considering parachute noise signal
-                # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
-                return y[5] < 0 and h < trigger
-
-            self.triggerfunc = triggerfunc
-
-        # Case 3: The parachute is deployed at apogee
-        elif trigger.lower() == "apogee":
-            # The parachute is deployed at apogee
-            def triggerfunc(p, h, y, sensors):
-                # p = pressure considering parachute noise signal
-                # h = height above ground level considering parachute noise signal
-                # y = [x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]
-                return y[5] < 0
-
-            self.triggerfunc = triggerfunc
-
-        # Case 4: Invalid trigger input
-        else:
-            raise ValueError(
-                f"Unable to set the trigger function for parachute '{self.name}'. "
-                + "Trigger must be a callable, a float value or the string 'apogee'. "
-                + "See the Parachute class documentation for more information."
-            )
-
-    def __str__(self):
-        """Returns a string representation of the Parachute class.
-
-        Returns
-        -------
-        string
-            String representation of Parachute class. It is human readable.
-        """
-        return f"Parachute {self.name.title()} with a cd_s of {self.cd_s:.4f} m2"
-
-    def __repr__(self):
-        """Representation method for the class, useful when debugging."""
-        return (
-            f"<Parachute {self.name} "
-            + f"(cd_s = {self.cd_s:.4f} m2, trigger = {self.trigger})>"
-        )
-
-    def info(self):
-        """Prints information about the Parachute class."""
-        self.prints.all()
-
-    def all_info(self):
-        """Prints all information about the Parachute class."""
-        self.info()
-        # self.plots.all() # TODO: Parachutes still doesn't have plots
-
-    def to_dict(self, **kwargs):
-        allow_pickle = kwargs.get("allow_pickle", True)
-        trigger = self.trigger
-
-        if callable(self.trigger) and not isinstance(self.trigger, Function):
-            if allow_pickle:
-                trigger = to_hex_encode(trigger)
-            else:
-                trigger = trigger.__name__
-
-        data = {
-            "name": self.name,
-            "cd_s": self.cd_s,
-            "trigger": trigger,
-            "sampling_rate": self.sampling_rate,
-            "lag": self.lag,
-            "noise": self.noise,
-            "radius": self.radius,
-            "drag_coefficient": self.drag_coefficient,
-            "height": self.height,
-            "porosity": self.porosity,
+        additional_info = {
+            "t": t,
+            "drag": total_drag,
+        }
+        output = {
+            "state": [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0],
+            "additional_info": additional_info,
         }
 
-        if kwargs.get("include_outputs", False):
-            data["noise_signal"] = self.noise_signal
-            data["noise_function"] = (
-                to_hex_encode(self.noise_function)
-                if allow_pickle
-                else self.noise_function.__name__
-            )
-            data["noisy_pressure_signal"] = self.noisy_pressure_signal
-            data["clean_pressure_signal"] = self.clean_pressure_signal
+        if post_processing:
+            output["post_processing_information"] = [
+                t,
+                ax,
+                ay,
+                az,
+                0,
+                0,
+                0,
+                Dx,
+                Dy,
+                Dz,
+                0,
+                0,
+                0,
+                0,
+            ]
+        return output
 
+    # serialization methods
+    def to_dict(self, **kwargs):
+        data = super().to_dict(**kwargs)
+        data.update(
+            {
+                "cd_s": self.cd_s,
+                "radius": self.radius,
+                "drag_coefficient": self.drag_coefficient,
+                "height": self.height,
+                "porosity": self.porosity,
+            }
+        )
         return data
 
     @classmethod
     def from_dict(cls, data):
-        trigger = data["trigger"]
-
-        try:
-            trigger = from_hex_decode(trigger)
-        except (TypeError, ValueError):
-            pass
-
-        parachute = cls(
+        return cls(
             name=data["name"],
             cd_s=data["cd_s"],
-            trigger=trigger,
+            trigger=cls._decode_trigger(data["trigger"]),
             sampling_rate=data["sampling_rate"],
             lag=data["lag"],
             noise=data["noise"],
@@ -404,5 +397,3 @@ class Parachute:
             height=data.get("height", None),
             porosity=data.get("porosity", 0.0432),
         )
-
-        return parachute

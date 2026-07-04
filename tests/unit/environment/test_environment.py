@@ -604,6 +604,34 @@ def test_set_atmospheric_model_raises_for_unknown_model_type(example_plain_env):
         environment.set_atmospheric_model(type="unknown_type")
 
 
+def test_wind_heading_direction_wraparound_interpolation(example_plain_env):
+    """Test that wind heading and direction interpolation wraps around correctly
+    across the 360°/0° boundary when initialized with a 2D array.
+    """
+    # Create discrete points at 1000m and 1100m
+    # 350 deg at 1000m, 10 deg at 1100m.
+    # Midpoint should be 360 deg or 0 deg, NOT 180 deg.
+    heading_data = np.array([[1000, 350], [1100, 10]])
+    direction_data = np.array([[1000, 350], [1100, 10]])
+
+    example_plain_env._Environment__set_wind_heading_function(heading_data)
+    example_plain_env._Environment__set_wind_direction_function(direction_data)
+
+    # Evaluate at midpoint (1050m)
+    mid_heading = example_plain_env.wind_heading(1050)
+    mid_direction = example_plain_env.wind_direction(1050)
+
+    # Check that it's close to 0 or 360 (which is also 0 modulo 360)
+    assert np.isclose(mid_heading, 0.0) or np.isclose(mid_heading, 360.0)
+    assert np.isclose(mid_direction, 0.0) or np.isclose(mid_direction, 360.0)
+
+    # Also test another wrap-around case, e.g. 10 to 350
+    heading_data2 = np.array([[1000, 10], [1100, 350]])
+    example_plain_env._Environment__set_wind_heading_function(heading_data2)
+    mid_heading2 = example_plain_env.wind_heading(1050)
+    assert np.isclose(mid_heading2, 0.0) or np.isclose(mid_heading2, 360.0)
+
+
 @pytest.mark.parametrize("shortcut_name", ["AIGFS", "HRRR"])
 def test_forecast_shortcut_and_dictionary_are_case_insensitive(
     monkeypatch, shortcut_name

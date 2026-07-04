@@ -1,6 +1,6 @@
 """Defines the StochasticParachute class."""
 
-from rocketpy.rocket import Parachute
+from rocketpy.rocket import HemisphericalParachute
 
 from .stochastic_model import StochasticModel
 
@@ -148,4 +148,4 @@ class StochasticParachute(StochasticModel):
             Parachute object with the randomly generated input arguments.
         """
         generated_dict = next(self.dict_generator())
-        return Parachute(**generated_dict)
+        return HemisphericalParachute(**generated_dict)
