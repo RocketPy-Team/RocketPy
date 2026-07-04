@@ -192,7 +192,13 @@ def setup(app):
             )
 
             def run(self):
-                for key in ("hide-code", "hide-output", "code-below", "stderr", "raises"):
+                for key in (
+                    "hide-code",
+                    "hide-output",
+                    "code-below",
+                    "stderr",
+                    "raises",
+                ):
                     self.options.pop(key, None)
                 if not self.arguments:
                     self.arguments = ["python3"]
