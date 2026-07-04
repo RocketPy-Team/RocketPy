@@ -1,7 +1,8 @@
 # pylint: disable=invalid-name
-import pytest
 import numpy as np
-from rocketpy import Flight, Function, Rocket, SolidMotor
+import pytest
+
+from rocketpy import Flight, Function, SolidMotor
 from rocketpy.motors.ring_cluster_motor import RingClusterMotor
 
 

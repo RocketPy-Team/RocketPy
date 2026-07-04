@@ -2,7 +2,6 @@
 import logging
 import math
 import warnings
-
 from copy import deepcopy
 from functools import cached_property
 

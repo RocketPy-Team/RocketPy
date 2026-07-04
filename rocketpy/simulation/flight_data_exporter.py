@@ -6,7 +6,6 @@ import json
 import logging
 
 import numpy as np
-
 import simplekml
 
 logger = logging.getLogger(__name__)

@@ -5,7 +5,6 @@ from functools import cached_property
 from importlib import resources
 
 import matplotlib.pyplot as plt
-
 import numpy as np
 
 from ..mathutils import Function

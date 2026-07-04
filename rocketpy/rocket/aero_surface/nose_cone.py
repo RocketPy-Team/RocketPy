@@ -2,7 +2,6 @@ import logging
 import warnings
 
 import numpy as np
-
 from scipy.optimize import fsolve
 
 from rocketpy.mathutils.function import Function

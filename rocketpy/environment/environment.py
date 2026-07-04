@@ -4,7 +4,6 @@ import json
 import logging
 import re
 import warnings
-
 from collections import namedtuple
 from datetime import datetime
 

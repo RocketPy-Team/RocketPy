@@ -119,6 +119,8 @@ class TestParachuteAbstractBase:
         """Instantiating the abstract ``Parachute`` base directly must raise a
         ``TypeError`` (unimplemented abstract methods)."""
         with pytest.raises(TypeError, match="abstract"):
+            # pylint: disable=abstract-class-instantiated,unexpected-keyword-arg
+            # pylint: disable=no-value-for-parameter
             Parachute(
                 name="test",
                 cd_s=10.0,

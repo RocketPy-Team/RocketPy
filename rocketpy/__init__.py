@@ -1,5 +1,6 @@
 import logging
 
+from . import utils
 from .control import _Controller
 from .environment import Environment, EnvironmentAnalysis
 from .exceptions import (
@@ -56,7 +57,6 @@ from .rocket import (
     TrapezoidalFins,
 )
 from .sensitivity import SensitivityModel
-from . import utils
 from .sensors import Accelerometer, Barometer, GnssReceiver, Gyroscope
 from .simulation import Flight, MonteCarlo, MultivariateRejectionSampler
 from .stochastic import (

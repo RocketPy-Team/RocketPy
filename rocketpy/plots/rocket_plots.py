@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from rocketpy.mathutils.vector_matrix import Vector
-
 from rocketpy.motors import HybridMotor, LiquidMotor, SolidMotor
 from rocketpy.rocket.aero_surface import Fin, Fins, NoseCone, Tail
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface

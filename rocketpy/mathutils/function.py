@@ -8,7 +8,6 @@ carefully as it may impact all the rest of the project.
 import logging
 import operator
 import warnings
-
 from bisect import bisect_left
 from collections.abc import Iterable
 from copy import deepcopy

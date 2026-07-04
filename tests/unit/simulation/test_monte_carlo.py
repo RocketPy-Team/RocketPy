@@ -448,10 +448,12 @@ class ConvergenceMockMonteCarlo(MonteCarlo):
         pass
 
     def simulate(self, number_of_simulations, append=True, **kwargs):
+        # pylint: disable=arguments-differ,unused-argument
         self.simulate_calls += 1
         self.num_of_loaded_sims = number_of_simulations
 
     def estimate_confidence_interval(self, attribute, confidence_level=0.95, **kwargs):
+        # pylint: disable=arguments-differ,unused-argument
         width = self._width_model(self.num_of_loaded_sims)
         return _CI(low=0.0, high=width)
 

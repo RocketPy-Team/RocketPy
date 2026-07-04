@@ -3,7 +3,6 @@ import json
 import logging
 import os
 import warnings
-
 from datetime import date
 from importlib.metadata import version
 from pathlib import Path

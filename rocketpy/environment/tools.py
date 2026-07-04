@@ -7,7 +7,6 @@ future to improve their performance and usability.
 
 import logging
 import math
-
 import warnings
 
 import netCDF4

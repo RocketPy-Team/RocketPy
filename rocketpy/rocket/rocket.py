@@ -3,13 +3,17 @@ import inspect
 import logging
 import math
 import warnings
-
 from typing import Iterable
 from warnings import warn
 
 import numpy as np
 
 from rocketpy.control.controller import _Controller
+from rocketpy.exceptions import (
+    InvalidInertiaError,
+    InvalidParameterError,
+    UnstableRocketWarning,
+)
 from rocketpy.mathutils.function import Function
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
 from rocketpy.motors.empty_motor import EmptyMotor
@@ -29,11 +33,6 @@ from rocketpy.rocket.aero_surface.fins.free_form_fin import FreeFormFin
 from rocketpy.rocket.aero_surface.fins.free_form_fins import FreeFormFins
 from rocketpy.rocket.aero_surface.fins.trapezoidal_fin import TrapezoidalFin
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
-from rocketpy.exceptions import (
-    InvalidInertiaError,
-    InvalidParameterError,
-    UnstableRocketWarning,
-)
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachutes.hemispherical_parachute import HemisphericalParachute
 from rocketpy.rocket.parachutes.parachute import Parachute

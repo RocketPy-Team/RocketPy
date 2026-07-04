@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from ..plot_helpers import show_or_save_fig, show_or_save_plot
-
 from .compare import Compare
 
 logger = logging.getLogger(__name__)
