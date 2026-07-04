@@ -1,8 +1,5 @@
 import numpy as np
 
-from rocketpy.tools import from_hex_decode, to_hex_encode
-
-from ...mathutils.function import Function
 from .parachute import Parachute
 
 
@@ -374,54 +371,24 @@ class HemisphericalParachute(Parachute):
 
     # serialization methods
     def to_dict(self, **kwargs):
-        allow_pickle = kwargs.get("allow_pickle", True)
-        trigger = self.trigger
-
-        if callable(self.trigger) and not isinstance(self.trigger, Function):
-            if allow_pickle:
-                trigger = to_hex_encode(trigger)
-            else:
-                trigger = trigger.__name__
-
-        data = {
-            "name": self.name,
-            "parachute_type": self.parachute_type,
-            "cd_s": self.cd_s,
-            "trigger": trigger,
-            "sampling_rate": self.sampling_rate,
-            "lag": self.lag,
-            "noise": self.noise,
-            "radius": self.radius,
-            "drag_coefficient": self.drag_coefficient,
-            "height": self.height,
-            "porosity": self.porosity,
-        }
-
-        if kwargs.get("include_outputs", False):
-            data["noise_signal"] = self.noise_signal
-            data["noise_function"] = (
-                to_hex_encode(self.noise_function)
-                if allow_pickle
-                else self.noise_function.__name__
-            )
-            data["noisy_pressure_signal"] = self.noisy_pressure_signal
-            data["clean_pressure_signal"] = self.clean_pressure_signal
-
+        data = super().to_dict(**kwargs)
+        data.update(
+            {
+                "cd_s": self.cd_s,
+                "radius": self.radius,
+                "drag_coefficient": self.drag_coefficient,
+                "height": self.height,
+                "porosity": self.porosity,
+            }
+        )
         return data
 
     @classmethod
     def from_dict(cls, data):
-        trigger = data["trigger"]
-
-        try:
-            trigger = from_hex_decode(trigger)
-        except (TypeError, ValueError):
-            pass
-
-        parachute = cls(
+        return cls(
             name=data["name"],
             cd_s=data["cd_s"],
-            trigger=trigger,
+            trigger=cls._decode_trigger(data["trigger"]),
             sampling_rate=data["sampling_rate"],
             lag=data["lag"],
             noise=data["noise"],
@@ -430,5 +397,3 @@ class HemisphericalParachute(Parachute):
             height=data.get("height", None),
             porosity=data.get("porosity", 0.0432),
         )
-
-        return parachute

@@ -351,6 +351,9 @@ class Parachute(ABC):
         """
 
     def to_dict(self, **kwargs):
+        """Serializes the fields shared by every parachute model. Subclasses
+        should call ``super().to_dict(**kwargs)`` and add their model-specific
+        attributes to the returned dictionary."""
         allow_pickle = kwargs.get("allow_pickle", True)
         trigger = self.trigger
 
@@ -363,15 +366,10 @@ class Parachute(ABC):
         data = {
             "name": self.name,
             "parachute_type": self.parachute_type,
-            "cd_s": self.cd_s,
             "trigger": trigger,
             "sampling_rate": self.sampling_rate,
             "lag": self.lag,
             "noise": self.noise,
-            "radius": self.radius,
-            "drag_coefficient": self.drag_coefficient,
-            "height": self.height,
-            "porosity": self.porosity,
         }
 
         if kwargs.get("include_outputs", False):
@@ -386,22 +384,25 @@ class Parachute(ABC):
 
         return data
 
+    @staticmethod
+    def _decode_trigger(trigger):
+        """Decodes a (possibly hex-encoded) serialized trigger back into a
+        callable, leaving numeric/string triggers untouched."""
+        try:
+            return from_hex_decode(trigger)
+        except (TypeError, ValueError):
+            return trigger
+
     @classmethod
     def from_dict(cls, data):
-        trigger = data["trigger"]
-
-        try:
-            trigger = from_hex_decode(trigger)
-        except (TypeError, ValueError):
-            pass
-
-        parachute = cls(
+        """Reconstructs a parachute from the fields shared by every model.
+        Subclasses with additional constructor arguments (e.g. ``cd_s``) must
+        override this method; ``parachute_type`` is not forwarded because each
+        concrete model sets it itself."""
+        return cls(
             name=data["name"],
-            parachute_type=data["parachute_type"],
-            trigger=trigger,
+            trigger=cls._decode_trigger(data["trigger"]),
             sampling_rate=data["sampling_rate"],
             lag=data["lag"],
             noise=data["noise"],
         )
-
-        return parachute
