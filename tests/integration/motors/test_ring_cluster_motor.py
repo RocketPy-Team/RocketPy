@@ -1,7 +1,7 @@
 # pylint: disable=invalid-name
 import pytest
 import numpy as np
-from rocketpy import SolidMotor, Function
+from rocketpy import Flight, Function, Rocket, SolidMotor
 from rocketpy.motors.ring_cluster_motor import RingClusterMotor
 
 
@@ -137,3 +137,73 @@ def test_cluster_propellant_inertia_dynamic(base_motor):
 
     assert np.isclose(cluster.propellant_I_11(t), expected_ixx)  # pylint: disable=not-callable
     assert np.isclose(cluster.propellant_I_33(t), expected_izz)
+
+
+def test_ring_cluster_motor_full_flight(
+    calisto_motorless,
+    calisto_nose_cone,
+    calisto_tail,
+    calisto_trapezoidal_fins,
+    example_plain_env,
+):
+    """Integration test for PR #924: a ``RingClusterMotor`` must work
+    end-to-end when mounted on a ``Rocket`` and flown to apogee. The clustered
+    motor scales the base motor's thrust and total impulse by the number of
+    motors, and the rocket must reach a positive apogee.
+
+    A lightweight base motor is used on purpose so the Calisto airframe stays
+    aerodynamically stable (positive static margin) with the extra aft mass.
+    """
+    # Lightweight base motor so the clustered aft mass keeps the rocket stable.
+    base = SolidMotor(
+        thrust_source=lambda t: 800 if t < 3 else 0,
+        burn_time=3,
+        dry_mass=0.2,
+        dry_inertia=(0.01, 0.01, 0.001),
+        grain_number=1,
+        grain_density=1700,
+        grain_outer_radius=0.02,
+        grain_initial_inner_radius=0.01,
+        grain_initial_height=0.1,
+        nozzle_radius=0.01,
+        grain_separation=0.001,
+        grains_center_of_mass_position=0.1,
+        center_of_dry_mass_position=0.1,
+        coordinate_system_orientation="nozzle_to_combustion_chamber",
+    )
+    number = 2
+    cluster = RingClusterMotor(motor=base, number=number, radius=0.03)
+
+    # Clustered thrust / total impulse scale with the number of motors.
+    assert np.isclose(cluster.thrust(1), base.thrust(1) * number)
+    assert np.isclose(cluster.total_impulse, base.total_impulse * number)
+
+    rocket = calisto_motorless
+    rocket.add_motor(cluster, position=-1.373)
+    # Add all aerodynamic surfaces at once so the intermediate (fin-less) state
+    # is never evaluated as unstable during construction.
+    rocket.add_surfaces(
+        [calisto_nose_cone, calisto_tail, calisto_trapezoidal_fins],
+        [1.160, -1.313, -1.168],
+    )
+    rocket.set_rail_buttons(
+        upper_button_position=0.082,
+        lower_button_position=-0.618,
+        angular_position=0,
+    )
+
+    # The clustered motor keeps the rocket aerodynamically stable.
+    assert rocket.static_margin(0) > 0
+
+    flight = Flight(
+        rocket=rocket,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=True,
+    )
+
+    assert flight.rocket.motor is cluster
+    assert flight.t_final > 0
+    assert flight.apogee > flight.env.elevation

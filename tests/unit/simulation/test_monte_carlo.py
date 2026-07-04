@@ -1,5 +1,7 @@
 import csv
 import json
+import pathlib
+from collections import namedtuple
 
 import matplotlib as plt
 import numpy as np
@@ -423,3 +425,68 @@ def test_set_num_of_loaded_sims_json(tmp_path):
     mc.set_num_of_loaded_sims()
 
     assert mc.num_of_loaded_sims == 3
+
+
+# --- Adaptive Monte Carlo convergence (PR #922) ---
+
+_CI = namedtuple("_CI", ["low", "high"])
+
+
+class ConvergenceMockMonteCarlo(MonteCarlo):
+    """Mock that fakes batch simulation and a scripted confidence-interval
+    width, so ``simulate_convergence``'s stopping decision can be unit-tested
+    without running any real flight simulation."""
+
+    def __init__(self, width_model):
+        # pylint: disable=super-init-not-called
+        self.num_of_loaded_sims = 0
+        self.filename = pathlib.Path("dummy_mc")
+        self._width_model = width_model
+        self.simulate_calls = 0
+
+    def import_outputs(self, *args, **kwargs):  # no-op, avoids file I/O
+        pass
+
+    def simulate(self, number_of_simulations, append=True, **kwargs):
+        self.simulate_calls += 1
+        self.num_of_loaded_sims = number_of_simulations
+
+    def estimate_confidence_interval(self, attribute, confidence_level=0.95, **kwargs):
+        width = self._width_model(self.num_of_loaded_sims)
+        return _CI(low=0.0, high=width)
+
+
+def test_simulate_convergence_stops_early_when_tolerance_met():
+    """The convergence loop must stop as soon as the CI width drops below the
+    tolerance, well before reaching max_simulations."""
+    # width = 40 / n  ->  50 sims: 0.8 (> 0.5),  100 sims: 0.4 (<= 0.5) -> stop
+    mc = ConvergenceMockMonteCarlo(width_model=lambda n: 40.0 / n)
+
+    history = mc.simulate_convergence(
+        target_attribute="apogee_time",
+        tolerance=0.5,
+        max_simulations=1000,
+        batch_size=50,
+    )
+
+    assert history[-1] <= 0.5
+    assert len(history) == 2  # stopped after the second batch
+    assert mc.num_of_loaded_sims == 100
+    assert mc.num_of_loaded_sims < 1000  # did not exhaust the simulation budget
+
+
+def test_simulate_convergence_runs_until_max_when_not_converging():
+    """When the CI width never drops below the tolerance, the loop must run
+    until max_simulations and never exceed it."""
+    mc = ConvergenceMockMonteCarlo(width_model=lambda n: 10.0)  # constant, > tol
+
+    history = mc.simulate_convergence(
+        target_attribute="apogee_time",
+        tolerance=0.5,
+        max_simulations=200,
+        batch_size=50,
+    )
+
+    assert mc.num_of_loaded_sims == 200
+    assert all(width > 0.5 for width in history)
+    assert len(history) == 4  # 200 / 50 batches

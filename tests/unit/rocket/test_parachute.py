@@ -4,7 +4,7 @@ drag_coefficient parameters introduced in PR #889."""
 import numpy as np
 import pytest
 
-from rocketpy import HemisphericalParachute
+from rocketpy import HemisphericalParachute, Parachute
 
 
 def _make_parachute(**kwargs):
@@ -109,3 +109,26 @@ class TestParachuteSerialization:
         }
         parachute = HemisphericalParachute.from_dict(data)
         assert parachute.drag_coefficient == pytest.approx(1.4)
+
+
+class TestParachuteAbstractBase:
+    """After the PR #958 refactor, ``Parachute`` is an abstract base class and
+    users must instantiate a concrete model such as ``HemisphericalParachute``."""
+
+    def test_parachute_abstract_base_cannot_be_instantiated(self):
+        """Instantiating the abstract ``Parachute`` base directly must raise a
+        ``TypeError`` (unimplemented abstract methods)."""
+        with pytest.raises(TypeError, match="abstract"):
+            Parachute(
+                name="test",
+                cd_s=10.0,
+                trigger="apogee",
+                sampling_rate=100,
+            )
+
+    def test_hemispherical_parachute_is_a_parachute_subclass(self):
+        """The concrete ``HemisphericalParachute`` must derive from the abstract
+        ``Parachute`` base."""
+        assert issubclass(HemisphericalParachute, Parachute)
+        parachute = _make_parachute()
+        assert isinstance(parachute, Parachute)

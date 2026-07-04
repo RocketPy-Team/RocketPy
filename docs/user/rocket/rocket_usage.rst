@@ -290,6 +290,17 @@ Optionally, we can also define:
 - The parachute trigger system lag ``lag``.
 - The parachute trigger system noise ``noise``.
 
+.. note::
+
+    Since v1.13.0, :class:`~rocketpy.Parachute` is an **abstract base class**
+    and can no longer be instantiated directly. Instead, instantiate a concrete
+    parachute model such as :class:`~rocketpy.HemisphericalParachute` (used
+    below), which derives its geometry-dependent quantities (e.g. the added
+    mass during descent) from the parachute ``radius`` and ``height``. As a
+    convenience shortcut, ``Rocket.add_parachute(...)`` can still be called with
+    keyword arguments (``name``, ``cd_s``, ``trigger``, ...) and will build a
+    hemispherical parachute for you.
+
 Lets add two parachutes to the rocket, one that will be deployed at
 apogee and another that will be deployed at 800 meters above ground level:
 
@@ -434,6 +445,18 @@ First, lets guarantee that the rocket is stable, by plotting the static margin:
 
     If it is unreasonably **high**, your rocket is **super stable** and the
     simulation will most likely **fail**.
+
+.. note::
+
+    RocketPy helps you catch this automatically: if the static margin is
+    **negative at motor ignition**, an
+    :class:`~rocketpy.exceptions.UnstableRocketWarning` is issued when the
+    rocket is used in a simulation. The check is skipped when the rocket has
+    any ``GenericSurface`` aerodynamic surfaces, since their lift coefficient
+    derivative is not accounted for in the center of pressure calculation,
+    which makes the static margin unreliable in that case. See
+    :doc:`/reference/classes/exceptions` for the full list of RocketPy
+    exceptions and warnings.
 
 The lets check all the information available about the rocket:
 

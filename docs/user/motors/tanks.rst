@@ -104,7 +104,13 @@ The predefined ``CylindricalTank`` class is easy to use and is defined as such:
 
 .. jupyter-execute::
 
-  cylindrical_geometry = CylindricalTank(radius=0.1, height=2.0, spherical_caps=False)
+  cylindrical_geometry = CylindricalTank(radius_function=0.1, height=2.0, spherical_caps=False)
+
+.. deprecated:: 1.13.0
+  The ``radius`` keyword argument of ``CylindricalTank`` and ``SphericalTank``
+  has been renamed to ``radius_function``. Passing ``radius=`` still works but
+  now raises a ``DeprecationWarning`` and will be removed in v2.0.0. Use
+  ``radius_function=`` instead (it accepts the same constant radius value).
 
 .. note::
   The ``spherical_caps`` parameter is optional and defaults to ``False``. If set
@@ -116,7 +122,7 @@ The predefined ``SphericalTank`` is defined with:
 
 .. jupyter-execute::
 
-    spherical_geometry = SphericalTank(radius=0.1)
+    spherical_geometry = SphericalTank(radius_function=0.1)
 
 .. seealso::
   :class:`rocketpy.CylindricalTank` and :class:`rocketpy.SphericalTank`

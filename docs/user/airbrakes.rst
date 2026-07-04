@@ -95,9 +95,11 @@ To create an air brakes model, we essentially need to define the following:
   ``deployment_level`` attribute. Inside this function, any controller logic,
   filters, and apogee prediction can be implemented.
 
-- The **sampling rate** of the controller function, in seconds. This is the time
-  between each call of the controller function, in simulation time. Must be
-  given in Hertz.
+- The **sampling rate** of the controller function, in Hertz. This is how often
+  the controller function is called in simulation time (a **discrete**
+  controller). It can also be set to ``None`` to create a **continuous**
+  controller that is called at every solver step (see
+  :ref:`discrete-vs-continuous-controllers` below).
 
 Defining the Controller Function
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -108,8 +110,9 @@ The ``controller_function`` must take in the following arguments, in this
 order:
 
 1. ``time`` (float): The current simulation time in seconds.
-2. ``sampling_rate`` (float): The rate at which the controller
-   function is called, measured in Hertz (Hz).
+2. ``sampling_rate`` (float or ``None``): The rate at which the controller
+   function is called, measured in Hertz (Hz). It is ``None`` for continuous
+   controllers, so guard any ``1 / sampling_rate`` computation against ``None``.
 3. ``state`` (list): The state vector of the simulation. The state
    is a list containing the following values, in this order:
 
@@ -371,6 +374,41 @@ controller function. If you want to disable this feature, set ``clamp`` to
 
     For more information on the :class:`rocketpy.AirBrakes` class
     initialization, see  :class:`rocketpy.AirBrakes.__init__` section.
+
+.. _discrete-vs-continuous-controllers:
+
+Discrete vs. Continuous Controllers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``sampling_rate`` argument determines *when* the controller function is
+called during the flight simulation:
+
+- **Discrete controller** (``sampling_rate`` set to a number, e.g. ``10``):
+  the controller function is called at fixed intervals of ``1 / sampling_rate``
+  seconds. This mirrors a real flight computer that reads its sensors and
+  updates its actuators at a fixed frequency, and is the recommended choice
+  when you want the simulation to reflect the actual control-loop rate of your
+  hardware.
+- **Continuous controller** (``sampling_rate=None``): the controller function
+  is called at *every* solver step of the numerical integrator. Use this when
+  you want the control law to act as a continuous function of the state rather
+  than a sampled one (for example, when validating a control model
+  analytically).
+
+.. warning::
+
+    For continuous controllers, ``sampling_rate`` is passed to your controller
+    function as ``None``. Any computation such as ``1 / sampling_rate`` (a
+    common pattern for rate-limiting deployment, as shown above) must guard
+    against ``None`` to avoid a ``TypeError``.
+
+.. note::
+
+    Discrete controllers add their sampling instants as time nodes to the
+    simulation, so remember to set ``time_overshoot=False`` in the ``Flight``
+    (see below) to make the integrator stop exactly at those instants.
+    Continuous controllers do not add time nodes; they are evaluated on the
+    integrator's own steps.
 
 Simulating a Flight
 -------------------

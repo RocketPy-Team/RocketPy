@@ -161,3 +161,37 @@ def test_animation_plots(mock_show, env_analysis):  # pylint: disable=unused-arg
         HTML,
     )
     os.remove("wind_rose.gif")  # remove the files created by the method
+
+
+@pytest.mark.slow
+def test_pressure_level_wind_profile_uses_velocity_components(env_analysis):
+    """Regression for PR #1041: the redundant per-level ``wind_heading`` and
+    ``wind_direction`` functions were removed from the pressure-level data.
+
+    The surviving wind profile is expressed through ``wind_velocity_x`` /
+    ``wind_velocity_y`` (and ``wind_speed``), from which heading/direction are
+    derivable. This guards against re-introducing the removed entries and
+    checks that the surviving API is internally consistent.
+    """
+    data = env_analysis.original_pressure_level_data
+    first_date = next(iter(data))
+    first_hour = next(iter(data[first_date]))
+    hour_data = data[first_date][first_hour]
+
+    # Removed, redundant entries must not come back.
+    assert "wind_heading" not in hour_data
+    assert "wind_direction" not in hour_data
+
+    # Surviving, non-redundant wind-profile entries.
+    assert "wind_velocity_x" in hour_data
+    assert "wind_velocity_y" in hour_data
+    assert "wind_speed" in hour_data
+
+    # wind_speed must remain derivable from the velocity components. Sample at
+    # an actual grid node so interpolation and the sqrt() commute exactly.
+    grid_heights = hour_data["wind_speed"].x_array
+    height = float(grid_heights[len(grid_heights) // 2])
+    vx = hour_data["wind_velocity_x"](height)
+    vy = hour_data["wind_velocity_y"](height)
+    speed = hour_data["wind_speed"](height)
+    assert speed == pytest.approx((vx**2 + vy**2) ** 0.5, rel=1e-6)

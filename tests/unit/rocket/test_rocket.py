@@ -922,3 +922,35 @@ def test_unstable_rocket_warning_skipped_with_generic_surface(calisto):
         warnings.simplefilter("error", UnstableRocketWarning)
         calisto.add_surfaces([nose, generic_surface], [1.16, 0])
     assert calisto.static_margin(0) < 0
+
+
+def test_power_drag_exposed_as_function_objects_and_inputs_preserved():
+    """Regression for PR #941: ``power_off_drag``/``power_on_drag`` must be
+    exposed as Mach-only ``Function`` objects, while the raw user input is
+    preserved in the ``_power_off_drag_input``/``_power_on_drag_input``
+    attributes."""
+    off_input = "data/rockets/calisto/powerOffDragCurve.csv"
+    on_input = "data/rockets/calisto/powerOnDragCurve.csv"
+    rocket = Rocket(
+        radius=0.0635,
+        mass=14.426,
+        inertia=(6.321, 6.321, 0.034),
+        power_off_drag=off_input,
+        power_on_drag=on_input,
+        center_of_mass_without_motor=0,
+        coordinate_system_orientation="tail_to_nose",
+    )
+
+    # Public drag attributes are Function objects (Mach-only aliases).
+    assert isinstance(rocket.power_off_drag, Function)
+    assert isinstance(rocket.power_on_drag, Function)
+    assert rocket.power_off_drag(0.5) == pytest.approx(
+        rocket.power_off_drag_7d(0, 0, 0.5, 0, 0, 0, 0)
+    )
+    assert rocket.power_on_drag(0.5) == pytest.approx(
+        rocket.power_on_drag_7d(0, 0, 0.5, 0, 0, 0, 0)
+    )
+
+    # Raw user input is preserved for serialization / round-tripping.
+    assert rocket._power_off_drag_input == off_input
+    assert rocket._power_on_drag_input == on_input

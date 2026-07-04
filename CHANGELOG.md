@@ -32,27 +32,25 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
-- ENH: MNT: refactor parachute implementation [#958](https://github.com/RocketPy-Team/RocketPy/pull/958)
+- ENH: Individual Fins: add `Fin`, `TrapezoidalFin`, `EllipticalFin`, and `FreeFormFin` classes for modeling asymmetric or individually-positioned fins [#818](https://github.com/RocketPy-Team/RocketPy/pull/818)
+- ENH: Add AIGFS and HRRR forecast models to the Environment class [#951](https://github.com/RocketPy-Team/RocketPy/pull/951)
+- ENH: Add RingClusterMotor for annular clustered motor modeling [#924](https://github.com/RocketPy-Team/RocketPy/pull/924)
+- ENH: Discrete and Continuous Controllers [#946](https://github.com/RocketPy-Team/RocketPy/pull/946)
 - ENH: Add custom exceptions and unstable rocket warning [#970](https://github.com/RocketPy-Team/RocketPy/pull/970)
-- ENH: MNT: Remove redundant wind_heading/wind_direction functions from EnvironmentAnalysis [#1041](https://github.com/RocketPy-Team/RocketPy/pull/1041)
+- ENH: Adopt built-in Python logging instead of print() calls (closes [#450](https://github.com/RocketPy-Team/RocketPy/issues/450)) [#973](https://github.com/RocketPy-Team/RocketPy/pull/973)
 - ENH: Pass acceleration (`u_dot`) data to parachute trigger functions [#911](https://github.com/RocketPy-Team/RocketPy/pull/911)
 - ENH: Add 3D flight trajectory and attitude animations in Flight plots layer [#909](https://github.com/RocketPy-Team/RocketPy/pull/909)
-- ENH: DOC: Configure AI instructions and update developer docs [#975](https://github.com/RocketPy-Team/RocketPy/pull/975)
-- ENH: BUG: fix wind heading and direction wraparound interpolation [#974](https://github.com/RocketPy-Team/RocketPy/pull/974)
-- ENH: MNT: Sync develop's Renovate config with master (#1039) [#1040](https://github.com/RocketPy-Team/RocketPy/pull/1040)
-- ENH: MNT: Configure Renovate Bot targeting develop branch [#972](https://github.com/RocketPy-Team/RocketPy/pull/972)
-- MNT: Refactor parachute implementation with abstract base and hemispherical model split [#958](https://github.com/RocketPy-Team/RocketPy/pull/958)
 - ENH: Monte Carlo Formatting Options [#947](https://github.com/RocketPy-Team/RocketPy/pull/947)
-- ENH: ENH: Auto-Detection of Pressure Conversion Factor [#966](https://github.com/RocketPy-Team/RocketPy/pull/966)
-- ENH: Auto-Detection of Pressure Conversion Factor [#966](https://github.com/RocketPy-Team/RocketPy/pull/966)
-- ENH: Discrete and Continuous Controllers [#946](https://github.com/RocketPy-Team/RocketPy/pull/946)
-- DOC: Add aerodynamic surfaces user guide [#1043](https://github.com/RocketPy-Team/RocketPy/pull/1043)
-- ENH: Add RingClusterMotor for annular clustered motor modeling [#924](https://github.com/RocketPy-Team/RocketPy/pull/924)
-- ENH: MNT: introduce pressure unit conversion when using forecast/reanalysis/ensemble data [#955](https://github.com/RocketPy-Team/RocketPy/pull/955)
-- ENH: Auto Populate Changelog [#919](https://github.com/RocketPy-Team/RocketPy/pull/919)
 - ENH: Adaptive Monte Carlo via Convergence Criteria [#922](https://github.com/RocketPy-Team/RocketPy/pull/922)
-- TST: Add acceptance tests for 3DOF flight simulation based on Bella Lui rocket [#914](https://github.com/RocketPy-Team/RocketPy/pull/914)
-- ENH: adopt built-in Python logging instead of print() calls [#450](https://github.com/RocketPy-Team/RocketPy/issues/450)
+- ENH: Auto-Detection of Pressure Conversion Factor [#966](https://github.com/RocketPy-Team/RocketPy/pull/966)
+- ENH: Introduce pressure unit conversion when using forecast/reanalysis/ensemble data [#955](https://github.com/RocketPy-Team/RocketPy/pull/955)
+- MNT: Refactor parachute implementation with abstract base and hemispherical model split [#958](https://github.com/RocketPy-Team/RocketPy/pull/958)
+- DOC: Add aerodynamic surfaces user guide [#1043](https://github.com/RocketPy-Team/RocketPy/pull/1043)
+- DOC: Add Valkyrie flight example (Bisky Team) [#967](https://github.com/RocketPy-Team/RocketPy/pull/967)
+- DOC: Configure AI instructions and update developer docs [#975](https://github.com/RocketPy-Team/RocketPy/pull/975)
+- ENH: Auto Populate Changelog [#919](https://github.com/RocketPy-Team/RocketPy/pull/919)
+- MNT: Sync develop's Renovate config with master (#1039) [#1040](https://github.com/RocketPy-Team/RocketPy/pull/1040)
+- MNT: Configure Renovate Bot targeting develop branch [#972](https://github.com/RocketPy-Team/RocketPy/pull/972)
 
 ### Changed
 
@@ -68,8 +66,9 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+- BUG: Remove duplicate controller process; controllers were being invoked twice per time node [#949](https://github.com/RocketPy-Team/RocketPy/pull/949)
 - BUG: fix wind heading and direction wraparound interpolation [#974](https://github.com/RocketPy-Team/RocketPy/pull/974)
-- BUG: fix NaN in ND linear interpolation outside convex hull [#926](https://github.com/RocketPy-Team/RocketPy/issues/926)
+- BUG: fix NaN in ND linear interpolation outside convex hull (closes [#926](https://github.com/RocketPy-Team/RocketPy/issues/926)) [#969](https://github.com/RocketPy-Team/RocketPy/pull/969)
 - BUG: Add wraparound logic for wind direction in environment plots [#939](https://github.com/RocketPy-Team/RocketPy/pull/939)
 
 ## [v1.12.1] - 2026-04-03
@@ -109,6 +108,9 @@ Attention: The newest changes should be on top -->
 ### Fixed
 
 - BUG: Fix hard-coded radius value for parachute added mass calculation [#889](https://github.com/RocketPy-Team/RocketPy/pull/889)
+- BUG: Fix incorrect Jacobian in `only_radial_burn` branch of `SolidMotor.evaluate_geometry` [#944](https://github.com/RocketPy-Team/RocketPy/pull/944)
+- ENH: Restore `power_off_drag`/`power_on_drag` as `Function` objects and preserve raw user input in `_input` attributes [#941](https://github.com/RocketPy-Team/RocketPy/pull/941)
+- ENH: Add explicit timeouts to ThrustCurve API requests [#940](https://github.com/RocketPy-Team/RocketPy/pull/940)
 - DOC: Fix documentation build [#908](https://github.com/RocketPy-Team/RocketPy/pull/908)
 - BUG: energy_data plot not working for 3 dof sims [[#906](https://github.com/RocketPy-Team/RocketPy/issues/906)]
 - BUG: Fix CSV column header spacing in FlightDataExporter [#864](https://github.com/RocketPy-Team/RocketPy/issues/864)
