@@ -2,7 +2,6 @@ name: Documentation
 
 on:
   # Only PRs targeting master (base branch = master) and pushes to master.
-  # This is the gate: a PR cannot be merged into master without this check.
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches: [master]
