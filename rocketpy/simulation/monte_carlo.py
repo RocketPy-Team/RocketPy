@@ -223,7 +223,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         self.number_of_simulations = number_of_simulations
         self._initial_sim_idx = self.num_of_loaded_sims if append else 0
 
-        _SimMonitor.reprint("Starting Monte Carlo analysis")
+        print("Starting Monte Carlo analysis")
 
         self.__setup_files(append)
 
@@ -299,12 +299,12 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             sim_monitor.print_final_status()
 
         except KeyboardInterrupt:
-            _SimMonitor.reprint("Keyboard Interrupt, files saved.")
+            print("Keyboard interrupt received. Files saved.")
             with open(self._error_file, "a", encoding="utf-8") as f:
                 f.write(inputs_json)
 
         except Exception as error:
-            _SimMonitor.reprint(f"Error on iteration {sim_monitor.count}: {error}")
+            print(f"Error on iteration {sim_monitor.count}: {error}")
             with open(self._error_file, "a", encoding="utf-8") as f:
                 f.write(inputs_json)
             raise error
@@ -325,7 +325,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         """
         n_workers = self.__validate_number_of_workers(n_workers)
 
-        _SimMonitor.reprint(f"Running Monte Carlo simulation with {n_workers} workers.")
+        print(f"Running Monte Carlo simulation with {n_workers} workers.")
 
         multiprocess, managers = _import_multiprocess()
 
@@ -418,8 +418,12 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                 try:
                     mutex.acquire()
                     if error_event.is_set():
-                        sim_monitor.reprint(
-                            "Simulation Interrupt, files from simulation "
+                        # Runs in a worker process spawned via multiprocessing:
+                        # logging handlers configured in the main process are
+                        # not guaranteed to be inherited (e.g. Windows "spawn"),
+                        # so this must use print() to remain visible.
+                        _SimMonitor.reprint(
+                            f"Simulation interrupt. Files from simulation "
                             f"{sim_idx} saved."
                         )
                         with open(self.error_file, "a", encoding="utf-8") as f:
@@ -441,8 +445,11 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             with open(self.error_file, "a", encoding="utf-8") as f:
                 f.write(inputs_json)
 
-            sim_monitor.reprint(f"Error on iteration {sim_idx}:")
-            sim_monitor.reprint(traceback.format_exc())
+            # See note above: must use print() to remain visible from a
+            # multiprocessing worker process.
+            _SimMonitor.reprint(
+                f"Error on iteration {sim_idx}:\n{traceback.format_exc()}"
+            )
             error_event.set()
             mutex.release()
 
@@ -669,7 +676,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         self.output_file = self._output_file
         self.error_file = self._error_file
 
-        _SimMonitor.reprint(f"Results saved to {self._output_file}")
+        print(f"Results saved to {self._output_file}")
 
     def __check_export_list(self, export_list):
         """
@@ -1186,9 +1193,9 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             with open(filepath, "w+", encoding="utf-8"):
                 self.output_file = filepath
 
-        _SimMonitor.reprint(
-            f"A total of {self.num_of_loaded_sims} simulations results were "
-            f"loaded from the following output file: {self.output_file}\n"
+        print(
+            f"A total of {self.num_of_loaded_sims} simulation results were "
+            f"loaded from: {self.output_file}"
         )
 
     def import_inputs(self, filename=None):
@@ -1216,7 +1223,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             with open(filepath, "w+", encoding="utf-8"):
                 self.input_file = filepath
 
-        _SimMonitor.reprint(f"The following input file was imported: {self.input_file}")
+        print(f"The following input file was imported: {self.input_file}")
 
     def import_errors(self, filename=None):
         """
@@ -1243,7 +1250,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             with open(filepath, "w+", encoding="utf-8"):
                 self.error_file = filepath
 
-        _SimMonitor.reprint(f"The following error file was imported: {self.error_file}")
+        print(f"The following error file was imported: {self.error_file}")
 
     def import_results(self, filename=None):
         """
@@ -1659,15 +1666,12 @@ class _SimMonitor:
         msg = f"Completed {self.count - self.initial_count} iterations."
         msg += f" In total, {self.count} simulations are exported.\n"
         msg += f"Total wall time: {time() - self.start_time:.1f} s"
-
         _SimMonitor.reprint(msg, end="\n", flush=True)
 
     @staticmethod
     def reprint(msg, end="\n", flush=True):
-        """
-        Prints a message on the same line as the previous one and replaces the
-        previous message with the new one, deleting the extra characters from
-        the previous message.
+        """Prints a message replacing the previous line to avoid cluttering
+        the terminal output during concurrent simulation progress updates.
 
         Parameters
         ----------
@@ -1682,12 +1686,8 @@ class _SimMonitor:
         -------
         None
         """
-
         padding = ""
-
         if len(msg) < _SimMonitor._last_print_len:
             padding = " " * (_SimMonitor._last_print_len - len(msg))
-
         print(msg + padding, end=end, flush=flush)
-
         _SimMonitor._last_print_len = len(msg)

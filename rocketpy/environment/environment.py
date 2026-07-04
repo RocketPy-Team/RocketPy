@@ -1,8 +1,10 @@
 # pylint: disable=too-many-public-methods, too-many-instance-attributes
 import bisect
 import json
+import logging
 import re
 import warnings
+
 from collections import namedtuple
 from datetime import datetime
 
@@ -46,6 +48,8 @@ from rocketpy.tools import (
     bilinear_interpolation,
     geopotential_height_to_geometric_height,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class Environment:
@@ -999,7 +1003,7 @@ class Environment:
             self.elevation = elevation
         else:
             self.elevation = fetch_open_elevation(self.latitude, self.longitude)
-            print(f"Elevation received: {self.elevation} m")
+            logger.info("Elevation received: %.2f m", self.elevation)
 
     def set_topographic_profile(  # pylint: disable=redefined-builtin, unused-argument
         self, type, file, dictionary="netCDF4", crs=None
@@ -1038,14 +1042,13 @@ class Environment:
                 # crsArray = nasa_dem.variables['crs'][:].tolist().
                 self.topographic_profile_activated = True
 
-                print("Region covered by the Topographical file: ")
-                print(
-                    f"Latitude from {self.elev_lat_array[-1]:.6f}° to "
-                    f"{self.elev_lat_array[0]:.6f}°"
-                )
-                print(
-                    f"Longitude from {self.elev_lon_array[0]:.6f}° to "
-                    f"{self.elev_lon_array[-1]:.6f}°"
+                logger.debug(
+                    "Topographical file coverage: lat [%.6f°, %.6f°], "
+                    "lon [%.6f°, %.6f°]",
+                    self.elev_lat_array[-1],
+                    self.elev_lat_array[0],
+                    self.elev_lon_array[0],
+                    self.elev_lon_array[-1],
                 )
 
     def get_elevation_from_topographic_profile(self, lat, lon):
@@ -2760,9 +2763,10 @@ class Environment:
 
         with open(filename + ".json", "w") as f:
             json.dump(export_env_dictionary, f, sort_keys=False, indent=4, default=str)
-        print(
-            f"Your Environment file was saved at '{filename}.json'. You can use "
-            "it in the future by using the custom_atmosphere atmospheric model."
+        logger.info(
+            "Your Environment file was saved at '%s.json'. "
+            "You can use it in the future by using the custom_atmosphere atmospheric model.",
+            filename,
         )
 
     def set_earth_geometry(self, datum):
@@ -2995,6 +2999,6 @@ if __name__ == "__main__":  # pragma: no cover
 
     results = doctest.testmod()
     if results.failed < 1:
-        print(f"All the {results.attempted} tests passed!")
+        logger.debug("All the %d tests passed!", results.attempted)
     else:
-        print(f"{results.failed} out of {results.attempted} tests failed.")
+        logger.error("%d out of %d tests failed.", results.failed, results.attempted)

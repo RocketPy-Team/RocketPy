@@ -1,14 +1,18 @@
+import logging
 import os
 import time
 from functools import cached_property
 from importlib import resources
 
 import matplotlib.pyplot as plt
+
 import numpy as np
 
 from ..mathutils import Function
 from ..tools import import_optional_dependency
 from .plot_helpers import show_or_save_plot
+
+logger = logging.getLogger(__name__)
 
 
 class _FlightPlots:
@@ -654,16 +658,20 @@ class _FlightPlots:
         None
         """
         if len(self.flight.rocket.rail_buttons) == 0:
-            print(
+            logger.warning(
                 "No rail buttons were defined. Skipping rail button bending moment plots."
             )
         elif self.flight.out_of_rail_time_index == 0:
-            print("No rail phase was found. Skipping rail button bending moment plots.")
+            logger.warning(
+                "No rail phase was found. Skipping rail button bending moment plots."
+            )
         else:
             # Check if button_height is defined
             rail_buttons_tuple = self.flight.rocket.rail_buttons[0]
             if rail_buttons_tuple.component.button_height is None:
-                print("Rail button height not defined. Skipping bending moment plots.")
+                logger.warning(
+                    "Rail button height not defined. Skipping bending moment plots."
+                )
             else:
                 plt.figure(figsize=(9, 3))
 
@@ -718,9 +726,9 @@ class _FlightPlots:
         None
         """
         if len(self.flight.rocket.rail_buttons) == 0:
-            print("No rail buttons were defined. Skipping rail button plots.")
+            logger.warning("No rail buttons were defined. Skipping rail button plots.")
         elif self.flight.out_of_rail_time_index == 0:
-            print("No rail phase was found. Skipping rail button plots.")
+            logger.warning("No rail phase was found. Skipping rail button plots.")
         else:
             plt.figure(figsize=(9, 6))
 
@@ -1247,12 +1255,12 @@ class _FlightPlots:
 
         if len(self.flight.parachute_events) > 0:
             for parachute in self.flight.rocket.parachutes:
-                print("\nParachute: ", parachute.name)
+                print(f"\nParachute: {parachute.name}")
                 parachute.noise_signal_function()
                 parachute.noisy_pressure_signal_function()
                 parachute.clean_pressure_signal_function()
         else:
-            print("\nRocket has no parachutes. No parachute plots available")
+            logger.warning("Rocket has no parachutes. No parachute plots available.")
 
     def parachutes_info(self, parachute_name="all"):
         """Plots parachute dynamic information.
@@ -1328,7 +1336,7 @@ class _FlightPlots:
         print("\n\nAngular Position Plots\n")
         self.flight_path_angle_data()
 
-        print("\n\nPath, Attitude and Lateral Attitude Angle plots\n")
+        print("\n\nPath, Attitude and Lateral Attitude Angle Plots\n")
         self.attitude_data()
 
         print("\n\nTrajectory Angular Velocity and Acceleration Plots\n")

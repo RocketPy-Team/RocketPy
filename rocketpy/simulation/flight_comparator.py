@@ -396,7 +396,6 @@ class FlightComparator:
                 (rmse / mean_abs_y_sim) * 100 if mean_abs_y_sim != 0 else np.inf
             )
 
-            # Print Metrics
             print(f"Source: {label}")
             print(f"  - MAE:            {mae:.4f}")
             print(f"  - RMSE:           {rmse:.4f}")

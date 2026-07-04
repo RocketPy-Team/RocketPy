@@ -1,7 +1,9 @@
 import csv
 import inspect
+import logging
 import math
 import warnings
+
 from typing import Iterable
 from warnings import warn
 
@@ -27,6 +29,11 @@ from rocketpy.rocket.aero_surface.fins.free_form_fin import FreeFormFin
 from rocketpy.rocket.aero_surface.fins.free_form_fins import FreeFormFins
 from rocketpy.rocket.aero_surface.fins.trapezoidal_fin import TrapezoidalFin
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
+from rocketpy.exceptions import (
+    InvalidInertiaError,
+    InvalidParameterError,
+    UnstableRocketWarning,
+)
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachutes.hemispherical_parachute import HemisphericalParachute
 from rocketpy.rocket.parachutes.parachute import Parachute
@@ -35,6 +42,8 @@ from rocketpy.tools import (
     find_obj_from_hash,
     parallel_axis_theorem_from_com,
 )
+
+logger = logging.getLogger(__name__)
 
 
 # pylint: disable=too-many-instance-attributes, too-many-public-methods, too-many-instance-attributes
@@ -313,6 +322,22 @@ class Rocket:
                     + '"tail_to_nose" and "nose_to_tail".'
                 )
 
+        # Validate inputs
+        if not isinstance(radius, (int, float)) or radius <= 0:
+            raise InvalidParameterError(
+                f"Rocket radius must be a positive number, got {radius!r}."
+            )
+        if not isinstance(mass, (int, float)) or mass <= 0:
+            raise InvalidParameterError(
+                f"Rocket mass must be a positive number, got {mass!r}."
+            )
+        if not isinstance(inertia, (tuple, list)) or len(inertia) not in (3, 6):
+            raise InvalidInertiaError(
+                "Inertia must be a tuple or list with 3 components (I_11, I_22, I_33) "
+                "or 6 components (I_11, I_22, I_33, I_12, I_13, I_23), "
+                f"got length {len(inertia) if isinstance(inertia, (tuple, list)) else 'N/A'}."
+            )
+
         # Define rocket inertia attributes in SI units
         self.mass = mass
         inertia = (*inertia, 0, 0, 0) if len(inertia) == 3 else inertia
@@ -480,7 +505,7 @@ class Rocket:
         """
         # Make sure there is a motor associated with the rocket
         if self.motor is None:
-            print("Please associate this rocket with a motor!")
+            logger.warning("Please associate this rocket with a motor!")
             return False
 
         self.total_mass = self.mass + self.motor.total_mass
@@ -500,7 +525,7 @@ class Rocket:
         """
         # Make sure there is a motor associated with the rocket
         if self.motor is None:
-            print("Please associate this rocket with a motor!")
+            logger.warning("Please associate this rocket with a motor!")
             return False
 
         self.dry_mass = self.mass + self.motor.dry_mass
@@ -583,7 +608,7 @@ class Rocket:
         # TODO: add tests for reduced_mass values
         # Make sure there is a motor associated with the rocket
         if self.motor is None:
-            print("Please associate this rocket with a motor!")
+            logger.warning("Please associate this rocket with a motor!")
             return False
 
         # Get nicknames
@@ -736,6 +761,26 @@ class Rocket:
         self.static_margin.set_discrete(
             lower=0, upper=self.motor.burn_out_time, samples=200
         )
+        # Warn the user if the rocket is aerodynamically unstable at ignition.
+        # Skipped when GenericSurface instances are present: their lift
+        # coefficient derivative is not accounted for in
+        # evaluate_center_of_pressure, so the computed static margin does not
+        # reflect their contribution and cannot be trusted for this check.
+        has_generic_surface = any(
+            isinstance(aero_surface, GenericSurface)
+            for aero_surface, _position in self.aerodynamic_surfaces
+        )
+        if not has_generic_surface:
+            initial_static_margin = self.static_margin.get_value_opt(0)
+            if initial_static_margin < 0:
+                warnings.warn(
+                    f"The rocket has a negative static margin ({initial_static_margin:.2f} cal) "
+                    "at motor ignition (t=0), indicating an aerodynamically unstable "
+                    "configuration. Check the placement of fins and nose cone relative "
+                    "to the center of mass.",
+                    UnstableRocketWarning,
+                    stacklevel=2,
+                )
         return self.static_margin
 
     def evaluate_dry_inertias(self):
@@ -1038,9 +1083,9 @@ class Rocket:
         if hasattr(self, "motor"):
             # pylint: disable=access-member-before-definition
             if not isinstance(self.motor, EmptyMotor):
-                print(
+                logger.warning(
                     "Only one motor per rocket is currently supported. "
-                    + "Overwriting previous motor."
+                    "Overwriting previous motor."
                 )
         self.motor = motor
         self.motor_position = position

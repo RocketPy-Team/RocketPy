@@ -4,6 +4,7 @@ from .hybrid_motor import HybridMotor
 from .liquid_motor import LiquidMotor
 from .motor import GenericMotor, Motor
 from .point_mass_motor import PointMassMotor
+from .ring_cluster_motor import RingClusterMotor
 from .solid_motor import SolidMotor
 from .tank import (
     LevelBasedTank,

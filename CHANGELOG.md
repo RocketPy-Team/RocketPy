@@ -32,6 +32,9 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- ENH: Add custom exceptions and unstable rocket warning [#970](https://github.com/RocketPy-Team/RocketPy/pull/970)
+- ENH: MNT: Remove redundant wind_heading/wind_direction functions from EnvironmentAnalysis [#1041](https://github.com/RocketPy-Team/RocketPy/pull/1041)
+- ENH: Pass acceleration (`u_dot`) data to parachute trigger functions [#911](https://github.com/RocketPy-Team/RocketPy/pull/911)
 - ENH: Add 3D flight trajectory and attitude animations in Flight plots layer [#909](https://github.com/RocketPy-Team/RocketPy/pull/909)
 - ENH: DOC: Configure AI instructions and update developer docs [#975](https://github.com/RocketPy-Team/RocketPy/pull/975)
 - ENH: BUG: fix wind heading and direction wraparound interpolation [#974](https://github.com/RocketPy-Team/RocketPy/pull/974)
@@ -41,10 +44,13 @@ Attention: The newest changes should be on top -->
 - ENH: Monte Carlo Formatting Options [#947](https://github.com/RocketPy-Team/RocketPy/pull/947)
 - ENH: ENH: Auto-Detection of Pressure Conversion Factor [#966](https://github.com/RocketPy-Team/RocketPy/pull/966)
 - ENH: Auto-Detection of Pressure Conversion Factor [#966](https://github.com/RocketPy-Team/RocketPy/pull/966)
+- DOC: Add aerodynamic surfaces user guide [#1043](https://github.com/RocketPy-Team/RocketPy/pull/1043)
+- ENH: Add RingClusterMotor for annular clustered motor modeling [#924](https://github.com/RocketPy-Team/RocketPy/pull/924)
 - ENH: MNT: introduce pressure unit conversion when using forecast/reanalysis/ensemble data [#955](https://github.com/RocketPy-Team/RocketPy/pull/955)
 - ENH: Auto Populate Changelog [#919](https://github.com/RocketPy-Team/RocketPy/pull/919)
 - ENH: Adaptive Monte Carlo via Convergence Criteria [#922](https://github.com/RocketPy-Team/RocketPy/pull/922)
 - TST: Add acceptance tests for 3DOF flight simulation based on Bella Lui rocket [#914](https://github.com/RocketPy-Team/RocketPy/pull/914)
+- ENH: adopt built-in Python logging instead of print() calls [#450](https://github.com/RocketPy-Team/RocketPy/issues/450)
 
 ### Changed
 
@@ -53,6 +59,10 @@ Attention: The newest changes should be on top -->
 ### Deprecated
 
 - MNT: Rename `radius` to `radius_function` in `CylindricalTank` and `SphericalTank`; old `radius=` keyword argument now raises `DeprecationWarning` [#957](https://github.com/RocketPy-Team/RocketPy/pull/957)
+
+### Removed
+
+- MNT: Remove redundant, unused per-level `wind_heading`/`wind_direction` functions from `EnvironmentAnalysis` pressure-level data (derivable from `wind_velocity_x`/`wind_velocity_y`) [#1041](https://github.com/RocketPy-Team/RocketPy/pull/1041)
 
 ### Fixed
 

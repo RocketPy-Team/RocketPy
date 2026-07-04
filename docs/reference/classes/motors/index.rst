@@ -10,6 +10,7 @@ Motor Classes
    HybridMotor
    LiquidMotor
    GenericMotor
+   RingClusterMotor
    Fluid
    Tank Classes <tanks/index>
    Tank Geometry Classes <geometries/index>

@@ -5,7 +5,12 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
-from rocketpy import Function, NoseCone, Rocket, SolidMotor
+from rocketpy import Function, GenericSurface, NoseCone, Rocket, SolidMotor
+from rocketpy.exceptions import (
+    InvalidInertiaError,
+    InvalidParameterError,
+    UnstableRocketWarning,
+)
 from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.motors.empty_motor import EmptyMotor
 from rocketpy.motors.motor import Motor
@@ -835,3 +840,85 @@ def test_drag_input_types_supported_for_power_on_and_power_off(tmp_path):
 
         assert rocket.power_off_drag_7d(*query_point) == pytest.approx(expected)
         assert rocket.power_on_drag_7d(*query_point) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize("radius", [-1, 0, -0.001])
+def test_rocket_invalid_radius_raises(radius):
+    """InvalidParameterError must be raised for non-positive radius values."""
+    with pytest.raises(InvalidParameterError, match="radius"):
+        Rocket(
+            radius=radius,
+            mass=10,
+            inertia=(0.1, 0.1, 0.01),
+            power_off_drag=0.3,
+            power_on_drag=0.3,
+            center_of_mass_without_motor=0,
+        )
+
+
+@pytest.mark.parametrize("mass", [-1, 0, -0.001])
+def test_rocket_invalid_mass_raises(mass):
+    """InvalidParameterError must be raised for non-positive mass values."""
+    with pytest.raises(InvalidParameterError, match="mass"):
+        Rocket(
+            radius=0.05,
+            mass=mass,
+            inertia=(0.1, 0.1, 0.01),
+            power_off_drag=0.3,
+            power_on_drag=0.3,
+            center_of_mass_without_motor=0,
+        )
+
+
+@pytest.mark.parametrize("inertia", [(0.1,), (0.1, 0.1), (0.1, 0.1, 0.01, 0.0, 0.0)])
+def test_rocket_invalid_inertia_length_raises(inertia):
+    """InvalidInertiaError must be raised when inertia tuple has wrong length."""
+    with pytest.raises(InvalidInertiaError):
+        Rocket(
+            radius=0.05,
+            mass=10,
+            inertia=inertia,
+            power_off_drag=0.3,
+            power_on_drag=0.3,
+            center_of_mass_without_motor=0,
+        )
+
+
+def test_unstable_rocket_warning_raised(calisto):
+    """UnstableRocketWarning must be raised when the static margin at motor
+    ignition is negative."""
+    nose = NoseCone(
+        length=0.55829,
+        kind="vonkarman",
+        base_radius=0.0635,
+        rocket_radius=0.0635,
+        name="Nose Cone",
+    )
+    with pytest.warns(UnstableRocketWarning):
+        calisto.add_surfaces(nose, 1.16)
+    assert calisto.static_margin(0) < 0
+
+
+def test_unstable_rocket_warning_skipped_with_generic_surface(calisto):
+    """UnstableRocketWarning must not be raised when the rocket has a
+    GenericSurface, since its lift coefficient derivative is not accounted
+    for in the center of pressure calculation, making the static margin
+    unreliable for this check."""
+    nose = NoseCone(
+        length=0.55829,
+        kind="vonkarman",
+        base_radius=0.0635,
+        rocket_radius=0.0635,
+        name="Nose Cone",
+    )
+    generic_surface = GenericSurface(
+        reference_area=None,
+        reference_length=None,
+        coefficients={
+            "cL": lambda alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate: 1
+        },
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", UnstableRocketWarning)
+        calisto.add_surfaces([nose, generic_surface], [1.16, 0])
+    assert calisto.static_margin(0) < 0
