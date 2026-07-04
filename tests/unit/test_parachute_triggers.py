@@ -1,6 +1,6 @@
 import numpy as np
 
-from rocketpy.rocket.parachute import Parachute
+from rocketpy.rocket.parachutes import HemisphericalParachute
 from rocketpy.simulation.flight import Flight
 
 
@@ -14,7 +14,7 @@ def test_trigger_receives_u_dot():
         recorded["u_dot"] = np.array(u_dot)
         return True
 
-    parachute = Parachute(
+    parachute = HemisphericalParachute(
         name="test",
         cd_s=1.0,
         trigger=user_trigger,
@@ -51,7 +51,7 @@ def test_trigger_with_u_dot_only():
         recorded["u_dot"] = np.array(u_dot)
         return False
 
-    parachute = Parachute(
+    parachute = HemisphericalParachute(
         name="test_u_dot_only",
         cd_s=1.0,
         trigger=user_trigger,
@@ -86,7 +86,7 @@ def test_basic_trigger_does_not_compute_u_dot():
         called["ok"] = True
         return True
 
-    parachute = Parachute(
+    parachute = HemisphericalParachute(
         name="basic",
         cd_s=1.0,
         trigger=basic_trigger,

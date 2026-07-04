@@ -1290,40 +1290,33 @@ class _FlightPlots:
             return
 
         if parachute_name == "all":
-            for name, parachute_variables in self.flight.parachutes_info.items():
-                t_values = parachute_variables["t"]
-                variable_names = parachute_variables.keys()
-                for variable in variable_names:
-                    if variable != "t":
-                        variable_values = parachute_variables[variable]
-                        variable_func = Function(
-                            source=[
-                                [t, value]
-                                for t, value in zip(t_values, variable_values)
-                            ],
-                            inputs="time",
-                            outputs=variable,
-                            title=f"{variable} x time for parachute {name}",
-                            interpolation="linear",
-                        )
-                        variable_func()
+            items = list(self.flight.parachutes_info.items())
+        elif parachute_name in self.flight.parachutes_info:
+            items = [(parachute_name, self.flight.parachutes_info[parachute_name])]
         else:
-            parachute_variables = self.flight.parachutes_info[parachute_name]
+            print(
+                f"\nNo dynamic information available for parachute "
+                f"'{parachute_name}'. It may not have been deployed during the "
+                f"flight. Available parachutes: "
+                f"{list(self.flight.parachutes_info.keys())}."
+            )
+            return
+
+        for name, parachute_variables in items:
             t_values = parachute_variables["t"]
-            variable_names = parachute_variables.keys()
-            for variable in variable_names:
-                if variable != "t":
-                    variable_values = parachute_variables[variable]
-                    variable_func = Function(
-                        source=[
-                            [t, value] for t, value in zip(t_values, variable_values)
-                        ],
-                        inputs="time",
-                        outputs=variable,
-                        title=f"{variable} x Time for parachute {parachute_name}",
-                        interpolation="linear",
-                    )
-                    variable_func()
+            for variable, variable_values in parachute_variables.items():
+                if variable == "t":
+                    continue
+                variable_func = Function(
+                    source=[
+                        [t, value] for t, value in zip(t_values, variable_values)
+                    ],
+                    inputs="time",
+                    outputs=variable,
+                    title=f"{variable} x time for parachute {name}",
+                    interpolation="linear",
+                )
+                variable_func()
 
     def all(self):  # pylint: disable=too-many-statements
         """Prints out all plots available about the Flight.

@@ -160,6 +160,7 @@ def set_minimal_flight_attributes(flight, obj):
         "apogee_time",
         "apogee",
         "parachute_events",
+        "parachutes_info",
         "impact_state",
         "impact_velocity",
         "x_impact",
