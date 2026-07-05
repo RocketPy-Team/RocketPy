@@ -32,7 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
--
+- ENH: Add opening_shock_coefficient parameter and calculate_opening_shock_force method to Parachute class. [#161](https://github.com/RocketPy-Team/RocketPy/issues/161)
 
 ### Changed
 
