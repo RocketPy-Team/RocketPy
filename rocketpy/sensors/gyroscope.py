@@ -78,6 +78,7 @@ class Gyroscope(InertialSensor):
         cross_axis_sensitivity=0,
         acceleration_sensitivity=0,
         name="Gyroscope",
+        seed=None,
     ):
         """
         Initialize the gyroscope sensor
@@ -193,6 +194,7 @@ class Gyroscope(InertialSensor):
             temperature_scale_factor=temperature_scale_factor,
             cross_axis_sensitivity=cross_axis_sensitivity,
             name=name,
+            seed=seed,
         )
         self.acceleration_sensitivity = self._vectorize_input(
             acceleration_sensitivity, "acceleration_sensitivity"

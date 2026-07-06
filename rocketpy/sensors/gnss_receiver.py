@@ -1,7 +1,5 @@
 import math
 
-import numpy as np
-
 from rocketpy.tools import inverted_haversine
 
 from ..mathutils.vector_matrix import Matrix, Vector
@@ -40,6 +38,7 @@ class GnssReceiver(ScalarSensor):
         position_accuracy=0,
         altitude_accuracy=0,
         name="GnssReceiver",
+        seed=None,
     ):
         """Initialize the Gnss Receiver sensor.
 
@@ -56,7 +55,7 @@ class GnssReceiver(ScalarSensor):
         name : str
             The name of the sensor. Default is "GnssReceiver".
         """
-        super().__init__(sampling_rate=sampling_rate, name=name)
+        super().__init__(sampling_rate=sampling_rate, name=name, seed=seed)
         self.position_accuracy = position_accuracy
         self.altitude_accuracy = altitude_accuracy
 
@@ -90,9 +89,9 @@ class GnssReceiver(ScalarSensor):
         # Get from state u and add relative position
         x, y, z = (Matrix.transformation(u[6:10]) @ relative_position) + Vector(u[0:3])
         # Apply accuracy to the position
-        x = np.random.normal(x, self.position_accuracy)
-        y = np.random.normal(y, self.position_accuracy)
-        altitude = np.random.normal(z, self.altitude_accuracy)
+        x = self._rng.normal(x, self.position_accuracy)
+        y = self._rng.normal(y, self.position_accuracy)
+        altitude = self._rng.normal(z, self.altitude_accuracy)
 
         # Convert x and y to latitude and longitude
         drift = (x**2 + y**2) ** 0.5

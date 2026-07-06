@@ -78,6 +78,7 @@ class Accelerometer(InertialSensor):
         cross_axis_sensitivity=0,
         consider_gravity=False,
         name="Accelerometer",
+        seed=None,
     ):
         """
         Initialize the accelerometer sensor
@@ -193,6 +194,7 @@ class Accelerometer(InertialSensor):
             temperature_scale_factor=temperature_scale_factor,
             cross_axis_sensitivity=cross_axis_sensitivity,
             name=name,
+            seed=seed,
         )
         self.consider_gravity = consider_gravity
         self.prints = _InertialSensorPrints(self)

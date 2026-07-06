@@ -62,6 +62,7 @@ class Barometer(ScalarSensor):
         temperature_bias=0,
         temperature_scale_factor=0,
         name="Barometer",
+        seed=None,
     ):
         """
         Initialize the barometer sensor
@@ -132,6 +133,7 @@ class Barometer(ScalarSensor):
             temperature_bias=temperature_bias,
             temperature_scale_factor=temperature_scale_factor,
             name=name,
+            seed=seed,
         )
         self.prints = _SensorPrints(self)
 
