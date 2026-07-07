@@ -11,13 +11,17 @@ inherited tests. Noise is sampled on a fixed grid, so a fixed number of
 sequential draws is a faithful stand-in for a run of a given length.
 """
 
+import json
 from types import SimpleNamespace
 
 import numpy as np
 
+from rocketpy._encoders import RocketPyEncoder
 from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.sensors.accelerometer import Accelerometer
+from rocketpy.sensors.barometer import Barometer
 from rocketpy.sensors.gnss_receiver import GnssReceiver
+from rocketpy.sensors.gyroscope import Gyroscope
 
 
 def _accelerometer(seed):
@@ -91,3 +95,47 @@ def _gnss_measurements(seed, n=8):
 def test_gnss_noise_is_seeded_and_reproducible():
     assert _gnss_measurements(5) == _gnss_measurements(5)
     assert _gnss_measurements(5) != _gnss_measurements(6)
+
+
+def test_seed_survives_serialization_round_trip():
+    """to_dict exposes the seed and from_dict restores it, across all sensor types.
+
+    Sensors serialize through the JSON encoder, which turns the inertial sensors'
+    Vector fields into lists, so this exercises the round trip the same way the
+    library actually saves and loads them.
+    """
+    cases = [
+        (
+            Accelerometer(
+                sampling_rate=10, noise_density=1.0, noise_variance=1.0, seed=11
+            ),
+            11,
+        ),
+        (
+            Gyroscope(sampling_rate=10, noise_density=1.0, noise_variance=1.0, seed=22),
+            22,
+        ),
+        (
+            Barometer(sampling_rate=10, noise_density=1.0, noise_variance=1.0, seed=33),
+            33,
+        ),
+        (
+            GnssReceiver(
+                sampling_rate=1, position_accuracy=5.0, altitude_accuracy=5.0, seed=44
+            ),
+            44,
+        ),
+    ]
+    for sensor, seed in cases:
+        assert sensor.to_dict()["seed"] == seed
+        data = json.loads(json.dumps(sensor.to_dict(), cls=RocketPyEncoder))
+        assert type(sensor).from_dict(data).to_dict()["seed"] == seed
+
+
+def test_from_dict_defaults_seed_to_none_when_absent():
+    """Dicts serialized before this change (no seed key) still load, seed None."""
+    data = GnssReceiver(
+        sampling_rate=1, position_accuracy=5.0, altitude_accuracy=5.0, seed=44
+    ).to_dict()
+    del data["seed"]
+    assert GnssReceiver.from_dict(data).to_dict()["seed"] is None

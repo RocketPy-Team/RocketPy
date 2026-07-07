@@ -112,6 +112,11 @@ class Sensor(ABC):
             meaning no temperature scale factor is applied.
         name : str, optional
             The name of the sensor. Default is "Sensor".
+        seed : int, optional
+            Seed for the random number generator that draws the measurement
+            noise. If given, the noise becomes reproducible and independent of
+            the process-global NumPy RNG. Default is None, meaning the noise is
+            seeded from fresh entropy per instance.
 
         Returns
         -------
@@ -300,6 +305,7 @@ class Sensor(ABC):
             "temperature_bias": self.temperature_bias,
             "temperature_scale_factor": self.temperature_scale_factor,
             "name": self.name,
+            "seed": self._seed,
         }
 
 
@@ -454,6 +460,11 @@ class InertialSensor(Sensor):
             no cross-axis sensitivity is applied.
         name : str, optional
             The name of the sensor. Default is "Sensor".
+        seed : int, optional
+            Seed for the random number generator that draws the measurement
+            noise. If given, the noise becomes reproducible and independent of
+            the process-global NumPy RNG. Default is None, meaning the noise is
+            seeded from fresh entropy per instance.
 
         Returns
         -------
@@ -721,6 +732,11 @@ class ScalarSensor(Sensor):
             meaning no temperature scale factor is applied.
         name : str, optional
             The name of the sensor. Default is "Sensor".
+        seed : int, optional
+            Seed for the random number generator that draws the measurement
+            noise. If given, the noise becomes reproducible and independent of
+            the process-global NumPy RNG. Default is None, meaning the noise is
+            seeded from fresh entropy per instance.
 
         Returns
         -------

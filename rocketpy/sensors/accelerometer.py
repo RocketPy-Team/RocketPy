@@ -170,6 +170,11 @@ class Accelerometer(InertialSensor):
             acceleration. Default is False.
         name : str, optional
             The name of the sensor. Default is "Accelerometer".
+        seed : int, optional
+            Seed for the random number generator that draws the measurement
+            noise. If given, the noise becomes reproducible and independent of
+            the process-global NumPy RNG. Default is None, meaning the noise is
+            seeded from fresh entropy per instance.
 
         Returns
         -------
@@ -301,4 +306,5 @@ class Accelerometer(InertialSensor):
             cross_axis_sensitivity=data["cross_axis_sensitivity"],
             consider_gravity=data["consider_gravity"],
             name=data["name"],
+            seed=data.get("seed"),
         )
