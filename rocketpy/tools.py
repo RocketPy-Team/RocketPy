@@ -425,18 +425,18 @@ def inverted_haversine(lat0, lon0, distance, bearing, earth_radius=6.3781e6):
     lon0_rad = np.deg2rad(lon0)
 
     # Apply inverted Haversine formula
-    lat1_rad = math.asin(
-        math.sin(lat0_rad) * math.cos(distance / earth_radius)
-        + math.cos(lat0_rad)
-        * math.sin(distance / earth_radius)
-        * math.cos(math.radians(bearing))
+    lat1_rad = np.arcsin(
+        np.sin(lat0_rad) * np.cos(distance / earth_radius)
+        + np.cos(lat0_rad)
+        * np.sin(distance / earth_radius)
+        * np.cos(np.radians(bearing))
     )
 
-    lon1_rad = lon0_rad + math.atan2(
-        math.sin(math.radians(bearing))
-        * math.sin(distance / earth_radius)
-        * math.cos(lat0_rad),
-        math.cos(distance / earth_radius) - math.sin(lat0_rad) * math.sin(lat1_rad),
+    lon1_rad = lon0_rad + np.arctan2(
+        np.sin(np.radians(bearing))
+        * np.sin(distance / earth_radius)
+        * np.cos(lat0_rad),
+        np.cos(distance / earth_radius) - np.sin(lat0_rad) * np.sin(lat1_rad),
     )
 
     # Convert back to degrees and then return

@@ -21,6 +21,7 @@ from ..tools import (
     find_closest,
     find_root_linear_interpolation,
     find_roots_cubic_function,
+    inverted_haversine,
     quaternions_to_nutation,
     quaternions_to_precession,
     quaternions_to_spin,
@@ -3813,40 +3814,29 @@ class Flight:
         """Rocket latitude coordinate, in degrees, as a Function of
         time.
         """
-        lat1 = np.deg2rad(self.env.latitude)  # Launch lat point converted to radians
-
         # Applies the haversine equation to find final lat/lon coordinates
-        latitude = np.rad2deg(
-            np.arcsin(
-                np.sin(lat1) * np.cos(self.drift[:, 1] / self.env.earth_radius)
-                + np.cos(lat1)
-                * np.sin(self.drift[:, 1] / self.env.earth_radius)
-                * np.cos(np.deg2rad(self.bearing[:, 1]))
-            )
+        latitude, _ = inverted_haversine(
+            self.env.latitude,
+            self.env.longitude,
+            self.drift[:, 1],
+            self.bearing[:, 1],
+            self.env.earth_radius,
         )
         return np.column_stack((self.time, latitude))
 
-    # TODO: haversine should be defined in tools.py so we just invoke it in here.
     @funcify_method("Time (s)", "Longitude (°)", "linear", "constant")
     def longitude(self):
         """Rocket longitude coordinate, in degrees, as a Function of
         time.
         """
-        lat1 = np.deg2rad(self.env.latitude)  # Launch lat point converted to radians
-        lon1 = np.deg2rad(self.env.longitude)  # Launch lon point converted to radians
-
         # Applies the haversine equation to find final lat/lon coordinates
-        longitude = np.rad2deg(
-            lon1
-            + np.arctan2(
-                np.sin(np.deg2rad(self.bearing[:, 1]))
-                * np.sin(self.drift[:, 1] / self.env.earth_radius)
-                * np.cos(lat1),
-                np.cos(self.drift[:, 1] / self.env.earth_radius)
-                - np.sin(lat1) * np.sin(np.deg2rad(self.latitude[:, 1])),
-            )
+        _, longitude = inverted_haversine(
+            self.env.latitude,
+            self.env.longitude,
+            self.drift[:, 1],
+            self.bearing[:, 1],
+            self.env.earth_radius,
         )
-
         return np.column_stack((self.time, longitude))
 
     def get_controller_observed_variables(self):
