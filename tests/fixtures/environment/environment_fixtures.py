@@ -5,6 +5,42 @@ import pytest
 from rocketpy import Environment, EnvironmentAnalysis
 
 
+class _DummyTimeArray:
+    """Minimal time array with netCDF-like units metadata."""
+
+    units = "hours since 2023-06-24 00:00:00"
+
+    def __init__(self, values):
+        self.values = values
+
+    def __getitem__(self, index):
+        return self.values[index]
+
+
+class _DummyCftimeDate:
+    """Small cftime-like datetime used to exercise NetCDF date conversion."""
+
+    year = 2023
+    month = 6
+    day = 24
+    hour = 9
+    minute = 30
+    second = 15
+    microsecond = 123456
+
+
+@pytest.fixture
+def dummy_time_array():
+    """NetCDF-like time array for environment date helper tests."""
+    return _DummyTimeArray([0, 6])
+
+
+@pytest.fixture
+def dummy_cftime_date():
+    """cftime-like date object for environment date helper tests."""
+    return _DummyCftimeDate()
+
+
 @pytest.fixture
 def example_plain_env():
     """Simple object of the Environment class to be used in the tests.

@@ -2924,6 +2924,27 @@ class Environment:
             "timezone": self.timezone,
             "max_expected_height": self.max_expected_height,
             "atmospheric_model_type": self.atmospheric_model_type,
+            "atmospheric_model_init_date": getattr(
+                self, "atmospheric_model_init_date", None
+            ),
+            "atmospheric_model_end_date": getattr(
+                self, "atmospheric_model_end_date", None
+            ),
+            "atmospheric_model_interval": getattr(
+                self, "atmospheric_model_interval", None
+            ),
+            "atmospheric_model_init_lat": getattr(
+                self, "atmospheric_model_init_lat", None
+            ),
+            "atmospheric_model_end_lat": getattr(
+                self, "atmospheric_model_end_lat", None
+            ),
+            "atmospheric_model_init_lon": getattr(
+                self, "atmospheric_model_init_lon", None
+            ),
+            "atmospheric_model_end_lon": getattr(
+                self, "atmospheric_model_end_lon", None
+            ),
             "pressure": self.pressure,
             "temperature": self.temperature,
             "wind_velocity_x": wind_velocity_x,
@@ -2931,6 +2952,15 @@ class Environment:
             "wind_heading": wind_heading,
             "wind_direction": wind_direction,
             "wind_speed": wind_speed,
+            "level_ensemble": getattr(self, "level_ensemble", None),
+            "height_ensemble": getattr(self, "height_ensemble", None),
+            "temperature_ensemble": getattr(self, "temperature_ensemble", None),
+            "wind_u_ensemble": getattr(self, "wind_u_ensemble", None),
+            "wind_v_ensemble": getattr(self, "wind_v_ensemble", None),
+            "wind_heading_ensemble": getattr(self, "wind_heading_ensemble", None),
+            "wind_direction_ensemble": getattr(self, "wind_direction_ensemble", None),
+            "wind_speed_ensemble": getattr(self, "wind_speed_ensemble", None),
+            "num_ensemble_members": getattr(self, "num_ensemble_members", None),
         }
 
         if kwargs.get("include_outputs", False):
@@ -2954,6 +2984,7 @@ class Environment:
             max_expected_height=data["max_expected_height"],
         )
         atmospheric_model = data["atmospheric_model_type"]
+        env.atmospheric_model_type = atmospheric_model
 
         match atmospheric_model:
             case "standard_atmosphere":

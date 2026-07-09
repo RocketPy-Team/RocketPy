@@ -87,6 +87,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+- BUG: Environment not Encoding Necessary Parameters for Decode [#1059](https://github.com/RocketPy-Team/RocketPy/pull/1059)
 - BUG: fix individual fin (`TrapezoidalFin`, `EllipticalFin`, `FreeFormFin`) serialization crash when saving rockets/flights [#1048](https://github.com/RocketPy-Team/RocketPy/pull/1048)
 - BUG: support the new Wyoming sounding WSGI page format (legacy cgi-bin endpoint was discontinued by UWyo) [#1048](https://github.com/RocketPy-Team/RocketPy/pull/1048)
 - FIX: pre-release hardening — bug fixes across the unreleased features [#1047](https://github.com/RocketPy-Team/RocketPy/pull/1047)

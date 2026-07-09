@@ -1,7 +1,9 @@
 import json
 import os
+from datetime import datetime
 
 import numpy as np
+import numpy.testing as npt
 import pytest
 import pytz
 
@@ -10,6 +12,8 @@ from rocketpy.environment.tools import (
     find_longitude_index,
     geodesic_to_lambert_conformal,
     geodesic_to_utm,
+    get_final_date_from_time_array,
+    get_initial_date_from_time_array,
     utm_to_geodesic,
 )
 from rocketpy.environment.weather_model_mapping import WeatherModelMapping
@@ -22,6 +26,27 @@ class DummyLambertProjection:
     longitude_of_central_meridian = 263.0
     standard_parallel = np.array([30.0, 60.0])
     earth_radius = 6371229.0
+
+
+@pytest.mark.parametrize(
+    "date_helper", [get_initial_date_from_time_array, get_final_date_from_time_array]
+)
+def test_time_array_date_helpers_convert_cftime_dates(
+    monkeypatch, date_helper, dummy_time_array, dummy_cftime_date
+):
+    """Convert NetCDF/cftime date objects to JSON-serializable datetimes."""
+
+    # Arrange
+    def fake_num2date(*_args, **_kwargs):
+        return dummy_cftime_date
+
+    monkeypatch.setattr("rocketpy.environment.tools.netCDF4.num2date", fake_num2date)
+
+    # Act
+    converted_date = date_helper(dummy_time_array)
+
+    # Assert
+    assert converted_date == datetime(2023, 6, 24, 9, 30, 15, 123456)
 
 
 @pytest.mark.parametrize(
@@ -304,6 +329,93 @@ def test_environment_export_environment_exports_valid_environment_json(
     )
 
     os.remove("environment.json")
+
+
+@pytest.mark.parametrize(
+    "atmospheric_model_type", ["windy", "forecast", "reanalysis", "ensemble"]
+)
+def test_environment_to_dict_from_dict_round_trip_preserves_weather_metadata(
+    example_plain_env, atmospheric_model_type
+):
+    """Round-trip weather-model environments without losing metadata.
+
+    Parameters
+    ----------
+    example_plain_env : rocketpy.Environment
+        Baseline environment used to build the serialized state.
+    atmospheric_model_type : str
+        Weather-model label stored in the serialized payload.
+    """
+    # Arrange
+    env = example_plain_env
+
+    weather_metadata = {
+        "atmospheric_model_type": atmospheric_model_type,
+        "atmospheric_model_file": None,
+        "atmospheric_model_dict": {"time": "time"},
+        "atmospheric_model_init_date": datetime(2024, 1, 1, 0),
+        "atmospheric_model_end_date": datetime(2024, 1, 1, 6),
+        "atmospheric_model_interval": 6,
+        "atmospheric_model_init_lat": -10.0,
+        "atmospheric_model_end_lat": 10.0,
+        "atmospheric_model_init_lon": -20.0,
+        "atmospheric_model_end_lon": 20.0,
+    }
+
+    ensemble_metadata = {
+        "level_ensemble": None,
+        "height_ensemble": None,
+        "temperature_ensemble": None,
+        "wind_u_ensemble": None,
+        "wind_v_ensemble": None,
+        "wind_heading_ensemble": None,
+        "wind_direction_ensemble": None,
+        "wind_speed_ensemble": None,
+        "num_ensemble_members": None,
+    }
+
+    if atmospheric_model_type == "ensemble":
+        ensemble_metadata.update(
+            {
+                "level_ensemble": np.array([1000.0, 900.0]),
+                "height_ensemble": np.array([[0.0, 1000.0]]),
+                "temperature_ensemble": np.array([[288.15, 281.15]]),
+                "wind_u_ensemble": np.array([[2.0, 3.0]]),
+                "wind_v_ensemble": np.array([[4.0, 5.0]]),
+                "wind_heading_ensemble": np.array([[26.565051, 30.963757]]),
+                "wind_direction_ensemble": np.array([[206.565051, 210.963757]]),
+                "wind_speed_ensemble": np.array([[4.472136, 5.830952]]),
+                "num_ensemble_members": 1,
+            }
+        )
+
+    for metadata in (weather_metadata, ensemble_metadata):
+        for attribute, value in metadata.items():
+            setattr(env, attribute, value)
+
+    env_dict = env.to_dict()
+
+    # The serialized payload should be self-contained and not depend on files.
+    assert "atmospheric_model_file" not in env_dict
+    assert "atmospheric_model_dict" not in env_dict
+
+    # Act
+    restored_env = Environment.from_dict(env_dict)
+
+    # Assert
+    assert restored_env.atmospheric_model_type == atmospheric_model_type
+    assert restored_env.atmospheric_model_init_date == env.atmospheric_model_init_date
+    assert restored_env.atmospheric_model_end_date == env.atmospheric_model_end_date
+    assert restored_env.atmospheric_model_interval == env.atmospheric_model_interval
+    assert restored_env.atmospheric_model_init_lat == env.atmospheric_model_init_lat
+    assert restored_env.atmospheric_model_end_lat == env.atmospheric_model_end_lat
+    assert restored_env.atmospheric_model_init_lon == env.atmospheric_model_init_lon
+    assert restored_env.atmospheric_model_end_lon == env.atmospheric_model_end_lon
+
+    if atmospheric_model_type == "ensemble":
+        npt.assert_allclose(restored_env.level_ensemble, env.level_ensemble)
+        npt.assert_allclose(restored_env.height_ensemble, env.height_ensemble)
+        assert restored_env.num_ensemble_members == env.num_ensemble_members
 
 
 class _DummyDataset:
