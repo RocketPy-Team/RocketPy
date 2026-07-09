@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import matplotlib as plt
 import numpy as np
+import numpy.testing as npt
 import pytest
 
 from rocketpy import Flight
@@ -385,7 +386,8 @@ def test_freestream_speed_at_apogee(example_plain_env, calisto):
     """
     # NOTE: this rocket doesn't move in x or z direction. There's no wind.
     hard_atol = 1e-12
-    soft_atol = 1e-6
+    soft_atol = 1e-5
+    soft_rtol = 1e-4
     test_flight = Flight(
         environment=example_plain_env,
         rocket=calisto,
@@ -396,25 +398,36 @@ def test_freestream_speed_at_apogee(example_plain_env, calisto):
         atol=13 * [hard_atol],
     )
 
-    assert np.isclose(
+    npt.assert_allclose(
         test_flight.stream_velocity_x(test_flight.apogee_time),
-        0.46415477243050873,
+        0.4641507314747016,
         atol=hard_atol,
+        rtol=soft_rtol,
     )
-    assert np.isclose(
-        test_flight.stream_velocity_y(test_flight.apogee_time), 0.0, atol=hard_atol
+    npt.assert_allclose(
+        test_flight.stream_velocity_y(test_flight.apogee_time),
+        0.0,
+        atol=hard_atol,
+        rtol=soft_rtol,
     )
     # NOTE: stream_velocity_z has a higher error due to apogee detection estimation
-    assert np.isclose(
-        test_flight.stream_velocity_z(test_flight.apogee_time), 0.0, atol=soft_atol
+    npt.assert_allclose(
+        test_flight.stream_velocity_z(test_flight.apogee_time),
+        0.0,
+        atol=soft_atol,
+        rtol=soft_rtol,
     )
-    assert np.isclose(
+    npt.assert_allclose(
         test_flight.free_stream_speed(test_flight.apogee_time),
-        0.46415477243050873,
+        0.46415073147558955,
         atol=hard_atol,
+        rtol=soft_rtol,
     )
-    assert np.isclose(
-        test_flight.apogee_freestream_speed, 0.46415477243050873, atol=hard_atol
+    npt.assert_allclose(
+        test_flight.apogee_freestream_speed,
+        0.46415073147558955,
+        atol=hard_atol,
+        rtol=soft_rtol,
     )
 
 

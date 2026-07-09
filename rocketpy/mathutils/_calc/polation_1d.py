@@ -81,7 +81,7 @@ def _cubic_eval_vec(
     float or np.ndarray
         The evaluated cubic polynomial value(s).
     """
-    return a + t * (b + t * (c + t * d))
+    return a + b * t + c * (t**2) + d * (t**3)
 
 
 class Linear1DPolation(PolationBase):
