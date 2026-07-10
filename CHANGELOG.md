@@ -32,12 +32,9 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
-- ENH: Updates develop with master [#1058](https://github.com/RocketPy-Team/RocketPy/pull/1058)
 ### Changed
 
 ### Fixed
-
-- BUG: BUG: Environment not Encoding Necessary Parameters for Decode [#1059](https://github.com/RocketPy-Team/RocketPy/pull/1059)
 
 ## [v1.13.0] - 2026-07-04
 
