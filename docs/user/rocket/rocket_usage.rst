@@ -290,17 +290,6 @@ Optionally, we can also define:
 - The parachute trigger system lag ``lag``.
 - The parachute trigger system noise ``noise``.
 
-.. note::
-
-    Since v1.13.0, :class:`~rocketpy.Parachute` is an **abstract base class**
-    and can no longer be instantiated directly. Instead, instantiate a concrete
-    parachute model such as :class:`~rocketpy.HemisphericalParachute` (used
-    below), which derives its geometry-dependent quantities (e.g. the added
-    mass during descent) from the parachute ``radius`` and ``height``. As a
-    convenience shortcut, ``Rocket.add_parachute(...)`` can still be called with
-    keyword arguments (``name``, ``cd_s``, ``trigger``, ...) and will build a
-    hemispherical parachute for you.
-
 Lets add two parachutes to the rocket, one that will be deployed at
 apogee and another that will be deployed at 800 meters above ground level:
 

@@ -910,14 +910,13 @@ def test_acceleration_based_parachute_trigger_deploys(
         return y[5] < 0 and u_dot[5] < 0
 
     calisto_robust.parachutes = []
-    chute = HemisphericalParachute(
+    chute = calisto_robust.add_parachute(
         name="acc_chute",
         cd_s=10.0,
         trigger=acc_trigger,
         sampling_rate=100,
         lag=0,
     )
-    calisto_robust.add_parachute(parachute=chute)
 
     # Do NOT terminate at apogee: the flight must descend for the trigger to fire.
     flight = Flight(
