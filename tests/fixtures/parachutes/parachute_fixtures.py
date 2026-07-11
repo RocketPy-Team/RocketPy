@@ -1,6 +1,6 @@
 import pytest
 
-from rocketpy import HemisphericalParachute
+from rocketpy import Parachute
 
 
 @pytest.fixture
@@ -52,7 +52,7 @@ def calisto_main_chute(calisto_main_parachute_trigger):
     rocketpy.Parachute
         The main parachute of the Calisto rocket.
     """
-    return HemisphericalParachute(
+    return Parachute(
         name="calisto_main_chute",
         cd_s=10.0,
         trigger=calisto_main_parachute_trigger,
@@ -77,7 +77,7 @@ def calisto_drogue_chute(calisto_drogue_parachute_trigger):
     rocketpy.Parachute
         The drogue parachute of the Calisto rocket.
     """
-    return HemisphericalParachute(
+    return Parachute(
         name="calisto_drogue_chute",
         cd_s=1.0,
         trigger=calisto_drogue_parachute_trigger,

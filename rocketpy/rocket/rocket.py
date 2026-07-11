@@ -5,7 +5,6 @@ import math
 import numbers
 import warnings
 from typing import Iterable
-from warnings import warn
 
 import numpy as np
 
@@ -35,8 +34,7 @@ from rocketpy.rocket.aero_surface.fins.free_form_fins import FreeFormFins
 from rocketpy.rocket.aero_surface.fins.trapezoidal_fin import TrapezoidalFin
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 from rocketpy.rocket.components import Components
-from rocketpy.rocket.parachutes.hemispherical_parachute import HemisphericalParachute
-from rocketpy.rocket.parachutes.parachute import Parachute
+from rocketpy.rocket.parachute import Parachute
 from rocketpy.tools import (
     deprecated,
     find_obj_from_hash,
@@ -1637,9 +1635,9 @@ class Rocket:
 
     def add_parachute(
         self,
-        name=None,
-        cd_s=None,
-        trigger=None,
+        name,
+        cd_s,
+        trigger,
         sampling_rate=100,
         lag=0,
         noise=(0, 0, 0),
@@ -1647,16 +1645,12 @@ class Rocket:
         height=None,
         porosity=0.0432,
         drag_coefficient=1.4,
-        parachute=None,
     ):
-        """Adds parachute to the rocket parachute list
+        """Creates a new parachute, storing its parameters such as
+        opening delay, drag coefficients and trigger function.
 
         Parameters
         ----------
-        parachute : object with parent class Parachute | None
-            The parachute object to be added to the rocket. Default is
-            none for backwards compatibility. In future versions, it
-            will be required to pass a valid object.
         name : string
             Parachute name, such as drogue and main. Has no impact in
             simulation, as it is only used to display data in a more
@@ -1733,54 +1727,26 @@ class Rocket:
 
         Returns
         -------
-        parachute : Parachute | None
-            If the parachute argument is not None, nothing is returned.
-            If the parachute argument is None, then it returns a
-            Parachute object containing trigger, sampling_rate, lag, cd_s, noise,
+        parachute : Parachute
+            Parachute containing trigger, sampling_rate, lag, cd_s, noise,
             radius, drag_coefficient, height, porosity and name. Furthermore,
             it stores clean_pressure_signal, noise_signal and
             noisyPressureSignal which are filled in during Flight simulation.
-            Returning a Parachute object is deprecated and will be removed
-            in future versions.
         """
-        if parachute is not None:
-            if not isinstance(parachute, Parachute):
-                raise TypeError(
-                    "The 'parachute' argument must be an instance of a Parachute "
-                    "subclass (e.g. 'HemisphericalParachute')."
-                )
-            self.parachutes.append(parachute)
-        else:
-            # For backwards compatibility
-            deprecation_message = (
-                "Passing parachute parameters directly to 'add_parachute' method is "
-                + "deprecated and will be removed in version 1.14.0. Please create "
-                + "an object of class 'HemisphericalParachute' and pass it to the "
-                + "'parachute' argument of 'add_parachute' for the same behavior."
-            )
-            warn(message=deprecation_message, category=FutureWarning, stacklevel=2)
-            if name is None:
-                raise ValueError("Invalid 'name' argument! Please provide a string!")
-            if cd_s is None:
-                raise ValueError("Invalid 'cd_s' argument! Please provide a float!")
-            if trigger is None:
-                raise ValueError(
-                    "Invalid 'trigger' argument! Please provide a callable, float, or string!"
-                )
-            legacy_parachute = HemisphericalParachute(
-                name,
-                cd_s,
-                trigger,
-                sampling_rate,
-                lag,
-                noise,
-                radius,
-                height,
-                porosity,
-                drag_coefficient,
-            )
-            self.parachutes.append(legacy_parachute)
-            return self.parachutes[-1]
+        parachute = Parachute(
+            name,
+            cd_s,
+            trigger,
+            sampling_rate,
+            lag,
+            noise,
+            radius,
+            height,
+            porosity,
+            drag_coefficient,
+        )
+        self.parachutes.append(parachute)
+        return self.parachutes[-1]
 
     def add_sensor(self, sensor, position):
         """Adds a sensor to the rocket.

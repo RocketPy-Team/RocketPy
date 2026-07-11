@@ -1,4 +1,4 @@
-from rocketpy.rocket.parachutes import HemisphericalParachute
+from rocketpy.rocket.parachute import Parachute
 
 
 def test_stochastic_parachute_create_object(stochastic_main_parachute):
@@ -18,4 +18,4 @@ def test_stochastic_parachute_create_object(stochastic_main_parachute):
     None
     """
     obj = stochastic_main_parachute.create_object()
-    assert isinstance(obj, HemisphericalParachute)
+    assert isinstance(obj, Parachute)

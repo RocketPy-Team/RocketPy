@@ -306,9 +306,7 @@ apogee and another that will be deployed at 800 meters above ground level:
 
 .. jupyter-execute::
 
-    from rocketpy import HemisphericalParachute
-
-    main = HemisphericalParachute(
+    main = calisto.add_parachute(
         name="Main",
         cd_s=10.0,
         trigger=800,
@@ -320,7 +318,7 @@ apogee and another that will be deployed at 800 meters above ground level:
         porosity=0.0432,
     )
 
-    drogue = HemisphericalParachute(
+    drogue = calisto.add_parachute(
         name="Drogue",
         cd_s=1.0,
         trigger="apogee",
@@ -331,8 +329,6 @@ apogee and another that will be deployed at 800 meters above ground level:
         height=1.5,
         porosity=0.0432,
     )
-    calisto.add_parachute(parachute = main)
-    calisto.add_parachute(parachute = drogue)
 
 .. seealso::
 

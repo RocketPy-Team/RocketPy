@@ -42,7 +42,6 @@ from .rocket import (
     FreeFormFin,
     FreeFormFins,
     GenericSurface,
-    HemisphericalParachute,
     LinearGenericSurface,
     NoseCone,
     Parachute,

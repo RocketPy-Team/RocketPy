@@ -4,7 +4,7 @@ drag_coefficient parameters introduced in PR #889."""
 import numpy as np
 import pytest
 
-from rocketpy import HemisphericalParachute, Parachute
+from rocketpy import Parachute
 
 
 def _make_parachute(**kwargs):
@@ -15,7 +15,7 @@ def _make_parachute(**kwargs):
         "sampling_rate": 100,
     }
     defaults.update(kwargs)
-    return HemisphericalParachute(**defaults)
+    return Parachute(**defaults)
 
 
 class TestParachuteRadiusEstimation:
@@ -91,7 +91,7 @@ class TestParachuteSerialization:
         drag_coefficient."""
         original = _make_parachute(cd_s=5.0, drag_coefficient=0.75)
         data = original.to_dict()
-        restored = HemisphericalParachute.from_dict(data)
+        restored = Parachute.from_dict(data)
         assert restored.drag_coefficient == pytest.approx(0.75)
         assert restored.radius == pytest.approx(original.radius, rel=1e-9)
 
@@ -107,30 +107,5 @@ class TestParachuteSerialization:
             "noise": (0, 0, 0),
             # no drag_coefficient key — simulates old serialized data
         }
-        parachute = HemisphericalParachute.from_dict(data)
+        parachute = Parachute.from_dict(data)
         assert parachute.drag_coefficient == pytest.approx(1.4)
-
-
-class TestParachuteAbstractBase:
-    """After the PR #958 refactor, ``Parachute`` is an abstract base class and
-    users must instantiate a concrete model such as ``HemisphericalParachute``."""
-
-    def test_parachute_abstract_base_cannot_be_instantiated(self):
-        """Instantiating the abstract ``Parachute`` base directly must raise a
-        ``TypeError`` (unimplemented abstract methods)."""
-        with pytest.raises(TypeError, match="abstract"):
-            # pylint: disable=abstract-class-instantiated,unexpected-keyword-arg
-            # pylint: disable=no-value-for-parameter
-            Parachute(
-                name="test",
-                cd_s=10.0,
-                trigger="apogee",
-                sampling_rate=100,
-            )
-
-    def test_hemispherical_parachute_is_a_parachute_subclass(self):
-        """The concrete ``HemisphericalParachute`` must derive from the abstract
-        ``Parachute`` base."""
-        assert issubclass(HemisphericalParachute, Parachute)
-        parachute = _make_parachute()
-        assert isinstance(parachute, Parachute)
