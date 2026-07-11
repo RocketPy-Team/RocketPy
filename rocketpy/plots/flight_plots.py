@@ -236,6 +236,27 @@ class _FlightPlots:
             height=height,
         ).wireframe()
 
+    @staticmethod
+    def _require_interactive_vedo_backend(vedo):
+        """Ensure vedo can open an interactive VTK window for the animation.
+
+        The animations drive an interactive render loop, which needs a desktop
+        window. In Jupyter/headless environments vedo defaults to the ``"2d"``
+        backend, where every ``render()`` call fails with the cryptic
+        ``"No active Plotter found for the 2d backend"``. Fail early with a
+        clear, actionable message instead.
+        """
+        if getattr(vedo.settings, "default_backend", None) == "2d":
+            raise RuntimeError(
+                "Rocket animations require an interactive VTK window, which is "
+                "not available with vedo's '2d' backend (the default inside "
+                "Jupyter notebooks and headless environments). Run this from a "
+                "Python script, or switch vedo to a desktop backend before "
+                "calling it:\n"
+                "    import vedo\n"
+                "    vedo.settings.default_backend = 'vtk'"
+            )
+
     def animate_trajectory(  # pylint: disable=too-many-statements
         self, file_name=None, start=0, stop=None, time_step=0.1, **kwargs
     ):
@@ -260,6 +281,7 @@ class _FlightPlots:
         """
 
         vedo = import_optional_dependency("vedo")
+        self._require_interactive_vedo_backend(vedo)
 
         file_name = self._resolve_animation_model_path(file_name)
         stop = self._validate_animation_inputs(file_name, start, stop, time_step)
@@ -342,6 +364,7 @@ class _FlightPlots:
         """
 
         vedo = import_optional_dependency("vedo")
+        self._require_interactive_vedo_backend(vedo)
 
         file_name = self._resolve_animation_model_path(file_name)
         stop = self._validate_animation_inputs(file_name, start, stop, time_step)
@@ -1031,6 +1054,18 @@ class _FlightPlots:
         plt.subplots_adjust(hspace=1)
         show_or_save_plot(filename)
 
+    @staticmethod
+    def __signed_angle_ylim(angle_function, t_start, t_end, margin=5):
+        """Return ``(ymin, ymax)`` limits for a signed angle plotted between
+        ``t_start`` and ``t_end``. The range is based only on the samples inside
+        that time window so the full (positive and negative) oscillation is
+        visible, unlike a fixed floor at zero which would clip it.
+        """
+        data = angle_function[:, :]
+        mask = (data[:, 0] >= t_start) & (data[:, 0] <= t_end)
+        values = data[mask, 1] if np.any(mask) else data[:, 1]
+        return values.min() - margin, values.max() + margin
+
     def fluid_mechanics_data(self, *, filename=None):  # pylint: disable=too-many-statements
         """Prints out a summary of the Fluid Mechanics graphs available about
         the Flight
@@ -1108,8 +1143,15 @@ class _FlightPlots:
         ax5.set_xlabel("Time (s)")
         ax5.set_ylabel("Partial Angle of Attack (°)")
         ax5.set_xlim(self.flight.out_of_rail_time, self.first_event_time)
+        # Partial angle of attack is a signed angle oscillating around zero, so
+        # scale to the data in the plotted window instead of flooring at 0
+        # (which would clip the negative half of the oscillation).
         ax5.set_ylim(
-            0, self.flight.partial_angle_of_attack(self.flight.out_of_rail_time) + 15
+            *self.__signed_angle_ylim(
+                self.flight.partial_angle_of_attack,
+                self.flight.out_of_rail_time,
+                self.first_event_time,
+            )
         )
         ax5.grid()
 
@@ -1121,8 +1163,13 @@ class _FlightPlots:
         ax6.set_xlabel("Time (s)")
         ax6.set_ylabel("Angle of Sideslip (°)")
         ax6.set_xlim(self.flight.out_of_rail_time, self.first_event_time)
+        # Sideslip is also signed; keep the full oscillation visible.
         ax6.set_ylim(
-            0, self.flight.angle_of_sideslip(self.flight.out_of_rail_time) + 15
+            *self.__signed_angle_ylim(
+                self.flight.angle_of_sideslip,
+                self.flight.out_of_rail_time,
+                self.first_event_time,
+            )
         )
         ax6.grid()
 
@@ -1262,14 +1309,35 @@ class _FlightPlots:
         None
         """
 
-        if len(self.flight.parachute_events) > 0:
-            for parachute in self.flight.rocket.parachutes:
-                print(f"\nParachute: {parachute.name}")
-                parachute.noise_signal_function()
-                parachute.noisy_pressure_signal_function()
-                parachute.clean_pressure_signal_function()
-        else:
+        if len(self.flight.parachute_events) == 0:
             logger.warning("Rocket has no parachutes. No parachute plots available.")
+            return
+
+        for parachute in self.flight.rocket.parachutes:
+            clean = parachute.clean_pressure_signal_function
+            noisy = parachute.noisy_pressure_signal_function
+            # Nothing was recorded (e.g. parachute never triggered)
+            if not isinstance(clean.source, np.ndarray) or clean.source.ndim != 2:
+                continue
+            time_signal = clean.source[:, 0]
+
+            plt.figure(figsize=(9, 4))
+            plt.plot(
+                time_signal, clean(time_signal), label="Without noise", linewidth=1.5
+            )
+            plt.plot(
+                time_signal,
+                noisy(time_signal),
+                label="With noise",
+                alpha=0.7,
+                linewidth=0.8,
+            )
+            plt.title(f"Parachute trigger pressure signal: {parachute.name}")
+            plt.xlabel("Time (s)")
+            plt.ylabel("Pressure (Pa)")
+            plt.legend()
+            plt.grid(True)
+            show_or_save_plot()
 
     def all(self):  # pylint: disable=too-many-statements
         """Prints out all plots available about the Flight.

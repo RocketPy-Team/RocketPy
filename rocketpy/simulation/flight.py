@@ -4049,10 +4049,17 @@ class Flight:
             parachute.noise_signal_function = Function(
                 parachute.noise_signal, "Time (s)", "Pressure Noise (Pa)", "linear"
             )
+            # Function arithmetic drops the axis labels/title, so restore them
+            # to keep the pressure-signal plots readable (see pressure_signals).
             parachute.noisy_pressure_signal_function = (
                 parachute.clean_pressure_signal_function
                 + parachute.noise_signal_function
             )
+            parachute.noisy_pressure_signal_function.set_inputs("Time (s)")
+            parachute.noisy_pressure_signal_function.set_outputs(
+                "Pressure - With Noise (Pa)"
+            )
+            parachute.noisy_pressure_signal_function.set_title("Noisy Pressure Signal")
 
     @cached_property
     def __evaluate_post_process(self):
