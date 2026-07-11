@@ -1,12 +1,11 @@
 import numpy as np
 
-from rocketpy.mathutils.function import Function
 from rocketpy.prints.aero_surface_prints import _RailButtonsPrints
 
-from .aero_surface import AeroSurface
+from .generic_surface import GenericSurface
 
 
-class RailButtons(AeroSurface):
+class RailButtons(GenericSurface):
     """Class that defines a rail button pair or group.
 
     Attributes
@@ -27,6 +26,10 @@ class RailButtons(AeroSurface):
         Default is None. If not provided, bending moments cannot be
         calculated but flight dynamics remain unaffected.
     """
+
+    # Rail buttons carry no aerodynamic force, so they contribute nothing to
+    # either plane: axisymmetric for the pitch/yaw check.
+    is_axisymmetric = True
 
     def __init__(
         self,
@@ -53,61 +56,30 @@ class RailButtons(AeroSurface):
             If not provided, it will be calculated when the RailButtons object
             is added to a Rocket object.
         """
-        super().__init__(name, None, None)
         self.buttons_distance = buttons_distance
         self.angular_position = angular_position
         self.button_height = button_height
-        self.name = name
         self.rocket_radius = rocket_radius
-        self.evaluate_lift_coefficient()
-        self.evaluate_center_of_pressure()
+
+        # Rail buttons produce no aerodynamic force; they are modeled as a
+        # generic surface with all-zero coefficients. The reference area/length
+        # are placeholders (never used, since rail buttons are not part of the
+        # rocket's aerodynamic_surfaces) computed from the rocket radius when
+        # available.
+        reference_radius = rocket_radius or 1.0
+        super().__init__(
+            reference_area=np.pi * reference_radius**2,
+            reference_length=2 * reference_radius,
+            coefficients={},
+            center_of_pressure=(0, 0, 0),
+            name=name,
+        )
 
         self.prints = _RailButtonsPrints(self)
 
     @property
     def angular_position_rad(self):
         return np.radians(self.angular_position)
-
-    def evaluate_center_of_pressure(self):
-        """Evaluates the center of pressure of the rail buttons. Rail buttons
-        do not contribute to the center of pressure of the rocket.
-
-        Returns
-        -------
-        None
-        """
-        self.cpx = 0
-        self.cpy = 0
-        self.cpz = 0
-        self.cp = (self.cpx, self.cpy, self.cpz)
-
-    def evaluate_lift_coefficient(self):
-        """Evaluates the lift coefficient curve of the rail buttons. Rail
-        buttons do not contribute to the lift coefficient of the rocket.
-
-        Returns
-        -------
-        None
-        """
-        self.clalpha = Function(
-            lambda mach: 0,
-            "Mach",
-            f"Lift coefficient derivative for {self.name}",
-        )
-        self.cl = Function(
-            lambda alpha, mach: 0,
-            ["Alpha (rad)", "Mach"],
-            "Cl",
-        )
-
-    def evaluate_geometrical_parameters(self):
-        """Evaluates the geometrical parameters of the rail buttons. Rail
-        buttons do not contribute to the geometrical parameters of the rocket.
-
-        Returns
-        -------
-        None
-        """
 
     def to_dict(self, **kwargs):  # pylint: disable=unused-argument
         return {

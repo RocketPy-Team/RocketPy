@@ -91,6 +91,12 @@ class Fin(_BaseFin):
         damping coefficient and the cant angle in radians.
     """
 
+    # A single fin contributes unequally to the pitch and yaw planes
+    # (``cL_alpha`` ~ sin^2(phi), ``cQ_beta`` ~ cos^2(phi)), so it is not
+    # axisymmetric on its own. A complete, evenly spaced set may still be
+    # axisymmetric collectively, which the rocket's numeric check resolves.
+    is_axisymmetric = False
+
     def __init__(
         self,
         angular_position,
@@ -147,6 +153,21 @@ class Fin(_BaseFin):
         # Store values
         self._angular_position = angular_position
         self._angular_position_rad = math.radians(angular_position)
+
+    def _update_geometry_chain(self):
+        """Run the base geometry/coefficient chain, then (re)build the body<->fin
+        rotation matrices.
+
+        The rotation matrices must be set **after** the chain: the chain's first
+        call initializes the generic-surface machinery, which resets
+        ``_rotation_surface_to_body`` to the identity. Doing it here (rather than
+        in each concrete fin's ``__init__``) ensures every individual-fin
+        subclass -- trapezoidal, elliptical and free-form -- gets correct,
+        angular-position-aware rotation matrices on construction and whenever the
+        geometry changes.
+        """
+        super()._update_geometry_chain()
+        self.evaluate_rotation_matrix()
 
     @property
     def cant_angle(self):
@@ -281,7 +302,12 @@ class Fin(_BaseFin):
         sin_delta = math.sin(delta)
         cos_delta = math.cos(delta)
 
-        # Rotation about body Z by angular position
+        # The body -> fin change of basis is composed right-to-left as
+        # ``R_delta @ R_phi @ R_pi`` (R_pi first, R_delta last). Each factor
+        # therefore acts on the coordinates produced by the factors to its right,
+        # i.e. in the *current* (partially rotated) frame, not the body frame.
+
+        # Roll by the angular position, about the rocket longitudinal axis.
         R_phi = Matrix(
             [
                 [cos_phi, -sin_phi, 0],
@@ -290,7 +316,12 @@ class Fin(_BaseFin):
             ]
         )
 
-        # Cant rotation about body Y
+        # Cant rotation about the fin **span (y) axis**. Because R_delta is the
+        # leftmost factor, it acts on coordinates already in the rolled
+        # uncanted-fin frame, so it rotates about that frame's y axis (the fin's
+        # own root-to-tip direction) -- NOT body Y, with which it coincides only
+        # at angular_position = 0. This is what makes each fin cant about its own
+        # span; using body Y (``R_uncanted @ R_delta``) would be wrong.
         R_delta = Matrix(
             [
                 [cos_delta, 0, -sin_delta],
@@ -299,7 +330,9 @@ class Fin(_BaseFin):
             ]
         )
 
-        # 180 flip about Y to align fin leading/trailing edge
+        # 180 flip about Y so the uncanted fin z axis points leading -> trailing
+        # edge (toward the tail, i.e. -body z), with x completing a right-handed
+        # frame. Proper rotation (det +1), not a reflection.
         R_pi = Matrix(
             [
                 [-1, 0, 0],
@@ -308,7 +341,7 @@ class Fin(_BaseFin):
             ]
         )
 
-        # Uncanted body to fin, then apply cant
+        # Uncanted body -> fin, then apply the cant in the fin span frame.
         R_uncanted = R_phi @ R_pi
         R_body_to_fin = R_delta @ R_uncanted
 
@@ -317,6 +350,41 @@ class Fin(_BaseFin):
         self._rotation_body_to_fin = R_body_to_fin
         self._rotation_fin_to_body = R_body_to_fin.transpose
         self._rotation_surface_to_body = self._rotation_fin_to_body
+
+    @property
+    def force_application_point(self):
+        """A single (off-axis) fin keeps its bespoke force computation and
+        transports the moment geometrically through its center of pressure,
+        so the force application point is the fin's actual cp rather than the
+        surface origin used by axisymmetric Barrowman surfaces.
+        """
+        return Vector([self.cpx, self.cpy, self.cpz])
+
+    def evaluate_coefficients(self):
+        """A single fin transports its moment geometrically (via ``cp ^ force``
+        in its own ``compute_forces_and_moments``), so only the normal-force
+        slopes are exposed for the stability-margin diagnostic; the moment
+        coefficients stay zero to avoid double-counting the cp offset.
+
+        A fin's lift only resists incidence in its own plane, so its slope is
+        projected onto the pitch and yaw planes by its angular position
+        ``phi``: ``sin(phi)**2`` to the pitch plane (``cL_alpha``) and
+        ``cos(phi)**2`` to the yaw plane (``cQ_beta``). A fin at ``phi = 0``
+        (lying in the yaw plane) thus feeds the yaw plane only, which is what
+        makes a non-axisymmetric individual-fin layout report different pitch-
+        and yaw-plane centers of pressure. An evenly spaced set of ``n`` fins
+        sums to ``n / 2`` in each plane, reproducing the axisymmetric ``Fins``
+        set (see :meth:`Fins.fin_num_correction`).
+        """
+        clalpha = self.clalpha
+        sin_sq = math.sin(self.angular_position_rad) ** 2
+        cos_sq = math.cos(self.angular_position_rad) ** 2
+        self.cL_alpha = self._mach_coefficient(
+            lambda mach: clalpha.get_value_opt(mach) * sin_sq
+        )
+        self.cQ_beta = self._mach_coefficient(
+            lambda mach: -clalpha.get_value_opt(mach) * cos_sq
+        )
 
     def compute_forces_and_moments(
         self,

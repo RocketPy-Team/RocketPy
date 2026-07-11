@@ -32,6 +32,11 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- ENH: Public controller class hierarchy: `Controller` (an `Event` subclass), `SurfaceController` (drives `ControllableGenericSurface` objects), `AirBrakesController`, and `ScheduledController` (open-loop replay of a recorded control schedule).
+- ENH: Controllers automatically record the control state of their controlled objects after every execution (`control_history` / `recorded_schedule`); `AirBrakesController.deployment_level_history` exposes the deployment level as a `Function` of time, with dedicated prints/plots. New `Flight.controllers` property.
+- ENH: `Rocket.add_controllable_surface` wires a `ControllableGenericSurface` into the aerodynamic surfaces and registers a `SurfaceController` driving it.
+- ENH: `Rocket.add_air_brakes` gains a `position` parameter; when given, the air-brake force is applied at that station (producing moments at nonzero incidence). Without it, the force stays pinned to the center of dry mass, matching historical results.
+- ENH: Controller serialization records the controlled objects' names and (optionally) the recorded control history; loading a rocket rewires controllers by name, and a controller whose pickled function cannot be restored falls back to a `ScheduledController` replaying its recorded schedule.
 - ENH: MNT: introduce pressure unit conversion when using forecast/reanalysis/ensemble data [#955](https://github.com/RocketPy-Team/RocketPy/pull/955)
 - ENH: Auto Populate Changelog [#919](https://github.com/RocketPy-Team/RocketPy/pull/919)
 - ENH: Adaptive Monte Carlo via Convergence Criteria [#922](https://github.com/RocketPy-Team/RocketPy/pull/922)
@@ -39,10 +44,26 @@ Attention: The newest changes should be on top -->
 
 ### Changed
 
-- 
+- ENH: Air brakes are now summed in the standard aerodynamic-surface loop instead of a dedicated drag-only branch. Results are equivalent at the default (pinned) position except that drag is decomposed along the freestream like every other surface, adding small lateral force components at nonzero angle of attack (previously pure axial). `override_rocket_drag` now suppresses the rocket body drag while the brakes are deployed.
+- ENH: Controller functions must accept keyword arguments only (`def controller_function(**kwargs)`). `Rocket.add_air_brakes` is the one exception: it still adapts legacy positional signatures with a `DeprecationWarning`.
+- ENH: `GenericSurface`/`LinearGenericSurface` coefficients now receive the conventional **non-dimensional reduced** angular rates (`q* = q·L_ref/(2V)`, etc.) instead of the raw body rates in rad/s. **Breaking** for nonlinear `GenericSurface` coefficient tables that depend on `pitch_rate`/`yaw_rate`/`roll_rate` and were built against raw rad/s; rebuild them against the reduced rates. Barrowman surfaces and `LinearGenericSurface` results are unchanged.
+
+### Deprecated
+
+- Legacy positional air-brakes controller functions and the `initial_observed_variables` argument of `Rocket.add_air_brakes` (use `context={"observed_variables": [...]}`); scheduled for removal in v1.13.
+
+### Removed
+
+- ENH: Removed the private `_Controller` class from the public API; use the public `Controller` (or a typed subclass) instead. Direct construction now rejects positional controller-function signatures.
+- ENH: Removed the singular `Rocket.center_of_pressure(alpha, beta, mach)` method. The force-application center of pressure is undefined at zero normal force; when needed it can be reconstructed on demand from `Rocket.aerodynamic_coefficients_full` as `x_cdm + csys·d·Cm/CN`. The well-conditioned, slope-based center of pressure remains available as `Rocket.aerodynamic_center` (aliased by the deprecated `cp_position`).
 
 ### Fixed
 
+- BUG: Loading a saved rocket that had controllers or air brakes raised `AttributeError` (dead `interactive_objects` references); controllers are now rewired to the decoded objects by name, and air brakes are serialized once (inside `aerodynamic_surfaces`) preserving controller identity.
+- BUG: `controller.info()` crashed on the removed `interactive_objects` attribute.
+- BUG: The context dictionary mutated by a controller function was never reset between simulations (and diverged from the event's reset copy); as an `Event` subclass the controller now has a single context restored at the start of each flight.
+- BUG: Monte Carlo air-brake controllers shared nested mutable context state across samples (shallow copy); contexts are now deep-copied per sample.
+- BUG: Only air brakes were reset between flights; every controlled object (e.g. a `ControllableGenericSurface` deflection) is now restored to its initial control state by `Controller.reset()`.
 - BUG: Add wraparound logic for wind direction in environment plots [#939](https://github.com/RocketPy-Team/RocketPy/pull/939)
 
 ## [v1.12.1] - 2026-04-03

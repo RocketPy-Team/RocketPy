@@ -126,7 +126,8 @@ class _RocketPrints:
             f"Center of Mass position (time=0): {self.rocket.center_of_mass(0):.3f} m"
         )
         print(
-            f"Center of Pressure position (time=0): {self.rocket.cp_position(0):.3f} m"
+            f"Aerodynamic Center position (Mach=0): "
+            f"{self.rocket.aerodynamic_center(0):.3f} m"
         )
         print(
             f"Initial Static Margin (mach=0, time=0): "
@@ -137,9 +138,27 @@ class _RocketPrints:
             f"{self.rocket.static_margin(self.rocket.motor.burn_out_time):.3f} c"
         )
         print(
-            f"Rocket Center of Mass (time=0) - Center of Pressure (mach=0): "
-            f"{abs(self.rocket.center_of_mass(0) - self.rocket.cp_position(0)):.3f} m\n"
+            f"Rocket Center of Mass (time=0) - Aerodynamic Center (Mach=0): "
+            f"{abs(self.rocket.center_of_mass(0) - self.rocket.aerodynamic_center(0)):.3f} m\n"
         )
+
+        if not self.rocket.is_axisymmetric:
+            print(
+                "The rocket is NOT axisymmetric: the values above describe the "
+                "PITCH plane. Yaw plane:\n"
+            )
+            print(
+                f"Aerodynamic Center position - yaw (Mach=0): "
+                f"{self.rocket.aerodynamic_center_yaw(0):.3f} m"
+            )
+            print(
+                f"Initial Static Margin - yaw (mach=0, time=0): "
+                f"{self.rocket.static_margin_yaw(0):.3f} c"
+            )
+            print(
+                f"Final Static Margin - yaw (mach=0, time=burn_out): "
+                f"{self.rocket.static_margin_yaw(self.rocket.motor.burn_out_time):.3f} c\n"
+            )
 
     def parachute_data(self):
         """Print parachute data.

@@ -1264,12 +1264,24 @@ class _FlightPlots:
 
         plt.figure(figsize=(9, 6))
 
+        asymmetric = not self.flight.rocket.is_axisymmetric
         ax1 = plt.subplot(211)
-        ax1.plot(self.flight.stability_margin[:, 0], self.flight.stability_margin[:, 1])
+        ax1.plot(
+            self.flight.stability_margin[:, 0],
+            self.flight.stability_margin[:, 1],
+            label="Linear pitch" if asymmetric else "Linear (aerodynamic center)",
+        )
+        if asymmetric:
+            ax1.plot(
+                self.flight.stability_margin_yaw[:, 0],
+                self.flight.stability_margin_yaw[:, 1],
+                label="Linear yaw",
+            )
         ax1.set_title("Stability Margin")
         ax1.set_xlabel("Time (s)")
         ax1.set_ylabel("Stability Margin (c)")
         ax1.set_xlim(0, self.first_parachute_event_time)
+        ax1.legend()
         ax1.grid()
         self._add_event_markers_dropline(ax1, labels={"Burnout"})
 
@@ -1307,6 +1319,81 @@ class _FlightPlots:
         ax2.set_xlabel("Frequency (Hz)")
         ax2.set_ylabel("Amplitude Magnitude Normalized")
         ax2.set_xlim(0, 5)
+        ax2.legend()
+        ax2.grid()
+
+        plt.subplots_adjust(hspace=0.5)
+        show_or_save_plot(filename)
+
+    def dynamic_stability_data(self, *, filename=None):
+        """Plots the rocket's dynamic-stability quantities over the flight: the
+        pitch (and, for non-axisymmetric rockets, yaw) natural frequency and
+        damping ratio of the linearized attitude oscillation.
+
+        The roll rate is overlaid on the natural-frequency plot (as a frequency).
+        Roll is neutrally stable -- it has no restoring moment and therefore no
+        natural frequency of its own -- but **roll resonance** ("roll lock-in")
+        occurs where the roll rate crosses the pitch/yaw natural frequency, the
+        roll-pitch/yaw coupling driving the attitude oscillation. Those crossings
+        are the points to watch.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
+
+        Returns
+        -------
+        None
+        """
+        asymmetric = not self.flight.rocket.is_axisymmetric
+        upper = self.first_parachute_event_time
+
+        plt.figure(figsize=(9, 6))
+
+        ax1 = plt.subplot(211)
+        freq = self.flight.pitch_natural_frequency
+        ax1.plot(freq[:, 0], freq[:, 1] / (2 * np.pi), label="Pitch natural freq.")
+        if asymmetric:
+            yaw_freq = self.flight.yaw_natural_frequency
+            ax1.plot(
+                yaw_freq[:, 0],
+                yaw_freq[:, 1] / (2 * np.pi),
+                "--",
+                label="Yaw natural freq.",
+            )
+        # Roll rate as a frequency: where it crosses the natural frequency the
+        # rocket is in roll resonance (roll-pitch/yaw coupling).
+        roll_rate = self.flight.w3
+        ax1.plot(
+            roll_rate[:, 0],
+            np.abs(roll_rate[:, 1]) / (2 * np.pi),
+            ":",
+            color="tab:red",
+            label="Roll rate (resonance if crossing)",
+        )
+        ax1.set_title("Natural Frequency & Roll Rate")
+        ax1.set_xlabel("Time (s)")
+        ax1.set_ylabel("Frequency (Hz)")
+        ax1.set_xlim(0, upper)
+        ax1.legend()
+        ax1.grid()
+        self._add_event_markers_dropline(ax1, labels={"Burnout"})
+
+        ax2 = plt.subplot(212)
+        ratio = self.flight.pitch_damping_ratio
+        ax2.plot(ratio[:, 0], ratio[:, 1], label="Pitch")
+        if asymmetric:
+            yaw_ratio = self.flight.yaw_damping_ratio
+            ax2.plot(yaw_ratio[:, 0], yaw_ratio[:, 1], "--", label="Yaw")
+        ax2.axhline(1.0, color="gray", linestyle=":", label="Critical (ζ=1)")
+        ax2.set_title("Damping Ratio")
+        ax2.set_xlabel("Time (s)")
+        ax2.set_ylabel("Damping Ratio (ζ)")
+        ax2.set_xlim(0, upper)
         ax2.legend()
         ax2.grid()
 
@@ -1662,6 +1749,19 @@ class _FlightPlots:
             top = float(np.percentile(vals, 95)) * 1.5
             return max(top, 1.0)
 
+        def _ylim_signed(arr):
+            # Symmetric y-limits for signed quantities (partial angle of attack,
+            # sideslip): these are arctan2-based and routinely go negative, so a
+            # 0 lower bound would clip half the signal. Scale by the 95th
+            # percentile of the magnitude to ignore the runaway rise near apogee.
+            mask = (arr[:, 0] >= t_lower) & (arr[:, 0] <= t_upper)
+            vals = arr[mask, 1]
+            if len(vals) == 0:
+                return (-10.0, 10.0)
+            top = float(np.percentile(np.abs(vals), 95)) * 1.5
+            top = max(top, 1.0)
+            return (-top, top)
+
         plt.figure(figsize=(9, 9))
 
         ax1 = plt.subplot(311)
@@ -1679,7 +1779,8 @@ class _FlightPlots:
             self.flight.partial_angle_of_attack[:, 1],
         )
         ax2.set_xlim(t_lower, t_upper)
-        ax2.set_ylim(0, _ylim_in_range(self.flight.partial_angle_of_attack[:, :]))
+        ax2.set_ylim(*_ylim_signed(self.flight.partial_angle_of_attack[:, :]))
+        ax2.axhline(0, color="0.6", linewidth=0.8)
         ax2.set_title("Partial Angle of Attack")
         ax2.set_xlabel("Time (s)")
         ax2.set_ylabel("Partial Angle of Attack (°)")
@@ -1690,7 +1791,8 @@ class _FlightPlots:
             self.flight.angle_of_sideslip[:, 0], self.flight.angle_of_sideslip[:, 1]
         )
         ax3.set_xlim(t_lower, t_upper)
-        ax3.set_ylim(0, _ylim_in_range(self.flight.angle_of_sideslip[:, :]))
+        ax3.set_ylim(*_ylim_signed(self.flight.angle_of_sideslip[:, :]))
+        ax3.axhline(0, color="0.6", linewidth=0.8)
         ax3.set_title("Angle of Sideslip")
         ax3.set_xlabel("Time (s)")
         ax3.set_ylabel("Angle of Sideslip (°)")
@@ -1751,6 +1853,7 @@ class _FlightPlots:
 
         print("\n\nTrajectory Stability and Control Plots\n")
         self.stability_and_control_data()
+        self.dynamic_stability_data()
 
         if self.flight.sensors:
             print("\n\nSensor Data Plots\n")

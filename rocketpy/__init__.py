@@ -1,5 +1,11 @@
 from ._logging import enable_logging, logger, set_log_level
-from .control import _Controller
+from .control import (
+    AirBrakesController,
+    ControlledObject,
+    Controller,
+    ScheduledController,
+    SurfaceController,
+)
 from .environment import Environment, EnvironmentAnalysis
 from .mathutils import (
     Function,
@@ -30,12 +36,15 @@ from .rocket import (
     AeroSurface,
     AirBrakes,
     Components,
+    ControllableGenericSurface,
+    Effector,
     EllipticalFin,
     EllipticalFins,
     Fin,
     Fins,
     FreeFormFin,
     FreeFormFins,
+    GenericEffector,
     GenericSurface,
     LinearGenericSurface,
     NoseCone,

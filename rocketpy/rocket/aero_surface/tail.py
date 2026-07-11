@@ -4,10 +4,10 @@ from rocketpy.mathutils.function import Function
 from rocketpy.plots.aero_surface_plots import _TailPlots
 from rocketpy.prints.aero_surface_prints import _TailPrints
 
-from .aero_surface import AeroSurface
+from ._barrowman_surface import _BarrowmanSurface
 
 
-class Tail(AeroSurface):
+class Tail(_BarrowmanSurface):
     """Class that defines a tail. Currently only accepts conical tails.
 
     Note
@@ -76,7 +76,9 @@ class Tail(AeroSurface):
         -------
         None
         """
-        super().__init__(name, np.pi * rocket_radius**2, 2 * rocket_radius)
+        self.name = name
+        self.reference_area = np.pi * rocket_radius**2
+        self.reference_length = 2 * rocket_radius
 
         self._top_radius = top_radius
         self._bottom_radius = bottom_radius
@@ -86,6 +88,16 @@ class Tail(AeroSurface):
         self.evaluate_geometrical_parameters()
         self.evaluate_lift_coefficient()
         self.evaluate_center_of_pressure()
+
+        # Translate the Barrowman geometry into the linear generic-surface
+        # coefficient model and build the shared compute path.
+        super().__init__(
+            reference_area=self.reference_area,
+            reference_length=self.reference_length,
+            coefficients={},
+            center_of_pressure=(self.cpx, self.cpy, self.cpz),
+            name=name,
+        )
 
         self.plots = _TailPlots(self)
         self.prints = _TailPrints(self)

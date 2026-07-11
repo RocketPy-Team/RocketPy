@@ -22,6 +22,17 @@ They can:
 If you are looking for the lower-level simulation loop that consumes events and
 time nodes, see :doc:`../technical/phases_and_nodes`.
 
+.. note::
+  **Controllers are Events.** :class:`rocketpy.Controller` (and its
+  specializations :class:`rocketpy.SurfaceController`,
+  :class:`rocketpy.AirBrakesController` and
+  :class:`rocketpy.ScheduledController`) is an :class:`rocketpy.Event`
+  subclass: a periodic, trigger-less event with ``changes_dynamics=True``
+  that mutates its controlled objects each sample and automatically records
+  their control state into ``control_history``. Everything on this page
+  (context, ``needs``, ``disable_on``/``enable_on``, commands) applies to
+  controllers as well.
+
 .. important::
   **Performance Considerations**
 
@@ -147,8 +158,9 @@ The following parameters are always or conditionally available:
 
 **Custom parameters:**
 
-- Any additional key-value pairs defined in the event's ``context`` dictionary 
-  are unpacked and passed as separate ``kwargs``.
+- Values stored in the event's ``context`` dictionary are accessed through
+  ``kwargs["event"].context`` inside the trigger and callback; they are not
+  unpacked into separate ``kwargs``.
 
 Understanding Event Parameters
 ------------------------------

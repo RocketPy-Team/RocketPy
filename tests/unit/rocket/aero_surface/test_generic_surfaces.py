@@ -89,12 +89,10 @@ def test_csv_independent_variables_accept_any_order(tmp_path):
         coefficients={"cL": str(filename)},
     )
 
-    closure = generic_surface.cL.source.__closure__
-    csv_function = next(
-        cell.cell_contents
-        for cell in closure
-        if isinstance(cell.cell_contents, Function)
-    )
+    # The coefficient is stored at minimal dimension over its CSV columns, in
+    # header order; AeroCoefficient maps the full argument tuple onto them.
+    assert generic_surface.cL.depends_on == ("mach", "alpha")
+    csv_function = generic_surface.cL.function
 
     assert generic_surface.cL(1, 0, 2, 0, 0, 0, 0) == pytest.approx(12)
     assert csv_function.get_interpolation_method() == "regular_grid"
@@ -117,3 +115,32 @@ def test_compute_forces_and_moments():
         z=0,
     )
     assert forces_and_moments == (0, 0, 0, 0, 0, 0)
+
+
+def test_angular_rates_are_non_dimensionalized():
+    """Coefficients receive the conventional reduced rate q* = q L_ref / (2 V),
+    not the raw body rate in rad/s."""
+    ref_area, ref_length = 2.0, 0.5
+    # Roll-moment coefficient that simply returns the roll rate it is given, so
+    # the resulting roll moment exposes which rate value reached the coefficient.
+    gs = GenericSurface(ref_area, ref_length, {"cl": lambda roll_rate: roll_rate})
+
+    rho, speed, raw_roll = 1.2, 10.0, 4.0
+    *_, roll_moment = gs.compute_forces_and_moments(
+        stream_velocity=Vector((0, 0, -speed)),  # along centerline -> alpha=beta=0
+        stream_speed=speed,
+        stream_mach=0,
+        rho=rho,
+        cp=Vector((0, 0, 0)),
+        omega=(0, 0, raw_roll),  # raw body roll rate p, rad/s
+        density=Function(1.0),
+        dynamic_viscosity=Function(1.0),
+        z=0,
+    )
+
+    reduced_roll = raw_roll * ref_length / (2 * speed)
+    dyn_pressure_area_length = 0.5 * rho * speed**2 * ref_area * ref_length
+    # The coefficient saw the reduced rate, ...
+    assert roll_moment == pytest.approx(dyn_pressure_area_length * reduced_roll)
+    # ... not the raw rad/s rate.
+    assert roll_moment != pytest.approx(dyn_pressure_area_length * raw_roll)

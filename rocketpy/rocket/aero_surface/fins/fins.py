@@ -200,11 +200,18 @@ class Fins(_BaseFin):
         """
         clf_delta = (
             self.roll_forcing_interference_factor
-            * self.fin_num_correction(self.n)
+            * self.n
             * (self.Yma + self.rocket_radius)
             * self.clalpha_single_fin
             / self.reference_length
         )  # Function of mach number
+        # NOTE: roll forcing scales with the full fin count ``n`` -- every
+        # identically-canted fin contributes the same roll moment, with no
+        # cancellation. This differs from the normal-force slope, which uses the
+        # ``fin_num_correction(n)`` (~n/2) multiple-fin factor because fins at
+        # different roll angles partially cancel in pitch/yaw. Using
+        # ``fin_num_correction(n)`` here previously halved the roll forcing (and
+        # the roll rate) of a fin set relative to the equivalent individual fins.
         clf_delta.set_inputs("Mach")
         clf_delta.set_outputs("Roll moment forcing coefficient derivative")
         clf_delta.set_title(
@@ -250,66 +257,6 @@ class Fins(_BaseFin):
             return corrector_factor[n - 5]
         else:
             return n / 2
-
-    def compute_forces_and_moments(
-        self,
-        stream_velocity,
-        stream_speed,
-        stream_mach,
-        rho,
-        cp,
-        omega,
-        *args,
-    ):  # pylint: disable=arguments-differ
-        """Computes the forces and moments acting on the aerodynamic surface.
-
-        Parameters
-        ----------
-        stream_velocity : tuple of float
-            The velocity of the airflow relative to the surface.
-        stream_speed : float
-            The magnitude of the airflow speed.
-        stream_mach : float
-            The Mach number of the airflow.
-        rho : float
-            Air density.
-        cp : Vector
-            Center of pressure coordinates in the body frame.
-        omega: tuple[float, float, float]
-            Tuple containing angular velocities around the x, y, z axes.
-
-        Returns
-        -------
-        tuple of float
-            The aerodynamic forces (lift, side_force, drag) and moments
-            (pitch, yaw, roll) in the body frame.
-        """
-
-        R1, R2, R3, M1, M2, _ = super().compute_forces_and_moments(
-            stream_velocity,
-            stream_speed,
-            stream_mach,
-            rho,
-            cp,
-        )
-        clf_delta, cld_omega, cant_angle_rad = self.roll_parameters
-        M3_forcing = (
-            (1 / 2 * rho * stream_speed**2)
-            * self.reference_area
-            * self.reference_length
-            * clf_delta.get_value_opt(stream_mach)
-            * cant_angle_rad
-        )
-        M3_damping = (
-            (1 / 2 * rho * stream_speed)
-            * self.reference_area
-            * (self.reference_length) ** 2
-            * cld_omega.get_value_opt(stream_mach)
-            * omega[2]
-            / 2
-        )
-        M3 = M3_forcing + M3_damping
-        return R1, R2, R3, M1, M2, M3
 
     def to_dict(self, **kwargs):
         if self.airfoil:

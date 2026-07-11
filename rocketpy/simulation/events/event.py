@@ -99,9 +99,8 @@ class Event:
             Dictionary of persistent, mutable per-event state, exposed through
             ``kwargs["event"].context`` inside the trigger and callback. Useful
             for counters, thresholds, and data shared between trigger and
-            callback. Each key is also unpacked into the ``**kwargs`` passed to
-            the trigger and callback. Defaults to an empty dict. Note that
-            ``context`` is not persisted to output logs or files.
+            callback. Defaults to an empty dict. Note that ``context`` is not
+            persisted to output logs or files.
         disable_on : str or int or float or callable, optional
             Condition that automatically disables the event. May be a string
             preset (``"apogee"`` or ``"burnout"``), a simulation time in seconds

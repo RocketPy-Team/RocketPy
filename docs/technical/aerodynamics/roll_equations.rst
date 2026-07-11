@@ -1,11 +1,3 @@
-=======================================
-Roll equations for high-powered rockets
-=======================================
-
-:Author: Bruno Abdulklech Sorban, 
-:Author: Mateus Stano Junqueira
-:Date:   February 2022
-
 Nomenclature
 ============
 
@@ -236,25 +228,3 @@ For the damping moment lift coefficient derivative:
 .. math:: (C_{lf\delta})_{K_{f}} = K_{f} \cdot C_{lf\delta}
 
 .. math:: (C_{ld\omega})_{K_{d}} = K_{d} \cdot C_{ld\omega}
-
-Comments
-========
-
-Roll moment is expected to increase linearly with velocity. This
-relationship can be verified in the rotation frequency equilibrium
-equation, described by [Niskanen]_ in equation
-(3.73), and again stated below:
-
-.. math:: f_{eq} = \frac{\omega}{2\pi} = \frac{A_{ref}\beta \overline{Y_t} (C_{N\alpha})_1 }{4\pi^2 \sum_{i} c_i \xi^2 \Delta \xi} \, \delta V_0
-
-The auxiliary value :math:`\beta` is defined as:
-:math:`\beta = \sqrt{|1-M|}`, where M is the speed of the rocket in
-Mach.
-
-.. .. math:: k = 1 + \frac{\frac{\sqrt{s^2-r_{t}^2}\Bigl(2C_{r}r_{t}^2\ln\Bigl(\frac{2s\sqrt{s^2-r_{t}^2}+2s^2}{r_{t}}\Bigr)-2C_{r}r_{t}^2\ln\Bigl(2s\Bigr)\Bigr)+2C_{r}s^3-{\pi}C_{r}r_{t}s^2-2C_{r}r_{t}^2s+{\pi}C_{r}r_{t}^3}{2r_{t}s^3-2r_{t}^3s}}{C_{r}\cdot\Bigl(\dfrac{s^2}{3}+\dfrac{{\pi}r_{t}s}{4}\Bigr)}
-
-.. .. math::
-
-..    k = 1 + \frac{\sqrt{s^2-r_{t}^2}\Bigl(2r_{t}^2\ln\Bigl(\frac{2s\sqrt{s^2-r_{t}^2}+2s^2}{r_{t}}\Bigr)-2r_{t}^2\ln\Bigl(2s\Bigr)\Bigr)+2s^3-{\pi}r_{t}s^2-2r_{t}^2s+{\pi}r_{t}^3}
-..        {(2r_{t}s^3-2r_{t}^3s) \cdot\Bigl(\dfrac{s^2}{3}+\dfrac{{\pi}r_{t}s}{4}\Bigr)}
-

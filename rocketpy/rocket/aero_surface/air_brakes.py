@@ -6,12 +6,14 @@ from rocketpy.mathutils.function import Function
 from rocketpy.plots.aero_surface_plots import _AirBrakesPlots
 from rocketpy.prints.aero_surface_prints import _AirBrakesPrints
 
-from .aero_surface import AeroSurface
+from .controllable_generic_surface import ControllableGenericSurface
 
 
-# TODO: review airbrakes implementation to make it more in line with events
-class AirBrakes(AeroSurface):
-    """AirBrakes class. Inherits from AeroSurface.
+class AirBrakes(ControllableGenericSurface):
+    """AirBrakes class. Inherits from :class:`ControllableGenericSurface`, using
+    ``deployment_level`` as its single control variable and a multivariable drag
+    coefficient. Air brakes are summed in the equations of motion through the
+    standard aerodynamic-surface loop, like any other generic surface.
 
     Attributes
     ----------
@@ -34,6 +36,10 @@ class AirBrakes(AeroSurface):
     AirBrakes.name : str
         Name of the air brakes.
     """
+
+    # When True, the rocket applies the air-brake force at the center of dry
+    # mass (zero moment arm). Set by Rocket when no position is given.
+    _pin_cp_to_cdm = False
 
     def __init__(
         self,
@@ -68,12 +74,13 @@ class AirBrakes(AeroSurface):
             - If a Function, it must take two parameters: deployment level and
               Mach number, and return the drag coefficient.
 
-            .. note:: For ``override_rocket_drag = False``, at
-                deployment level 0, the drag coefficient is assumed to be 0,
-                independent of the input drag coefficient curve. This means that
-                the simulation always considers that at a deployment level of 0,
-                the air brakes are completely retracted and do not contribute to
-                the drag of the rocket.
+            .. note:: At deployment level 0 the drag coefficient is assumed
+                to be 0, independent of the input drag coefficient curve. This
+                means that the simulation always considers that at a deployment
+                level of 0, the air brakes are completely retracted and do not
+                contribute to the drag of the rocket (and, for
+                ``override_rocket_drag = True``, the rocket body drag applies
+                normally while the brakes are retracted).
 
         reference_area : int, float
             Reference area used to calculate the drag force of the air brakes
@@ -100,89 +107,79 @@ class AirBrakes(AeroSurface):
         -------
         None
         """
-        super().__init__(name, reference_area, None)
+        self.clamp = clamp
+        self.override_rocket_drag = override_rocket_drag
+        self.initial_deployment_level = deployment_level
         self.drag_coefficient_curve = drag_coefficient_curve
-        # TODO: this drag coefficient needs to be a function of more parameters
-        # just like generic surface coefficients
+        # Back-compatible 2-input (deployment level, Mach) drag curve, kept for
+        # display/serialization and as the source of the multivariable drag
+        # coefficient below.
         self.drag_coefficient = Function(
             drag_coefficient_curve,
             inputs=["Deployment Level", "Mach"],
             outputs="Drag Coefficient",
             interpolation="linear",
         )
-        self.clamp = clamp
-        self.override_rocket_drag = override_rocket_drag
-        self.initial_deployment_level = deployment_level
+
+        # Multivariable drag coefficient over the generic-surface inputs plus
+        # the ``deployment_level`` control axis. Retracted air brakes always
+        # contribute zero drag; when ``override_rocket_drag`` is set, the
+        # rocket body drag is suppressed while the brakes are deployed (see
+        # the flight derivatives), so this surface then carries the whole
+        # vehicle drag.
+        def drag_coefficient_function(
+            alpha,
+            beta,
+            mach,
+            reynolds,
+            pitch_rate,
+            yaw_rate,
+            roll_rate,
+            deployment_level,
+        ):  # pylint: disable=unused-argument
+            if deployment_level == 0:
+                return 0.0
+            return self.drag_coefficient.get_value_opt(deployment_level, mach)
+
+        super().__init__(
+            reference_area=reference_area,
+            reference_length=2 * (reference_area / np.pi) ** 0.5,
+            coefficients={"cD": drag_coefficient_function},
+            center_of_pressure=(0, 0, 0),
+            name=name,
+            controls=("deployment_level",),
+        )
+
         self.deployment_level = deployment_level
+        # Re-capture so ``_reset`` restores the (possibly clamped) initial
+        # deployment level rather than the base class default of 0.
+        self.initial_control_state = dict(self.control_state)
         self.prints = _AirBrakesPrints(self)
         self.plots = _AirBrakesPlots(self)
 
-    @property
-    def deployment_level(self):
-        """Returns the deployment level of the air brakes."""
-        return self._deployment_level
-
-    @deployment_level.setter
-    def deployment_level(self, value):
-        # Check if deployment level is within bounds and warn user if not
-        if value < 0 or value > 1:
-            # Clamp deployment level if clamp is True
+    def _clamp_control(self, name, value):
+        """Clamp ``deployment_level`` to ``[0, 1]`` (or warn if ``clamp`` is
+        False), preserving the historical AirBrakes behavior."""
+        if name == "deployment_level" and (value < 0 or value > 1):
             if self.clamp:
-                # Make sure deployment level is between 0 and 1
-                value = np.clip(value, 0, 1)
+                value = float(np.clip(value, 0, 1))
             else:
-                # Raise warning if clamp is False
                 warnings.warn(
                     f"Deployment level of {self.name} is smaller than 0 or "
                     + "larger than 1. Extrapolation for the drag coefficient "
                     + "curve will be used.",
                     UserWarning,
                 )
-        self._deployment_level = value
+        return value
 
-    def _reset(self):
-        """Resets the air brakes to their initial state. This is ran at the
-        beginning of each simulation to ensure the air brakes are in the correct
-        state."""
-        self.deployment_level = self.initial_deployment_level
+    @property
+    def deployment_level(self):
+        """Returns the deployment level of the air brakes."""
+        return self.control_state["deployment_level"]
 
-    def evaluate_center_of_pressure(self):
-        """Evaluates the center of pressure of the aerodynamic surface in local
-        coordinates.
-
-        For air brakes, all components of the center of pressure position are
-        0.
-
-        Returns
-        -------
-        None
-        """
-        self.cpx = 0
-        self.cpy = 0
-        self.cpz = 0
-        self.cp = (self.cpx, self.cpy, self.cpz)
-
-    def evaluate_lift_coefficient(self):
-        """Evaluates the lift coefficient curve of the aerodynamic surface.
-
-        For air brakes, the current model assumes no lift is generated.
-        Therefore, the lift coefficient (C_L) and its derivative relative to the
-        angle of attack (C_L_alpha), is 0.
-
-        Returns
-        -------
-        None
-        """
-        self.clalpha = Function(
-            lambda mach: 0,
-            "Mach",
-            f"Lift coefficient derivative for {self.name}",
-        )
-        self.cl = Function(
-            lambda alpha, mach: 0,
-            ["Alpha (rad)", "Mach"],
-            "Lift Coefficient",
-        )
+    @deployment_level.setter
+    def deployment_level(self, value):
+        self.set_control("deployment_level", value)
 
     def evaluate_geometrical_parameters(self):
         """Evaluates the geometrical parameters of the aerodynamic surface.
@@ -211,7 +208,9 @@ class AirBrakes(AeroSurface):
         self.info()
         self.plots.drag_coefficient_curve()
 
-    def to_dict(self, **kwargs):  # pylint: disable=unused-argument
+    def to_dict(  # pylint: disable=unused-argument
+        self, include_outputs=False, **kwargs
+    ):
         return {
             "drag_coefficient_curve": self.drag_coefficient,
             "reference_area": self.reference_area,
@@ -219,11 +218,12 @@ class AirBrakes(AeroSurface):
             "override_rocket_drag": self.override_rocket_drag,
             "deployment_level": self.initial_deployment_level,
             "name": self.name,
+            "position_pinned_to_cdm": self._pin_cp_to_cdm,
         }
 
     @classmethod
     def from_dict(cls, data):
-        return cls(
+        air_brakes = cls(
             drag_coefficient_curve=data.get("drag_coefficient_curve"),
             reference_area=data.get("reference_area"),
             clamp=data.get("clamp"),
@@ -231,3 +231,6 @@ class AirBrakes(AeroSurface):
             deployment_level=data.get("deployment_level"),
             name=data.get("name"),
         )
+        # Legacy files (no key) were always applied with zero moment arm.
+        air_brakes._pin_cp_to_cdm = data.get("position_pinned_to_cdm", True)
+        return air_brakes

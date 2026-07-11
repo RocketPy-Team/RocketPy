@@ -408,23 +408,22 @@ class _FlightPrints:
             return
 
         for controller in self.flight._controllers:
-            event = controller.event
-            event_name = event.name if event.name else "Unnamed Controller Event"
+            # A Controller is an Event, so event data lives on the controller.
+            event_name = controller.name if controller.name else "Unnamed Controller"
 
             print(f"Controller Event: {event_name}")
-            print(f"\tParent Controller: {controller.name}")
 
-            if event.sampling_rate is None:
+            if controller.sampling_rate is None:
                 print("\tSampling: Continuous")
             else:
-                print(f"\tSampling Rate: {event.sampling_rate:.3f} Hz")
+                print(f"\tSampling Rate: {controller.sampling_rate:.3f} Hz")
 
-            print(f"\tTriggered Count: {len(event.triggered_times)}")
-            if len(event.triggered_times) > 0:
-                print(f"\tFirst Activation Time: {event.triggered_times[0]:.3f} s")
-                print(f"\tLast Activation Time: {event.triggered_times[-1]:.3f} s")
+            print(f"\tTriggered Count: {len(controller.triggered_times)}")
+            if len(controller.triggered_times) > 0:
+                print(f"\tFirst Activation Time: {controller.triggered_times[0]:.3f} s")
+                print(f"\tLast Activation Time: {controller.triggered_times[-1]:.3f} s")
 
-            print(f"\tCallback Log Entries: {len(event.callback_log)}")
+            print(f"\tCallback Log Entries: {len(controller.callback_log)}")
             print()
 
     def impact_conditions(self):
@@ -630,6 +629,27 @@ class _FlightPrints:
             f"Minimum Stability Margin: {self.flight.min_stability_margin:.3f} c "
             f"at {self.flight.min_stability_margin_time:.2f} s"
         )
+
+        out_of_rail_time = self.flight.out_of_rail_time
+        # The margins above describe the pitch plane. For a non-axisymmetric
+        # rocket, also report the yaw-plane margin at rail departure.
+        if not self.flight.rocket.is_axisymmetric:
+            print(
+                "Out of Rail Stability Margin - yaw: "
+                f"{self.flight.stability_margin_yaw.get_value_opt(out_of_rail_time):.3f} c"
+            )
+
+        # Dynamic stability at rail departure (representative powered condition).
+        two_pi = 6.283185307179586
+        natural_frequency = self.flight.pitch_natural_frequency.get_value_opt(
+            out_of_rail_time
+        )
+        damping_ratio = self.flight.pitch_damping_ratio.get_value_opt(out_of_rail_time)
+        print(
+            f"Pitch Natural Frequency (out of rail): "
+            f"{natural_frequency / two_pi:.2f} Hz"
+        )
+        print(f"Pitch Damping Ratio (out of rail): {damping_ratio:.3f}")
 
     def all(self):
         """Prints out all data available about the Flight. This method invokes

@@ -199,9 +199,25 @@ The coefficients are all functions of:
 - Side slip angle (:math:`\beta`) in radians.
 - Mach number (:math:`Ma`).
 - Reynolds number (:math:`Re`).
-- Pitch rate (:math:`q`) in radians per second.
-- Yaw rate (:math:`r`) in radians per second.
-- Roll rate (:math:`p`) in radians per second.
+- Pitch rate (:math:`q^{*}`), non-dimensional (reduced).
+- Yaw rate (:math:`r^{*}`), non-dimensional (reduced).
+- Roll rate (:math:`p^{*}`), non-dimensional (reduced).
+
+.. important::
+   The angular rates are the conventional **non-dimensional reduced rates**, not
+   the raw body rates in rad/s:
+
+   .. math::
+      q^{*} = \frac{q \, L_{ref}}{2 V}, \quad
+      r^{*} = \frac{r \, L_{ref}}{2 V}, \quad
+      p^{*} = \frac{p \, L_{ref}}{2 V}
+
+   where :math:`L_{ref}` is the surface reference length and :math:`V` the
+   freestream speed. This matches how published and tool-generated aerotables
+   (Missile DATCOM, OpenVSP, CFD/wind-tunnel sweeps) tabulate rate derivatives,
+   so such tables can be used directly. RocketPy non-dimensionalizes the body
+   rates internally before evaluating the coefficients (the factor is 0 at zero
+   airspeed). Define your tables against the reduced rates.
 
 .. math::
    \begin{aligned}

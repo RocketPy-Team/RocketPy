@@ -1,9 +1,10 @@
 """Defines the StochasticRocket class."""
 
 import warnings
+from copy import deepcopy
 from random import choice
 
-from rocketpy.control import _Controller
+from rocketpy.control import AirBrakesController
 from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.motors.empty_motor import EmptyMotor
 from rocketpy.motors.motor import GenericMotor, Motor
@@ -393,15 +394,21 @@ class StochasticRocket(StochasticModel):
             rail_buttons, self._validate_position(rail_buttons, lower_button_position)
         )
 
-    def add_air_brakes(self, air_brakes, controller):
+    def add_air_brakes(self, air_brakes, controller, position=None):
         """Adds an air brake to the stochastic rocket.
 
         Parameters
         ----------
         air_brakes : StochasticAirBrakes or Airbrakes
             The air brake to be added to the stochastic rocket.
-        controller : _Controller
-            Deterministic air brake controller.
+        controller : Controller
+            Deterministic air brake controller. A fresh controller of the
+            same class is rebuilt for every sampled rocket, bound to that
+            sample's air brakes with a deep copy of the context.
+        position : int, float, optional
+            Axial position of the air brakes station, as in
+            ``Rocket.add_air_brakes``. If ``None`` (default), the air-brake
+            force is pinned to the center of dry mass (zero moment arm).
         """
         if not isinstance(air_brakes, (AirBrakes, StochasticAirBrakes)):
             raise TypeError(
@@ -412,6 +419,7 @@ class StochasticRocket(StochasticModel):
 
         self.air_brakes.append(air_brakes)
         self.air_brake_controller = controller
+        self._air_brakes_position = position
 
     def add_cp_eccentricity(self, x=None, y=None):
         """Moves line of action of aerodynamic forces to simulate an
@@ -773,17 +781,21 @@ class StochasticRocket(StochasticModel):
         for air_brake in self.air_brakes:
             air_brake = self._create_air_brake(air_brake)
             base_controller = self.air_brake_controller
-            _controller = _Controller(
+            _controller = AirBrakesController(
                 controller_function=base_controller.controller_function,
-                controlled_objects=air_brake,
-                controlled_objects_name=base_controller.controlled_objects_name,
+                air_brakes=air_brake,
                 sampling_rate=base_controller.sampling_rate,
-                context=base_controller.context.copy(),
+                # Deep copy so nested mutables (e.g. observed-variable lists)
+                # are not shared across Monte Carlo samples.
+                context=deepcopy(base_controller.context),
                 name=base_controller.name,
-                controller_needs=base_controller.controller_needs,
+                needs=base_controller.needs,
             )
-            rocket.air_brakes.append(air_brake)
-            rocket._add_controllers(_controller)
+            rocket._attach_air_brakes(
+                air_brake,
+                _controller,
+                position=getattr(self, "_air_brakes_position", None),
+            )
 
         for component_rail_buttons in self.rail_buttons:
             (

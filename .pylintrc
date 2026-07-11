@@ -231,6 +231,8 @@ good-names=FlightPhases,
            R_uncanted,
            R_body_to_fin, 
            Re, # Reynolds number
+           cL_alpha,
+           cQ_beta,
 
 # Good variable names regexes, separated by a comma. If names match any regex,
 # they will always be accepted

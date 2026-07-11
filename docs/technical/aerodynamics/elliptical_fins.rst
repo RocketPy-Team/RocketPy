@@ -1,14 +1,3 @@
-=========================
-Elliptical Fins Equations
-=========================
-
-:Author: Mateus Stano Junqueira,
-:Author: Franz Masatoshi Yuri,
-:Author: Kaleb Ramos Wanderley Santos,
-:Author: Matheus Gonçalvez Doretto,
-:Date:   February 2022
-
-
 Nomenclature
 ============
 

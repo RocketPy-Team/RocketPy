@@ -2,10 +2,19 @@ from .event_commands import apply_event_commands, apply_rollback_command
 
 
 def compute_needs_union(events):
-    """Return the union of ``Event.needs`` for all enabled events."""
+    """Return the union of ``Event.needs`` across every event that may run on
+    this node.
+
+    A permanently-disabled event (``enabled`` is ``False`` with no ``enable_on``
+    gate) can never fire, so its needs are skipped. But a disabled event that
+    carries an ``enable_on`` gate may enable **and** run its callback on this
+    very node (see :meth:`Event.__call__`), so its declared needs must be
+    included -- otherwise the expensive kwargs it requested (``pressure``,
+    ``state_dot``, ``state_history``) would be missing on the enabling node.
+    """
     result = frozenset()
     for event in events:
-        if not event.enabled:
+        if not event.enabled and event.enable_on is None:
             continue
         result = result | event.needs
     return result

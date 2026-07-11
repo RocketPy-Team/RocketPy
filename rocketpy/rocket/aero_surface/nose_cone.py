@@ -7,10 +7,10 @@ from rocketpy.mathutils.function import Function
 from rocketpy.plots.aero_surface_plots import _NoseConePlots
 from rocketpy.prints.aero_surface_prints import _NoseConePrints
 
-from .aero_surface import AeroSurface
+from ._barrowman_surface import _BarrowmanSurface
 
 
-class NoseCone(AeroSurface):
+class NoseCone(_BarrowmanSurface):
     """Keeps nose cone information.
 
     Note
@@ -129,7 +129,9 @@ class NoseCone(AeroSurface):
         None
         """
         rocket_radius = rocket_radius or base_radius
-        super().__init__(name, np.pi * rocket_radius**2, 2 * rocket_radius)
+        self.name = name
+        self.reference_area = np.pi * rocket_radius**2
+        self.reference_length = 2 * rocket_radius
 
         self._rocket_radius = rocket_radius
         self._base_radius = base_radius
@@ -162,6 +164,16 @@ class NoseCone(AeroSurface):
 
         self.evaluate_lift_coefficient()
         self.evaluate_center_of_pressure()
+
+        # Translate the Barrowman geometry (clalpha, cpz) into the linear
+        # generic-surface coefficient model and build the shared compute path.
+        super().__init__(
+            reference_area=self.reference_area,
+            reference_length=self.reference_length,
+            coefficients={},
+            center_of_pressure=(self.cpx, self.cpy, self.cpz),
+            name=name,
+        )
 
         self.plots = _NoseConePlots(self)
         self.prints = _NoseConePrints(self)

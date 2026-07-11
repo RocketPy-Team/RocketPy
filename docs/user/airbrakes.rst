@@ -106,8 +106,9 @@ Defining the Controller Function
 
 Lets start by defining a very simple controller function.
 
-The ``controller_function`` must take in the following arguments, in this
-order:
+The ``controller_function`` must accept keyword arguments only
+(``def controller_function(**kwargs)``). At every call, the following keys
+(among others, see :class:`rocketpy.Controller`) are available:
 
 1. ``time`` (float): The current simulation time in seconds.
 2. ``sampling_rate`` (float): The rate at which the controller
@@ -144,13 +145,12 @@ order:
    a list of lists, with each sublist containing a state vector. The
    last item in the list always corresponds to the previous state
    vector, providing a chronological sequence of the rocket's
-   evolving states.
-5. ``observed_variables`` (list): A list containing the variables that
-   the controller function returns. The return of each controller
-   function call is appended to the observed_variables list. The
-   initial value in the first step of the simulation of this list is
-   provided by the ``initial_observed_variables`` argument.
-6. ``air_brakes`` (AirBrakes): The ``AirBrakes`` instance being controlled.
+   evolving states. Only available when declared through the
+   ``controller_needs`` argument.
+5. ``air_brakes`` (AirBrakes): The ``AirBrakes`` instance being controlled.
+6. ``controller`` (:class:`rocketpy.AirBrakesController`): The controller
+   itself, giving access to its persistent ``context`` dictionary and its
+   execution ``log`` (the values returned by previous calls).
 
 Our example ``controller_function`` will deploy the air brakes when the rocket
 reaches 1500 meters above the ground. The deployment level will be function of the
@@ -230,14 +230,19 @@ Lets define the controller function:
 
 .. note::
 
-    - The ``controller_function`` accepts 6, 7, or 8 parameters for backward
-      compatibility:
+    - **Deprecated:** for backward compatibility, ``add_air_brakes`` (and only
+      it) still accepts legacy positional controller functions with 6, 7, or 8
+      parameters:
 
       * **6 parameters** (original): ``time``, ``sampling_rate``, ``state``,
         ``state_history``, ``observed_variables``, ``air_brakes``
       * **7 parameters** (with sensors): adds ``sensors`` as the 7th parameter
       * **8 parameters** (with environment): adds ``sensors`` and ``environment``
         as the 7th and 8th parameters
+
+      A ``DeprecationWarning`` is emitted; migrate to the ``**kwargs`` form.
+      Constructing a :class:`rocketpy.Controller` directly requires the
+      ``**kwargs`` form.
 
     - The **environment parameter** provides access to atmospheric conditions
       (wind, temperature, pressure, elevation) without relying on global variables.
@@ -353,14 +358,14 @@ controller function. If you want to disable this feature, set ``clamp`` to
 
 .. jupyter-execute::
 
-    air_brakes = calisto.add_air_brakes(
+    air_brakes, controller = calisto.add_air_brakes(
         drag_coefficient_curve="../data/rockets/calisto/air_brakes_cd.csv",
         controller_function=controller_function,
         sampling_rate=10,
         reference_area=None,
         clamp=True,
-        initial_observed_variables=[0, 0, 0],
         override_rocket_drag=False,
+        return_controller=True,
         name="Air Brakes",
         controller_needs=["state_history"],
     )
@@ -369,10 +374,18 @@ controller function. If you want to disable this feature, set ``clamp`` to
 
 .. note::
 
-    The ``initial_observed_variables`` argument is optional. It is used as
-    the initial value for the ``observed_variables`` list passed on the
-    ``controller_function`` at the first time step. If not given, the
-    ``observed_variables`` list will be initialized as an empty list.
+    The air brakes join the rocket's ``aerodynamic_surfaces`` and are summed
+    in the equations of motion like any other surface. The optional
+    ``position`` argument sets the station at which the drag force is
+    applied, producing the corresponding moments at nonzero angle of attack;
+    without it, the force is applied at the center of dry mass (zero moment
+    arm), matching the historical behavior.
+
+    ``return_controller=True`` also returns the
+    :class:`rocketpy.AirBrakesController`, which records the deployment level
+    during flight (see below). The ``initial_observed_variables`` argument is
+    deprecated; seed persistent controller state through
+    ``context={"observed_variables": [...]}`` instead.
 
 .. seealso::
 
@@ -400,15 +413,26 @@ rocket reaches apogee, and we will save some time.
 Analyzing the Results
 ---------------------
 
-Now we can create some plots to analyze the results. We rely on the
-``observed_variables`` list to get the data we want to plot. Since we returned
-the ``time``, ``deployment_level`` and the ``drag_coefficient`` in the
-``controller_function``, the ``observed_variables`` list will contain these
-values at every time step.
+The controller automatically records the deployment level of the air brakes
+at every execution. After the flight, the recorded history is available both
+as raw samples (``controller.control_history``) and as a ``Function`` of time
+(``controller.deployment_level_history``), with ready-made plots:
 
-We can retrieve the ``observed_variables`` list by calling the
-``get_controller_observed_variables`` method of the ``Flight`` instance.
-Then we can plot the data we want.
+.. jupyter-execute::
+
+    controller.plots.deployment_level_curve()
+
+.. jupyter-execute::
+
+    controller.deployment_level_history
+
+The controllers of a flight are also reachable through
+``test_flight.controllers``.
+
+For any other quantity of interest, return it from the
+``controller_function``: every return value is appended to the controller's
+``log``. Since we returned the ``time``, ``deployment_level`` and the
+``drag_coefficient``, we can plot the drag coefficient like this:
 
 .. jupyter-execute::
 
@@ -416,20 +440,10 @@ Then we can plot the data we want.
 
     time_list, deployment_level_list, drag_coefficient_list = [], [], []
 
-    obs_vars = test_flight._controllers[0].log
-
-    for time, deployment_level, drag_coefficient in obs_vars:
+    for time, deployment_level, drag_coefficient in controller.log:
         time_list.append(time)
         deployment_level_list.append(deployment_level)
         drag_coefficient_list.append(drag_coefficient)
-
-    # Plot deployment level by time
-    plt.plot(time_list, deployment_level_list)
-    plt.xlabel("Time (s)")
-    plt.ylabel("Deployment Level")
-    plt.title("Deployment Level by Time")
-    plt.grid()
-    plt.show()
 
     # Plot drag coefficient by time
     plt.plot(time_list, drag_coefficient_list)
@@ -443,6 +457,38 @@ Then we can plot the data we want.
 
     For more information on the :class:`rocketpy.AirBrakes` class attributes,
     see :class:`rocketpy.AirBrakes` section.
+
+Replaying the Recorded Control
+------------------------------
+
+The recorded schedule can be replayed open-loop with a
+:class:`rocketpy.ScheduledController`, re-flying the same control inputs
+without the original controller function. This is useful to reconstruct a
+simulation (e.g. after loading a saved flight whose controller function is
+not available) or to study the plant response in isolation:
+
+.. code-block:: python
+
+    from rocketpy import ScheduledController
+
+    replay_controller = ScheduledController.from_controller(controller)
+
+    # Wire it to a rocket configured the same way (or reuse the same rocket)
+    # by replacing the original controller before re-simulating:
+    calisto._controllers = [replay_controller]
+
+    replay_flight = Flight(
+        rocket=calisto,
+        environment=env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=True,
+    )
+
+The replayed deployment schedule is interpolated linearly between the
+recorded samples and applied through ``set_control``, so clamping still
+applies.
 
 And of course, we should check some of the simulation results:
 

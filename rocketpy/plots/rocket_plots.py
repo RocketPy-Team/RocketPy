@@ -1,3 +1,5 @@
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -87,6 +89,42 @@ class _RocketPlots:
             alpha=1,
         )
 
+    def static_margin_yaw(self, *, filename=None):
+        """Plots the yaw-plane static margin of the rocket as a function of
+        time. Only meaningful for non-axisymmetric rockets; for an axisymmetric
+        rocket it is identical to :meth:`static_margin`.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
+
+        Returns
+        -------
+        None
+        """
+        self.rocket.static_margin_yaw(filename=filename)
+
+    def stability_margin_yaw(self):
+        """Plots the yaw-plane stability margin of the rocket as a function of
+        Mach number and time. Only meaningful for non-axisymmetric rockets; for
+        an axisymmetric rocket it is identical to :meth:`stability_margin`.
+
+        Returns
+        -------
+        None
+        """
+        self.rocket.stability_margin_yaw.plot_2d(
+            lower=0,
+            upper=[2, self.rocket.motor.burn_out_time],  # Mach 2 and burnout
+            samples=[20, 20],
+            disp_type="surface",
+            alpha=1,
+        )
+
     # pylint: disable=too-many-statements
     def drag_curves(self, *, filename=None):
         """Plots power off and on drag curves of the rocket as a function of time.
@@ -139,6 +177,51 @@ class _RocketPlots:
         ax.axvspan(0.8, 1.2, alpha=0.3, color="gray", label="Transonic Region")
         ax.legend(loc="best", shadow=True)
         plt.grid(True)
+        show_or_save_plot(filename)
+
+    def aerodynamic_coefficients(self, *, filename=None):
+        """Plots the rocket's total aerodynamic coefficients -- normal force
+        ``C_N`` and pitch moment ``C_m`` (about the center of dry mass) -- versus
+        angle of attack, for a range of Mach numbers. The drag coefficient versus
+        Mach is shown by :meth:`drag_curves`.
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            The path the plot should be saved to. By default None, in which case
+            the plot will be shown instead of saved. Supported file endings are:
+            eps, jpg, jpeg, pdf, pgf, png, ps, raw, rgba, svg, svgz, tif, tiff
+            and webp (these are the formats supported by matplotlib).
+
+        Returns
+        -------
+        None
+        """
+        alphas_deg = np.linspace(0, 15, 40)
+        alphas_rad = np.radians(alphas_deg)
+
+        _, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 4.5))
+        for mach in (0.1, 0.5, 0.8, 1.2, 2.0):
+            coeffs = [
+                self.rocket.aerodynamic_coefficients(a, 0.0, mach) for a in alphas_rad
+            ]
+            ax1.plot(
+                alphas_deg, [c["normal_force"] for c in coeffs], label=f"Mach {mach}"
+            )
+            ax2.plot(
+                alphas_deg, [c["pitch_moment"] for c in coeffs], label=f"Mach {mach}"
+            )
+
+        ax1.set_title("Normal Force Coefficient")
+        ax1.set_xlabel("Angle of Attack (deg)")
+        ax1.set_ylabel(r"$C_N$")
+        ax1.legend(loc="best", shadow=True)
+        ax1.grid(True)
+        ax2.set_title("Pitch Moment Coefficient (about CDM)")
+        ax2.set_xlabel("Angle of Attack (deg)")
+        ax2.set_ylabel(r"$C_m$")
+        ax2.grid(True)
+        plt.tight_layout()
         show_or_save_plot(filename)
 
     def thrust_to_weight(self):
@@ -198,7 +281,34 @@ class _RocketPlots:
                 "line_width": 1.0,
             }
 
-        _, ax = plt.subplots(figsize=(8, 6), facecolor=vis_args["background"])
+        # A non-axisymmetric rocket looks different in the xz and yz planes
+        # (e.g. canards or fins present in one plane only), so draw both for
+        # comparison; an axisymmetric rocket looks the same in either plane.
+        planes = [plane] if self.rocket.is_axisymmetric else ["xz", "yz"]
+
+        # Each plane is drawn in its own figure so the projections can be read
+        # and saved independently. When saving multiple planes, the plane name
+        # is appended to the filename (e.g. ``rocket_xz.png``).
+        for draw_plane in planes:
+            _, ax = plt.subplots(
+                figsize=(8, 6),
+                facecolor=vis_args["background"],
+            )
+            self._draw_on_plane(ax, vis_args, draw_plane)
+            plt.tight_layout()
+            show_or_save_plot(self.__plane_filename(filename, draw_plane, planes))
+
+    @staticmethod
+    def __plane_filename(filename, plane, planes):
+        """Inserts the plane name before the extension when more than one plane
+        is drawn so each figure is saved to a distinct file."""
+        if filename is None or len(planes) == 1:
+            return filename
+        root, ext = os.path.splitext(filename)
+        return f"{root}_{plane}{ext}"
+
+    def _draw_on_plane(self, ax, vis_args, plane):
+        """Draws the rocket onto a single axis for the given projection plane."""
         ax.set_aspect("equal")
         ax.grid(True, linestyle="--", linewidth=0.5)
 
@@ -210,17 +320,17 @@ class _RocketPlots:
         last_radius, last_x = self._draw_tubes(ax, drawn_surfaces, vis_args)
         self._draw_motor(last_radius, last_x, ax, vis_args)
         self._draw_rail_buttons(ax, vis_args)
-        self._draw_center_of_mass_and_pressure(ax)
+        self._draw_center_of_mass_and_pressure(ax, plane)
         self._draw_sensors(ax, self.rocket.sensors, plane)
 
-        plt.title("Rocket Representation")
-        plt.xlim()
-        plt.ylim([-self.rocket.radius * 4, self.rocket.radius * 6])
-        plt.xlabel("Position (m)")
-        plt.ylabel("Radius (m)")
-        plt.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
-        plt.tight_layout()
-        show_or_save_plot(filename)
+        title = "Rocket Representation"
+        if not self.rocket.is_axisymmetric:
+            title += f" ({plane} plane)"
+        ax.set_title(title)
+        ax.set_ylim([-self.rocket.radius * 4, self.rocket.radius * 6])
+        ax.set_xlabel("Position (m)")
+        ax.set_ylabel("Radius (m)")
+        ax.legend(bbox_to_anchor=(1.05, 1), loc="upper left")
 
     def __validate_aerodynamic_surfaces(self, plane):
         if not self.rocket.aerodynamic_surfaces:
@@ -632,16 +742,70 @@ class _RocketPlots:
         except IndexError:
             pass
 
-    def _draw_center_of_mass_and_pressure(self, ax):
-        """Draws the center of mass and center of pressure of the rocket."""
+    def _draw_center_of_mass_and_pressure(self, ax, plane="xz"):
+        """Draws the center of mass and center of pressure of the rocket.
+
+        The red dot is the (linear) aerodynamic center, conventionally labeled
+        the center of pressure. A translucent red band through it shows the
+        range over which the *nonlinear* center of pressure travels as the
+        incidence angle grows (angle of attack in the xz plane, sideslip in the
+        yz plane).
+        """
         # Draw center of mass and center of pressure
         cm = self.rocket.center_of_mass(0)
         ax.scatter(cm, 0, color="#1565c0", label="Center of Mass", s=10)
 
-        cp = self.rocket.cp_position(0)
-        ax.scatter(
-            cp, 0, label="Static Center of Pressure", color="red", s=10, zorder=10
-        )
+        cp = self.rocket.aerodynamic_center(0)
+
+        # Center of pressure travel band: sweep the nonlinear center of
+        # pressure over the relevant incidence angle and shade its min-max span.
+        cp_min, cp_max = self._center_of_pressure_range(plane)
+        if cp_max > cp_min:
+            ax.plot(
+                [cp_min, cp_max],
+                [0, 0],
+                color="red",
+                alpha=0.3,
+                linewidth=4,
+                solid_capstyle="butt",
+                zorder=9,
+                label="Center of Pressure Range",
+            )
+
+        ax.scatter(cp, 0, label="Center of Pressure", color="red", s=10, zorder=10)
+
+    def _center_of_pressure_range(self, plane, max_angle=np.deg2rad(15), samples=31):
+        """Min and max nonlinear center-of-pressure position over an incidence
+        sweep.
+
+        Sweeps the angle of attack (xz plane) or sideslip (yz plane) from 0 to
+        ``max_angle`` and reconstructs the nonlinear center of pressure --
+        ``x_cdm + csys * d * Cm / CN`` -- from the rocket aerodynamic
+        coefficients (:meth:`Rocket.aerodynamic_coefficients_full`), returning
+        the extent of its travel. The center of pressure is singular at zero
+        incidence (``CN -> 0``); those samples are skipped.
+        """
+        rocket = self.rocket
+        csys = rocket._csys
+        diameter = 2 * rocket.radius
+        cdm = rocket.center_of_dry_mass_position
+        angles = np.linspace(0, max_angle, samples)
+        positions = []
+        for angle in angles:
+            if plane == "yz":
+                coeffs = rocket.aerodynamic_coefficients_full(0.0, angle, 0.0)
+                force, moment = coeffs["cQ"], coeffs["cn"]
+            else:
+                coeffs = rocket.aerodynamic_coefficients_full(angle, 0.0, 0.0)
+                force, moment = coeffs["cL"], coeffs["cm"]
+            if force == 0:
+                continue
+            position = cdm + csys * diameter * moment / force
+            if np.isfinite(position):
+                positions.append(position)
+        if len(positions) == 0:
+            return (0.0, 0.0)
+        return (float(min(positions)), float(max(positions)))
 
     def _draw_sensors(self, ax, sensors, plane):
         """Draw the sensor as a small thick line at the position of the sensor,
@@ -724,12 +888,18 @@ class _RocketPlots:
         print("Drag Plots")
         print("-" * 20)  # Separator for Drag Plots
         self.drag_curves()
+        self.aerodynamic_coefficients()
 
         # Stability Plots
         print("\nStability Plots")
         print("-" * 20)  # Separator for Stability Plots
         self.static_margin()
         self.stability_margin()
+        # Non-axisymmetric rockets: the above describe the pitch plane only, so
+        # also show the yaw-plane margins.
+        if not self.rocket.is_axisymmetric:
+            self.static_margin_yaw()
+            self.stability_margin_yaw()
 
         # Thrust-to-Weight Plot
         print("\nThrust-to-Weight Plot")
