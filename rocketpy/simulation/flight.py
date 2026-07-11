@@ -3963,17 +3963,10 @@ class Flight:
             parachute.noise_signal_function = Function(
                 parachute.noise_signal, "Time (s)", "Pressure Noise (Pa)", "linear"
             )
-            # Function arithmetic drops the axis labels/title, so restore them
-            # to keep the pressure-signal plots readable (see pressure_signals).
             parachute.noisy_pressure_signal_function = (
                 parachute.clean_pressure_signal_function
                 + parachute.noise_signal_function
             )
-            parachute.noisy_pressure_signal_function.set_inputs("Time (s)")
-            parachute.noisy_pressure_signal_function.set_outputs(
-                "Pressure - With Noise (Pa)"
-            )
-            parachute.noisy_pressure_signal_function.set_title("Noisy Pressure Signal")
 
     @cached_property
     def __evaluate_post_process(self):
@@ -4059,14 +4052,6 @@ class Flight:
             i += 1
 
     def to_dict(self, **kwargs):
-        # ``parachutes_info`` is populated as a side effect of the lazy
-        # post-processing pass (``add_information_to_flight`` is only called with
-        # ``post_processing=True``). Trigger that pass before reading the
-        # attribute so the per-parachute drag time series is serialized even for
-        # flights that have not been post-processed yet (e.g. flights without
-        # controllers that are saved before any acceleration/force property or
-        # plot is accessed). This is a no-op once post-processing has run.
-        _ = self.ax
         data = {
             "rocket": self.rocket,
             "env": self.env,

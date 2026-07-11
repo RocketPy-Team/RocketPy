@@ -998,24 +998,3 @@ def test_acceleration_based_parachute_trigger_deploys(
     deploy_time, deployed = flight.parachute_events[0]
     assert deployed.name == "acc_chute"
     assert abs(flight.z(deploy_time) - flight.apogee) <= 5
-
-
-def test_to_dict_populates_parachutes_info_lazily(flight_calisto_robust):
-    """Regression: parachutes_info is filled only as a side effect of the lazy
-    post-processing pass. to_dict() must trigger that pass so the per-parachute
-    drag time series is serialized even when no post-processed property was
-    accessed first (e.g. a flight without controllers saved right after running).
-    """
-    flight = flight_calisto_robust
-
-    # Not populated yet: no post-processed property has been accessed.
-    assert flight.parachutes_info == {}
-
-    data = flight.to_dict()
-
-    # to_dict must have triggered post-processing, populating the drag series.
-    assert data["parachutes_info"]
-    assert data["parachutes_info"] is flight.parachutes_info
-    for info in data["parachutes_info"].values():
-        assert info["drag"]
-        assert info["t"]

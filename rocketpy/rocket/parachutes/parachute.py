@@ -217,45 +217,36 @@ class Parachute(ABC):
 
         # Helper to wrap any callable to the internal (p, h, y, sensors, u_dot) API
         def _make_wrapper(fn):
-            params = list(signature(fn).parameters.keys())
-            num_params = len(params)
-            fn_name = getattr(fn, "__name__", repr(fn))
+            sig = signature(fn)
+            params = list(sig.parameters.keys())
 
-            # Validate arity up-front so a malformed trigger fails at
-            # construction time rather than mid-simulation.
-            if num_params < 3:
-                raise TypeError(
-                    f"Trigger function '{fn_name}' has unsupported signature: "
-                    f"expected 3, 4, or 5+ arguments, got {num_params}. "
-                    "Please check the function definition."
-                )
-
-            # A 4-argument trigger is ambiguous: the 4th argument may be either
-            # the sensors list or the acceleration (u_dot). Disambiguate by the
-            # parameter name. A 5+ argument trigger follows the positional
-            # contract (p, h, y, sensors, u_dot), so it always receives u_dot.
-            fourth_is_udot = num_params == 4 and params[3].lower() in (
-                "u_dot",
-                "udot",
-                "acc",
-                "acceleration",
+            # detect if user function expects acceleration-like argument
+            expects_udot = any(
+                name.lower() in ("u_dot", "udot", "acc", "acceleration")
+                for name in params[3:]
             )
 
-            # Tell Flight whether it must compute u_dot for this trigger. Gate on
-            # ARITY (not parameter names) for 5+ arg triggers so documented,
-            # positionally-correct triggers with descriptive parameter names
-            # still receive a valid u_dot instead of None.
-            expects_udot = num_params >= 5 or fourth_is_udot
-
             def wrapper(p, h, y, sensors, u_dot):
+                # Support 3, 4, and 5-arg user functions
+                num_params = len(sig.parameters)
                 if num_params == 3:
                     return fn(p, h, y)
                 if num_params == 4:
-                    if fourth_is_udot:
+                    # Check which 4th arg to pass
+                    fourth_param = params[3].lower()
+                    if fourth_param in ("u_dot", "udot", "acc", "acceleration"):
                         return fn(p, h, y, u_dot)
-                    return fn(p, h, y, sensors)
-                # num_params >= 5: positional contract (p, h, y, sensors, u_dot)
-                return fn(p, h, y, sensors, u_dot)
+                    else:
+                        return fn(p, h, y, sensors)
+                if num_params >= 5:
+                    # Pass both sensors and u_dot
+                    return fn(p, h, y, sensors, u_dot)
+                # If function signature is not supported, raise an error
+                raise TypeError(
+                    f"Trigger function '{fn.__name__}' has unsupported signature: "
+                    f"expected 3, 4, or 5+ arguments, got {num_params}. "
+                    "Please check the function definition."
+                )
 
             # attach metadata so Flight can decide whether to compute u_dot
             wrapper._expects_udot = expects_udot
