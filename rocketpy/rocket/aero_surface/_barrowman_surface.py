@@ -13,15 +13,16 @@ class _BarrowmanSurface(LinearGenericSurface):
     Mach), a geometric center of pressure ``cpz`` and, for fins, a pair of roll
     forcing/damping coefficients.
 
-    The in-flight normal force and its moment are computed with the classic
-    Barrowman method (see :meth:`compute_forces_and_moments`): the normal force
-    uses the true total angle of attack and acts at the geometric center of
-    pressure, and its moment about the center of dry mass is the geometric
-    transport (``cp ^ force``). This reproduces the formulation used in
-    RocketPy's flight-test validation. The resultant force is therefore reported
-    at the geometric center of pressure (:attr:`force_application_point`), which
-    the surface-local frame maps to the body frame through
-    :meth:`_default_surface_rotation`.
+    The in-flight normal force and its moment are computed with the Barrowman
+    method (see :meth:`compute_forces_and_moments`): the normal force uses the
+    true total angle of attack, acting at the geometric centre of pressure, and
+    its moment about the centre of dry mass is the geometric transport
+    (``cp ^ force``).  When the subclass provides planform geometry (see
+    :attr:`_planform_area`, :attr:`_planform_centroid`, :attr:`_cp_slender`), a
+    non-linear Galejs body-lift term :math:`K \cdot (A_\text{plan} /
+    A_\text{ref}) \cdot \sin^2\alpha` is added and the CP is blended
+    accordingly.  The resultant force is reported at the blended centre of
+    pressure in the body frame through :meth:`_default_surface_rotation`.
 
     The class also derives the linear normal-force slopes ``cN_alpha`` (pitch
     plane) and ``cY_beta`` (yaw plane), which feed the stability and
@@ -34,12 +35,21 @@ class _BarrowmanSurface(LinearGenericSurface):
     center of pressure before calling ``super().__init__`` (which passes the
     geometric cp through ``center_of_pressure``), and, for fins, set
     ``self.roll_parameters = [clf_delta, cld_omega, cant_angle_rad]``.
+    Subclasses that wish to enable body lift must also set
+    :attr:`_planform_area`, :attr:`_planform_centroid` and :attr:`_cp_slender`.
     """
 
     # Geometry-defined Barrowman surfaces are axisymmetric by construction
     # (``cY_beta = -cN_alpha``, etc.), so they contribute identically to the
     # pitch and yaw planes. The individual ``Fin`` overrides this back to False.
     is_axisymmetric = True
+
+    # Galejs body-lift parameters.  Subclasses may override these to enable
+    # the nonlinear sin²α body-lift term (see :meth:`compute_forces_and_moments`).
+    _body_lift_k = 1.1          # Galejs constant K
+    _planform_area = 0.0        # projected (planform) area, m²
+    _planform_centroid = 0.0    # planform centroid local z, m
+    _cp_slender = 0.0           # slender-body CP local z, m
 
     @staticmethod
     def _beta(mach):
@@ -130,16 +140,24 @@ class _BarrowmanSurface(LinearGenericSurface):
         omega,
         *args,  # pylint: disable=unused-argument
     ):
-        """Compute the surface's forces and moments with the classic Barrowman
-        method. Called at each simulation step.
+        """Compute the surface's forces and moments with the Barrowman method
+        plus the optional Galejs body-lift extension. Called at each
+        simulation step.
 
-        The normal force uses the true total angle of attack between the flow
-        and the body axis, ``attack_angle = arccos(-v_z / |v|)``, giving
-        ``0.5 * rho * V**2 * A_ref * clalpha(Mach) * attack_angle``. It is
-        applied perpendicular to the body axis (along the transverse flow) at the
-        geometric center of pressure, and its moment about the rocket's center of
-        dry mass is the geometric transport ``cp ^ force``. Fin sets add their
-        roll moment on top.
+        The normal force has two contributions:
+
+        1. **Slender-body linear term**:
+           ``0.5 ρ V² A_ref · clalpha(Mach) · α``
+
+        2. **Galejs body-lift term** (nonlinear, when :attr:`_planform_area`
+           > 0):
+           ``0.5 ρ V² A_ref · K · (A_plan / A_ref) · sin²α``,
+           with ``K = 1.1``.  At very low speed and high α (apogee) the
+           term is damped by a factor ``(M / 0.05)²``.
+
+        The total force is applied at the blended centre of pressure of the
+        two contributions.  Fin sets (including canards) add their roll moment
+        on top.
 
         Parameters
         ----------
@@ -152,9 +170,10 @@ class _BarrowmanSurface(LinearGenericSurface):
         rho : float
             Air density.
         cp : Vector
-            Surface center of pressure relative to the center of dry mass, in
+            Surface centre of pressure relative to the centre of dry mass, in
             the body frame (the force-application point; see
-            :attr:`force_application_point`).
+            :attr:`force_application_point`).  When body lift is active this
+            is the *slender-body* CP; the blended CP is computed internally.
         omega : tuple of float
             Body angular velocity about the x, y, z axes. Only the roll
             component (``omega[2]``) is used, by fin sets.
@@ -176,18 +195,53 @@ class _BarrowmanSurface(LinearGenericSurface):
             stream_vzn = stream_vz / stream_speed
             if -stream_vzn < 1:
                 attack_angle = np.arccos(-stream_vzn)
-                c_lift = self.clalpha.get_value_opt(stream_mach) * attack_angle
-                lift = 0.5 * rho * stream_speed**2 * self.reference_area * c_lift
+
+                # --- Slender-body linear term ---
+                c_lift_linear = (
+                    self.clalpha.get_value_opt(stream_mach) * attack_angle
+                )
+
+                # --- Galejs body-lift term (nonlinear sin²α) ---
+                c_lift_body = 0.0
+                if self._planform_area > 0:
+                    sin2_alpha = np.sin(attack_angle) ** 2
+                    c_lift_body = (
+                        self._body_lift_k
+                        * self._planform_area
+                        / self.reference_area
+                        * sin2_alpha
+                    )
+                    # Low-speed / high-α damping (avoids apogee CP anomaly)
+                    if stream_mach < 0.05 and attack_angle > np.pi / 4:
+                        c_lift_body *= (stream_mach / 0.05) ** 2
+
+                c_lift = c_lift_linear + c_lift_body
+                lift = (
+                    0.5
+                    * rho
+                    * stream_speed**2
+                    * self.reference_area
+                    * c_lift
+                )
                 # Normal force, perpendicular to the body axis, directed along
                 # the transverse component of the flow.
                 transverse_norm = (stream_vx**2 + stream_vy**2) ** 0.5
                 R1 = lift * stream_vx / transverse_norm
                 R2 = lift * stream_vy / transverse_norm
-                # The normal force acts at the geometric center of pressure,
-                # which ``cp`` already locates relative to the center of dry
-                # mass; transport its moment from there.
+                # The total force acts at the blended centre of pressure:
+                # slender-body CP + Galejs offset.
                 force = Vector([R1, R2, R3])
-                M1, M2, M3 = cp ^ force
+                if c_lift_body > 0 and c_lift != 0:
+                    # Body-frame offset between the two CPs (the
+                    # _default_surface_rotation flips the local z axis, hence
+                    # the minus sign).
+                    dz_body = -(self._planform_centroid - self._cp_slender)
+                    cp_effective = cp + Vector(
+                        [0.0, 0.0, dz_body * c_lift_body / c_lift]
+                    )
+                else:
+                    cp_effective = cp
+                M1, M2, M3 = cp_effective ^ force
 
         # Fin roll (cant forcing + rate damping); zero for non-fin surfaces.
         M3 += self._roll_moment(stream_speed, stream_mach, rho, omega)
