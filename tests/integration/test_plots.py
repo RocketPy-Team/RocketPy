@@ -3,9 +3,34 @@ import os
 from unittest.mock import patch
 
 import matplotlib.pyplot as plt
+import pytest
 
 from rocketpy import Flight
 from rocketpy.plots.compare import CompareFlights
+
+
+def test_flight_animations_run_off_screen(flight_calisto):
+    """Ensure both PyVista flight animations render successfully off screen."""
+
+    # Arrange
+    pytest.importorskip("pyvista")
+    animation_options = {
+        "start": 0,
+        "stop": 0.001,
+        "time_step": 0.001,
+        "playback_controls": False,
+        "backend": "none",
+        "off_screen": True,
+        "window_size": (320, 240),
+    }
+
+    # Act
+    trajectory_result = flight_calisto.plots.animate_trajectory(**animation_options)
+    rotation_result = flight_calisto.plots.animate_rotate(**animation_options)
+
+    # Assert
+    assert trajectory_result is None
+    assert rotation_result is None
 
 
 @patch("matplotlib.pyplot.show")

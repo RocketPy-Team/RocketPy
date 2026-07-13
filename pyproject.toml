@@ -72,7 +72,8 @@ monte-carlo = [
 ]
 
 animation = [
-    "vedo>=2024.5.1"
+    "pyvista>=0.45",
+    "imageio-ffmpeg>=0.5"
 ]
 
 all = ["rocketpy[env-analysis]", "rocketpy[monte-carlo]", "rocketpy[animation]"]
