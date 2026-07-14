@@ -6,9 +6,20 @@ import numpy as np
 
 from rocketpy.mathutils._calc.polation_base import PolationBase
 
+_COMPLEX_ND_ERROR = (
+    "Complex coordinates are not supported for N-D array-based Function interpolation."
+)
+
 
 class PolationEvaluator1D(PolationBase):
-    """Route 1D evaluation to interpolation or extrapolation."""
+    """Route 1-D evaluation to interpolation or extrapolation.
+
+    Complex queries are propagated only to support complex-step
+    differentiation of a real 1-D sampled Function. Routing uses the real
+    component so the imaginary perturbation cannot change the selected real
+    interval. This does not define general interpolation over the complex
+    plane.
+    """
 
     __slots__ = (
         "_interpolator",
@@ -38,6 +49,9 @@ class PolationEvaluator1D(PolationBase):
         """Flattens the evaluator into a fast closure for the
         simulation loop.
         """
+        if hasattr(self, "_exposed_fn"):
+            return self._exposed_fn
+
         scalar_eval = self._scalar_fn
         vector_eval = self._vector_fn
 
@@ -53,6 +67,9 @@ class PolationEvaluator1D(PolationBase):
 
     def expose_scalar(self):
         """Expose a scalar-only evaluator with no iterable checks."""
+        if hasattr(self, "_scalar_fn"):
+            return self._scalar_fn
+
         x_min = self._x_min
         x_max = self._x_max
         interp_eval = self._interpolator.evaluate
@@ -74,6 +91,9 @@ class PolationEvaluator1D(PolationBase):
 
     def expose_vector(self):
         """Expose a vector-only evaluator with no iterable checks."""
+        if hasattr(self, "_vector_fn"):
+            return self._vector_fn
+
         x_min = self._x_min
         x_max = self._x_max
         interp_eval = self._interpolator.evaluate
@@ -241,6 +261,9 @@ class PolationEvaluatorND(PolationBase):
         return self._exposed_fn(*args, _is_iterable=_is_iterable)
 
     def expose(self):
+        if hasattr(self, "_exposed_fn"):
+            return self._exposed_fn
+
         scalar_eval = self._scalar_fn
         vector_eval = self._vector_fn
 
@@ -256,6 +279,9 @@ class PolationEvaluatorND(PolationBase):
         return _eval
 
     def expose_scalar(self):
+        if hasattr(self, "_scalar_fn"):
+            return self._scalar_fn
+
         min_domain = self._min_domain
         max_domain = self._max_domain
         extrapolation_mask = self._extrapolation_mask
@@ -264,7 +290,10 @@ class PolationEvaluatorND(PolationBase):
         np_local = np
 
         def _scalar(*args):
-            points = np_local.array([args], dtype=float)
+            points = np_local.array([args])
+            if np_local.iscomplexobj(points):
+                raise TypeError(_COMPLEX_ND_ERROR)
+            points = points.astype(float, copy=False)
             point = points[0]
             outside_bounds = ((point < min_domain) | (point > max_domain)).any()
             outside_hull = (
@@ -283,6 +312,9 @@ class PolationEvaluatorND(PolationBase):
         return _scalar
 
     def expose_vector(self):  # pylint: disable=too-many-statements
+        if hasattr(self, "_vector_fn"):
+            return self._vector_fn
+
         min_domain = self._min_domain
         max_domain = self._max_domain
         extrapolation_mask = self._extrapolation_mask
@@ -292,11 +324,11 @@ class PolationEvaluatorND(PolationBase):
 
         def _vector(*args):
             points = np_local.column_stack(args)
-            out_dtype = complex if np_local.iscomplexobj(points) else float
-            result = np_local.empty(len(points), dtype=out_dtype)
-            points_real = points.real
-            lower = points_real < min_domain
-            upper = points_real > max_domain
+            if np_local.iscomplexobj(points):
+                raise TypeError(_COMPLEX_ND_ERROR)
+            result = np_local.empty(len(points), dtype=float)
+            lower = points < min_domain
+            upper = points > max_domain
             extrap_mask = lower.any(axis=1) | upper.any(axis=1)
             if extrapolation_mask is not None:
                 interp_candidates = ~extrap_mask
@@ -352,6 +384,9 @@ class RegularGridEvaluator(PolationBase):
         return self._exposed_fn(*args, _is_iterable=_is_iterable)
 
     def expose(self):
+        if hasattr(self, "_exposed_fn"):
+            return self._exposed_fn
+
         scalar_eval = self._scalar_fn
         vector_eval = self._vector_fn
 
@@ -367,6 +402,9 @@ class RegularGridEvaluator(PolationBase):
         return _eval
 
     def expose_scalar(self):
+        if hasattr(self, "_scalar_fn"):
+            return self._scalar_fn
+
         min_domain = self._min_domain
         max_domain = self._max_domain
         interp_eval = self._interpolator.evaluate
@@ -376,14 +414,20 @@ class RegularGridEvaluator(PolationBase):
         if self._interpolator is self._extrapolator:
 
             def _scalar_same(*args):
-                points = np_local.array([args], dtype=float)
+                points = np_local.array([args])
+                if np_local.iscomplexobj(points):
+                    raise TypeError(_COMPLEX_ND_ERROR)
+                points = points.astype(float, copy=False)
                 res = interp_eval(points)
                 return float(res[0])
 
             return _scalar_same
 
         def _scalar(*args):
-            points = np_local.array([args], dtype=float)
+            points = np_local.array([args])
+            if np_local.iscomplexobj(points):
+                raise TypeError(_COMPLEX_ND_ERROR)
+            points = points.astype(float, copy=False)
             point = points[0]
             if ((point < min_domain) | (point > max_domain)).any():
                 return float(extrap_eval(points)[0])
@@ -392,6 +436,9 @@ class RegularGridEvaluator(PolationBase):
         return _scalar
 
     def expose_vector(self):
+        if hasattr(self, "_vector_fn"):
+            return self._vector_fn
+
         min_domain = self._min_domain
         max_domain = self._max_domain
         interp_eval = self._interpolator.evaluate
@@ -402,12 +449,16 @@ class RegularGridEvaluator(PolationBase):
 
             def _vector_same(*args):
                 points = np_local.column_stack(np_local.broadcast_arrays(*args))
+                if np_local.iscomplexobj(points):
+                    raise TypeError(_COMPLEX_ND_ERROR)
                 return interp_eval(points)
 
             return _vector_same
 
         def _vector(*args):
             points = np_local.column_stack(np_local.broadcast_arrays(*args))
+            if np_local.iscomplexobj(points):
+                raise TypeError(_COMPLEX_ND_ERROR)
             result = np_local.empty(len(points), dtype=float)
             lower = points < min_domain
             upper = points > max_domain

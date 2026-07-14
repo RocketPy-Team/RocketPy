@@ -285,7 +285,7 @@ class Parachute:
                 + beta * np.random.normal(noise[0], noise[1])
             )
 
-    def __evaluate_trigger_function(self, trigger):
+    def __evaluate_trigger_function(self, trigger):  # pylint: disable=too-many-statements
         """This is used to set the triggerfunc attribute that will be used to
         interact with the Flight class.
 
@@ -344,7 +344,6 @@ class Parachute:
         if isinstance(trigger, (int, float)):
             self._trigger_falling_only = True
 
-
             def triggerfunc(p, h, y, sensors, u_dot):  # pylint: disable=unused-argument
                 # p = pressure considering parachute noise signal
                 # h = height above ground level considering parachute noise signal
@@ -359,7 +358,6 @@ class Parachute:
         if isinstance(trigger, str) and trigger.lower() == "apogee":
             self._trigger_falling_only = True
             self._trigger_needs_height = False
-
 
             def triggerfunc(p, h, y, sensors, u_dot):  # pylint: disable=unused-argument
                 return y[5] < 0

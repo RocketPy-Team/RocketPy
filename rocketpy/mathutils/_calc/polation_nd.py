@@ -1,4 +1,8 @@
-"""ND interpolation and extrapolation strategies."""
+"""N-D interpolation and extrapolation strategies.
+
+Sampled N-D coordinates are real-valued. Complex query coordinates are not
+supported and are rejected by the evaluator before reaching these strategies.
+"""
 
 from __future__ import annotations
 

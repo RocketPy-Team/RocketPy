@@ -24,7 +24,14 @@ from rocketpy.tools import deprecated, from_hex_decode, to_hex_encode
 
 logger = logging.getLogger(__name__)
 
-NUMERICAL_TYPES = (float, int, complex, np.integer, np.floating)
+NUMERICAL_TYPES = (
+    float,
+    int,
+    complex,
+    np.integer,
+    np.floating,
+    np.complexfloating,
+)
 _LIST_VECTORIZE_THRESHOLD = 10
 _FAST_MATH = False
 
@@ -86,11 +93,18 @@ class Function:  # pylint: disable=too-many-public-methods
 
             - ``Callable``: Called for evaluation with input values. Must have \
                 the desired inputs as arguments and return a single output \
-                value. Input order is important. Example: Python functions.
-            - ``int`` or ``float``: Treated as a constant value function.
+                value. Input order is important. Complex-valued coordinates \
+                are supported only when the supplied callable accepts and \
+                correctly handles complex values. Example: Python functions.
+            - ``int``, ``float`` or ``complex``: Treated as a constant value \
+                function.
             - ``np.ndarray``: Used for interpolation. Format as [(x0, y0, z0), \
             (x1, y1, z1), ..., (xn, yn, zn)], where 'x' and 'y' are inputs, \
-            and 'z' is the output.
+            and 'z' is the output. Sampled coordinates and values are real. \
+            One-dimensional sampled Functions propagate an imaginary \
+            perturbation only to support complex-step differentiation; this \
+            is not general complex-plane interpolation. Sampled N-D Functions \
+            do not support complex coordinates.
             - ``str``: Path to a CSV file. The file is read and converted into an \
             ndarray. The file can optionally contain a single header line.
             - ``Function``: Copies the source of the provided Function object, \
@@ -99,14 +113,14 @@ class Function:  # pylint: disable=too-many-public-methods
         inputs : string, sequence of strings, optional
             The name of the inputs of the function. Will be used for
             representation and graphing (axis names). 'Scalar' is default.
-            If source is function, int or float and has multiple inputs,
+            If source is a function and has multiple inputs,
             this parameter must be given for correct operation.
         outputs : string, sequence of strings, optional
             The name of the outputs of the function. Will be used for
             representation and graphing (axis names). Scalar is default.
         interpolation : string, optional
             Interpolation method to be used if source type is ndarray.
-            For 1-D functions, linear, polynomial, akima and spline are
+            For 1-D functions, linear, polynomial, akima, pchip and spline are
             supported. For N-D functions, linear, shepard, rbf and
             regular_grid are supported.
             Default for 1-D functions is spline and for N-D functions is
@@ -696,20 +710,7 @@ class Function:  # pylint: disable=too-many-public-methods
     def __make_get_value_scalar(self):
         """Build a scalar evaluator for this source type."""
         if self._source_type is SourceType.ARRAY:
-            if self.__dom_dim__ == 1:
-                scalar_eval = self._array_evaluate_scalar
-
-                def array_1d_scalar(x):
-                    return scalar_eval(x)
-
-                return array_1d_scalar
-
-            array_evaluate = self._array_evaluate
-
-            def array_nd_scalar(*args):
-                return array_evaluate(*args, _is_iterable=False)
-
-            return array_nd_scalar
+            return self._array_evaluate_scalar
 
         if self._source_type is SourceType.SCALAR:
             scalar_value = self._scalar_value
@@ -721,7 +722,7 @@ class Function:  # pylint: disable=too-many-public-methods
 
         return self.source
 
-    def __make_get_value_vector(self):
+    def __make_get_value_vector(self):  # pylint: disable=too-many-statements
         """Build a vector evaluator for this source type."""
         if self._source_type is SourceType.ARRAY:
             if self.__dom_dim__ == 1:
@@ -730,17 +731,28 @@ class Function:  # pylint: disable=too-many-public-methods
                 threshold = _LIST_VECTORIZE_THRESHOLD
 
                 def array_1d_vector(x):
-                    if len(x) < threshold:
-                        return np.array([scalar_eval(xi) for xi in x], dtype=float)
-                    return vector_eval(np.asarray(x, dtype=float))
+                    out_dtype = complex if np.iscomplexobj(x) else float
+                    x_array = np.asarray(x, dtype=out_dtype)
+                    output_shape = x_array.shape
+                    flat_x = x_array.ravel()
+                    if flat_x.size < threshold:
+                        values = np.array(
+                            [scalar_eval(xi) for xi in flat_x], dtype=out_dtype
+                        )
+                    else:
+                        values = vector_eval(flat_x)
+                    return np.asarray(values).reshape(output_shape)
 
                 return array_1d_vector
 
             array_evaluate = self._array_evaluate
 
             def array_nd_vector(*args):
-                args = np.broadcast_arrays(*args)
-                return array_evaluate(*args, _is_iterable=True)
+                broadcast_args = np.broadcast_arrays(*args)
+                output_shape = broadcast_args[0].shape
+                flat_args = (arg.ravel() for arg in broadcast_args)
+                values = array_evaluate(*flat_args, _is_iterable=True)
+                return np.asarray(values).reshape(output_shape)
 
             return array_nd_vector
 
@@ -748,7 +760,8 @@ class Function:  # pylint: disable=too-many-public-methods
             scalar_value = self._scalar_value
 
             def constant_vector(x, *_):
-                return np.full_like(x, scalar_value, dtype=float)
+                out_dtype = complex if np.iscomplexobj(scalar_value) else float
+                return np.full_like(x, scalar_value, dtype=out_dtype)
 
             return constant_vector
 
@@ -757,12 +770,16 @@ class Function:  # pylint: disable=too-many-public-methods
             if self.__vectorized_callable__:
 
                 def vectorized_callable_1d_vector(x):
-                    return source(np.asarray(x, dtype=float))
+                    in_dtype = complex if np.iscomplexobj(x) else float
+                    return source(np.asarray(x, dtype=in_dtype))
 
                 return vectorized_callable_1d_vector
 
             def callable_1d_vector(x):
-                return np.array([source(xi) for xi in x], dtype=float)
+                x_array = np.asarray(x)
+                values = np.asarray([source(xi) for xi in x_array.ravel()])
+                out_dtype = complex if np.iscomplexobj(values) else float
+                return values.astype(out_dtype, copy=False).reshape(x_array.shape)
 
             return callable_1d_vector
 
@@ -775,29 +792,35 @@ class Function:  # pylint: disable=too-many-public-methods
             return vectorized_callable_nd_vector
 
         def callable_nd_vector(*args):
-            args = np.broadcast_arrays(*args)
-            return np.array(
-                [source(*a) for a in zip(*(arg.ravel() for arg in args))],
-                dtype=float,
+            broadcast_args = np.broadcast_arrays(*args)
+            output_shape = broadcast_args[0].shape
+            values = np.asarray(
+                [source(*a) for a in zip(*(arg.ravel() for arg in broadcast_args))]
             )
+            out_dtype = complex if np.iscomplexobj(values) else float
+            return values.astype(out_dtype, copy=False).reshape(output_shape)
 
         return callable_nd_vector
 
     def __make_get_value_opt(self):
         """Build a mixed scalar/vector evaluator that skips public validation."""
+        is_vector_argument = self.__is_vector_argument
+        scalar_eval = self._get_value_scalar
+        vector_eval = self._get_value_vector
+
         if self.__dom_dim__ == 1:
 
             def get_value_opt_1d(x):
-                if self.__is_vector_argument(x):
-                    return self._get_value_vector(x)
-                return self._get_value_scalar(x)
+                if is_vector_argument(x):
+                    return vector_eval(x)
+                return scalar_eval(x)
 
             return get_value_opt_1d
 
         def get_value_opt_nd(*args):
-            if any(self.__is_vector_argument(arg) for arg in args):
-                return self._get_value_vector(*args)
-            return self._get_value_scalar(*args)
+            if any(is_vector_argument(arg) for arg in args):
+                return vector_eval(*args)
+            return scalar_eval(*args)
 
         return get_value_opt_nd
 
@@ -1392,18 +1415,26 @@ class Function:  # pylint: disable=too-many-public-methods
 
         Parameters
         ----------
-        args : scalar, list
-            Value where the Function is to be evaluated. If the Function is
-            1-D, only one argument is expected, which may be an int, a float
-            or a list of ints or floats, in which case the Function will be
-            evaluated at all points in the list and a list of floats will be
-            returned. If the function is N-D, N arguments must be given, each
-            one being an scalar or list.
+        args : scalar or array-like
+            Coordinates where the Function is evaluated. A 1-D Function takes
+            one argument. An N-D Function takes N arguments; array-like
+            arguments are broadcast together and evaluated pointwise.
+
+            Callable sources support complex coordinates only when the supplied
+            callable accepts and correctly handles complex values. For sampled
+            sources, complex coordinates are not a general interpolation
+            domain: the 1-D implementation propagates an infinitesimal
+            imaginary perturbation only for complex-step differentiation, with
+            interval selection based on the real component. Sampled N-D
+            sources do not support complex coordinates.
 
         Returns
         -------
-        ans : scalar, list
-            Value of the Function at the specified point(s).
+        scalar or np.ndarray
+            Value of the Function at the specified point, or an array of
+            values for array-like coordinates. The result may be complex when
+            a compatible callable source produces complex values or while the
+            1-D implementation is being used for complex-step differentiation.
 
         Examples
         --------
@@ -1420,6 +1451,8 @@ class Function:  # pylint: disable=too-many-public-methods
         array([1., 4., 9.])
         >>> f.get_value([1, 2.5, 4.0])
         array([ 1.  ,  6.25, 16.  ])
+        >>> f.get_value(1 + 2j)
+        (-3+4j)
 
         Testing with callable source (2 dimensions):
 
@@ -3079,13 +3112,24 @@ class Function:  # pylint: disable=too-many-public-methods
     def differentiate_complex_step(self, x, dx=1e-200, order=1):
         """Differentiate a Function object at a given point using the complex
         step method. This method can be faster than ``Function.differentiate``
-        since it requires only one evaluation of the function. However, the
-        evaluated function must accept complex numbers as input.
+        since it requires only one evaluation of the function.
+
+        Callable sources support this method only when they accept complex
+        inputs, preserve the imaginary perturbation, and are analytic near the
+        evaluation point. For sampled 1-D sources, complex propagation exists
+        specifically for this method and is not a general complex-plane
+        interpolation contract. The real component selects the interpolation
+        or extrapolation segment, while the full complex value is evaluated by
+        that segment's polynomial. Sampled N-D sources do not support complex
+        coordinates. Avoid evaluating at points where the selected
+        interpolation or extrapolation is not differentiable, such as a
+        slope-changing linear interpolation knot.
 
         Parameters
         ----------
         x : float
-            Point at which to differentiate.
+            Real scalar point at which to differentiate. This method supports
+            1-D Functions only.
         dx : float, optional
             Step size to use for numerical differentiation, by default 1e-200.
         order : int, optional
@@ -3095,7 +3139,7 @@ class Function:  # pylint: disable=too-many-public-methods
         Returns
         -------
         float
-            The real part of the derivative of the function at the given point.
+            First derivative of the function at the given point.
 
         References
         ----------
@@ -3721,7 +3765,8 @@ class Function:  # pylint: disable=too-many-public-methods
 
         if isinstance(source, NUMERICAL_TYPES):
             # Return scalar directly — set_source will handle it as SCALAR
-            return float(source), inputs, outputs, None, None
+            scalar = complex(source) if np.iscomplexobj(source) else float(source)
+            return scalar, inputs, outputs, None, None
 
         # If source is a callable function
         return source, inputs, outputs, None, None

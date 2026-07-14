@@ -1,4 +1,10 @@
-"""1D interpolation and extrapolation strategies."""
+"""1-D interpolation and extrapolation strategies.
+
+The sampled domain and image are real. Complex query values are propagated
+only for complex-step differentiation: their real component selects the
+piecewise interval and the full value is passed to the selected polynomial.
+These strategies do not provide general complex-plane interpolation.
+"""
 
 from __future__ import annotations
 
@@ -30,8 +36,10 @@ def _find_index(
     ----------
     x_arr : np.ndarray
         Sorted 1D array of x-coordinates.
-    xq : float or np.ndarray or complex
-        The query coordinate(s).
+    xq : float, complex or np.ndarray
+        The query coordinate(s). A complex component is meaningful only as an
+        imaginary perturbation for complex-step differentiation. Interval
+        ordering is determined exclusively from the real component.
     n : int
         The size of x_arr.
     _is_iterable : bool, optional
@@ -41,6 +49,12 @@ def _find_index(
     -------
     int or np.ndarray
         The index or indices representing the interval.
+
+    Notes
+    -----
+    Complex numbers have no ordering compatible with the real sampled domain.
+    Using the real component keeps ``x + i*h`` in the same interval as ``x``,
+    which is required for complex-step differentiation.
     """
     if _is_iterable is None:
         _is_iterable = hasattr(xq, "__iter__") and np.ndim(xq) > 0
@@ -50,7 +64,7 @@ def _find_index(
         idx = bisect_left(x_arr, xq.real)
         return 1 if idx < 1 else (idx if idx < n else n - 1)
     else:
-        idx = np.searchsorted(x_arr, xq, side="left")
+        idx = np.searchsorted(x_arr, np.real(xq), side="left")
         return np.clip(idx, 1, n - 1)
 
 
@@ -61,7 +75,7 @@ def _cubic_eval_vec(
     c: float | NDArray[np.float64],
     d: float | NDArray[np.float64],
 ) -> float | NDArray[np.float64]:
-    """Evaluate a cubic polynomial: a + t * (b + t * (c + t * d)).
+    """Evaluate a cubic polynomial: a + b*t + c*t**2 + d*t**3.
 
     Parameters
     ----------

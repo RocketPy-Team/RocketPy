@@ -8,7 +8,6 @@ from pytest import approx
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
 from rocketpy.tools import euler313_to_quaternions
 
-
 # calisto standard simulation no wind solution index 200
 TIME = 3.338513236767685
 U = [

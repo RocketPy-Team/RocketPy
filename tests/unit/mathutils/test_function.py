@@ -2,6 +2,8 @@
 individual method of the Function class. The tests are made on both the
 expected behaviour and the return instances."""
 
+import weakref
+
 import matplotlib as plt
 import numpy as np
 import pytest
@@ -113,12 +115,167 @@ def test_differentiate_complex_step(
     )
 
 
+@pytest.mark.parametrize(
+    "interpolation", ["linear", "polynomial", "spline", "akima", "pchip"]
+)
+def test_differentiate_complex_step_1d_array_source(interpolation):
+    """Complex-step differentiation supports every 1-D interpolator."""
+    # Arrange
+    source = np.column_stack((np.arange(4.0), np.arange(4.0) ** 2))
+    func = Function(source, interpolation=interpolation, extrapolation="natural")
+    point = 1.5
+    expected_derivative = func._evaluator.derivative(point)
+
+    # Act
+    derivative = func.differentiate_complex_step(point)
+
+    # Assert
+    assert derivative == pytest.approx(expected_derivative)
+
+
 def test_get_value():
     """Tests the get_value method of the Function class.
     Both with respect to return instances and expected behaviour.
     """
     func = Function(lambda x: 2 * x)
     assert isinstance(func.get_value(1), (int, float))
+
+
+@pytest.mark.parametrize("vectorized_callable", [False, True])
+def test_get_value_1d_callable_preserves_batched_complex_values(
+    vectorized_callable,
+):
+    """Complex batches retain their imaginary component for 1-D callables."""
+    # Arrange
+    func = Function(lambda x: x**2, vectorized_callable=vectorized_callable)
+    points = np.array([1 + 2j, 2 + 3j])
+
+    # Act
+    values = func.get_value(points)
+
+    # Assert
+    assert np.iscomplexobj(values)
+    assert values == pytest.approx(points**2)
+
+
+@pytest.mark.parametrize("vectorized_callable", [False, True])
+def test_get_value_nd_callable_preserves_batched_complex_values(
+    vectorized_callable,
+):
+    """Complex batches retain their imaginary component for N-D callables."""
+    # Arrange
+    func = Function(
+        lambda x, y: x**2 + y,
+        inputs=["x", "y"],
+        vectorized_callable=vectorized_callable,
+    )
+    x_points = np.array([1 + 2j, 2 + 3j])
+    y_points = np.array([3.0, 4.0])
+
+    # Act
+    values = func.get_value(x_points, y_points)
+
+    # Assert
+    assert np.iscomplexobj(values)
+    assert values == pytest.approx(x_points**2 + y_points)
+
+
+@pytest.mark.parametrize(
+    "interpolation", ["linear", "polynomial", "spline", "akima", "pchip"]
+)
+@pytest.mark.parametrize("point_count", [2, 10])
+def test_get_value_1d_array_preserves_batched_complex_step(interpolation, point_count):
+    """All 1-D interpolators preserve short and vectorized complex batches."""
+    # Arrange
+    source = np.column_stack((np.arange(4.0), np.arange(4.0) ** 2))
+    func = Function(source, interpolation=interpolation, extrapolation="natural")
+    real_points = np.linspace(1.1, 1.9, point_count)
+    step = 1e-100
+    complex_points = real_points + step * 1j
+    expected_derivatives = func._evaluator.derivative(real_points)
+
+    # Act
+    values = func.get_value(complex_points)
+
+    # Assert
+    assert np.iscomplexobj(values)
+    assert np.imag(values) / step == pytest.approx(expected_derivatives)
+
+
+def test_get_value_1d_array_complex_batch_uses_real_part_for_interval_lookup():
+    """Scalar and vector complex queries select the same interval at a knot."""
+    # Arrange
+    func = Function(
+        [(0.0, 0.0), (1.0, 1.0), (2.0, 4.0)],
+        interpolation="linear",
+        extrapolation="natural",
+    )
+    step = 1e-100
+    points = np.full(10, 1.0 + step * 1j)
+
+    # Act
+    derivatives = np.imag(func.get_value(points)) / step
+
+    # Assert
+    assert derivatives == pytest.approx(np.ones(10))
+
+
+@pytest.mark.parametrize("interpolation", ["linear", "shepard", "rbf"])
+def test_get_value_scattered_nd_array_rejects_complex_coordinates(interpolation):
+    """Scattered N-D interpolators reject scalar and batched complex inputs."""
+    # Arrange
+    source = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [0.0, 1.0, 1.0],
+            [1.0, 0.0, 1.0],
+            [1.0, 1.0, 2.0],
+        ]
+    )
+    func = Function(source, interpolation=interpolation, extrapolation="natural")
+    error_message = "Complex coordinates are not supported"
+
+    # Act / Assert
+    with pytest.raises(TypeError, match=error_message):
+        func.get_value(0.25 + 1e-100j, 0.25)
+    with pytest.raises(TypeError, match=error_message):
+        func.get_value(np.array([0.25 + 1e-100j]), np.array([0.25]))
+
+
+@pytest.mark.parametrize("extrapolation", ["natural", "constant", "zero"])
+def test_get_value_regular_grid_rejects_complex_coordinates(extrapolation):
+    """Regular-grid interpolation rejects scalar and batched complex inputs."""
+    # Arrange
+    axes = [np.array([0.0, 1.0]), np.array([0.0, 1.0])]
+    grid_data = np.array([[0.0, 1.0], [1.0, 2.0]])
+    func = Function(
+        (axes, grid_data),
+        interpolation="regular_grid",
+        extrapolation=extrapolation,
+    )
+    error_message = "Complex coordinates are not supported"
+
+    # Act / Assert
+    with pytest.raises(TypeError, match=error_message):
+        func.get_value(0.25 + 1e-100j, 0.25)
+    with pytest.raises(TypeError, match=error_message):
+        func.get_value(np.array([0.25 + 1e-100j]), np.array([0.25]))
+
+
+def test_get_value_complex_constant_preserves_scalar_and_batched_values():
+    """Complex constant sources construct and evaluate without losing dtype."""
+    # Arrange
+    func = Function(1 + 2j)
+    points = np.array([0.0, 1.0])
+
+    # Act
+    scalar_value = func.get_value(0.0)
+    batch_values = func.get_value(points)
+
+    # Assert
+    assert scalar_value == 1 + 2j
+    assert np.iscomplexobj(batch_values)
+    assert batch_values == pytest.approx(np.array([1 + 2j, 1 + 2j]))
 
 
 def test_get_value_treats_zero_dimensional_numpy_arrays_as_scalars():
@@ -129,6 +286,104 @@ def test_get_value_treats_zero_dimensional_numpy_arrays_as_scalars():
     assert np.isclose(func.get_value(scalar_arg), 2.0)
     assert np.isclose(func.get_value_opt(scalar_arg), 2.0)
     assert Function(3.0).get_value(scalar_arg) == 3.0
+
+
+@pytest.mark.parametrize("shape", [(2, 2), (2, 5)])
+def test_get_value_1d_array_preserves_multidimensional_batch_shape(shape):
+    """Sampled 1-D evaluation preserves batch shape on both threshold paths."""
+    # Arrange
+    func = Function([(0.0, 1.0), (1.0, 3.0), (2.0, 5.0)], interpolation="linear")
+    points = np.linspace(0.0, 2.0, np.prod(shape)).reshape(shape)
+    expected = 2.0 * points + 1.0
+
+    # Act
+    values = func.get_value(points)
+    optimized_values = func.get_value_opt(points)
+
+    # Assert
+    assert values.shape == shape
+    assert optimized_values.shape == shape
+    assert values == pytest.approx(expected)
+    assert optimized_values == pytest.approx(expected)
+
+
+def test_get_value_1d_nonvectorized_callable_flattens_and_restores_batch_shape():
+    """Plain 1-D callables receive scalar values from multidimensional batches."""
+
+    # Arrange
+    def scalar_source(x):
+        assert np.ndim(x) == 0
+        return 2.0 * x + 1.0
+
+    func = Function(scalar_source)
+    points = np.arange(6.0).reshape(2, 3)
+
+    # Act
+    values = func.get_value(points)
+
+    # Assert
+    assert values.shape == points.shape
+    assert values == pytest.approx(2.0 * points + 1.0)
+
+
+@pytest.mark.parametrize("source_type", ["callable", "scattered", "regular_grid"])
+def test_get_value_nd_preserves_broadcast_shape(source_type):
+    """N-D callable and sampled Functions restore the broadcast input shape."""
+    # Arrange
+    if source_type == "callable":
+        func = Function(lambda x, y: x + 2.0 * y, inputs=["x", "y"])
+    elif source_type == "scattered":
+        source = np.array(
+            [
+                [0.0, 0.0, 0.0],
+                [0.0, 1.0, 2.0],
+                [1.0, 0.0, 1.0],
+                [1.0, 1.0, 3.0],
+            ]
+        )
+        func = Function(source, interpolation="linear", extrapolation="constant")
+    else:
+        axes = [np.array([0.0, 1.0]), np.array([0.0, 1.0])]
+        grid_data = np.array([[0.0, 2.0], [1.0, 3.0]])
+        func = Function((axes, grid_data), interpolation="regular_grid")
+
+    x_points = np.array([[0.2], [0.8]])
+    y_points = np.array([[0.1, 0.4, 0.7]])
+    expected = x_points + 2.0 * y_points
+
+    # Act
+    values = func.get_value(x_points, y_points)
+    optimized_values = func.get_value_opt(x_points, y_points)
+
+    # Assert
+    assert values.shape == expected.shape
+    assert optimized_values.shape == expected.shape
+    assert values == pytest.approx(expected)
+    assert optimized_values == pytest.approx(expected)
+
+
+def test_evaluator_exposes_cached_dispatch_closures():
+    """Function construction reuses the evaluator's cached dispatch closures."""
+    # Arrange
+    func = Function([(0.0, 0.0), (1.0, 1.0)], interpolation="linear")
+
+    # Act / Assert
+    assert func._array_evaluate is func._evaluator.expose()
+    assert func._array_evaluate_scalar is func._evaluator.expose_scalar()
+    assert func._array_evaluate_vector is func._evaluator.expose_vector()
+
+
+def test_get_value_opt_does_not_keep_function_alive():
+    """The optimized dispatch closure does not create a Function reference cycle."""
+    # Arrange
+    func = Function([(0.0, 0.0), (1.0, 1.0)], interpolation="linear")
+    function_reference = weakref.ref(func)
+
+    # Act
+    del func
+
+    # Assert
+    assert function_reference() is None
 
 
 def test_vectorized_callable_opt_in_and_arithmetic_propagation():
