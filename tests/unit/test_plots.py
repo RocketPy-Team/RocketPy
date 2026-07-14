@@ -1,12 +1,7 @@
-# pylint: disable=invalid-name,too-many-statements
-import builtins
 import os
-import sys
-import types
 from unittest.mock import MagicMock, patch
 
 import matplotlib.pyplot as plt
-import numpy as np
 import pytest
 from matplotlib.animation import FuncAnimation
 
@@ -194,4 +189,3 @@ def test_animate_fluid_volume(example_mass_flow_rate_based_tank_seblm, monkeypat
     assert os.path.exists("test_fluid_volume.gif")
 
     os.remove("test_fluid_volume.gif")
-
