@@ -647,7 +647,7 @@ clipped_array = np.array([[0, 0, 0], [0, 1, 1], [0.5, 1, 1.5]])
         (source_array, cropped_array),
     ],
 )
-def test_crop_ndarray(array3dsource, array3dcropped):  # pylint: disable=unused-argument
+def test_crop_ndarray(array3dsource, array3dcropped):
     """Tests the functionality of crop method of the Function class.
     The source is initialized as a ndarray before cropping.
     """
@@ -795,7 +795,7 @@ def test_crop_invalid_input_raises(bad_x_lim, exc_type):
         (source_array, clipped_array),
     ],
 )
-def test_clip_ndarray(array3dsource, array3dclipped):  # pylint: disable=unused-argument
+def test_clip_ndarray(array3dsource, array3dclipped):
     """Tests the functionality of clip method of the Function class.
     The source is initialized as a ndarray before clipping.
     """

@@ -659,7 +659,7 @@ class Flight:
             f"name= {self.name})>"
         )
 
-    # pylint: disable=too-many-nested-blocks, too-many-branches, too-many-locals,too-many-statements
+    # pylint: disable=too-many-locals,too-many-statements
     def __simulate(self, verbose):
         """Simulate the flight trajectory."""
         for phase_index, phase in self.time_iterator(self.flight_phases):

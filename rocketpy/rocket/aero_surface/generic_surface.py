@@ -382,7 +382,7 @@ class GenericSurface:
                 " or a callable."
             )
 
-    def __load_generic_surface_csv(self, file_path, coeff_name):  # pylint: disable=too-many-statements,import-outside-toplevel
+    def __load_generic_surface_csv(self, file_path, coeff_name):  # pylint: disable=too-many-statements
         """Load GenericSurface coefficient CSV into a 7D Function.
 
         This loader expects header-based CSV data with one or more independent

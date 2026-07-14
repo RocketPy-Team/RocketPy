@@ -294,9 +294,9 @@ class Parachute:
         The resulting triggerfunc always has signature (p, h, y, sensors, u_dot)
         so Flight can pass both sensors and u_dot when needed.
         """
+        # pylint: disable=function-redefined
         self._trigger_falling_only = False
         self._trigger_needs_height = True
-        # pylint: disable=unused-argument, function-redefined
 
         # Helper to wrap any callable to the internal (p, h, y, sensors, u_dot) API
         def _make_wrapper(fn):

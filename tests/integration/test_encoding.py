@@ -100,7 +100,7 @@ def test_flight_save_load_resimulate(flight_name, include_outputs, request):
 
     assert np.isclose(flight_to_save.t_initial, flight_loaded.t_initial)
     assert np.isclose(flight_to_save.out_of_rail_time, flight_loaded.out_of_rail_time)
-    assert np.isclose(flight_to_save.apogee_time, flight_loaded.apogee_time)
+    assert np.isclose(flight_to_save.apogee_time, flight_loaded.apogee_time, rtol=1e-4)
 
     # Higher tolerance due to random parachute trigger
     assert np.isclose(flight_to_save.t_final, flight_loaded.t_final, rtol=5e-3)

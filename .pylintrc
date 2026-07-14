@@ -476,7 +476,6 @@ disable=raw-checker-failed,
         locally-disabled,
         file-ignored,
         suppressed-message,
-        useless-suppression,
         deprecated-pragma, # because we have some pending deprecations in the code.
         use-symbolic-message-instead,
         use-implicit-booleaness-not-comparison-to-string,
@@ -510,6 +509,7 @@ disable=raw-checker-failed,
 # multiple time (only on the command line, not in the configuration file where
 # it should appear only once). See also the "--disable" option for examples.
 enable=
+    useless-suppression
 
 
 [METHOD_ARGS]

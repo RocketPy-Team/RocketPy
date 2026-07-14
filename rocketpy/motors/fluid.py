@@ -164,7 +164,7 @@ class Fluid:
 
         return f"Fluid: {self.name}"
 
-    def to_dict(self, **kwargs):  # pylint: disable=unused-argument
+    def to_dict(self, **kwargs):
         discretize = kwargs.get("discretize", False)
 
         density = self.density

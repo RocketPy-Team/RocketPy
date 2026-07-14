@@ -814,7 +814,6 @@ def test_pressure_conversion_factor_autodetect_by_model(
     """Regression test for the GEFS/HIRESW pressure-unit bug: NOMADS-GrADS
     models report pressure in hPa (factor 100), THREDDS models in Pa (factor 1).
     A wrong factor silently corrupts the whole atmospheric profile (100x)."""
-    # pylint: disable=protected-access
     factor = example_plain_env._Environment__determine_pressure_conversion_factor(
         None, None, model
     )

@@ -96,7 +96,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         flight,
         export_list=None,
         data_collector=None,
-    ):  # pylint: disable=too-many-statements
+    ):
         """
         Initialize a MonteCarlo object.
 
@@ -171,7 +171,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         parallel=False,
         n_workers=None,
         **kwargs,
-    ):  # pylint: disable=too-many-statements
+    ):
         """
         Runs the Monte Carlo simulation and saves all data.
 

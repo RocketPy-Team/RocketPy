@@ -154,7 +154,7 @@ def test_fin_flutter_analysis_with_prints(flight_calisto_custom_wind):
 
 
 @patch("matplotlib.pyplot.show")
-def test_fin_flutter_analysis_with_graphs(mock_show, flight_calisto_custom_wind):  # pylint: disable=unused-argument
+def test_fin_flutter_analysis_with_graphs(mock_show, flight_calisto_custom_wind):
     """Test fin_flutter_analysis with see_graphs=True to cover plotting branch.
 
     Parameters
@@ -179,7 +179,7 @@ def test_fin_flutter_analysis_with_graphs(mock_show, flight_calisto_custom_wind)
 
 
 @patch("matplotlib.pyplot.show")
-def test_fin_flutter_analysis_complete_output(mock_show, flight_calisto_custom_wind):  # pylint: disable=unused-argument
+def test_fin_flutter_analysis_complete_output(mock_show, flight_calisto_custom_wind):
     """Test fin_flutter_analysis with both prints and graphs enabled.
 
     Parameters
@@ -217,7 +217,7 @@ def test_flutter_prints(flight_calisto_custom_wind):
     flutter_mach = Function("tests/fixtures/utilities/flutter_mach.txt")
     safety_factor = Function("tests/fixtures/utilities/flutter_safety_factor.txt")
     assert (
-        utilities._flutter_prints(  # pylint: disable=protected-access
+        utilities._flutter_prints(
             fin_thickness=2 / 1000,
             shear_modulus=10e9,
             surface_area=0.009899999999999999,
@@ -247,7 +247,7 @@ def test_flutter_plots(mock_show, flight_calisto_custom_wind):  # pylint: disabl
     flutter_mach = Function("tests/fixtures/utilities/flutter_mach.txt")
     safety_factor = Function("tests/fixtures/utilities/flutter_safety_factor.txt")
     assert (
-        utilities._flutter_plots(  # pylint: disable=protected-access
+        utilities._flutter_plots(
             flight_calisto_custom_wind, flutter_mach, safety_factor
         )
         is None

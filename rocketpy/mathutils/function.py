@@ -2531,8 +2531,7 @@ class Function:  # pylint: disable=too-many-public-methods
         return ~self.__ge__(other)
 
     # Define all possible algebraic operations
-    def __arithmetic_operation(self, other, op):
-        # pylint: disable=too-many-statements
+    def __arithmetic_operation(self, other, op):  # pylint: disable=too-many-statements
         """Generic handler for arithmetic operations between a Function and
         another operand.
 
@@ -3902,7 +3901,7 @@ class Function:  # pylint: disable=too-many-public-methods
                 extrapolation = "natural"
         return extrapolation
 
-    def to_dict(self, **kwargs):  # pylint: disable=unused-argument
+    def to_dict(self, **kwargs):
         """Serializes the Function instance to a dictionary.
 
         Returns
@@ -4327,7 +4326,7 @@ def funcify_method(*args, **kwargs):  # pylint: disable=too-many-statements
         class.
         """
 
-        # pylint: disable=C0103,R0903
+        # pylint: disable=C0103
         def __init__(self, func):
             self.func = func
             self.attrname = None
@@ -4359,7 +4358,6 @@ def funcify_method(*args, **kwargs):  # pylint: disable=too-many-statements
 
                     source = source_function
                     val = Function(source, *args, **kwargs)
-                # pylint: disable=W0201
                 val.__doc__ = self.__doc__
                 val.__cached__ = True
                 cache[self.attrname] = val

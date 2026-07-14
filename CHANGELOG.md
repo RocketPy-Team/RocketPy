@@ -39,6 +39,8 @@ Attention: The newest changes should be on top -->
 - ENH: MNT: remove duplicate and merge-sync entries from Unreleased changelog [#1062](https://github.com/RocketPy-Team/RocketPy/pull/1062)
 ### Changed
 
+- MNT: MNT: Remove Unused pylint Disable Statements. [#1067](https://github.com/RocketPy-Team/RocketPy/pull/1067)
+
 ### Fixed
 
 ## [v1.13.0] - 2026-07-04

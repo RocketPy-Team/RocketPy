@@ -198,7 +198,6 @@ class HybridMotor(Motor):
         Grain length remains constant throughout the burn. Default is True.
     """
 
-    # pylint: disable=too-many-arguments
     def __init__(  # pylint: disable=too-many-arguments
         self,
         thrust_source,

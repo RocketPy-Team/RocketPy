@@ -2453,7 +2453,7 @@ class Rocket:
             "Function, or callable."
         )
 
-    def __load_rocket_drag_csv(self, file_path, coeff_name):  # pylint: disable=too-many-statements,import-outside-toplevel
+    def __load_rocket_drag_csv(self, file_path, coeff_name):  # pylint: disable=too-many-statements
         """Load Rocket drag CSV into a 7D Function.
 
         Supports either headerless two-column (mach, coefficient) tables or

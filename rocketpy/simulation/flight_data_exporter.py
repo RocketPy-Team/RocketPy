@@ -57,7 +57,7 @@ class FlightDataExporter:
         """
         f = self._flight
         time_points = np.arange(0, f.t_final, time_step)
-        # pylint: disable=W1514, E1121
+        # pylint: disable=W1514
         with open(file_name, "w") as file:
             if len(f.rocket.parachutes) == 0:
                 logger.info("No parachutes in the rocket, saving static pressure.")
