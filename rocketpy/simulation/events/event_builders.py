@@ -118,7 +118,7 @@ def apogee_trigger(**kwargs):
     if len(flight.apogee_state) != 1 or len(flight.solution) < 2:
         return False
 
-    previous_vz = flight.solution[-2][6]
+    previous_vz = flight.solution.view(-2)[1]["vz"]
     current_vz = state[5]
     return previous_vz > 0 >= current_vz
 

@@ -57,6 +57,11 @@ class RocketPyEncoder(json.JSONEncoder):
             return o.tolist()
         elif isinstance(o, datetime):
             return [o.year, o.month, o.day, o.hour]
+        elif type(o).__name__ == "Solution" and hasattr(o, "to_dict"):
+            # Guard the Solution container: it is iterable, so it must be
+            # encoded via its schema-aware to_dict before the generic iterable
+            # branch below would flatten it into bare rows and lose schemas.
+            return o.to_dict()
         elif hasattr(o, "__iter__") and not isinstance(o, str):
             return list(o)
         elif isinstance(o, Function):
@@ -191,6 +196,16 @@ def set_minimal_flight_attributes(flight, obj):
             if attribute == "net_thrust":
                 flight.net_thrust = obj["rocket"].motor.thrust
                 flight.net_thrust.set_discrete_based_on_model(flight.speed)
+
+    # The solution is stored either as the new segment-based dict or, for older
+    # saved flights, as a flat list of canonical rows.
+    from rocketpy.simulation.solution import Solution
+
+    raw_solution = obj["solution"]
+    if isinstance(raw_solution, dict):
+        flight.solution = Solution.from_dict(raw_solution)
+    else:
+        flight.solution = Solution.from_legacy_list(raw_solution)
 
     flight.t_initial = flight.initial_solution[0]
 

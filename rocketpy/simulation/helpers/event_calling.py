@@ -1,3 +1,4 @@
+from ..solution import StateView
 from .event_commands import apply_event_commands, apply_rollback_command
 
 
@@ -28,6 +29,12 @@ def build_event_kwargs(
 ):
     """Build the keyword arguments shared by event triggers and callbacks.
 
+    ``state`` is the raw state of the current flight phase, which may not be the
+    full canonical state. Triggers and callbacks are given the reconstructed
+    canonical state (``state``) so that user-written and built-in hooks always
+    see the familiar 13-variable layout, while the raw state is also provided
+    (``raw_state``) for internal use such as rolling the solver back.
+
     Parameters
     ----------
     needs : frozenset of str, optional
@@ -36,9 +43,12 @@ def build_event_kwargs(
         expensive values: ``state_dot``, ``pressure``, ``state_history``.
         Defaults to empty (compute nothing expensive).
     """
+    view = StateView(state, phase.dynamics.schema, flight.solution.tail.start_canonical)
     kwargs = {
         "time": time,
-        "state": state,
+        "state": view.canonical,
+        "raw_state": state,
+        "state_view": view,
         "sensors": flight.sensors,
         "sensors_by_name": flight.sensors_by_name,
         "environment": flight.env,
@@ -46,16 +56,18 @@ def build_event_kwargs(
         "flight": flight,
         "phase": phase,
         "step_size": step_size,
-        "height_agl": state[2] - flight.env.elevation,
+        "height_agl": view["z"] - flight.env.elevation,
     }
     if "state_dot" in needs:
-        kwargs["state_dot"] = phase.derivative(time, state)
+        kwargs["state_dot"] = phase.dynamics.schema.canonicalize_derivative(
+            phase.dynamics(time, state)
+        )
     if "pressure" in needs:
-        kwargs["pressure"] = flight.env.pressure.get_value_opt(state[2])
+        kwargs["pressure"] = flight.env.pressure.get_value_opt(view["z"])
     if "state_history" in needs:
         index = 2 if rollback else 1
         kwargs["state_history"] = SafeStateHistory(
-            [sol[1:] for sol in flight.solution[:-index]]
+            flight.solution.canonical_states(stop=-index)
         )
     return kwargs
 
@@ -77,18 +89,23 @@ def update_overshootable_event_kwargs(
         Expensive values are skipped when absent from ``needs``. Defaults to
         empty (compute nothing expensive).
     """
+    view = StateView(
+        interpolated_state,
+        phase.dynamics.schema,
+        flight.solution.tail.start_canonical,
+    )
     event_kwargs["time"] = interpolated_time
-    event_kwargs["state"] = interpolated_state
+    event_kwargs["state"] = view.canonical
+    event_kwargs["raw_state"] = interpolated_state
+    event_kwargs["state_view"] = view
     event_kwargs["step_size"] = infer_step_size(flight, interpolated_time)
-    event_kwargs["height_agl"] = interpolated_state[2] - flight.env.elevation
+    event_kwargs["height_agl"] = view["z"] - flight.env.elevation
     if "state_dot" in needs:
-        event_kwargs["state_dot"] = phase.derivative(
-            interpolated_time, interpolated_state
+        event_kwargs["state_dot"] = phase.dynamics.schema.canonicalize_derivative(
+            phase.dynamics(interpolated_time, interpolated_state)
         )
     if "pressure" in needs:
-        event_kwargs["pressure"] = flight.env.pressure.get_value_opt(
-            interpolated_state[2]
-        )
+        event_kwargs["pressure"] = flight.env.pressure.get_value_opt(view["z"])
     # state_history does not change per node — already set by build_event_kwargs
     return event_kwargs
 
@@ -121,8 +138,12 @@ def process_overshootable_event(
         # exactly at the crossing rather than at the overshoot step-end.
         # This lets any event (e.g. parachutes, or user-defined events that
         # add a phase / terminate) work without declaring changes_dynamics.
+        # The rollback writes into the solution, so it must use the raw
+        # phase-layout state, not the reconstructed canonical one.
         if event.commands.alters_trajectory:
-            apply_rollback_command(flight, event_kwargs["time"], event_kwargs["state"])
+            apply_rollback_command(
+                flight, event_kwargs["time"], event_kwargs["raw_state"]
+            )
         apply_event_commands(
             flight=flight,
             event=event,
@@ -136,7 +157,7 @@ def process_overshootable_event(
         return rolled_back, False
 
     if not rolled_back:
-        apply_rollback_command(flight, event_kwargs["time"], event_kwargs["state"])
+        apply_rollback_command(flight, event_kwargs["time"], event_kwargs["raw_state"])
         return True, True
 
     return rolled_back, False

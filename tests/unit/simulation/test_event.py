@@ -4,6 +4,18 @@ import numpy as np
 import pytest
 
 from rocketpy.simulation.events import Event
+from rocketpy.simulation.solution import CANONICAL_SCHEMA, Solution
+
+
+def _canonical_solution(*rows):
+    """Build a Solution holding the given canonical rows in one segment."""
+    solution = Solution()
+    solution.start_segment(
+        CANONICAL_SCHEMA, start_canonical=tuple(rows[0][1:]) if rows else None
+    )
+    for row in rows:
+        solution.append(list(row))
+    return solution
 
 
 def _always_true(**_kwargs):
@@ -51,14 +63,13 @@ def _linear_interpolator(time):
 class _FakePhase:
     def __init__(self, interpolator):
         self.solver = SimpleNamespace(dense_output=lambda: interpolator)
-
-    def derivative(self, _time, state, post_processing=False):
-        _ = post_processing
-        return np.zeros_like(state, dtype=float)
+        self.dynamics = SimpleNamespace(schema=CANONICAL_SCHEMA)
 
 
 def _make_exact_time_flight(previous_state, current_state, interpolator):
-    flight = SimpleNamespace(solution=[previous_state, current_state])
+    flight = SimpleNamespace(
+        solution=_canonical_solution(previous_state, current_state)
+    )
     phase = _FakePhase(interpolator)
     return flight, phase
 
@@ -122,7 +133,7 @@ def test_trigger_accepts_string_presets_and_numeric_thresholds():
     )
 
     apogee_flight = SimpleNamespace(
-        solution=[_sample_state(0.0, 1.0), _sample_state(1.0, -1.0)]
+        solution=_canonical_solution(_sample_state(0.0, 1.0), _sample_state(1.0, -1.0))
     )
     burnout_flight = SimpleNamespace(motor=SimpleNamespace(burn_out_time=2.0))
 

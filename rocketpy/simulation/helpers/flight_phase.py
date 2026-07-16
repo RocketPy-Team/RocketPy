@@ -363,17 +363,26 @@ class _FlightPhase:
             Additional attributes (e.g., parachute) used in post-processing.
         """
         self.t = t
-        self.derivative = derivative
+        self.dynamics = derivative
         self.events = events
         self.name = name
         self.clear = clear
         self.time_bound = None
         self.parachute = kwargs.get("parachute", None)
 
+    @property
+    def derivative(self):
+        """The phase's dynamics, callable as ``(t, u, post_processing)``.
+
+        Kept as an alias for :attr:`dynamics` so existing call sites that treat
+        the phase's dynamics as a plain derivative function keep working.
+        """
+        return self.dynamics
+
     def __repr__(self):
         """Return compact machine-readable representation."""
         derivative_name = getattr(
-            self.derivative, "__name__", self.derivative.__class__.__name__
+            self.dynamics, "__name__", self.dynamics.__class__.__name__
         )
         return (
             "_FlightPhase("

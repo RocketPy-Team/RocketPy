@@ -16,7 +16,7 @@ NEEDS_KEYS = frozenset({"state_dot", "pressure", "state_history"})
 PRESETS = {
     "apogee": lambda **kwargs: (
         len(kwargs["flight"].solution) >= 2
-        and kwargs["flight"].solution[-2][6] > 0 >= kwargs["state"][5]
+        and kwargs["flight"].solution.view(-2)[1]["vz"] > 0 >= kwargs["state"][5]
     ),
     "burnout": lambda **kwargs: (
         kwargs.get("time") >= kwargs["rocket"].motor.burn_out_time
@@ -441,10 +441,28 @@ class Event:
             )
             return None
 
+        # The exact-time functions read the state by its canonical position, so
+        # feed them canonical endpoints and a canonical view of the dense
+        # output. The raw dense output is kept so the exact state can be written
+        # back into the (possibly reduced) tail segment of the solution.
+        schema = phase.dynamics.schema
+        raw_interpolator = phase.solver.dense_output()
+        if schema.is_canonical:
+            previous_state = flight.solution[-2]
+            current_state = flight.solution[-1]
+            interpolator = raw_interpolator
+        else:
+            previous_state = flight.solution.canonical_row(-2)
+            current_state = flight.solution.canonical_row(-1)
+            frozen = flight.solution.tail.start_canonical
+
+            def interpolator(t):
+                return schema.canonicalize(raw_interpolator(t), frozen)
+
         exact_time_result = self.exact_time_solver(
-            previous_state=flight.solution[-2],
-            current_state=flight.solution[-1],
-            interpolator=phase.solver.dense_output(),
+            previous_state=previous_state,
+            current_state=current_state,
+            interpolator=interpolator,
             event_function=self.exact_time_function,
             no_root_error_message=(
                 "No valid roots found when solving exact event time for "
@@ -454,8 +472,9 @@ class Event:
             **kwargs,
         )
 
-        self.commands.exact_time = exact_time_result["event_time"]
-        self.commands.exact_state = exact_time_result["event_state"]
+        event_time = exact_time_result["event_time"]
+        self.commands.exact_time = event_time
+        self.commands.exact_state = raw_interpolator(event_time)
 
         return exact_time_result
 

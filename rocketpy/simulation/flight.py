@@ -32,15 +32,15 @@ from .helpers.event_calling import (
     process_overshootable_event,
     update_overshootable_event_kwargs,
 )
-from .helpers.flight_derivatives import (
-    u_dot,
-    u_dot_generalized,
-    u_dot_generalized_3dof,
-    u_dot_parachute,
-    udot_rail1,
-    udot_rail2,
+from .helpers.dynamics import (
+    PARACHUTE_DYNAMICS,
+    RAIL_DYNAMICS,
+    SIX_DOF_DYNAMICS,
+    SOLID_PROPULSION_DYNAMICS,
+    THREE_DOF_DYNAMICS,
 )
 from .helpers.flight_phase import _FlightPhases, _TimeNodes
+from .solution import Solution
 
 ODE_SOLVER_MAP = {
     "RK23": RK23,
@@ -765,25 +765,15 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
 
     def __init_equations_of_motion(self):
         """Initialize equations of motion."""
-        # set all derivative functions
-        self.u_dot = lambda t, u, post_processing=False: u_dot(
-            self, t, u, post_processing
-        )
-        self.u_dot_generalized = lambda t, u, post_processing=False: u_dot_generalized(
-            self, t, u, post_processing
-        )
-        self.u_dot_generalized_3dof = lambda t, u, post_processing=False: (
-            u_dot_generalized_3dof(self, t, u, post_processing)
-        )
-        self.u_dot_parachute = lambda t, u, post_processing=False: u_dot_parachute(
-            self, t, u, post_processing
-        )
-        self.udot_rail1 = lambda t, u, post_processing=False: udot_rail1(
-            self, t, u, post_processing
-        )
-        self.udot_rail2 = lambda t, u, post_processing=False: udot_rail2(
-            self, t, u, post_processing
-        )
+        # Bind each phase's dynamics (derivative + state schema) to this flight.
+        # Each bound object is callable as (t, u, post_processing=False), so it
+        # is a drop-in for the old derivative functions.
+        self.u_dot = SOLID_PROPULSION_DYNAMICS.bind(self)
+        self.u_dot_generalized = SIX_DOF_DYNAMICS.bind(self)
+        self.u_dot_generalized_3dof = THREE_DOF_DYNAMICS.bind(self)
+        self.u_dot_parachute = PARACHUTE_DYNAMICS.bind(self)
+        self.udot_rail1 = RAIL_DYNAMICS.bind(self)
+        self.udot_rail2 = self.u_dot_generalized
 
         normalized_simulation_mode = "".join(self.simulation_mode.split()).upper()
         if normalized_simulation_mode == "3DOF":
@@ -840,13 +830,29 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         # Initialize solver monitors
         self.function_evaluations = []
         # Initialize solution state
-        self.solution = []
+        self.solution = Solution()
         self.__init_flight_state()
 
         self.t_initial = self.initial_solution[0]
-        self.solution.append(self.initial_solution)
+        # Open the first flight phase's segment. Its state schema comes from the
+        # phase's dynamics, and the initial state seeds the freeze anchors used
+        # to fill in any variable the phase does not integrate.
+        self.solution.start_segment(
+            schema=self.initial_derivative.schema,
+            t_start=self.t_initial,
+            start_canonical=tuple(self.initial_solution[1:]),
+            dynamics=self.initial_derivative,
+            name="initial_phase",
+        )
+        self.solution.append(list(self.initial_solution))
         self.t = self.solution[-1][0]
         self.y_sol = self.solution[-1][1:]
+
+        # Record the initial derivative's post-processing row now that the
+        # first segment exists to receive it.
+        self.initial_derivative(
+            self.t_initial, self.initial_solution[1:], post_processing=True
+        )
 
         self.__set_ode_solver(self.ode_solver)
 
@@ -902,9 +908,11 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             self.initial_derivative = self.udot_rail1
         elif isinstance(self.initial_solution, Flight):
             # Initialize time and state variables based on last solution of
-            # previous flight
-            self.t_initial = self.initial_solution.solution[-1][0]
-            self.initial_solution = self.initial_solution.solution[-1]
+            # previous flight. Its final state is canonicalized in case that
+            # flight ended in a reduced-state phase (e.g. under a parachute).
+            previous_flight = self.initial_solution
+            self.t_initial = previous_flight.solution[-1][0]
+            self.initial_solution = previous_flight.solution.canonical_row(-1)
             # Set unused monitors
             self.out_of_rail_state = self.initial_solution[1:]
             self.out_of_rail_time = self.initial_solution[0]
@@ -926,10 +934,6 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
                 self.initial_derivative = self.u_dot_generalized
             else:
                 self.initial_derivative = self.udot_rail1
-        # Get initial state derivative
-        self.initial_derivative(
-            self.t_initial, self.initial_solution[1:], post_processing=True
-        )
 
     def __set_ode_solver(self, solver):
         """Sets the ODE solver to be used in the simulation.
@@ -980,13 +984,34 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
 
     def __simulate_phase(self, phase, phase_index):
         """Run one Flight phase across all time nodes."""
+        if phase_index > 0:
+            # A new phase begins. Seed its raw state from the canonical state
+            # that ended the previous phase and open a fresh segment for it.
+            previous_canonical = self.solution.tail.canonical_state(
+                self.solution[-1][1:]
+            )
+            y0 = phase.dynamics.initial_state(phase.t, previous_canonical)
+            self.solution.start_segment(
+                schema=phase.dynamics.schema,
+                t_start=phase.t,
+                start_canonical=tuple(previous_canonical),
+                dynamics=phase.dynamics,
+                name=phase.name,
+                parachute=phase.parachute,
+            )
+            self.t = phase.t
+            self.y_sol = y0
+        else:
+            # The first phase's segment was already opened during setup.
+            y0 = self.solution[-1][1:]
+
         phase.solver = self._solver(
-            phase.derivative,
+            phase.dynamics,
             t0=phase.t,
-            y0=self.solution[-1][1:],
+            y0=y0,
             t_bound=phase.time_bound,
             rtol=self.rtol,
-            atol=self.atol,
+            atol=phase.dynamics.select_atol(self.atol),
             max_step=self.max_time_step,
             min_step=self.min_time_step,
         )
@@ -1057,7 +1082,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             phase_index=phase_index,
             node_index=node_index,
             time=node.t,
-            state=self.solution[-1][1:],
+            state=self.y_sol,
             step_size=infer_step_size(self, node.t),
             needs=compute_needs_union(node.events),
         )
@@ -1200,12 +1225,12 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         # Reinitialize the solver in-place so integration continues from the
         # rolled-back time/state using the same derivative and solver settings.
         phase.solver = self._solver(
-            phase.derivative,
+            phase.dynamics,
             t0=self.t,
             y0=self.y_sol,
             t_bound=phase.time_bound,
             rtol=self.rtol,
-            atol=self.atol,
+            atol=phase.dynamics.select_atol(self.atol),
             max_step=self.max_time_step,
             min_step=self.min_time_step,
         )
@@ -1304,7 +1329,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
                 f"{self.time[time_index]}. Using closest time.",
                 UserWarning,
             )
-        return self.solution_array[time_index, :]
+        return self.solution.canonical_array[time_index, :]
 
     @cached_property
     def effective_1rl(self):
@@ -1371,7 +1396,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
     @cached_property
     def solution_array(self):
         """Returns solution array of the rocket flight."""
-        return np.array(self.solution)
+        return self.solution.canonical_array
 
     @property
     def function_evaluations_per_time_step(self):
@@ -1389,7 +1414,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
     @cached_property
     def time(self):
         """Returns time array from solution."""
-        return self.solution_array[:, 0]
+        return self.solution.time
 
     @cached_property
     def time_steps(self):
@@ -1402,19 +1427,19 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
     def x(self):
         """Rocket x position relative to the launch pad as a Function of
         time."""
-        return self.solution_array[:, [0, 1]]
+        return self.solution["x"]
 
     @funcify_method("Time (s)", "Y (m)", "spline", "constant")
     def y(self):
         """Rocket y position relative to the launch pad as a Function of
         time."""
-        return self.solution_array[:, [0, 2]]
+        return self.solution["y"]
 
     @funcify_method("Time (s)", "Z (m)", "spline", "constant")
     def z(self):
         """Rocket z position relative to the launch pad as a Function of
         time."""
-        return self.solution_array[:, [0, 3]]
+        return self.solution["z"]
 
     @funcify_method("Time (s)", "Altitude AGL (m)", "spline", "constant")
     def altitude(self):
@@ -1426,60 +1451,60 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
     def vx(self):
         """Velocity of the rocket's center of dry mass in the X (East) direction
         of the inertial frame as a function of time."""
-        return self.solution_array[:, [0, 4]]
+        return self.solution["vx"]
 
     @funcify_method("Time (s)", "Vy (m/s)", "spline", "zero")
     def vy(self):
         """Velocity of the rocket's center of dry mass in the Y (North)
         direction of the inertial frame as a function of time."""
-        return self.solution_array[:, [0, 5]]
+        return self.solution["vy"]
 
     @funcify_method("Time (s)", "Vz (m/s)", "spline", "zero")
     def vz(self):
         """Velocity of the rocket's center of dry mass in the Z (Up) direction of
         the inertial frame as a function of time."""
-        return self.solution_array[:, [0, 6]]
+        return self.solution["vz"]
 
     @funcify_method("Time (s)", "e0", "spline", "constant")
     def e0(self):
         """Rocket quaternion e0 as a Function of time."""
-        return self.solution_array[:, [0, 7]]
+        return self.solution["e0"]
 
     @funcify_method("Time (s)", "e1", "spline", "constant")
     def e1(self):
         """Rocket quaternion e1 as a Function of time."""
-        return self.solution_array[:, [0, 8]]
+        return self.solution["e1"]
 
     @funcify_method("Time (s)", "e2", "spline", "constant")
     def e2(self):
         """Rocket quaternion e2 as a Function of time."""
-        return self.solution_array[:, [0, 9]]
+        return self.solution["e2"]
 
     @funcify_method("Time (s)", "e3", "spline", "constant")
     def e3(self):
         """Rocket quaternion e3 as a Function of time."""
-        return self.solution_array[:, [0, 10]]
+        return self.solution["e3"]
 
     @funcify_method("Time (s)", "ω1 (rad/s)", "spline", "zero")
     def w1(self):
         """Angular velocity of the rocket in the x direction of the rocket's
         body frame as a function of time, in rad/s. Sometimes referred to as
         pitch rate (q)."""
-        return self.solution_array[:, [0, 11]]
+        return self.solution["w1"]
 
     @funcify_method("Time (s)", "ω2 (rad/s)", "spline", "zero")
     def w2(self):
         """Angular velocity of the rocket in the y direction of the rocket's
         body frame as a function of time, in rad/s. Sometimes referred to as
         yaw rate (r)."""
-        return self.solution_array[:, [0, 12]]
+        return self.solution["w2"]
 
     @funcify_method("Time (s)", "ω3 (rad/s)", "spline", "zero")
     def w3(self):
         """Angular velocity of the rocket in the z direction of the rocket's
         body frame as a function of time, in rad/s. Sometimes referred to as
         roll rate (p)."""
-        return self.solution_array[:, [0, 13]]
+        return self.solution["w3"]
 
     # Process second type of outputs - accelerations components
     @cached_property
@@ -2664,7 +2689,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             "ode_solver": self.ode_solver,
             "simulation_mode": self.simulation_mode,
             # The following outputs are essential to run all_info method
-            "solution": self.solution,
+            "solution": self.solution.to_dict(),
             "out_of_rail_time": self.out_of_rail_time,
             "out_of_rail_time_index": self.out_of_rail_time_index,
             "apogee_time": self.apogee_time,
