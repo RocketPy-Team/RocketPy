@@ -89,6 +89,19 @@ def _sample_state(time, vz):
     )
 
 
+def _canonical_solution(*rows):
+    """Build a Solution holding the given canonical rows in one segment."""
+    from rocketpy.simulation.solution import CANONICAL_SCHEMA, Solution
+
+    solution = Solution()
+    solution.start_segment(
+        CANONICAL_SCHEMA, start_canonical=tuple(rows[0][1:]) if rows else None
+    )
+    for row in rows:
+        solution.append(list(row))
+    return solution
+
+
 def _interpolator(time):
     return np.array(
         [1.0 - 2.0 * time, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
@@ -331,7 +344,9 @@ def test_core_event_builders_update_flight_state_and_commands():
         z_impact=None,
         impact_velocity=None,
         impact_time=None,
-        solution=[_sample_state(0.0, 1.0), _sample_state(1.0, -1.0)],
+        solution=_canonical_solution(
+            _sample_state(0.0, 1.0), _sample_state(1.0, -1.0)
+        ),
         u_dot_generalized=lambda *_args, **_kwargs: "new-derivative",
     )
 
