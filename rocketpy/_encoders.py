@@ -9,6 +9,7 @@ import numpy as np
 from rocketpy.mathutils.function import Function
 from rocketpy.plots.flight_plots import _FlightPlots
 from rocketpy.prints.flight_prints import _FlightPrints
+from rocketpy.simulation.solution import Solution
 
 
 class RocketPyEncoder(json.JSONEncoder):
@@ -199,8 +200,6 @@ def set_minimal_flight_attributes(flight, obj):
 
     # The solution is stored either as the new segment-based dict or, for older
     # saved flights, as a flat list of canonical rows.
-    from rocketpy.simulation.solution import Solution
-
     raw_solution = obj["solution"]
     if isinstance(raw_solution, dict):
         flight.solution = Solution.from_dict(raw_solution)

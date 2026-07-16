@@ -594,7 +594,9 @@ class Solution:
         self._version += 1
         return row
 
-    def __array__(self, dtype=None, copy=None):
+    def __array__(self, dtype=None, copy=None):  # pylint: disable=unused-argument
+        # `copy` is part of the NumPy array protocol; the array is always freshly
+        # built here, so it is accepted for compatibility and not acted on.
         widths = {segment.width for segment in self._segments if segment.rows}
         if len(widths) > 1:
             raise TypeError(
