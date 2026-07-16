@@ -70,7 +70,10 @@ class Event:
             ``kwargs["event"].context``.
             The following keys are always available in ``kwargs``:
             ``time`` (float, s),
-            ``state`` (list ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]``),
+            ``state`` (list ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]``;
+            always this full layout, even in phases that integrate fewer
+            variables — during a parachute descent the attitude and angular
+            rates hold their values from when the parachute deployed),
             ``sensors`` (list of sensor objects),
             ``sensors_by_name`` (dict of sensor objects),
             ``environment`` (:class:`rocketpy.Environment`),

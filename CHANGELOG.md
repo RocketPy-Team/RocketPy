@@ -32,6 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- ENH: Solution class for variable-length flight state, so each flight phase can integrate only the variables it needs (e.g. a translational-only parachute descent). `flight.solution` keeps its list-like behavior and adds queries by variable name (`flight.solution["vz"]`, `flight.solution.at(t)`).
 - ENH: MNT: introduce pressure unit conversion when using forecast/reanalysis/ensemble data [#955](https://github.com/RocketPy-Team/RocketPy/pull/955)
 - ENH: Auto Populate Changelog [#919](https://github.com/RocketPy-Team/RocketPy/pull/919)
 - ENH: Adaptive Monte Carlo via Convergence Criteria [#922](https://github.com/RocketPy-Team/RocketPy/pull/922)
@@ -39,7 +40,11 @@ Attention: The newest changes should be on top -->
 
 ### Changed
 
-- 
+- ENH: The parachute descent now integrates only position and velocity (attitude is held fixed at deployment), which changes descent-phase results slightly. `np.array(flight.solution)` now raises for flights whose phases integrate different variables; use `flight.solution["name"]` or `flight.solution.canonical_array` instead.
+
+### Deprecated
+
+- ENH: `Flight.solution_array` and `Flight.get_solution_at_time` are deprecated (removal targeted v1.14); use `flight.solution["name"]` / `flight.solution.canonical_array` and `flight.solution.at(t)`. Exporting flight data with no variable names is deprecated for the same reason.
 
 ### Fixed
 

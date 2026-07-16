@@ -157,9 +157,16 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         e2_init, e3_init, w1_init, w2_init, w3_init]
     Flight.t_initial : int, float
         Initial simulation time in seconds. Usually 0.
-    Flight.solution : list
-        Solution array which keeps results from each numerical
-        integration.
+    Flight.solution : rocketpy.simulation.solution.Solution
+        The state history of the flight. It behaves like the list of rows
+        ``[t, x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3]`` it has always
+        been (supporting ``len()``, iteration and integer indexing), and also
+        answers queries by variable name: ``flight.solution["vz"]`` returns the
+        ``[t, value]`` history of the vertical velocity across the whole flight,
+        and ``flight.solution.at(t)`` returns the state at a given time. A phase
+        that integrates fewer variables (such as a parachute descent, which
+        follows only position and velocity) stores only those; the rest are
+        reconstructed or held at their value when the phase began.
     Flight.t : float
         Current integration time.
     Flight.y : list
