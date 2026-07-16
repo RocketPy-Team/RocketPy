@@ -1305,6 +1305,11 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
                 sensor_data[sensor] = sensor.measured_data[:]
         self.sensor_data = sensor_data
 
+    @deprecated(
+        reason="Flight.get_solution_at_time is deprecated",
+        version="v1.14",
+        alternative="flight.solution.at(t)",
+    )
     def get_solution_at_time(self, t, atol=1e-3):
         """Returns the solution state vector at a given time. If the time is
         not found in the solution, the closest time is used and a warning is
@@ -1399,6 +1404,12 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         return -wind_u * np.cos(heading_rad) + wind_v * np.sin(heading_rad)
 
     @cached_property
+    @deprecated(
+        reason="Flight.solution_array is deprecated",
+        version="v1.14",
+        alternative="flight.solution['name'] for a single variable, or "
+        "flight.solution.canonical_array for the full 14-column table",
+    )
     def solution_array(self):
         """Returns solution array of the rocket flight."""
         return self.solution.canonical_array

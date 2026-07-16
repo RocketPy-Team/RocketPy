@@ -3,6 +3,7 @@ Exports a rocketpy.Flight object's data to external files.
 """
 
 import json
+import warnings
 
 import numpy as np
 import simplekml
@@ -89,9 +90,17 @@ class FlightDataExporter:
 
         # Fast evaluation for the most basic scenario
         if time_step is None and len(variables) == 0:
+            warnings.warn(
+                "Exporting with no variables writes the full 14-column "
+                "canonical state table and will require explicit variable names "
+                "in v1.14. Pass the variable names you want, e.g. "
+                "data(file_name, 'x', 'y', 'z').",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             np.savetxt(
                 file_name,
-                f.solution,
+                f.solution.canonical_array,
                 fmt="%.6f",
                 delimiter=",",
                 header=""
@@ -99,6 +108,9 @@ class FlightDataExporter:
                 "X (m),"
                 "Y (m),"
                 "Z (m),"
+                "Vx (m/s),"
+                "Vy (m/s),"
+                "Vz (m/s),"
                 "E0,"
                 "E1,"
                 "E2,"
