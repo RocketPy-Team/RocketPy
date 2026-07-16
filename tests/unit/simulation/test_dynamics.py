@@ -42,8 +42,9 @@ def test_registry_keys_and_schemas():
     }
     assert SIX_DOF_DYNAMICS.schema is CANONICAL_SCHEMA
     assert RAIL_DYNAMICS.schema is CANONICAL_SCHEMA
-    # The parachute is still canonical at this stage; it is reduced later.
-    assert PARACHUTE_DYNAMICS.schema is CANONICAL_SCHEMA
+    # The parachute descent integrates only position and velocity.
+    assert PARACHUTE_DYNAMICS.schema is PARACHUTE_3T_SCHEMA
+    assert PARACHUTE_DYNAMICS.derived_names == ("ax", "ay", "az", "R1", "R2", "R3")
 
 
 def test_bound_dynamics_calls_free_function():

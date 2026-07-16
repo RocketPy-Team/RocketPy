@@ -95,8 +95,7 @@ def test_solution_time_is_monotonically_non_decreasing(flight_calisto_robust):
     flight_calisto_robust : rocketpy.Flight
         Full flight with both drogue and main parachutes enabled.
     """
-    sol = np.array(flight_calisto_robust.solution)
-    times = sol[:, 0]
+    times = flight_calisto_robust.solution.time
     backward_steps = np.where(np.diff(times) < 0)[0]
     assert backward_steps.size == 0, (
         f"Solution time goes backward at {backward_steps.size} step(s). "

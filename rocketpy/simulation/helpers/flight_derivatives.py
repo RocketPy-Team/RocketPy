@@ -708,9 +708,7 @@ def u_dot_generalized_3dof(flight, t, u, post_processing=False):
     u_dot = [*r_dot, *v_dot, *e_dot, *w_dot]
 
     if post_processing:
-        flight._record_derived(
-            [t, *v_dot, *w_dot, R1, R2, R3, 0, 0, 0, net_thrust]
-        )
+        flight._record_derived([t, *v_dot, *w_dot, R1, R2, R3, 0, 0, 0, net_thrust])
 
     return u_dot
 
@@ -937,9 +935,7 @@ def u_dot_generalized(flight, t, u, post_processing=False):
     u_dot = [*r_dot, *v_dot, *e_dot, *w_dot]
 
     if post_processing:
-        flight._record_derived(
-            [t, *v_dot, *w_dot, R1, R2, R3, M1, M2, M3, net_thrust]
-        )
+        flight._record_derived([t, *v_dot, *w_dot, R1, R2, R3, M1, M2, M3, net_thrust])
 
     return u_dot
 
@@ -947,8 +943,9 @@ def u_dot_generalized(flight, t, u, post_processing=False):
 def u_dot_parachute(flight, t, u, post_processing=False):
     """Compute the parachute descent derivative.
 
-    The parachute model is a 3DOF translational approximation with drag and added-mass
-    effects. Angular motion is not integrated.
+    The parachute descent integrates only position and velocity. Attitude and
+    angular rates are held fixed at their values when the parachute deployed, so
+    they are not part of this phase's state.
 
     Parameters
     ----------
@@ -957,15 +954,14 @@ def u_dot_parachute(flight, t, u, post_processing=False):
     t : float
         Time in seconds.
     u : list
-        State vector ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3]``.
+        State vector ``[x, y, z, vx, vy, vz]``.
     post_processing : bool, optional
         If ``True``, updates the flight post-processing buffer. Default is ``False``.
 
     Returns
     -------
     list
-        State derivative ``[vx, vy, vz, ax, ay, az, e0dot, e1dot, e2dot, e3dot,
-        alpha1, alpha2, alpha3]``.
+        State derivative ``[vx, vy, vz, ax, ay, az]``.
     """
     # Get relevant state data
     z, vx, vy, vz = u[2:6]
@@ -1020,8 +1016,6 @@ def u_dot_parachute(flight, t, u, post_processing=False):
     az -= 2 * (-vx * w_earth_y)
 
     if post_processing:
-        flight._record_derived(
-            [t, ax, ay, az, 0, 0, 0, Dx, Dy, Dz, 0, 0, 0, 0]
-        )
+        flight._record_derived([t, ax, ay, az, Dx, Dy, Dz])
 
-    return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
+    return [vx, vy, vz, ax, ay, az]

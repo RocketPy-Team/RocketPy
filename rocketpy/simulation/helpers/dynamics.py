@@ -11,7 +11,7 @@ dynamics" extension point can be added later without reworking the pipeline,
 but it is not part of the public API yet.
 """
 
-from ..solution import CANONICAL_SCHEMA
+from ..solution import CANONICAL_SCHEMA, PARACHUTE_3T_SCHEMA
 from .flight_derivatives import (
     u_dot,
     u_dot_generalized,
@@ -37,6 +37,10 @@ FULL_DERIVED_NAMES = (
     "M3",
     "net_thrust",
 )
+
+# A parachute descent reports only translational accelerations and the drag
+# force components; angular quantities are not integrated.
+PARACHUTE_DERIVED_NAMES = ("ax", "ay", "az", "R1", "R2", "R3")
 
 
 class _Dynamics:
@@ -140,10 +144,10 @@ SIX_DOF_DYNAMICS = _Dynamics(
 THREE_DOF_DYNAMICS = _Dynamics(
     "three_dof", u_dot_generalized_3dof, CANONICAL_SCHEMA, FULL_DERIVED_NAMES
 )
-# The parachute descent still integrates the full canonical state here. It is
-# reduced to a translational-only phase in a later change.
+# The parachute descent integrates only position and velocity; attitude is held
+# fixed at its value when the parachute deployed.
 PARACHUTE_DYNAMICS = _Dynamics(
-    "parachute", u_dot_parachute, CANONICAL_SCHEMA, FULL_DERIVED_NAMES
+    "parachute", u_dot_parachute, PARACHUTE_3T_SCHEMA, PARACHUTE_DERIVED_NAMES
 )
 
 DYNAMICS_REGISTRY = {
