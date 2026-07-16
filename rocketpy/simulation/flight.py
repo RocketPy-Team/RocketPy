@@ -1,5 +1,4 @@
 import warnings
-from bisect import bisect_left, bisect_right
 from copy import deepcopy
 from functools import cached_property
 
@@ -761,7 +760,11 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         self.impact_state = np.array([0])
         self.parachute_events = []
         self._active_parachute = None
-        self.__post_processed_variables = []
+        # Post-processing (derived) quantities are recorded per flight-phase
+        # segment. `_derived_target` names the segment currently receiving rows
+        # (used while replaying); when it is None, rows go to the active tail.
+        self._derived_ready = False
+        self._derived_target = None
 
     def __init_equations_of_motion(self):
         """Initialize equations of motion."""
@@ -1283,8 +1286,10 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         """Finalize and cache simulation outputs."""
         self.t_final = self.t
         if self._has_change_dynamics_events:
-            # cache post process variables
-            self.__evaluate_post_process = np.array(self.__post_processed_variables)
+            # Derived quantities were recorded live into each segment as the
+            # simulation ran (so time-varying parameters such as air-brake
+            # deployment are captured); mark them ready so they are not replayed.
+            self._derived_ready = True
         if self.sensors:
             self.__cache_sensor_data()
         logger.info("Simulation completed at time: %.4f s", self.t)
@@ -1507,120 +1512,149 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         return self.solution["w3"]
 
     # Process second type of outputs - accelerations components
-    @cached_property
-    def __evaluate_post_process(self):
-        """Evaluate all post-processing variables by running the simulation
-        again but with the post-processing flag set to True.
+    @property
+    def _active_derived_rows(self):
+        """The list of derived (post-processing) rows currently being filled.
 
-        Returns
-        -------
-        np.array
-            An array containing all post-processed variables evaluated at each
-            time step. Each element of the array is a list containing:
-            [t, ax, ay, az, alpha1, alpha2, alpha3, R1, R2, R3, M1, M2, M3, net_thrust]
+        Rows go to the segment named by ``_derived_target`` while replaying, or
+        to the active tail segment during a live simulation.
         """
-        self.__post_processed_variables = []
-        step_times = [step[0] for step in self.solution]
-        for phase_index, phase in self.flight_phases:
-            init_time = phase.t
-            final_time = self.flight_phases[phase_index + 1].t
-            current_derivative = phase.derivative
-            self._active_parachute = phase.parachute
-            # Select the steps with init_time < t <= final_time. The first
-            # phase also includes the step at exactly t_initial, which the
-            # strict lower bound would otherwise drop.
-            if init_time == self.t_initial:
-                start = bisect_left(step_times, init_time)
-            else:
-                start = bisect_right(step_times, init_time)
-            end = bisect_right(step_times, final_time)
-            for step in self.solution[start:end]:
-                current_derivative(step[0], step[1:], post_processing=True)
+        target = self._derived_target
+        if target is None:
+            target = self.solution.tail
+        return target.derived_rows
 
-        return np.array(self.__post_processed_variables)
+    def _record_derived(self, row):
+        """Record one post-processing row ``[t, *values]`` for the active phase.
+
+        The values are ordered by the active phase's ``derived_names``.
+        """
+        self._active_derived_rows.append(row)
+
+    def _ensure_derived(self):
+        """Compute the post-processing quantities if they are not ready yet.
+
+        For simulations without dynamics-changing events, each phase's
+        derivative is replayed over that phase's stored states. When such
+        events are present, the quantities were already recorded live as the
+        simulation ran (see :meth:`__finalize_simulation`).
+        """
+        if self._derived_ready:
+            return
+        for segment in self.solution.segments:
+            segment.derived_rows.clear()
+            self._derived_target = segment
+            self._active_parachute = segment.parachute
+            for row in segment.rows:
+                segment.dynamics(row[0], row[1:], post_processing=True)
+        self._derived_target = None
+        self._derived_ready = True
+
+    def _derived_series(self, name):
+        """Return the ``[t, value]`` history of one derived quantity.
+
+        Phases that do not report the quantity contribute zeros, so quantities
+        such as aerodynamic moments remain defined across the whole flight.
+        """
+        self._ensure_derived()
+        parts = []
+        for segment in self.solution.segments:
+            rows = segment.derived_rows
+            if not rows:
+                continue
+            array = np.array(rows)
+            derived_names = segment.dynamics.derived_names
+            if name in derived_names:
+                column = derived_names.index(name) + 1
+                parts.append(array[:, [0, column]])
+            else:
+                parts.append(np.column_stack([array[:, 0], np.zeros(len(rows))]))
+        if not parts:
+            return np.empty((0, 2))
+        return parts[0] if len(parts) == 1 else np.concatenate(parts, axis=0)
 
     @funcify_method("Time (s)", "Ax (m/s²)", "spline", "zero")
     def ax(self):
         """Acceleration of the rocket's center of dry mass along the X (East)
         axis in the inertial frame as a function of time."""
-        return self.__evaluate_post_process[:, [0, 1]]
+        return self._derived_series("ax")
 
     @funcify_method("Time (s)", "Ay (m/s²)", "spline", "zero")
     def ay(self):
         """Acceleration of the rocket's center of dry mass along the Y (North)
         axis in the inertial frame as a function of time."""
-        return self.__evaluate_post_process[:, [0, 2]]
+        return self._derived_series("ay")
 
     @funcify_method("Time (s)", "Az (m/s²)", "spline", "zero")
     def az(self):
         """Acceleration of the rocket's center of dry mass along the Z (Up)
         axis in the inertial frame as a function of time."""
-        return self.__evaluate_post_process[:, [0, 3]]
+        return self._derived_series("az")
 
     @funcify_method("Time (s)", "α1 (rad/s²)", "spline", "zero")
     def alpha1(self):
         """Angular acceleration of the rocket in the x direction of the rocket's
         body frame as a function of time, in rad/s. Sometimes referred to as
         pitch acceleration."""
-        return self.__evaluate_post_process[:, [0, 4]]
+        return self._derived_series("alpha1")
 
     @funcify_method("Time (s)", "α2 (rad/s²)", "spline", "zero")
     def alpha2(self):
         """Angular acceleration of the rocket in the y direction of the rocket's
         body frame as a function of time, in rad/s. Sometimes referred to as
         yaw acceleration."""
-        return self.__evaluate_post_process[:, [0, 5]]
+        return self._derived_series("alpha2")
 
     @funcify_method("Time (s)", "α3 (rad/s²)", "spline", "zero")
     def alpha3(self):
         """Angular acceleration of the rocket in the z direction of the rocket's
         body frame as a function of time, in rad/s. Sometimes referred to as
         roll acceleration."""
-        return self.__evaluate_post_process[:, [0, 6]]
+        return self._derived_series("alpha3")
 
     # Process third type of outputs - Temporary values
     @funcify_method("Time (s)", "R1 (N)", "spline", "zero")
     def R1(self):
         """Aerodynamic force acting along the x-axis of the rocket's body frame
         as a function of time. Expressed in Newtons (N)."""
-        return self.__evaluate_post_process[:, [0, 7]]
+        return self._derived_series("R1")
 
     @funcify_method("Time (s)", "R2 (N)", "spline", "zero")
     def R2(self):
         """Aerodynamic force acting along the y-axis of the rocket's body frame
         as a function of time. Expressed in Newtons (N)."""
-        return self.__evaluate_post_process[:, [0, 8]]
+        return self._derived_series("R2")
 
     @funcify_method("Time (s)", "R3 (N)", "spline", "zero")
     def R3(self):
         """Aerodynamic force acting along the z-axis of the rocket's body frame
         as a function of time. Expressed in Newtons (N)."""
-        return self.__evaluate_post_process[:, [0, 9]]
+        return self._derived_series("R3")
 
     @funcify_method("Time (s)", "M1 (Nm)", "linear", "zero")
     def M1(self):
         """Aerodynamic moment acting along the x-axis of the rocket's body
         frame as a function of time. Expressed in Newtons (N)."""
-        return self.__evaluate_post_process[:, [0, 10]]
+        return self._derived_series("M1")
 
     @funcify_method("Time (s)", "M2 (Nm)", "linear", "zero")
     def M2(self):
         """Aerodynamic moment acting along the y-axis of the rocket's body
         frame as a function of time. Expressed in Newtons (N)."""
-        return self.__evaluate_post_process[:, [0, 11]]
+        return self._derived_series("M2")
 
     @funcify_method("Time (s)", "M3 (Nm)", "linear", "zero")
     def M3(self):
         """Aerodynamic moment acting along the z-axis of the rocket's body
         frame as a function of time. Expressed in Newtons (N)."""
-        return self.__evaluate_post_process[:, [0, 12]]
+        return self._derived_series("M3")
 
     @funcify_method("Time (s)", "Net Thrust (N)", "linear", "zero")
     def net_thrust(self):
         """Net thrust of the rocket as a Function of time. This is the
         actual thrust force experienced by the rocket. It may be corrected
         with the atmospheric pressure if a reference pressure is defined."""
-        return self.__evaluate_post_process[:, [0, 13]]
+        return self._derived_series("net_thrust")
 
     @funcify_method("Time (s)", "Pressure (Pa)", "spline", "constant")
     def pressure(self):

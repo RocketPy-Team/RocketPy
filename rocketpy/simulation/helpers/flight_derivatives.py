@@ -126,7 +126,7 @@ def udot_rail1(flight, t, u, post_processing=False):
         # Use u_dot post processing code for forces, moments and env data
         flight.u_dot_generalized(t, u, post_processing=True)
         # Save feasible accelerations
-        flight._Flight__post_processed_variables[-1][1:7] = [ax, ay, az, 0, 0, 0]
+        flight._active_derived_rows[-1][1:7] = [ax, ay, az, 0, 0, 0]
 
     return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
 
@@ -470,7 +470,7 @@ def u_dot(flight, t, u, post_processing=False):
     ]
 
     if post_processing:
-        flight._Flight__post_processed_variables.append(
+        flight._record_derived(
             [
                 t,
                 ax,
@@ -708,7 +708,7 @@ def u_dot_generalized_3dof(flight, t, u, post_processing=False):
     u_dot = [*r_dot, *v_dot, *e_dot, *w_dot]
 
     if post_processing:
-        flight._Flight__post_processed_variables.append(
+        flight._record_derived(
             [t, *v_dot, *w_dot, R1, R2, R3, 0, 0, 0, net_thrust]
         )
 
@@ -937,7 +937,7 @@ def u_dot_generalized(flight, t, u, post_processing=False):
     u_dot = [*r_dot, *v_dot, *e_dot, *w_dot]
 
     if post_processing:
-        flight._Flight__post_processed_variables.append(
+        flight._record_derived(
             [t, *v_dot, *w_dot, R1, R2, R3, M1, M2, M3, net_thrust]
         )
 
@@ -1020,7 +1020,7 @@ def u_dot_parachute(flight, t, u, post_processing=False):
     az -= 2 * (-vx * w_earth_y)
 
     if post_processing:
-        flight._Flight__post_processed_variables.append(
+        flight._record_derived(
             [t, ax, ay, az, 0, 0, 0, Dx, Dy, Dz, 0, 0, 0, 0]
         )
 
