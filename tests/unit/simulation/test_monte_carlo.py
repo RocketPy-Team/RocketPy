@@ -513,3 +513,75 @@ def test_simulate_convergence_runs_until_max_when_not_converging():
     assert mc.num_of_loaded_sims == 200
     assert all(width > 0.5 for width in history)
     assert len(history) == 4  # 200 / 50 batches
+
+
+def test_seed_makes_inputs_reproducible_by_index(
+    stochastic_environment, stochastic_calisto, stochastic_flight
+):
+    """Inputs for a given simulation index depend only on the master seed and
+    the index, so serial and parallel runs (any worker count) sample the same
+    inputs and a fixed seed reproduces a run. See issue #1053.
+
+    Parameters
+    ----------
+    stochastic_environment : StochasticEnvironment
+        The stochastic environment object, this is a pytest fixture.
+    stochastic_calisto : StochasticRocket
+        The stochastic rocket object, this is a pytest fixture.
+    stochastic_flight : StochasticFlight
+        The stochastic flight object, this is a pytest fixture.
+    """
+
+    def elevation_for(mc, sim_idx):
+        mc._MonteCarlo__seed_stochastic_models(sim_idx)  # pylint: disable=protected-access
+        return mc.environment.create_object().elevation
+
+    def make(seed):
+        return MonteCarlo(
+            filename="monte_carlo_test",
+            environment=stochastic_environment,
+            rocket=stochastic_calisto,
+            flight=stochastic_flight,
+            seed=seed,
+        )
+
+    mc = make(42)
+    mc_same = make(42)
+    mc_other = make(7)
+
+    assert elevation_for(mc, 0) == elevation_for(mc_same, 0)
+    assert elevation_for(mc, 9) == elevation_for(mc_same, 9)
+
+    value = elevation_for(mc, 3)
+    assert elevation_for(mc, 3) == value
+
+    assert elevation_for(mc, 0) != elevation_for(mc, 1)
+    assert elevation_for(mc_other, 0) != elevation_for(mc, 0)
+
+
+def test_unseeded_monte_carlo_is_index_consistent(
+    stochastic_environment, stochastic_calisto, stochastic_flight
+):
+    """seed=None still yields inputs that depend only on the index within a
+    run, so serial and parallel stay consistent even without a fixed seed.
+
+    Parameters
+    ----------
+    stochastic_environment : StochasticEnvironment
+        The stochastic environment object, this is a pytest fixture.
+    stochastic_calisto : StochasticRocket
+        The stochastic rocket object, this is a pytest fixture.
+    stochastic_flight : StochasticFlight
+        The stochastic flight object, this is a pytest fixture.
+    """
+    mc = MonteCarlo(
+        filename="monte_carlo_test",
+        environment=stochastic_environment,
+        rocket=stochastic_calisto,
+        flight=stochastic_flight,
+    )
+
+    mc._MonteCarlo__seed_stochastic_models(2)  # pylint: disable=protected-access
+    first = mc.environment.create_object().elevation
+    mc._MonteCarlo__seed_stochastic_models(2)  # pylint: disable=protected-access
+    assert mc.environment.create_object().elevation == first

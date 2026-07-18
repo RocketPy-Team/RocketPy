@@ -96,6 +96,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         flight,
         export_list=None,
         data_collector=None,
+        seed=None,
     ):
         """
         Initialize a MonteCarlo object.
@@ -132,6 +133,14 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                     "date": lambda flight: flight.env.date,
                 }
 
+        seed : int, optional
+            Master seed for the whole analysis. Per-simulation seeds are
+            derived from it by simulation index, so a given index draws the
+            same inputs whether the run is serial or parallel and regardless
+            of the number of workers. If None (default), a random master seed
+            is drawn once; results are then random but still consistent across
+            execution modes within that run.
+
         Returns
         -------
         None
@@ -159,6 +168,9 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         self.export_list = self.__check_export_list(export_list)
         self._check_data_collector(data_collector)
         self.data_collector = data_collector
+
+        self._seed = seed
+        self._base_entropy = np.random.SeedSequence(seed).entropy
 
         self.import_inputs(self.filename.with_suffix(".inputs.txt"))
         self.import_outputs(self.filename.with_suffix(".outputs.txt"))
@@ -285,6 +297,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                 sim_monitor.increment()
                 inputs_json, outputs_json = "", ""
 
+                self.__seed_stochastic_models(sim_monitor.count - 1)
                 flight = self.__run_single_simulation()
                 inputs_json = self.__evaluate_flight_inputs(sim_monitor.count)
                 outputs_json = self.__evaluate_flight_outputs(flight, sim_monitor.count)
@@ -339,13 +352,11 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             )
 
             processes = []
-            seeds = np.random.SeedSequence().spawn(n_workers)
 
-            for seed in seeds:
+            for _ in range(n_workers):
                 sim_producer = multiprocess.Process(
                     target=self.__sim_producer,
                     args=(
-                        seed,
                         sim_monitor,
                         mutex,
                         simulation_error_event,
@@ -387,13 +398,11 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             raise ValueError("Number of workers must be at least 2 for parallel mode.")
         return n_workers
 
-    def __sim_producer(self, seed, sim_monitor, mutex, error_event):  # pylint: disable=too-many-statements
+    def __sim_producer(self, sim_monitor, mutex, error_event):  # pylint: disable=too-many-statements
         """Simulation producer to be used in parallel by multiprocessing.
 
         Parameters
         ----------
-        seed : int
-            The seed to set the random number generator.
         sim_monitor : _SimMonitor
             The simulation monitor object to keep track of the simulations.
         mutex : multiprocess.Lock
@@ -402,15 +411,11 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             Event signaling an error occurred during the simulation.
         """
         try:
-            # Ensure Processes generate different random numbers
-            self.environment._set_stochastic(seed)
-            self.rocket._set_stochastic(seed)
-            self.flight._set_stochastic(seed)
-
             while sim_monitor.keep_simulating():
                 sim_idx = sim_monitor.increment() - 1
                 inputs_json, outputs_json = "", ""
 
+                self.__seed_stochastic_models(sim_idx)
                 flight = self.__run_single_simulation()
                 inputs_json = self.__evaluate_flight_inputs(sim_idx)
                 outputs_json = self.__evaluate_flight_outputs(flight, sim_idx)
@@ -452,6 +457,29 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             )
             error_event.set()
             mutex.release()
+
+    def __seed_stochastic_models(self, sim_idx):
+        """Reseed the stochastic models deterministically for one simulation.
+
+        The seed for simulation ``sim_idx`` depends only on the master seed and
+        the index, so the same index samples the same inputs in serial and
+        parallel runs and for any number of workers (issue #1053). Each model
+        gets its own derived seed so their draws stay decorrelated.
+
+        Parameters
+        ----------
+        sim_idx : int
+            Zero-based index of the simulation being run.
+        """
+        seed_sequence = np.random.SeedSequence(
+            entropy=self._base_entropy, spawn_key=(sim_idx,)
+        )
+        env_seed, rocket_seed, flight_seed = (
+            int(s) for s in seed_sequence.generate_state(3)
+        )
+        self.environment._set_stochastic(env_seed)
+        self.rocket._set_stochastic(rocket_seed)
+        self.flight._set_stochastic(flight_seed)
 
     def __run_single_simulation(self):
         """Runs a single simulation and returns the inputs and outputs.
@@ -1377,7 +1405,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             except KeyError as e:
                 raise KeyError("No impact data found. Skipping impact ellipses.") from e
 
-        (apogee_ellipses, impact_ellipses) = generate_monte_carlo_ellipses(
+        apogee_ellipses, impact_ellipses = generate_monte_carlo_ellipses(
             impact_x,
             impact_y,
             apogee_x,
