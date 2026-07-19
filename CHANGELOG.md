@@ -44,6 +44,8 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+- BUG: seed Monte Carlo per simulation index, not per worker [#1071](https://github.com/RocketPy-Team/RocketPy/pull/1071)
+
 ## [v1.13.0] - 2026-07-04
 
 ### Added
