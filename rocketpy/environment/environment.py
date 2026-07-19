@@ -1173,9 +1173,9 @@ class Environment:
         _pa_files = {"GFS", "NAM", "RAP", "HRRR", "AIGFS"}
         if input_dict in _hpa_dicts or input_file in _hpa_dicts:
             return 100
-        if input_file in _hpa_files:
+        if input_dict in _hpa_files or input_file in _hpa_files:
             return 100
-        if input_file in _pa_files:
+        if input_dict in _pa_files or input_file in _pa_files:
             return 1
         return None
 
@@ -2961,6 +2961,7 @@ class Environment:
             "wind_direction_ensemble": getattr(self, "wind_direction_ensemble", None),
             "wind_speed_ensemble": getattr(self, "wind_speed_ensemble", None),
             "num_ensemble_members": getattr(self, "num_ensemble_members", None),
+            "ensemble_member": getattr(self, "ensemble_member", None),
         }
 
         if kwargs.get("include_outputs", False):
@@ -3027,6 +3028,7 @@ class Environment:
             env.wind_direction_ensemble = data["wind_direction_ensemble"]
             env.wind_speed_ensemble = data["wind_speed_ensemble"]
             env.num_ensemble_members = data["num_ensemble_members"]
+            env.ensemble_member = data.get("ensemble_member", 0) or 0
 
         env.__reset_barometric_height_function()
         env.calculate_density_profile()

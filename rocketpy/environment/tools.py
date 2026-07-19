@@ -219,7 +219,15 @@ def get_pressure_levels_from_file(data, dictionary, conversion_factor):
         level_var = data.variables[dictionary["level"]]
         if conversion_factor is None:
             raw_units = getattr(level_var, "units", "").lower().strip()
-            if raw_units in ("hpa", "mbar", "millibars", "hectopascal", "hectopascals"):
+            if raw_units in (
+                "hpa",
+                "mbar",
+                "mb",
+                "millibar",
+                "millibars",
+                "hectopascal",
+                "hectopascals",
+            ):
                 conversion_factor = 100
             else:
                 conversion_factor = 1
