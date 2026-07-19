@@ -123,6 +123,11 @@ class Parachute:
     Parachute.added_mass_coefficient : float
         Coefficient used to calculate the added-mass due to dragged air. It is
         calculated from the porosity of the parachute.
+    Parachute.opening_shock_coefficient : float
+        Dimensionless opening-force coefficient (``Cx``) used to estimate the
+        peak opening shock force via
+        :meth:`Parachute.evaluate_opening_shock_force`. ``None`` when the
+        estimate is disabled.
     """
 
     def __init__(
@@ -137,6 +142,7 @@ class Parachute:
         height=None,
         porosity=0.0432,
         drag_coefficient=1.4,
+        opening_shock_coefficient=None,
     ):
         """Initializes Parachute class.
 
@@ -217,6 +223,15 @@ class Parachute:
             - **1.5** — extended-skirt canopy
 
             Has no effect when ``radius`` is explicitly provided.
+        opening_shock_coefficient : float, optional
+            Dimensionless opening-force coefficient (``Cx``) used to estimate
+            the peak parachute opening shock force via
+            :meth:`evaluate_opening_shock_force`, following Knacke's
+            *Parachute Recovery Systems Design Manual*. It lumps together the
+            opening-force coefficient and the infinite-mass factor (``X1``).
+            Typical values range from about 1.2 to 2.0 depending on canopy
+            type. If ``None`` (default), the opening shock force is not
+            estimated. Units are dimensionless.
         """
 
         # Save arguments as attributes
@@ -228,6 +243,7 @@ class Parachute:
         self.noise = noise
         self.drag_coefficient = drag_coefficient
         self.porosity = porosity
+        self.opening_shock_coefficient = opening_shock_coefficient
 
         # Initialize derived attributes
         self.radius = self.__resolve_radius(radius, cd_s, drag_coefficient)
@@ -258,6 +274,43 @@ class Parachute:
         return 1.068 * (
             1 - 1.465 * porosity - 0.25975 * porosity**2 + 1.2626 * porosity**3
         )
+
+    def evaluate_opening_shock_force(self, air_density, velocity):
+        """Estimate the peak parachute opening shock force.
+
+        Uses the standard approximation from Knacke's *Parachute Recovery
+        Systems Design Manual*: ``F_o = Cx * q * cd_s``, where ``q`` is the
+        dynamic pressure ``0.5 * air_density * velocity ** 2`` at inflation and
+        ``Cx`` is the ``opening_shock_coefficient``. This is an empirical
+        estimate of the peak transient (inflation) load on the recovery
+        harness, not a result of the equation-of-motion integration, and it is
+        typically several times larger than the steady-state drag force
+        ``q * cd_s``.
+
+        Parameters
+        ----------
+        air_density : float
+            Air density at inflation, in kg/m^3.
+        velocity : float
+            Freestream speed at inflation, in m/s.
+
+        Returns
+        -------
+        float
+            Peak opening shock force, in newtons.
+
+        Raises
+        ------
+        ValueError
+            If ``opening_shock_coefficient`` was not set at construction.
+        """
+        if self.opening_shock_coefficient is None:
+            raise ValueError(
+                "opening_shock_coefficient must be set to estimate the "
+                "opening shock force."
+            )
+        dynamic_pressure = 0.5 * air_density * velocity**2
+        return self.opening_shock_coefficient * dynamic_pressure * self.cd_s
 
     def __init_noise(self, noise):
         """Initializes all noise-related attributes.
@@ -421,6 +474,7 @@ class Parachute:
             "drag_coefficient": self.drag_coefficient,
             "height": self.height,
             "porosity": self.porosity,
+            "opening_shock_coefficient": self.opening_shock_coefficient,
         }
 
         if kwargs.get("include_outputs", False):
@@ -455,6 +509,7 @@ class Parachute:
             drag_coefficient=data.get("drag_coefficient", 1.4),
             height=data.get("height", None),
             porosity=data.get("porosity", 0.0432),
+            opening_shock_coefficient=data.get("opening_shock_coefficient", None),
         )
 
         return parachute

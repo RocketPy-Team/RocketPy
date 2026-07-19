@@ -109,3 +109,58 @@ class TestParachuteSerialization:
         }
         parachute = Parachute.from_dict(data)
         assert parachute.drag_coefficient == pytest.approx(1.4)
+
+
+class TestParachuteOpeningShockForce:
+    """Tests for the opening shock force estimation (issue #161)."""
+
+    def test_opening_shock_force_matches_knacke_formula(self):
+        """The estimate must equal Cx * q * cd_s with q = 0.5 * rho * v**2."""
+        cd_s = 10.0
+        cx = 1.6
+        air_density = 1.05
+        velocity = 30.0
+        parachute = _make_parachute(cd_s=cd_s, opening_shock_coefficient=cx)
+
+        force = parachute.evaluate_opening_shock_force(air_density, velocity)
+
+        expected = cx * (0.5 * air_density * velocity**2) * cd_s
+        assert force == pytest.approx(expected, rel=1e-12)
+
+    def test_opening_shock_force_exceeds_steady_drag(self):
+        """For a coefficient above 1, the peak load must exceed the steady
+        drag force q * cd_s at the same condition."""
+        cd_s = 10.0
+        air_density = 1.05
+        velocity = 30.0
+        parachute = _make_parachute(cd_s=cd_s, opening_shock_coefficient=1.6)
+
+        force = parachute.evaluate_opening_shock_force(air_density, velocity)
+
+        steady_drag = (0.5 * air_density * velocity**2) * cd_s
+        assert force > steady_drag
+
+    def test_opening_shock_force_scales_with_velocity_squared(self):
+        """Doubling the inflation velocity must quadruple the peak load."""
+        parachute = _make_parachute(opening_shock_coefficient=1.5)
+
+        force_low = parachute.evaluate_opening_shock_force(1.2, 20.0)
+        force_high = parachute.evaluate_opening_shock_force(1.2, 40.0)
+
+        assert force_high == pytest.approx(4.0 * force_low, rel=1e-12)
+
+    def test_opening_shock_force_requires_coefficient(self):
+        """Without an opening_shock_coefficient the estimate is disabled."""
+        parachute = _make_parachute()  # opening_shock_coefficient defaults to None
+
+        assert parachute.opening_shock_coefficient is None
+        with pytest.raises(ValueError, match="opening_shock_coefficient"):
+            parachute.evaluate_opening_shock_force(1.2, 30.0)
+
+    def test_opening_shock_coefficient_survives_dict_round_trip(self):
+        """to_dict/from_dict must preserve the opening_shock_coefficient."""
+        parachute = _make_parachute(opening_shock_coefficient=1.7)
+
+        restored = Parachute.from_dict(parachute.to_dict())
+
+        assert restored.opening_shock_coefficient == 1.7
