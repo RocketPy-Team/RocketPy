@@ -32,6 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- ENH: estimate parachute opening shock force [#1072](https://github.com/RocketPy-Team/RocketPy/pull/1072)
 - ENH: TST/DOC: fix build-docs and codecov failures from the PyVista animations [#1069](https://github.com/RocketPy-Team/RocketPy/pull/1069)
 - ENH: ENH: Interactive 3D Flight Trajectory and Attitude Animation. [#1066](https://github.com/RocketPy-Team/RocketPy/pull/1066)
 - ENH: ENH: Interactive 3D Flight Trajectory and Attitude Animation [#1066](https://github.com/RocketPy-Team/RocketPy/pull/1066)
