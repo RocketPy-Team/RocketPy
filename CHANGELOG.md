@@ -32,30 +32,21 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
-- ENH: TST/DOC: fix build-docs and codecov failures from the PyVista animations [#1069](https://github.com/RocketPy-Team/RocketPy/pull/1069)
-- ENH: ENH: Interactive 3D Flight Trajectory and Attitude Animation. [#1066](https://github.com/RocketPy-Team/RocketPy/pull/1066)
-- ENH: ENH: Interactive 3D Flight Trajectory and Attitude Animation [#1066](https://github.com/RocketPy-Team/RocketPy/pull/1066)
-- ENH: ENH: `Function` vectorized speed-up and refactor [#1049](https://github.com/RocketPy-Team/RocketPy/pull/1049)
-- ENH: REV: Revert PR #958 [#1063](https://github.com/RocketPy-Team/RocketPy/pull/1063)
-- ENH: MNT: remove duplicate and merge-sync entries from Unreleased changelog [#1062](https://github.com/RocketPy-Team/RocketPy/pull/1062)
 ### Changed
-
-- MNT: MNT: Remove Unused pylint Disable Statements. [#1067](https://github.com/RocketPy-Team/RocketPy/pull/1067)
-- MNT: MNT: Remove Unused pylint Disable Statements. [#1067](https://github.com/RocketPy-Team/RocketPy/pull/1067)
 
 ### Fixed
 
-## [v1.13.0] - 2026-07-04
+## [v1.13.0] - 2026-07-19
 
 ### Added
 
-- ENH: ENH: Refactor flight.py latitude/longitude to use inverted_haversine [#1055](https://github.com/RocketPy-Team/RocketPy/pull/1055)
-- ENH: TST: Add unit tests for evaluate_reduced_mass and remove TODO [#1051](https://github.com/RocketPy-Team/RocketPy/pull/1051)
+- ENH: `Function` vectorized speed-up and refactor [#1049](https://github.com/RocketPy-Team/RocketPy/pull/1049)
+- ENH: Interactive 3D Flight Trajectory and Attitude Animation (PyVista) [#1066](https://github.com/RocketPy-Team/RocketPy/pull/1066)
+- ENH: Add optional `max_time` to `StochasticFlight` and carry base-flight attributes into created objects [#1070](https://github.com/RocketPy-Team/RocketPy/pull/1070)
 - ENH: seed sensor measurement noise per instance [#1052](https://github.com/RocketPy-Team/RocketPy/pull/1052)
-- ENH: FIX: pre release hardening [#1047](https://github.com/RocketPy-Team/RocketPy/pull/1047)
-- ENH: DEV: Claude Code ruff hooks (auto-format on edit + pre-push lint guard) [#1046](https://github.com/RocketPy-Team/RocketPy/pull/1046)
-- ENH: CI: create a CI for testing docs updates + solve different docs issues [#1045](https://github.com/RocketPy-Team/RocketPy/pull/1045)
-- ENH: MNT: final fixes before next release [#1044](https://github.com/RocketPy-Team/RocketPy/pull/1044)
+- DEV: Claude Code ruff hooks (auto-format on edit + pre-push lint guard) [#1046](https://github.com/RocketPy-Team/RocketPy/pull/1046)
+- CI: create a CI for testing docs updates + solve different docs issues [#1045](https://github.com/RocketPy-Team/RocketPy/pull/1045)
+- MNT: final fixes before next release [#1044](https://github.com/RocketPy-Team/RocketPy/pull/1044)
 - ENH: Individual Fins: add `Fin`, `TrapezoidalFin`, `EllipticalFin`, and `FreeFormFin` classes for modeling asymmetric or individually-positioned fins [#818](https://github.com/RocketPy-Team/RocketPy/pull/818)
 - ENH: Add AIGFS and HRRR forecast models to the Environment class [#951](https://github.com/RocketPy-Team/RocketPy/pull/951)
 - ENH: Add RingClusterMotor for annular clustered motor modeling [#924](https://github.com/RocketPy-Team/RocketPy/pull/924)
@@ -63,12 +54,10 @@ Attention: The newest changes should be on top -->
 - ENH: Add custom exceptions and unstable rocket warning [#970](https://github.com/RocketPy-Team/RocketPy/pull/970)
 - ENH: Adopt built-in Python logging instead of print() calls (closes [#450](https://github.com/RocketPy-Team/RocketPy/issues/450)) [#973](https://github.com/RocketPy-Team/RocketPy/pull/973)
 - ENH: Pass acceleration (`u_dot`) data to parachute trigger functions [#911](https://github.com/RocketPy-Team/RocketPy/pull/911)
-- ENH: Add 3D flight trajectory and attitude animations in Flight plots layer [#909](https://github.com/RocketPy-Team/RocketPy/pull/909)
 - ENH: Monte Carlo Formatting Options [#947](https://github.com/RocketPy-Team/RocketPy/pull/947)
 - ENH: Adaptive Monte Carlo via Convergence Criteria [#922](https://github.com/RocketPy-Team/RocketPy/pull/922)
 - ENH: Auto-Detection of Pressure Conversion Factor [#966](https://github.com/RocketPy-Team/RocketPy/pull/966)
 - ENH: Introduce pressure unit conversion when using forecast/reanalysis/ensemble data [#955](https://github.com/RocketPy-Team/RocketPy/pull/955)
-- MNT: Refactor parachute implementation with abstract base and hemispherical model split [#958](https://github.com/RocketPy-Team/RocketPy/pull/958)
 - DOC: Add aerodynamic surfaces user guide [#1043](https://github.com/RocketPy-Team/RocketPy/pull/1043)
 - DOC: Add Valkyrie flight example (Bisky Team) [#967](https://github.com/RocketPy-Team/RocketPy/pull/967)
 - DOC: Configure AI instructions and update developer docs [#975](https://github.com/RocketPy-Team/RocketPy/pull/975)
@@ -79,7 +68,7 @@ Attention: The newest changes should be on top -->
 ### Changed
 
 - REL: bumps up rocketpy version to 1.13.0 [#1048](https://github.com/RocketPy-Team/RocketPy/pull/1048)
-- MNT: **Breaking**: `Parachute` is now an abstract base class and can no longer be instantiated directly; use `HemisphericalParachute` (or `Rocket.add_parachute`, which builds it for you). Loading old serialized files still works [#958](https://github.com/RocketPy-Team/RocketPy/pull/958)
+- MNT: Remove unused pylint disable statements [#1067](https://github.com/RocketPy-Team/RocketPy/pull/1067)
 - MNT: Discrete controllers are now called exactly once per time node (previously twice); results may change for stateful controllers and `observed_variables` no longer contains duplicated entries [#949](https://github.com/RocketPy-Team/RocketPy/pull/949)
 - MNT: Multi-dimensional linear `Function` objects now apply their extrapolation rule to points outside the data's convex hull (previously returned NaN) [#969](https://github.com/RocketPy-Team/RocketPy/pull/969)
 - MNT: Informational messages previously shown with `print()` now use Python logging and are silent by default; call `rocketpy.utils.enable_logging()` to see them [#973](https://github.com/RocketPy-Team/RocketPy/pull/973)
