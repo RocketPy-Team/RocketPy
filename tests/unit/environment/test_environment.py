@@ -873,3 +873,46 @@ def test_get_pressure_levels_from_file_unit_synonyms(units, expected_levels):
     dataset = _DS(_Var([1000.0, 850.0], units))
     levels = get_pressure_levels_from_file(dataset, {"level": "lev"}, None)
     npt.assert_allclose(levels, expected_levels)
+
+
+@pytest.mark.parametrize(
+    "unit, expected",
+    [
+        ("mbar", 100),
+        ("mb", 100),
+        ("hPa", 100),
+        ("millibar", 100),
+        ("millibars", 100),
+        ("hectopascal", 100),
+        ("Pa", 1),
+        ("pascal", 1),
+        ("parsecs", None),
+        ("", None),
+    ],
+)
+def test_pressure_unit_to_factor(unit, expected):
+    """The shared unit->factor helper: hPa synonyms ->100, Pa ->1, else None."""
+    from rocketpy.environment.tools import pressure_unit_to_factor
+
+    assert pressure_unit_to_factor(unit) == expected
+
+
+@pytest.mark.parametrize("unit, expected", [("mb", 100), ("millibar", 100), ("Pa", 1)])
+def test_pressure_conversion_factor_explicit_unit_synonyms(
+    example_plain_env, unit, expected
+):
+    """An explicit string ``pressure_conversion_factor`` accepts the same unit
+    synonyms as file auto-detection (Copilot review consistency fix)."""
+    factor = example_plain_env._Environment__determine_pressure_conversion_factor(
+        unit, None, None
+    )
+    assert factor == expected
+
+
+def test_set_atmospheric_model_rejects_unknown_pressure_unit(example_plain_env):
+    """An unrecognized ``pressure_conversion_factor`` unit is rejected during
+    validation, before any file access."""
+    with pytest.raises(ValueError, match="pressure_conversion_factor"):
+        example_plain_env.set_atmospheric_model(
+            type="Forecast", file="dummy", pressure_conversion_factor="parsecs"
+        )

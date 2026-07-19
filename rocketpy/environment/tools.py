@@ -190,6 +190,35 @@ def geodesic_to_lambert_conformal(lat, lon, projection_variable, x_units="m"):
 ## These functions are meant to be used with netcdf4 datasets
 
 
+HPA_UNIT_SYNONYMS = frozenset(
+    {"hpa", "mbar", "mb", "millibar", "millibars", "hectopascal", "hectopascals"}
+)
+PA_UNIT_SYNONYMS = frozenset({"pa", "pascal"})
+
+
+def pressure_unit_to_factor(unit):
+    """Return the Pa conversion factor for a pressure-unit string.
+
+    Parameters
+    ----------
+    unit : str
+        Pressure unit label (case-insensitive), e.g. ``"hPa"``, ``"mb"``,
+        ``"millibar"`` or ``"Pa"``.
+
+    Returns
+    -------
+    int or None
+        ``100`` for hPa/millibar synonyms, ``1`` for Pa synonyms, or ``None``
+        if the unit string is not recognised.
+    """
+    unit = unit.lower().strip()
+    if unit in HPA_UNIT_SYNONYMS:
+        return 100
+    if unit in PA_UNIT_SYNONYMS:
+        return 1
+    return None
+
+
 def get_pressure_levels_from_file(data, dictionary, conversion_factor):
     """Extracts pressure levels from a netCDF4 dataset and converts them to Pa.
 
@@ -219,15 +248,7 @@ def get_pressure_levels_from_file(data, dictionary, conversion_factor):
         level_var = data.variables[dictionary["level"]]
         if conversion_factor is None:
             raw_units = getattr(level_var, "units", "").lower().strip()
-            if raw_units in (
-                "hpa",
-                "mbar",
-                "mb",
-                "millibar",
-                "millibars",
-                "hectopascal",
-                "hectopascals",
-            ):
+            if raw_units in HPA_UNIT_SYNONYMS:
                 conversion_factor = 100
             else:
                 conversion_factor = 1

@@ -38,6 +38,7 @@ from rocketpy.environment.tools import (
     get_interval_date_from_time_array,
     get_pressure_levels_from_file,
     mask_and_clean_dataset,
+    pressure_unit_to_factor,
 )
 from rocketpy.environment.weather_model_mapping import WeatherModelMapping
 from rocketpy.mathutils.function import NUMERICAL_TYPES, Function, funcify_method
@@ -1158,9 +1159,7 @@ class Environment:
         if pressure_conversion_factor is not None:
             # User explicitly supplied a value — honour it.
             if isinstance(pressure_conversion_factor, str):
-                return (
-                    100 if pressure_conversion_factor.lower() in ("mbar", "hpa") else 1
-                )
+                return pressure_unit_to_factor(pressure_conversion_factor)
             return pressure_conversion_factor
 
         # Auto-detect. Primary source: known-model lookup table.
@@ -1360,11 +1359,7 @@ class Environment:
                                 "Argument 'pressure_conversion_factor' must be strictly positive!"
                             )
                     if isinstance(pressure_conversion_factor, str):
-                        if pressure_conversion_factor.lower() not in (
-                            "mbar",
-                            "hpa",
-                            "pa",
-                        ):
+                        if pressure_unit_to_factor(pressure_conversion_factor) is None:
                             raise ValueError(
                                 "Argument 'pressure_conversion_factor' unit must be a standard pressure unit ('mbar', 'hPa', 'Pa')!"
                             )
