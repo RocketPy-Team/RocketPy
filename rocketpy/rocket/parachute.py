@@ -1,4 +1,4 @@
-from inspect import signature
+from inspect import Parameter, signature
 
 import numpy as np
 
@@ -302,6 +302,10 @@ class Parachute:
         def _make_wrapper(fn):
             sig = signature(fn)
             params = list(sig.parameters.keys())
+            has_var_positional = any(
+                param.kind is Parameter.VAR_POSITIONAL
+                for param in sig.parameters.values()
+            )
 
             # detect if user function expects acceleration-like argument
             expects_udot = any(
@@ -324,6 +328,12 @@ class Parachute:
                 if num_params >= 5:
                     # Pass both sensors and u_dot
                     return fn(p, h, y, sensors, u_dot)
+                if has_var_positional:
+                    # Variadic triggers (e.g. ``lambda *args: ...``) accept any
+                    # number of positional arguments. Preserve the pre-1.13
+                    # behaviour of calling them with (pressure, height, state,
+                    # sensors).
+                    return fn(p, h, y, sensors)
                 # If function signature is not supported, raise an error
                 raise TypeError(
                     f"Trigger function '{fn.__name__}' has unsupported signature: "
