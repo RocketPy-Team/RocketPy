@@ -1018,6 +1018,13 @@ class TestInterpolationMethods:
         assert linear_func.get_interpolation_method() == "akima"
         assert np.isclose(linear_func.get_value(0), 0.0, atol=1e-6)
 
+    def test_akima_two_point_interpolation(self):
+        """Akima with only two points reduces to linear interpolation and must
+        not raise (regression for a 2-point IndexError during construction)."""
+        func = Function([(0.0, 1.0), (2.0, 5.0)], interpolation="akima")
+        assert np.isclose(func.get_value(1.0), 3.0, atol=1e-6)
+        assert np.isclose(func.get_value(0.5), 2.0, atol=1e-6)
+
     def test_polynomial_interpolation(self, linear_func):
         """Tests polynomial interpolation method"""
         assert isinstance(linear_func.set_interpolation("polynomial"), Function)

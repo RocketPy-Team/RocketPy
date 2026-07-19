@@ -100,6 +100,12 @@ def fit_akima(x, y):
     h = np.diff(x)
     m = np.diff(y) / h  # slopes of segments, shape (n-1,)
 
+    if n == 2:
+        # A single segment: Akima reduces to linear interpolation. The ghost-
+        # value reflection below indexes ``m[1]``/``m[-2]``, which do not exist
+        # for two points, so this case must be handled explicitly.
+        return np.vstack([y[:-1], m, np.zeros(1), np.zeros(1)])
+
     # Extend m with 2 ghost values on each side (Akima boundary reflection)
     # m_ext indices: 0..n+2  (n-1 interior + 2 left + 2 right)
     m_ext = np.empty(n + 3)
@@ -176,12 +182,15 @@ def fit_pchip(x, y):
         sign_change = (m[:-1] * m[1:]) <= 0
         pos_mask = ~sign_change
 
-        # Safe harmonic mean
-        t[1:-1] = np.where(
-            pos_mask,
-            (w1 + w2) / (w1 / m[:-1] + w2 / m[1:]),
-            0.0,
-        )
+        # Safe harmonic mean. The reciprocals are evaluated eagerly before
+        # ``np.where`` masks them, so silence the harmless divide-by-zero that
+        # occurs on flat segments (where ``pos_mask`` is already False).
+        with np.errstate(divide="ignore", invalid="ignore"):
+            t[1:-1] = np.where(
+                pos_mask,
+                (w1 + w2) / (w1 / m[:-1] + w2 / m[1:]),
+                0.0,
+            )
 
     # Boundary slopes: one-sided, clamped for monotonicity
     t[0] = _pchip_edge_slope(
