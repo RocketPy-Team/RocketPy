@@ -7,4 +7,5 @@ imageio
 multiprocess>=0.70
 statsmodels
 prettytable
-vedo>=2024.5.1
+pyvista>=0.45
+imageio-ffmpeg>=0.5
