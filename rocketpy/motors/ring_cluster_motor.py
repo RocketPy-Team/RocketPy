@@ -289,7 +289,9 @@ class RingClusterMotor(Motor):
         print("Cluster Configuration:")
         print(f" - Motors: {self.number} x {type(self.motor).__name__}")
         print(f" - Radial Distance: {self.radius} m")
-        return self.motor.info(*args, **kwargs)
+        # Report the cluster's own (N-times scaled) quantities, not the single
+        # base motor's, mirroring the correct behaviour of ``all_info``.
+        return super().info(*args, **kwargs)
 
     def to_dict(self, **kwargs):
         data = super().to_dict(**kwargs)
