@@ -14,6 +14,8 @@ from rocketpy.environment.tools import (
     geodesic_to_utm,
     get_final_date_from_time_array,
     get_initial_date_from_time_array,
+    get_pressure_levels_from_file,
+    pressure_unit_to_factor,
     utm_to_geodesic,
 )
 from rocketpy.environment.weather_model_mapping import WeatherModelMapping
@@ -856,7 +858,6 @@ def test_pressure_conversion_factor_autodetect_by_dictionary(
 )
 def test_get_pressure_levels_from_file_unit_synonyms(units, expected_levels):
     """hPa/millibar unit synonyms auto-scale by 100; Pa by 1."""
-    from rocketpy.environment.tools import get_pressure_levels_from_file
 
     class _Var:
         def __init__(self, values, units):
@@ -892,7 +893,6 @@ def test_get_pressure_levels_from_file_unit_synonyms(units, expected_levels):
 )
 def test_pressure_unit_to_factor(unit, expected):
     """The shared unit->factor helper: hPa synonyms ->100, Pa ->1, else None."""
-    from rocketpy.environment.tools import pressure_unit_to_factor
 
     assert pressure_unit_to_factor(unit) == expected
 
