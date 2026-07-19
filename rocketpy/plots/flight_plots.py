@@ -888,10 +888,7 @@ class _FlightPlots:
         options = {
             "background_color": kwargs.pop("background_color", None),
             "playback_controls": kwargs.pop("playback_controls", True),
-            "show_subrocket_point": kwargs.pop(
-                "show_subrocket_point",
-                kwargs.pop("show_subrocket_point", True),
-            ),
+            "show_subrocket_point": kwargs.pop("show_subrocket_point", True),
             "ground_image": kwargs.pop("ground_image", None),
             "ground_image_bounds": kwargs.pop("ground_image_bounds", None),
             "ground_image_coordinates": kwargs.pop("ground_image_coordinates", "enu"),
