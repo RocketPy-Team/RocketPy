@@ -32,7 +32,6 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
-- ENH: MNT: pre-release v1.13.0 cleanup — changelog consolidation + optional deps sync [#1073](https://github.com/RocketPy-Team/RocketPy/pull/1073)
 ### Changed
 
 ### Fixed
@@ -72,8 +71,10 @@ Attention: The newest changes should be on top -->
 - MNT: Remove unused pylint disable statements [#1067](https://github.com/RocketPy-Team/RocketPy/pull/1067)
 - MNT: Discrete controllers are now called exactly once per time node (previously twice); results may change for stateful controllers and `observed_variables` no longer contains duplicated entries [#949](https://github.com/RocketPy-Team/RocketPy/pull/949)
 - MNT: Multi-dimensional linear `Function` objects now apply their extrapolation rule to points outside the data's convex hull (previously returned NaN) [#969](https://github.com/RocketPy-Team/RocketPy/pull/969)
-- MNT: Informational messages previously shown with `print()` now use Python logging and are silent by default; call `rocketpy.utils.enable_logging()` to see them [#973](https://github.com/RocketPy-Team/RocketPy/pull/973)
+- MNT: Informational messages previously shown with `print()` now use Python logging and are silent by default; call `rocketpy.utilities.enable_logging()` to see them [#973](https://github.com/RocketPy-Team/RocketPy/pull/973)
 - ENH: Refactor flight.py latitude/longitude to use inverted_haversine [#1055](https://github.com/RocketPy-Team/RocketPy/pull/1055)
+- MNT: `Function` with `interpolation="akima"` now matches the canonical (SciPy) Akima spline; interpolated values differ slightly from previous releases [#1049](https://github.com/RocketPy-Team/RocketPy/pull/1049)
+- MNT: `Function.differentiate` on 1-D array Functions now returns the analytical derivative of the interpolation (previously central finite differences); values at knots and domain edges may change [#1049](https://github.com/RocketPy-Team/RocketPy/pull/1049)
 
 ### Deprecated
 
