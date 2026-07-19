@@ -109,3 +109,24 @@ class TestParachuteSerialization:
         }
         parachute = Parachute.from_dict(data)
         assert parachute.drag_coefficient == pytest.approx(1.4)
+
+
+@pytest.mark.parametrize(
+    "trigger, expects_udot",
+    [
+        (lambda p, h, y: p < 900, False),
+        (lambda p, h, y, sensors: p < 900, False),
+        (lambda p, h, y, acceleration: acceleration is not None, True),
+        (lambda p, h, y, sensors, u_dot: p < 900, True),
+        (lambda *args: args[0] < 900, False),
+    ],
+)
+def test_callable_trigger_arities_route_arguments(trigger, expects_udot):
+    """Every supported trigger signature (3-arg, 4-arg sensors, 4-arg
+    acceleration, 5-arg, and variadic ``*args``) builds a wrapper that runs
+    without raising and sets ``_expects_udot`` correctly. Regression for the
+    variadic trigger that raised ``TypeError`` in early v1.13."""
+    parachute = _make_parachute(trigger=trigger)
+    result = parachute.triggerfunc(800.0, 500.0, [0.0] * 6, [], [1.0] * 6)
+    assert result is True
+    assert parachute.triggerfunc._expects_udot is expects_udot
