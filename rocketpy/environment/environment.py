@@ -1,7 +1,8 @@
-# pylint: disable=too-many-public-methods, too-many-instance-attributes
+# pylint: disable=too-many-public-methods, too-many-instance-attributes, too-many-lines
 import bisect
 import json
 import logging
+import os
 import re
 import warnings
 from collections import namedtuple
@@ -13,6 +14,7 @@ import pytz
 
 from rocketpy.environment.fetchers import (
     fetch_aigfs_file_return_dataset,
+    fetch_atmospheric_data_from_meteomatics,
     fetch_atmospheric_data_from_windy,
     fetch_gefs_ensemble,
     fetch_gfs_file_return_dataset,
@@ -145,8 +147,8 @@ class Environment:
     Environment.atmospheric_model_type : string
         Describes the atmospheric model which is being used. Can only assume the
         following values: ``standard_atmosphere``, ``custom_atmosphere``,
-        ``wyoming_sounding``, ``windy``, ``forecast``, ``reanalysis``,
-        ``ensemble``.
+        ``wyoming_sounding``, ``windy``, ``meteomatics``, ``forecast``,
+        ``reanalysis``, ``ensemble``.
     Environment.atmospheric_model_file : string
         Address of the file used for the atmospheric model being used. Only
         defined for ``wyoming_sounding``, ``windy``, ``forecast``,
@@ -1188,6 +1190,8 @@ class Environment:
         wind_u=0,
         wind_v=0,
         pressure_conversion_factor=None,
+        username=None,
+        password=None,
     ):
         """Define the atmospheric model for this Environment.
 
@@ -1196,8 +1200,8 @@ class Environment:
         type : string
             Atmospheric model selector (case-insensitive). Accepted values are
             ``"standard_atmosphere"``, ``"wyoming_sounding"``, ``"windy"``,
-            ``"forecast"``, ``"reanalysis"``, ``"ensemble"`` and
-            ``"custom_atmosphere"``.
+            ``"forecast"``, ``"reanalysis"``, ``"ensemble"``,
+            ``"custom_atmosphere"`` and ``"meteomatics"``.
         file : string | netCDF4.Dataset, optional
             Data source or model shortcut. Meaning depends on ``type``:
 
@@ -1205,6 +1209,9 @@ class Environment:
             - ``"wyoming_sounding"``: URL of the sounding text page.
             - ``"windy"``: one of ``"ECMWF"``, ``"GFS"``, ``"ICON"`` or
               ``"ICONEU"``.
+            - ``"meteomatics"``: the Meteomatics weather model to query, such
+              as ``"mix"`` (the default when omitted). See the Meteomatics
+              documentation for the models available to your account.
             - ``"forecast"``: local path, OPeNDAP URL, open
               ``netCDF4.Dataset``, or one of ``"AIGFS"``, ``"GFS"``,
               ``"NAM"``, ``"RAP"``, ``"HRRR"`` or ``"HIRESW"`` for the
@@ -1290,6 +1297,14 @@ class Environment:
             model name (e.g. ERA5/ECMWF/MERRA2 reanalysis files commonly use hPa,
             while online GFS/NAM/RAP/HRRR forecast models use Pa) or, if
             unavailable, by reading the pressure unit attribute from the file.
+        username : string, optional
+            Meteomatics account username. Only used when ``type`` is
+            ``"meteomatics"``. If None (the default), the value is read from the
+            ``METEOMATICS_USERNAME`` environment variable.
+        password : string, optional
+            Meteomatics account password. Only used when ``type`` is
+            ``"meteomatics"``. If None (the default), the value is read from the
+            ``METEOMATICS_PASSWORD`` environment variable.
 
         Returns
         -------
@@ -1338,6 +1353,10 @@ class Environment:
                 self.process_custom_atmosphere(pressure, temperature, wind_u, wind_v)
             case "windy":
                 self.process_windy_atmosphere(file)
+            case "meteomatics":
+                self.process_meteomatics_atmosphere(
+                    model=file, username=username, password=password
+                )
             case "forecast" | "reanalysis" | "ensemble":
                 # Capture the user-supplied names before __validate_dictionary
                 # converts them to dicts, so they can drive auto-detection.
@@ -1735,6 +1754,181 @@ class Environment:
             wind_u_array,
             wind_v_array,
         )
+
+    def process_meteomatics_atmosphere(  # pylint: disable=too-many-statements
+        self,
+        model="mix",
+        username=None,
+        password=None,
+        min_altitude=10,
+        max_altitude=12000,
+        wind_resolution=20,
+        temperature_pressure_resolution=10,
+        query_limit=10,
+    ):
+        """Process data from the Meteomatics API to retrieve a vertical
+        atmospheric profile at the launch site.
+
+        The Meteomatics API is queried for temperature, pressure and both wind
+        components at several altitudes above ground level, which are then
+        converted to profiles above sea level using the ``Environment``
+        elevation. Authentication uses a personal username and password; when
+        not provided, they are read from the ``METEOMATICS_USERNAME`` and
+        ``METEOMATICS_PASSWORD`` environment variables.
+
+        Parameters
+        ----------
+        model : str, optional
+            The Meteomatics weather model to query. Default is ``"mix"``. Your
+            account may not have access to every model.
+        username : str, optional
+            Meteomatics account username. Defaults to the
+            ``METEOMATICS_USERNAME`` environment variable.
+        password : str, optional
+            Meteomatics account password. Defaults to the
+            ``METEOMATICS_PASSWORD`` environment variable.
+        min_altitude : float, optional
+            Lowest altitude above ground level (in meters) to query. Default is
+            10.
+        max_altitude : float, optional
+            Highest altitude above ground level (in meters) to query. Default
+            is 12000. The API errors if it lies outside the model's supported
+            range.
+        wind_resolution : int, optional
+            Number of altitude levels used for the wind components. Default is
+            20.
+        temperature_pressure_resolution : int, optional
+            Number of altitude levels used for temperature and pressure.
+            Default is 10.
+        query_limit : int, optional
+            Maximum number of parameters requested at once. Parameters are
+            grouped accordingly to respect the account's per-request limit.
+            Default is 10.
+
+        Raises
+        ------
+        ValueError
+            If credentials are missing, if no launch date is set, or if the API
+            returns no usable data.
+        """
+        model = model if isinstance(model, str) else "mix"
+        username = username or os.environ.get("METEOMATICS_USERNAME")
+        password = password or os.environ.get("METEOMATICS_PASSWORD")
+        if not username or not password:
+            raise ValueError(
+                "Meteomatics requires a username and password. Provide them via "
+                "the 'username' and 'password' arguments of set_atmospheric_model, "
+                "or set the METEOMATICS_USERNAME and METEOMATICS_PASSWORD "
+                "environment variables."
+            )
+        if getattr(self, "datetime_date", None) is None:
+            raise ValueError(
+                "A launch date is required to use the Meteomatics atmospheric "
+                "model. Provide it when creating the Environment or via set_date()."
+            )
+
+        profiles = fetch_atmospheric_data_from_meteomatics(
+            username=username,
+            password=password,
+            latitude=self.latitude,
+            longitude=self.longitude,
+            date=self.datetime_date,
+            model=model,
+            min_altitude=min_altitude,
+            max_altitude=max_altitude,
+            wind_resolution=wind_resolution,
+            temperature_pressure_resolution=temperature_pressure_resolution,
+            query_limit=query_limit,
+        )
+
+        if self.elevation == 0:
+            warnings.warn(
+                "The Environment elevation is 0 m (possibly unset), so "
+                "Meteomatics heights above ground level are being treated as "
+                "heights above sea level. If the launch site is not at sea "
+                "level, set the elevation (e.g. Environment(elevation=...) or "
+                "set_elevation('Open-Elevation')) before this call for an "
+                "accurate profile.",
+                UserWarning,
+                stacklevel=2,
+            )
+
+        def to_profile_array(profile):
+            """Convert an {AGL height: value} mapping into a sorted
+            (ASL height, value) array, dropping any missing value."""
+            heights = sorted(h for h, value in profile.items() if value is not None)
+            return np.array(
+                [(h + self.elevation, profile[h]) for h in heights], dtype=float
+            )
+
+        pressure_array = to_profile_array(profiles["pressure"])
+        temperature_array = to_profile_array(profiles["temperature"])
+
+        # Wind u and v share the same altitude grid; keep only common levels.
+        wind_heights = sorted(
+            h
+            for h in set(profiles["wind_u"]) & set(profiles["wind_v"])
+            if profiles["wind_u"][h] is not None and profiles["wind_v"][h] is not None
+        )
+        # Each profile needs at least two levels: a single-point Function cannot
+        # be evaluated at its own node (it raises IndexError downstream), so a
+        # collapsed grid must fail here with an actionable message instead.
+        if min(len(pressure_array), len(temperature_array), len(wind_heights)) < 2:
+            raise ValueError(
+                "Meteomatics did not return enough usable atmospheric data: at "
+                "least two valid altitude levels are required for pressure, "
+                "temperature and wind. Check the requested model, the altitude "
+                "range (min_altitude and max_altitude must be far enough apart "
+                "that the sampled levels do not collapse to a single height), "
+                "and your account permissions."
+            )
+
+        wind_u_values = np.array([profiles["wind_u"][h] for h in wind_heights])
+        wind_v_values = np.array([profiles["wind_v"][h] for h in wind_heights])
+        wind_asl_heights = np.array(wind_heights, dtype=float) + self.elevation
+        wind_u_array = np.column_stack((wind_asl_heights, wind_u_values))
+        wind_v_array = np.column_stack((wind_asl_heights, wind_v_values))
+
+        wind_speed_array = calculate_wind_speed(wind_u_values, wind_v_values)
+        wind_heading_array = calculate_wind_heading(wind_u_values, wind_v_values)
+        wind_direction_array = convert_wind_heading_to_direction(wind_heading_array)
+
+        # Save atmospheric data
+        self.__set_pressure_function(pressure_array)
+        self.__set_barometric_height_function(pressure_array[:, (1, 0)])
+        self.__set_temperature_function(temperature_array)
+        self.__set_wind_velocity_x_function(wind_u_array)
+        self.__set_wind_velocity_y_function(wind_v_array)
+        self.__set_wind_heading_function(
+            np.column_stack((wind_asl_heights, wind_heading_array))
+        )
+        self.__set_wind_direction_function(
+            np.column_stack((wind_asl_heights, wind_direction_array))
+        )
+        self.__set_wind_speed_function(
+            np.column_stack((wind_asl_heights, wind_speed_array))
+        )
+
+        # Save maximum expected height
+        self._max_expected_height = float(
+            max(pressure_array[-1, 0], temperature_array[-1, 0], wind_asl_heights[-1])
+        )
+
+        # Save model info metadata (single point in space and time)
+        self.atmospheric_model_init_date = self.datetime_date
+        self.atmospheric_model_end_date = self.datetime_date
+        self.atmospheric_model_interval = 0
+        self.atmospheric_model_init_lat = self.latitude
+        self.atmospheric_model_end_lat = self.latitude
+        self.atmospheric_model_init_lon = self.longitude
+        self.atmospheric_model_end_lon = self.longitude
+
+        # Save debugging data
+        self.wind_us = wind_u_values
+        self.wind_vs = wind_v_values
+        self.temperatures = temperature_array[:, 1]
+        self.pressures = pressure_array[:, 1]
+        self.height = wind_asl_heights
 
     def process_wyoming_sounding(self, file):  # pylint: disable=too-many-statements
         """Import and process the upper air sounding data from `Wyoming
@@ -3010,7 +3204,13 @@ class Environment:
                 env.elevation = data["elevation"]
                 env.max_expected_height = data["max_expected_height"]
 
-        if atmospheric_model in ("windy", "forecast", "reanalysis", "ensemble"):
+        if isinstance(atmospheric_model, str) and atmospheric_model.lower() in (
+            "windy",
+            "meteomatics",
+            "forecast",
+            "reanalysis",
+            "ensemble",
+        ):
             env.atmospheric_model_init_date = data["atmospheric_model_init_date"]
             env.atmospheric_model_end_date = data["atmospheric_model_end_date"]
             env.atmospheric_model_interval = data["atmospheric_model_interval"]
