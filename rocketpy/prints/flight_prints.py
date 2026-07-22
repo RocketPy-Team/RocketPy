@@ -661,6 +661,11 @@ class _FlightPrints:
         None
         """
 
+        if getattr(self.flight.reference_frame, "value", None) == "gcrf":
+            self.orbital_summary()
+            self.numerical_integration_settings()
+            return
+
         self.initial_conditions()
         print()
 
@@ -716,3 +721,23 @@ class _FlightPrints:
 
         self.numerical_integration_settings()
         print()
+
+    def orbital_summary(self):
+        """Print an Earth-centered propagation summary."""
+        initial = self.flight.orbit.initial
+        final = self.flight.orbit.final
+        print("\nEarth-Centered Flight Summary\n")
+        print(f"Reference frame: {self.flight.reference_frame.value.upper()}")
+        print(f"Initial epoch: {self.flight.start_epoch.to_datetime().isoformat()}")
+        print(f"Propagation duration: {self.flight.t_final:.3f} s")
+        print(f"Initial geodetic altitude: {self.flight.altitude(0):.3f} m")
+        print(
+            f"Final geodetic altitude: "
+            f"{self.flight.altitude(self.flight.t_final):.3f} m"
+        )
+        print(f"Initial semi-major axis: {initial.semi_major_axis:.3f} m")
+        print(f"Final semi-major axis: {final.semi_major_axis:.3f} m")
+        print(f"Initial eccentricity: {initial.eccentricity:.9f}")
+        print(f"Final eccentricity: {final.eccentricity:.9f}")
+        print(f"Initial inclination: {initial.inclination:.9f} rad")
+        print(f"Final inclination: {final.inclination:.9f} rad")

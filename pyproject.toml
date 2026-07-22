@@ -33,6 +33,9 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 packages = { find = { where = ["."], include = ["rocketpy*"] } }
+[tool.setuptools.package-data]
+"rocketpy.plots" = ["assets/*.stl"]
+"rocketpy.environment" = ["data/*.npz"]
 
 
 [tool.setuptools.dynamic]
@@ -40,6 +43,9 @@ dependencies = { file = ["requirements.txt"] }
 
 
 [project.optional-dependencies]
+performance = [
+    "numba>=0.60",
+]
 tests = [
     "pytest",
     "pytest-coverage",
@@ -68,7 +74,17 @@ monte-carlo = [
     "contextily>=1.0.0; python_version < '3.14'",
 ]
 
-all = ["rocketpy[env-analysis]", "rocketpy[monte-carlo]"]
+animation = [
+    "pyvista[jupyter]>=0.45",
+    "imageio",
+    "imageio-ffmpeg>=0.5"
+]
+
+all = [
+    "rocketpy[env-analysis]",
+    "rocketpy[monte-carlo]",
+    "rocketpy[animation]",
+]
 
 
 [tool.coverage.report]

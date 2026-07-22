@@ -9,7 +9,16 @@ from scipy.integrate import BDF, DOP853, LSODA, RK23, RK45, OdeSolver, Radau
 from rocketpy.simulation.flight_data_exporter import FlightDataExporter
 
 from .._logging import enable_logging, logger
+from ..mathutils.epoch import Epoch
+from ..mathutils.flight_state import FlightState
 from ..mathutils.function import Function, funcify_method
+from ..mathutils.orbital_elements import OrbitalElements
+from ..mathutils.reference_frame import (
+    ReferenceFrame,
+    gcrf_to_rtn_matrix,
+    itrf_to_topocentric,
+)
+from ..mathutils.vector_function import VectorFunction
 from ..mathutils.vector_matrix import Matrix
 from ..motors.solid_motor import SolidMotor
 from ..plots.flight_plots import _FlightPlots
@@ -23,6 +32,8 @@ from ..tools import (
     quaternions_to_precession,
     quaternions_to_spin,
 )
+from .orbit import FlightOrbit
+from .orbital_force_models import EarthRadiationPressure
 from .events.event_builders import build_core_events
 from .helpers.event_calling import (
     build_event_kwargs,
@@ -518,6 +529,9 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         ode_solver="LSODA",
         simulation_mode="6DOF",
         custom_events=None,
+        reference_frame=None,
+        initial_state=None,
+        force_models=None,
     ):
         """Run a trajectory simulation.
 
@@ -617,6 +631,17 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             Event or list of Events to be monitored during flight. See Event
             class for more details. Default is None.
 
+        reference_frame : ReferenceFrame or str, optional
+            Integration frame. The default ``"flat_earth"`` preserves the
+            established launch simulation. Use ``"gcrf"`` for Earth-centered
+            propagation; ``"itrf"`` is available as an output frame only.
+        initial_state : FlightState, optional
+            Typed initial state. Required for GCRF propagation and mutually
+            exclusive with ``initial_solution``.
+        force_models : iterable, optional
+            Additional Earth-centered acceleration models. Each item exposes
+            ``acceleration(epoch, state, rocket, environment)`` or is a callable
+            with the same arguments and returns a GCRF vector in m/s².
         Returns
         -------
         None
@@ -628,8 +653,57 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         # Save arguments
         self.env = environment
         self.rocket = rocket
+        self.reference_frame = ReferenceFrame.coerce(reference_frame)
+        self.initial_state = initial_state
+        if initial_state is not None and not isinstance(initial_state, FlightState):
+            raise TypeError("initial_state must be a FlightState instance.")
+        if initial_state is not None and initial_solution is not None:
+            raise ValueError("Use either initial_state or initial_solution, not both.")
+        if initial_state is not None:
+            if reference_frame is None:
+                self.reference_frame = initial_state.frame
+            elif initial_state.frame != self.reference_frame:
+                raise ValueError(
+                    "initial_state.frame must match Flight.reference_frame."
+                )
+        if self.reference_frame not in (
+            ReferenceFrame.FLAT_EARTH,
+            ReferenceFrame.GCRF,
+        ):
+            raise ValueError(
+                "ITRF and TEME are supported as output frames, but Flight "
+                "integration must use 'flat_earth' or 'gcrf'."
+            )
+        if self.reference_frame == ReferenceFrame.GCRF and initial_state is None:
+            raise ValueError(
+                "GCRF Flight propagation requires a typed initial_state. "
+                "Use FlightState.cartesian(...) with an absolute Epoch."
+            )
+        self.start_epoch = (
+            initial_state.epoch
+            if initial_state is not None
+            else getattr(environment, "epoch", Epoch.relative_origin())
+        )
+        if self.reference_frame == ReferenceFrame.GCRF:
+            self.start_epoch.require_absolute("GCRF Flight propagation")
+        self.force_models = list(force_models or [])
+        earth_radiation = getattr(environment, "earth_radiation", None)
+        if earth_radiation not in (None, False, "zero"):
+            if earth_radiation is True or earth_radiation == "knocke":
+                earth_radiation = EarthRadiationPressure()
+            if not callable(earth_radiation) and not hasattr(
+                earth_radiation, "acceleration"
+            ):
+                raise TypeError(
+                    "Environment.earth_radiation must be 'knocke', a callable, "
+                    "or an acceleration model."
+                )
+            if not any(model is earth_radiation for model in self.force_models):
+                self.force_models.append(earth_radiation)
         self.rail_length = rail_length
-        if self.rail_length <= 0:
+        if self.rail_length is None and initial_state is None:
+            raise ValueError("rail_length may be None only when initial_state is used.")
+        if self.rail_length is not None and self.rail_length <= 0:
             raise ValueError("Rail length must be a positive value.")
         self.parachutes = self.rocket.parachutes[:]
         self.inclination = inclination
@@ -682,6 +756,315 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             f"name= {self.name})>"
         )
 
+    def current_epoch(self, time):
+        """Return the simulation epoch at elapsed ``time`` in seconds."""
+        return self.start_epoch + (float(time) - self.t_initial)
+
+    # pylint: disable=too-many-locals,too-many-statements
+    def __simulate(self, verbose):
+        """Simulate the flight trajectory."""
+        for phase_index, phase in self.time_iterator(self.flight_phases):
+            # Determine maximum time for this flight phase
+            phase.time_bound = self.flight_phases[phase_index + 1].t
+
+            # Evaluate callbacks
+            for callback in phase.callbacks:
+                callback(self)
+
+            # Create solver for this flight phase
+            self.function_evaluations.append(0)
+
+            solver_arguments = {
+                "t0": phase.t,
+                "y0": self.y_sol,
+                "t_bound": phase.time_bound,
+                "rtol": self.rtol,
+                "atol": self.atol,
+                "max_step": self.max_time_step,
+            }
+            if self.__is_lsoda:
+                solver_arguments["min_step"] = self.min_time_step
+            phase.solver = self._solver(phase.derivative, **solver_arguments)
+
+            # Initialize phase time nodes
+            self.__setup_phase_time_nodes(phase)
+
+            # Iterate through time nodes
+            for node_index, node in self.time_iterator(phase.time_nodes):
+                # Determine time bound for this time node
+                node.time_bound = phase.time_nodes[node_index + 1].t
+                phase.solver.t_bound = node.time_bound
+                if self.__is_lsoda:
+                    phase.solver._lsoda_solver._integrator.rwork[0] = (
+                        phase.solver.t_bound
+                    )
+                    phase.solver._lsoda_solver._integrator.call_args[4] = (
+                        phase.solver._lsoda_solver._integrator.rwork
+                    )
+                phase.solver.status = "running"
+
+                # Feed required parachute and discrete controller triggers
+                # TODO: parachutes should be moved to controllers
+                for callback in node.callbacks:
+                    callback(self)
+
+                self.__process_sensors_and_controllers_at_current_node(node, phase)
+
+                for parachute in node.parachutes:
+                    # Calculate and save pressure signal
+                    (
+                        noisy_pressure,
+                        height_above_ground_level,
+                    ) = self.__calculate_and_save_pressure_signals(
+                        parachute, node.t, self.y_sol[2]
+                    )
+                    if self._evaluate_parachute_trigger(
+                        parachute,
+                        noisy_pressure,
+                        height_above_ground_level,
+                        self.y_sol,
+                        self.sensors,
+                        phase.derivative,
+                        self.t,
+                    ):
+                        # Remove parachute from flight parachutes
+                        self.parachutes.remove(parachute)
+                        # Create phase for time after detection and before inflation
+                        # Must only be created if parachute has any lag
+                        i = 1
+                        if parachute.lag != 0:
+                            self.flight_phases.add_phase(
+                                node.t,
+                                phase.derivative,
+                                clear=True,
+                                index=phase_index + i,
+                            )
+                            i += 1
+                        # Create flight phase for time after inflation
+                        callbacks = [
+                            lambda self, parachute_cd_s=parachute.cd_s: setattr(
+                                self, "parachute_cd_s", parachute_cd_s
+                            ),
+                            lambda self, parachute_radius=parachute.radius: setattr(
+                                self, "parachute_radius", parachute_radius
+                            ),
+                            lambda self, parachute_height=parachute.height: setattr(
+                                self, "parachute_height", parachute_height
+                            ),
+                            lambda self, parachute_porosity=parachute.porosity: setattr(
+                                self, "parachute_porosity", parachute_porosity
+                            ),
+                            lambda self, added_mass_coefficient=parachute.added_mass_coefficient: (
+                                setattr(
+                                    self,
+                                    "parachute_added_mass_coefficient",
+                                    added_mass_coefficient,
+                                )
+                            ),
+                        ]
+                        self.flight_phases.add_phase(
+                            node.t + parachute.lag,
+                            self.u_dot_parachute,
+                            callbacks,
+                            clear=False,
+                            index=phase_index + i,
+                        )
+                        # Prepare to leave loops and start new flight phase
+                        phase.time_nodes.flush_after(node_index)
+                        phase.time_nodes.add_node(self.t, [], [], [])
+                        phase.solver.status = "finished"
+                        # Save parachute event
+                        self.parachute_events.append([self.t, parachute])
+                if self.__check_and_handle_parachute_triggers(
+                    node, phase, phase_index, node_index
+                ):
+                    break  # Stop simulation if parachute is deployed
+
+                # Step through simulation
+                while phase.solver.status == "running":
+                    # Execute solver step, log solution and function evaluations
+                    phase.solver.step()
+                    self.solution += [[phase.solver.t, *phase.solver.y]]
+                    self.function_evaluations.append(phase.solver.nfev)
+
+                    # Update time and state
+                    self.t = phase.solver.t
+                    self.y_sol = phase.solver.y
+                    if verbose:
+                        print(f"Current Simulation Time: {self.t:3.4f} s", end="\r")
+                        logger.debug("Current Simulation Time: %3.4f s", self.t)
+
+                    for controller in self._continuous_controllers:
+                        controller(
+                            self.t,
+                            self.y_sol,
+                            self.solution,
+                            self.sensors,
+                            self.env,
+                        )
+                    if self.__check_simulation_events(phase, phase_index, node_index):
+                        break  # Stop if simulation termination event occurred
+
+                    # Process overshootable time nodes if enabled
+                    if self.time_overshoot and self.__process_overshootable_nodes(
+                        phase, phase_index, node_index
+                    ):
+                        break
+
+                    # If controlled flight, post process must be done on sim time
+                    # Post-process controllers if needed
+                    if self._controllers:
+                        phase.derivative(self.t, self.y_sol, post_processing=True)
+
+        self.t_final = self.t
+        self.__transform_pressure_signals_lists_to_functions()
+        if self._controllers:
+            # cache post process variables
+            self.__evaluate_post_process = np.array(self.__post_processed_variables)
+        if self.sensors:
+            self.__cache_sensor_data()
+        if verbose:
+            print(f"\n>>> Simulation Completed at Time: {self.t:3.4f} s")
+        logger.info("Simulation completed at time: %3.4f s", self.t)
+
+    def __setup_phase_time_nodes(self, phase):
+        """Set up time nodes for the current phase.
+
+        Parameters
+        ----------
+        phase : FlightPhase
+            The current flight phase.
+        """
+        phase.time_nodes = self.TimeNodes()
+
+        # Add first time node
+        phase.time_nodes.add_node(phase.t, [], [], [])
+
+        if (
+            self.time_overshoot is False
+            and self.reference_frame == ReferenceFrame.FLAT_EARTH
+        ):
+            phase.time_nodes.add_parachutes(self.parachutes, phase.t, phase.time_bound)
+            phase.time_nodes.add_sensors(self.rocket.sensors, phase.t, phase.time_bound)
+            phase.time_nodes.add_controllers(
+                self._controllers, phase.t, phase.time_bound
+            )
+
+        # Add last time node
+        phase.time_nodes.add_node(phase.time_bound, [], [], [])
+
+        # Organize time nodes
+        phase.time_nodes.sort()
+        phase.time_nodes.merge()
+
+        # Clear triggers from first time node if necessary
+        if phase.clear:
+            phase.time_nodes[0].parachutes = []
+            phase.time_nodes[0].callbacks = []
+
+    def __process_sensors_and_controllers_at_current_node(self, node, phase):
+        """Process sensors and controllers at the current node.
+
+        Parameters
+        ----------
+        node : TimeNode
+            The current time node.
+        phase : FlightPhase
+            The current flight phase.
+        """
+        if node._component_sensors:
+            u_dot = phase.derivative(self.t, self.y_sol)
+            self.__measure_sensors(node._component_sensors, u_dot)
+
+        for controller in node._controllers:
+            controller(
+                self.t,
+                self.y_sol,
+                self.solution,
+                self.sensors,
+                self.env,
+            )
+
+    def __measure_sensors(self, component_sensors, u_dot, t=None, y_sol=None):
+        """Measure sensors with the given state and derivative.
+
+        Parameters
+        ----------
+        component_sensors : list
+            List of (sensor, position) tuples.
+        u_dot : array_like
+            State derivative vector.
+        t : float, optional
+            Time for measurement. If None, uses self.t.
+        y_sol : array_like, optional
+            State vector. If None, uses self.y_sol.
+        """
+        if t is None:
+            t = self.t
+        if y_sol is None:
+            y_sol = self.y_sol
+
+        for sensor, position in component_sensors:
+            relative_position = position - self.rocket._csys * Vector(
+                [0, 0, self.rocket.center_of_dry_mass_position]
+            )
+            sensor.measure(
+                t,
+                u=y_sol,
+                u_dot=u_dot,
+                relative_position=relative_position,
+                environment=self.env,
+                gravity=self.env.gravity.get_value_opt(
+                    y_sol[2] if len(y_sol) > 2 else self.solution[-1][3]
+                ),
+                pressure=self.env.pressure,
+                earth_radius=self.env.earth_radius,
+                initial_coordinates=(self.env.latitude, self.env.longitude),
+            )
+
+    def __check_and_handle_parachute_triggers(
+        self, node, phase, phase_index, node_index
+    ):
+        """Check for parachute triggers and handle deployment.
+
+        Parameters
+        ----------
+        node : TimeNode
+            The current time node.
+        phase : FlightPhase
+            The current flight phase.
+        phase_index : int
+            The index of the current phase.
+        node_index : int
+            The index of the current node.
+
+        Returns
+        -------
+        bool
+            True if a parachute was triggered and the phase should break.
+        """
+        for parachute in node.parachutes:
+            # Calculate and save pressure signal
+            (
+                noisy_pressure,
+                height_above_ground_level,
+            ) = self.__calculate_and_save_pressure_signals(
+                parachute, node.t, self.y_sol[2]
+            )
+            if not self._evaluate_parachute_trigger(
+                parachute,
+                noisy_pressure,
+                height_above_ground_level,
+                self.y_sol,
+                self.sensors,
+                phase.derivative,
+                node.t,
+            ):
+                continue  # Check next parachute
+
+            # Remove parachute from flight parachutes (if not already removed)
+            if parachute in self.parachutes:
+                self.parachutes.remove(parachute)
     def __init_events(self):
         """Initialize events and event triggers. The order of the list is the
         order that the events will be called. Core events should be first, then
@@ -839,6 +1222,597 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
                 f"Invalid simulation_mode: {self.simulation_mode}. "
                 "Must be '3DOF' or '6DOF'."
             )
+                continue  # Parachute already triggered, skip to next
+
+            # Create phase for time after detection and before inflation
+            # Must only be created if parachute has any lag
+            i = 1
+            if parachute.lag != 0:
+                self.flight_phases.add_phase(
+                    node.t,
+                    phase.derivative,
+                    clear=True,
+                    index=phase_index + i,
+                )
+                i += 1
+
+            # Create flight phase for time after inflation
+            callbacks = [
+                lambda self, parachute_cd_s=parachute.cd_s: setattr(
+                    self, "parachute_cd_s", parachute_cd_s
+                ),
+                lambda self, parachute_radius=parachute.radius: setattr(
+                    self, "parachute_radius", parachute_radius
+                ),
+                lambda self, parachute_height=parachute.height: setattr(
+                    self, "parachute_height", parachute_height
+                ),
+                lambda self, parachute_porosity=parachute.porosity: setattr(
+                    self, "parachute_porosity", parachute_porosity
+                ),
+                lambda self, added_mass_coefficient=parachute.added_mass_coefficient: (
+                    setattr(
+                        self,
+                        "parachute_added_mass_coefficient",
+                        added_mass_coefficient,
+                    )
+                ),
+            ]
+            self.flight_phases.add_phase(
+                node.t + parachute.lag,
+                self.u_dot_parachute,
+                callbacks,
+                clear=False,
+                index=phase_index + i,
+            )
+
+            # Prepare to leave loops and start new flight phase
+            phase.time_nodes.flush_after(node_index)
+            phase.time_nodes.add_node(self.t, [], [], [])
+            phase.solver.status = "finished"
+            self.parachute_events.append([self.t, parachute])
+            return True
+
+        return False
+
+    def __check_simulation_events(self, phase, phase_index, node_index):
+        """Check for simulation events like out of rail, apogee, and impact.
+
+        Parameters
+        ----------
+        phase : FlightPhase
+            The current flight phase.
+        phase_index : int
+            The index of the current phase.
+        node_index : int
+            The index of the current node.
+
+        Returns
+        -------
+        bool
+            True if an event occurred and the simulation should break.
+        """
+        if self.reference_frame == ReferenceFrame.GCRF:
+            epoch = self.current_epoch(self.t)
+            position_itrf, _, _ = self.env.transform_kinematics(
+                epoch,
+                self.y_sol[:3],
+                source=ReferenceFrame.GCRF,
+                target=ReferenceFrame.ITRF,
+                datum=self.env.earth_datum,
+            )
+            _, _, altitude = self.env.earth_datum.itrs_to_geodetic(position_itrf)
+            if altitude <= 0.0:
+                self.t_final = self.t
+                self.impact_state = self.y_sol.copy()
+                self.x_impact, self.y_impact, self.z_impact = self.y_sol[:3]
+                self.impact_velocity = float(np.linalg.norm(self.y_sol[3:6]))
+                self.flight_phases.flush_after(phase_index)
+                self.flight_phases.add_phase(self.t)
+                phase.time_nodes.flush_after(node_index)
+                phase.time_nodes.add_node(self.t, [], [], [])
+                phase.solver.status = "finished"
+                return True
+            return False
+
+        # Check for first out of rail event
+        if len(self.out_of_rail_state) == 1 and (
+            self.y_sol[0] ** 2
+            + self.y_sol[1] ** 2
+            + (self.y_sol[2] - self.env.elevation) ** 2
+            >= self.effective_1rl**2
+        ):
+            return self.__handle_out_of_rail_event(phase, phase_index, node_index)
+
+        # Check for apogee event
+        # TODO: negative vz doesn't really mean apogee. Improve this.
+        if len(self.apogee_state) == 1 and self.y_sol[5] < 0:
+            return self.__handle_apogee_event(phase, phase_index, node_index)
+
+        # Check for impact event
+        if self.y_sol[2] < self.env.elevation:
+            return self.__handle_impact_event(phase, phase_index, node_index)
+
+        return False
+
+    def __handle_out_of_rail_event(self, phase, phase_index, node_index):
+        """Handle the out of rail event.
+
+        Parameters
+        ----------
+        phase : FlightPhase
+            The current flight phase.
+        phase_index : int
+            The index of the current phase.
+        node_index : int
+            The index of the current node.
+
+        Returns
+        -------
+        bool
+            True to indicate the simulation should break.
+        """
+        # Check exactly when it went out using root finding
+        # Disconsider elevation
+        self.solution[-2][3] -= self.env.elevation
+        self.solution[-1][3] -= self.env.elevation
+        # Get points
+        y0 = sum(self.solution[-2][i] ** 2 for i in [1, 2, 3]) - self.effective_1rl**2
+        yp0 = 2 * sum(
+            self.solution[-2][i] * self.solution[-2][i + 3] for i in [1, 2, 3]
+        )
+        t1 = self.solution[-1][0] - self.solution[-2][0]
+        y1 = sum(self.solution[-1][i] ** 2 for i in [1, 2, 3]) - self.effective_1rl**2
+        yp1 = 2 * sum(
+            self.solution[-1][i] * self.solution[-1][i + 3] for i in [1, 2, 3]
+        )
+        # Put elevation back
+        self.solution[-2][3] += self.env.elevation
+        self.solution[-1][3] += self.env.elevation
+        # Cubic Hermite interpolation (ax**3 + bx**2 + cx + d)
+        a, b, c, d = calculate_cubic_hermite_coefficients(
+            0,
+            float(phase.solver.step_size),
+            y0,
+            yp0,
+            y1,
+            yp1,
+        )
+        a += 1e-5  # TODO: why??
+        # Find roots
+        t_roots = find_roots_cubic_function(a, b, c, d)
+        # Find correct root
+        valid_t_root = [
+            t_root.real
+            for t_root in t_roots
+            if 0 < t_root.real < t1 and abs(t_root.imag) < 0.001
+        ]
+        if len(valid_t_root) > 1:  # pragma: no cover
+            raise ValueError("Multiple roots found when solving for rail exit time.")
+        if len(valid_t_root) == 0:  # pragma: no cover
+            raise ValueError("No valid roots found when solving for rail exit time.")
+        # Determine final state when upper button is going out of rail
+        self.t = valid_t_root[0] + self.solution[-2][0]
+        interpolator = phase.solver.dense_output()
+        self.y_sol = interpolator(self.t)
+        self.solution[-1] = [self.t, *self.y_sol]
+        self.out_of_rail_time = self.t
+        self.out_of_rail_time_index = len(self.solution) - 1
+        self.out_of_rail_state = self.y_sol
+        # Create new flight phase
+        self.flight_phases.add_phase(
+            self.t,
+            self.u_dot_generalized,
+            index=phase_index + 1,
+        )
+        # Prepare to leave loops and start new flight phase
+        phase.time_nodes.flush_after(node_index)
+        phase.time_nodes.add_node(self.t, [], [], [])
+        phase.solver.status = "finished"
+        return True
+
+    def __handle_apogee_event(self, phase, phase_index, node_index):
+        """Handle the apogee event.
+
+        Parameters
+        ----------
+        phase : FlightPhase
+            The current flight phase.
+        phase_index : int
+            The index of the current phase.
+        node_index : int
+            The index of the current node.
+
+        Returns
+        -------
+        bool
+            True if simulation should break, False otherwise.
+        """
+        # Assume linear vz(t) to detect when vz = 0
+        t0, vz0 = self.solution[-2][0], self.solution[-2][6]
+        t1, vz1 = self.solution[-1][0], self.solution[-1][6]
+        t_root = find_root_linear_interpolation(t0, t1, vz0, vz1, 0)
+        # Fetch state at t_root
+        interpolator = phase.solver.dense_output()
+        self.apogee_state = interpolator(t_root)
+        # Store apogee data
+        self.apogee_time = t_root
+        self.apogee_x = self.apogee_state[0]
+        self.apogee_y = self.apogee_state[1]
+        self.apogee = self.apogee_state[2]
+
+        if self.terminate_on_apogee:
+            self.t = self.t_final = t_root
+            # Roll back solution
+            self.solution[-1] = [self.t, *self.apogee_state]
+            # Set last flight phase
+            self.flight_phases.flush_after(phase_index)
+            self.flight_phases.add_phase(self.t)
+            # Prepare to leave loops and start new flight phase
+            phase.time_nodes.flush_after(node_index)
+            phase.time_nodes.add_node(self.t, [], [], [])
+            phase.solver.status = "finished"
+            return True
+        elif len(self.solution) > 2:
+            # adding the apogee state to solution increases accuracy
+            # we can only do this if the apogee is not the first state
+            self.solution.insert(-1, [t_root, *self.apogee_state])
+        return False
+
+    def __handle_impact_event(self, phase, phase_index, node_index):
+        """Handle the impact event.
+
+        Parameters
+        ----------
+        phase : FlightPhase
+            The current flight phase.
+        phase_index : int
+            The index of the current phase.
+        node_index : int
+            The index of the current node.
+
+        Returns
+        -------
+        bool
+            True to indicate the simulation should break.
+        """
+        # Check exactly when it happened using root finding
+        # Cubic Hermite interpolation (ax**3 + bx**2 + cx + d)
+        a, b, c, d = calculate_cubic_hermite_coefficients(
+            x0=0,  # t0
+            x1=float(phase.solver.step_size),  # t1 - t0
+            y0=float(self.solution[-2][3] - self.env.elevation),  # z0
+            yp0=float(self.solution[-2][6]),  # vz0
+            y1=float(self.solution[-1][3] - self.env.elevation),  # z1
+            yp1=float(self.solution[-1][6]),  # vz1
+        )
+        # Find roots
+        t_roots = find_roots_cubic_function(a, b, c, d)
+        # Find correct root
+        t1 = self.solution[-1][0] - self.solution[-2][0]
+        valid_t_root = [
+            t_root.real
+            for t_root in t_roots
+            if abs(t_root.imag) < 0.001 and 0 < t_root.real < t1
+        ]
+        if len(valid_t_root) > 1:  # pragma: no cover
+            raise ValueError("Multiple roots found when solving for impact time.")
+        # Determine impact state at t_root
+        self.t = self.t_final = valid_t_root[0] + self.solution[-2][0]
+        interpolator = phase.solver.dense_output()
+        self.y_sol = self.impact_state = interpolator(self.t)
+        # Roll back solution
+        self.solution[-1] = [self.t, *self.y_sol]
+        # Save impact state
+        self.x_impact = self.impact_state[0]
+        self.y_impact = self.impact_state[1]
+        self.z_impact = self.impact_state[2]
+        self.impact_velocity = self.impact_state[5]
+        # Set last flight phase
+        self.flight_phases.flush_after(phase_index)
+        self.flight_phases.add_phase(self.t)
+        # Prepare to leave loops and start new flight phase
+        phase.time_nodes.flush_after(node_index)
+        phase.time_nodes.add_node(self.t, [], [], [])
+        phase.solver.status = "finished"
+        return True
+
+    def __process_overshootable_nodes(self, phase, phase_index, node_index):
+        """Process overshootable time nodes for parachutes, controllers, and sensors.
+
+        Parameters
+        ----------
+        phase : FlightPhase
+            The current flight phase.
+        phase_index : int
+            The index of the current phase.
+        node_index : int
+            The index of the current node.
+
+        Returns
+        -------
+        bool
+            True if a parachute was triggered and the simulation should break.
+        """
+        overshootable_nodes = self.TimeNodes()
+
+        overshootable_nodes.add_parachutes(
+            self.parachutes, self.solution[-2][0], self.t
+        )
+        overshootable_nodes.add_controllers(
+            self._controllers, self.solution[-2][0], self.t
+        )
+        overshootable_nodes.add_sensors(
+            self.rocket.sensors, self.solution[-2][0], self.t
+        )
+
+        # Add last time node (always skipped)
+        overshootable_nodes.add_node(self.t, [], [], [])
+
+        if len(overshootable_nodes) < 1:
+            return False  # Early exit
+
+        overshootable_nodes.sort()
+        overshootable_nodes.merge()
+
+        # Clear if necessary
+        if overshootable_nodes[0].t == phase.t and phase.clear:
+            overshootable_nodes[0].parachutes = []
+            overshootable_nodes[0].callbacks = []
+
+        # Feed overshootable time nodes trigger
+        interpolator = phase.solver.dense_output()
+        for overshootable_index, overshootable_node in self.time_iterator(
+            overshootable_nodes
+        ):
+            # Calculate state at node time
+            overshootable_node.y_sol = interpolator(overshootable_node.t)
+
+            # Check for parachute triggers
+            if self.__check_overshootable_parachute_triggers(
+                overshootable_node,
+                overshootable_nodes,
+                overshootable_index,
+                phase,
+                phase_index,
+                node_index,
+            ):
+                return True
+
+            # Process controllers at overshootable node
+            for controller in overshootable_node._controllers:
+                controller(
+                    overshootable_node.t,
+                    overshootable_node.y_sol,
+                    self.solution,
+                    self.sensors,
+                    self.env,
+                )
+
+            # Process sensors at overshootable node
+            if overshootable_node._component_sensors:
+                # Calculate u_dot for sensors at interpolated state
+                u_dot = phase.derivative(overshootable_node.t, overshootable_node.y_sol)
+                self.__measure_sensors(
+                    overshootable_node._component_sensors,
+                    u_dot,
+                    overshootable_node.t,
+                    overshootable_node.y_sol,
+                )
+        return False
+
+    def __check_overshootable_parachute_triggers(
+        self,
+        overshootable_node,
+        overshootable_nodes,
+        overshootable_index,
+        phase,
+        phase_index,
+        node_index,
+    ):
+        """Check for parachute triggers in overshootable nodes.
+
+        Parameters
+        ----------
+        overshootable_node : TimeNode
+            The current overshootable node.
+        overshootable_nodes : TimeNodes
+            The overshootable nodes collection.
+        overshootable_index : int
+            Index of the current overshootable node.
+        phase : FlightPhase
+            The current flight phase.
+        phase_index : int
+            The index of the current phase.
+        node_index : int
+            The index of the current node.
+
+        Returns
+        -------
+        bool
+            True if a parachute was triggered and the simulation should break.
+        """
+        for parachute in overshootable_node.parachutes:
+            is_ascending = overshootable_node.y_sol[5] >= 0
+            trigger_falling_only = getattr(parachute, "_trigger_falling_only", False)
+            trigger_needs_height = getattr(parachute, "_trigger_needs_height", True)
+
+            if trigger_falling_only and is_ascending:
+                # Fast path
+                self.__calculate_and_save_pressure_signals(
+                    parachute,
+                    overshootable_node.t,
+                    overshootable_node.y_sol[2],
+                    skip_height=True,
+                )
+                continue
+
+            # Calculate and save pressure signal
+            noisy_pressure, height_above_ground_level = (
+                self.__calculate_and_save_pressure_signals(
+                    parachute,
+                    overshootable_node.t,
+                    overshootable_node.y_sol[2],
+                    skip_height=not trigger_needs_height,
+                )
+            )
+
+            # Check for parachute trigger
+            if not self._evaluate_parachute_trigger(
+                parachute,
+                noisy_pressure,
+                height_above_ground_level,
+                overshootable_node.y_sol,
+                self.sensors,
+                phase.derivative,
+                overshootable_node.t,
+            ):
+                continue  # Check next parachute
+
+            # Remove parachute from flight parachutes
+            self.parachutes.remove(parachute)
+
+            # Create phase for time after detection and before inflation
+            # Must only be created if parachute has any lag
+            i = 1
+            if parachute.lag != 0:
+                self.flight_phases.add_phase(
+                    overshootable_node.t,
+                    phase.derivative,
+                    clear=True,
+                    index=phase_index + i,
+                )
+                i += 1
+
+            # Create flight phase for time after inflation
+            callbacks = [
+                lambda self, parachute_cd_s=parachute.cd_s: setattr(
+                    self, "parachute_cd_s", parachute_cd_s
+                ),
+                lambda self, parachute_radius=parachute.radius: setattr(
+                    self, "parachute_radius", parachute_radius
+                ),
+                lambda self, parachute_height=parachute.height: setattr(
+                    self, "parachute_height", parachute_height
+                ),
+                lambda self, parachute_porosity=parachute.porosity: setattr(
+                    self, "parachute_porosity", parachute_porosity
+                ),
+                lambda self, added_mass_coefficient=parachute.added_mass_coefficient: (
+                    setattr(
+                        self,
+                        "parachute_added_mass_coefficient",
+                        added_mass_coefficient,
+                    )
+                ),
+            ]
+            self.flight_phases.add_phase(
+                overshootable_node.t + parachute.lag,
+                self.u_dot_parachute,
+                callbacks,
+                clear=False,
+                index=phase_index + i,
+            )
+
+            # Rollback history
+            self.t = overshootable_node.t
+            self.y_sol = overshootable_node.y_sol
+            self.solution[-1] = [overshootable_node.t, *overshootable_node.y_sol]
+
+            # Prepare to leave loops and start new flight phase
+            overshootable_nodes.flush_after(overshootable_index)
+            phase.time_nodes.flush_after(node_index)
+            phase.time_nodes.add_node(self.t, [], [], [])
+            phase.solver.status = "finished"
+
+            # Save parachute event
+            self.parachute_events.append([self.t, parachute])
+            return True
+
+        return False
+
+    def __calculate_and_save_pressure_signals(self, parachute, t, z, skip_height=False):
+        """Gets noise and pressure signals and saves them in the parachute
+        object given the current time and altitude.
+
+        Parameters
+        ----------
+        parachute : Parachute
+            The parachute object to calculate signals for.
+        t : float
+            The current time in seconds.
+        z : float
+            The altitude above sea level in meters.
+
+        Returns
+        -------
+        tuple[float, float]
+            The noisy pressure and height above ground level.
+        """
+        # Calculate pressure and noise
+        pressure = self.env.pressure.get_value_opt(z)
+        noise = parachute.noise_function()
+        noisy_pressure = pressure + noise
+
+        # Stores in the parachute object
+        parachute.clean_pressure_signal.append([t, pressure])
+        parachute.noise_signal.append([t, noise])
+
+        if skip_height:
+            return noisy_pressure, 0.0
+
+        # Gets height above ground level considering noise
+        height_above_ground_level = (
+            self.env.barometric_height.get_value_opt(noisy_pressure)
+            - self.env.elevation
+        )
+
+        return noisy_pressure, height_above_ground_level
+
+    def _evaluate_parachute_trigger(
+        self, parachute, pressure, height, y, sensors, derivative_func, t
+    ):
+        """Evaluate parachute trigger, passing both sensors and u_dot to wrapper.
+
+        This helper preserves backward compatibility with existing trigger
+        signatures. The wrapper in Parachute always expects (p, h, y, sensors, u_dot)
+        and Flight computes u_dot only when the trigger requests it (optimization).
+
+        Parameters
+        ----------
+        parachute : Parachute
+            Parachute object.
+        pressure : float
+            Noisy pressure value passed to trigger.
+        height : float
+            Height above ground level passed to trigger.
+        y : array
+            State vector at evaluation time.
+        sensors : list
+            Sensors list passed to trigger.
+        derivative_func : callable
+            Function to compute derivatives: derivative_func(t, y)
+        t : float
+            Time at which to evaluate derivatives.
+
+        Returns
+        -------
+        bool
+            True if trigger condition met, False otherwise.
+        """
+        triggerfunc = parachute.triggerfunc
+
+        # Check wrapper metadata for expectations
+        expects_udot = getattr(triggerfunc, "_expects_udot", False)
+
+        # Compute u_dot only if needed (performance optimization)
+        u_dot = None
+        if expects_udot:
+            u_dot = derivative_func(t, y)
+
+        # Call the wrapper with both sensors and u_dot
+        # The wrapper will decide which args to pass to the user's function
+        return triggerfunc(pressure, height, y, sensors, u_dot)
 
     def __init_solver_monitors(self):
         # Initialize solver monitors
@@ -853,10 +1827,18 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         self.y_sol = self.solution[-1][1:]
 
         self.__set_ode_solver(self.ode_solver)
+        self._orbital_force_history = []
 
     def __init_flight_state(self):
         """Initialize flight state variables."""
-        if self.initial_solution is None:
+        if self.initial_state is not None:
+            self.t_initial = 0.0
+            self.initial_solution = [self.t_initial, *self.initial_state.to_array()]
+            self.out_of_rail_state = self.initial_state.to_array()
+            self.out_of_rail_time = self.t_initial
+            self.out_of_rail_time_index = 0
+            self.initial_derivative = self.u_dot_generalized
+        elif self.initial_solution is None:
             # Initialize time and state variables
             self.t_initial = 0
             x_init, y_init, z_init = 0, 0, self.env.elevation
@@ -934,6 +1916,81 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         self.initial_derivative(
             self.t_initial, self.initial_solution[1:], post_processing=True
         )
+
+    def __init_solver_monitors(self):
+        # Initialize solver monitors
+        self.function_evaluations = []
+        # Initialize solution state
+        self.solution = []
+        self.__init_flight_state()
+
+        self.t_initial = self.initial_solution[0]
+        self.solution.append(self.initial_solution)
+        self.t = self.solution[-1][0]
+        self.y_sol = self.solution[-1][1:]
+
+        self.__set_ode_solver(self.ode_solver)
+
+    def __init_equations_of_motion(self):
+        """Initialize equations of motion."""
+        if self.reference_frame == ReferenceFrame.GCRF:
+            self.u_dot_generalized = self.u_dot_earth_centered
+            return
+
+        # Determine if a point-mass model is used.
+        is_point_mass = isinstance(self.rocket, PointMassRocket) or (
+            hasattr(self.rocket, "motor")
+            and isinstance(self.rocket.motor, PointMassMotor)
+        )
+        # Set simulation mode based on model type.
+        if is_point_mass:
+            if self.simulation_mode != "3 DOF":
+                warnings.warn(
+                    "A point-mass model was detected. Simulation mode should be '3 DOF'.",
+                    UserWarning,
+                )
+            self.simulation_mode = "3 DOF"
+
+        # Set the equations of motion based on the final simulation mode.
+        if self.simulation_mode == "3 DOF":
+            self.u_dot_generalized = self.u_dot_generalized_3dof
+        elif self.simulation_mode == "6 DOF":
+            self.u_dot_generalized = (
+                self.u_dot
+                if self.equations_of_motion == "solid_propulsion"
+                else self.u_dot_generalized
+            )
+        else:
+            raise ValueError(
+                f"Invalid simulation_mode: {self.simulation_mode}. "
+                "Must be '3 DOF' or '6 DOF'."
+            )
+
+    def __init_controllers(self):
+        """Initialize controllers and sensors"""
+        self._controllers = self.rocket._controllers[:]
+        self._continuous_controllers = [c for c in self._controllers if c.is_continuous]
+        self.sensors = self.rocket.sensors.get_components()
+
+        # reset controllable object to initial state (only airbrakes for now)
+        for air_brakes in self.rocket.air_brakes:
+            air_brakes._reset()
+
+        self.sensor_data = {}
+        for sensor in self.sensors:
+            sensor._reset(self.rocket)  # resets noise and measurement list
+            self.sensor_data[sensor] = []
+
+    def __cache_sensor_data(self):
+        """Cache sensor data for simulations with sensors."""
+        sensor_data = {}
+        sensors = []
+        for sensor in self.sensors:
+            # skip sensors that are used more then once in the rocket
+            if sensor not in sensors:
+                sensors.append(sensor)
+                sensor_data[sensor] = sensor.measured_data[:]
+        self.sensor_data = sensor_data
 
     def __set_ode_solver(self, solver):
         """Sets the ODE solver to be used in the simulation.
@@ -1400,6 +2457,236 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         """Returns time step array."""
         return np.diff(self.time)
 
+    def position(self, frame=None):
+        """Return the position history in a requested reference frame.
+
+        Parameters
+        ----------
+        frame : ReferenceFrame or str, optional
+            Output frame. Defaults to the Flight integration frame.
+
+        Returns
+        -------
+        numpy.ndarray
+            Array with shape ``(n, 3)`` in meters.
+        """
+        target = self.reference_frame if frame is None else ReferenceFrame.coerce(frame)
+        positions = self.solution_array[:, 1:4]
+        if target == self.reference_frame:
+            return positions.copy()
+        transformed = []
+        for time, position in zip(self.time, positions):
+            output, _, _ = self.env.transform_kinematics(
+                self.current_epoch(time),
+                position,
+                source=self.reference_frame,
+                target=target,
+                datum=self.env.earth_datum,
+            )
+            transformed.append(output)
+        return np.asarray(transformed)
+
+    def velocity(self, frame=None):
+        """Return the velocity history in a requested reference frame, in m/s."""
+        target = self.reference_frame if frame is None else ReferenceFrame.coerce(frame)
+        positions = self.solution_array[:, 1:4]
+        velocities = self.solution_array[:, 4:7]
+        if target == self.reference_frame:
+            return velocities.copy()
+        transformed = []
+        for time, position, velocity in zip(self.time, positions, velocities):
+            _, output, _ = self.env.transform_kinematics(
+                self.current_epoch(time),
+                position,
+                velocity,
+                source=self.reference_frame,
+                target=target,
+                datum=self.env.earth_datum,
+            )
+            transformed.append(output)
+        return np.asarray(transformed)
+
+    def state_at_time(self, time):
+        """Return the interpolated typed state in the integration frame."""
+        return FlightState.cartesian(
+            epoch=self.current_epoch(time),
+            position=[self.x(time), self.y(time), self.z(time)],
+            velocity=[self.vx(time), self.vy(time), self.vz(time)],
+            quaternion=[self.e0(time), self.e1(time), self.e2(time), self.e3(time)],
+            angular_velocity=[self.w1(time), self.w2(time), self.w3(time)],
+            frame=self.reference_frame,
+            elapsed_time=float(time),
+        )
+
+    @cached_property
+    def epochs(self):
+        """Tuple of Epoch values corresponding to accepted solver states."""
+        return tuple(self.current_epoch(time) for time in self.time)
+
+    @cached_property
+    def orbit(self):
+        """Osculating orbital output view for a GCRF Flight."""
+        if self.reference_frame != ReferenceFrame.GCRF:
+            raise AttributeError(
+                "Orbital elements are available only for GCRF Flight simulations."
+            )
+        return FlightOrbit(self)
+
+    @cached_property
+    def orbital_accelerations(self):
+        """Mapping of orbital acceleration contributions to vector Functions.
+
+        Each Function returns the GCRF x, y and z acceleration components in
+        m/s². The mapping is available only for Earth-centered simulations.
+        """
+        if self.reference_frame != ReferenceFrame.GCRF:
+            raise AttributeError(
+                "Orbital acceleration outputs require a GCRF Flight simulation."
+            )
+        self.__evaluate_post_process
+        names = []
+        for record in self._orbital_force_history:
+            for name in record:
+                if name != "time" and name not in names:
+                    names.append(name)
+        outputs = {}
+        for name in names:
+            rows = [
+                [record["time"], *record.get(name, np.zeros(3))]
+                for record in self._orbital_force_history
+            ]
+            outputs[name] = VectorFunction(
+                rows,
+                inputs="Time (s)",
+                outputs=[
+                    f"{name} X (m/s²)",
+                    f"{name} Y (m/s²)",
+                    f"{name} Z (m/s²)",
+                ],
+            )
+        return outputs
+
+    @cached_property
+    def orbital_accelerations_rtn(self):
+        """Orbital acceleration contributions resolved in instantaneous RTN."""
+        outputs = {}
+        positions = self.position(ReferenceFrame.GCRF)
+        velocities = self.velocity(ReferenceFrame.GCRF)
+        for name, function in self.orbital_accelerations.items():
+            rows = []
+            for index, (time, acceleration) in enumerate(
+                zip(function[:, 0], function[:, 1:4])
+            ):
+                rotation = gcrf_to_rtn_matrix(positions[index], velocities[index])
+                rows.append([time, *(rotation @ acceleration)])
+            outputs[name] = VectorFunction(
+                rows,
+                inputs="Time (s)",
+                outputs=[
+                    f"{name} Radial (m/s²)",
+                    f"{name} Transverse (m/s²)",
+                    f"{name} Normal (m/s²)",
+                ],
+            )
+        return outputs
+
+    @cached_property
+    def specific_orbital_energy(self):
+        """Specific mechanical orbital energy in J/kg versus time."""
+        if self.reference_frame != ReferenceFrame.GCRF:
+            raise AttributeError("Orbital energy requires a GCRF Flight simulation.")
+        position = self.position()
+        velocity = self.velocity()
+        mu = self.env.earth_datum.gravitational_parameter
+        values = 0.5 * np.sum(velocity**2, axis=1) - mu / np.linalg.norm(
+            position, axis=1
+        )
+        return Function(
+            np.column_stack((self.time, values)),
+            inputs="Time (s)",
+            outputs="Specific Orbital Energy (J/kg)",
+            interpolation="linear",
+            extrapolation="constant",
+        )
+
+    @cached_property
+    def specific_angular_momentum(self):
+        """Specific angular-momentum vector in GCRF, in m²/s."""
+        if self.reference_frame != ReferenceFrame.GCRF:
+            raise AttributeError(
+                "Orbital angular momentum requires a GCRF Flight simulation."
+            )
+        values = np.cross(self.position(), self.velocity())
+        return VectorFunction(
+            np.column_stack((self.time, values)),
+            inputs="Time (s)",
+            outputs=("Angular Momentum X", "Angular Momentum Y", "Angular Momentum Z"),
+        )
+
+    def ground_station_observation(
+        self,
+        latitude,
+        longitude,
+        *,
+        altitude=0.0,
+        minimum_elevation=0.0,
+    ):
+        """Return range, elevation, azimuth, and visibility from a station.
+
+        Latitude, longitude, and minimum elevation are expressed in degrees;
+        station altitude and returned range are meters.
+        """
+        if self.reference_frame != ReferenceFrame.GCRF:
+            raise AttributeError(
+                "Ground-station observations require a GCRF Flight simulation."
+            )
+        topocentric = np.array(
+            [
+                itrf_to_topocentric(
+                    position,
+                    latitude_rad=np.radians(latitude),
+                    longitude_rad=np.radians(longitude),
+                    altitude=altitude,
+                    datum=self.env.earth_datum,
+                )
+                for position in self.position(ReferenceFrame.ITRF)
+            ]
+        )
+        ranges = np.linalg.norm(topocentric, axis=1)
+        elevation = np.degrees(
+            np.arcsin(
+                np.divide(
+                    topocentric[:, 2],
+                    ranges,
+                    out=np.zeros_like(ranges),
+                    where=ranges > 0.0,
+                )
+            )
+        )
+        azimuth = np.degrees(np.arctan2(topocentric[:, 0], topocentric[:, 1])) % 360
+        visible = elevation >= float(minimum_elevation)
+        common = dict(
+            inputs="Time (s)", interpolation="linear", extrapolation="constant"
+        )
+        return {
+            "range": Function(
+                np.column_stack((self.time, ranges)), outputs="Range (m)", **common
+            ),
+            "elevation": Function(
+                np.column_stack((self.time, elevation)),
+                outputs="Elevation (°)",
+                **common,
+            ),
+            "azimuth": Function(
+                np.column_stack((self.time, azimuth)), outputs="Azimuth (°)", **common
+            ),
+            "visible": Function(
+                np.column_stack((self.time, visible.astype(float))),
+                outputs="Visible",
+                **common,
+            ),
+        }
+
     # Process first type of outputs - state vector
     # Transform solution array into Functions
     @funcify_method("Time (s)", "X (m)", "spline", "constant")
@@ -1424,6 +2711,12 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
     def altitude(self):
         """Rocket altitude above ground level as a Function of time. Ground
         level is defined by the environment elevation."""
+        if self.reference_frame == ReferenceFrame.GCRF:
+            altitude = [
+                self.env.earth_datum.itrs_to_geodetic(position_itrf)[2]
+                for position_itrf in self.position(ReferenceFrame.ITRF)
+            ]
+            return np.column_stack((self.time, altitude))
         return self.z - self.env.elevation
 
     @funcify_method("Time (s)", "Vx (m/s)", "spline", "zero")
@@ -1604,33 +2897,103 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
     @funcify_method("Time (s)", "Pressure (Pa)", "spline", "constant")
     def pressure(self):
         """Air pressure felt by the rocket as a Function of time."""
+        if self.reference_frame == ReferenceFrame.GCRF:
+            return [
+                (time, sample[0].pressure)
+                for time, sample in zip(self.time, self._orbital_atmosphere_samples)
+            ]
         return [(t, self.env.pressure.get_value_opt(z)) for t, z in self.z]
 
     @funcify_method("Time (s)", "Density (kg/m³)", "spline", "constant")
     def density(self):
         """Air density felt by the rocket as a Function of time."""
+        if self.reference_frame == ReferenceFrame.GCRF:
+            return [
+                (time, sample[0].density)
+                for time, sample in zip(self.time, self._orbital_atmosphere_samples)
+            ]
         return [(t, self.env.density.get_value_opt(z)) for t, z in self.z]
 
     @funcify_method("Time (s)", "Dynamic Viscosity (Pa s)", "spline", "constant")
     def dynamic_viscosity(self):
         """Air dynamic viscosity felt by the rocket as a Function of
         time."""
+        if self.reference_frame == ReferenceFrame.GCRF:
+            return [
+                (time, sample[0].dynamic_viscosity)
+                for time, sample in zip(self.time, self._orbital_atmosphere_samples)
+            ]
         return [(t, self.env.dynamic_viscosity.get_value_opt(z)) for t, z in self.z]
 
     @funcify_method("Time (s)", "Speed of Sound (m/s)", "spline", "constant")
     def speed_of_sound(self):
         """Speed of sound in the air felt by the rocket as a Function of time."""
+        if self.reference_frame == ReferenceFrame.GCRF:
+            return [
+                (time, sample[0].speed_of_sound)
+                for time, sample in zip(self.time, self._orbital_atmosphere_samples)
+            ]
         return [(t, self.env.speed_of_sound.get_value_opt(z)) for t, z in self.z]
 
     @funcify_method("Time (s)", "Wind Velocity X (East) (m/s)", "spline", "constant")
     def wind_velocity_x(self):
         """Wind velocity in the X direction (east) as a Function of time."""
+        if self.reference_frame == ReferenceFrame.GCRF:
+            return np.column_stack(
+                (
+                    self.time,
+                    [sample[1][0] for sample in self._orbital_atmosphere_samples],
+                )
+            )
         return [(t, self.env.wind_velocity_x.get_value_opt(z)) for t, z in self.z]
 
     @funcify_method("Time (s)", "Wind Velocity Y (North) (m/s)", "spline", "constant")
     def wind_velocity_y(self):
         """Wind velocity in the Y direction (north) as a Function of time."""
+        if self.reference_frame == ReferenceFrame.GCRF:
+            return np.column_stack(
+                (
+                    self.time,
+                    [sample[1][1] for sample in self._orbital_atmosphere_samples],
+                )
+            )
         return [(t, self.env.wind_velocity_y.get_value_opt(z)) for t, z in self.z]
+
+    @cached_property
+    def _orbital_atmosphere_samples(self):
+        """Atmospheric states and inertial atmospheric velocities."""
+        samples = []
+        for solution in self.solution_array:
+            time = solution[0]
+            epoch = self.current_epoch(time)
+            position_itrf, velocity_itrf, _ = self.env.transform_kinematics(
+                epoch,
+                solution[1:4],
+                solution[4:7],
+                source=ReferenceFrame.GCRF,
+                target=ReferenceFrame.ITRF,
+                datum=self.env.earth_datum,
+            )
+            state_itrf = FlightState.cartesian(
+                epoch=epoch,
+                position=position_itrf,
+                velocity=velocity_itrf,
+                quaternion=solution[7:11],
+                angular_velocity=solution[11:14],
+                frame=ReferenceFrame.ITRF,
+                elapsed_time=time,
+            )
+            atmosphere = self.env.evaluate_atmosphere(epoch, state_itrf)
+            _, atmospheric_velocity_gcrf, _ = self.env.transform_kinematics(
+                epoch,
+                position_itrf,
+                atmosphere.wind_velocity,
+                source=ReferenceFrame.ITRF,
+                target=ReferenceFrame.GCRF,
+                datum=self.env.earth_datum,
+            )
+            samples.append((atmosphere, atmospheric_velocity_gcrf))
+        return tuple(samples)
 
     # Process fourth type of output - values calculated from previous outputs
     # Frame conversions
@@ -1918,6 +3281,11 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
     @funcify_method("Time (s)", "Freestream Velocity Z (m/s)", "spline", "constant")
     def stream_velocity_z(self):
         """Freestream velocity Z component as a Function of time."""
+        if self.reference_frame == ReferenceFrame.GCRF:
+            atmospheric_z = np.array(
+                [sample[1][2] for sample in self._orbital_atmosphere_samples]
+            )
+            return np.column_stack((self.time, atmospheric_z - self.vz[:, 1]))
         return np.column_stack((self.time, -self.vz[:, 1]))
 
     @funcify_method("Time (s)", "Freestream Speed (m/s)", "spline", "constant")
@@ -2799,6 +4167,14 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
     @funcify_method("Time (s)", "Latitude (°)", "linear", "constant")
     def latitude(self):
         """Rocket latitude coordinate, in degrees, as a Function of time."""
+        if self.reference_frame == ReferenceFrame.GCRF:
+            coordinates = [
+                self.env.earth_datum.itrs_to_geodetic(position)
+                for position in self.position(ReferenceFrame.ITRF)
+            ]
+            return np.column_stack(
+                (self.time, np.degrees([coordinate[0] for coordinate in coordinates]))
+            )
         lat, _ = inverted_haversine_array(
             self.env.latitude,
             self.env.longitude,
@@ -2811,6 +4187,14 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
     @funcify_method("Time (s)", "Longitude (°)", "linear", "constant")
     def longitude(self):
         """Rocket longitude coordinate, in degrees, as a Function of time."""
+        if self.reference_frame == ReferenceFrame.GCRF:
+            coordinates = [
+                self.env.earth_datum.itrs_to_geodetic(position)
+                for position in self.position(ReferenceFrame.ITRF)
+            ]
+            return np.column_stack(
+                (self.time, np.degrees([coordinate[1] for coordinate in coordinates]))
+            )
         _, lon = inverted_haversine_array(
             self.env.latitude,
             self.env.longitude,
@@ -2846,6 +4230,11 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             "time_overshoot": self.time_overshoot,
             "name": self.name,
             "equations_of_motion": self.equations_of_motion,
+            "simulation_mode": self.simulation_mode,
+            "ode_solver": self.ode_solver,
+            "reference_frame": self.reference_frame,
+            "initial_state": self.initial_state,
+            "force_models": self.force_models,
             "ode_solver": self.ode_solver,
             "simulation_mode": self.simulation_mode,
             # The following outputs are essential to run all_info method
@@ -2880,11 +4269,6 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             data.update(
                 {
                     "time": self.time,
-                    "out_of_rail_velocity": self.out_of_rail_velocity,
-                    "out_of_rail_state": self.out_of_rail_state,
-                    "apogee_x": self.apogee_x,
-                    "apogee_y": self.apogee_y,
-                    "apogee_state": self.apogee_state,
                     "x": self.x,
                     "y": self.y,
                     "z": self.z,
@@ -2899,18 +4283,35 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
                     "w2": self.w2,
                     "w3": self.w3,
                     "altitude": self.altitude,
-                    "mach_number": self.mach_number,
-                    "stream_velocity_x": self.stream_velocity_x,
-                    "stream_velocity_y": self.stream_velocity_y,
-                    "stream_velocity_z": self.stream_velocity_z,
-                    "free_stream_speed": self.free_stream_speed,
-                    "angle_of_attack": self.angle_of_attack,
-                    "static_margin": self.static_margin,
-                    "stability_margin": self.stability_margin,
                     "latitude": self.latitude,
                     "longitude": self.longitude,
+                    "epochs": self.epochs,
                 }
             )
+            if self.reference_frame == ReferenceFrame.GCRF:
+                data["orbit"] = self.orbit
+                data["orbital_accelerations"] = self.orbital_accelerations
+                data["orbital_accelerations_rtn"] = self.orbital_accelerations_rtn
+                data["specific_orbital_energy"] = self.specific_orbital_energy
+                data["specific_angular_momentum"] = self.specific_angular_momentum
+            else:
+                data.update(
+                    {
+                        "out_of_rail_velocity": self.out_of_rail_velocity,
+                        "out_of_rail_state": self.out_of_rail_state,
+                        "apogee_x": self.apogee_x,
+                        "apogee_y": self.apogee_y,
+                        "apogee_state": self.apogee_state,
+                        "mach_number": self.mach_number,
+                        "stream_velocity_x": self.stream_velocity_x,
+                        "stream_velocity_y": self.stream_velocity_y,
+                        "stream_velocity_z": self.stream_velocity_z,
+                        "free_stream_speed": self.free_stream_speed,
+                        "angle_of_attack": self.angle_of_attack,
+                        "static_margin": self.static_margin,
+                        "stability_margin": self.stability_margin,
+                    }
+                )
 
         return data
 
@@ -2932,6 +4333,11 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             time_overshoot=data["time_overshoot"],
             name=data["name"],
             equations_of_motion=data["equations_of_motion"],
+            simulation_mode=data.get("simulation_mode", "6 DOF"),
+            ode_solver=data.get("ode_solver", "LSODA"),
+            reference_frame=data.get("reference_frame"),
+            initial_state=data.get("initial_state"),
+            force_models=data.get("force_models"),
             ode_solver=data.get("ode_solver", "LSODA"),
             simulation_mode=data.get("simulation_mode", "6DOF"),
         )

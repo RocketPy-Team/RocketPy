@@ -345,6 +345,13 @@ class Rocket:
         self.radius = radius
         self.area = np.pi * self.radius**2
         self._is_point_mass = False
+        # Orbital interaction properties are independent of the continuum-flow
+        # Mach-number drag curves used during launch. Defaults preserve current
+        # behavior by disabling radiation forces and reusing the frontal area.
+        self.orbital_drag_coefficient = None
+        self.orbital_projected_area = self.area
+        self.radiation_coefficient = 0.0
+        self.radiation_projected_area = self.area
 
         # Eccentricity data initialization
         self.cm_eccentricity_x = 0
@@ -2434,6 +2441,82 @@ class Rocket:
         else:
             return air_brakes
 
+    def set_orbital_drag_model(self, coefficient=2.2, projected_area=None):
+        """Configure free-molecular atmospheric drag properties.
+
+        Parameters
+        ----------
+        coefficient : float or callable, optional
+            Dimensionless drag coefficient. A callable receives ``epoch``,
+            ``state`` and the relative-velocity vector. Default is 2.2.
+        projected_area : float or callable, optional
+            Projected area in m². A callable receives ``epoch``, ``state`` and
+            the incident direction. The rocket frontal area is used by default.
+        """
+        if not callable(coefficient) and float(coefficient) < 0:
+            raise ValueError("Orbital drag coefficient must be non-negative.")
+        if projected_area is not None and not callable(projected_area):
+            if float(projected_area) < 0:
+                raise ValueError("Projected area must be non-negative.")
+        self.orbital_drag_coefficient = coefficient
+        self.orbital_projected_area = (
+            self.area if projected_area is None else projected_area
+        )
+        return None
+
+    def set_radiation_properties(self, coefficient=1.0, projected_area=None):
+        """Configure solar and planetary radiation-pressure properties.
+
+        Parameters
+        ----------
+        coefficient : float or callable, optional
+            Dimensionless radiation-pressure coefficient. Default is 1.
+        projected_area : float or callable, optional
+            Projected area in m². The callable contract is
+            ``area(epoch, state, incident_direction)``.
+        """
+        if not callable(coefficient) and float(coefficient) < 0:
+            raise ValueError("Radiation coefficient must be non-negative.")
+        if projected_area is not None and not callable(projected_area):
+            if float(projected_area) < 0:
+                raise ValueError("Projected area must be non-negative.")
+        self.radiation_coefficient = coefficient
+        self.radiation_projected_area = (
+            self.area if projected_area is None else projected_area
+        )
+        return None
+
+    @staticmethod
+    def _evaluate_orbital_property(value, epoch, state, direction):
+        return float(value(epoch, state, direction) if callable(value) else value)
+
+    def evaluate_orbital_drag_coefficient(self, epoch, state, relative_velocity):
+        """Evaluate the configured free-molecular drag coefficient."""
+        coefficient = self.orbital_drag_coefficient
+        if coefficient is None:
+            return 0.0
+        return self._evaluate_orbital_property(
+            coefficient, epoch, state, relative_velocity
+        )
+
+    def evaluate_orbital_drag_area(self, epoch, state, relative_velocity):
+        """Evaluate projected drag area in m²."""
+        return self._evaluate_orbital_property(
+            self.orbital_projected_area, epoch, state, relative_velocity
+        )
+
+    def evaluate_radiation_coefficient(self, epoch, state, incident_direction):
+        """Evaluate the dimensionless radiation-pressure coefficient."""
+        return self._evaluate_orbital_property(
+            self.radiation_coefficient, epoch, state, incident_direction
+        )
+
+    def evaluate_radiation_area(self, epoch, state, incident_direction):
+        """Evaluate projected radiation area in m²."""
+        return self._evaluate_orbital_property(
+            self.radiation_projected_area, epoch, state, incident_direction
+        )
+
     def set_rail_buttons(
         self,
         upper_button_position,
@@ -2673,6 +2756,10 @@ class Rocket:
             "air_brakes": self.air_brakes,
             "_controllers": self._controllers,
             "sensors": self.sensors,
+            "orbital_drag_coefficient": self.orbital_drag_coefficient,
+            "orbital_projected_area": self.orbital_projected_area,
+            "radiation_coefficient": self.radiation_coefficient,
+            "radiation_projected_area": self.radiation_projected_area,
         }
 
         if kwargs.get("include_outputs", False):
@@ -2770,6 +2857,17 @@ class Rocket:
             center_of_mass_without_motor=data["center_of_mass_without_motor"],
             coordinate_system_orientation=data["coordinate_system_orientation"],
         )
+
+        if data.get("orbital_drag_coefficient") is not None:
+            rocket.set_orbital_drag_model(
+                coefficient=data["orbital_drag_coefficient"],
+                projected_area=data.get("orbital_projected_area"),
+            )
+        if data.get("radiation_coefficient", 0.0) != 0.0:
+            rocket.set_radiation_properties(
+                coefficient=data["radiation_coefficient"],
+                projected_area=data.get("radiation_projected_area"),
+            )
 
         if (motor := data["motor"]) is not None:
             rocket.add_motor(

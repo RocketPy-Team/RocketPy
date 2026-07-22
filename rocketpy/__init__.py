@@ -1,10 +1,41 @@
 from ._logging import enable_logging, logger, set_log_level
 from .control import _Controller
-from .environment import Environment, EnvironmentAnalysis
+from .environment import (
+    Atmosphere,
+    AnalyticalEphemeris,
+    AtmosphericState,
+    CelestialBody,
+    DefaultGravity,
+    Environment,
+    EnvironmentAnalysis,
+    ExponentialAtmosphere,
+    Gravity,
+    HarrisPriesterAtmosphere,
+    LayeredAtmosphere,
+    NRLMSISE00,
+    SphericalGravity,
+    SphericalHarmonicGravity,
+    SpiceEphemeris,
+    VacuumAtmosphere,
+    VerticalGravity,
+    ZeroGravity,
+    ZonalGravity,
+)
 from .mathutils import (
+    EarthDatum,
+    Epoch,
+    FlightState,
     Function,
+    NUMBA_AVAILABLE,
+    OrbitalElements,
     PiecewiseFunction,
+    ReferenceFrame,
+    WGS84,
+    VectorFunction,
     funcify_method,
+    gcrf_to_rtn_matrix,
+    itrf_to_topocentric,
+    numbify,
     reset_funcified_methods,
 )
 from .motors import (
@@ -51,10 +82,16 @@ from .rocket import (
 from .sensitivity import SensitivityModel
 from .sensors import Accelerometer, Barometer, GnssReceiver, Gyroscope
 from .simulation import (
+    EarthRadiationPressure,
     Event,
     Flight,
+    FlightOrbit,
     MonteCarlo,
     MultivariateRejectionSampler,
+    PlanetaryRadiationPressure,
+    RelativisticCorrection,
+    SolarRadiationPressure,
+    ThirdBodyGravity,
 )
 from .stochastic import (
     CustomSampler,
