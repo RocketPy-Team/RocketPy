@@ -1,212 +1,205 @@
-"""Unit tests for the udot_rail2 rail-phase feature.
+"""Unit tests for the ``udot_rail2`` 3-DOF "tip-off" rail phase (issue #28).
 
-These tests follow the project's testing conventions: each test is named
-`test_methodname`, uses the Arrange / Act / Assert pattern, and the expected
-behaviour is documented in the test docstring.
+These tests follow the project's testing conventions: each test uses the
+Arrange / Act / Assert pattern and documents the expected behaviour in its
+docstring. They avoid plotting and optional-dependency features so they run
+reliably in CI.
 
 Coverage:
-- Phase insertion ordering when `use_udot_rail2` is enabled
-- udot_rail2 enforces zero roll acceleration and projects `r_dot` on the rail
-- CSV comparison generation for enabled/disabled runs
-
-These tests are intentionally written to avoid plotting and optional-dependency
-features so they run reliably in CI and local environments.
+- Phase ordering: ``udot_rail1`` -> ``udot_rail2`` -> ``u_dot_generalized``.
+- Opt-in default: ``use_udot_rail2`` defaults to False and, when disabled, no
+  ``udot_rail2`` phase is inserted (previous behaviour preserved).
+- Constraint satisfaction: the lower rail button stays on the rail line and the
+  roll acceleration/rate remains zero throughout the phase.
+- Physical direction: with no wind the nose pitches over (gravity tip-off).
 """
 
-import csv
 import math
-import os
-
-import numpy as np
 
 from rocketpy.mathutils import Matrix, Vector
+from rocketpy.simulation.flight import Flight
 
 
-def _yaw_deg(v: Vector):
-    return math.degrees(math.atan2(v.y, v.x))
-
-
-def _pitch_deg(v: Vector):
-    return math.degrees(math.atan2(v.z, math.hypot(v.x, v.y)))
-
-
-def _body_axis_from_e(e):
-    K = Matrix.transformation(e)
-    return K @ Vector([0.0, 0.0, 1.0])
-
-
-def test_udot_rail2_inserts_phase_in_order(calisto_robust, example_spaceport_env):
-    """When `use_udot_rail2=True`, the intermediate 3-DOF `udot_rail2` phase
-    is inserted before the 6-DOF generalized phase (`u_dot_generalized`).
-
-    Arrange: build a Flight with `use_udot_rail2=True`.
-    Act: inspect `flight.flight_phases` derivatives names.
-    Assert: `udot_rail2` appears before `u_dot_generalized` in the phase list.
-    """
-    # Arrange
-    from rocketpy.simulation.flight import Flight
-
-    flight = Flight(
-        rocket=calisto_robust,
-        environment=example_spaceport_env,
+def _make_flight(rocket, environment, use_udot_rail2):
+    return Flight(
+        rocket=rocket,
+        environment=environment,
         rail_length=5.2,
         inclination=85,
         heading=0,
-        terminate_on_apogee=False,
-        use_udot_rail2=True,
+        terminate_on_apogee=True,
+        use_udot_rail2=use_udot_rail2,
     )
 
-    # Act
-    derivative_names = [
+
+def _phase_names(flight):
+    return [
         phase.derivative.__name__ if phase.derivative is not None else None
         for phase in flight.flight_phases.list
     ]
 
-    # Assert
-    assert "udot_rail2" in derivative_names, "udot_rail2 phase not present"
-    assert "u_dot_generalized" in derivative_names, (
-        "u_dot_generalized phase not present"
+
+def _lower_button_body_position(rocket):
+    """Lower rail button position relative to the CDM in the true body frame."""
+    z = (rocket.rail_buttons[0].position.z - rocket.center_of_dry_mass_position) * (
+        rocket._csys
     )
-    assert derivative_names.index("udot_rail2") < derivative_names.index(
-        "u_dot_generalized"
-    ), "udot_rail2 should be inserted before u_dot_generalized"
+    return Vector([0.0, 0.0, z])
 
 
-def test_udot_rail2_no_roll_and_alignment(calisto_robust, example_spaceport_env):
-    """udot_rail2 must enforce zero roll acceleration and set `r_dot` as the
-    projection of the velocity vector onto the inertial rail axis.
+def _tip_off_rows(flight):
+    """Solution rows [t, *state] within the tip-off window (inclusive)."""
+    t0, t1 = flight.out_of_rail_time, flight.between_rails_time
+    return [row for row in flight.solution if t0 - 1e-12 <= row[0] <= t1 + 1e-12]
 
-    Arrange: create flight with `use_udot_rail2=True` and find the between-rails
-    time/state. Act: evaluate `udot_rail2(t, u)` at that instant. Assert: the
-    angular-acceleration third component (roll) is zero and `r_dot` equals the
-    projection of velocity on `flight.attitude_unit`.
+
+def _attitude_inclination_deg(state):
+    """Inclination (deg from horizontal) of the body axis in the inertial frame."""
+    body_axis = Matrix.transformation(state[6:10]) @ Vector([0.0, 0.0, 1.0])
+    return math.degrees(math.atan2(body_axis.z, math.hypot(body_axis.x, body_axis.y)))
+
+
+def test_udot_rail2_default_is_opt_in(calisto_robust, example_spaceport_env):
+    """``use_udot_rail2`` defaults to False and, when not requested, the flight
+    keeps the previous rail1 -> generalized transition with no ``udot_rail2``.
+
+    Arrange: build a Flight without passing ``use_udot_rail2``.
+    Act: read the flag and the phase derivative names.
+    Assert: the flag is False and no ``udot_rail2`` phase was inserted.
     """
-    from rocketpy.simulation.flight import Flight
-
-    # Arrange
+    # Arrange / Act
     flight = Flight(
         rocket=calisto_robust,
         environment=example_spaceport_env,
         rail_length=5.2,
         inclination=85,
         heading=0,
-        terminate_on_apogee=False,
-        use_udot_rail2=True,
+        terminate_on_apogee=True,
     )
+
+    # Assert
+    assert flight.use_udot_rail2 is False, (
+        "tip-off phase must be opt-in (default False)"
+    )
+    assert "udot_rail2" not in _phase_names(flight)
+
+
+def test_udot_rail2_inserts_phase_in_order(calisto_robust, example_spaceport_env):
+    """With ``use_udot_rail2=True`` the intermediate 3-DOF ``udot_rail2`` phase
+    is inserted between the 1-DOF ``udot_rail1`` and the 6-DOF
+    ``u_dot_generalized`` phases.
+
+    Arrange: build a Flight with ``use_udot_rail2=True``.
+    Act: inspect the ordered phase derivative names.
+    Assert: rail1 < rail2 < generalized in the phase list.
+    """
+    # Arrange / Act
+    flight = _make_flight(calisto_robust, example_spaceport_env, True)
+    names = _phase_names(flight)
+
+    # Assert
+    assert "udot_rail2" in names, "udot_rail2 phase not present"
+    assert names.index("udot_rail1") < names.index("udot_rail2"), (
+        "udot_rail2 should follow the 1-DOF rail phase"
+    )
+    assert names.index("udot_rail2") < names.index("u_dot_generalized"), (
+        "udot_rail2 should precede the generalized 6-DOF phase"
+    )
+
+
+def test_udot_rail2_window_is_between_effective_rail_lengths(
+    calisto_robust, example_spaceport_env
+):
+    """The tip-off phase spans the interval between the upper button exit
+    (``effective_1rl``, recorded as ``out_of_rail``) and the lower button exit
+    (``effective_2rl``, recorded as ``between_rails``).
+
+    Arrange: build a Flight with the tip-off phase enabled.
+    Act: read the event times.
+    Assert: ``0 < out_of_rail_time < between_rails_time`` and the window is short.
+    """
+    # Arrange / Act
+    flight = _make_flight(calisto_robust, example_spaceport_env, True)
+
+    # Assert
+    assert flight.effective_2rl > flight.effective_1rl
+    assert 0 < flight.out_of_rail_time < flight.between_rails_time
+    assert (flight.between_rails_time - flight.out_of_rail_time) < 1.0
+
+
+def test_udot_rail2_button_stays_on_rail(calisto_robust, example_spaceport_env):
+    """The single-button constraint must keep the lower rail button on the rail
+    line: its distance from the rail axis stays ~0 throughout the tip-off phase.
+
+    Arrange: run a Flight with the tip-off phase enabled.
+    Act: for every solution point in the tip-off window, compute the lower
+    button position and its perpendicular distance to the (fixed) rail line.
+    Assert: the maximum perpendicular offset is negligible.
+    """
+    # Arrange
+    flight = _make_flight(calisto_robust, example_spaceport_env, True)
+    r_b = _lower_button_body_position(flight.rocket)
+    rail_dir = flight.attitude_unit
+    rail_origin = Vector(flight.solution[0][1:4])
 
     # Act
-    t_between = getattr(flight, "between_rails_time", None)
-    u_between = getattr(flight, "between_rails_state", None)
+    max_perp = 0.0
+    for row in _tip_off_rows(flight):
+        state = row[1:]
+        cdm = Vector(state[0:3])
+        button = cdm + Matrix.transformation(state[6:10]) @ r_b
+        offset = button - rail_origin
+        perpendicular = offset - rail_dir * (offset @ rail_dir)
+        max_perp = max(max_perp, abs(perpendicular))
 
-    # If the flight never registered between-rails, skip the detailed asserts
-    # (the test still passes as it did not exercise the condition).
-    if t_between is None or u_between is None:
-        return
-
-    u_dot = flight.udot_rail2(t_between, u_between)
-
-    # u_dot layout for udot_rail2: [r_dot_x, r_dot_y, r_dot_z, v_dot_x, v_dot_y, v_dot_z, e_dot..., w_dot_x, w_dot_y, w_dot_z]
-    r_dot = Vector(u_dot[0:3])
-    v_dot = Vector(u_dot[3:6])
-    # angular accelerations are last three entries
-    w_dot = Vector(u_dot[-3:])
-
-    # Assert: roll acceleration is zero (third component)
-    assert abs(w_dot[2]) < 1e-12, f"Expected zero roll acceleration, got {w_dot[2]}"
-
-    # Assert: r_dot is projection of velocity onto rail axis
-    rail = Vector(flight.attitude_unit)
-    velocity = Vector(u_between[3:6])
-    projected = rail * (velocity @ rail)
-
-    diff = r_dot - projected
-    assert float(abs(diff)) < 1e-8, (
-        f"r_dot not a projection onto rail (err={float(abs(diff))})"
-    )
+    # Assert
+    assert len(_tip_off_rows(flight)) >= 2, "tip-off window not exercised"
+    assert max_perp < 1e-6, f"button drifted off the rail (max offset {max_perp} m)"
 
 
-def test_udot_rail2_csv_comparison_generation(
-    calisto_robust, example_spaceport_env, tmp_path
-):
-    """Generate CSVs comparing runs with udot_rail2 enabled/disabled.
+def test_udot_rail2_no_roll(calisto_robust, example_spaceport_env):
+    """The tip-off phase must not induce roll: both the roll angular
+    acceleration returned by ``udot_rail2`` and the integrated roll rate stay
+    zero.
 
-    Arrange: create two flights (enabled/disabled). Act: write CSVs with
-    between-rails and out-of-rail pitch/yaw. Assert: files exist and contain
-    the expected header row; also return numeric deltas for quick inspection.
+    Arrange: run a Flight with the tip-off phase enabled.
+    Act: evaluate ``udot_rail2`` at the phase-end state and scan the roll rate
+    over the tip-off window.
+    Assert: the roll angular acceleration and every sampled roll rate are ~0.
     """
-    from rocketpy.simulation.flight import Flight
+    # Arrange
+    flight = _make_flight(calisto_robust, example_spaceport_env, True)
 
-    out_dir = tmp_path / "udot_rail2_output"
-    out_dir.mkdir(parents=True, exist_ok=True)
+    # Act
+    u_dot = flight.udot_rail2(flight.between_rails_time, flight.between_rails_state)
+    roll_acceleration = u_dot[12]
+    max_roll_rate = max(abs(row[1:][12]) for row in _tip_off_rows(flight))
 
-    results = []
+    # Assert
+    assert abs(roll_acceleration) < 1e-12, (
+        f"expected zero roll acceleration, got {roll_acceleration}"
+    )
+    assert max_roll_rate < 1e-9, f"expected zero roll rate, got {max_roll_rate}"
 
-    for enabled in (True, False):
-        # Arrange / Act
-        flight = Flight(
-            rocket=calisto_robust,
-            environment=example_spaceport_env,
-            rail_length=5.2,
-            inclination=85,
-            heading=0,
-            terminate_on_apogee=False,
-            use_udot_rail2=enabled,
-        )
 
-        t_between = getattr(flight, "between_rails_time", None)
-        t_out = getattr(flight, "out_of_rail_time", None)
+def test_udot_rail2_gravity_tip_off_direction(calisto_robust, example_spaceport_env):
+    """With no wind, gravity acting on the center of mass (ahead of the lower
+    button pivot) tips the nose over: the attitude inclination decreases across
+    the tip-off phase by a small amount.
 
-        def sample_at(t):
-            if t is None:
-                return None, None
-            sol = min(flight.solution, key=lambda row: abs(row[0] - t))
-            e = sol[7:11]
-            body = _body_axis_from_e(e)
-            return _pitch_deg(body), _yaw_deg(body)
+    Arrange: run a wind-free Flight with the tip-off phase enabled.
+    Act: measure the attitude inclination at the start and end of the window.
+    Assert: the inclination decreases, by a small (sub-degree) magnitude.
+    """
+    # Arrange
+    flight = _make_flight(calisto_robust, example_spaceport_env, True)
+    rows = _tip_off_rows(flight)
 
-        pitch_between, yaw_between = sample_at(t_between)
-        pitch_out, yaw_out = sample_at(t_out)
+    # Act
+    incl_start = _attitude_inclination_deg(rows[0][1:])
+    incl_end = _attitude_inclination_deg(rows[-1][1:])
+    delta = incl_end - incl_start
 
-        tag = "enabled" if enabled else "disabled"
-        csv_path = out_dir / f"calisto_angles_udot_rail2_{tag}.csv"
-        with open(csv_path, "w", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow(["time_event", "pitch_deg", "yaw_deg"])
-            if t_between is not None:
-                writer.writerow(["between_rails", pitch_between, yaw_between])
-            if t_out is not None:
-                writer.writerow(["out_of_rail", pitch_out, yaw_out])
-
-        # Assert: file created and header present
-        assert csv_path.exists(), f"CSV was not created: {csv_path}"
-        with open(csv_path, "r", newline="") as f:
-            lines = f.read().splitlines()
-        assert lines and lines[0].startswith("time_event,pitch_deg,yaw_deg"), (
-            "CSV header mismatch"
-        )
-
-        results.append(
-            (
-                enabled,
-                t_between,
-                pitch_between,
-                yaw_between,
-                t_out,
-                pitch_out,
-                yaw_out,
-                str(csv_path),
-            )
-        )
-
-    # Provide a final sanity check: both CSVs were created
-    assert all(os.path.exists(r[-1]) for r in results)
-
-    # Optional: compute numeric deltas for out_of_rail if both present
-    enabled_row = next(r for r in results if r[0] is True)
-    disabled_row = next(r for r in results if r[0] is False)
-
-    if enabled_row[4] is not None and disabled_row[4] is not None:
-        delta_pitch = abs((enabled_row[5] or 0) - (disabled_row[5] or 0))
-        delta_yaw = abs((enabled_row[6] or 0) - (disabled_row[6] or 0))
-        # The test only asserts that deltas are numeric and finite
-        assert math.isfinite(delta_pitch) and math.isfinite(delta_yaw)
+    # Assert
+    assert delta < 0, f"nose should pitch down (gravity tip-off), got {delta:+.4f} deg"
+    assert abs(delta) < 1.0, f"tip-off rotation implausibly large: {delta:+.4f} deg"
