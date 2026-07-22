@@ -1,3 +1,4 @@
+import logging
 import os
 from unittest.mock import patch
 
@@ -153,7 +154,7 @@ def test_fin_flutter_analysis_with_prints(flight_calisto_custom_wind):
 
 
 @patch("matplotlib.pyplot.show")
-def test_fin_flutter_analysis_with_graphs(mock_show, flight_calisto_custom_wind):  # pylint: disable=unused-argument
+def test_fin_flutter_analysis_with_graphs(mock_show, flight_calisto_custom_wind):
     """Test fin_flutter_analysis with see_graphs=True to cover plotting branch.
 
     Parameters
@@ -178,7 +179,7 @@ def test_fin_flutter_analysis_with_graphs(mock_show, flight_calisto_custom_wind)
 
 
 @patch("matplotlib.pyplot.show")
-def test_fin_flutter_analysis_complete_output(mock_show, flight_calisto_custom_wind):  # pylint: disable=unused-argument
+def test_fin_flutter_analysis_complete_output(mock_show, flight_calisto_custom_wind):
     """Test fin_flutter_analysis with both prints and graphs enabled.
 
     Parameters
@@ -216,7 +217,7 @@ def test_flutter_prints(flight_calisto_custom_wind):
     flutter_mach = Function("tests/fixtures/utilities/flutter_mach.txt")
     safety_factor = Function("tests/fixtures/utilities/flutter_safety_factor.txt")
     assert (
-        utilities._flutter_prints(  # pylint: disable=protected-access
+        utilities._flutter_prints(
             fin_thickness=2 / 1000,
             shear_modulus=10e9,
             surface_area=0.009899999999999999,
@@ -246,7 +247,7 @@ def test_flutter_plots(mock_show, flight_calisto_custom_wind):  # pylint: disabl
     flutter_mach = Function("tests/fixtures/utilities/flutter_mach.txt")
     safety_factor = Function("tests/fixtures/utilities/flutter_safety_factor.txt")
     assert (
-        utilities._flutter_plots(  # pylint: disable=protected-access
+        utilities._flutter_plots(
             flight_calisto_custom_wind, flutter_mach, safety_factor
         )
         is None
@@ -345,3 +346,79 @@ def test_load_from_rpy(mock_show):  # pylint: disable=unused-argument
     )
     assert loaded_flight.info() is None
     assert loaded_flight.all_info() is None
+
+
+# --- Logging (rocketpy.utilities.enable_logging) ------------------------------
+
+
+@pytest.fixture(autouse=True)
+def reset_rocketpy_logger():
+    """Reset the rocketpy logger to its original state after each test."""
+    logger = logging.getLogger("rocketpy")
+    original_level = logger.level
+    original_handlers = logger.handlers[:]
+    yield
+    logger.handlers = original_handlers
+    logger.setLevel(original_level)
+
+
+def test_enable_logging_adds_stream_handler():
+    """enable_logging() must attach a StreamHandler to the rocketpy logger."""
+    utilities.enable_logging(level="INFO")
+
+    logger = logging.getLogger("rocketpy")
+    stream_handlers = [
+        h for h in logger.handlers if isinstance(h, logging.StreamHandler)
+    ]
+    assert len(stream_handlers) >= 1
+
+
+def test_enable_logging_sets_correct_level():
+    """enable_logging() must set the requested level on the rocketpy logger."""
+    utilities.enable_logging(level="DEBUG")
+    assert logging.getLogger("rocketpy").level == logging.DEBUG
+
+    utilities.enable_logging(level="WARNING")
+    assert logging.getLogger("rocketpy").level == logging.WARNING
+
+
+def test_enable_logging_no_duplicate_handlers():
+    """Calling enable_logging() twice must not duplicate StreamHandlers."""
+    utilities.enable_logging(level="INFO")
+    utilities.enable_logging(level="INFO")
+
+    logger = logging.getLogger("rocketpy")
+    stream_handlers = [
+        h for h in logger.handlers if isinstance(h, logging.StreamHandler)
+    ]
+    assert len(stream_handlers) == 1
+
+
+def test_enable_logging_replaces_handler_on_level_change():
+    """Calling enable_logging() with a new level must replace the old handler."""
+    utilities.enable_logging(level="WARNING")
+    utilities.enable_logging(level="DEBUG")
+
+    logger = logging.getLogger("rocketpy")
+    stream_handlers = [
+        h for h in logger.handlers if isinstance(h, logging.StreamHandler)
+    ]
+    assert len(stream_handlers) == 1
+    assert logger.level == logging.DEBUG
+
+
+def test_enable_logging_invalid_level_raises():
+    """enable_logging() must raise ValueError for an unrecognised level string."""
+    with pytest.raises(ValueError, match="Invalid logging level"):
+        utilities.enable_logging(level="INVALID")
+
+
+def test_enable_logging_messages_are_captured(caplog):
+    """After enable_logging(), internal rocketpy log messages must be visible."""
+    utilities.enable_logging(level="DEBUG")
+
+    with caplog.at_level(logging.DEBUG, logger="rocketpy"):
+        logger = logging.getLogger("rocketpy.simulation.flight")
+        logger.info("test message from flight")
+
+    assert "test message from flight" in caplog.text

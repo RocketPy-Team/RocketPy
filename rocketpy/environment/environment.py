@@ -38,6 +38,7 @@ from rocketpy.environment.tools import (
     get_interval_date_from_time_array,
     get_pressure_levels_from_file,
     mask_and_clean_dataset,
+    pressure_unit_to_factor,
 )
 from rocketpy.environment.weather_model_mapping import WeatherModelMapping
 from rocketpy.mathutils.function import NUMERICAL_TYPES, Function, funcify_method
@@ -498,7 +499,7 @@ class Environment:
             interpolation="linear",
             extrapolation="natural",
         )
-        if callable(self.barometric_height.source):
+        if not self.barometric_height.is_array_source():
             # discretize to speed up flight simulation
             self.barometric_height.set_discrete(
                 0,
@@ -581,7 +582,7 @@ class Environment:
     def __reset_barometric_height_function(self):
         # NOTE: this assumes self.pressure and max_expected_height are already set.
         self.barometric_height = self.pressure.inverse_function()
-        if callable(self.barometric_height.source):
+        if not self.barometric_height.is_array_source():
             # discretize to speed up flight simulation
             self.barometric_height.set_discrete(
                 0,
@@ -900,7 +901,7 @@ class Environment:
         >>> g_0 = 9.80665
         >>> env_cte_g = Environment(gravity=g_0)
         >>> env_cte_g.gravity([0, 100, 1000])
-        [np.float64(9.80665), np.float64(9.80665), np.float64(9.80665)]
+        array([9.80665, 9.80665, 9.80665])
 
         It's also possible to variate the gravity acceleration by defining
         its function of height:
@@ -1158,9 +1159,7 @@ class Environment:
         if pressure_conversion_factor is not None:
             # User explicitly supplied a value — honour it.
             if isinstance(pressure_conversion_factor, str):
-                return (
-                    100 if pressure_conversion_factor.lower() in ("mbar", "hpa") else 1
-                )
+                return pressure_unit_to_factor(pressure_conversion_factor)
             return pressure_conversion_factor
 
         # Auto-detect. Primary source: known-model lookup table.
@@ -1173,9 +1172,9 @@ class Environment:
         _pa_files = {"GFS", "NAM", "RAP", "HRRR", "AIGFS"}
         if input_dict in _hpa_dicts or input_file in _hpa_dicts:
             return 100
-        if input_file in _hpa_files:
+        if input_dict in _hpa_files or input_file in _hpa_files:
             return 100
-        if input_file in _pa_files:
+        if input_dict in _pa_files or input_file in _pa_files:
             return 1
         return None
 
@@ -1360,11 +1359,7 @@ class Environment:
                                 "Argument 'pressure_conversion_factor' must be strictly positive!"
                             )
                     if isinstance(pressure_conversion_factor, str):
-                        if pressure_conversion_factor.lower() not in (
-                            "mbar",
-                            "hpa",
-                            "pa",
-                        ):
+                        if pressure_unit_to_factor(pressure_conversion_factor) is None:
                             raise ValueError(
                                 "Argument 'pressure_conversion_factor' unit must be a standard pressure unit ('mbar', 'hPa', 'Pa')!"
                             )
@@ -1572,7 +1567,7 @@ class Environment:
             self.__reset_barometric_height_function()
 
             # Check maximum height of custom pressure input
-            if not callable(self.pressure.source):
+            if self.pressure.is_array_source():
                 max_expected_height = max(self.pressure[-1, 0], max_expected_height)
 
         # Save temperature profile
@@ -1582,14 +1577,14 @@ class Environment:
         else:
             self.__set_temperature_function(temperature)
             # Check maximum height of custom temperature input
-            if not callable(self.temperature.source):
+            if self.temperature.is_array_source():
                 max_expected_height = max(self.temperature[-1, 0], max_expected_height)
 
         # Save wind profile
         self.__set_wind_velocity_x_function(wind_u)
         self.__set_wind_velocity_y_function(wind_v)
         # Check maximum height of custom wind input
-        if not callable(self.wind_velocity_x.source):
+        if self.wind_velocity_x.is_array_source():
             max_expected_height = max(self.wind_velocity_x[-1, 0], max_expected_height)
 
         def wind_heading_func(h):  # TODO: create another custom reset for heading
@@ -1754,11 +1749,11 @@ class Environment:
 
             Example:
 
-            http://weather.uwyo.edu/cgi-bin/sounding?region=samer&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=02&FROM=0200&TO=0200&STNM=82599
+            https://weather.uwyo.edu/wsgi/sounding?datetime=2019-02-05%2012:00:00&id=83779&type=TEXT:LIST
 
         Notes
         -----
-        More can be found at: http://weather.uwyo.edu/upperair/sounding.html.
+        More can be found at: https://weather.uwyo.edu/upperair/sounding.shtml.
 
         Returns
         -------
@@ -1770,7 +1765,9 @@ class Environment:
         # Process Wyoming Sounding by finding data table and station info
         response_split_text = re.split("(<.{0,1}PRE>)", response.text)
         data_table = response_split_text[2]
-        station_info = response_split_text[6]
+        # Legacy CGI pages had extra <PRE> blocks with station information;
+        # current WSGI pages have a single block with the data table only.
+        station_info = response_split_text[6] if len(response_split_text) > 6 else None
 
         # Transform data table into np array
         data_array = []
@@ -1792,8 +1789,10 @@ class Environment:
         self.__set_temperature_function(data_array[:, (1, 2)])
 
         # Retrieve wind-u and wind-v from data array
-        ## Converts Knots to m/s
-        data_array[:, 7] = data_array[:, 7] * 1.852 / 3.6
+        ## Legacy pages report wind speed as SKNT (knots); current WSGI pages
+        ## report it as SPED (m/s) and need no conversion.
+        if "SKNT" in data_table.split("\n")[2]:
+            data_array[:, 7] = data_array[:, 7] * 1.852 / 3.6  # Knots to m/s
         ## Convert wind direction to wind heading
         data_array[:, 5] = (data_array[:, 6] + 180) % 360
         data_array[:, 3] = data_array[:, 7] * np.sin(data_array[:, 5] * np.pi / 180)
@@ -1811,13 +1810,16 @@ class Environment:
         self.__set_wind_direction_function(data_array[:, (1, 6)])
         self.__set_wind_speed_function(data_array[:, (1, 7)])
 
-        # Retrieve station elevation from station info
-        station_elevation_text = station_info.split("\n")[6]
-
-        # Convert station elevation text into float value
-        self.elevation = float(
-            re.findall(r"[0-9]+\.[0-9]+|[0-9]+", station_elevation_text)[0]
-        )
+        # Retrieve station elevation
+        if station_info is not None:
+            # Legacy pages: read it from the station information block
+            station_elevation_text = station_info.split("\n")[6]
+            self.elevation = float(
+                re.findall(r"[0-9]+\.[0-9]+|[0-9]+", station_elevation_text)[0]
+            )
+        else:
+            # Current WSGI pages: use the surface (first) level height
+            self.elevation = float(data_array[0, 1])
 
         # Save maximum expected height
         self._max_expected_height = data_array[-1, 1]
@@ -2921,6 +2923,27 @@ class Environment:
             "timezone": self.timezone,
             "max_expected_height": self.max_expected_height,
             "atmospheric_model_type": self.atmospheric_model_type,
+            "atmospheric_model_init_date": getattr(
+                self, "atmospheric_model_init_date", None
+            ),
+            "atmospheric_model_end_date": getattr(
+                self, "atmospheric_model_end_date", None
+            ),
+            "atmospheric_model_interval": getattr(
+                self, "atmospheric_model_interval", None
+            ),
+            "atmospheric_model_init_lat": getattr(
+                self, "atmospheric_model_init_lat", None
+            ),
+            "atmospheric_model_end_lat": getattr(
+                self, "atmospheric_model_end_lat", None
+            ),
+            "atmospheric_model_init_lon": getattr(
+                self, "atmospheric_model_init_lon", None
+            ),
+            "atmospheric_model_end_lon": getattr(
+                self, "atmospheric_model_end_lon", None
+            ),
             "pressure": self.pressure,
             "temperature": self.temperature,
             "wind_velocity_x": wind_velocity_x,
@@ -2928,6 +2951,16 @@ class Environment:
             "wind_heading": wind_heading,
             "wind_direction": wind_direction,
             "wind_speed": wind_speed,
+            "level_ensemble": getattr(self, "level_ensemble", None),
+            "height_ensemble": getattr(self, "height_ensemble", None),
+            "temperature_ensemble": getattr(self, "temperature_ensemble", None),
+            "wind_u_ensemble": getattr(self, "wind_u_ensemble", None),
+            "wind_v_ensemble": getattr(self, "wind_v_ensemble", None),
+            "wind_heading_ensemble": getattr(self, "wind_heading_ensemble", None),
+            "wind_direction_ensemble": getattr(self, "wind_direction_ensemble", None),
+            "wind_speed_ensemble": getattr(self, "wind_speed_ensemble", None),
+            "num_ensemble_members": getattr(self, "num_ensemble_members", None),
+            "ensemble_member": getattr(self, "ensemble_member", None),
         }
 
         if kwargs.get("include_outputs", False):
@@ -2951,6 +2984,7 @@ class Environment:
             max_expected_height=data["max_expected_height"],
         )
         atmospheric_model = data["atmospheric_model_type"]
+        env.atmospheric_model_type = atmospheric_model
 
         match atmospheric_model:
             case "standard_atmosphere":
@@ -2993,6 +3027,7 @@ class Environment:
             env.wind_direction_ensemble = data["wind_direction_ensemble"]
             env.wind_speed_ensemble = data["wind_speed_ensemble"]
             env.num_ensemble_members = data["num_ensemble_members"]
+            env.ensemble_member = data.get("ensemble_member", 0) or 0
 
         env.__reset_barometric_height_function()
         env.calculate_density_profile()

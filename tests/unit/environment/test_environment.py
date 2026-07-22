@@ -1,7 +1,9 @@
 import json
 import os
+from datetime import datetime
 
 import numpy as np
+import numpy.testing as npt
 import pytest
 import pytz
 
@@ -10,6 +12,10 @@ from rocketpy.environment.tools import (
     find_longitude_index,
     geodesic_to_lambert_conformal,
     geodesic_to_utm,
+    get_final_date_from_time_array,
+    get_initial_date_from_time_array,
+    get_pressure_levels_from_file,
+    pressure_unit_to_factor,
     utm_to_geodesic,
 )
 from rocketpy.environment.weather_model_mapping import WeatherModelMapping
@@ -22,6 +28,27 @@ class DummyLambertProjection:
     longitude_of_central_meridian = 263.0
     standard_parallel = np.array([30.0, 60.0])
     earth_radius = 6371229.0
+
+
+@pytest.mark.parametrize(
+    "date_helper", [get_initial_date_from_time_array, get_final_date_from_time_array]
+)
+def test_time_array_date_helpers_convert_cftime_dates(
+    monkeypatch, date_helper, dummy_time_array, dummy_cftime_date
+):
+    """Convert NetCDF/cftime date objects to JSON-serializable datetimes."""
+
+    # Arrange
+    def fake_num2date(*_args, **_kwargs):
+        return dummy_cftime_date
+
+    monkeypatch.setattr("rocketpy.environment.tools.netCDF4.num2date", fake_num2date)
+
+    # Act
+    converted_date = date_helper(dummy_time_array)
+
+    # Assert
+    assert converted_date == datetime(2023, 6, 24, 9, 30, 15, 123456)
 
 
 @pytest.mark.parametrize(
@@ -290,20 +317,115 @@ def test_environment_export_environment_exports_valid_environment_json(
     assert exported_env["atmospheric_model_type"] == env.atmospheric_model_type
     assert exported_env["atmospheric_model_file"] is None
     assert exported_env["atmospheric_model_dict"] is None
-    assert exported_env["atmospheric_model_pressure_profile"] == str(
+    assert str(exported_env["atmospheric_model_pressure_profile"]) == str(
         env.pressure.get_source()
     )
-    assert exported_env["atmospheric_model_temperature_profile"] == str(
+    assert str(exported_env["atmospheric_model_temperature_profile"]) == str(
         env.temperature.get_source()
     )
-    assert exported_env["atmospheric_model_wind_velocity_x_profile"] == str(
+    assert str(exported_env["atmospheric_model_wind_velocity_x_profile"]) == str(
         env.wind_velocity_x.get_source()
     )
-    assert exported_env["atmospheric_model_wind_velocity_y_profile"] == str(
+    assert str(exported_env["atmospheric_model_wind_velocity_y_profile"]) == str(
         env.wind_velocity_y.get_source()
     )
 
     os.remove("environment.json")
+
+
+@pytest.mark.parametrize(
+    "atmospheric_model_type", ["windy", "forecast", "reanalysis", "ensemble"]
+)
+def test_environment_to_dict_from_dict_round_trip_preserves_weather_metadata(
+    example_plain_env, atmospheric_model_type
+):
+    """Round-trip weather-model environments without losing metadata.
+
+    Parameters
+    ----------
+    example_plain_env : rocketpy.Environment
+        Baseline environment used to build the serialized state.
+    atmospheric_model_type : str
+        Weather-model label stored in the serialized payload.
+    """
+    # Arrange
+    env = example_plain_env
+
+    weather_metadata = {
+        "atmospheric_model_type": atmospheric_model_type,
+        "atmospheric_model_file": None,
+        "atmospheric_model_dict": {"time": "time"},
+        "atmospheric_model_init_date": datetime(2024, 1, 1, 0),
+        "atmospheric_model_end_date": datetime(2024, 1, 1, 6),
+        "atmospheric_model_interval": 6,
+        "atmospheric_model_init_lat": -10.0,
+        "atmospheric_model_end_lat": 10.0,
+        "atmospheric_model_init_lon": -20.0,
+        "atmospheric_model_end_lon": 20.0,
+    }
+
+    ensemble_metadata = {
+        "level_ensemble": None,
+        "height_ensemble": None,
+        "temperature_ensemble": None,
+        "wind_u_ensemble": None,
+        "wind_v_ensemble": None,
+        "wind_heading_ensemble": None,
+        "wind_direction_ensemble": None,
+        "wind_speed_ensemble": None,
+        "num_ensemble_members": None,
+    }
+
+    if atmospheric_model_type == "ensemble":
+        ensemble_metadata.update(
+            {
+                "level_ensemble": np.array([1000.0, 900.0]),
+                "height_ensemble": np.array([[0.0, 1000.0], [0.0, 1000.0]]),
+                "temperature_ensemble": np.array([[288.15, 281.15], [288.15, 281.15]]),
+                "wind_u_ensemble": np.array([[2.0, 3.0], [2.0, 3.0]]),
+                "wind_v_ensemble": np.array([[4.0, 5.0], [4.0, 5.0]]),
+                "wind_heading_ensemble": np.array(
+                    [[26.565051, 30.963757], [26.565051, 30.963757]]
+                ),
+                "wind_direction_ensemble": np.array(
+                    [[206.565051, 210.963757], [206.565051, 210.963757]]
+                ),
+                "wind_speed_ensemble": np.array(
+                    [[4.472136, 5.830952], [4.472136, 5.830952]]
+                ),
+                "num_ensemble_members": 2,
+                "ensemble_member": 1,
+            }
+        )
+
+    for metadata in (weather_metadata, ensemble_metadata):
+        for attribute, value in metadata.items():
+            setattr(env, attribute, value)
+
+    env_dict = env.to_dict()
+
+    # The serialized payload should be self-contained and not depend on files.
+    assert "atmospheric_model_file" not in env_dict
+    assert "atmospheric_model_dict" not in env_dict
+
+    # Act
+    restored_env = Environment.from_dict(env_dict)
+
+    # Assert
+    assert restored_env.atmospheric_model_type == atmospheric_model_type
+    assert restored_env.atmospheric_model_init_date == env.atmospheric_model_init_date
+    assert restored_env.atmospheric_model_end_date == env.atmospheric_model_end_date
+    assert restored_env.atmospheric_model_interval == env.atmospheric_model_interval
+    assert restored_env.atmospheric_model_init_lat == env.atmospheric_model_init_lat
+    assert restored_env.atmospheric_model_end_lat == env.atmospheric_model_end_lat
+    assert restored_env.atmospheric_model_init_lon == env.atmospheric_model_init_lon
+    assert restored_env.atmospheric_model_end_lon == env.atmospheric_model_end_lon
+
+    if atmospheric_model_type == "ensemble":
+        npt.assert_allclose(restored_env.level_ensemble, env.level_ensemble)
+        npt.assert_allclose(restored_env.height_ensemble, env.height_ensemble)
+        assert restored_env.num_ensemble_members == env.num_ensemble_members
+        assert restored_env.ensemble_member == env.ensemble_member == 1
 
 
 class _DummyDataset:
@@ -702,7 +824,6 @@ def test_pressure_conversion_factor_autodetect_by_model(
     """Regression test for the GEFS/HIRESW pressure-unit bug: NOMADS-GrADS
     models report pressure in hPa (factor 100), THREDDS models in Pa (factor 1).
     A wrong factor silently corrupts the whole atmospheric profile (100x)."""
-    # pylint: disable=protected-access
     factor = example_plain_env._Environment__determine_pressure_conversion_factor(
         None, None, model
     )
@@ -731,3 +852,91 @@ def test_pressure_isa_discretization_bounds(example_plain_env):
     assert np.isclose(altitudes[0], expected_min_height)
     assert np.isclose(altitudes[-1], expected_max_height)
     assert len(altitudes) == 100
+
+
+@pytest.mark.parametrize(
+    "model, expected_factor",
+    [("GEFS", 100), ("HIRESW", 100), ("GFS", 1), ("AIGFS", 1)],
+)
+def test_pressure_conversion_factor_autodetect_by_dictionary(
+    example_plain_env, model, expected_factor
+):
+    """Model shortcuts arriving via ``dictionary`` (the realistic download
+    path) must map to the same factor as when they arrive via ``file``."""
+    factor = example_plain_env._Environment__determine_pressure_conversion_factor(
+        None, model, None
+    )
+    assert factor == expected_factor
+
+
+@pytest.mark.parametrize(
+    "units, expected_levels",
+    [
+        ("mb", [100000.0, 85000.0]),
+        ("millibar", [100000.0, 85000.0]),
+        ("millibars", [100000.0, 85000.0]),
+        ("hPa", [100000.0, 85000.0]),
+        ("mbar", [100000.0, 85000.0]),
+        ("Pa", [1000.0, 850.0]),
+    ],
+)
+def test_get_pressure_levels_from_file_unit_synonyms(units, expected_levels):
+    """hPa/millibar unit synonyms auto-scale by 100; Pa by 1."""
+
+    class _Var:
+        def __init__(self, values, units):
+            self._values = np.asarray(values)
+            self.units = units
+
+        def __getitem__(self, key):
+            return self._values[key]
+
+    class _DS:
+        def __init__(self, var):
+            self.variables = {"lev": var}
+
+    dataset = _DS(_Var([1000.0, 850.0], units))
+    levels = get_pressure_levels_from_file(dataset, {"level": "lev"}, None)
+    npt.assert_allclose(levels, expected_levels)
+
+
+@pytest.mark.parametrize(
+    "unit, expected",
+    [
+        ("mbar", 100),
+        ("mb", 100),
+        ("hPa", 100),
+        ("millibar", 100),
+        ("millibars", 100),
+        ("hectopascal", 100),
+        ("Pa", 1),
+        ("pascal", 1),
+        ("parsecs", None),
+        ("", None),
+    ],
+)
+def test_pressure_unit_to_factor(unit, expected):
+    """The shared unit->factor helper: hPa synonyms ->100, Pa ->1, else None."""
+
+    assert pressure_unit_to_factor(unit) == expected
+
+
+@pytest.mark.parametrize("unit, expected", [("mb", 100), ("millibar", 100), ("Pa", 1)])
+def test_pressure_conversion_factor_explicit_unit_synonyms(
+    example_plain_env, unit, expected
+):
+    """An explicit string ``pressure_conversion_factor`` accepts the same unit
+    synonyms as file auto-detection (Copilot review consistency fix)."""
+    factor = example_plain_env._Environment__determine_pressure_conversion_factor(
+        unit, None, None
+    )
+    assert factor == expected
+
+
+def test_set_atmospheric_model_rejects_unknown_pressure_unit(example_plain_env):
+    """An unrecognized ``pressure_conversion_factor`` unit is rejected during
+    validation, before any file access."""
+    with pytest.raises(ValueError, match="pressure_conversion_factor"):
+        example_plain_env.set_atmospheric_model(
+            type="Forecast", file="dummy", pressure_conversion_factor="parsecs"
+        )

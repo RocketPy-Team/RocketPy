@@ -483,7 +483,7 @@ class SolidMotor(Motor):
         center_of_mass = np.full_like(time_source, self.grains_center_of_mass_position)
         return np.column_stack((time_source, center_of_mass))
 
-    # pylint: disable=too-many-arguments, too-many-statements
+    # pylint: disable=too-many-statements
     def evaluate_geometry(self):
         """Calculates grain inner radius and grain height as a function of time
         by assuming that every propellant mass burnt is exhausted. In order to

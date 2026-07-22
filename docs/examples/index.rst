@@ -12,6 +12,13 @@ apogee of some rockets.
    :hide-code:
 
    import plotly.graph_objects as go
+   import plotly.io as pio
+
+   # Emit an HTML output that pulls plotly.js from the CDN, so the figure
+   # renders on the static documentation pages. Without an explicit renderer,
+   # ``fig.show()`` under jupyter-execute produces a plotly-mimetype bundle
+   # that a static HTML page has no frontend to display (blank chart).
+   pio.renderers.default = "notebook_connected"
 
    results = {
       # "Name (Year)": (simulated, measured) m

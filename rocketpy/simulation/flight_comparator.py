@@ -450,7 +450,7 @@ class FlightComparator:
         if filename:
             print(f"Plot saved to file: {filename}")
 
-    def compare(  # pylint: disable=too-many-statements
+    def compare(
         self,
         attribute,
         time_range=None,
@@ -730,7 +730,7 @@ class FlightComparator:
 
         return "\n".join(lines)
 
-    def summary(self):  # pylint: disable=too-many-statements
+    def summary(self):
         """
         Print comprehensive comparison summary including key events and metrics.
 

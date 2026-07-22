@@ -1,5 +1,6 @@
 import inspect
 import json
+import logging
 import os
 import warnings
 from datetime import date
@@ -20,6 +21,57 @@ from .rocket.aero_surface import TrapezoidalFins
 
 if TYPE_CHECKING:  # pragma: no cover
     from .simulation.flight import Flight
+
+
+def enable_logging(level="WARNING"):
+    """Enable RocketPy logging output to the console.
+
+    Attaches a StreamHandler to the ``rocketpy`` logger so that internal
+    runtime events (simulation progress, warnings, errors) are printed to
+    the terminal. Only RocketPy logs are affected — global/root logging
+    is not modified. By default, only WARNING and above are shown.
+
+    Parameters
+    ----------
+    level : str, optional
+        The minimum logging level to display. Options are "DEBUG", "INFO",
+        "WARNING", "ERROR", and "CRITICAL". Default is "WARNING".
+
+    Examples
+    --------
+    Show only warnings and errors (default):
+
+    >>> import rocketpy
+    >>> rocketpy.utilities.enable_logging()
+
+    Show all internal runtime messages, including simulation progress:
+
+    >>> import rocketpy
+    >>> rocketpy.utilities.enable_logging(level="DEBUG")
+
+    Show confirmations like "Simulation completed" and "File saved":
+
+    >>> import rocketpy
+    >>> rocketpy.utilities.enable_logging(level="INFO")
+    """
+    numeric_level = getattr(logging, level.upper(), None)
+    if not isinstance(numeric_level, int):
+        raise ValueError(f"Invalid logging level: '{level}'")
+
+    logger = logging.getLogger("rocketpy")
+
+    # Remove any existing StreamHandlers to avoid duplicate messages
+    logger.handlers = [
+        h for h in logger.handlers if not isinstance(h, logging.StreamHandler)
+    ]
+
+    logger.setLevel(numeric_level)
+
+    handler = logging.StreamHandler()
+    handler.setLevel(numeric_level)
+    handler.setFormatter(logging.Formatter("%(levelname)s | %(name)s | %(message)s"))
+
+    logger.addHandler(handler)
 
 
 def compute_cd_s_from_drop_test(
@@ -719,9 +771,11 @@ def load_from_rpy(filename: str, resimulate=False):
             version("rocketpy")
         ):
             warnings.warn(
-                "The file was saved in an updated version of",
-                f"RocketPy (v{data['version']}), the current",
+                "The file was saved in an updated version of "
+                f"RocketPy (v{data['version']}), the current "
                 f"imported module is v{version('rocketpy')}",
+                UserWarning,
+                stacklevel=2,
             )
         simulation = json.dumps(data["simulation"])
         flight = json.loads(simulation, cls=RocketPyDecoder, resimulate=resimulate)

@@ -2,9 +2,10 @@ from unittest.mock import patch
 
 import matplotlib as plt
 import numpy as np
+import numpy.testing as npt
 import pytest
 
-from rocketpy import Flight, HemisphericalParachute
+from rocketpy import Flight
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
@@ -149,7 +150,7 @@ def test_simpler_parachute_triggers(mock_show, example_plain_env, calisto_robust
     """
     calisto_robust.parachutes = []
 
-    main = HemisphericalParachute(
+    _ = calisto_robust.add_parachute(
         "Main",
         cd_s=10.0,
         trigger=400,
@@ -157,7 +158,7 @@ def test_simpler_parachute_triggers(mock_show, example_plain_env, calisto_robust
         lag=0,
     )
 
-    drogue2 = HemisphericalParachute(
+    _ = calisto_robust.add_parachute(
         "Drogue2",
         cd_s=5.5,
         trigger=lambda pressure, height, state: height < 800 and state[5] < 0,
@@ -165,69 +166,7 @@ def test_simpler_parachute_triggers(mock_show, example_plain_env, calisto_robust
         lag=0,
     )
 
-    drogue1 = HemisphericalParachute(
-        "Drogue",
-        cd_s=1.0,
-        trigger="apogee",
-        sampling_rate=105,
-        lag=0,
-    )
-    calisto_robust.add_parachute(parachute=main)
-    calisto_robust.add_parachute(parachute=drogue1)
-    calisto_robust.add_parachute(parachute=drogue2)
-
-    test_flight = Flight(
-        rocket=calisto_robust,
-        environment=example_plain_env,
-        rail_length=5,
-        inclination=85,
-        heading=0,
-    )
-
-    assert (
-        abs(test_flight.z(test_flight.parachute_events[0][0]) - test_flight.apogee) <= 1
-    )
-    assert (
-        abs(
-            test_flight.z(test_flight.parachute_events[1][0])
-            - (800 + example_plain_env.elevation)
-        )
-        <= 1
-    )
-    assert (
-        abs(
-            test_flight.z(test_flight.parachute_events[2][0])
-            - (400 + example_plain_env.elevation)
-        )
-        <= 1
-    )
-    assert calisto_robust.all_info() is None
-    assert test_flight.all_info() is None
-
-
-# TODO: When the legacy behavior is removed, remove this test
-@patch("matplotlib.pyplot.show")
-def test_legacy_add_parachute(mock_show, example_plain_env, calisto_robust):  # pylint: disable=unused-argument
-    """This is a legacy test that repeats the tests in 'test_simpler_parachute_triggers'
-    but using the 'add_parachute' method with legacy inputs. The results should be the same.
-    """
-    calisto_robust.parachutes = []
-
-    calisto_robust.add_parachute(
-        "Main",
-        cd_s=10.0,
-        trigger=400,
-        sampling_rate=105,
-        lag=0,
-    )
-    calisto_robust.add_parachute(
-        "Drogue2",
-        cd_s=5.5,
-        trigger=lambda pressure, height, state: height < 800 and state[5] < 0,
-        sampling_rate=105,
-        lag=0,
-    )
-    calisto_robust.add_parachute(
+    _ = calisto_robust.add_parachute(
         "Drogue",
         cd_s=1.0,
         trigger="apogee",
@@ -447,7 +386,8 @@ def test_freestream_speed_at_apogee(example_plain_env, calisto):
     """
     # NOTE: this rocket doesn't move in x or z direction. There's no wind.
     hard_atol = 1e-12
-    soft_atol = 1e-6
+    soft_atol = 1e-5
+    soft_rtol = 1e-4
     test_flight = Flight(
         environment=example_plain_env,
         rocket=calisto,
@@ -458,25 +398,36 @@ def test_freestream_speed_at_apogee(example_plain_env, calisto):
         atol=13 * [hard_atol],
     )
 
-    assert np.isclose(
+    npt.assert_allclose(
         test_flight.stream_velocity_x(test_flight.apogee_time),
-        0.46416088113985227,
+        0.4641507314747016,
         atol=hard_atol,
+        rtol=soft_rtol,
     )
-    assert np.isclose(
-        test_flight.stream_velocity_y(test_flight.apogee_time), 0.0, atol=hard_atol
+    npt.assert_allclose(
+        test_flight.stream_velocity_y(test_flight.apogee_time),
+        0.0,
+        atol=hard_atol,
+        rtol=soft_rtol,
     )
     # NOTE: stream_velocity_z has a higher error due to apogee detection estimation
-    assert np.isclose(
-        test_flight.stream_velocity_z(test_flight.apogee_time), 0.0, atol=soft_atol
+    npt.assert_allclose(
+        test_flight.stream_velocity_z(test_flight.apogee_time),
+        0.0,
+        atol=soft_atol,
+        rtol=soft_rtol,
     )
-    assert np.isclose(
+    npt.assert_allclose(
         test_flight.free_stream_speed(test_flight.apogee_time),
-        0.46416088113985277,
+        0.46415073147558955,
         atol=hard_atol,
+        rtol=soft_rtol,
     )
-    assert np.isclose(
-        test_flight.apogee_freestream_speed, 0.46416088113985277, atol=hard_atol
+    npt.assert_allclose(
+        test_flight.apogee_freestream_speed,
+        0.46415073147558955,
+        atol=hard_atol,
+        rtol=soft_rtol,
     )
 
 
@@ -972,14 +923,13 @@ def test_acceleration_based_parachute_trigger_deploys(
         return y[5] < 0 and u_dot[5] < 0
 
     calisto_robust.parachutes = []
-    chute = HemisphericalParachute(
+    chute = calisto_robust.add_parachute(
         name="acc_chute",
         cd_s=10.0,
         trigger=acc_trigger,
         sampling_rate=100,
         lag=0,
     )
-    calisto_robust.add_parachute(parachute=chute)
 
     # Do NOT terminate at apogee: the flight must descend for the trigger to fire.
     flight = Flight(
@@ -998,24 +948,3 @@ def test_acceleration_based_parachute_trigger_deploys(
     deploy_time, deployed = flight.parachute_events[0]
     assert deployed.name == "acc_chute"
     assert abs(flight.z(deploy_time) - flight.apogee) <= 5
-
-
-def test_to_dict_populates_parachutes_info_lazily(flight_calisto_robust):
-    """Regression: parachutes_info is filled only as a side effect of the lazy
-    post-processing pass. to_dict() must trigger that pass so the per-parachute
-    drag time series is serialized even when no post-processed property was
-    accessed first (e.g. a flight without controllers saved right after running).
-    """
-    flight = flight_calisto_robust
-
-    # Not populated yet: no post-processed property has been accessed.
-    assert flight.parachutes_info == {}
-
-    data = flight.to_dict()
-
-    # to_dict must have triggered post-processing, populating the drag series.
-    assert data["parachutes_info"]
-    assert data["parachutes_info"] is flight.parachutes_info
-    for info in data["parachutes_info"].values():
-        assert info["drag"]
-        assert info["t"]

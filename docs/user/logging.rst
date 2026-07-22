@@ -18,14 +18,14 @@ Enabling logging
 -----------------
 
 The easiest way to see RocketPy's internal log messages is the
-:func:`rocketpy.utils.enable_logging` helper, which attaches a console
+:func:`rocketpy.utilities.enable_logging` helper, which attaches a console
 handler to RocketPy's logger hierarchy:
 
 .. jupyter-execute::
 
     import rocketpy
 
-    rocketpy.utils.enable_logging(level="INFO")
+    rocketpy.utilities.enable_logging(level="INFO")
 
 Once enabled, operations such as saving a file or completing a simulation
 will emit messages to the console, for example:
@@ -51,7 +51,7 @@ shown:
 .. jupyter-execute::
 
     # Show every internal runtime message, including solver ticks
-    rocketpy.utils.enable_logging(level="DEBUG")
+    rocketpy.utilities.enable_logging(level="DEBUG")
 
 Filtering by module
 --------------------
@@ -59,7 +59,7 @@ Filtering by module
 Because each RocketPy module exposes its own logger (e.g.
 ``rocketpy.simulation.flight``, ``rocketpy.environment.environment``), you
 can rely on the standard ``logging`` module to filter or redirect messages
-from specific modules, without using :func:`rocketpy.utils.enable_logging`
+from specific modules, without using :func:`rocketpy.utilities.enable_logging`
 at all:
 
 .. code-block:: python

@@ -1,4 +1,4 @@
-from . import utils
+from . import utilities
 from .control import _Controller
 from .environment import Environment, EnvironmentAnalysis
 from .exceptions import (
@@ -43,7 +43,6 @@ from .rocket import (
     FreeFormFin,
     FreeFormFins,
     GenericSurface,
-    HemisphericalParachute,
     LinearGenericSurface,
     NoseCone,
     Parachute,

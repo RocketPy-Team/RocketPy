@@ -1,5 +1,4 @@
 Logging functions
 -----------------
 
-.. automodule:: rocketpy.utils
-   :members:
+.. autofunction:: rocketpy.utilities.enable_logging

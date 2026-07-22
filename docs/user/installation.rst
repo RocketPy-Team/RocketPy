@@ -19,7 +19,7 @@ If you want to choose a specific version to guarantee compatibility, you may ins
 
 .. code-block:: shell
 
-    pip install rocketpy==1.11.0
+    pip install rocketpy==1.13.0
 
 
 Optional Installation Method: ``conda``
@@ -153,7 +153,8 @@ RocketPy has several optional feature sets that can be installed individually.
     pip install rocketpy[env_analysis]
 
 **3D Flight Animation** — interactive 3D animations of rocket trajectory and
-attitude using `vedo <https://vedo.embl.es/>`_ (requires a desktop environment):
+attitude using `PyVista <https://pyvista.org/>`_ (a desktop environment is
+recommended):
 
 .. code-block:: shell
 

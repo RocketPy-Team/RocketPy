@@ -194,7 +194,7 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
         self,
         *,
         filename=None,
-    ):  # pylint: disable=too-many-statements
+    ):
         """Plots average temperature progression throughout the day, including
         sigma contours.
 
@@ -269,7 +269,7 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
 
     def average_surface10m_wind_speed_evolution(
         self, wind_speed_limit=False, *, filename=None
-    ):  # pylint: disable=too-many-statements
+    ):
         """Plots average surface wind speed progression throughout the day,
         including sigma contours.
 
@@ -371,7 +371,7 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
         self,
         *,
         filename=None,
-    ):  # pylint: disable=too-many-statements
+    ):
         """Plots average surface wind speed progression throughout the day, including
         sigma contours.
 
@@ -957,7 +957,7 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
         )
         show_or_save_plot(filename)
 
-    def average_wind_rose_grid(self, *, filename=None):  # pylint: disable=too-many-statements
+    def average_wind_rose_grid(self, *, filename=None):
         """Plot wind roses for all hours of a day, in a grid like plot.
 
         Parameters
@@ -1683,7 +1683,7 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
         fig.supylabel(f"Altitude AGL ({self.env_analysis.unit_system['length']})")
         show_or_save_plot(filename)
 
-    def animate_wind_speed_profile(self, clear_range_limits=False):  # pylint: disable=too-many-statements
+    def animate_wind_speed_profile(self, clear_range_limits=False):
         """Animation of how wind profile evolves throughout an average day.
 
         Parameters
@@ -1763,7 +1763,7 @@ class _EnvironmentAnalysisPlots:  # pylint: disable=too-many-public-methods
         plt.close(fig)
         return HTML(animation.to_jshtml())
 
-    def animate_wind_heading_profile(self, clear_range_limits=False):  # pylint: disable=too-many-statements
+    def animate_wind_heading_profile(self, clear_range_limits=False):
         """Animation of how the wind heading profile evolves throughout an
         average day. Each frame is a different hour of the day.
 

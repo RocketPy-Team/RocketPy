@@ -308,21 +308,27 @@ def test_wyoming_sounding_atmosphere(mock_show, example_plain_env):  # pylint: d
 
     # TODO:: this should be added to the set_atmospheric_model() method as a
     #        "file" option, instead of receiving the URL as a string.
-    url = "http://weather.uwyo.edu/cgi-bin/sounding?region=samer&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=02&FROM=0500&TO=0512&STNM=83779"
-    # give it at least 5 times to try to download the file
+    url = (
+        "https://weather.uwyo.edu/wsgi/sounding?"
+        "datetime=2019-02-05+00:00:00&id=83779&type=TEXT:LIST"
+    )
+    # give it at least 5 times to try to download the file, then skip instead
+    # of silently keeping the standard atmosphere and failing the assertions
     for i in range(5):
         try:
             example_plain_env.set_atmospheric_model(type="wyoming_sounding", file=url)
             break
         except Exception:  # pylint: disable=broad-except
             time.sleep(2**i)
+    else:
+        pytest.skip("Could not fetch Wyoming sounding data from weather.uwyo.edu")
     assert example_plain_env.all_info() is None
     assert abs(example_plain_env.pressure(0) - 93600.0) < 1e-8
     assert (
         abs(example_plain_env.barometric_height(example_plain_env.pressure(0)) - 722.0)
         < 1e-8
     )
-    assert abs(example_plain_env.wind_velocity_x(0) - -2.9005178894925043) < 1e-8
+    assert abs(example_plain_env.wind_velocity_x(0) - -2.9130471244363165) < 1e-8
     assert abs(example_plain_env.temperature(100) - 291.75) < 1e-8
 
 

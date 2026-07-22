@@ -167,7 +167,6 @@ def set_minimal_flight_attributes(flight, obj):
         "apogee_time",
         "apogee",
         "parachute_events",
-        "parachutes_info",
         "impact_state",
         "impact_velocity",
         "x_impact",
@@ -246,23 +245,10 @@ def get_class_from_signature(signature):
     type
         Class defined by the signature.
     """
-    module_name = signature["module"]
-    name = signature["name"]
-
-    # Backward compatibility: the parachute module was moved to the
-    # ``rocketpy.rocket.parachutes`` subpackage and the old concrete
-    # ``Parachute`` class became an abstract base, with the hemispherical model
-    # split out. Remap the legacy signature so ``.rpy`` files saved with older
-    # versions reconstruct as a concrete ``HemisphericalParachute`` instead of
-    # silently falling back to a raw dictionary.
-    if module_name == "rocketpy.rocket.parachute" and name == "Parachute":
-        module_name = "rocketpy.rocket.parachutes.hemispherical_parachute"
-        name = "HemisphericalParachute"
-
-    module = import_module(module_name)
+    module = import_module(signature["module"])
     inner_class = None
 
-    for class_ in name.split("."):
+    for class_ in signature["name"].split("."):
         inner_class = getattr(module, class_)
 
     return inner_class

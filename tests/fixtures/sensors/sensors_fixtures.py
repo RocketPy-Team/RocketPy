@@ -24,6 +24,7 @@ def noisy_rotated_accelerometer():
         cross_axis_sensitivity=0.5,
         consider_gravity=True,
         name="Accelerometer",
+        seed=42,
     )
 
 
@@ -46,6 +47,7 @@ def noisy_rotated_gyroscope():
         cross_axis_sensitivity=0.5,
         acceleration_sensitivity=[0, 0.0008, 0.0017],
         name="Gyroscope",
+        seed=42,
     )
 
 
@@ -62,6 +64,7 @@ def noisy_barometer():
         operating_temperature=25 + 273.15,
         temperature_bias=0.02,
         temperature_scale_factor=0.02,
+        seed=42,
     )
 
 
@@ -71,6 +74,7 @@ def noisy_gnss():
         sampling_rate=1,
         position_accuracy=1,
         altitude_accuracy=1,
+        seed=42,
     )
 
 

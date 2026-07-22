@@ -469,7 +469,7 @@ class ConvergenceMockMonteCarlo(MonteCarlo):
         pass
 
     def simulate(self, number_of_simulations, append=True, **kwargs):
-        # pylint: disable=arguments-differ,unused-argument
+        # pylint: disable=arguments-differ
         self.simulate_calls += 1
         self.num_of_loaded_sims = number_of_simulations
 

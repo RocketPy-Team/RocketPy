@@ -458,8 +458,8 @@ Flight Data Plots
 ~~~~~~~~~~~~~~~~~~~
 
 RocketPy can produce real-time interactive 3D animations of the simulated
-flight using `vedo <https://vedo.embl.es/>`_, a scientific visualization
-library built on top of VTK.  Two complementary animation modes are provided:
+flight using `PyVista <https://pyvista.org/>`_, a scientific visualization
+library built on top of VTK. Two complementary animation modes are provided:
 
 .. list-table::
    :header-rows: 1
@@ -469,27 +469,30 @@ library built on top of VTK.  Two complementary animation modes are provided:
      - What it shows
    * - ``flight.plots.animate_trajectory()``
      - The rocket 3D model moves through space following the simulated
-       trajectory; a black trail line is drawn behind it.
+       trajectory. The scene includes the simulated and flown paths, live
+       telemetry, velocity and wind vectors, and flight-event markers.
    * - ``flight.plots.animate_rotate()``
      - The rocket 3D model stays centred in the scene; only its attitude
-       (orientation derived from the quaternion solution) is animated.
+       is animated. A reference sphere, inertial horizon, body axes and live
+       attitude/rate telemetry make the quaternion solution easier to inspect.
+       Inertial velocity and wind directions are shown alongside the body axes.
 
 .. note::
 
-    The animation window opens on the desktop via VTK.  It will **not** render
-    inside headless environments such as Google Colab.  For notebook use, run
-    the cell on a local Jupyter server or JupyterLab installation.
+    The animation normally opens in an interactive VTK window. A local desktop
+    Python or Jupyter environment provides the best experience. A compatible
+    PyVista Jupyter backend is required for inline notebook rendering.
 
 **Installation**
 
-The ``vedo`` dependency is not installed by default.  Add the optional extra
+The ``pyvista`` dependency is not installed by default. Add the optional extra
 before calling either animation method:
 
 .. code-block:: bash
 
     pip install rocketpy[animation]
 
-If ``vedo`` is not available when an animation method is called, RocketPy
+If ``pyvista`` is not available when an animation method is called, RocketPy
 raises an :class:`ImportError` with the above install command embedded in the
 message.
 
@@ -505,6 +508,13 @@ message.
         start=0.0,                    # start time in seconds (default: 0)
         stop=flight.t_final,          # end time in seconds (default: t_final)
         time_step=0.05,               # seconds per frame (default: 0.1)
+        playback_speed=2.0,           # twice real-time playback (default: 1)
+        background_color="#A8CBE0",   # optional launch-background override
+        color_by="dynamic_pressure",   # speed, Mach, q, acceleration or altitude
+        show_kinematic_plots=True,      # altitude, speed and acceleration
+        camera_mode="follow",           # static, follow, ground or body
+        trajectory_line_width=8,      # flown-path width (default: 4)
+        show_subrocket_point=True,  # ground projection (default: True)
     )
 
     # Provide your own 3D model (any STL file)
@@ -518,8 +528,8 @@ message.
 **animate_rotate — attitude-only animation**
 
 Useful for inspecting roll, pitch, and yaw behaviour without the distraction of
-the trajectory translation.  The rocket mesh is fixed at its position at
-``start`` and only rotated according to the quaternion solution.
+the trajectory translation. The rocket mesh remains centred and rotates in an
+East-North-Up inertial reference scene according to the quaternion solution.
 
 .. code-block:: python
 
@@ -527,6 +537,20 @@ the trajectory translation.  The rocket mesh is fixed at its position at
         start=0.0,
         stop=flight.t_final,
         time_step=0.05,
+        show_attitude_plots=True,
+        show_cp_cm=True,
+    )
+
+Deterministic export uses a fixed simulation-time grid derived from the output
+frame rate and ``playback_speed``:
+
+.. code-block:: python
+
+    flight.plots.animate_trajectory(
+        export_file="flight.mp4",
+        export_fps=30,
+        export_resolution=(1920, 1080),
+        camera_mode="follow",
     )
 
 **Parameters**
@@ -554,18 +578,154 @@ Both methods share the same signature:
        ``flight.t_final``.
    * - ``time_step``
      - ``0.1``
-     - Duration of each frame in seconds.  Smaller values produce smoother
-       animations at the cost of longer render times.  Must be > 0.
+     - Simulation-time interval between frames, in seconds. Smaller values produce
+       smoother interactive playback at the cost of more rendering work. Must
+       be > 0.
+   * - ``playback_speed``
+     - ``1.0``
+     - Ratio of simulation time to wall-clock time. For example, ``2`` plays at
+       twice real time. Must be > 0. The animation control strip always provides
+       ``0.5x``, ``1x``, ``2x`` and ``3x`` choices.
    * - ``**kwargs``
      - —
-     - Additional keyword arguments forwarded to ``vedo.Plotter.show``
-       (e.g. ``viewup``, ``azimuth``, ``elevation``).
+     - RocketPy visualization options listed below, plus arguments forwarded to
+       :class:`pyvista.Plotter`, such as ``window_size``, ``notebook`` or
+       ``off_screen``.
+
+The following RocketPy-specific options are supplied through ``**kwargs`` and
+are removed before the remaining arguments are forwarded to PyVista:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 28 15 57
+
+   * - Keyword
+     - Default
+     - Description
+   * - ``background_color``
+     - ``None``
+     - Color-like launch-background override, such as ``"#A8CBE0"``,
+       ``"lightblue"`` or an RGB tuple. ``None`` selects daylight or night
+       colors from the environment's local launch time.
+   * - ``playback_controls``
+     - ``True``
+     - Show the play/pause button, draggable flight-time bar and playback-speed
+       selector.
+   * - ``show_subrocket_point``
+     - ``True``
+     - In the trajectory view, show the rocket's vertical projection onto the
+       ground plane.
+   * - ``ground_image``
+     - ``None``
+     - Path, :class:`pyvista.Texture`, or mapping with ``image``, ``bounds``,
+       ``coordinates`` and optional ``flip_y`` entries. Explicit bounds place
+       the image geographically instead of fitting it to the trajectory.
+   * - ``ground_image_bounds``
+     - ``None``
+     - Image bounds ``(west, east, south, north)`` in ENU metres or longitude
+       and latitude, according to ``ground_image_coordinates``.
+   * - ``ground_image_coordinates``
+     - ``"enu"``
+     - Ground-bound coordinate system: ``"enu"`` or ``"latlon"``. Latitude
+       and longitude bounds use a local equirectangular conversion around the
+       environment launch coordinates.
+   * - ``ground_image_flip_y``
+     - ``False``
+     - Flip the texture vertically when required by the source image's row
+       orientation.
+   * - ``color_by``
+     - ``"speed"``
+     - Color the trajectory by ``"speed"``, ``"mach"``,
+       ``"dynamic_pressure"``, ``"acceleration"`` or ``"altitude"``. Use
+       ``False`` or ``None`` for fixed path colors.
+   * - ``show_kinematic_plots``
+     - ``False``
+     - Show synchronized altitude AGL, speed and acceleration histories in SI
+       units in either animation.
+   * - ``camera_mode``
+     - ``"static"``
+     - Camera preset: ``"static"``, ``"follow"``, ``"ground"`` or ``"body"``.
+       ``True`` selects ``"follow"`` and ``False`` selects ``"static"``.
+   * - ``camera_path``
+     - ``None``
+     - Callable receiving flight time and returning a PyVista camera position,
+       or two or more camera positions interpolated uniformly over the selected
+       time interval. Overrides ``camera_mode``.
+   * - ``show_attitude_plots``
+     - ``False``
+     - In ``animate_rotate``, show synchronized angle-of-attack and sideslip,
+       3-1-3 Euler-angle, and body-angular-rate histories.
+   * - ``show_cp_cm``
+     - ``False``
+     - In ``animate_rotate``, show dynamic center-of-mass and center-of-pressure
+       markers plus their physical stations and static margin in telemetry.
+   * - ``export_file``
+     - ``None``
+     - Deterministically export to a ``.gif`` or ``.mp4`` instead of opening an
+       interactive animation.
+   * - ``export_fps``
+     - ``30``
+     - Export frame rate. Simulation time advances by ``playback_speed / fps``
+       between output frames.
+   * - ``export_resolution``
+     - ``None``
+     - Output ``(width, height)`` in pixels. The normal window size is used when
+       omitted.
+   * - ``transparent_background``
+     - ``False``
+     - Request an alpha background for GIF export. MP4 does not support this
+       option.
+   * - ``color_scheme``
+     - ``None``
+     - Mapping of keys from ``_animation_color_scheme()`` to replacement colors
+       or colormap names. Overrides are merged into the default scheme.
+   * - ``backend``
+     - ``"auto"``
+     - Visualization backend: ``"auto"``, ``"none"``, ``"trame"`` or
+       ``"client"``.
+   * - ``force_external``
+     - ``False``
+     - Force an external rendering window. This sets the plotter's ``notebook``
+       and ``off_screen`` options to ``False`` and overrides ``backend`` with
+       ``"none"``.
+   * - ``shadows``
+     - ``False``
+     - Enable scene shadows. Colored paths, event points and direction vectors
+       remain unlit so their colors do not darken as the camera moves.
+   * - ``trajectory_line_width``
+     - ``7``
+     - Width of the flown trajectory line. The simulated-path width scales
+       proportionally from this value.
 
 **Tips**
 
 - A ``time_step`` of ``0.05`` (20 fps) is a good balance between smoothness
   and performance for flights lasting tens of seconds.
-- Press **Escape** or close the vedo window to exit the animation loop early.
+- Use the mouse to orbit, pan and zoom; press **q** or close the PyVista window
+  to exit.
+- Use **PLAY / PAUSE** to stop or resume the animation, drag **FLIGHT TIME** to
+  inspect any simulated instant, and use the speed selector to change playback
+  between ``0.5x``, ``1x``, ``2x`` and ``3x``. Replaying after the end restarts
+  at ``start``.
+- The trajectory view display-scales the rocket so it remains visible while all
+  coordinates, paths and telemetry retain their physical SI values.
+- Scalar trajectory coloring uses one fixed color range over the selected time
+  interval, so colors remain comparable while scrubbing and exporting.
+- Fixed-size markers identify the selected interval's start and end, motor
+  burnout, apogee, and each parachute trigger and fully-open time when present.
+- The cyan ground-projection point tracks the rocket's horizontal position;
+  set ``show_subrocket_point=False`` to hide it.
+- Wind arrows point toward the direction in which the air mass is moving.
+- With no background override, launch times from 06:00 through 19:59 local time
+  use a light sky palette and other launch times use a night palette. If the
+  environment has no launch date, RocketPy assumes daylight. The background
+  blends linearly toward near-space navy between launch altitude and 50 km AGL;
+  this is a visual cue rather than an atmospheric or solar model.
+- Telemetry and legends use compact bordered annotation boxes so their values
+  remain readable over both daylight and night backgrounds.
+- Center-of-mass and center-of-pressure markers preserve their physical axial
+  ordering and separation but are mapped onto the display model, whose geometry
+  may not match the simulated rocket exactly.
 - Both methods validate ``start``, ``stop``, ``time_step``, and the STL path
   before any rendering begins, raising a :class:`ValueError` with a descriptive
   message on invalid input.

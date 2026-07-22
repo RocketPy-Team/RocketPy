@@ -430,18 +430,30 @@ class Fin(_BaseFin):
         position += p
         return position
 
-    def to_dict(self, include_outputs=False):
+    def to_dict(self, **kwargs):
+        if self.airfoil:
+            if kwargs.get("discretize", False):
+                lower = -np.pi / 6 if self.airfoil[1] == "radians" else -30
+                upper = np.pi / 6 if self.airfoil[1] == "radians" else 30
+                airfoil = (
+                    self.airfoil_cl.set_discrete(lower, upper, 50, mutate_self=False),
+                    self.airfoil[1],
+                )
+            else:
+                airfoil = (self.airfoil_cl, self.airfoil[1])
+        else:
+            airfoil = None
         data = {
             "angular_position": self.angular_position,
             "root_chord": self.root_chord,
             "span": self.span,
             "rocket_radius": self.rocket_radius,
             "cant_angle": self.cant_angle,
-            "airfoil": self.airfoil,
+            "airfoil": airfoil,
             "name": self.name,
         }
 
-        if include_outputs:
+        if kwargs.get("include_outputs", False):
             data.update(
                 {
                     "cp": self.cp,

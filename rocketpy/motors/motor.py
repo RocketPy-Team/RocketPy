@@ -322,7 +322,7 @@ class Motor(ABC):
         # Handle burn_time input
         self.burn_time = burn_time
 
-        if callable(self.thrust.source):
+        if not self.thrust.is_array_source():
             self.thrust.set_discrete(*self.burn_time, 50, self.interpolate, "zero")
 
         # Reshape thrust_source if needed
@@ -372,7 +372,7 @@ class Motor(ABC):
         if burn_time:
             self._burn_time = tuple_handler(burn_time)
         else:
-            if not callable(self.thrust.source):
+            if self.thrust.is_array_source():
                 self._burn_time = (self.thrust.x_array[0], self.thrust.x_array[-1])
             else:  # pragma: no cover
                 raise ValueError(

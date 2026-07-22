@@ -27,6 +27,7 @@ RocketPy's User Guide
    Flight Comparator Class <flight_comparator.rst>
    Parachute Triggers (Acceleration-Based) <parachute_triggers.rst>
    Deployable Payload <deployable.rst>
+   Controllers <controllers.rst>
    Air Brakes Example <airbrakes.rst>
    ../notebooks/sensors.ipynb
    ../matlab/matlab.rst

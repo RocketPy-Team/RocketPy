@@ -1,5 +1,10 @@
 """Custom exceptions and warnings for RocketPy."""
 
+# TODO: progressively adopt these custom exceptions across the codebase.
+# Many modules still ``raise ValueError``/``TypeError`` directly; migrate those
+# to the appropriate ``RocketPyError`` subclass (adding new exception types here
+# as needed) so users can reliably catch ``RocketPyError`` and its subclasses.
+
 
 class RocketPyError(Exception):
     """Base class for all RocketPy exceptions."""

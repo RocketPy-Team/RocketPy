@@ -78,6 +78,7 @@ class Gyroscope(InertialSensor):
         cross_axis_sensitivity=0,
         acceleration_sensitivity=0,
         name="Gyroscope",
+        seed=None,
     ):
         """
         Initialize the gyroscope sensor
@@ -169,6 +170,13 @@ class Gyroscope(InertialSensor):
             float or int is given, the same sensitivity is applied to all axes.
             The values of each axis can be set individually by passing a list of
             length 3.
+        name : str, optional
+            The name of the sensor. Default is "Gyroscope".
+        seed : int, optional
+            Seed for the random number generator that draws the measurement
+            noise. If given, the noise becomes reproducible and independent of
+            the process-global NumPy RNG. Default is None, meaning the noise is
+            seeded from fresh entropy per instance.
 
         Returns
         -------
@@ -193,6 +201,7 @@ class Gyroscope(InertialSensor):
             temperature_scale_factor=temperature_scale_factor,
             cross_axis_sensitivity=cross_axis_sensitivity,
             name=name,
+            seed=seed,
         )
         self.acceleration_sensitivity = self._vectorize_input(
             acceleration_sensitivity, "acceleration_sensitivity"
@@ -320,4 +329,5 @@ class Gyroscope(InertialSensor):
             cross_axis_sensitivity=data["cross_axis_sensitivity"],
             acceleration_sensitivity=data["acceleration_sensitivity"],
             name=data["name"],
+            seed=data.get("seed"),
         )

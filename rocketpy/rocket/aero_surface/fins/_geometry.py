@@ -142,7 +142,7 @@ class _TrapezoidalGeometry(_FinGeometry):
             "roll_geometrical_constant": roll_geometrical_constant,
             "tau": tau,
             "lift_interference_factor": lift_interference_factor,
-            "λ": lambda_,  # pylint: disable=non-ascii-name
+            "λ": lambda_,
             "roll_damping_interference_factor": roll_damping_interference_factor,
             "roll_forcing_interference_factor": roll_forcing_interference_factor,
         }
@@ -204,7 +204,7 @@ class _TrapezoidalGeometry(_FinGeometry):
 class _EllipticalGeometry(_FinGeometry):
     """Geometry strategy for elliptical fins."""
 
-    def evaluate_geometrical_parameters(self):  # pylint: disable=too-many-statements
+    def evaluate_geometrical_parameters(self):
         """Calculate elliptical fin geometric parameters."""
         owner = self.owner
 

@@ -8,6 +8,7 @@ future to improve their performance and usability.
 import logging
 import math
 import warnings
+from datetime import datetime
 
 import netCDF4
 import numpy as np
@@ -15,6 +16,23 @@ import numpy as np
 from rocketpy.tools import bilinear_interpolation
 
 logger = logging.getLogger(__name__)
+
+
+def _to_datetime(date):
+    """Convert netCDF/cftime date-like values to standard datetimes."""
+    if isinstance(date, datetime):
+        return date
+
+    return datetime(
+        date.year,
+        date.month,
+        date.day,
+        date.hour,
+        getattr(date, "minute", 0),
+        getattr(date, "second", 0),
+        getattr(date, "microsecond", 0),
+    )
+
 
 ## Wind data functions
 
@@ -172,6 +190,35 @@ def geodesic_to_lambert_conformal(lat, lon, projection_variable, x_units="m"):
 ## These functions are meant to be used with netcdf4 datasets
 
 
+HPA_UNIT_SYNONYMS = frozenset(
+    {"hpa", "mbar", "mb", "millibar", "millibars", "hectopascal", "hectopascals"}
+)
+PA_UNIT_SYNONYMS = frozenset({"pa", "pascal"})
+
+
+def pressure_unit_to_factor(unit):
+    """Return the Pa conversion factor for a pressure-unit string.
+
+    Parameters
+    ----------
+    unit : str
+        Pressure unit label (case-insensitive), e.g. ``"hPa"``, ``"mb"``,
+        ``"millibar"`` or ``"Pa"``.
+
+    Returns
+    -------
+    int or None
+        ``100`` for hPa/millibar synonyms, ``1`` for Pa synonyms, or ``None``
+        if the unit string is not recognised.
+    """
+    unit = unit.lower().strip()
+    if unit in HPA_UNIT_SYNONYMS:
+        return 100
+    if unit in PA_UNIT_SYNONYMS:
+        return 1
+    return None
+
+
 def get_pressure_levels_from_file(data, dictionary, conversion_factor):
     """Extracts pressure levels from a netCDF4 dataset and converts them to Pa.
 
@@ -201,7 +248,7 @@ def get_pressure_levels_from_file(data, dictionary, conversion_factor):
         level_var = data.variables[dictionary["level"]]
         if conversion_factor is None:
             raw_units = getattr(level_var, "units", "").lower().strip()
-            if raw_units in ("hpa", "mbar", "millibars", "hectopascal", "hectopascals"):
+            if raw_units in HPA_UNIT_SYNONYMS:
                 conversion_factor = 100
             else:
                 conversion_factor = 1
@@ -590,7 +637,7 @@ def get_initial_date_from_time_array(time_array, units=None):
         A datetime object representing the first time in the time array.
     """
     units = units or time_array.units
-    return netCDF4.num2date(time_array[0], units, calendar="gregorian")
+    return _to_datetime(netCDF4.num2date(time_array[0], units, calendar="gregorian"))
 
 
 def get_final_date_from_time_array(time_array, units=None):
@@ -609,7 +656,7 @@ def get_final_date_from_time_array(time_array, units=None):
         A datetime object representing the last time in the time array.
     """
     units = units if units is not None else time_array.units
-    return netCDF4.num2date(time_array[-1], units, calendar="gregorian")
+    return _to_datetime(netCDF4.num2date(time_array[-1], units, calendar="gregorian"))
 
 
 def get_interval_date_from_time_array(time_array, units=None):

@@ -3,9 +3,92 @@ import os
 from unittest.mock import patch
 
 import matplotlib.pyplot as plt
+import pytest
 
 from rocketpy import Flight
 from rocketpy.plots.compare import CompareFlights
+
+
+def test_flight_animations_run_off_screen(flight_calisto):
+    """Ensure both PyVista flight animations render successfully off screen."""
+
+    # Arrange
+    pytest.importorskip("pyvista")
+    animation_options = {
+        "start": 0,
+        "stop": 0.001,
+        "time_step": 0.001,
+        "playback_controls": False,
+        "backend": "none",
+        "off_screen": True,
+        "window_size": (320, 240),
+    }
+
+    # Act
+    trajectory_result = flight_calisto.plots.animate_trajectory(**animation_options)
+    rotation_result = flight_calisto.plots.animate_rotate(**animation_options)
+
+    # Assert
+    assert trajectory_result is None
+    assert rotation_result is None
+
+
+def test_flight_animations_render_all_scene_options(flight_calisto):
+    """Exercise the animation scene builders with the full set of overlays.
+
+    Rendering off screen with playback controls, charts, camera tracking and
+    stability markers enabled covers the scene-construction branches of both
+    ``animate_trajectory`` and ``animate_rotate`` (and the playback-control
+    setup in ``_run_animation``) that the minimal smoke test does not reach.
+    """
+    pytest.importorskip("pyvista")
+    shared_options = {
+        "start": 0,
+        "stop": None,  # spans the whole flight, hitting every event marker
+        "time_step": 2.0,
+        "backend": "none",
+        "off_screen": True,
+        "window_size": (240, 180),
+        "playback_controls": True,
+    }
+
+    trajectory_result = flight_calisto.plots.animate_trajectory(
+        **shared_options,
+        color_by="mach",
+        show_kinematic_plots=True,
+        show_subrocket_point=True,
+        camera_mode="follow",
+    )
+    rotation_result = flight_calisto.plots.animate_rotate(
+        **shared_options,
+        show_attitude_plots=True,
+        show_cp_cm=True,
+        camera_mode="body",
+    )
+
+    assert trajectory_result is None
+    assert rotation_result is None
+
+
+def test_flight_animation_export_gif(flight_calisto, tmp_path):
+    """Cover the deterministic GIF export path of ``_run_animation``."""
+    pytest.importorskip("pyvista")
+    pytest.importorskip("imageio")
+    export_file = tmp_path / "trajectory.gif"
+
+    result = flight_calisto.plots.animate_trajectory(
+        start=0,
+        stop=0.3,
+        time_step=0.1,
+        backend="none",
+        window_size=(240, 180),
+        color_by="speed",
+        export_file=str(export_file),
+    )
+
+    assert result == str(export_file)
+    assert export_file.is_file()
+    assert export_file.stat().st_size > 0
 
 
 @patch("matplotlib.pyplot.show")

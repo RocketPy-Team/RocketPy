@@ -81,7 +81,7 @@ class NoseCone(AeroSurface):
         more about it.
     """
 
-    def __init__(  # pylint: disable=too-many-statements
+    def __init__(
         self,
         length,
         kind,
@@ -222,7 +222,7 @@ class NoseCone(AeroSurface):
         return self._kind
 
     @kind.setter
-    def kind(self, value):  # pylint: disable=too-many-statements
+    def kind(self, value):
         # Analyzes nosecone type
         # Sets the k for Cp calculation
         # Sets the function which creates the respective curve
@@ -373,7 +373,7 @@ class NoseCone(AeroSurface):
 
         self.fineness_ratio = self.length / (2 * self.base_radius)
 
-    def evaluate_nose_shape(self):  # pylint: disable=too-many-statements
+    def evaluate_nose_shape(self):
         """Calculates and saves nose cone's shape as lists and re-evaluates the
         nose cone's length for a given bluffness ratio. The shape is saved as
         two vectors, one for the x coordinates and one for the y coordinates.

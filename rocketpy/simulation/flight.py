@@ -198,10 +198,6 @@ class Flight:
         impacts the ground.
     Flight.parachute_events : array
         List that stores parachute events triggered during flight.
-    Flight.parachutes_info : dict
-        A dictionary whose keys are the parachute names and values
-        are the relevant dynamic variables calculated by that
-        parachute model.
     Flight.function_evaluations : array
         List that stores number of derivative function evaluations
         during numerical integration in cumulative manner.
@@ -663,7 +659,7 @@ class Flight:
             f"name= {self.name})>"
         )
 
-    # pylint: disable=too-many-nested-blocks, too-many-branches, too-many-locals,too-many-statements
+    # pylint: disable=too-many-locals,too-many-statements
     def __simulate(self, verbose):
         """Simulate the flight trajectory."""
         for phase_index, phase in self.time_iterator(self.flight_phases):
@@ -743,11 +739,30 @@ class Flight:
                             )
                             i += 1
                         # Create flight phase for time after inflation
-                        callbacks = []
-                        u_dot_parachute = self.u_dot_parachute_wrapper(parachute)
+                        callbacks = [
+                            lambda self, parachute_cd_s=parachute.cd_s: setattr(
+                                self, "parachute_cd_s", parachute_cd_s
+                            ),
+                            lambda self, parachute_radius=parachute.radius: setattr(
+                                self, "parachute_radius", parachute_radius
+                            ),
+                            lambda self, parachute_height=parachute.height: setattr(
+                                self, "parachute_height", parachute_height
+                            ),
+                            lambda self, parachute_porosity=parachute.porosity: setattr(
+                                self, "parachute_porosity", parachute_porosity
+                            ),
+                            lambda self, added_mass_coefficient=parachute.added_mass_coefficient: (
+                                setattr(
+                                    self,
+                                    "parachute_added_mass_coefficient",
+                                    added_mass_coefficient,
+                                )
+                            ),
+                        ]
                         self.flight_phases.add_phase(
                             node.t + parachute.lag,
-                            u_dot_parachute,
+                            self.u_dot_parachute,
                             callbacks,
                             clear=False,
                             index=phase_index + i,
@@ -961,10 +976,30 @@ class Flight:
                 i += 1
 
             # Create flight phase for time after inflation
-            callbacks = []
+            callbacks = [
+                lambda self, parachute_cd_s=parachute.cd_s: setattr(
+                    self, "parachute_cd_s", parachute_cd_s
+                ),
+                lambda self, parachute_radius=parachute.radius: setattr(
+                    self, "parachute_radius", parachute_radius
+                ),
+                lambda self, parachute_height=parachute.height: setattr(
+                    self, "parachute_height", parachute_height
+                ),
+                lambda self, parachute_porosity=parachute.porosity: setattr(
+                    self, "parachute_porosity", parachute_porosity
+                ),
+                lambda self, added_mass_coefficient=parachute.added_mass_coefficient: (
+                    setattr(
+                        self,
+                        "parachute_added_mass_coefficient",
+                        added_mass_coefficient,
+                    )
+                ),
+            ]
             self.flight_phases.add_phase(
                 node.t + parachute.lag,
-                self.u_dot_parachute_wrapper(parachute),
+                self.u_dot_parachute,
                 callbacks,
                 clear=False,
                 index=phase_index + i,
@@ -1314,14 +1349,28 @@ class Flight:
             True if a parachute was triggered and the simulation should break.
         """
         for parachute in overshootable_node.parachutes:
+            is_ascending = overshootable_node.y_sol[5] >= 0
+            trigger_falling_only = getattr(parachute, "_trigger_falling_only", False)
+            trigger_needs_height = getattr(parachute, "_trigger_needs_height", True)
+
+            if trigger_falling_only and is_ascending:
+                # Fast path
+                self.__calculate_and_save_pressure_signals(
+                    parachute,
+                    overshootable_node.t,
+                    overshootable_node.y_sol[2],
+                    skip_height=True,
+                )
+                continue
+
             # Calculate and save pressure signal
-            (
-                noisy_pressure,
-                height_above_ground_level,
-            ) = self.__calculate_and_save_pressure_signals(
-                parachute,
-                overshootable_node.t,
-                overshootable_node.y_sol[2],
+            noisy_pressure, height_above_ground_level = (
+                self.__calculate_and_save_pressure_signals(
+                    parachute,
+                    overshootable_node.t,
+                    overshootable_node.y_sol[2],
+                    skip_height=not trigger_needs_height,
+                )
             )
 
             # Check for parachute trigger
@@ -1352,10 +1401,30 @@ class Flight:
                 i += 1
 
             # Create flight phase for time after inflation
-            callbacks = []
+            callbacks = [
+                lambda self, parachute_cd_s=parachute.cd_s: setattr(
+                    self, "parachute_cd_s", parachute_cd_s
+                ),
+                lambda self, parachute_radius=parachute.radius: setattr(
+                    self, "parachute_radius", parachute_radius
+                ),
+                lambda self, parachute_height=parachute.height: setattr(
+                    self, "parachute_height", parachute_height
+                ),
+                lambda self, parachute_porosity=parachute.porosity: setattr(
+                    self, "parachute_porosity", parachute_porosity
+                ),
+                lambda self, added_mass_coefficient=parachute.added_mass_coefficient: (
+                    setattr(
+                        self,
+                        "parachute_added_mass_coefficient",
+                        added_mass_coefficient,
+                    )
+                ),
+            ]
             self.flight_phases.add_phase(
                 overshootable_node.t + parachute.lag,
-                self.u_dot_parachute_wrapper(parachute),
+                self.u_dot_parachute,
                 callbacks,
                 clear=False,
                 index=phase_index + i,
@@ -1378,7 +1447,7 @@ class Flight:
 
         return False
 
-    def __calculate_and_save_pressure_signals(self, parachute, t, z):
+    def __calculate_and_save_pressure_signals(self, parachute, t, z, skip_height=False):
         """Gets noise and pressure signals and saves them in the parachute
         object given the current time and altitude.
 
@@ -1404,6 +1473,9 @@ class Flight:
         # Stores in the parachute object
         parachute.clean_pressure_signal.append([t, pressure])
         parachute.noise_signal.append([t, noise])
+
+        if skip_height:
+            return noisy_pressure, 0.0
 
         # Gets height above ground level considering noise
         height_above_ground_level = (
@@ -1471,7 +1543,6 @@ class Flight:
         self.impact_velocity = 0
         self.impact_state = np.array([0])
         self.parachute_events = []
-        self.parachutes_info = {}
         self.__post_processed_variables = []
 
     def __init_flight_state(self):
@@ -2636,55 +2707,87 @@ class Flight:
 
         return u_dot
 
-    def u_dot_parachute_wrapper(self, parachute):
-        """Creates a wrapper for the u_dot_parachute used to solve the equations of
-        motion when that parachute is triggered. The reason is the following:
-        each parachute implements its own u_dot. This u_dot takes as argument the
-        state variable 'u', the time 't', and additional flight information as
-        'flight_information'. However, the solver (which is in the Flight class)
-        only allows u_dot to take 'u' and 't' as arguments. Hence, this wrapper
-        wraps the output of the u_dot to match the expected arguments of the
-        solver.
+    def u_dot_parachute(self, t, u, post_processing=False):
+        """Calculates derivative of u state vector with respect to time
+        when rocket is flying under parachute. A 3 DOF approximation is
+        used.
 
         Parameters
         ----------
-        parachute : Parachute
-            Parachute that is current executing the equations of motion
+        t : float
+            Time in seconds
+        u : list
+            State vector defined by u = [x, y, z, vx, vy, vz, e0, e1,
+            e2, e3, omega1, omega2, omega3].
+        post_processing : bool, optional
+            If True, adds flight data information directly to self
+            variables such as self.angle_of_attack. Default is False.
 
         Return
         ------
-        u_dot_parachute : function
-            A augmented (with flight information) u_dot_parachute used in the solver
+        u_dot : list
+            State vector defined by u_dot = [vx, vy, vz, ax, ay, az,
+            e0dot, e1dot, e2dot, e3dot, alpha1, alpha2, alpha3].
 
         """
-        # additional information used for the u_dot_parachute equations
-        flight_information = {
-            "env": self.env,
-            "rocket": self.rocket,
-        }
+        # Get relevant state data
+        z, vx, vy, vz = u[2:6]
 
-        def u_dot_parachute(t, u, post_processing=False):
-            parachute_output = parachute.u_dot(
-                t=t,
-                u=u,
-                flight_information=flight_information,
-                post_processing=post_processing,
+        # Get atmospheric data
+        rho = self.env.density.get_value_opt(z)
+        wind_velocity_x = self.env.wind_velocity_x.get_value_opt(z)
+        wind_velocity_y = self.env.wind_velocity_y.get_value_opt(z)
+
+        # Get the mass of the rocket
+        mp = self.rocket.dry_mass
+
+        # to = 1.2
+        # eta = 1
+        # Rdot = (6 * R * (1 - eta) / (1.2**6)) * (
+        #     (1 - eta) * t**5 + eta * (to**3) * (t**2)
+        # )
+        # Rdot = 0
+
+        # tf = 8 * nominal diameter / velocity at line stretch
+
+        # Calculate added mass
+        ma = (
+            self.parachute_added_mass_coefficient
+            * rho
+            * (2 / 3)
+            * np.pi
+            * self.parachute_radius**2
+            * self.parachute_height
+        )
+
+        # Calculate freestream speed
+        freestream_x = vx - wind_velocity_x
+        freestream_y = vy - wind_velocity_y
+        freestream_z = vz
+        free_stream_speed = (freestream_x**2 + freestream_y**2 + freestream_z**2) ** 0.5
+
+        # Determine drag force
+        pseudo_drag = -0.5 * rho * self.parachute_cd_s * free_stream_speed
+        # pseudo_drag = pseudo_drag - ka * rho * 4 * np.pi * (R**2) * Rdot
+        Dx = pseudo_drag * freestream_x  # add eta efficiency for wake
+        Dy = pseudo_drag * freestream_y
+        Dz = pseudo_drag * freestream_z
+        ax = Dx / (mp + ma)
+        ay = Dy / (mp + ma)
+        az = (Dz - mp * self.env.gravity.get_value_opt(z)) / (mp + ma)
+
+        # Add coriolis acceleration
+        _, w_earth_y, w_earth_z = self.env.earth_rotation_vector
+        ax -= 2 * (vz * w_earth_y - vy * w_earth_z)
+        ay -= 2 * (vx * w_earth_z)
+        az -= 2 * (-vx * w_earth_y)
+
+        if post_processing:
+            self.__post_processed_variables.append(
+                [t, ax, ay, az, 0, 0, 0, Dx, Dy, Dz, 0, 0, 0, 0]
             )
-            state = parachute_output["state"]
-            if post_processing:
-                # The parachute dynamic information (e.g. drag) must be saved
-                # over the accepted solution steps, which are only replayed
-                # during post-processing. Saving it during the raw integration
-                # would also store the solver's internal and rejected steps,
-                # polluting the ``parachutes_info`` time series.
-                post_processing_info = parachute_output["post_processing_information"]
-                self.__post_processed_variables.append(post_processing_info)
-                parachute.add_information_to_flight(
-                    self, parachute_output["additional_info"]
-                )
-            return state
 
-        return u_dot_parachute
+        return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
 
     @cached_property
     def solution_array(self):
@@ -3963,10 +4066,17 @@ class Flight:
             parachute.noise_signal_function = Function(
                 parachute.noise_signal, "Time (s)", "Pressure Noise (Pa)", "linear"
             )
+            # Function arithmetic drops the axis labels/title, so restore them
+            # to keep the pressure-signal plots readable (see pressure_signals).
             parachute.noisy_pressure_signal_function = (
                 parachute.clean_pressure_signal_function
                 + parachute.noise_signal_function
             )
+            parachute.noisy_pressure_signal_function.set_inputs("Time (s)")
+            parachute.noisy_pressure_signal_function.set_outputs(
+                "Pressure - With Noise (Pa)"
+            )
+            parachute.noisy_pressure_signal_function.set_title("Noisy Pressure Signal")
 
     @cached_property
     def __evaluate_post_process(self):
@@ -4052,14 +4162,6 @@ class Flight:
             i += 1
 
     def to_dict(self, **kwargs):
-        # ``parachutes_info`` is populated as a side effect of the lazy
-        # post-processing pass (``add_information_to_flight`` is only called with
-        # ``post_processing=True``). Trigger that pass before reading the
-        # attribute so the per-parachute drag time series is serialized even for
-        # flights that have not been post-processed yet (e.g. flights without
-        # controllers that are saved before any acceleration/force property or
-        # plot is accessed). This is a no-op once post-processing has run.
-        _ = self.ax
         data = {
             "rocket": self.rocket,
             "env": self.env,
@@ -4083,7 +4185,6 @@ class Flight:
             "apogee_time": self.apogee_time,
             "apogee": self.apogee,
             "parachute_events": self.parachute_events,
-            "parachutes_info": self.parachutes_info,
             "impact_state": self.impact_state,
             "impact_velocity": self.impact_velocity,
             "x_impact": self.x_impact,

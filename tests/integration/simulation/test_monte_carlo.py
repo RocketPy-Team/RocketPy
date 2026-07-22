@@ -119,7 +119,7 @@ def test_monte_carlo_prints(monte_carlo_calisto):
         _post_test_file_cleanup()
 
 
-@patch("matplotlib.pyplot.show")  # pylint: disable=unused-argument
+@patch("matplotlib.pyplot.show")
 def test_monte_carlo_plots(mock_show, monte_carlo_calisto_pre_loaded):
     """Tests the plots methods of the MonteCarlo class."""
     try:
