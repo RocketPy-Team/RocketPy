@@ -848,6 +848,18 @@ class Flight:
         # Add last time node
         phase.time_nodes.add_node(phase.time_bound, [], [], [])
 
+        # A thrust curve that starts at t > 0 leaves the rocket stationary at
+        # ignition-minus, so the solver (max_step defaults to inf) can take one
+        # huge step clean over the burn and the rocket never lifts off (#411).
+        # Force solver stops at ignition and burn-out so the burn is always
+        # sampled. Guarded to burn_start > 0, so ordinary motors are untouched.
+        motor = self.rocket.motor
+        burn_start = getattr(motor, "burn_start_time", 0) or 0
+        if burn_start > 0:
+            for t_burn in (motor.burn_start_time, motor.burn_out_time):
+                if phase.t < t_burn < phase.time_bound:
+                    phase.time_nodes.add_node(t_burn, [], [], [])
+
         # Organize time nodes
         phase.time_nodes.sort()
         phase.time_nodes.merge()
