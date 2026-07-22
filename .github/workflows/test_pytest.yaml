@@ -24,6 +24,11 @@ jobs:
       OS: ${{ matrix.os }}
       PYTHON: ${{ matrix.python-version }}
       MPLBACKEND: Agg
+      # Force Mesa software rendering so VTK/PyVista off-screen tests don't hit
+      # intermittent OpenGL bus errors on headless runners (#1078). No-op off
+      # Linux, so it is safe for the macOS/Windows matrix legs.
+      LIBGL_ALWAYS_SOFTWARE: "1"
+      GALLIUM_DRIVER: llvmpipe
     steps:
       - uses: actions/checkout@main
       - name: Set up headless display

@@ -25,6 +25,10 @@ jobs:
     env:
       PYTHON: ${{ matrix.python-version }}
       MPLBACKEND: Agg
+      # Force Mesa software rendering so VTK/PyVista off-screen tests don't hit
+      # intermittent OpenGL bus errors on headless runners (#1078).
+      LIBGL_ALWAYS_SOFTWARE: "1"
+      GALLIUM_DRIVER: llvmpipe
     steps:
       - uses: actions/checkout@main
       - name: Set up headless display
