@@ -2554,9 +2554,19 @@ class Environment:
                 )
             return P
 
-        # Discretize this Function to speed up the trajectory simulation
-        min_height = geopotential_height_to_geometric_height(-2000, earth_radius)
-        max_height = geopotential_height_to_geometric_height(80000, earth_radius)
+        # Discretize this Function to speed up the trajectory simulation.
+        # The ISA model is only defined between the lowest and highest
+        # geopotential layers, so convert those bounds to geometric height and
+        # sample the whole valid range (including below sea level, which the
+        # previous grid starting at 0 m did not cover).
+        min_height = geopotential_height_to_geometric_height(
+            geopotential_height[0], earth_radius
+        )
+        max_height = geopotential_height_to_geometric_height(
+            geopotential_height[-1], earth_radius
+        )
+        # Split the 100 samples between the narrow sub-sea-level band and the
+        # much wider region above it.
         altitudes_below = np.linspace(min_height, 0, 10, endpoint=False)
         altitudes_above = np.linspace(0, max_height, 90)
         altitudes = np.concatenate((altitudes_below, altitudes_above))
