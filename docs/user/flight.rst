@@ -474,7 +474,8 @@ Energy Analysis
     flight.plots.energy_data()
 
     # Stability analysis
-    flight.plots.stability_and_control_data()
+    flight.plots.stability_margin_data()
+    flight.plots.dynamic_stability_data()
 
 Comprehensive Analysis
 ~~~~~~~~~~~~~~~~~~~~~~
