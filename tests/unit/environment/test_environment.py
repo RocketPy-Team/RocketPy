@@ -19,6 +19,7 @@ from rocketpy.environment.tools import (
     utm_to_geodesic,
 )
 from rocketpy.environment.weather_model_mapping import WeatherModelMapping
+from rocketpy.tools import geopotential_height_to_geometric_height
 
 
 class DummyLambertProjection:
@@ -837,7 +838,6 @@ def test_pressure_isa_discretization_bounds(example_plain_env):
     be a physically sane pressure curve: altitude strictly increasing, pressure
     strictly decreasing, and sea level (0 m) sampled exactly.
     """
-    from rocketpy.tools import geopotential_height_to_geometric_height
 
     # Act
     pressure_isa_function = example_plain_env.pressure_ISA
