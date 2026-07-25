@@ -1035,7 +1035,9 @@ class Rocket:
                     self, 0.0, probe_alpha, probe_mach, "yaw"
                 )
             else:
-                point_zero = neutral_point_and_slope(self, 0.0, 0.0, probe_mach, "pitch")
+                point_zero = neutral_point_and_slope(
+                    self, 0.0, 0.0, probe_mach, "pitch"
+                )
                 point_five = neutral_point_and_slope(
                     self, probe_alpha, 0.0, probe_mach, "pitch"
                 )
@@ -2639,7 +2641,14 @@ class Rocket:
             state = kwargs.get("state")
             state_history = kwargs.get("state_history")
             observed_variables = controller_context.get("observed_variables", [])
-            interactive_objects = kwargs.get("interactive_objects", air_brakes)
+            # Prefer the controller's live ``controlled_objects`` (set by the
+            # callback) over the captured ``air_brakes``: after a flight is
+            # loaded from a file the two differ, and only the former is the air
+            # brakes the rocket actually uses for drag. For a normal flight they
+            # are the same object, so this is unchanged behavior.
+            interactive_objects = kwargs.get(
+                "interactive_objects", kwargs.get("controlled_objects", air_brakes)
+            )
             sensors = kwargs.get("sensors")
             environment = kwargs.get("environment")
 
@@ -3048,22 +3057,34 @@ class Rocket:
             rocket.air_brakes.append(air_brake)
 
         for controller in data["_controllers"]:
-            interactive_objects_hash = getattr(controller, "_interactive_objects_hash")
-            if interactive_objects_hash is not None:
-                is_iterable = isinstance(interactive_objects_hash, Iterable)
-                if not is_iterable:
-                    interactive_objects_hash = [interactive_objects_hash]
-                for hash_ in interactive_objects_hash:
+            # Reconnect the controller to the rocket's own reconstructed objects
+            # by matching the hash(es) it stored for its controlled objects
+            # against the reconstructed objects (see _Controller.to_dict).
+            controlled_objects_hash = getattr(
+                controller, "_serialized_controlled_objects_hash", None
+            )
+            if controlled_objects_hash is not None:
+                is_iterable = isinstance(controlled_objects_hash, Iterable)
+                hashes = (
+                    controlled_objects_hash
+                    if is_iterable
+                    else [controlled_objects_hash]
+                )
+                found = []
+                for hash_ in hashes:
+                    if hash_ is None:  # unhashable controlled object; cannot match
+                        continue
                     if (hashed_obj := find_obj_from_hash(data, hash_)) is not None:
-                        if not is_iterable:
-                            controller.interactive_objects = hashed_obj
-                        else:
-                            controller.interactive_objects.append(hashed_obj)
+                        found.append(hashed_obj)
                     else:
                         warnings.warn(
-                            "Could not find controller interactive objects."
+                            "Could not find controller controlled objects. "
                             "Deserialization will proceed, results may not be accurate."
                         )
+                if found:
+                    controller.rebind_controlled_objects(
+                        found if is_iterable else found[0]
+                    )
             rocket._add_controllers(controller)
 
         return rocket

@@ -1500,12 +1500,21 @@ class _FlightPlots:
             print("No sensors were registered in this flight.")
             return
 
+        # A flight loaded from a file without being re-simulated has no recorded
+        # measurements, so fall back to an empty mapping instead of raising.
+        sensor_data = getattr(self.flight, "sensor_data", None) or {}
+
         seen = []
         for sensor in self.flight.sensors:
             if sensor in seen:  # a multiply-added sensor is listed more than once
                 continue
             seen.append(sensor)
-            measured_data = self.flight.sensor_data[sensor]
+            measured_data = sensor_data.get(sensor)
+            if not measured_data:
+                print(
+                    f"\n\n{sensor.name}: no data available (flight was not simulated)."
+                )
+                continue
             print(f"\n\n{sensor.name} Sensor Data\n")
             if filename is None:
                 sensor.plots.all(data=measured_data)

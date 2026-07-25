@@ -266,12 +266,20 @@ class _FlightPrints:
             print("No sensors were registered.")
             return
 
+        # A flight loaded from a file without being re-simulated has no recorded
+        # measurements, so fall back to an empty mapping instead of raising.
+        sensor_data = getattr(self.flight, "sensor_data", None) or {}
+
         for sensor in self.flight.sensors:
             sensor_name = sensor.name if sensor.name else "Unnamed Sensor"
-            measured_data = self.flight.sensor_data[sensor]
             print(f"Sensor: {sensor_name}")
             print(f"\tType: {sensor.__class__.__name__}")
             print(f"\tSampling Rate: {sensor.sampling_rate:.3f} Hz")
+            measured_data = sensor_data.get(sensor)
+            if not measured_data:
+                print("\tNo measurement data available (flight was not simulated).")
+                print()
+                continue
             print(f"\tMeasurements Recorded: {len(measured_data)}")
             sensor.prints.data_summary(data=measured_data)
             print()
