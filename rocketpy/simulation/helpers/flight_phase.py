@@ -276,6 +276,9 @@ class _FlightPhases:
         name : str, optional
             A descriptive name to identify the phase in logs and
             debug output. Default is None.
+        **kwargs
+            Additional keyword arguments forwarded to the ``_FlightPhase``
+            constructor (e.g. ``parachute``).
 
         Returns
         -------

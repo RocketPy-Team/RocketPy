@@ -160,7 +160,7 @@ def apogee_event_exact_time_function(state, **_kwargs):
     ----------
     state : array_like
         Interpolated flight state vector without time.
-    **kwargs : dict
+    **_kwargs : dict
         Event context (unused here).
 
     Returns

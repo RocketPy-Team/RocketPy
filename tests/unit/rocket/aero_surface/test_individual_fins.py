@@ -7,7 +7,9 @@ import pytest
 
 from rocketpy import (
     EllipticalFin,
+    EllipticalFins,
     FreeFormFin,
+    FreeFormFins,
     Rocket,
     TrapezoidalFin,
     TrapezoidalFins,
@@ -375,16 +377,124 @@ def test_calisto_finset_vs_four_individual_fins_close():
     mach_grid = np.linspace(0, 2, 21)
 
     # Act
-    cp_finset = finset_rocket.cp_position(mach_grid)
-    cp_individual = individual_fins_rocket.cp_position(mach_grid)
+    cp_finset = finset_rocket.aerodynamic_center(mach_grid)
+    cp_individual = individual_fins_rocket.aerodynamic_center(mach_grid)
     clalpha_finset = finset_rocket.total_lift_coeff_der(mach_grid)
     clalpha_individual = individual_fins_rocket.total_lift_coeff_der(mach_grid)
-    lift_correction = TrapezoidalFins.fin_num_correction(4) / 4
-    clalpha_individual_corrected = np.array(clalpha_individual) * lift_correction
 
-    # Assert
+    # Assert. Each individual fin projects its lift slope onto the pitch plane by
+    # sin(phi)**2, so an evenly spaced set of 4 sums to fin_num_correction(4) = 2
+    # in the plane -- matching the fin set directly, with no extra correction.
     np.testing.assert_allclose(cp_individual, cp_finset, rtol=1e-6, atol=1e-6)
-    np.testing.assert_allclose(clalpha_individual_corrected, clalpha_finset)
+    np.testing.assert_allclose(clalpha_individual, clalpha_finset)
+
+
+@pytest.mark.parametrize(
+    "fin_cls, geometry",
+    [
+        (
+            TrapezoidalFin,
+            dict(root_chord=0.120, tip_chord=0.040, span=0.100, rocket_radius=0.0635),
+        ),
+        (EllipticalFin, dict(root_chord=0.120, span=0.100, rocket_radius=0.0635)),
+        (
+            FreeFormFin,
+            dict(shape_points=[(0, 0), (0.06, 0.1), (0.12, 0.0)], rocket_radius=0.0635),
+        ),
+    ],
+)
+def test_canted_individual_fin_builds_and_places(fin_cls, geometry):
+    """A canted individual fin of any shape must build its body<->fin rotation
+    matrices at construction, so it can be placed on a rocket. Regression test
+    for a crash where non-trapezoidal individual fins lacked
+    ``_rotation_fin_to_body_uncanted`` and failed in
+    ``_compute_leading_edge_position``."""
+    fin = fin_cls(angular_position=30, cant_angle=2.0, **geometry)
+    assert hasattr(fin, "_rotation_fin_to_body_uncanted")
+    position = fin._compute_leading_edge_position(-1.168, 1)
+    assert position is not None
+
+
+@pytest.mark.parametrize(
+    "fin_cls, geometry",
+    [
+        (
+            TrapezoidalFin,
+            dict(root_chord=0.120, tip_chord=0.040, span=0.100, rocket_radius=0.0635),
+        ),
+        (EllipticalFin, dict(root_chord=0.120, span=0.100, rocket_radius=0.0635)),
+        (
+            FreeFormFin,
+            dict(shape_points=[(0, 0), (0.06, 0.1), (0.12, 0.0)], rocket_radius=0.0635),
+        ),
+    ],
+)
+def test_individual_fin_roll_moment_independent_of_angular_position(fin_cls, geometry):
+    """A canted individual fin's roll moment must be the same at any angular
+    position (rotational symmetry about the roll axis). Regression test for a bug
+    where the fin's center of pressure was not rotated to its azimuth (the
+    rotation matrix was left as the identity), making the roll moment vary with
+    angular position."""
+    stream_velocity = Vector([0, 0, -1.0])
+    omega = Vector([0, 0, 0])
+
+    roll_moments = []
+    for angle in (0, 90, 180, 270):
+        rocket = Rocket(
+            radius=0.0635,
+            mass=14.426,
+            inertia=(6.321, 6.321, 0.034),
+            power_off_drag="data/rockets/calisto/powerOffDragCurve.csv",
+            power_on_drag="data/rockets/calisto/powerOnDragCurve.csv",
+            center_of_mass_without_motor=0,
+            coordinate_system_orientation="tail_to_nose",
+        )
+        fin = fin_cls(angular_position=angle, cant_angle=2.0, **geometry)
+        rocket.add_surfaces(fin, -1.168)
+        cp = rocket.surfaces_cp_to_cdm[fin]
+        roll = fin.compute_forces_and_moments(
+            stream_velocity, 1.0, 0.3, 1.0, cp, omega
+        )[5]
+        roll_moments.append(roll)
+
+    np.testing.assert_allclose(roll_moments, roll_moments[0], rtol=1e-9)
+    assert abs(roll_moments[0]) > 0
+
+
+@pytest.mark.parametrize(
+    "set_cls, fin_cls, geometry",
+    [
+        (
+            TrapezoidalFins,
+            TrapezoidalFin,
+            dict(root_chord=0.120, tip_chord=0.040, span=0.100, rocket_radius=0.0635),
+        ),
+        (
+            EllipticalFins,
+            EllipticalFin,
+            dict(root_chord=0.120, span=0.100, rocket_radius=0.0635),
+        ),
+        (
+            FreeFormFins,
+            FreeFormFin,
+            dict(shape_points=[(0, 0), (0.06, 0.1), (0.12, 0.0)], rocket_radius=0.0635),
+        ),
+    ],
+)
+def test_finset_roll_forcing_equals_n_single_fins(set_cls, fin_cls, geometry):
+    """A fin set's roll forcing coefficient must scale with the full fin count
+    ``n`` (every identically-canted fin adds the same roll moment), so it equals
+    ``n`` times a single fin's roll forcing -- for every fin shape. Regression
+    test for a bug where the set used the normal-force ``fin_num_correction(n)``
+    (~n/2), halving the roll forcing (and roll rate) of a fin set."""
+    n = 4
+    finset = set_cls(n=n, cant_angle=2.0, **geometry)
+    single = fin_cls(angular_position=0, cant_angle=2.0, **geometry)
+
+    mach_grid = np.linspace(0, 2, 11)
+    clf_finset = finset.roll_parameters[0](mach_grid)
+    clf_single = single.roll_parameters[0](mach_grid)
+    np.testing.assert_allclose(clf_finset, n * np.array(clf_single), rtol=1e-6)
 
 
 @pytest.mark.parametrize(

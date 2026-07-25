@@ -13,6 +13,7 @@ This reference manual details functions, modules, methods and attributes include
    AeroSurface Classes <classes/aero_surfaces/index>
    classes/Components
    classes/Rocket
+   classes/PointMassRocket
    classes/Parachute
    classes/sensors/index.rst
    classes/Flight

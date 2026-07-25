@@ -28,6 +28,9 @@ def apply_event_commands(
         Index of the current flight phase.
     node_index : int
         Index of the current time node.
+    command_time : float
+        Simulation time used to apply the commands when the event does not
+        provide an exact time.
 
     Returns
     -------
@@ -70,10 +73,6 @@ def apply_rollback_command(flight, time, state):
     ----------
     flight : Flight
         Flight instance being updated.
-    event_results : dict
-        Result payload returned by the event system.
-    phase : _FlightPhase
-        Current flight phase.
     time : float
         Interpolated simulation time to restore.
     state : array_like
@@ -94,6 +93,8 @@ def apply_disable_commands(_, event_results, node_index, event, phase, time):
 
     Parameters
     ----------
+    _ : Flight
+        Flight instance (unused; accepted for a uniform command signature).
     event_results : dict
         Result payload returned by the event system.
     node_index : int
@@ -102,6 +103,8 @@ def apply_disable_commands(_, event_results, node_index, event, phase, time):
         Event currently being processed.
     phase : _FlightPhase
         Current flight phase.
+    time : float
+        Simulation time at which the events are disabled.
 
     Returns
     -------
@@ -144,6 +147,8 @@ def apply_enable_commands(flight, event_results, node_index, event, phase, time)
 
     Parameters
     ----------
+    flight : Flight
+        Flight instance being updated.
     event_results : dict
         Result payload returned by the event system.
     node_index : int
@@ -152,6 +157,8 @@ def apply_enable_commands(flight, event_results, node_index, event, phase, time)
         Event currently being processed.
     phase : _FlightPhase
         Current flight phase.
+    time : float
+        Simulation time at which the events are enabled.
 
     Returns
     -------
@@ -260,6 +267,8 @@ def apply_new_phase_or_derivative(
         Index of the current flight phase.
     node_index : int
         Index of the current time node.
+    time : float
+        Simulation time at which the new phase or derivative takes effect.
 
     Returns
     -------
@@ -317,6 +326,8 @@ def apply_termination(flight, event_results, phase, phase_index, node_index, tim
         Index of the current flight phase.
     node_index : int
         Index of the current time node.
+    time : float
+        Simulation time at which the flight is terminated.
 
     Returns
     -------
@@ -358,12 +369,10 @@ def apply_event_list_updates(flight, event_results, phase, time):
         Flight instance being updated.
     event_results : dict
         Result payload returned by the event system.
-    node_index : int
-        Index of the current time node.
-    event : Event
-        Event currently being processed.
     phase : _FlightPhase
         Current flight phase.
+    time : float
+        Simulation time at which the new events are scheduled.
 
     Returns
     -------

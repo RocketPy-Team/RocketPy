@@ -57,11 +57,11 @@ class PointMassRocket(Rocket):
     power_on_drag_input : int, float, callable, array, string, Function
         Original user input for the drag coefficient with motor on.
         Preserved for reconstruction and Monte Carlo workflows.
-    power_off_drag_7d : Function
-        Drag coefficient function with seven inputs in the order:
+    power_off_drag_7d : AeroCoefficient
+        Drag coefficient callable over seven independent variables in the order:
         alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate.
-    power_on_drag_7d : Function
-        Drag coefficient function with seven inputs in the order:
+    power_on_drag_7d : AeroCoefficient
+        Drag coefficient callable over seven independent variables in the order:
         alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate.
     power_off_drag_by_mach : Function
         Convenience wrapper for power-off drag as a Mach-only function.

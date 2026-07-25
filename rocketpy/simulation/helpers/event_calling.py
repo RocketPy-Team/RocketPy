@@ -30,11 +30,29 @@ def build_event_kwargs(
 
     Parameters
     ----------
+    flight : Flight
+        Flight instance whose rocket, environment and sensors are exposed.
+    time : float
+        Current simulation time.
+    state : array_like
+        Current flight state vector.
+    step_size : float
+        Size of the current integration step.
+    phase : FlightPhase
+        Active flight phase, providing the state derivative.
+    rollback : bool, optional
+        Whether this call happens during a rollback; shifts the state-history
+        window by one extra step. Defaults to False.
     needs : frozenset of str, optional
         Union of ``Event.needs`` across all events that will consume the
         returned dict. Only keys present in ``needs`` are computed for the
         expensive values: ``state_dot``, ``pressure``, ``state_history``.
         Defaults to empty (compute nothing expensive).
+
+    Returns
+    -------
+    dict
+        Keyword arguments consumed by event triggers and callbacks.
     """
     kwargs = {
         "time": time,
@@ -72,10 +90,25 @@ def update_overshootable_event_kwargs(
 
     Parameters
     ----------
+    flight : Flight
+        Flight instance whose environment is used to recompute derived values.
+    phase : FlightPhase
+        Active flight phase, providing the state derivative.
+    event_kwargs : dict
+        Kwargs dict (from :func:`build_event_kwargs`) updated in place.
+    interpolated_time : float
+        Interpolated time of the overshootable node.
+    interpolated_state : array_like
+        Interpolated flight state at the node.
     needs : frozenset of str, optional
         Union of ``Event.needs`` across all overshootable events at this node.
         Expensive values are skipped when absent from ``needs``. Defaults to
         empty (compute nothing expensive).
+
+    Returns
+    -------
+    dict
+        The updated ``event_kwargs``.
     """
     event_kwargs["time"] = interpolated_time
     event_kwargs["state"] = interpolated_state

@@ -25,7 +25,7 @@ PRESETS = {
 
 
 class Event:
-    """Event helper with trigger/callback execution and exact-time support.
+    """A rule that runs an action during a flight when a condition is met.
 
     An ``Event`` is the main way RocketPy reacts to conditions during a
     flight. It pairs a ``trigger`` predicate with a ``callback`` action: at
@@ -147,11 +147,11 @@ class Event:
             slower with no gain in accuracy. Automatically forced to ``False``
             when ``sampling_rate`` is ``None``.
         changes_dynamics : bool, optional
-            Set to ``True`` when the callback changes the simulation dynamics or
-            any parameter affecting the ODE derivative. This includes mutating an
-            attribute of any simulation object, and using the
-            ``set_derivative``, ``start_flight_phase``, or ``terminate_flight``
-            commands. Defaults to ``False``.
+            Set to ``True`` when the callback changes anything that affects the
+            equations of motion. This includes changing an attribute of any
+            simulation object, and using the ``set_derivative``,
+            ``start_flight_phase``, or ``terminate_flight`` commands. Defaults to
+            ``False``.
         name : str, optional
             Human-readable identifier used in logs and debugging. Defaults to
             ``"Custom Event"``.
@@ -174,12 +174,11 @@ class Event:
             - 3: Controller events
             - 4: Custom / user-defined events (default)
         needs : list of str or None, optional
-            Declares which expensive simulation values the event's trigger and
-            callback actually access. Valid keys are ``'state_dot'``,
-            ``'pressure'``, and ``'state_history'``. The default``None`` is
-            treated as an empty set and no expensive kwargs are computed.
-            Supply a list with the keys this event accesses so the runtime
-            computes them.
+            Which of the slower-to-compute simulation values the event's trigger
+            and callback actually use, so the rest are skipped. Valid keys are
+            ``'state_dot'``, ``'pressure'`` and ``'state_history'``. The default
+            ``None`` means none of them are computed. List the keys your event
+            uses to have them provided in ``kwargs``.
 
         See Also
         --------
@@ -306,6 +305,9 @@ class Event:
             If True, only execute the callback without evaluating the trigger
             condition. The exact time function and disable_on function are also
             called.
+        reset : bool, optional
+            If True (default), reset the event's queued commands (via
+            ``_reset_commands``) before evaluating the trigger.
         kwargs : dict
             Keyword arguments passed to the trigger and callback functions.
 

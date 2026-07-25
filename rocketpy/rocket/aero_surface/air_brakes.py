@@ -6,12 +6,13 @@ from rocketpy.mathutils.function import Function
 from rocketpy.plots.aero_surface_plots import _AirBrakesPlots
 from rocketpy.prints.aero_surface_prints import _AirBrakesPrints
 
-from .aero_surface import AeroSurface
+from .controllable_generic_surface import ControllableGenericSurface
 
 
-# TODO: review airbrakes implementation to make it more in line with events
-class AirBrakes(AeroSurface):
-    """AirBrakes class. Inherits from AeroSurface.
+class AirBrakes(ControllableGenericSurface):
+    """AirBrakes class. Inherits from :class:`ControllableGenericSurface`, using
+    ``deployment_level`` as its single control variable and a multivariable drag
+    coefficient.
 
     Attributes
     ----------
@@ -91,7 +92,7 @@ class AirBrakes(AeroSurface):
             Default is False.
         deployment_level : float, optional
             Initial deployment level, ranging from 0 to 1. Deployment level is
-            the fraction of the total airbrake area that is Deployment. Default
+            the fraction of the total airbrake area that is deployed. Default
             is 0.
         name : str, optional
             Name of the air brakes. Default is "AirBrakes".
@@ -100,89 +101,79 @@ class AirBrakes(AeroSurface):
         -------
         None
         """
-        super().__init__(name, reference_area, None)
+        self.clamp = clamp
+        self.override_rocket_drag = override_rocket_drag
+        self.initial_deployment_level = deployment_level
         self.drag_coefficient_curve = drag_coefficient_curve
-        # TODO: this drag coefficient needs to be a function of more parameters
-        # just like generic surface coefficients
+        # Back-compatible 2-input (deployment level, Mach) drag curve, kept for
+        # display/serialization and as the source of the multivariable drag
+        # coefficient below.
         self.drag_coefficient = Function(
             drag_coefficient_curve,
             inputs=["Deployment Level", "Mach"],
             outputs="Drag Coefficient",
             interpolation="linear",
         )
-        self.clamp = clamp
-        self.override_rocket_drag = override_rocket_drag
-        self.initial_deployment_level = deployment_level
+
+        # Multivariable drag coefficient over the generic-surface inputs plus the
+        # ``deployment_level`` control axis. The deployment-0 ⇒ Cd 0 rule applies
+        # only when the air brakes add to (rather than override) the rocket drag.
+        def drag_coefficient_function(
+            alpha,
+            beta,
+            mach,
+            reynolds,
+            pitch_rate,
+            yaw_rate,
+            roll_rate,
+            deployment_level,
+        ):  # pylint: disable=unused-argument
+            if deployment_level == 0 and not self.override_rocket_drag:
+                return 0.0
+            return self.drag_coefficient.get_value_opt(deployment_level, mach)
+
+        super().__init__(
+            reference_area=reference_area,
+            reference_length=2 * (reference_area / np.pi) ** 0.5,
+            coefficients={"cD": drag_coefficient_function},
+            center_of_pressure=(0, 0, 0),
+            name=name,
+            controls=("deployment_level",),
+        )
+
         self.deployment_level = deployment_level
         self.prints = _AirBrakesPrints(self)
         self.plots = _AirBrakesPlots(self)
 
-    @property
-    def deployment_level(self):
-        """Returns the deployment level of the air brakes."""
-        return self._deployment_level
-
-    @deployment_level.setter
-    def deployment_level(self, value):
-        # Check if deployment level is within bounds and warn user if not
-        if value < 0 or value > 1:
-            # Clamp deployment level if clamp is True
+    def _clamp_control(self, name, value):
+        """Clamp ``deployment_level`` to ``[0, 1]`` (or warn if ``clamp`` is
+        False), preserving the historical AirBrakes behavior."""
+        if name == "deployment_level" and (value < 0 or value > 1):
             if self.clamp:
-                # Make sure deployment level is between 0 and 1
-                value = np.clip(value, 0, 1)
+                value = float(np.clip(value, 0, 1))
             else:
-                # Raise warning if clamp is False
                 warnings.warn(
                     f"Deployment level of {self.name} is smaller than 0 or "
                     + "larger than 1. Extrapolation for the drag coefficient "
                     + "curve will be used.",
                     UserWarning,
                 )
-        self._deployment_level = value
+        return value
+
+    @property
+    def deployment_level(self):
+        """Returns the deployment level of the air brakes."""
+        return self.control_state["deployment_level"]
+
+    @deployment_level.setter
+    def deployment_level(self, value):
+        self.set_control("deployment_level", value)
 
     def _reset(self):
         """Resets the air brakes to their initial state. This is ran at the
         beginning of each simulation to ensure the air brakes are in the correct
         state."""
         self.deployment_level = self.initial_deployment_level
-
-    def evaluate_center_of_pressure(self):
-        """Evaluates the center of pressure of the aerodynamic surface in local
-        coordinates.
-
-        For air brakes, all components of the center of pressure position are
-        0.
-
-        Returns
-        -------
-        None
-        """
-        self.cpx = 0
-        self.cpy = 0
-        self.cpz = 0
-        self.cp = (self.cpx, self.cpy, self.cpz)
-
-    def evaluate_lift_coefficient(self):
-        """Evaluates the lift coefficient curve of the aerodynamic surface.
-
-        For air brakes, the current model assumes no lift is generated.
-        Therefore, the lift coefficient (C_L) and its derivative relative to the
-        angle of attack (C_L_alpha), is 0.
-
-        Returns
-        -------
-        None
-        """
-        self.clalpha = Function(
-            lambda mach: 0,
-            "Mach",
-            f"Lift coefficient derivative for {self.name}",
-        )
-        self.cl = Function(
-            lambda alpha, mach: 0,
-            ["Alpha (rad)", "Mach"],
-            "Lift Coefficient",
-        )
 
     def evaluate_geometrical_parameters(self):
         """Evaluates the geometrical parameters of the aerodynamic surface.

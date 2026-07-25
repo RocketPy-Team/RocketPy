@@ -48,3 +48,4 @@ RocketPy's User Guide
 
    Function <function.rst>
    Utilities <analysis.rst>
+   Center of Pressure and Stability <center_of_pressure_and_stability.rst>

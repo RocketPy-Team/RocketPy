@@ -47,6 +47,79 @@ def _compute_drag_7d_inputs(
     return alpha, beta, stream_mach, reynolds
 
 
+def _aerodynamic_drag_force(
+    flight, time, rho, stream_speed, alpha, beta, mach, reynolds, omega
+):
+    """Total rocket axial aerodynamic (drag) force, including air brakes.
+
+    Selects the power-on/power-off drag curve based on the motor burn state, and
+    then adds (or, when ``override_rocket_drag`` is set, substitutes) the drag of
+    any deployed air brakes, evaluated through the generic-surface coefficient
+    machinery.
+
+    Parameters
+    ----------
+    flight : Flight
+        Flight object providing the rocket.
+    time : float
+        Simulation time, used to select the power-on vs power-off drag curve.
+    rho : float
+        Air density.
+    stream_speed : float
+        Freestream speed magnitude.
+    alpha, beta, mach, reynolds : float
+        Standard aerodynamic coefficient inputs at the current state.
+    omega : tuple of float
+        Body angular rates ``(omega1, omega2, omega3)``.
+
+    Returns
+    -------
+    float
+        The axial (body z) aerodynamic drag force.
+    """
+    rocket = flight.rocket
+    if time < rocket.motor.burn_out_time:
+        drag_coefficient = rocket.power_on_drag_7d(
+            alpha, beta, mach, reynolds, omega[0], omega[1], omega[2]
+        )
+    else:
+        drag_coefficient = rocket.power_off_drag_7d(
+            alpha, beta, mach, reynolds, omega[0], omega[1], omega[2]
+        )
+    drag_force = -0.5 * rho * stream_speed**2 * rocket.area * drag_coefficient
+
+    # Air brakes are drag-only and may override the rocket drag.
+    for air_brakes in rocket.air_brakes:
+        if air_brakes.deployment_level > 0:
+            # Air brakes are a (controllable) generic surface, so feed the
+            # coefficient the non-dimensional reduced rates, like every other
+            # generic surface (see GenericSurface.compute_forces_and_moments).
+            reduced = (
+                air_brakes.reference_length / (2 * stream_speed)
+                if stream_speed > 0
+                else 0.0
+            )
+            air_brakes_cd = air_brakes.cD.get_value_opt(
+                *air_brakes._coefficient_arguments(
+                    alpha,
+                    beta,
+                    mach,
+                    reynolds,
+                    omega[0] * reduced,
+                    omega[1] * reduced,
+                    omega[2] * reduced,
+                )
+            )
+            air_brakes_force = (
+                -0.5 * rho * stream_speed**2 * air_brakes.reference_area * air_brakes_cd
+            )
+            if air_brakes.override_rocket_drag:
+                drag_force = air_brakes_force  # Substitutes rocket drag
+            else:
+                drag_force += air_brakes_force
+    return drag_force
+
+
 def udot_rail1(flight, t, u, post_processing=False):
     """Compute the 1-DOF rail-flight state derivative.
 
@@ -282,43 +355,17 @@ def u_dot(flight, t, u, post_processing=False):
         rho,
         dynamic_viscosity,
     )
-    if t < flight.rocket.motor.burn_out_time:
-        drag_coeff = flight.rocket.power_on_drag_7d(
-            alpha,
-            beta,
-            mach,
-            reynolds,
-            omega1,
-            omega2,
-            omega3,
-        )
-    else:
-        drag_coeff = flight.rocket.power_off_drag_7d(
-            alpha,
-            beta,
-            mach,
-            reynolds,
-            omega1,
-            omega2,
-            omega3,
-        )
-    R3 = -0.5 * rho * (free_stream_speed**2) * flight.rocket.area * drag_coeff
-    for air_brakes in flight.rocket.air_brakes:
-        if air_brakes.deployment_level > 0:
-            air_brakes_cd = air_brakes.drag_coefficient.get_value_opt(
-                air_brakes.deployment_level, free_stream_mach
-            )
-            air_brakes_force = (
-                -0.5
-                * rho
-                * (free_stream_speed**2)
-                * air_brakes.reference_area
-                * air_brakes_cd
-            )
-            if air_brakes.override_rocket_drag:
-                R3 = air_brakes_force  # Substitutes rocket drag coefficient
-            else:
-                R3 += air_brakes_force
+    R3 = _aerodynamic_drag_force(
+        flight,
+        t,
+        rho,
+        free_stream_speed,
+        alpha,
+        beta,
+        mach,
+        reynolds,
+        (omega1, omega2, omega3),
+    )
     # Off center moment
     M1 += flight.rocket.cp_eccentricity_y * R3
     M2 -= flight.rocket.cp_eccentricity_x * R3
@@ -330,6 +377,8 @@ def u_dot(flight, t, u, post_processing=False):
     velocity_in_body_frame = Vector([vx_b, vy_b, vz_b])
     w = Vector([omega1, omega2, omega3])
     for aero_surface, _ in flight.rocket.aerodynamic_surfaces:
+        if not aero_surface.is_active(t, flight):
+            continue
         # Component cp relative to CDM in body frame
         comp_cp = flight.rocket.surfaces_cp_to_cdm[aero_surface]
         # Component absolute velocity in body frame
@@ -549,36 +598,26 @@ def u_dot_generalized_3dof(flight, t, u, post_processing=False):
         dynamic_viscosity,
     )
 
-    # Drag computation
-    if t < flight.rocket.motor.burn_out_time:
-        cd = flight.rocket.power_on_drag_7d(
-            alpha, beta, mach, reynolds, omega1, omega2, omega3
-        )
-    else:
-        cd = flight.rocket.power_off_drag_7d(
-            alpha, beta, mach, reynolds, omega1, omega2, omega3
-        )
-
+    # Drag computation (rocket body drag + air brakes)
     R1, R2 = 0, 0
-    R3 = -0.5 * rho * free_stream_speed**2 * flight.rocket.area * cd
-
-    for air_brake in flight.rocket.air_brakes:
-        if air_brake.deployment_level > 0:
-            ab_cd = air_brake.drag_coefficient.get_value_opt(
-                air_brake.deployment_level, mach
-            )
-            ab_force = (
-                -0.5 * rho * free_stream_speed**2 * air_brake.reference_area * ab_cd
-            )
-            if air_brake.override_rocket_drag:
-                R3 = ab_force
-            else:
-                R3 += ab_force
+    R3 = _aerodynamic_drag_force(
+        flight,
+        t,
+        rho,
+        free_stream_speed,
+        alpha,
+        beta,
+        mach,
+        reynolds,
+        (omega1, omega2, omega3),
+    )
 
     # Velocity in body frame
     vb_body = Kt @ v
 
     for surface, _ in flight.rocket.aerodynamic_surfaces:
+        if not surface.is_active(t, flight):
+            continue
         cp = flight.rocket.surfaces_cp_to_cdm[surface]
         vb_component = vb_body + (w ^ cp)
 
@@ -806,47 +845,25 @@ def u_dot_generalized(flight, t, u, post_processing=False):
             + flight.rocket.motor.pressure_thrust(pressure),
             0,
         )
-        drag_coeff = flight.rocket.power_on_drag_7d(
-            alpha,
-            beta,
-            mach,
-            reynolds,
-            omega1,
-            omega2,
-            omega3,
-        )
     else:
         net_thrust = 0
-        drag_coeff = flight.rocket.power_off_drag_7d(
-            alpha,
-            beta,
-            mach,
-            reynolds,
-            omega1,
-            omega2,
-            omega3,
-        )
-    R3 += -0.5 * rho * (free_stream_speed**2) * flight.rocket.area * drag_coeff
-    for air_brakes in flight.rocket.air_brakes:
-        if air_brakes.deployment_level > 0:
-            air_brakes_cd = air_brakes.drag_coefficient.get_value_opt(
-                air_brakes.deployment_level, free_stream_mach
-            )
-            air_brakes_force = (
-                -0.5
-                * rho
-                * (free_stream_speed**2)
-                * air_brakes.reference_area
-                * air_brakes_cd
-            )
-            if air_brakes.override_rocket_drag:
-                R3 = air_brakes_force  # Substitutes rocket drag coefficient
-            else:
-                R3 += air_brakes_force
+    R3 = _aerodynamic_drag_force(
+        flight,
+        t,
+        rho,
+        free_stream_speed,
+        alpha,
+        beta,
+        mach,
+        reynolds,
+        (omega1, omega2, omega3),
+    )
     # Get rocket velocity in body frame
     velocity_in_body_frame = Kt @ v
     # Calculate lift and moment for each component of the rocket
     for aero_surface, _ in flight.rocket.aerodynamic_surfaces:
+        if not aero_surface.is_active(t, flight):
+            continue
         # Component cp relative to CDM in body frame
         comp_cp = flight.rocket.surfaces_cp_to_cdm[aero_surface]
         # Component absolute velocity in body frame

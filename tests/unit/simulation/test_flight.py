@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 from scipy import optimize
 
-from rocketpy import Components, Flight, Function, Rocket
+from rocketpy import Components, Flight, Function, LinearGenericSurface, Rocket
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
@@ -646,6 +646,105 @@ def test_stability_static_margins(
         assert np.all(moments / wind_sign <= 0)
     else:  # static_margin == 0
         assert np.all(np.abs(moments) <= 1e-10)
+
+
+def test_linear_generic_surface_flight_is_stable(
+    calisto_linear_generic, example_plain_env
+):
+    """A Calisto whose fin set is a body-frame LinearGenericSurface flies stably.
+
+    The linear surface builds its forces and moments directly in the body frame
+    from the coefficient derivatives (no wind-to-body rotation). With a positive
+    normal-force slope placed aft it must give a positive static margin and the
+    rocket must reach a finite apogee while staying aligned with the flow (a
+    small angle of attack, i.e. no tumbling).
+    """
+    rocket = calisto_linear_generic
+    assert any(
+        isinstance(surface, LinearGenericSurface)
+        for surface, _ in rocket.aerodynamic_surfaces
+    )
+    assert rocket.static_margin(0) > 0
+
+    test_flight = Flight(
+        environment=example_plain_env,
+        rocket=rocket,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=True,
+    )
+
+    assert test_flight.apogee_time > test_flight.out_of_rail_time
+    assert np.isfinite(test_flight.apogee)
+    assert test_flight.apogee > example_plain_env.elevation
+    # A stable rocket keeps a small angle of attack throughout the ascent. Only
+    # the ascent off the rail is checked: while the rocket is still on the rail
+    # its speed is ~0, so the angle of attack is reported as a degenerate 90
+    # degrees (arccos of 0) for every launcher, stable or not.
+    aoa_source = test_flight.angle_of_attack.get_source()
+    ascent = aoa_source[:, 0] > test_flight.out_of_rail_time
+    angle_of_attack = aoa_source[ascent, 1]
+    assert np.nanmax(np.abs(angle_of_attack)) < 45
+
+
+@pytest.mark.parametrize(
+    "generic_rocket_name, apogee_rel_tol",
+    [
+        ("calisto_linear_generic", 5e-3),
+        ("calisto_generic", 5e-3),
+        ("calisto_full_aerodynamics", 1e-2),
+    ],
+)
+def test_generic_surface_calisto_flight_matches_barrowman(
+    request, calisto_robust, example_plain_env, generic_rocket_name, apogee_rel_tol
+):
+    """A Calisto rebuilt from generic surfaces flies the same as the Barrowman
+    Calisto.
+
+    The reference ``calisto_robust`` models each surface with the classic
+    Barrowman method. The three generic-surface Calistos carry the same
+    aerodynamics through different code paths: per-surface
+    ``LinearGenericSurface`` (coefficient slopes), per-surface
+    ``GenericSurface`` (total coefficients), and a single full-body
+    ``LinearGenericSurface`` added with ``add_full_body_aerodynamics`` (the lumped
+    stability-derivative set, including the rate damping the distributed
+    surfaces produce through their lever arms). Flown from the same launcher in
+    still air, each must reach essentially the same apogee and leave the rail at
+    the same time and speed. Only the ascent is compared (``terminate_on_apogee``);
+    the descent under identical parachutes adds nothing to the comparison.
+
+    The per-surface models reproduce the Barrowman forces almost exactly; the
+    lumped full-body model is a point approximation of the distributed
+    surfaces, so it is held to a slightly looser apogee tolerance.
+    """
+    generic_rocket = request.getfixturevalue(generic_rocket_name)
+
+    launch = dict(
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=True,
+    )
+    reference_flight = Flight(rocket=calisto_robust, **launch)
+    generic_flight = Flight(rocket=generic_rocket, **launch)
+
+    # Leaving the rail is driven by thrust and the shared drag curve, so every
+    # model must agree tightly here.
+    assert generic_flight.out_of_rail_time == pytest.approx(
+        reference_flight.out_of_rail_time, rel=1e-3
+    )
+    assert generic_flight.out_of_rail_velocity == pytest.approx(
+        reference_flight.out_of_rail_velocity, rel=1e-3
+    )
+    # Apogee reflects the whole aerodynamic ascent.
+    assert generic_flight.apogee == pytest.approx(
+        reference_flight.apogee, rel=apogee_rel_tol
+    )
+    assert generic_flight.apogee_time == pytest.approx(
+        reference_flight.apogee_time, rel=apogee_rel_tol
+    )
 
 
 def test_max_acceleration_power_off_time_with_controllers(
