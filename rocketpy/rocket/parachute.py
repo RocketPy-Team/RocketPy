@@ -157,12 +157,18 @@ class Parachute:
               ``state`` (list ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]``),
               ``sensors`` (list of sensor objects),
               ``sensors_by_name`` (dict of sensor objects),
-              ``environment`` (:class:`rocketpy.Environment`),
+              ``environment`` (:class:`rocketpy.Environment` or
+              :class:`rocketpy.Earth`),
+              ``earth`` (:class:`rocketpy.Earth` or ``None``),
+              ``space`` (:class:`rocketpy.Space` or ``None``),
               ``rocket`` (:class:`rocketpy.Rocket`),
               ``flight`` (:class:`rocketpy.Flight`),
               ``phase`` (current flight phase),
               ``step_size`` (float, s),
-              ``height_agl`` (float, m).
+              ``altitude`` (float, m above the reference ellipsoid),
+              ``height_agl`` (float, m),
+              ``vertical_velocity`` (float, m/s, positive upward),
+              ``previous_vertical_velocity`` (float, m/s).
               The following keys are only injected when declared via
               ``trigger_needs``:
               ``pressure`` (float, Pa),
@@ -337,7 +343,9 @@ class Parachute:
         elif isinstance(trigger, (int, float)):
 
             def triggerfunc(**kwargs):
-                return kwargs["state"][5] < 0 and kwargs["height_agl"] < trigger
+                return (
+                    kwargs["vertical_velocity"] < 0 and kwargs["height_agl"] < trigger
+                )
 
             self.triggerfunc = triggerfunc
             self._trigger_is_positional = False
@@ -347,14 +355,15 @@ class Parachute:
         elif trigger.lower() == "apogee":
 
             def triggerfunc(**kwargs):
-                state_history = kwargs.get("state_history")
-                if not state_history:
-                    return False
-                return state_history[-1][5] > 0 >= kwargs["state"][5]
+                return (
+                    kwargs["previous_vertical_velocity"]
+                    > 0
+                    >= kwargs["vertical_velocity"]
+                )
 
             self.triggerfunc = triggerfunc
             self._trigger_is_positional = False
-            self._trigger_needs = frozenset({"state_history"})
+            self._trigger_needs = frozenset()
 
         # Case 4: Invalid trigger input
         else:
@@ -393,9 +402,15 @@ class Parachute:
             flight = kwargs.get("flight", None)
 
             flight._active_parachute = self
+            flight._parachute_inflation_time = time + self.lag
             flight.parachute_events.append([time, self])
 
-            kwargs["event"].commands.set_derivative(flight.u_dot_parachute)
+            derivative = (
+                flight.u_dot_generalized
+                if flight.reference_frame.value == "gcrf"
+                else flight.u_dot_parachute
+            )
+            kwargs["event"].commands.set_derivative(derivative)
             kwargs["event"].commands.start_flight_phase(
                 f"{self.name}_parachute_descent",
                 lag=self.lag,

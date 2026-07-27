@@ -73,7 +73,10 @@ class Event:
             ``state`` (list ``[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]``),
             ``sensors`` (list of sensor objects),
             ``sensors_by_name`` (dict of sensor objects),
-            ``environment`` (:class:`rocketpy.Environment`),
+            ``environment`` (:class:`rocketpy.Environment` or
+            :class:`rocketpy.Earth`),
+            ``earth`` (:class:`rocketpy.Earth` or ``None``),
+            ``space`` (:class:`rocketpy.Space` or ``None``),
             ``rocket`` (:class:`rocketpy.Rocket`),
             ``flight`` (:class:`rocketpy.Flight`),
             ``phase`` (current flight phase),

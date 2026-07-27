@@ -1,3 +1,8 @@
+import numpy as np
+
+from rocketpy.mathutils.flight_state import FlightState
+from rocketpy.mathutils.reference_frame import ReferenceFrame
+
 from .event_commands import apply_event_commands, apply_rollback_command
 
 
@@ -21,6 +26,58 @@ def infer_step_size(flight, time):
     if len(flight.solution) < 2:
         return 0.0
     return max(0.0, time - flight.solution[-2][0])
+
+
+def _event_kinematics(flight, time, state):
+    """Return frame-independent altitude, AGL and vertical velocity."""
+    if flight.reference_frame == ReferenceFrame.FLAT_EARTH:
+        altitude = float(state[2])
+        return altitude, altitude - flight.env.elevation, float(state[5])
+
+    epoch = flight.current_epoch(time)
+    position_itrf, velocity_itrf, _ = flight.datum.transform_kinematics(
+        epoch,
+        state[:3],
+        state[3:6],
+        source=flight.reference_frame,
+        target=ReferenceFrame.ITRF,
+    )
+    altitude = float(flight.datum.itrs_to_geodetic(position_itrf)[2])
+    radius = np.linalg.norm(position_itrf)
+    vertical_velocity = (
+        0.0 if radius == 0 else float(np.dot(position_itrf, velocity_itrf) / radius)
+    )
+    return altitude, altitude - flight.env.elevation, vertical_velocity
+
+
+def _event_flight_state(flight, time, state):
+    """Adapt a solver vector for state-aware environment evaluation."""
+    kwargs = {}
+    if len(state) >= 13:
+        kwargs["quaternion"] = state[6:10]
+        kwargs["angular_velocity"] = state[10:13]
+    return FlightState.cartesian(
+        epoch=flight.current_epoch(time),
+        position=state[:3],
+        velocity=state[3:6],
+        frame=flight.reference_frame,
+        elapsed_time=flight.mission_time_offset + time - flight.t_initial,
+        **kwargs,
+    )
+
+
+def _event_pressure(flight, time, state):
+    epoch = flight.current_epoch(time)
+    if flight.earth is not None:
+        return flight.earth.evaluate_atmosphere(
+            epoch, _event_flight_state(flight, time, state)
+        ).pressure
+    return flight.env.evaluate(
+        epoch,
+        float(state[2]),
+        latitude_rad=np.radians(flight.env.latitude),
+        longitude_rad=np.radians(flight.env.longitude),
+    ).pressure
 
 
 def build_event_kwargs(
@@ -54,22 +111,34 @@ def build_event_kwargs(
     dict
         Keyword arguments consumed by event triggers and callbacks.
     """
+    altitude, height_agl, vertical_velocity = _event_kinematics(flight, time, state)
+    previous_vertical_velocity = vertical_velocity
+    if len(flight.solution) >= 2:
+        previous = flight.solution[-2]
+        previous_vertical_velocity = _event_kinematics(
+            flight, previous[0], previous[1:]
+        )[2]
     kwargs = {
         "time": time,
         "state": state,
         "sensors": flight.sensors,
         "sensors_by_name": flight.sensors_by_name,
         "environment": flight.env,
+        "earth": flight.earth,
+        "space": flight.space,
         "rocket": flight.rocket,
         "flight": flight,
         "phase": phase,
         "step_size": step_size,
-        "height_agl": state[2] - flight.env.elevation,
+        "altitude": altitude,
+        "height_agl": height_agl,
+        "vertical_velocity": vertical_velocity,
+        "previous_vertical_velocity": previous_vertical_velocity,
     }
     if "state_dot" in needs:
         kwargs["state_dot"] = phase.derivative(time, state)
     if "pressure" in needs:
-        kwargs["pressure"] = flight.env.pressure.get_value_opt(state[2])
+        kwargs["pressure"] = _event_pressure(flight, time, state)
     if "state_history" in needs:
         index = 2 if rollback else 1
         kwargs["state_history"] = SafeStateHistory(
@@ -113,14 +182,19 @@ def update_overshootable_event_kwargs(
     event_kwargs["time"] = interpolated_time
     event_kwargs["state"] = interpolated_state
     event_kwargs["step_size"] = infer_step_size(flight, interpolated_time)
-    event_kwargs["height_agl"] = interpolated_state[2] - flight.env.elevation
+    altitude, height_agl, vertical_velocity = _event_kinematics(
+        flight, interpolated_time, interpolated_state
+    )
+    event_kwargs["altitude"] = altitude
+    event_kwargs["height_agl"] = height_agl
+    event_kwargs["vertical_velocity"] = vertical_velocity
     if "state_dot" in needs:
         event_kwargs["state_dot"] = phase.derivative(
             interpolated_time, interpolated_state
         )
     if "pressure" in needs:
-        event_kwargs["pressure"] = flight.env.pressure.get_value_opt(
-            interpolated_state[2]
+        event_kwargs["pressure"] = _event_pressure(
+            flight, interpolated_time, interpolated_state
         )
     # state_history does not change per node — already set by build_event_kwargs
     return event_kwargs

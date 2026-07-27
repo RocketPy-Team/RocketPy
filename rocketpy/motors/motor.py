@@ -1,4 +1,5 @@
 import base64
+import inspect
 import re
 import tempfile
 import warnings
@@ -19,6 +20,65 @@ from ..tools import parallel_axis_theorem_from_com, tuple_handler
 # pylint: disable=too-many-public-methods
 # ThrustCurve API cache
 CACHE_DIR = Path.home() / ".rocketpy_cache"
+
+
+class _MotorThrustVector:
+    """Vector-valued thrust view composed from a Motor's scalar thrust curve."""
+
+    def __init__(self, motor):
+        self.motor = motor
+        self._direction_source = (0.0, 0.0, 1.0)
+        self._accepts_state = False
+
+    def set_direction(self, direction):
+        accepts_state = False
+        if callable(direction):
+            parameters = tuple(inspect.signature(direction).parameters.values())
+            accepts_state = len(parameters) >= 2 or any(
+                parameter.kind is inspect.Parameter.VAR_POSITIONAL
+                for parameter in parameters
+            )
+        else:
+            direction = self._normalize(direction)
+        self._direction_source = direction
+        self._accepts_state = accepts_state
+        if not accepts_state:
+            self.direction(0.0)
+        return self
+
+    @staticmethod
+    def _normalize(value):
+        value = np.asarray(value, dtype=float)
+        if value.shape != (3,):
+            raise ValueError("thrust direction must contain three components.")
+        magnitude = float(np.linalg.norm(value))
+        if not np.all(np.isfinite(value)) or magnitude == 0.0:
+            raise ValueError("thrust direction must be finite and nonzero.")
+        return value / magnitude
+
+    def direction(self, time, state=None):
+        source = self._direction_source
+        if callable(source):
+            if self._accepts_state:
+                if state is None:
+                    raise ValueError(
+                        "This thrust-vector source requires the current state."
+                    )
+                value = source(float(time), state)
+            else:
+                value = source(float(time))
+        else:
+            value = source
+        return self._normalize(value)
+
+    def __call__(self, time, state=None):
+        """Return body-frame thrust components in newtons."""
+        magnitude = float(self.motor.thrust.get_value_opt(time))
+        return magnitude * self.direction(time, state)
+
+    def get_value_opt(self, time, state=None):
+        """Optimized-call spelling shared with scalar RocketPy Functions."""
+        return self(time, state)
 
 
 class Motor(ABC):
@@ -133,6 +193,10 @@ class Motor(ABC):
     Motor.thrust : Function
         Motor thrust force obtained from the thrust source, in Newtons, as a
         function of time.
+    Motor.thrust_vector : _MotorThrustVector
+        Body-frame vector thrust in Newtons. By default this evaluates to
+        ``(0, 0, thrust)``. Its direction can be fixed, time-programmed, or
+        state-aware for thrust-vector control.
     Motor.vacuum_thrust : Function
         Motor thrust force when the rocket is in a vacuum. In Newtons, as a
         function of time.
@@ -334,6 +398,7 @@ class Motor(ABC):
 
         # Post process thrust
         self.thrust = Motor.clip_thrust(self.thrust, self.burn_time)
+        self.thrust_vector = _MotorThrustVector(self)
 
         # Auxiliary quantities
         self.burn_start_time = self.burn_time[0]
@@ -349,6 +414,28 @@ class Motor(ABC):
         # Initialize plots and prints object
         self.prints = _MotorPrints(self)
         self.plots = _MotorPlots(self)
+
+    def set_thrust_direction(self, direction):
+        """Set the body-frame direction used by :attr:`thrust_vector`.
+
+        ``direction`` may be a fixed three-component vector, a callable of
+        elapsed motor time, or a callable of ``(time, FlightState)`` for TVC.
+        It is normalized on evaluation, so :attr:`thrust` remains the force
+        magnitude and the default vector remains ``(0, 0, thrust)``.
+        """
+        self.thrust_vector.set_direction(direction)
+        return self
+
+    def net_thrust_vector(self, time, pressure=0.0, state=None):
+        """Return pressure-corrected body-frame thrust in newtons."""
+        if not self.burn_start_time <= time < self.burn_out_time:
+            return np.zeros(3)
+        direction = self.thrust_vector.direction(time, state)
+        magnitude = max(
+            self.thrust.get_value_opt(time) + self.pressure_thrust(pressure),
+            0.0,
+        )
+        return magnitude * direction
 
     @property
     def burn_time(self):

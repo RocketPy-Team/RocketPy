@@ -1,6 +1,6 @@
 import pytest
 
-from rocketpy import Epoch, FlightState, PointMassRocket
+from rocketpy import Epoch, FlightState, FrameVector, PointMassRocket
 
 
 def test_rocket_orbital_properties_accept_state_dependent_callables():
@@ -18,20 +18,23 @@ def test_rocket_orbital_properties_accept_state_dependent_callables():
         projected_area=3.0,
     )
     rocket.set_radiation_properties(coefficient=1.3, projected_area=2.0)
+    velocity = FrameVector(state.velocity, state.frame)
+    earth_direction = FrameVector(-state.position, state.frame)
 
     # Act
     drag_coefficient = rocket.evaluate_orbital_drag_coefficient(
-        state.epoch, state, state.velocity
+        state.epoch, state, velocity
     )
 
     # Assert
     assert drag_coefficient == pytest.approx(3.0)
     assert rocket.evaluate_orbital_drag_area(
-        state.epoch, state, state.velocity
+        state.epoch, state, velocity
     ) == pytest.approx(3.0)
     assert rocket.evaluate_radiation_coefficient(
-        state.epoch, state, -state.position
+        state.epoch, state, earth_direction
     ) == pytest.approx(1.3)
     assert rocket.evaluate_radiation_area(
-        state.epoch, state, -state.position
+        state.epoch, state, earth_direction
     ) == pytest.approx(2.0)
+    assert velocity.frame is state.frame

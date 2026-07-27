@@ -35,6 +35,10 @@ class PointMassRocket(Rocket):
         Proportionality coefficient for the alignment rate of the point-mass
         rocket body axis with the relative wind direction in 3-DOF
         simulations. Must be non-negative. Default is 0.0.
+    inertia : tuple, optional
+        Three diagonal or six symmetric inertia components. It is irrelevant
+        to 3-DOF translation, but must be positive and non-singular when this
+        point-mass geometry is intentionally used with 6-DOF dynamics.
 
     Attributes
     ----------
@@ -80,17 +84,18 @@ class PointMassRocket(Rocket):
         power_off_drag,
         power_on_drag,
         weathercock_coeff: float = 0.0,
+        inertia=None,
     ):
         self._center_of_mass_without_motor_pointmass = center_of_mass_without_motor
         self._center_of_dry_mass_position = center_of_mass_without_motor
         self._center_of_mass = center_of_mass_without_motor
-        # Dry inertias are zero for point mass
-        self.dry_I_11 = 0.0
-        self.dry_I_22 = 0.0
-        self.dry_I_33 = 0.0
-        self.dry_I_12 = 0.0
-        self.dry_I_13 = 0.0
-        self.dry_I_23 = 0.0
+        self._point_mass_inertia = (
+            (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+            if inertia is None
+            else tuple((*inertia, 0.0, 0.0, 0.0) if len(inertia) == 3 else inertia)
+        )
+        if len(self._point_mass_inertia) != 6:
+            raise ValueError("inertia must contain 3 or 6 components.")
 
         self.weathercock_coeff = float(weathercock_coeff)
 
@@ -98,7 +103,7 @@ class PointMassRocket(Rocket):
         super().__init__(
             radius=radius,
             mass=mass,
-            inertia=(0, 0, 0),
+            inertia=self._point_mass_inertia,
             power_off_drag=power_off_drag,
             power_on_drag=power_on_drag,
             center_of_mass_without_motor=center_of_mass_without_motor,
@@ -115,13 +120,15 @@ class PointMassRocket(Rocket):
         tuple
             All inertia components as zeros.
         """
-        self.dry_I_11 = 0.0
-        self.dry_I_22 = 0.0
-        self.dry_I_33 = 0.0
-        self.dry_I_12 = 0.0
-        self.dry_I_13 = 0.0
-        self.dry_I_23 = 0.0
-        return (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        (
+            self.dry_I_11,
+            self.dry_I_22,
+            self.dry_I_33,
+            self.dry_I_12,
+            self.dry_I_13,
+            self.dry_I_23,
+        ) = self._point_mass_inertia
+        return self._point_mass_inertia
 
     def evaluate_inertias(self):
         """Override to ensure inertias remain zero for point mass model.
@@ -131,10 +138,5 @@ class PointMassRocket(Rocket):
         tuple
             All inertia components as zeros.
         """
-        self.I_11 = 0.0
-        self.I_22 = 0.0
-        self.I_33 = 0.0
-        self.I_12 = 0.0
-        self.I_13 = 0.0
-        self.I_23 = 0.0
-        return (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+        super().evaluate_inertias()
+        return self._point_mass_inertia

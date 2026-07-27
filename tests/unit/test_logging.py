@@ -13,6 +13,11 @@ def _restore_logger_state():
     """Snapshot and restore the rocketpy logger so tests don't leak state."""
     saved_handlers = logger.handlers[:]
     saved_level = logger.level
+    logger.handlers[:] = [
+        handler
+        for handler in saved_handlers
+        if getattr(handler, "name", None) != "rocketpy_console_handler"
+    ]
     yield
     logger.handlers[:] = saved_handlers
     logger.setLevel(saved_level)

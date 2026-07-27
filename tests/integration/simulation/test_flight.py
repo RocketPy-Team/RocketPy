@@ -379,9 +379,8 @@ def test_empty_motor_flight(mock_show, example_plain_env, calisto_motorless):  #
 
 def test_freestream_speed_at_apogee(example_plain_env, calisto):
     """
-    Asserts that a rocket at apogee has a free stream speed of near 0.0 m/s
-    in all directions given that the environment doesn't have any wind. Any
-    speed values comes from coriolis effect.
+    A non-rotating FlatEarthDatum and windless atmosphere have essentially
+    zero freestream velocity at apogee.
     """
     # NOTE: this rocket doesn't move in x or z direction. There's no wind.
     hard_atol = 1e-12
@@ -398,7 +397,7 @@ def test_freestream_speed_at_apogee(example_plain_env, calisto):
 
     assert np.isclose(
         test_flight.stream_velocity_x(test_flight.apogee_time),
-        0.4641492104717301,
+        0.0,
         atol=hard_atol,
     )
     assert np.isclose(
@@ -408,14 +407,8 @@ def test_freestream_speed_at_apogee(example_plain_env, calisto):
     assert np.isclose(
         test_flight.stream_velocity_z(test_flight.apogee_time), 0.0, atol=soft_atol
     )
-    assert np.isclose(
-        test_flight.free_stream_speed(test_flight.apogee_time),
-        0.4641492104717798,
-        atol=hard_atol,
-    )
-    assert np.isclose(
-        test_flight.apogee_freestream_speed, 0.4641492104717798, atol=hard_atol
-    )
+    assert test_flight.free_stream_speed(test_flight.apogee_time) < soft_atol
+    assert test_flight.apogee_freestream_speed < soft_atol
 
 
 def test_rocket_csys_equivalence(

@@ -10,12 +10,11 @@ import numpy as np
 from rocketpy.mathutils.compilation import numbify
 from rocketpy.mathutils.epoch import Epoch
 from rocketpy.mathutils.reference_frame import (
+    WGS84,
     EarthDatum,
     ReferenceFrame,
-    WGS84,
     transform_kinematics,
 )
-
 
 FLOAT64_EPSILON = 2.220446049250313e-16
 
@@ -44,7 +43,7 @@ class Gravity(ABC):
                 self.acceleration(
                     Epoch.relative_origin(),
                     position,
-                    frame=ReferenceFrame.GCRF,
+                    frame=ReferenceFrame.ITRF,
                     datum=datum,
                 )
             )
@@ -86,6 +85,15 @@ class VerticalGravity(Gravity):
         )
 
 
+class SomiglianaGravity(VerticalGravity):
+    """Somigliana-derived apparent gravity for a non-rotating local frame.
+
+    Somigliana surface gravity already contains the centrifugal correction.
+    Inheriting :class:`VerticalGravity` deliberately makes use in GCRF/ITRF an
+    error, preventing Earth rotation from being counted twice.
+    """
+
+
 class DefaultGravity(Gravity):
     """Default gravity for both local and Earth-centered Flight states.
 
@@ -95,7 +103,7 @@ class DefaultGravity(Gravity):
     """
 
     def __init__(self, vertical_magnitude, gravitational_parameter=None):
-        self.local = VerticalGravity(vertical_magnitude)
+        self.local = SomiglianaGravity(vertical_magnitude)
         self.earth_centered = SphericalGravity(gravitational_parameter)
 
     def acceleration(self, epoch, position, *, frame, datum=WGS84):
@@ -138,11 +146,19 @@ class ZonalGravity(SphericalGravity):
         self.j2 = j2
         self.j3 = j3
 
-    def acceleration(self, epoch, position, *, datum=WGS84, **kwargs) -> np.ndarray:
-        del epoch, kwargs
-        position = np.asarray(position, dtype=float)
-        x, y, z = position
-        radius_squared = float(np.dot(position, position))
+    def acceleration(
+        self, epoch, position, *, frame=ReferenceFrame.GCRF, datum=WGS84, **kwargs
+    ) -> np.ndarray:
+        del kwargs
+        frame = ReferenceFrame.coerce(frame)
+        if frame not in (ReferenceFrame.GCRF, ReferenceFrame.ITRF):
+            raise ValueError("ZonalGravity requires the GCRF or ITRF frame.")
+        if frame == ReferenceFrame.GCRF:
+            position_fixed, _, _ = datum._to_ecef_coordinates(epoch, position)
+        else:
+            position_fixed = np.asarray(position, dtype=float)
+        x, y, z = position_fixed
+        radius_squared = float(np.dot(position_fixed, position_fixed))
         radius = np.sqrt(radius_squared)
         if radius <= np.finfo(float).eps:
             raise ValueError("Gravity is undefined at the central-body origin.")
@@ -151,7 +167,7 @@ class ZonalGravity(SphericalGravity):
         z_ratio = z / radius
         j2_factor = 1.5 * self.j2 * (reference_radius / radius) ** 2
         base = -mu / radius**3
-        acceleration = base * np.array(
+        acceleration_fixed = base * np.array(
             [
                 x * (1.0 + j2_factor * (1.0 - 5.0 * z_ratio**2)),
                 y * (1.0 + j2_factor * (1.0 - 5.0 * z_ratio**2)),
@@ -160,7 +176,7 @@ class ZonalGravity(SphericalGravity):
         )
         if self.j3:
             common = 0.5 * self.j3 * mu * reference_radius**3 / radius**7
-            acceleration += np.array(
+            acceleration_fixed += np.array(
                 [
                     5.0 * common * x * z * (7.0 * z_ratio**2 - 3.0),
                     5.0 * common * y * z * (7.0 * z_ratio**2 - 3.0),
@@ -173,6 +189,9 @@ class ZonalGravity(SphericalGravity):
                     ),
                 ]
             )
+        if frame == ReferenceFrame.ITRF:
+            return acceleration_fixed
+        acceleration, _, _ = datum._to_eci_coordinates(epoch, acceleration_fixed)
         return acceleration
 
 
@@ -203,6 +222,10 @@ class SphericalHarmonicGravity(Gravity):
         self.include_tides = bool(include_tides)
         self.sun = sun
         self.moon = moon
+        if self.include_tides and (self.sun is None or self.moon is None):
+            raise ValueError(
+                "Solid-Earth tides require explicit Sun and Moon ThirdBody models."
+            )
         coefficient_path = resources.files("rocketpy.environment").joinpath(
             "data/egm2008.npz"
         )
@@ -235,10 +258,8 @@ class SphericalHarmonicGravity(Gravity):
             position_itrf = np.asarray(position, dtype=float)
         cosine, sine = self.cosine, self.sine
         if self.include_tides:
-            from .celestial_body import CelestialBody
-
-            sun = self.sun or CelestialBody.builtin("sun")
-            moon = self.moon or CelestialBody.builtin("moon")
+            sun = self.sun
+            moon = self.moon
             sun_itrf, _, _ = transform_kinematics(
                 epoch,
                 sun.position(epoch),

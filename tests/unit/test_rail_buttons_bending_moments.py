@@ -147,12 +147,14 @@ def test_railbuttons_no_aero_contribution():
     """Test RailButtons provide zero aerodynamic contributions."""
     rb = RailButtons(buttons_distance=0.5)
 
-    rb.evaluate_center_of_pressure()
     assert rb.cp == (0, 0, 0)
-
-    rb.evaluate_lift_coefficient()
-    assert rb.clalpha(1.0) == 0  # Zero lift derivative
-    assert rb.cl(0.1, 1.0) == 0  # Zero lift coefficient
+    arguments = (0.1, 0.05, 1.0, 1e6, 0.0, 0.0, 0.0)
+    assert rb.cN(*arguments) == 0
+    assert rb.cY(*arguments) == 0
+    assert rb.cA(*arguments) == 0
+    assert rb.cm(*arguments) == 0
+    assert rb.cn(*arguments) == 0
+    assert rb.cl(*arguments) == 0
 
 
 def test_rail_button_bending_moments_prints(flight_calisto_robust, capsys):

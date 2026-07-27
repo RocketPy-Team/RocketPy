@@ -7,7 +7,11 @@ from dataclasses import dataclass
 import numpy as np
 
 from .epoch import Epoch
-from .reference_frame import ReferenceFrame
+from .reference_frame import (
+    WGS84,
+    ReferenceFrame,
+    transform_kinematics,
+)
 
 
 @dataclass(frozen=True)
@@ -61,6 +65,59 @@ class FlightState:
             quaternion=quaternion,
             angular_velocity=angular_velocity,
             frame=ReferenceFrame.coerce(frame),
+            elapsed_time=elapsed_time,
+        )
+
+    @classmethod
+    def geodetic(
+        cls,
+        *,
+        epoch: Epoch,
+        latitude,
+        longitude,
+        altitude,
+        velocity_enu=(0.0, 0.0, 0.0),
+        frame: ReferenceFrame | str = ReferenceFrame.GCRF,
+        datum=WGS84,
+        quaternion=(1.0, 0.0, 0.0, 0.0),
+        angular_velocity=(0.0, 0.0, 0.0),
+        elapsed_time=0.0,
+    ) -> "FlightState":
+        """Construct an Earth-centered state from geodetic coordinates.
+
+        Latitude and longitude are in degrees. ``velocity_enu`` is relative to
+        the rotating Earth in local east/north/up axes.
+        """
+        target = ReferenceFrame.coerce(frame)
+        if target not in (ReferenceFrame.ITRF, ReferenceFrame.GCRF):
+            raise ValueError("Geodetic states can be created in ITRF or GCRF.")
+        latitude_rad = np.radians(float(latitude))
+        longitude_rad = np.radians(float(longitude))
+        position_itrf = datum.geodetic_to_itrs(
+            latitude_rad, longitude_rad, float(altitude)
+        )
+        _, velocity_itrf, _ = datum.from_topocentric(
+            np.zeros(3),
+            np.asarray(velocity_enu, dtype=float),
+            latitude_rad=latitude_rad,
+            longitude_rad=longitude_rad,
+            altitude=float(altitude),
+        )
+        position, velocity, _ = transform_kinematics(
+            epoch,
+            position_itrf,
+            velocity_itrf,
+            source=ReferenceFrame.ITRF,
+            target=target,
+            datum=datum,
+        )
+        return cls.cartesian(
+            epoch=epoch,
+            position=position,
+            velocity=velocity,
+            quaternion=quaternion,
+            angular_velocity=angular_velocity,
+            frame=target,
             elapsed_time=elapsed_time,
         )
 

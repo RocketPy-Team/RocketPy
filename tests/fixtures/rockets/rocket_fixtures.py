@@ -5,6 +5,7 @@ from rocketpy import LinearGenericSurface, Rocket
 
 # TODO: review note: gotta test execution speed of changes in this branch
 
+
 def _linear_surface_from_barrowman(surface):
     """Build a LinearGenericSurface that reproduces a Barrowman surface's aero.
 

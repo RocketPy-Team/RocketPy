@@ -114,11 +114,13 @@ def test_simulation_mode_sets_3dof_with_point_mass_rocket(flight_3dof):
     assert flight_3dof.simulation_mode == "3DOF"
 
 
-def test_3dof_simulation_mode_warning(example_plain_env, point_mass_rocket):
-    """Tests that a warning is issued when 6 DOF mode is requested with PointMassRocket.
+def test_6dof_point_mass_requires_explicit_inertia(
+    example_plain_env, point_mass_rocket
+):
+    """Point-mass geometry does not implicitly select translational dynamics.
 
-    When a PointMassRocket is used with simulation_mode="6 DOF", the Flight
-    class should emit a UserWarning and automatically switch to 3 DOF mode.
+    Six-DOF remains available, but its rotational equations require a
+    non-singular inertia instead of silently changing the requested policy.
 
     Parameters
     ----------
@@ -127,14 +129,13 @@ def test_3dof_simulation_mode_warning(example_plain_env, point_mass_rocket):
     point_mass_rocket : rocketpy.PointMassRocket
         A point mass rocket fixture for 3-DOF simulation.
     """
-    with pytest.warns(UserWarning):
-        flight = Flight(
+    with pytest.raises(ValueError, match="needs a positive three-axis inertia"):
+        Flight(
             rocket=point_mass_rocket,
             environment=example_plain_env,
             rail_length=1,
             simulation_mode="6 DOF",
         )
-        assert flight.simulation_mode == "3DOF"
 
 
 def test_u_dot_generalized_3dof_returns_valid_result(flight_3dof):

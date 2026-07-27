@@ -1,6 +1,21 @@
 from ..events.event import Event
 
 
+def _uses_earth_centered_frame(flight):
+    return getattr(getattr(flight, "reference_frame", None), "value", None) == "gcrf"
+
+
+def _earth_centered_altitude(flight, state, time=None):
+    epoch = flight.current_epoch(flight.t if time is None else time)
+    position_itrf, _, _ = flight.datum.transform_kinematics(
+        epoch,
+        state[:3],
+        source=flight.reference_frame,
+        target="itrf",
+    )
+    return flight.datum.itrs_to_geodetic(position_itrf)[2]
+
+
 def out_of_rail_trigger(**kwargs):
     """Check whether the rocket has left the launch rail.
 
@@ -16,6 +31,13 @@ def out_of_rail_trigger(**kwargs):
     """
     flight = kwargs["flight"]
     state = kwargs["state"]
+    if _uses_earth_centered_frame(flight):
+        if len(flight.out_of_rail_state) != 1 or not hasattr(
+            flight, "_launch_site_fixed"
+        ):
+            return False
+        distance, _ = flight.earth_launch_rail_coordinates(kwargs["time"], state)
+        return distance >= flight.effective_1rl
     return len(flight.out_of_rail_state) == 1 and (
         state[0] ** 2 + state[1] ** 2 + (state[2] - flight.env.elevation) ** 2
         >= flight.effective_1rl**2
@@ -67,6 +89,11 @@ def out_of_rail_exact_time_function(state, **kwargs):
         length being reached.
     """
     flight = kwargs["flight"]
+    if _uses_earth_centered_frame(flight):
+        if not hasattr(flight, "_launch_site_fixed"):
+            return 1.0
+        distance, _ = flight.earth_launch_rail_coordinates(kwargs["time"], state)
+        return distance**2 - flight.effective_1rl**2
     return (
         state[0] ** 2
         + state[1] ** 2
@@ -92,6 +119,11 @@ def out_of_rail_exact_time_derivative(state, **kwargs):
         Time derivative of :func:`out_of_rail_exact_time_function`.
     """
     flight = kwargs["flight"]
+    if _uses_earth_centered_frame(flight):
+        if not hasattr(flight, "_launch_site_fixed"):
+            return 0.0
+        distance, speed = flight.earth_launch_rail_coordinates(kwargs["time"], state)
+        return 2.0 * distance * speed
     return 2.0 * (
         state[0] * state[3]
         + state[1] * state[4]
@@ -115,6 +147,8 @@ def apogee_trigger(**kwargs):
     """
     flight = kwargs["flight"]
     state = kwargs["state"]
+    if _uses_earth_centered_frame(flight):
+        return False
     if len(flight.apogee_state) != 1 or len(flight.solution) < 2:
         return False
 
@@ -186,6 +220,16 @@ def impact_trigger(**kwargs):
     """
     flight = kwargs["flight"]
     state = kwargs["state"]
+    if (
+        getattr(flight, "rail_length", None) is not None
+        and len(flight.out_of_rail_state) == 1
+    ):
+        # The rotating launch site can evaluate a few nanometres below the
+        # reference ellipsoid through floating-point noise. A rail-constrained
+        # vehicle cannot impact before it has actually left the rail.
+        return False
+    if _uses_earth_centered_frame(flight):
+        return _earth_centered_altitude(flight, state, kwargs.get("time")) <= 0.0
     return state[2] < flight.env.elevation
 
 
@@ -236,6 +280,8 @@ def impact_event_exact_time_function(state, **kwargs):
         ground impact.
     """
     flight = kwargs["flight"]
+    if _uses_earth_centered_frame(flight):
+        return _earth_centered_altitude(flight, state, kwargs.get("time"))
     return state[2] - flight.env.elevation
 
 
@@ -254,7 +300,12 @@ def impact_event_exact_time_derivative(state, **kwargs):
     float
         Time derivative of :func:`impact_event_exact_time_function`.
     """
-    _ = kwargs
+    flight = kwargs.get("flight")
+    if flight is not None and _uses_earth_centered_frame(flight):
+        position = state[:3]
+        velocity = state[3:6]
+        radius = sum(component**2 for component in position) ** 0.5
+        return sum(p * v for p, v in zip(position, velocity)) / radius
     return state[5]
 
 

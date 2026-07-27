@@ -140,6 +140,12 @@ class RocketPyDecoder(json.JSONDecoder):
 
 
 def set_minimal_flight_attributes(flight, obj):
+    from rocketpy.environment.environment import Environment
+    from rocketpy.environment.models import Earth
+    from rocketpy.mathutils.epoch import Epoch
+    from rocketpy.mathutils.flight_state import FlightState
+    from rocketpy.mathutils.reference_frame import FlatEarthDatum
+
     attributes = (
         "rocket",
         "env",
@@ -200,6 +206,42 @@ def set_minimal_flight_attributes(flight, obj):
     flight.ode_solver = obj.get("ode_solver", "LSODA")
     flight.simulation_mode = obj.get("simulation_mode", "6DOF")
 
+    # Restore the shared Flight contract for decoded objects that deliberately
+    # bypass ``Flight.__init__``. Frame and domain ownership can be derived
+    # from the serialized environment, avoiding duplicated datum state.
+    flight.initial_environment = flight.env
+    flight.earth = flight.env if isinstance(flight.env, Earth) else None
+    flight.space = obj.get("space")
+    flight.vehicle = flight.rocket
+    if isinstance(flight.env, Earth):
+        flight.datum = flight.env.datum
+    elif isinstance(flight.env, Environment):
+        weather_datum = flight.env.earth_datum
+        flight.datum = FlatEarthDatum(
+            name=f"Flat {weather_datum.name}",
+            semi_major_axis=weather_datum.semi_major_axis,
+            flattening=weather_datum.flattening,
+            angular_velocity=weather_datum.angular_velocity,
+            gravitational_parameter=weather_datum.gravitational_parameter,
+        )
+    else:  # pragma: no cover - defensive support for old custom environments
+        flight.datum = FlatEarthDatum()
+    flight.reference_frame = flight.datum.integration_frame
+    flight.initial_state = obj.get("initial_state")
+    flight.start_epoch = (
+        flight.initial_state.epoch
+        if isinstance(flight.initial_state, FlightState)
+        else getattr(flight.env, "epoch", Epoch.relative_origin())
+    )
+    flight.mission_time_offset = (
+        flight.initial_state.elapsed_time
+        if isinstance(flight.initial_state, FlightState)
+        else 0.0
+    )
+    flight.forces = list(obj.get("forces") or ())
+    flight._state_type = FlightState
+    flight._launch_with_earth = False
+
     # Controllers, sensors and custom events are derived by Flight.__init__
     # from the (already-decoded) rocket and constructor args; they are not
     # serialized separately. Mirror that derivation here so prints/plots that
@@ -208,6 +250,10 @@ def set_minimal_flight_attributes(flight, obj):
     flight._controllers = getattr(flight.rocket, "_controllers", [])[:]
     flight.sensors = flight.rocket.sensors.get_components()
     flight.sensors_by_name = flight.rocket.sensors_by_name
+    flight.sensor_data = {
+        sensor: list(getattr(sensor, "measured_data", ()))
+        for sensor in flight.sensors
+    }
     # TODO: custom_events are lost when loading from .rpy because they hold
     # user-defined callables that are not currently serialized. Add proper
     # serialization/deserialization for custom_events and restore them here

@@ -11,13 +11,9 @@ import numpy as np
 import pytz
 
 from rocketpy.environment.atmosphere import (
-    Atmosphere,
-    ExponentialAtmosphere,
-    FunctionAtmosphere,
-    LayeredAtmosphere,
+    AtmosphereLayer,
+    AtmosphericState,
 )
-from rocketpy.environment.gravity import DefaultGravity, Gravity
-
 from rocketpy.environment.fetchers import (
     fetch_aigfs_file_return_dataset,
     fetch_atmospheric_data_from_windy,
@@ -48,13 +44,8 @@ from rocketpy.environment.tools import (
 )
 from rocketpy.environment.weather_model_mapping import WeatherModelMapping
 from rocketpy.mathutils.epoch import Epoch
-from rocketpy.mathutils.flight_state import FlightState
 from rocketpy.mathutils.function import NUMERICAL_TYPES, Function, funcify_method
-from rocketpy.mathutils.reference_frame import (
-    EarthDatum,
-    ReferenceFrame,
-    transform_kinematics,
-)
+from rocketpy.mathutils.reference_frame import EarthDatum
 from rocketpy.plots.environment_plots import _EnvironmentPlots
 from rocketpy.prints.environment_prints import _EnvironmentPrints
 from rocketpy.tools import (
@@ -62,8 +53,10 @@ from rocketpy.tools import (
     geopotential_height_to_geometric_height,
 )
 
+_DATUM_SCOPE_WARNING_EMITTED = False
 
-class Environment:
+
+class Environment(AtmosphereLayer):
     """Keeps all environment information stored, such as wind and temperature
     conditions, as well as gravity.
 
@@ -288,11 +281,6 @@ class Environment:
         datum="SIRGAS2000",
         timezone="UTC",
         max_expected_height=80000.0,
-        atmosphere=None,
-        gravity_model=None,
-        celestial_bodies=None,
-        earth_radiation=None,
-        earth_orientation=None,
     ):
         """Initializes the Environment class, capturing essential parameters of
         the launch site, including the launch date, geographical coordinates,
@@ -358,21 +346,6 @@ class Environment:
             be altered as desired by running ``max_expected_height = number``.
             Depending on the atmospheric model, this value may be automatically
             modified.
-        atmosphere : Atmosphere, optional
-            Composed atmosphere used by state-aware and Earth-centered
-            propagation. When omitted, the established height-dependent
-            Environment functions are adapted automatically.
-        gravity_model : Gravity, optional
-            Composed vector gravity model. When omitted, the established
-            scalar gravity function is adapted as vertical gravity.
-        celestial_bodies : iterable, optional
-            Celestial bodies available to perturbation force models.
-        earth_radiation : object, optional
-            Optional Earth-radiation configuration reserved for force models.
-        earth_orientation : object, optional
-            Optional Earth-orientation provider reserved for high-precision
-            frame transformations.
-
         Returns
         -------
         None
@@ -398,17 +371,6 @@ class Environment:
 
         # Set the gravity model
         self.gravity = self.set_gravity_model(gravity)
-        self.gravity_model = gravity_model or DefaultGravity(self.gravity)
-        self.celestial_bodies = list(celestial_bodies or [])
-        self.earth_radiation = earth_radiation
-        self.earth_orientation = earth_orientation
-
-        if atmosphere is not None:
-            if not isinstance(atmosphere, Atmosphere):
-                raise TypeError("atmosphere must implement the Atmosphere interface.")
-            self.atmosphere = atmosphere
-        else:
-            self.__sync_composed_atmosphere()
 
     def __initialize_constants(self):
         """Sets some important constants and atmospheric variables."""
@@ -488,8 +450,19 @@ class Environment:
             self.epoch = Epoch.relative_origin()
 
     def __initialize_earth_geometry(self, datum):
-        """Initialize Earth geometry, save datum and Recalculate Earth Radius"""
+        """Initialize weather geometry without selecting Flight kinematics."""
+        global _DATUM_SCOPE_WARNING_EMITTED  # pylint: disable=global-statement
+        if not _DATUM_SCOPE_WARNING_EMITTED:
+            warnings.warn(
+                "Environment.datum is retained exclusively for local weather and "
+                "geodetic compatibility. It does not select Flight's kinematic "
+                "datum; use Earth.datum for rotating or orbital simulations.",
+                UserWarning,
+                stacklevel=3,
+            )
+            _DATUM_SCOPE_WARNING_EMITTED = True
         self.datum = datum
+        self.weather_datum = datum
         self.ellipsoid = self.set_earth_geometry(datum)
         self.earth_radius = self.calculate_earth_radius(
             lat=self.latitude,
@@ -503,29 +476,11 @@ class Environment:
         )
 
     def __sync_composed_atmosphere(self):
-        """Expose the active legacy Function profiles as an Atmosphere model."""
-        required = (
-            "pressure",
-            "temperature",
-            "density",
-            "speed_of_sound",
-            "dynamic_viscosity",
-            "wind_velocity_x",
-            "wind_velocity_y",
-        )
-        if all(hasattr(self, name) for name in required):
-            function_atmosphere = FunctionAtmosphere(
-                pressure=self.pressure,
-                temperature=self.temperature,
-                density=self.density,
-                speed_of_sound=self.speed_of_sound,
-                dynamic_viscosity=self.dynamic_viscosity,
-                wind_velocity_x=self.wind_velocity_x,
-                wind_velocity_y=self.wind_velocity_y,
-            )
-            self.atmosphere = LayeredAtmosphere(
-                {-np.inf: function_atmosphere, 80000.0: ExponentialAtmosphere()}
-            )
+        """Compatibility hook retained for atmospheric-model setters.
+
+        ``Environment`` implements ``AtmosphereLayer`` directly, so its live
+        pressure, temperature and wind functions need no adapter or copy.
+        """
 
     def __initialize_utm_coordinates(self):
         """Store launch site coordinates referenced to UTM projection system."""
@@ -1447,140 +1402,45 @@ class Environment:
         self.atmospheric_model_dict = dictionary
         self.__sync_composed_atmosphere()
 
-    def evaluate_atmosphere(self, epoch, state):
-        """Evaluate the composed atmosphere at a complete flight state.
-
-        Parameters
-        ----------
-        epoch : Epoch
-            Evaluation epoch.
-        state : FlightState
-            Vehicle state. Position and velocity units are m and m/s.
-
-        Returns
-        -------
-        AtmosphericState
-            Atmospheric properties and wind in the state's reference frame.
-        """
-        if not isinstance(epoch, Epoch):
-            raise TypeError("epoch must be an Epoch instance.")
-        if not isinstance(state, FlightState):
-            raise TypeError("state must be a FlightState instance.")
-        if self.atmosphere.requires_absolute_epoch:
-            epoch.require_absolute(type(self.atmosphere).__name__)
-
-        if state.frame == ReferenceFrame.FLAT_EARTH:
-            return self.atmosphere.evaluate(
-                epoch,
-                float(state.position[2]),
-                latitude_rad=np.radians(self.latitude),
-                longitude_rad=np.radians(self.longitude),
-                position_gcrf=None,
-                velocity_gcrf=None,
-            )
-
-        position_itrf, velocity_itrf, _ = self.transform_kinematics(
-            epoch,
-            state.position,
-            state.velocity,
-            source=state.frame,
-            target=ReferenceFrame.ITRF,
-            datum=self.earth_datum,
-        )
-        latitude, longitude, altitude = self.earth_datum.itrs_to_geodetic(position_itrf)
-        if state.frame == ReferenceFrame.GCRF:
-            position_gcrf, velocity_gcrf = state.position, state.velocity
-        else:
-            position_gcrf, velocity_gcrf, _ = self.transform_kinematics(
-                epoch,
-                state.position,
-                state.velocity,
-                source=state.frame,
-                target=ReferenceFrame.GCRF,
-                datum=self.earth_datum,
-            )
-        atmosphere_state = self.atmosphere.evaluate(
-            epoch,
-            altitude,
-            latitude_rad=latitude,
-            longitude_rad=longitude,
-            position_gcrf=position_gcrf,
-            velocity_gcrf=velocity_gcrf,
-        )
-
-        # Atmospheric models express wind in ITRF axes for Earth-centered
-        # states. Rotate it into the requested frame without adding the frame
-        # transport velocity, because this is a free vector.
-        if state.frame == ReferenceFrame.ITRF:
-            return atmosphere_state
-        wind_gcrf, _, _ = self.transform_kinematics(
-            epoch,
-            atmosphere_state.wind_velocity,
-            source=ReferenceFrame.ITRF,
-            target=ReferenceFrame.GCRF,
-            datum=self.earth_datum,
-        )
-        return type(atmosphere_state)(
-            pressure=atmosphere_state.pressure,
-            temperature=atmosphere_state.temperature,
-            density=atmosphere_state.density,
-            speed_of_sound=atmosphere_state.speed_of_sound,
-            dynamic_viscosity=atmosphere_state.dynamic_viscosity,
-            wind_velocity=wind_gcrf,
-        )
-
-    def transform_kinematics(
+    def evaluate(
         self,
         epoch,
-        position,
-        velocity=None,
-        acceleration=None,
+        altitude,
         *,
-        source,
-        target,
-        datum=None,
+        latitude_rad=None,
+        longitude_rad=None,
+        **kwargs,
     ):
-        """Transform kinematics using the configured orientation provider.
+        """Evaluate this local weather model as an atmospheric layer.
 
-        A custom provider may implement this same method signature or be a
-        callable. When no provider is configured, RocketPy's deterministic
-        built-in GCRF/ITRF/TEME transformations are used.
+        Wind profiles in ``Environment`` are east/north components. For
+        Earth-centered propagation they are rotated into ITRF axes here.
         """
-        datum = self.earth_datum if datum is None else datum
-        if self.earth_orientation is not None:
-            evaluator = getattr(
-                self.earth_orientation,
-                "transform_kinematics",
-                self.earth_orientation,
-            )
-            return evaluator(
-                epoch,
-                position,
-                velocity,
-                acceleration,
-                source=source,
-                target=target,
-                datum=datum,
-            )
-        return transform_kinematics(
-            epoch,
-            position,
-            velocity,
-            acceleration,
-            source=source,
-            target=target,
-            datum=datum,
+        del epoch, kwargs
+        altitude = float(altitude)
+        latitude_rad = (
+            np.radians(self.latitude) if latitude_rad is None else latitude_rad
         )
-
-    def gravity_acceleration(self, epoch, state):
-        """Return composed gravitational acceleration in ``state.frame``."""
-        if self.gravity_model.requires_absolute_epoch:
-            epoch.require_absolute(type(self.gravity_model).__name__)
-        return self.gravity_model.acceleration(
-            epoch,
-            state.position,
-            frame=state.frame,
-            datum=self.earth_datum,
+        longitude_rad = (
+            np.radians(self.longitude) if longitude_rad is None else longitude_rad
+        )
+        wind_enu = np.array(
+            [
+                self.wind_velocity_x.get_value_opt(altitude),
+                self.wind_velocity_y.get_value_opt(altitude),
+                0.0,
+            ]
+        )
+        return AtmosphericState(
+            pressure=float(self.pressure.get_value_opt(altitude)),
+            temperature=float(self.temperature.get_value_opt(altitude)),
+            density=max(float(self.density.get_value_opt(altitude)), 1e-30),
+            speed_of_sound=float(self.speed_of_sound.get_value_opt(altitude)),
+            dynamic_viscosity=float(self.dynamic_viscosity.get_value_opt(altitude)),
+            wind_velocity=self.earth_datum.topocentric_matrix(
+                float(latitude_rad), float(longitude_rad)
+            ).T
+            @ wind_enu,
         )
 
     # Atmospheric model processing methods
@@ -3061,11 +2921,6 @@ class Environment:
             "wind_speed_ensemble": getattr(self, "wind_speed_ensemble", None),
             "num_ensemble_members": getattr(self, "num_ensemble_members", None),
             "ensemble_member": getattr(self, "ensemble_member", None),
-            "atmosphere": self.atmosphere,
-            "gravity_model": self.gravity_model,
-            "celestial_bodies": self.celestial_bodies,
-            "earth_radiation": self.earth_radiation,
-            "earth_orientation": self.earth_orientation,
         }
 
         if kwargs.get("include_outputs", False):
@@ -3087,11 +2942,6 @@ class Environment:
             datum=data["datum"],
             timezone=data["timezone"],
             max_expected_height=data["max_expected_height"],
-            atmosphere=data.get("atmosphere"),
-            gravity_model=data.get("gravity_model"),
-            celestial_bodies=data.get("celestial_bodies"),
-            earth_radiation=data.get("earth_radiation"),
-            earth_orientation=data.get("earth_orientation"),
         )
         atmospheric_model = data["atmospheric_model_type"]
 
@@ -3141,11 +2991,6 @@ class Environment:
         env.calculate_density_profile()
         env.calculate_speed_of_sound_profile()
         env.calculate_dynamic_viscosity()
-
-        if data.get("atmosphere") is not None:
-            env.atmosphere = data["atmosphere"]
-        if data.get("gravity_model") is not None:
-            env.gravity_model = data["gravity_model"]
 
         return env
 

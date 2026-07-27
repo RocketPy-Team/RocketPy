@@ -19,7 +19,7 @@ class FlightOrbit:
     @cached_property
     def _elements_array(self):
         rows = []
-        mu = self.flight.env.earth_datum.gravitational_parameter
+        mu = self.flight.datum.gravitational_parameter
         for solution in self.flight.solution_array:
             elements = OrbitalElements.from_state(
                 solution[1:4], solution[4:7], gravitational_parameter=mu
@@ -42,7 +42,7 @@ class FlightOrbit:
         return OrbitalElements.from_state(
             [self.flight.x(time), self.flight.y(time), self.flight.z(time)],
             [self.flight.vx(time), self.flight.vy(time), self.flight.vz(time)],
-            self.flight.env.earth_datum.gravitational_parameter,
+            self.flight.datum.gravitational_parameter,
         )
 
     @property
@@ -128,7 +128,7 @@ class FlightOrbit:
         """Osculating period in seconds for bound trajectories."""
         semi_major_axis = self._elements_array[:, 1]
         eccentricity = self._elements_array[:, 2]
-        mu = self.flight.env.earth_datum.gravitational_parameter
+        mu = self.flight.datum.gravitational_parameter
         values = np.where(
             (semi_major_axis > 0.0) & (eccentricity < 1.0),
             2.0 * np.pi * np.sqrt(np.maximum(semi_major_axis, 0.0) ** 3 / mu),

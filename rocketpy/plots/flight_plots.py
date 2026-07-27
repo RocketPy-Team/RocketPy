@@ -1,19 +1,21 @@
-import warnings
 # pylint: disable=too-many-lines
-
 import logging
 import os
 import sys
 import time
+import warnings
 from collections.abc import Mapping, Sequence
 from functools import cached_property
+from importlib import resources
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.colors import to_rgb
 from matplotlib.ticker import MaxNLocator, MultipleLocator
-from ..tools import import_optional_dependency
 
+from ..mathutils.reference_frame import ReferenceFrame
+from ..tools import import_optional_dependency
 from .plot_helpers import show_or_save_plot
 
 
@@ -46,23 +48,108 @@ class _FlightPlots:
         """
         self.flight = flight
 
+    _LOW_ALTITUDE_ALTITUDE_LIMIT = 80_000.0
+
+    @cached_property
+    def is_high_altitude_flight(self):
+        """Whether ``all`` should add an Earth-centred full-flight view."""
+        return (
+            self.flight._maximum_geodetic_altitude >= self._LOW_ALTITUDE_ALTITUDE_LIMIT
+        )
+
+    @cached_property
+    def low_altitude_end_time(self):
+        """End of the launch-local presentation, capped at 80 km."""
+        if not self.is_high_altitude_flight:
+            return float(self.flight.t_final)
+        crossing = self.flight._first_geodetic_altitude_crossing(
+            self._LOW_ALTITUDE_ALTITUDE_LIMIT
+        )
+        return float(self.flight.time[0] if crossing is None else crossing)
+
+    @property
+    def has_low_altitude_segment(self):
+        """Whether a non-empty launch-local segment is available."""
+        has_launch_origin = (
+            hasattr(self.flight, "_launch_site_fixed")
+            or self.flight.reference_frame == ReferenceFrame.FLAT_EARTH
+        )
+        return has_launch_origin and self.low_altitude_end_time > float(
+            self.flight.time[0]
+        )
+
+    @staticmethod
+    def _clip_values(times, values, end_time):
+        """Clip sampled values and interpolate a final row at ``end_time``."""
+        times = np.asarray(times, dtype=float)
+        values = np.asarray(values, dtype=float)
+        mask = times <= end_time
+        clipped_times = times[mask]
+        clipped_values = values[mask]
+        if (
+            len(clipped_times) > 0
+            and clipped_times[-1] < end_time
+            and end_time < times[-1]
+        ):
+            upper = int(np.searchsorted(times, end_time, side="right"))
+            lower = upper - 1
+            fraction = (end_time - times[lower]) / (times[upper] - times[lower])
+            endpoint = values[lower] + fraction * (values[upper] - values[lower])
+            clipped_times = np.append(clipped_times, end_time)
+            clipped_values = np.concatenate(
+                (clipped_values, np.asarray(endpoint)[None, ...]), axis=0
+            )
+        return clipped_times, clipped_values
+
+    @cached_property
+    def low_altitude_positions(self):
+        """Launch-local position samples through the presentation ceiling."""
+        return self._clip_values(
+            self.flight.time,
+            self.flight.position_local(),
+            self.low_altitude_end_time,
+        )
+
+    def _low_altitude_position_at(self, time_value):
+        """Interpolate launch-local position at an event time."""
+        times, positions = self.low_altitude_positions
+        return np.array(
+            [
+                np.interp(time_value, times, positions[:, component])
+                for component in range(3)
+            ]
+        )
+
+    def _low_altitude_series(self, source, end_time=None):
+        """Return a two-dimensional Function/array clipped for local plots."""
+        array = np.asarray(source[:, :], dtype=float)
+        times, values = self._clip_values(
+            array[:, 0],
+            array[:, 1:],
+            self.low_altitude_end_time if end_time is None else end_time,
+        )
+        return np.column_stack((times, values))
+
     @cached_property
     def first_parachute_event_time(self):
         """Time of the first flight event."""
         if len(self.flight.parachute_events) > 0:
-            return self.flight.parachute_events[0][0]
-        else:
-            return self.flight.t_final
+            return min(
+                float(self.flight.parachute_events[0][0]),
+                self.low_altitude_end_time,
+            )
+        return self.low_altitude_end_time
 
     @cached_property
     def first_parachute_event_time_index(self):
         """Time index of the first flight event."""
-        if len(self.flight.parachute_events) > 0:
-            return int(
-                np.argmin(np.abs(self.flight.x[:, 0] - self.first_parachute_event_time))
+        return int(
+            np.searchsorted(
+                self.flight.time,
+                self.first_parachute_event_time,
+                side="right",
             )
-        else:
-            return -1
+        )
 
     # Consistent red used for the rocket trajectory line across all plots.
     _TRAJECTORY_COLOR = "#e63946"
@@ -146,6 +233,9 @@ class _FlightPlots:
         re-applies sorted ordering.
         """
         event_times = {ev[1]: ev[0] for ev in self._collect_events()}
+        _, available_labels = ax.get_legend_handles_labels()
+        if not available_labels:
+            return
         leg = ax.legend()
         if leg is None:
             return
@@ -309,15 +399,14 @@ class _FlightPlots:
         -------
         None
         """
-        if getattr(self.flight.reference_frame, "value", None) == "gcrf":
-            return self.orbit_3d(filename=filename)
-
-        max_z = max(self.flight.altitude[:, 1])
-        min_z = min(self.flight.altitude[:, 1])
-        max_x = max(self.flight.x[:, 1])
-        min_x = min(self.flight.x[:, 1])
-        max_y = max(self.flight.y[:, 1])
-        min_y = min(self.flight.y[:, 1])
+        _, positions = self.low_altitude_positions
+        east, north, up = positions.T
+        max_z = max(up)
+        min_z = min(up)
+        max_x = max(east)
+        min_x = min(east)
+        max_y = max(north)
+        min_y = min(north)
         min_xy = min(min_x, min_y)
         max_xy = max(max_x, max_y)
 
@@ -329,35 +418,33 @@ class _FlightPlots:
 
         _ = plt.figure(figsize=(9, 9))
         ax1 = plt.subplot(111, projection="3d")
+        ax1.plot(east, north, zs=min_z, zdir="z", linestyle="--")
         ax1.plot(
-            self.flight.x[:, 1], self.flight.y[:, 1], zs=min_z, zdir="z", linestyle="--"
-        )
-        ax1.plot(
-            self.flight.x[:, 1],
-            self.flight.altitude[:, 1],
+            east,
+            up,
             zs=min_y,
             zdir="y",
             linestyle="--",
         )
         ax1.plot(
-            self.flight.y[:, 1],
-            self.flight.altitude[:, 1],
+            north,
+            up,
             zs=min_x,
             zdir="x",
             linestyle="--",
         )
         ax1.plot(
-            self.flight.x[:, 1],
-            self.flight.y[:, 1],
-            self.flight.altitude[:, 1],
+            east,
+            north,
+            up,
             color=self._TRAJECTORY_COLOR,
             linewidth="2",
             zorder=2,
         )
         ax1.scatter(
-            self.flight.x(0),
-            self.flight.y(0),
-            self.flight.z(0) - self.flight.env.elevation,
+            east[0],
+            north[0],
+            up[0],
             s=20,
             facecolors="#ffd400",
             edgecolors="black",
@@ -402,9 +489,9 @@ class _FlightPlots:
                 # burnout marker (motor burn out time)
                 try:
                     t_burn = self.flight.rocket.motor.burn_out_time
-                    x_b = self.flight.x(t_burn)
-                    y_b = self.flight.y(t_burn)
-                    z_b = self.flight.z(t_burn) - self.flight.env.elevation
+                    if t_burn > self.low_altitude_end_time:
+                        raise AttributeError
+                    x_b, y_b, z_b = self._low_altitude_position_at(t_burn)
                     ax1.scatter(
                         x_b,
                         y_b,
@@ -431,9 +518,9 @@ class _FlightPlots:
                 for ev in one_time_events:
                     if getattr(ev, "triggered_times", None):
                         t_ev = ev.triggered_times[0]
-                        x_ev = self.flight.x(t_ev)
-                        y_ev = self.flight.y(t_ev)
-                        z_ev = self.flight.z(t_ev) - self.flight.env.elevation
+                        if t_ev > self.low_altitude_end_time:
+                            continue
+                        x_ev, y_ev, z_ev = self._low_altitude_position_at(t_ev)
                         name = getattr(ev, "name", "") or ""
                         if name == "Apogee":
                             deferred_apogee = (x_ev, y_ev, z_ev)
@@ -503,27 +590,8 @@ class _FlightPlots:
                 pass
         ax1.set_xlabel("X - East (m)")
         ax1.set_ylabel("Y - North (m)")
-        ax1.set_zlabel("Z - Altitude Above Ground Level (m)")
-        ax1.set_title("Flight Trajectory")
-        ax1.set_xlim(min_xy, max_xy)
-        ax1.set_ylim(min_xy, max_xy)
-        ax1.set_zlim(min_z, max_z)
-        ax1.view_init(15, 45)
-        ax1.set_box_aspect(None, zoom=0.95)  # 95% for label adjustment
-        show_or_save_plot(filename)
-            color="black",
-        )
-        ax1.scatter(
-            self.flight.x(self.flight.t_final),
-            self.flight.y(self.flight.t_final),
-            self.flight.z(self.flight.t_final) - self.flight.env.elevation,
-            color="red",
-            marker="X",
-        )
-        ax1.set_xlabel("X - East (m)")
-        ax1.set_ylabel("Y - North (m)")
-        ax1.set_zlabel("Z - Altitude Above Ground Level (m)")
-        ax1.set_title("Flight Trajectory")
+        ax1.set_zlabel("Up from Launch Site (m)")
+        ax1.set_title("Launch-Local Flight Trajectory")
         ax1.set_xlim(min_xy, max_xy)
         ax1.set_ylim(min_xy, max_xy)
         ax1.set_zlim(min_z, max_z)
@@ -553,7 +621,7 @@ class _FlightPlots:
 
         frame = self.flight.reference_frame.coerce(frame)
         positions = self.flight.position(frame)
-        radius = self.flight.env.earth_datum.semi_major_axis
+        radius = self.flight.datum.semi_major_axis
         azimuth, polar = np.mgrid[0 : 2 * np.pi : 80j, 0 : np.pi : 40j]
         earth_x = radius * np.cos(azimuth) * np.sin(polar)
         earth_y = radius * np.sin(azimuth) * np.sin(polar)
@@ -585,6 +653,65 @@ class _FlightPlots:
         show_or_save_plot(filename)
         return None
 
+    def earth_centered_state(self, *, filename=None):
+        """Plot the full GCRF position, velocity and acceleration histories."""
+        if self.flight.reference_frame != ReferenceFrame.GCRF:
+            raise AttributeError("Earth-centred state plots require a GCRF Flight.")
+        time_values = self.flight.time
+        position = self.flight.position(ReferenceFrame.GCRF)
+        velocity = self.flight.velocity(ReferenceFrame.GCRF)
+        acceleration = np.column_stack(
+            (self.flight.ax[:, 1], self.flight.ay[:, 1], self.flight.az[:, 1])
+        )
+        figure, axes = plt.subplots(3, 1, figsize=(10, 10), sharex=True)
+        labels = ("X", "Y", "Z")
+        for index, label in enumerate(labels):
+            axes[0].plot(time_values, position[:, index], label=label)
+            axes[1].plot(time_values, velocity[:, index], label=label)
+            axes[2].plot(time_values, acceleration[:, index], label=label)
+        axes[0].set_ylabel("Position (m)")
+        axes[1].set_ylabel("Velocity (m/s)")
+        axes[2].set_ylabel("Acceleration (m/s²)")
+        axes[2].set_xlabel("Time (s)")
+        axes[0].set_title("GCRF Cartesian State")
+        for axis in axes:
+            axis.legend()
+            axis.grid(True)
+        figure.tight_layout()
+        show_or_save_plot(filename)
+
+    def geodetic_coordinates(self, *, filename=None):
+        """Plot full-flight geodetic latitude, longitude and altitude.
+
+        Longitude is rendered as points so an antimeridian crossing does not
+        produce a misleading line across the plot.
+        """
+        if self.flight.reference_frame != ReferenceFrame.GCRF:
+            raise AttributeError("Geodetic plots require a GCRF Flight.")
+        time_values = self.flight.time
+        figure, axes = plt.subplots(3, 1, figsize=(10, 10), sharex=True)
+        axes[0].plot(time_values, self.flight.latitude[:, 1])
+        axes[0].set_ylabel("Latitude (deg)")
+        axes[1].scatter(
+            time_values,
+            self.flight.longitude[:, 1],
+            s=2,
+            color="tab:green",
+        )
+        axes[1].set_ylabel("Longitude (deg)")
+        axes[2].plot(
+            time_values,
+            self.flight.altitude[:, 1] / 1000,
+            color="tab:red",
+        )
+        axes[2].set_ylabel("Altitude (km)")
+        axes[2].set_xlabel("Time (s)")
+        axes[0].set_title("Geodetic Coordinates")
+        for axis in axes:
+            axis.grid(True)
+        figure.tight_layout()
+        show_or_save_plot(filename)
+
     def plot_3d_trajectory(self, frame="gcrf", *, filename=None):
         """Plot 3D Earth and satellite trajectory using Plotly.
 
@@ -605,7 +732,7 @@ class _FlightPlots:
 
         frame = self.flight.reference_frame.coerce(frame)
         positions = self.flight.position(frame)
-        radius = self.flight.env.earth_datum.semi_major_axis
+        radius = self.flight.datum.semi_major_axis
 
         phi, theta = np.mgrid[0 : 2 * np.pi : 100j, 0 : np.pi : 50j]
         x_earth = radius * np.cos(phi) * np.sin(theta)
@@ -676,7 +803,7 @@ class _FlightPlots:
 
         return fig
 
-    def ground_track(self, *, filename=None):
+    def _orbital_ground_track(self, *, filename=None):
         """Plot geodetic longitude versus latitude for a GCRF Flight."""
         figure, axes = plt.subplots(figsize=(10, 5))
         axes.plot(self.flight.longitude[:, 1], self.flight.latitude[:, 1])
@@ -786,9 +913,9 @@ class _FlightPlots:
         times = times[mask]
         positions = self.flight.position(frame_obj)[mask]
         velocities = self.flight.velocity(frame_obj)[mask]
-        radius = self.flight.env.earth_datum.semi_major_axis
-        mu = self.flight.env.earth_datum.gravitational_parameter
-        start_epoch = self.flight.env.epoch
+        radius = self.flight.datum.semi_major_axis
+        mu = self.flight.datum.gravitational_parameter
+        start_epoch = self.flight.start_epoch
 
         def _in_notebook():
             try:
@@ -1049,7 +1176,7 @@ class _FlightPlots:
         positions = positions[mask]
         times = times[mask]
 
-        radius = self.flight.env.earth_datum.semi_major_axis
+        radius = self.flight.datum.semi_major_axis
         phi, theta = np.mgrid[0 : 2 * np.pi : 60j, 0 : np.pi : 30j]
         x_earth = radius * np.cos(phi) * np.sin(theta)
         y_earth = radius * np.sin(phi) * np.sin(theta)
@@ -1199,7 +1326,7 @@ class _FlightPlots:
             raise ValueError("The requested animation interval contains no states.")
         positions = positions[mask]
         times = times[mask]
-        radius = self.flight.env.earth_datum.semi_major_axis
+        radius = self.flight.datum.semi_major_axis
         azimuth, polar = np.mgrid[0 : 2 * np.pi : 50j, 0 : np.pi : 25j]
         figure = plt.figure(figsize=(8, 8))
         axes = figure.add_subplot(111, projection="3d")
@@ -1282,8 +1409,8 @@ class _FlightPlots:
         velocities = velocities[mask]
         times = times[mask]
 
-        radius = self.flight.env.earth_datum.semi_major_axis
-        mu = self.flight.env.earth_datum.gravitational_parameter
+        radius = self.flight.datum.semi_major_axis
+        mu = self.flight.datum.gravitational_parameter
 
         figure, axes = plt.subplots(figsize=(9, 9))
         max_r = max(radius, float(np.max(np.abs(positions[:, :2]))))
@@ -3504,11 +3631,22 @@ class _FlightPlots:
         -------
         None
         """
+        velocity = self.flight.velocity_local()
+        acceleration = self.flight.acceleration_local()
+        time_values, velocity = self._clip_values(
+            self.flight.time, velocity, self.low_altitude_end_time
+        )
+        _, acceleration = self._clip_values(
+            self.flight.time, acceleration, self.low_altitude_end_time
+        )
+        speed = np.linalg.norm(velocity, axis=1)
+        acceleration_magnitude = np.linalg.norm(acceleration, axis=1)
+
         plt.figure(figsize=(9, 12))
 
         ax1 = plt.subplot(411)
-        ax1.plot(self.flight.speed[:, 0], self.flight.speed[:, 1], color="#ff7f0e")
-        ax1.set_xlim(0, self.flight.t_final)
+        ax1.plot(time_values, speed, color="#ff7f0e")
+        ax1.set_xlim(self.flight.time[0], self.low_altitude_end_time)
         ax1.set_title("Velocity Magnitude | Acceleration Magnitude")
         ax1.set_xlabel("Time (s)")
         ax1.set_ylabel("Velocity (m/s)", color="#ff7f0e")
@@ -3517,57 +3655,53 @@ class _FlightPlots:
         self._add_event_markers(ax1)
 
         ax1up = ax1.twinx()
-        ax1up.plot(
-            self.flight.acceleration[:, 0],
-            self.flight.acceleration[:, 1],
-            color="#1f77b4",
-        )
+        ax1up.plot(time_values, acceleration_magnitude, color="#1f77b4")
         ax1up.set_ylabel("Acceleration (m/s²)", color="#1f77b4")
         ax1up.tick_params("y", colors="#1f77b4")
 
         ax2 = plt.subplot(412)
-        ax2.plot(self.flight.vz[:, 0], self.flight.vz[:, 1], color="#ff7f0e")
-        ax2.set_xlim(0, self.flight.t_final)
-        ax2.set_title("Velocity Z | Acceleration Z")
+        ax2.plot(time_values, velocity[:, 2], color="#ff7f0e")
+        ax2.set_xlim(self.flight.time[0], self.low_altitude_end_time)
+        ax2.set_title("Velocity Up | Acceleration Up")
         ax2.set_xlabel("Time (s)")
-        ax2.set_ylabel("Velocity Z (m/s)", color="#ff7f0e")
+        ax2.set_ylabel("Velocity Up (m/s)", color="#ff7f0e")
         ax2.tick_params("y", colors="#ff7f0e")
         ax2.grid(True)
         self._add_event_markers(ax2, legend=False)
 
         ax2up = ax2.twinx()
-        ax2up.plot(self.flight.az[:, 0], self.flight.az[:, 1], color="#1f77b4")
-        ax2up.set_ylabel("Acceleration Z (m/s²)", color="#1f77b4")
+        ax2up.plot(time_values, acceleration[:, 2], color="#1f77b4")
+        ax2up.set_ylabel("Acceleration Up (m/s²)", color="#1f77b4")
         ax2up.tick_params("y", colors="#1f77b4")
 
         ax3 = plt.subplot(413)
-        ax3.plot(self.flight.vy[:, 0], self.flight.vy[:, 1], color="#ff7f0e")
-        ax3.set_xlim(0, self.flight.t_final)
-        ax3.set_title("Velocity Y | Acceleration Y")
+        ax3.plot(time_values, velocity[:, 1], color="#ff7f0e")
+        ax3.set_xlim(self.flight.time[0], self.low_altitude_end_time)
+        ax3.set_title("Velocity North | Acceleration North")
         ax3.set_xlabel("Time (s)")
-        ax3.set_ylabel("Velocity Y (m/s)", color="#ff7f0e")
+        ax3.set_ylabel("Velocity North (m/s)", color="#ff7f0e")
         ax3.tick_params("y", colors="#ff7f0e")
         ax3.grid(True)
         self._add_event_markers(ax3, legend=False)
 
         ax3up = ax3.twinx()
-        ax3up.plot(self.flight.ay[:, 0], self.flight.ay[:, 1], color="#1f77b4")
-        ax3up.set_ylabel("Acceleration Y (m/s²)", color="#1f77b4")
+        ax3up.plot(time_values, acceleration[:, 1], color="#1f77b4")
+        ax3up.set_ylabel("Acceleration North (m/s²)", color="#1f77b4")
         ax3up.tick_params("y", colors="#1f77b4")
 
         ax4 = plt.subplot(414)
-        ax4.plot(self.flight.vx[:, 0], self.flight.vx[:, 1], color="#ff7f0e")
-        ax4.set_xlim(0, self.flight.t_final)
-        ax4.set_title("Velocity X | Acceleration X")
+        ax4.plot(time_values, velocity[:, 0], color="#ff7f0e")
+        ax4.set_xlim(self.flight.time[0], self.low_altitude_end_time)
+        ax4.set_title("Velocity East | Acceleration East")
         ax4.set_xlabel("Time (s)")
-        ax4.set_ylabel("Velocity X (m/s)", color="#ff7f0e")
+        ax4.set_ylabel("Velocity East (m/s)", color="#ff7f0e")
         ax4.tick_params("y", colors="#ff7f0e")
         ax4.grid(True)
         self._add_event_markers(ax4, legend=False)
 
         ax4up = ax4.twinx()
-        ax4up.plot(self.flight.ax[:, 0], self.flight.ax[:, 1], color="#1f77b4")
-        ax4up.set_ylabel("Acceleration X (m/s²)", color="#1f77b4")
+        ax4up.plot(time_values, acceleration[:, 0], color="#1f77b4")
+        ax4up.set_ylabel("Acceleration East (m/s²)", color="#1f77b4")
         ax4up.tick_params("y", colors="#1f77b4")
 
         plt.subplots_adjust(hspace=0.5)
@@ -3589,14 +3723,21 @@ class _FlightPlots:
         None
         """
 
+        quaternions = self.flight.attitude_local_quaternions()
+        euler = self.flight.attitude_local_euler_angles()
+        time_values, quaternions = self._clip_values(
+            self.flight.time, quaternions, self.first_parachute_event_time
+        )
+        _, euler = self._clip_values(
+            self.flight.time, euler, self.first_parachute_event_time
+        )
+
         # Angular position plots
         _ = plt.figure(figsize=(9, 12))
 
         ax1 = plt.subplot(411)
-        ax1.plot(self.flight.e0[:, 0], self.flight.e0[:, 1], label="$e_0$")
-        ax1.plot(self.flight.e1[:, 0], self.flight.e1[:, 1], label="$e_1$")
-        ax1.plot(self.flight.e2[:, 0], self.flight.e2[:, 1], label="$e_2$")
-        ax1.plot(self.flight.e3[:, 0], self.flight.e3[:, 1], label="$e_3$")
+        for index in range(4):
+            ax1.plot(time_values, quaternions[:, index], label=f"$e_{index}$")
         ax1.set_xlim(0, self.first_parachute_event_time)
         ax1.set_xlabel("Time (s)")
         ax1.set_ylabel("Euler Parameters")
@@ -3605,7 +3746,7 @@ class _FlightPlots:
         ax1.grid(True)
 
         ax2 = plt.subplot(412)
-        ax2.plot(self.flight.psi[:, 0], self.flight.psi[:, 1])
+        ax2.plot(time_values, euler[:, 0])
         ax2.set_xlim(0, self.first_parachute_event_time)
         ax2.set_xlabel("Time (s)")
         ax2.set_ylabel("ψ (°)")
@@ -3613,7 +3754,7 @@ class _FlightPlots:
         ax2.grid(True)
 
         ax3 = plt.subplot(413)
-        ax3.plot(self.flight.theta[:, 0], self.flight.theta[:, 1], label="θ - Nutation")
+        ax3.plot(time_values, euler[:, 1], label="θ - Nutation")
         ax3.set_xlim(0, self.first_parachute_event_time)
         ax3.set_xlabel("Time (s)")
         ax3.set_ylabel("θ (°)")
@@ -3621,7 +3762,7 @@ class _FlightPlots:
         ax3.grid(True)
 
         ax4 = plt.subplot(414)
-        ax4.plot(self.flight.phi[:, 0], self.flight.phi[:, 1], label="φ - Spin")
+        ax4.plot(time_values, euler[:, 2], label="φ - Spin")
         ax4.set_xlim(0, self.first_parachute_event_time)
         ax4.set_xlabel("Time (s)")
         ax4.set_ylabel("φ (°)")
@@ -3647,19 +3788,38 @@ class _FlightPlots:
         -------
         None
         """
+        local_velocity = self.flight.velocity_local()
+        body_axis = self.flight.attitude_local()[:, :, 2]
+        horizontal_velocity = np.linalg.norm(local_velocity[:, :2], axis=1)
+        path_angle = np.degrees(np.arctan2(local_velocity[:, 2], horizontal_velocity))
+        attitude_angle = np.degrees(
+            np.arctan2(body_axis[:, 2], np.linalg.norm(body_axis[:, :2], axis=1))
+        )
+        lateral_angle = np.degrees(
+            np.arctan2(
+                body_axis[:, 0] * np.cos(np.radians(self.flight.heading))
+                - body_axis[:, 1] * np.sin(np.radians(self.flight.heading)),
+                np.sqrt(
+                    body_axis[:, 2] ** 2
+                    + (
+                        body_axis[:, 0] * np.sin(np.radians(self.flight.heading))
+                        + body_axis[:, 1] * np.cos(np.radians(self.flight.heading))
+                    )
+                    ** 2
+                ),
+            )
+        )
+        time_values, angles = self._clip_values(
+            self.flight.time,
+            np.column_stack((path_angle, attitude_angle, lateral_angle)),
+            self.first_parachute_event_time,
+        )
+
         plt.figure(figsize=(9, 6))
 
         ax1 = plt.subplot(211)
-        ax1.plot(
-            self.flight.path_angle[:, 0],
-            self.flight.path_angle[:, 1],
-            label="Flight Path Angle",
-        )
-        ax1.plot(
-            self.flight.attitude_angle[:, 0],
-            self.flight.attitude_angle[:, 1],
-            label="Rocket Attitude Angle",
-        )
+        ax1.plot(time_values, angles[:, 0], label="Flight Path Angle")
+        ax1.plot(time_values, angles[:, 1], label="Rocket Attitude Angle")
         ax1.set_xlim(0, self.first_parachute_event_time)
         ax1.legend()
         ax1.grid(True)
@@ -3668,10 +3828,7 @@ class _FlightPlots:
         ax1.set_title("Flight Path and Attitude Angle")
 
         ax2 = plt.subplot(212)
-        ax2.plot(
-            self.flight.lateral_attitude_angle[:, 0],
-            self.flight.lateral_attitude_angle[:, 1],
-        )
+        ax2.plot(time_values, angles[:, 2])
         ax2.set_xlim(0, self.first_parachute_event_time)
         ax2.set_xlabel("Time (s)")
         ax2.set_ylabel("Lateral Attitude Angle (°)")
@@ -3697,9 +3854,22 @@ class _FlightPlots:
         -------
         None
         """
+        end_time = self.first_parachute_event_time
+        angular_velocity = [
+            self._low_altitude_series(function, end_time)
+            for function in (self.flight.w1, self.flight.w2, self.flight.w3)
+        ]
+        angular_acceleration = [
+            self._low_altitude_series(function, end_time)
+            for function in (self.flight.alpha1, self.flight.alpha2, self.flight.alpha3)
+        ]
         plt.figure(figsize=(9, 9))
         ax1 = plt.subplot(311)
-        ax1.plot(self.flight.w1[:, 0], self.flight.w1[:, 1], color="#ff7f0e")
+        ax1.plot(
+            angular_velocity[0][:, 0],
+            angular_velocity[0][:, 1],
+            color="#ff7f0e",
+        )
         ax1.set_xlim(0, self.first_parachute_event_time)
         ax1.set_xlabel("Time (s)")
         ax1.set_ylabel(r"Angular Velocity - ${\omega_1}$ (rad/s)", color="#ff7f0e")
@@ -3710,14 +3880,22 @@ class _FlightPlots:
         ax1.grid(True)
 
         ax1up = ax1.twinx()
-        ax1up.plot(self.flight.alpha1[:, 0], self.flight.alpha1[:, 1], color="#1f77b4")
+        ax1up.plot(
+            angular_acceleration[0][:, 0],
+            angular_acceleration[0][:, 1],
+            color="#1f77b4",
+        )
         ax1up.set_ylabel(
             r"Angular Acceleration - ${\alpha_1}$ (rad/s²)", color="#1f77b4"
         )
         ax1up.tick_params("y", colors="#1f77b4")
 
         ax2 = plt.subplot(312)
-        ax2.plot(self.flight.w2[:, 0], self.flight.w2[:, 1], color="#ff7f0e")
+        ax2.plot(
+            angular_velocity[1][:, 0],
+            angular_velocity[1][:, 1],
+            color="#ff7f0e",
+        )
         ax2.set_xlim(0, self.first_parachute_event_time)
         ax2.set_xlabel("Time (s)")
         ax2.set_ylabel(r"Angular Velocity - ${\omega_2}$ (rad/s)", color="#ff7f0e")
@@ -3728,14 +3906,22 @@ class _FlightPlots:
         ax2.grid(True)
 
         ax2up = ax2.twinx()
-        ax2up.plot(self.flight.alpha2[:, 0], self.flight.alpha2[:, 1], color="#1f77b4")
+        ax2up.plot(
+            angular_acceleration[1][:, 0],
+            angular_acceleration[1][:, 1],
+            color="#1f77b4",
+        )
         ax2up.set_ylabel(
             r"Angular Acceleration - ${\alpha_2}$ (rad/s²)", color="#1f77b4"
         )
         ax2up.tick_params("y", colors="#1f77b4")
 
         ax3 = plt.subplot(313)
-        ax3.plot(self.flight.w3[:, 0], self.flight.w3[:, 1], color="#ff7f0e")
+        ax3.plot(
+            angular_velocity[2][:, 0],
+            angular_velocity[2][:, 1],
+            color="#ff7f0e",
+        )
         ax3.set_xlim(0, self.first_parachute_event_time)
         ax3.set_xlabel("Time (s)")
         ax3.set_ylabel(r"Angular Velocity - ${\omega_3}$ (rad/s)", color="#ff7f0e")
@@ -3746,7 +3932,11 @@ class _FlightPlots:
         ax3.grid(True)
 
         ax3up = ax3.twinx()
-        ax3up.plot(self.flight.alpha3[:, 0], self.flight.alpha3[:, 1], color="#1f77b4")
+        ax3up.plot(
+            angular_acceleration[2][:, 0],
+            angular_acceleration[2][:, 1],
+            color="#1f77b4",
+        )
         ax3up.set_ylabel(
             r"Angular Acceleration - ${\alpha_3}$ (rad/s²)", color="#1f77b4"
         )
@@ -3808,7 +3998,7 @@ class _FlightPlots:
                     (
                         self.flight.out_of_rail_time
                         if self.flight.out_of_rail_time > 0
-                        else self.flight.t_final
+                        else self.low_altitude_end_time
                     ),
                 )
                 ax1.legend()
@@ -3865,7 +4055,7 @@ class _FlightPlots:
                 (
                     self.flight.out_of_rail_time
                     if self.flight.out_of_rail_time > 0
-                    else self.flight.t_final
+                    else self.low_altitude_end_time
                 ),
             )
             ax1.legend()
@@ -3898,7 +4088,7 @@ class _FlightPlots:
                 (
                     self.flight.out_of_rail_time
                     if self.flight.out_of_rail_time > 0
-                    else self.flight.t_final
+                    else self.low_altitude_end_time
                 ),
             )
             ax2.legend()
@@ -4052,30 +4242,41 @@ class _FlightPlots:
         None
         """
 
+        kinetic_energy = self._low_altitude_series(self.flight.kinetic_energy)
+        rotational_energy = self._low_altitude_series(self.flight.rotational_energy)
+        translational_energy = self._low_altitude_series(
+            self.flight.translational_energy
+        )
+        total_energy = self._low_altitude_series(self.flight.total_energy)
+        potential_energy = self._low_altitude_series(self.flight.potential_energy)
+
         plt.figure(figsize=(9, 9))
 
         ax1 = plt.subplot(411)
         ax1.plot(
-            self.flight.kinetic_energy[:, 0],
-            self.flight.kinetic_energy[:, 1],
+            kinetic_energy[:, 0],
+            kinetic_energy[:, 1],
             label="Kinetic Energy",
         )
         ax1.plot(
-            self.flight.rotational_energy[:, 0],
-            self.flight.rotational_energy[:, 1],
+            rotational_energy[:, 0],
+            rotational_energy[:, 1],
             label="Rotational Energy",
         )
         ax1.plot(
-            self.flight.translational_energy[:, 0],
-            self.flight.translational_energy[:, 1],
+            translational_energy[:, 0],
+            translational_energy[:, 1],
             label="Translational Energy",
         )
         ax1.set_xlim(
-            0,
-            (
-                self.flight.apogee_time
-                if self.flight.apogee_time != 0.0
-                else self.flight.t_final
+            self.flight.time[0],
+            min(
+                self.low_altitude_end_time,
+                (
+                    self.flight.apogee_time
+                    if self.flight.apogee_time != 0.0
+                    else self.low_altitude_end_time
+                ),
             ),
         )
         ax1.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
@@ -4087,26 +4288,29 @@ class _FlightPlots:
 
         ax2 = plt.subplot(412)
         ax2.plot(
-            self.flight.total_energy[:, 0],
-            self.flight.total_energy[:, 1],
+            total_energy[:, 0],
+            total_energy[:, 1],
             label="Total Energy",
         )
         ax2.plot(
-            self.flight.kinetic_energy[:, 0],
-            self.flight.kinetic_energy[:, 1],
+            kinetic_energy[:, 0],
+            kinetic_energy[:, 1],
             label="Kinetic Energy",
         )
         ax2.plot(
-            self.flight.potential_energy[:, 0],
-            self.flight.potential_energy[:, 1],
+            potential_energy[:, 0],
+            potential_energy[:, 1],
             label="Potential Energy",
         )
         ax2.set_xlim(
-            0,
-            (
-                self.flight.apogee_time
-                if self.flight.apogee_time != 0.0
-                else self.flight.t_final
+            self.flight.time[0],
+            min(
+                self.low_altitude_end_time,
+                (
+                    self.flight.apogee_time
+                    if self.flight.apogee_time != 0.0
+                    else self.low_altitude_end_time
+                ),
             ),
         )
         ax2.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
@@ -4124,12 +4328,19 @@ class _FlightPlots:
             thrust_power = thrust_power.set_discrete_based_on_model(
                 self.flight.speed, mutate_self=False
             )
+        thrust_power = self._low_altitude_series(
+            thrust_power,
+            min(self.flight.rocket.motor.burn_out_time, self.low_altitude_end_time),
+        )
         ax3.plot(
             thrust_power[:, 0],
             thrust_power[:, 1],
             label="|Thrust Power|",
         )
-        ax3.set_xlim(0, self.flight.rocket.motor.burn_out_time)
+        ax3.set_xlim(
+            self.flight.time[0],
+            min(self.flight.rocket.motor.burn_out_time, self.low_altitude_end_time),
+        )
         ax3.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
         ax3.set_title("Thrust Absolute Power")
         ax3.set_xlabel("Time (s)")
@@ -4145,17 +4356,21 @@ class _FlightPlots:
             drag_power = drag_power.set_discrete_based_on_model(
                 self.flight.speed, mutate_self=False
             )
+        drag_power = self._low_altitude_series(drag_power)
         ax4.plot(
             drag_power[:, 0],
             -drag_power[:, 1],
             label="|Drag Power|",
         )
         ax4.set_xlim(
-            0,
-            (
-                self.flight.apogee_time
-                if self.flight.apogee_time != 0.0
-                else self.flight.t_final
+            self.flight.time[0],
+            min(
+                self.low_altitude_end_time,
+                (
+                    self.flight.apogee_time
+                    if self.flight.apogee_time != 0.0
+                    else self.low_altitude_end_time
+                ),
             ),
         )
         ax4.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
@@ -4184,11 +4399,17 @@ class _FlightPlots:
         -------
         None
         """
+        mach = self._low_altitude_series(self.flight.mach_number)
+        reynolds = self._low_altitude_series(self.flight.reynolds_number)
+        dynamic_pressure = self._low_altitude_series(self.flight.dynamic_pressure)
+        total_pressure = self._low_altitude_series(self.flight.total_pressure)
+        pressure = self._low_altitude_series(self.flight.pressure)
+
         plt.figure(figsize=(9, 9))
 
         ax1 = plt.subplot(311)
-        ax1.plot(self.flight.mach_number[:, 0], self.flight.mach_number[:, 1])
-        ax1.set_xlim(0, self.flight.t_final)
+        ax1.plot(mach[:, 0], mach[:, 1])
+        ax1.set_xlim(self.flight.time[0], self.low_altitude_end_time)
         ax1.set_title("Mach Number")
         ax1.set_xlabel("Time (s)")
         ax1.set_ylabel("Mach Number")
@@ -4196,8 +4417,8 @@ class _FlightPlots:
         self._add_event_markers(ax1)
 
         ax2 = plt.subplot(312)
-        ax2.plot(self.flight.reynolds_number[:, 0], self.flight.reynolds_number[:, 1])
-        ax2.set_xlim(0, self.flight.t_final)
+        ax2.plot(reynolds[:, 0], reynolds[:, 1])
+        ax2.set_xlim(self.flight.time[0], self.low_altitude_end_time)
         ax2.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
         ax2.set_title("Reynolds Number")
         ax2.set_xlabel("Time (s)")
@@ -4207,21 +4428,21 @@ class _FlightPlots:
 
         ax3 = plt.subplot(313)
         ax3.plot(
-            self.flight.dynamic_pressure[:, 0],
-            self.flight.dynamic_pressure[:, 1],
+            dynamic_pressure[:, 0],
+            dynamic_pressure[:, 1],
             label="Dynamic Pressure",
         )
         ax3.plot(
-            self.flight.total_pressure[:, 0],
-            self.flight.total_pressure[:, 1],
+            total_pressure[:, 0],
+            total_pressure[:, 1],
             label="Total Pressure",
         )
         ax3.plot(
-            self.flight.pressure[:, 0],
-            self.flight.pressure[:, 1],
+            pressure[:, 0],
+            pressure[:, 1],
             label="Static Pressure",
         )
-        ax3.set_xlim(0, self.flight.t_final)
+        ax3.set_xlim(self.flight.time[0], self.low_altitude_end_time)
         ax3.legend()
         ax3.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
         ax3.set_title("Total and Dynamic Pressure")
@@ -4253,16 +4474,24 @@ class _FlightPlots:
         plt.figure(figsize=(9, 6))
 
         asymmetric = not self.flight.rocket.is_axisymmetric
+        stability_margin = self._low_altitude_series(
+            self.flight.stability_margin,
+            self.first_parachute_event_time,
+        )
         ax1 = plt.subplot(211)
         ax1.plot(
-            self.flight.stability_margin[:, 0],
-            self.flight.stability_margin[:, 1],
+            stability_margin[:, 0],
+            stability_margin[:, 1],
             label="Linear pitch" if asymmetric else "Linear (aerodynamic center)",
         )
         if asymmetric:
+            stability_margin_yaw = self._low_altitude_series(
+                self.flight.stability_margin_yaw,
+                self.first_parachute_event_time,
+            )
             ax1.plot(
-                self.flight.stability_margin_yaw[:, 0],
-                self.flight.stability_margin_yaw[:, 1],
+                stability_margin_yaw[:, 0],
+                stability_margin_yaw[:, 1],
                 label="Linear yaw",
             )
         ax1.set_title("Stability Margin")
@@ -4343,10 +4572,12 @@ class _FlightPlots:
         plt.figure(figsize=(9, 6))
 
         ax1 = plt.subplot(211)
-        freq = self.flight.pitch_natural_frequency
+        freq = self._low_altitude_series(self.flight.pitch_natural_frequency, upper)
         ax1.plot(freq[:, 0], freq[:, 1] / (2 * np.pi), label="Pitch natural freq.")
         if asymmetric:
-            yaw_freq = self.flight.yaw_natural_frequency
+            yaw_freq = self._low_altitude_series(
+                self.flight.yaw_natural_frequency, upper
+            )
             ax1.plot(
                 yaw_freq[:, 0],
                 yaw_freq[:, 1] / (2 * np.pi),
@@ -4355,7 +4586,7 @@ class _FlightPlots:
             )
         # Roll rate as a frequency: where it crosses the natural frequency the
         # rocket is in roll resonance (roll-pitch/yaw coupling).
-        roll_rate = self.flight.w3
+        roll_rate = self._low_altitude_series(self.flight.w3, upper)
         ax1.plot(
             roll_rate[:, 0],
             np.abs(roll_rate[:, 1]) / (2 * np.pi),
@@ -4372,10 +4603,10 @@ class _FlightPlots:
         self._add_event_markers_dropline(ax1, labels={"Burnout"})
 
         ax2 = plt.subplot(212)
-        ratio = self.flight.pitch_damping_ratio
+        ratio = self._low_altitude_series(self.flight.pitch_damping_ratio, upper)
         ax2.plot(ratio[:, 0], ratio[:, 1], label="Pitch")
         if asymmetric:
-            yaw_ratio = self.flight.yaw_damping_ratio
+            yaw_ratio = self._low_altitude_series(self.flight.yaw_damping_ratio, upper)
             ax2.plot(yaw_ratio[:, 0], yaw_ratio[:, 1], "--", label="Yaw")
         ax2.axhline(1.0, color="gray", linestyle=":", label="Critical (ζ=1)")
         ax2.set_title("Damping Ratio")
@@ -4481,16 +4712,30 @@ class _FlightPlots:
         """
         plt.figure(figsize=(9, 4))
 
-        z_times = self.flight.z[:, 0]
-        z_agl = self.flight.z[:, 1] - self.flight.env.elevation
+        if self.flight.reference_frame == ReferenceFrame.GCRF:
+            source = self.flight.altitude[:, :]
+            title = "Geodetic Height"
+            ylabel = "Geodetic Height (m)"
+        else:
+            source = np.column_stack(
+                (
+                    self.flight.z[:, 0],
+                    self.flight.z[:, 1] - self.flight.env.elevation,
+                )
+            )
+            title = "Altitude Above Ground Level"
+            ylabel = "Altitude AGL (m)"
+        z_times, z_agl = self._clip_values(
+            source[:, 0], source[:, 1], self.low_altitude_end_time
+        )
 
         ax1 = plt.subplot(111)
         ax1.plot(z_times, z_agl, color=self._TRAJECTORY_COLOR)
-        ax1.set_xlim(0, self.flight.t_final)
-        ax1.set_ylim(bottom=0)
-        ax1.set_title("Altitude Above Ground Level")
+        ax1.set_xlim(self.flight.time[0], self.low_altitude_end_time)
+        ax1.set_ylim(bottom=min(0, float(np.min(z_agl))))
+        ax1.set_title(title)
         ax1.set_xlabel("Time (s)")
-        ax1.set_ylabel("Altitude AGL (m)")
+        ax1.set_ylabel(ylabel)
         ax1.grid(True)
 
         # Event markers: dot on the curve + dashed line from y=0 (line not in legend).
@@ -4551,7 +4796,7 @@ class _FlightPlots:
         plt.tight_layout()
         show_or_save_plot(filename)
 
-    def ground_track(self, *, filename=None):
+    def ground_track(self, *, filename=None, local=False):
         """Plots the 2D ground track (East vs North displacement from launch).
 
         Parameters
@@ -4566,20 +4811,25 @@ class _FlightPlots:
         -------
         None
         """
+        if self.flight.reference_frame == ReferenceFrame.GCRF and not local:
+            return self._orbital_ground_track(filename=filename)
+
         plt.figure(figsize=(6, 6))
+        _, positions = self.low_altitude_positions
+        east, north = positions[:, 0], positions[:, 1]
 
         ax1 = plt.subplot(111)
         ax1.plot(
-            self.flight.x[:, 1],
-            self.flight.y[:, 1],
+            east,
+            north,
             color=self._TRAJECTORY_COLOR,
             label="_nolegend_",
             zorder=1,
         )
         # Launch point (t=0 is not a trigger-once event, so add it explicitly)
         ax1.scatter(
-            [self.flight.x(0)],
-            [self.flight.y(0)],
+            [east[0]],
+            [north[0]],
             color="#ffd400",
             edgecolors="black",
             linewidths=1.2,
@@ -4590,7 +4840,7 @@ class _FlightPlots:
         # Events at their ground-track position (Out Of Rail omitted; Apogee drawn last)
         deferred_apogee = None
         for t_ev, label, marker, color, size in self._collect_events():
-            if label == "Out Of Rail":
+            if label == "Out Of Rail" or t_ev > self.low_altitude_end_time:
                 continue
             if label == "Apogee":
                 deferred_apogee = (t_ev, label, marker, color, size)
@@ -4613,12 +4863,14 @@ class _FlightPlots:
                 kw["linewidths"] = 0.8
             else:
                 kw["linewidths"] = 1.5
-            ax1.scatter([self.flight.x(t_ev)], [self.flight.y(t_ev)], **kw)
+            event_position = self._low_altitude_position_at(t_ev)
+            ax1.scatter([event_position[0]], [event_position[1]], **kw)
         if deferred_apogee is not None:
             t_ev, label, marker, color, size = deferred_apogee
+            event_position = self._low_altitude_position_at(t_ev)
             ax1.scatter(
-                [self.flight.x(t_ev)],
-                [self.flight.y(t_ev)],
+                [event_position[0]],
+                [event_position[1]],
                 marker=marker,
                 color=color,
                 s=size * 0.5,
@@ -4627,14 +4879,14 @@ class _FlightPlots:
                 linewidths=0.8,
                 zorder=20,
             )
-        ax1.set_title("Ground Track")
+        ax1.set_title("Launch-Local Ground Track")
         ax1.set_xlabel("East (m)")
         ax1.set_ylabel("North (m)")
         self._sorted_legend(ax1)
         ax1.grid(True)
         # Compute symmetric equal-range limits so the axes fill the square figure
-        x_data = self.flight.x[:, 1]
-        y_data = self.flight.y[:, 1]
+        x_data = east
+        y_data = north
         x_center = (float(x_data.max()) + float(x_data.min())) / 2
         y_center = (float(y_data.max()) + float(y_data.min())) / 2
         half = (
@@ -4673,15 +4925,17 @@ class _FlightPlots:
         -------
         None
         """
+        drift = self._low_altitude_series(self.flight.drift)
+        bearing = self._low_altitude_series(self.flight.bearing)
         plt.figure(figsize=(9, 6))
 
         ax1 = plt.subplot(211)
         ax1.plot(
-            self.flight.drift[:, 0],
-            self.flight.drift[:, 1],
+            drift[:, 0],
+            drift[:, 1],
             color=self._TRAJECTORY_COLOR,
         )
-        ax1.set_xlim(0, self.flight.t_final)
+        ax1.set_xlim(self.flight.time[0], self.low_altitude_end_time)
         ax1.set_ylim(bottom=0)
         ax1.set_title("Drift from Launch")
         ax1.set_xlabel("Time (s)")
@@ -4691,11 +4945,11 @@ class _FlightPlots:
 
         ax2 = plt.subplot(212)
         ax2.plot(
-            self.flight.bearing[:, 0],
-            self.flight.bearing[:, 1],
+            bearing[:, 0],
+            bearing[:, 1],
             color=self._TRAJECTORY_COLOR,
         )
-        ax2.set_xlim(0, self.flight.t_final)
+        ax2.set_xlim(self.flight.time[0], self.low_altitude_end_time)
         ax2.set_title("Bearing from Launch")
         ax2.set_xlabel("Time (s)")
         ax2.set_ylabel("Bearing (°)")
@@ -4724,8 +4978,9 @@ class _FlightPlots:
         t_upper = (
             self.flight.apogee_time
             if self.flight.apogee_time != 0
-            else self.flight.t_final
+            else self.low_altitude_end_time
         )
+        t_upper = min(t_upper, self.low_altitude_end_time)
 
         def _ylim_in_range(arr):
             mask = (arr[:, 0] >= t_lower) & (arr[:, 0] <= t_upper)
@@ -4790,17 +5045,84 @@ class _FlightPlots:
         show_or_save_plot(filename)
 
     def all(self):  # pylint: disable=too-many-statements
-        """Prints out all plots available about the Flight.
+        """Plot a trajectory-aware summary of the Flight.
+
+        Flights remaining below 80 km use the established low_altitude view.
+        For a launch that crosses 80 km, that view is capped at the first
+        geodetic-height crossing and is followed by full-flight Earth-centred
+        plots. An arbitrary GCRF initial state without a launch origin receives
+        only the Earth-centred view.
 
         Returns
         -------
         None
         """
 
-        if getattr(self.flight.reference_frame, "value", None) == "gcrf":
+        if self.has_low_altitude_segment:
+            if self.is_high_altitude_flight:
+                print("\n\nLaunch-Site View (limited to first 80 km geodetic height)\n")
+            print("\n\nTrajectory 3D Plot\n")
+            self.trajectory_3d()
+
+            print("\n\nAltitude Data\n")
+            self.altitude_data()
+
+            print("\n\nLaunch-Local Ground Track\n")
+            self.ground_track(local=True)
+
+            print("\n\nDrift and Bearing Data\n")
+            self.drift_bearing_data()
+
+            print("\n\nTrajectory Kinematic Plots\n")
+            self.linear_kinematics_data()
+
+            print("\n\nTrajectory Angular Velocity and Acceleration Plots\n")
+            self.angular_kinematics_data()
+
+            print("\n\nAngle of Attack Plots\n")
+            self.angle_of_attack_data()
+
+            print("\n\nAngular Position Plots\n")
+            self.flight_path_angle_data()
+
+            print("\n\nPath, Attitude and Lateral Attitude Angle Plots\n")
+            self.attitude_data()
+
+            print("\n\nAerodynamic Forces Plots\n")
+            self.aerodynamic_forces()
+
+            print("\n\nRail Buttons Bending Moments Plots\n")
+            self.rail_buttons_bending_moments()
+
+            print("\n\nRail Buttons Forces Plots\n")
+            self.rail_buttons_forces()
+
+            print("\n\nTrajectory Energy Plots\n")
+            self.energy_data()
+
+            print("\n\nTrajectory Fluid Mechanics Plots\n")
+            self.fluid_mechanics_data()
+
+            print("\n\nTrajectory Stability and Control Plots\n")
+            self.stability_and_control_data()
+            self.dynamic_stability_data()
+
+            if self.flight.sensors:
+                print("\n\nSensor Data Plots\n")
+                self.sensor_data()
+
+        show_earth_centered = self.flight.reference_frame == ReferenceFrame.GCRF and (
+            self.is_high_altitude_flight or not self.has_low_altitude_segment
+        )
+        if show_earth_centered:
+            print("\n\nFull Earth-Centered Flight / Orbit View\n")
+            print("\n\nGCRF State History\n")
+            self.earth_centered_state()
+            print("\n\nGeodetic Coordinate History\n")
+            self.geodetic_coordinates()
             print("\n\nOrbit 3D Plot\n")
             self.orbit_3d()
-            print("\n\nGround Track Plot\n")
+            print("\n\nFull Ground Track Plot\n")
             self.ground_track()
             print("\n\nOsculating Orbital Elements\n")
             self.orbital_elements()
@@ -4810,54 +5132,3 @@ class _FlightPlots:
             self.orbital_accelerations_rtn()
             print("\n\nOrbital Invariants\n")
             self.orbital_energy()
-            return
-
-        print("\n\nTrajectory 3d Plot\n")
-        self.trajectory_3d()
-
-        print("\n\nAltitude Data\n")
-        self.altitude_data()
-
-        print("\n\nGround Track\n")
-        self.ground_track()
-
-        print("\n\nDrift and Bearing Data\n")
-        self.drift_bearing_data()
-
-        print("\n\nTrajectory Kinematic Plots\n")
-        self.linear_kinematics_data()
-
-        print("\n\nTrajectory Angular Velocity and Acceleration Plots\n")
-        self.angular_kinematics_data()
-
-        print("\n\nAngle of Attack Plots\n")
-        self.angle_of_attack_data()
-
-        print("\n\nAngular Position Plots\n")
-        self.flight_path_angle_data()
-
-        print("\n\nPath, Attitude and Lateral Attitude Angle plots\n")
-        self.attitude_data()
-
-        print("\n\nAerodynamic Forces Plots\n")
-        self.aerodynamic_forces()
-
-        print("\n\nRail Buttons Bending Moments Plots\n")
-        self.rail_buttons_bending_moments()
-
-        print("\n\nRail Buttons Forces Plots\n")
-        self.rail_buttons_forces()
-
-        print("\n\nTrajectory Energy Plots\n")
-        self.energy_data()
-
-        print("\n\nTrajectory Fluid Mechanics Plots\n")
-        self.fluid_mechanics_data()
-
-        print("\n\nTrajectory Stability and Control Plots\n")
-        self.stability_and_control_data()
-        self.dynamic_stability_data()
-
-        if self.flight.sensors:
-            print("\n\nSensor Data Plots\n")
-            self.sensor_data()

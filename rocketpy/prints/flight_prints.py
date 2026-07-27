@@ -38,6 +38,75 @@ class _FlightPrints:
         """
         self.flight = flight
 
+    _LOW_ALTITUDE_ALTITUDE_LIMIT = 80_000.0
+
+    @property
+    def is_high_altitude_flight(self):
+        """Whether the Flight needs both launch-local and full-flight output."""
+        return (
+            self.flight._maximum_geodetic_altitude >= self._LOW_ALTITUDE_ALTITUDE_LIMIT
+        )
+
+    @property
+    def low_altitude_end_time(self):
+        """End time of the low_altitude presentation."""
+        if not self.is_high_altitude_flight:
+            return float(self.flight.t_final)
+        crossing = self.flight._first_geodetic_altitude_crossing(
+            self._LOW_ALTITUDE_ALTITUDE_LIMIT
+        )
+        return float(self.flight.time[0] if crossing is None else crossing)
+
+    @property
+    def has_low_altitude_segment(self):
+        """Whether the Flight has a launch origin and a non-empty local leg."""
+        return (
+            hasattr(self.flight, "_launch_site_fixed")
+            or getattr(self.flight.reference_frame, "value", None) == "flat_earth"
+        ) and self.low_altitude_end_time > float(self.flight.time[0])
+
+    @property
+    def _standard_g(self):
+        environment = (
+            self.flight.earth.local_environment
+            if self.flight.earth is not None
+            else self.flight.env
+        )
+        return environment.standard_g
+
+    @staticmethod
+    def _extreme_before(function, end_time, *, minimum=False):
+        """Return ``(value, time)`` for finite Function samples before a time."""
+        samples = [
+            (float(row[1]), float(row[0]))
+            for row in function[:, :]
+            if row[0] <= end_time
+            and row[1] == row[1]
+            and abs(float(row[1])) != float("inf")
+        ]
+        if not samples:
+            return 0.0, float(end_time)
+        return (min if minimum else max)(samples, key=lambda item: item[0])
+
+    def _local_state_at(self, time_value):
+        """Interpolate launch-local position and velocity at a time."""
+        times = self.flight.time
+        positions = self.flight.position_local()
+        velocities = self.flight.velocity_local()
+        upper = next(
+            (index for index, time in enumerate(times) if time >= time_value),
+            len(times) - 1,
+        )
+        if upper == 0 or times[upper] == time_value:
+            return positions[upper], velocities[upper]
+        lower = upper - 1
+        fraction = (time_value - times[lower]) / (times[upper] - times[lower])
+        position = positions[lower] + fraction * (positions[upper] - positions[lower])
+        velocity = velocities[lower] + fraction * (
+            velocities[upper] - velocities[lower]
+        )
+        return position, velocity
+
     def initial_conditions(self):
         """Prints initial conditions data available about the flight, including
         position, velocity, attitude, euler angles, angular velocity, and
@@ -52,27 +121,50 @@ class _FlightPrints:
         t_init = self.flight.time[0]
 
         print(f"Initial time: {t_init:.3f} s")
-        print(
-            f"Position - x: {self.flight.x(t_init):.2f} m | "
-            f"y: {self.flight.y(t_init):.2f} m | "
-            f"z: {self.flight.z(t_init):.2f} m"
-        )
-        print(
-            f"Velocity - Vx: {self.flight.vx(t_init):.2f} m/s | "
-            f"Vy: {self.flight.vy(t_init):.2f} m/s | "
-            f"Vz: {self.flight.vz(t_init):.2f} m/s"
-        )
-        print(
-            f"Attitude (quaternions) - e0: {self.flight.e0(t_init):.3f} | "
-            f"e1: {self.flight.e1(t_init):.3f} | "
-            f"e2: {self.flight.e2(t_init):.3f} | "
-            f"e3: {self.flight.e3(t_init):.3f}"
-        )
-        print(
-            f"Euler Angles - Spin φ : {self.flight.phi(t_init):.2f}° | "
-            f"Nutation θ: {self.flight.theta(t_init):.2f}° | "
-            f"Precession ψ: {self.flight.psi(t_init):.2f}°"
-        )
+        if self.has_low_altitude_segment:
+            position = self.flight.position_local()[0]
+            velocity = self.flight.velocity_local()[0]
+            quaternion = self.flight.attitude_local_quaternions()[0]
+            precession, nutation, spin = self.flight.attitude_local_euler_angles()[0]
+            print(
+                f"Launch-local position - East: {position[0]:.2f} m | "
+                f"North: {position[1]:.2f} m | Up: {position[2]:.2f} m"
+            )
+            print(
+                f"Earth-fixed velocity - East: {velocity[0]:.2f} m/s | "
+                f"North: {velocity[1]:.2f} m/s | Up: {velocity[2]:.2f} m/s"
+            )
+            print(
+                f"Launch-local attitude (quaternions) - e0: {quaternion[0]:.3f} | "
+                f"e1: {quaternion[1]:.3f} | e2: {quaternion[2]:.3f} | "
+                f"e3: {quaternion[3]:.3f}"
+            )
+            print(
+                f"Launch-local Euler Angles - Spin φ: {spin:.2f}° | "
+                f"Nutation θ: {nutation:.2f}° | Precession ψ: {precession:.2f}°"
+            )
+        else:
+            print(
+                f"Position - x: {self.flight.x(t_init):.2f} m | "
+                f"y: {self.flight.y(t_init):.2f} m | "
+                f"z: {self.flight.z(t_init):.2f} m"
+            )
+            print(
+                f"Velocity - Vx: {self.flight.vx(t_init):.2f} m/s | "
+                f"Vy: {self.flight.vy(t_init):.2f} m/s | "
+                f"Vz: {self.flight.vz(t_init):.2f} m/s"
+            )
+            print(
+                f"Attitude (quaternions) - e0: {self.flight.e0(t_init):.3f} | "
+                f"e1: {self.flight.e1(t_init):.3f} | "
+                f"e2: {self.flight.e2(t_init):.3f} | "
+                f"e3: {self.flight.e3(t_init):.3f}"
+            )
+            print(
+                f"Euler Angles - Spin φ : {self.flight.phi(t_init):.2f}° | "
+                f"Nutation θ: {self.flight.theta(t_init):.2f}° | "
+                f"Precession ψ: {self.flight.psi(t_init):.2f}°"
+            )
         print(
             f"Angular Velocity - ω1: {self.flight.w1(t_init):.2f} rad/s | "
             f"ω2: {self.flight.w2(t_init):.2f} rad/s | "
@@ -175,13 +267,18 @@ class _FlightPrints:
         None
         """
         print("\nBurn out State\n")
-        print(f"Burn out time: {self.flight.rocket.motor.burn_out_time:.3f} s")
-        print(
-            "Altitude at burn out: "
-            f"{self.flight.z(self.flight.rocket.motor.burn_out_time):.3f} m (ASL) | "
-            f"{self.flight.altitude(self.flight.rocket.motor.burn_out_time):.3f} "
-            "m (AGL)"
-        )
+        burn_time = self.flight.rocket.motor.burn_out_time
+        print(f"Burn out time: {burn_time:.3f} s")
+        if getattr(self.flight.reference_frame, "value", None) == "gcrf":
+            print(
+                f"Geodetic height at burn out: {self.flight.altitude(burn_time):.3f} m"
+            )
+        else:
+            print(
+                "Altitude at burn out: "
+                f"{self.flight.z(burn_time):.3f} m (ASL) | "
+                f"{self.flight.altitude(burn_time):.3f} m (AGL)"
+            )
         print(
             "Rocket speed at burn out: "
             f"{self.flight.speed(self.flight.rocket.motor.burn_out_time):.3f} m/s"
@@ -211,6 +308,31 @@ class _FlightPrints:
         -------
         None
         """
+        if getattr(self.flight.reference_frame, "value", None) == "gcrf":
+            altitude, apogee_time = self._extreme_before(
+                self.flight.altitude, self.flight.t_final
+            )
+            position, _ = self._local_state_at(apogee_time)
+            title = (
+                "Highest State in Simulated Interval"
+                if apogee_time == self.flight.t_final
+                else "Geodetic Apogee State"
+            )
+            print(f"\n{title}\n")
+            print(f"Time: {apogee_time:.3f} s")
+            print(f"Geodetic height: {altitude:.3f} m")
+            print(
+                f"Launch-local East: {position[0]:.3f} m | "
+                f"North: {position[1]:.3f} m | Up: {position[2]:.3f} m"
+            )
+            print(
+                f"Freestream Speed: "
+                f"{self.flight.free_stream_speed(apogee_time):.3f} m/s"
+            )
+            print(f"Latitude: {self.flight.latitude(apogee_time):.7f}°")
+            print(f"Longitude: {self.flight.longitude(apogee_time):.7f}°")
+            return
+
         print("\nApogee State\n")
         print(f"Apogee Time: {self.flight.apogee_time:.3f} s")
         print(
@@ -434,17 +556,29 @@ class _FlightPrints:
         -------
         None
         """
-        if len(self.flight.impact_state) != 0:
+        if len(self.flight.impact_state) > 1:
             print("\nImpact Conditions\n")
             print(f"Time of impact: {self.flight.t_final:.3f} s")
-            print(f"X impact: {self.flight.x_impact:.3f} m")
-            print(f"Y impact: {self.flight.y_impact:.3f} m")
+            if getattr(self.flight.reference_frame, "value", None) == "gcrf":
+                position, _ = self._local_state_at(self.flight.t_final)
+                print(f"Launch-local East impact: {position[0]:.3f} m")
+                print(f"Launch-local North impact: {position[1]:.3f} m")
+            else:
+                print(f"X impact: {self.flight.x_impact:.3f} m")
+                print(f"Y impact: {self.flight.y_impact:.3f} m")
             print(f"Drift: {self.flight.drift(self.flight.t_final):.3f} m")
             print(f"Bearing: {self.flight.bearing(self.flight.t_final):.3f}°")
-            print(
-                f"Altitude impact: {self.flight.z(self.flight.t_final):.3f} m (ASL) | "
-                f"{self.flight.altitude(self.flight.t_final):.3f} m (AGL) "
-            )
+            if getattr(self.flight.reference_frame, "value", None) == "gcrf":
+                print(
+                    f"Geodetic height at impact: "
+                    f"{self.flight.altitude(self.flight.t_final):.3f} m"
+                )
+            else:
+                print(
+                    f"Altitude impact: "
+                    f"{self.flight.z(self.flight.t_final):.3f} m (ASL) | "
+                    f"{self.flight.altitude(self.flight.t_final):.3f} m (AGL) "
+                )
             print(f"Latitude: {self.flight.latitude(self.flight.t_final):.7f}°")
             print(f"Longitude: {self.flight.longitude(self.flight.t_final):.7f}°")
             print(f"Vertical velocity at impact: {self.flight.impact_velocity:.3f} m/s")
@@ -460,10 +594,13 @@ class _FlightPrints:
             print("End of Simulation")
             t_final = self.flight.time[-1]
             print(f"Time: {t_final:.3f} s")
-            print(
-                f"Altitude: {self.flight.z(t_final)} m (ASL) | "
-                f"{self.flight.altitude(t_final):.3f} m (AGL)"
-            )
+            if getattr(self.flight.reference_frame, "value", None) == "gcrf":
+                print(f"Geodetic height: {self.flight.altitude(t_final):.3f} m")
+            else:
+                print(
+                    f"Altitude: {self.flight.z(t_final)} m (ASL) | "
+                    f"{self.flight.altitude(t_final):.3f} m (AGL)"
+                )
             print(f"Latitude: {self.flight.latitude(t_final):.7f}°")
             print(f"Longitude: {self.flight.longitude(t_final):.7f}°")
 
@@ -502,7 +639,7 @@ class _FlightPrints:
         )
         print(
             "Maximum Gs During Motor Burn: "
-            f"{self.flight.max_acceleration_power_on / self.flight.env.standard_g:.3f} "
+            f"{self.flight.max_acceleration_power_on / self._standard_g:.3f} "
             f"g at {self.flight.max_acceleration_power_on_time:.2f} s"
         )
         print(
@@ -512,7 +649,7 @@ class _FlightPrints:
         )
         print(
             "Maximum Gs After Motor Burn: "
-            f"{self.flight.max_acceleration_power_off / self.flight.env.standard_g:.3f}"
+            f"{self.flight.max_acceleration_power_off / self._standard_g:.3f}"
             f" Gs at {self.flight.max_acceleration_power_off_time:.2f} s"
         )
         print(
@@ -652,20 +789,8 @@ class _FlightPrints:
         )
         print(f"Pitch Damping Ratio (out of rail): {damping_ratio:.3f}")
 
-    def all(self):
-        """Prints out all data available about the Flight. This method invokes
-        all other print methods in the class.
-
-        Returns
-        -------
-        None
-        """
-
-        if getattr(self.flight.reference_frame, "value", None) == "gcrf":
-            self.orbital_summary()
-            self.numerical_integration_settings()
-            return
-
+    def _standard_low_altitude_summary(self):
+        """Print the established low_altitude-flight summary."""
         self.initial_conditions()
         print()
 
@@ -722,6 +847,133 @@ class _FlightPrints:
         self.numerical_integration_settings()
         print()
 
+    def low_altitude_segment_summary(self):
+        """Print launch data and extrema through the first 80 km crossing."""
+        end_time = self.low_altitude_end_time
+        print(
+            "\nLow_altitude / Launch-Site Summary "
+            "(limited to first 80 km geodetic height)\n"
+        )
+        self.initial_conditions()
+        print()
+        self.surface_wind_conditions()
+        print()
+        self.launch_rail_conditions()
+        print()
+        if self.flight.out_of_rail_time <= end_time:
+            self.out_of_rail_conditions()
+            print()
+        if self.flight.rocket.motor.burn_out_time <= end_time:
+            self.burn_out_conditions()
+            print()
+
+        local_velocity = self.flight.velocity_local()
+        times = self.flight.time
+        position, velocity = self._local_state_at(end_time)
+        speed = sum(component * component for component in velocity) ** 0.5
+        print("\n80 km Presentation Boundary\n")
+        print(f"Crossing time: {end_time:.3f} s")
+        print(
+            f"Launch-local position - East: {position[0]:.3f} m | "
+            f"North: {position[1]:.3f} m | Up: {position[2]:.3f} m"
+        )
+        print(f"Earth-fixed speed: {speed:.3f} m/s")
+        print(f"Geodetic height: {self.flight.altitude(end_time):.3f} m")
+        print(f"Latitude: {self.flight.latitude(end_time):.7f}°")
+        print(f"Longitude: {self.flight.longitude(end_time):.7f}°")
+
+        local_speeds = [
+            (
+                sum(component * component for component in velocity_row) ** 0.5,
+                float(time),
+            )
+            for time, velocity_row in zip(times, local_velocity)
+            if time <= end_time
+        ]
+        max_speed, max_speed_time = max(local_speeds)
+        max_mach, max_mach_time = self._extreme_before(
+            self.flight.mach_number, end_time
+        )
+        max_reynolds, max_reynolds_time = self._extreme_before(
+            self.flight.reynolds_number, end_time
+        )
+        max_q, max_q_time = self._extreme_before(self.flight.dynamic_pressure, end_time)
+        max_total_pressure, max_total_pressure_time = self._extreme_before(
+            self.flight.total_pressure, end_time
+        )
+        max_drag, max_drag_time = self._extreme_before(
+            self.flight.aerodynamic_drag, end_time
+        )
+        max_normal, max_normal_time = self._extreme_before(
+            self.flight.aerodynamic_normal_force, end_time
+        )
+        print("\nMaximum Values Through 80 km\n")
+        print(
+            f"Maximum Earth-fixed Speed: {max_speed:.3f} m/s at {max_speed_time:.2f} s"
+        )
+        print(f"Maximum Mach Number: {max_mach:.3f} at {max_mach_time:.2f} s")
+        print(
+            f"Maximum Reynolds Number: {max_reynolds:.3e} at {max_reynolds_time:.2f} s"
+        )
+        print(f"Maximum Dynamic Pressure: {max_q:.3e} Pa at {max_q_time:.2f} s")
+        print(
+            f"Maximum Total Pressure: {max_total_pressure:.3e} Pa "
+            f"at {max_total_pressure_time:.2f} s"
+        )
+        print(f"Maximum Aerodynamic Drag: {max_drag:.3f} N at {max_drag_time:.2f} s")
+        print(
+            f"Maximum Aerodynamic Normal Force: {max_normal:.3f} N "
+            f"at {max_normal_time:.2f} s"
+        )
+
+        min_margin, min_margin_time = self._extreme_before(
+            self.flight.stability_margin, end_time, minimum=True
+        )
+        max_margin, max_margin_time = self._extreme_before(
+            self.flight.stability_margin, end_time
+        )
+        print("\nStability Margin Through 80 km\n")
+        print(
+            f"Minimum Stability Margin: {min_margin:.3f} c at {min_margin_time:.2f} s"
+        )
+        print(
+            f"Maximum Stability Margin: {max_margin:.3f} c at {max_margin_time:.2f} s"
+        )
+
+    def full_flight_summary(self):
+        """Print a full trajectory summary when orbital elements are unavailable."""
+        print("\nFull High-Altitude Flight Summary\n")
+        print(f"Reference frame: {self.flight.reference_frame.value.upper()}")
+        print(f"Propagation duration: {self.flight.t_final:.3f} s")
+        print(
+            f"Maximum geodetic height: {self.flight._maximum_geodetic_altitude:.3f} m"
+        )
+        print(f"Final height: {self.flight.altitude(self.flight.t_final):.3f} m")
+
+    def all(self):
+        """Print a trajectory-aware Flight summary.
+
+        Below 80 km this preserves the standard low_altitude output. Above
+        80 km it prints a capped launch-site summary followed by the full
+        Earth-centred/orbital summary.
+        """
+        is_gcrf = getattr(self.flight.reference_frame, "value", None) == "gcrf"
+        if not self.is_high_altitude_flight and self.has_low_altitude_segment:
+            self._standard_low_altitude_summary()
+            return
+
+        if self.has_low_altitude_segment:
+            self.low_altitude_segment_summary()
+            print()
+
+        if is_gcrf:
+            self.orbital_summary()
+        else:
+            self.full_flight_summary()
+        print()
+        self.numerical_integration_settings()
+        print()
+
     def orbital_summary(self):
         """Print an Earth-centered propagation summary."""
         initial = self.flight.orbit.initial
@@ -735,9 +987,26 @@ class _FlightPrints:
             f"Final geodetic altitude: "
             f"{self.flight.altitude(self.flight.t_final):.3f} m"
         )
+        max_altitude, max_altitude_time = self._extreme_before(
+            self.flight.altitude, self.flight.t_final
+        )
+        print(
+            f"Maximum geodetic altitude: {max_altitude:.3f} m "
+            f"at {max_altitude_time:.3f} s"
+        )
+        print(f"Final latitude: {self.flight.latitude(self.flight.t_final):.7f}°")
+        print(f"Final longitude: {self.flight.longitude(self.flight.t_final):.7f}°")
         print(f"Initial semi-major axis: {initial.semi_major_axis:.3f} m")
         print(f"Final semi-major axis: {final.semi_major_axis:.3f} m")
         print(f"Initial eccentricity: {initial.eccentricity:.9f}")
         print(f"Final eccentricity: {final.eccentricity:.9f}")
         print(f"Initial inclination: {initial.inclination:.9f} rad")
         print(f"Final inclination: {final.inclination:.9f} rad")
+        if final.eccentricity < 1.0 and final.semi_major_axis > 0:
+            radius = self.flight.datum.semi_major_axis
+            periapsis = final.semi_major_axis * (1 - final.eccentricity) - radius
+            apoapsis = final.semi_major_axis * (1 + final.eccentricity) - radius
+            period = self.flight.orbit.period(self.flight.t_final)
+            print(f"Final osculating periapsis altitude: {periapsis:.3f} m")
+            print(f"Final osculating apoapsis altitude: {apoapsis:.3f} m")
+            print(f"Final osculating period: {period:.3f} s")

@@ -6,41 +6,42 @@ import pytest
 from matplotlib.animation import FuncAnimation
 
 from rocketpy import (
-    Environment,
+    Earth,
+    Epoch,
     Flight,
     FlightState,
     PointMassRocket,
     ReferenceFrame,
-    RelativisticCorrection,
-    ThirdBodyGravity,
-    VacuumAtmosphere,
+    Space,
+    ZeroAtmosphereLayer,
 )
 
 
 @pytest.fixture
 def orbital_flight():
     """Build a short deterministic LEO propagation with no external data."""
-    environment = Environment(
-        date=datetime(2026, 1, 2, tzinfo=UTC),
-        atmosphere=VacuumAtmosphere(),
-        celestial_bodies=["sun", "moon"],
+    epoch = Epoch.from_datetime(datetime(2026, 1, 2, tzinfo=UTC))
+    earth = Earth(
+        geopotential="point_mass",
+        atmosphere=ZeroAtmosphereLayer(),
+        relativistic_correction=True,
     )
+    space = Space()
     rocket = PointMassRocket(0.1, 100.0, 0.0, 0.0, 0.0)
-    radius = environment.earth_datum.semi_major_axis + 500e3
-    speed = np.sqrt(environment.earth_datum.gravitational_parameter / radius)
+    radius = earth.datum.semi_major_axis + 500e3
+    speed = np.sqrt(earth.datum.gravitational_parameter / radius)
     state = FlightState.cartesian(
-        epoch=environment.epoch,
+        epoch=epoch,
         position=[radius, 0.0, 0.0],
         velocity=[0.0, speed, 0.0],
         frame=ReferenceFrame.GCRF,
     )
-    return Flight(
-        rocket=rocket,
-        environment=environment,
-        rail_length=None,
-        initial_state=state,
+    return Flight.from_orbit(
+        rocket,
+        earth,
+        state,
+        space=space,
         simulation_mode="3 DOF",
-        force_models=[ThirdBodyGravity(), RelativisticCorrection()],
         max_time=600.0,
         max_time_step=30.0,
         rtol=1e-10,
@@ -77,6 +78,7 @@ def test_orbital_flight_preserves_near_circular_two_body_orbit(orbital_flight):
         "drag",
         "thrust",
         "third_body_gravity",
+        "space_radiation_pressure",
         "relativistic_correction",
     }
     assert set(orbital_flight.orbital_accelerations_rtn) == set(
@@ -108,10 +110,14 @@ def test_orbital_plots_and_animation_use_flight_output_contract(
     # Arrange
     orbit_path = tmp_path / "orbit.png"
     track_path = tmp_path / "ground-track.png"
+    state_path = tmp_path / "state.png"
+    geodetic_path = tmp_path / "geodetic.png"
 
     # Act
     orbital_flight.plots.orbit_3d(filename=orbit_path)
     orbital_flight.plots.ground_track(filename=track_path)
+    orbital_flight.plots.earth_centered_state(filename=state_path)
+    orbital_flight.plots.geodetic_coordinates(filename=geodetic_path)
     animation_mpl = orbital_flight.plots.animate_orbit_3d(
         interval=1, backend="matplotlib"
     )
@@ -124,6 +130,10 @@ def test_orbital_plots_and_animation_use_flight_output_contract(
     # Assert
     assert orbit_path.is_file()
     assert track_path.is_file()
+    assert state_path.is_file()
+    assert geodetic_path.is_file()
+    assert orbital_flight.plots.is_high_altitude_flight is True
+    assert orbital_flight.plots.has_low_altitude_segment is False
     assert isinstance(animation_mpl, FuncAnimation)
     assert plotly_fig.__class__.__name__ == "Figure"
     assert plotly_anim.__class__.__name__ == "Figure"

@@ -28,6 +28,7 @@ from rocketpy.rocket.aero_surface.fins.trapezoidal_fin import TrapezoidalFin
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
+from rocketpy.rocket.vehicle import Vehicle
 from rocketpy.tools import (
     deprecated,
     find_obj_from_hash,
@@ -52,7 +53,7 @@ def _stability_slope(derivative_coefficient, sign=1.0):
 
 
 # pylint: disable=too-many-instance-attributes, too-many-public-methods, too-many-instance-attributes
-class Rocket:
+class Rocket(Vehicle):
     """Keeps rocket information.
 
     Attributes
@@ -2448,10 +2449,12 @@ class Rocket:
         ----------
         coefficient : float or callable, optional
             Dimensionless drag coefficient. A callable receives ``epoch``,
-            ``state`` and the relative-velocity vector. Default is 2.2.
+            ``state`` and a frame-labelled relative-velocity vector. Default
+            is 2.2.
         projected_area : float or callable, optional
             Projected area in m². A callable receives ``epoch``, ``state`` and
-            the incident direction. The rocket frontal area is used by default.
+            the same frame-labelled relative-velocity vector. The rocket
+            frontal area is used by default.
         """
         if not callable(coefficient) and float(coefficient) < 0:
             raise ValueError("Orbital drag coefficient must be non-negative.")
@@ -2473,7 +2476,8 @@ class Rocket:
             Dimensionless radiation-pressure coefficient. Default is 1.
         projected_area : float or callable, optional
             Projected area in m². The callable contract is
-            ``area(epoch, state, incident_direction)``.
+            ``area(epoch, state, incident_direction)``, where
+            ``incident_direction`` is a frame-labelled vector.
         """
         if not callable(coefficient) and float(coefficient) < 0:
             raise ValueError("Radiation coefficient must be non-negative.")
@@ -2488,7 +2492,7 @@ class Rocket:
 
     @staticmethod
     def _evaluate_orbital_property(value, epoch, state, direction):
-        return float(value(epoch, state, direction) if callable(value) else value)
+        return Vehicle._evaluate_property(value, epoch, state, direction)
 
     def evaluate_orbital_drag_coefficient(self, epoch, state, relative_velocity):
         """Evaluate the configured free-molecular drag coefficient."""
@@ -2896,7 +2900,9 @@ class Rocket:
             rocket.air_brakes.append(air_brake)
 
         for controller in data["_controllers"]:
-            interactive_objects_hash = getattr(controller, "_interactive_objects_hash")
+            interactive_objects_hash = getattr(
+                controller, "_interactive_objects_hash", None
+            )
             if interactive_objects_hash is not None:
                 is_iterable = isinstance(interactive_objects_hash, Iterable)
                 if not is_iterable:
@@ -2912,6 +2918,20 @@ class Rocket:
                             "Could not find controller interactive objects."
                             "Deserialization will proceed, results may not be accurate."
                         )
+            elif (
+                not controller.controlled_objects
+                and controller.controlled_objects_name is not None
+            ):
+                names = controller.controlled_objects_name
+                if isinstance(names, str):
+                    controller.controlled_objects = getattr(rocket, names)
+                else:
+                    controller.controlled_objects = [
+                        getattr(rocket, name) for name in names
+                    ]
+                controller._controlled_objects_bindings = (
+                    controller._Controller__verify_controlled_objects_name()
+                )
             rocket._add_controllers(controller)
 
         return rocket

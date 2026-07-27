@@ -3,47 +3,56 @@ models. The methods and classes not listed in the __all__ variable will be
 considered private and should be used with caution.
 """
 
+from .albedo import EarthRadiationPressure
 from .atmosphere import (
     Atmosphere,
+    AtmosphereLayer,
     AtmosphericState,
-    ExponentialAtmosphere,
-    FunctionAtmosphere,
-    HarrisPriesterAtmosphere,
-    LayeredAtmosphere,
-    NRLMSISE00,
-    VacuumAtmosphere,
+    ExponentialAtmosphereLayer,
+    FunctionAtmosphereLayer,
+    HarrisPriesterAtmosphereLayer,
+    NRLMSISE00AtmosphereLayer,
+    ZeroAtmosphereLayer,
 )
-from .celestial_body import AnalyticalEphemeris, CelestialBody, SpiceEphemeris
 from .environment import Environment
 from .environment_analysis import EnvironmentAnalysis
 from .gravity import (
     DefaultGravity,
     Gravity,
+    SomiglianaGravity,
     SphericalGravity,
     SphericalHarmonicGravity,
     VerticalGravity,
     ZeroGravity,
     ZonalGravity,
 )
+from .models import Earth, Space
+from .third_body import (
+    SpiceEphemeris,
+    ThirdBody,
+)
 
 __all__ = [
-    "AnalyticalEphemeris",
     "Atmosphere",
+    "AtmosphereLayer",
     "AtmosphericState",
-    "CelestialBody",
     "DefaultGravity",
     "Environment",
+    "Earth",
+    "EarthRadiationPressure",
     "EnvironmentAnalysis",
-    "ExponentialAtmosphere",
-    "FunctionAtmosphere",
+    "ExponentialAtmosphereLayer",
+    "FunctionAtmosphereLayer",
     "Gravity",
-    "HarrisPriesterAtmosphere",
-    "LayeredAtmosphere",
-    "NRLMSISE00",
+    "HarrisPriesterAtmosphereLayer",
+    "NRLMSISE00AtmosphereLayer",
     "SphericalGravity",
+    "SomiglianaGravity",
     "SphericalHarmonicGravity",
     "SpiceEphemeris",
-    "VacuumAtmosphere",
+    "Space",
+    "ThirdBody",
+    "ZeroAtmosphereLayer",
     "VerticalGravity",
     "ZeroGravity",
     "ZonalGravity",
