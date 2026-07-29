@@ -175,6 +175,18 @@ def find_roots_cubic_function(a, b, c, d):
         Note that the roots may be complex numbers. The roots are ordered
         in the tuple as x1, x2, x3.
 
+        Always three values, so that a caller can unpack them without checking
+        the shape of the function first. When the function is not really cubic
+        (``a`` is zero, so it is a quadratic, a line, or a constant), the
+        positions with no root to report hold ``nan``.
+
+    Notes
+    -----
+    A cubic Hermite fit over a step where the quantity changes at a constant
+    rate — a rocket descending at its terminal speed, for example — has no
+    cubic term at all. The degenerate cases below are the ordinary way that
+    shows up, not an error.
+
     References
     ----------
     - Cardano's method: https://en.wikipedia.org/wiki/Cubic_function#Cardano's_method
@@ -194,10 +206,32 @@ def find_roots_cubic_function(a, b, c, d):
     number.
     >>> x1.real, x2.real, x3.real
     (-1.0, 3.0, 1.0)
+
+    A straight line only has one root, so the other two are ``nan``:
+    >>> x1, x2, x3 = find_roots_cubic_function(0, 0, 2, -4)
+    >>> x1.real
+    2.0
     """
+    no_root = complex(float("nan"), float("nan"))
+
+    if a == 0:
+        # Not a cubic. Fall back to the quadratic, linear or constant case.
+        if b == 0:
+            if c == 0:
+                return no_root, no_root, no_root
+            return complex(-d / c), no_root, no_root
+        discriminant = complex(c**2 - 4 * b * d) ** 0.5
+        return (-c + discriminant) / (2 * b), (-c - discriminant) / (2 * b), no_root
+
     delta_0 = b**2 - 3 * a * c
     delta_1 = 2 * b**3 - 9 * a * b * c + 27 * d * a**2
     c1 = ((delta_1 + (delta_1**2 - 4 * delta_0**3) ** (0.5)) / 2) ** (1 / 3)
+
+    if c1 == 0:
+        # delta_0 and delta_1 both vanish, so the cubic is a perfect cube and
+        # all three roots sit at the same place.
+        triple_root = complex(-b / (3 * a))
+        return triple_root, triple_root, triple_root
 
     c2_0 = c1
     x1 = -(1 / (3 * a)) * (b + c2_0 + delta_0 / c2_0)

@@ -38,8 +38,8 @@ from .helpers.dynamics import (
     SOLID_PROPULSION_DYNAMICS,
     THREE_DOF_DYNAMICS,
 )
-from .helpers.flight_phase import _FlightPhases, _TimeNodes
-from .solution import Solution
+from .helpers.flight_phase import INITIAL_PHASE_NAME, _FlightPhases, _TimeNodes
+from .solution import Solution, get_derived_quantity
 
 ODE_SOLVER_MAP = {
     "RK23": RK23,
@@ -49,6 +49,45 @@ ODE_SOLVER_MAP = {
     "BDF": BDF,
     "LSODA": LSODA,
 }
+
+
+class _DerivedQuantities:
+    """Read-by-name access to a flight's derived quantities.
+
+    Returned by :attr:`Flight.derived`. Indexing it with a quantity name gives
+    that quantity's time history as a :class:`Function`.
+    """
+
+    def __init__(self, flight):
+        self._flight = flight
+
+    def __getitem__(self, name):
+        quantity = get_derived_quantity(name)
+        # pylint: disable=protected-access
+        source = self._flight._derived_series(name)
+        return Function(
+            source,
+            "Time (s)",
+            quantity.axis_label,
+            quantity.interpolation,
+            quantity.extrapolation,
+        )
+
+    def __contains__(self, name):
+        return name in self._flight.derived_names
+
+    def __iter__(self):
+        return iter(self._flight.derived_names)
+
+    def __len__(self):
+        return len(self._flight.derived_names)
+
+    def keys(self):
+        """Return the names of the quantities this flight reports."""
+        return self._flight.derived_names
+
+    def __repr__(self):
+        return f"_DerivedQuantities({', '.join(self._flight.derived_names)})"
 
 
 class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-methods
@@ -766,18 +805,14 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         self.impact_velocity = 0
         self.impact_state = np.array([0])
         self.parachute_events = []
-        self._active_parachute = None
-        # Post-processing (derived) quantities are recorded per flight-phase
-        # segment. `_derived_target` names the segment currently receiving rows
-        # (used while replaying); when it is None, rows go to the active tail.
+        # Post-processing (derived) quantities are stored per flight phase.
         self._derived_ready = False
-        self._derived_target = None
 
     def __init_equations_of_motion(self):
         """Initialize equations of motion."""
         # Bind each phase's dynamics (derivative + state schema) to this flight.
-        # Each bound object is callable as (t, u, post_processing=False), so it
-        # is a drop-in for the old derivative functions.
+        # Each bound object is callable as (t, u), so it is a drop-in for the
+        # old derivative functions.
         self.u_dot = SOLID_PROPULSION_DYNAMICS.bind(self)
         self.u_dot_generalized = SIX_DOF_DYNAMICS.bind(self)
         self.u_dot_generalized_3dof = THREE_DOF_DYNAMICS.bind(self)
@@ -844,24 +879,27 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         self.__init_flight_state()
 
         self.t_initial = self.initial_solution[0]
-        # Open the first flight phase's segment. Its state schema comes from the
+        # Open the solution's first flight phase. Its state schema comes from the
         # phase's dynamics, and the initial state seeds the freeze anchors used
         # to fill in any variable the phase does not integrate.
-        self.solution.start_segment(
+        self.solution.start_phase(
             schema=self.initial_derivative.schema,
-            t_start=self.t_initial,
             start_canonical=tuple(self.initial_solution[1:]),
+            t_start=self.t_initial,
             dynamics=self.initial_derivative,
-            name="initial_phase",
+            name=INITIAL_PHASE_NAME,
         )
         self.solution.append(list(self.initial_solution))
         self.t = self.solution[-1][0]
         self.y_sol = self.solution[-1][1:]
 
         # Record the initial derivative's post-processing row now that the
-        # first segment exists to receive it.
-        self.initial_derivative(
-            self.t_initial, self.initial_solution[1:], post_processing=True
+        # first phase exists to receive it.
+        self.solution.tail.record_derived(
+            self.t_initial,
+            self.initial_derivative.derived_at(
+                self.t_initial, self.initial_solution[1:]
+            ),
         )
 
         self.__set_ode_solver(self.ode_solver)
@@ -996,23 +1034,22 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         """Run one Flight phase across all time nodes."""
         if phase_index > 0:
             # A new phase begins. Seed its raw state from the canonical state
-            # that ended the previous phase and open a fresh segment for it.
+            # that ended the previous phase and open a fresh one in the solution.
             previous_canonical = self.solution.tail.canonical_state(
                 self.solution[-1][1:]
             )
             y0 = phase.dynamics.initial_state(phase.t, previous_canonical)
-            self.solution.start_segment(
+            self.solution.start_phase(
                 schema=phase.dynamics.schema,
-                t_start=phase.t,
                 start_canonical=tuple(previous_canonical),
+                t_start=phase.t,
                 dynamics=phase.dynamics,
                 name=phase.name,
-                parachute=phase.parachute,
             )
             self.t = phase.t
             self.y_sol = y0
         else:
-            # The first phase's segment was already opened during setup.
+            # The solution's first phase was already opened during setup.
             y0 = self.solution[-1][1:]
 
         phase.solver = self._solver(
@@ -1165,8 +1202,8 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         # Construct nodes considering all events discrete call times
         overshootable_nodes = self.__build_overshootable_nodes()
 
-        if len(overshootable_nodes) < 2:
-            return self.t, self.y_sol, [], False  # Early exit
+        if not any(node.events for node in overshootable_nodes.list):
+            return self.t, self.y_sol, [], False  # Nothing scheduled in this step
 
         # Evaluate common kwargs parameters for event triggers.
         # Use needs from all currently-enabled overshootable events.
@@ -1177,14 +1214,18 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             self.y_sol,
             phase.solver.step_size,
             phase,
-            rollback=True,
             needs=step_needs,
         )
 
-        # Feed overshootable time nodes trigger
+        # Feed overshootable time nodes trigger. The whole node list is walked,
+        # including the one at the end of the step: a check scheduled exactly on
+        # a step boundary belongs to the step that ends there, and the next step
+        # drops it from its start (below) so it is never checked twice.
         events_to_evaluate = []
         interpolator = phase.solver.dense_output()
-        for _, overshootable_node in overshootable_nodes:
+        for overshootable_node in overshootable_nodes.list:
+            if not overshootable_node.events:
+                continue
             interpolated_state = interpolator(overshootable_node.t)
             interpolated_time = overshootable_node.t
 
@@ -1260,25 +1301,22 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             self.t,
         )
 
-        # Add last time node (always skipped).
-        overshootable_nodes.add_node(self.t, [])
-
         overshootable_nodes.sort()
         overshootable_nodes.merge()
 
-        # Remove first node if it is the same as current time.
+        # Drop a node sitting exactly on the step's start: it belongs to the
+        # previous step, which already checked it.
         if overshootable_nodes and overshootable_nodes[0].t == self.solution[-2][0]:
             del overshootable_nodes.list[0]
 
         return overshootable_nodes
 
     def __post_process_step(self, phase):
-        """Run derivative post-processing to capture parameter changes made by controllers.
+        """Record this step's derived quantities as the simulation runs.
 
-        This method recalculates derivatives with post_processing=True flag to capture
-        any aerodynamic or other parameter changes that resulted from controller actions.
-        The post_processing flag in the derivative ensures that forces, moments, and
-        other derived quantities are properly recorded for later analysis.
+        Evaluating the derivative here captures any aerodynamic or other
+        parameter change a controller made during this step, which a later
+        replay over the stored states could not reproduce.
 
         Notes
         -----
@@ -1287,13 +1325,15 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         aerodynamic forces and moments.
         """
         if self._has_change_dynamics_events:
-            phase.derivative(self.t, self.y_sol, post_processing=True)
+            self.solution.tail.record_derived(
+                self.t, phase.dynamics.derived_at(self.t, self.y_sol)
+            )
 
     def __finalize_simulation(self):
         """Finalize and cache simulation outputs."""
         self.t_final = self.t
         if self._has_change_dynamics_events:
-            # Derived quantities were recorded live into each segment as the
+            # Derived quantities were recorded live into each phase as the
             # simulation ran (so time-varying parameters such as air-brake
             # deployment are captured); mark them ready so they are not replayed.
             self._derived_ready = True
@@ -1530,25 +1570,6 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         return self.solution["w3"]
 
     # Process second type of outputs - accelerations components
-    @property
-    def _active_derived_rows(self):
-        """The list of derived (post-processing) rows currently being filled.
-
-        Rows go to the segment named by ``_derived_target`` while replaying, or
-        to the active tail segment during a live simulation.
-        """
-        target = self._derived_target
-        if target is None:
-            target = self.solution.tail
-        return target.derived_rows
-
-    def _record_derived(self, row):
-        """Record one post-processing row ``[t, *values]`` for the active phase.
-
-        The values are ordered by the active phase's ``derived_names``.
-        """
-        self._active_derived_rows.append(row)
-
     def _ensure_derived(self):
         """Compute the post-processing quantities if they are not ready yet.
 
@@ -1559,37 +1580,74 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         """
         if self._derived_ready:
             return
-        for segment in self.solution.segments:
-            segment.derived_rows.clear()
-            self._derived_target = segment
-            self._active_parachute = segment.parachute
-            for row in segment.rows:
-                segment.dynamics(row[0], row[1:], post_processing=True)
-        self._derived_target = None
+        for phase_solution in self.solution.phases:
+            if phase_solution.dynamics is None:
+                # A solution loaded from a file has no live dynamics to replay;
+                # its derived quantities were restored from the file instead.
+                continue
+            phase_solution.derived_rows.clear()
+            for row in phase_solution.rows:
+                phase_solution.record_derived(
+                    row[0], phase_solution.dynamics.derived_at(row[0], row[1:])
+                )
         self._derived_ready = True
 
     def _derived_series(self, name):
         """Return the ``[t, value]`` history of one derived quantity.
 
-        Phases that do not report the quantity contribute zeros, so quantities
-        such as aerodynamic moments remain defined across the whole flight.
+        A phase that does not report the quantity either contributes zeros or
+        contributes nothing at all, depending on how the quantity is
+        registered. The built-in quantities (accelerations, aerodynamic forces
+        and moments, net thrust) use zeros, since they really are zero in a
+        phase that does not compute them.
         """
         self._ensure_derived()
+        absent = get_derived_quantity(name).absent
         parts = []
-        for segment in self.solution.segments:
-            rows = segment.derived_rows
+        for phase_solution in self.solution.phases:
+            rows = phase_solution.derived_rows
             if not rows:
                 continue
             array = np.array(rows)
-            derived_names = segment.dynamics.derived_names
-            if name in derived_names:
-                column = derived_names.index(name) + 1
+            if name in phase_solution.derived_names:
+                column = phase_solution.derived_index_of(name) + 1
                 parts.append(array[:, [0, column]])
-            else:
+            elif absent == "zero":
                 parts.append(np.column_stack([array[:, 0], np.zeros(len(rows))]))
         if not parts:
-            return np.empty((0, 2))
+            raise KeyError(
+                f"No flight phase reported the derived quantity '{name}'. "
+                f"This flight reports: {', '.join(self.derived_names) or '(none)'}."
+            )
         return parts[0] if len(parts) == 1 else np.concatenate(parts, axis=0)
+
+    @property
+    def derived_names(self):
+        """Names of the derived quantities this flight reports, in order.
+
+        These are the quantities computed alongside the trajectory —
+        accelerations, aerodynamic forces and moments, net thrust, plus
+        anything a custom flight phase reports. Read one with
+        ``flight.derived["name"]``.
+        """
+        names = []
+        for phase_solution in self.solution.phases:
+            for name in phase_solution.derived_names:
+                if name not in names:
+                    names.append(name)
+        return tuple(names)
+
+    @cached_property
+    def derived(self):
+        """The flight's derived quantities, by name.
+
+        ``flight.derived["ax"]`` returns the quantity's time history as a
+        :class:`Function`, the same object ``flight.ax`` returns. Use this for
+        quantities reported by a custom flight phase, which have no dedicated
+        attribute of their own. ``flight.derived_names`` lists what is
+        available.
+        """
+        return _DerivedQuantities(self)
 
     @funcify_method("Time (s)", "Ax (m/s²)", "spline", "zero")
     def ax(self):

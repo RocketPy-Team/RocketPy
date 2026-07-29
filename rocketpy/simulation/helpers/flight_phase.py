@@ -2,6 +2,13 @@ import math
 
 from ..._logging import logger
 
+INITIAL_PHASE_NAME = "initial_phase"
+"""Name of the phase every flight starts in.
+
+Shared so that the solution's first phase is named after the same flight phase
+it stores.
+"""
+
 
 class _FlightPhases:
     """Class to handle flight phases. It is used to store the derivatives
@@ -27,7 +34,7 @@ class _FlightPhases:
         self.add_phase(
             t_initial,
             initial_derivative,
-            name="initial_phase",
+            name=INITIAL_PHASE_NAME,
             clear=True,
         )
         self.add_phase(max_time, name="max_time_stop")
@@ -247,11 +254,11 @@ class _FlightPhases:
     def add_phase(
         self,
         t,
-        derivatives=None,
+        dynamics=None,
         event=None,
         index=None,
         name=None,
-        **kwargs,
+        clear=False,
     ):
         """Add a new flight phase to the list, with the specified
         characteristics. This method creates a new _FlightPhase instance and
@@ -263,8 +270,8 @@ class _FlightPhases:
         ----------
         t : float
             The initial time of the new flight phase.
-        derivatives : function, optional
-            A function representing the derivatives of the flight phase.
+        dynamics : callable, optional
+            The equations of motion for the phase, callable as ``(t, u)``.
             Default is None.
         event : list of functions, optional
             A list of events to be executed during the flight
@@ -276,6 +283,9 @@ class _FlightPhases:
         name : str, optional
             A descriptive name to identify the phase in logs and
             debug output. Default is None.
+        clear : bool, optional
+            If True, clear events from the first time node of this phase.
+            Default is False.
 
         Returns
         -------
@@ -284,10 +294,10 @@ class _FlightPhases:
         self.add(
             _FlightPhase(
                 t,
-                derivative=derivatives,
+                dynamics=dynamics,
                 events=event,
                 name=name,
-                **kwargs,
+                clear=clear,
             ),
             index,
         )
@@ -322,26 +332,23 @@ class _FlightPhase:
     ----------
     t : float
         Start time (in seconds) of this flight phase.
-    derivative : callable, optional
-        Function computing state derivatives during this phase.
+    dynamics : callable, optional
+        The equations of motion for this phase, callable as ``(t, u)``.
     events : list of callable, optional
         Events to be evaluated or triggered during this phase.
     name : str, optional
         Descriptive label for logging and debug output.
     time_bound : float, optional
         Upper time boundary of this phase (managed by _FlightPhases).
-    parachute : optional
-        Parachute reference used only in post-processing.
     """
 
     def __init__(
         self,
         t,
-        derivative=None,
+        dynamics=None,
         events=None,
         name=None,
         clear=False,
-        **kwargs,
     ):
         """Initialize a flight phase.
 
@@ -349,8 +356,8 @@ class _FlightPhase:
         ----------
         t : float
             Start time of the phase.
-        derivative : callable, optional
-            State derivative function for this phase.
+        dynamics : callable, optional
+            The equations of motion for this phase, callable as ``(t, u)``.
         events : list of callable, optional
             Event hooks to evaluate during this phase.
         name : str, optional
@@ -359,25 +366,13 @@ class _FlightPhase:
             If True, clear events from the first time node of this phase.
             Useful for avoiding event checks at t=0 when state is incomplete.
             Default is False.
-        **kwargs
-            Additional attributes (e.g., parachute) used in post-processing.
         """
         self.t = t
-        self.dynamics = derivative
+        self.dynamics = dynamics
         self.events = events
         self.name = name
         self.clear = clear
         self.time_bound = None
-        self.parachute = kwargs.get("parachute", None)
-
-    @property
-    def derivative(self):
-        """The phase's dynamics, callable as ``(t, u, post_processing)``.
-
-        Kept as an alias for :attr:`dynamics` so existing call sites that treat
-        the phase's dynamics as a plain derivative function keep working.
-        """
-        return self.dynamics
 
     def __repr__(self):
         """Return compact machine-readable representation."""

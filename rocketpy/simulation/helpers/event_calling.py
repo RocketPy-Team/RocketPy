@@ -1,5 +1,9 @@
-from ..solution import StateView
+from ..solution import CANONICAL_INDEX
 from .event_commands import apply_event_commands, apply_rollback_command
+
+# Altitude's slot in the canonical state. Reading it by position avoids a
+# by-name lookup on every event check.
+_Z_SLOT = CANONICAL_INDEX["z"]
 
 
 def compute_needs_union(events):
@@ -24,9 +28,7 @@ def infer_step_size(flight, time):
     return max(0.0, time - flight.solution[-2][0])
 
 
-def build_event_kwargs(
-    flight, time, state, step_size, phase, rollback=False, needs=frozenset()
-):
+def build_event_kwargs(flight, time, state, step_size, phase, needs=frozenset()):
     """Build the keyword arguments shared by event triggers and callbacks.
 
     ``state`` is the raw state of the current flight phase, which may not be the
@@ -43,12 +45,14 @@ def build_event_kwargs(
         expensive values: ``state_dot``, ``pressure``, ``state_history``.
         Defaults to empty (compute nothing expensive).
     """
-    view = StateView(state, phase.dynamics.schema, flight.solution.tail.start_canonical)
+    canonical = phase.dynamics.schema.canonicalize(
+        state, flight.solution.tail.start_canonical
+    )
+    altitude = canonical[_Z_SLOT]
     kwargs = {
         "time": time,
-        "state": view.canonical,
+        "state": canonical,
         "raw_state": state,
-        "state_view": view,
         "sensors": flight.sensors,
         "sensors_by_name": flight.sensors_by_name,
         "environment": flight.env,
@@ -56,18 +60,20 @@ def build_event_kwargs(
         "flight": flight,
         "phase": phase,
         "step_size": step_size,
-        "height_agl": view["z"] - flight.env.elevation,
+        "height_agl": altitude - flight.env.elevation,
     }
     if "state_dot" in needs:
         kwargs["state_dot"] = phase.dynamics.schema.canonicalize_derivative(
             phase.dynamics(time, state)
         )
     if "pressure" in needs:
-        kwargs["pressure"] = flight.env.pressure.get_value_opt(view["z"])
+        kwargs["pressure"] = flight.env.pressure.get_value_opt(altitude)
     if "state_history" in needs:
-        index = 2 if rollback else 1
+        # Every stored point before the one being evaluated. During a rollback
+        # check the state is interpolated inside the latest step, so the last
+        # stored point that precedes it is still the one before that step.
         kwargs["state_history"] = SafeStateHistory(
-            flight.solution.canonical_states(stop=-index)
+            flight.solution.canonical_states(stop=-1)
         )
     return kwargs
 
@@ -89,23 +95,21 @@ def update_overshootable_event_kwargs(
         Expensive values are skipped when absent from ``needs``. Defaults to
         empty (compute nothing expensive).
     """
-    view = StateView(
-        interpolated_state,
-        phase.dynamics.schema,
-        flight.solution.tail.start_canonical,
+    canonical = phase.dynamics.schema.canonicalize(
+        interpolated_state, flight.solution.tail.start_canonical
     )
+    altitude = canonical[_Z_SLOT]
     event_kwargs["time"] = interpolated_time
-    event_kwargs["state"] = view.canonical
+    event_kwargs["state"] = canonical
     event_kwargs["raw_state"] = interpolated_state
-    event_kwargs["state_view"] = view
     event_kwargs["step_size"] = infer_step_size(flight, interpolated_time)
-    event_kwargs["height_agl"] = view["z"] - flight.env.elevation
+    event_kwargs["height_agl"] = altitude - flight.env.elevation
     if "state_dot" in needs:
         event_kwargs["state_dot"] = phase.dynamics.schema.canonicalize_derivative(
             phase.dynamics(interpolated_time, interpolated_state)
         )
     if "pressure" in needs:
-        event_kwargs["pressure"] = flight.env.pressure.get_value_opt(view["z"])
+        event_kwargs["pressure"] = flight.env.pressure.get_value_opt(altitude)
     # state_history does not change per node — already set by build_event_kwargs
     return event_kwargs
 

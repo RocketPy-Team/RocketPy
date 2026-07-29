@@ -16,7 +16,7 @@ NEEDS_KEYS = frozenset({"state_dot", "pressure", "state_history"})
 PRESETS = {
     "apogee": lambda **kwargs: (
         len(kwargs["flight"].solution) >= 2
-        and kwargs["flight"].solution.view(-2)[1]["vz"] > 0 >= kwargs["state"][5]
+        and kwargs["flight"].solution.at_index(-2)["vz"] > 0 >= kwargs["state"][5]
     ),
     "burnout": lambda **kwargs: (
         kwargs.get("time") >= kwargs["rocket"].motor.burn_out_time
@@ -83,7 +83,26 @@ class Event:
             ``step_size`` (float, s),
             ``height_agl`` (float, m),
             ``event`` (this :class:`Event` instance),
-            ``sampling_rate`` (float, Hz or ``None``).
+            ``sampling_rate`` (float, Hz or ``None``),
+            ``previous_check_state`` (the ``state`` from the previous time this
+            event was checked, or ``None`` on the first check),
+            ``previous_check_time`` (float, s, or ``None`` on the first check).
+
+            To fire when a value crosses a threshold, compare ``state``
+            against ``previous_check_state``. Those two are always consecutive
+            checks of this same event, so a crossing cannot slip between
+            them::
+
+                def trigger(**kwargs):
+                    previous = kwargs["previous_check_state"]
+                    if previous is None:
+                        return False
+                    return previous[5] > 0 >= kwargs["state"][5]
+
+            Do not use ``state_history[-1]`` for this. That is the last
+            *stored* trajectory point, which advances independently of when
+            this event is checked, so a crossing can fall between the two and
+            never be seen.
             The following keys are only injected when declared via ``needs``:
             ``pressure`` (float, Pa),
             ``state_dot`` (list, time derivative of ``state``),
@@ -215,6 +234,10 @@ class Event:
         self.callback_log = []
         self.triggered_times = []
         self._trigger_checked = False
+        # State and time from the last time this event's trigger was checked.
+        # ``None`` until the first check.
+        self._previous_state = None
+        self._previous_time = None
 
         self.is_discrete = self.sampling_rate is not None
         self.sampling_interval = (
@@ -275,6 +298,8 @@ class Event:
         self.callback_log.clear()
         self.triggered_times.clear()
         self._trigger_checked = False
+        self._previous_state = None
+        self._previous_time = None
         self.context = deepcopy(self._initial_context)
 
         # Restore enable/disable time history to initial snapshot
@@ -327,6 +352,11 @@ class Event:
 
         kwargs["event"] = self
         kwargs["sampling_rate"] = self.sampling_rate
+        # What this event saw the last time it was checked. Comparing against
+        # it is the reliable way to notice a value crossing a threshold, since
+        # the two states are always consecutive checks of this same event.
+        kwargs["previous_check_state"] = self._previous_state
+        kwargs["previous_check_time"] = self._previous_time
 
         # --- Trigger Phase ---
         # Skip evaluating triggers if we are only running the callback.
@@ -334,7 +364,15 @@ class Event:
             if self._call_enable_on(**kwargs) is False:
                 return False
 
-            if self._call_trigger(**kwargs) is False:
+            triggered = self._call_trigger(**kwargs)
+
+            # Remember this check, whether or not it triggered, so the next one
+            # can be compared against it. Recorded before the early return so a
+            # trigger that did not fire is still part of the sequence.
+            self._previous_state = kwargs.get("state")
+            self._previous_time = kwargs.get("time")
+
+            if triggered is False:
                 return False
 
             if trigger_only:
@@ -447,7 +485,7 @@ class Event:
         # The exact-time functions read the state by its canonical position, so
         # feed them canonical endpoints and a canonical view of the dense
         # output. The raw dense output is kept so the exact state can be written
-        # back into the (possibly reduced) tail segment of the solution.
+        # back into the (possibly reduced) tail phase of the solution.
         schema = phase.dynamics.schema
         raw_interpolator = phase.solver.dense_output()
         if schema.is_canonical:
