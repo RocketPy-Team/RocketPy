@@ -281,16 +281,15 @@ def apply_new_phase_or_derivative(
     ):
         flight.solution.pop(-1)
 
-    derivative = phase.derivative
+    dynamics = phase.dynamics
     if event_results.new_derivative is not None:
-        derivative = event_results.new_derivative
+        dynamics = event_results.new_derivative
 
     flight.flight_phases.add_phase(
         when_time + event_results.new_flight_phase_lag,
-        derivatives=derivative,
+        dynamics=dynamics,
         index=phase_index + 1,
         name=event_results.new_flight_phase_name,
-        parachute=event_results.new_flight_phase_parachute,
     )
 
     # Prepare to leave loops and start new flight phase

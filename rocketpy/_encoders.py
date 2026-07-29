@@ -161,7 +161,6 @@ def set_minimal_flight_attributes(flight, obj):
         "atol",
         "time_overshoot",
         "name",
-        "solution",
         "out_of_rail_time",
         "apogee_time",
         "apogee",
@@ -189,22 +188,29 @@ def set_minimal_flight_attributes(flight, obj):
         "net_thrust",
     )
 
+    # The solution is stored either as the new phase-based dict or, for older
+    # saved flights, as a flat list of canonical rows. It is restored before the
+    # attributes above because the fallbacks below read flight outputs, which
+    # are all computed from the solution.
+    raw_solution = obj["solution"]
+    if isinstance(raw_solution, dict):
+        flight.solution = Solution.from_dict(raw_solution)
+    else:
+        flight.solution = Solution.from_legacy_list(raw_solution)
+
     for attribute in attributes:
         try:
             setattr(flight, attribute, obj[attribute])
         except KeyError:
             # Manual resolution of new attributes
             if attribute == "net_thrust":
-                flight.net_thrust = obj["rocket"].motor.thrust
-                flight.net_thrust.set_discrete_based_on_model(flight.speed)
-
-    # The solution is stored either as the new segment-based dict or, for older
-    # saved flights, as a flat list of canonical rows.
-    raw_solution = obj["solution"]
-    if isinstance(raw_solution, dict):
-        flight.solution = Solution.from_dict(raw_solution)
-    else:
-        flight.solution = Solution.from_legacy_list(raw_solution)
+                # Resample the thrust curve onto the flight's time grid without
+                # mutating the motor's own thrust Function.
+                flight.net_thrust = obj[
+                    "rocket"
+                ].motor.thrust.set_discrete_based_on_model(
+                    flight.speed, mutate_self=False
+                )
 
     flight.t_initial = flight.initial_solution[0]
 

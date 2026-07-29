@@ -19,7 +19,6 @@ class Commands:
         self.new_flight_phase = None
         self.new_flight_phase_name = None
         self.new_flight_phase_lag = 0
-        self.new_flight_phase_parachute = None
         self._terminate = False
         self.terminate_phase_name = None
 
@@ -39,11 +38,10 @@ class Commands:
         self.new_derivative = derivative
         self.new_derivative_set = True
 
-    def start_flight_phase(self, phase_name=None, lag=0, parachute=None):
+    def start_flight_phase(self, phase_name=None, lag=0):
         self.new_flight_phase = True
         self.new_flight_phase_name = phase_name
         self.new_flight_phase_lag = lag
-        self.new_flight_phase_parachute = parachute
 
     def terminate_flight(self):
         self._terminate = True

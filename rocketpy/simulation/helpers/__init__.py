@@ -1,5 +1,4 @@
 from .dynamics import (
-    DYNAMICS_REGISTRY,
     PARACHUTE_DYNAMICS,
     RAIL_DYNAMICS,
     SIX_DOF_DYNAMICS,
@@ -24,7 +23,6 @@ __all__ = [
     "u_dot_parachute",
     "udot_rail1",
     "udot_rail2",
-    "DYNAMICS_REGISTRY",
     "PARACHUTE_DYNAMICS",
     "RAIL_DYNAMICS",
     "SIX_DOF_DYNAMICS",

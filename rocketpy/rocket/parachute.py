@@ -347,14 +347,23 @@ class Parachute:
         elif trigger.lower() == "apogee":
 
             def triggerfunc(**kwargs):
-                state_history = kwargs.get("state_history")
-                if not state_history:
-                    return False
-                return state_history[-1][5] > 0 >= kwargs["state"][5]
+                # Deploy when the rocket stops climbing, by comparing this
+                # check against the previous one. Both come from consecutive
+                # checks of this same parachute, so the moment the vertical
+                # velocity turns negative always falls between two of them and
+                # cannot be stepped over. Comparing against the last stored
+                # trajectory point instead would not be safe: those points
+                # advance on their own schedule, and the turn can happen
+                # between two of this parachute's checks without ever showing
+                # up between two stored points.
+                previous = kwargs["previous_check_state"]
+                if previous is None:
+                    return False  # nothing to compare against yet
+                return previous[5] > 0 >= kwargs["state"][5]
 
             self.triggerfunc = triggerfunc
             self._trigger_is_positional = False
-            self._trigger_needs = frozenset({"state_history"})
+            self._trigger_needs = frozenset()
 
         # Case 4: Invalid trigger input
         else:
@@ -392,14 +401,16 @@ class Parachute:
             time = kwargs.get("time", None)
             flight = kwargs.get("flight", None)
 
-            flight._active_parachute = self
             flight.parachute_events.append([time, self])
 
-            kwargs["event"].commands.set_derivative(flight.u_dot_parachute)
+            # The descent dynamics carry this parachute, so the phase keeps
+            # using the right one even when another parachute deploys later.
+            kwargs["event"].commands.set_derivative(
+                flight.u_dot_parachute.rebind(parachute=self)
+            )
             kwargs["event"].commands.start_flight_phase(
                 f"{self.name}_parachute_descent",
                 lag=self.lag,
-                parachute=self,
             )
 
         # Resolve effective needs: explicit override > auto-detected default.
