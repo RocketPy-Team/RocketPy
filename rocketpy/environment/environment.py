@@ -1811,7 +1811,7 @@ class Environment:
             If credentials are missing, if no launch date is set, or if the API
             returns no usable data.
         """
-        model = model if isinstance(model, str) else "mix"
+        model = model or "mix"
         username = username or os.environ.get("METEOMATICS_USERNAME")
         password = password or os.environ.get("METEOMATICS_PASSWORD")
         if not username or not password:
@@ -1821,10 +1821,16 @@ class Environment:
                 "or set the METEOMATICS_USERNAME and METEOMATICS_PASSWORD "
                 "environment variables."
             )
-        if getattr(self, "datetime_date", None) is None:
-            raise ValueError(
-                "A launch date is required to use the Meteomatics atmospheric "
-                "model. Provide it when creating the Environment or via set_date()."
+        self.__validate_datetime()
+
+        if self.elevation == 0:
+            warnings.warn(
+                "The Environment elevation is 0 m (possibly unset), so Meteomatics "
+                "heights above ground level are being treated as heights above sea "
+                "level. Set the elevation before this call if the launch site is "
+                "not at sea level.",
+                UserWarning,
+                stacklevel=2,
             )
 
         profiles = fetch_atmospheric_data_from_meteomatics(
@@ -1841,39 +1847,34 @@ class Environment:
             query_limit=query_limit,
         )
 
-        if self.elevation == 0:
-            warnings.warn(
-                "The Environment elevation is 0 m (possibly unset), so "
-                "Meteomatics heights above ground level are being treated as "
-                "heights above sea level. If the launch site is not at sea "
-                "level, set the elevation (e.g. Environment(elevation=...) or "
-                "set_elevation('Open-Elevation')) before this call for an "
-                "accurate profile.",
-                UserWarning,
-                stacklevel=2,
+        def to_profile_array(*names):
+            """Convert {AGL height: value} mappings into a sorted array whose
+            first column is the ASL height and the remaining ones the requested
+            profile values, keeping only the heights that carry a value in
+            every mapping."""
+            common_heights = set.intersection(*(set(profiles[n]) for n in names))
+            heights = sorted(
+                h
+                for h in common_heights
+                if all(profiles[n][h] is not None for n in names)
             )
-
-        def to_profile_array(profile):
-            """Convert an {AGL height: value} mapping into a sorted
-            (ASL height, value) array, dropping any missing value."""
-            heights = sorted(h for h, value in profile.items() if value is not None)
             return np.array(
-                [(h + self.elevation, profile[h]) for h in heights], dtype=float
+                [
+                    (h + self.elevation, *(profiles[n][h] for n in names))
+                    for h in heights
+                ],
+                dtype=float,
             )
 
-        pressure_array = to_profile_array(profiles["pressure"])
-        temperature_array = to_profile_array(profiles["temperature"])
-
+        pressure_array = to_profile_array("pressure")
+        temperature_array = to_profile_array("temperature")
         # Wind u and v share the same altitude grid; keep only common levels.
-        wind_heights = sorted(
-            h
-            for h in set(profiles["wind_u"]) & set(profiles["wind_v"])
-            if profiles["wind_u"][h] is not None and profiles["wind_v"][h] is not None
-        )
+        wind_array = to_profile_array("wind_u", "wind_v")
+
         # Each profile needs at least two levels: a single-point Function cannot
         # be evaluated at its own node (it raises IndexError downstream), so a
         # collapsed grid must fail here with an actionable message instead.
-        if min(len(pressure_array), len(temperature_array), len(wind_heights)) < 2:
+        if min(len(pressure_array), len(temperature_array), len(wind_array)) < 2:
             raise ValueError(
                 "Meteomatics did not return enough usable atmospheric data: at "
                 "least two valid altitude levels are required for pressure, "
@@ -1883,11 +1884,11 @@ class Environment:
                 "and your account permissions."
             )
 
-        wind_u_values = np.array([profiles["wind_u"][h] for h in wind_heights])
-        wind_v_values = np.array([profiles["wind_v"][h] for h in wind_heights])
-        wind_asl_heights = np.array(wind_heights, dtype=float) + self.elevation
-        wind_u_array = np.column_stack((wind_asl_heights, wind_u_values))
-        wind_v_array = np.column_stack((wind_asl_heights, wind_v_values))
+        wind_asl_heights = wind_array[:, 0]
+        wind_u_values = wind_array[:, 1]
+        wind_v_values = wind_array[:, 2]
+        wind_u_array = wind_array[:, (0, 1)]
+        wind_v_array = wind_array[:, (0, 2)]
 
         wind_speed_array = calculate_wind_speed(wind_u_values, wind_v_values)
         wind_heading_array = calculate_wind_heading(wind_u_values, wind_v_values)
@@ -3181,8 +3182,11 @@ class Environment:
         )
         atmospheric_model = data["atmospheric_model_type"]
         env.atmospheric_model_type = atmospheric_model
+        # set_atmospheric_model stores the type as the user spelled it (e.g.
+        # "Meteomatics"), so the dispatch below must be case-insensitive.
+        model_type = atmospheric_model.lower()
 
-        match atmospheric_model:
+        match model_type:
             case "standard_atmosphere":
                 env.set_atmospheric_model("standard_atmosphere")
             case "custom_atmosphere":
@@ -3204,13 +3208,7 @@ class Environment:
                 env.elevation = data["elevation"]
                 env.max_expected_height = data["max_expected_height"]
 
-        if isinstance(atmospheric_model, str) and atmospheric_model.lower() in (
-            "windy",
-            "meteomatics",
-            "forecast",
-            "reanalysis",
-            "ensemble",
-        ):
+        if model_type in ("windy", "meteomatics", "forecast", "reanalysis", "ensemble"):
             env.atmospheric_model_init_date = data["atmospheric_model_init_date"]
             env.atmospheric_model_end_date = data["atmospheric_model_end_date"]
             env.atmospheric_model_interval = data["atmospheric_model_interval"]
@@ -3219,7 +3217,7 @@ class Environment:
             env.atmospheric_model_init_lon = data["atmospheric_model_init_lon"]
             env.atmospheric_model_end_lon = data["atmospheric_model_end_lon"]
 
-        if atmospheric_model == "ensemble":
+        if model_type == "ensemble":
             env.level_ensemble = data["level_ensemble"]
             env.height_ensemble = data["height_ensemble"]
             env.temperature_ensemble = data["temperature_ensemble"]

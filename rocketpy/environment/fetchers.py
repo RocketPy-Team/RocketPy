@@ -22,9 +22,6 @@ MAX_RETRY_DELAY_SECONDS = 600
 METEOMATICS_BASE_URL = "https://api.meteomatics.com"
 METEOMATICS_LOGIN_URL = "https://login.meteomatics.com/api/v1/token"
 METEOMATICS_TIMEOUT_SECONDS = 30
-# Matches Meteomatics height-level parameters such as "t_500m:K",
-# "pressure_1000m:Pa" or "wind_speed_u_120m:ms".
-_METEOMATICS_PARAMETER_REGEX = re.compile(r"^(?P<var>[a-z_]+)_(?P<height>\d+)m:")
 
 
 @exponential_backoff(max_attempts=3, base_delay=1, max_delay=60)
@@ -468,9 +465,59 @@ def _meteomatics_get(url, headers=None, params=None):
         url, headers=headers, params=params, timeout=METEOMATICS_TIMEOUT_SECONDS
     )
     if response.status_code >= 500:
-        # Server-side error: raise so the backoff decorator retries it.
         response.raise_for_status()
     return response
+
+
+def _meteomatics_request_json(url, endpoint, headers=None, params=None):
+    """Queries a Meteomatics endpoint and returns its parsed JSON body.
+
+    Parameters
+    ----------
+    url : str
+        The endpoint address to query.
+    endpoint : str
+        Human-readable name of the endpoint (e.g. ``"login service"``), used to
+        build the error messages.
+    headers : dict, optional
+        Headers to send with the request.
+    params : dict, optional
+        Query parameters to send with the request.
+
+    Returns
+    -------
+    dict
+        The parsed JSON body of the response.
+
+    Raises
+    ------
+    RuntimeError
+        If the endpoint cannot be reached, rejects the credentials, returns an
+        error status, or returns a malformed (non-JSON) body. Client-side (4xx)
+        errors are definitive and are not retried.
+    """
+    try:
+        response = _meteomatics_get(url, headers=headers, params=params)
+    except requests.exceptions.RequestException as e:
+        raise RuntimeError(
+            f"Unable to reach the Meteomatics {endpoint}. Please try again later."
+        ) from e
+    if response.status_code in (401, 403):
+        raise RuntimeError(
+            f"Meteomatics rejected the credentials (HTTP {response.status_code}). "
+            "Check your username and password."
+        )
+    if not response.ok:
+        raise RuntimeError(
+            f"Meteomatics {endpoint} request failed "
+            f"(HTTP {response.status_code}). {response.text[:300]}".strip()
+        )
+    try:
+        return response.json()
+    except requests.exceptions.JSONDecodeError as e:
+        raise RuntimeError(
+            f"Meteomatics {endpoint} returned a malformed (non-JSON) response."
+        ) from e
 
 
 def fetch_meteomatics_token(username, password):
@@ -478,8 +525,8 @@ def fetch_meteomatics_token(username, password):
 
     The Meteomatics API authenticates with a personal ``username`` and
     ``password``. Instead of sending the credentials on every request, a token
-    is generated once and reused. Each token is valid for a couple of hours,
-    which is more than enough to build a single ``Environment``.
+    is generated once and reused for the handful of requests needed to build a
+    single ``Environment``.
 
     Parameters
     ----------
@@ -502,30 +549,12 @@ def fetch_meteomatics_token(username, password):
     """
     credentials = f"{username}:{password}"
     encoded_credentials = base64.b64encode(credentials.encode()).decode()
-    headers = {"Authorization": f"Basic {encoded_credentials}"}
-    try:
-        response = _meteomatics_get(METEOMATICS_LOGIN_URL, headers=headers)
-    except requests.exceptions.RequestException as e:
-        raise RuntimeError(
-            "Unable to reach the Meteomatics login service. Please try again later."
-        ) from e
-
-    if response.status_code in (401, 403):
-        # Definitive authentication failure: do not retry.
-        raise RuntimeError(
-            f"Meteomatics rejected the credentials (HTTP {response.status_code}). "
-            "Check your username and password."
-        )
-    if not response.ok:
-        raise RuntimeError(
-            f"Meteomatics login request failed (HTTP {response.status_code})."
-        )
-    try:
-        token = response.json().get("access_token")
-    except requests.exceptions.JSONDecodeError as e:
-        raise RuntimeError(
-            "Meteomatics login service returned a malformed (non-JSON) response."
-        ) from e
+    payload = _meteomatics_request_json(
+        METEOMATICS_LOGIN_URL,
+        "login service",
+        headers={"Authorization": f"Basic {encoded_credentials}"},
+    )
+    token = payload.get("access_token")
     if not token:
         raise RuntimeError(
             "Meteomatics login service did not return an access token. "
@@ -538,7 +567,7 @@ def fetch_meteomatics_token(username, password):
 def _build_meteomatics_parameters(
     min_altitude, max_altitude, wind_resolution, temperature_pressure_resolution
 ):
-    """Builds the list of Meteomatics height-level parameters to query.
+    """Builds the Meteomatics height-level parameters to query.
 
     Wind components are sampled on a finer altitude grid than temperature and
     pressure, since the wind profile is usually the most variable one.
@@ -556,31 +585,36 @@ def _build_meteomatics_parameters(
 
     Returns
     -------
-    list of str
-        Parameter strings in the ``"<variable>_<height>m:<unit>"`` format.
+    dict
+        Maps each parameter string, in the ``"<variable>_<height>m:<unit>"``
+        format, to the ``(profile name, height)`` pair it carries. Keeping this
+        mapping spares the caller from parsing the parameter strings back.
     """
-    # Round to integer meters and drop duplicates that rounding may introduce
-    # for narrow bands, so we never request (and pay for) the same height twice.
-    fine_levels = np.unique(
-        np.linspace(min_altitude, max_altitude, wind_resolution).round().astype(int)
-    )
-    coarse_levels = np.unique(
-        np.linspace(min_altitude, max_altitude, temperature_pressure_resolution)
-        .round()
-        .astype(int)
-    )
 
-    wind_parameters = [
-        f"{var}_{height}m:{unit}"
-        for height in fine_levels
-        for var, unit in [("wind_speed_u", "ms"), ("wind_speed_v", "ms")]
+    def levels(resolution):
+        # Round to integer meters and drop duplicates that rounding may
+        # introduce for narrow bands, so we never request (and pay for) the
+        # same height twice.
+        return np.unique(
+            np.linspace(min_altitude, max_altitude, resolution).round().astype(int)
+        )
+
+    grids = [
+        (
+            levels(wind_resolution),
+            [("wind_speed_u", "ms", "wind_u"), ("wind_speed_v", "ms", "wind_v")],
+        ),
+        (
+            levels(temperature_pressure_resolution),
+            [("t", "K", "temperature"), ("pressure", "Pa", "pressure")],
+        ),
     ]
-    temperature_pressure_parameters = [
-        f"{var}_{height}m:{unit}"
-        for height in coarse_levels
-        for var, unit in [("t", "K"), ("pressure", "Pa")]
-    ]
-    return wind_parameters + temperature_pressure_parameters
+    return {
+        f"{var}_{height}m:{unit}": (profile, int(height))
+        for heights, variables in grids
+        for height in heights
+        for var, unit, profile in variables
+    }
 
 
 def _extract_meteomatics_json(data):
@@ -613,34 +647,6 @@ def _extract_meteomatics_json(data):
         raise RuntimeError(
             "Unexpected Meteomatics response structure; could not extract the "
             "requested data."
-        ) from e
-
-
-def _fetch_meteomatics_group(base_url, query_params):
-    """Performs a single Meteomatics data request and returns the JSON body.
-
-    Raises
-    ------
-    RuntimeError
-        If the API cannot be reached, returns an error status, or returns a
-        malformed (non-JSON) body. Client-side (4xx) errors are not retried.
-    """
-    try:
-        response = _meteomatics_get(base_url, params=query_params)
-    except requests.exceptions.RequestException as e:
-        raise RuntimeError(
-            "Unable to reach the Meteomatics data API. Please try again later."
-        ) from e
-    if not response.ok:
-        raise RuntimeError(
-            f"Meteomatics data request failed (HTTP {response.status_code}). "
-            f"{response.text[:300]}".strip()
-        )
-    try:
-        return response.json()
-    except requests.exceptions.JSONDecodeError as e:
-        raise RuntimeError(
-            "Meteomatics data API returned a malformed (non-JSON) response."
         ) from e
 
 
@@ -724,9 +730,10 @@ def fetch_atmospheric_data_from_meteomatics(
     token = fetch_meteomatics_token(username, password)
 
     date_string = date.strftime("%Y-%m-%dT%H:%M:%SZ")
-    parameters = _build_meteomatics_parameters(
+    parameter_map = _build_meteomatics_parameters(
         min_altitude, max_altitude, wind_resolution, temperature_pressure_resolution
     )
+    parameters = list(parameter_map)
     parameter_groups = [
         parameters[i : i + query_limit] for i in range(0, len(parameters), query_limit)
     ]
@@ -736,12 +743,6 @@ def fetch_atmospheric_data_from_meteomatics(
         "pressure": {},
         "wind_u": {},
         "wind_v": {},
-    }
-    variable_to_profile = {
-        "t": "temperature",
-        "pressure": "pressure",
-        "wind_speed_u": "wind_u",
-        "wind_speed_v": "wind_v",
     }
 
     for index, parameter_group in enumerate(parameter_groups):
@@ -756,13 +757,15 @@ def fetch_atmospheric_data_from_meteomatics(
             f"{latitude},{longitude}/json"
         )
         query_params = {"model": model, "access_token": token}
-        data = _fetch_meteomatics_group(base_url, query_params)
+        data = _meteomatics_request_json(base_url, "data API", params=query_params)
 
         for parameter, value in _extract_meteomatics_json(data):
-            match = _METEOMATICS_PARAMETER_REGEX.match(parameter)
-            if match is None or match.group("var") not in variable_to_profile:
-                raise ValueError(f"Unrecognized Meteomatics parameter '{parameter}'.")
-            height = int(match.group("height"))
-            profiles[variable_to_profile[match.group("var")]][height] = value
+            try:
+                profile, height = parameter_map[parameter]
+            except KeyError as e:
+                raise ValueError(
+                    f"Unrecognized Meteomatics parameter '{parameter}'."
+                ) from e
+            profiles[profile][height] = value
 
     return profiles

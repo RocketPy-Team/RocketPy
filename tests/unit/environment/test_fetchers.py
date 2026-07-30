@@ -255,7 +255,7 @@ def test_fetch_meteomatics_data_client_error_not_retried(monkeypatch):
         fetchers.requests, "get", _make_fake_meteomatics_get(calls, data_status=400)
     )
 
-    with pytest.raises(RuntimeError, match="data request failed"):
+    with pytest.raises(RuntimeError, match="data API request failed"):
         fetchers.fetch_atmospheric_data_from_meteomatics(
             username="user",
             password="pass",
