@@ -617,6 +617,39 @@ def _build_meteomatics_parameters(
     }
 
 
+def _validate_meteomatics_sampling(
+    min_altitude,
+    max_altitude,
+    wind_resolution,
+    temperature_pressure_resolution,
+    query_limit,
+):
+    """Validates the sampling arguments before any request is issued.
+
+    Catching these here keeps a degenerate input from reaching ``linspace`` or
+    ``range``, where it would surface as an opaque low-level error (or as an
+    empty request) after the account has already been charged for the login.
+
+    Raises
+    ------
+    ValueError
+        If the altitude range, the resolutions or the query limit are invalid.
+    """
+    if min_altitude < 0:
+        raise ValueError(
+            "min_altitude must be non-negative (heights are above ground level)."
+        )
+    if max_altitude <= min_altitude:
+        raise ValueError("max_altitude must be greater than min_altitude.")
+    if wind_resolution < 2 or temperature_pressure_resolution < 2:
+        raise ValueError(
+            "wind_resolution and temperature_pressure_resolution must be at least "
+            "2: a single altitude level is not enough to define a profile."
+        )
+    if query_limit < 1:
+        raise ValueError("query_limit must be at least 1.")
+
+
 def _extract_meteomatics_json(data):
     """Extracts (parameter, value) pairs from a Meteomatics JSON response.
 
@@ -682,7 +715,9 @@ def fetch_atmospheric_data_from_meteomatics(
         Longitude of the launch site, in degrees.
     date : datetime.datetime
         The instant to query. It is formatted according to the Meteomatics
-        date-time specification (``%Y-%m-%dT%H:%M:%SZ``).
+        date-time specification (``%Y-%m-%dT%H:%M:%SZ``). Timezone-aware
+        datetimes are converted to UTC; naive ones are assumed to be UTC
+        already.
     model : str, optional
         The Meteomatics weather model to use. Default is ``"mix"``. Your
         account may not have access to every model. See
@@ -717,18 +752,24 @@ def fetch_atmospheric_data_from_meteomatics(
         If authentication fails, the API cannot be reached, returns an error
         status, or returns a malformed response.
     ValueError
-        If the altitude range is invalid or the response contains an
-        unrecognized parameter.
+        If the altitude range, the resolutions or the query limit are invalid,
+        or if the response contains an unrecognized parameter.
     """
-    if min_altitude < 0:
-        raise ValueError(
-            "min_altitude must be non-negative (heights are above ground level)."
-        )
-    if max_altitude <= min_altitude:
-        raise ValueError("max_altitude must be greater than min_altitude.")
+    _validate_meteomatics_sampling(
+        min_altitude,
+        max_altitude,
+        wind_resolution,
+        temperature_pressure_resolution,
+        query_limit,
+    )
 
     token = fetch_meteomatics_token(username, password)
 
+    # The instant is sent with a trailing "Z", so an aware datetime must be
+    # converted to UTC instead of being formatted as-is. A naive datetime is
+    # assumed to already be in UTC.
+    if date.tzinfo is not None:
+        date = date.astimezone(timezone.utc)
     date_string = date.strftime("%Y-%m-%dT%H:%M:%SZ")
     parameter_map = _build_meteomatics_parameters(
         min_altitude, max_altitude, wind_resolution, temperature_pressure_resolution

@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -301,3 +301,52 @@ def test_fetch_meteomatics_data_invalid_altitude_range_raises(altitudes):
             date=datetime(2024, 1, 1, 12, tzinfo=timezone.utc),
             **altitudes,
         )
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "message"),
+    [
+        ({"wind_resolution": 1}, "at least"),
+        ({"temperature_pressure_resolution": 0}, "at least"),
+        ({"query_limit": 0}, "query_limit must be at least 1"),
+    ],
+)
+def test_fetch_meteomatics_data_invalid_sampling_raises(kwargs, message):
+    """Reject degenerate resolutions and query limits with a clear message.
+
+    Without the up-front check these reach ``linspace``/``range`` and fail with
+    an opaque low-level error (or an empty request) instead.
+    """
+    with pytest.raises(ValueError, match=message):
+        fetchers.fetch_atmospheric_data_from_meteomatics(
+            username="user",
+            password="pass",
+            latitude=39.0,
+            longitude=-8.0,
+            date=datetime(2024, 1, 1, 12, tzinfo=timezone.utc),
+            **kwargs,
+        )
+
+
+def test_fetch_meteomatics_data_converts_date_to_utc(monkeypatch):
+    """A non-UTC aware datetime must be converted, not stamped with a bare Z.
+
+    The request path carries the instant with a trailing "Z", so 12:00 at
+    UTC+03:00 has to be sent as 09:00Z.
+    """
+    calls = []
+    monkeypatch.setattr(fetchers.requests, "get", _make_fake_meteomatics_get(calls))
+
+    fetchers.fetch_atmospheric_data_from_meteomatics(
+        username="user",
+        password="pass",
+        latitude=39.0,
+        longitude=-8.0,
+        date=datetime(2024, 1, 1, 12, tzinfo=timezone(timedelta(hours=3))),
+        wind_resolution=2,
+        temperature_pressure_resolution=2,
+    )
+
+    data_calls = [c for c in calls if c[0] != fetchers.METEOMATICS_LOGIN_URL]
+    assert data_calls, "expected at least one data request"
+    assert all("2024-01-01T09:00:00Z" in url for url, _ in data_calls)

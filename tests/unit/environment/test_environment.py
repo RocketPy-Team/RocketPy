@@ -481,6 +481,20 @@ def test_meteomatics_atmosphere_sets_profiles(example_euroc_env, monkeypatch):
     assert recorder["model"] == "mix"
 
 
+def test_meteomatics_non_string_model_raises(example_euroc_env, monkeypatch):
+    """Reject a non-string model instead of silently querying the default.
+
+    Passing a Dataset or a path as ``file`` by accident must not be coerced to
+    ``"mix"``, which would quietly query (and charge for) the wrong model.
+    """
+    _patch_meteomatics_fetcher(monkeypatch)
+
+    with pytest.raises(ValueError, match="Invalid Meteomatics model"):
+        example_euroc_env.set_atmospheric_model(
+            type="Meteomatics", file=123, username="user", password="pass"
+        )
+
+
 def test_meteomatics_reads_credentials_from_environment(example_euroc_env, monkeypatch):
     """Fall back to the METEOMATICS_* environment variables for credentials."""
     recorder = {}

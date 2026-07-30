@@ -1808,10 +1808,18 @@ class Environment:
         Raises
         ------
         ValueError
-            If credentials are missing, if no launch date is set, or if the API
-            returns no usable data.
+            If ``model`` is not a string, if credentials are missing, if no
+            launch date is set, or if the API returns no usable data.
         """
-        model = model or "mix"
+        if model is None:
+            model = "mix"
+        elif not isinstance(model, str):
+            # Coercing silently would hide a mistake such as passing a Dataset
+            # or a file path as 'file', and would query the wrong model.
+            raise ValueError(
+                f"Invalid Meteomatics model {model!r}: expected the model name as "
+                "a string (e.g. 'mix'), or None to use the default."
+            )
         username = username or os.environ.get("METEOMATICS_USERNAME")
         password = password or os.environ.get("METEOMATICS_PASSWORD")
         if not username or not password:
