@@ -1,0 +1,23 @@
+name: Qodo PR-Agent Gemini Reviewer
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  issue_comment:
+    types: [created]
+
+jobs:
+  pr_agent_job:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+      contents: read
+    name: Run PR Agent
+    steps:
+      - name: PR Agent Action
+        uses: Codium-ai/pr-agent-action@main
+        env:
+          OPENAI_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PR_AGENT.MODEL: "gemini/gemini-2.5-pro"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
