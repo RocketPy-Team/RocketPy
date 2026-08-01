@@ -1755,7 +1755,123 @@ class Environment:
             wind_v_array,
         )
 
-    def process_meteomatics_atmosphere(  # pylint: disable=too-many-statements
+    @staticmethod
+    def _validate_meteomatics_credentials_and_model(model, username, password):
+        """Validates model and credentials for Meteomatics requests."""
+        if model is None:
+            model = "mix"
+        elif not isinstance(model, str):
+            # Coercing silently would hide a mistake such as passing a Dataset
+            # or a file path as 'file', and would query the wrong model.
+            raise ValueError(
+                f"Invalid Meteomatics model {model!r}: expected the model name as "
+                "a string (e.g. 'mix'), or None to use the default."
+            )
+        username = username or os.environ.get("METEOMATICS_USERNAME")
+        password = password or os.environ.get("METEOMATICS_PASSWORD")
+        if not username or not password:
+            raise ValueError(
+                "Meteomatics requires a username and password. Provide them via "
+                "the 'username' and 'password' arguments of set_atmospheric_model, "
+                "or set the METEOMATICS_USERNAME and METEOMATICS_PASSWORD "
+                "environment variables."
+            )
+        return model, username, password
+
+    def _store_meteomatics_functions(
+        self, pressure_array, temperature_array, wind_array
+    ):
+        """Sets internal atmospheric functions for Meteomatics."""
+        wind_asl_heights = wind_array[:, 0]
+        wind_u_values = wind_array[:, 1]
+        wind_v_values = wind_array[:, 2]
+
+        wind_speed_array = calculate_wind_speed(wind_u_values, wind_v_values)
+        wind_heading_array = calculate_wind_heading(wind_u_values, wind_v_values)
+        wind_direction_array = convert_wind_heading_to_direction(wind_heading_array)
+
+        # Save atmospheric data
+        self.__set_pressure_function(pressure_array)
+        self.__set_barometric_height_function(pressure_array[:, (1, 0)])
+        self.__set_temperature_function(temperature_array)
+        self.__set_wind_velocity_x_function(wind_array[:, (0, 1)])
+        self.__set_wind_velocity_y_function(wind_array[:, (0, 2)])
+        self.__set_wind_heading_function(
+            np.column_stack((wind_asl_heights, wind_heading_array))
+        )
+        self.__set_wind_direction_function(
+            np.column_stack((wind_asl_heights, wind_direction_array))
+        )
+        self.__set_wind_speed_function(
+            np.column_stack((wind_asl_heights, wind_speed_array))
+        )
+
+        # Save maximum expected height
+        self._max_expected_height = float(
+            max(pressure_array[-1, 0], temperature_array[-1, 0], wind_asl_heights[-1])
+        )
+
+    def _store_meteomatics_metadata(
+        self, pressure_array, temperature_array, wind_array
+    ):
+        """Sets metadata attributes and debug data for Meteomatics."""
+        wind_asl_heights = wind_array[:, 0]
+        self.atmospheric_model_init_date = self.datetime_date
+        self.atmospheric_model_end_date = self.datetime_date
+        self.atmospheric_model_interval = 0
+        self.atmospheric_model_init_lat = self.latitude
+        self.atmospheric_model_end_lat = self.latitude
+        self.atmospheric_model_init_lon = self.longitude
+        self.atmospheric_model_end_lon = self.longitude
+
+        # Save debugging data
+        self.wind_us = wind_array[:, 1]
+        self.wind_vs = wind_array[:, 2]
+        self.temperatures = temperature_array[:, 1]
+        self.pressures = pressure_array[:, 1]
+        self.height = wind_asl_heights
+
+    def _process_meteomatics_profiles(self, profiles):
+        """Converts retrieved height-AGL profiles to ASL arrays and configures
+        the Environment atmospheric functions."""
+
+        def to_profile_array(*names):
+            common_heights = set.intersection(*(set(profiles[n]) for n in names))
+            heights = sorted(
+                h
+                for h in common_heights
+                if all(profiles[n][h] is not None for n in names)
+            )
+            return np.array(
+                [
+                    (h + self.elevation, *(profiles[n][h] for n in names))
+                    for h in heights
+                ],
+                dtype=float,
+            )
+
+        pressure_array = to_profile_array("pressure")
+        temperature_array = to_profile_array("temperature")
+        # Wind u and v share the same altitude grid; keep only common levels.
+        wind_array = to_profile_array("wind_u", "wind_v")
+
+        # Each profile needs at least two levels: a single-point Function cannot
+        # be evaluated at its own node (it raises IndexError downstream), so a
+        # collapsed grid must fail here with an actionable message instead.
+        if min(len(pressure_array), len(temperature_array), len(wind_array)) < 2:
+            raise ValueError(
+                "Meteomatics did not return enough usable atmospheric data: at "
+                "least two valid altitude levels are required for pressure, "
+                "temperature and wind. Check the requested model, the altitude "
+                "range (min_altitude and max_altitude must be far enough apart "
+                "that the sampled levels do not collapse to a single height), "
+                "and your account permissions."
+            )
+
+        self._store_meteomatics_functions(pressure_array, temperature_array, wind_array)
+        self._store_meteomatics_metadata(pressure_array, temperature_array, wind_array)
+
+    def process_meteomatics_atmosphere(
         self,
         model="mix",
         username=None,
@@ -1811,24 +1927,9 @@ class Environment:
             If ``model`` is not a string, if credentials are missing, if no
             launch date is set, or if the API returns no usable data.
         """
-        if model is None:
-            model = "mix"
-        elif not isinstance(model, str):
-            # Coercing silently would hide a mistake such as passing a Dataset
-            # or a file path as 'file', and would query the wrong model.
-            raise ValueError(
-                f"Invalid Meteomatics model {model!r}: expected the model name as "
-                "a string (e.g. 'mix'), or None to use the default."
-            )
-        username = username or os.environ.get("METEOMATICS_USERNAME")
-        password = password or os.environ.get("METEOMATICS_PASSWORD")
-        if not username or not password:
-            raise ValueError(
-                "Meteomatics requires a username and password. Provide them via "
-                "the 'username' and 'password' arguments of set_atmospheric_model, "
-                "or set the METEOMATICS_USERNAME and METEOMATICS_PASSWORD "
-                "environment variables."
-            )
+        model, username, password = self._validate_meteomatics_credentials_and_model(
+            model, username, password
+        )
         self.__validate_datetime()
 
         if self.elevation == 0:
@@ -1855,89 +1956,7 @@ class Environment:
             query_limit=query_limit,
         )
 
-        def to_profile_array(*names):
-            """Convert {AGL height: value} mappings into a sorted array whose
-            first column is the ASL height and the remaining ones the requested
-            profile values, keeping only the heights that carry a value in
-            every mapping."""
-            common_heights = set.intersection(*(set(profiles[n]) for n in names))
-            heights = sorted(
-                h
-                for h in common_heights
-                if all(profiles[n][h] is not None for n in names)
-            )
-            return np.array(
-                [
-                    (h + self.elevation, *(profiles[n][h] for n in names))
-                    for h in heights
-                ],
-                dtype=float,
-            )
-
-        pressure_array = to_profile_array("pressure")
-        temperature_array = to_profile_array("temperature")
-        # Wind u and v share the same altitude grid; keep only common levels.
-        wind_array = to_profile_array("wind_u", "wind_v")
-
-        # Each profile needs at least two levels: a single-point Function cannot
-        # be evaluated at its own node (it raises IndexError downstream), so a
-        # collapsed grid must fail here with an actionable message instead.
-        if min(len(pressure_array), len(temperature_array), len(wind_array)) < 2:
-            raise ValueError(
-                "Meteomatics did not return enough usable atmospheric data: at "
-                "least two valid altitude levels are required for pressure, "
-                "temperature and wind. Check the requested model, the altitude "
-                "range (min_altitude and max_altitude must be far enough apart "
-                "that the sampled levels do not collapse to a single height), "
-                "and your account permissions."
-            )
-
-        wind_asl_heights = wind_array[:, 0]
-        wind_u_values = wind_array[:, 1]
-        wind_v_values = wind_array[:, 2]
-        wind_u_array = wind_array[:, (0, 1)]
-        wind_v_array = wind_array[:, (0, 2)]
-
-        wind_speed_array = calculate_wind_speed(wind_u_values, wind_v_values)
-        wind_heading_array = calculate_wind_heading(wind_u_values, wind_v_values)
-        wind_direction_array = convert_wind_heading_to_direction(wind_heading_array)
-
-        # Save atmospheric data
-        self.__set_pressure_function(pressure_array)
-        self.__set_barometric_height_function(pressure_array[:, (1, 0)])
-        self.__set_temperature_function(temperature_array)
-        self.__set_wind_velocity_x_function(wind_u_array)
-        self.__set_wind_velocity_y_function(wind_v_array)
-        self.__set_wind_heading_function(
-            np.column_stack((wind_asl_heights, wind_heading_array))
-        )
-        self.__set_wind_direction_function(
-            np.column_stack((wind_asl_heights, wind_direction_array))
-        )
-        self.__set_wind_speed_function(
-            np.column_stack((wind_asl_heights, wind_speed_array))
-        )
-
-        # Save maximum expected height
-        self._max_expected_height = float(
-            max(pressure_array[-1, 0], temperature_array[-1, 0], wind_asl_heights[-1])
-        )
-
-        # Save model info metadata (single point in space and time)
-        self.atmospheric_model_init_date = self.datetime_date
-        self.atmospheric_model_end_date = self.datetime_date
-        self.atmospheric_model_interval = 0
-        self.atmospheric_model_init_lat = self.latitude
-        self.atmospheric_model_end_lat = self.latitude
-        self.atmospheric_model_init_lon = self.longitude
-        self.atmospheric_model_end_lon = self.longitude
-
-        # Save debugging data
-        self.wind_us = wind_u_values
-        self.wind_vs = wind_v_values
-        self.temperatures = temperature_array[:, 1]
-        self.pressures = pressure_array[:, 1]
-        self.height = wind_asl_heights
+        self._process_meteomatics_profiles(profiles)
 
     def process_wyoming_sounding(self, file):  # pylint: disable=too-many-statements
         """Import and process the upper air sounding data from `Wyoming

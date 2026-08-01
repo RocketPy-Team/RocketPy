@@ -280,7 +280,7 @@ def test_fetch_meteomatics_data_client_error_not_retried(monkeypatch):
 def test_extract_meteomatics_json_bad_structure_raises(payload):
     """Turn an unexpected 200 payload into a clear RuntimeError, not KeyError."""
     with pytest.raises(RuntimeError, match="Unexpected Meteomatics response"):
-        fetchers._extract_meteomatics_json(payload)
+        fetchers.MeteomaticsFetcher._extract_json(payload)
 
 
 @pytest.mark.parametrize(
