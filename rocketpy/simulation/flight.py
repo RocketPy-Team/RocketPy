@@ -672,6 +672,13 @@ class Flight:
             for callback in phase.callbacks:
                 callback(self)
 
+            if getattr(self, "new_deploy", False):
+                self.new_deploy = False
+                self.y_sol = np.append(
+                    self.y_sol[:13], [0]
+                )  # self.parachute_initial_volume
+                self.atol = np.append(self.atol[:13], [1e-3])
+
             # Create solver for this flight phase
             self.function_evaluations.append(0)
 
@@ -765,15 +772,13 @@ class Flight:
                                 "parachute_added_mass_coefficient",
                                 added_mass_coefficient,
                             ),
-                            lambda self,
-                            initial_volume=parachute.initial_volume: setattr(
-                                self,
-                                "parachute_volume",
-                                initial_volume,
-                            ),
-                            lambda self: delattr(self, "__t0")
-                            if hasattr(self, "__t0")
-                            else None,
+                            # lambda self,
+                            # initial_volume=parachute.initial_volume: setattr(
+                            #     self,
+                            #     "parachute_initial_volume",
+                            #     initial_volume,
+                            # ),
+                            lambda self: setattr(self, "new_deploy", True),
                         ]
                         self.flight_phases.add_phase(
                             node.t + parachute.lag,
@@ -802,7 +807,7 @@ class Flight:
 
                     # Update time and state
                     self.t = phase.solver.t
-                    self.y_sol = phase.solver.y
+                    self.y_sol = phase.solver.y[:13]
                     if verbose:
                         print(f"Current Simulation Time: {self.t:3.4f} s", end="\r")
 
@@ -829,6 +834,9 @@ class Flight:
             self.__cache_sensor_data()
         if verbose:
             print(f"\n>>> Simulation Completed at Time: {self.t:3.4f} s")
+
+        self.solution_not_trimmed = self.solution[:]
+        self.solution = [line[:14] for line in self.solution]
 
     def __setup_phase_time_nodes(self, phase):
         """Set up time nodes for the current phase.
@@ -996,12 +1004,12 @@ class Flight:
                     "parachute_added_mass_coefficient",
                     added_mass_coefficient,
                 ),
-                lambda self, initial_volume=parachute.initial_volume: setattr(
-                    self,
-                    "parachute_volume",
-                    initial_volume,
-                ),
-                lambda self: delattr(self, "__t0") if hasattr(self, "__t0") else None,
+                # lambda self, initial_volume=parachute.initial_volume: setattr(
+                #     self,
+                #     "parachute_initial_volume",
+                #     initial_volume,
+                # ),
+                lambda self: setattr(self, "new_deploy", True),
             ]
             self.flight_phases.add_phase(
                 node.t + parachute.lag,
@@ -1408,12 +1416,12 @@ class Flight:
                     "parachute_added_mass_coefficient",
                     added_mass_coefficient,
                 ),
-                lambda self, initial_volume=parachute.initial_volume: setattr(
-                    self,
-                    "parachute_volume",
-                    initial_volume,
-                ),
-                lambda self: delattr(self, "__t0") if hasattr(self, "__t0") else None,
+                # lambda self, initial_volume=parachute.initial_volume: setattr(
+                #     self,
+                #     "parachute_initial_volume",
+                #     initial_volume,
+                # ),
+                lambda self: setattr(self, "new_deploy", True),
             ]
             self.flight_phases.add_phase(
                 overshootable_node.t + parachute.lag,
@@ -1561,7 +1569,7 @@ class Flight:
         if self._controllers or self.sensors:
             # Handle post process during simulation, get initial accel/forces
             self.initial_derivative(
-                self.t_initial, self.initial_solution[1:], post_processing=True
+                self.t_initial, self.initial_solution[1:13], post_processing=True
             )
 
     def __init_solver_monitors(self):
@@ -2714,6 +2722,7 @@ class Flight:
         """
         # Get relevant state data
         z, vx, vy, vz = u[2:6]
+        parachute_volume = u[13]
 
         # Get atmospheric data
         rho = self.env.density.get_value_opt(z)
@@ -2727,56 +2736,86 @@ class Flight:
         freestream_x = vx - wind_velocity_x
         freestream_y = vy - wind_velocity_y
         freestream_z = vz
-        free_stream_speed = (freestream_x**2 + freestream_y**2 + freestream_z**2) ** 0.5
+        free_stream_speed = (
+            freestream_x**2 + freestream_y**2 + freestream_z**2
+        ) ** 0.5
 
-        # Initialize parachute geometrical parameters
-        inflated_radius = min(self.parachute_radius, (
-            (3 * self.parachute_volume * self.parachute_radius)
-            / (2 * math.pi * self.parachute_height)
-        ) ** (1 / 3))
-        inflated_height = (
-            inflated_radius * self.parachute_height / self.parachute_radius
-        )
+        # # Initialize parachute geometrical parameters
+        # inflated_radius = min(
+        #     self.parachute_radius,
+        #     (
+        #         (3 * parachute_volume * self.parachute_radius)
+        #         / (2 * math.pi * self.parachute_height)
+        #     )
+        #     ** (1 / 3),
+        # )
+        # inflated_height = (
+        #     inflated_radius * self.parachute_height / self.parachute_radius
+        # )
 
-        # Calculate the surface area of the parachute
-        if self.parachute_radius == self.parachute_height:
-            surface_area = math.pi * inflated_radius**2 * 2
-        elif self.parachute_radius > self.parachute_height:
-            e = math.sqrt(1 - (inflated_height**2) / (inflated_radius**2))
+        # # Calculate the surface area of the parachute
+        # if self.parachute_radius == self.parachute_height:
+        #     surface_area = math.pi * inflated_radius**2 * 2
+        # elif self.parachute_radius > self.parachute_height:
+        #     e = math.sqrt(1 - (inflated_height**2) / (inflated_radius**2))
+        #     surface_area = (
+        #         math.pi * inflated_radius**2 * (1 + (1 - e**2) / e * math.atanh(e))
+        #     )
+        # else:
+        #     e = math.sqrt(1 - (inflated_radius**2) / (inflated_height**2))
+        #     surface_area = (
+        #         math.pi
+        #         * inflated_radius**2
+        #         * (1 + inflated_height / (e * inflated_radius) * math.asin(e))
+        #     )
+
+        # # Calculate volume flow of air into parachute
+        # volume_flow = (
+        #     -freestream_z  # considering parachute as vertical
+        #     * (
+        #         (math.pi * inflated_radius**2)
+        #         - (self.parachute_porosity * surface_area)
+        #     )
+        # )
+
+        inflated_height = 3 / (2 * math.pi) * parachute_volume / self.parachute_radius**2
+        if inflated_height == 0:
+            surface_area = math.pi * self.parachute_radius**2
+        elif self.parachute_radius == inflated_height:
+            surface_area = math.pi * inflated_height**2 * 2
+        elif self.parachute_radius > inflated_height:
+            e = math.sqrt(1 - (inflated_height**2) / (self.parachute_radius**2))
             surface_area = (
-                math.pi * inflated_radius**2 * (1 + (1 - e**2) / e * math.atanh(e))
+                math.pi * self.parachute_radius**2 * (1 + (1 - e**2) / e * math.atanh(e))
             )
         else:
-            e = math.sqrt(1 - (inflated_radius**2) / (inflated_height**2))
+            e = math.sqrt(1 - (self.parachute_radius**2) / (inflated_height**2))
             surface_area = (
                 math.pi
-                * inflated_radius**2
-                * (1 + inflated_height / (e * inflated_radius) * math.asin(e))
+                * self.parachute_radius**2
+                * (1 + inflated_height / (e * self.parachute_radius) * math.asin(e))
             )
 
-        # Calculate volume flow of air into parachute
         volume_flow = (
-            freestream_z  # considering parachute as vertical
+            -freestream_z  # considering parachute as vertical
             * (
-                (math.pi * inflated_radius**2)
+                (math.pi * self.parachute_radius**2)
                 - (self.parachute_porosity * surface_area)
             )
         )
 
-        # Getting time step
-        self.__t0 = getattr(self, "t0", t)
-        t1 = t
-        dt = t1 - self.__t0
+        max_volume = (
+            (2 / 3) * math.pi * self.parachute_radius**2 * self.parachute_height
+        )
 
-        # Integrating parachute volume
-        max_volume = (2 / 3) * math.pi * self.parachute_radius**2 * self.parachute_height
-        self.parachute_volume = min(self.parachute_volume + volume_flow * dt, max_volume)
+        if parachute_volume > max_volume:
+            parachute_volume = max_volume
+            volume_flow = 0
 
         # Dragged air mass
-        ma = self.parachute_volume * rho
+        ma = parachute_volume * rho
 
         # Moving time step
-        self.__t0 = t1
 
         # Determine drag force
         pseudo_drag = -0.5 * rho * self.parachute_cd_s * free_stream_speed
@@ -2799,7 +2838,7 @@ class Flight:
                 [t, ax, ay, az, 0, 0, 0, Dx, Dy, Dz, 0, 0, 0, 0]
             )
 
-        return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0]
+        return [vx, vy, vz, ax, ay, az, 0, 0, 0, 0, 0, 0, 0, volume_flow]
 
     @cached_property
     def solution_array(self):
@@ -2862,83 +2901,83 @@ class Flight:
 
     # Process first type of outputs - state vector
     # Transform solution array into Functions
-    @funcify_method("Time (s)", "X (m)", "spline", "constant")
+    @funcify_method("Time (s)", "X (m)", "linear", "constant")
     def x(self):
         """Rocket x position relative to the launch pad as a Function of
         time."""
         return self.solution_array[:, [0, 1]]
 
-    @funcify_method("Time (s)", "Y (m)", "spline", "constant")
+    @funcify_method("Time (s)", "Y (m)", "linear", "constant")
     def y(self):
         """Rocket y position relative to the launch pad as a Function of
         time."""
         return self.solution_array[:, [0, 2]]
 
-    @funcify_method("Time (s)", "Z (m)", "spline", "constant")
+    @funcify_method("Time (s)", "Z (m)", "linear", "constant")
     def z(self):
         """Rocket z position relative to the launch pad as a Function of
         time."""
         return self.solution_array[:, [0, 3]]
 
-    @funcify_method("Time (s)", "Altitude AGL (m)", "spline", "constant")
+    @funcify_method("Time (s)", "Altitude AGL (m)", "linear", "constant")
     def altitude(self):
         """Rocket altitude above ground level as a Function of time. Ground
         level is defined by the environment elevation."""
         return self.z - self.env.elevation
 
-    @funcify_method("Time (s)", "Vx (m/s)", "spline", "zero")
+    @funcify_method("Time (s)", "Vx (m/s)", "linear", "zero")
     def vx(self):
         """Velocity of the rocket's center of dry mass in the X (East) direction
         of the inertial frame as a function of time."""
         return self.solution_array[:, [0, 4]]
 
-    @funcify_method("Time (s)", "Vy (m/s)", "spline", "zero")
+    @funcify_method("Time (s)", "Vy (m/s)", "linear", "zero")
     def vy(self):
         """Velocity of the rocket's center of dry mass in the Y (North)
         direction of the inertial frame as a function of time."""
         return self.solution_array[:, [0, 5]]
 
-    @funcify_method("Time (s)", "Vz (m/s)", "spline", "zero")
+    @funcify_method("Time (s)", "Vz (m/s)", "linear", "zero")
     def vz(self):
         """Velocity of the rocket's center of dry mass in the Z (Up) direction of
         the inertial frame as a function of time."""
         return self.solution_array[:, [0, 6]]
 
-    @funcify_method("Time (s)", "e0", "spline", "constant")
+    @funcify_method("Time (s)", "e0", "linear", "constant")
     def e0(self):
         """Rocket quaternion e0 as a Function of time."""
         return self.solution_array[:, [0, 7]]
 
-    @funcify_method("Time (s)", "e1", "spline", "constant")
+    @funcify_method("Time (s)", "e1", "linear", "constant")
     def e1(self):
         """Rocket quaternion e1 as a Function of time."""
         return self.solution_array[:, [0, 8]]
 
-    @funcify_method("Time (s)", "e2", "spline", "constant")
+    @funcify_method("Time (s)", "e2", "linear", "constant")
     def e2(self):
         """Rocket quaternion e2 as a Function of time."""
         return self.solution_array[:, [0, 9]]
 
-    @funcify_method("Time (s)", "e3", "spline", "constant")
+    @funcify_method("Time (s)", "e3", "linear", "constant")
     def e3(self):
         """Rocket quaternion e3 as a Function of time."""
         return self.solution_array[:, [0, 10]]
 
-    @funcify_method("Time (s)", "ω1 (rad/s)", "spline", "zero")
+    @funcify_method("Time (s)", "ω1 (rad/s)", "linear", "zero")
     def w1(self):
         """Angular velocity of the rocket in the x direction of the rocket's
         body frame as a function of time, in rad/s. Sometimes referred to as
         pitch rate (q)."""
         return self.solution_array[:, [0, 11]]
 
-    @funcify_method("Time (s)", "ω2 (rad/s)", "spline", "zero")
+    @funcify_method("Time (s)", "ω2 (rad/s)", "linear", "zero")
     def w2(self):
         """Angular velocity of the rocket in the y direction of the rocket's
         body frame as a function of time, in rad/s. Sometimes referred to as
         yaw rate (r)."""
         return self.solution_array[:, [0, 12]]
 
-    @funcify_method("Time (s)", "ω3 (rad/s)", "spline", "zero")
+    @funcify_method("Time (s)", "ω3 (rad/s)", "linear", "zero")
     def w3(self):
         """Angular velocity of the rocket in the z direction of the rocket's
         body frame as a function of time, in rad/s. Sometimes referred to as
@@ -2946,39 +2985,39 @@ class Flight:
         return self.solution_array[:, [0, 13]]
 
     # Process second type of outputs - accelerations components
-    @funcify_method("Time (s)", "Ax (m/s²)", "spline", "zero")
+    @funcify_method("Time (s)", "Ax (m/s²)", "linear", "zero")
     def ax(self):
         """Acceleration of the rocket's center of dry mass along the X (East)
         axis in the inertial frame as a function of time."""
         return self.__evaluate_post_process[:, [0, 1]]
 
-    @funcify_method("Time (s)", "Ay (m/s²)", "spline", "zero")
+    @funcify_method("Time (s)", "Ay (m/s²)", "linear", "zero")
     def ay(self):
         """Acceleration of the rocket's center of dry mass along the Y (North)
         axis in the inertial frame as a function of time."""
         return self.__evaluate_post_process[:, [0, 2]]
 
-    @funcify_method("Time (s)", "Az (m/s²)", "spline", "zero")
+    @funcify_method("Time (s)", "Az (m/s²)", "linear", "zero")
     def az(self):
         """Acceleration of the rocket's center of dry mass along the Z (Up)
         axis in the inertial frame as a function of time."""
         return self.__evaluate_post_process[:, [0, 3]]
 
-    @funcify_method("Time (s)", "α1 (rad/s²)", "spline", "zero")
+    @funcify_method("Time (s)", "α1 (rad/s²)", "linear", "zero")
     def alpha1(self):
         """Angular acceleration of the rocket in the x direction of the rocket's
         body frame as a function of time, in rad/s. Sometimes referred to as
         pitch acceleration."""
         return self.__evaluate_post_process[:, [0, 4]]
 
-    @funcify_method("Time (s)", "α2 (rad/s²)", "spline", "zero")
+    @funcify_method("Time (s)", "α2 (rad/s²)", "linear", "zero")
     def alpha2(self):
         """Angular acceleration of the rocket in the y direction of the rocket's
         body frame as a function of time, in rad/s. Sometimes referred to as
         yaw acceleration."""
         return self.__evaluate_post_process[:, [0, 5]]
 
-    @funcify_method("Time (s)", "α3 (rad/s²)", "spline", "zero")
+    @funcify_method("Time (s)", "α3 (rad/s²)", "linear", "zero")
     def alpha3(self):
         """Angular acceleration of the rocket in the z direction of the rocket's
         body frame as a function of time, in rad/s. Sometimes referred to as
@@ -2986,19 +3025,19 @@ class Flight:
         return self.__evaluate_post_process[:, [0, 6]]
 
     # Process third type of outputs - Temporary values
-    @funcify_method("Time (s)", "R1 (N)", "spline", "zero")
+    @funcify_method("Time (s)", "R1 (N)", "linear", "zero")
     def R1(self):
         """Aerodynamic force acting along the x-axis of the rocket's body frame
         as a function of time. Expressed in Newtons (N)."""
         return self.__evaluate_post_process[:, [0, 7]]
 
-    @funcify_method("Time (s)", "R2 (N)", "spline", "zero")
+    @funcify_method("Time (s)", "R2 (N)", "linear", "zero")
     def R2(self):
         """Aerodynamic force acting along the y-axis of the rocket's body frame
         as a function of time. Expressed in Newtons (N)."""
         return self.__evaluate_post_process[:, [0, 8]]
 
-    @funcify_method("Time (s)", "R3 (N)", "spline", "zero")
+    @funcify_method("Time (s)", "R3 (N)", "linear", "zero")
     def R3(self):
         """Aerodynamic force acting along the z-axis of the rocket's body frame
         as a function of time. Expressed in Newtons (N)."""
@@ -3029,33 +3068,33 @@ class Flight:
         with the atmospheric pressure if a reference pressure is defined."""
         return self.__evaluate_post_process[:, [0, 13]]
 
-    @funcify_method("Time (s)", "Pressure (Pa)", "spline", "constant")
+    @funcify_method("Time (s)", "Pressure (Pa)", "linear", "constant")
     def pressure(self):
         """Air pressure felt by the rocket as a Function of time."""
         return [(t, self.env.pressure.get_value_opt(z)) for t, z in self.z]
 
-    @funcify_method("Time (s)", "Density (kg/m³)", "spline", "constant")
+    @funcify_method("Time (s)", "Density (kg/m³)", "linear", "constant")
     def density(self):
         """Air density felt by the rocket as a Function of time."""
         return [(t, self.env.density.get_value_opt(z)) for t, z in self.z]
 
-    @funcify_method("Time (s)", "Dynamic Viscosity (Pa s)", "spline", "constant")
+    @funcify_method("Time (s)", "Dynamic Viscosity (Pa s)", "linear", "constant")
     def dynamic_viscosity(self):
         """Air dynamic viscosity felt by the rocket as a Function of
         time."""
         return [(t, self.env.dynamic_viscosity.get_value_opt(z)) for t, z in self.z]
 
-    @funcify_method("Time (s)", "Speed of Sound (m/s)", "spline", "constant")
+    @funcify_method("Time (s)", "Speed of Sound (m/s)", "linear", "constant")
     def speed_of_sound(self):
         """Speed of sound in the air felt by the rocket as a Function of time."""
         return [(t, self.env.speed_of_sound.get_value_opt(z)) for t, z in self.z]
 
-    @funcify_method("Time (s)", "Wind Velocity X (East) (m/s)", "spline", "constant")
+    @funcify_method("Time (s)", "Wind Velocity X (East) (m/s)", "linear", "constant")
     def wind_velocity_x(self):
         """Wind velocity in the X direction (east) as a Function of time."""
         return [(t, self.env.wind_velocity_x.get_value_opt(z)) for t, z in self.z]
 
-    @funcify_method("Time (s)", "Wind Velocity Y (North) (m/s)", "spline", "constant")
+    @funcify_method("Time (s)", "Wind Velocity Y (North) (m/s)", "linear", "constant")
     def wind_velocity_y(self):
         """Wind velocity in the Y direction (north) as a Function of time."""
         return [(t, self.env.wind_velocity_y.get_value_opt(z)) for t, z in self.z]
@@ -3079,7 +3118,7 @@ class Flight:
         stacked_velocity_body_frame = np.squeeze(np.matmul(Kt, v[:, :, np.newaxis]))
         return stacked_velocity_body_frame
 
-    @funcify_method("Time (s)", "Vx Body Frame (m/s)", "spline", "zero")
+    @funcify_method("Time (s)", "Vx Body Frame (m/s)", "linear", "zero")
     def vx_body_frame(self):
         """Velocity of the rocket's center of dry mass along the x axis of the
         body frame as a function of time."""
@@ -3087,7 +3126,7 @@ class Flight:
             [self.time, self._stacked_velocity_body_frame[:, 0]]
         ).transpose()
 
-    @funcify_method("Time (s)", "Vy Body Frame (m/s)", "spline", "zero")
+    @funcify_method("Time (s)", "Vy Body Frame (m/s)", "linear", "zero")
     def vy_body_frame(self):
         """Velocity of the rocket's center of dry mass along the y axis of the
         body frame as a function of time."""
@@ -3095,7 +3134,7 @@ class Flight:
             [self.time, self._stacked_velocity_body_frame[:, 1]]
         ).transpose()
 
-    @funcify_method("Time (s)", "Vz Body Frame (m/s)", "spline", "zero")
+    @funcify_method("Time (s)", "Vz Body Frame (m/s)", "linear", "zero")
     def vz_body_frame(self):
         """Velocity of the rocket's center of dry mass along the z axis of the
         body frame as a function of time."""
@@ -3118,7 +3157,7 @@ class Flight:
         stacked_acceleration_body_frame = np.squeeze(np.matmul(Kt, a[:, :, np.newaxis]))
         return stacked_acceleration_body_frame
 
-    @funcify_method("Time (s)", "Ax Body Frame (m/s²)", "spline", "zero")
+    @funcify_method("Time (s)", "Ax Body Frame (m/s²)", "linear", "zero")
     def ax_body_frame(self):
         """Acceleration of the rocket's center of dry mass along the x axis of the
         body frame as a function of time."""
@@ -3126,7 +3165,7 @@ class Flight:
             [self.time, self._stacked_acceleration_body_frame[:, 0]]
         ).transpose()
 
-    @funcify_method("Time (s)", "Ay Body Frame (m/s²)", "spline", "zero")
+    @funcify_method("Time (s)", "Ay Body Frame (m/s²)", "linear", "zero")
     def ay_body_frame(self):
         """Acceleration of the rocket's center of dry mass along the y axis of the
         body frame as a function of time."""
@@ -3134,7 +3173,7 @@ class Flight:
             [self.time, self._stacked_acceleration_body_frame[:, 1]]
         ).transpose()
 
-    @funcify_method("Time (s)", "Az Body Frame (m/s²)", "spline", "zero")
+    @funcify_method("Time (s)", "Az Body Frame (m/s²)", "linear", "zero")
     def az_body_frame(self):
         """Acceleration of the rocket's center of dry mass along the z axis of the
         body frame as a function of time."""
@@ -3171,7 +3210,7 @@ class Flight:
         """Rocket acceleration magnitude as a Function of time."""
         return (self.ax**2 + self.ay**2 + self.az**2) ** 0.5
 
-    @funcify_method("Time (s)", "Axial Acceleration (m/s²)", "spline", "zero")
+    @funcify_method("Time (s)", "Axial Acceleration (m/s²)", "linear", "zero")
     def axial_acceleration(self):
         """Axial acceleration magnitude as a Function of time."""
         return (
@@ -3235,7 +3274,7 @@ class Flight:
         return (self.vx**2 + self.vy**2) ** 0.5
 
     # Path Angle
-    @funcify_method("Time (s)", "Path Angle (°)", "spline", "constant")
+    @funcify_method("Time (s)", "Path Angle (°)", "linear", "constant")
     def path_angle(self):
         """Rocket path angle as a Function of time."""
         path_angle = (180 / np.pi) * np.arctan2(
@@ -3312,7 +3351,7 @@ class Flight:
         return lateral_attitude_angle
 
     # Euler Angles
-    @funcify_method("Time (s)", "Precession Angle - ψ (°)", "spline", "constant")
+    @funcify_method("Time (s)", "Precession Angle - ψ (°)", "linear", "constant")
     def psi(self):
         """Precession angle as a Function of time."""
         psi = quaternions_to_precession(
@@ -3320,7 +3359,7 @@ class Flight:
         )
         return np.column_stack([self.time, psi])
 
-    @funcify_method("Time (s)", "Spin Angle - φ (°)", "spline", "constant")
+    @funcify_method("Time (s)", "Spin Angle - φ (°)", "linear", "constant")
     def phi(self):
         """Spin angle as a Function of time."""
         phi = quaternions_to_spin(
@@ -3328,7 +3367,7 @@ class Flight:
         )
         return np.column_stack([self.time, phi])
 
-    @funcify_method("Time (s)", "Nutation Angle - θ (°)", "spline", "constant")
+    @funcify_method("Time (s)", "Nutation Angle - θ (°)", "linear", "constant")
     def theta(self):
         """Nutation angle as a Function of time."""
         theta = quaternions_to_nutation(self.e1.y_array, self.e2.y_array)
@@ -3336,22 +3375,22 @@ class Flight:
 
     # Fluid Mechanics variables
     # Freestream Velocity
-    @funcify_method("Time (s)", "Freestream Velocity X (m/s)", "spline", "constant")
+    @funcify_method("Time (s)", "Freestream Velocity X (m/s)", "linear", "constant")
     def stream_velocity_x(self):
         """Freestream velocity X component as a Function of time."""
         return np.column_stack((self.time, self.wind_velocity_x[:, 1] - self.vx[:, 1]))
 
-    @funcify_method("Time (s)", "Freestream Velocity Y (m/s)", "spline", "constant")
+    @funcify_method("Time (s)", "Freestream Velocity Y (m/s)", "linear", "constant")
     def stream_velocity_y(self):
         """Freestream velocity Y component as a Function of time."""
         return np.column_stack((self.time, self.wind_velocity_y[:, 1] - self.vy[:, 1]))
 
-    @funcify_method("Time (s)", "Freestream Velocity Z (m/s)", "spline", "constant")
+    @funcify_method("Time (s)", "Freestream Velocity Z (m/s)", "linear", "constant")
     def stream_velocity_z(self):
         """Freestream velocity Z component as a Function of time."""
         return np.column_stack((self.time, -self.vz[:, 1]))
 
-    @funcify_method("Time (s)", "Freestream Speed (m/s)", "spline", "constant")
+    @funcify_method("Time (s)", "Freestream Speed (m/s)", "linear", "constant")
     def free_stream_speed(self):
         """Freestream speed as a Function of time."""
         free_stream_speed = (
@@ -3368,7 +3407,7 @@ class Flight:
         return self.free_stream_speed.get_value_opt(self.apogee_time)
 
     # Mach Number
-    @funcify_method("Time (s)", "Mach Number", "spline", "zero")
+    @funcify_method("Time (s)", "Mach Number", "linear", "zero")
     def mach_number(self):
         """Mach number as a Function of time."""
         return self.free_stream_speed / self.speed_of_sound
@@ -3428,7 +3467,7 @@ class Flight:
         return self.stability_margin.get_value_opt(self.out_of_rail_time)
 
     # Reynolds Number
-    @funcify_method("Time (s)", "Reynolds Number", "spline", "zero")
+    @funcify_method("Time (s)", "Reynolds Number", "linear", "zero")
     def reynolds_number(self):
         """Reynolds number as a Function of time."""
         return (self.density * self.free_stream_speed / self.dynamic_viscosity) * (
@@ -3447,7 +3486,7 @@ class Flight:
         return self.reynolds_number.get_value_opt(self.max_reynolds_number_time)
 
     # Dynamic Pressure
-    @funcify_method("Time (s)", "Dynamic Pressure (Pa)", "spline", "zero")
+    @funcify_method("Time (s)", "Dynamic Pressure (Pa)", "linear", "zero")
     def dynamic_pressure(self):
         """Dynamic pressure as a Function of time."""
         return 0.5 * self.density * self.free_stream_speed**2
@@ -3464,7 +3503,7 @@ class Flight:
         return self.dynamic_pressure.get_value_opt(self.max_dynamic_pressure_time)
 
     # Total Pressure
-    @funcify_method("Time (s)", "Total Pressure (Pa)", "spline", "zero")
+    @funcify_method("Time (s)", "Total Pressure (Pa)", "linear", "zero")
     def total_pressure(self):
         """Total pressure as a Function of time."""
         return self.pressure * (1 + 0.2 * self.mach_number**2) ** (3.5)
@@ -3486,22 +3525,22 @@ class Flight:
     # TODO: These are not lift and drag, they are the aerodynamic forces in
     # the rocket frame, meaning they are normal and axial forces. They should
     # be renamed.
-    @funcify_method("Time (s)", "Aerodynamic Lift Force (N)", "spline", "zero")
+    @funcify_method("Time (s)", "Aerodynamic Lift Force (N)", "linear", "zero")
     def aerodynamic_lift(self):
         """Aerodynamic lift force as a Function of time."""
         return (self.R1**2 + self.R2**2) ** 0.5
 
-    @funcify_method("Time (s)", "Aerodynamic Drag Force (N)", "spline", "zero")
+    @funcify_method("Time (s)", "Aerodynamic Drag Force (N)", "linear", "zero")
     def aerodynamic_drag(self):
         """Aerodynamic drag force as a Function of time."""
         return -1 * self.R3
 
-    @funcify_method("Time (s)", "Aerodynamic Bending Moment (Nm)", "spline", "zero")
+    @funcify_method("Time (s)", "Aerodynamic Bending Moment (Nm)", "linear", "zero")
     def aerodynamic_bending_moment(self):
         """Aerodynamic bending moment as a Function of time."""
         return (self.M1**2 + self.M2**2) ** 0.5
 
-    @funcify_method("Time (s)", "Aerodynamic Spin Moment (Nm)", "spline", "zero")
+    @funcify_method("Time (s)", "Aerodynamic Spin Moment (Nm)", "linear", "zero")
     def aerodynamic_spin_moment(self):
         """Aerodynamic spin moment as a Function of time."""
         return self.M3
@@ -3519,7 +3558,7 @@ class Flight:
         rotational_energy.set_discrete_based_on_model(self.w1)
         return rotational_energy
 
-    @funcify_method("Time (s)", "Translational Kinetic Energy (J)", "spline", "zero")
+    @funcify_method("Time (s)", "Translational Kinetic Energy (J)", "linear", "zero")
     def translational_energy(self):
         """Translational kinetic energy as a Function of time."""
         # Redefine total_mass time grid to allow for efficient Function algebra
@@ -3528,13 +3567,13 @@ class Flight:
         translational_energy = 0.5 * total_mass * (self.speed**2)
         return translational_energy
 
-    @funcify_method("Time (s)", "Kinetic Energy (J)", "spline", "zero")
+    @funcify_method("Time (s)", "Kinetic Energy (J)", "linear", "zero")
     def kinetic_energy(self):
         """Total kinetic energy as a Function of time."""
         return self.rotational_energy + self.translational_energy
 
     # Potential Energy
-    @funcify_method("Time (s)", "Potential Energy (J)", "spline", "constant")
+    @funcify_method("Time (s)", "Potential Energy (J)", "linear", "constant")
     def potential_energy(self):
         """Potential energy as a Function of time in relation to sea
         level."""
@@ -3551,19 +3590,19 @@ class Flight:
         )
 
     # Total Mechanical Energy
-    @funcify_method("Time (s)", "Mechanical Energy (J)", "spline", "constant")
+    @funcify_method("Time (s)", "Mechanical Energy (J)", "linear", "constant")
     def total_energy(self):
         """Total mechanical energy as a Function of time."""
         return self.kinetic_energy + self.potential_energy
 
     # thrust Power
-    @funcify_method("Time (s)", "Thrust Power (W)", "spline", "zero")
+    @funcify_method("Time (s)", "Thrust Power (W)", "linear", "zero")
     def thrust_power(self):
         """Thrust power as a Function of time."""
         return self.net_thrust * self.speed
 
     # Drag Power
-    @funcify_method("Time (s)", "Drag Power (W)", "spline", "zero")
+    @funcify_method("Time (s)", "Drag Power (W)", "linear", "zero")
     def drag_power(self):
         """Drag power as a Function of time."""
         drag_power = self.R3 * self.speed
@@ -3603,7 +3642,7 @@ class Flight:
         )
         return stream_velocity_body
 
-    @funcify_method("Time (s)", "Angle of Attack (°)", "spline", "constant")
+    @funcify_method("Time (s)", "Angle of Attack (°)", "linear", "constant")
     def angle_of_attack(self):
         """Angle of attack of the rocket with respect to the freestream
         velocity vector. Sometimes called total angle of attack. Defined as the
@@ -3632,7 +3671,7 @@ class Flight:
 
         return np.column_stack([self.time, angle_of_attack])
 
-    @funcify_method("Time (s)", "Partial Angle of Attack (°)", "spline", "constant")
+    @funcify_method("Time (s)", "Partial Angle of Attack (°)", "linear", "constant")
     def partial_angle_of_attack(self):
         """Partial angle of attack of the rocket with respect to the stream
         velocity vector. By partial angle of attack, it is meant the angle
@@ -3646,7 +3685,7 @@ class Flight:
         )  # y-z plane
         return np.column_stack([self.time, np.rad2deg(alpha)])
 
-    @funcify_method("Time (s)", "Beta (°)", "spline", "constant")
+    @funcify_method("Time (s)", "Beta (°)", "linear", "constant")
     def angle_of_sideslip(self):
         """Angle of sideslip of the rocket with respect to the stream
         velocity vector. Defined as the angle between the stream velocity
@@ -3661,7 +3700,7 @@ class Flight:
         return np.column_stack([self.time, np.rad2deg(beta)])
 
     # Frequency response and stability variables
-    @funcify_method("Frequency (Hz)", "ω1 Fourier Amplitude", "spline", "zero")
+    @funcify_method("Frequency (Hz)", "ω1 Fourier Amplitude", "linear", "zero")
     def omega1_frequency_response(self):
         """Angular velocity 1 frequency response as a Function of
         frequency, as the rocket leaves the launch rail for 5 seconds of flight.
@@ -3670,7 +3709,7 @@ class Flight:
             self.out_of_rail_time, self.out_of_rail_time + 5, 100
         )
 
-    @funcify_method("Frequency (Hz)", "ω2 Fourier Amplitude", "spline", "zero")
+    @funcify_method("Frequency (Hz)", "ω2 Fourier Amplitude", "linear", "zero")
     def omega2_frequency_response(self):
         """Angular velocity 2 frequency response as a Function of
         frequency, as the rocket leaves the launch rail for 5 seconds of flight.
@@ -3679,7 +3718,7 @@ class Flight:
             self.out_of_rail_time, self.out_of_rail_time + 5, 100
         )
 
-    @funcify_method("Frequency (Hz)", "ω3 Fourier Amplitude", "spline", "zero")
+    @funcify_method("Frequency (Hz)", "ω3 Fourier Amplitude", "linear", "zero")
     def omega3_frequency_response(self):
         """Angular velocity 3 frequency response as a Function of
         frequency, as the rocket leaves the launch rail for 5 seconds of flight.
@@ -3689,7 +3728,7 @@ class Flight:
         )
 
     @funcify_method(
-        "Frequency (Hz)", "Attitude Angle Fourier Amplitude", "spline", "zero"
+        "Frequency (Hz)", "Attitude Angle Fourier Amplitude", "linear", "zero"
     )
     def attitude_frequency_response(self):
         """Attitude frequency response as a Function of frequency, as
@@ -3727,25 +3766,25 @@ class Flight:
 
     # Rail Button Forces
 
-    @funcify_method("Time (s)", "Upper Rail Button Normal Force (N)", "spline", "zero")
+    @funcify_method("Time (s)", "Upper Rail Button Normal Force (N)", "linear", "zero")
     def rail_button1_normal_force(self):
         """Upper rail button normal force as a Function of time. If
         there's no rail button defined, the function returns a null Function."""
         return self.__calculate_rail_button_forces[0]
 
-    @funcify_method("Time (s)", "Upper Rail Button Shear Force (N)", "spline", "zero")
+    @funcify_method("Time (s)", "Upper Rail Button Shear Force (N)", "linear", "zero")
     def rail_button1_shear_force(self):
         """Upper rail button shear force as a Function of time. If
         there's no rail button defined, the function returns a null Function."""
         return self.__calculate_rail_button_forces[1]
 
-    @funcify_method("Time (s)", "Lower Rail Button Normal Force (N)", "spline", "zero")
+    @funcify_method("Time (s)", "Lower Rail Button Normal Force (N)", "linear", "zero")
     def rail_button2_normal_force(self):
         """Lower rail button normal force as a Function of time. If
         there's no rail button defined, the function returns a null Function."""
         return self.__calculate_rail_button_forces[2]
 
-    @funcify_method("Time (s)", "Lower Rail Button Shear Force (N)", "spline", "zero")
+    @funcify_method("Time (s)", "Lower Rail Button Shear Force (N)", "linear", "zero")
     def rail_button2_shear_force(self):
         """Lower rail button shear force as a Function of time. If
         there's no rail button defined, the function returns a null Function."""
@@ -3908,7 +3947,7 @@ class Flight:
         return self.calculate_rail_button_bending_moments[3]
 
     @funcify_method(
-        "Time (s)", "Horizontal Distance to Launch Point (m)", "spline", "constant"
+        "Time (s)", "Horizontal Distance to Launch Point (m)", "linear", "constant"
     )
     def drift(self):
         """Rocket horizontal distance to the launch point, in meters, as a
@@ -3917,7 +3956,7 @@ class Flight:
             (self.time, (self.x[:, 1] ** 2 + self.y[:, 1] ** 2) ** 0.5)
         )
 
-    @funcify_method("Time (s)", "Bearing (°)", "spline", "constant")
+    @funcify_method("Time (s)", "Bearing (°)", "linear", "constant")
     def bearing(self):
         """Rocket bearing compass, in degrees, as a Function of time."""
         x, y = self.x[:, 1], self.y[:, 1]
@@ -4113,7 +4152,7 @@ class Flight:
             current_derivative = phase.derivative
             for callback in phase.callbacks:
                 callback(self)
-            for step in self.solution:
+            for step in self.solution_not_trimmed:
                 if init_time < step[0] <= final_time or (
                     init_time == self.t_initial and step[0] == self.t_initial
                 ):
