@@ -1,11 +1,13 @@
 import numpy as np
 import pytest
 
+from rocketpy import Environment
 from rocketpy.tools import (
     calculate_cubic_hermite_coefficients,
     euler313_to_quaternions,
     find_roots_cubic_function,
     haversine,
+    inverted_haversine,
     tuple_handler,
 )
 
@@ -100,3 +102,86 @@ def test_tuple_handler(input_value, expected_output):
 def test_tuple_handler_exceptions(input_value, expected_exception):
     with pytest.raises(expected_exception):
         tuple_handler(input_value)
+
+
+@pytest.mark.parametrize("pressure_conversion_factor", ["hPa", "mbar", "Pa", 100])
+def test_valid_pressure_conversion_factor(pressure_conversion_factor):
+    env = Environment(
+        gravity=9.81,
+        latitude=47.213476,
+        longitude=9.003336,
+        date=(2020, 2, 22, 13),
+        elevation=407,
+    )
+    env.set_atmospheric_model(
+        type="Reanalysis",
+        file="data/weather/bella_lui_weather_data_ERA5.nc",
+        dictionary="ECMWF",
+        pressure_conversion_factor=pressure_conversion_factor,
+    )
+
+
+@pytest.mark.parametrize("pressure_conversion_factor", [-1, "mPa"])
+def test_invalid_pressure_conversion_factor(pressure_conversion_factor):
+    env = Environment(
+        gravity=9.81,
+        latitude=47.213476,
+        longitude=9.003336,
+        date=(2020, 2, 22, 13),
+        elevation=407,
+    )
+
+    with pytest.raises(ValueError):
+        env.set_atmospheric_model(
+            type="Reanalysis",
+            file="data/weather/bella_lui_weather_data_ERA5.nc",
+            dictionary="ECMWF",
+            pressure_conversion_factor=pressure_conversion_factor,
+        )
+
+
+def test_inverted_haversine_scalar():
+    """Test inverted_haversine with scalar arguments matches haversine distance."""
+    # Arrange
+    lat0, lon0 = -23.508958, -46.720080
+    lat1, lon1 = -23.522939, -46.558253
+    earth_radius = 6378100.0
+    distance = haversine(lat0, lon0, lat1, lon1, earth_radius)
+    bearing = 90.0
+
+    # Act
+    lat_result, lon_result = inverted_haversine(
+        lat0, lon0, distance, bearing, earth_radius
+    )
+
+    # Assert
+    recalculated_distance = haversine(lat0, lon0, lat_result, lon_result, earth_radius)
+    assert recalculated_distance == pytest.approx(distance, abs=1e-2)
+
+
+def test_inverted_haversine_array():
+    """Test inverted_haversine with NumPy arrays returns correct array results."""
+    # Arrange
+    lat0, lon0 = -23.508958, -46.720080
+    distances = np.array([0.0, 5000.0, 16591.438])
+    bearings = np.array([0.0, 45.0, 90.0])
+    earth_radius = 6378100.0
+
+    # Act
+    lat_results, lon_results = inverted_haversine(
+        lat0, lon0, distances, bearings, earth_radius
+    )
+
+    # Assert
+    assert isinstance(lat_results, np.ndarray)
+    assert isinstance(lon_results, np.ndarray)
+    assert len(lat_results) == 3
+    assert len(lon_results) == 3
+
+    # Check scalar consistency for each element
+    for i, distance in enumerate(distances):
+        lat_scalar, lon_scalar = inverted_haversine(
+            lat0, lon0, distance, bearings[i], earth_radius
+        )
+        assert lat_results[i] == pytest.approx(lat_scalar)
+        assert lon_results[i] == pytest.approx(lon_scalar)

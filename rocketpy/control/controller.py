@@ -17,7 +17,7 @@ class _Controller:
         self,
         interactive_objects,
         controller_function,
-        sampling_rate,
+        sampling_rate=None,
         initial_observed_variables=None,
         name="Controller",
     ):
@@ -38,16 +38,19 @@ class _Controller:
             This function is expected to take the following arguments, in order:
 
             1. `time` (float): The current simulation time in seconds.
-            2. `sampling_rate` (float): The rate at which the controller
-               function is called, measured in Hertz (Hz).
+            2. `sampling_rate` (float or None): The rate at which the controller
+               function is called, measured in Hertz (Hz). It is None for
+               continuous controllers (called every solver step), so any
+               `1 / sampling_rate` computation must guard against None.
             3. `state` (list): The state vector of the simulation, structured as
                `[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]`.
             4. `state_history` (list): A record of the rocket's state at each
-               step throughout the simulation. The state_history is organized as
-               a list of lists, with each sublist containing a state vector. The
-               last item in the list always corresponds to the previous state
-               vector, providing a chronological sequence of the rocket's
-               evolving states.
+               step throughout the simulation. It is organized as a list of
+               lists, ordered oldest to newest, where each sublist is a
+               *time-prefixed* state row `[t, x, y, z, vx, vy, vz, e0, e1, e2,
+               e3, wx, wy, wz]` (i.e. the same layout as `Flight.solution`, one
+               leading `time` element ahead of the `state` layout in item 3).
+               The last item corresponds to the most recent recorded step.
             5. `observed_variables` (list): A list containing the variables that
                the controller function returns. The return of each controller
                function call is appended to the observed_variables list. The
@@ -71,12 +74,14 @@ class _Controller:
             objects as needed. The function return statement can be used to save
             relevant information in the `observed_variables` list.
 
-            .. note:: The function will be called according to the sampling rate
-            specified.
-        sampling_rate : float
+            .. note:: The function will be called according to the sampling
+               rate specified. If `sampling_rate` is None, the controller
+               function is called at every solver step of the simulation.
+        sampling_rate : float, optional
             The sampling rate of the controller function in Hertz (Hz). This
             means that the controller function will be called every
-            `1/sampling_rate` seconds.
+            `1/sampling_rate` seconds. If None, it is treated as a
+            continuous controller and called at every solver step.
         initial_observed_variables : list, optional
             A list of the initial values of the variables that the controller
             function returns. This list is used to initialize the
@@ -178,10 +183,12 @@ class _Controller:
 
             `[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]`.
         state_history : list
-            A list containing the state history of the simulation. The state
-            history is a list of every state vector of every step of the
-            simulation. The state history is a list of lists, where each
-            sublist is a state vector and is ordered from oldest to newest.
+            A list containing the state history of the simulation, ordered
+            oldest to newest. Each sublist is a *time-prefixed* state row
+            `[t, x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]` (the same
+            layout as `Flight.solution`, with a leading `time` element ahead of
+            the `state_vector` layout). The last item is the most recent
+            recorded step.
         sensors : list
             A list of sensors that are attached to the rocket. The most recent
             measurements of the sensors are provided with the
@@ -208,7 +215,15 @@ class _Controller:
         if observed_variables is not None:
             self.observed_variables.append(observed_variables)
 
+    @property
+    def is_continuous(self):
+        """bool: True if the controller runs at every solver step (i.e.
+        ``sampling_rate`` is None), False if it is sampled at a fixed rate."""
+        return self.sampling_rate is None
+
     def __str__(self):
+        if self.is_continuous:
+            return f"Controller '{self.name}' with continuous sampling."
         return f"Controller '{self.name}' with sampling rate {self.sampling_rate} Hz."
 
     def info(self):

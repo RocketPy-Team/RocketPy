@@ -34,8 +34,8 @@ class _EnvironmentPrints:
         """
         elevation = self.environment.elevation
         max_expected_height = self.environment.max_expected_height
-        surface_gravity = self.environment.gravity([elevation])
-        ceiling_gravity = self.environment.gravity([max_expected_height])
+        surface_gravity = self.environment.gravity(elevation)
+        ceiling_gravity = self.environment.gravity(max_expected_height)
         print("\nGravity Details\n")
         print(f"Acceleration of gravity at surface level: {surface_gravity:9.4f} m/s²")
         print(

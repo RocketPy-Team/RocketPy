@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
+from rocketpy.mathutils.vector_matrix import Matrix
+
 
 class AeroSurface(ABC):
     """Abstract class used to define aerodynamic surfaces."""
@@ -14,6 +16,14 @@ class AeroSurface(ABC):
         self.cpx = 0
         self.cpy = 0
         self.cpz = 0
+
+        self._rotation_surface_to_body = Matrix(
+            [
+                [-1, 0, 0],
+                [0, 1, 0],
+                [0, 0, -1],
+            ]
+        )
 
     @staticmethod
     def _beta(mach):
@@ -130,7 +140,7 @@ class AeroSurface(ABC):
         R1, R2, R3, M1, M2, M3 = 0, 0, 0, 0, 0, 0
         cpz = cp[2]
         stream_vx, stream_vy, stream_vz = stream_velocity
-        if stream_vx**2 + stream_vy**2 != 0:  # TODO: maybe try/except
+        if stream_vx**2 + stream_vy**2 != 0:
             # Normalize component stream velocity in body frame
             stream_vzn = stream_vz / stream_speed
             if -1 * stream_vzn < 1:

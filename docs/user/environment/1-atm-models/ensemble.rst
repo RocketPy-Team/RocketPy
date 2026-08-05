@@ -25,8 +25,8 @@ Global Ensemble Forecast System (GEFS)
 
 .. danger::
 
-    **GEFS shortcut unavailable**: ``file="GEFS"`` is currently disabled in
-    RocketPy because NOMADS OPeNDAP is deactivated for this endpoint.
+    **GEFS unavailable**: ``file="GEFS"`` is currently disabled in
+    RocketPy because NOMADS OPeNDAP has been deactivated.
 
 .. note::
 

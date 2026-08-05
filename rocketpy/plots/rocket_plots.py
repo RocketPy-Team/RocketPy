@@ -1,8 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from rocketpy.motors import EmptyMotor, HybridMotor, LiquidMotor, SolidMotor
-from rocketpy.rocket.aero_surface import Fins, NoseCone, Tail
+from rocketpy.mathutils.vector_matrix import Vector
+from rocketpy.motors import HybridMotor, LiquidMotor, SolidMotor
+from rocketpy.rocket.aero_surface import Fin, Fins, NoseCone, Tail
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 
 from .plot_helpers import show_or_save_plot
@@ -183,7 +184,7 @@ class _RocketPlots:
             and webp (these are the formats supported by matplotlib).
         """
 
-        self.__validate_aerodynamic_surfaces()
+        self.__validate_aerodynamic_surfaces(plane)
 
         if vis_args is None:
             vis_args = {
@@ -203,9 +204,9 @@ class _RocketPlots:
 
         csys = self.rocket._csys
         reverse = csys == 1
-        self.rocket.aerodynamic_surfaces.sort_by_position(reverse=reverse)
+        surfaces = self.rocket.aerodynamic_surfaces.sort_by_position(reverse=reverse)
 
-        drawn_surfaces = self._draw_aerodynamic_surfaces(ax, vis_args, plane)
+        drawn_surfaces = self._draw_aerodynamic_surfaces(ax, vis_args, plane, surfaces)
         last_radius, last_x = self._draw_tubes(ax, drawn_surfaces, vis_args)
         self._draw_motor(last_radius, last_x, ax, vis_args)
         self._draw_rail_buttons(ax, vis_args)
@@ -221,13 +222,15 @@ class _RocketPlots:
         plt.tight_layout()
         show_or_save_plot(filename)
 
-    def __validate_aerodynamic_surfaces(self):
+    def __validate_aerodynamic_surfaces(self, plane):
         if not self.rocket.aerodynamic_surfaces:
             raise ValueError(
                 "The rocket must have at least one aerodynamic surface to be drawn."
             )
+        if plane not in ("xz", "yz"):
+            raise ValueError("The plane must be 'xz' or 'yz'. The default is 'xz'.")
 
-    def _draw_aerodynamic_surfaces(self, ax, vis_args, plane):
+    def _draw_aerodynamic_surfaces(self, ax, vis_args, plane, surfaces):
         """Draws the aerodynamic surfaces and saves the position of the points
         of interest for the tubes."""
         # List of drawn surfaces with the position of points of interest
@@ -240,13 +243,17 @@ class _RocketPlots:
         # diameter changes. The final point of the last surface is the final
         # point of the last tube
 
-        for surface, position in self.rocket.aerodynamic_surfaces:
+        for surface, position in surfaces:
             if isinstance(surface, NoseCone):
                 self._draw_nose_cone(ax, surface, position.z, drawn_surfaces, vis_args)
             elif isinstance(surface, Tail):
                 self._draw_tail(ax, surface, position.z, drawn_surfaces, vis_args)
             elif isinstance(surface, Fins):
-                self._draw_fins(ax, surface, position.z, drawn_surfaces, vis_args)
+                self._draw_fins(
+                    ax, surface, position.z, drawn_surfaces, vis_args, plane
+                )
+            elif isinstance(surface, Fin):
+                self._draw_fin(ax, surface, position, drawn_surfaces, vis_args, plane)
             elif isinstance(surface, GenericSurface):
                 self._draw_generic_surface(
                     ax, surface, position, drawn_surfaces, vis_args, plane
@@ -309,13 +316,15 @@ class _RocketPlots:
         # Add the tail to the list of drawn surfaces
         drawn_surfaces.append((surface, position, surface.bottom_radius, x_tail[-1]))
 
-    def _draw_fins(self, ax, surface, position, drawn_surfaces, vis_args):
+    def _draw_fins(self, ax, surface, position, drawn_surfaces, vis_args, plane):
         """Draws the fins and saves the position of the points of interest
         for the tubes."""
         num_fins = surface.n
         x_fin = -self.rocket._csys * surface.shape_vec[0] + position
         y_fin = surface.shape_vec[1] + surface.rocket_radius
-        rotation_angles = [2 * np.pi * i / num_fins for i in range(num_fins)]
+        rotation_angles = np.array([2 * np.pi * i / num_fins for i in range(num_fins)])
+        if plane == "xz":
+            rotation_angles -= np.pi / 2
 
         for angle in rotation_angles:
             # Create a rotation matrix for the current angle around the x-axis
@@ -327,13 +336,6 @@ class _RocketPlots:
             # Extract x and y coordinates of the rotated points
             x_rotated, y_rotated = rotated_points_2d
 
-            # Project points above the XY plane back into the XY plane (set z-coordinate to 0)
-            x_rotated = np.where(
-                rotated_points_2d[1] > 0, rotated_points_2d[0], x_rotated
-            )
-            y_rotated = np.where(
-                rotated_points_2d[1] > 0, rotated_points_2d[1], y_rotated
-            )
             ax.plot(
                 x_rotated,
                 y_rotated,
@@ -342,6 +344,56 @@ class _RocketPlots:
             )
 
         drawn_surfaces.append((surface, position, surface.rocket_radius, x_rotated[-1]))
+
+    def _draw_fin(self, ax, surface, position, drawn_surfaces, vis_args, plane):
+        """Draws individual fins."""
+
+        # Get shape vec
+        xs = surface.shape_vec[0]
+        ys = surface.shape_vec[1]
+        zs = np.zeros_like(xs)
+
+        # Define shape in fin coordinate system
+        x_fin = -zs
+        y_fin = ys
+        z_fin = xs
+        points = np.column_stack((x_fin, y_fin, z_fin))
+
+        # Move drawing coordinates to center of fin for cant angle rotation
+        xd = np.array([0, 0, max(xs) / 2])
+        points -= xd
+
+        # Rotate to body coordinate system
+        for i, p in enumerate(points):
+            points[i] = surface._rotation_fin_to_body @ Vector(p)
+
+        rotated_xd = surface._rotation_fin_to_body @ Vector(xd)
+        points += np.array(rotated_xd)
+
+        # Back to the drawing system
+        x_fin_rotated = points[:, 0]
+        y_fin_rotated = points[:, 1]
+        z_fin_rotated = points[:, 2]
+
+        if plane == "xz":
+            x_rotated = self.rocket._csys * z_fin_rotated + position.z
+            y_rotated = x_fin_rotated + position.x
+        elif plane == "yz":
+            x_rotated = self.rocket._csys * z_fin_rotated + position.z
+            y_rotated = y_fin_rotated + position.y
+        else:  # pragma: no cover
+            raise ValueError("Plane must be 'xz' or 'yz'.")
+
+        ax.plot(
+            x_rotated,
+            y_rotated,
+            color=vis_args["fins"],
+            linewidth=vis_args["line_width"],
+        )
+
+        drawn_surfaces.append(
+            (surface, position.z, surface.rocket_radius, x_rotated[-1])
+        )
 
     def _draw_generic_surface(
         self,
@@ -420,57 +472,82 @@ class _RocketPlots:
     def _draw_motor(self, last_radius, last_x, ax, vis_args):
         """Draws the motor from motor patches"""
         total_csys = self.rocket._csys * self.rocket.motor._csys
-        nozzle_position = (
-            self.rocket.motor_position + self.rocket.motor.nozzle_position * total_csys
-        )
+        is_cluster = hasattr(self.rocket.motor, "number")
+        base_motor = self.rocket.motor.motor if is_cluster else self.rocket.motor
 
+        if is_cluster:
+            angles = np.linspace(0, 2 * np.pi, self.rocket.motor.number, endpoint=False)
+            y_offsets = self.rocket.motor.radius * np.cos(angles)
+        else:
+            y_offsets = [0]
+        nozzle_position = (
+            self.rocket.motor_position + base_motor.nozzle_position * total_csys
+        )
         # Get motor patches translated to the correct position
         motor_patches = self._generate_motor_patches(total_csys, ax)
-
         # Draw patches
-        if not isinstance(self.rocket.motor, EmptyMotor):
-            # Add nozzle last so it is in front of the other patches
-            nozzle = self.rocket.motor.plots._generate_nozzle(
-                translate=(nozzle_position, 0), csys=self.rocket._csys
-            )
-            motor_patches += [nozzle]
+        if type(self.rocket.motor).__name__ != "EmptyMotor":
+            for y_off in y_offsets:
+                nozzle = base_motor.plots._generate_nozzle(
+                    translate=(nozzle_position, y_off), csys=self.rocket._csys
+                )
+                if y_off != y_offsets[0]:
+                    nozzle.set_label("_nolegend_")
+                motor_patches.append(nozzle)
 
-            outline = self.rocket.motor.plots._generate_motor_region(
+            outline = base_motor.plots._generate_motor_region(
                 list_of_patches=motor_patches
             )
-            # add outline first so it is behind the other patches
-            ax.add_patch(outline)
-            for patch in motor_patches:
-                ax.add_patch(patch)
+            if not is_cluster:
+                ax.add_patch(outline)
 
+            for patch in motor_patches:
+                if is_cluster:
+                    patch.set_alpha(0.6)
+                ax.add_patch(patch)
         self._draw_nozzle_tube(last_radius, last_x, nozzle_position, ax, vis_args)
 
-    def _generate_motor_patches(self, total_csys, ax):  # pylint: disable=unused-argument
+    def _generate_motor_patches(self, total_csys, ax):
         """Generates motor patches for drawing"""
         motor_patches = []
 
-        if isinstance(self.rocket.motor, SolidMotor):
+        is_cluster = hasattr(self.rocket.motor, "number")
+        base_motor = self.rocket.motor.motor if is_cluster else self.rocket.motor
+
+        if isinstance(base_motor, SolidMotor):
+            y_offsets = (
+                self.rocket.motor.radius
+                * np.cos(
+                    np.linspace(0, 2 * np.pi, self.rocket.motor.number, endpoint=False)
+                )
+                if is_cluster
+                else [0]
+            )
             grains_cm_position = (
                 self.rocket.motor_position
-                + self.rocket.motor.grains_center_of_mass_position * total_csys
+                + base_motor.grains_center_of_mass_position * total_csys
             )
-            ax.scatter(
-                grains_cm_position,
-                0,
-                color="brown",
-                label="Grains Center of Mass",
-                s=8,
-                zorder=10,
-            )
+            for y_off in y_offsets:
+                ax.scatter(
+                    grains_cm_position,
+                    y_off,
+                    color="brown",
+                    label="Grains Center of Mass" if y_off == y_offsets[0] else "",
+                    s=8,
+                    zorder=10,
+                )
 
-            chamber = self.rocket.motor.plots._generate_combustion_chamber(
-                translate=(grains_cm_position, 0), label=None
-            )
-            grains = self.rocket.motor.plots._generate_grains(
-                translate=(grains_cm_position, 0)
-            )
+                chamber = base_motor.plots._generate_combustion_chamber(
+                    translate=(grains_cm_position, y_off), label=None
+                )
+                grains = base_motor.plots._generate_grains(
+                    translate=(grains_cm_position, y_off)
+                )
+                if y_off != y_offsets[0]:
+                    for grain in grains:
+                        grain.set_label("_nolegend_")
 
-            motor_patches += [chamber, *grains]
+                motor_patches += [chamber, *grains]
 
         elif isinstance(self.rocket.motor, HybridMotor):
             grains_cm_position = (
@@ -654,7 +731,7 @@ class _RocketPlots:
 
         # Rocket draw
         if len(self.rocket.aerodynamic_surfaces) > 0:
-            print("\nRocket Draw")
+            print("\nRocket Drawing")
             print("-" * 40)
             self.draw()
 

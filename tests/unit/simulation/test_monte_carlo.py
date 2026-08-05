@@ -1,3 +1,8 @@
+import csv
+import json
+import pathlib
+from collections import namedtuple
+
 import matplotlib as plt
 import numpy as np
 import pytest
@@ -185,3 +190,326 @@ def test_estimate_confidence_interval_raises_type_error_for_invalid_statistic():
 
     with pytest.raises(TypeError):
         mc.estimate_confidence_interval("apogee", statistic="not_a_function")
+
+
+@pytest.mark.parametrize(
+    "kwargs, match",
+    [
+        ({"batch_size": 0}, "batch_size"),
+        ({"batch_size": -5}, "batch_size"),
+        ({"max_simulations": 0}, "max_simulations"),
+        ({"tolerance": 0}, "tolerance"),
+        ({"tolerance": -1.0}, "tolerance"),
+        ({"target_confidence": 1.5}, "target_confidence"),
+        ({"target_confidence": 0}, "target_confidence"),
+    ],
+)
+def test_simulate_convergence_validates_inputs(kwargs, match):
+    """simulate_convergence must reject invalid inputs up front. In particular a
+    non-positive batch_size would otherwise make the loop run zero simulations
+    per iteration and spin forever."""
+    mc = MockMonteCarlo()
+    with pytest.raises(ValueError, match=match):
+        mc.simulate_convergence(**kwargs)
+
+
+# --- CSV and JSON export/import tests ---
+
+
+class MockMonteCarloWithLogs(MonteCarlo):
+    """Mock class with populated logs for testing export/import methods."""
+
+    def __init__(self):
+        # pylint: disable=super-init-not-called
+        self.outputs_log = [
+            {"apogee": 5742.42, "x_impact": 553.49, "index": 0},
+            {"apogee": 3844.41, "x_impact": 402.31, "index": 1},
+            {"apogee": 4500.00, "x_impact": 480.10, "index": 2},
+        ]
+        self.inputs_log = [
+            {
+                "elevation": 1413.6,
+                "radius": 0.0635,
+                "parachutes": [{"cd_s": 9.84}],
+                "index": 0,
+            },
+            {
+                "elevation": 1400.0,
+                "radius": 0.0640,
+                "parachutes": [{"cd_s": 10.0}],
+                "index": 1,
+            },
+            {
+                "elevation": 1420.0,
+                "radius": 0.0630,
+                "parachutes": [{"cd_s": 9.50}],
+                "index": 2,
+            },
+        ]
+        self.errors_log = []
+        self.results = {}
+        self.processed_results = {}
+        self.num_of_loaded_sims = 3
+
+
+def test_export_outputs_to_csv(tmp_path):
+    """Tests that outputs are correctly exported to CSV."""
+    mc = MockMonteCarloWithLogs()
+    filepath = tmp_path / "outputs.csv"
+
+    mc.export_outputs_to_csv(str(filepath))
+
+    with open(filepath, encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+
+    assert len(rows) == 3
+    assert float(rows[0]["apogee"]) == pytest.approx(5742.42)
+    assert float(rows[1]["x_impact"]) == pytest.approx(402.31)
+
+
+def test_export_outputs_to_json(tmp_path):
+    """Tests that outputs are correctly exported to JSON."""
+    mc = MockMonteCarloWithLogs()
+    filepath = tmp_path / "outputs.json"
+
+    mc.export_outputs_to_json(str(filepath))
+
+    with open(filepath, encoding="utf-8") as f:
+        data = json.load(f)
+
+    assert len(data) == 3
+    assert data[0]["apogee"] == pytest.approx(5742.42)
+    assert data[2]["index"] == 2
+
+
+def test_export_inputs_to_csv_no_flatten(tmp_path):
+    """Tests that inputs with nested values are serialized as JSON in CSV cells."""
+    mc = MockMonteCarloWithLogs()
+    filepath = tmp_path / "inputs.csv"
+
+    mc.export_inputs_to_csv(str(filepath), flatten=False)
+
+    with open(filepath, encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+
+    assert len(rows) == 3
+    # The parachutes column should contain a JSON string
+    parachutes_val = json.loads(rows[0]["parachutes"])
+    assert parachutes_val == [{"cd_s": 9.84}]
+
+
+def test_export_inputs_to_csv_flatten(tmp_path):
+    """Tests that flatten=True omits non-scalar columns."""
+    mc = MockMonteCarloWithLogs()
+    filepath = tmp_path / "inputs.csv"
+
+    mc.export_inputs_to_csv(str(filepath), flatten=True)
+
+    with open(filepath, encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+
+    assert "parachutes" not in rows[0]
+    assert "elevation" in rows[0]
+    assert "radius" in rows[0]
+
+
+def test_export_inputs_to_json(tmp_path):
+    """Tests that inputs are correctly exported to JSON."""
+    mc = MockMonteCarloWithLogs()
+    filepath = tmp_path / "inputs.json"
+
+    mc.export_inputs_to_json(str(filepath))
+
+    with open(filepath, encoding="utf-8") as f:
+        data = json.load(f)
+
+    assert len(data) == 3
+    assert data[0]["parachutes"] == [{"cd_s": 9.84}]
+
+
+def test_export_empty_log_raises_error(tmp_path):
+    """Tests that exporting an empty log raises ValueError."""
+    mc = MockMonteCarloWithLogs()
+    mc.outputs_log = []
+
+    with pytest.raises(ValueError, match="No data to export"):
+        mc.export_outputs_to_csv(str(tmp_path / "empty.csv"))
+
+    with pytest.raises(ValueError, match="No data to export"):
+        mc.export_outputs_to_json(str(tmp_path / "empty.json"))
+
+
+def test_import_outputs_from_csv(tmp_path):
+    """Tests that outputs can be imported from a CSV file."""
+    mc = MockMonteCarloWithLogs()
+    filepath = tmp_path / "outputs.csv"
+
+    # Export first
+    mc.export_outputs_to_csv(str(filepath))
+
+    # Create a fresh mock and import
+    mc2 = MockMonteCarloWithLogs()
+    mc2.output_file = str(filepath)
+
+    assert len(mc2.outputs_log) == 3
+    assert mc2.outputs_log[0]["apogee"] == pytest.approx(5742.42)
+    assert mc2.outputs_log[1]["x_impact"] == pytest.approx(402.31)
+
+
+def test_import_outputs_from_json(tmp_path):
+    """Tests that outputs can be imported from a JSON file."""
+    mc = MockMonteCarloWithLogs()
+    filepath = tmp_path / "outputs.json"
+
+    # Export first
+    mc.export_outputs_to_json(str(filepath))
+
+    # Create a fresh mock and import
+    mc2 = MockMonteCarloWithLogs()
+    mc2.output_file = str(filepath)
+
+    assert len(mc2.outputs_log) == 3
+    assert mc2.outputs_log[0]["apogee"] == pytest.approx(5742.42)
+
+
+def test_round_trip_outputs_csv(tmp_path):
+    """Tests that outputs survive a CSV export/import round trip."""
+    mc = MockMonteCarloWithLogs()
+    filepath = tmp_path / "outputs.csv"
+
+    mc.export_outputs_to_csv(str(filepath))
+    mc.output_file = str(filepath)
+
+    for i, original in enumerate(MockMonteCarloWithLogs().outputs_log):
+        for key, value in original.items():
+            assert mc.outputs_log[i][key] == pytest.approx(value)
+
+
+def test_round_trip_outputs_json(tmp_path):
+    """Tests that outputs survive a JSON export/import round trip."""
+    mc = MockMonteCarloWithLogs()
+    filepath = tmp_path / "outputs.json"
+
+    mc.export_outputs_to_json(str(filepath))
+    mc.output_file = str(filepath)
+
+    for i, original in enumerate(MockMonteCarloWithLogs().outputs_log):
+        for key, value in original.items():
+            assert mc.outputs_log[i][key] == pytest.approx(value)
+
+
+def test_round_trip_inputs_csv(tmp_path):
+    """Tests that inputs with nested values survive a CSV round trip."""
+    mc = MockMonteCarloWithLogs()
+    filepath = tmp_path / "inputs.csv"
+
+    mc.export_inputs_to_csv(str(filepath), flatten=False)
+    mc.input_file = str(filepath)
+
+    assert mc.inputs_log[0]["parachutes"] == [{"cd_s": 9.84}]
+    assert mc.inputs_log[0]["elevation"] == pytest.approx(1413.6)
+
+
+def test_detect_file_format_unsupported():
+    """Tests that unsupported file extensions raise ValueError."""
+    mc = MockMonteCarloWithLogs()
+
+    with pytest.raises(ValueError, match="Unsupported file extension"):
+        mc._detect_file_format("data.xlsx")
+
+    with pytest.raises(ValueError, match="Unsupported file extension"):
+        mc._detect_file_format("data.parquet")
+
+
+def test_set_num_of_loaded_sims_csv(tmp_path):
+    """Tests that set_num_of_loaded_sims works with CSV files."""
+    mc = MockMonteCarloWithLogs()
+    filepath = tmp_path / "outputs.csv"
+
+    mc.export_outputs_to_csv(str(filepath))
+    mc._output_file = str(filepath)
+    mc.set_num_of_loaded_sims()
+
+    assert mc.num_of_loaded_sims == 3
+
+
+def test_set_num_of_loaded_sims_json(tmp_path):
+    """Tests that set_num_of_loaded_sims works with JSON files."""
+    mc = MockMonteCarloWithLogs()
+    filepath = tmp_path / "outputs.json"
+
+    mc.export_outputs_to_json(str(filepath))
+    mc._output_file = str(filepath)
+    mc.set_num_of_loaded_sims()
+
+    assert mc.num_of_loaded_sims == 3
+
+
+# --- Adaptive Monte Carlo convergence (PR #922) ---
+
+_CI = namedtuple("_CI", ["low", "high"])
+
+
+class ConvergenceMockMonteCarlo(MonteCarlo):
+    """Mock that fakes batch simulation and a scripted confidence-interval
+    width, so ``simulate_convergence``'s stopping decision can be unit-tested
+    without running any real flight simulation."""
+
+    def __init__(self, width_model):
+        # pylint: disable=super-init-not-called
+        self.num_of_loaded_sims = 0
+        self.filename = pathlib.Path("dummy_mc")
+        self._width_model = width_model
+        self.simulate_calls = 0
+
+    def import_outputs(self, *args, **kwargs):  # no-op, avoids file I/O
+        pass
+
+    def simulate(self, number_of_simulations, append=True, **kwargs):
+        # pylint: disable=arguments-differ
+        self.simulate_calls += 1
+        self.num_of_loaded_sims = number_of_simulations
+
+    def estimate_confidence_interval(self, attribute, confidence_level=0.95, **kwargs):
+        # pylint: disable=arguments-differ,unused-argument
+        width = self._width_model(self.num_of_loaded_sims)
+        return _CI(low=0.0, high=width)
+
+
+def test_simulate_convergence_stops_early_when_tolerance_met():
+    """The convergence loop must stop as soon as the CI width drops below the
+    tolerance, well before reaching max_simulations."""
+    # width = 40 / n  ->  50 sims: 0.8 (> 0.5),  100 sims: 0.4 (<= 0.5) -> stop
+    mc = ConvergenceMockMonteCarlo(width_model=lambda n: 40.0 / n)
+
+    history = mc.simulate_convergence(
+        target_attribute="apogee_time",
+        tolerance=0.5,
+        max_simulations=1000,
+        batch_size=50,
+    )
+
+    assert history[-1] <= 0.5
+    assert len(history) == 2  # stopped after the second batch
+    assert mc.num_of_loaded_sims == 100
+    assert mc.num_of_loaded_sims < 1000  # did not exhaust the simulation budget
+
+
+def test_simulate_convergence_runs_until_max_when_not_converging():
+    """When the CI width never drops below the tolerance, the loop must run
+    until max_simulations and never exceed it."""
+    mc = ConvergenceMockMonteCarlo(width_model=lambda n: 10.0)  # constant, > tol
+
+    history = mc.simulate_convergence(
+        target_attribute="apogee_time",
+        tolerance=0.5,
+        max_simulations=200,
+        batch_size=50,
+    )
+
+    assert mc.num_of_loaded_sims == 200
+    assert all(width > 0.5 for width in history)
+    assert len(history) == 4  # 200 / 50 batches

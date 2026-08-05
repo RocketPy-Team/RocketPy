@@ -13,20 +13,34 @@ Wyoming Upper Air Soundings
 
 The University of Wyoming - College of Engineering - Department of Atmospheric
 Sciences has a comprehensive collection of atmospheric soundings on their website,
-accessible `here <http://weather.uwyo.edu/upperair/sounding.html>`_.
+accessible `here <https://weather.uwyo.edu/upperair/sounding.shtml>`_.
 
 For this example, we will use the sounding from 83779 SBMT Marte Civ Observations
-at 04 Feb 2019, which can be accessed using this URL:
-http://weather.uwyo.edu/cgi-bin/sounding?region=samer&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=02&FROM=0500&TO=0512&STNM=83779
+at 05 Feb 2019, which can be accessed using this URL:
+https://weather.uwyo.edu/wsgi/sounding?datetime=2019-02-05%2012:00:00&id=83779&type=TEXT:LIST
+
+.. important::
+
+    The University of Wyoming discontinued the legacy
+    ``weather.uwyo.edu/cgi-bin/sounding`` endpoint. URLs in that old format no
+    longer work; use the new ``weather.uwyo.edu/wsgi/sounding`` format shown
+    above, which RocketPy supports since v1.13.0.
 
 
 Initialize a new Environment instance:
 
-.. jupyter-execute::
+.. note::
+
+    The example below is shown as static code (it is not executed during the
+    documentation build) because it requires a live network request to an
+    external University of Wyoming service. Run it locally to fetch the
+    sounding and see the resulting atmospheric plots.
+
+.. code-block:: python
 
     from rocketpy import Environment
 
-    url = "http://weather.uwyo.edu/cgi-bin/sounding?region=samer&TYPE=TEXT%3ALIST&YEAR=2019&MONTH=02&FROM=0500&TO=0512&STNM=83779"
+    url = "https://weather.uwyo.edu/wsgi/sounding?datetime=2019-02-05%2012:00:00&id=83779&type=TEXT:LIST"
 
     env = Environment()
     env.set_atmospheric_model(type="wyoming_sounding", file=url)
@@ -59,7 +73,7 @@ Integrated Global Radiosonde Archive (IGRA).
 
 These options can be retrieved as a text file in GSD format. However,
 RocketPy no longer provides a dedicated ``set_atmospheric_model`` type for
-NOAA RUC Soundings.
+NOAA RUC Soundings, since NOAA has discontinued the OPENDAP service.
 
 .. note::
     

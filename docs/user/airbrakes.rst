@@ -95,60 +95,23 @@ To create an air brakes model, we essentially need to define the following:
   ``deployment_level`` attribute. Inside this function, any controller logic,
   filters, and apogee prediction can be implemented.
 
-- The **sampling rate** of the controller function, in seconds. This is the time
-  between each call of the controller function, in simulation time. Must be
-  given in Hertz.
+- The **sampling rate** of the controller function, in Hertz. This is how often
+  the controller function is called in simulation time (a **discrete**
+  controller). It can also be set to ``None`` to create a **continuous**
+  controller that is called at every solver step (see
+  :ref:`discrete-vs-continuous-controllers` below).
 
 Defining the Controller Function
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Lets start by defining a very simple controller function.
 
-The ``controller_function`` must take in the following arguments, in this
-order:
-
-1. ``time`` (float): The current simulation time in seconds.
-2. ``sampling_rate`` (float): The rate at which the controller
-   function is called, measured in Hertz (Hz).
-3. ``state`` (list): The state vector of the simulation. The state
-   is a list containing the following values, in this order:
-
-   - ``x``: The x position of the rocket, in meters.
-   - ``y``: The y position of the rocket, in meters.
-   - ``z``: The z position of the rocket, in meters.
-   - ``v_x``: The x component of the velocity of the rocket, in meters per
-     second.
-   - ``v_y``: The y component of the velocity of the rocket, in meters per
-     second.
-   - ``v_z``: The z component of the velocity of the rocket, in meters per
-     second.
-   - ``e0``: The first component of the quaternion representing the rotation
-     of the rocket.
-   - ``e1``: The second component of the quaternion representing the rotation
-     of the rocket.
-   - ``e2``: The third component of the quaternion representing the rotation
-     of the rocket.
-   - ``e3``: The fourth component of the quaternion representing the rotation
-     of the rocket.
-   - ``w_x``: The x component of the angular velocity of the rocket, in
-     radians per second.
-   - ``w_y``: The y component of the angular velocity of the rocket, in
-     radians per second.
-   - ``w_z``: The z component of the angular velocity of the rocket, in
-     radians per second.
-
-4. ``state_history`` (list): A record of the rocket's state at each
-   step throughout the simulation. The state_history is organized as
-   a list of lists, with each sublist containing a state vector. The
-   last item in the list always corresponds to the previous state
-   vector, providing a chronological sequence of the rocket's
-   evolving states.
-5. ``observed_variables`` (list): A list containing the variables that
-   the controller function returns. The return of each controller
-   function call is appended to the observed_variables list. The
-   initial value in the first step of the simulation of this list is
-   provided by the ``initial_observed_variables`` argument.
-6. ``air_brakes`` (AirBrakes): The ``AirBrakes`` instance being controlled.
+The ``controller_function`` receives information about the simulation at the
+current time step and sets the air brakes' deployment level. See
+:ref:`controllers` for the full description of its arguments and call signature.
+For air brakes, the controlled object (the ``air_brakes`` argument) is the
+:class:`rocketpy.AirBrakes` instance, whose ``deployment_level`` the function
+sets.
 
 Our example ``controller_function`` will deploy the air brakes when the rocket
 reaches 1500 meters above the ground. The deployment level will be function of the
@@ -224,22 +187,6 @@ Lets define the controller function:
 
 .. note::
 
-    - The ``controller_function`` accepts 6, 7, or 8 parameters for backward
-      compatibility:
-
-      * **6 parameters** (original): ``time``, ``sampling_rate``, ``state``,
-        ``state_history``, ``observed_variables``, ``air_brakes``
-      * **7 parameters** (with sensors): adds ``sensors`` as the 7th parameter
-      * **8 parameters** (with environment): adds ``sensors`` and ``environment``
-        as the 7th and 8th parameters
-
-    - The **environment parameter** provides access to atmospheric conditions
-      (wind, temperature, pressure, elevation) without relying on global variables.
-      This enables proper serialization of rockets with air brakes and improves
-      code modularity. Available methods include ``environment.elevation``,
-      ``environment.wind_velocity_x(altitude)``, ``environment.wind_velocity_y(altitude)``,
-      ``environment.speed_of_sound(altitude)``, and others.
-
     - The code inside the ``controller_function`` can be as complex as needed.
       Anything can be implemented inside the function, including filters,
       apogee prediction, and any controller logic.
@@ -249,15 +196,10 @@ Lets define the controller function:
       0 or higher than 1. If you want to disable this feature, set ``clamp`` to
       ``False`` when defining the air brakes.
 
-    - Anything can be returned by the ``controller_function``. The returned
-      values will be saved in the ``observed_variables`` list at every time step
-      and can then be accessed by the ``controller_function`` at the next time
-      step. The saved values can also be accessed after the simulation is
-      finished. This is useful for debugging and for plotting the results.
-
-    - The ``controller_function`` can also be defined in a separate file and
-      imported into the simulation script. This includes importing a ``c`` or
-      ``cpp`` code into Python.
+    - See :ref:`controllers` for the controller-function signature (including the
+      6/7/8-parameter forms and the ``environment`` argument), how returned
+      values are stored in ``observed_variables``, and discrete vs. continuous
+      controllers.
 
 
 Defining the Drag Coefficient
@@ -371,6 +313,15 @@ controller function. If you want to disable this feature, set ``clamp`` to
 
     For more information on the :class:`rocketpy.AirBrakes` class
     initialization, see  :class:`rocketpy.AirBrakes.__init__` section.
+
+.. note::
+
+    Because our controller uses ``sampling_rate=10``, it is a **discrete**
+    controller and adds its sampling instants as time nodes to the simulation.
+    Remember to set ``time_overshoot=False`` in the ``Flight`` (see below) so the
+    integrator stops exactly at those instants. See
+    :ref:`discrete-vs-continuous-controllers` for the difference between discrete
+    and continuous controllers.
 
 Simulating a Flight
 -------------------

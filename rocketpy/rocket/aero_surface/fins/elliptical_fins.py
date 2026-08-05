@@ -1,7 +1,6 @@
-import numpy as np
-
 from rocketpy.plots.aero_surface_plots import _EllipticalFinsPlots
 from rocketpy.prints.aero_surface_prints import _EllipticalFinsPrints
+from rocketpy.rocket.aero_surface.fins._geometry import _EllipticalGeometry
 
 from .fins import Fins
 
@@ -35,9 +34,6 @@ class EllipticalFins(Fins):
         Second is the unit of the curve (radians or degrees)
     EllipticalFins.cant_angle : float
         Fins cant angle with respect to the rocket centerline, in degrees.
-    EllipticalFins.changing_attribute_dict : dict
-        Dictionary that stores the name and the values of the attributes that
-        may be changed during a simulation. Useful for control systems.
     EllipticalFins.cant_angle_rad : float
         Fins cant angle with respect to the rocket centerline, in radians.
     EllipticalFins.root_chord : float
@@ -53,9 +49,9 @@ class EllipticalFins(Fins):
     EllipticalFins.sweep_angle : float
         Fins sweep angle with respect to the rocket centerline. Must
         be given in degrees.
-    EllipticalFins.d : float
+    EllipticalFins.rocket_diameter : float
         Reference diameter of the rocket, in meters.
-    EllipticalFins.ref_area : float
+    EllipticalFins.reference_area : float
         Reference area of the rocket.
     EllipticalFins.Af : float
         Area of the longitudinal section of each fin in the set.
@@ -162,10 +158,9 @@ class EllipticalFins(Fins):
             name,
         )
 
-        self.evaluate_geometrical_parameters()
-        self.evaluate_center_of_pressure()
-        self.evaluate_lift_coefficient()
-        self.evaluate_roll_parameters()
+        self.geometry = _EllipticalGeometry(self)
+        self._update_geometry_chain()
+        self.evaluate_shape()
 
         self.prints = _EllipticalFinsPrints(self)
         self.plots = _EllipticalFinsPlots(self)
@@ -179,160 +174,18 @@ class EllipticalFins(Fins):
         -------
         None
         """
-        # Center of pressure position in local coordinates
+        # Barrowman elliptical-fin center of pressure location.
         cpz = 0.288 * self.root_chord
         self.cpx = 0
         self.cpy = 0
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
 
-    def evaluate_geometrical_parameters(self):  # pylint: disable=too-many-statements
-        """Calculates and saves fin set's geometrical parameters such as the
-        fins' area, aspect ratio and parameters for roll movement.
-
-        Returns
-        -------
-        None
-        """
-
-        # Compute auxiliary geometrical parameters
-        # pylint: disable=invalid-name
-        Af = (np.pi * self.root_chord / 2 * self.span) / 2  # Fin area
-        gamma_c = 0  # Zero for elliptical fins
-        AR = 2 * self.span**2 / Af  # Fin aspect ratio
-        Yma = (
-            self.span / (3 * np.pi) * np.sqrt(9 * np.pi**2 - 64)
-        )  # Span wise coord of mean aero chord
-        roll_geometrical_constant = (
-            self.root_chord
-            * self.span
-            * (
-                3 * np.pi * self.span**2
-                + 32 * self.rocket_radius * self.span
-                + 12 * np.pi * self.rocket_radius**2
-            )
-            / 48
-        )
-
-        # Fin–body interference correction parameters
-        tau = (self.span + self.rocket_radius) / self.rocket_radius
-        lift_interference_factor = 1 + 1 / tau
-        if self.span > self.rocket_radius:
-            roll_damping_interference_factor = 1 + (
-                (self.rocket_radius**2)
-                * (
-                    2
-                    * (self.rocket_radius**2)
-                    * np.sqrt(self.span**2 - self.rocket_radius**2)
-                    * np.log(
-                        (
-                            2
-                            * self.span
-                            * np.sqrt(self.span**2 - self.rocket_radius**2)
-                            + 2 * self.span**2
-                        )
-                        / self.rocket_radius
-                    )
-                    - 2
-                    * (self.rocket_radius**2)
-                    * np.sqrt(self.span**2 - self.rocket_radius**2)
-                    * np.log(2 * self.span)
-                    + 2 * self.span**3
-                    - np.pi * self.rocket_radius * self.span**2
-                    - 2 * (self.rocket_radius**2) * self.span
-                    + np.pi * self.rocket_radius**3
-                )
-            ) / (
-                2
-                * (self.span**2)
-                * (self.span / 3 + np.pi * self.rocket_radius / 4)
-                * (self.span**2 - self.rocket_radius**2)
-            )
-        elif self.span < self.rocket_radius:
-            roll_damping_interference_factor = 1 - (
-                self.rocket_radius**2
-                * (
-                    2 * self.span**3
-                    - np.pi * self.span**2 * self.rocket_radius
-                    - 2 * self.span * self.rocket_radius**2
-                    + np.pi * self.rocket_radius**3
-                    + 2
-                    * self.rocket_radius**2
-                    * np.sqrt(-(self.span**2) + self.rocket_radius**2)
-                    * np.arctan(
-                        (self.span) / (np.sqrt(-(self.span**2) + self.rocket_radius**2))
-                    )
-                    - np.pi
-                    * self.rocket_radius**2
-                    * np.sqrt(-(self.span**2) + self.rocket_radius**2)
-                )
-            ) / (
-                2
-                * self.span
-                * (-(self.span**2) + self.rocket_radius**2)
-                * (self.span**2 / 3 + np.pi * self.span * self.rocket_radius / 4)
-            )
-        else:
-            roll_damping_interference_factor = (28 - 3 * np.pi) / (4 + 3 * np.pi)
-
-        roll_forcing_interference_factor = (1 / np.pi**2) * (
-            (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
-            + ((np.pi * (tau**2 + 1) ** 2) / (tau**2 * (tau - 1) ** 2))
-            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
-            - (2 * np.pi * (tau + 1)) / (tau * (tau - 1))
-            + ((tau**2 + 1) ** 2)
-            / (tau**2 * (tau - 1) ** 2)
-            * (np.arcsin((tau**2 - 1) / (tau**2 + 1))) ** 2
-            - (4 * (tau + 1))
-            / (tau * (tau - 1))
-            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
-            + (8 / (tau - 1) ** 2) * np.log((tau**2 + 1) / (2 * tau))
-        )
-
-        # Store values
-        # pylint: disable=invalid-name
-        self.Af = Af  # Fin area
-        self.AR = AR  # Fin aspect ratio
-        self.gamma_c = gamma_c  # Mid chord angle
-        self.Yma = Yma  # Span wise coord of mean aero chord
-        self.roll_geometrical_constant = roll_geometrical_constant
-        self.tau = tau
-        self.lift_interference_factor = lift_interference_factor
-        self.roll_damping_interference_factor = roll_damping_interference_factor
-        self.roll_forcing_interference_factor = roll_forcing_interference_factor
-
-        self.evaluate_shape()
-
-    def evaluate_shape(self):
-        angles = np.arange(0, 180, 5)
-        x_array = self.root_chord / 2 + self.root_chord / 2 * np.cos(np.radians(angles))
-        y_array = self.span * np.sin(np.radians(angles))
-        self.shape_vec = [x_array, y_array]
-
-    def info(self):
-        self.prints.geometry()
-        self.prints.lift()
-
-    def all_info(self):
-        self.prints.all()
-        self.plots.all()
-
     def to_dict(self, **kwargs):
         data = super().to_dict(**kwargs)
-        if kwargs.get("include_outputs", False):
-            data.update(
-                {
-                    "Af": self.Af,
-                    "AR": self.AR,
-                    "gamma_c": self.gamma_c,
-                    "Yma": self.Yma,
-                    "roll_geometrical_constant": self.roll_geometrical_constant,
-                    "tau": self.tau,
-                    "lift_interference_factor": self.lift_interference_factor,
-                    "roll_damping_interference_factor": self.roll_damping_interference_factor,
-                    "roll_forcing_interference_factor": self.roll_forcing_interference_factor,
-                }
-            )
+        data.update(
+            self.geometry.get_data(include_outputs=kwargs.get("include_outputs", False))
+        )
         return data
 
     @classmethod

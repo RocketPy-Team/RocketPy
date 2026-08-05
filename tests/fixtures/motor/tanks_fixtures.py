@@ -499,7 +499,7 @@ def cylindrical_variable_density_oxidizer_tank(nitrous_oxide_non_constant_fluid)
 
     return MassBasedTank(
         name="Variable Density N2O Tank",
-        geometry=CylindricalTank(height=0.8, radius=0.06, spherical_caps=True),
+        geometry=CylindricalTank(height=0.8, radius_function=0.06, spherical_caps=True),
         flux_time=7,
         liquid=nitrous_oxide_non_constant_fluid,
         gas=nitrous_oxide_non_constant_fluid,

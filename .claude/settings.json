@@ -1,0 +1,46 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git fetch *)",
+      "Bash(git merge *)",
+      "Bash(git checkout *)",
+      "Bash(python -m ruff --version)",
+      "Bash(python -m pylint --version)",
+      "Bash(python -m ruff check rocketpy/plots/flight_plots.py tests/unit/test_plots.py)",
+      "Bash(python -m ruff format --check rocketpy/plots/flight_plots.py tests/unit/test_plots.py)",
+      "Bash(python -m ruff check .)",
+      "Bash(python -m ruff format --check .)",
+      "Bash(python -m pylint rocketpy/plots/flight_plots.py tests/unit/test_plots.py)",
+      "Bash(python -m ruff check rocketpy/plots/flight_plots.py)",
+      "Bash(python -m ruff format --check rocketpy/plots/flight_plots.py)",
+      "Bash(python -m pytest tests/unit/test_plots.py -k \"animate_trajectory or animate_rotate\" -p no:cacheprovider -q)",
+      "Bash(python -m pytest tests/unit/test_plots.py -p no:cacheprovider -q)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/hooks/ruff_on_edit.py",
+            "statusMessage": "ruff: formatting edited file"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/hooks/ruff_guard_push.py",
+            "statusMessage": "ruff: pre-push lint guard"
+          }
+        ]
+      }
+    ]
+  }
+}

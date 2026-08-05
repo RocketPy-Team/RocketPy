@@ -587,7 +587,7 @@ Use the dedicated exporter class:
 
 .. note::
 
-    The legacy method ``Flight.export_kml`` is deprecated. Use
+    The legacy method ``Flight.export_kml`` was removed in v1.13.0. Use
     :meth:`rocketpy.simulation.flight_data_exporter.FlightDataExporter.export_kml`.
 
 Manipulating results
@@ -687,7 +687,7 @@ by not passing any attribute names:
 
 .. note::
 
-    The legacy method ``Flight.export_data`` is deprecated. Use
+    The legacy method ``Flight.export_data`` was removed in v1.13.0. Use
     :meth:`rocketpy.simulation.flight_data_exporter.FlightDataExporter.export_data`.
 
 Saving and Storing Plots

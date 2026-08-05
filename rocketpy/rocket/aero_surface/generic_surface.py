@@ -85,6 +85,8 @@ class GenericSurface:
         self.cpz = center_of_pressure[2]
         self.name = name
 
+        self._rotation_surface_to_body = Matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+
         default_coefficients = self._get_default_coefficients()
         self._check_coefficients(coefficients, default_coefficients)
         coefficients = self._complete_coefficients(coefficients, default_coefficients)
@@ -380,7 +382,7 @@ class GenericSurface:
                 " or a callable."
             )
 
-    def __load_generic_surface_csv(self, file_path, coeff_name):  # pylint: disable=too-many-statements,import-outside-toplevel
+    def __load_generic_surface_csv(self, file_path, coeff_name):  # pylint: disable=too-many-statements
         """Load GenericSurface coefficient CSV into a 7D Function.
 
         This loader expects header-based CSV data with one or more independent

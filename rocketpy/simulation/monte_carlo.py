@@ -13,6 +13,7 @@ change in future versions. Users are encouraged to check for updates and read th
 latest documentation.
 """
 
+import csv
 import json
 import os
 import traceback
@@ -37,7 +38,7 @@ from rocketpy.tools import (
 # TODO: Create evolution plots to analyze convergence
 
 
-class MonteCarlo:
+class MonteCarlo:  # pylint: disable=too-many-public-methods
     """Class to run a Monte Carlo simulation of a rocket flight.
 
     Attributes
@@ -95,7 +96,7 @@ class MonteCarlo:
         flight,
         export_list=None,
         data_collector=None,
-    ):  # pylint: disable=too-many-statements
+    ):
         """
         Initialize a MonteCarlo object.
 
@@ -170,7 +171,7 @@ class MonteCarlo:
         parallel=False,
         n_workers=None,
         **kwargs,
-    ):  # pylint: disable=too-many-statements
+    ):
         """
         Runs the Monte Carlo simulation and saves all data.
 
@@ -222,7 +223,7 @@ class MonteCarlo:
         self.number_of_simulations = number_of_simulations
         self._initial_sim_idx = self.num_of_loaded_sims if append else 0
 
-        _SimMonitor.reprint("Starting Monte Carlo analysis")
+        print("Starting Monte Carlo analysis")
 
         self.__setup_files(append)
 
@@ -298,12 +299,12 @@ class MonteCarlo:
             sim_monitor.print_final_status()
 
         except KeyboardInterrupt:
-            _SimMonitor.reprint("Keyboard Interrupt, files saved.")
+            print("Keyboard interrupt received. Files saved.")
             with open(self._error_file, "a", encoding="utf-8") as f:
                 f.write(inputs_json)
 
         except Exception as error:
-            _SimMonitor.reprint(f"Error on iteration {sim_monitor.count}: {error}")
+            print(f"Error on iteration {sim_monitor.count}: {error}")
             with open(self._error_file, "a", encoding="utf-8") as f:
                 f.write(inputs_json)
             raise error
@@ -324,7 +325,7 @@ class MonteCarlo:
         """
         n_workers = self.__validate_number_of_workers(n_workers)
 
-        _SimMonitor.reprint(f"Running Monte Carlo simulation with {n_workers} workers.")
+        print(f"Running Monte Carlo simulation with {n_workers} workers.")
 
         multiprocess, managers = _import_multiprocess()
 
@@ -417,8 +418,12 @@ class MonteCarlo:
                 try:
                     mutex.acquire()
                     if error_event.is_set():
-                        sim_monitor.reprint(
-                            "Simulation Interrupt, files from simulation "
+                        # Runs in a worker process spawned via multiprocessing:
+                        # logging handlers configured in the main process are
+                        # not guaranteed to be inherited (e.g. Windows "spawn"),
+                        # so this must use print() to remain visible.
+                        _SimMonitor.reprint(
+                            f"Simulation interrupt. Files from simulation "
                             f"{sim_idx} saved."
                         )
                         with open(self.error_file, "a", encoding="utf-8") as f:
@@ -440,8 +445,11 @@ class MonteCarlo:
             with open(self.error_file, "a", encoding="utf-8") as f:
                 f.write(inputs_json)
 
-            sim_monitor.reprint(f"Error on iteration {sim_idx}:")
-            sim_monitor.reprint(traceback.format_exc())
+            # See note above: must use print() to remain visible from a
+            # multiprocessing worker process.
+            _SimMonitor.reprint(
+                f"Error on iteration {sim_idx}:\n{traceback.format_exc()}"
+            )
             error_event.set()
             mutex.release()
 
@@ -525,6 +533,107 @@ class MonteCarlo:
 
         return res.confidence_interval
 
+    def simulate_convergence(
+        self,
+        target_attribute="apogee_time",
+        target_confidence=0.95,
+        tolerance=0.5,
+        max_simulations=1000,
+        batch_size=50,
+        parallel=False,
+        n_workers=None,
+    ):
+        """Run Monte Carlo simulations in batches until the confidence interval
+        width converges within the specified tolerance or the maximum number of
+        simulations is reached.
+
+        Parameters
+        ----------
+        target_attribute : str
+            The target attribute to track its convergence (e.g., "apogee", "apogee_time", etc.).
+        target_confidence : float, optional
+            The confidence level for the interval (between 0 and 1). Default is 0.95.
+        tolerance : float, optional
+            The desired width of the confidence interval in seconds, meters, or other units. Default is 0.5.
+        max_simulations : int, optional
+            The maximum number of simulations to run to avoid infinite loops. Default is 1000.
+        batch_size : int, optional
+            The number of simulations to run in each batch. Default is 50.
+        parallel : bool, optional
+            Whether to run simulations in parallel. Default is False.
+        n_workers : int, optional
+            The number of worker processes to use if running in parallel. Default is None.
+
+        Returns
+        -------
+        confidence_interval_history : list of float
+            History of confidence interval widths, one value per batch of simulations.
+            The last element corresponds to the width when the simulation stopped for
+            either meeting the tolerance or reaching the maximum number of simulations.
+        """
+
+        # Validate inputs up-front. Without this, a non-positive batch_size makes
+        # the loop run zero new simulations every iteration and spin forever.
+        if not isinstance(batch_size, (int, np.integer)) or batch_size <= 0:
+            raise ValueError(
+                f"'batch_size' must be a positive integer, got {batch_size!r}."
+            )
+        if not isinstance(max_simulations, (int, np.integer)) or max_simulations <= 0:
+            raise ValueError(
+                f"'max_simulations' must be a positive integer, got "
+                f"{max_simulations!r}."
+            )
+        if not isinstance(tolerance, (int, float)) or tolerance <= 0:
+            raise ValueError(
+                f"'tolerance' must be a positive number, got {tolerance!r}."
+            )
+        if not 0 < target_confidence < 1:
+            raise ValueError(
+                "'target_confidence' must be between 0 and 1 (exclusive), got "
+                f"{target_confidence!r}."
+            )
+
+        self.import_outputs(self.filename.with_suffix(".outputs.txt"))
+        confidence_interval_history = []
+
+        while self.num_of_loaded_sims < max_simulations:
+            total_sims = min(self.num_of_loaded_sims + batch_size, max_simulations)
+
+            self.simulate(
+                number_of_simulations=total_sims,
+                append=True,
+                include_function_data=False,
+                parallel=parallel,
+                n_workers=n_workers,
+            )
+
+            self.import_outputs(self.filename.with_suffix(".outputs.txt"))
+
+            ci = self.estimate_confidence_interval(
+                attribute=target_attribute,
+                confidence_level=target_confidence,
+            )
+
+            width = float(ci.high - ci.low)
+            confidence_interval_history.append(width)
+
+            # A NaN width means the target attribute contains NaN values; the
+            # tolerance check would never pass, so the loop would run to
+            # max_simulations and silently return a NaN history. Stop and warn.
+            if np.isnan(width):
+                warnings.warn(
+                    f"The confidence interval width for '{target_attribute}' is "
+                    "NaN, likely because the attribute contains NaN values. "
+                    "Stopping convergence early; check the simulation outputs.",
+                    stacklevel=2,
+                )
+                break
+
+            if width <= tolerance:
+                break
+
+        return confidence_interval_history
+
     def __evaluate_flight_inputs(self, sim_idx):
         """Evaluates the inputs of a single flight simulation.
 
@@ -601,7 +710,7 @@ class MonteCarlo:
         self.output_file = self._output_file
         self.error_file = self._error_file
 
-        _SimMonitor.reprint(f"Results saved to {self._output_file}")
+        print(f"Results saved to {self._output_file}")
 
     def __check_export_list(self, export_list):
         """
@@ -807,58 +916,232 @@ class MonteCarlo:
         self._error_file = value
         self.set_errors_log()
 
+    # File format helpers
+
+    @staticmethod
+    def _detect_file_format(filepath):
+        """Detect file format from the file extension.
+
+        Parameters
+        ----------
+        filepath : str or Path
+            Path to the file.
+
+        Returns
+        -------
+        str
+            One of ``"jsonl"``, ``"csv"``, or ``"json"``.
+
+        Raises
+        ------
+        ValueError
+            If the file extension is not supported.
+        """
+        suffix = Path(filepath).suffix.lower()
+        format_map = {".txt": "jsonl", ".csv": "csv", ".json": "json"}
+        if suffix not in format_map:
+            raise ValueError(
+                f"Unsupported file extension '{suffix}'. "
+                "Expected '.txt', '.csv', or '.json'."
+            )
+        return format_map[suffix]
+
+    @staticmethod
+    def _parse_csv_value(value):
+        """Parse a string value from a CSV cell into its appropriate type.
+
+        Parameters
+        ----------
+        value : str
+            The raw string value from the CSV cell.
+
+        Returns
+        -------
+        int, float, dict, list, or str
+            The parsed value in its appropriate Python type.
+        """
+        if value == "":
+            return value
+        # Try parsing JSON objects/arrays
+        if value.startswith(("{", "[")):
+            try:
+                return json.loads(value)
+            except (json.JSONDecodeError, ValueError):
+                pass
+        # Try numeric types
+        try:
+            int_val = int(value)
+            # Ensure the string was truly an integer (not "1.0")
+            if str(int_val) == value:
+                return int_val
+        except ValueError:
+            pass
+        try:
+            return float(value)
+        except ValueError:
+            pass
+        return value
+
+    def _read_log_file(self, filepath):
+        """Read a log file in any supported format and return a list of dicts.
+
+        Parameters
+        ----------
+        filepath : str or Path
+            Path to the log file. Format is detected from the extension.
+
+        Returns
+        -------
+        list of dict
+            A list of dictionaries, one per simulation record.
+        """
+        fmt = self._detect_file_format(filepath)
+        result = []
+        with open(filepath, mode="r", encoding="utf-8") as f:
+            if fmt == "jsonl":
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        result.append(json.loads(line))
+            elif fmt == "json":
+                content = f.read().strip()
+                if content:
+                    result = json.loads(content)
+            elif fmt == "csv":
+                reader = csv.DictReader(f)
+                for row in reader:
+                    result.append({k: self._parse_csv_value(v) for k, v in row.items()})
+        return result
+
+    @staticmethod
+    def _write_log_to_csv(log_data, filepath, flatten=False):
+        """Write a list of dicts to a CSV file.
+
+        Parameters
+        ----------
+        log_data : list of dict
+            The data to write. Each dict is one row.
+        filepath : str or Path
+            Output file path.
+        flatten : bool, optional
+            If True, non-scalar columns (dicts, lists) are omitted.
+            If False (default), non-scalar values are serialized as JSON
+            strings in the CSV cells.
+
+        Raises
+        ------
+        ValueError
+            If ``log_data`` is empty.
+        """
+        if not log_data:
+            raise ValueError(
+                "No data to export. Run a simulation first or import existing data."
+            )
+        # Collect all keys preserving insertion order
+        all_keys = list(dict.fromkeys(k for row in log_data for k in row))
+
+        if flatten:
+            # Identify scalar-only keys
+            scalar_keys = []
+            for key in all_keys:
+                if all(not isinstance(row.get(key), (dict, list)) for row in log_data):
+                    scalar_keys.append(key)
+            fieldnames = scalar_keys
+        else:
+            fieldnames = all_keys
+
+        with open(filepath, mode="w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
+            writer.writeheader()
+            for row in log_data:
+                csv_row = {}
+                for key in fieldnames:
+                    value = row.get(key, "")
+                    if isinstance(value, (dict, list)):
+                        csv_row[key] = json.dumps(value)
+                    else:
+                        csv_row[key] = value
+                writer.writerow(csv_row)
+
+    def _write_log_to_json(self, log_data, filepath):
+        """Write a list of dicts to a JSON file as a proper JSON array.
+
+        Parameters
+        ----------
+        log_data : list of dict
+            The data to write. Each dict becomes one element of the array.
+        filepath : str or Path
+            Output file path.
+
+        Raises
+        ------
+        ValueError
+            If ``log_data`` is empty.
+        """
+        if not log_data:
+            raise ValueError(
+                "No data to export. Run a simulation first or import existing data."
+            )
+        with open(filepath, mode="w", encoding="utf-8") as f:
+            json.dump(log_data, f, cls=RocketPyEncoder, indent=2)
+
     # Setters for post simulation attributes
 
     def set_inputs_log(self):
         """
         Sets inputs_log from a file into an attribute for easy access.
+        Supports .txt (JSONL), .csv, and .json file formats.
 
         Returns
         -------
         None
         """
-        self.inputs_log = []
-        with open(self.input_file, mode="r", encoding="utf-8") as rows:
-            for line in rows:
-                self.inputs_log.append(json.loads(line))
+        self.inputs_log = self._read_log_file(self.input_file)
 
     def set_outputs_log(self):
         """
         Sets outputs_log from a file into an attribute for easy access.
+        Supports .txt (JSONL), .csv, and .json file formats.
 
         Returns
         -------
         None
         """
-        self.outputs_log = []
-        with open(self.output_file, mode="r", encoding="utf-8") as rows:
-            for line in rows:
-                self.outputs_log.append(json.loads(line))
+        self.outputs_log = self._read_log_file(self.output_file)
 
     def set_errors_log(self):
         """
         Sets errors_log from a file into an attribute for easy access.
+        Supports .txt (JSONL), .csv, and .json file formats.
 
         Returns
         -------
         None
         """
-        self.errors_log = []
-        with open(self.error_file, mode="r", encoding="utf-8") as errors:
-            for line in errors:
-                self.errors_log.append(json.loads(line))
+        self.errors_log = self._read_log_file(self.error_file)
 
     def set_num_of_loaded_sims(self):
         """
         Determines the number of simulations loaded from output_file being
-        currently used.
+        currently used. Supports .txt (JSONL), .csv, and .json formats.
 
         Returns
         -------
         None
         """
+        fmt = self._detect_file_format(self.output_file)
         with open(self.output_file, mode="r", encoding="utf-8") as outputs:
-            self.num_of_loaded_sims = sum(1 for _ in outputs)
+            if fmt == "jsonl":
+                self.num_of_loaded_sims = sum(1 for _ in outputs)
+            elif fmt == "csv":
+                # Subtract 1 for the header row
+                self.num_of_loaded_sims = max(0, sum(1 for _ in outputs) - 1)
+            elif fmt == "json":
+                content = outputs.read().strip()
+                if content:
+                    self.num_of_loaded_sims = len(json.loads(content))
+                else:
+                    self.num_of_loaded_sims = 0
 
     def set_results(self):
         """
@@ -915,13 +1198,15 @@ class MonteCarlo:
 
     def import_outputs(self, filename=None):
         """
-        Import Monte Carlo results from .txt file and save it into a dictionary.
+        Import Monte Carlo results from a file and save it into a dictionary.
+        Supports .txt (JSONL), .csv, and .json file formats.
 
         Parameters
         ----------
         filename : str, optional
             Name or directory path to the file to be imported. If none,
-            self.filename will be used.
+            self.filename will be used with the default .outputs.txt suffix.
+            Files with .csv or .json extensions are also accepted.
 
         Returns
         -------
@@ -929,7 +1214,7 @@ class MonteCarlo:
 
         Notes
         -----
-        Notice that you can import the outputs, inputs, and errors from the a
+        Notice that you can import the outputs, inputs, and errors from a
         file without the need to run simulations. You can use previously saved
         files to process analyze the results or to continue a simulation.
         """
@@ -942,20 +1227,22 @@ class MonteCarlo:
             with open(filepath, "w+", encoding="utf-8"):
                 self.output_file = filepath
 
-        _SimMonitor.reprint(
-            f"A total of {self.num_of_loaded_sims} simulations results were "
-            f"loaded from the following output file: {self.output_file}\n"
+        print(
+            f"A total of {self.num_of_loaded_sims} simulation results were "
+            f"loaded from: {self.output_file}"
         )
 
     def import_inputs(self, filename=None):
         """
-        Import Monte Carlo inputs from .txt file and save it into a dictionary.
+        Import Monte Carlo inputs from a file and save it into a dictionary.
+        Supports .txt (JSONL), .csv, and .json file formats.
 
         Parameters
         ----------
         filename : str, optional
             Name or directory path to the file to be imported. If none,
-            self.filename will be used.
+            self.filename will be used with the default .inputs.txt suffix.
+            Files with .csv or .json extensions are also accepted.
 
         Returns
         -------
@@ -970,17 +1257,19 @@ class MonteCarlo:
             with open(filepath, "w+", encoding="utf-8"):
                 self.input_file = filepath
 
-        _SimMonitor.reprint(f"The following input file was imported: {self.input_file}")
+        print(f"The following input file was imported: {self.input_file}")
 
     def import_errors(self, filename=None):
         """
-        Import Monte Carlo errors from .txt file and save it into a dictionary.
+        Import Monte Carlo errors from a file and save it into a dictionary.
+        Supports .txt (JSONL), .csv, and .json file formats.
 
         Parameters
         ----------
         filename : str, optional
             Name or directory path to the file to be imported. If none,
-            self.filename will be used.
+            self.filename will be used with the default .errors.txt suffix.
+            Files with .csv or .json extensions are also accepted.
 
         Returns
         -------
@@ -995,11 +1284,11 @@ class MonteCarlo:
             with open(filepath, "w+", encoding="utf-8"):
                 self.error_file = filepath
 
-        _SimMonitor.reprint(f"The following error file was imported: {self.error_file}")
+        print(f"The following error file was imported: {self.error_file}")
 
     def import_results(self, filename=None):
         """
-        Import Monte Carlo results from .txt file and save it into a dictionary.
+        Import Monte Carlo results from a file and save it into a dictionary.
 
         Parameters
         ----------
@@ -1214,6 +1503,109 @@ class MonteCarlo:
         """
         self.plots.ellipses_comparison(other_monte_carlo, **kwargs)
 
+    # CSV and JSON export methods
+
+    def export_outputs_to_csv(self, filename):
+        """Export simulation outputs to a CSV file.
+
+        Each row represents one simulation. All output values are scalar,
+        so the CSV is directly usable in spreadsheet applications.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the output CSV file.
+
+        Raises
+        ------
+        ValueError
+            If no output data is available to export.
+        """
+        self._write_log_to_csv(self.outputs_log, filename)
+
+    def export_outputs_to_json(self, filename):
+        """Export simulation outputs to a JSON file as an array of objects.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the output JSON file.
+
+        Raises
+        ------
+        ValueError
+            If no output data is available to export.
+        """
+        self._write_log_to_json(self.outputs_log, filename)
+
+    def export_inputs_to_csv(self, filename, flatten=False):
+        """Export simulation inputs to a CSV file.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the output CSV file.
+        flatten : bool, optional
+            If True, columns with non-scalar values (dicts, lists) are
+            omitted from the CSV. If False (default), non-scalar values
+            are serialized as JSON strings within the CSV cells.
+
+        Raises
+        ------
+        ValueError
+            If no input data is available to export.
+        """
+        self._write_log_to_csv(self.inputs_log, filename, flatten=flatten)
+
+    def export_inputs_to_json(self, filename):
+        """Export simulation inputs to a JSON file as an array of objects.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the output JSON file.
+
+        Raises
+        ------
+        ValueError
+            If no input data is available to export.
+        """
+        self._write_log_to_json(self.inputs_log, filename)
+
+    def export_errors_to_csv(self, filename, flatten=False):
+        """Export simulation errors to a CSV file.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the output CSV file.
+        flatten : bool, optional
+            If True, columns with non-scalar values (dicts, lists) are
+            omitted from the CSV. If False (default), non-scalar values
+            are serialized as JSON strings within the CSV cells.
+
+        Raises
+        ------
+        ValueError
+            If no error data is available to export.
+        """
+        self._write_log_to_csv(self.errors_log, filename, flatten=flatten)
+
+    def export_errors_to_json(self, filename):
+        """Export simulation errors to a JSON file as an array of objects.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the output JSON file.
+
+        Raises
+        ------
+        ValueError
+            If no error data is available to export.
+        """
+        self._write_log_to_json(self.errors_log, filename)
+
 
 def _import_multiprocess():
     """Import the necessary modules and submodules for the
@@ -1308,15 +1700,12 @@ class _SimMonitor:
         msg = f"Completed {self.count - self.initial_count} iterations."
         msg += f" In total, {self.count} simulations are exported.\n"
         msg += f"Total wall time: {time() - self.start_time:.1f} s"
-
         _SimMonitor.reprint(msg, end="\n", flush=True)
 
     @staticmethod
     def reprint(msg, end="\n", flush=True):
-        """
-        Prints a message on the same line as the previous one and replaces the
-        previous message with the new one, deleting the extra characters from
-        the previous message.
+        """Prints a message replacing the previous line to avoid cluttering
+        the terminal output during concurrent simulation progress updates.
 
         Parameters
         ----------
@@ -1331,12 +1720,8 @@ class _SimMonitor:
         -------
         None
         """
-
         padding = ""
-
         if len(msg) < _SimMonitor._last_print_len:
             padding = " " * (_SimMonitor._last_print_len - len(msg))
-
         print(msg + padding, end=end, flush=flush)
-
         _SimMonitor._last_print_len = len(msg)

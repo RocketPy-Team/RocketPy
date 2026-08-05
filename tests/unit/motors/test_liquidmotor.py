@@ -1,8 +1,6 @@
 import numpy as np
-import pytest
+import numpy.testing as npt
 import scipy.integrate
-
-from rocketpy import Function
 
 BURN_TIME = (8, 20)
 DRY_MASS = 10
@@ -55,22 +53,38 @@ def test_liquid_motor_thrust_parameters(
         The expected oxidizer tank.
     """
     expected_thrust = np.loadtxt(
-        "data/rockets/berkeley/test124_Thrust_Curve.csv", delimiter=","
-    )
-    expected_mass_flow = (
-        pressurant_tank.net_mass_flow_rate
-        + fuel_tank.net_mass_flow_rate
-        + oxidizer_tank.net_mass_flow_rate
-    )
-    expected_total_impulse = scipy.integrate.trapezoid(
-        expected_thrust[:, 1], expected_thrust[:, 0]
+        "data/rockets/berkeley/test124_Thrust_Curve.csv",
+        delimiter=",",
     )
 
-    assert pytest.approx(liquid_motor.thrust.y_array) == expected_thrust[:, 1]
-    assert (
-        pytest.approx(liquid_motor.mass_flow_rate.y_array) == expected_mass_flow.y_array
+    time = expected_thrust[:, 0]
+    expected_thrust_values = expected_thrust[:, 1]
+
+    expected_mass_flow = (
+        pressurant_tank.net_mass_flow_rate(time)
+        + fuel_tank.net_mass_flow_rate(time)
+        + oxidizer_tank.net_mass_flow_rate(time)
     )
-    assert pytest.approx(liquid_motor.total_impulse) == expected_total_impulse
+
+    expected_total_impulse = scipy.integrate.trapezoid(
+        expected_thrust_values,
+        time,
+    )
+
+    npt.assert_allclose(
+        liquid_motor.thrust(time),
+        expected_thrust_values,
+    )
+
+    npt.assert_allclose(
+        liquid_motor.mass_flow_rate(time),
+        expected_mass_flow,
+    )
+
+    npt.assert_allclose(
+        liquid_motor.total_impulse,
+        expected_total_impulse,
+    )
 
 
 def test_liquid_motor_mass_volume(
@@ -108,59 +122,95 @@ def test_liquid_motor_mass_volume(
     test_fuel_tank = liquid_motor.positioned_tanks[1]["tank"]
     test_oxidizer_tank = liquid_motor.positioned_tanks[2]["tank"]
 
-    # Test is Function dependent for discretization validation
-    expected_pressurant_mass = Function(
-        "data/rockets/berkeley/pressurantMassFiltered.csv"
+    time = np.linspace(*BURN_TIME, 100)
+
+    pressurant_mass_data = np.loadtxt(
+        "data/rockets/berkeley/pressurantMassFiltered.csv",
+        delimiter=",",
     )
+
+    fuel_volume_data = np.loadtxt(
+        "data/rockets/berkeley/test124_Propane_Volume.csv",
+        delimiter=",",
+    )
+
+    oxidizer_volume_data = np.loadtxt(
+        "data/rockets/berkeley/test124_Lox_Volume.csv",
+        delimiter=",",
+    )
+
+    expected_pressurant_mass = np.interp(
+        time,
+        pressurant_mass_data[:, 0],
+        pressurant_mass_data[:, 1],
+    )
+
     expected_pressurant_volume = expected_pressurant_mass / pressurant_fluid.density
+
     expected_fuel_volume = (
-        Function("data/rockets/berkeley/test124_Propane_Volume.csv") * 1e-3
+        np.interp(
+            time,
+            fuel_volume_data[:, 0],
+            fuel_volume_data[:, 1],
+        )
+        * 1e-3
     )
+
     expected_fuel_mass = (
         expected_fuel_volume * fuel_fluid.density
         + (-expected_fuel_volume + fuel_tank.geometry.total_volume)
         * fuel_pressurant.density
     )
+
     expected_oxidizer_volume = (
-        Function("data/rockets/berkeley/test124_Lox_Volume.csv") * 1e-3
+        np.interp(
+            time,
+            oxidizer_volume_data[:, 0],
+            oxidizer_volume_data[:, 1],
+        )
+        * 1e-3
     )
+
     expected_oxidizer_mass = (
         expected_oxidizer_volume * oxidizer_fluid.density
         + (-expected_oxidizer_volume + oxidizer_tank.geometry.total_volume)
         * oxidizer_pressurant.density
     )
 
-    # Perform default discretization
-    expected_pressurant_mass.set_discrete(*BURN_TIME, 100)
-    expected_fuel_mass.set_discrete(*BURN_TIME, 100)
-    expected_oxidizer_mass.set_discrete(*BURN_TIME, 100)
-    expected_pressurant_volume.set_discrete(*BURN_TIME, 100)
-    expected_fuel_volume.set_discrete(*BURN_TIME, 100)
-    expected_oxidizer_volume.set_discrete(*BURN_TIME, 100)
+    npt.assert_allclose(
+        test_pressurant_tank.fluid_mass(time),
+        expected_pressurant_mass,
+        rtol=1e-2,
+    )
 
-    assert (
-        pytest.approx(expected_pressurant_mass.y_array, 0.01)
-        == test_pressurant_tank.fluid_mass.y_array
+    npt.assert_allclose(
+        test_fuel_tank.fluid_mass(time),
+        expected_fuel_mass,
+        rtol=1e-2,
     )
-    assert (
-        pytest.approx(expected_fuel_mass.y_array, 0.01)
-        == test_fuel_tank.fluid_mass.y_array
+
+    npt.assert_allclose(
+        test_oxidizer_tank.fluid_mass(time),
+        expected_oxidizer_mass,
+        rtol=1e-2,
     )
-    assert (
-        pytest.approx(expected_oxidizer_mass.y_array, 0.01)
-        == test_oxidizer_tank.fluid_mass.y_array
+
+    npt.assert_allclose(
+        test_pressurant_tank.gas_volume(time),
+        expected_pressurant_volume,
+        rtol=1e-2,
     )
-    assert (
-        pytest.approx(expected_pressurant_volume.y_array, 0.01)
-        == test_pressurant_tank.gas_volume.y_array
+
+    npt.assert_allclose(
+        test_fuel_tank.liquid_volume(time),
+        expected_fuel_volume,
+        rtol=1e-2,
     )
-    assert (
-        pytest.approx(expected_fuel_volume.y_array, 0.01)
-        == test_fuel_tank.liquid_volume.y_array
-    )
-    assert (
-        pytest.approx(expected_oxidizer_volume.y_array, 0.01)
-        == test_oxidizer_tank.liquid_volume.y_array
+
+    npt.assert_allclose(
+        test_oxidizer_tank.liquid_volume(time),
+        expected_oxidizer_volume,
+        rtol=1e-2,
     )
 
 
@@ -183,6 +233,7 @@ def test_liquid_motor_center_of_mass(
     pressurant_mass = pressurant_tank.fluid_mass
     fuel_mass = fuel_tank.fluid_mass
     oxidizer_mass = oxidizer_tank.fluid_mass
+
     propellant_mass = pressurant_mass + fuel_mass + oxidizer_mass
 
     propellant_balance = (
@@ -190,16 +241,24 @@ def test_liquid_motor_center_of_mass(
         + fuel_mass * (fuel_tank.center_of_mass + FUEL_TANK_POSITION)
         + oxidizer_mass * (oxidizer_tank.center_of_mass + OXIDIZER_TANK_POSITION)
     )
+
     balance = propellant_balance + DRY_MASS * CENTER_OF_DRY_MASS
 
     propellant_center_of_mass = propellant_balance / propellant_mass
+
     center_of_mass = balance / (propellant_mass + DRY_MASS)
 
-    assert (
-        pytest.approx(liquid_motor.center_of_propellant_mass.y_array)
-        == propellant_center_of_mass.y_array
+    time = np.linspace(*BURN_TIME, 100)
+
+    npt.assert_allclose(
+        liquid_motor.center_of_propellant_mass(time),
+        propellant_center_of_mass(time),
     )
-    assert pytest.approx(liquid_motor.center_of_mass.y_array) == center_of_mass.y_array
+
+    npt.assert_allclose(
+        liquid_motor.center_of_mass(time),
+        center_of_mass(time),
+    )
 
 
 def test_liquid_motor_inertia(liquid_motor, pressurant_tank, fuel_tank, oxidizer_tank):
@@ -219,6 +278,7 @@ def test_liquid_motor_inertia(liquid_motor, pressurant_tank, fuel_tank, oxidizer
     pressurant_inertia = pressurant_tank.inertia
     fuel_inertia = fuel_tank.inertia
     oxidizer_inertia = oxidizer_tank.inertia
+
     propellant_mass = (
         pressurant_tank.fluid_mass + fuel_tank.fluid_mass + oxidizer_tank.fluid_mass
     )
@@ -233,6 +293,7 @@ def test_liquid_motor_inertia(liquid_motor, pressurant_tank, fuel_tank, oxidizer
         )
         ** 2
     )
+
     fuel_inertia += (
         fuel_tank.fluid_mass
         * (
@@ -242,6 +303,7 @@ def test_liquid_motor_inertia(liquid_motor, pressurant_tank, fuel_tank, oxidizer
         )
         ** 2
     )
+
     oxidizer_inertia += (
         oxidizer_tank.fluid_mass
         * (
@@ -263,14 +325,20 @@ def test_liquid_motor_inertia(liquid_motor, pressurant_tank, fuel_tank, oxidizer
         + DRY_MASS * (-liquid_motor.center_of_mass + CENTER_OF_DRY_MASS) ** 2
     )
 
-    assert (
-        pytest.approx(liquid_motor.propellant_I_11.y_array)
-        == propellant_inertia.y_array
+    time = np.linspace(*BURN_TIME, 100)
+
+    npt.assert_allclose(
+        liquid_motor.propellant_I_11(time),
+        propellant_inertia(time),
     )
-    assert pytest.approx(liquid_motor.I_11.y_array) == inertia.y_array
+
+    npt.assert_allclose(
+        liquid_motor.I_11(time),
+        inertia(time),
+    )
 
     # Assert cylindrical symmetry
-    assert (
-        pytest.approx(liquid_motor.propellant_I_22.y_array)
-        == propellant_inertia.y_array
+    npt.assert_allclose(
+        liquid_motor.propellant_I_22(time),
+        propellant_inertia(time),
     )

@@ -1,3 +1,4 @@
+import logging
 import urllib
 from pathlib import Path
 
@@ -13,6 +14,8 @@ from ..tools import (
     import_optional_dependency,
 )
 from .plot_helpers import show_or_save_plot
+
+logger = logging.getLogger(__name__)
 
 
 class _MonteCarloPlots:
@@ -265,14 +268,14 @@ class _MonteCarloPlots:
             apogee_x = np.array(self.monte_carlo.results["apogee_x"])
             apogee_y = np.array(self.monte_carlo.results["apogee_y"])
         except KeyError:
-            print("No apogee data found. Skipping apogee ellipses.")
+            logger.warning("No apogee data found. Skipping apogee ellipses.")
             apogee_x = np.array([])
             apogee_y = np.array([])
         try:
             impact_x = np.array(self.monte_carlo.results["x_impact"])
             impact_y = np.array(self.monte_carlo.results["y_impact"])
         except KeyError:
-            print("No impact data found. Skipping impact ellipses.")
+            logger.warning("No impact data found. Skipping impact ellipses.")
             impact_x = np.array([])
             impact_y = np.array([])
 
@@ -557,7 +560,7 @@ class _MonteCarloPlots:
             other_apogee_x = np.array(other_monte_carlo.results["apogee_x"])
             other_apogee_y = np.array(other_monte_carlo.results["apogee_y"])
         except KeyError:
-            print("No apogee data found. Skipping apogee ellipses.")
+            logger.warning("No apogee data found. Skipping apogee ellipses.")
             original_apogee_x = np.array([])
             original_apogee_y = np.array([])
             other_apogee_x = np.array([])
@@ -568,7 +571,7 @@ class _MonteCarloPlots:
             other_impact_x = np.array(other_monte_carlo.results["x_impact"])
             other_impact_y = np.array(other_monte_carlo.results["y_impact"])
         except KeyError:
-            print("No impact data found. Skipping impact ellipses.")
+            logger.warning("No impact data found. Skipping impact ellipses.")
             original_impact_x = np.array([])
             original_impact_y = np.array([])
             other_impact_x = np.array([])

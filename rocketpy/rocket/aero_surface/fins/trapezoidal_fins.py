@@ -1,7 +1,6 @@
-import numpy as np
-
 from rocketpy.plots.aero_surface_plots import _TrapezoidalFinsPlots
 from rocketpy.prints.aero_surface_prints import _TrapezoidalFinsPrints
+from rocketpy.rocket.aero_surface.fins._geometry import _TrapezoidalGeometry
 
 from .fins import Fins
 
@@ -35,9 +34,6 @@ class TrapezoidalFins(Fins):
         Second is the unit of the curve (radians or degrees).
     TrapezoidalFins.cant_angle : float
         Fins cant angle with respect to the rocket centerline, in degrees.
-    TrapezoidalFins.changing_attribute_dict : dict
-        Dictionary that stores the name and the values of the attributes that
-        may be changed during a simulation. Useful for control systems.
     TrapezoidalFins.cant_angle_rad : float
         Fins cant angle with respect to the rocket centerline, in radians.
     TrapezoidalFins.root_chord : float
@@ -55,9 +51,9 @@ class TrapezoidalFins(Fins):
     TrapezoidalFins.sweep_angle : float
         Fins sweep angle with respect to the rocket centerline. Must
         be given in degrees.
-    TrapezoidalFins.d : float
+    TrapezoidalFins.rocket_diameter : float
         Reference diameter of the rocket, in meters.
-    TrapezoidalFins.ref_area : float
+    TrapezoidalFins.reference_area : float
         Reference area of the rocket, in m².
     TrapezoidalFins.Af : float
         Area of the longitudinal section of each fin in the set.
@@ -169,62 +165,47 @@ class TrapezoidalFins(Fins):
             name,
         )
 
-        # Check if sweep angle or sweep length is given
-        if sweep_length is not None and sweep_angle is not None:
-            raise ValueError("Cannot use sweep_length and sweep_angle together")
-        elif sweep_angle is not None:
-            sweep_length = np.tan(sweep_angle * np.pi / 180) * span
-        elif sweep_length is None:
-            sweep_length = root_chord - tip_chord
-
-        self._tip_chord = tip_chord
-        self._sweep_length = sweep_length
-        self._sweep_angle = sweep_angle
-
-        self.evaluate_geometrical_parameters()
-        self.evaluate_center_of_pressure()
-        self.evaluate_lift_coefficient()
-        self.evaluate_roll_parameters()
+        self.geometry = _TrapezoidalGeometry(
+            self,
+            tip_chord=tip_chord,
+            sweep_length=sweep_length,
+            sweep_angle=sweep_angle,
+        )
+        self._update_geometry_chain()
+        self.evaluate_shape()
 
         self.prints = _TrapezoidalFinsPrints(self)
         self.plots = _TrapezoidalFinsPlots(self)
 
     @property
     def tip_chord(self):
-        return self._tip_chord
+        return self.geometry.tip_chord
 
     @tip_chord.setter
     def tip_chord(self, value):
-        self._tip_chord = value
-        self.evaluate_geometrical_parameters()
-        self.evaluate_center_of_pressure()
-        self.evaluate_lift_coefficient()
-        self.evaluate_roll_parameters()
+        self.geometry.tip_chord = value
+        self._update_geometry_chain()
+        self.evaluate_shape()
 
     @property
     def sweep_angle(self):
-        return self._sweep_angle
+        return self.geometry.sweep_angle
 
     @sweep_angle.setter
     def sweep_angle(self, value):
-        self._sweep_angle = value
-        self._sweep_length = np.tan(value * np.pi / 180) * self.span
-        self.evaluate_geometrical_parameters()
-        self.evaluate_center_of_pressure()
-        self.evaluate_lift_coefficient()
-        self.evaluate_roll_parameters()
+        self.geometry.sweep_angle = value
+        self._update_geometry_chain()
+        self.evaluate_shape()
 
     @property
     def sweep_length(self):
-        return self._sweep_length
+        return self.geometry.sweep_length
 
     @sweep_length.setter
     def sweep_length(self, value):
-        self._sweep_length = value
-        self.evaluate_geometrical_parameters()
-        self.evaluate_center_of_pressure()
-        self.evaluate_lift_coefficient()
-        self.evaluate_roll_parameters()
+        self.geometry.sweep_length = value
+        self._update_geometry_chain()
+        self.evaluate_shape()
 
     def evaluate_center_of_pressure(self):
         """Calculates and returns the center of pressure of the fin set in local
@@ -248,124 +229,11 @@ class TrapezoidalFins(Fins):
         self.cpz = cpz
         self.cp = (self.cpx, self.cpy, self.cpz)
 
-    def evaluate_geometrical_parameters(self):  # pylint: disable=too-many-statements
-        """Calculates and saves fin set's geometrical parameters such as the
-        fins' area, aspect ratio and parameters for roll movement.
-
-        Returns
-        -------
-        None
-        """
-        # pylint: disable=invalid-name
-        Yr = self.root_chord + self.tip_chord
-        Af = Yr * self.span / 2  # Fin area
-        AR = 2 * self.span**2 / Af  # Fin aspect ratio
-        gamma_c = np.arctan(
-            (self.sweep_length + 0.5 * self.tip_chord - 0.5 * self.root_chord)
-            / (self.span)
-        )
-        Yma = (
-            (self.span / 3) * (self.root_chord + 2 * self.tip_chord) / Yr
-        )  # Span wise coord of mean aero chord
-
-        # Fin–body interference correction parameters
-        tau = (self.span + self.rocket_radius) / self.rocket_radius
-        lift_interference_factor = 1 + 1 / tau
-        lambda_ = self.tip_chord / self.root_chord
-
-        # Parameters for Roll Moment.
-        # Documented at: https://docs.rocketpy.org/en/latest/technical/
-        roll_geometrical_constant = (
-            (self.root_chord + 3 * self.tip_chord) * self.span**3
-            + 4
-            * (self.root_chord + 2 * self.tip_chord)
-            * self.rocket_radius
-            * self.span**2
-            + 6 * (self.root_chord + self.tip_chord) * self.span * self.rocket_radius**2
-        ) / 12
-        roll_damping_interference_factor = 1 + (
-            ((tau - lambda_) / (tau)) - ((1 - lambda_) / (tau - 1)) * np.log(tau)
-        ) / (
-            ((tau + 1) * (tau - lambda_)) / (2)
-            - ((1 - lambda_) * (tau**3 - 1)) / (3 * (tau - 1))
-        )
-        roll_forcing_interference_factor = (1 / np.pi**2) * (
-            (np.pi**2 / 4) * ((tau + 1) ** 2 / tau**2)
-            + ((np.pi * (tau**2 + 1) ** 2) / (tau**2 * (tau - 1) ** 2))
-            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
-            - (2 * np.pi * (tau + 1)) / (tau * (tau - 1))
-            + ((tau**2 + 1) ** 2)
-            / (tau**2 * (tau - 1) ** 2)
-            * (np.arcsin((tau**2 - 1) / (tau**2 + 1))) ** 2
-            - (4 * (tau + 1))
-            / (tau * (tau - 1))
-            * np.arcsin((tau**2 - 1) / (tau**2 + 1))
-            + (8 / (tau - 1) ** 2) * np.log((tau**2 + 1) / (2 * tau))
-        )
-
-        # Store values
-        self.Yr = Yr
-        self.Af = Af  # Fin area
-        self.AR = AR  # Aspect Ratio
-        self.gamma_c = gamma_c  # Mid chord angle
-        self.Yma = Yma  # Span wise coord of mean aero chord
-        self.roll_geometrical_constant = roll_geometrical_constant
-        self.tau = tau
-        self.lift_interference_factor = lift_interference_factor
-        self.λ = lambda_  # pylint: disable=non-ascii-name
-        self.roll_damping_interference_factor = roll_damping_interference_factor
-        self.roll_forcing_interference_factor = roll_forcing_interference_factor
-
-        self.evaluate_shape()
-
-    def evaluate_shape(self):
-        if self.sweep_length:
-            points = [
-                (0, 0),
-                (self.sweep_length, self.span),
-                (self.sweep_length + self.tip_chord, self.span),
-                (self.root_chord, 0),
-            ]
-        else:
-            points = [
-                (0, 0),
-                (self.root_chord - self.tip_chord, self.span),
-                (self.root_chord, self.span),
-                (self.root_chord, 0),
-            ]
-
-        x_array, y_array = zip(*points)
-        self.shape_vec = [np.array(x_array), np.array(y_array)]
-
-    def info(self):
-        self.prints.geometry()
-        self.prints.lift()
-
-    def all_info(self):
-        self.prints.all()
-        self.plots.all()
-
     def to_dict(self, **kwargs):
         data = super().to_dict(**kwargs)
-        data["tip_chord"] = self.tip_chord
-        data["sweep_length"] = self.sweep_length
-        data["sweep_angle"] = self.sweep_angle
-
-        if kwargs.get("include_outputs", False):
-            data.update(
-                {
-                    "shape_vec": self.shape_vec,
-                    "Af": self.Af,
-                    "AR": self.AR,
-                    "gamma_c": self.gamma_c,
-                    "Yma": self.Yma,
-                    "roll_geometrical_constant": self.roll_geometrical_constant,
-                    "tau": self.tau,
-                    "lift_interference_factor": self.lift_interference_factor,
-                    "roll_damping_interference_factor": self.roll_damping_interference_factor,
-                    "roll_forcing_interference_factor": self.roll_forcing_interference_factor,
-                }
-            )
+        data.update(
+            self.geometry.get_data(include_outputs=kwargs.get("include_outputs", False))
+        )
         return data
 
     @classmethod

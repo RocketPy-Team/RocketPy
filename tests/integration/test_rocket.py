@@ -19,7 +19,7 @@ def test_airfoil(
     calisto.add_surfaces(calisto_tail, -1.313)
 
     test_rocket.add_trapezoidal_fins(
-        2,
+        3,
         span=0.100,
         root_chord=0.120,
         tip_chord=0.040,
@@ -28,7 +28,7 @@ def test_airfoil(
         name="NACA0012",
     )
     test_rocket.add_trapezoidal_fins(
-        2,
+        3,
         span=0.100,
         root_chord=0.120,
         tip_chord=0.040,

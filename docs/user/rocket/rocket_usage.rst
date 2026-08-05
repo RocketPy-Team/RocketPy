@@ -431,6 +431,18 @@ First, lets guarantee that the rocket is stable, by plotting the static margin:
     If it is unreasonably **high**, your rocket is **super stable** and the
     simulation will most likely **fail**.
 
+.. note::
+
+    RocketPy helps you catch this automatically: if the static margin is
+    **negative at motor ignition**, an
+    :class:`~rocketpy.exceptions.UnstableRocketWarning` is issued when the
+    rocket is used in a simulation. The check is skipped when the rocket has
+    any ``GenericSurface`` aerodynamic surfaces, since their lift coefficient
+    derivative is not accounted for in the center of pressure calculation,
+    which makes the static margin unreliable in that case. See
+    :doc:`/reference/classes/exceptions` for the full list of RocketPy
+    exceptions and warnings.
+
 The lets check all the information available about the rocket:
 
 .. jupyter-execute::

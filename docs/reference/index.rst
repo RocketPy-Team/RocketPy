@@ -18,9 +18,10 @@ This reference manual details functions, modules, methods and attributes include
    classes/Flight
    Utilities <classes/utils/index>
    classes/EnvironmentAnalysis
-   Monte Carlo Analysis <classes/monte_carlo/index> 
+   Monte Carlo Analysis <classes/monte_carlo/index>
    Sensitivity Analysis <classes/Sensitivity>
    Multivariate Rejection Sampler <classes/MultivariateRejectionSampler>
+   Exceptions and Warnings <classes/exceptions>
 
 .. toctree::
    :maxdepth: 2

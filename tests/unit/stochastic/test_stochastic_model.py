@@ -13,9 +13,11 @@ import pytest
     ],
 )
 def test_visualize_attributes(request, fixture_name):
-    """Tests the visualize_attributes method of the StochasticModel class. This
-    test verifies if the method returns None, which means that the method is
-    running without breaking.
+    """Tests the visualize_attributes method of the StochasticModel class. It
+    must run without breaking and return the formatted report string (which is
+    also printed), so the report is never silently lost.
     """
     fixture = request.getfixturevalue(fixture_name)
-    assert fixture.visualize_attributes() is None
+    report = fixture.visualize_attributes()
+    assert isinstance(report, str)
+    assert report

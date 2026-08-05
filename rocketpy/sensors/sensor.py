@@ -1,10 +1,13 @@
 import json
+import logging
 import warnings
 from abc import ABC, abstractmethod
 
 import numpy as np
 
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
+
+logger = logging.getLogger(__name__)
 
 
 # pylint: disable=too-many-statements
@@ -59,6 +62,7 @@ class Sensor(ABC):
         temperature_bias=0,
         temperature_scale_factor=0,
         name="Sensor",
+        seed=None,
     ):
         """
         Initialize the accelerometer sensor
@@ -108,6 +112,11 @@ class Sensor(ABC):
             meaning no temperature scale factor is applied.
         name : str, optional
             The name of the sensor. Default is "Sensor".
+        seed : int, optional
+            Seed for the random number generator that draws the measurement
+            noise. If given, the noise becomes reproducible and independent of
+            the process-global NumPy RNG. Default is None, meaning the noise is
+            seeded from fresh entropy per instance.
 
         Returns
         -------
@@ -141,6 +150,14 @@ class Sensor(ABC):
         self._save_data = self._save_data_single
         self._random_walk_drift = 0
         self.normal_vector = Vector([0, 0, 0])
+
+        # Per-instance RNG, seeded deterministically when a seed is given, so
+        # the measurement noise is reproducible and independent of the
+        # process-global NumPy RNG (and therefore safe under parallel or
+        # forked evaluation). seed=None keeps the noise random but still
+        # drawn from this instance's generator.
+        self._seed = seed
+        self._rng = np.random.default_rng(seed)
 
         # handle measurement range
         if isinstance(measurement_range, (tuple, list)):
@@ -235,24 +252,25 @@ class Sensor(ABC):
         if file_format.lower() == "csv":
             # if sensor has been added multiple times to the simulated rocket
             if isinstance(self.measured_data[0], list):
-                print("Data saved to", end=" ")
+                saved = []
                 for i, data in enumerate(self.measured_data):
                     with open(filename + f"_{i + 1}", "w") as f:
                         f.write(",".join(data_labels) + "\n")
                         for entry in data:
                             f.write(",".join(map(str, entry)) + "\n")
-                    print(filename + f"_{i + 1},", end=" ")
+                    saved.append(filename + f"_{i + 1}")
+                logger.info("Data saved to: %s", ", ".join(saved))
             else:
                 with open(filename, "w") as f:
                     f.write(",".join(data_labels) + "\n")
                     for entry in self.measured_data:
                         f.write(",".join(map(str, entry)) + "\n")
-                print(f"Data saved to {filename}")
+                logger.info("Data saved to %s", filename)
             return
 
         if file_format.lower() == "json":
             if isinstance(self.measured_data[0], list):
-                print("Data saved to", end=" ")
+                saved = []
                 for i, data in enumerate(self.measured_data):
                     data_dict = {label: [] for label in data_labels}
                     for entry in data:
@@ -260,7 +278,8 @@ class Sensor(ABC):
                             data_dict[label].append(value)
                     with open(filename + f"_{i + 1}", "w") as f:
                         json.dump(data_dict, f)
-                    print(filename + f"_{i + 1},", end=" ")
+                    saved.append(filename + f"_{i + 1}")
+                logger.info("Data saved to: %s", ", ".join(saved))
             else:
                 data_dict = {label: [] for label in data_labels}
                 for entry in self.measured_data:
@@ -268,7 +287,7 @@ class Sensor(ABC):
                         data_dict[label].append(value)
                 with open(filename, "w") as f:
                     json.dump(data_dict, f)
-                print(f"Data saved to {filename}")
+                logger.info("Data saved to %s", filename)
             return
 
     # pylint: disable=unused-argument
@@ -286,6 +305,7 @@ class Sensor(ABC):
             "temperature_bias": self.temperature_bias,
             "temperature_scale_factor": self.temperature_scale_factor,
             "name": self.name,
+            "seed": self._seed,
         }
 
 
@@ -337,7 +357,7 @@ class InertialSensor(Sensor):
         temperature drift.
     """
 
-    def __init__(
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         sampling_rate,
         orientation=(0, 0, 0),
@@ -353,6 +373,7 @@ class InertialSensor(Sensor):
         temperature_scale_factor=0,
         cross_axis_sensitivity=0,
         name="Sensor",
+        seed=None,
     ):
         """
         Initialize the accelerometer sensor
@@ -439,6 +460,11 @@ class InertialSensor(Sensor):
             no cross-axis sensitivity is applied.
         name : str, optional
             The name of the sensor. Default is "Sensor".
+        seed : int, optional
+            Seed for the random number generator that draws the measurement
+            noise. If given, the noise becomes reproducible and independent of
+            the process-global NumPy RNG. Default is None, meaning the noise is
+            seeded from fresh entropy per instance.
 
         Returns
         -------
@@ -469,6 +495,7 @@ class InertialSensor(Sensor):
                 temperature_scale_factor, "temperature_scale_factor"
             ),
             name=name,
+            seed=seed,
         )
 
         self.orientation = orientation
@@ -553,12 +580,12 @@ class InertialSensor(Sensor):
         """
         # white noise
         white_noise = Vector(
-            [np.random.normal(0, self.noise_variance[i] ** 0.5) for i in range(3)]
+            [self._rng.normal(0, self.noise_variance[i] ** 0.5) for i in range(3)]
         ) & (self.noise_density * self.sampling_rate**0.5)
 
         # random walk
         self._random_walk_drift = self._random_walk_drift + Vector(
-            [np.random.normal(0, self.random_walk_variance[i] ** 0.5) for i in range(3)]
+            [self._rng.normal(0, self.random_walk_variance[i] ** 0.5) for i in range(3)]
         ) & (self.random_walk_density / self.sampling_rate**0.5)
 
         # add noise
@@ -655,6 +682,7 @@ class ScalarSensor(Sensor):
         temperature_bias=0,
         temperature_scale_factor=0,
         name="Sensor",
+        seed=None,
     ):
         """
         Initialize the accelerometer sensor
@@ -704,6 +732,11 @@ class ScalarSensor(Sensor):
             meaning no temperature scale factor is applied.
         name : str, optional
             The name of the sensor. Default is "Sensor".
+        seed : int, optional
+            Seed for the random number generator that draws the measurement
+            noise. If given, the noise becomes reproducible and independent of
+            the process-global NumPy RNG. Default is None, meaning the noise is
+            seeded from fresh entropy per instance.
 
         Returns
         -------
@@ -726,6 +759,7 @@ class ScalarSensor(Sensor):
             temperature_bias=temperature_bias,
             temperature_scale_factor=temperature_scale_factor,
             name=name,
+            seed=seed,
         )
 
     def quantize(self, value):
@@ -763,7 +797,7 @@ class ScalarSensor(Sensor):
         """
         # white noise
         white_noise = (
-            np.random.normal(0, self.noise_variance**0.5)
+            self._rng.normal(0, self.noise_variance**0.5)
             * self.noise_density
             * self.sampling_rate**0.5
         )
@@ -771,7 +805,7 @@ class ScalarSensor(Sensor):
         # random walk
         self._random_walk_drift = (
             self._random_walk_drift
-            + np.random.normal(0, self.random_walk_variance**0.5)
+            + self._rng.normal(0, self.random_walk_variance**0.5)
             * self.random_walk_density
             / self.sampling_rate**0.5
         )

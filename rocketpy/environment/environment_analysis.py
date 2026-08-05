@@ -2,6 +2,7 @@ import bisect
 import copy
 import datetime
 import json
+import logging
 import warnings
 from collections import defaultdict
 from functools import cached_property
@@ -23,6 +24,8 @@ from ..tools import (
 )
 from ..units import convert_units
 from .environment import Environment
+
+logger = logging.getLogger(__name__)
 
 # TODO: the average_wind_speed_profile_by_hour and similar methods could be more abstract than currently are
 
@@ -236,13 +239,15 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
                 check_requirement_version(module_name, version)
             except (ValueError, ImportError) as e:
                 has_error = True
-                print(
-                    f"The following error occurred while importing {module_name}: {e}"
+                logger.error(
+                    "The following error occurred while importing %s: %s",
+                    module_name,
+                    e,
                 )
         if has_error:
-            print(
+            logger.error(
                 "Given the above errors, some methods may not work. Please run "
-                + "'pip install rocketpy[env_analysis]' to install extra requirements."
+                "'pip install rocketpy[env_analysis]' to install extra requirements."
             )
 
     def __init_surface_dictionary(self):
@@ -460,8 +465,6 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
             "height_ASL": "m",
             "pressure": "hPa",
             "temperature": "K",
-            "wind_direction": "deg",
-            "wind_heading": "deg",
             "wind_speed": "m/s",
             "wind_velocity_x": "m/s",
             "wind_velocity_y": "m/s",
@@ -508,8 +511,9 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
             }
         else:
             # Default to SI
-            print(
-                f"Defaulting to SI unit system, the {self.unit_system_string} was not found."
+            logger.warning(
+                "Defaulting to SI unit system, the '%s' unit system was not found.",
+                self.unit_system_string,
             )
             self.unit_system = {
                 "length": "m",
@@ -570,8 +574,6 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
         Must compute the following for each date and hour available in the dataset:
         - pressure = Function(..., inputs="Height Above Ground Level (m)", outputs="Pressure (Pa)")
         - temperature = Function(..., inputs="Height Above Ground Level (m)", outputs="Temperature (K)")
-        - wind_direction = Function(..., inputs="Height Above Ground Level (m)", outputs="Wind Direction (Deg True)")
-        - wind_heading = Function(..., inputs="Height Above Ground Level (m)", outputs="Wind Heading (Deg True)")
         - wind_speed = Function(..., inputs="Height Above Ground Level (m)", outputs="Wind Speed (m/s)")
         - wind_velocity_x = Function(..., inputs="Height Above Ground Level (m)", outputs="Wind Velocity X (m/s)")
         - wind_velocity_y = Function(..., inputs="Height Above Ground Level (m)", outputs="Wind Velocity Y (m/s)")
@@ -721,39 +723,6 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
                 extrapolation="constant",
             )
             dictionary[date_string][hour_string]["wind_speed"] = wind_speed_function
-
-            # Create function for wind heading levels
-            wind_heading_array = (
-                np.arctan2(wind_velocity_x_array, wind_velocity_y_array)
-                * (180 / np.pi)
-                % 360
-            )
-
-            wind_heading_points_array = np.array(
-                [height_above_ground_level_array, wind_heading_array]
-            ).T
-            wind_heading_function = Function(
-                wind_heading_points_array,
-                inputs="Height Above Ground Level (m)",
-                outputs="Wind Heading (Deg True)",
-                extrapolation="constant",
-            )
-            dictionary[date_string][hour_string]["wind_heading"] = wind_heading_function
-
-            # Create function for wind direction levels
-            wind_direction_array = (wind_heading_array - 180) % 360
-            wind_direction_points_array = np.array(
-                [height_above_ground_level_array, wind_direction_array]
-            ).T
-            wind_direction_function = Function(
-                wind_direction_points_array,
-                inputs="Height Above Ground Level (m)",
-                outputs="Wind Direction (Deg True)",
-                extrapolation="constant",
-            )
-            dictionary[date_string][hour_string]["wind_direction"] = (
-                wind_direction_function
-            )
 
         return (dictionary, lat0, lat1, lon0, lon1)
 
@@ -985,8 +954,6 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
         conversion_dict = {
             "pressure": self.unit_system["pressure"],
             "temperature": self.unit_system["temperature"],
-            "wind_direction": self.unit_system["angle"],
-            "wind_heading": self.unit_system["angle"],
             "wind_speed": self.unit_system["wind_speed"],
             "wind_velocity_x": self.unit_system["wind_speed"],
             "wind_velocity_y": self.unit_system["wind_speed"],
@@ -2843,9 +2810,10 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
                     self.export_dictionary, sort_keys=False, indent=4, default=str
                 )
             )
-        print(
-            f"Your Environment Analysis file was saved, check it out: {filename}.json\n"
-            "You can use it to set a `customAtmosphere` atmospheric model"
+        logger.info(
+            "Your Environment Analysis file was saved: %s.json. "
+            "You can use it to set a customAtmosphere atmospheric model.",
+            filename,
         )
 
     @classmethod
@@ -2884,7 +2852,7 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
         file = open(filename, "w")  # pylint: disable=consider-using-with
         file.write(encoded_class)
         file.close()
-        print("Your Environment Analysis file was saved, check it out: " + filename)
+        logger.info("Your Environment Analysis file was saved: %s", filename)
 
     def create_environment_object(
         self, gravity=None, date=None, datum="SIRGAS2000", max_expected_height=80000.0

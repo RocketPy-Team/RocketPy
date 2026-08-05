@@ -5,7 +5,12 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
-from rocketpy import Function, NoseCone, Rocket, SolidMotor
+from rocketpy import Function, GenericSurface, NoseCone, Rocket, SolidMotor
+from rocketpy.exceptions import (
+    InvalidInertiaError,
+    InvalidParameterError,
+    UnstableRocketWarning,
+)
 from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.motors.empty_motor import EmptyMotor
 from rocketpy.motors.motor import Motor
@@ -835,3 +840,208 @@ def test_drag_input_types_supported_for_power_on_and_power_off(tmp_path):
 
         assert rocket.power_off_drag_7d(*query_point) == pytest.approx(expected)
         assert rocket.power_on_drag_7d(*query_point) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize("radius", [-1, 0, -0.001])
+def test_rocket_invalid_radius_raises(radius):
+    """InvalidParameterError must be raised for non-positive radius values."""
+    with pytest.raises(InvalidParameterError, match="radius"):
+        Rocket(
+            radius=radius,
+            mass=10,
+            inertia=(0.1, 0.1, 0.01),
+            power_off_drag=0.3,
+            power_on_drag=0.3,
+            center_of_mass_without_motor=0,
+        )
+
+
+@pytest.mark.parametrize("mass", [-1, 0, -0.001])
+def test_rocket_invalid_mass_raises(mass):
+    """InvalidParameterError must be raised for non-positive mass values."""
+    with pytest.raises(InvalidParameterError, match="mass"):
+        Rocket(
+            radius=0.05,
+            mass=mass,
+            inertia=(0.1, 0.1, 0.01),
+            power_off_drag=0.3,
+            power_on_drag=0.3,
+            center_of_mass_without_motor=0,
+        )
+
+
+@pytest.mark.parametrize("inertia", [(0.1,), (0.1, 0.1), (0.1, 0.1, 0.01, 0.0, 0.0)])
+def test_rocket_invalid_inertia_length_raises(inertia):
+    """InvalidInertiaError must be raised when inertia tuple has wrong length."""
+    with pytest.raises(InvalidInertiaError):
+        Rocket(
+            radius=0.05,
+            mass=10,
+            inertia=inertia,
+            power_off_drag=0.3,
+            power_on_drag=0.3,
+            center_of_mass_without_motor=0,
+        )
+
+
+@pytest.mark.parametrize(
+    "inertia",
+    [
+        np.array([6.321, 6.321, 0.034]),
+        np.array([6.321, 6.321, 0.034, 0.0, 0.0, 0.0]),
+    ],
+)
+def test_rocket_accepts_numpy_inertia_and_scalars(inertia):
+    """Regression: numpy-array inertia and numpy numeric scalars for
+    radius/mass must be accepted (they were rejected by an overly strict
+    isinstance check, breaking code that computes inertia tensors with numpy)."""
+    rocket = Rocket(
+        radius=np.float64(0.05),
+        mass=np.int64(10),
+        inertia=inertia,
+        power_off_drag=0.3,
+        power_on_drag=0.3,
+        center_of_mass_without_motor=0,
+    )
+    assert rocket.I_11_without_motor == inertia[0]
+    assert rocket.I_33_without_motor == inertia[2]
+
+
+def test_add_trapezoidal_fins_two_fins_warns_but_succeeds(calisto):
+    """Regression: fin sets with n<=2 must still be accepted (as on master),
+    now with an informative warning instead of a hard error."""
+    with pytest.warns(UserWarning, match="2 or fewer fins"):
+        fins = calisto.add_trapezoidal_fins(
+            2, span=0.1, root_chord=0.12, tip_chord=0.04, position=-1.0
+        )
+    assert fins in [surface for surface, _ in calisto.aerodynamic_surfaces]
+
+
+def test_unstable_rocket_warning_raised(calisto):
+    """UnstableRocketWarning must be raised (at finalization, e.g. via
+    ``warn_if_unstable``) when the static margin at motor ignition is negative.
+    The warning must NOT fire during incremental ``add_surfaces`` construction,
+    to avoid spurious warnings for partially-built-but-stable rockets."""
+    nose = NoseCone(
+        length=0.55829,
+        kind="vonkarman",
+        base_radius=0.0635,
+        rocket_radius=0.0635,
+        name="Nose Cone",
+    )
+    # Adding surfaces during construction must not warn.
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", UnstableRocketWarning)
+        calisto.add_surfaces(nose, 1.16)
+
+    # The check fires explicitly once the rocket is finalized.
+    with pytest.warns(UnstableRocketWarning):
+        calisto.warn_if_unstable()
+    assert calisto.static_margin(0) < 0
+
+
+def test_unstable_rocket_warning_skipped_with_generic_surface(calisto):
+    """UnstableRocketWarning must not be raised when the rocket has a
+    GenericSurface, since its lift coefficient derivative is not accounted
+    for in the center of pressure calculation, making the static margin
+    unreliable for this check."""
+    nose = NoseCone(
+        length=0.55829,
+        kind="vonkarman",
+        base_radius=0.0635,
+        rocket_radius=0.0635,
+        name="Nose Cone",
+    )
+    generic_surface = GenericSurface(
+        reference_area=None,
+        reference_length=None,
+        coefficients={
+            "cL": lambda alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate: 1
+        },
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", UnstableRocketWarning)
+        calisto.add_surfaces([nose, generic_surface], [1.16, 0])
+        calisto.warn_if_unstable()
+    assert calisto.static_margin(0) < 0
+
+
+def test_power_drag_exposed_as_function_objects_and_inputs_preserved():
+    """Regression for PR #941: ``power_off_drag``/``power_on_drag`` must be
+    exposed as Mach-only ``Function`` objects, while the raw user input is
+    preserved in the ``_power_off_drag_input``/``_power_on_drag_input``
+    attributes."""
+    off_input = "data/rockets/calisto/powerOffDragCurve.csv"
+    on_input = "data/rockets/calisto/powerOnDragCurve.csv"
+    rocket = Rocket(
+        radius=0.0635,
+        mass=14.426,
+        inertia=(6.321, 6.321, 0.034),
+        power_off_drag=off_input,
+        power_on_drag=on_input,
+        center_of_mass_without_motor=0,
+        coordinate_system_orientation="tail_to_nose",
+    )
+
+    # Public drag attributes are Function objects (Mach-only aliases).
+    assert isinstance(rocket.power_off_drag, Function)
+    assert isinstance(rocket.power_on_drag, Function)
+    assert rocket.power_off_drag(0.5) == pytest.approx(
+        rocket.power_off_drag_7d(0, 0, 0.5, 0, 0, 0, 0)
+    )
+    assert rocket.power_on_drag(0.5) == pytest.approx(
+        rocket.power_on_drag_7d(0, 0, 0.5, 0, 0, 0, 0)
+    )
+
+    # Raw user input is preserved for serialization / round-tripping.
+    assert rocket._power_off_drag_input == off_input
+    assert rocket._power_on_drag_input == on_input
+
+
+def test_evaluate_reduced_mass_without_motor(calisto_motorless):
+    """Test evaluate_reduced_mass returns False when there is no motor
+    associated with the rocket (self.motor is None).
+    """
+    # Arrange
+    rocket = calisto_motorless
+    rocket.motor = None
+
+    # Act
+    result = rocket.evaluate_reduced_mass()
+
+    # Assert
+    assert result is False
+
+
+def test_evaluate_reduced_mass_empty_motor(calisto_motorless):
+    """Test evaluate_reduced_mass returns a Function evaluating to 0 when
+    the motor is an EmptyMotor.
+    """
+    # Arrange
+    rocket = calisto_motorless
+
+    # Act
+    reduced_mass = rocket.evaluate_reduced_mass()
+
+    # Assert
+    assert isinstance(reduced_mass, Function)
+    assert reduced_mass(0) == pytest.approx(0)
+
+
+def test_evaluate_reduced_mass_with_motor(calisto):
+    """Test evaluate_reduced_mass returns the correct Function when a motor
+    is associated with the rocket.
+    """
+    # Arrange
+    rocket = calisto
+    dry_mass = rocket.dry_mass
+    prop_mass = rocket.motor.propellant_mass
+
+    # Act
+    reduced_mass = rocket.evaluate_reduced_mass()
+
+    # Assert
+    assert isinstance(reduced_mass, Function)
+    for t in [0.0, 1.0, 2.0, 3.0]:
+        expected = prop_mass(t) * dry_mass / (prop_mass(t) + dry_mass)
+        assert reduced_mass(t) == pytest.approx(expected)

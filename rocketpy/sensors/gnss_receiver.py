@@ -1,7 +1,5 @@
 import math
 
-import numpy as np
-
 from rocketpy.tools import inverted_haversine
 
 from ..mathutils.vector_matrix import Matrix, Vector
@@ -40,6 +38,7 @@ class GnssReceiver(ScalarSensor):
         position_accuracy=0,
         altitude_accuracy=0,
         name="GnssReceiver",
+        seed=None,
     ):
         """Initialize the Gnss Receiver sensor.
 
@@ -55,8 +54,13 @@ class GnssReceiver(ScalarSensor):
             position in meters. Default is 0.
         name : str
             The name of the sensor. Default is "GnssReceiver".
+        seed : int, optional
+            Seed for the random number generator that draws the measurement
+            noise. If given, the noise becomes reproducible and independent of
+            the process-global NumPy RNG. Default is None, meaning the noise is
+            seeded from fresh entropy per instance.
         """
-        super().__init__(sampling_rate=sampling_rate, name=name)
+        super().__init__(sampling_rate=sampling_rate, name=name, seed=seed)
         self.position_accuracy = position_accuracy
         self.altitude_accuracy = altitude_accuracy
 
@@ -90,9 +94,9 @@ class GnssReceiver(ScalarSensor):
         # Get from state u and add relative position
         x, y, z = (Matrix.transformation(u[6:10]) @ relative_position) + Vector(u[0:3])
         # Apply accuracy to the position
-        x = np.random.normal(x, self.position_accuracy)
-        y = np.random.normal(y, self.position_accuracy)
-        altitude = np.random.normal(z, self.altitude_accuracy)
+        x = self._rng.normal(x, self.position_accuracy)
+        y = self._rng.normal(y, self.position_accuracy)
+        altitude = self._rng.normal(z, self.altitude_accuracy)
 
         # Convert x and y to latitude and longitude
         drift = (x**2 + y**2) ** 0.5
@@ -131,6 +135,7 @@ class GnssReceiver(ScalarSensor):
             "position_accuracy": self.position_accuracy,
             "altitude_accuracy": self.altitude_accuracy,
             "name": self.name,
+            "seed": self._seed,
         }
 
     @classmethod
@@ -140,4 +145,5 @@ class GnssReceiver(ScalarSensor):
             position_accuracy=data["position_accuracy"],
             altitude_accuracy=data["altitude_accuracy"],
             name=data["name"],
+            seed=data.get("seed"),
         )

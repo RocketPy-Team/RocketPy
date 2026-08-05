@@ -11,6 +11,7 @@ import functools
 import importlib
 import importlib.metadata
 import json
+import logging
 import math
 import re
 import time
@@ -24,6 +25,8 @@ import pytz
 from cftime import num2pydate
 from matplotlib.patches import Ellipse
 from packaging import version as packaging_version
+
+logger = logging.getLogger(__name__)
 
 # Mapping of module name and the name of the package that should be installed
 INSTALL_MAPPING = {"IPython": "ipython"}
@@ -422,18 +425,18 @@ def inverted_haversine(lat0, lon0, distance, bearing, earth_radius=6.3781e6):
     lon0_rad = np.deg2rad(lon0)
 
     # Apply inverted Haversine formula
-    lat1_rad = math.asin(
-        math.sin(lat0_rad) * math.cos(distance / earth_radius)
-        + math.cos(lat0_rad)
-        * math.sin(distance / earth_radius)
-        * math.cos(math.radians(bearing))
+    lat1_rad = np.arcsin(
+        np.sin(lat0_rad) * np.cos(distance / earth_radius)
+        + np.cos(lat0_rad)
+        * np.sin(distance / earth_radius)
+        * np.cos(np.radians(bearing))
     )
 
-    lon1_rad = lon0_rad + math.atan2(
-        math.sin(math.radians(bearing))
-        * math.sin(distance / earth_radius)
-        * math.cos(lat0_rad),
-        math.cos(distance / earth_radius) - math.sin(lat0_rad) * math.sin(lat1_rad),
+    lon1_rad = lon0_rad + np.arctan2(
+        np.sin(np.radians(bearing))
+        * np.sin(distance / earth_radius)
+        * np.cos(lat0_rad),
+        np.cos(distance / earth_radius) - np.sin(lat0_rad) * np.sin(lat1_rad),
     )
 
     # Convert back to degrees and then return
@@ -1469,6 +1472,6 @@ if __name__ == "__main__":  # pragma: no cover
 
     res = doctest.testmod()
     if res.failed < 1:
-        print(f"All the {res.attempted} tests passed!")
+        logger.info("All the %d tests passed!", res.attempted)
     else:
-        print(f"{res.failed} out of {res.attempted} tests failed.")
+        logger.error("%d out of %d tests failed.", res.failed, res.attempted)

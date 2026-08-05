@@ -12,3 +12,4 @@ Below you have a list of all utilities functions available in rocketpy.
 
 .. automodule:: rocketpy.utilities
    :members:
+   :exclude-members: enable_logging

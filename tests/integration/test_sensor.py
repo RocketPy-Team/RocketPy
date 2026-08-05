@@ -11,6 +11,7 @@ from rocketpy.sensors.accelerometer import Accelerometer
 from rocketpy.sensors.barometer import Barometer
 from rocketpy.sensors.gnss_receiver import GnssReceiver
 from rocketpy.sensors.gyroscope import Gyroscope
+from rocketpy.simulation import FlightDataExporter
 
 
 def test_sensor_on_rocket(calisto_with_sensors):
@@ -107,7 +108,9 @@ def test_export_all_sensors_data(flight_calisto_with_sensors):
         Pytest fixture for the flight of the calisto rocket with a set of ideal
         sensors.
     """
-    flight_calisto_with_sensors.export_sensor_data("test_sensor_data.json")
+    FlightDataExporter(flight_calisto_with_sensors).export_sensor_data(
+        "test_sensor_data.json"
+    )
     # read the json and parse as dict
     filename = "test_sensor_data.json"
     with open(filename, "r") as f:
@@ -160,7 +163,9 @@ def test_export_single_sensor_data(flight_calisto_with_sensors):
         Pytest fixture for the flight of the calisto rocket with a set of ideal
         sensors.
     """
-    flight_calisto_with_sensors.export_sensor_data("test_sensor_data.json", "Gyroscope")
+    FlightDataExporter(flight_calisto_with_sensors).export_sensor_data(
+        "test_sensor_data.json", "Gyroscope"
+    )
     # read the json and parse as dict
     filename = "test_sensor_data.json"
     with open(filename, "r") as f:

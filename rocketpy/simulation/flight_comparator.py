@@ -396,7 +396,6 @@ class FlightComparator:
                 (rmse / mean_abs_y_sim) * 100 if mean_abs_y_sim != 0 else np.inf
             )
 
-            # Print Metrics
             print(f"Source: {label}")
             print(f"  - MAE:            {mae:.4f}")
             print(f"  - RMSE:           {rmse:.4f}")
@@ -451,7 +450,7 @@ class FlightComparator:
         if filename:
             print(f"Plot saved to file: {filename}")
 
-    def compare(  # pylint: disable=too-many-statements
+    def compare(
         self,
         attribute,
         time_range=None,
@@ -731,7 +730,7 @@ class FlightComparator:
 
         return "\n".join(lines)
 
-    def summary(self):  # pylint: disable=too-many-statements
+    def summary(self):
         """
         Print comprehensive comparison summary including key events and metrics.
 

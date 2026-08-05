@@ -440,3 +440,35 @@ def test_thrustcurve_api_cache_robustness(monkeypatch, tmp_path):  # pylint: dis
 
     with pytest.warns(UserWarning, match="Failed to read cached motor file"):
         GenericMotor.load_from_thrustcurve_api("M1670")
+
+
+def test_thrustcurve_api_requests_pass_timeout(monkeypatch, tmp_path):
+    """Regression for PR #940: every ThrustCurve API request must pass an
+    explicit (connect, read) timeout so the call cannot hang indefinitely."""
+    eng_path = "data/motors/cesaroni/Cesaroni_M1670.eng"
+    with open(eng_path, "rb") as f:
+        encoded = base64.b64encode(f.read()).decode("utf-8")
+
+    search_json = {"results": [{"motorId": "12345"}]}
+    download_json = {"results": [{"data": encoded}]}
+
+    captured_timeouts = []
+
+    def _capturing_get(url, **kwargs):
+        captured_timeouts.append(kwargs.get("timeout"))
+        if "search.json" in url:
+            return MockResponse(search_json)
+        if "download.json" in url:
+            return MockResponse(download_json)
+        raise RuntimeError(f"Unexpected URL: {url}")
+
+    monkeypatch.setattr(requests, "get", _capturing_get)
+    monkeypatch.setattr("rocketpy.motors.motor.CACHE_DIR", tmp_path)
+
+    GenericMotor.load_from_thrustcurve_api("M1670", no_cache=True)
+
+    assert captured_timeouts, "requests.get was never called"
+    assert all(t == (5, 30) for t in captured_timeouts), (
+        "Every ThrustCurve API request must use a (connect, read) timeout of "
+        f"(5, 30); captured timeouts were {captured_timeouts}"
+    )

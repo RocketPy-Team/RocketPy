@@ -162,15 +162,17 @@ Standard acronyms to start the commit message with are::
 Pull Requests
 ^^^^^^^^^^^^^
 
-When opening a Pull Request, the name of the PR should be clear and concise.
-Similarly to the commit messages, the PR name should start with an acronym indicating the type of PR
-and then a brief description of the changes.
+When opening a Pull Request, the title should be clear and concise.
+It should contain only a brief description of the changes without the acronym (e.g. ENH:, BUG:).
+The maintainers will label your PR accordingly. After the PR is merged, a workflow
+uses an LLM (Google Gemini) to add the right prefix and place the entry in the
+correct section of the ``CHANGELOG.md`` file automatically.
 
 Here is an example of a good PR name:
 
-- ``BUG: fix the Frequency Response plot of the Flight class``
+- ``fix the Frequency Response plot of the Flight class``
 
-The PR description explain the changes and motivation behind them. There is a template \
+The PR description explains the changes and motivation behind them. There is a template \
 available when opening a PR that can be used to guide you through the process of both \
 describing the changes and making sure all the necessary steps were taken. Of course, \
 you can always modify the template or add more information if you think it is necessary.

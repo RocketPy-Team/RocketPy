@@ -26,6 +26,8 @@ jobs:
       MPLBACKEND: Agg
     steps:
       - uses: actions/checkout@main
+      - name: Set up headless display
+        uses: pyvista/setup-headless-display-action@v4
       - name: Set up Python
         uses: actions/setup-python@main
         with:

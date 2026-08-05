@@ -89,8 +89,10 @@ Instead of a custom dictionary, you can pass a built-in mapping name in the
 - ``"ECMWF_v0"``
 - ``"NOAA"``
 - ``"GFS"``
+- ``"AIGFS"``
 - ``"NAM"``
 - ``"RAP"``
+- ``"HRRR"``
 - ``"HIRESW"`` (mapping available; latest-model shortcut currently disabled)
 - ``"GEFS"`` (mapping available; latest-model shortcut currently disabled)
 - ``"MERRA2"``
@@ -116,10 +118,7 @@ legacy aliases:
 - ``"NAM_LEGACY"``
 - ``"NOAA_LEGACY"``
 - ``"RAP_LEGACY"``
-- ``"CMC_LEGACY"``
 - ``"GEFS_LEGACY"``
-- ``"HIRESW_LEGACY"``
-- ``"MERRA2_LEGACY"``
 
 Legacy aliases primarily cover older variable naming patterns such as
 ``lev``, ``tmpprs``, ``hgtprs``, ``ugrdprs`` and ``vgrdprs``.
@@ -160,6 +159,56 @@ For custom dictionaries, the canonical structure is:
     simulation workflow.
 
 
+Meteomatics API
+---------------
+
+RocketPy can build an ``Environment`` directly from the
+`Meteomatics <https://www.meteomatics.com/en/weather-api/>`_ weather API.
+Meteomatics authenticates with a personal **username** and **password** (a
+short-lived access token is generated automatically under the hood), so you
+need a Meteomatics account to use this feature.
+
+The API is queried for temperature, pressure and both wind components at
+several altitudes above ground level around the launch site, which are then
+converted to profiles above sea level using the ``Environment`` elevation.
+Because of that, make sure a launch ``date`` and a reasonable ``elevation`` are
+set before calling the method.
+
+.. code-block:: python
+
+    from datetime import datetime, timedelta
+    from rocketpy import Environment
+
+    env = Environment(
+        latitude=39.3897,
+        longitude=-8.28896,
+        elevation=113,
+        date=datetime.now() + timedelta(days=1),  # forecast instant
+    )
+
+    env.set_atmospheric_model(
+        type="Meteomatics",
+        file="mix",              # Meteomatics weather model
+        username="your_username",
+        password="your_password",
+    )
+
+    env.info()
+
+If you prefer not to hardcode the credentials, omit the ``username`` and
+``password`` arguments and RocketPy will read them from the
+``METEOMATICS_USERNAME`` and ``METEOMATICS_PASSWORD`` environment variables.
+
+.. note::
+
+    The altitude range and sampling resolution can be tuned by calling
+    :meth:`rocketpy.Environment.process_meteomatics_atmosphere` directly (for
+    example, to change ``min_altitude``, ``max_altitude`` or the number of
+    levels). The API returns an error if the requested altitude is outside the
+    range supported by the chosen model, and your account may not have access
+    to every model.
+
+
 Without OPeNDAP protocol
 -------------------------
 
@@ -167,7 +216,6 @@ On the other hand, one can also load data from APIs that do not support the OPeN
 In these cases, what we recommend is to download the data and then load it as a custom atmosphere.
 
 There are some efforts to natively support other APIs in RocketPy's
-Environment class, for example: 
+Environment class, for example:
 
-- `Meteomatics <https://www.meteomatics.com/en/weather-api/>`_: `#545 <https://github.com/RocketPy-Team/RocketPy/issues/545>`_
 - `Open-Meteo <https://open-meteo.com/>`_: `#520 <https://github.com/RocketPy-Team/RocketPy/issues/520>`_

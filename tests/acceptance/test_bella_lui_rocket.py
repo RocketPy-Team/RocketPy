@@ -67,6 +67,7 @@ def test_bella_lui_rocket_data_asserts_acceptance():
         type="Reanalysis",
         file="data/weather/bella_lui_weather_data_ERA5.nc",
         dictionary="ECMWF",
+        pressure_conversion_factor="hPa",
     )
     env.max_expected_height = 2000
 

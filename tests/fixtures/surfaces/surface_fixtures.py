@@ -1,11 +1,14 @@
 import pytest
 
 from rocketpy.rocket.aero_surface import (
+    EllipticalFin,
     EllipticalFins,
+    FreeFormFin,
     FreeFormFins,
     NoseCone,
     RailButtons,
     Tail,
+    TrapezoidalFin,
     TrapezoidalFins,
 )
 
@@ -62,6 +65,29 @@ def calisto_trapezoidal_fins():
         tip_chord=0.040,
         rocket_radius=0.0635,
         name="calisto_trapezoidal_fins",
+        cant_angle=0,
+        sweep_length=None,
+        sweep_angle=None,
+        airfoil=None,
+    )
+
+
+@pytest.fixture
+def calisto_trapezoidal_fin():
+    """A single trapezoidal fin based on Calisto dimensions.
+
+    Returns
+    -------
+    rocketpy.TrapezoidalFin
+        A single trapezoidal fin.
+    """
+    return TrapezoidalFin(
+        angular_position=0,
+        span=0.100,
+        root_chord=0.120,
+        tip_chord=0.040,
+        rocket_radius=0.0635,
+        name="calisto_trapezoidal_fin",
         cant_angle=0,
         sweep_length=None,
         sweep_angle=None,
@@ -131,6 +157,23 @@ def calisto_free_form_fins():
 
 
 @pytest.fixture
+def calisto_free_form_fin():
+    """A single free-form fin based on Calisto-like dimensions.
+
+    Returns
+    -------
+    rocketpy.FreeFormFin
+        A single free-form fin.
+    """
+    return FreeFormFin(
+        angular_position=0,
+        shape_points=[(0, 0), (0.08, 0.1), (0.12, 0.1), (0.12, 0)],
+        rocket_radius=0.0635,
+        name="calisto_free_form_fin",
+    )
+
+
+@pytest.fixture
 def calisto_rail_buttons():
     """The rail buttons of the Calisto rocket.
 
@@ -156,4 +199,24 @@ def elliptical_fin_set():
         cant_angle=0,
         airfoil=None,
         name="Test Elliptical Fins",
+    )
+
+
+@pytest.fixture
+def calisto_elliptical_fin():
+    """A single elliptical fin based on Calisto-like dimensions.
+
+    Returns
+    -------
+    rocketpy.EllipticalFin
+        A single elliptical fin.
+    """
+    return EllipticalFin(
+        angular_position=0,
+        span=0.100,
+        root_chord=0.120,
+        rocket_radius=0.0635,
+        cant_angle=0,
+        airfoil=None,
+        name="calisto_elliptical_fin",
     )

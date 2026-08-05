@@ -1,12 +1,19 @@
 import csv
 import inspect
+import logging
 import math
+import numbers
 import warnings
 from typing import Iterable
 
 import numpy as np
 
 from rocketpy.control.controller import _Controller
+from rocketpy.exceptions import (
+    InvalidInertiaError,
+    InvalidParameterError,
+    UnstableRocketWarning,
+)
 from rocketpy.mathutils.function import Function
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
 from rocketpy.motors.empty_motor import EmptyMotor
@@ -21,7 +28,10 @@ from rocketpy.rocket.aero_surface import (
     Tail,
     TrapezoidalFins,
 )
+from rocketpy.rocket.aero_surface.fins.elliptical_fin import EllipticalFin
+from rocketpy.rocket.aero_surface.fins.free_form_fin import FreeFormFin
 from rocketpy.rocket.aero_surface.fins.free_form_fins import FreeFormFins
+from rocketpy.rocket.aero_surface.fins.trapezoidal_fin import TrapezoidalFin
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
@@ -30,6 +40,8 @@ from rocketpy.tools import (
     find_obj_from_hash,
     parallel_axis_theorem_from_com,
 )
+
+logger = logging.getLogger(__name__)
 
 
 # pylint: disable=too-many-instance-attributes, too-many-public-methods, too-many-instance-attributes
@@ -308,6 +320,29 @@ class Rocket:
                     + '"tail_to_nose" and "nose_to_tail".'
                 )
 
+        # Validate inputs. Accept Python and NumPy numeric scalars for
+        # radius/mass, and any length-3 or length-6 sequence (tuple, list or
+        # numpy array) for inertia, matching the permissive behavior of earlier
+        # versions (numpy inputs are common when computing inertia tensors).
+        if not isinstance(radius, numbers.Real) or radius <= 0:
+            raise InvalidParameterError(
+                f"Rocket radius must be a positive number, got {radius!r}."
+            )
+        if not isinstance(mass, numbers.Real) or mass <= 0:
+            raise InvalidParameterError(
+                f"Rocket mass must be a positive number, got {mass!r}."
+            )
+        try:
+            inertia_length = len(inertia)
+        except TypeError:
+            inertia_length = None
+        if isinstance(inertia, str) or inertia_length not in (3, 6):
+            raise InvalidInertiaError(
+                "Inertia must be a length-3 (I_11, I_22, I_33) or length-6 "
+                "(I_11, I_22, I_33, I_12, I_13, I_23) sequence, "
+                f"got {inertia!r}."
+            )
+
         # Define rocket inertia attributes in SI units
         self.mass = mass
         inertia = (*inertia, 0, 0, 0) if len(inertia) == 3 else inertia
@@ -475,7 +510,7 @@ class Rocket:
         """
         # Make sure there is a motor associated with the rocket
         if self.motor is None:
-            print("Please associate this rocket with a motor!")
+            logger.warning("Please associate this rocket with a motor!")
             return False
 
         self.total_mass = self.mass + self.motor.total_mass
@@ -495,7 +530,7 @@ class Rocket:
         """
         # Make sure there is a motor associated with the rocket
         if self.motor is None:
-            print("Please associate this rocket with a motor!")
+            logger.warning("Please associate this rocket with a motor!")
             return False
 
         self.dry_mass = self.mass + self.motor.dry_mass
@@ -575,10 +610,9 @@ class Rocket:
         self.reduced_mass : Function
             Function of time expressing the reduced mass of the rocket.
         """
-        # TODO: add tests for reduced_mass values
         # Make sure there is a motor associated with the rocket
         if self.motor is None:
-            print("Please associate this rocket with a motor!")
+            logger.warning("Please associate this rocket with a motor!")
             return False
 
         # Get nicknames
@@ -661,14 +695,20 @@ class Rocket:
         """Calculates the relative position of each aerodynamic surface
         center of pressure to the rocket's center of dry mass in Body Axes
         Coordinate System."""
-        pos = Vector(
+        # position of the surfaces coordinate system origin in body frame
+        pos_origin = Vector(
             [
-                (position.x - self.cm_eccentricity_x) * self._csys - surface.cpx,
-                (position.y - self.cm_eccentricity_y) - surface.cpy,
-                (position.z - self.center_of_dry_mass_position) * self._csys
-                - surface.cpz,
+                (position.x - self.cm_eccentricity_x) * self._csys,
+                (position.y - self.cm_eccentricity_y),
+                (position.z - self.center_of_dry_mass_position) * self._csys,
             ]
         )
+        # position of the center of pressure in body frame
+        pos = (
+            surface._rotation_surface_to_body
+            @ Vector([surface.cpx, surface.cpy, surface.cpz])
+            + pos_origin
+        )  # TODO: this should be recomputed whenever cant angle changes for fin
         self.surfaces_cp_to_cdm[surface] = pos
 
     def evaluate_stability_margin(self):
@@ -726,6 +766,45 @@ class Rocket:
             lower=0, upper=self.motor.burn_out_time, samples=200
         )
         return self.static_margin
+
+    def warn_if_unstable(self):
+        """Warn if the rocket is aerodynamically unstable at motor ignition.
+
+        Emits an :class:`UnstableRocketWarning` when the static margin at
+        ``t=0`` is negative. This is meant to be checked once the rocket is
+        fully assembled (e.g. when a :class:`Flight` is created), not during
+        incremental construction, so that partially-built-but-ultimately-stable
+        rockets do not raise spurious warnings.
+
+        The check is skipped when ``GenericSurface`` instances are present:
+        their lift coefficient derivative is not accounted for in
+        ``evaluate_center_of_pressure``, so the computed static margin does not
+        reflect their contribution and cannot be trusted for this check.
+
+        Returns
+        -------
+        bool
+            ``True`` if a warning was emitted, ``False`` otherwise.
+        """
+        has_generic_surface = any(
+            isinstance(aero_surface, GenericSurface)
+            for aero_surface, _position in self.aerodynamic_surfaces
+        )
+        if has_generic_surface:
+            return False
+
+        initial_static_margin = self.static_margin.get_value_opt(0)
+        if initial_static_margin < 0:
+            warnings.warn(
+                f"The rocket has a negative static margin "
+                f"({initial_static_margin:.2f} cal) at motor ignition (t=0), "
+                "indicating an aerodynamically unstable configuration. Check the "
+                "placement of fins and nose cone relative to the center of mass.",
+                UnstableRocketWarning,
+                stacklevel=2,
+            )
+            return True
+        return False
 
     def evaluate_dry_inertias(self):
         """Calculates and returns the rocket's dry inertias relative to
@@ -1027,9 +1106,9 @@ class Rocket:
         if hasattr(self, "motor"):
             # pylint: disable=access-member-before-definition
             if not isinstance(self.motor, EmptyMotor):
-                print(
+                logger.warning(
                     "Only one motor per rocket is currently supported. "
-                    + "Overwriting previous motor."
+                    "Overwriting previous motor."
                 )
         self.motor = motor
         self.motor_position = position
@@ -1066,11 +1145,20 @@ class Rocket:
         """Adds a single aerodynamic surface to the rocket. Makes checks for
         rail buttons case, and position type.
         """
-        position = (
-            Vector([0, 0, position])
-            if not isinstance(position, (Vector, tuple, list))
-            else Vector(position)
-        )
+        if isinstance(surface, (TrapezoidalFin, EllipticalFin, FreeFormFin)):
+            # TODO: the leading edge position should be recomputed whenever cant
+            # angle of the fin changes, but currently it is only computed at the
+            # moment the fin is added to the rocket. Detecting when the cant
+            # angle changes is hard, because it is a parameter of the fin, while
+            # the leading edge position is only defined on the rocket
+            position = surface._compute_leading_edge_position(position, self._csys)
+        else:
+            position = (
+                Vector([0, 0, position])
+                if not isinstance(position, (Vector, tuple, list))
+                else Vector(position)
+            )
+
         if isinstance(surface, RailButtons):
             self.rail_buttons = Components()
             self.rail_buttons.add(surface, position)
@@ -1085,17 +1173,23 @@ class Rocket:
 
         Parameters
         ----------
-        surfaces : list, AeroSurface, NoseCone, TrapezoidalFins, EllipticalFins, Tail, RailButtons
+        surfaces : list[AeroSurface], AeroSurface
             Aerodynamic surface to be added to the rocket. Can be a list of
             AeroSurface if more than one surface is to be added.
-        positions : int, float, list, tuple, Vector
-            Position, in m, of the aerodynamic surface's center of pressure
-            relative to the user defined rocket coordinate system.
-            If a list is passed, it will correspond to the position of each item
-            in the surfaces list.
-            For NoseCone type, position is relative to the nose cone tip.
-            For Fins type, position is relative to the point belonging to
-            the root chord which is highest in the rocket coordinate system.
+        positions : int, float, tuple, list, Vector
+            Position(s) of the aerodynamic surface's reference point. Can be:
+
+            - a single number (int or float) giving the z-coordinate along
+              the rocket axis.
+            - a sequence of three numbers (x, y, z) representing the full
+              position in the user-defined coordinate system.
+
+            If passing multiple surfaces, provide a list of positions matching
+            each surface in order.
+            For NoseCone type, position is the tip coordinate along the axis.
+            For Fins type, position refers to the z-coordinate of the root
+            chord leading-edge point closest to the nose cone, before any
+            cant-angle offset is considered.
             For Tail type, position is relative to the point belonging to the
             tail which is highest in the rocket coordinate system.
             For RailButtons type, position is relative to the lower rail button.
@@ -1108,10 +1202,18 @@ class Rocket:
         -------
         None
         """
-        try:
+        if isinstance(surfaces, Iterable):
+            if isinstance(positions, Iterable):
+                if len(surfaces) != len(positions):
+                    raise ValueError(
+                        "The number of surfaces and positions must be the same."
+                    )
+            else:
+                positions = [positions] * len(surfaces)
+
             for surface, position in zip(surfaces, positions):
                 self.__add_single_surface(surface, position)
-        except TypeError:
+        else:
             self.__add_single_surface(surfaces, positions)
 
         self.evaluate_center_of_pressure()
@@ -1285,10 +1387,10 @@ class Rocket:
         tip_chord : int, float
             Fin tip chord in meters.
         position : int, float
-            Fin set position relative to the rocket's coordinate system.
-            By fin set position, understand the point belonging to the root
-            chord which is highest in the rocket coordinate system (i.e.
-            the point closest to the nose cone tip).
+            Fin set position in the z coordinate of the user defined rocket
+            coordinate system. By fin set position, understand the point
+            belonging to the root chord which is highest in the rocket
+            coordinate system (i.e. the point closest to the nose cone tip).
 
             See Also
             --------
@@ -1334,6 +1436,15 @@ class Rocket:
         fin_set : TrapezoidalFins
             Fin set object created.
         """
+        if n <= 2:
+            warnings.warn(
+                "Fin sets with 2 or fewer fins assume a symmetric, evenly-spaced "
+                "configuration and may not accurately capture asymmetric forces. "
+                "For 1 or 2 fins, consider creating individual fin objects "
+                "(e.g. TrapezoidalFin) and adding them with add_surfaces.",
+                UserWarning,
+                stacklevel=2,
+            )
 
         # Modify radius if not given, use rocket radius, otherwise use given.
         radius = radius if radius is not None else self.radius
@@ -1381,10 +1492,10 @@ class Rocket:
         span : int, float
             Fin span in meters.
         position : int, float
-            Fin set position relative to the rocket's coordinate system. By fin
-            set position, understand the point belonging to the root chord which
-            is highest in the rocket coordinate system (i.e. the point
-            closest to the nose cone tip).
+            Fin set position in the z coordinate of the user defined rocket
+            coordinate system. By fin set position, understand the point
+            belonging to the root chord which is highest in the rocket
+            coordinate system (i.e. the point closest to the nose cone tip).
 
             See Also
             --------
@@ -1420,6 +1531,16 @@ class Rocket:
         fin_set : EllipticalFins
             Fin set object created.
         """
+        if n <= 2:
+            warnings.warn(
+                "Fin sets with 2 or fewer fins assume a symmetric, evenly-spaced "
+                "configuration and may not accurately capture asymmetric forces. "
+                "For 1 or 2 fins, consider creating individual fin objects "
+                "(e.g. TrapezoidalFin) and adding them with add_surfaces.",
+                UserWarning,
+                stacklevel=2,
+            )
+
         radius = radius if radius is not None else self.radius
         fin_set = EllipticalFins(n, root_chord, span, radius, cant_angle, airfoil, name)
         self.add_surfaces(fin_set, position)
@@ -1451,10 +1572,10 @@ class Rocket:
             The shape will be interpolated between the points, in the order
             they are given. The last point connects to the first point.
         position : int, float
-            Fin set position relative to the rocket's coordinate system.
-            By fin set position, understand the point belonging to the root
-            chord which is highest in the rocket coordinate system (i.e.
-            the point closest to the nose cone tip).
+            Fin set position in the z coordinate of the user defined rocket
+            coordinate system. By fin set position, understand the point
+            belonging to the root chord which is highest in the rocket
+            coordinate system (i.e. the point closest to the nose cone tip).
 
             See Also
             --------
@@ -1486,6 +1607,15 @@ class Rocket:
         fin_set : FreeFormFins
             Fin set object created.
         """
+        if n <= 2:
+            warnings.warn(
+                "Fin sets with 2 or fewer fins assume a symmetric, evenly-spaced "
+                "configuration and may not accurately capture asymmetric forces. "
+                "For 1 or 2 fins, consider creating individual fin objects "
+                "(e.g. TrapezoidalFin) and adding them with add_surfaces.",
+                UserWarning,
+                stacklevel=2,
+            )
 
         # Modify radius if not given, use rocket radius, otherwise use given.
         radius = radius if radius is not None else self.radius
@@ -1630,8 +1760,7 @@ class Rocket:
             must be in the format (x, y, z) where x, y, and z are defined in the
             rocket's user defined coordinate system. If a single value is
             passed, it is assumed to be along the z-axis (centerline) of the
-            rocket's user defined coordinate system and angular_position and
-            radius must be given.
+            rocket's user defined coordinate system.
 
         Returns
         -------
@@ -1697,15 +1826,19 @@ class Rocket:
             This function is expected to take the following arguments, in order:
 
             1. `time` (float): The current simulation time in seconds.
-            2. `sampling_rate` (float): The rate at which the controller
-               function is called, measured in Hertz (Hz).
+            2. `sampling_rate` (float or None): The rate at which the controller
+               function is called, measured in Hertz (Hz). It is None for
+               continuous controllers (called every solver step), so any
+               `1 / sampling_rate` computation must guard against None.
             3. `state` (list): The state vector of the simulation, structured as
                `[x, y, z, vx, vy, vz, e0, e1, e2, e3, wx, wy, wz]`.
             4. `state_history` (list): A record of the rocket's state at each
-               step throughout the simulation. The state_history is organized as a
-               list of lists, with each sublist containing a state vector. The last
-               item in the list always corresponds to the previous state vector,
-               providing a chronological sequence of the rocket's evolving states.
+               step throughout the simulation. It is organized as a list of
+               lists, ordered oldest to newest, where each sublist is a
+               *time-prefixed* state row `[t, x, y, z, vx, vy, vz, e0, e1, e2,
+               e3, wx, wy, wz]` (the same layout as `Flight.solution`, one
+               leading `time` element ahead of the `state` layout in item 3).
+               The last item corresponds to the most recent recorded step.
             5. `observed_variables` (list): A list containing the variables that
                the controller function returns. The initial value in the first
                step of the simulation of this list is provided by the
@@ -1825,7 +1958,7 @@ class Rocket:
             as the rotation around the symmetry axis of the rocket
             relative to one of the other principal axis.
             Default value is 45 degrees, generally used in rockets with
-            4 fins.
+            4 fins. See :ref:`Angular Position Inputs <angular_position>`
         radius : int, float, optional
             Fuselage radius where the rail buttons are located.
 
@@ -2320,7 +2453,7 @@ class Rocket:
             "Function, or callable."
         )
 
-    def __load_rocket_drag_csv(self, file_path, coeff_name):  # pylint: disable=too-many-statements,import-outside-toplevel
+    def __load_rocket_drag_csv(self, file_path, coeff_name):  # pylint: disable=too-many-statements
         """Load Rocket drag CSV into a 7D Function.
 
         Supports either headerless two-column (mach, coefficient) tables or

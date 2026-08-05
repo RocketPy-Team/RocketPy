@@ -1,10 +1,12 @@
 import inspect
 import json
+import logging
 import os
 import warnings
 from datetime import date
 from importlib.metadata import version
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -16,7 +18,60 @@ from .environment.environment import Environment
 from .mathutils.function import Function
 from .plots.plot_helpers import show_or_save_plot
 from .rocket.aero_surface import TrapezoidalFins
-from .simulation.flight import Flight
+
+if TYPE_CHECKING:  # pragma: no cover
+    from .simulation.flight import Flight
+
+
+def enable_logging(level="WARNING"):
+    """Enable RocketPy logging output to the console.
+
+    Attaches a StreamHandler to the ``rocketpy`` logger so that internal
+    runtime events (simulation progress, warnings, errors) are printed to
+    the terminal. Only RocketPy logs are affected — global/root logging
+    is not modified. By default, only WARNING and above are shown.
+
+    Parameters
+    ----------
+    level : str, optional
+        The minimum logging level to display. Options are "DEBUG", "INFO",
+        "WARNING", "ERROR", and "CRITICAL". Default is "WARNING".
+
+    Examples
+    --------
+    Show only warnings and errors (default):
+
+    >>> import rocketpy
+    >>> rocketpy.utilities.enable_logging()
+
+    Show all internal runtime messages, including simulation progress:
+
+    >>> import rocketpy
+    >>> rocketpy.utilities.enable_logging(level="DEBUG")
+
+    Show confirmations like "Simulation completed" and "File saved":
+
+    >>> import rocketpy
+    >>> rocketpy.utilities.enable_logging(level="INFO")
+    """
+    numeric_level = getattr(logging, level.upper(), None)
+    if not isinstance(numeric_level, int):
+        raise ValueError(f"Invalid logging level: '{level}'")
+
+    logger = logging.getLogger("rocketpy")
+
+    # Remove any existing StreamHandlers to avoid duplicate messages
+    logger.handlers = [
+        h for h in logger.handlers if not isinstance(h, logging.StreamHandler)
+    ]
+
+    logger.setLevel(numeric_level)
+
+    handler = logging.StreamHandler()
+    handler.setLevel(numeric_level)
+    handler.setFormatter(logging.Formatter("%(levelname)s | %(name)s | %(message)s"))
+
+    logger.addHandler(handler)
 
 
 def compute_cd_s_from_drop_test(
@@ -202,7 +257,43 @@ def calculate_equilibrium_altitude(
     return altitude_function, velocity_function, final_sol
 
 
-# pylint: disable=too-many-statements
+def calculate_stall_wind_velocity(flight, stall_angle):
+    """Calculate the maximum wind velocity before the angle of attack exceeds a
+    desired stall angle, at the instant of departing the launch rail.
+
+    Can be helpful if you know the exact stall angle of all aerodynamic
+    surfaces.
+
+    Parameters
+    ----------
+    flight : rocketpy.Flight
+        Flight object containing the rocket's flight data. Its
+        ``out_of_rail_velocity`` and ``inclination`` attributes are used.
+    stall_angle : float
+        Angle, in degrees, for which you would like to know the maximum wind
+        speed before the angle of attack exceeds it.
+
+    Returns
+    -------
+    float
+        Maximum wind velocity, in m/s, at rail departure before the angle of
+        attack exceeds ``stall_angle``.
+    """
+    v_f = flight.out_of_rail_velocity
+    theta = np.radians(flight.inclination)
+    stall_angle_rad = np.radians(stall_angle)
+
+    c = (np.cos(stall_angle_rad) ** 2 - np.cos(theta) ** 2) / np.sin(
+        stall_angle_rad
+    ) ** 2
+    w_v = (
+        2 * v_f * np.cos(theta) / c
+        + (4 * v_f * v_f * np.cos(theta) * np.cos(theta) / (c**2) + 4 * v_f * v_f / c)
+        ** 0.5
+    ) / 2
+    return w_v
+
+
 def fin_flutter_analysis(
     fin_thickness,
     shear_modulus,
@@ -231,8 +322,7 @@ def fin_flutter_analysis(
     see_prints : boolean, optional
         True if you want to see the prints, False otherwise.
     see_graphs : boolean, optional
-        True if you want to see the graphs, False otherwise. If False, the
-        function will return the vectors containing the data for the graphs.
+        True if you want to see the graphs, False otherwise.
     filename : str | None, optional
         The path the plot should be saved to. By default None, in which case the
         plot will be shown instead of saved. Supported file endings are: eps,
@@ -241,7 +331,12 @@ def fin_flutter_analysis(
 
     Return
     ------
-    None
+    flutter_mach : rocketpy.Function
+        The Mach Number at which the fin flutter occurs as a function of time,
+        considering the variation of the speed of sound with altitude.
+    safety_factor : rocketpy.Function
+        The Safety Factor for the fin flutter as a function of time, defined as
+        the flutter Mach Number divided by the freestream Mach Number.
     """
     found_fin = False
     surface_area = None
@@ -284,8 +379,12 @@ def fin_flutter_analysis(
         )
     if see_graphs:
         _flutter_plots(flight, flutter_mach, safety_factor, filename=filename)
-    else:
-        return flutter_mach, safety_factor
+
+    # Always return the computed results so callers can use the flutter margin
+    # programmatically. These are safety-critical numbers and must never be
+    # silently discarded (they were previously only returned when
+    # ``see_graphs=False`` and otherwise only logged at INFO level).
+    return flutter_mach, safety_factor
 
 
 def _flutter_mach_number(
@@ -428,18 +527,21 @@ def _flutter_prints(
     min_sf = safety_factor[time_index, 1]
     altitude_min_sf = flight.z(time_min_sf) - flight.env.elevation
 
-    print("\nFin's parameters")
-    print(f"Surface area (S): {surface_area:.4f} m2")
-    print(f"Aspect ratio (AR): {aspect_ratio:.3f}")
-    print(f"tip_chord/root_chord ratio = \u03bb = {lambda_:.3f}")
-    print(f"Fin Thickness: {fin_thickness:.5f} m")
-    print(f"Shear Modulus (G): {shear_modulus:.3e} Pa")
-
-    print("\nFin Flutter Analysis")
-    print(f"Minimum Fin Flutter Velocity: {min_vel:.3f} m/s at {time_min_mach:.2f} s")
-    print(f"Minimum Fin Flutter Mach Number: {min_mach:.3f} ")
-    print(f"Minimum Safety Factor: {min_sf:.3f} at {time_min_sf:.2f} s")
-    print(f"Altitude of minimum Safety Factor: {altitude_min_sf:.3f} m (AGL)\n")
+    # This is an explicit, opt-in report (gated on ``see_prints``), so it uses
+    # print() to display unconditionally rather than logging.info, which is
+    # silenced by default.
+    print(
+        f"Fin's parameters: Surface area (S)={surface_area:.4f} m2"
+        f" | AR={aspect_ratio:.3f} | \u03bb={lambda_:.3f}"
+        f" | Thickness={fin_thickness:.5f} m"
+        f" | Shear Modulus (G)={shear_modulus:.3e} Pa"
+    )
+    print(
+        f"Fin Flutter Analysis: Min flutter velocity={min_vel:.3f} m/s"
+        f" at t={time_min_mach:.2f} s | Min flutter Mach={min_mach:.3f}"
+        f" | Min safety factor={min_sf:.3f} at t={time_min_sf:.2f} s"
+        f" | Altitude of min safety factor={altitude_min_sf:.3f} m (AGL)"
+    )
 
 
 def apogee_by_mass(flight, min_mass, max_mass, points=10, plot=True):
@@ -477,6 +579,9 @@ def apogee_by_mass(flight, min_mass, max_mass, points=10, plot=True):
         Function object containing the estimated apogee as a function of the
         rocket's mass (without motor nor propellant).
     """
+    # Imported lazily to avoid a circular import (Flight imports utilities).
+    from .simulation.flight import Flight  # pylint: disable=import-outside-toplevel
+
     rocket = flight.rocket
 
     def apogee(mass):
@@ -547,6 +652,9 @@ def liftoff_speed_by_mass(flight, min_mass, max_mass, points=10, plot=True):
         Function object containing the estimated liftoff speed as a function of
         the rocket's mass (without motor nor propellant).
     """
+    # Imported lazily to avoid a circular import (Flight imports utilities).
+    from .simulation.flight import Flight  # pylint: disable=import-outside-toplevel
+
     rocket = flight.rocket
 
     def liftoff_speed(mass):
@@ -605,7 +713,7 @@ def get_instance_attributes(instance):
     return attributes_dict
 
 
-def save_to_rpy(flight: Flight, filename: str, include_outputs=False):
+def save_to_rpy(flight: "Flight", filename: str, include_outputs=False):
     """Saves a .rpy file into the given path, containing key simulation
     informations to reproduce the results.
 
@@ -663,9 +771,11 @@ def load_from_rpy(filename: str, resimulate=False):
             version("rocketpy")
         ):
             warnings.warn(
-                "The file was saved in an updated version of",
-                f"RocketPy (v{data['version']}), the current",
+                "The file was saved in an updated version of "
+                f"RocketPy (v{data['version']}), the current "
                 f"imported module is v{version('rocketpy')}",
+                UserWarning,
+                stacklevel=2,
             )
         simulation = json.dumps(data["simulation"])
         flight = json.loads(simulation, cls=RocketPyDecoder, resimulate=resimulate)

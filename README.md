@@ -170,10 +170,10 @@ env = Environment(
 tomorrow = datetime.date.today() + datetime.timedelta(days=1)
 
 env.set_date(
-  (tomorrow.year, tomorrow.month, tomorrow.day, 12), timezone="America/Denver"
-) # Tomorrow's date in year, month, day, hour UTC format
+    (tomorrow.year, tomorrow.month, tomorrow.day, 12), timezone="America/Denver"
+)  # Tomorrow's date in year, month, day, hour UTC format
 
-env.set_atmospheric_model(type='Forecast', file='GFS')
+env.set_atmospheric_model(type="Forecast", file="GFS")
 ```
 
 This can be followed up by starting a Solid Motor object. To get help on it, just use:
@@ -233,9 +233,7 @@ buttons = calisto.set_rail_buttons(
 
 calisto.add_motor(Pro75M1670, position=-1.255)
 
-nose = calisto.add_nose(
-    length=0.55829, kind="vonKarman", position=1.278
-)
+nose = calisto.add_nose(length=0.55829, kind="vonKarman", position=1.278)
 
 fins = calisto.add_trapezoidal_fins(
     n=4,
@@ -290,7 +288,7 @@ To actually create a Flight object, use:
 
 ```python
 test_flight = Flight(
-  rocket=calisto, environment=env, rail_length=5.2, inclination=85, heading=0
+    rocket=calisto, environment=env, rail_length=5.2, inclination=85, heading=0
 )
 ```
 
@@ -310,10 +308,12 @@ Here is just a quick taste of what RocketPy is able to calculate. There are hund
 
 ![6-DOF Trajectory Plot](https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/rocketpy_example_trajectory.svg)
 
-If you want to see the trajectory on Google Earth, RocketPy acn easily export a KML file for you:
+If you want to see the trajectory on Google Earth, RocketPy can easily export a KML file for you:
 
 ```python
-test_flight.export_kml(file_name="test_flight.kml")
+from rocketpy.simulation import FlightDataExporter
+
+FlightDataExporter(test_flight).export_kml(file_name="test_flight.kml")
 ```
 
 <img alt="6-DOF Trajectory Plot" src="https://raw.githubusercontent.com/RocketPy-Team/RocketPy/master/docs/static/trajectory-earth.png" width="501">

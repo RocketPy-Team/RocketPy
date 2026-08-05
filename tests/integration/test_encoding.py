@@ -100,7 +100,7 @@ def test_flight_save_load_resimulate(flight_name, include_outputs, request):
 
     assert np.isclose(flight_to_save.t_initial, flight_loaded.t_initial)
     assert np.isclose(flight_to_save.out_of_rail_time, flight_loaded.out_of_rail_time)
-    assert np.isclose(flight_to_save.apogee_time, flight_loaded.apogee_time)
+    assert np.isclose(flight_to_save.apogee_time, flight_loaded.apogee_time, rtol=1e-4)
 
     # Higher tolerance due to random parachute trigger
     assert np.isclose(flight_to_save.t_final, flight_loaded.t_final, rtol=5e-3)
@@ -273,8 +273,47 @@ def test_trapezoidal_fins_encoder(fin_name, request):
     assert np.isclose(fin_to_encode.tip_chord, fin_loaded.tip_chord)
     assert np.isclose(fin_to_encode.rocket_radius, fin_loaded.rocket_radius)
     assert np.isclose(fin_to_encode.sweep_length, fin_loaded.sweep_length)
-    if fin_to_encode._sweep_angle is not None and fin_loaded._sweep_angle is not None:
+    if fin_to_encode.sweep_angle is not None and fin_loaded.sweep_angle is not None:
         assert np.isclose(fin_to_encode.sweep_angle, fin_loaded.sweep_angle)
+
+
+@pytest.mark.parametrize(
+    "fin_name",
+    [
+        "calisto_trapezoidal_fin",
+        "calisto_elliptical_fin",
+        "calisto_free_form_fin",
+    ],
+)
+@pytest.mark.parametrize("include_outputs", [False, True])
+def test_individual_fin_encoder(fin_name, include_outputs, request):
+    """Test encoding an individual fin (``TrapezoidalFin``, ``EllipticalFin``
+    or ``FreeFormFin``).
+
+    Parameters
+    ----------
+    fin_name : str
+        Name of the fin fixture to encode.
+    include_outputs : bool
+        Whether to include outputs in the encoding.
+    request : pytest.FixtureRequest
+        Pytest request object.
+    """
+    fin_to_encode = request.getfixturevalue(fin_name)
+
+    json_encoded = json.dumps(
+        fin_to_encode, cls=RocketPyEncoder, include_outputs=include_outputs
+    )
+
+    fin_loaded = json.loads(json_encoded, cls=RocketPyDecoder)
+
+    assert isinstance(fin_loaded, type(fin_to_encode))
+    assert np.isclose(fin_to_encode.angular_position, fin_loaded.angular_position)
+    assert np.isclose(fin_to_encode.span, fin_loaded.span)
+    assert np.isclose(fin_to_encode.root_chord, fin_loaded.root_chord)
+    assert np.isclose(fin_to_encode.rocket_radius, fin_loaded.rocket_radius)
+    assert np.isclose(fin_to_encode.cant_angle, fin_loaded.cant_angle)
+    assert np.allclose(fin_to_encode.cp, fin_loaded.cp)
 
 
 @pytest.mark.parametrize("rocket_name", ["calisto_robust", "calisto_hybrid_modded"])

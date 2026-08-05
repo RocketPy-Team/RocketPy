@@ -83,6 +83,7 @@ def test_ndrt_2020_rocket_data_asserts_acceptance(env_file):
         type="Reanalysis",
         file=env_file,
         dictionary="ECMWF",
+        pressure_conversion_factor="hPa",
     )
     env.max_expected_height = 2000
 

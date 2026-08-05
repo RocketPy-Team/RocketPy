@@ -1,3 +1,4 @@
+import logging
 import warnings
 
 import numpy as np
@@ -8,6 +9,8 @@ from rocketpy.plots.aero_surface_plots import _NoseConePlots
 from rocketpy.prints.aero_surface_prints import _NoseConePrints
 
 from .aero_surface import AeroSurface
+
+logger = logging.getLogger(__name__)
 
 
 class NoseCone(AeroSurface):
@@ -78,7 +81,7 @@ class NoseCone(AeroSurface):
         more about it.
     """
 
-    def __init__(  # pylint: disable=too-many-statements
+    def __init__(
         self,
         length,
         kind,
@@ -219,7 +222,7 @@ class NoseCone(AeroSurface):
         return self._kind
 
     @kind.setter
-    def kind(self, value):  # pylint: disable=too-many-statements
+    def kind(self, value):
         # Analyzes nosecone type
         # Sets the k for Cp calculation
         # Sets the function which creates the respective curve
@@ -370,7 +373,7 @@ class NoseCone(AeroSurface):
 
         self.fineness_ratio = self.length / (2 * self.base_radius)
 
-    def evaluate_nose_shape(self):  # pylint: disable=too-many-statements
+    def evaluate_nose_shape(self):
         """Calculates and saves nose cone's shape as lists and re-evaluates the
         nose cone's length for a given bluffness ratio. The shape is saved as
         two vectors, one for the x coordinates and one for the y coordinates.
@@ -445,9 +448,11 @@ class NoseCone(AeroSurface):
         self.shape_vec = [nosecone_x, nosecone_y]
         if abs(nosecone_x[-1] - self.length) >= 0.001:  # 1 millimeter
             self._length = nosecone_x[-1]
-            print(
-                "Due to the chosen bluffness ratio, the nose "
-                f"cone length was reduced to {self.length} m."
+            warnings.warn(
+                f"Due to the chosen bluffness ratio, the nose cone length was "
+                f"reduced to {self.length:.4f} m.",
+                UserWarning,
+                stacklevel=2,
             )
         self.fineness_ratio = self.length / (2 * self.base_radius)
 

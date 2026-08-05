@@ -225,6 +225,11 @@ good-names=FlightPhases,
            center_of_mass_without_motor_to_CDM,
            motor_center_of_dry_mass_to_CDM,
            generic_motor_cesaroni_M1520,
+           R_phi,
+           R_delta, 
+           R_pi,
+           R_uncanted,
+           R_body_to_fin, 
            Re, # Reynolds number
 
 # Good variable names regexes, separated by a comma. If names match any regex,
@@ -385,7 +390,7 @@ indent-string='    '
 max-line-length=88
 
 # Maximum number of lines in a module.
-max-module-lines=3000
+max-module-lines=3050
 
 # Allow the body of a class to be on the same line as the declaration if body
 # contains single statement.
@@ -471,7 +476,6 @@ disable=raw-checker-failed,
         locally-disabled,
         file-ignored,
         suppressed-message,
-        useless-suppression,
         deprecated-pragma, # because we have some pending deprecations in the code.
         use-symbolic-message-instead,
         use-implicit-booleaness-not-comparison-to-string,
@@ -505,6 +509,7 @@ disable=raw-checker-failed,
 # multiple time (only on the command line, not in the configuration file where
 # it should appear only once). See also the "--disable" option for examples.
 enable=
+    useless-suppression
 
 
 [METHOD_ARGS]

@@ -27,7 +27,7 @@ copyright = "2026, RocketPy Team"
 author = "RocketPy Team"
 
 # The full version, including alpha/beta/rc tags
-release = "1.12.1"
+release = "1.13.0"
 
 
 # -- General configuration ---------------------------------------------------
@@ -66,6 +66,18 @@ jupyter_execute_kwargs = {
     "timeout": 300,  # 5 minutes timeout per cell
     "allow_errors": True,  # Continue building even if cells raise errors
 }
+
+# When DOCS_SKIP_EXECUTE=1, ``jupyter-execute`` directives are rendered as
+# static (non-executing) code blocks instead of running live code. This makes
+# structural doc builds fast and deterministic (no simulations, no network),
+# which is what the GitHub Actions docs check relies on. Read the Docs leaves
+# this unset, so it still executes the cells and renders their live outputs.
+skip_jupyter_execute = os.environ.get("DOCS_SKIP_EXECUTE") == "1"
+
+# Some notebook cells use IPython shell escapes (e.g. ``!pip install rocketpy``)
+# which the Pygments Python lexer cannot tokenize. These are purely cosmetic
+# syntax-highlighting failures, so don't let them fail a warnings-as-errors build.
+suppress_warnings = ["misc.highlighting_failure"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -150,3 +162,46 @@ html_domain_indices = False
 html_file_suffix = ".html"
 
 htmlhelp_basename = "rocketpy"
+
+
+def setup(app):
+    """Sphinx entry point for optional build-time customizations."""
+    if skip_jupyter_execute:
+        from docutils.parsers.rst import directives
+        from sphinx.directives.code import CodeBlock
+
+        class StaticJupyterExecute(CodeBlock):
+            """Render ``jupyter-execute`` as a non-executing Python code block.
+
+            Accepts (and ignores) the ``jupyter-execute`` directive options so
+            existing pages parse unchanged, but produces a plain highlighted
+            code block instead of a live-executed cell.
+            """
+
+            required_arguments = 0
+            optional_arguments = 1
+            option_spec = dict(CodeBlock.option_spec)
+            option_spec.update(
+                {
+                    "hide-code": directives.flag,
+                    "hide-output": directives.flag,
+                    "code-below": directives.flag,
+                    "stderr": directives.flag,
+                    "raises": directives.unchanged,
+                }
+            )
+
+            def run(self):
+                for key in (
+                    "hide-code",
+                    "hide-output",
+                    "code-below",
+                    "stderr",
+                    "raises",
+                ):
+                    self.options.pop(key, None)
+                if not self.arguments:
+                    self.arguments = ["python3"]
+                return super().run()
+
+        app.add_directive("jupyter-execute", StaticJupyterExecute, override=True)

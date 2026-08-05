@@ -550,6 +550,11 @@ class StochasticModel:
         Model object. The report includes the variable name, the nominal value,
         the standard deviation, and the distribution function used to generate
         the random attributes.
+
+        Returns
+        -------
+        str
+            The formatted report. It is also printed for interactive use.
         """
 
         def format_attribute(attr, value):
@@ -630,4 +635,10 @@ class StochasticModel:
                 format_attribute(attr, attributes[attr]) for attr in custom_attributes
             )
 
-        print("\n".join(filter(None, report)))
+        # This is an explicit, user-invoked display method, so it prints
+        # unconditionally (like ``info``/``all_info`` elsewhere) rather than
+        # logging at INFO level, which is silenced by default. The report is
+        # also returned so it can be used programmatically.
+        report_str = "\n".join(filter(None, report))
+        print(report_str)
+        return report_str

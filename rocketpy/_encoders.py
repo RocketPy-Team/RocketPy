@@ -1,6 +1,7 @@
 """Defines a custom JSON encoder for RocketPy objects."""
 
 import json
+import warnings
 from datetime import datetime
 from importlib import import_module
 
@@ -133,7 +134,13 @@ class RocketPyDecoder(json.JSONDecoder):
                     if hash_ is not None:
                         setattr(new_obj, "__rpy_hash", hash_)
                     return new_obj
-            except (ImportError, AttributeError):
+            except (ImportError, AttributeError) as exc:
+                warnings.warn(
+                    "Could not reconstruct a RocketPy object from the stored "
+                    f"signature {signature!r}: {exc}. Returning the raw data "
+                    "dictionary instead; the loaded object may be incomplete.",
+                    stacklevel=2,
+                )
                 return obj
         else:
             return obj

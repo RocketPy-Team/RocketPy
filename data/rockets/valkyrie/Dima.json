@@ -1,0 +1,38 @@
+{
+  "launch": {
+    "rail_length": {
+      "value": 10,
+      "dispersion": 0.001
+    },
+    "ensemble_member": null
+  },
+  "Environment": {
+    "latitude": {
+      "value": 43.077771
+    },
+    "longitude": {
+      "value": -2.684446
+    },
+    "elevation": {
+      "value": 592
+    },
+    "max_expected_height": {
+      "value": 3000
+    },
+    "timezone": "Europe/Madrid"
+  },
+  "Montecarlo": {
+    "map_filename": "Dima.PNG",
+    "map_scale": 1,
+    "append": false,
+    "map_limits": [
+      -20000,
+      20000,
+      -20000,
+      20000
+    ]
+  },
+  "Flight": {
+    "max_time": 3000
+  }
+}

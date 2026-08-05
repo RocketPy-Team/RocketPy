@@ -1,6 +1,6 @@
 [project]
 name = "rocketpy"
-version = "1.12.1"
+version = "1.13.0"
 description="Advanced 6-DOF trajectory simulation for High-Power Rocketry."
 dynamic = ["dependencies"]
 readme = "README.md"
@@ -34,6 +34,9 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 packages = { find = { where = ["."], include = ["rocketpy*"] } }
 
+[tool.setuptools.package-data]
+"rocketpy.plots" = ["assets/*.stl"]
+
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }
@@ -61,14 +64,20 @@ env-analysis = [
 ]
 
 monte-carlo = [
-    "imageio", 
+    "imageio",
     "multiprocess>=0.70",
     "statsmodels",
     "prettytable",
     "contextily>=1.0.0; python_version < '3.14'",
 ]
 
-all = ["rocketpy[env-analysis]", "rocketpy[monte-carlo]"]
+animation = [
+    "pyvista>=0.45",
+    "imageio",
+    "imageio-ffmpeg>=0.5"
+]
+
+all = ["rocketpy[env-analysis]", "rocketpy[monte-carlo]", "rocketpy[animation]"]
 
 
 [tool.coverage.report]

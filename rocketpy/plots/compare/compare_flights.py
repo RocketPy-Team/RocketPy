@@ -1,15 +1,19 @@
 # TODO: remove this disable once the code is refactored
 # pylint: disable=nested-min-max
+import logging
+
 import matplotlib.pyplot as plt
 import numpy as np
 
 from ..plot_helpers import show_or_save_fig, show_or_save_plot
 from .compare import Compare
 
+logger = logging.getLogger(__name__)
+
 # TODO: needs to refactor this class to use the show_or_save_plot
 
 
-class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
+class CompareFlights(Compare):
     """A class to compare the results of multiple flights.
 
     Parameters
@@ -94,7 +98,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         """
         show_or_save_fig(fig, filename)
         if filename:
-            print("Plot saved to file: " + filename)
+            logger.info("Plot saved to file: %s", filename)
         else:
             plt.show()
 
@@ -1084,7 +1088,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         None
         """
 
-        print("This method is not implemented yet")
+        logger.warning("This method is not implemented yet.")
 
     def attitude_frequency(
         self,
@@ -1123,7 +1127,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         None
         """
 
-        print("This method is not implemented yet")
+        logger.warning("This method is not implemented yet.")
 
     @staticmethod
     def compare_trajectories_3d(  # pylint: disable=too-many-statements
@@ -1339,7 +1343,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
 
         func(flights, names_list, figsize, legend, filename)
 
-    def __plot_xy(  # pylint: disable=too-many-statements
+    def __plot_xy(
         self, flights, names_list, figsize=(7, 7), legend=None, filename=None
     ):
         """Creates a 2D trajectory plot in the X-Y plane that is the combination
@@ -1400,7 +1404,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         # Save figure
         self.__process_savefig(filename, fig)
 
-    def __plot_xz(  # pylint: disable=too-many-statements
+    def __plot_xz(
         self, flights, names_list, figsize=(7, 7), legend=None, filename=None
     ):
         """Creates a 2D trajectory plot in the X-Z plane that is the combination
@@ -1466,7 +1470,7 @@ class CompareFlights(Compare):  # pylint: disable=too-many-public-methods
         # Save figure
         show_or_save_plot(filename)
 
-    def __plot_yz(  # pylint: disable=too-many-statements
+    def __plot_yz(
         self, flights, names_list, figsize=(7, 7), legend=None, filename=None
     ):
         """Creates a 2D trajectory plot in the Y-Z plane that is the combination

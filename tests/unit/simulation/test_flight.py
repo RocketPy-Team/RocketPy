@@ -8,6 +8,7 @@ import pytest
 from scipy import optimize
 
 from rocketpy import Components, Flight, Function, Rocket
+from rocketpy.simulation import FlightDataExporter
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
@@ -174,7 +175,9 @@ def test_export_sensor_data(flight_calisto_with_sensors):
     flight_calisto_with_sensors : Flight
         Pytest fixture for the flight of the calisto rocket with an ideal accelerometer and a gyroscope.
     """
-    flight_calisto_with_sensors.export_sensor_data("test_sensor_data.json")
+    FlightDataExporter(flight_calisto_with_sensors).export_sensor_data(
+        "test_sensor_data.json"
+    )
     # read the json and parse as dict
     filename = "test_sensor_data.json"
     with open(filename, "r") as f:

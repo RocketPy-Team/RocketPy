@@ -6,7 +6,7 @@ from scipy.constants import atm, zero_Celsius
 from ..mathutils.function import Function, funcify_method
 from ..plots.tank_plots import _TankPlots
 from ..prints.tank_prints import _TankPrints
-from ..tools import deprecated, tuple_handler
+from ..tools import tuple_handler
 
 
 class Tank(ABC):
@@ -1025,17 +1025,6 @@ class MassFlowRateBasedTank(Tank):
             )
             self._gas_density.set_discrete_based_on_model(self.gas_mass_flow_rate_in)
 
-    @deprecated(
-        "Should not be a public member of the class.",
-        "1.12.0",
-        "_discretize_fluid_inputs",
-    )
-    def discretize_flow(self):
-        """Discretizes the mass flow rate inputs according to the flux time and
-        the discretize parameter.
-        """
-        self._discretize_fluid_inputs()
-
     def to_dict(self, **kwargs):
         data = super().to_dict(**kwargs)
         data.update(
@@ -1288,17 +1277,6 @@ class UllageBasedTank(Tank):
             self._liquid_density.set_discrete_based_on_model(self.ullage)
             self._gas_density.set_discrete_based_on_model(self.ullage)
 
-    @deprecated(
-        "Should not be a public member of the class.",
-        "1.12.0",
-        "_discretize_fluid_inputs",
-    )
-    def discretize_ullage(self):
-        """Discretizes the ullage input according to the flux time
-        and the discretize parameter.
-        """
-        self._discretize_fluid_inputs()
-
     def to_dict(self, **kwargs):
         data = super().to_dict(**kwargs)
         data.update({"ullage": self.ullage})
@@ -1541,17 +1519,6 @@ class LevelBasedTank(Tank):
         return Function(self.geometry.top).set_discrete_based_on_model(
             self.liquid_level
         )
-
-    @deprecated(
-        "Should not be a public member of the class.",
-        "1.12.0",
-        "_discretize_fluid_inputs",
-    )
-    def discretize_liquid_height(self):
-        """Discretizes the liquid height input according to the flux time
-        and the discretize parameter.
-        """
-        self._discretize_fluid_inputs()
 
     def _discretize_fluid_inputs(self):
         """Uniformly discretizes the parameter of inputs of fluid data ."""
@@ -1834,17 +1801,6 @@ class MassBasedTank(Tank):
                 + f"above the tank top at {diff.x_array[np.argmax(diff.y_array)]} s."
             )
         return gas_height
-
-    @deprecated(
-        "Should not be a public member of the class.",
-        "1.12.0",
-        "_discretize_fluid_inputs",
-    )
-    def discretize_masses(self):
-        """Discretizes the fluid mass inputs according to the flux time
-        and the discretize parameter.
-        """
-        self._discretize_fluid_inputs()
 
     def _discretize_fluid_inputs(self):
         """Uniformly discretizes the parameter of inputs of fluid data ."""
