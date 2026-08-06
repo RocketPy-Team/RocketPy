@@ -17,7 +17,7 @@
 - [ ] Docs have been reviewed and added / updated
 - [ ] Lint (`black rocketpy/ tests/`) has passed locally 
 - [ ] All tests (`pytest tests -m slow --runslow`) have passed locally
-- [ ] `CHANGELOG.md` has been updated (if relevant)
+- `CHANGELOG.md` — no action needed; an LLM workflow auto-updates it after merge
 
 ## Current behavior
 <!-- Describe current behavior or link to an issue. -->

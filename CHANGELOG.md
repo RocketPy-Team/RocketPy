@@ -32,8 +32,13 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- ENH: Support for Meteomatics API in the `Environment` class [#1079](https://github.com/RocketPy-Team/RocketPy/pull/1079)
 - ENH: update master with develop [#1081](https://github.com/RocketPy-Team/RocketPy/pull/1081)
+
 ### Changed
+
+- CI: make changelog automation LLM-based (Gemini) and race-safe [#1082](https://github.com/RocketPy-Team/RocketPy/pull/1082)
+- ENH: Resolve pressure_ISA discretization bounds TODO [#1056](https://github.com/RocketPy-Team/RocketPy/pull/1056)
 
 ### Fixed
 

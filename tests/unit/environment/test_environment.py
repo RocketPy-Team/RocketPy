@@ -19,6 +19,7 @@ from rocketpy.environment.tools import (
     utm_to_geodesic,
 )
 from rocketpy.environment.weather_model_mapping import WeatherModelMapping
+from rocketpy.tools import geopotential_height_to_geometric_height
 
 
 class DummyLambertProjection:
@@ -334,7 +335,8 @@ def test_environment_export_environment_exports_valid_environment_json(
 
 
 @pytest.mark.parametrize(
-    "atmospheric_model_type", ["windy", "forecast", "reanalysis", "ensemble"]
+    "atmospheric_model_type",
+    ["windy", "meteomatics", "forecast", "reanalysis", "ensemble"],
 )
 def test_environment_to_dict_from_dict_round_trip_preserves_weather_metadata(
     example_plain_env, atmospheric_model_type
@@ -426,6 +428,173 @@ def test_environment_to_dict_from_dict_round_trip_preserves_weather_metadata(
         npt.assert_allclose(restored_env.height_ensemble, env.height_ensemble)
         assert restored_env.num_ensemble_members == env.num_ensemble_members
         assert restored_env.ensemble_member == env.ensemble_member == 1
+
+
+_METEOMATICS_FAKE_PROFILES = {
+    "temperature": {0: 288.15, 1000: 281.65, 5000: 255.65},
+    "pressure": {0: 101325.0, 1000: 89876.0, 5000: 54048.0},
+    "wind_u": {0: 1.0, 1000: 3.0, 5000: 8.0},
+    "wind_v": {0: -1.0, 1000: -2.0, 5000: -4.0},
+}
+
+
+def _patch_meteomatics_fetcher(monkeypatch, profiles=None, recorder=None):
+    """Replace the Meteomatics fetcher with an offline fake (no API calls)."""
+    profiles = _METEOMATICS_FAKE_PROFILES if profiles is None else profiles
+
+    def fake_fetch(**kwargs):
+        if recorder is not None:
+            recorder.update(kwargs)
+        return profiles
+
+    monkeypatch.setattr(
+        "rocketpy.environment.environment.fetch_atmospheric_data_from_meteomatics",
+        fake_fetch,
+    )
+
+
+def test_meteomatics_atmosphere_sets_profiles(example_euroc_env, monkeypatch):
+    """Build pressure, temperature and wind profiles from Meteomatics data.
+
+    The fake profiles are indexed by height above ground level, so the
+    Environment elevation (100 m for the EuRoC fixture) must be added to obtain
+    heights above sea level.
+    """
+    recorder = {}
+    _patch_meteomatics_fetcher(monkeypatch, recorder=recorder)
+
+    example_euroc_env.set_atmospheric_model(
+        type="Meteomatics", file="mix", username="user", password="pass"
+    )
+
+    assert example_euroc_env.atmospheric_model_type == "Meteomatics"
+    # AGL 0 m -> ASL 100 m (the fixture elevation)
+    assert pytest.approx(101325.0, rel=1e-6) == example_euroc_env.pressure(100)
+    assert pytest.approx(288.15, rel=1e-6) == example_euroc_env.temperature(100)
+    assert pytest.approx(1.0) == example_euroc_env.wind_velocity_x(100)
+    assert pytest.approx(-1.0) == example_euroc_env.wind_velocity_y(100)
+    assert pytest.approx(np.sqrt(2.0)) == example_euroc_env.wind_speed(100)
+    assert example_euroc_env.max_expected_height == pytest.approx(5100.0)
+    # Credentials and model are forwarded to the fetcher.
+    assert recorder["username"] == "user"
+    assert recorder["password"] == "pass"
+    assert recorder["model"] == "mix"
+
+
+def test_meteomatics_non_string_model_raises(example_euroc_env, monkeypatch):
+    """Reject a non-string model instead of silently querying the default.
+
+    Passing a Dataset or a path as ``file`` by accident must not be coerced to
+    ``"mix"``, which would quietly query (and charge for) the wrong model.
+    """
+    _patch_meteomatics_fetcher(monkeypatch)
+
+    with pytest.raises(ValueError, match="Invalid Meteomatics model"):
+        example_euroc_env.set_atmospheric_model(
+            type="Meteomatics", file=123, username="user", password="pass"
+        )
+
+
+def test_meteomatics_reads_credentials_from_environment(example_euroc_env, monkeypatch):
+    """Fall back to the METEOMATICS_* environment variables for credentials."""
+    recorder = {}
+    _patch_meteomatics_fetcher(monkeypatch, recorder=recorder)
+    monkeypatch.setenv("METEOMATICS_USERNAME", "env-user")
+    monkeypatch.setenv("METEOMATICS_PASSWORD", "env-pass")
+
+    example_euroc_env.set_atmospheric_model(type="Meteomatics")
+
+    assert recorder["username"] == "env-user"
+    assert recorder["password"] == "env-pass"
+    assert recorder["model"] == "mix"  # default model when file is omitted
+    assert pytest.approx(288.15, rel=1e-6) == example_euroc_env.temperature(100)
+
+
+def test_meteomatics_missing_credentials_raises(example_euroc_env, monkeypatch):
+    """Raise a clear error when no credentials are available."""
+    _patch_meteomatics_fetcher(monkeypatch)
+    monkeypatch.delenv("METEOMATICS_USERNAME", raising=False)
+    monkeypatch.delenv("METEOMATICS_PASSWORD", raising=False)
+
+    with pytest.raises(ValueError, match="username and password"):
+        example_euroc_env.set_atmospheric_model(type="Meteomatics")
+
+
+def test_meteomatics_missing_date_raises(example_plain_env, monkeypatch):
+    """Raise when the Environment has no launch date set."""
+    _patch_meteomatics_fetcher(monkeypatch)
+
+    with pytest.raises(ValueError, match="launch date"):
+        example_plain_env.set_atmospheric_model(
+            type="Meteomatics", username="user", password="pass"
+        )
+
+
+def test_meteomatics_drops_missing_values_and_intersects_wind_grid(
+    example_euroc_env, monkeypatch
+):
+    """Drop ``None`` values and keep only wind levels present in both u and v.
+
+    Temperature at 1000 m is ``None`` (dropped), and the wind grids disagree at
+    5000 m (only ``wind_u`` has it), so the wind profile must keep only the
+    common, non-null levels {0, 1000} m AGL.
+    """
+    profiles = {
+        "temperature": {0: 288.15, 1000: None, 5000: 255.65},
+        "pressure": {0: 101325.0, 5000: 54048.0},
+        "wind_u": {0: 1.0, 1000: 3.0, 5000: 8.0},
+        "wind_v": {0: -1.0, 1000: -2.0},  # missing 5000 -> intersection drops it
+    }
+    _patch_meteomatics_fetcher(monkeypatch, profiles=profiles)
+
+    example_euroc_env.set_atmospheric_model(
+        type="Meteomatics", username="user", password="pass"
+    )
+
+    # Wind kept only the two common non-null AGL levels {0, 1000} -> ASL {100, 1100}.
+    npt.assert_array_equal(example_euroc_env.height, [100.0, 1100.0])
+    assert len(example_euroc_env.wind_us) == 2
+    # Temperature dropped the None level: {0, 5000} AGL -> ASL {100, 5100}.
+    assert len(example_euroc_env.temperatures) == 2
+    assert pytest.approx(255.65, rel=1e-6) == example_euroc_env.temperature(5100)
+    assert example_euroc_env.max_expected_height == pytest.approx(5100.0)
+
+
+def test_meteomatics_no_usable_data_raises(example_euroc_env, monkeypatch):
+    """Raise a clear error when the API returns no usable wind data."""
+    profiles = {
+        "temperature": {0: 288.15},
+        "pressure": {0: 101325.0},
+        "wind_u": {},
+        "wind_v": {},
+    }
+    _patch_meteomatics_fetcher(monkeypatch, profiles=profiles)
+
+    with pytest.raises(ValueError, match="usable atmospheric data"):
+        example_euroc_env.set_atmospheric_model(
+            type="Meteomatics", username="user", password="pass"
+        )
+
+
+def test_meteomatics_single_level_profile_raises(example_euroc_env, monkeypatch):
+    """Reject a collapsed grid (one level per profile) up front.
+
+    A single altitude level builds a Function that cannot be evaluated at its
+    own node, so ``set_atmospheric_model`` must fail immediately with a clear
+    message rather than succeed and crash later at ``pressure``/``density``.
+    """
+    profiles = {
+        "temperature": {0: 288.15},
+        "pressure": {0: 101325.0},
+        "wind_u": {0: 1.0},
+        "wind_v": {0: -1.0},
+    }
+    _patch_meteomatics_fetcher(monkeypatch, profiles=profiles)
+
+    with pytest.raises(ValueError, match="at least two valid altitude levels"):
+        example_euroc_env.set_atmospheric_model(
+            type="Meteomatics", username="user", password="pass"
+        )
 
 
 class _DummyDataset:
@@ -828,6 +997,37 @@ def test_pressure_conversion_factor_autodetect_by_model(
         None, None, model
     )
     assert factor == expected_factor
+
+
+def test_pressure_isa_discretization_bounds(example_plain_env):
+    """The pressure_ISA discretization must span the full range of the
+    Standard Atmosphere model: from the lowest geopotential layer (-2000 m) up
+    to the highest (80000 m), both converted to geometric height. It must also
+    be a physically sane pressure curve: altitude strictly increasing, pressure
+    strictly decreasing, and sea level (0 m) sampled exactly.
+    """
+
+    # Act
+    pressure_isa_function = example_plain_env.pressure_ISA
+    source_array = pressure_isa_function.source
+    altitudes = source_array[:, 0]
+    pressures = source_array[:, 1]
+
+    # Expected min/max geometric heights
+    earth_radius = example_plain_env.earth_radius
+    expected_min_height = geopotential_height_to_geometric_height(-2000, earth_radius)
+    expected_max_height = geopotential_height_to_geometric_height(80000, earth_radius)
+
+    # Assert
+    assert len(altitudes) == 100
+    assert np.isclose(altitudes[0], expected_min_height)
+    assert np.isclose(altitudes[-1], expected_max_height)
+    assert expected_min_height < 0 < expected_max_height
+    # Sea level must be one of the sampled points (split boundary)
+    assert np.any(np.isclose(altitudes, 0.0))
+    # Physical sanity: altitude increasing, pressure decreasing monotonically
+    assert np.all(np.diff(altitudes) > 0)
+    assert np.all(np.diff(pressures) < 0)
 
 
 @pytest.mark.parametrize(
