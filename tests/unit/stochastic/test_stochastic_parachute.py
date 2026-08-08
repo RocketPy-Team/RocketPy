@@ -1,3 +1,6 @@
+import inspect
+
+import numpy as np
 import pytest
 
 from rocketpy.stochastic import StochasticParachute
@@ -46,12 +49,67 @@ def test_every_documented_trigger_form_is_accepted(calisto_main_chute, trigger):
     StochasticParachute(calisto_main_chute, trigger=trigger)
 
 
-@pytest.mark.parametrize("trigger", [_at_apogee, "apogee", 800, [None], [{}]], ids=str)
-def test_a_trigger_that_is_not_a_list_of_those_is_still_refused(
-    calisto_main_chute, trigger
-):
-    """The control. Moving the `or` must not turn the check into one that
-    accepts anything: a bare callable is not a list, and None is none of the
-    three."""
-    with pytest.raises(AssertionError, match="must be a list"):
+@pytest.mark.parametrize(
+    "trigger",
+    [
+        _at_apogee,
+        "apogee",
+        800,
+        (800,),
+        [],
+        [None],
+        [{}],
+        ["banana"],
+        [True],
+        [_at_apogee, None],
+    ],
+    ids=str,
+)
+def test_a_trigger_that_is_not_a_list_of_those_is_refused(calisto_main_chute, trigger):
+    """The control, and four that the check used to wave through.
+
+    `Parachute` refuses "banana" with a ValueError, so accepting it here only
+    moved the failure to create time. `True` is worse: it is an `int`, so it
+    was taken as a height of one metre. An empty list passed because `all([])`
+    is True. And the docstring's tuple form was never implemented.
+    """
+    with pytest.raises(AssertionError, match="must be a non-empty list"):
         StochasticParachute(calisto_main_chute, trigger=trigger)
+
+
+@pytest.mark.parametrize(
+    "member", [800, 800.0, np.float64(800), np.int64(800)], ids=str
+)
+def test_a_height_is_a_height_whatever_numeric_type_it_arrives_as(
+    calisto_main_chute, member
+):
+    """`(int, float)` accepted `numpy.float64`, which subclasses `float`, and
+    refused `numpy.int64`, which subclasses neither."""
+    StochasticParachute(calisto_main_chute, trigger=[member])
+
+
+def test_the_check_is_not_stripped_by_python_dash_o():
+    """`python -O` removes an `assert` outright, and this check is the only
+    thing between a bad trigger and a `Parachute` that either refuses it much
+    later or reads `True` as a height."""
+    source = inspect.getsource(StochasticParachute._validate_trigger)
+
+    assert "raise AssertionError" in source
+    assert not any(line.strip().startswith("assert ") for line in source.splitlines())
+
+
+def test_a_callable_trigger_reaches_the_parachute_and_gets_called(
+    calisto_main_chute,
+):
+    """Constructing the wrapper is not the property that matters. The callable
+    has to survive `create_object` and be what `Flight` ends up calling."""
+    stochastic = StochasticParachute(calisto_main_chute, trigger=[_at_apogee])
+    stochastic._set_stochastic(42)
+
+    built = stochastic.create_object()
+
+    assert built.trigger is _at_apogee
+    descending = [0.0] * 5 + [-5.0] + [0.0] * 8
+    ascending = [0.0] * 5 + [5.0] + [0.0] * 8
+    assert built.triggerfunc(0.0, 100.0, descending, [], [])
+    assert not built.triggerfunc(0.0, 100.0, ascending, [], [])

@@ -1,8 +1,24 @@
 """Defines the StochasticParachute class."""
 
+from numbers import Real
+
 from rocketpy.rocket import Parachute
 
 from .stochastic_model import StochasticModel
+
+
+def _is_a_trigger(member):
+    """One of the three forms ``Parachute`` accepts.
+
+    ``Real`` rather than ``(int, float)``, which took ``numpy.float64`` but not
+    ``numpy.int64``. ``bool`` is excluded because it is an ``int``, and
+    ``Parachute`` would read ``True`` as a height of one metre.
+    """
+    if callable(member):
+        return True
+    if isinstance(member, str):
+        return member.lower() == "apogee"
+    return isinstance(member, Real) and not isinstance(member, bool)
 
 
 class StochasticParachute(StochasticModel):
@@ -114,19 +130,26 @@ class StochasticParachute(StochasticModel):
         )
 
     def _validate_trigger(self, trigger):
-        """Validates the trigger input. If the trigger input argument is not
-        None, it must be:
-        - a list of callables, string "apogee" or ints/floats
-        - a tuple that will be further validated in the StochasticModel class
+        """Validates the trigger input. If not None, it must be a non-empty
+        list whose members are each a callable, the string "apogee", or a
+        height. One of those is chosen per simulation.
         """
-        if trigger is not None:
-            # The `or` belongs beside the isinstance, not inside it. A non-empty
-            # type tuple is truthy, so `X or callable(member)` short-circuited to
-            # X and the callables this docstring promises were refused.
-            assert isinstance(trigger, list) and all(
-                isinstance(member, (str, int, float)) or callable(member)
-                for member in trigger
-            ), "`trigger` must be a list of callables, string 'apogee' or ints/floats"
+        if trigger is None:
+            return
+
+        valid = (
+            isinstance(trigger, list)
+            and bool(trigger)
+            and all(_is_a_trigger(member) for member in trigger)
+        )
+        # Raised rather than asserted: `python -O` strips an assert, and this
+        # is the only thing standing between a bad trigger and a Parachute
+        # that either refuses it much later or reads True as a height of 1.
+        if not valid:
+            raise AssertionError(
+                "`trigger` must be a non-empty list whose members are "
+                "callables, the string 'apogee', or heights"
+            )
 
     def _validate_noise(self, noise):
         """Validates the noise input. If the noise input argument is not
