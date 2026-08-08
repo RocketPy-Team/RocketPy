@@ -7,6 +7,7 @@ import pytest
 from rocketpy.stochastic import (
     StochasticEnvironment,
     StochasticFlight,
+    StochasticFreeFormFins,
     StochasticNoseCone,
     StochasticParachute,
     StochasticRailButtons,
@@ -114,6 +115,28 @@ def stochastic_trapezoidal_fins(calisto_trapezoidal_fins):
         root_chord=0.0005,
         tip_chord=0.0005,
         span=0.0005,
+    )
+
+
+@pytest.fixture
+def stochastic_free_form_fins(calisto_free_form_fins):
+    """This fixture is used to create a StochasticFreeFormFins object for the
+    Calisto rocket.
+
+    Parameters
+    ----------
+    calisto_free_form_fins : FreeFormFins
+        This is another fixture.
+
+    Returns
+    -------
+    StochasticFreeFormFins
+        The stochastic free form fins object
+    """
+    return StochasticFreeFormFins(
+        free_form_fins=calisto_free_form_fins,
+        shape_points=0.0005,
+        cant_angle=(0, 0.5),
     )
 
 

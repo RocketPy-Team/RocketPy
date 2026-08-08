@@ -11,6 +11,7 @@ from rocketpy.motors.solid_motor import SolidMotor
 from rocketpy.rocket.aero_surface import (
     AirBrakes,
     EllipticalFins,
+    FreeFormFins,
     NoseCone,
     RailButtons,
     Tail,
@@ -25,6 +26,7 @@ from rocketpy.stochastic.stochastic_motor_model import StochasticMotorModel
 from .stochastic_aero_surfaces import (
     StochasticAirBrakes,
     StochasticEllipticalFins,
+    StochasticFreeFormFins,
     StochasticNoseCone,
     StochasticRailButtons,
     StochasticTail,
@@ -334,6 +336,24 @@ class StochasticRocket(StochasticModel):
             EllipticalFins,
             StochasticEllipticalFins,
             "`fins` must be of EllipticalFins or StochasticEllipticalFins type",
+        )
+
+    def add_free_form_fins(self, fins, position=None):
+        """Adds a stochastic free form fins to the stochastic rocket.
+
+        Parameters
+        ----------
+        fins : StochasticFreeFormFins or FreeFormFins
+            The free form fins to be added to the stochastic rocket.
+        position : tuple, list, int, float, optional
+            The position of the free form fins.
+        """
+        self._add_surfaces(
+            fins,
+            position,
+            FreeFormFins,
+            StochasticFreeFormFins,
+            "`fins` must be of FreeFormFins or StochasticFreeFormFins type",
         )
 
     def add_tail(self, tail, position=None):

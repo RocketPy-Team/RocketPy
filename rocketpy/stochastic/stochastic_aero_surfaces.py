@@ -1,17 +1,22 @@
 """
 Defines the StochasticNoseCone, StochasticTrapezoidalFins,
-StochasticEllipticalFins, StochasticTail and StochasticRailButtons classes.
+StochasticEllipticalFins, StochasticFreeFormFins, StochasticTail and
+StochasticRailButtons classes.
 """
+
+import numpy as np
 
 from rocketpy.rocket.aero_surface import (
     AirBrakes,
     EllipticalFins,
+    FreeFormFins,
     NoseCone,
     RailButtons,
     Tail,
     TrapezoidalFins,
 )
 
+from .custom_sampler import CustomSampler
 from .stochastic_model import StochasticModel
 
 
@@ -303,6 +308,269 @@ class StochasticEllipticalFins(StochasticModel):
         """
         generated_dict = next(self.dict_generator())
         return EllipticalFins(**generated_dict)
+
+
+class StochasticFreeFormFins(StochasticModel):
+    """A Stochastic Free Form Fins class that inherits from StochasticModel.
+
+    See Also
+    --------
+    :ref:`stochastic_model` and
+    :class:`FreeFormFins <rocketpy.FreeFormFins>`
+
+    Attributes
+    ----------
+    object : FreeFormFins
+        FreeFormFins object to be used for validation.
+    n : list[int]
+        List with an integer representing the number of fins. This attribute
+        can be randomized.
+    shape_points : tuple, list, int, float
+        The (x, y) points defining the fin outline, in meters. Unlike the other
+        fin sets, this geometry is a whole list of points rather than a single
+        scalar, so it is randomized as a block: one sampled deviation is applied
+        to every coordinate of every point. See the ``shape_points`` parameter of
+        :meth:`__init__` for the accepted formats.
+    rocket_radius : tuple, list, int, float
+        Rocket radius of the fins in meters.
+    cant_angle : tuple, list, int, float
+        Cant angle of the fins in degrees.
+    airfoil : list
+        List of tuples in the form of (airfoil file path, airfoil name).
+    name : list[str]
+        List with the fins object name. This attribute can not be randomized.
+    """
+
+    def __init__(
+        self,
+        free_form_fins=None,
+        n=None,
+        shape_points=None,
+        rocket_radius=None,
+        cant_angle=None,
+        airfoil=None,
+    ):
+        """Initializes the Stochastic Free Form Fins class.
+
+        See Also
+        --------
+        :ref:`stochastic_model`
+
+        Parameters
+        ----------
+        free_form_fins : FreeFormFins
+            FreeFormFins object to be used for validation.
+        shape_points : tuple, list, int, float, optional
+            The (x, y) points defining the fin outline, in meters. The whole
+            outline is perturbed as a block, since a fin shape is only
+            meaningful as a complete set of points:
+
+            - ``int`` or ``float``: standard deviation applied to every
+              coordinate of the nominal outline, drawn from a normal
+              distribution.
+            - ``tuple``: ``(standard deviation, distribution name)``, or
+              ``(nominal outline, standard deviation[, distribution name])``.
+            - ``list``: list of candidate outlines, one of which is chosen at
+              random. A single outline must therefore be wrapped in a list,
+              i.e. ``[[(0, 0), (0.1, 0.1), (0.1, 0)]]``.
+        rocket_radius : tuple, list, int, float, optional
+            Rocket radius of the fins in meters.
+        cant_angle : tuple, list, int, float, optional
+            Cant angle of the fins in degrees.
+        airfoil : list[tuple], optional
+            List of tuples in the form of (airfoil file path, airfoil name).
+        """
+        # TODO: never vary the number of fins. It is a fixed parameter.
+        self._validate_positive_int_list("n", n)
+        self._validate_airfoil(airfoil)
+        shape_points = self._validate_shape_points(shape_points)
+        super().__init__(
+            free_form_fins,
+            n=n,
+            shape_points=shape_points,
+            rocket_radius=rocket_radius,
+            cant_angle=cant_angle,
+            airfoil=airfoil,
+            name=None,
+        )
+
+    def _validate_shape_points(self, shape_points):
+        """Validate the ``shape_points`` input and normalize it to a form the
+        base class can randomize.
+
+        A fin outline is a sequence of points, so it does not fit the
+        scalar-per-input assumption the base class makes. Two formats would be
+        silently misread if passed straight through, and both are the natural
+        thing for a user to write:
+
+        - a bare outline ``[(0, 0), (0.1, 0.1), (0.1, 0)]`` is a ``list``, which
+          the base class reads as a list of candidate values and would sample a
+          single ``(x, y)`` point from. It is wrapped here so it is treated as
+          the one candidate outline it is.
+        - a ``(nominal outline, standard deviation)`` tuple has a list as its
+          first item, which ``_validate_tuple`` rejects because it requires an
+          int or float there. It is validated here instead.
+
+        Parameters
+        ----------
+        shape_points : tuple, list, int, float, optional
+            Value of the ``shape_points`` input argument.
+
+        Returns
+        -------
+        tuple, list, int, float or None
+            The input, normalized so the base class randomizes the outline as a
+            block.
+
+        Raises
+        ------
+        AssertionError
+            If the input is not in a valid format.
+        """
+        if shape_points is None or isinstance(
+            shape_points, (int, float, CustomSampler)
+        ):
+            # Scalars are a standard deviation applied to every coordinate,
+            # which the base class already handles by broadcasting.
+            return shape_points
+
+        if isinstance(shape_points, tuple):
+            return self._validate_shape_points_tuple(shape_points)
+
+        if isinstance(shape_points, list):
+            if not shape_points:
+                raise AssertionError("`shape_points` must not be empty")
+            if self._is_outline(shape_points):
+                # A bare outline: the single candidate it describes.
+                self._validate_outline(shape_points)
+                return [shape_points]
+            for outline in shape_points:
+                self._validate_outline(outline)
+            return shape_points
+
+        raise AssertionError(
+            "`shape_points` must be a tuple, list, int, or float or a custom sampler"
+        )
+
+    def _validate_shape_points_tuple(self, shape_points):
+        """Validate a ``shape_points`` tuple.
+
+        Accepts ``(standard deviation, distribution name)``, in which case the
+        nominal outline comes from the object passed, and
+        ``(nominal outline, standard deviation[, distribution name])``.
+
+        Parameters
+        ----------
+        shape_points : tuple
+            Value of the ``shape_points`` input argument.
+
+        Returns
+        -------
+        tuple
+            The input tuple, with any nominal outline converted to an array so
+            the standard deviation broadcasts over every coordinate.
+
+        Raises
+        ------
+        AssertionError
+            If the input is not in a valid format.
+        """
+        if len(shape_points) not in [2, 3]:
+            raise AssertionError("'shape_points': tuple must have length 2 or 3")
+
+        if isinstance(shape_points[0], (int, float)):
+            # (standard deviation, distribution name), the nominal outline
+            # being taken from the object passed. The base class reads this
+            # form already, and the nominal value it looks up is a list of
+            # tuples, so it is made an array here for the deviation to
+            # broadcast over.
+            if not isinstance(shape_points[1], str):
+                raise AssertionError(
+                    "'shape_points': when the first item of a tuple is a "
+                    "standard deviation, the second must be a string naming a "
+                    "valid numpy.random distribution function."
+                )
+            return shape_points
+
+        # (nominal outline, standard deviation[, distribution name])
+        self._validate_outline(shape_points[0])
+        if not isinstance(shape_points[1], (int, float)):
+            raise AssertionError(
+                "'shape_points': second item of tuple must be an int or float "
+                "standard deviation."
+            )
+        if len(shape_points) == 3 and not isinstance(shape_points[2], str):
+            raise AssertionError(
+                "'shape_points': Third item of tuple must be a string containing "
+                "the name of a valid numpy.random distribution function."
+            )
+        # An array rather than the list of tuples given, so that the standard
+        # deviation broadcasts over every coordinate instead of failing.
+        return (np.asarray(shape_points[0], dtype=float),) + tuple(shape_points[1:])
+
+    def _validate_tuple(self, input_name, input_value, getattr=getattr):  # pylint: disable=redefined-builtin
+        """Validate tuple arguments, allowing an outline as the nominal value of
+        ``shape_points``.
+
+        The base class requires the nominal value to be an int or a float, which
+        an outline is not. Only that first item is handled here; the standard
+        deviation and the distribution name still go through the base class, so
+        they are checked the same way as everywhere else and the distribution is
+        drawn from this model's generator.
+        """
+        if input_name == "shape_points" and not isinstance(
+            input_value[0], (int, float)
+        ):
+            nominal_outline = np.asarray(input_value[0], dtype=float)
+            _, std_dev, dist_func = super()._validate_tuple(
+                input_name, (0.0,) + tuple(input_value[1:]), getattr
+            )
+            return (nominal_outline, std_dev, dist_func)
+        return super()._validate_tuple(input_name, input_value, getattr)
+
+    @staticmethod
+    def _is_outline(value):
+        """Return True if ``value`` is a single (x, y) outline.
+
+        Used to tell a bare outline apart from a list of candidate outlines,
+        which are the two things a ``list`` input can mean.
+        """
+        try:
+            return len(np.shape(value)) == 2 and np.shape(value)[1] == 2
+        except IndexError:  # pragma: no cover - ragged input
+            return False
+
+    @staticmethod
+    def _validate_outline(outline):
+        """Validate a single (x, y) fin outline.
+
+        Raises
+        ------
+        AssertionError
+            If the outline is not a sequence of (x, y) points.
+        """
+        if not StochasticFreeFormFins._is_outline(outline):
+            raise AssertionError(
+                "`shape_points` outlines must have shape (n, 2), i.e. a "
+                "sequence of (x, y) points."
+            )
+        if np.shape(outline)[0] < 3:
+            raise AssertionError(
+                "`shape_points` outlines must have at least 3 points to "
+                "enclose an area."
+            )
+
+    def create_object(self):
+        """Creates and returns a FreeFormFins object from the randomly
+        generated input arguments.
+
+        Returns
+        -------
+        fins : FreeFormFins
+            FreeFormFins object with the randomly generated input arguments.
+        """
+        generated_dict = next(self.dict_generator())
+        return FreeFormFins(**generated_dict)
 
 
 class StochasticTail(StochasticModel):

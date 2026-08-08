@@ -32,6 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- ENH: `StochasticFreeFormFins`, so free-form fin sets can be used in Monte Carlo simulations. The fin outline is randomized as a block, since a shape is only meaningful as a complete set of points. [#953](https://github.com/RocketPy-Team/RocketPy/issues/953)
 - ENH: Add simplified opening shock force estimation [#1092](https://github.com/RocketPy-Team/RocketPy/pull/1092)
 - ENH: Add Qodo PR-Agent workflow using Google Gemini [#1089](https://github.com/RocketPy-Team/RocketPy/pull/1089)
 - ENH: Support for Meteomatics API in the `Environment` class [#1079](https://github.com/RocketPy-Team/RocketPy/pull/1079)
@@ -48,6 +49,7 @@ Attention: The newest changes should be on top -->
 
 - BUG: Give each `CustomSampler` input its own deterministic stream, and seed samplers sharing one generator once as a group. Existing fixed-seed `CustomSampler` baselines change, and samplers built on the legacy `RandomState` must move to `default_rng` because seeds now carry the full 128 bits. [#1102](https://github.com/RocketPy-Team/RocketPy/pull/1102)
 - BUG: Accept the callable parachute triggers `StochasticParachute` documents, and reject the ones it cannot mean. An invalid string, an empty list or a boolean now fails during validation instead of reaching `Parachute` or becoming a one-metre height trigger. [#1103](https://github.com/RocketPy-Team/RocketPy/pull/1103)
+- BUG: Accept a deterministic aerodynamic surface in `StochasticRocket.add_nose`, `add_trapezoidal_fins`, `add_elliptical_fins` and `add_tail`. Each wrapped the surface with a `component=` keyword none of the stochastic classes accept, so passing anything other than an already-stochastic surface raised a `TypeError`. [#953](https://github.com/RocketPy-Team/RocketPy/issues/953)
 - BUG: rocket with a late-starting thrust curve never leaves the rail [#1085](https://github.com/RocketPy-Team/RocketPy/pull/1085)
 
 ## [v1.13.0] - 2026-07-21

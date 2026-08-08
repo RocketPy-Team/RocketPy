@@ -94,6 +94,25 @@ passed in a few different ways:
     :ref:`custom_sampler` for more details.
 
 .. note::
+    The formats above assume each argument holds a single number. The
+    ``shape_points`` of :class:`rocketpy.stochastic.StochasticFreeFormFins` is
+    the exception: a fin outline is only meaningful as a complete set of points,
+    so it is randomized as a block, with one sampled deviation applied to every
+    coordinate of every point. A list is still a set of values to choose from,
+    which for this argument means a list of candidate outlines, so a single
+    outline must be wrapped in a list to be read as one candidate rather than as
+    a list of points::
+
+        # One millimetre of deviation on every coordinate
+        StochasticFreeFormFins(free_form_fins=fins, shape_points=0.001)
+
+        # Choose between two outlines
+        StochasticFreeFormFins(
+            free_form_fins=fins,
+            shape_points=[[(0, 0), (0.08, 0.1), (0.12, 0)], [(0, 0), (0.06, 0.12), (0.12, 0)]],
+        )
+
+.. note::
     In statistics, the terms "Normal" and "Gaussian" refer to the same type of \
     distribution. This distribution is commonly used and is the default for the \
     ``Stochastic`` classes in RocketPy.

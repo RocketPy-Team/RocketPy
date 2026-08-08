@@ -62,6 +62,7 @@ from .stochastic import (
     StochasticEllipticalFins,
     StochasticEnvironment,
     StochasticFlight,
+    StochasticFreeFormFins,
     StochasticNoseCone,
     StochasticParachute,
     StochasticRocket,
