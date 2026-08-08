@@ -545,9 +545,13 @@ class StochasticModel:
         AssertionError
             If the input is not in a valid format.
         """
-        assert isinstance(sampler, CustomSampler), (
-            f"`{input_name}` must be a CustomSampler, not {type(sampler).__name__}"
-        )
+        # Raised rather than asserted, the same way #1103 handles it: `python -O`
+        # strips an assert, and the documented AssertionError is kept so callers
+        # that already catch it still do.
+        if not isinstance(sampler, CustomSampler):
+            raise AssertionError(
+                f"`{input_name}` must be a CustomSampler, not {type(sampler).__name__}"
+            )
         return sampler
 
     def _validate_airfoil(self, airfoil):

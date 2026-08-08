@@ -346,3 +346,38 @@ def test_a_group_key_does_not_depend_on_the_order_it_is_given():
     assert _sampler_seed(4242, ("wind_x", "wind_y")) == _sampler_seed(
         4242, ("wind_y", "wind_x")
     )
+
+
+def test_a_non_sampler_is_refused_even_under_optimisation():
+    """`python -O` strips an assert, so the check that keeps a non-sampler out
+    of the model has to be a raise. The documented AssertionError is kept, so a
+    caller already catching it is unaffected."""
+    model = StochasticModel(SimpleNamespace(mass=0.0))
+
+    with pytest.raises(AssertionError, match="must be a CustomSampler"):
+        model._validate_custom_sampler("mass", object())
+
+
+def test_the_refusal_survives_python_dash_o():
+    """The mechanism, not just the behaviour: run it in a child with -O and
+    check the exception still arrives."""
+    import subprocess
+    import sys
+
+    program = (
+        "from types import SimpleNamespace;"
+        "from rocketpy.stochastic.stochastic_model import StochasticModel;"
+        "m = StochasticModel(SimpleNamespace(mass=0.0));"
+        "\ntry:\n"
+        "    m._validate_custom_sampler('mass', object())\n"
+        "except AssertionError:\n"
+        "    print('refused')\n"
+    )
+    done = subprocess.run(
+        [sys.executable, "-O", "-c", program],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    assert "refused" in done.stdout, done.stderr
