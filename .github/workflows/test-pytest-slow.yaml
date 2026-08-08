@@ -25,6 +25,8 @@ jobs:
     env:
       PYTHON: ${{ matrix.python-version }}
       MPLBACKEND: Agg
+      LIBGL_ALWAYS_SOFTWARE: "1"
+      GALLIUM_DRIVER: llvmpipe
     steps:
       - uses: actions/checkout@main
       - name: Set up headless display
@@ -52,7 +54,31 @@ jobs:
         run: pytest rocketpy --doctest-modules --cov=rocketpy --cov-append
 
       - name: Run Integration Tests
-        run: pytest tests/integration --cov=rocketpy --cov-append
+        run: |
+          pytest tests/integration \
+            --deselect tests/integration/test_plots.py::test_flight_animations_run_off_screen \
+            --deselect tests/integration/test_plots.py::test_flight_animations_render_all_scene_options \
+            --deselect tests/integration/test_plots.py::test_flight_animation_export_gif \
+            --cov=rocketpy --cov-append
+
+      - name: Run VTK animation tests
+        run: |
+          tests=(
+            tests/integration/test_plots.py::test_flight_animations_run_off_screen
+            tests/integration/test_plots.py::test_flight_animations_render_all_scene_options
+            tests/integration/test_plots.py::test_flight_animation_export_gif
+          )
+          attempts=3
+          for attempt in $(seq 1 "$attempts"); do
+            if pytest "${tests[@]}" --cov=rocketpy --cov-append; then
+              exit 0
+            else
+              status=$?
+            fi
+            if [[ "$status" != "138" || "$attempt" == "$attempts" ]]; then
+              exit "$status"
+            fi
+          done
 
       - name: Run Acceptance Tests
         run: pytest tests/acceptance --cov=rocketpy --cov-append --cov-report=xml

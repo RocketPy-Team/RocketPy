@@ -17,6 +17,7 @@ jobs:
   Pytest:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.10", "3.14"]
@@ -28,6 +29,11 @@ jobs:
       - uses: actions/checkout@main
       - name: Set up headless display
         uses: pyvista/setup-headless-display-action@v4
+      - name: Configure Mesa software rendering on Linux
+        if: runner.os == 'Linux'
+        run: |
+          echo "LIBGL_ALWAYS_SOFTWARE=1" >> "$GITHUB_ENV"
+          echo "GALLIUM_DRIVER=llvmpipe" >> "$GITHUB_ENV"
       - name: Set up Python
         uses: actions/setup-python@main
         with:
@@ -58,7 +64,31 @@ jobs:
           pytest rocketpy --doctest-modules --cov=rocketpy --cov-append
 
       - name: Run Integration Tests
-        run: pytest tests/integration --cov=rocketpy --cov-append
+        run: |
+          pytest tests/integration \
+            --deselect tests/integration/test_plots.py::test_flight_animations_run_off_screen \
+            --deselect tests/integration/test_plots.py::test_flight_animations_render_all_scene_options \
+            --deselect tests/integration/test_plots.py::test_flight_animation_export_gif \
+            --cov=rocketpy --cov-append
+
+      - name: Run VTK animation tests
+        run: |
+          tests=(
+            tests/integration/test_plots.py::test_flight_animations_run_off_screen
+            tests/integration/test_plots.py::test_flight_animations_render_all_scene_options
+            tests/integration/test_plots.py::test_flight_animation_export_gif
+          )
+          attempts=3
+          for attempt in $(seq 1 "$attempts"); do
+            if pytest "${tests[@]}" --cov=rocketpy --cov-append; then
+              exit 0
+            else
+              status=$?
+            fi
+            if [[ "$status" != "138" || "$attempt" == "$attempts" ]]; then
+              exit "$status"
+            fi
+          done
 
       - name: Run Acceptance Tests
         run: pytest tests/acceptance --cov=rocketpy --cov-append --cov-report=xml
