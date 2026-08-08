@@ -182,6 +182,40 @@ def test_udot_rail2_no_roll(calisto_robust, example_spaceport_env):
     assert max_roll_rate < 1e-9, f"expected zero roll rate, got {max_roll_rate}"
 
 
+def test_udot_rail2_rail_axis_defined_for_given_initial_solution(
+    calisto_robust, example_spaceport_env
+):
+    """The rail axis ``udot_rail2`` constrains the button to is set by the launch
+    inclination and heading, so it must exist even when the rail phase is skipped
+    because an ``initial_solution`` was supplied.
+
+    Arrange: run a launch and take a mid-flight state from its solution.
+    Act: build a Flight that starts from that state instead of the rail.
+    Assert: ``attitude_unit`` is the same rail unit vector as the launch's, so
+    ``udot_rail2`` cannot raise ``AttributeError``.
+    """
+    # Arrange
+    launch = _make_flight(calisto_robust, example_spaceport_env, True)
+    mid_flight_state = list(launch.solution[len(launch.solution) // 2])
+
+    # Act
+    continuation = Flight(
+        rocket=calisto_robust,
+        environment=example_spaceport_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=True,
+        initial_solution=mid_flight_state,
+        use_udot_rail2=True,
+    )
+
+    # Assert
+    assert abs(abs(continuation.attitude_unit) - 1) < 1e-12
+    for axis in range(3):
+        assert continuation.attitude_unit[axis] == launch.attitude_unit[axis]
+
+
 def test_udot_rail2_gravity_tip_off_direction(calisto_robust, example_spaceport_env):
     """With no wind, gravity acting on the center of mass (ahead of the lower
     button pivot) tips the nose over: the attitude inclination decreases across

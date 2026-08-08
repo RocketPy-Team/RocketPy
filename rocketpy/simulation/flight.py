@@ -1055,14 +1055,19 @@ class Flight:
         bool
             True if an event occurred and the simulation should break.
         """
-        # Check for first out of rail event (upper rail button leaving the
-        # rail, at effective_1rl). This starts the 3-DOF tip-off phase when
-        # enabled, otherwise transitions straight to generalized 6-DOF flight.
-        if len(self.out_of_rail_state) == 1 and (
+        # Squared distance travelled from the launch point, used by both rail
+        # button exit checks below.
+        squared_distance_travelled = (
             self.y_sol[0] ** 2
             + self.y_sol[1] ** 2
             + (self.y_sol[2] - self.env.elevation) ** 2
-            >= self.effective_1rl**2
+        )
+        # Check for first out of rail event (upper rail button leaving the
+        # rail, at effective_1rl). This starts the 3-DOF tip-off phase when
+        # enabled, otherwise transitions straight to generalized 6-DOF flight.
+        if (
+            len(self.out_of_rail_state) == 1
+            and squared_distance_travelled >= self.effective_1rl**2
         ):
             return self.__handle_out_of_rail_event(phase, phase_index, node_index)
         # Check for the lower rail button leaving the rail (at effective_2rl),
@@ -1072,12 +1077,7 @@ class Flight:
             self.use_udot_rail2
             and len(self.between_rails_state) == 1
             and len(self.out_of_rail_state) != 1
-            and (
-                self.y_sol[0] ** 2
-                + self.y_sol[1] ** 2
-                + (self.y_sol[2] - self.env.elevation) ** 2
-                >= self.effective_2rl**2
-            )
+            and squared_distance_travelled >= self.effective_2rl**2
         ):
             return self.__handle_between_rails_event(phase, phase_index, node_index)
 
@@ -1666,6 +1666,16 @@ class Flight:
 
     def __init_flight_state(self):
         """Initialize flight state variables."""
+        # The rail is a fixed inertial line set by the launch inclination and
+        # heading, so its unit vector is known regardless of how the flight
+        # state is initialized. udot_rail2 constrains the lower button to it.
+        self.attitude_unit = Vector(
+            [
+                np.cos(np.radians(self.inclination)) * np.sin(np.radians(self.heading)),
+                np.cos(np.radians(self.inclination)) * np.cos(np.radians(self.heading)),
+                np.sin(np.radians(self.inclination)),
+            ]
+        )
         if self.initial_solution is None:
             # Initialize time and state variables
             self.t_initial = 0
@@ -1695,17 +1705,6 @@ class Flight:
             e0_init, e1_init, e2_init, e3_init = euler313_to_quaternions(
                 self.phi_init, self.theta_init, self.psi_init
             )
-
-            K_init = Matrix.transformation([e0_init, e1_init, e2_init, e3_init])
-
-            # Body axis pointing along rocket symmetry (body z-axis)
-            body_axis = Vector([0, 0, 1])
-
-            # Attitude vector in inertial frame
-            attitude_vec = K_init @ body_axis
-
-            # Unit vector (normalize)
-            self.attitude_unit = attitude_vec / abs(attitude_vec)
 
             # Store initial conditions
             self.initial_solution = [
@@ -2065,8 +2064,8 @@ class Flight:
         w_dot_free = Vector(u_dot[10:13])  # body angular acceleration (free)
 
         # State quantities
-        _, _, _, vx, vy, vz, e0, e1, e2, e3, omega1, omega2, omega3 = u
-        w = Vector([omega1, omega2, omega3])
+        e0, e1, e2, e3 = u[6:10]
+        w = Vector(u[10:13])
         K = Matrix.transformation([e0, e1, e2, e3])
         Kt = K.transpose
         total_mass = self.rocket.total_mass.get_value_opt(t)
@@ -2079,12 +2078,12 @@ class Flight:
         cdm = self.rocket.center_of_dry_mass_position
         r_CM = Vector([0, 0, -self.rocket.com_to_cdm_function.get_value_opt(t)])
         lower_button_z = self.rocket.rail_buttons[0].position.z
-        r_B = Vector([0, 0, (lower_button_z - cdm) * csys])
+        r_button = Vector([0, 0, (lower_button_z - cdm) * csys])
 
         # Inertia about the instantaneous center of mass (sign-independent).
         inertia_tensor = self.rocket.get_inertia_tensor_at_time(t)
         H = (r_CM.cross_matrix @ -r_CM.cross_matrix) * total_mass
-        I_CM_inv = (inertia_tensor - H).inverse
+        inv_inertia_cm = (inertia_tensor - H).inverse
 
         # Orthonormal body triad with the rail direction. The rail is the fixed
         # inertial unit vector ``attitude_unit``; express it in the body frame.
@@ -2106,13 +2105,17 @@ class Flight:
         # body frame to a reaction force ``Fr`` (body) at the button and a roll
         # reaction moment ``tau`` about the body axis.
         def _response(f_r, tau):
-            d_wdot = I_CM_inv @ (((r_B - r_CM) ^ f_r) + Vector([0.0, 0.0, tau]))
+            d_wdot = inv_inertia_cm @ (
+                ((r_button - r_CM) ^ f_r) + Vector([0.0, 0.0, tau])
+            )
             d_a_cdm_body = f_r * (1.0 / total_mass) - (d_wdot ^ r_CM)
-            d_a_button = d_a_cdm_body + (d_wdot ^ r_B)
+            d_a_button = d_a_cdm_body + (d_wdot ^ r_button)
             return d_wdot, d_a_cdm_body, d_a_button
 
         # Free button acceleration in the body frame.
-        a_button_free = (Kt @ a_cdm_free) + (w_dot_free ^ r_B) + (w ^ (w ^ r_B))
+        a_button_free = (
+            (Kt @ a_cdm_free) + (w_dot_free ^ r_button) + (w ^ (w ^ r_button))
+        )
 
         # Assemble the 3x3 system J @ [lambda1, lambda2, mu] = -g_free.
         jacobian = np.empty((3, 3))
