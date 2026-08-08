@@ -52,7 +52,7 @@ distributions.
                 2-Tuple that contains the probability of each normal distribution 
                 of the mixture. Its entries should be non-negative and sum up to 1.
             """
-            np.random.default_rng(seed)
+            self.reset_seed(seed)
             self.means_tuple = means_tuple
             self.sd_tuple = sd_tuple
             self.prob_tuple = prob_tuple
@@ -71,12 +71,12 @@ distributions.
                 List containing n_samples samples
             """
             samples_list = [0] * n_samples
-            mixture_id_list = np.random.binomial(1, self.prob_tuple[0], n_samples)
+            mixture_id_list = self.rng.binomial(1, self.prob_tuple[0], n_samples)
             for i, mixture_id in enumerate(mixture_id_list):
                 if mixture_id:
-                    samples_list[i] = np.random.normal(self.means_tuple[0], self.sd_tuple[0])
+                    samples_list[i] = self.rng.normal(self.means_tuple[0], self.sd_tuple[0])
                 else:
-                    samples_list[i] = np.random.normal(self.means_tuple[1], self.sd_tuple[1])
+                    samples_list[i] = self.rng.normal(self.means_tuple[1], self.sd_tuple[1])
 
             return samples_list
 
@@ -88,7 +88,14 @@ distributions.
             seed : int, optional
                 Seed for the random number generator.
             """
-            np.random.default_rng(seed)
+            self.rng = np.random.default_rng(seed)
+
+.. warning::
+    Keep the generator on the instance and draw from it in *sample*. Calling
+    ``np.random.default_rng(seed)`` and discarding the result is a no-op, and
+    *sample* then draws from the process-global ``np.random`` instead, which
+    ``random_seed`` does not reach. The study still runs; it is simply not
+    reproducible, and nothing says so.
 
 This is an example of a distribution that is not implemented in numpy. Note that it is
 a general distribution, so we can use it for many different variables.
@@ -216,14 +223,9 @@ below implements an example of such a generator
             seed : int, optional
                 Number to seed random generator, by default None
             """
-            np.random.default_rng(seed)
-            self.samples_list = []
-            self.samples_generated = 0
-            self.used_samples_x = 0
-            self.used_samples_y = 0
             self.mean = mean
             self.cov = cov
-            self.generate_samples(1000)
+            self.reset_seed(seed)
 
         def generate_samples(self, n_samples = 1):
             """Generate samples from bivariate Gaussian and append to sample list
@@ -233,23 +235,37 @@ below implements an example of such a generator
             n_samples : int, optional
                 Number of samples to be generated, by default 1
             """
-            samples_generated = np.random.multivariate_normal(self.mean, self.cov, n_samples)
+            samples_generated = self.rng.multivariate_normal(self.mean, self.cov, n_samples)
             self.samples_generated += n_samples
             self.samples_list += list(samples_generated)
 
         def reset_seed(self, seed=None):
-            np.random.default_rng(seed)
+            """Reseeds the generator and discards the samples drawn before it
+
+            The cached samples came from the previous generator, so keeping them
+            would let the first 1000 draws after a reseed ignore the new seed.
+            """
+            self.rng = np.random.default_rng(seed)
+            self.samples_list = []
+            self.samples_generated = 0
+            self.used_samples_x = 0
+            self.used_samples_y = 0
+            self.generate_samples(1000)
+
+        def top_up(self, used_samples, n_samples):
+            """Generates enough samples to cover the request, if it is short"""
+            shortfall = used_samples + n_samples - self.samples_generated
+            if shortfall > 0:
+                self.generate_samples(shortfall)
 
         def get_samples(self, n_samples, axis):
             if axis == "x":
-                if self.samples_generated < self.used_samples_x:
-                    self.generate_samples(n_samples)
+                self.top_up(self.used_samples_x, n_samples)
                 samples_list = [
                     sample[0] for sample in self.samples_list[self.used_samples_x:(self.used_samples_x + n_samples)]
                 ]
             if axis == "y":
-                if self.samples_generated < self.used_samples_y:
-                    self.generate_samples(n_samples)
+                self.top_up(self.used_samples_y, n_samples)
                 samples_list = [
                     sample[1] for sample in self.samples_list[self.used_samples_y:(self.used_samples_y + n_samples)]
                 ]

@@ -33,6 +33,7 @@ Attention: The newest changes should be on top -->
 ### Added
 
 - ENH: Add simplified opening shock force estimation [#1092](https://github.com/RocketPy-Team/RocketPy/pull/1092)
+- ENH: Add Qodo PR-Agent workflow using Google Gemini [#1089](https://github.com/RocketPy-Team/RocketPy/pull/1089)
 - ENH: Support for Meteomatics API in the `Environment` class [#1079](https://github.com/RocketPy-Team/RocketPy/pull/1079)
 - ENH: update master with develop [#1081](https://github.com/RocketPy-Team/RocketPy/pull/1081)
 
@@ -42,6 +43,8 @@ Attention: The newest changes should be on top -->
 - ENH: Resolve pressure_ISA discretization bounds TODO [#1056](https://github.com/RocketPy-Team/RocketPy/pull/1056)
 
 ### Fixed
+
+- BUG: rocket with a late-starting thrust curve never leaves the rail [#1085](https://github.com/RocketPy-Team/RocketPy/pull/1085)
 
 ## [v1.13.0] - 2026-07-21
 
