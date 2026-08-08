@@ -42,6 +42,8 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+- BUG: rocket with a late-starting thrust curve never leaves the rail [#1085](https://github.com/RocketPy-Team/RocketPy/pull/1085)
+
 ## [v1.13.0] - 2026-07-21
 
 ### Added
