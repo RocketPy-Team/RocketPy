@@ -78,14 +78,34 @@ def test_a_trigger_that_is_not_a_list_of_those_is_refused(calisto_main_chute, tr
 
 
 @pytest.mark.parametrize(
-    "member", [800, 800.0, np.float64(800), np.int64(800)], ids=str
+    "member",
+    [_at_apogee, "apogee", "APOGEE", 800, 800.0, np.float64(800)],
+    ids=str,
 )
-def test_a_height_is_a_height_whatever_numeric_type_it_arrives_as(
+def test_what_this_accepts_is_what_a_parachute_accepts(calisto_main_chute, member):
+    """The property, rather than a list of types. Anything this lets through
+    has to survive `Parachute`, or the check has only moved the failure."""
+    StochasticParachute(calisto_main_chute, trigger=[member])
+
+    Parachute("probe", 10.0, member, 105, 1.5)
+
+
+@pytest.mark.parametrize("member", [np.int64(800), np.int32(800)], ids=str)
+def test_a_numpy_integer_is_refused_here_because_parachute_refuses_it(
     calisto_main_chute, member
 ):
-    """`(int, float)` accepted `numpy.float64`, which subclasses `float`, and
-    refused `numpy.int64`, which subclasses neither."""
-    StochasticParachute(calisto_main_chute, trigger=[member])
+    """`Parachute` checks `isinstance(trigger, (int, float))`. `numpy.float64`
+    subclasses `float` and passes; `numpy.int64` subclasses neither and raises.
+
+    So this check matches that one rather than `numbers.Real`, which would be
+    the wider and more natural spelling but would let these through to fail at
+    create time. The asymmetry is `Parachute`'s and is worth fixing there.
+    """
+    with pytest.raises(ValueError, match="Unable to set the trigger"):
+        Parachute("probe", 10.0, member, 105, 1.5)
+
+    with pytest.raises(AssertionError, match="must be a non-empty list"):
+        StochasticParachute(calisto_main_chute, trigger=[member])
 
 
 def test_the_check_is_not_stripped_by_python_dash_o():

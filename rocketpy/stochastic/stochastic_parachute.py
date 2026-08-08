@@ -1,24 +1,23 @@
 """Defines the StochasticParachute class."""
 
-from numbers import Real
-
 from rocketpy.rocket import Parachute
 
 from .stochastic_model import StochasticModel
 
 
 def _is_a_trigger(member):
-    """One of the three forms ``Parachute`` accepts.
+    """One of the three forms ``Parachute`` accepts, and no more.
 
-    ``Real`` rather than ``(int, float)``, which took ``numpy.float64`` but not
-    ``numpy.int64``. ``bool`` is excluded because it is an ``int``, and
-    ``Parachute`` would read ``True`` as a height of one metre.
+    ``(int, float)`` deliberately, matching ``Parachute``'s own check rather
+    than ``numbers.Real``: that would take ``numpy.int64``, which ``Parachute``
+    refuses, so widening here only moves the failure to create time. ``bool``
+    is excluded because it is an ``int``, and would arrive as a height of one.
     """
     if callable(member):
         return True
     if isinstance(member, str):
         return member.lower() == "apogee"
-    return isinstance(member, Real) and not isinstance(member, bool)
+    return isinstance(member, (int, float)) and not isinstance(member, bool)
 
 
 class StochasticParachute(StochasticModel):
