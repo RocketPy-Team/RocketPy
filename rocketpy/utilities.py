@@ -812,10 +812,9 @@ def calculate_simplified_opening_shock_force(
         of parachute deployment.
     opening_shock_coefficient : float, optional
         Empirical coefficient (commonly noted Cx) used to estimate the
-        peak transient force experienced during parachute inflation via
-        :meth:`calculate_opening_shock_force`. Typical values range from
-        1.2 to 2.0 depending on the deployment method and canopy type.
-        Default value is 1.5.
+        peak transient force experienced during parachute inflation.
+        Typical values range from 1.2 to 2.0 depending on the deployment
+        method and canopy type. Default value is 1.5.
 
     Returns
     -------
