@@ -177,13 +177,15 @@ class StochasticModel:
         AssertionError
             If the input is not in a valid format.
         """
-        assert len(input_value) in [
+        if len(input_value) not in [
             2,
             3,
-        ], f"'{input_name}': tuple must have length 2 or 3"
-        assert isinstance(input_value[0], (int, float)), (
-            f"'{input_name}': First item of tuple must be an int or float"
-        )
+        ]:
+            raise AssertionError(f"'{input_name}': tuple must have length 2 or 3")
+        if not isinstance(input_value[0], (int, float)):
+            raise AssertionError(
+                f"'{input_name}': First item of tuple must be an int or float"
+            )
 
         if len(input_value) == 2:
             return self._validate_tuple_length_two(input_name, input_value, getattr)
@@ -214,9 +216,10 @@ class StochasticModel:
         AssertionError
             If the input is not in a valid format.
         """
-        assert isinstance(input_value[1], (int, float, str)), (
-            f"'{input_name}': second item of tuple must be an int, float, or string."
-        )
+        if not isinstance(input_value[1], (int, float, str)):
+            raise AssertionError(
+                f"'{input_name}': second item of tuple must be an int, float, or string."
+            )
 
         if isinstance(input_value[1], str):
             # if second item is a string, then it is assumed that the first item
@@ -260,14 +263,16 @@ class StochasticModel:
         AssertionError
             If the input is not in a valid format.
         """
-        assert isinstance(input_value[1], (int, float)), (
-            f"'{input_name}': Second item of a tuple with length 3 must be an "
-            "int or float."
-        )
-        assert isinstance(input_value[2], str), (
-            f"'{input_name}': Third item of tuple must be a string containing the "
-            "name of a valid numpy.random distribution function."
-        )
+        if not isinstance(input_value[1], (int, float)):
+            raise AssertionError(
+                f"'{input_name}': Second item of a tuple with length 3 must be an "
+                "int or float."
+            )
+        if not isinstance(input_value[2], str):
+            raise AssertionError(
+                f"'{input_name}': Third item of tuple must be a string containing the "
+                "name of a valid numpy.random distribution function."
+            )
         dist_func = get_distribution(input_value[2], self.__random_number_generator)
         return (input_value[0], input_value[1], dist_func)
 
@@ -382,14 +387,18 @@ class StochasticModel:
         AssertionError
             If the input is not in a valid format.
         """
-        assert len(factor_tuple) in [
+        if len(factor_tuple) not in [
             2,
             3,
-        ], f"'{input_name}`: Factors tuple must have length 2 or 3"
-        assert all(isinstance(item, (int, float)) for item in factor_tuple[:2]), (
-            f"'{input_name}`: First and second items of Factors tuple must be "
-            "either an int or float"
-        )
+        ]:
+            raise AssertionError(
+                f"'{input_name}`: Factors tuple must have length 2 or 3"
+            )
+        if not all(isinstance(item, (int, float)) for item in factor_tuple[:2]):
+            raise AssertionError(
+                f"'{input_name}`: First and second items of Factors tuple must be "
+                "either an int or float"
+            )
 
         if len(factor_tuple) == 2:
             return (
@@ -398,10 +407,11 @@ class StochasticModel:
                 get_distribution("normal", self.__random_number_generator),
             )
         elif len(factor_tuple) == 3:
-            assert isinstance(factor_tuple[2], str), (
-                f"'{input_name}`: Third item of tuple must be a string containing "
-                "the name of a valid numpy.random distribution function"
-            )
+            if not isinstance(factor_tuple[2], str):
+                raise AssertionError(
+                    f"'{input_name}`: Third item of tuple must be a string containing "
+                    "the name of a valid numpy.random distribution function"
+                )
             dist_func = get_distribution(
                 factor_tuple[2], self.__random_number_generator
             )
@@ -428,9 +438,10 @@ class StochasticModel:
         AssertionError
             If the input is not in a valid format.
         """
-        assert all(isinstance(item, (int, float)) for item in factor_list), (
-            f"'{input_name}`: Items in list must be either ints or floats"
-        )
+        if not all(isinstance(item, (int, float)) for item in factor_list):
+            raise AssertionError(
+                f"'{input_name}`: Items in list must be either ints or floats"
+            )
         return factor_list
 
     def _validate_1d_array_like(self, input_name, input_value):
@@ -482,9 +493,15 @@ class StochasticModel:
             If the input is not in a valid format.
         """
         if input_value is not None:
-            assert isinstance(input_value, list) and all(
-                isinstance(member, int) and member >= 0 for member in input_value
-            ), f"`{input_name}` must be a list of positive integers"
+            if not (
+                isinstance(input_value, list)
+                and all(
+                    isinstance(member, int) and member >= 0 for member in input_value
+                )
+            ):
+                raise AssertionError(
+                    f"`{input_name}` must be a list of positive integers"
+                )
 
     def _reset_custom_samplers(self, seed):
         """Give each sampler its own stream, and each shared group one between
@@ -570,14 +587,18 @@ class StochasticModel:
         """
         # TODO: The _validate_airfoil should be defined in a child class.
         if airfoil is not None:
-            assert isinstance(airfoil, list) and all(
-                isinstance(member, tuple) for member in airfoil
-            ), "`airfoil` must be a list of tuples"
+            if not (
+                isinstance(airfoil, list)
+                and all(isinstance(member, tuple) for member in airfoil)
+            ):
+                raise AssertionError("`airfoil` must be a list of tuples")
             for member in airfoil:
-                assert len(member) == 2, "`airfoil` tuples must have length 2"
-                assert isinstance(member[1], str), (
-                    "`airfoil` tuples must have a string as the second item"
-                )
+                if not len(member) == 2:
+                    raise AssertionError("`airfoil` tuples must have length 2")
+                if not isinstance(member[1], str):
+                    raise AssertionError(
+                        "`airfoil` tuples must have a string as the second item"
+                    )
                 if isinstance(member[0], list):
                     if len(np.shape(member[0])) != 2 and np.shape(member[0])[1] != 2:
                         raise AssertionError("`airfoil` tuples must have shape (n,2)")

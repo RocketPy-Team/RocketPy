@@ -134,19 +134,27 @@ class StochasticEnvironment(StochasticModel):
             return
 
         if ensemble_member is not None:
-            assert isinstance(ensemble_member, list), "`ensemble_member` must be a list"
-            assert all(
-                isinstance(member, int) and member >= 0 for member in ensemble_member
-            ), "`ensemble_member` must be a list of positive integers"
-            assert (
+            if not isinstance(ensemble_member, list):
+                raise AssertionError("`ensemble_member` must be a list")
+            if not (
+                all(
+                    isinstance(member, int) and member >= 0
+                    for member in ensemble_member
+                )
+            ):
+                raise AssertionError(
+                    "`ensemble_member` must be a list of positive integers"
+                )
+            if not (
                 0
                 <= min(ensemble_member)
                 <= max(ensemble_member)
                 < environment.num_ensemble_members
-            ), (
-                "`ensemble_member` must be in the range from 0 to "
-                + f"{environment.num_ensemble_members - 1}"
-            )
+            ):
+                raise AssertionError(
+                    "`ensemble_member` must be in the range from 0 to "
+                    + f"{environment.num_ensemble_members - 1}"
+                )
             setattr(self, "ensemble_member", ensemble_member)
         else:
             # if no ensemble member is provided, get it from the environment

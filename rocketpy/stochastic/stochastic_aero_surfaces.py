@@ -94,9 +94,11 @@ class StochasticNoseCone(StochasticModel):
         must be a list of strings."""
         if kind is not None:
             # TODO: Never vary the kind of the nose cone. It is a fixed parameter.
-            assert isinstance(kind, list) and all(
-                isinstance(member, str) for member in kind
-            ), "`kind` must be a list of strings"
+            if not (
+                isinstance(kind, list)
+                and all(isinstance(member, str) for member in kind)
+            ):
+                raise AssertionError("`kind` must be a list of strings")
 
     def create_object(self):
         """Creates and returns a NoseCone object from the randomly generated

@@ -156,12 +156,14 @@ class StochasticParachute(StochasticModel):
         (mean, standard deviation, time-correlation)
         """
         if noise is not None:
-            assert isinstance(noise, list) and all(
-                isinstance(member, tuple) for member in noise
-            ), (
-                "`noise` must be a list of tuples in the form of "
-                "(mean, standard deviation, time-correlation)"
-            )
+            if not (
+                isinstance(noise, list)
+                and all(isinstance(member, tuple) for member in noise)
+            ):
+                raise AssertionError(
+                    "`noise` must be a list of tuples in the form of "
+                    "(mean, standard deviation, time-correlation)"
+                )
 
     def create_object(self):
         """Creates and returns a Parachute object from the randomly generated

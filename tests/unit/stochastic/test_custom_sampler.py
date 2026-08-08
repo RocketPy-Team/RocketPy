@@ -1,3 +1,5 @@
+import subprocess
+import sys
 from types import SimpleNamespace
 
 import numpy as np
@@ -361,9 +363,6 @@ def test_a_non_sampler_is_refused_even_under_optimisation():
 def test_the_refusal_survives_python_dash_o():
     """The mechanism, not just the behaviour: run it in a child with -O and
     check the exception still arrives."""
-    import subprocess
-    import sys
-
     program = (
         "from types import SimpleNamespace;"
         "from rocketpy.stochastic.stochastic_model import StochasticModel;"
