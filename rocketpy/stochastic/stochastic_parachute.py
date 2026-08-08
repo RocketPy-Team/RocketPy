@@ -120,8 +120,11 @@ class StochasticParachute(StochasticModel):
         - a tuple that will be further validated in the StochasticModel class
         """
         if trigger is not None:
+            # The `or` belongs beside the isinstance, not inside it. A non-empty
+            # type tuple is truthy, so `X or callable(member)` short-circuited to
+            # X and the callables this docstring promises were refused.
             assert isinstance(trigger, list) and all(
-                isinstance(member, (str, int, float) or callable(member))
+                isinstance(member, (str, int, float)) or callable(member)
                 for member in trigger
             ), "`trigger` must be a list of callables, string 'apogee' or ints/floats"
 
