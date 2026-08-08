@@ -794,14 +794,9 @@ class StochasticRocket(StochasticModel):
             )
 
         for parachute in self.parachutes:
-            parachute = self._create_parachute(parachute)
-            rocket.add_parachute(
-                name=parachute.name,
-                cd_s=parachute.cd_s,
-                trigger=parachute.trigger,
-                sampling_rate=parachute.sampling_rate,
-                lag=parachute.lag,
-                noise=parachute.noise,
-            )
+            # The sampled object itself. Passing a subset of its fields back to
+            # add_parachute built a second one, which re-derived radius and
+            # height from cd_s and the default drag coefficient.
+            rocket.parachutes.append(self._create_parachute(parachute))
 
         return rocket
