@@ -2030,8 +2030,9 @@ class Flight:
         to the rail, 2 DOF) plus a roll reaction moment ``mu`` (1 DOF). The
         three unknowns are found from three constraints -- the button's
         acceleration perpendicular to the rail is zero (2) and the roll angular
-        acceleration is zero (1). See ``scratch/pr920_tipoff_derivation.md`` for
-        the full derivation. All reaction quantities are expressed in the "true"
+        acceleration is zero (1). The full derivation is in the technical
+        documentation, :ref:`Tip-off <tipoff>`. All reaction quantities are
+        expressed in the "true"
         body frame (the one used by ``surfaces_cp_to_cdm``, body-z toward the
         nose), so ``r_CM`` and the button position are taken with that sign
         convention -- independent of the internal (point-to-CDM) convention used
