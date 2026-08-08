@@ -273,7 +273,10 @@ class StochasticRocket(StochasticModel):
         if not isinstance(surfaces, (type_, stochastic_type)):
             raise AssertionError(error_message)
         if isinstance(surfaces, type_):
-            surfaces = stochastic_type(component=surfaces)
+            # Positionally: the stochastic classes each name this first
+            # parameter after their own surface (`nosecone`, `tail`, ...), so
+            # there is no one keyword that reaches all of them.
+            surfaces = stochastic_type(surfaces)
         self.__components_map[surfaces] = positions
         self.aerodynamic_surfaces.add(
             surfaces, self._validate_position(surfaces, positions)

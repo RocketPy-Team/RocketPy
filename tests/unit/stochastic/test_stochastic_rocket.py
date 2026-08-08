@@ -1,6 +1,10 @@
 from rocketpy.rocket.parachute import Parachute
 from rocketpy.rocket.rocket import Rocket
-from rocketpy.stochastic import StochasticParachute, StochasticRocket
+from rocketpy.stochastic import (
+    StochasticParachute,
+    StochasticRocket,
+    StochasticTrapezoidalFins,
+)
 
 
 def test_str(stochastic_calisto):
@@ -123,3 +127,18 @@ def test_configured_geometry_survives_without_being_randomized(calisto_robust):
     flown = stochastic.create_object().parachutes[0]
 
     assert (flown.radius, flown.height, flown.porosity) == (2.0, 1.5, 0.05)
+
+
+def test_a_deterministic_surface_is_wrapped_in_its_stochastic_model(
+    calisto_robust, calisto_trapezoidal_fins
+):
+    """`_add_surfaces` used to wrap deterministic surfaces with a `component=`
+    keyword none of the stochastic classes accept, so passing any plain
+    aerodynamic surface raised a TypeError instead of being wrapped."""
+    stochastic = StochasticRocket(rocket=calisto_robust)
+
+    stochastic.add_trapezoidal_fins(calisto_trapezoidal_fins)
+
+    added = stochastic.aerodynamic_surfaces.get_tuple_by_type(StochasticTrapezoidalFins)
+    assert len(added) == 1
+    assert added[0].component.obj is calisto_trapezoidal_fins
