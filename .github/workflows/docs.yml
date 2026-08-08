@@ -1,9 +1,6 @@
 name: Documentation
 
 on:
-  # PRs into either long-lived branch, and pushes to master. `branches` filters
-  # on the PR's base, and almost every PR is opened against develop, so master
-  # alone meant the build first saw a docs change in the release batch.
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     branches: [master, develop]
