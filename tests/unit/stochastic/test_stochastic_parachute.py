@@ -129,7 +129,8 @@ def test_a_callable_trigger_reaches_the_parachute_and_gets_called(
     built = stochastic.create_object()
 
     assert built.trigger is _at_apogee
-    descending = [0.0] * 5 + [-5.0] + [0.0] * 8
-    ascending = [0.0] * 5 + [5.0] + [0.0] * 8
+    # 13, matching the state Flight passes: x y z vx vy vz e0 e1 e2 e3 wx wy wz
+    descending = [0.0] * 5 + [-5.0] + [0.0] * 7
+    ascending = [0.0] * 5 + [5.0] + [0.0] * 7
     assert built.triggerfunc(0.0, 100.0, descending, [], [])
     assert not built.triggerfunc(0.0, 100.0, ascending, [], [])
