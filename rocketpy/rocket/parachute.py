@@ -1,4 +1,5 @@
 from inspect import Parameter, signature
+from numbers import Real
 
 import numpy as np
 
@@ -363,7 +364,7 @@ class Parachute:
             return
 
         # Numeric altitude trigger
-        if isinstance(trigger, (int, float)):
+        if isinstance(trigger, Real) and not isinstance(trigger, bool):
             self._trigger_falling_only = True
 
             def triggerfunc(p, h, y, sensors, u_dot):  # pylint: disable=unused-argument
