@@ -32,6 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- ENH: 3-DOF single rail button flight phase (tip-off analysis) [#920](https://github.com/RocketPy-Team/RocketPy/pull/920)
 - ENH: Add simplified opening shock force estimation [#1092](https://github.com/RocketPy-Team/RocketPy/pull/1092)
 - ENH: Add Qodo PR-Agent workflow using Google Gemini [#1089](https://github.com/RocketPy-Team/RocketPy/pull/1089)
 - ENH: Support for Meteomatics API in the `Environment` class [#1079](https://github.com/RocketPy-Team/RocketPy/pull/1079)
@@ -46,6 +47,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+- BUG: A `Flight` continued from another `Flight` object now records `t_initial`, so a rocket carrying sensors or controllers no longer raises `AttributeError` on that path. [#920](https://github.com/RocketPy-Team/RocketPy/pull/920)
 - BUG: Give each `CustomSampler` input its own deterministic stream, and seed samplers sharing one generator once as a group. Existing fixed-seed `CustomSampler` baselines change, and samplers built on the legacy `RandomState` must move to `default_rng` because seeds now carry the full 128 bits. [#1102](https://github.com/RocketPy-Team/RocketPy/pull/1102)
 - BUG: Accept the callable parachute triggers `StochasticParachute` documents, and reject the ones it cannot mean. An invalid string, an empty list or a boolean now fails during validation instead of reaching `Parachute` or becoming a one-metre height trigger. [#1103](https://github.com/RocketPy-Team/RocketPy/pull/1103)
 - BUG: rocket with a late-starting thrust curve never leaves the rail [#1085](https://github.com/RocketPy-Team/RocketPy/pull/1085)
