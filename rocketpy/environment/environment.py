@@ -1220,8 +1220,8 @@ class Environment:
               ``"best_match"`` (the default when omitted), ``"gfs_seamless"``,
               ``"ecmwf_ifs025"`` or ``"icon_seamless"``. See the Open-Meteo
               documentation for the full list.
-            - ``"open_meteo_ensemble"``: one of ``"gfs05"`` (the default when
-              omitted), ``"ecmwf_ifs025"`` or ``"gem_global"``.
+            - ``"open_meteo_ensemble"``: either ``"gfs05"`` (the default when
+              omitted) or ``"ecmwf_ifs025"``.
             - ``"meteomatics"``: the Meteomatics weather model to query, such
               as ``"mix"`` (the default when omitted). See the Meteomatics
               documentation for the models available to your account.
@@ -1989,17 +1989,19 @@ class Environment:
         Parameters
         ----------
         model : str, optional
-            The Open-Meteo ensemble model to query. Default is ``"gfs05"`` (30
-            members). Also available are ``"ecmwf_ifs025"`` (50 members) and
-            ``"gem_global"`` (20 members). These are the only Open-Meteo
-            ensemble models that publish pressure-level data.
+            The Open-Meteo ensemble model to query. Default is ``"gfs05"``
+            (31 members, counting the control run). Also available is
+            ``"ecmwf_ifs025"`` (51 members). These are the only Open-Meteo
+            ensemble models that publish the complete set of pressure-level
+            variables RocketPy needs; the others either return nulls at every
+            level or omit the winds entirely.
 
         Raises
         ------
         ValueError
-            If ``model`` does not publish pressure-level data, if no launch
-            date is set, or if the API returns fewer than two usable pressure
-            levels.
+            If ``model`` does not publish complete pressure-level data, if no
+            launch date is set, or if the API returns fewer than two usable
+            pressure levels.
         RuntimeError
             If the Open-Meteo API cannot be reached or returns no usable data.
         """

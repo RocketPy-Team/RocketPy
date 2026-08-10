@@ -54,10 +54,13 @@ OPEN_METEO_LEVEL_VARIABLES = (
     "wind_direction",
 )
 
-# Ensemble models known to publish pressure-level data. Other ensemble models
-# (e.g. gfs025, icon_global) answer with HTTP 200 but null values at every
-# level, which would otherwise surface as an opaque "no data" failure.
-OPEN_METEO_ENSEMBLE_MODELS = ("gfs05", "ecmwf_ifs025", "gem_global")
+# Ensemble models known to publish the full set of pressure-level variables
+# RocketPy needs (temperature, geopotential height and both wind fields). The
+# other ensemble models answer with HTTP 200 but are unusable: gfs025,
+# icon_global and bom_access_global_ensemble return nulls at every level, while
+# gem_global serves temperature and geopotential height but no winds at all.
+# Rejecting them up front avoids an opaque "no data" failure later on.
+OPEN_METEO_ENSEMBLE_MODELS = ("gfs05", "ecmwf_ifs025")
 
 # The historical-forecast archive starts in 2021; earlier dates return nulls at
 # every pressure level. Note that Open-Meteo's ERA5 archive endpoint
@@ -240,7 +243,7 @@ def fetch_open_meteo_ensemble(latitude, longitude, model="gfs05", date=None):
         The longitude of the location, in degrees.
     model : str, optional
         The Open-Meteo ensemble model to query. Default is ``"gfs05"``. Only
-        the models in :data:`OPEN_METEO_ENSEMBLE_MODELS` publish
+        the models in :data:`OPEN_METEO_ENSEMBLE_MODELS` publish complete
         pressure-level data.
     date : datetime.datetime, optional
         The launch date and time. Past dates are queried against the
@@ -254,15 +257,16 @@ def fetch_open_meteo_ensemble(latitude, longitude, model="gfs05", date=None):
     Raises
     ------
     ValueError
-        If ``model`` is not known to publish pressure-level data.
+        If ``model`` is not known to publish complete pressure-level data.
     RuntimeError
         If the API cannot be reached or returns no usable data.
     """
     if model not in OPEN_METEO_ENSEMBLE_MODELS:
         raise ValueError(
             f"Invalid Open-Meteo ensemble model '{model}'. Only "
-            f"{', '.join(OPEN_METEO_ENSEMBLE_MODELS)} publish pressure-level "
-            "data, which RocketPy requires to build an atmospheric profile."
+            f"{' and '.join(OPEN_METEO_ENSEMBLE_MODELS)} publish the complete "
+            "set of pressure-level variables (temperature, geopotential height "
+            "and winds) that RocketPy requires to build an atmospheric profile."
         )
 
     params = {

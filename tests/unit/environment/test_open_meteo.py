@@ -428,10 +428,10 @@ class TestOpenMeteoEnsemble:
         )
 
         example_euroc_env.set_atmospheric_model(
-            type="open_meteo_ensemble", file="gem_global"
+            type="open_meteo_ensemble", file="ecmwf_ifs025"
         )
 
-        assert recorder["model"] == "gem_global"
+        assert recorder["model"] == "ecmwf_ifs025"
 
     def test_missing_date_raises(self, example_plain_env, monkeypatch):
         """Require a launch date for the ensemble model as well."""
@@ -455,14 +455,34 @@ class TestOpenMeteoFetchers:
         assert "wind_direction_500hPa" in variables
         assert "geopotential_height_30hPa" in variables
 
-    def test_rejects_ensemble_models_without_pressure_levels(self):
-        """Reject ensemble models that answer with nulls at every level.
+    @pytest.mark.parametrize(
+        "model",
+        [
+            "gfs025",  # HTTP 200 but nulls at every pressure level
+            "icon_global",  # same
+            "bom_access_global_ensemble",  # same
+            "gem_global",  # temperature and heights, but no winds at all
+        ],
+    )
+    def test_rejects_ensemble_models_without_complete_data(self, model):
+        """Reject ensemble models that cannot produce a full profile.
 
-        ``gfs025`` and ``icon_global`` return HTTP 200 but no pressure-level
-        data, so failing up front is far clearer than a later parsing error.
+        These models all answer with HTTP 200, so without an up-front check the
+        failure would only surface as an opaque parsing error much later. Note
+        that ``gem_global`` is the subtle one: it publishes temperature and
+        geopotential height but no pressure-level winds.
         """
         with pytest.raises(ValueError, match="Invalid Open-Meteo ensemble model"):
-            open_meteo_fetcher.fetch_open_meteo_ensemble(0.0, 0.0, model="gfs025")
+            open_meteo_fetcher.fetch_open_meteo_ensemble(0.0, 0.0, model=model)
+
+    def test_accepts_the_supported_ensemble_models(self, monkeypatch):
+        """Accept the two ensemble models that do publish complete data."""
+        monkeypatch.setattr(
+            open_meteo_fetcher, "_request", lambda url, params, endpoint: {"hourly": {}}
+        )
+
+        for model in ("gfs05", "ecmwf_ifs025"):
+            open_meteo_fetcher.fetch_open_meteo_ensemble(0.0, 0.0, model=model)
 
     @pytest.mark.parametrize(
         ("delta", "expected"),
