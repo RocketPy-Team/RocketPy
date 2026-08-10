@@ -34,6 +34,13 @@ Global Ensemble Forecast System (GEFS)
     provider (or a local copy), you can still load it explicitly by passing the
     dataset path/URL in ``file`` and a compatible mapping in ``dictionary``.
 
+.. tip::
+
+    While the ``GEFS`` shortcut is unavailable, Open-Meteo offers the same GEFS
+    ensemble (plus the ECMWF one) over a plain JSON API, and works with
+    :meth:`rocketpy.Environment.select_ensemble_member` in exactly the same way.
+    See :ref:`open_meteo`.
+
 
 The ``GEFS`` model is a global ensemble forecast system useful for uncertainty
 analysis, but RocketPy's automatic ``file="GEFS"`` shortcut is temporarily

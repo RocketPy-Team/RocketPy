@@ -32,6 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- ENH: Support for Open Meteo API in the `Environment` class, adding the `open_meteo` and `open_meteo_ensemble` atmospheric models. Pressure-level forecasts, past forecasts (from 2021 onwards) and ensembles are read straight from a keyless JSON API, with no external files and no netCDF/OPeNDAP dependency. [#520](https://github.com/RocketPy-Team/RocketPy/issues/520)
 - ENH: Add simplified opening shock force estimation [#1092](https://github.com/RocketPy-Team/RocketPy/pull/1092)
 - ENH: Add Qodo PR-Agent workflow using Google Gemini [#1089](https://github.com/RocketPy-Team/RocketPy/pull/1089)
 - ENH: Support for Meteomatics API in the `Environment` class [#1079](https://github.com/RocketPy-Team/RocketPy/pull/1079)
@@ -46,6 +47,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+- BUG: Report the atmospheric model time period and ensemble member count for lower-case model types. `set_atmospheric_model` documents `type` as case-insensitive, but `Environment.info()` and `all_info()` compared against capitalised literals, so `type="ensemble"` printed no time period and no member count, and skipped the ensemble comparison plot. [#520](https://github.com/RocketPy-Team/RocketPy/issues/520)
 - BUG: Give each `CustomSampler` input its own deterministic stream, and seed samplers sharing one generator once as a group. Existing fixed-seed `CustomSampler` baselines change, and samplers built on the legacy `RandomState` must move to `default_rng` because seeds now carry the full 128 bits. [#1102](https://github.com/RocketPy-Team/RocketPy/pull/1102)
 - BUG: Accept the callable parachute triggers `StochasticParachute` documents, and reject the ones it cannot mean. An invalid string, an empty list or a boolean now fails during validation instead of reaching `Parachute` or becoming a one-metre height trigger. [#1103](https://github.com/RocketPy-Team/RocketPy/pull/1103)
 - BUG: rocket with a late-starting thrust curve never leaves the rail [#1085](https://github.com/RocketPy-Team/RocketPy/pull/1085)
