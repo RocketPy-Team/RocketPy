@@ -537,6 +537,34 @@ class TestOpenMeteoFetchers:
         assert recorder["params"]["start_date"] == "2024-01-09"
         assert recorder["params"]["end_date"] == "2024-01-11"
 
+    def test_warns_for_dates_before_the_archive_starts(self, monkeypatch):
+        """Warn when the launch date predates Open-Meteo's archive.
+
+        Such requests answer with HTTP 200 and nulls at every level, so without
+        a warning the user would only see a generic "not enough pressure levels"
+        error with no hint that the date is the problem.
+        """
+        monkeypatch.setattr(
+            open_meteo_fetcher, "_request", lambda url, params, endpoint: {"hourly": {}}
+        )
+
+        with pytest.warns(UserWarning, match="precedes Open-Meteo's"):
+            open_meteo_fetcher.fetch_open_meteo_forecast(
+                39.4, -8.3, date=datetime(2019, 6, 15, tzinfo=timezone.utc)
+            )
+
+    def test_does_not_warn_for_supported_past_dates(self, monkeypatch, recwarn):
+        """Stay silent for past dates the archive does cover."""
+        monkeypatch.setattr(
+            open_meteo_fetcher, "_request", lambda url, params, endpoint: {"hourly": {}}
+        )
+
+        open_meteo_fetcher.fetch_open_meteo_forecast(
+            39.4, -8.3, date=datetime(2024, 1, 10, tzinfo=timezone.utc)
+        )
+
+        assert not [w for w in recwarn if "precedes Open-Meteo" in str(w.message)]
+
     def test_future_date_queries_forecast_endpoint(self, monkeypatch):
         """Send future launch dates to the regular forecast API."""
         recorder = {}

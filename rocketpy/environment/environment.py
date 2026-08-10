@@ -1918,8 +1918,10 @@ class Environment:
         Notes
         -----
         Open-Meteo's historical data comes from its own past forecast runs and
-        is available from 2021 onwards. Its ERA5 archive endpoint is not used
-        because it serves surface variables only, with no pressure-level data.
+        only covers pressure levels from around March 2021 onwards; a warning is
+        issued for earlier dates, which the API answers with no data. Its ERA5
+        archive endpoint is not used because it serves surface variables only,
+        with no pressure-level data.
         """
         self.__validate_datetime()
 

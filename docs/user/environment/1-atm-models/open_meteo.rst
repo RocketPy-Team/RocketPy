@@ -12,8 +12,8 @@ It is often the most convenient weather source in RocketPy, because:
 - **No API key** is required for non-commercial use.
 - **No heavy dependencies**: unlike the :ref:`forecast` and :ref:`reanalysis`
   models, no ``netCDF4``/OPeNDAP download is involved, so requests are quick.
-- **No external files**: past launches can be reconstructed straight from the
-  API, without downloading reanalysis files by hand.
+- **No external files**: recent past launches can be reconstructed straight from
+  the API, without downloading reanalysis files by hand.
 - **Many models in one place**: GFS, ECMWF, ICON, MET Norway, Météo-France, JMA,
   GEM and UKMO are all reachable through the same interface.
 
@@ -132,8 +132,9 @@ comparison, see :ref:`reanalysis` and :ref:`soundings`.
 .. important::
 
     Open-Meteo's historical data is built from its own archived forecast runs
-    and is available **from 2021 onwards**. For earlier dates, use
-    :ref:`reanalysis` or :ref:`soundings` instead.
+    and only covers pressure levels **from around March 2021 onwards**. Earlier
+    dates return no data, and RocketPy warns you when it detects one; use
+    :ref:`reanalysis` or :ref:`soundings` for those instead.
 
 .. note::
 

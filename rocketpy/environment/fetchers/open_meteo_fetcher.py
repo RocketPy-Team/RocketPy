@@ -6,6 +6,7 @@ no heavy NetCDF/OPeNDAP dependency. This module wraps the three endpoints
 RocketPy needs and returns their raw JSON bodies.
 """
 
+import warnings
 from datetime import datetime, timedelta, timezone
 
 import requests
@@ -62,11 +63,16 @@ OPEN_METEO_LEVEL_VARIABLES = (
 # Rejecting them up front avoids an opaque "no data" failure later on.
 OPEN_METEO_ENSEMBLE_MODELS = ("gfs05", "ecmwf_ifs025")
 
-# The historical-forecast archive starts in 2021; earlier dates return nulls at
-# every pressure level. Note that Open-Meteo's ERA5 archive endpoint
-# (archive-api.open-meteo.com) is *not* used here because it serves surface
-# variables only, with no pressure-level data at all.
-OPEN_METEO_HISTORICAL_START_YEAR = 2021
+# Earliest date the historical-forecast archive covers at pressure levels.
+# Earlier dates still answer with HTTP 200, but every value is null, so warning
+# is the only way for the user to tell an unsupported date from bad weather
+# data. Probed against the live API: 2021-03-15 comes back empty while
+# 2021-03-23 is complete, so the cutoff sits between them.
+#
+# Note that Open-Meteo's ERA5 archive endpoint (archive-api.open-meteo.com) is
+# *not* used here: it serves surface variables only, with no pressure-level
+# data at all, so it cannot produce a vertical profile.
+OPEN_METEO_HISTORICAL_START_DATE = datetime(2021, 4, 1, tzinfo=timezone.utc)
 
 
 def build_hourly_variables(levels=OPEN_METEO_PRESSURE_LEVELS):
@@ -217,6 +223,7 @@ def fetch_open_meteo_forecast(latitude, longitude, model="best_match", date=None
     }
 
     if _is_past_date(date):
+        _warn_if_before_archive_start(date)
         # The archive is indexed by calendar day, so a one-day pad on each side
         # guarantees the launch hour is inside the returned range regardless of
         # the local-time offset.
@@ -296,9 +303,34 @@ def _is_past_date(date):
     """
     if date is None:
         return False
-    reference = date if date.tzinfo is not None else date.replace(tzinfo=timezone.utc)
-    now = _utc_now()
-    return reference < now - timedelta(days=1)
+    return _as_utc(date) < _utc_now() - timedelta(days=1)
+
+
+def _as_utc(date):
+    """Returns ``date`` as an aware UTC datetime, assuming UTC when naive."""
+    return date if date.tzinfo is not None else date.replace(tzinfo=timezone.utc)
+
+
+def _warn_if_before_archive_start(date):
+    """Warns when ``date`` precedes the historical archive coverage.
+
+    Open-Meteo answers such requests with HTTP 200 and null values at every
+    pressure level, so without this warning the user would only see a generic
+    "not enough usable pressure levels" error and no hint that the date itself
+    is the problem.
+    """
+    if _as_utc(date) >= OPEN_METEO_HISTORICAL_START_DATE:
+        return
+
+    warnings.warn(
+        f"The requested launch date ({date:%Y-%m-%d}) precedes Open-Meteo's "
+        "historical-forecast archive, which starts around "
+        f"{OPEN_METEO_HISTORICAL_START_DATE:%B %Y}. The API will most likely "
+        "return no pressure-level data for it. Consider using the 'reanalysis' "
+        "or 'wyoming_sounding' atmospheric models for earlier dates.",
+        UserWarning,
+        stacklevel=3,
+    )
 
 
 def _utc_now():
