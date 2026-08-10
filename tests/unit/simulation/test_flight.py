@@ -139,6 +139,42 @@ def test_get_controller_observed_variables(flight_calisto_air_brakes):
     assert len(obs_vars) == 0
 
 
+def test_initial_solution_from_flight_sets_initial_time(
+    calisto_with_sensors, example_plain_env
+):
+    """A Flight continued from another Flight object must record ``t_initial``.
+    It is needed to post-process the initial state, so a rocket carrying sensors
+    or controllers used to raise ``AttributeError`` on this path.
+
+    Arrange: fly a rocket that carries sensors.
+    Act: start a second flight from the first Flight object.
+    Assert: ``t_initial`` is the time the previous flight ended at.
+    """
+    # Arrange
+    first = Flight(
+        rocket=calisto_with_sensors,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=True,
+    )
+
+    # Act
+    second = Flight(
+        rocket=calisto_with_sensors,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        initial_solution=first,
+        max_time=first.t_final + 1,
+    )
+
+    # Assert
+    assert second.t_initial == first.solution[-1][0]
+
+
 def test_initial_stability_margin(flight_calisto_custom_wind):
     """Test the initial_stability_margin method of the Flight class.
 

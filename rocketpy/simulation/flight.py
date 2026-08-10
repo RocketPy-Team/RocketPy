@@ -1725,31 +1725,24 @@ class Flight:
             ]
             # Set initial derivative for rail phase
             self.initial_derivative = self.udot_rail1
-        elif isinstance(self.initial_solution, Flight):
-            # Initialize time and state variables based on last solution of
-            # previous flight
-            self.initial_solution = self.initial_solution.solution[-1]
-            # Set unused monitors
-            self.out_of_rail_state = self.initial_solution[1:]
-            self.out_of_rail_time = self.initial_solution[0]
-            self.out_of_rail_time_index = 0
-            # save out of rail 2 state and time with the same data as out of rail
-            self.between_rails_state = self.initial_solution[1:]
-            self.between_rails_time = self.initial_solution[0]
-            self.between_rails_time_index = 0
-            # Set initial derivative for 6-DOF flight phase
-            self.initial_derivative = self.u_dot_generalized
         else:
-            # Initial solution given, ignore rail phase
+            if isinstance(self.initial_solution, Flight):
+                # Initialize time and state variables based on last solution of
+                # previous flight
+                self.initial_solution = self.initial_solution.solution[-1]
+            # Initial solution given, ignore rail phases
             # TODO: Check if rocket is actually out of rail. Otherwise, start at rail
+            # Both rail phases are skipped, so their monitors record the given
+            # starting state: out of rail (upper button) and, when the
+            # intermediate tip-off phase is enabled, between rails (lower button).
             self.out_of_rail_state = self.initial_solution[1:]
             self.out_of_rail_time = self.initial_solution[0]
             self.out_of_rail_time_index = 0
-            # save out of rail 2 state and time with the same data as out of rail
             self.between_rails_state = self.initial_solution[1:]
             self.between_rails_time = self.initial_solution[0]
             self.between_rails_time_index = 0
             self.t_initial = self.initial_solution[0]
+            # Set initial derivative for 6-DOF flight phase
             self.initial_derivative = self.u_dot_generalized
         if self._controllers or self.sensors:
             # Handle post process during simulation, get initial accel/forces
