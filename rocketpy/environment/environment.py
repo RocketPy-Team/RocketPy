@@ -729,6 +729,41 @@ class Environment:
 
         return dictionary
 
+    @staticmethod
+    def __validate_pressure_conversion_factor(pressure_conversion_factor):
+        """Validates a user-supplied pressure conversion factor.
+
+        Does nothing when the value is None, in which case the factor is
+        auto-detected later from the dataset or the model name.
+
+        Raises
+        ------
+        ValueError
+            If the value is neither a strictly positive number nor a standard
+            pressure unit ('mbar', 'hPa', 'Pa').
+        """
+        if pressure_conversion_factor is None:
+            return
+
+        if not isinstance(pressure_conversion_factor, (float, int, str)):
+            raise ValueError(
+                "Argument 'pressure_conversion_factor' must be numeric or a standard pressure unit ('mbar', 'hPa', 'Pa')!"
+            )
+        if (
+            isinstance(pressure_conversion_factor, (float, int))
+            and pressure_conversion_factor <= 0
+        ):
+            raise ValueError(
+                "Argument 'pressure_conversion_factor' must be strictly positive!"
+            )
+        if (
+            isinstance(pressure_conversion_factor, str)
+            and pressure_unit_to_factor(pressure_conversion_factor) is None
+        ):
+            raise ValueError(
+                "Argument 'pressure_conversion_factor' unit must be a standard pressure unit ('mbar', 'hPa', 'Pa')!"
+            )
+
     def __validate_datetime(self):
         if self.datetime_date is None:
             raise ValueError(
@@ -1388,21 +1423,7 @@ class Environment:
 
                 # Validate format of user-supplied value (if any).
                 # When None, auto-detection runs after dictionary resolution.
-                if pressure_conversion_factor is not None:
-                    if not isinstance(pressure_conversion_factor, (float, int, str)):
-                        raise ValueError(
-                            "Argument 'pressure_conversion_factor' must be numeric or a standard pressure unit ('mbar', 'hPa', 'Pa')!"
-                        )
-                    if isinstance(pressure_conversion_factor, (float, int)):
-                        if pressure_conversion_factor <= 0:
-                            raise ValueError(
-                                "Argument 'pressure_conversion_factor' must be strictly positive!"
-                            )
-                    if isinstance(pressure_conversion_factor, str):
-                        if pressure_unit_to_factor(pressure_conversion_factor) is None:
-                            raise ValueError(
-                                "Argument 'pressure_conversion_factor' unit must be a standard pressure unit ('mbar', 'hPa', 'Pa')!"
-                            )
+                self.__validate_pressure_conversion_factor(pressure_conversion_factor)
 
                 if isinstance(file, str):
                     shortcut_map = self.__atm_type_file_to_function_map.get(type, {})
@@ -1859,6 +1880,50 @@ class Environment:
             wind_v[order],
         )
 
+    def __store_open_meteo_functions(
+        self, pressure_levels, altitude_array, temperature_array, wind_u, wind_v
+    ):
+        """Sets the atmospheric functions from a single Open-Meteo profile.
+
+        Parameters
+        ----------
+        pressure_levels : numpy.ndarray
+            The pressure levels, in hPa.
+        altitude_array : numpy.ndarray
+            Geometric altitudes above sea level, in m.
+        temperature_array : numpy.ndarray
+            Temperatures, in K.
+        wind_u, wind_v : numpy.ndarray
+            The East and North wind components, in m/s.
+        """
+        wind_speed_array = calculate_wind_speed(wind_u, wind_v)
+        wind_heading_array = calculate_wind_heading(wind_u, wind_v)
+        wind_direction_array = convert_wind_heading_to_direction(wind_heading_array)
+
+        data_array = mask_and_clean_dataset(
+            100 * pressure_levels,  # Convert hPa to Pa
+            altitude_array,
+            temperature_array,
+            wind_u,
+            wind_v,
+            wind_heading_array,
+            wind_direction_array,
+            wind_speed_array,
+        )
+
+        # Save atmospheric data
+        self.__set_pressure_function(data_array[:, (1, 0)])
+        self.__set_barometric_height_function(data_array[:, (0, 1)])
+        self.__set_temperature_function(data_array[:, (1, 2)])
+        self.__set_wind_velocity_x_function(data_array[:, (1, 3)])
+        self.__set_wind_velocity_y_function(data_array[:, (1, 4)])
+        self.__set_wind_heading_function(data_array[:, (1, 5)])
+        self.__set_wind_direction_function(data_array[:, (1, 6)])
+        self.__set_wind_speed_function(data_array[:, (1, 7)])
+
+        # Save maximum expected height
+        self._max_expected_height = float(max(altitude_array[0], altitude_array[-1]))
+
     def __find_open_meteo_time_index(self, hourly):
         """Returns the index of the hour closest to the launch date."""
         # 'timeformat=unixtime' is requested, so times are seconds since epoch.
@@ -1943,33 +2008,13 @@ class Environment:
             geopotential_height_array, self.earth_radius
         )
 
-        wind_speed_array = calculate_wind_speed(wind_u_array, wind_v_array)
-        wind_heading_array = calculate_wind_heading(wind_u_array, wind_v_array)
-        wind_direction_array = convert_wind_heading_to_direction(wind_heading_array)
-
-        data_array = mask_and_clean_dataset(
-            100 * pressure_levels,  # Convert hPa to Pa
+        self.__store_open_meteo_functions(
+            pressure_levels,
             altitude_array,
             temperature_array,
             wind_u_array,
             wind_v_array,
-            wind_heading_array,
-            wind_direction_array,
-            wind_speed_array,
         )
-
-        # Save atmospheric data
-        self.__set_pressure_function(data_array[:, (1, 0)])
-        self.__set_barometric_height_function(data_array[:, (0, 1)])
-        self.__set_temperature_function(data_array[:, (1, 2)])
-        self.__set_wind_velocity_x_function(data_array[:, (1, 3)])
-        self.__set_wind_velocity_y_function(data_array[:, (1, 4)])
-        self.__set_wind_heading_function(data_array[:, (1, 5)])
-        self.__set_wind_direction_function(data_array[:, (1, 6)])
-        self.__set_wind_speed_function(data_array[:, (1, 7)])
-
-        # Save maximum expected height
-        self._max_expected_height = float(max(altitude_array[0], altitude_array[-1]))
 
         self.__store_open_meteo_metadata(response, time_array)
 
@@ -1980,6 +2025,65 @@ class Environment:
         self.levels = pressure_levels
         self.temperatures = temperature_array
         self.height = altitude_array
+
+    def __stack_open_meteo_members(self, hourly, time_index, member_suffixes):
+        """Stacks each ensemble member's profile into regular 2D arrays.
+
+        Members may resolve a different number of pressure levels, so every
+        profile is truncated to the shortest one; otherwise the stacked arrays
+        would be ragged and could not be indexed by member.
+
+        Parameters
+        ----------
+        hourly : dict
+            The ``hourly`` section of the Open-Meteo JSON response.
+        time_index : int
+            Index of the hour to extract.
+        member_suffixes : list of str
+            Member suffixes to stack, in the order they should be exposed.
+
+        Returns
+        -------
+        tuple
+            The pressure levels (hPa) plus the geometric heights, temperatures
+            and wind components, each as an array of shape
+            ``(members, levels)``.
+        """
+        levels = None
+        heights = []
+        temperatures = []
+        wind_us = []
+        wind_vs = []
+
+        for suffix in member_suffixes:
+            (
+                member_levels,
+                geopotential_heights,
+                member_temperatures,
+                member_wind_u,
+                member_wind_v,
+            ) = self.__parse_open_meteo_levels(hourly, time_index, suffix)
+
+            if levels is None or len(member_levels) < len(levels):
+                levels = member_levels
+            heights.append(
+                geopotential_height_to_geometric_height(
+                    geopotential_heights, self.earth_radius
+                )
+            )
+            temperatures.append(member_temperatures)
+            wind_us.append(member_wind_u)
+            wind_vs.append(member_wind_v)
+
+        profile_length = min(len(levels), *(len(h) for h in heights))
+
+        return (
+            levels[:profile_length],
+            np.array([h[:profile_length] for h in heights]),
+            np.array([t[:profile_length] for t in temperatures]),
+            np.array([u[:profile_length] for u in wind_us]),
+            np.array([v[:profile_length] for v in wind_vs]),
+        )
 
     def process_open_meteo_ensemble(self, model="gfs05"):
         """Process ensemble forecast data from the Open-Meteo API.
@@ -2017,41 +2121,43 @@ class Environment:
 
         member_suffixes = self.__find_open_meteo_members(hourly)
 
-        levels = None
-        heights = []
-        temperatures = []
-        wind_us = []
-        wind_vs = []
+        (
+            levels,
+            height,
+            temperature,
+            wind_u,
+            wind_v,
+        ) = self.__stack_open_meteo_members(hourly, time_index, member_suffixes)
 
-        for suffix in member_suffixes:
-            (
-                member_levels,
-                geopotential_heights,
-                member_temperatures,
-                member_wind_u,
-                member_wind_v,
-            ) = self.__parse_open_meteo_levels(hourly, time_index, suffix)
+        self.__store_open_meteo_ensemble_data(
+            levels, height, temperature, wind_u, wind_v, len(member_suffixes)
+        )
 
-            # Members may resolve different level counts; keep only the levels
-            # common to every member so the ensemble stays a regular array.
-            if levels is None or len(member_levels) < len(levels):
-                levels = member_levels
-            heights.append(
-                geopotential_height_to_geometric_height(
-                    geopotential_heights, self.earth_radius
-                )
-            )
-            temperatures.append(member_temperatures)
-            wind_us.append(member_wind_u)
-            wind_vs.append(member_wind_v)
+        # Activate default ensemble
+        self.select_ensemble_member()
 
-        profile_length = min(len(levels), *(len(h) for h in heights))
-        levels = levels[:profile_length]
-        height = np.array([h[:profile_length] for h in heights])
-        temperature = np.array([t[:profile_length] for t in temperatures])
-        wind_u = np.array([u[:profile_length] for u in wind_us])
-        wind_v = np.array([v[:profile_length] for v in wind_vs])
+        self.__store_open_meteo_metadata(response, time_array)
 
+    def __store_open_meteo_ensemble_data(
+        self, levels, height, temperature, wind_u, wind_v, num_members
+    ):
+        """Stores every ensemble member so members can be selected later.
+
+        Parameters
+        ----------
+        levels : numpy.ndarray
+            The pressure levels, in hPa.
+        height : numpy.ndarray
+            Geometric altitudes above sea level, in m, shaped
+            ``(members, levels)``.
+        temperature : numpy.ndarray
+            Temperatures, in K, shaped ``(members, levels)``.
+        wind_u, wind_v : numpy.ndarray
+            The East and North wind components, in m/s, shaped
+            ``(members, levels)``.
+        num_members : int
+            Number of members stored, including the control run.
+        """
         wind_speed = calculate_wind_speed(wind_u, wind_v)
         wind_heading = calculate_wind_heading(wind_u, wind_v)
         wind_direction = convert_wind_heading_to_direction(wind_heading)
@@ -2065,12 +2171,7 @@ class Environment:
         self.wind_heading_ensemble = wind_heading
         self.wind_direction_ensemble = wind_direction
         self.wind_speed_ensemble = wind_speed
-        self.num_ensemble_members = len(member_suffixes)
-
-        # Activate default ensemble
-        self.select_ensemble_member()
-
-        self.__store_open_meteo_metadata(response, time_array)
+        self.num_ensemble_members = num_members
 
         # Save debugging data
         self.levels = self.level_ensemble

@@ -116,7 +116,7 @@ def _patch_ensemble(monkeypatch, response=None, recorder=None):
     """Replaces the Open-Meteo ensemble fetcher with an offline fake."""
     payload = _build_response() if response is None else response
 
-    def fake_fetch(latitude, longitude, model="gfs05", date=None):
+    def fake_fetch(latitude, longitude, model="gfs05", date=None):  # pylint: disable=unused-argument
         if recorder is not None:
             recorder.update({"model": model, "date": date})
         return payload
@@ -569,7 +569,7 @@ class TestOpenMeteoFetchers:
         """Send future launch dates to the regular forecast API."""
         recorder = {}
 
-        def fake_request(url, params, endpoint):
+        def fake_request(url, params, endpoint):  # pylint: disable=unused-argument
             recorder.update({"url": url, "params": params})
             return {"hourly": {}}
 
@@ -590,7 +590,7 @@ class TestOpenMeteoFetchers:
         """
         recorder = {}
 
-        def fake_request(url, params, endpoint):
+        def fake_request(url, params, endpoint):  # pylint: disable=unused-argument
             recorder.update(params)
             return {"hourly": {}}
 
@@ -606,6 +606,8 @@ class TestOpenMeteoFetchers:
         """Surface Open-Meteo's own error message instead of a bare status code."""
 
         class FakeResponse:
+            """Stands in for an Open-Meteo error response."""
+
             ok = False
             status_code = 400
 
@@ -624,6 +626,8 @@ class TestOpenMeteoFetchers:
         """Fail clearly when the response carries no hourly block."""
 
         class FakeResponse:
+            """Stands in for a successful response missing its hourly block."""
+
             ok = True
             status_code = 200
 
