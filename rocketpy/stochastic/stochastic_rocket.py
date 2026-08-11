@@ -211,7 +211,7 @@ class StochasticRocket(StochasticModel):
             input component.
         """
         new_components = Components()
-        for stochastic_obj, _ in components:
+        for stochastic_obj, _position, _ref_factor in components:
             stochastic_obj_position_info = self.__components_map[stochastic_obj]
             stochastic_obj._set_stochastic(seed)
             new_components.add(

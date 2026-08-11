@@ -15,13 +15,15 @@ class Components:
         A list of named tuples representing all the components and their
         positions relative to the rocket.
     component_tuple : namedtuple
-        A named tuple representing a component and its position within the
-        rocket.
+        A named tuple representing a component, its position within the
+        rocket, and an optional reference-area correction factor.
     """
 
     def __init__(self):
         """Initialize an empty components list instance."""
-        self.component_tuple = namedtuple("component_tuple", "component position")
+        self.component_tuple = namedtuple(
+            "component_tuple", "component position ref_factor", defaults=(1.0,)
+        )
         self._components = []
 
         # List of components and their positions to avoid extra for loops in
@@ -34,6 +36,7 @@ class Components:
         components_str = "\n".join(
             [
                 f"\tComponent: {str(c.component):80} Position: {c.position}"
+                f" Ref Factor: {c.ref_factor}"
                 for c in self._components
             ]
         )
@@ -52,7 +55,7 @@ class Components:
         """Return an iterator over the list of components."""
         return iter(self._components)
 
-    def add(self, component, position):
+    def add(self, component, position, ref_factor=1.0):
         """Add a component to the list of components.
 
         Parameters
@@ -62,6 +65,9 @@ class Components:
         position : int, float
             The position of the component relative to the rocket's
             coordinate system origin.
+        ref_factor : int, float, optional
+            Reference-area correction factor associating the component to the
+            rocket reference area. Defaults to 1.0 when not applicable.
 
         Returns
         -------
@@ -69,7 +75,9 @@ class Components:
         """
         self.__component_list.append(component)
         self.__position_list.append(position)
-        self._components.append(self.component_tuple(component, position))
+        self._components.append(
+            self.component_tuple(component, position, ref_factor)
+        )
 
     def get_by_type(self, component_type):
         """Search the list of components and return a list with all the
@@ -207,7 +215,11 @@ class Components:
     def to_dict(self, **kwargs):  # pylint: disable=unused-argument
         return {
             "components": [
-                {"component": c.component, "position": c.position}
+                {
+                    "component": c.component,
+                    "position": c.position,
+                    "ref_factor": c.ref_factor,
+                }
                 for c in self._components
             ]
         }
@@ -216,5 +228,9 @@ class Components:
     def from_dict(cls, data):
         components = cls()
         for component in data["components"]:
-            components.add(component["component"], component["position"])
+            components.add(
+                component["component"],
+                component["position"],
+                ref_factor=component.get("ref_factor", 1.0),
+            )
         return components

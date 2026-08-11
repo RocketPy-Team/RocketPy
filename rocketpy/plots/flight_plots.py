@@ -694,7 +694,7 @@ class _FlightPlots:
         """Map a rocket axial coordinate onto the centered display model."""
         coordinates = [
             float(position.z)
-            for _surface, position in self.flight.rocket.aerodynamic_surfaces
+            for _surface, position, _ref_factor in self.flight.rocket.aerodynamic_surfaces
         ]
         coordinates.extend(
             [
