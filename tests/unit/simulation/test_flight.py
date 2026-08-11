@@ -199,6 +199,47 @@ def test_get_controller_observed_variables(flight_calisto_air_brakes):
     assert len(obs_vars) == 0
 
 
+def test_post_step_callback_runs_before_and_after_apogee(
+    calisto_robust, example_plain_env
+):
+    """post_step_callback must fire across the full flight, including descent.
+
+    Controllers are not a substitute: air-brake fixtures often terminate at
+    apogee, and parachute phases are not meant to keep feeding actuators.
+    This callback is the full-lifecycle observer hook (issue #758).
+    """
+    callback_times = []
+
+    def record_step(flight):
+        callback_times.append(flight.t)
+
+    flight = Flight(
+        rocket=calisto_robust,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=False,
+        post_step_callback=record_step,
+    )
+
+    assert callback_times, "post_step_callback was never invoked"
+    assert min(callback_times) < flight.apogee_time
+    assert max(callback_times) > flight.apogee_time
+    assert flight.t_final > flight.apogee_time
+
+
+def test_post_step_callback_must_be_callable(calisto, example_plain_env):
+    """Non-callable post_step_callback values are rejected at construction."""
+    with pytest.raises(TypeError, match="post_step_callback"):
+        Flight(
+            rocket=calisto,
+            environment=example_plain_env,
+            rail_length=5.2,
+            post_step_callback="not-callable",
+        )
+
+
 def test_initial_stability_margin(flight_calisto_custom_wind):
     """Test the initial_stability_margin method of the Flight class.
 

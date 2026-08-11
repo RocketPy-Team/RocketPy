@@ -79,6 +79,14 @@ class Flight:
         Name of the flight.
     Flight._controllers : list
         List of controllers to be used during simulation.
+    Flight.post_step_callback : callable, optional
+        Optional callback invoked once after every successful ODE solver
+        step for the entire simulation, including parachute descent.
+        Receives the ``Flight`` instance (``callback(flight)``). Use
+        ``flight.t`` and ``flight.y_sol`` for the current time and state.
+        Controllers stop being useful after parachute deployment; this
+        callback is the extension point for full-lifecycle observers
+        (e.g. ground-station / radio update simulation).
     Flight.max_time : int, float
         Maximum simulation time allowed. Refers to physical time
         being simulated, not time taken to run simulation.
@@ -506,6 +514,7 @@ class Flight:
         equations_of_motion="standard",
         ode_solver="LSODA",
         simulation_mode="6 DOF",
+        post_step_callback=None,
     ):
         """Run a trajectory simulation.
 
@@ -592,6 +601,12 @@ class Flight:
         simulation_mode : str, optional
             Simulation mode to use. Can be "6 DOF" for 6 degrees of freedom or
             "3 DOF" for 3 degrees of freedom. Default is "6 DOF".
+        post_step_callback : callable, optional
+            Callback invoked once after every successful ODE solver step for
+            the entire simulation, including parachute phases. Signature is
+            ``callback(flight)``, matching phase/node callbacks. Access the
+            current time and state via ``flight.t`` and ``flight.y_sol``.
+            Default is None.
         Returns
         -------
         None
@@ -600,6 +615,9 @@ class Flight:
         ----------
         .. [1] https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.solve_ivp.html
         """
+        if post_step_callback is not None and not callable(post_step_callback):
+            raise TypeError("post_step_callback must be callable or None")
+
         # Save arguments
         self.env = environment
         self.rocket = rocket
@@ -626,6 +644,7 @@ class Flight:
         self.equations_of_motion = equations_of_motion
         self.simulation_mode = simulation_mode
         self.ode_solver = ode_solver
+        self.post_step_callback = post_step_callback
 
         # Controller initialization
         self.__init_controllers()
@@ -735,6 +754,9 @@ class Flight:
                             self.sensors,
                             self.env,
                         )
+                    # Full-lifecycle observer (all phases, including parachute)
+                    if self.post_step_callback is not None:
+                        self.post_step_callback(self)
                     if self.__check_simulation_events(phase, phase_index, node_index):
                         break  # Stop if simulation termination event occurred
 
