@@ -1,8 +1,8 @@
 version: '3.8'
 
 services:
-  python39-linux:
-    image: python:3.9
+  python310-linux:
+    image: python:3.10
     volumes:
       - ..:/app
     working_dir: /app
