@@ -42,6 +42,55 @@ def test_evaluate_static_margin_assert_cp_equals_cm(dimensionless_calisto):
     assert pytest.approx(rocket.cp_position(0), 1e-8) == pytest.approx(0, 1e-8)
 
 
+def test_static_margin_lazy_until_accessed(calisto_motorless):
+    """Static margin must not be discretized until first access."""
+    rocket = calisto_motorless
+    assert rocket._static_margin_dirty is True
+
+    with patch.object(
+        rocket._static_margin,
+        "set_discrete",
+        wraps=rocket._static_margin.set_discrete,
+    ) as mock_set_discrete:
+        rocket.add_nose(length=0.55829, kind="ogive", position=1.160)
+        mock_set_discrete.assert_not_called()
+        assert rocket._static_margin_dirty is True
+
+        static_margin = rocket.static_margin
+        assert mock_set_discrete.call_count == 1
+        assert rocket._static_margin_dirty is False
+        assert isinstance(static_margin, Function)
+
+        # Second access must reuse the cached Function.
+        _ = rocket.static_margin(0)
+        assert mock_set_discrete.call_count == 1
+
+
+def test_static_margin_rebuilds_after_adding_surface(calisto):
+    """Adding an aero surface invalidates SM; access rebuilds it once."""
+    rocket = calisto
+    margin_before = rocket.static_margin(0)
+    assert rocket._static_margin_dirty is False
+
+    with patch.object(
+        rocket._static_margin,
+        "set_discrete",
+        wraps=rocket._static_margin.set_discrete,
+    ) as mock_set_discrete:
+        rocket.add_nose(length=0.55829, kind="ogive", position=1.160)
+        mock_set_discrete.assert_not_called()
+        assert rocket._static_margin_dirty is True
+
+        margin_after = rocket.static_margin(0)
+        assert mock_set_discrete.call_count == 1
+        assert rocket._static_margin_dirty is False
+
+        _ = rocket.static_margin(0)
+        assert mock_set_discrete.call_count == 1
+
+    assert margin_after != pytest.approx(margin_before, abs=1e-6)
+
+
 @pytest.mark.parametrize(
     "k, type_",
     ([2 / 3, "conical"], [0.46469957130675876, "ogive"], [0.563, "lvhaack"]),
