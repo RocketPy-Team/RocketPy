@@ -130,3 +130,32 @@ def test_callable_trigger_arities_route_arguments(trigger, expects_udot):
     result = parachute.triggerfunc(800.0, 500.0, [0.0] * 6, [], [1.0] * 6)
     assert result is True
     assert parachute.triggerfunc._expects_udot is expects_udot
+
+
+class TestParachuteNumericTrigger:
+    """Numeric height triggers must accept numpy scalar integers/floats and
+    reject bool (which is a Real subclass in Python)."""
+
+    @pytest.mark.parametrize(
+        "trigger",
+        [
+            800,
+            800.0,
+            np.int32(800),
+            np.int64(800),
+            np.float64(800.0),
+        ],
+    )
+    def test_numeric_height_trigger_accepted(self, trigger):
+        parachute = _make_parachute(trigger=trigger)
+        assert callable(parachute.triggerfunc)
+        # Falling below trigger height should fire
+        y = np.zeros(13)
+        y[5] = -1.0
+        assert bool(parachute.triggerfunc(101325.0, 799.0, y, [], None)) is True
+        assert bool(parachute.triggerfunc(101325.0, 801.0, y, [], None)) is False
+
+    @pytest.mark.parametrize("trigger", [True, False])
+    def test_bool_trigger_rejected(self, trigger):
+        with pytest.raises(ValueError, match="real number"):
+            _make_parachute(trigger=trigger)

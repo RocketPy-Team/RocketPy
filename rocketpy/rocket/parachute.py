@@ -1,4 +1,5 @@
 from inspect import Parameter, signature
+from numbers import Real
 
 import numpy as np
 
@@ -350,8 +351,8 @@ class Parachute:
             self.triggerfunc = _make_wrapper(trigger)
             return
 
-        # Numeric altitude trigger
-        if isinstance(trigger, (int, float)):
+        # Numeric altitude trigger (accept numpy integers/floats; reject bool)
+        if isinstance(trigger, Real) and not isinstance(trigger, bool):
             self._trigger_falling_only = True
 
             def triggerfunc(p, h, y, sensors, u_dot):  # pylint: disable=unused-argument
@@ -379,8 +380,8 @@ class Parachute:
         # If we reach this point, the trigger is invalid
         raise ValueError(
             f"Unable to set the trigger function for parachute '{self.name}'. "
-            + "Trigger must be a callable, a float value or one of the strings "
-            + "('apogee'). "
+            + "Trigger must be a callable, a real number (height in meters), "
+            + "or one of the strings ('apogee'). "
             + "See the Parachute class documentation for more information."
         )
 
