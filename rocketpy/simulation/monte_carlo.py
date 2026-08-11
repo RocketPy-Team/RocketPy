@@ -268,6 +268,39 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         except OSError as error:
             raise OSError(f"Error creating files: {error}") from error
 
+    def _append_simulation_record(self, inputs_json, outputs_json):
+        """Append one simulation's inputs and outputs as a paired record.
+
+        Writes the inputs row first, then the outputs row. If the outputs write
+        fails, the inputs file is truncated back to its size before this call so
+        the two files do not drift out of alignment.
+
+        Parameters
+        ----------
+        inputs_json : str
+            Serialized inputs row, including its trailing newline.
+        outputs_json : str
+            Serialized outputs row, including its trailing newline.
+        """
+        input_path = self.input_file
+        output_path = self.output_file
+
+        try:
+            previous_input_size = os.path.getsize(input_path)
+        except OSError:
+            previous_input_size = 0
+
+        with open(input_path, "a", encoding="utf-8") as f:
+            f.write(inputs_json)
+
+        try:
+            with open(output_path, "a", encoding="utf-8") as f:
+                f.write(outputs_json)
+        except Exception:
+            with open(input_path, "rb+") as f:
+                f.truncate(previous_input_size)
+            raise
+
     def __run_in_serial(self):
         """
         Runs the monte carlo simulation in serial mode.
@@ -290,10 +323,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                 inputs_json = self.__evaluate_flight_inputs(sim_monitor.count)
                 outputs_json = self.__evaluate_flight_outputs(flight, sim_monitor.count)
 
-                with open(self.input_file, "a", encoding="utf-8") as f:
-                    f.write(inputs_json)
-                with open(self.output_file, "a", encoding="utf-8") as f:
-                    f.write(outputs_json)
+                self._append_simulation_record(inputs_json, outputs_json)
 
                 sim_monitor.print_update_status()
 
@@ -432,10 +462,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
 
                         break
 
-                    with open(self.input_file, "a", encoding="utf-8") as f:
-                        f.write(inputs_json)
-                    with open(self.output_file, "a", encoding="utf-8") as f:
-                        f.write(outputs_json)
+                    self._append_simulation_record(inputs_json, outputs_json)
 
                     sim_monitor.print_update_status()
                 finally:

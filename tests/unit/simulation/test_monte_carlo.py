@@ -1,8 +1,11 @@
+import builtins
 import csv
 import json
+import os
 import pathlib
 import types
 from collections import namedtuple
+from unittest.mock import patch
 
 import matplotlib as plt
 import numpy as np
@@ -85,6 +88,34 @@ class MockMonteCarlo(MonteCarlo):
             "single_point": [100],
             "empty_attribute": [],
         }
+
+
+def test_append_simulation_record_rolls_back_inputs_on_output_failure(tmp_path):
+    """If the outputs append fails, the inputs row must not remain on disk."""
+    mc = MockMonteCarlo()
+    input_file = tmp_path / "inputs.json"
+    output_file = tmp_path / "outputs.json"
+    input_file.write_text('{"index": 0}\n', encoding="utf-8")
+    output_file.write_text('{"index": 0}\n', encoding="utf-8")
+    mc._input_file = str(input_file)
+    mc._output_file = str(output_file)
+
+    mc._append_simulation_record('{"index": 1}\n', '{"index": 1}\n')
+
+    original_open = builtins.open
+    output_path = os.fspath(output_file)
+
+    def failing_output_open(file, mode="r", *args, **kwargs):
+        if os.fspath(file) == output_path and "a" in mode:
+            raise OSError("no space left on device")
+        return original_open(file, mode, *args, **kwargs)
+
+    with pytest.raises(OSError, match="no space left on device"):
+        with patch("builtins.open", side_effect=failing_output_open):
+            mc._append_simulation_record('{"index": 2}\n', '{"index": 2}\n')
+
+    assert input_file.read_text(encoding="utf-8") == '{"index": 0}\n{"index": 1}\n'
+    assert output_file.read_text(encoding="utf-8") == '{"index": 0}\n{"index": 1}\n'
 
 
 def test_estimate_confidence_interval_contains_known_mean():
