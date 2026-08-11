@@ -387,7 +387,9 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             raise ValueError("Number of workers must be at least 2 for parallel mode.")
         return n_workers
 
-    def __sim_producer(self, seed, sim_monitor, mutex, error_event):  # pylint: disable=too-many-statements
+    def __sim_producer(
+        self, seed, sim_monitor, mutex, error_event
+    ):  # pylint: disable=too-many-statements
         """Simulation producer to be used in parallel by multiprocessing.
 
         Parameters
@@ -461,12 +463,15 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         Flight
             The flight object of the simulation.
         """
+        rocket = self.rocket.create_object()
+        environment = self.environment.create_object()
+        flight_inputs = self.flight._sample_flight_inputs()
         return Flight(
-            rocket=self.rocket.create_object(),
-            environment=self.environment.create_object(),
-            rail_length=self.flight._randomize_rail_length(),
-            inclination=self.flight._randomize_inclination(),
-            heading=self.flight._randomize_heading(),
+            rocket=rocket,
+            environment=environment,
+            rail_length=flight_inputs["rail_length"],
+            inclination=flight_inputs["inclination"],
+            heading=flight_inputs["heading"],
             initial_solution=self.flight.initial_solution,
             terminate_on_apogee=self.flight.terminate_on_apogee,
             time_overshoot=self.flight.time_overshoot,
@@ -1377,7 +1382,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             except KeyError as e:
                 raise KeyError("No impact data found. Skipping impact ellipses.") from e
 
-        (apogee_ellipses, impact_ellipses) = generate_monte_carlo_ellipses(
+        apogee_ellipses, impact_ellipses = generate_monte_carlo_ellipses(
             impact_x,
             impact_y,
             apogee_x,
