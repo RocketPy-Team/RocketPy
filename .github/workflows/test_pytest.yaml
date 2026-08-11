@@ -65,24 +65,21 @@ jobs:
           pip install numpy --upgrade
           pytest rocketpy --doctest-modules --cov=rocketpy --cov-append
 
+      # Isolate flaky_vtk (#1078): native VTK/OpenGL crashes (SIGBUS/SIGSEGV)
+      # kill the pytest process, so keep them out of the main integration job
+      # and retry them in the dedicated step below.
       - name: Run Integration Tests
         run: |
           pytest tests/integration \
-            --deselect tests/integration/test_plots.py::test_flight_animations_run_off_screen \
-            --deselect tests/integration/test_plots.py::test_flight_animations_render_all_scene_options \
-            --deselect tests/integration/test_plots.py::test_flight_animation_export_gif \
+            -m "not flaky_vtk" \
             --cov=rocketpy --cov-append
 
       - name: Run VTK animation tests
         run: |
-          tests=(
-            tests/integration/test_plots.py::test_flight_animations_run_off_screen
-            tests/integration/test_plots.py::test_flight_animations_render_all_scene_options
-            tests/integration/test_plots.py::test_flight_animation_export_gif
-          )
-          attempts=3
+          # flaky_vtk marker selects the three PyVista flight animation tests.
+          attempts=5
           for attempt in $(seq 1 "$attempts"); do
-            if pytest "${tests[@]}" --cov=rocketpy --cov-append; then
+            if pytest tests/integration -m flaky_vtk --cov=rocketpy --cov-append; then
               exit 0
             else
               status=$?

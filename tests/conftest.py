@@ -56,6 +56,11 @@ def pytest_configure(config):
         Config object to which the marker is added.
     """
     config.addinivalue_line("markers", "slow: mark test as slow to run")
+    config.addinivalue_line(
+        "markers",
+        "flaky_vtk: VTK/PyVista off-screen animation tests that can "
+        "SIGBUS/SIGSEGV on headless CI (#1078)",
+    )
 
 
 def pytest_collection_modifyitems(config, items):

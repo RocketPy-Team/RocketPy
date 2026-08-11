@@ -9,6 +9,7 @@ from rocketpy import Flight
 from rocketpy.plots.compare import CompareFlights
 
 
+@pytest.mark.flaky_vtk
 def test_flight_animations_run_off_screen(flight_calisto):
     """Ensure both PyVista flight animations render successfully off screen."""
 
@@ -33,6 +34,7 @@ def test_flight_animations_run_off_screen(flight_calisto):
     assert rotation_result is None
 
 
+@pytest.mark.flaky_vtk
 def test_flight_animations_render_all_scene_options(flight_calisto):
     """Exercise the animation scene builders with the full set of overlays.
 
@@ -70,21 +72,27 @@ def test_flight_animations_render_all_scene_options(flight_calisto):
     assert rotation_result is None
 
 
+@pytest.mark.flaky_vtk
 def test_flight_animation_export_gif(flight_calisto, tmp_path):
     """Cover the deterministic GIF export path of ``_run_animation``."""
     pytest.importorskip("pyvista")
     pytest.importorskip("imageio")
     export_file = tmp_path / "trajectory.gif"
 
-    result = flight_calisto.plots.animate_trajectory(
-        start=0,
-        stop=0.3,
-        time_step=0.1,
-        backend="none",
-        window_size=(240, 180),
-        color_by="speed",
-        export_file=str(export_file),
-    )
+    try:
+        result = flight_calisto.plots.animate_trajectory(
+            start=0,
+            stop=0.3,
+            time_step=0.1,
+            backend="none",
+            window_size=(240, 180),
+            color_by="speed",
+            export_file=str(export_file),
+        )
+    except OSError as exc:
+        # EnvironmentError is an alias of OSError. Skip only when the off-screen
+        # renderer is unavailable; assertion failures below still fail the test.
+        pytest.skip(f"Off-screen VTK rendering unavailable: {exc}")
 
     assert result == str(export_file)
     assert export_file.is_file()

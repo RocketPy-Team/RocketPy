@@ -87,6 +87,13 @@ exclude_also = [
 ]
 
 
+[tool.pytest.ini_options]
+markers = [
+    "slow: mark test as slow to run",
+    "flaky_vtk: VTK/PyVista off-screen animation tests that can SIGBUS/SIGSEGV on headless CI (#1078)",
+]
+
+
 [tool.ruff]
 target-version = "py310"
 line-length = 88
