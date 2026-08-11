@@ -2,7 +2,7 @@
 
 from rocketpy.rocket import Parachute
 
-from .stochastic_model import StochasticModel
+from .stochastic_model import StochasticModel, _sampler_seed
 
 
 def _is_a_trigger(member):
@@ -111,6 +111,7 @@ class StochasticParachute(StochasticModel):
         self.drag_coefficient = drag_coefficient
         self.height = height
         self.porosity = porosity
+        self._seed = None
 
         self._validate_trigger(trigger)
         self._validate_noise(noise)
@@ -127,6 +128,18 @@ class StochasticParachute(StochasticModel):
             height=height,
             porosity=porosity,
         )
+
+    def _set_stochastic(self, seed=None):
+        """Reseed parameter samplers and remember the seed for pressure noise.
+
+        Parameters
+        ----------
+        seed : int, optional
+            Seed for the random number generator and the derived parachute
+            pressure-noise seed.
+        """
+        self._seed = seed
+        super()._set_stochastic(seed)
 
     def _validate_trigger(self, trigger):
         """Validates the trigger input. If not None, it must be a non-empty
@@ -175,4 +188,11 @@ class StochasticParachute(StochasticModel):
             Parachute object with the randomly generated input arguments.
         """
         generated_dict = next(self.dict_generator())
+        # Tie pressure noise into the Monte Carlo seed tree when one is set.
+        # Key by parachute name so drogue and main on the same rocket do not
+        # share one noise stream.
+        if self._seed is not None:
+            generated_dict["seed"] = _sampler_seed(
+                self._seed, ("pressure_noise", generated_dict["name"])
+            )
         return Parachute(**generated_dict)

@@ -137,6 +137,7 @@ class Parachute:
         height=None,
         porosity=0.0432,
         drag_coefficient=1.4,
+        seed=None,
     ):
         """Initializes Parachute class.
 
@@ -217,6 +218,12 @@ class Parachute:
             - **1.5** — extended-skirt canopy
 
             Has no effect when ``radius`` is explicitly provided.
+        seed : int, array_like, SeedSequence, BitGenerator, Generator or None, optional
+            Seed for the per-instance NumPy Generator used by pressure noise.
+            A fixed seed makes the noise reproducible and independent of the
+            process-global NumPy RNG (and therefore usable under Monte Carlo).
+            ``None`` keeps the noise random but still drawn from this instance's
+            generator. Default is ``None``.
         """
 
         # Save arguments as attributes
@@ -228,6 +235,11 @@ class Parachute:
         self.noise = noise
         self.drag_coefficient = drag_coefficient
         self.porosity = porosity
+
+        # Per-instance RNG: pressure noise must not draw from the process-global
+        # NumPy RNG, or Monte Carlo cannot reproduce deployment (see #1091).
+        self._seed = seed
+        self._rng = np.random.default_rng(seed)
 
         # Initialize derived attributes
         self.radius = self.__resolve_radius(radius, cd_s, drag_coefficient)
@@ -267,7 +279,7 @@ class Parachute:
         noise : tuple, list
             List in the format (mean, standard deviation, time-correlation).
         """
-        self.noise_signal = [[-1e-6, np.random.normal(noise[0], noise[1])]]
+        self.noise_signal = [[-1e-6, self._rng.normal(noise[0], noise[1])]]
         self.noisy_pressure_signal = []
         self.clean_pressure_signal = []
         self.noise_bias = noise[0]
@@ -282,7 +294,7 @@ class Parachute:
         else:
             self.noise_function = lambda: (
                 alpha * self.noise_signal[-1][1]
-                + beta * np.random.normal(noise[0], noise[1])
+                + beta * self._rng.normal(noise[0], noise[1])
             )
 
     def __evaluate_trigger_function(self, trigger):  # pylint: disable=too-many-statements
@@ -431,6 +443,7 @@ class Parachute:
             "drag_coefficient": self.drag_coefficient,
             "height": self.height,
             "porosity": self.porosity,
+            "seed": self._seed,
         }
 
         if kwargs.get("include_outputs", False):
@@ -465,6 +478,7 @@ class Parachute:
             drag_coefficient=data.get("drag_coefficient", 1.4),
             height=data.get("height", None),
             porosity=data.get("porosity", 0.0432),
+            seed=data.get("seed", None),
         )
 
         return parachute
