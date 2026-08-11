@@ -274,6 +274,7 @@ a lower altitude:
 See Also
 --------
 
+- :doc:`Software-in-the-Loop Parachute Ejection <sil_parachute_ejection>`
 - :doc:`Parachute Class Reference </reference/classes/Parachute>`
 - :doc:`Flight Simulation </user/flight>`
 - :doc:`Sensors </notebooks/sensors>`
