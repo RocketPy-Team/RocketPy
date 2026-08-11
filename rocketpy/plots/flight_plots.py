@@ -144,6 +144,76 @@ class _FlightPlots:
         ax1.set_box_aspect(None, zoom=0.95)  # 95% for label adjustment
         show_or_save_plot(filename)
 
+    def trajectory_on_map(self, *, filename=None):
+        """Create an interactive Folium map of the flight trajectory.
+
+        Draws the ground-track path from ``flight.latitude`` /
+        ``flight.longitude`` and marks the launch and landing sites.
+        Requires the optional ``folium`` dependency
+        (``pip install folium`` or ``pip install rocketpy[maps]``).
+
+        Parameters
+        ----------
+        filename : str | None, optional
+            Path to save the map as an HTML file. If None, the map is not
+            written to disk. Default is None.
+
+        Returns
+        -------
+        folium.Map
+            The interactive map object. In Jupyter, displaying the return
+            value renders the map.
+        """
+        folium = import_optional_dependency("folium")
+        flight = self.flight
+
+        latitudes = np.asarray(flight.latitude[:, 1], dtype=float)
+        longitudes = np.asarray(flight.longitude[:, 1], dtype=float)
+        path = list(zip(latitudes.tolist(), longitudes.tolist()))
+        if not path:
+            raise ValueError("Flight has no latitude/longitude samples to plot.")
+
+        launch = path[0]
+        landing = path[-1]
+        center = [
+            float(0.5 * (launch[0] + landing[0])),
+            float(0.5 * (launch[1] + landing[1])),
+        ]
+
+        flight_map = folium.Map(location=center, zoom_start=13)
+        folium.PolyLine(
+            locations=path,
+            color="#1f77b4",
+            weight=3,
+            opacity=0.85,
+            tooltip="Flight trajectory",
+        ).add_to(flight_map)
+        folium.Marker(
+            location=launch,
+            popup="Launch",
+            tooltip="Launch",
+            icon=folium.Icon(color="green"),
+        ).add_to(flight_map)
+        folium.Marker(
+            location=landing,
+            popup="Landing",
+            tooltip="Landing",
+            icon=folium.Icon(color="red"),
+        ).add_to(flight_map)
+
+        south = float(np.min(latitudes))
+        north = float(np.max(latitudes))
+        west = float(np.min(longitudes))
+        east = float(np.max(longitudes))
+        if abs(north - south) > 1e-12 or abs(east - west) > 1e-12:
+            flight_map.fit_bounds([[south, west], [north, east]])
+
+        if filename is not None:
+            flight_map.save(filename)
+            logger.info("File %s saved with success!", filename)
+
+        return flight_map
+
     def _resolve_animation_model_path(self, file_name):
         """Resolve model path, defaulting to the built-in STL when omitted."""
         if file_name is not None:
