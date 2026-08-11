@@ -45,3 +45,29 @@ def test_stochastic_flight_optional_attributes(flight_calisto_robust):
     assert obj.terminate_on_apogee is True
     assert obj.time_overshoot is True
     assert obj.max_time == 987.6
+
+
+def test_dict_generator_skips_initial_solution_tuple(flight_calisto_robust):
+    """Regression for #1109: tuple initial_solution must not be sampled."""
+    initial_solution = tuple(float(i) for i in range(14))
+    stochastic_flight = StochasticFlight(
+        flight=flight_calisto_robust,
+        initial_solution=initial_solution,
+        rail_length=(5.2, 0.1),
+    )
+    generated = next(stochastic_flight.dict_generator())
+    assert "initial_solution" not in generated
+    assert stochastic_flight.initial_solution == initial_solution
+
+
+def test_dict_generator_skips_initial_solution_list(flight_calisto_robust):
+    """List-form initial_solution must not be randomly subset-sampled."""
+    initial_solution = [float(i) for i in range(14)]
+    stochastic_flight = StochasticFlight(
+        flight=flight_calisto_robust,
+        initial_solution=initial_solution,
+        inclination=[85, 86, 87],
+    )
+    generated = next(stochastic_flight.dict_generator())
+    assert "initial_solution" not in generated
+    assert stochastic_flight.initial_solution == initial_solution
