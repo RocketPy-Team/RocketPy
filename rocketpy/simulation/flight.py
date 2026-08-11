@@ -723,7 +723,7 @@ class Flight:
                         self.y_sol,
                         self.sensors,
                         phase.derivative,
-                        self.t,
+                        node.t,
                     ):
                         # Remove parachute from flight parachutes
                         self.parachutes.remove(parachute)
@@ -1537,6 +1537,10 @@ class Flight:
         u_dot = None
         if expects_udot:
             u_dot = derivative_func(t, y)
+
+        # Expose flight time for built-in ("time", t_deploy) triggers without
+        # changing the public (p, h, y, sensors, u_dot) triggerfunc signature.
+        parachute._eval_time = t
 
         # Call the wrapper with both sensors and u_dot
         # The wrapper will decide which args to pass to the user's function

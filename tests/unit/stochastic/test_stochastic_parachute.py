@@ -37,8 +37,14 @@ def _at_apogee(pressure, height, state):  # pylint: disable=unused-argument
 
 @pytest.mark.parametrize(
     "trigger",
-    [[_at_apogee], ["apogee"], [800], [_at_apogee, "apogee", 800]],
-    ids=["callable", "apogee", "height", "mixed"],
+    [
+        [_at_apogee],
+        ["apogee"],
+        [800],
+        [("time", 5.0)],
+        [_at_apogee, "apogee", 800, ("time", 3.0)],
+    ],
+    ids=["callable", "apogee", "height", "time", "mixed"],
 )
 def test_every_documented_trigger_form_is_accepted(calisto_main_chute, trigger):
     """The docstring promises callables, "apogee" and numbers. The check read
@@ -62,6 +68,9 @@ def test_every_documented_trigger_form_is_accepted(calisto_main_chute, trigger):
         ["banana"],
         [True],
         [_at_apogee, None],
+        [("time", -1.0)],
+        [("time", True)],
+        [("burnout", 3.0)],
     ],
     ids=str,
 )
@@ -79,7 +88,17 @@ def test_a_trigger_that_is_not_a_list_of_those_is_refused(calisto_main_chute, tr
 
 @pytest.mark.parametrize(
     "member",
-    [_at_apogee, "apogee", "APOGEE", 800, 800.0, np.float64(800)],
+    [
+        _at_apogee,
+        "apogee",
+        "APOGEE",
+        800,
+        800.0,
+        np.float64(800),
+        ("time", 5.0),
+        ("TIME", np.float64(2.5)),
+        ["time", 1],
+    ],
     ids=str,
 )
 def test_what_this_accepts_is_what_a_parachute_accepts(calisto_main_chute, member):

@@ -130,3 +130,71 @@ def test_callable_trigger_arities_route_arguments(trigger, expects_udot):
     result = parachute.triggerfunc(800.0, 500.0, [0.0] * 6, [], [1.0] * 6)
     assert result is True
     assert parachute.triggerfunc._expects_udot is expects_udot
+
+
+class TestParachuteTimeTrigger:
+    """Fixed-time parachute triggers: ``("time", t_deploy)`` (#437)."""
+
+    def test_time_trigger_fires_at_and_after_deploy_time(self):
+        parachute = _make_parachute(trigger=("time", 5.0))
+        state = [0.0] * 13
+
+        parachute._eval_time = 4.999
+        assert parachute.triggerfunc(101325.0, 1000.0, state, [], None) is False
+
+        parachute._eval_time = 5.0
+        assert parachute.triggerfunc(101325.0, 1000.0, state, [], None) is True
+
+        parachute._eval_time = 7.5
+        assert parachute.triggerfunc(101325.0, 1000.0, state, [], None) is True
+
+    def test_time_trigger_list_form_and_case_insensitive_kind(self):
+        parachute = _make_parachute(trigger=["TIME", 3])
+        state = [0.0] * 13
+
+        parachute._eval_time = 2.9
+        assert parachute.triggerfunc(101325.0, 1000.0, state, [], None) is False
+        parachute._eval_time = 3.0
+        assert parachute.triggerfunc(101325.0, 1000.0, state, [], None) is True
+
+    def test_time_trigger_does_not_require_descent_or_height(self):
+        parachute = _make_parachute(trigger=("time", 1.0))
+        assert parachute._trigger_falling_only is False
+        assert parachute._trigger_needs_height is False
+
+        # Ascending state at altitude well above any height trigger.
+        ascending = [0.0, 0.0, 2000.0, 0.0, 0.0, 50.0] + [0.0] * 7
+        parachute._eval_time = 1.0
+        assert parachute.triggerfunc(101325.0, 2000.0, ascending, [], None) is True
+
+    def test_time_trigger_false_when_eval_time_unset(self):
+        parachute = _make_parachute(trigger=("time", 0.0))
+        assert parachute.triggerfunc(101325.0, 0.0, [0.0] * 13, [], None) is False
+
+    def test_time_trigger_accepts_numpy_scalar_delay(self):
+        parachute = _make_parachute(trigger=("time", np.float64(2.5)))
+        parachute._eval_time = 2.5
+        assert parachute.triggerfunc(101325.0, 0.0, [0.0] * 13, [], None) is True
+
+    @pytest.mark.parametrize(
+        "trigger",
+        [
+            ("time", -1.0),
+            ("time", True),
+            ("time", "soon"),
+            ("time",),
+            ("burnout", 3.0),
+            ("launch", 5.0),
+        ],
+        ids=str,
+    )
+    def test_invalid_time_triggers_are_refused(self, trigger):
+        with pytest.raises(ValueError, match="Unable to set the trigger"):
+            _make_parachute(trigger=trigger)
+
+    def test_to_dict_round_trip_preserves_time_trigger(self):
+        original = _make_parachute(trigger=("time", 4.0))
+        restored = Parachute.from_dict(original.to_dict())
+        assert restored.trigger == ("time", 4.0)
+        restored._eval_time = 4.0
+        assert restored.triggerfunc(101325.0, 0.0, [0.0] * 13, [], None) is True

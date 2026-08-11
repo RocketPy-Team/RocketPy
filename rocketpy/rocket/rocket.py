@@ -1662,7 +1662,7 @@ class Rocket:
             force is the dynamic pressure computed on the parachute
             times its cd_s coefficient. Has units of area and must be
             given in squared meters.
-        trigger : callable, float, str
+        trigger : callable, float, str, tuple
             Defines the trigger condition for the parachute ejection system. It
             can be one of the following:
 
@@ -1685,6 +1685,10 @@ class Rocket:
                 height above ground level.
             - The string "apogee" which triggers the parachute at apogee, i.e., \
                 when the rocket reaches its highest point and starts descending.
+            - A tuple ``("time", t_deploy)`` that triggers when flight time \
+                ``t >= t_deploy`` (seconds from flight start). For a delay \
+                charge referenced to motor burnout, use \
+                ``("time", motor.burn_out_time + delay)``.
 
             .. note::
 

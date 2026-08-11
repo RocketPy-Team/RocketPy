@@ -20,7 +20,7 @@ class Parachute:
     Parachute.cd_s : float
         Drag coefficient times reference area for parachute. It has units of
         area and must be given in squared meters.
-    Parachute.trigger : callable, float, str
+    Parachute.trigger : callable, float, str, tuple
         This parameter defines the trigger condition for the parachute ejection
         system. It can be one of the following:
 
@@ -55,6 +55,12 @@ class Parachute:
 
         - The string "apogee" which triggers the parachute at apogee, i.e.,
           when the rocket reaches its highest point and starts descending.
+
+        - A tuple ``("time", t_deploy)`` where ``t_deploy`` is the flight time
+          in seconds at or after which the parachute triggers (from ``t = 0``
+          at flight start). Useful for fixed delay charges that start at
+          ignition/launch. For a motor delay charge that starts at burnout,
+          pass ``("time", motor.burn_out_time + delay)``.
 
 
     Parachute.triggerfunc : function
@@ -148,7 +154,7 @@ class Parachute:
             organized matter.
         cd_s : float
             Drag coefficient times reference area of the parachute.
-        trigger : callable, float, str
+        trigger : callable, float, str, tuple
             Defines the trigger condition for the parachute ejection system. It
             can be one of the following:
 
@@ -171,6 +177,10 @@ class Parachute:
                 height above ground level.
             - The string "apogee" which triggers the parachute at apogee, i.e., \
                 when the rocket reaches its highest point and starts descending.
+            - A tuple ``("time", t_deploy)`` that triggers when flight time \
+                ``t >= t_deploy`` (seconds from flight start). For a delay \
+                charge referenced to motor burnout, use \
+                ``("time", motor.burn_out_time + delay)``.
 
             .. note::
 
@@ -376,11 +386,54 @@ class Parachute:
             self.triggerfunc = triggerfunc
             return
 
+        # Fixed-time trigger: ("time", t_deploy) [seconds from flight start]
+        if (
+            isinstance(trigger, (tuple, list))
+            and len(trigger) == 2
+            and isinstance(trigger[0], str)
+            and trigger[0].lower() == "time"
+        ):
+            if isinstance(trigger[1], bool):
+                raise ValueError(
+                    f"Unable to set the trigger function for parachute '{self.name}'. "
+                    + "Time trigger delay must be a non-negative number of seconds, "
+                    + f"got {trigger[1]!r}."
+                )
+            try:
+                t_deploy = float(trigger[1])
+            except (TypeError, ValueError) as exc:
+                raise ValueError(
+                    f"Unable to set the trigger function for parachute '{self.name}'. "
+                    + "Time trigger delay must be a non-negative number of seconds, "
+                    + f"got {trigger[1]!r}."
+                ) from exc
+            if t_deploy < 0:
+                raise ValueError(
+                    f"Unable to set the trigger function for parachute '{self.name}'. "
+                    + "Time trigger delay must be non-negative, "
+                    + f"got {t_deploy}."
+                )
+
+            # Delay charges fire on ascent; height is unused.
+            self._trigger_falling_only = False
+            self._trigger_needs_height = False
+
+            def triggerfunc(p, h, y, sensors, u_dot):  # pylint: disable=unused-argument
+                # Flight sets ``self._eval_time`` immediately before each call.
+                t = getattr(self, "_eval_time", None)
+                if t is None:
+                    return False
+                return t >= t_deploy
+
+            triggerfunc._expects_udot = False
+            self.triggerfunc = triggerfunc
+            return
+
         # If we reach this point, the trigger is invalid
         raise ValueError(
             f"Unable to set the trigger function for parachute '{self.name}'. "
-            + "Trigger must be a callable, a float value or one of the strings "
-            + "('apogee'). "
+            + "Trigger must be a callable, a float value, the string 'apogee', "
+            + "or a tuple ('time', t_deploy). "
             + "See the Parachute class documentation for more information."
         )
 
