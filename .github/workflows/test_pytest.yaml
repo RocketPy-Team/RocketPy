@@ -98,12 +98,16 @@ jobs:
       - name: Run Acceptance Tests
         run: pytest tests/acceptance --cov=rocketpy --cov-append --cov-report=xml
 
+      # Unique basename so CodecovUpload can merge-multiple without
+      # clobbering six coverage.xml files into one.
+      - name: Name coverage report for matrix leg
+        run: mv coverage.xml "coverage-${{ matrix.os }}-py${{ matrix.python-version }}.xml"
+
       - name: Upload coverage to artifacts
         uses: actions/upload-artifact@main
         with:
-          name: coverage
-          path: coverage.xml
-          overwrite: true
+          name: coverage-${{ matrix.os }}-py${{ matrix.python-version }}
+          path: coverage-${{ matrix.os }}-py${{ matrix.python-version }}.xml
           if-no-files-found: error
 
   CodecovUpload:
@@ -111,11 +115,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@main
-      - name: Download latest coverage report
+      - name: Download coverage reports
         uses: actions/download-artifact@main
+        with:
+          pattern: coverage-*
+          path: coverage-reports
+          merge-multiple: true
       - name: Upload to Codecov
         uses: codecov/codecov-action@main
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: |
-            coverage.xml
+          directory: coverage-reports
+          fail_ci_if_error: true
