@@ -105,10 +105,13 @@ def test_append_simulation_record_rolls_back_inputs_on_output_failure(tmp_path):
     original_open = builtins.open
     output_path = os.fspath(output_file)
 
-    def failing_output_open(file, mode="r", *args, **kwargs):
+    def failing_output_open(*args, **kwargs):
+        # Match builtins.open call shapes without keyword-before-vararg (W1113).
+        file = args[0] if args else kwargs["file"]
+        mode = args[1] if len(args) > 1 else kwargs.get("mode", "r")
         if os.fspath(file) == output_path and "a" in mode:
             raise OSError("no space left on device")
-        return original_open(file, mode, *args, **kwargs)
+        return original_open(*args, **kwargs)
 
     with pytest.raises(OSError, match="no space left on device"):
         with patch("builtins.open", side_effect=failing_output_open):
