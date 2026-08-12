@@ -195,6 +195,85 @@ def test_windy_atmosphere(example_euroc_env, model_name):
 
 
 @pytest.mark.slow
+@pytest.mark.parametrize(
+    "model_name",
+    [
+        "best_match",
+        "gfs_seamless",
+        "ecmwf_ifs025",
+        "icon_seamless",
+    ],
+)
+def test_open_meteo_atmosphere(example_euroc_env, model_name):
+    """Tests the Open-Meteo forecast model against the live API.
+
+    The tolerances are loose because the actual weather is unknown at test
+    time; the point is to check that the profiles are built and that the values
+    are physically plausible.
+
+    Parameters
+    ----------
+    example_euroc_env : rocketpy.Environment
+        Example environment object to be tested.
+    model_name : str
+        The Open-Meteo model to be passed to set_atmospheric_model() as the
+        "file" parameter.
+    """
+    example_euroc_env.set_atmospheric_model(type="open_meteo", file=model_name)
+
+    assert pytest.approx(100000.0, rel=0.1) == example_euroc_env.pressure(100)
+    assert 0 + 273 < example_euroc_env.temperature(100) < 40 + 273
+    assert abs(example_euroc_env.wind_velocity_x(100)) < 30.0
+    assert abs(example_euroc_env.wind_velocity_y(100)) < 30.0
+    # Pressure must fall monotonically with altitude.
+    assert example_euroc_env.pressure(5000) < example_euroc_env.pressure(1000)
+    # Air density at sea level is around 1.2 kg/m^3.
+    assert 0.9 < example_euroc_env.density(100) < 1.4
+
+
+@pytest.mark.slow
+def test_open_meteo_historical_atmosphere(example_euroc_env):
+    """Tests that a past launch date reaches Open-Meteo's historical archive.
+
+    This is the workflow that removes the need to download reanalysis files by
+    hand: setting a past date and reading the profile straight from the API.
+    """
+    example_euroc_env.set_date(datetime(2024, 1, 10, 12, tzinfo=timezone.utc))
+    example_euroc_env.set_atmospheric_model(type="open_meteo")
+
+    assert pytest.approx(100000.0, rel=0.1) == example_euroc_env.pressure(100)
+    assert 0 + 273 < example_euroc_env.temperature(100) < 40 + 273
+    # The returned window must bracket the requested launch date.
+    assert example_euroc_env.atmospheric_model_init_date <= datetime(2024, 1, 10, 12)
+    assert example_euroc_env.atmospheric_model_end_date >= datetime(2024, 1, 10, 12)
+
+
+@pytest.mark.slow
+@patch("matplotlib.pyplot.show")
+def test_open_meteo_ensemble_atmosphere(mock_show, example_euroc_env):  # pylint: disable=unused-argument
+    """Tests the Open-Meteo ensemble model against the live API.
+
+    Parameters
+    ----------
+    mock_show : mock
+        Mock object to replace matplotlib.pyplot.show() method.
+    example_euroc_env : rocketpy.Environment
+        Example environment object to be tested.
+    """
+    example_euroc_env.set_atmospheric_model(type="open_meteo_ensemble", file="gfs05")
+
+    # gfs05 publishes 30 perturbed members plus the control run.
+    assert example_euroc_env.num_ensemble_members == 31
+    assert pytest.approx(100000.0, rel=0.1) == example_euroc_env.pressure(100)
+
+    example_euroc_env.select_ensemble_member(10)
+    assert example_euroc_env.ensemble_member == 10
+    assert pytest.approx(100000.0, rel=0.1) == example_euroc_env.pressure(100)
+
+    assert example_euroc_env.all_info() is None
+
+
+@pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_gfs_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=unused-argument
     """Tests the Forecast model with the GFS file. It does not test the values,

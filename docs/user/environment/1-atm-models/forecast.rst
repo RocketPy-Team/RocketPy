@@ -16,6 +16,13 @@ Other generic forecasts can also be imported.
     If you want to simulate your rocket launch using past data, you should use \
     :ref:`reanalysis` or :ref:`soundings`.
 
+.. tip::
+
+    The models on this page are fetched over OPeNDAP, which requires the
+    ``netCDF4`` library and can be slow. For a lighter alternative that serves
+    the same kind of pressure-level forecast as plain JSON, see
+    :ref:`open_meteo`.
+
 
 .. _global-forecast-system:
 
