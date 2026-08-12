@@ -6,8 +6,11 @@ coverage:
         target: auto
         threshold: 1%
         base: auto
-        flags:
-          - unit
+        # No `flags:` on purpose. This used to scope the status to a `unit` flag
+        # that no upload has ever tagged, so Codecov resolved it over an empty
+        # flag set and the gate measured nothing. The reports test_pytest.yaml
+        # sends are unit + doctest + integration + acceptance combined, so there
+        # is no honest flag to name here.
         paths:
           - "rocketpy"
         # advanced settings
@@ -29,7 +32,6 @@ coverage:
           - develop
         if_ci_failed: error # success, failure, error, ignore
         only_pulls: false
-        flags:
-          - "unit"
+        # See the note on project.default above: no upload tags a `unit` flag.
         paths:
           - "rocketpy"
