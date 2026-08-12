@@ -12,6 +12,7 @@ from rocketpy.stochastic import StochasticFreeFormFins
         "stochastic_environment_custom_sampler",
         "stochastic_tail",
         "stochastic_calisto",
+        "stochastic_free_form_fins",
     ],
 )
 def test_visualize_attributes(request, fixture_name):
