@@ -2,6 +2,7 @@ import json
 import logging
 import warnings
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 
 import numpy as np
 
@@ -62,7 +63,7 @@ class Sensor(ABC):
         temperature_bias=0,
         temperature_scale_factor=0,
         name="Sensor",
-        seed=None,
+        seed: int | Sequence[int] | np.random.SeedSequence | None = None,
     ):
         """
         Initialize the accelerometer sensor
@@ -112,15 +113,25 @@ class Sensor(ABC):
             meaning no temperature scale factor is applied.
         name : str, optional
             The name of the sensor. Default is "Sensor".
-        seed : int, optional
+        seed : int, Sequence[int], numpy.random.SeedSequence, optional
             Seed for the random number generator that draws the measurement
             noise. If given, the noise becomes reproducible and independent of
-            the process-global NumPy RNG. Default is None, meaning the noise is
-            seeded from fresh entropy per instance.
+            the process-global NumPy RNG. A ``numpy.random.SeedSequence`` is
+            also accepted and round trips through ``RocketPyEncoder``. The
+            ``Generator`` and ``BitGenerator`` objects that
+            ``numpy.random.default_rng`` takes are rejected here, because their
+            state advances as noise is drawn and so cannot be represented in
+            the dictionary returned by ``to_dict()``. Default is None, meaning
+            the noise is seeded from fresh entropy per instance.
 
         Returns
         -------
         None
+
+        Raises
+        ------
+        TypeError
+            If ``seed`` is a ``Generator`` or a ``BitGenerator``.
 
         See Also
         --------
@@ -150,6 +161,24 @@ class Sensor(ABC):
         self._save_data = self._save_data_single
         self._random_walk_drift = 0
         self.normal_vector = Vector([0, 0, 0])
+
+        # default_rng() also accepts Generator and BitGenerator objects, which
+        # are not a description of a stream but a stream already in progress:
+        # their state advances on every draw, so what to_dict() writes depends
+        # on when it ran. #1124 taught RocketPyEncoder to serialize a
+        # SeedSequence, which stays reproducible because it is defined by its
+        # entropy and spawn key; a live generator has no such description.
+        # Without this check the sensor builds fine and only fails at
+        # json.dumps(), far from the call that caused it.
+        if isinstance(seed, (np.random.Generator, np.random.BitGenerator)):
+            raise TypeError(
+                f"Invalid seed type '{type(seed).__name__}'. The seed must be "
+                "an int, a numpy.random.SeedSequence or None. "
+                "numpy.random.default_rng also accepts Generator and "
+                "BitGenerator objects, but their state advances as noise is "
+                "drawn, so they cannot be represented in the dictionary "
+                "to_dict() returns."
+            )
 
         # Per-instance RNG, seeded deterministically when a seed is given, so
         # the measurement noise is reproducible and independent of the
@@ -373,7 +402,7 @@ class InertialSensor(Sensor):
         temperature_scale_factor=0,
         cross_axis_sensitivity=0,
         name="Sensor",
-        seed=None,
+        seed: int | Sequence[int] | np.random.SeedSequence | None = None,
     ):
         """
         Initialize the accelerometer sensor
@@ -460,11 +489,13 @@ class InertialSensor(Sensor):
             no cross-axis sensitivity is applied.
         name : str, optional
             The name of the sensor. Default is "Sensor".
-        seed : int, optional
+        seed : int, Sequence[int], numpy.random.SeedSequence, optional
             Seed for the random number generator that draws the measurement
             noise. If given, the noise becomes reproducible and independent of
-            the process-global NumPy RNG. Default is None, meaning the noise is
-            seeded from fresh entropy per instance.
+            the process-global NumPy RNG. ``Generator`` and ``BitGenerator``
+            objects are rejected, because their state advances as noise is
+            drawn and so cannot be represented in ``to_dict()``. Default is
+            None, meaning the noise is seeded from fresh entropy per instance.
 
         Returns
         -------
@@ -682,7 +713,7 @@ class ScalarSensor(Sensor):
         temperature_bias=0,
         temperature_scale_factor=0,
         name="Sensor",
-        seed=None,
+        seed: int | Sequence[int] | np.random.SeedSequence | None = None,
     ):
         """
         Initialize the accelerometer sensor
@@ -732,11 +763,13 @@ class ScalarSensor(Sensor):
             meaning no temperature scale factor is applied.
         name : str, optional
             The name of the sensor. Default is "Sensor".
-        seed : int, optional
+        seed : int, Sequence[int], numpy.random.SeedSequence, optional
             Seed for the random number generator that draws the measurement
             noise. If given, the noise becomes reproducible and independent of
-            the process-global NumPy RNG. Default is None, meaning the noise is
-            seeded from fresh entropy per instance.
+            the process-global NumPy RNG. ``Generator`` and ``BitGenerator``
+            objects are rejected, because their state advances as noise is
+            drawn and so cannot be represented in ``to_dict()``. Default is
+            None, meaning the noise is seeded from fresh entropy per instance.
 
         Returns
         -------

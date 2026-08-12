@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 import numpy as np
 
 from ..mathutils.vector_matrix import Vector
@@ -78,7 +80,7 @@ class Gyroscope(InertialSensor):
         cross_axis_sensitivity=0,
         acceleration_sensitivity=0,
         name="Gyroscope",
-        seed=None,
+        seed: int | Sequence[int] | np.random.SeedSequence | None = None,
     ):
         """
         Initialize the gyroscope sensor
@@ -172,11 +174,13 @@ class Gyroscope(InertialSensor):
             length 3.
         name : str, optional
             The name of the sensor. Default is "Gyroscope".
-        seed : int, optional
+        seed : int, Sequence[int], numpy.random.SeedSequence, optional
             Seed for the random number generator that draws the measurement
             noise. If given, the noise becomes reproducible and independent of
-            the process-global NumPy RNG. Default is None, meaning the noise is
-            seeded from fresh entropy per instance.
+            the process-global NumPy RNG. ``Generator`` and ``BitGenerator``
+            objects are rejected, because their state advances as noise is
+            drawn and so cannot be represented in ``to_dict()``. Default is
+            None, meaning the noise is seeded from fresh entropy per instance.
 
         Returns
         -------

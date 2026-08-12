@@ -5,6 +5,7 @@ These exercise the argument-validation error paths and the small ``__repr__`` /
 tests never reach, so the base class is fully covered.
 """
 
+import numpy as np
 import pytest
 
 from rocketpy.mathutils.vector_matrix import Vector
@@ -37,6 +38,44 @@ def test_orientation_wrong_length_raises():
 def test_vectorize_input_wrong_type_raises():
     with pytest.raises(ValueError, match="noise_density"):
         Accelerometer(sampling_rate=1, noise_density="not-a-vector")
+
+
+@pytest.mark.parametrize(
+    "seed",
+    [np.random.default_rng(5), np.random.PCG64(5)],
+    ids=["generator", "bit_generator"],
+)
+def test_live_rng_objects_are_rejected(seed):
+    """A generator's state advances as noise is drawn, so it cannot describe
+    the stream the way an int or a ``SeedSequence`` does."""
+    with pytest.raises(TypeError, match="seed"):
+        Barometer(sampling_rate=1, seed=seed)
+
+
+@pytest.mark.parametrize(
+    "seed",
+    [None, 0, 5, np.int64(5), 2**128 - 1],
+    ids=["none", "zero", "int", "numpy_int", "wide_int"],
+)
+def test_int_and_none_seeds_are_accepted(seed):
+    """The check must not catch seeds that already work.
+
+    numpy integers serialize through ``RocketPyEncoder``, and #1054 hands each
+    model a plain 128-bit int, so both have to pass.
+    """
+    assert Barometer(sampling_rate=1, seed=seed).to_dict()["seed"] == seed
+
+
+def test_seed_sequence_is_accepted():
+    """#1124 made ``SeedSequence`` serializable, so this check must let it by."""
+    seed = np.random.SeedSequence(5)
+    assert Barometer(sampling_rate=1, seed=seed).to_dict()["seed"] is seed
+
+
+def test_sequence_of_ints_is_accepted():
+    """``default_rng`` takes a sequence of ints and json writes it out as a
+    list, so the signature names it and the check has to let it by."""
+    assert Barometer(sampling_rate=1, seed=[1, 2]).to_dict()["seed"] == [1, 2]
 
 
 def test_repr_returns_name():

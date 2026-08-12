@@ -15,6 +15,7 @@ import json
 from types import SimpleNamespace
 
 import numpy as np
+import pytest
 
 from rocketpy._encoders import RocketPyDecoder, RocketPyEncoder
 from rocketpy.mathutils.vector_matrix import Vector
@@ -130,6 +131,28 @@ def test_seed_survives_serialization_round_trip():
         assert sensor.to_dict()["seed"] == seed
         data = json.loads(json.dumps(sensor.to_dict(), cls=RocketPyEncoder))
         assert type(sensor).from_dict(data).to_dict()["seed"] == seed
+
+
+def test_unserializable_seed_is_refused_before_it_can_be_stored():
+    """Keep the failure at the constructor instead of at save time.
+
+    ``default_rng`` accepts a ``Generator``, so the sensor builds successfully
+    and only raises once ``to_dict()`` reaches ``json.dumps()``, by which point
+    the call responsible for it is long gone. #1124 gave ``SeedSequence`` a
+    serializable form; a live generator has none.
+    """
+    with pytest.raises(TypeError, match="seed"):
+        Accelerometer(
+            sampling_rate=10, noise_density=1.0, seed=np.random.default_rng(7)
+        )
+
+
+def test_numpy_int_seed_survives_serialization_round_trip():
+    """``RocketPyEncoder`` writes numpy scalars out through ``.item()``, so a
+    numpy int is a valid seed and has to keep round tripping."""
+    sensor = Barometer(sampling_rate=10, noise_density=1.0, seed=np.int64(77))
+    data = json.loads(json.dumps(sensor.to_dict(), cls=RocketPyEncoder))
+    assert Barometer.from_dict(data).to_dict()["seed"] == 77
 
 
 def test_from_dict_defaults_seed_to_none_when_absent():
