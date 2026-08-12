@@ -3,8 +3,6 @@ Defines the `StochasticModel` class, which is used as a base class for all other
 Stochastic classes.
 """
 
-from random import choice
-
 import numpy as np
 
 from rocketpy.mathutils.function import Function
@@ -118,6 +116,13 @@ class StochasticModel:
             Seed for the random number generator.
         """
         self.__random_number_generator = np.random.default_rng(seed)
+        # A stream of its own, derived from the same seed, for picking between
+        # the candidate values of a list input. Kept apart from the one above so
+        # that declaring a list input does not shift the numbers every other
+        # input draws, which would move each existing fixed-seed baseline.
+        self.__choice_generator = np.random.default_rng(
+            _sampler_seed(seed, ("__list_choice__",))
+        )
         self.last_rnd_dict = {}
 
         self._reset_custom_samplers(seed)
@@ -152,6 +157,29 @@ class StochasticModel:
 
     def __repr__(self):
         return f"'{self.__class__.__name__}() object'"
+
+    def _choose(self, values):
+        """Pick one of the candidate values of a list input.
+
+        ``random.choice`` was used here, which draws from the interpreter-wide
+        stream that ``_set_stochastic`` does not reseed: the same seed did not
+        reproduce the same choices, and Monte Carlo workers forked from one
+        process inherited a single stream and walked it together instead of
+        sampling independently.
+
+        Parameters
+        ----------
+        values : list
+            Candidate values of the input.
+
+        Returns
+        -------
+        object
+            One of the candidates, or ``values`` itself when there are none.
+        """
+        if len(values) == 0:
+            return values
+        return values[self.__choice_generator.integers(len(values))]
 
     def _validate_tuple(self, input_name, input_value, getattr=getattr):  # pylint: disable=redefined-builtin
         """
@@ -632,7 +660,7 @@ class StochasticModel:
                 dist_sampler = value[-1]
                 generated_dict[arg] = dist_sampler(value[0], value[1])
             elif isinstance(value, list):
-                generated_dict[arg] = choice(value) if value else value
+                generated_dict[arg] = self._choose(value)
             elif isinstance(value, CustomSampler):
                 try:
                     generated_dict[arg] = value.sample(n_samples=1)[0]
@@ -676,7 +704,7 @@ class StochasticModel:
                 else:
                     return (
                         f"\t{attr.ljust(max_str_length)} "
-                        f"{nominal_value:.5f} ± "
+                        f"{nominal_value:.5f} Â± "
                         f"{std_dev:.5f} ({dist_func.__name__})"
                     )
             elif isinstance(value, CustomSampler):
