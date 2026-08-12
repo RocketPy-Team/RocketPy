@@ -32,7 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
-- ENH: `StochasticFreeFormFins`, so free-form fin sets can be used in Monte Carlo simulations. The fin outline is randomized as a block, since a shape is only meaningful as a complete set of points. [#953](https://github.com/RocketPy-Team/RocketPy/issues/953)
+- ENH: `StochasticFreeFormFins`, so free-form fin sets can be used in Monte Carlo simulations. The outline is randomized as a block, since a shape is only meaningful as a complete set of points: every coordinate is perturbed by its own draw, the fin root is held on the body line, and a list of candidate outlines can have a different number of points in each. [#953](https://github.com/RocketPy-Team/RocketPy/issues/953)
 - ENH: Support for Open Meteo API in the `Environment` class, adding the `open_meteo` and `open_meteo_ensemble` atmospheric models. Pressure-level forecasts, past forecasts (from 2021 onwards) and ensembles are read straight from a keyless JSON API, with no external files and no netCDF/OPeNDAP dependency. [#520](https://github.com/RocketPy-Team/RocketPy/issues/520) [#1119](https://github.com/RocketPy-Team/RocketPy/pull/1119)
 - ENH: Add simplified opening shock force estimation [#1092](https://github.com/RocketPy-Team/RocketPy/pull/1092)
 - ENH: Add Qodo PR-Agent workflow using Google Gemini [#1089](https://github.com/RocketPy-Team/RocketPy/pull/1089)
