@@ -270,18 +270,18 @@ class Rocket:
             in the direction of e_i x e_j. Alternatively, the inertia tensor can
             be given as (I_11, I_22, I_33), where I_12 = I_13 = I_23 = 0. This
             can also be called as "rocket dry inertia tensor".
-        power_off_drag : int, float, callable, string, array
-            Rocket's drag coefficient when the motor is off. Can be given as an
-            entry to the Function class. See help(Function) for more
-            information. If int or float is given, it is assumed constant. If
-            callable, string or array is given, it must be a function of Mach
-            number only.
-        power_on_drag : int, float, callable, string, array
-            Rocket's drag coefficient when the motor is on. Can be given as an
-            entry to the Function class. See help(Function) for more
-            information. If int or float is given, it is assumed constant. If
-            callable, string or array is given, it must be a function of Mach
-            number only.
+        power_off_drag : int, float, callable, string, array, Function
+            Rocket's drag coefficient when the motor is off. Scalars define a
+            constant coefficient. One-dimensional sources are evaluated as a
+            function of Mach number. A callable or Function may instead accept
+            seven arguments in this order: angle of attack, sideslip angle,
+            Mach number, Reynolds number, pitch rate, yaw rate and roll rate.
+            Angles are given in radians and angular rates in radians per second.
+            See :ref:`rocketusage` for examples and supported table formats.
+        power_on_drag : int, float, callable, string, array, Function
+            Rocket's drag coefficient when the motor is on. It accepts the same
+            constant, Mach-only and seven-variable formats as
+            ``power_off_drag``. See :ref:`rocketusage` for details.
         center_of_mass_without_motor : int, float
             Position, in m, of the rocket's center of mass without motor
             relative to the rocket's coordinate system. Default is 0, which
