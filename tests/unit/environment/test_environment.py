@@ -8,7 +8,7 @@ import netCDF4
 import pytest
 import pytz
 
-from rocketpy import Environment
+from rocketpy import Environment, Function
 from rocketpy.environment.tools import (
     find_longitude_index,
     geodesic_to_lambert_conformal,
@@ -146,6 +146,166 @@ def test_create_ensemble_does_not_overwrite_by_default(tmp_path):
     # Act / Assert
     with pytest.raises(FileExistsError, match="overwrite=True"):
         env.create_ensemble(_user_defined_ensemble_profiles(), file_name=file_path)
+
+
+def test_create_ensemble_accepts_array_functions_and_explicit_levels(tmp_path):
+    """Accept array-backed Functions and sort explicit pressure levels."""
+    # Arrange
+    profiles = _user_defined_ensemble_profiles()
+    for member in profiles:
+        for variable, source in member.items():
+            member[variable] = Function(source)
+    env = Environment(date=(2025, 6, 1, 12), latitude=32.99, longitude=-106.97)
+
+    # Act
+    file_path = env.create_ensemble(
+        profiles,
+        file_name=tmp_path / "function_profiles.nc",
+        pressure_levels=[80000, 101325, 90000],
+    )
+
+    # Assert
+    with netCDF4.Dataset(file_path) as dataset:
+        npt.assert_allclose(dataset.variables["lev"][:], [1013.25, 900, 800])
+
+
+@pytest.mark.parametrize(
+    "source, error, match",
+    [
+        (Function(lambda height: height), TypeError, "array-backed Function"),
+        (object(), TypeError, "two-column numeric array"),
+        (np.array([0.0, 1.0]), ValueError, "at least two"),
+        (np.array([[0.0, 1.0], [1.0, np.inf]]), ValueError, "non-finite"),
+        (np.array([[0.0, 1.0], [0.0, 2.0]]), ValueError, "heights must be unique"),
+    ],
+)
+def test_create_ensemble_rejects_invalid_profile_sources(
+    tmp_path, source, error, match
+):
+    """Reject profile sources that cannot define a finite height-value curve."""
+    # Arrange
+    profiles = _user_defined_ensemble_profiles()
+    profiles[0]["wind_u"] = source
+    env = Environment(date=(2025, 6, 1, 12), latitude=32.99, longitude=-106.97)
+
+    # Act / Assert
+    with pytest.raises(error, match=match):
+        env.create_ensemble(profiles, file_name=tmp_path / "invalid_source.nc")
+
+
+def test_create_ensemble_rejects_invalid_profile_collections(tmp_path):
+    """Reject invalid ensemble containers and incomplete members."""
+    # Arrange
+    env = Environment(date=(2025, 6, 1, 12), latitude=32.99, longitude=-106.97)
+    profiles = _user_defined_ensemble_profiles()
+    output = tmp_path / "invalid_collection.nc"
+
+    # Act / Assert
+    with pytest.raises(TypeError, match="sequence of member mappings"):
+        env.create_ensemble(profiles[0], file_name=output)
+    with pytest.raises(TypeError, match="sequence of member mappings"):
+        env.create_ensemble(1, file_name=output)
+    with pytest.raises(ValueError, match="At least two"):
+        env.create_ensemble(profiles[:1], file_name=output)
+    with pytest.raises(TypeError, match="Member 1 must be a mapping"):
+        env.create_ensemble([profiles[0], None], file_name=output)
+
+    incomplete_profiles = _user_defined_ensemble_profiles()
+    incomplete_profiles[1].pop("wind_v")
+    with pytest.raises(ValueError, match="missing required profile.*wind_v"):
+        env.create_ensemble(incomplete_profiles, file_name=output)
+
+
+@pytest.mark.parametrize(
+    "variable, values, match",
+    [
+        ("pressure", [101325.0, 0.0, 80000.0], "pressure values must be positive"),
+        (
+            "pressure",
+            [101325.0, 80000.0, 90000.0],
+            "pressure must decrease strictly",
+        ),
+        ("temperature", [288.0, 0.0, 275.0], "temperature values must be positive"),
+    ],
+)
+def test_create_ensemble_rejects_invalid_profile_values(
+    tmp_path, variable, values, match
+):
+    """Reject nonphysical pressure and temperature profile values."""
+    # Arrange
+    profiles = _user_defined_ensemble_profiles()
+    profiles[0][variable][:, 1] = values
+    env = Environment(date=(2025, 6, 1, 12), latitude=32.99, longitude=-106.97)
+
+    # Act / Assert
+    with pytest.raises(ValueError, match=match):
+        env.create_ensemble(profiles, file_name=tmp_path / "invalid_values.nc")
+
+
+@pytest.mark.parametrize(
+    "pressure_levels, error, match",
+    [
+        (["invalid", "values"], TypeError, "numeric array"),
+        ([[101325.0, 90000.0]], ValueError, "one-dimensional"),
+        ([101325.0, np.nan], ValueError, "finite, positive"),
+        ([101325.0, 101325.0], ValueError, "duplicates"),
+        ([90000.0], ValueError, "At least two pressure levels"),
+        ([110000.0, 90000.0], ValueError, "inside the pressure range"),
+    ],
+)
+def test_create_ensemble_rejects_invalid_pressure_levels(
+    tmp_path, pressure_levels, error, match
+):
+    """Reject explicit pressure grids that cannot be shared by all members."""
+    # Arrange
+    env = Environment(date=(2025, 6, 1, 12), latitude=32.99, longitude=-106.97)
+
+    # Act / Assert
+    with pytest.raises(error, match=match):
+        env.create_ensemble(
+            _user_defined_ensemble_profiles(),
+            file_name=tmp_path / "invalid_levels.nc",
+            pressure_levels=pressure_levels,
+        )
+
+
+def test_create_ensemble_rejects_profiles_without_height_coverage(tmp_path):
+    """Require every variable to span the common pressure-grid heights."""
+    # Arrange
+    profiles = _user_defined_ensemble_profiles()
+    profiles[0]["temperature"] = profiles[0]["temperature"][1:]
+    env = Environment(date=(2025, 6, 1, 12), latitude=32.99, longitude=-106.97)
+
+    # Act / Assert
+    with pytest.raises(ValueError, match="temperature.*does not cover all heights"):
+        env.create_ensemble(profiles, file_name=tmp_path / "incomplete_height.nc")
+
+
+def test_create_ensemble_rejects_heights_below_earth_center(tmp_path):
+    """Reject geometric heights at or below the coordinate singularity."""
+    # Arrange
+    env = Environment(date=(2025, 6, 1, 12), latitude=32.99, longitude=-106.97)
+    profiles = _user_defined_ensemble_profiles()
+    invalid_heights = np.array(
+        [-env.earth_radius - 2000, -env.earth_radius - 1000, -env.earth_radius - 1]
+    )
+    for member in profiles:
+        for source in member.values():
+            source[:, 0] = invalid_heights
+
+    # Act / Assert
+    with pytest.raises(ValueError, match="greater than -Earth's radius"):
+        env.create_ensemble(profiles, file_name=tmp_path / "invalid_height.nc")
+
+
+def test_create_ensemble_rejects_invalid_file_name():
+    """Require the NetCDF output name to implement the path protocol."""
+    # Arrange
+    env = Environment(date=(2025, 6, 1, 12), latitude=32.99, longitude=-106.97)
+
+    # Act / Assert
+    with pytest.raises(TypeError, match="string or path-like"):
+        env.create_ensemble(_user_defined_ensemble_profiles(), file_name=object())
 
 
 class DummyLambertProjection:
