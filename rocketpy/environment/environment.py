@@ -2837,7 +2837,308 @@ class Environment:
             raise ValueError(f"Member {member} '{variable}' heights must be unique.")
         return profile
 
-    def create_ensemble(  # pylint: disable=too-many-branches,too-many-locals,too-many-statements
+    def _prepare_ensemble_profiles(self, profiles):
+        """Validate and normalize every user-defined ensemble member."""
+        if isinstance(profiles, (str, bytes, Mapping)):
+            raise TypeError("'profiles' must be a sequence of member mappings.")
+        try:
+            profiles = list(profiles)
+        except TypeError as exc:
+            raise TypeError(
+                "'profiles' must be a sequence of member mappings."
+            ) from exc
+        if len(profiles) < 2:
+            raise ValueError("At least two atmospheric profiles are required.")
+
+        required_variables = ("pressure", "temperature", "wind_u", "wind_v")
+        members = []
+        for member_index, member in enumerate(profiles):
+            if not isinstance(member, Mapping):
+                raise TypeError(
+                    f"Member {member_index} must be a mapping of profile names "
+                    "to two-column arrays."
+                )
+            missing = [name for name in required_variables if name not in member]
+            if missing:
+                raise ValueError(
+                    f"Member {member_index} is missing required profile(s): "
+                    f"{', '.join(missing)}."
+                )
+
+            prepared = {
+                variable: self._prepare_ensemble_profile_source(
+                    member[variable], variable, member_index
+                )
+                for variable in required_variables
+            }
+            pressure = prepared["pressure"][:, 1]
+            if np.any(pressure <= 0):
+                raise ValueError(
+                    f"Member {member_index} pressure values must be positive."
+                )
+            if np.any(np.diff(pressure) >= 0):
+                raise ValueError(
+                    f"Member {member_index} pressure must decrease strictly "
+                    "with increasing height."
+                )
+            if np.any(prepared["temperature"][:, 1] <= 0):
+                raise ValueError(
+                    f"Member {member_index} temperature values must be positive."
+                )
+            members.append(prepared)
+        return members
+
+    @staticmethod
+    def _prepare_ensemble_pressure_levels(members, pressure_levels):
+        """Return a valid pressure grid shared by every ensemble member."""
+        common_min_pressure = max(member["pressure"][-1, 1] for member in members)
+        common_max_pressure = min(member["pressure"][0, 1] for member in members)
+        if common_min_pressure >= common_max_pressure:
+            raise ValueError("Ensemble members have no common pressure range.")
+
+        if pressure_levels is None:
+            common_levels = np.concatenate(
+                [member["pressure"][:, 1] for member in members]
+            )
+            common_levels = common_levels[
+                (common_levels >= common_min_pressure)
+                & (common_levels <= common_max_pressure)
+            ]
+            pressure_levels = np.unique(common_levels)[::-1]
+        else:
+            try:
+                pressure_levels = np.asarray(pressure_levels, dtype=float)
+            except (TypeError, ValueError) as exc:
+                raise TypeError("'pressure_levels' must be a numeric array.") from exc
+            if pressure_levels.ndim != 1:
+                raise ValueError("'pressure_levels' must be one-dimensional.")
+            if not np.all(np.isfinite(pressure_levels)) or np.any(pressure_levels <= 0):
+                raise ValueError(
+                    "'pressure_levels' must contain only finite, positive values."
+                )
+            if len(np.unique(pressure_levels)) != len(pressure_levels):
+                raise ValueError("'pressure_levels' must not contain duplicates.")
+            pressure_levels = np.sort(pressure_levels)[::-1]
+
+        if len(pressure_levels) < 2:
+            raise ValueError(
+                "At least two pressure levels inside the common range are required."
+            )
+        if (
+            pressure_levels[-1] < common_min_pressure
+            or pressure_levels[0] > common_max_pressure
+        ):
+            raise ValueError(
+                "'pressure_levels' must stay inside the pressure range shared "
+                "by every member."
+            )
+        return pressure_levels
+
+    def _interpolate_ensemble_profiles(self, members, pressure_levels):
+        """Interpolate ensemble members onto their common pressure grid."""
+        value_variables = ("temperature", "wind_u", "wind_v")
+        member_heights = []
+        member_values = {name: [] for name in value_variables}
+        for member_index, member in enumerate(members):
+            pressure_profile = member["pressure"]
+            heights = np.interp(
+                pressure_levels,
+                pressure_profile[::-1, 1],
+                pressure_profile[::-1, 0],
+            )
+            member_heights.append(heights)
+
+            for variable in value_variables:
+                profile = member[variable]
+                if heights[0] < profile[0, 0] or heights[-1] > profile[-1, 0]:
+                    raise ValueError(
+                        f"Member {member_index} '{variable}' does not cover all "
+                        "heights in the common pressure range."
+                    )
+                member_values[variable].append(
+                    np.interp(heights, profile[:, 0], profile[:, 1])
+                )
+
+        geometric_heights = np.asarray(member_heights)
+        if np.any(geometric_heights <= -self.earth_radius):
+            raise ValueError("Profile heights must be greater than -Earth's radius.")
+        geopotential_heights = (
+            self.earth_radius
+            * geometric_heights
+            / (self.earth_radius + geometric_heights)
+        )
+        return geopotential_heights, member_values
+
+    @staticmethod
+    def _prepare_ensemble_file_path(file_name, overwrite):
+        """Normalize the output path and protect existing files."""
+        try:
+            file_path = os.fspath(file_name)
+        except TypeError as exc:
+            raise TypeError(
+                "'file_name' must be a string or path-like object."
+            ) from exc
+        if not file_path.lower().endswith(".nc"):
+            file_path += ".nc"
+        file_path = os.path.abspath(file_path)
+        if os.path.exists(file_path) and not overwrite:
+            raise FileExistsError(
+                f"'{file_path}' already exists. Pass overwrite=True to replace it."
+            )
+        return file_path
+
+    def _create_ensemble_time_coordinate(self, dataset):
+        """Create the valid-time coordinate for an ensemble dataset."""
+        time = dataset.createVariable("time", "f8", ("time",))
+        time.long_name = "profile valid time"
+        time.standard_name = "time"
+        time.units = (
+            f"hours since {self.datetime_date.strftime('%Y-%m-%d %H:%M:%S')} UTC"
+        )
+        time.calendar = "gregorian"
+        time.axis = "T"
+        time[:] = [0]
+
+    @staticmethod
+    def _create_ensemble_member_and_level_coordinates(
+        dataset, member_count, pressure_levels
+    ):
+        """Create the ensemble-member and pressure-level coordinates."""
+        ensemble = dataset.createVariable("ens", "i4", ("ens",))
+        ensemble.long_name = "ensemble member"
+        ensemble.units = "1"
+        ensemble[:] = np.arange(member_count)
+
+        level = dataset.createVariable("lev", "f8", ("lev",))
+        level.long_name = "pressure level"
+        level.standard_name = "air_pressure"
+        level.units = "hPa"
+        level.positive = "down"
+        level.axis = "Z"
+        level[:] = pressure_levels / 100
+
+    @staticmethod
+    def _create_ensemble_spatial_coordinates(
+        dataset, latitude_bounds, longitude_bounds
+    ):
+        """Create latitude and longitude coordinates for an ensemble dataset."""
+        latitude = dataset.createVariable("lat", "f8", ("lat",))
+        latitude.long_name = "latitude"
+        latitude.standard_name = "latitude"
+        latitude.units = "degrees_north"
+        latitude.axis = "Y"
+        latitude[:] = latitude_bounds
+
+        longitude = dataset.createVariable("lon", "f8", ("lon",))
+        longitude.long_name = "longitude"
+        longitude.standard_name = "longitude"
+        longitude.units = "degrees_east"
+        longitude.axis = "X"
+        longitude[:] = longitude_bounds
+
+    def _create_ensemble_coordinates(self, dataset, member_count, pressure_levels):
+        """Create dimensions and coordinate variables for an ensemble dataset."""
+        latitude_bounds = np.array(
+            [max(-90, self.latitude - 0.01), min(90, self.latitude + 0.01)]
+        )
+        grid_longitude = 0 if self.longitude == 360 else self.longitude
+        longitude_bounds = np.array(
+            [
+                max(-180, grid_longitude - 0.01),
+                min(360, grid_longitude + 0.01),
+            ]
+        )
+
+        dataset.createDimension("time", 1)
+        dataset.createDimension("ens", member_count)
+        dataset.createDimension("lev", len(pressure_levels))
+        dataset.createDimension("lat", len(latitude_bounds))
+        dataset.createDimension("lon", len(longitude_bounds))
+
+        self._create_ensemble_time_coordinate(dataset)
+        self._create_ensemble_member_and_level_coordinates(
+            dataset, member_count, pressure_levels
+        )
+        self._create_ensemble_spatial_coordinates(
+            dataset, latitude_bounds, longitude_bounds
+        )
+
+        return (
+            1,
+            member_count,
+            len(pressure_levels),
+            len(latitude_bounds),
+            len(longitude_bounds),
+        )
+
+    @staticmethod
+    def _create_ensemble_data_variables(
+        dataset, data_shape, geopotential_heights, member_values
+    ):
+        """Create and populate the atmospheric variables in an ensemble dataset."""
+        variables = {
+            "hgtprs": (
+                geopotential_heights,
+                "geopotential height",
+                "geopotential_height",
+                "m",
+            ),
+            "tmpprs": (
+                np.asarray(member_values["temperature"]),
+                "air temperature",
+                "air_temperature",
+                "K",
+            ),
+            "ugrdprs": (
+                np.asarray(member_values["wind_u"]),
+                "eastward wind",
+                "eastward_wind",
+                "m s-1",
+            ),
+            "vgrdprs": (
+                np.asarray(member_values["wind_v"]),
+                "northward wind",
+                "northward_wind",
+                "m s-1",
+            ),
+        }
+        dimensions = ("time", "ens", "lev", "lat", "lon")
+        for name, (values, long_name, standard_name, units) in variables.items():
+            variable = dataset.createVariable(
+                name, "f8", dimensions, zlib=True, complevel=4
+            )
+            variable.long_name = long_name
+            variable.standard_name = standard_name
+            variable.units = units
+            variable.coordinates = "time ens lev lat lon"
+            variable[:] = np.broadcast_to(values[None, :, :, None, None], data_shape)
+
+    def _write_ensemble_file(
+        self, file_path, pressure_levels, geopotential_heights, member_values
+    ):
+        """Write prepared ensemble data to a GEFS-compatible NetCDF file."""
+        with netCDF4.Dataset(file_path, "w", format="NETCDF4") as dataset:
+            dataset.Conventions = "CF-1.8"
+            dataset.title = "RocketPy user-defined atmospheric ensemble"
+            dataset.source = "RocketPy Environment.create_ensemble"
+            dataset.history = (
+                f"Created {datetime.now(tz=pytz.UTC).isoformat()} by RocketPy"
+            )
+            dataset.comment = (
+                "Profiles are spatially constant across the 2 x 2 grid "
+                "surrounding the launch coordinates."
+            )
+            dataset.launch_latitude = self.latitude
+            dataset.launch_longitude = self.longitude
+
+            data_shape = self._create_ensemble_coordinates(
+                dataset, len(geopotential_heights), pressure_levels
+            )
+            self._create_ensemble_data_variables(
+                dataset, data_shape, geopotential_heights, member_values
+            )
+
+    def create_ensemble(
         self,
         profiles,
         file_name="custom_ensemble.nc",
@@ -2892,255 +3193,17 @@ class Environment:
         :meth:`Environment.select_ensemble_member` to activate another member.
         """
         self.__validate_datetime()
-
-        if isinstance(profiles, (str, bytes, Mapping)):
-            raise TypeError("'profiles' must be a sequence of member mappings.")
-        try:
-            profiles = list(profiles)
-        except TypeError as exc:
-            raise TypeError(
-                "'profiles' must be a sequence of member mappings."
-            ) from exc
-        if len(profiles) < 2:
-            raise ValueError("At least two atmospheric profiles are required.")
-
-        required_variables = ("pressure", "temperature", "wind_u", "wind_v")
-        members = []
-        for member_index, member in enumerate(profiles):
-            if not isinstance(member, Mapping):
-                raise TypeError(
-                    f"Member {member_index} must be a mapping of profile names "
-                    "to two-column arrays."
-                )
-            missing = [name for name in required_variables if name not in member]
-            if missing:
-                raise ValueError(
-                    f"Member {member_index} is missing required profile(s): "
-                    f"{', '.join(missing)}."
-                )
-
-            prepared = {
-                variable: self._prepare_ensemble_profile_source(
-                    member[variable], variable, member_index
-                )
-                for variable in required_variables
-            }
-            pressure = prepared["pressure"][:, 1]
-            if np.any(pressure <= 0):
-                raise ValueError(
-                    f"Member {member_index} pressure values must be positive."
-                )
-            if np.any(np.diff(pressure) >= 0):
-                raise ValueError(
-                    f"Member {member_index} pressure must decrease strictly "
-                    "with increasing height."
-                )
-            if np.any(prepared["temperature"][:, 1] <= 0):
-                raise ValueError(
-                    f"Member {member_index} temperature values must be positive."
-                )
-            members.append(prepared)
-
-        common_min_pressure = max(member["pressure"][-1, 1] for member in members)
-        common_max_pressure = min(member["pressure"][0, 1] for member in members)
-        if common_min_pressure >= common_max_pressure:
-            raise ValueError("Ensemble members have no common pressure range.")
-
-        if pressure_levels is None:
-            common_levels = np.concatenate(
-                [member["pressure"][:, 1] for member in members]
-            )
-            common_levels = common_levels[
-                (common_levels >= common_min_pressure)
-                & (common_levels <= common_max_pressure)
-            ]
-            pressure_levels = np.unique(common_levels)[::-1]
-        else:
-            try:
-                pressure_levels = np.asarray(pressure_levels, dtype=float)
-            except (TypeError, ValueError) as exc:
-                raise TypeError("'pressure_levels' must be a numeric array.") from exc
-            if pressure_levels.ndim != 1:
-                raise ValueError("'pressure_levels' must be one-dimensional.")
-            if not np.all(np.isfinite(pressure_levels)) or np.any(pressure_levels <= 0):
-                raise ValueError(
-                    "'pressure_levels' must contain only finite, positive values."
-                )
-            if len(np.unique(pressure_levels)) != len(pressure_levels):
-                raise ValueError("'pressure_levels' must not contain duplicates.")
-            pressure_levels = np.sort(pressure_levels)[::-1]
-
-        if len(pressure_levels) < 2:
-            raise ValueError(
-                "At least two pressure levels inside the common range are required."
-            )
-        if (
-            pressure_levels[-1] < common_min_pressure
-            or pressure_levels[0] > common_max_pressure
-        ):
-            raise ValueError(
-                "'pressure_levels' must stay inside the pressure range shared "
-                "by every member."
-            )
-
-        member_heights = []
-        member_values = {name: [] for name in required_variables[1:]}
-        for member_index, member in enumerate(members):
-            pressure_profile = member["pressure"]
-            heights = np.interp(
-                pressure_levels,
-                pressure_profile[::-1, 1],
-                pressure_profile[::-1, 0],
-            )
-            member_heights.append(heights)
-
-            for variable in required_variables[1:]:
-                profile = member[variable]
-                if heights[0] < profile[0, 0] or heights[-1] > profile[-1, 0]:
-                    raise ValueError(
-                        f"Member {member_index} '{variable}' does not cover all "
-                        "heights in the common pressure range."
-                    )
-                member_values[variable].append(
-                    np.interp(heights, profile[:, 0], profile[:, 1])
-                )
-
-        geometric_heights = np.asarray(member_heights)
-        if np.any(geometric_heights <= -self.earth_radius):
-            raise ValueError("Profile heights must be greater than -Earth's radius.")
-        geopotential_heights = (
-            self.earth_radius
-            * geometric_heights
-            / (self.earth_radius + geometric_heights)
+        members = self._prepare_ensemble_profiles(profiles)
+        pressure_levels = self._prepare_ensemble_pressure_levels(
+            members, pressure_levels
         )
-
-        try:
-            file_path = os.fspath(file_name)
-        except TypeError as exc:
-            raise TypeError(
-                "'file_name' must be a string or path-like object."
-            ) from exc
-        if not file_path.lower().endswith(".nc"):
-            file_path += ".nc"
-        file_path = os.path.abspath(file_path)
-        if os.path.exists(file_path) and not overwrite:
-            raise FileExistsError(
-                f"'{file_path}' already exists. Pass overwrite=True to replace it."
-            )
-
-        latitude_bounds = np.array(
-            [max(-90, self.latitude - 0.01), min(90, self.latitude + 0.01)]
+        geopotential_heights, member_values = self._interpolate_ensemble_profiles(
+            members, pressure_levels
         )
-        grid_longitude = 0 if self.longitude == 360 else self.longitude
-        longitude_bounds = np.array(
-            [
-                max(-180, grid_longitude - 0.01),
-                min(360, grid_longitude + 0.01),
-            ]
+        file_path = self._prepare_ensemble_file_path(file_name, overwrite)
+        self._write_ensemble_file(
+            file_path, pressure_levels, geopotential_heights, member_values
         )
-        data_shape = (
-            1,
-            len(members),
-            len(pressure_levels),
-            len(latitude_bounds),
-            len(longitude_bounds),
-        )
-
-        with netCDF4.Dataset(file_path, "w", format="NETCDF4") as dataset:
-            dataset.Conventions = "CF-1.8"
-            dataset.title = "RocketPy user-defined atmospheric ensemble"
-            dataset.source = "RocketPy Environment.create_ensemble"
-            dataset.history = (
-                f"Created {datetime.now(tz=pytz.UTC).isoformat()} by RocketPy"
-            )
-            dataset.comment = (
-                "Profiles are spatially constant across the 2 x 2 grid "
-                "surrounding the launch coordinates."
-            )
-            dataset.launch_latitude = self.latitude
-            dataset.launch_longitude = self.longitude
-
-            dataset.createDimension("time", 1)
-            dataset.createDimension("ens", len(members))
-            dataset.createDimension("lev", len(pressure_levels))
-            dataset.createDimension("lat", len(latitude_bounds))
-            dataset.createDimension("lon", len(longitude_bounds))
-
-            time = dataset.createVariable("time", "f8", ("time",))
-            time.long_name = "profile valid time"
-            time.standard_name = "time"
-            time.units = (
-                f"hours since {self.datetime_date.strftime('%Y-%m-%d %H:%M:%S')} UTC"
-            )
-            time.calendar = "gregorian"
-            time.axis = "T"
-            time[:] = [0]
-
-            ensemble = dataset.createVariable("ens", "i4", ("ens",))
-            ensemble.long_name = "ensemble member"
-            ensemble.units = "1"
-            ensemble[:] = np.arange(len(members))
-
-            level = dataset.createVariable("lev", "f8", ("lev",))
-            level.long_name = "pressure level"
-            level.standard_name = "air_pressure"
-            level.units = "hPa"
-            level.positive = "down"
-            level.axis = "Z"
-            level[:] = pressure_levels / 100
-
-            latitude = dataset.createVariable("lat", "f8", ("lat",))
-            latitude.long_name = "latitude"
-            latitude.standard_name = "latitude"
-            latitude.units = "degrees_north"
-            latitude.axis = "Y"
-            latitude[:] = latitude_bounds
-
-            longitude = dataset.createVariable("lon", "f8", ("lon",))
-            longitude.long_name = "longitude"
-            longitude.standard_name = "longitude"
-            longitude.units = "degrees_east"
-            longitude.axis = "X"
-            longitude[:] = longitude_bounds
-
-            dimensions = ("time", "ens", "lev", "lat", "lon")
-            variables = {
-                "hgtprs": (
-                    geopotential_heights,
-                    "geopotential height",
-                    "geopotential_height",
-                    "m",
-                ),
-                "tmpprs": (
-                    np.asarray(member_values["temperature"]),
-                    "air temperature",
-                    "air_temperature",
-                    "K",
-                ),
-                "ugrdprs": (
-                    np.asarray(member_values["wind_u"]),
-                    "eastward wind",
-                    "eastward_wind",
-                    "m s-1",
-                ),
-                "vgrdprs": (
-                    np.asarray(member_values["wind_v"]),
-                    "northward wind",
-                    "northward_wind",
-                    "m s-1",
-                ),
-            }
-            for name, (values, long_name, standard_name, units) in variables.items():
-                variable = dataset.createVariable(
-                    name, "f8", dimensions, zlib=True, complevel=4
-                )
-                variable.long_name = long_name
-                variable.standard_name = standard_name
-                variable.units = units
-                variable.coordinates = "time ens lev lat lon"
-                variable[:] = np.broadcast_to(
-                    values[None, :, :, None, None], data_shape
-                )
 
         self.set_atmospheric_model(type="Ensemble", file=file_path, dictionary="GEFS")
         logger.info("Atmospheric ensemble saved at '%s'.", file_path)
