@@ -20,6 +20,78 @@ forecast and obtain a range of possible outcomes.
 Ensemble Forecast
 -----------------
 
+Creating a Custom Ensemble
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Use :meth:`rocketpy.Environment.create_ensemble` to combine two or more
+atmospheric profiles for one location. Each member is a mapping with
+``pressure``, ``temperature``, ``wind_u`` and ``wind_v`` profiles. Each profile
+is a two-column array: the first column is geometric height above sea level in
+meters, and the second column uses Pa for pressure, K for temperature and m/s
+for either wind component.
+
+The pressure profiles determine a common isobaric grid. Temperature and wind
+are interpolated onto that grid, then written to a GEFS-compatible NetCDF file.
+Every pressure profile must overlap the others and decrease with height.
+
+.. code-block:: python
+
+    import numpy as np
+
+    from rocketpy import Environment
+
+    env = Environment(
+        date=(2026, 9, 1, 12),
+        latitude=32.990254,
+        longitude=-106.974998,
+        elevation=1400,
+    )
+
+    pressure = np.array([85000, 70000, 50000])  # Pa
+    height_0 = np.array([1500, 3000, 5500])  # m ASL
+    height_1 = np.array([1550, 3100, 5650])  # m ASL
+
+    profiles = [
+        {
+            "pressure": np.column_stack((height_0, pressure)),
+            "temperature": np.column_stack((height_0, [278, 268, 250])),
+            "wind_u": np.column_stack((height_0, [2, 5, 9])),
+            "wind_v": np.column_stack((height_0, [-1, 1, 4])),
+        },
+        {
+            "pressure": np.column_stack((height_1, pressure)),
+            "temperature": np.column_stack((height_1, [280, 269, 251])),
+            "wind_u": np.column_stack((height_1, [4, 7, 12])),
+            "wind_v": np.column_stack((height_1, [0, 2, 6])),
+        },
+    ]
+
+    ensemble_file = env.create_ensemble(profiles, "my_ensemble.nc")
+
+The method activates member 0 after writing the file. Select another member
+with the same method used for forecast ensembles:
+
+.. code-block:: python
+
+    env.select_ensemble_member(1)
+
+Another Environment can load the returned file with the ``GEFS`` mapping:
+
+.. code-block:: python
+
+    saved_env = Environment(
+        date=(2026, 9, 1, 12),
+        latitude=32.990254,
+        longitude=-106.974998,
+        elevation=1400,
+    )
+    saved_env.set_atmospheric_model(
+        type="Ensemble",
+        file=ensemble_file,
+        dictionary="GEFS",
+    )
+
+
 Global Ensemble Forecast System (GEFS)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

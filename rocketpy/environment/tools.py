@@ -730,8 +730,12 @@ def get_interval_date_from_time_array(time_array, units=None):
     Returns
     -------
     int
-        The interval in hours between two times in the time array.
+        The interval in hours between times in the array, or 0 when the array
+        contains a single time.
     """
+    if len(time_array) < 2:
+        return 0
+
     units = units or time_array.units
     return netCDF4.num2date(
         (time_array[-1] - time_array[0]) / (len(time_array) - 1),

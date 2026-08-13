@@ -4,6 +4,7 @@ from datetime import datetime
 
 import numpy as np
 import numpy.testing as npt
+import netCDF4
 import pytest
 import pytz
 
@@ -14,12 +15,137 @@ from rocketpy.environment.tools import (
     geodesic_to_utm,
     get_final_date_from_time_array,
     get_initial_date_from_time_array,
+    get_interval_date_from_time_array,
     get_pressure_levels_from_file,
     pressure_unit_to_factor,
     utm_to_geodesic,
 )
 from rocketpy.environment.weather_model_mapping import WeatherModelMapping
 from rocketpy.tools import geopotential_height_to_geometric_height
+
+
+def _user_defined_ensemble_profiles():
+    """Return two members with a shared isobaric grid."""
+    pressure = np.array([101325.0, 90000.0, 80000.0])
+    member_0_height = np.array([0.0, 1000.0, 2000.0])
+    member_1_height = np.array([100.0, 1100.0, 2100.0])
+    return [
+        {
+            "pressure": np.column_stack((member_0_height, pressure)),
+            "temperature": np.column_stack((member_0_height, [288.0, 281.0, 275.0])),
+            "wind_u": np.column_stack((member_0_height, [1.0, 2.0, 3.0])),
+            "wind_v": np.column_stack((member_0_height, [-1.0, -2.0, -3.0])),
+        },
+        {
+            "pressure": np.column_stack((member_1_height, pressure)),
+            "temperature": np.column_stack((member_1_height, [290.0, 283.0, 277.0])),
+            "wind_u": np.column_stack((member_1_height, [4.0, 5.0, 6.0])),
+            "wind_v": np.column_stack((member_1_height, [-4.0, -5.0, -6.0])),
+        },
+    ]
+
+
+def test_time_array_interval_helper_accepts_a_single_time():
+    """A static user ensemble has no forecast interval."""
+
+    class SingleTimeArray:
+        """Minimal single-value NetCDF-like time coordinate."""
+
+        units = "hours since 2025-06-01 12:00:00"
+
+        def __len__(self):
+            return 1
+
+    assert get_interval_date_from_time_array(SingleTimeArray()) == 0
+
+
+def test_create_ensemble_exports_and_activates_profiles(tmp_path):
+    """Export user profiles and expose each member through Environment."""
+    # Arrange
+    env = Environment(
+        date=(2025, 6, 1, 12),
+        latitude=32.99,
+        longitude=-106.97,
+        elevation=0,
+    )
+    output = tmp_path / "test_ensemble"
+
+    # Act
+    file_path = env.create_ensemble(_user_defined_ensemble_profiles(), file_name=output)
+
+    # Assert
+    assert file_path == str(output) + ".nc"
+    assert env.atmospheric_model_type == "Ensemble"
+    assert env.num_ensemble_members == 2
+    assert env.ensemble_member == 0
+    assert env.pressure(1000) == pytest.approx(90000)
+    assert env.temperature(1000) == pytest.approx(281)
+    assert env.wind_velocity_x(1000) == pytest.approx(2)
+
+    env.select_ensemble_member(1)
+    assert env.pressure(1100) == pytest.approx(90000)
+    assert env.temperature(1100) == pytest.approx(283)
+    assert env.wind_velocity_x(1100) == pytest.approx(5)
+    assert env.wind_velocity_y(1100) == pytest.approx(-5)
+
+    with netCDF4.Dataset(file_path) as dataset:
+        assert dataset.Conventions == "CF-1.8"
+        assert dataset.source == "RocketPy Environment.create_ensemble"
+        assert dataset.variables["time"].long_name == "profile valid time"
+        assert {
+            name: len(dataset.dimensions[name]) for name in ("ens", "lev", "time")
+        } == {"ens": 2, "lev": 3, "time": 1}
+        assert dataset.variables["lev"].units == "hPa"
+        assert dataset.variables["tmpprs"].standard_name == "air_temperature"
+        npt.assert_allclose(dataset.variables["lev"][:], [1013.25, 900, 800])
+
+
+def test_create_ensemble_file_round_trip(tmp_path):
+    """Reload the exported file using the existing GEFS ensemble mapping."""
+    # Arrange
+    source_env = Environment(date=(2025, 6, 1, 12), latitude=32.99, longitude=-106.97)
+    file_path = source_env.create_ensemble(
+        _user_defined_ensemble_profiles(), file_name=tmp_path / "round_trip.nc"
+    )
+    loaded_env = Environment(date=(2025, 6, 1, 12), latitude=32.99, longitude=-106.97)
+
+    # Act
+    loaded_env.set_atmospheric_model(type="Ensemble", file=file_path, dictionary="GEFS")
+    loaded_env.select_ensemble_member(1)
+
+    # Assert
+    assert loaded_env.num_ensemble_members == 2
+    assert loaded_env.pressure(1100) == pytest.approx(90000)
+    assert loaded_env.temperature(1100) == pytest.approx(283)
+    assert loaded_env.wind_velocity_x(1100) == pytest.approx(5)
+    assert loaded_env.wind_velocity_y(1100) == pytest.approx(-5)
+
+
+def test_create_ensemble_rejects_non_overlapping_pressure_profiles(tmp_path):
+    """Reject members that cannot be sampled on a common pressure grid."""
+    # Arrange
+    profiles = _user_defined_ensemble_profiles()
+    heights = profiles[1]["pressure"][:, 0]
+    profiles[1]["pressure"] = np.column_stack((heights, [70000.0, 60000.0, 50000.0]))
+
+    env = Environment(date=(2025, 6, 1, 12), latitude=32.99, longitude=-106.97)
+
+    # Act / Assert
+    with pytest.raises(ValueError, match="no common pressure range"):
+        env.create_ensemble(profiles, file_name=tmp_path / "invalid.nc")
+
+
+def test_create_ensemble_does_not_overwrite_by_default(tmp_path):
+    """Preserve an existing ensemble file unless overwrite is explicit."""
+    # Arrange
+    env = Environment(date=(2025, 6, 1, 12), latitude=32.99, longitude=-106.97)
+    file_path = env.create_ensemble(
+        _user_defined_ensemble_profiles(), file_name=tmp_path / "existing.nc"
+    )
+
+    # Act / Assert
+    with pytest.raises(FileExistsError, match="overwrite=True"):
+        env.create_ensemble(_user_defined_ensemble_profiles(), file_name=file_path)
 
 
 class DummyLambertProjection:
