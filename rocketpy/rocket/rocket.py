@@ -27,6 +27,7 @@ from rocketpy.rocket.aero_surface import (
     RailButtons,
     Tail,
     TrapezoidalFins,
+    TubeFins,
 )
 from rocketpy.rocket.aero_surface.fins.elliptical_fin import EllipticalFin
 from rocketpy.rocket.aero_surface.fins.free_form_fin import FreeFormFin
@@ -489,6 +490,11 @@ class Rocket:
     def fins(self):
         """A list containing all the fins currently added to the rocket."""
         return self.aerodynamic_surfaces.get_by_type(Fins)
+
+    @property
+    def tube_fins(self):
+        """A list containing all tube-fin sets currently added to the rocket."""
+        return self.aerodynamic_surfaces.get_by_type(TubeFins)
 
     @property
     def tails(self):
@@ -1190,6 +1196,7 @@ class Rocket:
             For Fins type, position refers to the z-coordinate of the root
             chord leading-edge point closest to the nose cone, before any
             cant-angle offset is considered.
+            For TubeFins type, position refers to the leading edge of the tubes.
             For Tail type, position is relative to the point belonging to the
             tail which is highest in the rocket coordinate system.
             For RailButtons type, position is relative to the lower rail button.
@@ -1632,6 +1639,67 @@ class Rocket:
         # Add fin set to the list of aerodynamic surfaces
         self.add_surfaces(fin_set, position)
         return fin_set
+
+    def add_tube_fins(
+        self,
+        n,
+        length,
+        inner_radius,
+        outer_radius,
+        position,
+        radius=None,
+        name="Tube Fins",
+    ):
+        """Create and add a symmetric set of tube fins to the rocket.
+
+        This first-order model uses the Ribner ring-airfoil normal-force slope
+        and a fixed quarter-chord center of pressure. It is intended for Mach
+        numbers up to 0.5 and angles of attack up to 20 degrees.
+
+        Parameters
+        ----------
+        n : int
+            Number of tubes. Must be at least 3.
+        length : int, float
+            Tube length along the rocket axis, in meters.
+        inner_radius : int, float
+            Inner radius of each tube, in meters.
+        outer_radius : int, float
+            Outer radius of each tube, in meters. The current model requires
+            neighboring tubes to touch, so this must equal
+            ``radius * sin(pi / n) / (1 - sin(pi / n))``.
+        position : int, float
+            Axial position of the tube leading edges in the user-defined rocket
+            coordinate system.
+        radius : int, float, optional
+            Rocket-body radius where the tubes are mounted. If ``None``, the
+            rocket radius is used.
+        name : str, optional
+            Name of the tube-fin set. Default is ``"Tube Fins"``.
+
+        Returns
+        -------
+        TubeFins
+            Tube-fin set created and added to the rocket.
+
+        Notes
+        -----
+        Only uncanted, mutually tangent tubes are supported. Component drag,
+        roll, side-force, yaw, separated tubes, and overlapping tubes are not
+        included in this model. Tube-fin drag must be represented in the
+        rocket's power-on and power-off drag curves.
+        """
+        radius = self.radius if radius is None else radius
+        tube_fins = TubeFins(
+            n=n,
+            length=length,
+            inner_radius=inner_radius,
+            outer_radius=outer_radius,
+            rocket_radius=radius,
+            name=name,
+        )
+        self.add_surfaces(tube_fins, position)
+        return tube_fins
 
     def add_parachute(
         self,
