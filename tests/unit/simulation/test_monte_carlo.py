@@ -663,16 +663,23 @@ def test_simulate_refuses_a_results_file_it_cannot_write(
     assert results.read_bytes() == before
 
 
+def _three_logs(tmp_path):
+    """Three distinct, acceptable working logs."""
+    return [
+        str(tmp_path / f"run.{part}.txt") for part in ("inputs", "outputs", "errors")
+    ]
+
+
 def test_simulation_log_check_names_the_file_that_is_wrong(tmp_path):
     """The message says which of the three paths has to change."""
-    good = str(tmp_path / "run.txt")
+    good = _three_logs(tmp_path)
 
-    _refuse_logs_this_run_cannot_write(good, good, good)  # canonical, no raise
+    _refuse_logs_this_run_cannot_write(*good)  # canonical, no raise
 
     for label, args in (
-        ("input_file", (str(tmp_path / "a.csv"), good, good)),
-        ("output_file", (good, str(tmp_path / "b.json"), good)),
-        ("error_file", (good, good, str(tmp_path / "c.csv"))),
+        ("input_file", (str(tmp_path / "a.csv"), good[1], good[2])),
+        ("output_file", (good[0], str(tmp_path / "b.json"), good[2])),
+        ("error_file", (good[0], good[1], str(tmp_path / "c.csv"))),
     ):
         with pytest.raises(ValueError, match=label):
             _refuse_logs_this_run_cannot_write(*args)
@@ -680,5 +687,79 @@ def test_simulation_log_check_names_the_file_that_is_wrong(tmp_path):
 
 def test_simulation_log_check_accepts_an_uppercase_suffix(tmp_path):
     """A .TXT log is the same file to the filesystem, so it is accepted."""
-    upper = str(tmp_path / "run.TXT")
-    _refuse_logs_this_run_cannot_write(upper, upper, upper)
+    upper = [str(tmp_path / f"run.{part}.TXT") for part in ("in", "out", "err")]
+    _refuse_logs_this_run_cannot_write(*upper)
+
+
+def _three_logs(tmp_path):
+    """Three distinct, acceptable working logs."""
+    return [
+        str(tmp_path / f"run.{part}.txt") for part in ("inputs", "outputs", "errors")
+    ]
+
+
+def test_working_logs_must_be_three_different_files(tmp_path):
+    """``import_results`` points all three at one path, which cannot work.
+
+    A run appends input rows and output rows separately, so one shared log ends
+    up holding both and neither reader can make sense of it.
+    """
+    shared = str(tmp_path / "result.txt")
+
+    with pytest.raises(ValueError, match="same file"):
+        _refuse_logs_this_run_cannot_write(shared, shared, shared)
+
+
+@pytest.mark.parametrize("alias", ["dotdot", "symlink", "hardlink"])
+def test_a_log_named_two_ways_is_still_one_file(tmp_path, alias):
+    """Text comparison misses every way one file answers to two names."""
+    inputs, _, errors = _three_logs(tmp_path)
+    pathlib.Path(inputs).write_text("", encoding="utf-8")
+    (tmp_path / "sub").mkdir()
+
+    if alias == "dotdot":
+        other = str(tmp_path / "sub" / ".." / "run.inputs.txt")
+    else:
+        other = str(tmp_path / f"run.{alias}.txt")
+        try:
+            if alias == "symlink":
+                pathlib.Path(other).symlink_to(inputs)
+            else:
+                os.link(inputs, other)
+        except (OSError, NotImplementedError):
+            pytest.skip(f"{alias} not available on this filesystem")
+
+    with pytest.raises(ValueError, match="same file"):
+        _refuse_logs_this_run_cannot_write(inputs, other, errors)
+
+
+def test_three_separate_logs_are_accepted(tmp_path):
+    """The control: distinct .txt paths raise nothing."""
+    _refuse_logs_this_run_cannot_write(*_three_logs(tmp_path))
+
+
+@pytest.mark.parametrize("indent", [2, 0, ""])
+def test_an_indented_record_is_refused_before_anything_is_written(tmp_path, indent):
+    """``indent`` splits a record over lines the readers take one at a time.
+
+    Without this the run finished, then the completeness check called the file
+    it had just written damaged.
+    """
+    with pytest.raises(ValueError, match="indent"):
+        _refuse_logs_this_run_cannot_write(*_three_logs(tmp_path), {"indent": indent})
+
+
+def test_a_newline_in_the_separators_is_refused_too(tmp_path):
+    """The same hazard by another name."""
+    with pytest.raises(ValueError, match="separators"):
+        _refuse_logs_this_run_cannot_write(
+            *_three_logs(tmp_path), {"separators": (",\n", ": ")}
+        )
+
+
+@pytest.mark.parametrize(
+    "harmless", [{"indent": None}, {"sort_keys": True}, {"ensure_ascii": False}]
+)
+def test_export_options_that_keep_one_line_are_left_alone(tmp_path, harmless):
+    """Only what puts a newline inside a record is refused."""
+    _refuse_logs_this_run_cannot_write(*_three_logs(tmp_path), harmless)
