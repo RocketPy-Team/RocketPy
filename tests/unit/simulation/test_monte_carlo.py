@@ -763,3 +763,19 @@ def test_a_newline_in_the_separators_is_refused_too(tmp_path):
 def test_export_options_that_keep_one_line_are_left_alone(tmp_path, harmless):
     """Only what puts a newline inside a record is refused."""
     _refuse_logs_this_run_cannot_write(*_three_logs(tmp_path), harmless)
+
+
+def test_two_names_for_a_file_that_does_not_exist_yet_are_still_one_file(tmp_path):
+    """``samefile`` needs both to exist, and a first run has created neither.
+
+    Every other case here writes the file first, so the resolved-path branch
+    that a first run actually takes was never exercised.
+    """
+    (tmp_path / "sub").mkdir()
+    missing = str(tmp_path / "run.inputs.txt")
+    same_by_another_name = str(tmp_path / "sub" / ".." / "run.inputs.txt")
+    errors = str(tmp_path / "run.errors.txt")
+
+    assert not pathlib.Path(missing).exists()
+    with pytest.raises(ValueError, match="same file"):
+        _refuse_logs_this_run_cannot_write(missing, same_by_another_name, errors)
