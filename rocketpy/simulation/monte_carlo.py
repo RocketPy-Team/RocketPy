@@ -471,6 +471,19 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             initial_solution=self.flight.initial_solution,
             terminate_on_apogee=self.flight.terminate_on_apogee,
             time_overshoot=self.flight.time_overshoot,
+            # The rest of what StochasticFlight.create_object passes. Left out
+            # here, a run ignored the max_time, tolerances, solver, equations of
+            # motion and simulation mode the caller had set, which is what #1070
+            # added StochasticFlight's own handling of them for.
+            max_time=self.flight.max_time,
+            max_time_step=self.flight.obj.max_time_step,
+            min_time_step=self.flight.obj.min_time_step,
+            rtol=self.flight.obj.rtol,
+            atol=self.flight.obj.atol,
+            name=self.flight.obj.name,
+            equations_of_motion=self.flight.obj.equations_of_motion,
+            ode_solver=self.flight.obj.ode_solver,
+            simulation_mode=self.flight.obj.simulation_mode,
         )
 
     def estimate_confidence_interval(

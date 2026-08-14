@@ -1,6 +1,7 @@
 import csv
 import json
 import pathlib
+import types
 from collections import namedtuple
 
 import matplotlib as plt
@@ -550,3 +551,48 @@ def test_simulate_convergence_runs_until_max_when_not_converging():
     assert mc.num_of_loaded_sims == 200
     assert all(width > 0.5 for width in history)
     assert len(history) == 4  # 200 / 50 batches
+
+
+def test_a_monte_carlo_flight_keeps_the_configuration_it_was_given(monkeypatch):
+    """A run must build the same ``Flight`` ``StochasticFlight`` would.
+
+    Monte Carlo wrote out the constructor by hand and stopped at
+    ``time_overshoot``, so ``max_time``, the tolerances, the solver, the
+    equations of motion and the simulation mode were silently reset to their
+    defaults. #1070 added StochasticFlight's handling of exactly those.
+    """
+    base = types.SimpleNamespace(
+        max_time_step=0.5,
+        min_time_step=0.01,
+        rtol=1e-9,
+        atol=1e-9,
+        name="named",
+        equations_of_motion="solid_propulsion",
+        ode_solver="RK23",
+        simulation_mode="native",
+    )
+    stochastic_flight = types.SimpleNamespace(
+        obj=base,
+        max_time=123.0,
+        initial_solution=None,
+        terminate_on_apogee=True,
+        time_overshoot=False,
+        _randomize_rail_length=lambda: 5.0,
+        _randomize_inclination=lambda: 84.0,
+        _randomize_heading=lambda: 133.0,
+    )
+    analysis = object.__new__(MonteCarlo)
+    analysis.flight = stochastic_flight
+    analysis.rocket = types.SimpleNamespace(create_object=lambda: "rocket")
+    analysis.environment = types.SimpleNamespace(create_object=lambda: "environment")
+    monkeypatch.setattr("rocketpy.simulation.monte_carlo.Flight", types.SimpleNamespace)
+
+    flight = MonteCarlo._MonteCarlo__run_single_simulation(analysis)
+
+    assert flight.max_time == 123.0
+    assert (flight.rtol, flight.atol) == (1e-9, 1e-9)
+    assert (flight.max_time_step, flight.min_time_step) == (0.5, 0.01)
+    assert flight.ode_solver == "RK23"
+    assert flight.equations_of_motion == "solid_propulsion"
+    assert flight.simulation_mode == "native"
+    assert flight.name == "named"
