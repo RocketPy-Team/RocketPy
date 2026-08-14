@@ -3,6 +3,7 @@ import pytest
 from rocketpy import Flight
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
 from rocketpy.motors.point_mass_motor import PointMassMotor
+from rocketpy.plots.compare.compare_flights import CompareFlights
 from rocketpy.rocket.multistage import MultiStageRocket, Stage
 from rocketpy.rocket.rocket import Rocket
 from rocketpy.simulation.mission import Mission
@@ -377,3 +378,77 @@ def test_deployable_splits_separation_delta_v_by_momentum_conservation(
     assert payload_flight.solution[0][6] == pytest.approx(
         ending_vz + expected_payload_delta_v
     )
+
+
+def test_all_flights_is_the_single_flight_for_the_degenerate_case(
+    calisto, example_plain_env
+):
+    mission = Mission(
+        vehicle=calisto,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+    )
+
+    assert mission.all_flights == [mission.flights["stage_1"][0]]
+
+
+def test_all_flights_has_no_duplicate_for_the_shared_stack_flight(example_plain_env):
+    booster, sustainer = _two_stage_vehicle(booster_separation=0.5)
+    vehicle = MultiStageRocket(stages=[booster, sustainer])
+
+    mission = Mission(
+        vehicle=vehicle,
+        environment=example_plain_env,
+        rail_length=1.0,
+        inclination=90,
+        heading=0,
+        max_time=5,
+    )
+
+    assert len(mission.all_flights) == 3
+    assert len(set(id(flight) for flight in mission.all_flights)) == 3
+    assert mission.all_flights == [
+        mission.flights["booster"][0],
+        mission.flights["booster"][1],
+        mission.flights["sustainer"][1],
+    ]
+
+
+def test_all_flights_feeds_compare_flights(example_plain_env):
+    booster, sustainer = _two_stage_vehicle(booster_separation=0.5)
+    vehicle = MultiStageRocket(stages=[booster, sustainer])
+
+    mission = Mission(
+        vehicle=vehicle,
+        environment=example_plain_env,
+        rail_length=1.0,
+        inclination=90,
+        heading=0,
+        max_time=5,
+    )
+
+    assert CompareFlights(mission.all_flights).trajectories_3d(filename=None) is None
+
+
+def test_flight_names_distinguish_each_body_and_phase(example_plain_env):
+    # CompareFlights labels each line in a plot legend using flight.name;
+    # every Flight Mission creates must have a name that distinguishes it
+    # (Flight's own default "Flight" would make every legend entry
+    # identical and useless).
+    booster, sustainer = _two_stage_vehicle(booster_separation=0.5)
+    vehicle = MultiStageRocket(stages=[booster, sustainer])
+
+    mission = Mission(
+        vehicle=vehicle,
+        environment=example_plain_env,
+        rail_length=1.0,
+        inclination=90,
+        heading=0,
+        max_time=5,
+    )
+
+    names = [flight.name for flight in mission.all_flights]
+    assert len(names) == len(set(names))
+    assert all(name != "Flight" for name in names)
