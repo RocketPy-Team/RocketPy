@@ -13,6 +13,10 @@ from rocketpy.tools import (
     haversine,
     inverted_haversine,
     mercator_to_wgs84,
+    normalize_quaternions,
+    quaternions_to_nutation,
+    quaternions_to_precession,
+    quaternions_to_spin,
     tuple_handler,
 )
 
@@ -39,6 +43,28 @@ def test_euler_to_quaternions(angles, expected_quaternions):
     assert round(q1, 7) == expected_quaternions[1]
     assert round(q2, 7) == expected_quaternions[2]
     assert round(q3, 7) == expected_quaternions[3]
+
+
+def test_quaternions_to_euler_angles_support_flight_arrays():
+    quaternions = np.array(
+        [
+            (0.5, -(0.5**0.5), 0.0, 0.5),
+            (0.5, -0.5, -0.5, 0.5),
+        ]
+    )
+    e0, e1, e2, e3 = quaternions.T
+
+    assert quaternions_to_precession(e0, e1, e2, e3) == pytest.approx([45, 90])
+    assert quaternions_to_nutation(e1, e2) == pytest.approx([-90, -90])
+    assert quaternions_to_spin(e0, e1, e2, e3) == pytest.approx([45, 0])
+
+
+def test_normalize_quaternions_handles_scaled_and_zero_inputs():
+    normalized = normalize_quaternions((1, 2, 3, 4))
+
+    assert normalized == pytest.approx(np.array([1, 2, 3, 4]) / np.sqrt(30))
+    assert np.linalg.norm(normalized) == pytest.approx(1)
+    assert normalize_quaternions((0, 0, 0, 0)) == (1, 0, 0, 0)
 
 
 def test_calculate_cubic_hermite_coefficients():
