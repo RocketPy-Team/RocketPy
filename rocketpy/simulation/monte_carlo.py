@@ -18,6 +18,7 @@ import json
 import os
 import traceback
 import warnings
+from numbers import Real
 from pathlib import Path
 from time import time
 
@@ -1170,8 +1171,12 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
 
     def set_processed_results(self):
         """
-        Creates a dictionary with the mean and standard deviation of each
-        parameter available in the results.
+        Create summary statistics for scalar, real-valued results.
+
+        Structured and non-numeric results remain available in ``results``.
+        Their entry in ``processed_results`` contains five ``None`` values
+        because a scalar mean, median, standard deviation, and prediction
+        interval are not defined for those values.
 
         Returns
         -------
@@ -1179,19 +1184,18 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         """
         self.processed_results = {}
         for result, values in self.results.items():
-            try:
-                mean = np.mean(values)
-                stdev = np.std(values)
-                self.processed_results[result] = (mean, stdev)
-                pi_low = np.quantile(values, 0.025)
-                pi_high = np.quantile(values, 0.975)
-                median = np.median(values)
-            except TypeError:
-                mean = None
-                stdev = None
-                pi_low = None
-                pi_high = None
-                median = None
+            if not values or not all(
+                isinstance(value, Real) and not isinstance(value, (bool, np.bool_))
+                for value in values
+            ):
+                self.processed_results[result] = (None, None, None, None, None)
+                continue
+
+            mean = np.mean(values)
+            stdev = np.std(values)
+            pi_low = np.quantile(values, 0.025)
+            pi_high = np.quantile(values, 0.975)
+            median = np.median(values)
             self.processed_results[result] = (mean, median, stdev, pi_low, pi_high)
 
     # Import methods

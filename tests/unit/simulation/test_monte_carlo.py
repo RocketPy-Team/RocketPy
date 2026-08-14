@@ -252,6 +252,43 @@ class MockMonteCarloWithLogs(MonteCarlo):
         self.num_of_loaded_sims = 3
 
 
+def test_set_processed_results_summarizes_real_scalars():
+    mc = MockMonteCarloWithLogs()
+    mc.results = {"value": [1, np.int64(2), np.float32(3)]}
+
+    mc.set_processed_results()
+
+    mean, median, stdev, pi_low, pi_high = mc.processed_results["value"]
+    assert mean == pytest.approx(2)
+    assert median == pytest.approx(2)
+    assert stdev == pytest.approx(np.std([1, 2, 3]))
+    assert pi_low == pytest.approx(np.quantile([1, 2, 3], 0.025))
+    assert pi_high == pytest.approx(np.quantile([1, 2, 3], 0.975))
+
+
+@pytest.mark.parametrize(
+    "values",
+    [
+        ["ascent", "descent"],
+        [[1, 2], [3, 4]],
+        [[1], [2, 3]],
+        [{"x": 1}, {"x": 2}],
+        [np.array([1, 2]), np.array([3, 4])],
+        [1, "two"],
+        [True, False],
+        [],
+    ],
+)
+def test_set_processed_results_preserves_structured_results(values):
+    mc = MockMonteCarloWithLogs()
+    mc.results = {"structured": values}
+
+    mc.set_processed_results()
+
+    assert mc.results["structured"] is values
+    assert mc.processed_results["structured"] == (None, None, None, None, None)
+
+
 def test_export_outputs_to_csv(tmp_path):
     """Tests that outputs are correctly exported to CSV."""
     mc = MockMonteCarloWithLogs()
