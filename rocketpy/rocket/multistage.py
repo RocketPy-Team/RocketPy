@@ -1,5 +1,7 @@
 """Vehicle composition layer for multistage rockets and deployable payloads."""
 
+import numpy as np
+
 from rocketpy.rocket.rocket import Rocket
 from rocketpy.tools import parallel_axis_theorem_from_com
 
@@ -240,17 +242,28 @@ class MultiStageRocket:
     def flight_rocket(self, active_stages, carried_deployables=()):
         """Build the single-body Rocket for one part of the mission.
 
-        Composes mass, inertia and CoM of the listed stage and deployables
-        (parallel axis theorem), attaches its motor, and reuses its
-        aerodynamic surfaces and drag curve (or the stack override, if
-        set).
+        Composes mass, inertia and CoM of the listed stages and
+        deployables (parallel axis theorem), attaches the bottom
+        (first) active stage's motor, and combines the aerodynamic
+        surfaces and drag curves of every active stage.
+
+        The bottom stage contributes its structure-only mass/inertia
+        (its motor becomes the composed Rocket's own motor). Every
+        other active stage is riding along inert - not yet ignited -
+        so it contributes its *full* current mass/inertia/CoM (structure
+        + motor + full propellant, evaluated at that stage's own t=0)
+        as fixed cargo.
+
+        Every active stage's Rocket coordinate system is assumed to
+        already be expressed in a shared/stack frame (positions are
+        used as-is); deriving stack positions from interstage_lengths
+        and each stage's physical extent is not implemented yet.
 
         Parameters
         ----------
         active_stages : tuple of Stage
-            Stages still attached, bottom to top. Only a single active
-            stage is supported for now; multi-stage composition lands in
-            a later commit.
+            Stages still attached, bottom to top. active_stages[0] is
+            the currently firing stage.
         carried_deployables : tuple of Deployable
             Deployables still aboard.
 
@@ -258,28 +271,88 @@ class MultiStageRocket:
         -------
         Rocket
         """
-        if len(active_stages) != 1:
-            raise NotImplementedError(
-                "flight_rocket currently only supports a single active "
-                "stage; multi-stage composition is not yet implemented."
-            )
-        stage_rocket = active_stages[0].rocket
+        bottom_rocket = active_stages[0].rocket
+        upper_stages = active_stages[1:]
 
-        total_mass = stage_rocket.mass + sum(d.mass for d in carried_deployables)
-        center_of_mass = (
-            stage_rocket.mass * stage_rocket.center_of_mass_without_motor
-            + sum(d.mass * d.position for d in carried_deployables)
-        ) / total_mass
+        total_mass, center_of_mass = self._compose_mass_and_center_of_mass(
+            bottom_rocket, upper_stages, carried_deployables
+        )
+        inertia_11, inertia_22, inertia_33 = self._compose_inertia(
+            bottom_rocket, upper_stages, carried_deployables, center_of_mass
+        )
 
-        stage_distance = center_of_mass - stage_rocket.center_of_mass_without_motor
+        radius = max(stage.rocket.radius for stage in active_stages)
+        power_off_drag = (
+            self.stack_power_off_drag
+            if self.stack_power_off_drag is not None
+            else self._derive_stack_drag(active_stages, "power_off_drag", radius)
+        )
+        power_on_drag = (
+            self.stack_power_on_drag
+            if self.stack_power_on_drag is not None
+            else self._derive_stack_drag(active_stages, "power_on_drag", radius)
+        )
+
+        composed_rocket = Rocket(
+            radius=radius,
+            mass=total_mass,
+            inertia=(inertia_11, inertia_22, inertia_33),
+            power_off_drag=power_off_drag,
+            power_on_drag=power_on_drag,
+            center_of_mass_without_motor=center_of_mass,
+            coordinate_system_orientation=bottom_rocket.coordinate_system_orientation,
+        )
+        composed_rocket.add_motor(bottom_rocket.motor, bottom_rocket.motor_position)
+        for stage in active_stages:
+            for surface, position in stage.rocket.aerodynamic_surfaces:
+                composed_rocket.aerodynamic_surfaces.add(surface, position)
+        composed_rocket.evaluate_center_of_pressure()
+        composed_rocket.evaluate_stability_margin()
+        composed_rocket.evaluate_static_margin()
+
+        return composed_rocket
+
+    @staticmethod
+    def _compose_mass_and_center_of_mass(bottom_rocket, upper_stages, deployables):
+        """Total structural mass and its center, without the bottom
+        stage's motor (attached separately by the caller).
+        """
+        total_mass = bottom_rocket.mass
+        weighted_com = bottom_rocket.mass * bottom_rocket.center_of_mass_without_motor
+        for stage in upper_stages:
+            stage_mass = stage.rocket.total_mass(0)
+            total_mass += stage_mass
+            weighted_com += stage_mass * stage.rocket.center_of_mass(0)
+        for deployable in deployables:
+            total_mass += deployable.mass
+            weighted_com += deployable.mass * deployable.position
+        return total_mass, weighted_com / total_mass
+
+    @staticmethod
+    def _compose_inertia(bottom_rocket, upper_stages, deployables, center_of_mass):
+        """I_11/I_22/I_33 about ``center_of_mass``, via the parallel axis
+        theorem, matching the mass composition in
+        ``_compose_mass_and_center_of_mass``.
+        """
+        bottom_distance = center_of_mass - bottom_rocket.center_of_mass_without_motor
         inertia_11 = parallel_axis_theorem_from_com(
-            stage_rocket.I_11_without_motor, stage_rocket.mass, stage_distance
+            bottom_rocket.I_11_without_motor, bottom_rocket.mass, bottom_distance
         )
         inertia_22 = parallel_axis_theorem_from_com(
-            stage_rocket.I_22_without_motor, stage_rocket.mass, stage_distance
+            bottom_rocket.I_22_without_motor, bottom_rocket.mass, bottom_distance
         )
-        inertia_33 = stage_rocket.I_33_without_motor
-        for deployable in carried_deployables:
+        inertia_33 = bottom_rocket.I_33_without_motor
+        for stage in upper_stages:
+            stage_mass = stage.rocket.total_mass(0)
+            distance = center_of_mass - stage.rocket.center_of_mass(0)
+            inertia_11 += parallel_axis_theorem_from_com(
+                stage.rocket.I_11(0), stage_mass, distance
+            )
+            inertia_22 += parallel_axis_theorem_from_com(
+                stage.rocket.I_22(0), stage_mass, distance
+            )
+            inertia_33 += stage.rocket.I_33(0)
+        for deployable in deployables:
             distance = center_of_mass - deployable.position
             inertia_11 += parallel_axis_theorem_from_com(
                 deployable.inertia[0], deployable.mass, distance
@@ -288,32 +361,19 @@ class MultiStageRocket:
                 deployable.inertia[1], deployable.mass, distance
             )
             inertia_33 += deployable.inertia[2]
+        return inertia_11, inertia_22, inertia_33
 
-        power_off_drag = (
-            self.stack_power_off_drag
-            if self.stack_power_off_drag is not None
-            else stage_rocket.power_off_drag
-        )
-        power_on_drag = (
-            self.stack_power_on_drag
-            if self.stack_power_on_drag is not None
-            else stage_rocket.power_on_drag
-        )
-
-        composed_rocket = Rocket(
-            radius=stage_rocket.radius,
-            mass=total_mass,
-            inertia=(inertia_11, inertia_22, inertia_33),
-            power_off_drag=power_off_drag,
-            power_on_drag=power_on_drag,
-            center_of_mass_without_motor=center_of_mass,
-            coordinate_system_orientation=stage_rocket.coordinate_system_orientation,
-        )
-        composed_rocket.add_motor(stage_rocket.motor, stage_rocket.motor_position)
-        for surface, position in stage_rocket.aerodynamic_surfaces:
-            composed_rocket.aerodynamic_surfaces.add(surface, position)
-        composed_rocket.evaluate_center_of_pressure()
-        composed_rocket.evaluate_stability_margin()
-        composed_rocket.evaluate_static_margin()
-
-        return composed_rocket
+    def _derive_stack_drag(self, active_stages, attr_name, stack_radius):
+        """Default stack drag curve: each stage's own curve, rescaled by
+        its own reference area and summed, referenced to the stack area.
+        Documented approximation: ignores interstage interference.
+        """
+        stack_area = np.pi * stack_radius**2
+        combined = None
+        for stage in active_stages:
+            stage_rocket = stage.rocket
+            scaled = getattr(stage_rocket, attr_name) * (
+                stage_rocket.area / stack_area
+            )
+            combined = scaled if combined is None else combined + scaled
+        return combined
