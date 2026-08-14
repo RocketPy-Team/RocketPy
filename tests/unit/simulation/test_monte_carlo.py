@@ -12,6 +12,9 @@ import numpy as np
 import pytest
 
 from rocketpy.simulation import MonteCarlo
+from rocketpy.simulation.monte_carlo import (
+    _refuse_logs_this_run_cannot_write,
+)
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
@@ -630,3 +633,52 @@ def test_a_monte_carlo_flight_keeps_the_configuration_it_was_given(monkeypatch):
     assert flight.equations_of_motion == "solid_propulsion"
     assert flight.simulation_mode == "native"
     assert flight.name == "named"
+
+
+@pytest.mark.parametrize(
+    "suffix, payload",
+    [
+        (".csv", "apogee,index\n1234.0,0\n1250.0,1\n"),
+        (".json", '[{"apogee": 1234.0, "index": 0}]\n'),
+    ],
+)
+@pytest.mark.parametrize("append", [False, True])
+def test_simulate_refuses_a_results_file_it_cannot_write(
+    monte_carlo_calisto, tmp_path, suffix, payload, append
+):
+    """Importing CSV or JSON results must not let simulate() write over them.
+
+    ``import_outputs`` accepts both and points ``output_file`` at the file, and
+    its docstring offers continuing a simulation. simulate() only writes JSONL,
+    so ``append=False`` truncated the file before this check existed.
+    """
+    results = tmp_path / f"results{suffix}"
+    results.write_text(payload, encoding="utf-8")
+    monte_carlo_calisto.output_file = str(results)
+    before = results.read_bytes()
+
+    with pytest.raises(ValueError, match="one JSON object per line"):
+        monte_carlo_calisto.simulate(number_of_simulations=1, append=append)
+
+    assert results.read_bytes() == before
+
+
+def test_simulation_log_check_names_the_file_that_is_wrong(tmp_path):
+    """The message says which of the three paths has to change."""
+    good = str(tmp_path / "run.txt")
+
+    _refuse_logs_this_run_cannot_write(good, good, good)  # canonical, no raise
+
+    for label, args in (
+        ("input_file", (str(tmp_path / "a.csv"), good, good)),
+        ("output_file", (good, str(tmp_path / "b.json"), good)),
+        ("error_file", (good, good, str(tmp_path / "c.csv"))),
+    ):
+        with pytest.raises(ValueError, match=label):
+            _refuse_logs_this_run_cannot_write(*args)
+
+
+def test_simulation_log_check_accepts_an_uppercase_suffix(tmp_path):
+    """A .TXT log is the same file to the filesystem, so it is accepted."""
+    upper = str(tmp_path / "run.TXT")
+    _refuse_logs_this_run_cannot_write(upper, upper, upper)

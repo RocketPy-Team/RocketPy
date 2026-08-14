@@ -39,6 +39,33 @@ from rocketpy.tools import (
 # TODO: Create evolution plots to analyze convergence
 
 
+# simulate() writes one JSON object per line and reads that same shape back, so
+# this is the only format it can both resume from and overwrite safely.
+_SIMULATION_LOG_SUFFIX = ".txt"
+
+
+def _refuse_logs_this_run_cannot_write(input_file, output_file, error_file):
+    """Reject a log file ``simulate`` would damage rather than extend.
+
+    A ``.csv`` or ``.json`` is importable for analysis, but this run would
+    truncate it under ``append=False`` and leave it half one format and half
+    another under ``append=True``. Checked before any file is opened.
+    """
+    for label, path in (
+        ("input_file", input_file),
+        ("output_file", output_file),
+        ("error_file", error_file),
+    ):
+        if Path(path).suffix.lower() != _SIMULATION_LOG_SUFFIX:
+            raise ValueError(
+                f"Monte Carlo simulation logs must be {_SIMULATION_LOG_SUFFIX} "
+                f"files holding one JSON object per line; {label} is "
+                f"'{path}'. CSV and JSON results can be imported for analysis, "
+                f"but simulate() cannot resume from or overwrite them. Point "
+                f"{label} at a {_SIMULATION_LOG_SUFFIX} file to run."
+            )
+
+
 class MonteCarlo:  # pylint: disable=too-many-public-methods
     """Class to run a Monte Carlo simulation of a rocket flight.
 
@@ -223,6 +250,11 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         self._export_config = kwargs
         self.number_of_simulations = number_of_simulations
         self._initial_sim_idx = self.num_of_loaded_sims if append else 0
+
+        # Before anything is opened: __setup_files truncates for append=False.
+        _refuse_logs_this_run_cannot_write(
+            self.input_file, self.output_file, self.error_file
+        )
 
         print("Starting Monte Carlo analysis")
 
