@@ -117,17 +117,24 @@ class Mission:
         self._simulate()
 
     def _simulate(self):
-        if self.vehicle.deployables:
-            raise NotImplementedError(
-                "Mission does not support deployables yet."
-            )
-        if len(self.vehicle.stages) == 1:
+        single_stage = len(self.vehicle.stages) == 1
+        no_deployables = not self.vehicle.deployables
+        one_apogee_deployable = len(self.vehicle.deployables) == 1 and (
+            self.vehicle.deployables[0].ejection == "apogee"
+        )
+
+        if single_stage and no_deployables:
             self._simulate_single_stage()
-        elif len(self.vehicle.stages) == 2:
+        elif single_stage and one_apogee_deployable:
+            self._simulate_single_stage_with_deployable()
+        elif len(self.vehicle.stages) == 2 and no_deployables:
             self._simulate_two_stage()
         else:
             raise NotImplementedError(
-                "Mission currently supports at most two stages."
+                "Mission currently supports: a single stage alone, a "
+                "single stage with exactly one deployable ejecting at "
+                "apogee (ejection='apogee'), or two stages with no "
+                "deployables."
             )
         self.timeline.sort(key=lambda entry: entry[0])
 
@@ -144,6 +151,79 @@ class Mission:
         self.timeline.append((flight.t_final, f"impact:{stage.name}"))
 
         self.flights[stage.name] = [flight]
+
+    def _simulate_single_stage_with_deployable(self):
+        stage = self.vehicle.stages[0]
+        deployable = self.vehicle.deployables[0]
+        if deployable.free_rocket is None:
+            raise NotImplementedError(
+                "Deployable ejection currently requires free_rocket; "
+                "building a free-flight Rocket from add_surface()-added "
+                "surfaces is not yet implemented."
+            )
+
+        carrier_rocket, carrier_flight = self._run_carrier_phase(stage, deployable)
+        self.flights[stage.name] = [carrier_flight]
+        self.flights[deployable.name] = [carrier_flight]
+
+        ending_state = carrier_flight.solution[-1]
+        stage_delta_v, deployable_delta_v = self._momentum_split(
+            stage.rocket.total_mass(carrier_flight.apogee_time),
+            deployable.free_rocket.total_mass(0),
+            deployable.separation_delta_v,
+        )
+        self._run_stage_after_ejection_phase(
+            stage, carrier_rocket, ending_state, stage_delta_v
+        )
+        self._run_deployable_phase(
+            deployable, carrier_rocket, ending_state, deployable_delta_v
+        )
+
+    def _run_carrier_phase(self, stage, deployable):
+        """Stage carrying the deployable, from the rail to apogee."""
+        carrier_rocket = self.vehicle.flight_rocket(
+            active_stages=(stage,), carried_deployables=(deployable,)
+        )
+
+        self.timeline.append((0.0, f"ignition:{stage.name}"))
+        self.timeline.append((0.0, "liftoff"))
+
+        carrier_flight = self._run_flight(carrier_rocket, terminate_on_apogee=True)
+        self.timeline.append((carrier_flight.out_of_rail_time, "rail_departure"))
+        self.timeline.append(
+            (carrier_flight.apogee_time, f"ejection:{deployable.name}")
+        )
+
+        return carrier_rocket, carrier_flight
+
+    def _run_stage_after_ejection_phase(
+        self, stage, carrier_rocket, ending_state, delta_v
+    ):
+        """Carrying stage, continuing on its own after the deployable
+        leaves.
+        """
+        stage_rocket = self.vehicle.flight_rocket(active_stages=(stage,))
+        initial_solution = self._handoff_state(
+            ending_state, carrier_rocket, stage_rocket, delta_v
+        )
+        stage_flight = self._run_flight(
+            stage_rocket, initial_solution=initial_solution
+        )
+        self.timeline.append((stage_flight.t_final, f"impact:{stage.name}"))
+        self.flights[stage.name].append(stage_flight)
+
+    def _run_deployable_phase(self, deployable, carrier_rocket, ending_state, delta_v):
+        """Deployable, continuing on its own free_rocket after ejection."""
+        initial_solution = self._handoff_state(
+            ending_state, carrier_rocket, deployable.free_rocket, delta_v
+        )
+        deployable_flight = self._run_flight(
+            deployable.free_rocket, initial_solution=initial_solution
+        )
+        self.timeline.append(
+            (deployable_flight.t_final, f"impact:{deployable.name}")
+        )
+        self.flights[deployable.name].append(deployable_flight)
 
     def _simulate_two_stage(self):
         booster, sustainer = self.vehicle.stages
@@ -165,8 +245,9 @@ class Mission:
         self.flights[sustainer.name] = [stack_flight]
 
         ending_state = stack_flight.solution[-1]
-        booster_delta_v, sustainer_delta_v = self._split_separation_delta_v(
-            booster, sustainer
+        booster_delta_v, sustainer_delta_v = self._momentum_split(
+            booster.rocket.dry_mass, sustainer.rocket.total_mass(0),
+            booster.separation_delta_v,
         )
         self._run_booster_phase(
             booster, stack_rocket, ending_state, booster_delta_v
@@ -222,7 +303,9 @@ class Mission:
         self.timeline.append((sustainer_flight.t_final, f"impact:{sustainer.name}"))
         self.flights[sustainer.name].append(sustainer_flight)
 
-    def _run_flight(self, rocket, initial_solution=None, max_time=None):
+    def _run_flight(
+        self, rocket, initial_solution=None, max_time=None, terminate_on_apogee=False
+    ):
         """Run one Flight in absolute mission time."""
         return Flight(
             rocket=rocket,
@@ -231,6 +314,7 @@ class Mission:
             inclination=self.inclination,
             heading=self.heading,
             initial_solution=initial_solution,
+            terminate_on_apogee=terminate_on_apogee,
             max_time=max_time if max_time is not None else self.max_time,
             rtol=self.rtol,
             atol=self.atol,
@@ -240,19 +324,17 @@ class Mission:
         )
 
     @staticmethod
-    def _split_separation_delta_v(booster, sustainer):
-        """Momentum-conserving split of booster.separation_delta_v between
-        the two children at the separation instant: the booster is spent
-        (dry_mass), the sustainer hasn't ignited yet (full total_mass at
-        its own t=0).
+    def _momentum_split(mass_a, mass_b, delta_v):
+        """Momentum-conserving split of a relative separation_delta_v
+        between two children of masses mass_a and mass_b: returns
+        (delta_v_a, delta_v_b) such that delta_v_b - delta_v_a == delta_v
+        and mass_a * delta_v_a + mass_b * delta_v_b == 0 (momentum is
+        conserved about the common pre-separation velocity).
         """
-        booster_mass_after = booster.rocket.dry_mass
-        sustainer_mass_after = sustainer.rocket.total_mass(0)
-        total_mass_after = booster_mass_after + sustainer_mass_after
-        delta_v = booster.separation_delta_v
-        booster_delta_v = -(sustainer_mass_after / total_mass_after) * delta_v
-        sustainer_delta_v = (booster_mass_after / total_mass_after) * delta_v
-        return booster_delta_v, sustainer_delta_v
+        total_mass = mass_a + mass_b
+        delta_v_a = -(mass_b / total_mass) * delta_v
+        delta_v_b = (mass_a / total_mass) * delta_v
+        return delta_v_a, delta_v_b
 
     @staticmethod
     def _handoff_state(state, parent_rocket, child_rocket, delta_v):
