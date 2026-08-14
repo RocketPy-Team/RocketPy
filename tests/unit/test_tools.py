@@ -1,15 +1,32 @@
+import math
+
 import numpy as np
 import pytest
 
 from rocketpy import Environment
 from rocketpy.tools import (
     calculate_cubic_hermite_coefficients,
+    convert_local_extent_to_wgs84,
+    convert_mercator_extent_to_local,
     euler313_to_quaternions,
     find_roots_cubic_function,
     haversine,
     inverted_haversine,
+    mercator_to_wgs84,
     tuple_handler,
 )
+
+
+WEB_MERCATOR_EARTH_RADIUS = 6378137.0
+
+
+def _wgs84_to_mercator(latitude, longitude):
+    """Convert WGS84 coordinates to the spherical Mercator test fixture."""
+    x = WEB_MERCATOR_EARTH_RADIUS * math.radians(longitude)
+    y = WEB_MERCATOR_EARTH_RADIUS * math.log(
+        math.tan(math.pi / 4 + math.radians(latitude) / 2)
+    )
+    return x, y
 
 
 @pytest.mark.parametrize(
@@ -185,3 +202,81 @@ def test_inverted_haversine_array():
         )
         assert lat_results[i] == pytest.approx(lat_scalar)
         assert lon_results[i] == pytest.approx(lon_scalar)
+
+
+@pytest.mark.parametrize(
+    "x, y, expected_latitude, expected_longitude",
+    [
+        (0.0, 0.0, 0.0, 0.0),
+        (
+            20037508.342789244,
+            20037508.342789244,
+            85.0511287798066,
+            180.0,
+        ),
+    ],
+)
+def test_mercator_to_wgs84_known_coordinates(
+    x, y, expected_latitude, expected_longitude
+):
+    latitude, longitude = mercator_to_wgs84(
+        x,
+        y,
+        earth_radius=WEB_MERCATOR_EARTH_RADIUS,
+    )
+
+    assert latitude == pytest.approx(expected_latitude)
+    assert longitude == pytest.approx(expected_longitude)
+
+
+def test_local_extent_round_trip_through_wgs84_and_mercator():
+    origin_latitude = -23.5
+    origin_longitude = -46.6
+    local_extent = [-1000.0, 2000.0, -500.0, 1500.0]
+
+    west, south, east, north = convert_local_extent_to_wgs84(
+        local_extent,
+        origin_latitude,
+        origin_longitude,
+        earth_radius=WEB_MERCATOR_EARTH_RADIUS,
+    )
+    min_x, min_y = _wgs84_to_mercator(south, west)
+    max_x, max_y = _wgs84_to_mercator(north, east)
+    recovered_extent = convert_mercator_extent_to_local(
+        [min_x, max_x, min_y, max_y],
+        origin_latitude,
+        origin_longitude,
+        earth_radius=WEB_MERCATOR_EARTH_RADIUS,
+    )
+
+    assert west < origin_longitude < east
+    assert south < origin_latitude < north
+    assert recovered_extent == pytest.approx(local_extent, abs=0.2)
+
+
+@pytest.mark.parametrize(
+    "geographic_extent, expected_sign",
+    [
+        ((-47.0, -46.8, -24.0, -23.8), -1),
+        ((-46.4, -46.2, -23.3, -23.1), 1),
+    ],
+)
+def test_mercator_extent_to_local_preserves_offset_sign(
+    geographic_extent, expected_sign
+):
+    origin_latitude = -23.5
+    origin_longitude = -46.6
+    west, east, south, north = geographic_extent
+    min_x, min_y = _wgs84_to_mercator(south, west)
+    max_x, max_y = _wgs84_to_mercator(north, east)
+
+    local_extent = convert_mercator_extent_to_local(
+        [min_x, max_x, min_y, max_y],
+        origin_latitude,
+        origin_longitude,
+        earth_radius=WEB_MERCATOR_EARTH_RADIUS,
+    )
+
+    assert local_extent[0] < local_extent[1]
+    assert local_extent[2] < local_extent[3]
+    assert all(expected_sign * value > 0 for value in local_extent)
