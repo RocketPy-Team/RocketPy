@@ -8,6 +8,17 @@ on:
       - ".github/**"
       - "pyproject.toml"
       - "requirements*"
+  # Codecov compares a pull request against the report it holds for the base
+  # commit. Without this, nothing ever uploads one for a commit on develop, so
+  # every pull request is measured against whichever old report is nearest and
+  # says how far behind it has fallen.
+  push:
+    branches: [master, develop]
+    paths:
+      - "**.py"
+      - ".github/**"
+      - "pyproject.toml"
+      - "requirements*"
 
 defaults:
   run:
