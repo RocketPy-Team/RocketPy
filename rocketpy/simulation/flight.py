@@ -3007,19 +3007,19 @@ class Flight:
     @funcify_method("Time (s)", "M1 (Nm)", "linear", "zero")
     def M1(self):
         """Aerodynamic moment acting along the x-axis of the rocket's body
-        frame as a function of time. Expressed in Newtons (N)."""
+        frame as a function of time. Expressed in Newton-metres (N·m)."""
         return self.__evaluate_post_process[:, [0, 10]]
 
     @funcify_method("Time (s)", "M2 (Nm)", "linear", "zero")
     def M2(self):
         """Aerodynamic moment acting along the y-axis of the rocket's body
-        frame as a function of time. Expressed in Newtons (N)."""
+        frame as a function of time. Expressed in Newton-metres (N·m)."""
         return self.__evaluate_post_process[:, [0, 11]]
 
     @funcify_method("Time (s)", "M3 (Nm)", "linear", "zero")
     def M3(self):
         """Aerodynamic moment acting along the z-axis of the rocket's body
-        frame as a function of time. Expressed in Newtons (N)."""
+        frame as a function of time. Expressed in Newton-metres (N·m)."""
         return self.__evaluate_post_process[:, [0, 12]]
 
     @funcify_method("Time (s)", "Net Thrust (N)", "linear", "zero")
