@@ -1,5 +1,8 @@
 """Vehicle composition layer for multistage rockets and deployable payloads."""
 
+from rocketpy.rocket.rocket import Rocket
+from rocketpy.tools import parallel_axis_theorem_from_com
+
 
 class SeparableBody:
     """A body that starts attached to the vehicle and becomes a free body
@@ -154,3 +157,163 @@ class Deployable(SeparableBody):
                 "add_surface requires radius to be set on the deployable."
             )
         self.surfaces.append((surface, position))
+
+
+class MultiStageRocket:
+    """A launch vehicle composed of stacked stages and carried deployables.
+
+    Owns the derivation problem: given the stages and deployables, produce
+    the single-body ``Rocket`` configuration flown during each part of the
+    mission. Mass, inertia and center of mass are composed automatically.
+
+    Parameters
+    ----------
+    stages : list of Stage or Rocket, optional
+        Ordered bottom to top: stages[0] burns first (booster), stages[-1]
+        is the final, surviving stage (sustainer). A plain Rocket is
+        wrapped in a Stage with defaults (single-stage vehicle).
+    stack_power_off_drag, stack_power_on_drag : optional
+        Drag overrides for the full stack, accepting the same inputs as
+        ``Rocket`` drag (constant, callable, CSV, ...). When None and there
+        is a single active stage, that stage's own drag curve is reused.
+    interstage_lengths : list of float, optional
+        Axial adapter/overlap length between consecutive stages, in
+        meters, len(stages) - 1 entries. Default zeros.
+    name : str
+    """
+
+    def __init__(
+        self,
+        stages=None,
+        stack_power_off_drag=None,
+        stack_power_on_drag=None,
+        interstage_lengths=None,
+        name="MultiStageRocket",
+    ):
+        self.stages = [
+            stage
+            if isinstance(stage, Stage)
+            else Stage(name=f"stage_{index + 1}", rocket=stage)
+            for index, stage in enumerate(stages or [])
+        ]
+        self.deployables = []
+        self.stack_power_off_drag = stack_power_off_drag
+        self.stack_power_on_drag = stack_power_on_drag
+        self.interstage_lengths = interstage_lengths
+        self.name = name
+
+    def add_deployable(
+        self,
+        name,
+        mass,
+        inertia,
+        position,
+        radius=None,
+        stage=None,
+        free_rocket=None,
+        ejection=None,
+        separation_delta_v=0.0,
+    ):
+        """Add a carried body that is ejected during flight. Returns the
+        Deployable.
+
+        Parameters
+        ----------
+        stage : str, Stage, optional
+            Which stage carries it. Default: the top stage.
+        (remaining parameters match Deployable's constructor)
+        """
+        deployable = Deployable(
+            name=name,
+            mass=mass,
+            inertia=inertia,
+            position=position,
+            radius=radius,
+            free_rocket=free_rocket,
+            ejection=ejection,
+            separation_delta_v=separation_delta_v,
+        )
+        deployable.stage = stage if stage is not None else self.stages[-1]
+        self.deployables.append(deployable)
+        return deployable
+
+    def flight_rocket(self, active_stages, carried_deployables=()):
+        """Build the single-body Rocket for one part of the mission.
+
+        Composes mass, inertia and CoM of the listed stage and deployables
+        (parallel axis theorem), attaches its motor, and reuses its
+        aerodynamic surfaces and drag curve (or the stack override, if
+        set).
+
+        Parameters
+        ----------
+        active_stages : tuple of Stage
+            Stages still attached, bottom to top. Only a single active
+            stage is supported for now; multi-stage composition lands in
+            a later commit.
+        carried_deployables : tuple of Deployable
+            Deployables still aboard.
+
+        Returns
+        -------
+        Rocket
+        """
+        if len(active_stages) != 1:
+            raise NotImplementedError(
+                "flight_rocket currently only supports a single active "
+                "stage; multi-stage composition is not yet implemented."
+            )
+        stage_rocket = active_stages[0].rocket
+
+        total_mass = stage_rocket.mass + sum(d.mass for d in carried_deployables)
+        center_of_mass = (
+            stage_rocket.mass * stage_rocket.center_of_mass_without_motor
+            + sum(d.mass * d.position for d in carried_deployables)
+        ) / total_mass
+
+        stage_distance = center_of_mass - stage_rocket.center_of_mass_without_motor
+        inertia_11 = parallel_axis_theorem_from_com(
+            stage_rocket.I_11_without_motor, stage_rocket.mass, stage_distance
+        )
+        inertia_22 = parallel_axis_theorem_from_com(
+            stage_rocket.I_22_without_motor, stage_rocket.mass, stage_distance
+        )
+        inertia_33 = stage_rocket.I_33_without_motor
+        for deployable in carried_deployables:
+            distance = center_of_mass - deployable.position
+            inertia_11 += parallel_axis_theorem_from_com(
+                deployable.inertia[0], deployable.mass, distance
+            )
+            inertia_22 += parallel_axis_theorem_from_com(
+                deployable.inertia[1], deployable.mass, distance
+            )
+            inertia_33 += deployable.inertia[2]
+
+        power_off_drag = (
+            self.stack_power_off_drag
+            if self.stack_power_off_drag is not None
+            else stage_rocket.power_off_drag
+        )
+        power_on_drag = (
+            self.stack_power_on_drag
+            if self.stack_power_on_drag is not None
+            else stage_rocket.power_on_drag
+        )
+
+        composed_rocket = Rocket(
+            radius=stage_rocket.radius,
+            mass=total_mass,
+            inertia=(inertia_11, inertia_22, inertia_33),
+            power_off_drag=power_off_drag,
+            power_on_drag=power_on_drag,
+            center_of_mass_without_motor=center_of_mass,
+            coordinate_system_orientation=stage_rocket.coordinate_system_orientation,
+        )
+        composed_rocket.add_motor(stage_rocket.motor, stage_rocket.motor_position)
+        for surface, position in stage_rocket.aerodynamic_surfaces:
+            composed_rocket.aerodynamic_surfaces.add(surface, position)
+        composed_rocket.evaluate_center_of_pressure()
+        composed_rocket.evaluate_stability_margin()
+        composed_rocket.evaluate_static_margin()
+
+        return composed_rocket
