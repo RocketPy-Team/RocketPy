@@ -321,7 +321,7 @@ def test_hrrr_atmosphere(mock_show, example_spaceport_env):  # pylint: disable=u
     # Sometimes the HRRR latest-model can fail due to not having at least 24
     # hours in the future in the forecast, so we try with 12 hours in the future
     # only.
-    example_spaceport_env.set_date(datetime.now() + timedelta(hours=12))
+    example_spaceport_env.set_date(datetime.now(timezone.utc) + timedelta(hours=12))
     example_spaceport_env.set_atmospheric_model(type="Forecast", file="HRRR")
     assert example_spaceport_env.all_info() is None
 
