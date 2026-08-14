@@ -1292,7 +1292,9 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         -----
         Notice that you can import the outputs, inputs, and errors from a
         file without the need to run simulations. You can use previously saved
-        files to process analyze the results or to continue a simulation.
+        files to process and analyze the results, and a ``.txt`` one to continue
+        a simulation. A ``.csv`` or ``.json`` is read-only here: ``simulate``
+        writes JSONL and refuses to run over a file it could not read back.
         """
         filepath = filename if filename else self.filename.with_suffix(".outputs.txt")
 
