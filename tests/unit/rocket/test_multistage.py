@@ -218,3 +218,42 @@ def test_flight_rocket_combines_surfaces_of_every_active_stage(calisto_nose_cone
 
     assert len(two_stage_rocket.aerodynamic_surfaces) == 1
     assert len(sustainer_alone_rocket.aerodynamic_surfaces) == 1
+
+
+def test_flight_rocket_populates_surfaces_cp_to_cdm(calisto, calisto_nose_cone):
+    # surfaces_cp_to_cdm is separate from center_of_pressure/stability -
+    # it's what Flight.u_dot_generalized looks up per surface to apply
+    # aerodynamic forces during a real 6DOF simulation. flight_rocket()
+    # copies surfaces directly (bypassing add_surfaces() to avoid
+    # double-transforming fin leading-edge positions), which must not
+    # skip populating this dict too.
+    stage = Stage(name="stage_1", rocket=calisto)
+    stage.rocket.add_surfaces(calisto_nose_cone, 1.0)
+    vehicle = MultiStageRocket(stages=[stage])
+
+    composed_rocket = vehicle.flight_rocket(active_stages=(stage,))
+
+    assert calisto_nose_cone in composed_rocket.surfaces_cp_to_cdm
+
+
+def test_draw_runs_for_a_stage_with_aerodynamic_surfaces(calisto_robust):
+    stage = Stage(name="stage_1", rocket=calisto_robust)
+    vehicle = MultiStageRocket(stages=[stage])
+
+    assert vehicle.draw(filename=None) is None
+
+
+def test_draw_combines_surfaces_of_every_stage(calisto_nose_cone):
+    booster, sustainer = _two_stage_vehicle()
+    booster.rocket.add_surfaces(calisto_nose_cone, 0.5)
+    vehicle = MultiStageRocket(stages=[booster, sustainer])
+
+    assert vehicle.draw(filename=None) is None
+
+
+def test_draw_raises_when_no_stage_has_aerodynamic_surfaces():
+    booster, sustainer = _two_stage_vehicle()
+    vehicle = MultiStageRocket(stages=[booster, sustainer])
+
+    with pytest.raises(ValueError):
+        vehicle.draw(filename=None)

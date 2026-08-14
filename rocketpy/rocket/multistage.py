@@ -309,6 +309,11 @@ class MultiStageRocket:
         composed_rocket.evaluate_center_of_pressure()
         composed_rocket.evaluate_stability_margin()
         composed_rocket.evaluate_static_margin()
+        # add_motor() already populated surfaces_cp_to_cdm, but from
+        # before these surfaces were copied in above (it was empty at
+        # that point) - Flight.u_dot_generalized needs this dict to
+        # apply aerodynamic forces during a real 6DOF simulation.
+        composed_rocket.evaluate_surfaces_cp_to_cdm()
 
         return composed_rocket
 
@@ -377,3 +382,13 @@ class MultiStageRocket:
             )
             combined = scaled if combined is None else combined + scaled
         return combined
+
+    def draw(self, vis_args=None, plane="xz", *, filename=None):
+        """Draw the stacked vehicle: every stage's aerodynamic surfaces,
+        combined exactly as flight_rocket() would compose them for a
+        flight with every stage attached. Reuses Rocket's own drawing
+        code unchanged - see :meth:`Rocket.plots.draw` for parameters
+        and the "at least one aerodynamic surface" requirement.
+        """
+        stack = self.flight_rocket(active_stages=tuple(self.stages))
+        stack.plots.draw(vis_args, plane, filename=filename)

@@ -114,7 +114,17 @@ class Mission:
 
         self.flights = {}
         self.timeline = []
+        self._all_flights = []
         self._simulate()
+
+    @property
+    def all_flights(self):
+        """Every Flight object, in execution order, each appearing once
+        (a Flight shared by several bodies, e.g. the full stack, is not
+        repeated). Feeds CompareFlights directly, e.g.
+        ``CompareFlights(mission.all_flights).trajectories_3d()``.
+        """
+        return list(self._all_flights)
 
     def _simulate(self):
         single_stage = len(self.vehicle.stages) == 1
@@ -145,7 +155,7 @@ class Mission:
         self.timeline.append((0.0, f"ignition:{stage.name}"))
         self.timeline.append((0.0, "liftoff"))
 
-        flight = self._run_flight(rocket)
+        flight = self._run_flight(rocket, name=stage.name)
 
         self.timeline.append((flight.out_of_rail_time, "rail_departure"))
         self.timeline.append((flight.t_final, f"impact:{stage.name}"))
@@ -188,7 +198,11 @@ class Mission:
         self.timeline.append((0.0, f"ignition:{stage.name}"))
         self.timeline.append((0.0, "liftoff"))
 
-        carrier_flight = self._run_flight(carrier_rocket, terminate_on_apogee=True)
+        carrier_flight = self._run_flight(
+            carrier_rocket,
+            name=f"{stage.name}+{deployable.name}",
+            terminate_on_apogee=True,
+        )
         self.timeline.append((carrier_flight.out_of_rail_time, "rail_departure"))
         self.timeline.append(
             (carrier_flight.apogee_time, f"ejection:{deployable.name}")
@@ -207,7 +221,7 @@ class Mission:
             ending_state, carrier_rocket, stage_rocket, delta_v
         )
         stage_flight = self._run_flight(
-            stage_rocket, initial_solution=initial_solution
+            stage_rocket, name=stage.name, initial_solution=initial_solution
         )
         self.timeline.append((stage_flight.t_final, f"impact:{stage.name}"))
         self.flights[stage.name].append(stage_flight)
@@ -218,7 +232,9 @@ class Mission:
             ending_state, carrier_rocket, deployable.free_rocket, delta_v
         )
         deployable_flight = self._run_flight(
-            deployable.free_rocket, initial_solution=initial_solution
+            deployable.free_rocket,
+            name=deployable.name,
+            initial_solution=initial_solution,
         )
         self.timeline.append(
             (deployable_flight.t_final, f"impact:{deployable.name}")
@@ -264,7 +280,11 @@ class Mission:
         self.timeline.append((0.0, f"ignition:{booster.name}"))
         self.timeline.append((0.0, "liftoff"))
 
-        stack_flight = self._run_flight(stack_rocket, max_time=separation_time)
+        stack_flight = self._run_flight(
+            stack_rocket,
+            name=f"{booster.name}+{sustainer.name}",
+            max_time=separation_time,
+        )
         self.timeline.append((stack_flight.out_of_rail_time, "rail_departure"))
         self.timeline.append((separation_time, f"separation:{booster.name}"))
 
@@ -279,7 +299,7 @@ class Mission:
             ending_state, stack_rocket, booster_rocket, delta_v
         )
         booster_flight = self._run_flight(
-            booster_rocket, initial_solution=initial_solution
+            booster_rocket, name=booster.name, initial_solution=initial_solution
         )
         self.timeline.append((booster_flight.t_final, f"impact:{booster.name}"))
         self.flights[booster.name].append(booster_flight)
@@ -298,16 +318,28 @@ class Mission:
             ending_state, stack_rocket, sustainer_rocket, delta_v
         )
         sustainer_flight = self._run_flight(
-            sustainer_rocket, initial_solution=initial_solution
+            sustainer_rocket, name=sustainer.name, initial_solution=initial_solution
         )
         self.timeline.append((sustainer_flight.t_final, f"impact:{sustainer.name}"))
         self.flights[sustainer.name].append(sustainer_flight)
 
     def _run_flight(
-        self, rocket, initial_solution=None, max_time=None, terminate_on_apogee=False
+        self,
+        rocket,
+        name,
+        initial_solution=None,
+        max_time=None,
+        terminate_on_apogee=False,
     ):
-        """Run one Flight in absolute mission time."""
-        return Flight(
+        """Run one Flight in absolute mission time.
+
+        The single choke point through which every Flight Mission creates
+        is constructed, so this is also where all_flights collects them,
+        in execution order, each exactly once. ``name`` distinguishes
+        each Flight in plots such as CompareFlights, which otherwise
+        labels every line "Flight" (Flight's own default).
+        """
+        flight = Flight(
             rocket=rocket,
             environment=self.environment,
             rail_length=self.rail_length,
@@ -321,7 +353,10 @@ class Mission:
             time_overshoot=self.time_overshoot,
             ode_solver=self.ode_solver,
             verbose=self.verbose,
+            name=name,
         )
+        self._all_flights.append(flight)
+        return flight
 
     @staticmethod
     def _momentum_split(mass_a, mass_b, delta_v):
