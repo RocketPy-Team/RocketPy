@@ -774,12 +774,14 @@ class Rocket:
         self._static_margin.set_source(
             lambda time: (
                 (
-                    self.center_of_mass.get_value_opt(time)
-                    - self.cp_position.get_value_opt(0)
+                    (
+                        self.center_of_mass.get_value_opt(time)
+                        - self.cp_position.get_value_opt(0)
+                    )
+                    / (2 * self.radius)
                 )
-                / (2 * self.radius)
+                * self._csys
             )
-            * self._csys
         )
         self._static_margin.set_inputs("Time (s)")
         self._static_margin.set_outputs("Static Margin (c)")
