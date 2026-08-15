@@ -131,13 +131,7 @@ class RocketPyDecoder(json.JSONDecoder):
                         n_children_spawned=obj.get("n_children_spawned", 0),
                     )
                 if class_.__name__ == "Flight" and not self.resimulate:
-                    new_flight = class_.__new__(class_)
-                    new_flight.prints = _FlightPrints(new_flight)
-                    new_flight.plots = _FlightPlots(new_flight)
-                    set_minimal_flight_attributes(new_flight, obj)
-                    if hash_ is not None:
-                        setattr(new_flight, "__rpy_hash", hash_)
-                    return new_flight
+                    return rebuild_minimal_flight(class_, obj, hash_)
                 elif hasattr(class_, "from_dict"):
                     new_obj = class_.from_dict(obj)
                     if hash_ is not None:
@@ -164,6 +158,32 @@ class RocketPyDecoder(json.JSONDecoder):
                 return obj
         else:
             return obj
+
+
+def rebuild_minimal_flight(class_, obj, hash_):
+    """Rebuild a Flight from stored data without resimulating it.
+
+    Parameters
+    ----------
+    class_ : type
+        The Flight class resolved from the stored signature.
+    obj : dict
+        The decoded data of the Flight object.
+    hash_ : str or None
+        The stored hash, when the encoder recorded one.
+
+    Returns
+    -------
+    Flight
+        The Flight object with its minimal attributes restored.
+    """
+    new_flight = class_.__new__(class_)
+    new_flight.prints = _FlightPrints(new_flight)
+    new_flight.plots = _FlightPlots(new_flight)
+    set_minimal_flight_attributes(new_flight, obj)
+    if hash_ is not None:
+        setattr(new_flight, "__rpy_hash", hash_)
+    return new_flight
 
 
 def set_minimal_flight_attributes(flight, obj):
