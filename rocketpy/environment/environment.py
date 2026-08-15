@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import warnings
+from collections.abc import Mapping
 from collections import namedtuple
 from datetime import datetime
 
@@ -22,13 +23,19 @@ from rocketpy.environment.fetchers import (
     fetch_hrrr_file_return_dataset,
     fetch_nam_file_return_dataset,
     fetch_open_elevation,
+    fetch_open_meteo_ensemble,
+    fetch_open_meteo_forecast,
     fetch_rap_file_return_dataset,
     fetch_wyoming_sounding,
+)
+from rocketpy.environment.fetchers.open_meteo_fetcher import (
+    OPEN_METEO_PRESSURE_LEVELS,
 )
 from rocketpy.environment.tools import (
     calculate_wind_heading,
     calculate_wind_speed,
     convert_wind_heading_to_direction,
+    convert_wind_speed_direction_to_components,
     find_latitude_index,
     find_longitude_index,
     find_time_index,
@@ -723,6 +730,41 @@ class Environment:
 
         return dictionary
 
+    @staticmethod
+    def __validate_pressure_conversion_factor(pressure_conversion_factor):
+        """Validates a user-supplied pressure conversion factor.
+
+        Does nothing when the value is None, in which case the factor is
+        auto-detected later from the dataset or the model name.
+
+        Raises
+        ------
+        ValueError
+            If the value is neither a strictly positive number nor a standard
+            pressure unit ('mbar', 'hPa', 'Pa').
+        """
+        if pressure_conversion_factor is None:
+            return
+
+        if not isinstance(pressure_conversion_factor, (float, int, str)):
+            raise ValueError(
+                "Argument 'pressure_conversion_factor' must be numeric or a standard pressure unit ('mbar', 'hPa', 'Pa')!"
+            )
+        if (
+            isinstance(pressure_conversion_factor, (float, int))
+            and pressure_conversion_factor <= 0
+        ):
+            raise ValueError(
+                "Argument 'pressure_conversion_factor' must be strictly positive!"
+            )
+        if (
+            isinstance(pressure_conversion_factor, str)
+            and pressure_unit_to_factor(pressure_conversion_factor) is None
+        ):
+            raise ValueError(
+                "Argument 'pressure_conversion_factor' unit must be a standard pressure unit ('mbar', 'hPa', 'Pa')!"
+            )
+
     def __validate_datetime(self):
         if self.datetime_date is None:
             raise ValueError(
@@ -1200,8 +1242,9 @@ class Environment:
         type : string
             Atmospheric model selector (case-insensitive). Accepted values are
             ``"standard_atmosphere"``, ``"wyoming_sounding"``, ``"windy"``,
-            ``"forecast"``, ``"reanalysis"``, ``"ensemble"``,
-            ``"custom_atmosphere"`` and ``"meteomatics"``.
+            ``"open_meteo"``, ``"open_meteo_ensemble"``, ``"forecast"``,
+            ``"reanalysis"``, ``"ensemble"``, ``"custom_atmosphere"`` and
+            ``"meteomatics"``.
         file : string | netCDF4.Dataset, optional
             Data source or model shortcut. Meaning depends on ``type``:
 
@@ -1209,6 +1252,12 @@ class Environment:
             - ``"wyoming_sounding"``: URL of the sounding text page.
             - ``"windy"``: one of ``"ECMWF"``, ``"GFS"``, ``"ICON"`` or
               ``"ICONEU"``.
+            - ``"open_meteo"``: the Open-Meteo model to query, such as
+              ``"best_match"`` (the default when omitted), ``"gfs_seamless"``,
+              ``"ecmwf_ifs025"`` or ``"icon_seamless"``. See the Open-Meteo
+              documentation for the full list.
+            - ``"open_meteo_ensemble"``: either ``"gfs05"`` (the default when
+              omitted) or ``"ecmwf_ifs025"``.
             - ``"meteomatics"``: the Meteomatics weather model to query, such
               as ``"mix"`` (the default when omitted). See the Meteomatics
               documentation for the models available to your account.
@@ -1353,6 +1402,14 @@ class Environment:
                 self.process_custom_atmosphere(pressure, temperature, wind_u, wind_v)
             case "windy":
                 self.process_windy_atmosphere(file)
+            case "open_meteo":
+                self.process_open_meteo_atmosphere(
+                    **({} if file is None else {"model": file})
+                )
+            case "open_meteo_ensemble":
+                self.process_open_meteo_ensemble(
+                    **({} if file is None else {"model": file})
+                )
             case "meteomatics":
                 self.process_meteomatics_atmosphere(
                     model=file, username=username, password=password
@@ -1367,21 +1424,7 @@ class Environment:
 
                 # Validate format of user-supplied value (if any).
                 # When None, auto-detection runs after dictionary resolution.
-                if pressure_conversion_factor is not None:
-                    if not isinstance(pressure_conversion_factor, (float, int, str)):
-                        raise ValueError(
-                            "Argument 'pressure_conversion_factor' must be numeric or a standard pressure unit ('mbar', 'hPa', 'Pa')!"
-                        )
-                    if isinstance(pressure_conversion_factor, (float, int)):
-                        if pressure_conversion_factor <= 0:
-                            raise ValueError(
-                                "Argument 'pressure_conversion_factor' must be strictly positive!"
-                            )
-                    if isinstance(pressure_conversion_factor, str):
-                        if pressure_unit_to_factor(pressure_conversion_factor) is None:
-                            raise ValueError(
-                                "Argument 'pressure_conversion_factor' unit must be a standard pressure unit ('mbar', 'hPa', 'Pa')!"
-                            )
+                self.__validate_pressure_conversion_factor(pressure_conversion_factor)
 
                 if isinstance(file, str):
                     shortcut_map = self.__atm_type_file_to_function_map.get(type, {})
@@ -1461,7 +1504,7 @@ class Environment:
             case _:  # pragma: no cover
                 raise ValueError(f"Unknown model type '{type}'.")
 
-        if type not in ["ensemble"]:
+        if type not in ["ensemble", "open_meteo_ensemble"]:
             # Ensemble already computed these values
             self.calculate_density_profile()
             self.calculate_speed_of_sound_profile()
@@ -1754,6 +1797,413 @@ class Environment:
             wind_u_array,
             wind_v_array,
         )
+
+    def __parse_open_meteo_levels(self, hourly, time_index, member_suffix=""):
+        """Extracts one vertical profile from an Open-Meteo ``hourly`` payload.
+
+        Levels whose variables are missing (either absent from the response or
+        ``None`` at the requested hour) are skipped, since Open-Meteo publishes
+        the same set of level keys for every model but only fills the ones the
+        model actually resolves.
+
+        Parameters
+        ----------
+        hourly : dict
+            The ``hourly`` section of the Open-Meteo JSON response.
+        time_index : int
+            Index of the hour to extract.
+        member_suffix : str, optional
+            Suffix identifying an ensemble member (e.g. ``"_member01"``). Empty
+            for deterministic forecasts.
+
+        Returns
+        -------
+        tuple of numpy.ndarray
+            The pressure levels (hPa), geopotential heights (m), temperatures
+            (K), wind-u and wind-v components (m/s), all sorted by ascending
+            altitude.
+        """
+        levels = []
+        geopotential_heights = []
+        temperatures = []
+        wind_speeds = []
+        wind_directions = []
+
+        for level in OPEN_METEO_PRESSURE_LEVELS:
+            keys = {
+                name: f"{name}_{level}hPa{member_suffix}"
+                for name in (
+                    "temperature",
+                    "geopotential_height",
+                    "wind_speed",
+                    "wind_direction",
+                )
+            }
+            if any(key not in hourly for key in keys.values()):
+                continue
+            values = {name: hourly[key][time_index] for name, key in keys.items()}
+            if any(value is None for value in values.values()):
+                continue
+
+            levels.append(level)
+            geopotential_heights.append(values["geopotential_height"])
+            temperatures.append(values["temperature"])
+            wind_speeds.append(values["wind_speed"])
+            wind_directions.append(values["wind_direction"])
+
+        if len(levels) < 2:
+            raise ValueError(
+                "Open-Meteo returned fewer than two usable pressure levels for "
+                "this location and time, which is not enough to build an "
+                "atmospheric profile. Check the requested model: not every "
+                "Open-Meteo model publishes pressure-level data."
+            )
+
+        levels = np.array(levels, dtype=float)
+        geopotential_heights = np.array(geopotential_heights, dtype=float)
+        # Temperatures come in degrees Celsius; RocketPy works in Kelvin.
+        temperatures = np.array(temperatures, dtype=float) + 273.15
+        wind_u, wind_v = convert_wind_speed_direction_to_components(
+            np.array(wind_speeds, dtype=float),
+            np.array(wind_directions, dtype=float),
+        )
+
+        # Open-Meteo lists levels from the ground up (1000 hPa first), but sort
+        # explicitly so the profile is monotonic in altitude even if a model
+        # reports levels out of order.
+        order = np.argsort(geopotential_heights)
+
+        return (
+            levels[order],
+            geopotential_heights[order],
+            temperatures[order],
+            wind_u[order],
+            wind_v[order],
+        )
+
+    def __store_open_meteo_functions(
+        self, pressure_levels, altitude_array, temperature_array, wind_u, wind_v
+    ):
+        """Sets the atmospheric functions from a single Open-Meteo profile.
+
+        Parameters
+        ----------
+        pressure_levels : numpy.ndarray
+            The pressure levels, in hPa.
+        altitude_array : numpy.ndarray
+            Geometric altitudes above sea level, in m.
+        temperature_array : numpy.ndarray
+            Temperatures, in K.
+        wind_u, wind_v : numpy.ndarray
+            The East and North wind components, in m/s.
+        """
+        wind_speed_array = calculate_wind_speed(wind_u, wind_v)
+        wind_heading_array = calculate_wind_heading(wind_u, wind_v)
+        wind_direction_array = convert_wind_heading_to_direction(wind_heading_array)
+
+        data_array = mask_and_clean_dataset(
+            100 * pressure_levels,  # Convert hPa to Pa
+            altitude_array,
+            temperature_array,
+            wind_u,
+            wind_v,
+            wind_heading_array,
+            wind_direction_array,
+            wind_speed_array,
+        )
+
+        # Save atmospheric data
+        self.__set_pressure_function(data_array[:, (1, 0)])
+        self.__set_barometric_height_function(data_array[:, (0, 1)])
+        self.__set_temperature_function(data_array[:, (1, 2)])
+        self.__set_wind_velocity_x_function(data_array[:, (1, 3)])
+        self.__set_wind_velocity_y_function(data_array[:, (1, 4)])
+        self.__set_wind_heading_function(data_array[:, (1, 5)])
+        self.__set_wind_direction_function(data_array[:, (1, 6)])
+        self.__set_wind_speed_function(data_array[:, (1, 7)])
+
+        # Save maximum expected height
+        self._max_expected_height = float(max(altitude_array[0], altitude_array[-1]))
+
+    def __find_open_meteo_time_index(self, hourly):
+        """Returns the index of the hour closest to the launch date."""
+        # 'timeformat=unixtime' is requested, so times are seconds since epoch.
+        time_array = np.array(hourly["time"], dtype=float)
+        launch_time = self.datetime_date.timestamp()
+        return int(np.abs(time_array - launch_time).argmin()), time_array
+
+    def __store_open_meteo_metadata(self, response, time_array):
+        """Sets the metadata attributes shared by both Open-Meteo processors."""
+        time_units = "seconds since 1970-01-01 00:00:00"
+        self.atmospheric_model_init_date = get_initial_date_from_time_array(
+            time_array, time_units
+        )
+        self.atmospheric_model_end_date = get_final_date_from_time_array(
+            time_array, time_units
+        )
+        self.atmospheric_model_interval = get_interval_date_from_time_array(
+            time_array, time_units
+        )
+        # Open-Meteo answers for the single grid cell nearest the request.
+        self.atmospheric_model_init_lat = float(response["latitude"])
+        self.atmospheric_model_end_lat = float(response["latitude"])
+        self.atmospheric_model_init_lon = float(response["longitude"])
+        self.atmospheric_model_end_lon = float(response["longitude"])
+        self.time_array = time_array
+
+        if response.get("elevation") is not None:
+            self.elevation = float(response["elevation"])
+
+    def process_open_meteo_atmosphere(self, model="best_match"):
+        """Process data from the Open-Meteo API to retrieve atmospheric forecast
+        data.
+
+        Open-Meteo serves pressure-level data as plain JSON over HTTPS, without
+        an API key and without requiring netCDF/OPeNDAP libraries. When the
+        launch date lies in the past, the request is routed to Open-Meteo's
+        historical-forecast archive instead of the live forecast.
+
+        Parameters
+        ----------
+        model : str, optional
+            The Open-Meteo weather model to query. Default is ``"best_match"``,
+            which lets Open-Meteo pick the highest-resolution model available
+            for the location. Other useful values are ``"gfs_seamless"``,
+            ``"ecmwf_ifs025"``, ``"icon_seamless"`` and
+            ``"meteofrance_seamless"``. See https://open-meteo.com/en/docs for
+            the full list.
+
+        Raises
+        ------
+        ValueError
+            If no launch date is set, or if the API returns fewer than two
+            usable pressure levels.
+        RuntimeError
+            If the Open-Meteo API cannot be reached or returns no usable data.
+
+        Notes
+        -----
+        Open-Meteo's historical data comes from its own past forecast runs and
+        only covers pressure levels from around March 2021 onwards; a warning is
+        issued for earlier dates, which the API answers with no data. Its ERA5
+        archive endpoint is not used because it serves surface variables only,
+        with no pressure-level data.
+        """
+        self.__validate_datetime()
+
+        response = fetch_open_meteo_forecast(
+            self.latitude, self.longitude, model=model, date=self.datetime_date
+        )
+        hourly = response["hourly"]
+        time_index, time_array = self.__find_open_meteo_time_index(hourly)
+
+        (
+            pressure_levels,
+            geopotential_height_array,
+            temperature_array,
+            wind_u_array,
+            wind_v_array,
+        ) = self.__parse_open_meteo_levels(hourly, time_index)
+
+        altitude_array = geopotential_height_to_geometric_height(
+            geopotential_height_array, self.earth_radius
+        )
+
+        self.__store_open_meteo_functions(
+            pressure_levels,
+            altitude_array,
+            temperature_array,
+            wind_u_array,
+            wind_v_array,
+        )
+
+        self.__store_open_meteo_metadata(response, time_array)
+
+        # Save debugging data
+        self.geopotentials = geopotential_height_array
+        self.wind_us = wind_u_array
+        self.wind_vs = wind_v_array
+        self.levels = pressure_levels
+        self.temperatures = temperature_array
+        self.height = altitude_array
+
+    def __stack_open_meteo_members(self, hourly, time_index, member_suffixes):
+        """Stacks each ensemble member's profile into regular 2D arrays.
+
+        Members may resolve a different number of pressure levels, so every
+        profile is truncated to the shortest one; otherwise the stacked arrays
+        would be ragged and could not be indexed by member.
+
+        Parameters
+        ----------
+        hourly : dict
+            The ``hourly`` section of the Open-Meteo JSON response.
+        time_index : int
+            Index of the hour to extract.
+        member_suffixes : list of str
+            Member suffixes to stack, in the order they should be exposed.
+
+        Returns
+        -------
+        tuple
+            The pressure levels (hPa) plus the geometric heights, temperatures
+            and wind components, each as an array of shape
+            ``(members, levels)``.
+        """
+        levels = None
+        heights = []
+        temperatures = []
+        wind_us = []
+        wind_vs = []
+
+        for suffix in member_suffixes:
+            (
+                member_levels,
+                geopotential_heights,
+                member_temperatures,
+                member_wind_u,
+                member_wind_v,
+            ) = self.__parse_open_meteo_levels(hourly, time_index, suffix)
+
+            if levels is None or len(member_levels) < len(levels):
+                levels = member_levels
+            heights.append(
+                geopotential_height_to_geometric_height(
+                    geopotential_heights, self.earth_radius
+                )
+            )
+            temperatures.append(member_temperatures)
+            wind_us.append(member_wind_u)
+            wind_vs.append(member_wind_v)
+
+        profile_length = min(len(levels), *(len(h) for h in heights))
+
+        return (
+            levels[:profile_length],
+            np.array([h[:profile_length] for h in heights]),
+            np.array([t[:profile_length] for t in temperatures]),
+            np.array([u[:profile_length] for u in wind_us]),
+            np.array([v[:profile_length] for v in wind_vs]),
+        )
+
+    def process_open_meteo_ensemble(self, model="gfs05"):
+        """Process ensemble forecast data from the Open-Meteo API.
+
+        Every ensemble member is stored so that
+        :meth:`Environment.select_ensemble_member` can switch between them, in
+        the same way as the netCDF-based ensemble models.
+
+        Parameters
+        ----------
+        model : str, optional
+            The Open-Meteo ensemble model to query. Default is ``"gfs05"``
+            (31 members, counting the control run). Also available is
+            ``"ecmwf_ifs025"`` (51 members). These are the only Open-Meteo
+            ensemble models that publish the complete set of pressure-level
+            variables RocketPy needs; the others either return nulls at every
+            level or omit the winds entirely.
+
+        Raises
+        ------
+        ValueError
+            If ``model`` does not publish complete pressure-level data, if no
+            launch date is set, or if the API returns fewer than two usable
+            pressure levels.
+        RuntimeError
+            If the Open-Meteo API cannot be reached or returns no usable data.
+        """
+        self.__validate_datetime()
+
+        response = fetch_open_meteo_ensemble(
+            self.latitude, self.longitude, model=model, date=self.datetime_date
+        )
+        hourly = response["hourly"]
+        time_index, time_array = self.__find_open_meteo_time_index(hourly)
+
+        member_suffixes = self.__find_open_meteo_members(hourly)
+
+        (
+            levels,
+            height,
+            temperature,
+            wind_u,
+            wind_v,
+        ) = self.__stack_open_meteo_members(hourly, time_index, member_suffixes)
+
+        self.__store_open_meteo_ensemble_data(
+            levels, height, temperature, wind_u, wind_v, len(member_suffixes)
+        )
+
+        # Activate default ensemble
+        self.select_ensemble_member()
+
+        self.__store_open_meteo_metadata(response, time_array)
+
+    def __store_open_meteo_ensemble_data(
+        self, levels, height, temperature, wind_u, wind_v, num_members
+    ):
+        """Stores every ensemble member so members can be selected later.
+
+        Parameters
+        ----------
+        levels : numpy.ndarray
+            The pressure levels, in hPa.
+        height : numpy.ndarray
+            Geometric altitudes above sea level, in m, shaped
+            ``(members, levels)``.
+        temperature : numpy.ndarray
+            Temperatures, in K, shaped ``(members, levels)``.
+        wind_u, wind_v : numpy.ndarray
+            The East and North wind components, in m/s, shaped
+            ``(members, levels)``.
+        num_members : int
+            Number of members stored, including the control run.
+        """
+        wind_speed = calculate_wind_speed(wind_u, wind_v)
+        wind_heading = calculate_wind_heading(wind_u, wind_v)
+        wind_direction = convert_wind_heading_to_direction(wind_heading)
+
+        # Save ensemble data
+        self.level_ensemble = 100 * levels  # Convert hPa to Pa
+        self.height_ensemble = height
+        self.temperature_ensemble = temperature
+        self.wind_u_ensemble = wind_u
+        self.wind_v_ensemble = wind_v
+        self.wind_heading_ensemble = wind_heading
+        self.wind_direction_ensemble = wind_direction
+        self.wind_speed_ensemble = wind_speed
+        self.num_ensemble_members = num_members
+
+        # Save debugging data
+        self.levels = self.level_ensemble
+        self.geopotentials = height
+        self.wind_us = wind_u
+        self.wind_vs = wind_v
+        self.temperatures = temperature
+        self.height = height
+
+    @staticmethod
+    def __find_open_meteo_members(hourly):
+        """Returns the sorted member suffixes present in an ensemble payload.
+
+        Open-Meteo names ensemble members ``<variable>_memberNN``, alongside an
+        unsuffixed control run. The control run is kept as the first member so
+        that ``select_ensemble_member(0)`` selects it, matching the behaviour
+        documented for the netCDF-based ensembles.
+        """
+        suffixes = sorted(
+            {
+                match.group(1)
+                for key in hourly
+                if (match := re.search(r"(_member\d+)$", key))
+            }
+        )
+        if not suffixes:
+            raise ValueError(
+                "The Open-Meteo ensemble response did not contain any ensemble "
+                "members. Please try again later or choose another model."
+            )
+        return [""] + suffixes
 
     @staticmethod
     def _validate_meteomatics_credentials_and_model(model, username, password):
@@ -2353,6 +2803,411 @@ class Environment:
 
         # Close weather data
         data.close()
+
+    @staticmethod
+    def _prepare_ensemble_profile_source(source, variable, member):
+        """Validate and normalize a user-defined atmospheric profile."""
+        if isinstance(source, Function):
+            if not source.is_array_source():
+                raise TypeError(
+                    f"Member {member} '{variable}' must be an array-backed "
+                    "Function or a two-column array."
+                )
+            source = source.source
+
+        try:
+            profile = np.asarray(source, dtype=float)
+        except (TypeError, ValueError) as exc:
+            raise TypeError(
+                f"Member {member} '{variable}' must be a two-column numeric array."
+            ) from exc
+
+        if profile.ndim != 2 or profile.shape[1] != 2 or len(profile) < 2:
+            raise ValueError(
+                f"Member {member} '{variable}' must contain at least two "
+                "[height, value] rows."
+            )
+        if not np.all(np.isfinite(profile)):
+            raise ValueError(
+                f"Member {member} '{variable}' contains non-finite values."
+            )
+
+        profile = profile[np.argsort(profile[:, 0])]
+        if np.any(np.diff(profile[:, 0]) <= 0):
+            raise ValueError(f"Member {member} '{variable}' heights must be unique.")
+        return profile
+
+    def _prepare_ensemble_profiles(self, profiles):
+        """Validate and normalize every user-defined ensemble member."""
+        if isinstance(profiles, (str, bytes, Mapping)):
+            raise TypeError("'profiles' must be a sequence of member mappings.")
+        try:
+            profiles = list(profiles)
+        except TypeError as exc:
+            raise TypeError(
+                "'profiles' must be a sequence of member mappings."
+            ) from exc
+        if len(profiles) < 2:
+            raise ValueError("At least two atmospheric profiles are required.")
+
+        required_variables = ("pressure", "temperature", "wind_u", "wind_v")
+        members = []
+        for member_index, member in enumerate(profiles):
+            if not isinstance(member, Mapping):
+                raise TypeError(
+                    f"Member {member_index} must be a mapping of profile names "
+                    "to two-column arrays."
+                )
+            missing = [name for name in required_variables if name not in member]
+            if missing:
+                raise ValueError(
+                    f"Member {member_index} is missing required profile(s): "
+                    f"{', '.join(missing)}."
+                )
+
+            prepared = {
+                variable: self._prepare_ensemble_profile_source(
+                    member[variable], variable, member_index
+                )
+                for variable in required_variables
+            }
+            pressure = prepared["pressure"][:, 1]
+            if np.any(pressure <= 0):
+                raise ValueError(
+                    f"Member {member_index} pressure values must be positive."
+                )
+            if np.any(np.diff(pressure) >= 0):
+                raise ValueError(
+                    f"Member {member_index} pressure must decrease strictly "
+                    "with increasing height."
+                )
+            if np.any(prepared["temperature"][:, 1] <= 0):
+                raise ValueError(
+                    f"Member {member_index} temperature values must be positive."
+                )
+            members.append(prepared)
+        return members
+
+    @staticmethod
+    def _prepare_ensemble_pressure_levels(members, pressure_levels):
+        """Return a valid pressure grid shared by every ensemble member."""
+        common_min_pressure = max(member["pressure"][-1, 1] for member in members)
+        common_max_pressure = min(member["pressure"][0, 1] for member in members)
+        if common_min_pressure >= common_max_pressure:
+            raise ValueError("Ensemble members have no common pressure range.")
+
+        if pressure_levels is None:
+            common_levels = np.concatenate(
+                [member["pressure"][:, 1] for member in members]
+            )
+            common_levels = common_levels[
+                (common_levels >= common_min_pressure)
+                & (common_levels <= common_max_pressure)
+            ]
+            pressure_levels = np.unique(common_levels)[::-1]
+        else:
+            try:
+                pressure_levels = np.asarray(pressure_levels, dtype=float)
+            except (TypeError, ValueError) as exc:
+                raise TypeError("'pressure_levels' must be a numeric array.") from exc
+            if pressure_levels.ndim != 1:
+                raise ValueError("'pressure_levels' must be one-dimensional.")
+            if not np.all(np.isfinite(pressure_levels)) or np.any(pressure_levels <= 0):
+                raise ValueError(
+                    "'pressure_levels' must contain only finite, positive values."
+                )
+            if len(np.unique(pressure_levels)) != len(pressure_levels):
+                raise ValueError("'pressure_levels' must not contain duplicates.")
+            pressure_levels = np.sort(pressure_levels)[::-1]
+
+        if len(pressure_levels) < 2:
+            raise ValueError(
+                "At least two pressure levels inside the common range are required."
+            )
+        if (
+            pressure_levels[-1] < common_min_pressure
+            or pressure_levels[0] > common_max_pressure
+        ):
+            raise ValueError(
+                "'pressure_levels' must stay inside the pressure range shared "
+                "by every member."
+            )
+        return pressure_levels
+
+    def _interpolate_ensemble_profiles(self, members, pressure_levels):
+        """Interpolate ensemble members onto their common pressure grid."""
+        value_variables = ("temperature", "wind_u", "wind_v")
+        member_heights = []
+        member_values = {name: [] for name in value_variables}
+        for member_index, member in enumerate(members):
+            pressure_profile = member["pressure"]
+            heights = np.interp(
+                pressure_levels,
+                pressure_profile[::-1, 1],
+                pressure_profile[::-1, 0],
+            )
+            member_heights.append(heights)
+
+            for variable in value_variables:
+                profile = member[variable]
+                if heights[0] < profile[0, 0] or heights[-1] > profile[-1, 0]:
+                    raise ValueError(
+                        f"Member {member_index} '{variable}' does not cover all "
+                        "heights in the common pressure range."
+                    )
+                member_values[variable].append(
+                    np.interp(heights, profile[:, 0], profile[:, 1])
+                )
+
+        geometric_heights = np.asarray(member_heights)
+        if np.any(geometric_heights <= -self.earth_radius):
+            raise ValueError("Profile heights must be greater than -Earth's radius.")
+        geopotential_heights = (
+            self.earth_radius
+            * geometric_heights
+            / (self.earth_radius + geometric_heights)
+        )
+        return geopotential_heights, member_values
+
+    @staticmethod
+    def _prepare_ensemble_file_path(file_name, overwrite):
+        """Normalize the output path and protect existing files."""
+        try:
+            file_path = os.fspath(file_name)
+        except TypeError as exc:
+            raise TypeError(
+                "'file_name' must be a string or path-like object."
+            ) from exc
+        if not file_path.lower().endswith(".nc"):
+            file_path += ".nc"
+        file_path = os.path.abspath(file_path)
+        if os.path.exists(file_path) and not overwrite:
+            raise FileExistsError(
+                f"'{file_path}' already exists. Pass overwrite=True to replace it."
+            )
+        return file_path
+
+    def _create_ensemble_time_coordinate(self, dataset):
+        """Create the valid-time coordinate for an ensemble dataset."""
+        time = dataset.createVariable("time", "f8", ("time",))
+        time.long_name = "profile valid time"
+        time.standard_name = "time"
+        time.units = (
+            f"hours since {self.datetime_date.strftime('%Y-%m-%d %H:%M:%S')} UTC"
+        )
+        time.calendar = "gregorian"
+        time.axis = "T"
+        time[:] = [0]
+
+    @staticmethod
+    def _create_ensemble_member_and_level_coordinates(
+        dataset, member_count, pressure_levels
+    ):
+        """Create the ensemble-member and pressure-level coordinates."""
+        ensemble = dataset.createVariable("ens", "i4", ("ens",))
+        ensemble.long_name = "ensemble member"
+        ensemble.units = "1"
+        ensemble[:] = np.arange(member_count)
+
+        level = dataset.createVariable("lev", "f8", ("lev",))
+        level.long_name = "pressure level"
+        level.standard_name = "air_pressure"
+        level.units = "hPa"
+        level.positive = "down"
+        level.axis = "Z"
+        level[:] = pressure_levels / 100
+
+    @staticmethod
+    def _create_ensemble_spatial_coordinates(
+        dataset, latitude_bounds, longitude_bounds
+    ):
+        """Create latitude and longitude coordinates for an ensemble dataset."""
+        latitude = dataset.createVariable("lat", "f8", ("lat",))
+        latitude.long_name = "latitude"
+        latitude.standard_name = "latitude"
+        latitude.units = "degrees_north"
+        latitude.axis = "Y"
+        latitude[:] = latitude_bounds
+
+        longitude = dataset.createVariable("lon", "f8", ("lon",))
+        longitude.long_name = "longitude"
+        longitude.standard_name = "longitude"
+        longitude.units = "degrees_east"
+        longitude.axis = "X"
+        longitude[:] = longitude_bounds
+
+    def _create_ensemble_coordinates(self, dataset, member_count, pressure_levels):
+        """Create dimensions and coordinate variables for an ensemble dataset."""
+        latitude_bounds = np.array(
+            [max(-90, self.latitude - 0.01), min(90, self.latitude + 0.01)]
+        )
+        grid_longitude = 0 if self.longitude == 360 else self.longitude
+        longitude_bounds = np.array(
+            [
+                max(-180, grid_longitude - 0.01),
+                min(360, grid_longitude + 0.01),
+            ]
+        )
+
+        dataset.createDimension("time", 1)
+        dataset.createDimension("ens", member_count)
+        dataset.createDimension("lev", len(pressure_levels))
+        dataset.createDimension("lat", len(latitude_bounds))
+        dataset.createDimension("lon", len(longitude_bounds))
+
+        self._create_ensemble_time_coordinate(dataset)
+        self._create_ensemble_member_and_level_coordinates(
+            dataset, member_count, pressure_levels
+        )
+        self._create_ensemble_spatial_coordinates(
+            dataset, latitude_bounds, longitude_bounds
+        )
+
+        return (
+            1,
+            member_count,
+            len(pressure_levels),
+            len(latitude_bounds),
+            len(longitude_bounds),
+        )
+
+    @staticmethod
+    def _create_ensemble_data_variables(
+        dataset, data_shape, geopotential_heights, member_values
+    ):
+        """Create and populate the atmospheric variables in an ensemble dataset."""
+        variables = {
+            "hgtprs": (
+                geopotential_heights,
+                "geopotential height",
+                "geopotential_height",
+                "m",
+            ),
+            "tmpprs": (
+                np.asarray(member_values["temperature"]),
+                "air temperature",
+                "air_temperature",
+                "K",
+            ),
+            "ugrdprs": (
+                np.asarray(member_values["wind_u"]),
+                "eastward wind",
+                "eastward_wind",
+                "m s-1",
+            ),
+            "vgrdprs": (
+                np.asarray(member_values["wind_v"]),
+                "northward wind",
+                "northward_wind",
+                "m s-1",
+            ),
+        }
+        dimensions = ("time", "ens", "lev", "lat", "lon")
+        for name, (values, long_name, standard_name, units) in variables.items():
+            variable = dataset.createVariable(
+                name, "f8", dimensions, zlib=True, complevel=4
+            )
+            variable.long_name = long_name
+            variable.standard_name = standard_name
+            variable.units = units
+            variable.coordinates = "time ens lev lat lon"
+            variable[:] = np.broadcast_to(values[None, :, :, None, None], data_shape)
+
+    def _write_ensemble_file(
+        self, file_path, pressure_levels, geopotential_heights, member_values
+    ):
+        """Write prepared ensemble data to a GEFS-compatible NetCDF file."""
+        with netCDF4.Dataset(file_path, "w", format="NETCDF4") as dataset:
+            dataset.Conventions = "CF-1.8"
+            dataset.title = "RocketPy user-defined atmospheric ensemble"
+            dataset.source = "RocketPy Environment.create_ensemble"
+            dataset.history = (
+                f"Created {datetime.now(tz=pytz.UTC).isoformat()} by RocketPy"
+            )
+            dataset.comment = (
+                "Profiles are spatially constant across the 2 x 2 grid "
+                "surrounding the launch coordinates."
+            )
+            dataset.launch_latitude = self.latitude
+            dataset.launch_longitude = self.longitude
+
+            data_shape = self._create_ensemble_coordinates(
+                dataset, len(geopotential_heights), pressure_levels
+            )
+            self._create_ensemble_data_variables(
+                dataset, data_shape, geopotential_heights, member_values
+            )
+
+    def create_ensemble(
+        self,
+        profiles,
+        file_name="custom_ensemble.nc",
+        pressure_levels=None,
+        overwrite=False,
+    ):
+        """Create and activate an ensemble from user-defined profiles.
+
+        RocketPy writes the profiles with GEFS-compatible variable names.
+        Another Environment can load the returned file by passing
+        ``type="Ensemble"`` and ``dictionary="GEFS"`` to
+        :meth:`Environment.set_atmospheric_model`.
+
+        Parameters
+        ----------
+        profiles : sequence of mappings
+            Atmospheric profiles for each ensemble member. Every mapping must
+            define ``pressure``, ``temperature``, ``wind_u`` and ``wind_v``.
+            Each value must be a two-column array whose first column is
+            geometric height above sea level in meters. The second column uses
+            Pa for pressure, K for temperature and m/s for either wind
+            component. Array-backed :class:`rocketpy.Function` objects are also
+            accepted. Pressure must decrease strictly with increasing height.
+        file_name : str or os.PathLike, optional
+            Path of the NetCDF file to create. The ``.nc`` suffix is appended
+            when omitted. Default is ``"custom_ensemble.nc"``.
+        pressure_levels : array-like, optional
+            Common pressure levels in Pa. By default, the union of sampled
+            pressure levels inside the range shared by every member is used.
+        overwrite : bool, optional
+            Whether an existing file may be replaced. Default is ``False``.
+
+        Returns
+        -------
+        str
+            Absolute path of the created NetCDF file.
+
+        Raises
+        ------
+        TypeError
+            If profiles or profile values have invalid types.
+        ValueError
+            If fewer than two members are supplied, required variables are
+            missing, profiles are invalid, or the members have no usable common
+            pressure range.
+        FileExistsError
+            If the output exists and ``overwrite`` is ``False``.
+
+        Notes
+        -----
+        The first member is activated after the file is created. Use
+        :meth:`Environment.select_ensemble_member` to activate another member.
+        """
+        self.__validate_datetime()
+        members = self._prepare_ensemble_profiles(profiles)
+        pressure_levels = self._prepare_ensemble_pressure_levels(
+            members, pressure_levels
+        )
+        geopotential_heights, member_values = self._interpolate_ensemble_profiles(
+            members, pressure_levels
+        )
+        file_path = self._prepare_ensemble_file_path(file_name, overwrite)
+        self._write_ensemble_file(
+            file_path, pressure_levels, geopotential_heights, member_values
+        )
+
+        self.set_atmospheric_model(type="Ensemble", file=file_path, dictionary="GEFS")
+        logger.info("Atmospheric ensemble saved at '%s'.", file_path)
+        return file_path
 
     def process_ensemble(self, file, dictionary, conversion_factor):  # pylint: disable=too-many-locals,too-many-statements
         """Import and process atmospheric data from weather ensembles
@@ -3235,7 +4090,15 @@ class Environment:
                 env.elevation = data["elevation"]
                 env.max_expected_height = data["max_expected_height"]
 
-        if model_type in ("windy", "meteomatics", "forecast", "reanalysis", "ensemble"):
+        if model_type in (
+            "windy",
+            "meteomatics",
+            "open_meteo",
+            "open_meteo_ensemble",
+            "forecast",
+            "reanalysis",
+            "ensemble",
+        ):
             env.atmospheric_model_init_date = data["atmospheric_model_init_date"]
             env.atmospheric_model_end_date = data["atmospheric_model_end_date"]
             env.atmospheric_model_interval = data["atmospheric_model_interval"]
@@ -3244,7 +4107,7 @@ class Environment:
             env.atmospheric_model_init_lon = data["atmospheric_model_init_lon"]
             env.atmospheric_model_end_lon = data["atmospheric_model_end_lon"]
 
-        if model_type == "ensemble":
+        if model_type in ("ensemble", "open_meteo_ensemble"):
             env.level_ensemble = data["level_ensemble"]
             env.height_ensemble = data["height_ensemble"]
             env.temperature_ensemble = data["temperature_ensemble"]

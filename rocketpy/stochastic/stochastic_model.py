@@ -3,8 +3,6 @@ Defines the `StochasticModel` class, which is used as a base class for all other
 Stochastic classes.
 """
 
-from random import choice
-
 import numpy as np
 
 from rocketpy.mathutils.function import Function
@@ -29,6 +27,18 @@ def _names_as_spawn_key(input_names):
         int.from_bytes(payload[at : at + 4], "little")
         for at in range(0, len(payload), 4)
     )
+
+
+def _format_number(value):
+    """Format a nominal value or a standard deviation for the attribute report.
+
+    An array-valued input, such as a fin outline, has no single number to show,
+    and a fixed-width format raises a ``TypeError`` on it, so its shape stands
+    in for the coordinates.
+    """
+    if np.ndim(value) == 0:
+        return f"{value:.5f}"
+    return f"array of shape {np.shape(value)}"
 
 
 def _sampler_seed(seed, input_names):
@@ -79,6 +89,12 @@ class StochasticModel:
         "ensemble_member",
     ]
 
+    # Arguments whose nominal value is an array of numbers rather than a single
+    # number, such as the outline of a free-form fin. Declared by name so that
+    # validation, sampling and the attribute report all agree on which ones they
+    # are, instead of each deciding for itself.
+    array_valued_inputs = ()
+
     def __init__(self, obj, seed=None, **kwargs):
         """
         Initialize the StochasticModel class with validated input arguments.
@@ -108,6 +124,22 @@ class StochasticModel:
         self.__stochastic_dict = kwargs
         self._set_stochastic(seed)
 
+    def _declare_stochastic_input(self, input_name, input_value):
+        """Declare an input that an ``add_*`` method installs after ``__init__``.
+
+        ``dict_generator`` walks the inputs a model declared rather than every
+        attribute on it (#1109), and that list is built in ``__init__``. Anything
+        added afterwards is set on the instance and never drawn from unless it
+        says so here.
+
+        The value is the argument as given, not the validated form, because
+        ``_set_stochastic`` validates it again on every reseed and binds the
+        distribution to the generator that is live then.
+        """
+        if input_value is None:
+            return
+        self.__stochastic_dict[input_name] = input_value
+
     def _set_stochastic(self, seed=None):
         """Set the stochastic attributes from the input dictionary.
         This method is useful to reset or reseed the attributes of the instance.
@@ -118,6 +150,13 @@ class StochasticModel:
             Seed for the random number generator.
         """
         self.__random_number_generator = np.random.default_rng(seed)
+        # A stream of its own, derived from the same seed, for picking between
+        # the candidate values of a list input. Kept apart from the one above so
+        # that declaring a list input does not shift the numbers every other
+        # input draws, which would move each existing fixed-seed baseline.
+        self.__choice_generator = np.random.default_rng(
+            _sampler_seed(seed, ("__list_choice__",))
+        )
         self.last_rnd_dict = {}
 
         self._reset_custom_samplers(seed)
@@ -153,6 +192,53 @@ class StochasticModel:
     def __repr__(self):
         return f"'{self.__class__.__name__}() object'"
 
+    def _choose(self, values):
+        """Pick one of the candidate values of a list input.
+
+        ``random.choice`` was used here, which draws from the interpreter-wide
+        stream that ``_set_stochastic`` does not reseed: the same seed did not
+        reproduce the same choices, and Monte Carlo workers forked from one
+        process inherited a single stream and walked it together instead of
+        sampling independently.
+
+        Parameters
+        ----------
+        values : list
+            Candidate values of the input.
+
+        Returns
+        -------
+        object
+            One of the candidates, or ``values`` itself when there are none.
+        """
+        if len(values) == 0:
+            return values
+        return values[self.__choice_generator.integers(len(values))]
+
+    def _nominal_value(self, input_name, value):
+        """Return the nominal value of an input as the distribution needs it.
+
+        The distributions are called as ``dist_func(nominal, std_dev)``, so an
+        array-valued input has to arrive as an array for the deviation to
+        broadcast over its entries. A list of ``(x, y)`` tuples, which is how a
+        fin outline is written, would not.
+
+        Parameters
+        ----------
+        input_name : str
+            Name of the input argument.
+        value : object
+            Nominal value of the input argument.
+
+        Returns
+        -------
+        object
+            The value, as an array of floats for the array-valued inputs.
+        """
+        if input_name in self.array_valued_inputs:
+            return np.asarray(value, dtype=float)
+        return value
+
     def _validate_tuple(self, input_name, input_value, getattr=getattr):  # pylint: disable=redefined-builtin
         """
         Validate tuple arguments.
@@ -183,8 +269,15 @@ class StochasticModel:
         ]:
             raise AssertionError(f"'{input_name}': tuple must have length 2 or 3")
         if not isinstance(input_value[0], (int, float)):
-            raise AssertionError(
-                f"'{input_name}': First item of tuple must be an int or float"
+            if input_name not in self.array_valued_inputs:
+                raise AssertionError(
+                    f"'{input_name}': First item of tuple must be an int or float"
+                )
+            # An array-valued input carries its whole nominal value here, so the
+            # single number the others require is not what to expect. The child
+            # class that declared it has already checked the value itself.
+            input_value = (self._nominal_value(input_name, input_value[0]),) + tuple(
+                input_value[1:]
             )
 
         if len(input_value) == 2:
@@ -227,7 +320,11 @@ class StochasticModel:
             # function. In this case, the nominal value will be taken from the
             # object passed.
             dist_func = get_distribution(input_value[1], self.__random_number_generator)
-            return (getattr(self.obj, input_name), input_value[0], dist_func)
+            return (
+                self._nominal_value(input_name, getattr(self.obj, input_name)),
+                input_value[0],
+                dist_func,
+            )
         else:
             # if second item is an int or float, then it is assumed that the
             # first item is the nominal value and the second item is the
@@ -326,7 +423,7 @@ class StochasticModel:
                 distribution function).
         """
         return (
-            getattr(self.obj, input_name),
+            self._nominal_value(input_name, getattr(self.obj, input_name)),
             input_value,
             get_distribution("normal", self.__random_number_generator),
         )
@@ -504,39 +601,30 @@ class StochasticModel:
                 )
 
     def _reset_custom_samplers(self, seed):
-        """Give each sampler its own stream, and each shared group one between
-        them.
+        """Seed each sampler, and each shared generator once.
 
-        Samplers that share a generator, as the documented wind pair do, are
-        seeded once as a unit. Resetting each member in turn would leave every
-        seed but the last discarded and the group's stream decided by whichever
-        member happened to go last.
-
-        Its own pass rather than the validation loop below, whose order sets
-        ``__dict__`` and so the order every other input is drawn in.
+        Kept out of the validation loop in ``_set_stochastic``, whose order
+        sets ``__dict__`` and with it the order every other input is drawn in.
         """
         groups = {}
         for input_name in sorted(self.__stochastic_dict):
             sampler = self.__stochastic_dict[input_name]
             if isinstance(sampler, CustomSampler):
-                # Held in the value as well as keyed on, because `id` is
-                # unique only among live objects. Defensive: a `seed_group`
-                # that builds its answer did not merge in practice here.
+                # Kept in the value too: `id` is unique only among live
+                # objects, so the group has to outlive the dict.
                 group = sampler.seed_group
                 shared = groups.setdefault(id(group), ([], sampler, group))
                 shared[0].append(input_name)
 
         for names, sampler, group in groups.values():
-            # The group itself when it can be reset, since it is the thing that
-            # holds the shared state. Going through one member instead assumes
-            # every member resets the same way and keeps nothing of its own.
+            # The group holds the shared state, so reset it directly; a member
+            # may reset differently, or keep state of its own.
             resetter = group if hasattr(group, "reset_seed") else sampler
             try:
                 resetter.reset_seed(_sampler_seed(seed, names))
             except Exception as error:
-                # Not just RuntimeError. The seed handed over is now 128 bits,
-                # which the legacy RandomState refuses with a ValueError, and a
-                # bare one of those does not say which sampler raised it.
+                # Broad: the seed is 128 bits, which legacy RandomState refuses
+                # with a ValueError that does not name the sampler.
                 raise RuntimeError(
                     f"An error occurred in the 'reset_seed' method of the "
                     f"CustomSampler for {', '.join(names)}"
@@ -546,9 +634,7 @@ class StochasticModel:
         """
         Validate a custom sampler.
 
-        Seeding is not done here. It happens in ``_reset_custom_samplers``,
-        which runs in a fixed order because two samplers can share one
-        generator and whichever is reset last decides the stream.
+        Seeding happens in ``_reset_custom_samplers``, not here.
 
         Parameters
         ----------
@@ -562,9 +648,8 @@ class StochasticModel:
         AssertionError
             If the input is not in a valid format.
         """
-        # Raised rather than asserted, the same way #1103 handles it: `python -O`
-        # strips an assert, and the documented AssertionError is kept so callers
-        # that already catch it still do.
+        # Raised, not asserted: `python -O` strips asserts. AssertionError is
+        # kept so callers that catch it still do. Same as #1103.
         if not isinstance(sampler, CustomSampler):
             raise AssertionError(
                 f"`{input_name}` must be a CustomSampler, not {type(sampler).__name__}"
@@ -621,18 +706,26 @@ class StochasticModel:
 
         Notes
         -----
-        1. The dictionary is generated by iterating over the class attributes and:
-            a. If the attribute is a tuple, the value is generated using the\
-                distribution function specified in the tuple.
-            b. If the attribute is a list, the value is randomly chosen from the list.
+        1. The dictionary is generated by iterating over the *declared*
+           stochastic inputs (constructor kwargs), not every attribute on
+           ``self``. This avoids treating opaque tuples such as
+           ``initial_solution`` as ``(nominal, spread, sampler)`` triples.
+
+           a. If the attribute is a tuple, the value is generated using the
+              distribution function specified in the tuple.
+           b. If the attribute is a list, the value is randomly chosen from
+              the list.
         """
         generated_dict = {}
-        for arg, value in self.__dict__.items():
+        for arg in self.__stochastic_dict:
+            if not hasattr(self, arg):
+                continue
+            value = getattr(self, arg)
             if isinstance(value, tuple):
                 dist_sampler = value[-1]
                 generated_dict[arg] = dist_sampler(value[0], value[1])
             elif isinstance(value, list):
-                generated_dict[arg] = choice(value) if value else value
+                generated_dict[arg] = self._choose(value)
             elif isinstance(value, CustomSampler):
                 try:
                     generated_dict[arg] = value.sample(n_samples=1)[0]
@@ -671,13 +764,14 @@ class StochasticModel:
                     upper_bound = std_dev
                     return (
                         f"\t{attr.ljust(max_str_length)} "
-                        f"{lower_bound:.5f}, {upper_bound:.5f} ({dist_func.__name__})"
+                        f"{_format_number(lower_bound)}, "
+                        f"{_format_number(upper_bound)} ({dist_func.__name__})"
                     )
                 else:
                     return (
                         f"\t{attr.ljust(max_str_length)} "
-                        f"{nominal_value:.5f} ± "
-                        f"{std_dev:.5f} ({dist_func.__name__})"
+                        f"{_format_number(nominal_value)} ± "
+                        f"{_format_number(std_dev)} ({dist_func.__name__})"
                     )
             elif isinstance(value, CustomSampler):
                 sampler_name = type(value).__name__

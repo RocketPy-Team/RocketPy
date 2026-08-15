@@ -1,6 +1,17 @@
+from numbers import Real
+
+import numpy as np
+import pytest
+
+from rocketpy.rocket.aero_surface import FreeFormFins
 from rocketpy.rocket.parachute import Parachute
 from rocketpy.rocket.rocket import Rocket
-from rocketpy.stochastic import StochasticParachute, StochasticRocket
+from rocketpy.stochastic import (
+    StochasticFreeFormFins,
+    StochasticParachute,
+    StochasticRocket,
+    StochasticTrapezoidalFins,
+)
 
 
 def test_str(stochastic_calisto):
@@ -123,3 +134,105 @@ def test_configured_geometry_survives_without_being_randomized(calisto_robust):
     flown = stochastic.create_object().parachutes[0]
 
     assert (flown.radius, flown.height, flown.porosity) == (2.0, 1.5, 0.05)
+
+
+def test_a_deterministic_surface_is_wrapped_in_its_stochastic_model(
+    calisto_robust, calisto_trapezoidal_fins
+):
+    """`_add_surfaces` used to wrap deterministic surfaces with a `component=`
+    keyword none of the stochastic classes accept, so passing any plain
+    aerodynamic surface raised a TypeError instead of being wrapped."""
+    stochastic = StochasticRocket(rocket=calisto_robust)
+
+    stochastic.add_trapezoidal_fins(calisto_trapezoidal_fins)
+
+    added = stochastic.aerodynamic_surfaces.get_tuple_by_type(StochasticTrapezoidalFins)
+    assert len(added) == 1
+    assert added[0].component.obj is calisto_trapezoidal_fins
+
+
+def test_add_free_form_fins_reaches_the_created_rocket(
+    calisto_robust, stochastic_free_form_fins
+):
+    """The fin set added to the stochastic rocket must be the one the created
+    rocket flies, with the outline randomized as a block."""
+    stochastic = StochasticRocket(rocket=calisto_robust)
+    stochastic.add_free_form_fins(stochastic_free_form_fins, position=(-1.04956, 0.001))
+    stochastic._set_stochastic(42)
+
+    rocket = stochastic.create_object()
+
+    fin_sets = rocket.aerodynamic_surfaces.get_tuple_by_type(FreeFormFins)
+    assert len(fin_sets) == 1
+    flown = fin_sets[0].component
+    nominal = np.asarray(stochastic_free_form_fins.obj.shape_points, dtype=float)
+    sampled = np.asarray(flown.shape_points, dtype=float)
+    assert sampled.shape == nominal.shape
+    assert not np.allclose(sampled, nominal)
+
+
+def test_add_free_form_fins_rejects_other_surfaces(calisto_robust, calisto_tail):
+    stochastic = StochasticRocket(rocket=calisto_robust)
+
+    with pytest.raises(AssertionError):
+        stochastic.add_free_form_fins(calisto_tail)
+
+
+def test_add_free_form_fins_wraps_a_deterministic_fin_set(calisto_robust):
+    """A plain FreeFormFins must be wrapped in its own stochastic model, the
+    same way the other surfaces are."""
+    fins = calisto_robust.add_free_form_fins(
+        n=4,
+        shape_points=[(0, 0), (0.08, 0.1), (0.12, 0.1), (0.12, 0)],
+        position=-1.04956,
+    )
+    stochastic = StochasticRocket(rocket=calisto_robust)
+
+    stochastic.add_free_form_fins(fins)
+
+    added = stochastic.aerodynamic_surfaces.get_tuple_by_type(StochasticFreeFormFins)
+    assert len(added) == 1
+    assert added[0].component.obj is fins
+
+
+@pytest.mark.parametrize(
+    "add_them, names",
+    [
+        (
+            "add_cp_eccentricity",
+            ("cp_eccentricity_x", "cp_eccentricity_y"),
+        ),
+        (
+            "add_thrust_eccentricity",
+            ("thrust_eccentricity_x", "thrust_eccentricity_y"),
+        ),
+    ],
+)
+def test_an_eccentricity_added_after_init_is_still_drawn(calisto, add_them, names):
+    """``dict_generator`` walks the declared inputs, and these arrive later.
+
+    The list is built in ``__init__``, so a distribution installed by an
+    ``add_*`` method afterwards was set on the instance and never drawn from:
+    every simulation used the same value, with nothing to say so.
+    """
+    stochastic = StochasticRocket(rocket=calisto, radius=0.0127 / 2)
+    getattr(stochastic, add_them)(x=(0.0, 0.001), y=(0.0, 0.001))
+    stochastic._set_stochastic(42)
+
+    generated = next(stochastic.dict_generator())
+
+    assert set(names) <= set(generated), f"{add_them} was set but never sampled"
+    assert all(isinstance(generated[name], Real) for name in names)
+
+
+def test_two_seeds_move_an_eccentricity_that_was_added_late(calisto):
+    """Being present is not enough; it has to follow the seed."""
+    stochastic = StochasticRocket(rocket=calisto, radius=0.0127 / 2)
+    stochastic.add_cp_eccentricity(x=(0.0, 0.01), y=(0.0, 0.01))
+
+    def drawn(seed):
+        stochastic._set_stochastic(seed)
+        return next(stochastic.dict_generator())["cp_eccentricity_x"]
+
+    assert drawn(7) == drawn(7)
+    assert drawn(7) != drawn(8)

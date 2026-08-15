@@ -1,22 +1,51 @@
-name: Qodo PR-Agent Gemini Reviewer
+name: PR Agent Gemini Reviewer
 
+# Automatic PR review powered by Google AI Studio (Gemini) through PR-Agent.
+#
+# `pull_request_target` rather than `pull_request`: most contributions arrive as
+# PRs from forks, and a `pull_request` run triggered by a fork gets no secrets,
+# so GEMINI_API_KEY would be empty (and the run would sit in `action_required`
+# waiting for approval). That is safe here because this job never checks the
+# pull request out - PR-Agent reads the diff over the GitHub API, and the only
+# step is a version-pinned container action - so no untrusted code is executed.
+#
+# `synchronize` is deliberately absent: PR-Agent skips that event unless
+# `github_action_config.handle_push_trigger` is set, so it only burned a runner
+# on every push. Enable that setting if you want a re-review on each push.
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  pull_request_target:
+    types: [opened, reopened, ready_for_review]
   issue_comment:
     types: [created]
 
 jobs:
   pr_agent_job:
+    name: Run PR Agent
+    # Never react to our own comments, which would loop, and ignore comments on
+    # plain issues, which carry no diff to review.
+    if: >-
+      github.event.sender.type != 'Bot'
+      && (github.event_name != 'issue_comment' || github.event.issue.pull_request)
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       issues: write
       pull-requests: write
-      contents: write
-    name: Run PR Agent
     steps:
       - name: PR Agent Action
-        uses: the-pr-agent/pr-agent@main
+        uses: the-pr-agent/pr-agent@v0.42.0
         env:
-          GOOGLE_AI_STUDIO.GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GOOGLE_AI_STUDIO.GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # Required. Without an explicit model PR-Agent keeps its OpenAI
+          # defaults and every call dies with `AuthenticationError - Incorrect
+          # API key provided: dummy_key`, which is what kept this job from ever
+          # posting a review.
+          config.model: "gemini/gemini-3.5-pro"
+          config.fallback_models: '["gemini/gemini-3.6-flash"]'
+          # Gemini accepts 1M tokens; the 32k default truncates larger diffs.
+          config.max_model_tokens: "128000"
+          # Review and suggest, but leave the human-written description alone.
+          github_action_config.auto_describe: "false"
+          github_action_config.auto_review: "true"
+          github_action_config.auto_improve: "true"

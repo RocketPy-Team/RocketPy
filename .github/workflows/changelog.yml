@@ -1,12 +1,21 @@
 name: Populate Changelog
 on:
-  pull_request:
+  # `pull_request_target`, not `pull_request`. Secrets are withheld from a
+  # `pull_request` run whose head is a fork, so RELEASE_TOKEN arrived empty and
+  # the checkout below failed for every outside contribution.
+  #
+  # Nothing from the pull request is executed. The checkout is `ref: develop`,
+  # and the updater is inline below, which under this trigger is read from the
+  # default branch rather than from the merged head.
+  pull_request_target:
     types: [closed]
     branches:
       - develop
 
+# Read, because the job's own writes go through RELEASE_TOKEN. This trigger runs
+# with secrets available, so GITHUB_TOKEN should not also carry write.
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   Changelog:

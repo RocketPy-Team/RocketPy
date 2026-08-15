@@ -94,6 +94,7 @@ class StochasticFlight(StochasticModel):
             heading=heading,
         )
 
+        self._validate_initial_solution(initial_solution)
         self.initial_solution = initial_solution
         self.terminate_on_apogee = terminate_on_apogee
         if max_time is None:
