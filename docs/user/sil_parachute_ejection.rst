@@ -172,11 +172,21 @@ exactly when your algorithm commands the charge.
 Dual path: trigger vs controller callback
 -----------------------------------------
 
-| Mechanism | Use when |
-| --------- | -------- |
-| Parachute ``trigger`` | The algorithm's output is "fire this canopy now". This is the usual SIL recovery path. |
-| Controller function (:doc:`controllers`) | You need a fixed-rate loop that updates actuators (air brakes, canards) or logs observed variables alongside recovery logic. |
-| Acceleration / sensor triggers (:doc:`parachute_triggers`) | The algorithm needs ``u_dot`` or attached IMU/barometer sensor objects instead of (or in addition to) the noisy pressure channel. |
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Mechanism
+     - Use when
+   * - Parachute ``trigger``
+     - The algorithm's output is "fire this canopy now". This is the usual SIL
+       recovery path.
+   * - Controller function (:doc:`controllers`)
+     - You need a fixed-rate loop that updates actuators (air brakes, canards)
+       or logs observed variables alongside recovery logic.
+   * - Acceleration / sensor triggers (:doc:`parachute_triggers`)
+     - The algorithm needs ``u_dot`` or attached IMU/barometer sensor objects
+       instead of (or in addition to) the noisy pressure channel.
 
 You can combine them: a controller may update shared state that a parachute
 trigger reads, or a 5-argument trigger can read ``sensors`` and ``u_dot``
