@@ -1,6 +1,7 @@
 """Defines the StochasticParachute class."""
 
 from rocketpy.rocket import Parachute
+from rocketpy.rocket.parachute import _is_a_height_trigger
 
 from .stochastic_model import StochasticModel, _sampler_seed
 
@@ -8,16 +9,18 @@ from .stochastic_model import StochasticModel, _sampler_seed
 def _is_a_trigger(member):
     """One of the three forms ``Parachute`` accepts, and no more.
 
-    ``(int, float)`` deliberately, matching ``Parachute``'s own check rather
-    than ``numbers.Real``: that would take ``numpy.int64``, which ``Parachute``
-    refuses, so widening here only moves the failure to create time. ``bool``
-    is excluded because it is an ``int``, and would arrive as a height of one.
+    The height form defers to ``Parachute``'s own predicate instead of
+    restating it. Both were written out separately before and drifted: this one
+    kept ``(int, float)`` while ``Parachute`` widened to ``numbers.Real``, so a
+    ``numpy.int64`` height was refused here even though the ``Parachute`` it
+    would have built accepts it. Calling the same function is what keeps the
+    promise that what this accepts is what a parachute accepts.
     """
     if callable(member):
         return True
     if isinstance(member, str):
         return member.lower() == "apogee"
-    return isinstance(member, (int, float)) and not isinstance(member, bool)
+    return _is_a_height_trigger(member)
 
 
 class StochasticParachute(StochasticModel):

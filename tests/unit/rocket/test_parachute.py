@@ -130,3 +130,43 @@ def test_callable_trigger_arities_route_arguments(trigger, expects_udot):
     result = parachute.triggerfunc(800.0, 500.0, [0.0] * 6, [], [1.0] * 6)
     assert result is True
     assert parachute.triggerfunc._expects_udot is expects_udot
+
+
+@pytest.mark.parametrize(
+    "trigger",
+    [800, 800.0, np.int64(800), np.int32(800), np.float64(800), np.float32(800)],
+    ids=str,
+)
+def test_any_real_number_is_read_as_a_height(trigger):
+    """A height is anything ``numbers.Real``, not just ``int`` and ``float``.
+
+    The check used to be ``isinstance(trigger, (int, float))``. ``numpy.float64``
+    subclasses ``float`` and passed, but ``numpy.int64`` and ``numpy.float32``
+    subclass neither, so a height read out of a NumPy array raised even though
+    it compares and arithmetics exactly like the value that worked."""
+    parachute = _make_parachute(trigger=trigger)
+
+    # Truthiness rather than `is True`: comparing against a NumPy scalar gives
+    # back a numpy.bool_, which is not the `True` singleton.
+    # falling (vz < 0) and below the trigger height
+    assert parachute.triggerfunc(0.0, 700.0, [0.0] * 5 + [-1.0], [], None)
+    # falling but still above it
+    assert not parachute.triggerfunc(0.0, 900.0, [0.0] * 5 + [-1.0], [], None)
+    # below it but still ascending
+    assert not parachute.triggerfunc(0.0, 700.0, [0.0] * 5 + [1.0], [], None)
+
+
+@pytest.mark.parametrize(
+    "trigger",
+    [True, False, np.bool_(True), complex(800), np.complex64(800), "banana", None, {}],
+    ids=str,
+)
+def test_what_is_not_a_height_is_still_refused(trigger):
+    """Widening to ``numbers.Real`` must not turn the check into "anything".
+
+    ``bool`` is the one that has to be excluded by hand, because it *is* an
+    ``int``: ``True`` would otherwise be accepted and read as a height of one
+    metre, firing the parachute a metre above the ground. ``numpy.bool_`` and
+    the complex types need no special case, since neither is ``Real``."""
+    with pytest.raises(ValueError, match="Unable to set the trigger"):
+        _make_parachute(trigger=trigger)
