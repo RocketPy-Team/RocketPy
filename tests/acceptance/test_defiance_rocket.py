@@ -1,5 +1,7 @@
 """Acceptance test for the 2024 Defiance example flight."""
 
+import pytest
+
 from rocketpy import Environment, Flight, Rocket
 from rocketpy.motors import CylindricalTank, Fluid, HybridMotor
 from rocketpy.motors.tank import MassFlowRateBasedTank
@@ -7,6 +9,11 @@ from rocketpy.motors.tank import MassFlowRateBasedTank
 
 MEASURED_APOGEE_AGL = 9308.32
 MAX_RELATIVE_APOGEE_ERROR = 0.01
+REFERENCE_MAX_SPEED = 444.24
+REFERENCE_MAX_ACCELERATION = 10400.76
+REFERENCE_IMPACT_X = 1625.55
+REFERENCE_IMPACT_Y = 81.78
+REFERENCE_METRIC_RELATIVE_TOLERANCE = 0.01
 
 
 def _build_defiance_flight():
@@ -95,10 +102,15 @@ def _build_defiance_flight():
     )
 
 
-def test_defiance_rocket_apogee_matches_measured_flight():
+@pytest.fixture(scope="module")
+def defiance_flight():
+    """Return one deterministic Defiance flight for the acceptance checks."""
+    return _build_defiance_flight()
+
+
+def test_defiance_rocket_apogee_matches_measured_flight(defiance_flight):
     """Compare the Defiance example simulation with its measured apogee."""
-    flight = _build_defiance_flight()
-    simulated_apogee_agl = flight.apogee - flight.env.elevation
+    simulated_apogee_agl = defiance_flight.apogee - defiance_flight.env.elevation
     relative_error = (
         abs(MEASURED_APOGEE_AGL - simulated_apogee_agl) / MEASURED_APOGEE_AGL
     )
@@ -107,3 +119,15 @@ def test_defiance_rocket_apogee_matches_measured_flight():
         f"Defiance apogee relative error is {relative_error:.2%}; "
         f"expected less than {MAX_RELATIVE_APOGEE_ERROR:.2%}."
     )
+
+
+def test_defiance_rocket_matches_reference_flight_metrics(defiance_flight):
+    """Guard the deterministic example's peak and impact metrics."""
+    tolerance = {"rel": REFERENCE_METRIC_RELATIVE_TOLERANCE}
+
+    assert defiance_flight.max_speed == pytest.approx(REFERENCE_MAX_SPEED, **tolerance)
+    assert defiance_flight.max_acceleration == pytest.approx(
+        REFERENCE_MAX_ACCELERATION, **tolerance
+    )
+    assert defiance_flight.x_impact == pytest.approx(REFERENCE_IMPACT_X, **tolerance)
+    assert defiance_flight.y_impact == pytest.approx(REFERENCE_IMPACT_Y, **tolerance)
