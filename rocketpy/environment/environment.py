@@ -1562,9 +1562,7 @@ class Environment:
         if fetch_function is not None and isinstance(file, str):
             source_label = file
         elif is_remote_url(file):
-            source_label = (
-                "url_" + hashlib.md5(file.encode("utf-8")).hexdigest()[:12]
-            )
+            source_label = "url_" + hashlib.md5(file.encode("utf-8")).hexdigest()[:12]
         else:
             return None
 
