@@ -1,6 +1,7 @@
 """Defines the StochasticParachute class."""
 
 from rocketpy.rocket import Parachute
+from rocketpy.rocket.parachute import _is_a_height_trigger
 
 from .stochastic_model import StochasticModel, _sampler_seed
 
@@ -8,12 +9,15 @@ from .stochastic_model import StochasticModel, _sampler_seed
 def _is_a_trigger(member):
     """One of the forms ``Parachute`` accepts, and no more.
 
-    ``(int, float)`` deliberately, matching ``Parachute``'s own check rather
-    than ``numbers.Real``: that would take ``numpy.int64``, which ``Parachute``
-    refuses for height triggers, so widening here only moves the failure to
-    create time. ``bool`` is excluded because it is an ``int``, and would
-    arrive as a height of one. Time triggers ``("time", t_deploy)`` accept any
-    non-bool value that ``float()`` can convert (including ``numpy`` scalars).
+    The numeric forms defer to ``Parachute``'s own predicate instead of
+    restating it. Both were written out separately before and drifted: this one
+    kept ``(int, float)`` while ``Parachute`` widened to ``numbers.Real``, so a
+    ``numpy.int64`` height was refused here even though the ``Parachute`` it
+    would have built accepts it. Calling the same function is what keeps the
+    promise that what this accepts is what a parachute accepts.
+
+    That applies to the delay of a ``("time", t_deploy)`` trigger too, so a
+    string is refused rather than quietly coerced by ``float()``.
     """
     if callable(member):
         return True
@@ -25,13 +29,8 @@ def _is_a_trigger(member):
         and isinstance(member[0], str)
         and member[0].lower() == "time"
     ):
-        if isinstance(member[1], bool):
-            return False
-        try:
-            return float(member[1]) >= 0
-        except (TypeError, ValueError):
-            return False
-    return isinstance(member, (int, float)) and not isinstance(member, bool)
+        return bool(_is_a_height_trigger(member[1]) and member[1] >= 0)
+    return _is_a_height_trigger(member)
 
 
 class StochasticParachute(StochasticModel):
