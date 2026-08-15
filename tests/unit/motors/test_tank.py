@@ -6,7 +6,8 @@ import numpy.testing as npt
 import pytest
 import scipy.integrate as spi
 
-from rocketpy import CylindricalTank, Fluid, MassFlowRateBasedTank
+from rocketpy import CylindricalTank, Fluid, Function, MassFlowRateBasedTank
+from rocketpy.motors.tank import _compose_clipped
 
 BASE_PATH = Path("./data/rockets/berkeley/")
 
@@ -491,6 +492,7 @@ def test_mass_flow_rate_tank_inertia(
         rtol=1e-2,
     )
 
+
 def test_mass_flow_rate_tank_exact_depletion():
     """Regression test for a tank drained to exact zero mass via a constant
     (linear) mass flow rate.
@@ -538,3 +540,43 @@ def test_mass_flow_rate_tank_exact_depletion():
     gas_height = tank.gas_height(time_points)
     assert np.all(np.isfinite(gas_height))
 
+
+@pytest.mark.parametrize(
+    "outer_is_array, inner_is_array",
+    [(True, False), (False, True), (False, False)],
+    ids=["array-callable", "callable-array", "callable-callable"],
+)
+def test_compose_clipped_defers_when_a_source_is_not_an_array(
+    outer_is_array, inner_is_array
+):
+    """Clipping needs ``x_array``, which only array-sourced Functions have.
+
+    ``Function.compose`` handles a callable source on its own and performs no
+    bounds check there, so there is no spurious error to absorb and nothing to
+    clip. Without this the helper would raise ``AttributeError`` instead of
+    composing, so it would not be a drop-in replacement for ``compose``.
+    """
+    doubling = np.column_stack([np.linspace(0, 10, 11), np.linspace(0, 20, 11)])
+    outer = Function(doubling) if outer_is_array else Function(lambda v: v * 2.0)
+
+    shift = np.column_stack([np.linspace(0, 5, 6), np.linspace(1, 6, 6)])
+    inner = Function(shift) if inner_is_array else Function(lambda t: t + 1.0)
+
+    composed = _compose_clipped(outer, inner)
+
+    # outer(inner(3)) == (3 + 1) * 2
+    assert float(composed(3.0)) == pytest.approx(8.0)
+
+
+def test_compose_clipped_absorbs_only_boundary_noise():
+    """Values a roundoff below the domain are pulled in, not rejected."""
+    doubling = np.column_stack([np.linspace(0, 10, 11), np.linspace(0, 20, 11)])
+    outer = Function(doubling)
+
+    times = np.linspace(0.0, 5.0, 6)
+    just_under_zero = np.column_stack([times, np.full_like(times, -1e-16)])
+    inner = Function(just_under_zero)
+
+    composed = _compose_clipped(outer, inner)
+
+    assert float(composed(2.0)) == pytest.approx(0.0)

@@ -18,8 +18,9 @@ def _compose_clipped(outer, inner):
     domain by a floating-point roundoff amount (e.g. ``-1e-17`` instead of
     exactly ``0`` at the instant a tank is exactly empty or exactly full).
     Physically meaningful over/underfill conditions are still caught
-    downstream by the tank's own bounds checks; this only absorbs
-    numerical noise at the domain boundary.
+    downstream by ``Tank``'s own volume bounds checks, which raise
+    independently of this composition; this only absorbs numerical noise at
+    the domain boundary.
 
     Parameters
     ----------
@@ -35,6 +36,14 @@ def _compose_clipped(outer, inner):
     Function
         The composed function, i.e. ``outer(inner(t))``.
     """
+    # Clipping reads x_array / y_array and the domain bounds, which only exist
+    # for array-sourced Functions. ``Function.compose`` handles the callable
+    # case on its own (and performs no bounds check there, so there is no
+    # spurious error to absorb), so defer to it rather than raising
+    # AttributeError.
+    if not (outer.is_array_source() and inner.is_array_source()):
+        return outer.compose(inner)
+
     domain_min = outer.x_initial
     domain_max = outer.x_final
     clipped_source = np.column_stack(
@@ -991,7 +1000,9 @@ class MassFlowRateBasedTank(Tank):
         Function
             Height of the ullage as a function of time.
         """
-        liquid_height = _compose_clipped(self.geometry.inverse_volume, self.liquid_volume)
+        liquid_height = _compose_clipped(
+            self.geometry.inverse_volume, self.liquid_volume
+        )
         diff_bt = liquid_height - self.geometry.bottom
         diff_up = liquid_height - self.geometry.top
 
@@ -1793,7 +1804,9 @@ class MassBasedTank(Tank):
         Function
             Height of the ullage as a function of time.
         """
-        liquid_height = _compose_clipped(self.geometry.inverse_volume, self.liquid_volume)
+        liquid_height = _compose_clipped(
+            self.geometry.inverse_volume, self.liquid_volume
+        )
         diff_bt = liquid_height - self.geometry.bottom
         diff_up = liquid_height - self.geometry.top
 
