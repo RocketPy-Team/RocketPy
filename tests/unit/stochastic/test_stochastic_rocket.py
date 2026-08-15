@@ -1,3 +1,5 @@
+from numbers import Real
+
 import numpy as np
 import pytest
 
@@ -191,3 +193,46 @@ def test_add_free_form_fins_wraps_a_deterministic_fin_set(calisto_robust):
     added = stochastic.aerodynamic_surfaces.get_tuple_by_type(StochasticFreeFormFins)
     assert len(added) == 1
     assert added[0].component.obj is fins
+
+
+@pytest.mark.parametrize(
+    "add_them, names",
+    [
+        (
+            "add_cp_eccentricity",
+            ("cp_eccentricity_x", "cp_eccentricity_y"),
+        ),
+        (
+            "add_thrust_eccentricity",
+            ("thrust_eccentricity_x", "thrust_eccentricity_y"),
+        ),
+    ],
+)
+def test_an_eccentricity_added_after_init_is_still_drawn(calisto, add_them, names):
+    """``dict_generator`` walks the declared inputs, and these arrive later.
+
+    The list is built in ``__init__``, so a distribution installed by an
+    ``add_*`` method afterwards was set on the instance and never drawn from:
+    every simulation used the same value, with nothing to say so.
+    """
+    stochastic = StochasticRocket(rocket=calisto, radius=0.0127 / 2)
+    getattr(stochastic, add_them)(x=(0.0, 0.001), y=(0.0, 0.001))
+    stochastic._set_stochastic(42)
+
+    generated = next(stochastic.dict_generator())
+
+    assert set(names) <= set(generated), f"{add_them} was set but never sampled"
+    assert all(isinstance(generated[name], Real) for name in names)
+
+
+def test_two_seeds_move_an_eccentricity_that_was_added_late(calisto):
+    """Being present is not enough; it has to follow the seed."""
+    stochastic = StochasticRocket(rocket=calisto, radius=0.0127 / 2)
+    stochastic.add_cp_eccentricity(x=(0.0, 0.01), y=(0.0, 0.01))
+
+    def drawn(seed):
+        stochastic._set_stochastic(seed)
+        return next(stochastic.dict_generator())["cp_eccentricity_x"]
+
+    assert drawn(7) == drawn(7)
+    assert drawn(7) != drawn(8)

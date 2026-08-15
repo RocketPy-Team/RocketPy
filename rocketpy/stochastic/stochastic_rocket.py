@@ -457,7 +457,9 @@ class StochasticRocket(StochasticModel):
             Object of the StochasticRocket class.
         """
         self.cp_eccentricity_x = self._validate_eccentricity("cp_eccentricity_x", x)
+        self._declare_stochastic_input("cp_eccentricity_x", x)
         self.cp_eccentricity_y = self._validate_eccentricity("cp_eccentricity_y", y)
+        self._declare_stochastic_input("cp_eccentricity_y", y)
         return self
 
     def add_thrust_eccentricity(self, x=None, y=None):
@@ -485,9 +487,11 @@ class StochasticRocket(StochasticModel):
         self.thrust_eccentricity_x = self._validate_eccentricity(
             "thrust_eccentricity_x", x
         )
+        self._declare_stochastic_input("thrust_eccentricity_x", x)
         self.thrust_eccentricity_y = self._validate_eccentricity(
             "thrust_eccentricity_y", y
         )
+        self._declare_stochastic_input("thrust_eccentricity_y", y)
         return self
 
     def _validate_eccentricity(self, eccentricity, position):

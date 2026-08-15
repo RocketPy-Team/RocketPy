@@ -124,6 +124,22 @@ class StochasticModel:
         self.__stochastic_dict = kwargs
         self._set_stochastic(seed)
 
+    def _declare_stochastic_input(self, input_name, input_value):
+        """Declare an input that an ``add_*`` method installs after ``__init__``.
+
+        ``dict_generator`` walks the inputs a model declared rather than every
+        attribute on it (#1109), and that list is built in ``__init__``. Anything
+        added afterwards is set on the instance and never drawn from unless it
+        says so here.
+
+        The value is the argument as given, not the validated form, because
+        ``_set_stochastic`` validates it again on every reseed and binds the
+        distribution to the generator that is live then.
+        """
+        if input_value is None:
+            return
+        self.__stochastic_dict[input_name] = input_value
+
     def _set_stochastic(self, seed=None):
         """Set the stochastic attributes from the input dictionary.
         This method is useful to reset or reseed the attributes of the instance.
