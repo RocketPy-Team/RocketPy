@@ -439,9 +439,7 @@ def test_list_noaa_atmosphere_datasets_parses_catalog_refs(monkeypatch):
         "NAM CONUS 12km from NOAAPORT",
     ]
     assert datasets[0]["collection_path"] == "grib/NCEP/GFS/Global_0p25deg"
-    assert datasets[0]["opendap_best_url"].endswith(
-        "grib/NCEP/GFS/Global_0p25deg/Best"
-    )
+    assert datasets[0]["opendap_best_url"].endswith("grib/NCEP/GFS/Global_0p25deg/Best")
 
 
 def test_list_noaa_dataset_identifiers_sorts_runs_newest_first(monkeypatch):

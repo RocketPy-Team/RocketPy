@@ -407,6 +407,5 @@ def fetch_latest_noaa_dataset(
             time.sleep(min(base_delay**attempt_count, MAX_RETRY_DELAY_SECONDS))
 
     raise RuntimeError(
-        "Unable to load the latest NOAA/THREDDS weather dataset through "
-        + file_url
+        "Unable to load the latest NOAA/THREDDS weather dataset through " + file_url
     )
