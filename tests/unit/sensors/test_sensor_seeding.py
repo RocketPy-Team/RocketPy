@@ -16,7 +16,7 @@ from types import SimpleNamespace
 
 import numpy as np
 
-from rocketpy._encoders import RocketPyEncoder
+from rocketpy._encoders import RocketPyDecoder, RocketPyEncoder
 from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.sensors.accelerometer import Accelerometer
 from rocketpy.sensors.barometer import Barometer
@@ -139,3 +139,17 @@ def test_from_dict_defaults_seed_to_none_when_absent():
     ).to_dict()
     del data["seed"]
     assert GnssReceiver.from_dict(data).to_dict()["seed"] is None
+
+
+def test_seedsequence_sensor_seed_is_json_serializable():
+    """SeedSequence seeds must serialize through RocketPyEncoder (#1087)."""
+    seed = np.random.SeedSequence(0).spawn(1)[0]
+    sensor = Accelerometer(sampling_rate=100, seed=seed)
+
+    encoded = json.dumps(sensor.to_dict(), cls=RocketPyEncoder)
+    decoded = json.loads(encoded, cls=RocketPyDecoder)
+
+    assert isinstance(decoded["seed"], np.random.SeedSequence)
+    assert decoded["seed"].state == seed.state
+    restored = Accelerometer.from_dict(decoded)
+    assert restored.to_dict()["seed"].state == seed.state

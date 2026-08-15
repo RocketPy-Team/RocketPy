@@ -72,7 +72,7 @@ class Gyroscope(InertialSensor):
         random_walk_density=0,
         random_walk_variance=1,
         constant_bias=0,
-        operating_temperature=25,
+        operating_temperature=298.15,
         temperature_bias=0,
         temperature_scale_factor=0,
         cross_axis_sensitivity=0,

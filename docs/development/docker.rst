@@ -37,11 +37,13 @@ Before you start, you need to install on your machine:
 Build the image
 ----------------
 
-To build the image, run the following command on your terminal:
+To build the image, run the following command from the root of the repository
+(the ``Dockerfile`` copies ``requirements.txt``, so the build context has to
+be the repository, not the ``docker`` folder):
 
 .. code-block:: console
 
-   docker build -t rocketpy-image -f Dockerfile .
+   docker build -t rocketpy-image -f docker/Dockerfile .
 
 
 This will build the image and tag it as ``rocketpy-image`` (you can apply another
@@ -108,10 +110,11 @@ operational system.
 However, it is still useful to run the unit tests on different python versions.
 
 Currently, the ``docker-compose.yml`` file is configured to run the unit tests
-on python 3.9 and 3.12.
+on python 3.10 and 3.12.
 
 To run the unit tests on both python versions, run the following command
-**on your machine**:
+**on your machine**, from inside the ``docker`` folder (the services mount
+the repository root, one level up, as ``/app``):
 
 .. code-block:: console
 
@@ -155,7 +158,7 @@ For example, to use a Windows-based image, you might change:
 
 .. code-block:: Dockerfile
 
-   FROM python:latest
+   FROM python:3.14
 
 
 to

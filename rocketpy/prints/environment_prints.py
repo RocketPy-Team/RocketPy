@@ -102,7 +102,17 @@ class _EnvironmentPrints:
             f"{model_type} Maximum Height: "
             f"{self.environment.max_expected_height / 1000:.3f} km"
         )
-        if model_type in ["Forecast", "Reanalysis", "Ensemble"]:
+        # set_atmospheric_model accepts the type case-insensitively and stores it
+        # as the user spelled it, so compare in lower case while still printing
+        # the original spelling above.
+        normalized_type = model_type.lower()
+        if normalized_type in [
+            "forecast",
+            "reanalysis",
+            "ensemble",
+            "open_meteo",
+            "open_meteo_ensemble",
+        ]:
             # Determine time period
             init_date = self.environment.atmospheric_model_init_date
             end_date = self.environment.atmospheric_model_end_date
@@ -116,7 +126,7 @@ class _EnvironmentPrints:
             end_lon = self.environment.atmospheric_model_end_lon
             print(f"{model_type} Latitude Range: From {init_lat}° to {end_lat}°")
             print(f"{model_type} Longitude Range: From {init_lon}° to {end_lon}°")
-        if model_type == "Ensemble":
+        if normalized_type in ["ensemble", "open_meteo_ensemble"]:
             print(
                 f"Number of Ensemble Members: {self.environment.num_ensemble_members}"
             )

@@ -1014,3 +1014,30 @@ def test_acceleration_based_parachute_trigger_deploys(
     deploy_time, deployed = flight.parachute_events[0]
     assert deployed.name == "acc_chute"
     assert abs(flight.z(deploy_time) - flight.apogee) <= 5
+
+
+def test_flight_with_fixed_time_parachute_trigger(calisto_robust, example_plain_env):
+    """Integration test for #437: ``("time", t_deploy)`` fires near t_deploy."""
+    t_deploy = 3.0
+    calisto_robust.parachutes = []
+    calisto_robust.add_parachute(
+        name="timer_chute",
+        cd_s=5.0,
+        trigger=("time", t_deploy),
+        sampling_rate=100,
+        lag=0,
+    )
+
+    flight = Flight(
+        rocket=calisto_robust,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+    )
+
+    assert len(flight.parachute_events) >= 1
+    deploy_time, deployed = flight.parachute_events[0]
+    assert deployed.name == "timer_chute"
+    # Sampling at 100 Hz; allow one sample interval of slack.
+    assert abs(deploy_time - t_deploy) <= 0.02
