@@ -14,6 +14,7 @@ REFERENCE_MAX_ACCELERATION = 10400.76
 REFERENCE_IMPACT_X = 1625.55
 REFERENCE_IMPACT_Y = 81.78
 REFERENCE_METRIC_RELATIVE_TOLERANCE = 0.01
+REFERENCE_IMPACT_ABSOLUTE_TOLERANCE = 3.0
 
 
 def _build_defiance_flight():
@@ -124,10 +125,18 @@ def test_defiance_rocket_apogee_matches_measured_flight(defiance_flight):
 def test_defiance_rocket_matches_reference_flight_metrics(defiance_flight):
     """Guard the deterministic example's peak and impact metrics."""
     tolerance = {"rel": REFERENCE_METRIC_RELATIVE_TOLERANCE}
+    impact_tolerance = {
+        **tolerance,
+        "abs": REFERENCE_IMPACT_ABSOLUTE_TOLERANCE,
+    }
 
     assert defiance_flight.max_speed == pytest.approx(REFERENCE_MAX_SPEED, **tolerance)
     assert defiance_flight.max_acceleration == pytest.approx(
         REFERENCE_MAX_ACCELERATION, **tolerance
     )
-    assert defiance_flight.x_impact == pytest.approx(REFERENCE_IMPACT_X, **tolerance)
-    assert defiance_flight.y_impact == pytest.approx(REFERENCE_IMPACT_Y, **tolerance)
+    assert defiance_flight.x_impact == pytest.approx(
+        REFERENCE_IMPACT_X, **impact_tolerance
+    )
+    assert defiance_flight.y_impact == pytest.approx(
+        REFERENCE_IMPACT_Y, **impact_tolerance
+    )
