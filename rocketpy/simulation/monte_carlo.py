@@ -18,6 +18,7 @@ import json
 import os
 import traceback
 import warnings
+from numbers import Real
 from pathlib import Path
 from time import time
 
@@ -36,6 +37,100 @@ from rocketpy.tools import (
 )
 
 # TODO: Create evolution plots to analyze convergence
+
+
+# simulate() writes one JSON object per line and reads that same shape back, so
+# this is the only format it can both resume from and overwrite safely.
+_SIMULATION_LOG_SUFFIX = ".txt"
+
+
+def _refuse_logs_this_run_cannot_write(
+    input_file, output_file, error_file, export_config=None
+):
+    """Reject a log file ``simulate`` would damage rather than extend.
+
+    A ``.csv`` or ``.json`` is importable for analysis, but this run would
+    truncate it under ``append=False`` and leave it half one format and half
+    another under ``append=True``. Checked before any file is opened.
+    """
+    for label, path in (
+        ("input_file", input_file),
+        ("output_file", output_file),
+        ("error_file", error_file),
+    ):
+        if Path(path).suffix.lower() != _SIMULATION_LOG_SUFFIX:
+            raise ValueError(
+                f"Monte Carlo simulation logs must be {_SIMULATION_LOG_SUFFIX} "
+                f"files holding one JSON object per line; {label} is "
+                f"'{path}'. CSV and JSON results can be imported for analysis, "
+                f"but simulate() cannot resume from or overwrite them. Point "
+                f"{label} at a {_SIMULATION_LOG_SUFFIX} file to run."
+            )
+
+    _refuse_logs_that_are_one_file(
+        (
+            ("input_file", input_file),
+            ("output_file", output_file),
+            ("error_file", error_file),
+        )
+    )
+    _refuse_export_options_that_break_a_line(export_config or {})
+
+
+def _points_at_the_same_file(one, other):
+    """Whether two names reach one file, by inode when both already exist.
+
+    ``samefile`` settles symlinks, hard links and a case-insensitive filesystem,
+    none of which text comparison sees. It needs both to exist, so a run that has
+    not created them yet falls back to the resolved paths, which still normalises
+    ``a/../run.txt`` and any symlinked parent.
+    """
+    one, other = Path(one), Path(other)
+    try:
+        return one.samefile(other)
+    except OSError:
+        return one.resolve() == other.resolve()
+
+
+def _refuse_logs_that_are_one_file(labelled_paths):
+    """Each log has to be its own file, however the three were named.
+
+    ``import_results`` points all three at one path, and the run then appends
+    input rows and output rows into it. The completeness check reports the mess
+    afterwards, by which time the file it was given is already gone.
+    """
+    for index, (label, path) in enumerate(labelled_paths):
+        for other_label, other in labelled_paths[index + 1 :]:
+            if _points_at_the_same_file(path, other):
+                raise ValueError(
+                    f"{label} and {other_label} are the same file ('{path}' and "
+                    f"'{other}'). A run appends input rows and output rows "
+                    f"separately, so sharing one log writes both into it and "
+                    f"leaves neither readable. Give each its own file."
+                )
+
+
+def _refuse_export_options_that_break_a_line(export_config):
+    """Reject export options that would split one record over several lines.
+
+    The logs hold one JSON object per line and every reader here assumes it, so
+    ``indent`` of any kind, ``0`` and ``""`` included, leaves a file that the
+    completeness check calls damaged once the run it just finished is over.
+    """
+    if export_config.get("indent") is not None:
+        raise ValueError(
+            f"indent={export_config['indent']!r} cannot be used with a Monte "
+            f"Carlo run: the logs hold one JSON object per line, and an "
+            f"indented record spans several. Export the results with indent "
+            f"after the run instead."
+        )
+    separators = export_config.get("separators")
+    if separators and any("\n" in str(part) for part in separators):
+        raise ValueError(
+            f"separators={separators!r} cannot be used with a Monte Carlo run: "
+            f"a newline inside a record splits it across lines, and the logs "
+            f"hold one JSON object per line."
+        )
 
 
 class MonteCarlo:  # pylint: disable=too-many-public-methods
@@ -223,6 +318,11 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         self.number_of_simulations = number_of_simulations
         self._initial_sim_idx = self.num_of_loaded_sims if append else 0
 
+        # Before anything is opened: __setup_files truncates for append=False.
+        _refuse_logs_this_run_cannot_write(
+            self.input_file, self.output_file, self.error_file, kwargs
+        )
+
         print("Starting Monte Carlo analysis")
 
         self.__setup_files(append)
@@ -267,6 +367,39 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         except OSError as error:
             raise OSError(f"Error creating files: {error}") from error
 
+    def _append_simulation_record(self, inputs_json, outputs_json):
+        """Append one simulation's inputs and outputs as a paired record.
+
+        Writes the inputs row first, then the outputs row. If the outputs write
+        fails, the inputs file is truncated back to its size before this call so
+        the two files do not drift out of alignment.
+
+        Parameters
+        ----------
+        inputs_json : str
+            Serialized inputs row, including its trailing newline.
+        outputs_json : str
+            Serialized outputs row, including its trailing newline.
+        """
+        input_path = self.input_file
+        output_path = self.output_file
+
+        try:
+            previous_input_size = os.path.getsize(input_path)
+        except OSError:
+            previous_input_size = 0
+
+        with open(input_path, "a", encoding="utf-8") as f:
+            f.write(inputs_json)
+
+        try:
+            with open(output_path, "a", encoding="utf-8") as f:
+                f.write(outputs_json)
+        except Exception:
+            with open(input_path, "rb+") as f:
+                f.truncate(previous_input_size)
+            raise
+
     def __run_in_serial(self):
         """
         Runs the monte carlo simulation in serial mode.
@@ -289,10 +422,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                 inputs_json = self.__evaluate_flight_inputs(sim_monitor.count)
                 outputs_json = self.__evaluate_flight_outputs(flight, sim_monitor.count)
 
-                with open(self.input_file, "a", encoding="utf-8") as f:
-                    f.write(inputs_json)
-                with open(self.output_file, "a", encoding="utf-8") as f:
-                    f.write(outputs_json)
+                self._append_simulation_record(inputs_json, outputs_json)
 
                 sim_monitor.print_update_status()
 
@@ -431,10 +561,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
 
                         break
 
-                    with open(self.input_file, "a", encoding="utf-8") as f:
-                        f.write(inputs_json)
-                    with open(self.output_file, "a", encoding="utf-8") as f:
-                        f.write(outputs_json)
+                    self._append_simulation_record(inputs_json, outputs_json)
 
                     sim_monitor.print_update_status()
                 finally:
@@ -470,6 +597,19 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             initial_solution=self.flight.initial_solution,
             terminate_on_apogee=self.flight.terminate_on_apogee,
             time_overshoot=self.flight.time_overshoot,
+            # The rest of what StochasticFlight.create_object passes. Left out
+            # here, a run ignored the max_time, tolerances, solver, equations of
+            # motion and simulation mode the caller had set, which is what #1070
+            # added StochasticFlight's own handling of them for.
+            max_time=self.flight.max_time,
+            max_time_step=self.flight.obj.max_time_step,
+            min_time_step=self.flight.obj.min_time_step,
+            rtol=self.flight.obj.rtol,
+            atol=self.flight.obj.atol,
+            name=self.flight.obj.name,
+            equations_of_motion=self.flight.obj.equations_of_motion,
+            ode_solver=self.flight.obj.ode_solver,
+            simulation_mode=self.flight.obj.simulation_mode,
         )
 
     def estimate_confidence_interval(
@@ -1170,8 +1310,12 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
 
     def set_processed_results(self):
         """
-        Creates a dictionary with the mean and standard deviation of each
-        parameter available in the results.
+        Create summary statistics for scalar, real-valued results.
+
+        Structured and non-numeric results remain available in ``results``.
+        Their entry in ``processed_results`` contains five ``None`` values
+        because a scalar mean, median, standard deviation, and prediction
+        interval are not defined for those values.
 
         Returns
         -------
@@ -1179,19 +1323,18 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         """
         self.processed_results = {}
         for result, values in self.results.items():
-            try:
-                mean = np.mean(values)
-                stdev = np.std(values)
-                self.processed_results[result] = (mean, stdev)
-                pi_low = np.quantile(values, 0.025)
-                pi_high = np.quantile(values, 0.975)
-                median = np.median(values)
-            except TypeError:
-                mean = None
-                stdev = None
-                pi_low = None
-                pi_high = None
-                median = None
+            if not values or not all(
+                isinstance(value, Real) and not isinstance(value, (bool, np.bool_))
+                for value in values
+            ):
+                self.processed_results[result] = (None, None, None, None, None)
+                continue
+
+            mean = np.mean(values)
+            stdev = np.std(values)
+            pi_low = np.quantile(values, 0.025)
+            pi_high = np.quantile(values, 0.975)
+            median = np.median(values)
             self.processed_results[result] = (mean, median, stdev, pi_low, pi_high)
 
     # Import methods
@@ -1216,7 +1359,9 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         -----
         Notice that you can import the outputs, inputs, and errors from a
         file without the need to run simulations. You can use previously saved
-        files to process analyze the results or to continue a simulation.
+        files to process and analyze the results, and a ``.txt`` one to continue
+        a simulation. A ``.csv`` or ``.json`` is read-only here: ``simulate``
+        writes JSONL and refuses to run over a file it could not read back.
         """
         filepath = filename if filename else self.filename.with_suffix(".outputs.txt")
 

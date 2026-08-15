@@ -94,6 +94,43 @@ passed in a few different ways:
     :ref:`custom_sampler` for more details.
 
 .. note::
+    The formats above assume each argument holds a single number. The
+    ``shape_points`` of :class:`rocketpy.stochastic.StochasticFreeFormFins` is
+    the exception: a fin outline is only meaningful as a complete set of points,
+    so the deviation given applies to the outline as a block, with every
+    coordinate of every point perturbed by its own draw. The fin root is held on
+    the body line, so a point nominally at ``y = 0`` keeps that value and no
+    point ends up inside the airframe.
+
+    Because the deviation has to centre on the nominal coordinate, only the
+    distributions that read their first argument as that centre can be used here:
+    *"normal"*, *"gumbel"*, *"laplace"* and *"logistic"*. The others take bounds
+    (*"uniform"*) or shape parameters (*"wald"*, *"gamma"*, ...), which a set of
+    coordinates cannot be, and are rejected when the object is created.
+
+    A list means either one fixed outline, used as given, or a list of candidate
+    outlines to choose between, which do not have to have the same number of
+    points::
+
+        # One millimetre of deviation on every coordinate
+        StochasticFreeFormFins(free_form_fins=fins, shape_points=0.001)
+
+        # One fixed outline, not randomized
+        StochasticFreeFormFins(
+            free_form_fins=fins,
+            shape_points=[(0, 0), (0.08, 0.1), (0.12, 0)],
+        )
+
+        # Choose between two outlines
+        StochasticFreeFormFins(
+            free_form_fins=fins,
+            shape_points=[[(0, 0), (0.08, 0.1), (0.12, 0)], [(0, 0), (0.06, 0.12), (0.12, 0)]],
+        )
+
+    A ``CustomSampler`` given for this argument has to yield a whole outline per
+    sample, since what it returns replaces the outline instead of perturbing it.
+
+.. note::
     In statistics, the terms "Normal" and "Gaussian" refer to the same type of \
     distribution. This distribution is commonly used and is the default for the \
     ``Stochastic`` classes in RocketPy.

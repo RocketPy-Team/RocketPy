@@ -1,12 +1,51 @@
 import os
+from datetime import datetime
 from unittest.mock import patch
 
 import matplotlib as plt
 import pytest
 
+from rocketpy import EnvironmentAnalysis
 from rocketpy.tools import import_optional_dependency
 
 plt.rcParams.update({"figure.max_open_warning": 0})
+
+
+@patch("rocketpy.environment.environment_analysis._EnvironmentAnalysisPlots")
+@patch("rocketpy.environment.environment_analysis._EnvironmentAnalysisPrints")
+@patch.object(
+    EnvironmentAnalysis,
+    "_EnvironmentAnalysis__check_requirements",
+)
+@patch(
+    "rocketpy.environment.environment_analysis.import_optional_dependency",
+    side_effect=ImportError("timezonefinder is not installed"),
+)
+def test_missing_timezonefinder_defaults_to_utc(
+    _mock_import_optional_dependency,
+    _mock_check_requirements,
+    _mock_prints,
+    _mock_plots,
+):
+    """Use UTC when automatic timezone detection is unavailable."""
+    # Arrange
+    start_date = datetime(2026, 1, 1)
+    end_date = datetime(2026, 1, 2)
+
+    # Act
+    with pytest.warns(UserWarning, match="defaulting to UTC"):
+        analysis = EnvironmentAnalysis(
+            start_date=start_date,
+            end_date=end_date,
+            latitude=0,
+            longitude=0,
+            timezone=None,
+        )
+
+    # Assert
+    assert analysis.preferred_timezone.zone == "UTC"
+    assert analysis.start_date.tzinfo is not None
+    assert analysis.end_date.tzinfo is not None
 
 
 @pytest.mark.slow

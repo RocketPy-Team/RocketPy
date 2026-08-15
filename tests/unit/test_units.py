@@ -1,5 +1,7 @@
+import numpy as np
 import pytest
 
+from rocketpy import Function
 from rocketpy.units import conversion_factor, convert_temperature, convert_units
 
 
@@ -82,3 +84,41 @@ class TestConvertUnits:
 
     def test_convert_units_kilometer_to_mile(self):
         assert convert_units(1, "km", "mi") == pytest.approx(0.621371, rel=1e-2)
+
+    def test_convert_units_function_input_axis(self):
+        function = Function(
+            np.array([[0.0, 0.0], [60.0, 100.0]]),
+            inputs="Time (s)",
+            outputs="Distance (m)",
+            interpolation="linear",
+            extrapolation="zero",
+        )
+
+        converted = convert_units(function, "s", "min", axis=0)
+
+        np.testing.assert_allclose(
+            converted.get_source(), np.array([[0.0, 0.0], [1.0, 100.0]])
+        )
+        assert converted.__inputs__ == ["Time (min)"]
+        assert converted.__outputs__ == ["Distance (m)"]
+        assert converted.__interpolation__ == "linear"
+        assert converted.__extrapolation__ == "zero"
+
+    def test_convert_units_function_temperature_output(self):
+        function = Function(
+            np.array([[0.0, 273.15], [1.0, 373.15]]),
+            inputs="Time (s)",
+            outputs="Temperature (K)",
+            interpolation="linear",
+            extrapolation="constant",
+        )
+
+        converted = convert_units(function, "K", "degC")
+
+        np.testing.assert_allclose(
+            converted.get_source(), np.array([[0.0, 0.0], [1.0, 100.0]])
+        )
+        assert converted.__inputs__ == ["Time (s)"]
+        assert converted.__outputs__ == ["Temperature (degC)"]
+        assert converted.__interpolation__ == "linear"
+        assert converted.__extrapolation__ == "constant"

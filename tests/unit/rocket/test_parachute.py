@@ -130,3 +130,113 @@ def test_callable_trigger_arities_route_arguments(trigger, expects_udot):
     result = parachute.triggerfunc(800.0, 500.0, [0.0] * 6, [], [1.0] * 6)
     assert result is True
     assert parachute.triggerfunc._expects_udot is expects_udot
+
+
+@pytest.mark.parametrize(
+    "trigger",
+    [800, 800.0, np.int64(800), np.int32(800), np.float64(800), np.float32(800)],
+    ids=str,
+)
+def test_any_real_number_is_read_as_a_height(trigger):
+    """A height is anything ``numbers.Real``, not just ``int`` and ``float``.
+
+    The check used to be ``isinstance(trigger, (int, float))``. ``numpy.float64``
+    subclasses ``float`` and passed, but ``numpy.int64`` and ``numpy.float32``
+    subclass neither, so a height read out of a NumPy array raised even though
+    it compares and arithmetics exactly like the value that worked."""
+    parachute = _make_parachute(trigger=trigger)
+
+    # Truthiness rather than `is True`: comparing against a NumPy scalar gives
+    # back a numpy.bool_, which is not the `True` singleton.
+    # falling (vz < 0) and below the trigger height
+    assert parachute.triggerfunc(0.0, 700.0, [0.0] * 5 + [-1.0], [], None)
+    # falling but still above it
+    assert not parachute.triggerfunc(0.0, 900.0, [0.0] * 5 + [-1.0], [], None)
+    # below it but still ascending
+    assert not parachute.triggerfunc(0.0, 700.0, [0.0] * 5 + [1.0], [], None)
+
+
+@pytest.mark.parametrize(
+    "trigger",
+    [True, False, np.bool_(True), complex(800), np.complex64(800), "banana", None, {}],
+    ids=str,
+)
+def test_what_is_not_a_height_is_still_refused(trigger):
+    """Widening to ``numbers.Real`` must not turn the check into "anything".
+
+    ``bool`` is the one that has to be excluded by hand, because it *is* an
+    ``int``: ``True`` would otherwise be accepted and read as a height of one
+    metre, firing the parachute a metre above the ground. ``numpy.bool_`` and
+    the complex types need no special case, since neither is ``Real``."""
+    with pytest.raises(ValueError, match="Unable to set the trigger"):
+        _make_parachute(trigger=trigger)
+
+
+class TestParachuteTimeTrigger:
+    """Fixed-time parachute triggers: ``("time", t_deploy)`` (#437)."""
+
+    def test_time_trigger_fires_at_and_after_deploy_time(self):
+        parachute = _make_parachute(trigger=("time", 5.0))
+        state = [0.0] * 13
+
+        parachute._eval_time = 4.999
+        assert parachute.triggerfunc(101325.0, 1000.0, state, [], None) is False
+
+        parachute._eval_time = 5.0
+        assert parachute.triggerfunc(101325.0, 1000.0, state, [], None) is True
+
+        parachute._eval_time = 7.5
+        assert parachute.triggerfunc(101325.0, 1000.0, state, [], None) is True
+
+    def test_time_trigger_list_form_and_case_insensitive_kind(self):
+        parachute = _make_parachute(trigger=["TIME", 3])
+        state = [0.0] * 13
+
+        parachute._eval_time = 2.9
+        assert parachute.triggerfunc(101325.0, 1000.0, state, [], None) is False
+        parachute._eval_time = 3.0
+        assert parachute.triggerfunc(101325.0, 1000.0, state, [], None) is True
+
+    def test_time_trigger_does_not_require_descent_or_height(self):
+        parachute = _make_parachute(trigger=("time", 1.0))
+        assert parachute._trigger_falling_only is False
+        assert parachute._trigger_needs_height is False
+
+        # Ascending state at altitude well above any height trigger.
+        ascending = [0.0, 0.0, 2000.0, 0.0, 0.0, 50.0] + [0.0] * 7
+        parachute._eval_time = 1.0
+        assert parachute.triggerfunc(101325.0, 2000.0, ascending, [], None) is True
+
+    def test_time_trigger_false_when_eval_time_unset(self):
+        parachute = _make_parachute(trigger=("time", 0.0))
+        assert parachute.triggerfunc(101325.0, 0.0, [0.0] * 13, [], None) is False
+
+    def test_time_trigger_accepts_numpy_scalar_delay(self):
+        parachute = _make_parachute(trigger=("time", np.float64(2.5)))
+        parachute._eval_time = 2.5
+        assert parachute.triggerfunc(101325.0, 0.0, [0.0] * 13, [], None) is True
+
+    @pytest.mark.parametrize(
+        "trigger",
+        [
+            ("time", -1.0),
+            ("time", True),
+            ("time", "soon"),
+            # float() would happily eat this one; the numeric boundary must not
+            ("time", "3.0"),
+            ("time",),
+            ("burnout", 3.0),
+            ("launch", 5.0),
+        ],
+        ids=str,
+    )
+    def test_invalid_time_triggers_are_refused(self, trigger):
+        with pytest.raises(ValueError, match="Unable to set the trigger"):
+            _make_parachute(trigger=trigger)
+
+    def test_to_dict_round_trip_preserves_time_trigger(self):
+        original = _make_parachute(trigger=("time", 4.0))
+        restored = Parachute.from_dict(original.to_dict())
+        assert restored.trigger == ("time", 4.0)
+        restored._eval_time = 4.0
+        assert restored.triggerfunc(101325.0, 0.0, [0.0] * 13, [], None) is True

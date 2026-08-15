@@ -8,26 +8,50 @@ on:
       - ".github/**"
       - "pyproject.toml"
       - "requirements*"
+  # Codecov compares a pull request against the report it holds for the base
+  # commit. Without this, nothing ever uploads one for a commit on develop, so
+  # every pull request is measured against whichever old report is nearest and
+  # says how far behind it has fallen.
+  push:
+    branches: [master, develop]
+    paths:
+      - "**.py"
+      - ".github/**"
+      - "pyproject.toml"
+      - "requirements*"
 
 defaults:
   run:
     shell: bash
 
+env:
+  # The Pytest matrix below is 3 os x 2 python-version, so CodecovUpload must
+  # receive six coverage reports. Nothing can derive a matrix size from another
+  # job, so it is written out here; the guard in CodecovUpload fails loudly if
+  # the matrix grows and this does not.
+  COVERAGE_LEG_COUNT: 6
+
 jobs:
   Pytest:
     runs-on: ${{ matrix.os }}
     strategy:
+      # One platform's result should not decide the other five. Added in #1084;
+      # kept explicit here so it does not get tidied away later.
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.10", "3.14"]
     env:
-      OS: ${{ matrix.os }}
-      PYTHON: ${{ matrix.python-version }}
       MPLBACKEND: Agg
     steps:
       - uses: actions/checkout@main
       - name: Set up headless display
         uses: pyvista/setup-headless-display-action@v4
+      - name: Configure Mesa software rendering on Linux
+        if: runner.os == 'Linux'
+        run: |
+          echo "LIBGL_ALWAYS_SOFTWARE=1" >> "$GITHUB_ENV"
+          echo "GALLIUM_DRIVER=llvmpipe" >> "$GITHUB_ENV"
       - name: Set up Python
         uses: actions/setup-python@main
         with:
@@ -58,29 +82,103 @@ jobs:
           pytest rocketpy --doctest-modules --cov=rocketpy --cov-append
 
       - name: Run Integration Tests
-        run: pytest tests/integration --cov=rocketpy --cov-append
+        run: |
+          pytest tests/integration \
+            --deselect tests/integration/test_plots.py::test_flight_animations_run_off_screen \
+            --deselect tests/integration/test_plots.py::test_flight_animations_render_all_scene_options \
+            --deselect tests/integration/test_plots.py::test_flight_animation_export_gif \
+            --cov=rocketpy --cov-append
 
+      - name: Run VTK animation tests
+        run: |
+          tests=(
+            tests/integration/test_plots.py::test_flight_animations_run_off_screen
+            tests/integration/test_plots.py::test_flight_animations_render_all_scene_options
+            tests/integration/test_plots.py::test_flight_animation_export_gif
+          )
+          attempts=3
+          for attempt in $(seq 1 "$attempts"); do
+            if pytest "${tests[@]}" --cov=rocketpy --cov-append; then
+              exit 0
+            else
+              status=$?
+            fi
+            # 138 is SIGBUS on macOS, 135 is SIGBUS on Linux, 139 is SIGSEGV on
+            # both. The measured split on this test was eight SIGSEGV to two
+            # SIGBUS, so keying on 138 alone let the common case through.
+            if [[ ! "$status" =~ ^(135|138|139)$ || "$attempt" == "$attempts" ]]; then
+              exit "$status"
+            fi
+          done
+
+      # This is the only step that writes XML; the earlier ones only --cov-append
+      # into .coverage. Naming the report here, rather than renaming it after
+      # the fact, is what lets CodecovUpload merge all six into one directory
+      # without them clobbering each other as six identical coverage.xml.
       - name: Run Acceptance Tests
-        run: pytest tests/acceptance --cov=rocketpy --cov-append --cov-report=xml
+        run: >-
+          pytest tests/acceptance --cov=rocketpy --cov-append
+          --cov-report=xml:coverage-${{ matrix.os }}-py${{ matrix.python-version }}.xml
 
       - name: Upload coverage to artifacts
         uses: actions/upload-artifact@main
         with:
-          name: coverage
-          path: coverage.xml
-          overwrite: true
+          name: coverage-${{ matrix.os }}-py${{ matrix.python-version }}
+          path: coverage-${{ matrix.os }}-py${{ matrix.python-version }}.xml
           if-no-files-found: error
+          # Artifacts are keyed by (run, name) and survive across attempts, so
+          # without this every leg of a re-run fails with 409 Conflict. The VTK
+          # tests above are flaky enough that re-runs are routine.
+          overwrite: true
+          # CodecovUpload consumes these minutes later and nothing else reads
+          # them, so the 90 day default would be six dead artifacts per run.
+          retention-days: 1
 
   CodecovUpload:
     needs: Pytest
+    # `needs` alone skips this job when a single leg fails, which sends Codecov
+    # nothing at all for the commit and .codecov.yml resolves that as an error.
+    # Run unless the workflow was cancelled and upload the legs that did finish.
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@main
-      - name: Download latest coverage report
+      - name: Download coverage reports
         uses: actions/download-artifact@main
+        with:
+          pattern: coverage-*
+          path: coverage-reports
+          merge-multiple: true
+
+      # download-artifact exits 0 when `pattern` matches fewer artifacts than
+      # expected, so five of six reports would otherwise look like a clean run
+      # and quietly under-report coverage. That silence is what #1088 is about.
+      - name: Verify every leg reported coverage
+        id: reports
+        env:
+          PYTEST_RESULT: ${{ needs.Pytest.result }}
+        run: |
+          mkdir -p coverage-reports
+          count=$(find coverage-reports -maxdepth 1 -name '*.xml' | wc -l)
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          echo "Downloaded $count of $COVERAGE_LEG_COUNT coverage reports."
+          if [ "$PYTEST_RESULT" = "success" ] && [ "$count" -ne "$COVERAGE_LEG_COUNT" ]; then
+            echo "::error::Every Pytest leg passed, but only $count of $COVERAGE_LEG_COUNT coverage reports arrived."
+            exit 1
+          fi
+          if [ "$count" -eq 0 ]; then
+            echo "::warning::No coverage report to upload; no Pytest leg produced one."
+          fi
+
       - name: Upload to Codecov
+        # Nothing to send, and Codecov would fail on an empty directory. The
+        # failing Pytest leg is already reporting the real problem.
+        if: steps.reports.outputs.count != '0'
         uses: codecov/codecov-action@main
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: |
-            coverage.xml
+          directory: coverage-reports
+          # Forks get no secrets, so the token above is empty for them and the
+          # tokenless upload is rate limited. An external contributor should not
+          # see red for a Codecov-side hiccup in their pull request.
+          fail_ci_if_error: ${{ secrets.CODECOV_TOKEN != '' }}
