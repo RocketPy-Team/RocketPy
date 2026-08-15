@@ -324,9 +324,9 @@ def test_grains_unbonded_shifts_cm_aft_as_height_regresses():
     t = 2.0
     height = unbonded.grain_height(t)
     # nozzle_to_combustion_chamber: _csys = +1, aft (toward nozzle) is smaller z.
-    expected_cm = kwargs["grains_center_of_mass_position"] - (
-        GRAIN_NUMBER / 2.0
-    ) * (GRAIN_INITIAL_HEIGHT - height)
+    expected_cm = kwargs["grains_center_of_mass_position"] - (GRAIN_NUMBER / 2.0) * (
+        GRAIN_INITIAL_HEIGHT - height
+    )
 
     assert np.allclose(unbonded.center_of_propellant_mass(t), expected_cm)
     assert unbonded.center_of_propellant_mass(t) < bonded.center_of_propellant_mass(t)

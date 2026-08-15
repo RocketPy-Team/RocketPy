@@ -543,6 +543,7 @@ class SolidMotor(Motor):
             return (pitch**2) * sum_sq_index
         pitch = self.grain_height + self.grain_separation
         return (pitch**2) * sum_sq_index
+
     # pylint: disable=too-many-statements
     def evaluate_geometry(self):
         """Calculates grain inner radius and grain height as a function of time
@@ -790,7 +791,10 @@ class SolidMotor(Motor):
 
         # Parallel-axis term from grain COM offsets about the propellant COM.
         # Bonded: fixed initial pitch. Unbonded: packed pitch tracks grain_height.
-        I_11 = grain_number * grain_inertia11 + grain_mass * self._grain_pitch_squared_sum()
+        I_11 = (
+            grain_number * grain_inertia11
+            + grain_mass * self._grain_pitch_squared_sum()
+        )
 
         return I_11
 
