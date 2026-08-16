@@ -179,11 +179,11 @@ class _PhaseDynamics:
             that order.
 
             ``values`` is a dictionary of name to value, holding this phase's
-            states plus the value of every other canonical state had at the 
+            states plus the value of every other canonical state had at the
             start of the phase.
 
-            It is called a second way to get the time derivative of each of 
-            those states: ``values_dot`` then holds the time derivative of each 
+            It is called a second way to get the time derivative of each of
+            those states: ``values_dot`` then holds the time derivative of each
             state this phase integrates, by name, and the function applies the
             chain rule. A reconstructed state changes as the phase runs, so its
             derivative cannot be taken as zero the way a held state's can::
@@ -202,7 +202,7 @@ class _PhaseDynamics:
                 )
 
             Sensors and controllers read the canonical derivative by position,
-            so a wrong value here is reported as though it were measured. 
+            so a wrong value here is reported as though it were measured.
             Default is None.
         initial_state : callable, optional
             Rule ``f(flight, t, canonical_state) -> list`` that seeds this
