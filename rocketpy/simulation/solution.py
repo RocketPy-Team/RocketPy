@@ -16,7 +16,7 @@ The pieces are:
 
 - :class:`Solution`: the whole flight. It holds every row in one list, in
   flight order, and the phases the flight was flown in.
-- :class:`PhaseSolution`: one flight phase. It describes the phase (which
+- :class:`_PhaseSolution`: one flight phase. It describes the phase (which
   dynamics it was flown with, when it began, where its rows start) but does not
   hold the rows itself.
 
@@ -56,7 +56,6 @@ from .helpers.dynamics import (
 __all__ = [
     "CANONICAL_INDEX",
     "CANONICAL_STATE_NAMES",
-    "PhaseSolution",
     "Solution",
 ]
 
@@ -95,7 +94,7 @@ def _nearest_time_index(times, t, atol, where):
     return index
 
 
-class PhaseSolution:
+class _PhaseSolution:
     """One phase of a flight: what it was flown with, and where it starts.
 
     A phase describes how to read the rows that belong to it, but does not hold
@@ -190,7 +189,7 @@ class PhaseSolution:
     def __repr__(self):
         """Return the phase's name, its states and where its rows begin."""
         return (
-            f"PhaseSolution(name={self.name!r}, "
+            f"_PhaseSolution(name={self.name!r}, "
             f"states={self.dynamics.states!r}, start={self.start})"
         )
 
@@ -302,7 +301,7 @@ class PhaseSolution:
 
         Returns
         -------
-        PhaseSolution
+        _PhaseSolution
             The rebuilt phase. Its ``bound_dynamics`` is ``None``, since tying
             the dynamics to a flight needs a running simulation, so the phase
             cannot be post-processed again.
@@ -323,7 +322,7 @@ class Solution:
     ``[t, value]`` history of the vertical velocity across the whole flight;
     ``solution.at(t)`` returns the whole state at the nearest stored time as a
     name-to-value dictionary. ``solution.phases`` gives the individual flight
-    phases, each a :class:`PhaseSolution`; read one phase's rows with
+    phases, each a :class:`_PhaseSolution`; read one phase's rows with
     :meth:`phase_rows` and one of its states with :meth:`phase_series`.
 
     It also behaves like a plain list of rows: ``len(solution)``, iteration,
@@ -343,7 +342,7 @@ class Solution:
 
         Parameters
         ----------
-        phases : sequence of PhaseSolution, optional
+        phases : sequence of _PhaseSolution, optional
             Pre-built phases, in flight order, each with its ``start`` already
             set. A new flight starts empty and adds one as each of its flight
             phases begins. Default is ``None``, an empty solution.
@@ -425,7 +424,7 @@ class Solution:
     # -- Phase management ------------------------------------------------
 
     def start_phase(self, dynamics, start_canonical, t_start=None, name=None):
-        """Begin a new flight phase and return its (empty) PhaseSolution.
+        """Begin a new flight phase and return its (empty) _PhaseSolution.
 
         Parameters
         ----------
@@ -447,7 +446,7 @@ class Solution:
 
         Returns
         -------
-        PhaseSolution
+        _PhaseSolution
             The new phase, with no rows yet. Rows reach it through
             :meth:`append`.
 
@@ -457,7 +456,7 @@ class Solution:
             If ``start_canonical`` is ``None`` but the phase needs it to fill
             in the canonical states it does not integrate.
         """
-        phase = PhaseSolution(
+        phase = _PhaseSolution(
             dynamics,
             start_canonical,
             t_start=t_start,
@@ -539,7 +538,7 @@ class Solution:
 
         Returns
         -------
-        PhaseSolution
+        _PhaseSolution
             The phase that row belongs to.
         """
         # The last phase starting at or before this row owns it. A phase that
@@ -849,7 +848,7 @@ class Solution:
 
         Parameters
         ----------
-        phase : PhaseSolution
+        phase : _PhaseSolution
             The phase to read.
         start, stop : int
             The phase's rows in the flight's row list, as a slice would bound
@@ -894,7 +893,7 @@ class Solution:
 
         Parameters
         ----------
-        phase : PhaseSolution
+        phase : _PhaseSolution
             The phase the row is headed for.
         row : sequence of float
             The row being written, ``[t, *state]``.
@@ -1417,7 +1416,7 @@ class Solution:
         -------
         dict
             A format marker, a version number, the flight's rows, and one
-            entry per phase as produced by :meth:`PhaseSolution.to_dict`. Pass
+            entry per phase as produced by :meth:`_PhaseSolution.to_dict`. Pass
             it to :meth:`from_dict` to rebuild the solution.
         """
         return {
@@ -1465,7 +1464,7 @@ class Solution:
         Solution
             The rebuilt solution.
         """
-        phases = [PhaseSolution.from_dict(entry) for entry in data.get("phases", [])]
+        phases = [_PhaseSolution.from_dict(entry) for entry in data.get("phases", [])]
         rows = [list(row) for row in data.get("rows", [])]
         return cls(phases, rows)
 
@@ -1487,7 +1486,7 @@ class Solution:
         phases = []
         rows = []
         for entry in data.get("phases", []):
-            phase = PhaseSolution.from_dict(entry)
+            phase = _PhaseSolution.from_dict(entry)
             # Any stored start belongs to the phase's own rows, so it is
             # replaced by where those rows land in the joined list.
             phase.start = len(rows)
@@ -1516,7 +1515,7 @@ class Solution:
             first row's time and state.
         """
         rows = [list(row) for row in rows]
-        phase = PhaseSolution(
+        phase = _PhaseSolution(
             SIX_DOF_DYNAMICS,
             tuple(rows[0][1:]) if rows else None,
             t_start=rows[0][0] if rows else None,
