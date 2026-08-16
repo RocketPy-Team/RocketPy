@@ -660,3 +660,61 @@ def test_index_resolution_skips_empty_phases():
     assert solution.phase_rows(2) == []
     # and they are left out of a state's history rather than reported as gaps
     assert solution["vz"].shape == (2, 2)
+
+
+# ---------------------------------------------------------------------------
+# Post-process values recorded beside the rows
+# ---------------------------------------------------------------------------
+
+
+def test_post_values_track_every_row_mutation():
+    """Values move with their row, so the two can never drift apart."""
+    solution = build_mixed_solution()
+    # one entry per row from the start, empty until something is recorded
+    assert solution.phase_post(0) == [None, None, None]
+    assert solution.phase_post(1) == [None, None, None]
+
+    solution.set_last_post([1.0, 2.0, 3.0])
+    assert solution.phase_post(1) == [None, None, [1.0, 2.0, 3.0]]
+
+    # overwriting the row's states makes its recorded values stale
+    solution.replace_last(descent_row(5, fill=[9.0] * 6))
+    assert solution.phase_post(1) == [None, None, None]
+
+    solution.set_last_post([4.0, 5.0, 6.0])
+    # a row inserted just before the last one leaves a gap, and the last row
+    # keeps the values that belong to it
+    solution.insert_before_last(descent_row(4.5))
+    assert solution.phase_post(1) == [None, None, None, [4.0, 5.0, 6.0]]
+
+    solution.drop_last()
+    assert solution.phase_post(1) == [None, None, None]
+
+
+def test_post_values_stay_the_same_length_as_the_rows():
+    solution = build_mixed_solution()
+    for mutate in (
+        lambda: solution.append(descent_row(6)),
+        lambda: solution.insert(0, canonical_row(-1)),
+        lambda: solution.pop(0),
+        lambda: solution.insert_before_last(descent_row(5.5)),
+        lambda: solution.drop_last(),
+        lambda: solution.__setitem__(-1, descent_row(9)),
+    ):
+        mutate()
+        assert len(solution._post_rows) == len(solution)
+
+
+def test_recording_values_does_not_disturb_the_cached_states():
+    """Values are not part of the flight's states, so nothing is rebuilt."""
+    solution = build_mixed_solution()
+    before = solution.canonical_array
+    solution.set_last_post([1.0, 2.0, 3.0])
+    assert solution.canonical_array is before
+
+
+def test_set_last_post_without_rows_raises():
+    solution = Solution()
+    solution.start_phase(SIX_DOF_DYNAMICS, tuple([0.0] * 13))
+    with pytest.raises(IndexError):
+        solution.set_last_post([1.0])

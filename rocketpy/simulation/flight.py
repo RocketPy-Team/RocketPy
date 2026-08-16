@@ -770,10 +770,10 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         self.impact_state = np.array([0])
         self.parachute_events = []
         # Post-process variables, built in one pass the first time one is read.
+        # Values that a later replay could not reproduce are recorded as the
+        # simulation runs and kept on the solution, beside the row they belong
+        # to.
         self._post_process = None
-        # Values recorded as the simulation ran, for flights where a later
-        # replay would not reproduce them. Keyed by phase index.
-        self._post_process_rows = {}
 
     def __init_equations_of_motion(self):
         """Initialize equations of motion."""
@@ -1286,12 +1286,14 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         accelerations, forces and moments accurate for a flight whose controllers
         move an air brake or a fin.
         """
-        if self._has_change_dynamics_events:
-            phase = self.solution.tail
-            index = len(self.solution.phases) - 1
-            self._post_process_rows.setdefault(index, []).append(
-                phase.dynamics.post_process_row(
-                    t, phase.bound_dynamics.post_process_at(t, state)
+        if self._has_change_dynamics_events and len(self.solution):
+            # The phase that owns the most recent row, which is what the values
+            # are recorded against. It is not always the phase being flown: one
+            # that has only just begun holds no rows yet.
+            phase = self.solution.last_phase
+            self.solution.set_last_post(
+                phase.dynamics.post_process_values(
+                    phase.bound_dynamics.post_process_at(t, state)
                 )
             )
 
@@ -1560,35 +1562,76 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         parts = {name: [] for name in names}
 
         for index, phase in enumerate(self.solution.phases):
-            rows = self._post_process_rows.get(index)
-            if rows is None:
-                if phase.bound_dynamics is None:
-                    # A phase read back from a saved flight cannot be replayed,
-                    # since that needs the equations of motion of a live flight.
-                    continue
-                rows = [
-                    phase.dynamics.post_process_row(
-                        row[0], phase.bound_dynamics.post_process_at(row[0], row[1:])
-                    )
-                    for row in self.solution.phase_rows(index)
-                ]
+            rows = self.solution.phase_rows(index)
             if not rows:
                 continue
-            array = np.array(rows)
+            table = self.__phase_post_values(
+                phase, rows, self.solution.phase_post(index)
+            )
+            if table is None:
+                continue
+            times = np.array([row[0] for row in rows])
+            array = np.array(table)
             for name in names:
                 column = phase.dynamics.post_process_index.get(name)
                 if column is None:
-                    parts[name].append(
-                        np.column_stack([array[:, 0], np.zeros(len(rows))])
-                    )
+                    parts[name].append(np.column_stack([times, np.zeros(len(times))]))
                 else:
-                    parts[name].append(array[:, [0, column + 1]])
+                    parts[name].append(np.column_stack([times, array[:, column]]))
 
         self._post_process = {
             name: chunks[0] if len(chunks) == 1 else np.concatenate(chunks, axis=0)
             for name, chunks in parts.items()
             if chunks
         }
+
+    @staticmethod
+    def __phase_post_values(phase, rows, recorded):
+        """Return one phase's post-process values, one entry per row.
+
+        Values recorded while the simulation ran are used as they are. A phase
+        with none is worked out again from its stored states, which gives the
+        same answer for a flight whose rocket did not change mid-flight.
+
+        Parameters
+        ----------
+        phase : PhaseSolution
+            The phase being assembled.
+        rows : list of list of float
+            The phase's rows, each ``[t, *state]``.
+        recorded : list
+            What was recorded for each of those rows, ``None`` where nothing
+            was.
+
+        Returns
+        -------
+        list of list of float or None
+            One list of values per row, or ``None`` if the phase can neither be
+            read back nor replayed.
+        """
+        if any(values is not None for values in recorded):
+            # A phase recorded as it was flown. Every row has values except the
+            # ones added afterwards to mark the exact time of an event, which
+            # sit microseconds from the row beside them; those take their
+            # neighbour's values. Working them out again instead would read the
+            # rocket in its end-of-flight configuration and give a wrong answer.
+            filled = []
+            previous = next(v for v in recorded if v is not None)
+            for values in recorded:
+                if values is not None:
+                    previous = values
+                filled.append(previous)
+            return filled
+        if phase.bound_dynamics is None:
+            # A phase read back from a saved flight cannot be replayed, since
+            # that needs the equations of motion of a live flight.
+            return None
+        return [
+            phase.dynamics.post_process_values(
+                phase.bound_dynamics.post_process_at(row[0], row[1:])
+            )
+            for row in rows
+        ]
 
     def _post_process_series(self, name):
         """Return the ``[t, value]`` history of one post-process variable."""
