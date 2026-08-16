@@ -20,10 +20,16 @@ taking the phase's position in :attr:`Solution.phases`.
 .. autoclass:: rocketpy.simulation.solution.Solution
    :members:
 
-.. autoclass:: rocketpy.simulation.solution.PhaseSolution
-   :members:
+The phase objects themselves are internal to RocketPy for now, so their shape
+may change between releases. These are the values worth reading off one:
 
-Each phase records which states it integrated, described by the dynamics that
-phase was flown with. Those are internal to RocketPy for now: read a phase's
-``dynamics.states`` to see what it integrated, and ``dynamics.name`` for the
-kind of phase it was.
+``name``
+    The phase's name, such as ``"rail"`` or ``"free_flight"``.
+``t_start``
+    The time the phase began, in seconds.
+``start``
+    Where the phase's first row sits in the solution's rows.
+``dynamics.states``
+    The states the phase integrated, in the order it stored them.
+``dynamics.name``
+    The kind of phase it was.

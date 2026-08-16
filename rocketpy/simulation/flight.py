@@ -1599,7 +1599,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
 
         Parameters
         ----------
-        phase : PhaseSolution
+        phase : _PhaseSolution
             The phase being assembled.
         rows : list of list of float
             The phase's rows, each ``[t, *state]``.

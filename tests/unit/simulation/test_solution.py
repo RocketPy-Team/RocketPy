@@ -14,7 +14,7 @@ from rocketpy.simulation.helpers.dynamics import (
     SIX_DOF_DYNAMICS,
     _PhaseDynamics,
 )
-from rocketpy.simulation.solution import PhaseSolution, Solution
+from rocketpy.simulation.solution import _PhaseSolution, Solution
 
 
 def canonical_row(t, fill=None):
@@ -66,7 +66,7 @@ def build_mixed_solution():
 
 
 # ---------------------------------------------------------------------------
-# PhaseSolution read access
+# _PhaseSolution read access
 # ---------------------------------------------------------------------------
 
 
@@ -171,7 +171,7 @@ def test_phase_canonical_array_follows_an_edit():
 def test_state_dict_reads_own_and_frozen_variables():
     frozen = [0.0] * 13
     frozen[CANONICAL_INDEX["e0"]] = 0.9
-    phase = PhaseSolution(DESCENT_DYNAMICS, start_canonical=frozen)
+    phase = _PhaseSolution(DESCENT_DYNAMICS, start_canonical=frozen)
     state = phase.state_dict([1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
     # variables this phase integrates come from the row
     assert state["z"] == 3.0
@@ -181,7 +181,7 @@ def test_state_dict_reads_own_and_frozen_variables():
 
 
 def test_state_dict_missing_name_raises():
-    phase = PhaseSolution(DESCENT_DYNAMICS, start_canonical=[0.0] * 13)
+    phase = _PhaseSolution(DESCENT_DYNAMICS, start_canonical=[0.0] * 13)
     with pytest.raises(KeyError):
         _ = phase.state_dict([0, 0, 0, 0, 0, 0])["not_a_state"]
 
@@ -546,19 +546,19 @@ def test_from_dict_reads_the_older_per_phase_layout():
 
 
 def test_phase_starts_that_disagree_with_the_rows_are_rejected():
-    phase = PhaseSolution(SIX_DOF_DYNAMICS, tuple([0.0] * 13), start=0)
-    later = PhaseSolution(SIX_DOF_DYNAMICS, tuple([0.0] * 13), start=9)
+    phase = _PhaseSolution(SIX_DOF_DYNAMICS, tuple([0.0] * 13), start=0)
+    later = _PhaseSolution(SIX_DOF_DYNAMICS, tuple([0.0] * 13), start=9)
     with pytest.raises(ValueError, match="only has 2 rows"):
         Solution([phase, later], [canonical_row(0), canonical_row(1)])
     rows = [canonical_row(0), canonical_row(1), canonical_row(2)]
     out_of_order = [
-        PhaseSolution(SIX_DOF_DYNAMICS, tuple([0.0] * 13), start=0),
-        PhaseSolution(SIX_DOF_DYNAMICS, tuple([0.0] * 13), start=2),
-        PhaseSolution(SIX_DOF_DYNAMICS, tuple([0.0] * 13), start=1),
+        _PhaseSolution(SIX_DOF_DYNAMICS, tuple([0.0] * 13), start=0),
+        _PhaseSolution(SIX_DOF_DYNAMICS, tuple([0.0] * 13), start=2),
+        _PhaseSolution(SIX_DOF_DYNAMICS, tuple([0.0] * 13), start=1),
     ]
     with pytest.raises(ValueError, match="order they were flown"):
         Solution(out_of_order, rows)
-    not_from_the_start = [PhaseSolution(SIX_DOF_DYNAMICS, tuple([0.0] * 13), start=1)]
+    not_from_the_start = [_PhaseSolution(SIX_DOF_DYNAMICS, tuple([0.0] * 13), start=1)]
     with pytest.raises(ValueError, match="must start at the first row"):
         Solution(not_from_the_start, rows)
 
@@ -566,13 +566,13 @@ def test_phase_starts_that_disagree_with_the_rows_are_rejected():
 def test_a_bound_dynamics_is_split_from_its_definition():
     """A live phase keeps both the definition and the flight-bound form."""
     bound = SIX_DOF_DYNAMICS.bind(object())
-    phase = PhaseSolution(bound, tuple([0.0] * 13))
+    phase = _PhaseSolution(bound, tuple([0.0] * 13))
     assert phase.dynamics is SIX_DOF_DYNAMICS
     assert phase.bound_dynamics is bound
 
 
 def test_canonical_derivative_zero_fills_unintegrated_states():
-    phase = PhaseSolution(DESCENT_DYNAMICS, tuple([0.0] * 13))
+    phase = _PhaseSolution(DESCENT_DYNAMICS, tuple([0.0] * 13))
     assert phase.canonical_derivative([1, 2, 3, 4, 5, 6]) == [
         1,
         2,
@@ -586,9 +586,9 @@ def test_canonical_derivative_zero_fills_unintegrated_states():
 
 def test_a_reduced_phase_needs_the_state_it_starts_from():
     with pytest.raises(ValueError, match="does not integrate"):
-        PhaseSolution(DESCENT_DYNAMICS, None)
+        _PhaseSolution(DESCENT_DYNAMICS, None)
     # a phase that integrates everything needs no anchor
-    assert PhaseSolution(SIX_DOF_DYNAMICS, None).start_canonical is None
+    assert _PhaseSolution(SIX_DOF_DYNAMICS, None).start_canonical is None
 
 
 # ---------------------------------------------------------------------------
