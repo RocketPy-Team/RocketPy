@@ -363,10 +363,11 @@ class Solution:
         # phase owning a row runs over a plain list of numbers.
         self._starts = [phase.start for phase in self._phases]
         # Post-process values, one entry per row and in the same order, so a row
-        # and its values can never drift apart. ``None`` where nothing was
+        # and its values can never drift apart. They carry no time of their own:
+        # the row they sit beside supplies it. ``None`` where nothing was
         # recorded. Not saved to file: a solution read back has no live flight
         # to post-process against.
-        self._post_rows = [None] * len(self._rows)
+        self._post_values = [None] * len(self._rows)
         self._version = 0
         self._series_cache = {}
         self._canonical_cache = None
@@ -780,7 +781,7 @@ class Solution:
         canonical_state = phase.canonical_state
         return np.array([[row[0], *canonical_state(row[1:])] for row in rows])
 
-    def phase_post(self, phase_index):
+    def phase_post_values(self, phase_index):
         """Return the post-process values recorded for one phase's rows.
 
         Parameters
@@ -802,7 +803,7 @@ class Solution:
             If ``phase_index`` is outside this flight's phases.
         """
         start, stop = self.phase_span(phase_index)
-        return self._post_rows[start:stop]
+        return self._post_values[start:stop]
 
     def phase_series(self, phase_index, name):
         """Return one phase's ``[t, value]`` history for a single state.
@@ -958,10 +959,10 @@ class Solution:
         if len(row) != phase.dynamics.width + 1:
             self._check_width(phase, row, "appended to")
         self._rows.append(row)
-        self._post_rows.append(None)
+        self._post_values.append(None)
         self._version += 1
 
-    def set_last_post(self, values):
+    def set_last_post_values(self, values):
         """Record the post-process values of the most recent row.
 
         Called as the simulation runs, right after the row is appended, so the
@@ -979,11 +980,11 @@ class Solution:
         IndexError
             If the flight has no rows yet.
         """
-        if not self._post_rows:
+        if not self._post_values:
             raise IndexError("this solution has no stored rows")
         # Deliberately does not count as a change to the flight: the states are
         # untouched, so the cached times and tables stay valid.
-        self._post_rows[-1] = values
+        self._post_values[-1] = values
 
     def replace_last(self, row):
         """Overwrite the most recent row with a raw state row ``[t, *state]``.
@@ -1003,7 +1004,7 @@ class Solution:
         """
         self._check_width(self.last_phase, row, "written to")
         self._rows[-1] = row
-        self._post_rows[-1] = None
+        self._post_values[-1] = None
         self._version += 1
 
     def insert_before_last(self, row):
@@ -1028,7 +1029,7 @@ class Solution:
         self._check_width(self.last_phase, row, "inserted into")
         position = len(self._rows) - 1
         self._rows.insert(position, row)
-        self._post_rows.insert(position, None)
+        self._post_values.insert(position, None)
         self._shift_starts_after(position, 1)
         self._version += 1
 
@@ -1048,7 +1049,7 @@ class Solution:
         if not self._rows:
             raise IndexError("this solution has no stored rows")
         row = self._rows.pop()
-        self._post_rows.pop()
+        self._post_values.pop()
         self._shift_starts_after(len(self._rows), -1)
         self._version += 1
         return row
@@ -1075,7 +1076,7 @@ class Solution:
         position = self._normalize(int(index))
         self._check_width(self._phase_at(position), row, "inserted into")
         self._rows.insert(position, row)
-        self._post_rows.insert(position, None)
+        self._post_values.insert(position, None)
         self._shift_starts_after(position, 1)
         self._version += 1
 
@@ -1100,7 +1101,7 @@ class Solution:
         """
         position = self._normalize(int(index))
         row = self._rows.pop(position)
-        self._post_rows.pop(position)
+        self._post_values.pop(position)
         self._shift_starts_after(position, -1)
         self._version += 1
         return row
@@ -1190,7 +1191,7 @@ class Solution:
         position = self._normalize(int(index))
         self._check_width(self._phase_at(position), row, "written to")
         self._rows[position] = row
-        self._post_rows[position] = None
+        self._post_values[position] = None
         self._version += 1
 
     def __array__(self, dtype=None, copy=None):  # pylint: disable=unused-argument
