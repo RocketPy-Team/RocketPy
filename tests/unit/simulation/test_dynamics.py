@@ -428,7 +428,7 @@ def test_build_prefers_values_recorded_during_the_simulation():
         dynamics.bind(flight), start_canonical=tuple([0.0] * 13)
     )
     flight.solution.append([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
-    flight.solution.set_last_post([42.0])
+    flight.solution.set_last_post_values([42.0])
 
     assert flight._post_process_series("ax").tolist() == [[0.0, 42.0]]
     assert flight.calls == []  # nothing was replayed
@@ -442,9 +442,9 @@ def test_build_carries_a_recorded_neighbour_into_an_inserted_row():
         dynamics.bind(flight), start_canonical=tuple([0.0] * 13)
     )
     flight.solution.append([0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
-    flight.solution.set_last_post([42.0])
+    flight.solution.set_last_post_values([42.0])
     flight.solution.append([1.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
-    flight.solution.set_last_post([43.0])
+    flight.solution.set_last_post_values([43.0])
     # an exact-time row wedged between them records nothing of its own
     flight.solution.insert_before_last([0.5, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
 

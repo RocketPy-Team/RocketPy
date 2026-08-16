@@ -1295,7 +1295,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             # are recorded against. It is not always the phase being flown: one
             # that has only just begun holds no rows yet.
             phase = self.solution.last_phase
-            self.solution.set_last_post(
+            self.solution.set_last_post_values(
                 phase.dynamics.post_process_values(
                     phase.bound_dynamics.post_process_at(t, state)
                 )
@@ -1569,8 +1569,8 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             rows = self.solution.phase_rows(index)
             if not rows:
                 continue
-            table = self.__phase_post_values(
-                phase, rows, self.solution.phase_post(index)
+            table = self.__resolve_post_values(
+                phase, rows, self.solution.phase_post_values(index)
             )
             if table is None:
                 continue
@@ -1590,7 +1590,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         }
 
     @staticmethod
-    def __phase_post_values(phase, rows, recorded):
+    def __resolve_post_values(phase, rows, recorded):
         """Return one phase's post-process values, one entry per row.
 
         Values recorded while the simulation ran are used as they are. A phase
