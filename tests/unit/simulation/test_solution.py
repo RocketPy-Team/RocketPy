@@ -718,3 +718,21 @@ def test_set_last_post_without_rows_raises():
     solution.start_phase(SIX_DOF_DYNAMICS, tuple([0.0] * 13))
     with pytest.raises(IndexError):
         solution.set_last_post([1.0])
+
+
+def test_last_phase_reads_a_row_in_its_own_states():
+    """A phase that took no steps must not be used to read the last row.
+
+    The phase being flown and the phase that owns the last row are not always
+    the same, and they can store different states. Reading the row through the
+    wrong one would rebuild the canonical state from the wrong layout.
+    """
+    solution = build_mixed_solution()  # tail phase stores 6 states
+    solution.start_phase(SIX_DOF_DYNAMICS, tuple([0.0] * 13), name="took no steps")
+
+    assert solution.tail.dynamics.width == 13
+    assert solution.last_phase.dynamics.width == 6
+    # the last row is a reduced one, so only the phase that owns it can read it
+    canonical = solution.last_phase.canonical_state(solution.last_state)
+    assert len(canonical) == 13
+    assert canonical[CANONICAL_INDEX["e0"]] == 2.0  # held from when it began
