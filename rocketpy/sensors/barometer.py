@@ -1,10 +1,8 @@
-from collections.abc import Sequence
-
 import numpy as np
 
 from ..mathutils.vector_matrix import Matrix
 from ..prints.sensors_prints import _SensorPrints
-from ..sensors.sensor import ScalarSensor
+from ..sensors.sensor import ScalarSensor, SeedLike
 
 
 class Barometer(ScalarSensor):
@@ -64,7 +62,7 @@ class Barometer(ScalarSensor):
         temperature_bias=0,
         temperature_scale_factor=0,
         name="Barometer",
-        seed: int | Sequence[int] | np.random.SeedSequence | None = None,
+        seed: SeedLike | None = None,
     ):
         """
         Initialize the barometer sensor
@@ -113,10 +111,11 @@ class Barometer(ScalarSensor):
             meaning no temperature scale factor is applied.
         name : str, optional
             The name of the sensor. Default is "Barometer".
-        seed : int, Sequence[int], numpy.random.SeedSequence, optional
+        seed : int, array_like of ints, numpy.random.SeedSequence, optional
             Seed for the random number generator that draws the measurement
             noise. If given, the noise becomes reproducible and independent of
-            the process-global NumPy RNG. ``Generator`` and ``BitGenerator``
+            the process-global NumPy RNG. Only seeds that describe a stream are
+            taken: live ``Generator``, ``BitGenerator`` and ``RandomState``
             objects are rejected, because their state advances as noise is
             drawn and so cannot be represented in ``to_dict()``. Default is
             None, meaning the noise is seeded from fresh entropy per instance.
