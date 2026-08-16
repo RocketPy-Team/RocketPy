@@ -1325,6 +1325,54 @@ class Solution:
         phase = self._phase_at(position)
         return phase.state_dict(self._rows[position][1:])
 
+    def value_at(self, index, name):
+        """Return one state's value at row ``index``.
+
+        Reads a single value, so it stays cheap no matter how long the flight
+        is. Use it instead of ``solution.at_index(index)[name]`` when only one
+        state is wanted, since that builds the whole state first.
+
+        Parameters
+        ----------
+        index : int
+            Row position across the whole flight. Negative values count from
+            the end.
+        name : str
+            The state name (for example ``"vz"``).
+
+        Returns
+        -------
+        float
+            The state's value at that row.
+
+        Raises
+        ------
+        IndexError
+            If ``index`` is outside the flight's rows.
+        KeyError
+            If the phase that row belongs to cannot report the state.
+        """
+        position = self._normalize(int(index))
+        row = self._rows[position]
+        phase = self._phase_at(position)
+        dynamics = phase.dynamics
+        # A state the phase integrates is a value in the row itself; anything
+        # else is reconstructed or held at its start-of-phase value.
+        column = dynamics.state_index.get(name)
+        if column is not None:
+            return row[column + 1]
+        slot = dynamics.reconstructed_index.get(name)
+        if slot is not None:
+            return dynamics.reconstruct(
+                dynamics.reconstruction_inputs(row[1:], phase.start_canonical)
+            )[slot]
+        if name in CANONICAL_INDEX and phase.start_canonical is not None:
+            return phase.start_canonical[CANONICAL_INDEX[name]]
+        raise KeyError(
+            f"State '{name}' is not defined in this flight phase. "
+            f"It integrates {', '.join(dynamics.states)}."
+        )
+
     @property
     def time(self):
         """The time column of the whole flight, in seconds, as a 1-D array."""

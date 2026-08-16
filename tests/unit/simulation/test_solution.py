@@ -736,3 +736,21 @@ def test_last_phase_reads_a_row_in_its_own_states():
     canonical = solution.last_phase.canonical_state(solution.last_state)
     assert len(canonical) == 13
     assert canonical[CANONICAL_INDEX["e0"]] == 2.0  # held from when it began
+
+
+def test_value_at_reads_one_state_without_building_the_rest():
+    solution = build_mixed_solution()
+    # a state the phase integrates comes straight from the row
+    assert solution.value_at(-2, "vz") == 4.0
+    assert solution.value_at(0, "z") == 0.0
+    # one it does not is held at its value when the phase began
+    assert solution.value_at(-1, "e0") == 2.0
+    # and it agrees with reading the whole state
+    for index in range(len(solution)):
+        assert solution.value_at(index, "vz") == solution.at_index(index)["vz"]
+
+
+def test_value_at_unknown_state_raises():
+    solution = build_mixed_solution()
+    with pytest.raises(KeyError, match="not defined in this flight phase"):
+        solution.value_at(-1, "not_a_state")

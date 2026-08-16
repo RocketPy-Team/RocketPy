@@ -45,7 +45,9 @@ def out_of_rail_callback(**kwargs):
     flight.out_of_rail_time_index = len(flight.solution) - 1
     flight.out_of_rail_state = kwargs.get("state")
 
-    event.commands.set_derivative(flight.u_dot_generalized)
+    # Whichever ascent equations this flight was configured with (6DOF, 3DOF or
+    # the solid-propulsion set), so this reads the flight rather than a preset.
+    event.commands.set_dynamics(flight.u_dot_generalized)
     event.commands.start_flight_phase("free_flight")
 
 
@@ -118,7 +120,7 @@ def apogee_trigger(**kwargs):
     if len(flight.apogee_state) != 1 or len(flight.solution) < 2:
         return False
 
-    previous_vz = flight.solution.at_index(-2)["vz"]
+    previous_vz = flight.solution.value_at(-2, "vz")
     current_vz = state[5]
     return previous_vz > 0 >= current_vz
 
