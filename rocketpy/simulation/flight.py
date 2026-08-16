@@ -996,7 +996,11 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         if phase_index > 0:
             # A new phase begins. Seed its raw state from the canonical state
             # that ended the previous phase and open a fresh one in the solution.
-            previous_canonical = self.solution.tail.canonical_state(
+            # The last state must be read through the phase that owns it, which
+            # is not always the one being flown: a phase that ended without
+            # taking a step holds no rows, and the last state is then still the
+            # one before it, in that phase's own states.
+            previous_canonical = self.solution.last_phase.canonical_state(
                 self.solution.last_state
             )
             y0 = phase.dynamics.initial_state(phase.t, previous_canonical)
