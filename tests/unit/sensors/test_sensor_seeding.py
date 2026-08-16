@@ -133,6 +133,25 @@ def test_seed_survives_serialization_round_trip():
         assert type(sensor).from_dict(data).to_dict()["seed"] == seed
 
 
+@pytest.mark.parametrize(
+    "seed",
+    [11, np.int64(11), [1, 2], np.random.SeedSequence(11)],
+    ids=["int", "numpy_int", "int_sequence", "seed_sequence"],
+)
+def test_round_trip_reproduces_the_noise_stream(seed):
+    """The point of writing a seed down is that the sensor read back draws the
+    same noise.
+
+    Comparing only the stored value would still pass for a seed that survives
+    JSON without naming the stream the original sensor used, which is exactly
+    what a live generator would do, so this compares the draws themselves.
+    """
+    encoded = json.dumps(_accelerometer(seed).to_dict(), cls=RocketPyEncoder)
+    restored = Accelerometer.from_dict(json.loads(encoded, cls=RocketPyDecoder))
+
+    assert _noise_sequence(restored) == _noise_sequence(_accelerometer(seed))
+
+
 def test_unserializable_seed_is_refused_before_it_can_be_stored():
     """Keep the failure at the constructor instead of at save time.
 
