@@ -517,8 +517,13 @@ def test_from_dict_unknown_dynamics_name_tolerated():
     assert restored.phase_series(0, "vz")[:, 1].tolist() == [0.0]
 
 
-def test_from_dict_reads_the_older_per_phase_layout():
-    """A flight saved when each phase carried its own rows still loads."""
+def test_from_dict_rejects_a_layout_it_cannot_read():
+    """An older layout must fail loudly, not quietly lose every row.
+
+    The rows sat inside each phase in version 1, so reading such a file with
+    the current reader would find none and give back a solution with phases
+    and no states at all.
+    """
     solution = build_mixed_solution()
     nested = {
         "format": "rocketpy/solution",
@@ -529,20 +534,14 @@ def test_from_dict_reads_the_older_per_phase_layout():
                 "dynamics": phase.dynamics.name,
                 "state_names": list(phase.dynamics.states),
                 "t_start": phase.t_start,
-                "start_canonical": (
-                    list(phase.start_canonical)
-                    if phase.start_canonical is not None
-                    else None
-                ),
+                "start_canonical": list(phase.start_canonical),
                 "rows": solution.phase_rows(index),
             }
             for index, phase in enumerate(solution.phases)
         ],
     }
-    restored = Solution.from_dict(nested)
-    assert len(restored) == len(solution)
-    assert [phase.start for phase in restored.phases] == [0, 3]
-    assert np.allclose(restored.canonical_array, solution.canonical_array)
+    with pytest.raises(ValueError, match="format version 1"):
+        Solution.from_dict(nested)
 
 
 def test_phase_starts_that_disagree_with_the_rows_are_rejected():

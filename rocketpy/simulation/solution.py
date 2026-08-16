@@ -62,6 +62,10 @@ __all__ = [
 # Time plus the 13 canonical states: the width of every canonical row.
 CANONICAL_WIDTH = len(CANONICAL_STATE_NAMES) + 1
 
+# Layout of a saved solution. Version 1 stored the rows inside each phase and
+# was never released; version 2 stores them once for the whole flight.
+SOLUTION_FORMAT_VERSION = 2
+
 
 def _nearest_time_index(times, t, atol, where):
     """Return the position of the stored time closest to ``t``.
@@ -295,9 +299,7 @@ class _PhaseSolution:
         Parameters
         ----------
         data : dict
-            A description produced by :meth:`to_dict`. A description saved by
-            an older RocketPy also carries the phase's rows; they are ignored
-            here, since :class:`Solution` reads them itself.
+            A description produced by :meth:`to_dict`.
 
         Returns
         -------
@@ -1422,7 +1424,7 @@ class Solution:
         """
         return {
             "format": "rocketpy/solution",
-            "version": 2,
+            "version": SOLUTION_FORMAT_VERSION,
             "phases": [phase.to_dict() for phase in self._phases],
             "rows": self._rows,
         }
@@ -1430,30 +1432,6 @@ class Solution:
     @classmethod
     def from_dict(cls, data):
         """Rebuild a solution from its serialized form.
-
-        Reads both the current layout, where the rows are stored once for the
-        whole flight, and the earlier one, where each phase carried its own
-        rows.
-
-        Parameters
-        ----------
-        data : dict
-            A description produced by :meth:`to_dict`, or by an older
-            RocketPy.
-
-        Returns
-        -------
-        Solution
-            The rebuilt solution. Its phases cannot be post-processed again,
-            since that needs a running simulation.
-        """
-        if data.get("version", 1) >= 2 or "rows" in data:
-            return cls._from_flat_dict(data)
-        return cls._from_nested_dict(data)
-
-    @classmethod
-    def _from_flat_dict(cls, data):
-        """Rebuild a solution whose rows are stored once for the whole flight.
 
         Parameters
         ----------
@@ -1463,36 +1441,27 @@ class Solution:
         Returns
         -------
         Solution
-            The rebuilt solution.
+            The rebuilt solution. Its phases cannot be post-processed again,
+            since that needs a running simulation.
+
+        Raises
+        ------
+        ValueError
+            If the solution was saved in a layout this version cannot read.
         """
+        version = data.get("version", 1)
+        if version < SOLUTION_FORMAT_VERSION:
+            # Read on, and the rows would be looked for in a place this layout
+            # does not keep them, giving a solution with phases and no states
+            # rather than an error.
+            raise ValueError(
+                f"This flight's solution was saved in format version {version}, "
+                f"which this version of RocketPy cannot read (it reads version "
+                f"{SOLUTION_FORMAT_VERSION}). Run the simulation again to save "
+                f"it in the current format."
+            )
         phases = [_PhaseSolution.from_dict(entry) for entry in data.get("phases", [])]
         rows = [list(row) for row in data.get("rows", [])]
-        return cls(phases, rows)
-
-    @classmethod
-    def _from_nested_dict(cls, data):
-        """Rebuild a solution saved with each phase carrying its own rows.
-
-        Parameters
-        ----------
-        data : dict
-            A description saved by an older RocketPy, whose phase entries each
-            hold a ``"rows"`` list.
-
-        Returns
-        -------
-        Solution
-            The rebuilt solution, with the rows joined into one list.
-        """
-        phases = []
-        rows = []
-        for entry in data.get("phases", []):
-            phase = _PhaseSolution.from_dict(entry)
-            # Any stored start belongs to the phase's own rows, so it is
-            # replaced by where those rows land in the joined list.
-            phase.start = len(rows)
-            phases.append(phase)
-            rows.extend(list(row) for row in entry.get("rows", []))
         return cls(phases, rows)
 
     @classmethod
