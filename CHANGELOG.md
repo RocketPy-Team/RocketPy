@@ -51,11 +51,7 @@ Attention: The newest changes should be on top -->
 ### Changed
 
 - ENH: Compute the rocket static margin lazily [#1135](https://github.com/RocketPy-Team/RocketPy/pull/1135) [#780](https://github.com/RocketPy-Team/RocketPy/issues/780)
-- CI: Measure coverage on develop, not only on pull requests [#1162](https://github.com/RocketPy-Team/RocketPy/pull/1162)
-- MNT: Let pylint use every core it is given [#1163](https://github.com/RocketPy-Team/RocketPy/pull/1163)
 - DOC: Tighten the comments that came with the sampler seed groups [#1154](https://github.com/RocketPy-Team/RocketPy/pull/1154)
-- CI: Run the changelog job for pull requests from forks [#1112](https://github.com/RocketPy-Team/RocketPy/pull/1112)
-- CI: Keep per-matrix coverage artifacts and fail Codecov errors [#1123](https://github.com/RocketPy-Team/RocketPy/pull/1123) [#1088](https://github.com/RocketPy-Team/RocketPy/issues/1088)
 - CI: make the Gemini PR reviewer actually review [#1140](https://github.com/RocketPy-Team/RocketPy/pull/1140)
 - MNT: declare dependency floors the package can actually run on [#1108](https://github.com/RocketPy-Team/RocketPy/pull/1108)
 - CI: build the docs for pull requests into develop as well [#1104](https://github.com/RocketPy-Team/RocketPy/pull/1104)
