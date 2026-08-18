@@ -327,12 +327,13 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
 
         self.__setup_files(append)
 
-        if parallel:
-            self.__run_in_parallel(n_workers)
-        else:
-            self.__run_in_serial()
-
-        self.__terminate_simulation()
+        try:
+            if parallel:
+                self.__run_in_parallel(n_workers)
+            else:
+                self.__run_in_serial()
+        finally:
+            self.__terminate_simulation()
 
     def __setup_files(self, append):
         """
@@ -388,6 +389,10 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             previous_input_size = os.path.getsize(input_path)
         except OSError:
             previous_input_size = 0
+        try:
+            previous_output_size = os.path.getsize(output_path)
+        except OSError:
+            previous_output_size = 0
 
         with open(input_path, "a", encoding="utf-8") as f:
             f.write(inputs_json)
@@ -395,9 +400,11 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         try:
             with open(output_path, "a", encoding="utf-8") as f:
                 f.write(outputs_json)
-        except Exception:
+        except BaseException:
             with open(input_path, "rb+") as f:
                 f.truncate(previous_input_size)
+            with open(output_path, "rb+") as f:
+                f.truncate(previous_output_size)
             raise
 
     def __run_in_serial(self):
@@ -413,6 +420,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             n_simulations=self.number_of_simulations,
             start_time=time(),
         )
+        inputs_json = ""
         try:
             while sim_monitor.keep_simulating():
                 sim_monitor.increment()
@@ -423,6 +431,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                 outputs_json = self.__evaluate_flight_outputs(flight, sim_monitor.count)
 
                 self._append_simulation_record(inputs_json, outputs_json)
+                inputs_json = ""
 
                 sim_monitor.print_update_status()
 
@@ -430,8 +439,10 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
 
         except KeyboardInterrupt:
             print("Keyboard interrupt received. Files saved.")
-            with open(self._error_file, "a", encoding="utf-8") as f:
-                f.write(inputs_json)
+            if inputs_json:
+                with open(self._error_file, "a", encoding="utf-8") as f:
+                    f.write(inputs_json)
+            raise
 
         except Exception as error:
             print(f"Error on iteration {sim_monitor.count}: {error}")
@@ -471,20 +482,20 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             processes = []
             seeds = np.random.SeedSequence().spawn(n_workers)
 
-            for seed in seeds:
-                sim_producer = multiprocess.Process(
-                    target=self.__sim_producer,
-                    args=(
-                        seed,
-                        sim_monitor,
-                        mutex,
-                        simulation_error_event,
-                    ),
-                )
-                processes.append(sim_producer)
-                sim_producer.start()
-
             try:
+                for seed in seeds:
+                    sim_producer = multiprocess.Process(
+                        target=self.__sim_producer,
+                        args=(
+                            seed,
+                            sim_monitor,
+                            mutex,
+                            simulation_error_event,
+                        ),
+                    )
+                    sim_producer.start()
+                    processes.append(sim_producer)
+
                 for sim_producer in processes:
                     sim_producer.join()
 
@@ -500,14 +511,12 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
 
             # Handle error from the main process
             # pylint: disable=broad-except
-            except (Exception, KeyboardInterrupt) as error:
+            except (Exception, KeyboardInterrupt):
                 simulation_error_event.set()
 
                 for sim_producer in processes:
                     sim_producer.join()
-
-                if not isinstance(error, KeyboardInterrupt):
-                    raise error
+                raise
 
     def __validate_number_of_workers(self, n_workers):
         if n_workers is None or n_workers > os.cpu_count():
