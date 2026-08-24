@@ -33,6 +33,7 @@ Attention: The newest changes should be on top -->
 ### Added
 
 - ENH: Add nonlinear Galejs body lift (sin²α, K=1.1) to Barrowman surfaces, with planform geometry for nose cones and tails, matching OpenRocket's SymmetricComponentCalc
+- ENH: Add BodyTube aerodynamic surface and `Rocket.add_body_tube`, producing normal force purely from the Galejs body-lift term
 - ENH: MNT: introduce pressure unit conversion when using forecast/reanalysis/ensemble data [#955](https://github.com/RocketPy-Team/RocketPy/pull/955)
 - ENH: Auto Populate Changelog [#919](https://github.com/RocketPy-Team/RocketPy/pull/919)
 - ENH: Adaptive Monte Carlo via Convergence Criteria [#922](https://github.com/RocketPy-Team/RocketPy/pull/922)
