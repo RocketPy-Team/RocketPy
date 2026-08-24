@@ -17,7 +17,7 @@ Apogee Rockets Newsletter, 2003; OpenRocket ``SymmetricComponentCalc``.
 import numpy as np
 import pytest
 
-from rocketpy import Function, NoseCone
+from rocketpy import Function, NoseCone, Tail
 from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.rocket.aero_surface._barrowman_surface import _BarrowmanSurface
 
@@ -236,18 +236,46 @@ def test_pure_tube_no_nan_when_linear_term_vanishes():
     assert m1 == pytest.approx(centroid * r2, rel=1e-12)
 
 
-def test_nose_cone_without_opt_in_matches_baseline():
-    """A real geometry subclass that never sets the planform attributes keeps
-    its legacy behaviour bit-for-bit."""
-    nose = NoseCone(
-        length=0.55829, kind="vonkarman", base_radius=0.0635, rocket_radius=0.0635
+def test_nose_cone_planform_matches_closed_form():
+    """A real geometry subclass populates the planform attributes from its
+    contour: for a conical nose, A_plan = R·L/2 with centroid at 2L/3 from
+    the tip, and zeroing the planform recovers the legacy linear-only force."""
+    nose = NoseCone(length=0.5, kind="conical", base_radius=0.05, rocket_radius=0.05)
+    # The planform comes from trapezoidal integration of the contour (401
+    # samples), so allow its discretization error (~1e-6 relative).
+    assert nose._planform_area == pytest.approx(  # noqa: SLF001
+        0.05 * 0.5 / 2, rel=1e-4
     )
-    baseline_forces = None
-    for plan_area in (0.0, nose._planform_area):  # noqa: SLF001
-        nose._planform_area = plan_area  # noqa: SLF001
-        forces = _forces(nose, _velocity(0.20))
-        if baseline_forces is None:
-            baseline_forces = forces
-        else:
-            for got, expected in zip(forces, baseline_forces):
-                assert got == pytest.approx(expected, rel=1e-14)
+    assert nose._planform_centroid == pytest.approx(  # noqa: SLF001
+        2 * 0.5 / 3, rel=1e-4
+    )
+    assert nose._cp_slender == pytest.approx(nose.cpz)  # noqa: SLF001
+
+    alpha = 0.20
+    with_body = _forces(nose, _velocity(alpha))
+    nose._planform_area = 0.0  # noqa: SLF001
+    without_body = _forces(nose, _velocity(alpha))
+
+    # Body lift adds force beyond the linear term at this alpha.
+    assert with_body[1] > without_body[1]
+    # And zeroing the planform reproduces the legacy linear Barrowman force.
+    q_s = 0.5 * RHO * SPEED**2 * nose.reference_area
+    assert without_body[1] == pytest.approx(
+        q_s * 2 * (nose.radius_ratio**2) * alpha, rel=1e-12
+    )
+
+
+def test_tail_planform_matches_closed_form():
+    """The tail's trapezoid planform is (r_top + r_bot)·L with centroid at
+    L/3·(r_top + 2·r_bot)/(r_top + r_bot) from the top."""
+    tail = Tail(
+        top_radius=0.0635, bottom_radius=0.0435, length=0.06, rocket_radius=0.0635
+    )
+    assert tail._planform_area == pytest.approx(  # noqa: SLF001
+        (0.0635 + 0.0435) * 0.06
+    )
+    expected_centroid = (
+        0.06 / 3 * (0.0635 + 2 * 0.0435) / (0.0635 + 0.0435)
+    )
+    assert tail._planform_centroid == pytest.approx(expected_centroid)  # noqa: SLF001
+    assert tail._cp_slender == pytest.approx(tail.cpz)  # noqa: SLF001
