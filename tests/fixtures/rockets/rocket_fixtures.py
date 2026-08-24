@@ -1,9 +1,13 @@
+import math
+
 import numpy as np
 import pytest
 
-from rocketpy import LinearGenericSurface, Rocket
+from rocketpy import Function, GenericSurface, LinearGenericSurface, Rocket
+from rocketpy.mathutils.vector_matrix import Vector
 
 # TODO: review note: gotta test execution speed of changes in this branch
+
 
 def _linear_surface_from_barrowman(surface):
     """Build a LinearGenericSurface that reproduces a Barrowman surface's aero.
@@ -54,6 +58,201 @@ def _linear_surface_from_barrowman(surface):
     )
     linear_surface.barrowman_cpz = surface.cpz
     return linear_surface
+
+
+def _generic_surface_from_barrowman(surface):
+    """Build a :class:`GenericSurface` that reproduces a Barrowman surface's aero.
+
+    Same idea as :func:`_linear_surface_from_barrowman`, but expressed as a plain
+    :class:`GenericSurface`: instead of coefficient *slopes*, the total body-frame
+    coefficients are given directly as the linear expansion of the Barrowman
+    curves. The normal force is ``cN = clalpha(mach) * alpha``, the side force is
+    ``cY = -clalpha(mach) * beta`` and (for fins) the roll moment is
+    ``cl = cl_0(mach) + cl_p(mach) * roll_rate``. Because these are the same
+    functions the linear surface builds internally, the two surfaces produce
+    identical forces and moments; this fixture exercises the plain generic-surface
+    code path.
+
+    The surface applies its force at its own origin (center of pressure
+    ``(0, 0, 0)``); the source surface's ``cpz`` is exposed as ``barrowman_cpz``
+    so the caller can add it at the Barrowman center-of-pressure station, exactly
+    as for the linear surface.
+
+    Parameters
+    ----------
+    surface : rocketpy.NoseCone, rocketpy.Tail or rocketpy fin set
+        A standard Barrowman aerodynamic surface to copy the aero curves from.
+
+    Returns
+    -------
+    rocketpy.GenericSurface
+        A generic surface with the same normal force and (for fins) roll
+        behaviour as ``surface``, carrying the source surface's ``cpz`` as
+        ``barrowman_cpz``.
+    """
+    clalpha = surface.clalpha  # normal-force-curve slope, a Function of Mach
+
+    # Coefficient callables must accept the full 7-variable argument tuple. The
+    # slope ``clalpha`` is a Function of Mach only; the fin roll coefficients
+    # ``cl_0``/``cl_p`` are AeroCoefficients evaluated over the full tuple.
+    def make_normal(slope):
+        def cN(alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate):
+            return slope.get_value_opt(mach) * alpha
+
+        return cN
+
+    def make_side(slope):
+        def cY(alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate):
+            return -slope.get_value_opt(mach) * beta
+
+        return cY
+
+    coefficients = {"cN": make_normal(clalpha), "cY": make_side(clalpha)}
+    if getattr(surface, "roll_parameters", None) is not None:
+        cl_0, cl_p = surface.cl_0, surface.cl_p
+
+        def make_roll(forcing, damping):
+            def cl(alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate):
+                args = (alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate)
+                cant = forcing.get_value_opt(*args)
+                return cant + damping.get_value_opt(*args) * roll_rate
+
+            return cl
+
+        coefficients["cl"] = make_roll(cl_0, cl_p)
+
+    generic_surface = GenericSurface(
+        reference_area=surface.reference_area,
+        reference_length=surface.reference_length,
+        coefficients=coefficients,
+        center_of_pressure=(0, 0, 0),
+        name=f"{surface.name}_generic",
+    )
+    generic_surface.barrowman_cpz = surface.cpz
+    return generic_surface
+
+
+# The three Barrowman surfaces of the Calisto rocket and the axial stations
+# (in the tail_to_nose user coordinate system) at which their origins sit.
+_CALISTO_SURFACE_STATIONS = (
+    ("nose", 1.160),
+    ("tail", -1.313),
+    ("fins", -1.168),
+)
+
+
+def _full_body_force_and_moment(rocket, alpha, beta, mach, omega, speed=1.0):
+    """Total body-frame force and moment about the dry center of mass, summed
+    over every aerodynamic surface at a flow state and set of body rates.
+
+    Reproduces the flight integrator's per-surface computation: each surface is
+    fed its own local stream velocity, which includes the ``omega ^ cp``
+    lever-arm term, so the sum captures the pitch/yaw damping the distributed
+    surfaces produce. Evaluated at unit air density; the result scales out of any
+    coefficient ratio. Used to lump the distributed surfaces into a single
+    full-body coefficient set.
+    """
+    stream_direction = Vector([-math.tan(beta), -math.tan(alpha), -1.0])
+    stream_at_cdm = stream_direction / abs(stream_direction) * speed
+    body_rates = Vector(list(omega))
+    density = Function(1.0)
+    dynamic_viscosity = Function(1e30)  # vanishing-Reynolds limit
+    speed_of_sound = speed / mach if mach > 0 else 1e30
+    totals = np.zeros(6)
+    for surface, _ in rocket.aerodynamic_surfaces:
+        cp = rocket.surfaces_cp_to_cdm[surface]
+        comp_stream = stream_at_cdm - (body_rates ^ cp)
+        comp_speed = abs(comp_stream)
+        forces = surface.compute_forces_and_moments(
+            comp_stream,
+            comp_speed,
+            comp_speed / speed_of_sound,
+            1.0,
+            cp,
+            body_rates,
+            density,
+            dynamic_viscosity,
+            0.0,
+        )
+        totals += np.array(forces)
+    return totals
+
+
+def _full_body_derivatives(reference_rocket):
+    """Lump a rocket's distributed aerodynamic surfaces into one full-body
+    stability-derivative set (about the dry center of mass), as named slopes for
+    a :class:`LinearGenericSurface`.
+
+    A single surface placed at the center of mass has no lever arm of its own, so
+    the pitch/yaw damping the distributed fore-and-aft surfaces produce has to be
+    carried explicitly by rate derivatives. Every derivative is measured by
+    finite-differencing the distributed aerodynamics
+    (:func:`_full_body_force_and_moment`) and tabulated against Mach: the static
+    slopes ``cN_alpha``/``cm_alpha`` (pitch) and ``cY_beta``/``cn_beta`` (yaw),
+    the rate-damping slopes ``cN_q``/``cm_q`` and ``cY_r``/``cn_r``, and the fin
+    roll damping ``cl_p``. Axial (drag) is left out so the rocket's own drag curve
+    still applies. Handed to a linear surface, these reproduce the reference
+    rocket's aerodynamics as a lumped model -- the way a measured or CFD
+    stability-derivative set is used.
+    """
+    reference_length = 2 * reference_rocket.radius
+    area = reference_rocket.area
+    machs = np.arange(0.0, 3.01, 0.02)
+    step = 1e-5
+    dyn_area = 0.5 * area  # unit speed, unit density
+    dyn_area_length = dyn_area * reference_length
+
+    def coefficients_at(alpha, beta, red_pitch, red_yaw, red_roll, mach):
+        rate_factor = 2.0 / reference_length  # reduced rate -> omega at unit speed
+        omega = (red_pitch * rate_factor, red_yaw * rate_factor, red_roll * rate_factor)
+        r1, r2, r3, m1, m2, m3 = _full_body_force_and_moment(
+            reference_rocket, alpha, beta, mach, omega
+        )
+        return {
+            "cN": -r2 / dyn_area,
+            "cY": r1 / dyn_area,
+            "cm": m1 / dyn_area_length,
+            "cn": m2 / dyn_area_length,
+            "cl": m3 / dyn_area_length,
+        }
+
+    def slope(field, coeff):
+        values = []
+        for mach in machs:
+            state = {
+                "alpha": 0.0,
+                "beta": 0.0,
+                "red_pitch": 0.0,
+                "red_yaw": 0.0,
+                "red_roll": 0.0,
+            }
+            high = dict(state, **{field: step})
+            low = dict(state, **{field: -step})
+            c_high = coefficients_at(mach=mach, **high)
+            c_low = coefficients_at(mach=mach, **low)
+            values.append((c_high[coeff] - c_low[coeff]) / (2 * step))
+        return Function(
+            np.column_stack([machs, values]),
+            "Mach",
+            f"{coeff}_slope",
+            interpolation="akima",
+            extrapolation="constant",
+        )
+
+    # Named slopes consumed directly by LinearGenericSurface: the rate names
+    # ``cN_q``/``cm_q`` multiply the reduced pitch rate, ``cY_r``/``cn_r`` the
+    # reduced yaw rate and ``cl_p`` the reduced roll rate.
+    return {
+        "cN_alpha": slope("alpha", "cN"),
+        "cm_alpha": slope("alpha", "cm"),
+        "cN_q": slope("red_pitch", "cN"),
+        "cm_q": slope("red_pitch", "cm"),
+        "cY_beta": slope("beta", "cY"),
+        "cn_beta": slope("beta", "cn"),
+        "cY_r": slope("red_yaw", "cY"),
+        "cn_r": slope("red_yaw", "cn"),
+        "cl_p": slope("red_roll", "cl"),
+    }
 
 
 @pytest.fixture
@@ -309,6 +508,162 @@ def calisto_linear_generic(
     ):
         linear_surface = _linear_surface_from_barrowman(surface)
         calisto.add_surfaces(linear_surface, station - linear_surface.barrowman_cpz)
+    calisto.set_rail_buttons(
+        upper_button_position=0.082,
+        lower_button_position=-0.618,
+        angular_position=0,
+    )
+    calisto.parachutes.append(calisto_main_chute)
+    calisto.parachutes.append(calisto_drogue_chute)
+    return calisto
+
+
+def _bare_calisto(motor):
+    """The Calisto body and motor with no aerodynamic surfaces, parachutes or
+    rail buttons yet -- the shared starting point for the generic-surface
+    Calistos below."""
+    calisto = Rocket(
+        radius=0.0635,
+        mass=14.426,
+        inertia=(6.321, 6.321, 0.034),
+        power_off_drag="data/rockets/calisto/powerOffDragCurve.csv",
+        power_on_drag="data/rockets/calisto/powerOnDragCurve.csv",
+        center_of_mass_without_motor=0,
+        coordinate_system_orientation="tail_to_nose",
+    )
+    calisto.add_motor(motor, position=-1.373)
+    return calisto
+
+
+@pytest.fixture
+def calisto_generic(
+    cesaroni_m1670,
+    calisto_nose_cone,
+    calisto_tail,
+    calisto_trapezoidal_fins,
+    calisto_main_chute,
+    calisto_drogue_chute,
+):
+    """Calisto built entirely from :class:`GenericSurface` objects.
+
+    The exact counterpart of ``calisto_linear_generic``, but each surface is a
+    plain :class:`GenericSurface` carrying the *total* body-frame coefficients
+    (``cN = clalpha * alpha`` ...) instead of a :class:`LinearGenericSurface`
+    carrying the coefficient slopes. The two express the same aerodynamics
+    through different code paths, so this rocket's flight should match both
+    ``calisto_robust`` and ``calisto_linear_generic``. It is standalone (it does
+    not reuse the shared ``calisto`` fixture), so a test may build it alongside
+    the others and compare their flights.
+
+    Parameters
+    ----------
+    cesaroni_m1670 : rocketpy.SolidMotor
+        The Calisto motor. This is a pytest fixture too.
+    calisto_nose_cone : rocketpy.NoseCone
+        The standard nose cone whose aero curves are copied. This is a pytest
+        fixture too.
+    calisto_tail : rocketpy.Tail
+        The standard boat tail whose aero curves are copied. This is a pytest
+        fixture too.
+    calisto_trapezoidal_fins : rocketpy.TrapezoidalFins
+        The standard fin set whose aero curves are copied. This is a pytest
+        fixture too.
+    calisto_main_chute : rocketpy.Parachute
+        The main parachute of the Calisto rocket. This is a pytest fixture too.
+    calisto_drogue_chute : rocketpy.Parachute
+        The drogue parachute of the Calisto rocket. This is a pytest fixture too.
+
+    Returns
+    -------
+    rocketpy.Rocket
+        The Calisto rocket whose nose cone, tail and fins are all
+        GenericSurfaces.
+    """
+    calisto = _bare_calisto(cesaroni_m1670)
+    barrowman_surfaces = {
+        "nose": calisto_nose_cone,
+        "tail": calisto_tail,
+        "fins": calisto_trapezoidal_fins,
+    }
+    for label, station in _CALISTO_SURFACE_STATIONS:
+        generic_surface = _generic_surface_from_barrowman(barrowman_surfaces[label])
+        calisto.add_surfaces(generic_surface, station - generic_surface.barrowman_cpz)
+    calisto.set_rail_buttons(
+        upper_button_position=0.082,
+        lower_button_position=-0.618,
+        angular_position=0,
+    )
+    calisto.parachutes.append(calisto_main_chute)
+    calisto.parachutes.append(calisto_drogue_chute)
+    return calisto
+
+
+@pytest.fixture
+def calisto_full_aerodynamics(
+    cesaroni_m1670,
+    calisto_nose_cone,
+    calisto_tail,
+    calisto_trapezoidal_fins,
+    calisto_main_chute,
+    calisto_drogue_chute,
+):
+    """Calisto flown from a single full-body stability-derivative set.
+
+    Instead of modeling each surface, this rocket carries one
+    :class:`LinearGenericSurface` added through
+    :meth:`Rocket.add_full_body_aerodynamics` that lumps the whole rocket into a
+    set of named coefficient slopes referenced to the dry center of mass. The
+    slopes are extracted from an equivalent ``calisto_generic`` rocket
+    (:func:`_full_body_derivatives`): the static normal-force and
+    pitch/yaw-moment slopes plus the pitch/yaw rate damping the distributed
+    surfaces produce through their lever arms and the fin roll damping. The
+    built-in drag curve is kept (no drag coefficient is supplied), exactly as for
+    the modeled Calisto, so this rocket's flight should match ``calisto_robust``,
+    ``calisto_linear_generic`` and ``calisto_generic``.
+
+    Parameters
+    ----------
+    cesaroni_m1670 : rocketpy.SolidMotor
+        The Calisto motor. This is a pytest fixture too.
+    calisto_nose_cone : rocketpy.NoseCone
+        The standard nose cone whose aero curves are lumped in. This is a pytest
+        fixture too.
+    calisto_tail : rocketpy.Tail
+        The standard boat tail whose aero curves are lumped in. This is a pytest
+        fixture too.
+    calisto_trapezoidal_fins : rocketpy.TrapezoidalFins
+        The standard fin set whose aero curves are lumped in. This is a pytest
+        fixture too.
+    calisto_main_chute : rocketpy.Parachute
+        The main parachute of the Calisto rocket. This is a pytest fixture too.
+    calisto_drogue_chute : rocketpy.Parachute
+        The drogue parachute of the Calisto rocket. This is a pytest fixture too.
+
+    Returns
+    -------
+    rocketpy.Rocket
+        The Calisto rocket flown from a single full-body derivative set.
+    """
+    # Distributed reference rocket (same motor, so the same dry center of mass)
+    # whose lumped derivatives feed the single full-body surface.
+    reference = _bare_calisto(cesaroni_m1670)
+    barrowman_surfaces = {
+        "nose": calisto_nose_cone,
+        "tail": calisto_tail,
+        "fins": calisto_trapezoidal_fins,
+    }
+    for label, station in _CALISTO_SURFACE_STATIONS:
+        generic_surface = _generic_surface_from_barrowman(barrowman_surfaces[label])
+        reference.add_surfaces(generic_surface, station - generic_surface.barrowman_cpz)
+
+    calisto = _bare_calisto(cesaroni_m1670)
+    full_body_surface = LinearGenericSurface(
+        reference_area=calisto.area,
+        reference_length=2 * calisto.radius,
+        coefficients=_full_body_derivatives(reference),
+        name="Calisto full body aerodynamics",
+    )
+    calisto.add_full_body_aerodynamics(full_body_surface)
     calisto.set_rail_buttons(
         upper_button_position=0.082,
         lower_button_position=-0.618,

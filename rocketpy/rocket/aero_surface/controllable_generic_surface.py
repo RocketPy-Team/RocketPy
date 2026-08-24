@@ -1,4 +1,5 @@
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
+from rocketpy.tools import from_hex_decode, to_hex_encode
 
 
 class ControllableGenericSurface(GenericSurface):
@@ -58,8 +59,10 @@ class ControllableGenericSurface(GenericSurface):
         center_of_pressure=(0, 0, 0),
         name="Controllable Generic Surface",
         controls=("deflection",),
+        reynolds_length=None,
         extrapolation=None,
         interpolation=None,
+        active_during="always",
     ):
         """Create a controllable generic aerodynamic surface.
 
@@ -84,6 +87,10 @@ class ControllableGenericSurface(GenericSurface):
             Names of the controls, such as a canard deflection angle. Default
             ``("deflection",)``. Each name becomes an extra input to every
             coefficient and a key in :attr:`control_state`.
+        reynolds_length : int, float, optional
+            Length scale, in meters, of the Reynolds number passed to the
+            coefficients. See :class:`GenericSurface`. ``None`` (the default)
+            uses ``reference_length`` (the diameter).
         extrapolation : str or dict, optional
             What tabulated coefficients do outside their data range:
             ``"constant"`` holds the nearest edge value, ``"natural"`` keeps
@@ -98,6 +105,11 @@ class ControllableGenericSurface(GenericSurface):
             Give one string for all coefficients or a dict keyed by coefficient
             name. ``None`` (the default) uses ``"linear"`` for tables built here
             and leaves a pre-built :class:`Function` unchanged.
+        active_during : str or callable, optional
+            When this surface produces force during a simulation: ``"always"``
+            (default), ``"power_on"`` (only while the motor burns, e.g. jet
+            vanes), ``"power_off"`` (only after burnout), or a function
+            ``active_during(t, flight)``. See :class:`GenericSurface` for details.
         """
         # These must be set before ``super().__init__`` so coefficient
         # processing (arity, CSV validation) and the derived-cp accessors see
@@ -112,8 +124,10 @@ class ControllableGenericSurface(GenericSurface):
             coefficients=coefficients,
             center_of_pressure=center_of_pressure,
             name=name,
+            reynolds_length=reynolds_length,
             extrapolation=extrapolation,
             interpolation=interpolation,
+            active_during=active_during,
         )
         # ``self.prints``/``self.plots`` are the generic ones wired by the base.
 
@@ -126,12 +140,9 @@ class ControllableGenericSurface(GenericSurface):
         pitch_rate,
         yaw_rate,
         roll_rate,
-        alpha_dot=0.0,
-        beta_dot=0.0,
     ):
         """Append the current control-variable values (in
-        ``self.control_variables`` order) to the standard inputs (which may
-        already include the unsteady ``alpha_dot``/``beta_dot`` axes)."""
+        ``self.control_variables`` order) to the standard inputs."""
         base = super()._coefficient_arguments(
             alpha,
             beta,
@@ -140,8 +151,6 @@ class ControllableGenericSurface(GenericSurface):
             pitch_rate,
             yaw_rate,
             roll_rate,
-            alpha_dot,
-            beta_dot,
         )
         controls = tuple(self.control_state[name] for name in self.control_variables)
         return base + controls
@@ -176,6 +185,16 @@ class ControllableGenericSurface(GenericSurface):
     def to_dict(  # pylint: disable=unused-argument
         self, include_outputs=False, **kwargs
     ):
+        # A preset ``active_during`` is stored as is; a custom (t, flight) -> bool
+        # function is pickled to text when allowed, otherwise dropped to "always"
+        # (a function cannot be restored without pickling).
+        active_during = self.active_during
+        if callable(active_during):
+            active_during = (
+                to_hex_encode(active_during)
+                if kwargs.get("allow_pickle", True)
+                else "always"
+            )
         return {
             "reference_area": self.reference_area,
             "reference_length": self.reference_length,
@@ -190,10 +209,21 @@ class ControllableGenericSurface(GenericSurface):
             "center_of_pressure": self.center_of_pressure,
             "name": self.name,
             "controls": self.control_variables,
+            "reynolds_length": self.reynolds_length,
+            "active_during": active_during,
         }
 
     @classmethod
     def from_dict(cls, data):
+        # A preset ``active_during`` is used as is; anything else is unpickled
+        # back into the original function (falling back to "always" if it cannot
+        # be restored).
+        active_during = data.get("active_during", "always")
+        if active_during not in ("always", "power_on", "power_off"):
+            try:
+                active_during = from_hex_decode(active_during)
+            except (TypeError, ValueError):
+                active_during = "always"
         return cls(
             reference_area=data["reference_area"],
             reference_length=data["reference_length"],
@@ -201,4 +231,6 @@ class ControllableGenericSurface(GenericSurface):
             center_of_pressure=data.get("center_of_pressure", (0, 0, 0)),
             name=data.get("name", "Controllable Generic Surface"),
             controls=data.get("controls", ("deflection",)),
+            reynolds_length=data.get("reynolds_length"),
+            active_during=active_during,
         )

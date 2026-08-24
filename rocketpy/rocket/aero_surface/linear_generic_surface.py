@@ -23,9 +23,11 @@ class LinearGenericSurface(GenericSurface):
         coefficients,
         center_of_pressure=(0, 0, 0),
         name="Generic Linear Surface",
+        reynolds_length=None,
         interpolation=None,
         extrapolation=None,
         force_convention=None,
+        active_during="always",
     ):
         """Create a generic linear aerodynamic surface, defined by its
         aerodynamic coefficients derivatives. This surface is used to model any
@@ -185,6 +187,10 @@ class LinearGenericSurface(GenericSurface):
         name : str, optional
             Name of the aerodynamic surface. Default is 'Generic Linear
             Surface'.
+        reynolds_length : int, float, optional
+            Length scale, in meters, of the Reynolds number passed to the
+            coefficient derivatives. See :class:`GenericSurface`. ``None`` (the
+            default) uses ``reference_length`` (the diameter).
         interpolation : str or dict, optional
             How tabulated coefficient derivatives interpolate between points.
             The accepted methods depend on the coefficient's dimensionality: a
@@ -210,7 +216,7 @@ class LinearGenericSurface(GenericSurface):
         force_convention : str, optional
             The frame your force-coefficient derivatives are given in. ``"body"``
             for the body-frame derivatives ``cN_*`` (normal), ``cY_*`` (side) and
-            ``cA_*`` (axial); ``"wind"`` for the aerodynamic-frame derivatives
+            ``cA_*`` (axial); ``"wind"`` for the wind-frame derivatives
             ``cL_*`` (lift), ``cQ_*`` (side) and ``cD_*`` (drag). The moment
             derivatives (``cm_*``, ``cn_*``, ``cl_*``) are the same in both.
             ``None`` (the default) infers the frame from the coefficient names you
@@ -222,6 +228,12 @@ class LinearGenericSurface(GenericSurface):
             ``cY_beta = cQ_beta - cD_0``, ``cA_alpha = cD_alpha - cL_0`` and
             ``cA_beta = cD_beta + cQ_0``. At zero angle this reduces to
             ``cN = cL``, ``cY = cQ``, ``cA = cD``.
+        active_during : str or callable, optional
+            When this surface produces aerodynamic force during a simulation:
+            ``"always"`` (default), ``"power_on"`` (only while the motor burns),
+            ``"power_off"`` (only after burnout), or a function
+            ``active_during(t, flight)`` returning ``True`` when the surface is
+            active at time ``t``. See :class:`GenericSurface` for details.
         """
 
         super().__init__(
@@ -230,9 +242,11 @@ class LinearGenericSurface(GenericSurface):
             coefficients=coefficients,
             center_of_pressure=center_of_pressure,
             name=name,
+            reynolds_length=reynolds_length,
             extrapolation=extrapolation,
             interpolation=interpolation,
             force_convention=force_convention,
+            active_during=active_during,
         )
 
         self.compute_all_coefficients()
@@ -390,7 +404,6 @@ class LinearGenericSurface(GenericSurface):
         """
         return AeroCoefficient(
             source,
-            unsteady_aero=self._unsteady_aero,
             control_variables=self.control_variables,
             name=name,
         )
@@ -567,7 +580,6 @@ class LinearGenericSurface(GenericSurface):
 
     def compute_all_coefficients(self):
         """Compute all the aerodynamic coefficients from the derivatives."""
-        # pylint: disable=invalid-name
         self.cNf = self.compute_forcing_coefficient(
             self.cN_0, self.cN_alpha, self.cN_beta
         )
@@ -616,14 +628,9 @@ class LinearGenericSurface(GenericSurface):
         pitch_rate,
         yaw_rate,
         roll_rate,
-        alpha_dot=0.0,  # pylint: disable=unused-argument
-        beta_dot=0.0,  # pylint: disable=unused-argument
     ):
         """Compute the aerodynamic forces and moments from the aerodynamic
         coefficients.
-
-        The linear (Barrowman) model does not use the unsteady ``alpha_dot`` /
-        ``beta_dot`` terms; they are accepted for signature compatibility.
 
         Parameters
         ----------
@@ -645,12 +652,6 @@ class LinearGenericSurface(GenericSurface):
             Non-dimensional (reduced) yaw rate, ``r * L_ref / (2 * V)``.
         roll_rate : float
             Non-dimensional (reduced) roll rate, ``p * L_ref / (2 * V)``.
-        alpha_dot : float, optional
-            Non-dimensional angle-of-attack rate. Ignored by the linear model;
-            accepted for signature compatibility. Defaults to 0.
-        beta_dot : float, optional
-            Non-dimensional sideslip-angle rate. Ignored by the linear model;
-            accepted for signature compatibility. Defaults to 0.
 
         Returns
         -------

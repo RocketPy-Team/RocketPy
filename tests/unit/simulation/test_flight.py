@@ -688,6 +688,65 @@ def test_linear_generic_surface_flight_is_stable(
     assert np.nanmax(np.abs(angle_of_attack)) < 45
 
 
+@pytest.mark.parametrize(
+    "generic_rocket_name, apogee_rel_tol",
+    [
+        ("calisto_linear_generic", 5e-3),
+        ("calisto_generic", 5e-3),
+        ("calisto_full_aerodynamics", 1e-2),
+    ],
+)
+def test_generic_surface_calisto_flight_matches_barrowman(
+    request, calisto_robust, example_plain_env, generic_rocket_name, apogee_rel_tol
+):
+    """A Calisto rebuilt from generic surfaces flies the same as the Barrowman
+    Calisto.
+
+    The reference ``calisto_robust`` models each surface with the classic
+    Barrowman method. The three generic-surface Calistos carry the same
+    aerodynamics through different code paths: per-surface
+    ``LinearGenericSurface`` (coefficient slopes), per-surface
+    ``GenericSurface`` (total coefficients), and a single full-body
+    ``LinearGenericSurface`` added with ``add_full_body_aerodynamics`` (the lumped
+    stability-derivative set, including the rate damping the distributed
+    surfaces produce through their lever arms). Flown from the same launcher in
+    still air, each must reach essentially the same apogee and leave the rail at
+    the same time and speed. Only the ascent is compared (``terminate_on_apogee``);
+    the descent under identical parachutes adds nothing to the comparison.
+
+    The per-surface models reproduce the Barrowman forces almost exactly; the
+    lumped full-body model is a point approximation of the distributed
+    surfaces, so it is held to a slightly looser apogee tolerance.
+    """
+    generic_rocket = request.getfixturevalue(generic_rocket_name)
+
+    launch = dict(
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=True,
+    )
+    reference_flight = Flight(rocket=calisto_robust, **launch)
+    generic_flight = Flight(rocket=generic_rocket, **launch)
+
+    # Leaving the rail is driven by thrust and the shared drag curve, so every
+    # model must agree tightly here.
+    assert generic_flight.out_of_rail_time == pytest.approx(
+        reference_flight.out_of_rail_time, rel=1e-3
+    )
+    assert generic_flight.out_of_rail_velocity == pytest.approx(
+        reference_flight.out_of_rail_velocity, rel=1e-3
+    )
+    # Apogee reflects the whole aerodynamic ascent.
+    assert generic_flight.apogee == pytest.approx(
+        reference_flight.apogee, rel=apogee_rel_tol
+    )
+    assert generic_flight.apogee_time == pytest.approx(
+        reference_flight.apogee_time, rel=apogee_rel_tol
+    )
+
+
 def test_max_acceleration_power_off_time_with_controllers(
     flight_calisto_air_brakes,
 ):

@@ -9,6 +9,13 @@ from .._barrowman_surface import _BarrowmanSurface
 from ..linear_generic_surface import LinearGenericSurface
 
 
+# TODO: review note: airfoil handling can now be fully implemented. That is
+# instead of getting just the clalpha from the airfoil, we can get and use the
+# full lift curve. We need to check if simulation does not break with this
+# change. If we use a full curve for airfoils, then we will have fin stall
+# (abrupt cN drop), but the other surfaces do not have this drop, they simply
+# will have their generated normal forces grow linearly with AoA, this can lead
+# to wrong behaviour at high AoA.
 class _BaseFin(_BarrowmanSurface):
     """
     Base class for fins, shared by both Fin and Fins classes.

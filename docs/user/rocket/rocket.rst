@@ -16,6 +16,5 @@ Rocket Usage
 .. toctree::
     :maxdepth: 3
     :caption: Generic Surfaces and Custom Aerodynamic Coefficients
-    
+
     Generic Surfaces and Custom Aerodynamic Coefficients <generic_surface.rst>
-    

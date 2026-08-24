@@ -1,4 +1,3 @@
-import copy
 import inspect
 import math
 
@@ -12,6 +11,7 @@ from rocketpy.rocket.aero_surface.aero_coefficient import (
     AeroCoefficient,
     build_independent_vars,
 )
+from rocketpy.tools import from_hex_decode, to_hex_encode
 
 
 def _as_function(func, independent_vars, name):
@@ -108,10 +108,11 @@ class GenericSurface:
         coefficients,
         center_of_pressure=(0, 0, 0),
         name="Generic Surface",
-        unsteady_aero=False,
+        reynolds_length=None,
         interpolation=None,
         extrapolation=None,
         force_convention=None,
+        active_during="always",
     ):
         """Create a generic aerodynamic surface, defined by its aerodynamic
         coefficients. This surface is used to model any aerodynamic surface
@@ -126,18 +127,19 @@ class GenericSurface:
         "reynolds", "pitch_rate", "yaw_rate" and "roll_rate". The
         independent variable columns can be provided in any order.
 
-        When ``unsteady_aero`` is True, the coefficients may additionally be
-        functions of the flow-angle rates "alpha_dot" and "beta_dot", which are
-        appended (in that order) after "roll_rate": callables must accept the
-        two extra trailing arguments and CSV files may include "alpha_dot" and
-        "beta_dot" columns.
+        The Reynolds number ("reynolds") is by default built on the reference
+        length (the rocket diameter). Published rocket data and tools often base
+        Reynolds on the **body length** instead, which for a slender rocket is
+        much larger (Re scales with the chosen length). If your coefficient
+        table uses a different length than the reference length, pass that
+        length as ``reynolds_length`` so the Reynolds number the simulation
+        feeds your table matches the one it was built against.
 
         The angular-rate inputs ("pitch_rate", "yaw_rate", "roll_rate") are the
-        conventional **non-dimensional reduced rates**, ``q* = q * L_ref / (2 * V)``
-        (and likewise for ``r``/``p``), matching how published and tool-generated
-        aerotables (Missile DATCOM, OpenVSP, CFD/wind-tunnel data) tabulate rate
-        derivatives. Provide coefficient tables against the reduced rates, not the
-        raw body rates in rad/s.
+        conventional **non-dimensional reduced rates**,
+        ``q* = q * L_ref / (2 * V)`` (and likewise for ``r``/``p``).
+        Provide coefficient tables against the reduced rates, not the raw body
+        rates in rad/s.
 
         See Also
         --------
@@ -149,8 +151,10 @@ class GenericSurface:
             Reference area of the aerodynamic surface. Has the unit of meters
             squared. Commonly defined as the rocket's cross-sectional area.
         reference_length : int, float
-            Reference length of the aerodynamic surface. Has the unit of meters.
-            Commonly defined as the rocket's diameter.
+            Reference length of the aerodynamic surface, in meters. Commonly the
+            rocket's diameter. Used to non-dimensionalize the moment coefficients
+            and the reduced rotation rates, and (unless ``reynolds_length`` is
+            given) as the length scale of the Reynolds number.
         coefficients: dict
             The six force and moment coefficients, by name. Any you leave out are
             set to 0. Each one can be a constant number, a function of the flow
@@ -176,12 +180,13 @@ class GenericSurface:
             aerodynamic surface. The default value is (0, 0, 0).
         name : str, optional
             Name of the aerodynamic surface. Default is 'Generic Surface'.
-        unsteady_aero : bool, optional
-            If True, the coefficients additionally depend on the time
-            derivatives of the flow angles, and ``alpha_dot`` and ``beta_dot``
-            are appended (in that order) to the independent variables. CSV files
-            may then include "alpha_dot"/"beta_dot" columns, and callables must
-            accept the two extra trailing arguments. Default is False.
+        reynolds_length : int, float, optional
+            Length scale, in meters, of the Reynolds number passed to the
+            coefficients. Set it to the length your Reynolds-dependent
+            coefficient data was tabulated against (for example the rocket's
+            body length, if your table uses a length-based Reynolds number).
+            ``None`` (the default) uses ``reference_length`` (the diameter). Has
+            no effect unless a coefficient actually depends on "reynolds".
         interpolation : str or dict, optional
             How tabulated coefficients interpolate between points. The accepted
             methods depend on the coefficient's dimensionality: a 1-D table
@@ -191,77 +196,72 @@ class GenericSurface:
             multi-dimensional table on a regular Cartesian grid accepts
             ``"linear"``, ``"nearest"``, ``"slinear"``, ``"cubic"``,
             ``"quintic"`` and ``"pchip"`` (with ``"spline"`` mapped to
-            ``"cubic"`` and ``"akima"`` to ``"pchip"``). Accepts either a simple
-            string or a dict keyed by coefficient name (names left out fall back
-            to the default). ``None`` (the default) uses ``"linear"`` for tables
-            built here and keeps a pre-built ``Function``'s own setting.
+            ``"cubic"`` and ``"akima"`` to ``"pchip"``). Pass a single string to
+            use that method for every coefficient, or a dict keyed by coefficient
+            name to set them individually (coefficients left out of the dict fall
+            back to the default). ``None`` (the default) uses ``"linear"`` for
+            tables built here and keeps a pre-built ``Function``'s own setting.
         extrapolation : str or dict, optional
             How tabulated coefficients behave outside their data range:
             ``"constant"`` holds the value at the nearest data edge,
             ``"natural"`` keeps following the curve, and ``"zero"`` returns 0.
-            Accepts either a simple string or a dict keyed by coefficient name
-            (names left out fall back to the default). ``None`` (the default)
-            uses ``"constant"`` for tables built here and keeps whatever a
-            pre-built ``Function`` already carries. Only affects tabulated
+            Pass a single string to use that method for every coefficient, or a
+            dict keyed by coefficient name to set them individually (coefficients
+            left out of the dict fall back to the default). ``None`` (the
+            default) uses ``"constant"`` for tables built here and keeps whatever
+            a pre-built ``Function`` already carries. Only affects tabulated
             sources (constants and callables are evaluated directly).
         force_convention : str, optional
             The frame your force coefficients are given in. ``"wind"`` for the
-            aerodynamic-frame coefficients ``cL`` (lift), ``cQ`` (side) and
+            wind-frame coefficients ``cL`` (lift), ``cQ`` (side) and
             ``cD`` (drag); ``"body"`` for the body-frame coefficients ``cN``
             (normal), ``cY`` (side) and ``cA`` (axial), the convention used by
-            Missile DATCOM, wind tunnels and Barrowman. The moment coefficients
+            DATCOM, wind tunnels and Barrowman. The moment coefficients
             (``cm``, ``cn``, ``cl``) are the same in both. ``None`` (the default)
             infers the frame from the coefficient names you pass. Whichever frame
             you use, all nine coefficients are available as attributes afterwards
             (the other frame is computed on demand).
+        active_during : str or callable, optional
+            When this surface produces aerodynamic force during a simulation.
+            Use it to model a surface that is only present in part of the flight,
+            such as jet vanes that only work while the motor burns, or a base
+            drag that only appears after burnout. Accepts:
+
+            - ``"always"`` (default): the surface always contributes force.
+            - ``"power_on"``: only while the motor is burning (up to the motor's
+              burn-out time).
+            - ``"power_off"``: only after the motor has burned out.
+            - a function ``active_during(t, flight)`` returning ``True`` when the
+              surface is active at time ``t`` (in seconds) of the given
+              :class:`Flight`. Use this for any custom window.
         """
 
-        self._unsteady_aero = unsteady_aero
         # Externally-supplied axes (e.g. control deflections). Subclasses set
         # this before ``super().__init__``. Defaults to none for plain surfaces.
         self.control_variables = getattr(self, "control_variables", ())
         # Ordered independent variables accepted by every coefficient: the seven
-        # base axes, plus ``alpha_dot``/``beta_dot`` when ``unsteady_aero`` is
-        # enabled, plus any ``control_variables``
-        self.independent_vars = build_independent_vars(
-            self._unsteady_aero, self.control_variables
-        )
+        # base axes, plus any ``control_variables``
+        self.independent_vars = build_independent_vars(self.control_variables)
 
         self.reference_area = reference_area
         self.reference_length = reference_length
+        self.reynolds_length = (
+            reference_length if reynolds_length is None else reynolds_length
+        )
         self.center_of_pressure = center_of_pressure
         self.cp = center_of_pressure
         self.cpx = center_of_pressure[0]
         self.cpy = center_of_pressure[1]
         self.cpz = center_of_pressure[2]
         self.name = name
+        self.active_during = self._validate_active_during(active_during)
+        self.is_active = self._build_activation_check(self.active_during)
 
         self._rotation_surface_to_body = self._default_surface_rotation()
 
-        default_coefficients = self._get_default_coefficients()
-        self.force_convention = self._resolve_force_convention(
-            coefficients, force_convention
+        self._build_coefficients(
+            coefficients, interpolation, extrapolation, force_convention
         )
-        # Wind-frame force input (cL/cQ/cD) is converted once to the canonical
-        # body-frame coefficients before validation. Each surface supplies the
-        # conversion appropriate to its coefficients: the generic surface rotates
-        # the full force coefficients, while the linear model recombines the
-        # coefficient derivatives (see LinearGenericSurface._wind_input_to_body).
-        # A non-dict input falls through to _check_coefficients, which rejects it.
-        if self.force_convention == "wind" and isinstance(coefficients, dict):
-            coefficients = self._wind_input_to_body(coefficients)
-        self._check_coefficients(coefficients, default_coefficients)
-        coefficients = self._complete_coefficients(coefficients, default_coefficients)
-        for coeff, coeff_value in coefficients.items():
-            value = AeroCoefficient(
-                coeff_value,
-                unsteady_aero=self._unsteady_aero,
-                control_variables=self.control_variables,
-                name=coeff,
-                extrapolation=self._coefficient_option(extrapolation, coeff),
-                interpolation=self._coefficient_option(interpolation, coeff),
-            )
-            setattr(self, coeff, value)
 
         self.evaluate_coefficients()
         self._evaluate_stability_derivatives()
@@ -280,6 +280,47 @@ class GenericSurface:
         """
         return Matrix([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
 
+    @staticmethod
+    def _validate_active_during(active_during):
+        """Check the ``active_during`` policy and return it unchanged.
+
+        Accepts one of the preset strings ``"always"``, ``"power_on"``,
+        ``"power_off"`` or a callable ``(t, flight) -> bool``; anything else
+        raises a ``ValueError`` so a typo is caught at construction rather than
+        silently keeping the surface active.
+        """
+        if callable(active_during) or active_during in (
+            "always",
+            "power_on",
+            "power_off",
+        ):
+            return active_during
+        raise ValueError(
+            "`active_during` must be one of 'always', 'power_on', 'power_off' "
+            "or a callable(t, flight) -> bool; "
+            f"got {active_during!r}."
+        )
+
+    @staticmethod
+    def _build_activation_check(active_during):
+        """Resolve an ``active_during`` policy into the ``is_active(t, flight)``
+        function the flight integrator calls for every surface each step to skip
+        the ones that are not currently active.
+
+        Resolving it once here keeps that per-step check free of policy
+        branching. A custom callable is used unchanged; each preset becomes a
+        small function of the simulation time ``t`` (in seconds) and the
+        ``flight`` being run, and ``"always"`` becomes a function that simply
+        returns ``True``.
+        """
+        if callable(active_during):
+            return active_during
+        if active_during == "power_on":
+            return lambda t, flight: t < flight.rocket.motor.burn_out_time
+        if active_during == "power_off":
+            return lambda t, flight: t >= flight.rocket.motor.burn_out_time
+        return lambda t, flight: True  # "always"
+
     @property
     def force_application_point(self):
         """Local point (surface frame) at which the resultant force is applied
@@ -290,7 +331,7 @@ class GenericSurface:
         return Vector([self.cpx, self.cpy, self.cpz])
 
     @property
-    def cL(self):  # pylint: disable=invalid-name
+    def cL(self):
         """Wind-frame lift coefficient, as a :class:`Function` of the surface's
         independent variables. Derived from the canonical body-frame ``cN``,
         ``cY`` and ``cA`` by the angle-of-attack/sideslip rotation."""
@@ -299,39 +340,18 @@ class GenericSurface:
         )[0]
 
     @property
-    def cD(self):  # pylint: disable=invalid-name
+    def cD(self):
         """Wind-frame drag coefficient (derived from ``cN``/``cY``/``cA``)."""
         return body_to_wind_coefficients(
             self.cN, self.cY, self.cA, self.independent_vars
         )[1]
 
     @property
-    def cQ(self):  # pylint: disable=invalid-name
+    def cQ(self):
         """Wind-frame side-force coefficient (derived from ``cN``/``cY``/``cA``)."""
         return body_to_wind_coefficients(
             self.cN, self.cY, self.cA, self.independent_vars
         )[2]
-
-    def info(self):
-        """Prints a summary of the surface's geometry and aerodynamic
-        coefficients. Subclasses override this with surface-specific summaries.
-
-        Returns
-        -------
-        None
-        """
-        self.prints.geometry()
-        self.prints.coefficients()
-
-    def all_info(self):
-        """Prints and plots all available information of the surface.
-
-        Returns
-        -------
-        None
-        """
-        self.prints.all()
-        self.plots.all()
 
     def evaluate_coefficients(self):
         """Hook for subclasses to (re)populate the aerodynamic coefficient
@@ -362,41 +382,31 @@ class GenericSurface:
         -------
         None
         """
-        self.cN_alpha = self._derivative_coefficient(self.cN, "alpha", "cN_alpha")
-        self.cm_alpha = self._derivative_coefficient(self.cm, "alpha", "cm_alpha")
-        self.cY_beta = self._derivative_coefficient(self.cY, "beta", "cY_beta")
-        self.cn_beta = self._derivative_coefficient(self.cn, "beta", "cn_beta")
-        self._set_stability_accessors()
-
-    def _derivative_coefficient(self, coefficient, axis, name):
-        """Numerically differentiate ``coefficient`` along ``axis`` at the
-        linearization point and wrap the Mach-only result as an
-        :class:`AeroCoefficient`, so every surface exposes ``cN_alpha`` and its
-        siblings in the same form (a coefficient callable over the full
-        argument tuple that depends only on Mach).
-
-        Parameters
-        ----------
-        coefficient : AeroCoefficient
-            The force or moment coefficient to differentiate.
-        axis : str
-            Either ``"alpha"`` or ``"beta"``.
-        name : str
-            Name of the resulting derivative coefficient.
-
-        Returns
-        -------
-        AeroCoefficient
-            The Mach-only derivative ``d(coefficient)/d(axis)``.
-        """
-        slope = self._partial_slope(coefficient, axis=axis)
-        return AeroCoefficient(
-            slope,
+        self.cN_alpha = AeroCoefficient(
+            self.cN.slope("alpha", "mach"),
             depends_on=("mach",),
-            unsteady_aero=self._unsteady_aero,
             control_variables=self.control_variables,
-            name=name,
+            name="cN_alpha",
         )
+        self.cm_alpha = AeroCoefficient(
+            self.cm.slope("alpha", "mach"),
+            depends_on=("mach",),
+            control_variables=self.control_variables,
+            name="cm_alpha",
+        )
+        self.cY_beta = AeroCoefficient(
+            self.cY.slope("beta", "mach"),
+            depends_on=("mach",),
+            control_variables=self.control_variables,
+            name="cY_beta",
+        )
+        self.cn_beta = AeroCoefficient(
+            self.cn.slope("beta", "mach"),
+            depends_on=("mach",),
+            control_variables=self.control_variables,
+            name="cn_beta",
+        )
+        self._set_stability_accessors()
 
     def _set_stability_accessors(self):
         """Build the pitch- and yaw-plane center-of-pressure accessors from the
@@ -431,49 +441,6 @@ class GenericSurface:
 
         self.center_of_pressure_z = _cp_z(self.cN_alpha, self.cm_alpha)
         self.center_of_pressure_z_yaw = _cp_z(self.cY_beta, self.cn_beta)
-
-    def _partial_slope(self, coefficient, axis):
-        """Partial derivative ``d(coefficient)/d(axis)`` at ``alpha = beta = 0``
-        and zero rates, returned as a mach-only ``Function``.
-
-        Reuses :meth:`Function.differentiate` on a single-variable slice of the
-        coefficient taken along ``axis`` (``"alpha"`` or ``"beta"``) with all
-        other base inputs frozen at zero. Extra axes (control deflections) are
-        frozen at their current value via :meth:`_coefficient_arguments`.
-
-        Parameters
-        ----------
-        coefficient : Function
-            A coefficient ``Function`` over ``self.independent_vars``.
-        axis : str
-            Either ``"alpha"`` or ``"beta"``.
-
-        Returns
-        -------
-        Function
-            ``d(coefficient)/d(axis)`` evaluated at the zero point, vs. mach.
-        """
-
-        def slope(mach):
-            if axis == "alpha":
-                sliced = Function(
-                    lambda alpha: coefficient(
-                        *self._coefficient_arguments(
-                            alpha, 0.0, mach, 0.0, 0.0, 0.0, 0.0
-                        )
-                    )
-                )
-            else:
-                sliced = Function(
-                    lambda beta: coefficient(
-                        *self._coefficient_arguments(
-                            0.0, beta, mach, 0.0, 0.0, 0.0, 0.0
-                        )
-                    )
-                )
-            return sliced.differentiate(0)
-
-        return Function(slope, "Mach", "Coefficient derivative")
 
     @staticmethod
     def _coefficient_option(option, coeff_name):
@@ -553,7 +520,6 @@ class GenericSurface:
         def as_coefficient(source, name):
             return AeroCoefficient(
                 source,
-                unsteady_aero=self._unsteady_aero,
                 control_variables=self.control_variables,
                 name=name,
             )
@@ -565,6 +531,60 @@ class GenericSurface:
             self.independent_vars,
         )
         return {"cN": c_normal, "cY": c_yaw, "cA": c_axial, **passthrough}
+
+    def _build_coefficients(
+        self, coefficients, interpolation, extrapolation, force_convention
+    ):
+        """Resolve the force-coefficient frame and store the surface's
+        aerodynamic coefficients as :class:`AeroCoefficient` attributes.
+
+        Runs the full coefficient setup from the user input: picks the force
+        frame, converts a wind-frame input to the canonical body frame, fills in
+        any coefficient the user left out with its default (0), and stores each
+        one as an attribute (``self.cN``, ``self.cm``, ...).
+
+        Parameters
+        ----------
+        coefficients : dict
+            The user-provided coefficients (see :meth:`__init__`).
+        interpolation, extrapolation : str, dict, or None
+            The interpolation/extrapolation settings (see :meth:`__init__`).
+        force_convention : str or None
+            The frame the input force coefficients are given in, or ``None`` to
+            infer it from the coefficient names.
+        """
+        default_coefficients = self._get_default_coefficients()
+        self.force_convention = self._resolve_force_convention(
+            coefficients, force_convention
+        )
+        # Wind-frame force input (cL/cQ/cD) is converted once to the canonical
+        # body-frame coefficients before validation. Each surface supplies the
+        # conversion appropriate to its coefficients: the generic surface rotates
+        # the full force coefficients, while the linear model recombines the
+        # coefficient derivatives (see LinearGenericSurface._wind_input_to_body).
+        # A non-dict input falls through to _check_coefficients, which rejects it.
+        if self.force_convention == "wind" and isinstance(coefficients, dict):
+            coefficients = self._wind_input_to_body(coefficients)
+        self._check_coefficients(coefficients, default_coefficients)
+        coefficients = self._complete_coefficients(coefficients, default_coefficients)
+
+        # ``_needs_reynolds`` lets the flight loop skip the per-step atmosphere
+        # lookups when no coefficient uses the Reynolds number. Only these
+        # primary coefficients are checked: they are what the surface evaluates,
+        # and the linear model's combined coefficients are linear combinations of
+        # them, so a Reynolds dependence always shows up here.
+        self._needs_reynolds = False
+        for coeff, coeff_value in coefficients.items():
+            value = AeroCoefficient(
+                coeff_value,
+                control_variables=self.control_variables,
+                name=coeff,
+                extrapolation=self._coefficient_option(extrapolation, coeff),
+                interpolation=self._coefficient_option(interpolation, coeff),
+            )
+            setattr(self, coeff, value)
+            if "reynolds" in value.depends_on:
+                self._needs_reynolds = True
 
     def _get_default_coefficients(self):
         """Returns default coefficients
@@ -603,9 +623,13 @@ class GenericSurface:
         coefficients : dict
             Coefficients dictionary used to setup coefficient attributes
         """
-        coefficients = copy.deepcopy(input_coefficients)
+        # Shallow copy: only missing keys are added, so the user's dict is left
+        # intact. The values are not mutated here (each is wrapped in an
+        # AeroCoefficient, which copies it when it needs its own settings), so
+        # there is no need to deep-copy potentially large tabulated coefficients.
+        coefficients = dict(input_coefficients)
         for coeff, value in default_coefficients.items():
-            if coeff not in coefficients.keys():
+            if coeff not in coefficients:
                 coefficients[coeff] = value
 
         return coefficients
@@ -645,8 +669,6 @@ class GenericSurface:
         pitch_rate,
         yaw_rate,
         roll_rate,
-        alpha_dot=0.0,
-        beta_dot=0.0,
     ):
         """Compute the aerodynamic forces and moments from the aerodynamic
         coefficients.
@@ -671,12 +693,6 @@ class GenericSurface:
             Non-dimensional (reduced) yaw rate, ``r * L_ref / (2 * V)``.
         roll_rate : float
             Non-dimensional (reduced) roll rate, ``p * L_ref / (2 * V)``.
-        alpha_dot : float, optional
-            Non-dimensional angle-of-attack rate, used by unsteady surfaces.
-            Defaults to 0.
-        beta_dot : float, optional
-            Non-dimensional sideslip-angle rate, used by unsteady surfaces.
-            Defaults to 0.
 
         Returns
         -------
@@ -689,8 +705,7 @@ class GenericSurface:
         dyn_pressure_area_length = dyn_pressure_area * self.reference_length
 
         # Coefficient arguments (base 7 vars, plus any extra axes appended by
-        # subclasses such as control deflections or the unsteady alpha_dot/
-        # beta_dot terms).
+        # subclasses such as control deflections).
         args = self._coefficient_arguments(
             alpha,
             beta,
@@ -699,8 +714,6 @@ class GenericSurface:
             pitch_rate,
             yaw_rate,
             roll_rate,
-            alpha_dot,
-            beta_dot,
         )
 
         # Body-frame force components straight from the body-frame coefficients
@@ -708,16 +721,16 @@ class GenericSurface:
         normal = dyn_pressure_area * self.cN(*args)
         yaw_side = dyn_pressure_area * self.cY(*args)
         axial = dyn_pressure_area * self.cA(*args)
-        r1 = yaw_side
-        r2 = -normal
-        r3 = -axial
+        R1 = yaw_side
+        R2 = -normal
+        R3 = -axial
 
         # Compute aerodynamic moments
         pitch = dyn_pressure_area_length * self.cm(*args)
         yaw = dyn_pressure_area_length * self.cn(*args)
         roll = dyn_pressure_area_length * self.cl(*args)
 
-        return r1, r2, r3, pitch, yaw, roll
+        return R1, R2, R3, pitch, yaw, roll
 
     def _coefficient_arguments(
         self,
@@ -728,19 +741,13 @@ class GenericSurface:
         pitch_rate,
         yaw_rate,
         roll_rate,
-        alpha_dot=0.0,
-        beta_dot=0.0,
     ):
         """Returns the argument tuple passed to every coefficient ``Function``,
         in ``self.independent_vars`` order. The base class provides the seven
-        standard inputs, plus ``alpha_dot``/``beta_dot`` when ``unsteady_aero``
-        is enabled. Subclasses (e.g. :class:`ControllableGenericSurface`)
+        standard inputs. Subclasses (e.g. :class:`ControllableGenericSurface`)
         override this to append further axes such as control deflections.
         """
-        base = (alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate)
-        if self._unsteady_aero:
-            return base + (alpha_dot, beta_dot)
-        return base
+        return (alpha, beta, mach, reynolds, pitch_rate, yaw_rate, roll_rate)
 
     def compute_forces_and_moments(
         self,
@@ -753,8 +760,6 @@ class GenericSurface:
         density,
         dynamic_viscosity,
         z,
-        alpha_dot=0.0,
-        beta_dot=0.0,
     ):
         """Computes the forces and moments acting on the aerodynamic surface.
         Used in each time step of the simulation.  This method is valid for
@@ -783,12 +788,6 @@ class GenericSurface:
         z : float
             Altitude of the surface, used to evaluate ``density`` and
             ``dynamic_viscosity``.
-        alpha_dot : float, optional
-            Non-dimensional angle-of-attack rate, used by unsteady surfaces.
-            Defaults to 0.
-        beta_dot : float, optional
-            Non-dimensional sideslip-angle rate, used by unsteady surfaces.
-            Defaults to 0.
 
         Returns
         -------
@@ -797,16 +796,24 @@ class GenericSurface:
             (pitch, yaw, roll) in the body frame.
         """
         # Reynolds number at the surface altitude. Computed here (rather than in
-        # the flight loop) since it is only needed by generic surfaces.
-        comp_density = density.get_value_opt(z)
-        comp_dynamic_viscosity = dynamic_viscosity.get_value_opt(z)
-        reynolds = (
-            comp_density * stream_speed * self.reference_length / comp_dynamic_viscosity
-            if comp_dynamic_viscosity > 0
-            else 0
-        )
+        # the flight loop) since it is only needed by generic surfaces, and only
+        # when a coefficient actually depends on it -- otherwise the two
+        # atmosphere lookups are skipped for every surface, every step.
+        if self._needs_reynolds:
+            comp_density = density.get_value_opt(z)
+            comp_dynamic_viscosity = dynamic_viscosity.get_value_opt(z)
+            reynolds = (
+                comp_density
+                * stream_speed
+                * self.reynolds_length
+                / comp_dynamic_viscosity
+                if comp_dynamic_viscosity > 0
+                else 0
+            )
+        else:
+            reynolds = 0.0
 
-        # Stream velocity in standard aerodynamic frame
+        # Stream velocity in standard wind frame
         stream_velocity = -stream_velocity
 
         # Angles of attack and sideslip
@@ -833,11 +840,81 @@ class GenericSurface:
             omega[0] * reduced_rate_factor,  # q*  reduced pitch rate
             omega[1] * reduced_rate_factor,  # r*  reduced yaw rate
             omega[2] * reduced_rate_factor,  # p*  reduced roll rate
-            alpha_dot,
-            beta_dot,
         )
 
         # Dislocation of the aerodynamic application point to CDM
         M1, M2, M3 = Vector([pitch, yaw, roll]) + (cp ^ Vector([R1, R2, R3]))
 
         return R1, R2, R3, M1, M2, M3
+
+    def to_dict(self, include_outputs=False, **kwargs):  # pylint: disable=unused-argument
+        # The stored coefficients are always the canonical body-frame set (the
+        # names from ``_get_default_coefficients``: cN/cY/cA/... for a generic
+        # surface, the derivative set for the linear model), so they are saved
+        # with ``force_convention="body"`` and rebuilt directly on load.
+        coefficients = {
+            name: getattr(self, name) for name in self._get_default_coefficients()
+        }
+        # A preset ``active_during`` is stored as is; a custom (t, flight) -> bool
+        # function is pickled to text when allowed, otherwise dropped to "always"
+        # (a function cannot be restored without pickling).
+        active_during = self.active_during
+        if callable(active_during):
+            active_during = (
+                to_hex_encode(active_during)
+                if kwargs.get("allow_pickle", True)
+                else "always"
+            )
+        return {
+            "reference_area": self.reference_area,
+            "reference_length": self.reference_length,
+            "reynolds_length": self.reynolds_length,
+            "coefficients": coefficients,
+            "center_of_pressure": self.center_of_pressure,
+            "name": self.name,
+            "force_convention": "body",
+            "active_during": active_during,
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        # A preset ``active_during`` is used as is; anything else is unpickled
+        # back into the original function (falling back to "always" if it cannot
+        # be restored).
+        active_during = data.get("active_during", "always")
+        if active_during not in ("always", "power_on", "power_off"):
+            try:
+                active_during = from_hex_decode(active_during)
+            except (TypeError, ValueError):
+                active_during = "always"
+        return cls(
+            reference_area=data["reference_area"],
+            reference_length=data["reference_length"],
+            coefficients=data["coefficients"],
+            center_of_pressure=data.get("center_of_pressure", (0, 0, 0)),
+            name=data.get("name", "Generic Surface"),
+            reynolds_length=data.get("reynolds_length"),
+            force_convention=data.get("force_convention", "body"),
+            active_during=active_during,
+        )
+
+    def info(self):
+        """Prints a summary of the surface's geometry and aerodynamic
+        coefficients. Subclasses override this with surface-specific summaries.
+
+        Returns
+        -------
+        None
+        """
+        self.prints.geometry()
+        self.prints.coefficients()
+
+    def all_info(self):
+        """Prints and plots all available information of the surface.
+
+        Returns
+        -------
+        None
+        """
+        self.prints.all()
+        self.plots.all()

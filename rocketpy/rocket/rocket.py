@@ -15,6 +15,7 @@ from rocketpy.rocket.aero_surface import (
     AirBrakes,
     BodyTube,
     EllipticalFins,
+    Fin,
     Fins,
     NoseCone,
     RailButtons,
@@ -27,29 +28,19 @@ from rocketpy.rocket.aero_surface.fins.free_form_fin import FreeFormFin
 from rocketpy.rocket.aero_surface.fins.free_form_fins import FreeFormFins
 from rocketpy.rocket.aero_surface.fins.trapezoidal_fin import TrapezoidalFin
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
+from rocketpy.rocket.aero_surface.linear_generic_surface import LinearGenericSurface
 from rocketpy.rocket.components import Components
+from rocketpy.rocket.helpers import (
+    full_body_coefficients,
+    neutral_point_and_slope,
+    zero_drag,
+)
 from rocketpy.rocket.parachute import Parachute
 from rocketpy.tools import (
     deprecated,
     find_obj_from_hash,
     parallel_axis_theorem_from_com,
 )
-
-
-def _stability_slope(derivative_coefficient, sign=1.0):
-    """Turn a surface's coefficient derivative (``cN_alpha``, ``cY_beta``, ...)
-    into the force-curve slope as a Function of Mach, evaluated at zero
-    alpha/beta and zero rates. ``sign`` flips it when needed (the yaw plane uses
-    ``-cY_beta``).
-    """
-    return Function(
-        lambda mach: (
-            sign
-            * derivative_coefficient.get_value_opt(0.0, 0.0, mach, 0.0, 0.0, 0.0, 0.0)
-        ),
-        "Mach",
-        "Force coefficient slope",
-    )
 
 
 # pylint: disable=too-many-instance-attributes, too-many-public-methods, too-many-instance-attributes
@@ -157,10 +148,12 @@ class Rocket:
         alias for this attribute. See :doc:`Positions and Coordinate Systems
         </user/positions>` for more information.
     Rocket.stability_margin : Function
-        Stability margin of the rocket, in calibers, as a function of mach
-        number and time. Stability margin is defined as the distance between
-        the center of pressure and the center of mass, divided by the
-        rocket's diameter.
+        Stability margin of the rocket, in calibers, as a function of angle of
+        attack (radians), mach number and time. Stability margin is defined as
+        the distance between the center of pressure and the center of mass,
+        divided by the rocket's diameter. The angle-of-attack argument matters
+        only when a surface is nonlinear in incidence (see
+        ``Rocket.is_incidence_linear``); otherwise it has no effect.
     Rocket.static_margin : Function
         Static margin of the rocket, in calibers, as a function of time. Static
         margin is defined as the distance between the center of pressure and the
@@ -363,6 +356,9 @@ class Rocket:
         self.sensors_by_name = {}
         self.aerodynamic_surfaces = Components()
         self.surfaces_cp_to_cdm = {}
+        # Set once a full-body model replaces the modeled aerodynamics
+        # (add_full_body_aerodynamics(overwrite=True)); warns on later surface adds.
+        self._aerodynamics_overwritten = False
         self.rail_buttons = Components()
 
         self._aerodynamic_center = Function(
@@ -379,8 +375,8 @@ class Rocket:
             lambda time: 0, inputs="Time (s)", outputs="Static Margin (c)"
         )
         self._stability_margin = Function(
-            lambda mach, time: 0,
-            inputs=["Mach", "Time (s)"],
+            lambda alpha, mach, time: 0,
+            inputs=["Angle of Attack (rad)", "Mach", "Time (s)"],
             outputs="Stability Margin (c)",
         )
         # Yaw-plane counterparts. The pitch-plane attributes above remain the
@@ -400,8 +396,8 @@ class Rocket:
             lambda time: 0, inputs="Time (s)", outputs="Static Margin - Yaw (c)"
         )
         self._stability_margin_yaw = Function(
-            lambda mach, time: 0,
-            inputs=["Mach", "Time (s)"],
+            lambda beta, mach, time: 0,
+            inputs=["Sideslip Angle (rad)", "Mach", "Time (s)"],
             outputs="Stability Margin - Yaw (c)",
         )
 
@@ -461,6 +457,9 @@ class Rocket:
         # The aerodynamic center and the margins are evaluated lazily
         self._cp_outdated = True
         self._margin_outdated = True
+        # Whether the neutral point moves with angle of attack; set when the
+        # margins are evaluated (see evaluate_stability_margin).
+        self._is_incidence_linear = True
         # Flag for rocket non-axisymmetric warning. Used to show warning once.
         self._axisymmetry_warned = False
 
@@ -684,6 +683,61 @@ class Rocket:
         self._ensure_aerodynamic_center()
         return self._aerodynamic_center_yaw
 
+    def neutral_point(self, alpha, mach):
+        """Pitch-plane neutral point at a finite angle of attack, in meters.
+
+        The neutral point is the point about which the aerodynamic pitching
+        moment does not change for a small change in angle of attack. It is the
+        angle-of-attack-aware generalization of the
+        :attr:`aerodynamic_center`: evaluated at ``alpha = 0`` the two are equal,
+        and for a rocket built only from the linear Barrowman surfaces the
+        neutral point does not move with angle of attack at all.
+
+        It moves with angle of attack only when a surface's normal force is
+        nonlinear in the angle of attack, for example a Galejs body-lift term
+        (growing like ``sin**2(alpha)``) added as a
+        :class:`rocketpy.GenericSurface`. In that case the neutral point migrates
+        as the angle of attack changes, exactly the behavior OpenRocket models,
+        and the flight stability margin follows it.
+
+        Parameters
+        ----------
+        alpha : float
+            Angle of attack, in radians, to evaluate the neutral point at.
+        mach : float
+            Free-stream Mach number.
+
+        Returns
+        -------
+        float
+            Axial position of the pitch-plane neutral point in the user-defined
+            rocket coordinate system, in meters.
+        """
+        return neutral_point_and_slope(self, alpha, 0.0, mach, "pitch")[0]
+
+    def neutral_point_yaw(self, beta, mach):
+        """Yaw-plane neutral point at a finite sideslip angle, in meters.
+
+        Yaw-plane counterpart of :meth:`neutral_point`: the point about which the
+        yaw moment does not change for a small change in sideslip angle,
+        evaluated at the given sideslip angle. Equal to
+        :attr:`aerodynamic_center_yaw` at ``beta = 0``.
+
+        Parameters
+        ----------
+        beta : float
+            Sideslip angle, in radians, to evaluate the neutral point at.
+        mach : float
+            Free-stream Mach number.
+
+        Returns
+        -------
+        float
+            Axial position of the yaw-plane neutral point in the user-defined
+            rocket coordinate system, in meters.
+        """
+        return neutral_point_and_slope(self, 0.0, beta, mach, "yaw")[0]
+
     @property
     def total_lift_coeff_der(self):
         """Total normal-force-coefficient derivative vs Mach (lazily evaluated)."""
@@ -710,15 +764,78 @@ class Rocket:
 
     @property
     def stability_margin(self):
-        """Pitch-plane stability margin (calibers) vs Mach and time (lazy)."""
+        """Pitch-plane stability margin (calibers) as a function of angle of
+        attack (radians), Mach and time (lazily evaluated). The angle-of-attack
+        argument matters only for a rocket that is nonlinear in incidence (see
+        :attr:`is_incidence_linear`); otherwise it has no effect and the margin
+        reduces to the Mach-and-time value."""
         self._ensure_margins()
         return self._stability_margin
 
     @property
     def stability_margin_yaw(self):
-        """Yaw-plane stability margin (calibers) vs Mach and time (lazy)."""
+        """Yaw-plane stability margin (calibers) as a function of sideslip angle
+        (radians), Mach and time (lazily evaluated). Equal to
+        :attr:`stability_margin` for an axisymmetric rocket."""
         self._ensure_margins()
         return self._stability_margin_yaw
+
+    @property
+    def length(self):
+        """Overall aerodynamic length of the rocket, in meters.
+
+        This is the axial distance from the fore-most point of the rocket (the
+        nose cone tip) to the aft-most point of the rocket. It is measured along
+        the rocket axis and does not depend on the chosen coordinate-system
+        orientation.
+
+        The aft-most point is usually the trailing edge of the last fin set or
+        the base of the aft tail, but if the motor nozzle extends past the last
+        aerodynamic surface, the nozzle sets the aft end instead. The rocket
+        must have at least one aerodynamic surface with a defined axial extent
+        (a nose cone, tail or fin set); otherwise a ``ValueError`` is raised.
+
+        This length is what the hobby-rocketry convention of expressing the
+        static/stability margin as a *percentage of body length* is measured
+        against, as opposed to the caliber (diameter) convention used by
+        ``static_margin`` and ``stability_margin``.
+
+        Returns
+        -------
+        float
+            Overall aerodynamic length of the rocket, in meters.
+        """
+        fore_points = []
+        aft_points = []
+        for surface, position in self.aerodynamic_surfaces:
+            if isinstance(surface, (NoseCone, Tail)):
+                axial_extent = surface.length
+            elif isinstance(surface, (Fins, Fin)):
+                axial_extent = surface.root_chord
+            else:
+                # Generic/controllable surfaces have no defined axial extent;
+                # they contribute a single point at their reference position.
+                axial_extent = 0.0
+            # The reference point and the point one axial extent toward the tail
+            # (the tail direction is -_csys along the z axis). Taking the global
+            # extremes makes the result independent of which end is the reference.
+            fore_points.append(position.z)
+            aft_points.append(position.z - self._csys * axial_extent)
+
+        if not fore_points:
+            raise ValueError(
+                "The rocket must have at least one aerodynamic surface to have a "
+                "defined length."
+            )
+
+        all_points = fore_points + aft_points
+        # Include the nozzle if a real motor extends past the aerodynamic
+        # surfaces. nozzle_position is already in the rocket reference frame.
+        if getattr(self, "motor", None) is not None and not isinstance(
+            self.motor, EmptyMotor
+        ):
+            all_points.append(self.nozzle_position)
+        return max(all_points) - min(all_points)
 
     def evaluate_center_of_pressure(self):
         """Evaluates the rocket's aerodynamic center (and cp_position) as a
@@ -761,12 +878,12 @@ class Rocket:
         if len(self.aerodynamic_surfaces) > 0:
             for aero_surface, position in self.aerodynamic_surfaces:
                 # Force-curve slopes as Functions of Mach, from the surface's
-                # coefficient derivatives evaluated at zero alpha/beta and zero
+                # coefficient derivatives sliced at zero alpha/beta and zero
                 # rates. The yaw slope is the sign-flipped ``cY_beta`` so an
                 # axisymmetric surface gives the same signed weight as the pitch
                 # plane (their margins then coincide when symmetric).
-                lift_coeff_der = _stability_slope(aero_surface.cN_alpha)
-                side_coeff_der = _stability_slope(aero_surface.cY_beta, sign=-1.0)
+                lift_coeff_der = aero_surface.cN_alpha.slice("mach")
+                side_coeff_der = -1.0 * aero_surface.cY_beta.slice("mach")
                 cp_z = aero_surface.center_of_pressure_z
                 cp_z_yaw = aero_surface.center_of_pressure_z_yaw
                 # ref_factor corrects force for different reference areas
@@ -839,157 +956,23 @@ class Rocket:
         return self._cp_plane_max_difference() <= 1e-6 * (2 * self.radius)
 
     @property
+    def is_incidence_linear(self):
+        """``True`` when the rocket's aerodynamics are linear in the angle of
+        attack, so the neutral point (and therefore the stability margin) does
+        not move as the angle of attack changes. This holds for a rocket built
+        only from the linear Barrowman surfaces. It is ``False`` when a surface's
+        normal force is nonlinear in incidence, such as a Galejs body-lift term
+        added as a :class:`rocketpy.GenericSurface`, in which case
+        :attr:`stability_margin` varies with its angle-of-attack argument."""
+        self._ensure_margins()
+        return self._is_incidence_linear
+
+    @property
     def cp_position(self):
-        """Alias for :attr:`aerodynamic_center`.
-
-        Historically named "center of pressure", this is the linearized,
-        Mach-dependent aerodynamic center -- the slope-weighted (Barrowman)
-        quantity the rocketry community conventionally calls the CP, and the
-        well-conditioned reference used by the static and stability margins.
-        """
-        # TODO: review note: I guess having the full, real nonlinear cp would be cool and good for completeness, althouhg not that useful ... should try it
+        """Alias for :attr:`aerodynamic_center`. Traditional center of pressure
+        position, defined as the linearized (small-incidence) center of pressure,
+        is the same as the aerodynamic center."""
         return self.aerodynamic_center
-
-    # TODO: review note: why are the bellow functions related to aerodynamic forces
-    # not using rates? What I want from this is to define a complete set of the
-    # entire vehicle aerodynamic coefficients. And make it as complete as possible
-    # than make some helper analysis functions to get something like the version
-    # without rates, etc. Could that be done?
-    def _aerodynamic_forces_and_moments(self, alpha, beta, mach, reynolds=0.0):
-        """Total body-frame aerodynamic force ``(R1, R2, R3)`` and moment
-        ``(M1, M2, M3)`` about the center of dry mass, summed over every
-        aerodynamic surface at a static state (zero rates), plus the
-        ``stream_speed`` used.
-
-        Computed at unit air density, so the forces equal the dimensionless
-        coefficients times ``0.5 * stream_speed**2 * reference_area``; dynamic
-        pressure therefore cancels from any coefficient or center-of-pressure
-        ratio. The viscosity is chosen so each surface's Reynolds number (built
-        on its own reference length) is consistent with the requested
-        rocket-level Reynolds number (built on the diameter):
-        ``Re_surface = reynolds * reference_length / (2 * radius)``; a
-        non-positive Reynolds collapses to the vanishing-Reynolds limit.
-        """
-        # Body-frame stream velocity reproducing (alpha, beta).
-        # ``compute_forces_and_moments`` negates it internally and recovers
-        # ``alpha = atan2(sv_y, sv_z)`` and ``beta = atan2(sv_x, sv_z)``.
-        stream_velocity = Vector([-math.tan(beta), -math.tan(alpha), -1.0])
-        stream_speed = abs(stream_velocity)
-        omega = Vector([0, 0, 0])
-        density = Function(1.0)
-        if reynolds > 0:
-            dynamic_viscosity = Function(stream_speed * 2 * self.radius / reynolds)
-        else:
-            dynamic_viscosity = Function(1e30)
-
-        totals = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-        for surface, _ in self.aerodynamic_surfaces:
-            cp = self.surfaces_cp_to_cdm[surface]
-            forces = surface.compute_forces_and_moments(
-                stream_velocity,
-                stream_speed,
-                mach,
-                1.0,
-                cp,
-                omega,
-                density,
-                dynamic_viscosity,
-                0.0,
-            )
-            totals = [acc + value for acc, value in zip(totals, forces)]
-        return (*totals, stream_speed)
-
-    def aerodynamic_coefficients(self, alpha, beta, mach, reynolds=0.0):
-        """Total rocket aerodynamic coefficients at a given state, referenced to
-        the rocket cross-section area and diameter and taken about the center of
-        dry mass.
-
-        Parameters
-        ----------
-        alpha, beta : float
-            Angle of attack and sideslip, in radians.
-        mach : float
-            Free-stream Mach number.
-        reynolds : float, optional
-            Rocket-level Reynolds number. Default 0.
-
-        Returns
-        -------
-        dict
-            ``{"normal_force": C_N, "pitch_moment": C_m}`` -- the total
-            normal-force and pitch-moment (about the center of dry mass)
-            coefficient magnitudes.
-
-        Notes
-        -----
-        The rocket's axial (drag) coefficient is **not** included: the geometric
-        (Barrowman) surfaces carry no drag coefficient, the rocket drag being
-        supplied separately by ``power_off_drag``/``power_on_drag``. See
-        :meth:`Rocket.plots.drag_curves`.
-        """
-        r1, r2, _, m1, m2, _, stream_speed = self._aerodynamic_forces_and_moments(
-            alpha, beta, mach, reynolds
-        )
-        dynamic_pressure_area = 0.5 * stream_speed**2 * self.area
-        if dynamic_pressure_area == 0:
-            return {"normal_force": 0.0, "pitch_moment": 0.0}
-        reference_length = 2 * self.radius
-        return {
-            "normal_force": (r1**2 + r2**2) ** 0.5 / dynamic_pressure_area,
-            "pitch_moment": (m1**2 + m2**2) ** 0.5
-            / (dynamic_pressure_area * reference_length),
-        }
-
-    def aerodynamic_coefficients_full(self, alpha, beta, mach, reynolds=0.0):
-        """All six signed rocket-level aerodynamic coefficients at a state.
-
-        Aggregates every aerodynamic surface into the vehicle's force and moment
-        coefficients, referenced to the rocket cross-section area and diameter
-        and taken about the center of dry mass, in the body aerodynamic frame:
-
-        - ``cN`` (normal force), ``cY`` (side force), ``cA`` (axial force);
-        - ``cm`` (pitch), ``cn`` (yaw), ``cl`` (roll).
-
-        These are body-frame, signed and complete, unlike
-        :meth:`aerodynamic_coefficients` (which returns unsigned normal-force and
-        pitch-moment magnitudes). The axial coefficient ``cA`` is taken from the
-        vehicle drag curve (``power_off_drag``), since the geometric surfaces
-        carry no axial coefficient; this unifies the per-surface normal-force /
-        moment model with the separately supplied drag curve into a single
-        coefficient set.
-
-        Parameters
-        ----------
-        alpha, beta : float
-            Angle of attack and sideslip, in radians.
-        mach : float
-            Free-stream Mach number.
-        reynolds : float, optional
-            Rocket-level Reynolds number. Default 0.
-
-        Returns
-        -------
-        dict
-            ``{"cN", "cY", "cA", "cm", "cn", "cl"}``.
-        """
-        r1, r2, r3, m1, m2, m3, stream_speed = self._aerodynamic_forces_and_moments(
-            alpha, beta, mach, reynolds
-        )
-        dynamic_pressure_area = 0.5 * stream_speed**2 * self.area
-        if dynamic_pressure_area == 0:
-            return {c: 0.0 for c in ("cN", "cY", "cA", "cm", "cn", "cl")}
-        reference_length = 2 * self.radius
-        dynamic_pressure_area_length = dynamic_pressure_area * reference_length
-        # Body-frame force components: R1 = cY, R2 = -cN, R3 = -cA (see
-        # GenericSurface.compute_forces_and_moments).
-        return {
-            "cN": -r2 / dynamic_pressure_area,
-            "cY": r1 / dynamic_pressure_area,
-            "cA": self.power_off_drag_by_mach.get_value_opt(mach),
-            "cm": m1 / dynamic_pressure_area_length,
-            "cn": m2 / dynamic_pressure_area_length,
-            "cl": m3 / dynamic_pressure_area_length,
-        }
 
     def evaluate_surfaces_cp_to_cdm(self):
         """Calculates the relative position of each aerodynamic surface center
@@ -1021,8 +1004,7 @@ class Rocket:
         # position of the force application point in body frame. Every surface
         # applies its resultant force at its center of pressure and transports
         # the moment geometrically; the surface-local application point is mapped
-        # into the body frame by ``_rotation_surface_to_body`` (identity for a
-        # generic surface, a 180-degree flip for Barrowman surfaces).
+        # into the body frame by ``_rotation_surface_to_body``
         application_point = getattr(
             surface,
             "force_application_point",
@@ -1033,42 +1015,124 @@ class Rocket:
         )  # TODO: this should be recomputed whenever cant angle changes for fin
         self.surfaces_cp_to_cdm[surface] = pos
 
+    def _evaluate_is_incidence_linear(self):
+        """Detect whether the rocket's aerodynamics are linear in the angle of
+        attack, i.e. whether the neutral point moves as the angle of attack
+        changes. Returns ``True`` for a rocket built only from the linear
+        Barrowman surfaces and ``False`` when a surface's normal force is
+        nonlinear in incidence (for example a Galejs body-lift term added as a
+        :class:`rocketpy.GenericSurface`).
+
+        The check central-differences the neutral point at zero and at five
+        degrees of incidence, in both the pitch and yaw planes; if either plane
+        moves, the rocket is treated as incidence-nonlinear.
+        """
+        probe_mach = 0.3
+        probe_alpha = math.radians(5.0)
+        for plane in ("pitch", "yaw"):
+            if plane == "yaw":
+                point_zero = neutral_point_and_slope(self, 0.0, 0.0, probe_mach, "yaw")
+                point_five = neutral_point_and_slope(
+                    self, 0.0, probe_alpha, probe_mach, "yaw"
+                )
+            else:
+                point_zero = neutral_point_and_slope(
+                    self, 0.0, 0.0, probe_mach, "pitch"
+                )
+                point_five = neutral_point_and_slope(
+                    self, probe_alpha, 0.0, probe_mach, "pitch"
+                )
+            if abs(point_five[0] - point_zero[0]) > 1e-6:
+                return False
+        return True
+
+    def _neutral_point_margin_slope(self, incidence, mach, time, plane="pitch"):
+        """Stability margin (in calibers) and local normal-force-curve slope at a
+        single flow state, the shared computation behind ``stability_margin`` and
+        the flight dynamic-stability oscillator.
+
+        For a rocket that is linear in incidence the neutral point is the
+        zero-incidence :attr:`aerodynamic_center` and ``incidence`` is ignored,
+        keeping the fast analytic path (and byte-for-byte the previous margin
+        values). Otherwise the neutral point and slope are found at ``incidence``
+        by :func:`rocketpy.rocket.helpers.neutral_point_and_slope`, so a surface
+        that is nonlinear in the angle of attack (e.g. a Galejs body-lift
+        :class:`rocketpy.GenericSurface`) makes the margin move with incidence.
+
+        Parameters
+        ----------
+        incidence : float
+            Angle of attack (pitch) or sideslip angle (yaw), in radians.
+        mach : float
+            Free-stream Mach number.
+        time : float
+            Flight time, in seconds, at which the center of mass is taken.
+        plane : str, optional
+            ``"pitch"`` or ``"yaw"``. Default ``"pitch"``.
+
+        Returns
+        -------
+        tuple of float
+            ``(margin, slope)``: the stability margin in calibers and the local
+            force-curve slope (``dCN/dalpha`` for pitch, ``dCY/dbeta`` for yaw).
+        """
+        self._ensure_margins()
+        if plane == "yaw":
+            center = self.aerodynamic_center_yaw
+            slope_curve = self.total_side_coeff_der
+        else:
+            center = self.aerodynamic_center
+            slope_curve = self.total_lift_coeff_der
+
+        if self._is_incidence_linear:
+            neutral_point = center.get_value_opt(mach)
+            slope = slope_curve.get_value_opt(mach)
+        elif plane == "yaw":
+            neutral_point, slope = neutral_point_and_slope(
+                self, 0.0, incidence, mach, "yaw"
+            )
+        else:
+            neutral_point, slope = neutral_point_and_slope(
+                self, incidence, 0.0, mach, "pitch"
+            )
+
+        margin = (
+            self._csys
+            * (self.center_of_mass.get_value_opt(time) - neutral_point)
+            / (2 * self.radius)
+        )
+        return margin, slope
+
     def evaluate_stability_margin(self):
-        """Calculates the stability margin of the rocket as a function of mach
-        number and time.
+        """Calculates the stability margin of the rocket as a function of angle
+        of attack, Mach number and time.
 
         Returns
         -------
         stability_margin : Function
-            Stability margin of the rocket, in calibers, as a function of mach
-            number and time. Stability margin is defined as the distance between
-            the center of pressure and the center of mass, divided by the
-            rocket's diameter.
+            Stability margin of the rocket, in calibers, as a function of angle
+            of attack (radians), Mach number and time. The stability margin is
+            the distance between the center of pressure and the center of mass,
+            divided by the rocket's diameter. It depends on the angle of attack
+            only when a surface is nonlinear in incidence; for a rocket built
+            from the linear Barrowman surfaces the angle-of-attack argument has
+            no effect.
         """
+        self._is_incidence_linear = self._evaluate_is_incidence_linear()
         self._stability_margin.set_source(
-            lambda mach, time: (
-                (
-                    (
-                        self.center_of_mass.get_value_opt(time)
-                        - self.aerodynamic_center.get_value_opt(mach)
-                    )
-                    / (2 * self.radius)
-                )
-                * self._csys
-            )
+            lambda alpha, mach, time: self._neutral_point_margin_slope(
+                alpha, mach, time, "pitch"
+            )[0]
         )
+        self._stability_margin.set_inputs(["Angle of Attack (rad)", "Mach", "Time (s)"])
         # Yaw-plane stability margin (equal to the pitch plane when axisymmetric)
         self._stability_margin_yaw.set_source(
-            lambda mach, time: (
-                (
-                    (
-                        self.center_of_mass.get_value_opt(time)
-                        - self.aerodynamic_center_yaw.get_value_opt(mach)
-                    )
-                    / (2 * self.radius)
-                )
-                * self._csys
-            )
+            lambda beta, mach, time: self._neutral_point_margin_slope(
+                beta, mach, time, "yaw"
+            )[0]
+        )
+        self._stability_margin_yaw.set_inputs(
+            ["Sideslip Angle (rad)", "Mach", "Time (s)"]
         )
         return self._stability_margin
 
@@ -1515,6 +1579,14 @@ class Rocket:
         -------
         None
         """
+        if self._aerodynamics_overwritten:
+            warnings.warn(
+                "This rocket's aerodynamics were overwritten by a full-body "
+                "model (add_full_body_aerodynamics(overwrite=True)); the surface(s) "
+                "you are adding now will be summed on top of that model.",
+                UserWarning,
+                stacklevel=2,
+            )
         if isinstance(surfaces, Iterable):
             if isinstance(positions, Iterable):
                 if len(surfaces) != len(positions):
@@ -1537,68 +1609,242 @@ class Rocket:
         # legitimately warn again about the new configuration.
         self._axisymmetry_warned = False
 
-    # TODO: review note: several issues with this. First, the name is bad
-    # second, there should be an overwrite option, so it overwrites any existing
-    # surfaces on the rocket (even if a surface is added AFTER this method is called).
-    # TODO: review note: how can power on/power off be considered here?
-    def add_vehicle_aerodynamic_surface(
-        self, coefficients, reference_position=None, name="Vehicle Aerodynamics"
-    ):
-        """Define the whole vehicle from a supplied set of aerodynamic
-        coefficients (a "rocket-as-:class:`GenericSurface`" model).
-
-        Instead of (or in addition to) modeling each surface, this lets a user
-        fly the 6-DOF directly from a full-vehicle coefficient set, e.g. exported
-        from CFD, a wind tunnel, or OpenRocket. The coefficients are wrapped in a
-        single :class:`GenericSurface` referenced to the rocket cross-section
-        area and diameter and added through the standard aerodynamic-surface
-        path, so the equations of motion sum it like any other surface.
-
-        Because it is just another aerodynamic surface, a vehicle coefficient set
-        can be **mixed** with modeled add-on surfaces (e.g. a measured body plus
-        modeled canards): they simply add.
+    def add_full_body_aerodynamics(self, surfaces, position=None, overwrite=False):
+        """Add a prebuilt full-body aerodynamic surface: the whole rocket
+        modeled as a single surface. Instead of (or in addition to) modeling
+        each component, this lets you provide a set of coefficients for the
+        whole rocket, which is often easier.
 
         Parameters
         ----------
-        coefficients : dict
-            Aerodynamic coefficients ``cL, cQ, cD, cm, cn, cl`` (omitted ones
-            default to 0), each a number, callable, :class:`Function` or CSV
-            path of ``(alpha, beta, mach, reynolds, pitch_rate, yaw_rate,
-            roll_rate)`` -- the same input forms accepted by
-            :class:`GenericSurface`.
-        reference_position : int, float, optional
-            Axial station (in the user coordinate system) about which the
-            supplied moment coefficients are defined and where the resultant
-            force is applied. Defaults to the center of dry mass position. The
-            supplied moment coefficients are taken about this fixed station.
-        name : str, optional
-            Name of the surface. Default ``"Vehicle Aerodynamics"``.
+        surfaces : GenericSurface or list of GenericSurface
+            The prebuilt full-body surface, or a list of them (for example a
+            power-on/power-off pair, each carrying its own ``active_during``).
+            Any of:
+
+            - a :class:`GenericSurface`;
+            - a :class:`LinearGenericSurface`;
+            - a :class:`ControllableGenericSurface` for coefficients that
+              also depend on control-deflection axes.
+
+            Reference the surface's coefficients to the rocket cross-section
+            area and diameter (build it with ``reference_area=rocket.area`` and
+            ``reference_length=2 * rocket.radius``) so it sums consistently with
+            the rest of the rocket. Because it is just another aerodynamic
+            surface, a full-body model can be **mixed** with modeled add-on
+            surfaces (e.g. use ``add_full_body_aerodynamics`` together with
+            ``add_tail``): they simply add.
+
+            A rocket's aerodynamics usually differ between powered and coasting
+            flight. To capture this, build two surfaces, set each one's
+            ``active_during`` to ``"power_on"`` and ``"power_off"``, and pass
+            them together as a list; each then produces force only during its
+            phase.
+        position : int, float, optional
+            Position along the rocket's center axis (in the user coordinate
+            system) where the surface's resultant force is applied and about
+            which its moment coefficients are taken. Defaults to the center of
+            dry mass position.
+        overwrite : bool, optional
+            If ``True``, make this the rocket's only aerodynamics: every
+            aerodynamic surface already on the rocket is removed first, and both
+            built-in drag curves (``power_on_drag`` and ``power_off_drag``) are
+            cleared. Default ``False`` (the model is added on top of the
+            existing aerodynamics).
 
         Returns
         -------
-        GenericSurface
-            The created vehicle aerodynamic surface (also added to the rocket).
-
-        Notes
-        -----
-        A single vehicle coefficient set necessarily drops per-surface locals
-        (the ``omega x r`` velocity at each surface, per-surface Reynolds, rail
-        buttons and individual-fin roll). For controllable vehicle coefficients
-        (deflection axes), build a
-        :class:`ControllableGenericSurface` and add it with
-        :meth:`add_surfaces` / ``add_controllable_surface`` instead.
+        GenericSurface or list of GenericSurface
+            The surface(s) added.
         """
-        if reference_position is None:
-            reference_position = self.center_of_dry_mass_position
+        if position is None:
+            position = self.center_of_dry_mass_position
 
-        surface = GenericSurface(
-            reference_area=self.area,
-            reference_length=2 * self.radius,
-            coefficients=coefficients,
-            name=name,
+        if overwrite:
+            self._clear_aerodynamic_surfaces()
+
+        surface_list = (
+            list(surfaces) if isinstance(surfaces, (list, tuple)) else [surfaces]
         )
-        self.add_surfaces(surface, reference_position)
-        return surface
+        for surface in surface_list:
+            self.add_surfaces(surface, position)
+
+        if overwrite:
+            # Re-arm the "added after" guard now that the full-body model is set.
+            self._aerodynamics_overwritten = True
+
+        return surfaces
+
+    def _clear_aerodynamic_surfaces(self):
+        """Wipe the rocket's aerodynamics so a full-body model can fully replace
+        them: remove every aerodynamic surface, clear both built-in drag curves,
+        and reset the derived stability caches. Used by
+        :meth:`add_full_body_aerodynamics` with ``overwrite=True``.
+        """
+        self.aerodynamic_surfaces.clear()
+        self.surfaces_cp_to_cdm.clear()
+        # Clear both built-in drag curves; the supplied surface(s) now provide
+        # the complete aerodynamics, including any drag they carry.
+        zero_drag(self, "power_on")
+        zero_drag(self, "power_off")
+        warnings.warn(
+            "add_full_body_aerodynamics(overwrite=True): the rocket's existing "
+            "aerodynamic surfaces and both built-in drag curves (power_on_drag, "
+            "power_off_drag) were cleared; the supplied surface(s) now provide "
+            "the complete aerodynamics, including any drag they carry.",
+            UserWarning,
+            stacklevel=3,
+        )
+        self._cp_outdated = True
+        self._margin_outdated = True
+        self._axisymmetry_warned = False
+        # New adds are welcome again; the guard is re-armed once the full-body
+        # surfaces are in place (see add_full_body_aerodynamics).
+        self._aerodynamics_overwritten = False
+
+    def to_coefficients(self, machs=None, force_convention="body"):
+        """Return the whole rocket's aerodynamic coefficients, split by motor
+        phase.
+
+        Sweeps the rocket's aerodynamic surfaces and lumps them into the
+        rocket's complete stability-derivative set about the dry center of mass:
+        the normal-force and pitch-moment slopes ``cN_alpha``/``cm_alpha``
+        (pitch), the side-force and yaw-moment slopes ``cY_beta``/``cn_beta``
+        (yaw), the pitch and yaw rate damping ``cN_q``/``cm_q`` and
+        ``cY_r``/``cn_r``, the fin roll damping ``cl_p`` and the drag ``cA_0``.
+
+        The result is returned as two coefficient sets, ``"power_off"``
+        (coasting) and ``"power_on"`` (motor burning).
+
+        Important
+        ---------
+        The resulting coefficients are a **linear summary tabulated only against
+        Mach**: the derivatives are taken at zero angle of attack, zero sideslip
+        and zero rates, so only their Mach dependence is kept. This leaves out:
+
+        - **Incidence and rate nonlinearity.** Only the slope at zero is
+          retained, so any curvature in angle of attack, sideslip or the body
+          rates is not represented.
+        - **Reynolds dependence.** The derivatives are measured in the
+          vanishing-Reynolds limit, so a coefficient that varies with Reynolds
+          number is frozen at that value rather than following the flight
+          Reynolds number.
+        - **Control-surface dependence.** Deflection axes of a
+          :class:`ControllableGenericSurface` are not carried into the summary.
+        - **Induced drag.** The axial coefficient is constant in incidence, so
+          drag does not increase with angle of attack.
+
+        These are exactly the assumptions of RocketPy's built-in Barrowman
+        surfaces (:class:`NoseCone`, :class:`Tail` and the fin sets), which are
+        already linear, Mach-tabulated and Reynolds-independent. A rocket built
+        only from them is therefore reproduced exactly, with nothing lost. The
+        limitations matter only when you have added a :class:`GenericSurface` or
+        :class:`ControllableGenericSurface` (or a Reynolds-dependent
+        :class:`LinearGenericSurface`) whose coefficients truly vary with
+        incidence beyond a straight line, with Reynolds number, or with a
+        control deflection.
+
+        Parameters
+        ----------
+        machs : sequence of float, optional
+            Mach numbers at which the derivatives are sampled and tabulated.
+            Defaults to ``0`` to ``3`` in steps of ``0.02``.
+        force_convention : str, optional
+            The frame the force coefficients are named in. ``"body"`` (default)
+            gives the body-frame set : normal ``cN_*``, side ``cY_*`` and axial
+            ``cA_0`` (drag). ``"wind"`` gives the wind-frame set: lift
+            ``cL_*``, side ``cQ_*`` and drag ``cD_0``. The moment derivatives
+            (``cm_*``, ``cn_*``, ``cl_p``) are the same in both.
+
+        Returns
+        -------
+        dict
+            A dict with keys ``"power_off"`` and ``"power_on"``. Each value is
+            itself a dict mapping a coefficient name to its curve over Mach (a
+            :class:`rocketpy.Function`). The body-frame set is ``cN_alpha``,
+            ``cm_alpha``, ``cN_q``, ``cm_q``, ``cY_beta``, ``cn_beta``,
+            ``cY_r``, ``cn_r``, ``cl_p`` and ``cA_0``.
+        """
+        return full_body_coefficients(self, machs, force_convention)
+
+    def to_surface(
+        self,
+        machs=None,
+        force_convention="body",
+        name="Full Body Aerodynamics",
+    ):
+        """Collapse the whole assembled rocket aerodynamics into two
+        :class:`rocketpy.LinearGenericSurface` objects, one for coasting and one
+        for powered flight. It reproduces the source rocket's aerodynamics, so a
+        bare rocket carrying the same body and motor plus this pair flies the
+        same as the fully modeled rocket.
+
+        Important
+        ---------
+        The resulting coefficients are a **linear summary tabulated only against
+        Mach**: the derivatives are taken at zero angle of attack, zero sideslip
+        and zero rates, so only their Mach dependence is kept. This leaves out:
+
+        - **Incidence and rate nonlinearity.** Only the slope at zero is
+          retained, so any curvature in angle of attack, sideslip or the body
+          rates is not represented.
+        - **Reynolds dependence.** The derivatives are measured in the
+          vanishing-Reynolds limit, so a coefficient that varies with Reynolds
+          number is frozen at that value rather than following the flight
+          Reynolds number.
+        - **Control-surface dependence.** Deflection axes of a
+          :class:`ControllableGenericSurface` are not carried into the summary.
+        - **Induced drag.** The axial coefficient is constant in incidence, so
+          drag does not increase with angle of attack.
+
+        These are exactly the assumptions of RocketPy's built-in Barrowman
+        surfaces (:class:`NoseCone`, :class:`Tail` and the fin sets), which are
+        already linear, Mach-tabulated and Reynolds-independent. A rocket built
+        only from them is therefore reproduced exactly, with nothing lost. The
+        limitations matter only when you have added a :class:`GenericSurface` or
+        :class:`ControllableGenericSurface` (or a Reynolds-dependent
+        :class:`LinearGenericSurface`) whose coefficients truly vary with
+        incidence beyond a straight line, with Reynolds number, or with a
+        control deflection.
+
+        Parameters
+        ----------
+        machs : sequence of float, optional
+            Mach numbers at which the derivatives are sampled and tabulated.
+            Defaults to ``0`` to ``3`` in steps of ``0.02``.
+        force_convention : str, optional
+            The frame the force coefficients are expressed in. ``"body"``
+            (default) gives the body-frame set: normal ``cN``, side ``cY`` and
+            axial ``cA`` (drag). ``"wind"`` gives the wind-frame set: lift
+            ``cL``, side ``cQ`` and drag ``cD``. The moment coefficients are the
+            same in both.
+        name : str, optional
+            Base name of the returned surfaces.
+            Default ``"Full Body Aerodynamics"``.
+
+        Returns
+        -------
+        list of rocketpy.LinearGenericSurface
+            Two surfaces, ``[power_off, power_on]``, each carrying the whole
+            rocket's coefficient derivatives referenced to the rocket
+            cross-section area and diameter and taken about the center of dry
+            mass, and gated to its motor phase.
+        """
+        coefficients = self.to_coefficients(
+            machs=machs,
+            force_convention=force_convention,
+        )
+        return [
+            LinearGenericSurface(
+                reference_area=self.area,
+                reference_length=2 * self.radius,
+                coefficients=coefficients[phase],
+                force_convention=force_convention,
+                name=f"{name} ({phase.replace('_', ' ')})",
+                active_during=phase,
+            )
+            for phase in ("power_off", "power_on")
+        ]
 
     def _add_controllers(self, controllers):
         """Adds a controller to the rocket.
@@ -1768,7 +2014,7 @@ class Rocket:
 
     @deprecated(
         reason="This method is set to be deprecated in version 1.0.0 and fully "
-        "removed by version 2.0.0",
+        "removed by version 1.14.0",
         alternative="Rocket.add_trapezoidal_fins",
     )
     def add_fins(self, *args, **kwargs):  # pragma: no cover
@@ -2437,7 +2683,14 @@ class Rocket:
             state = kwargs.get("state")
             state_history = kwargs.get("state_history")
             observed_variables = controller_context.get("observed_variables", [])
-            interactive_objects = kwargs.get("interactive_objects", air_brakes)
+            # Prefer the controller's live ``controlled_objects`` (set by the
+            # callback) over the captured ``air_brakes``: after a flight is
+            # loaded from a file the two differ, and only the former is the air
+            # brakes the rocket actually uses for drag. For a normal flight they
+            # are the same object, so this is unchanged behavior.
+            interactive_objects = kwargs.get(
+                "interactive_objects", kwargs.get("controlled_objects", air_brakes)
+            )
             sensors = kwargs.get("sensors")
             environment = kwargs.get("environment")
 
@@ -2720,7 +2973,13 @@ class Rocket:
         if kwargs.get("include_outputs", False):
             thrust_to_weight = self.thrust_to_weight
             aerodynamic_center = self.aerodynamic_center
-            stability_margin = self.stability_margin
+            # The zero-incidence design surface (Mach, time), a 2-D slice of the
+            # angle-of-attack-aware stability_margin, for output inspection.
+            stability_margin = Function(
+                lambda mach, time: self.stability_margin.get_value_opt(0.0, mach, time),
+                inputs=["Mach", "Time (s)"],
+                outputs="Stability Margin (c)",
+            )
             center_of_mass = self.center_of_mass
             motor_center_of_mass_position = self.motor_center_of_mass_position
             reduced_mass = self.reduced_mass
@@ -2840,22 +3099,34 @@ class Rocket:
             rocket.air_brakes.append(air_brake)
 
         for controller in data["_controllers"]:
-            interactive_objects_hash = getattr(controller, "_interactive_objects_hash")
-            if interactive_objects_hash is not None:
-                is_iterable = isinstance(interactive_objects_hash, Iterable)
-                if not is_iterable:
-                    interactive_objects_hash = [interactive_objects_hash]
-                for hash_ in interactive_objects_hash:
+            # Reconnect the controller to the rocket's own reconstructed objects
+            # by matching the hash(es) it stored for its controlled objects
+            # against the reconstructed objects (see _Controller.to_dict).
+            controlled_objects_hash = getattr(
+                controller, "_serialized_controlled_objects_hash", None
+            )
+            if controlled_objects_hash is not None:
+                is_iterable = isinstance(controlled_objects_hash, Iterable)
+                hashes = (
+                    controlled_objects_hash
+                    if is_iterable
+                    else [controlled_objects_hash]
+                )
+                found = []
+                for hash_ in hashes:
+                    if hash_ is None:  # unhashable controlled object; cannot match
+                        continue
                     if (hashed_obj := find_obj_from_hash(data, hash_)) is not None:
-                        if not is_iterable:
-                            controller.interactive_objects = hashed_obj
-                        else:
-                            controller.interactive_objects.append(hashed_obj)
+                        found.append(hashed_obj)
                     else:
                         warnings.warn(
-                            "Could not find controller interactive objects."
+                            "Could not find controller controlled objects. "
                             "Deserialization will proceed, results may not be accurate."
                         )
+                if found:
+                    controller.rebind_controlled_objects(
+                        found if is_iterable else found[0]
+                    )
             rocket._add_controllers(controller)
 
         return rocket

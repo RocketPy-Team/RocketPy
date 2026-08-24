@@ -16,20 +16,15 @@ BASE_INDEPENDENT_VARS = [
 ]
 
 
-def build_independent_vars(unsteady_aero=False, control_variables=()):
+def build_independent_vars(control_variables=()):
     """Build the ordered independent-variable list of a coefficient/surface.
 
-    The seven base axes (``BASE_INDEPENDENT_VARS``), plus ``alpha_dot`` and
-    ``beta_dot`` when ``unsteady_aero`` is enabled (axes the flight integrator
-    supplies automatically), plus any ``control_variables`` (axes supplied
-    externally, e.g. by a controller). Shared by :class:`AeroCoefficient` and
-    :class:`GenericSurface` so the ordering is defined in exactly one place.
+    The seven base axes (``BASE_INDEPENDENT_VARS``), plus any
+    ``control_variables`` (axes supplied externally, e.g. by a controller).
+    Shared by :class:`AeroCoefficient` and :class:`GenericSurface` so the
+    ordering is defined in exactly one place.
     """
-    names = list(BASE_INDEPENDENT_VARS)
-    if unsteady_aero:
-        names += ["alpha_dot", "beta_dot"]
-    names += list(control_variables)
-    return names
+    return list(BASE_INDEPENDENT_VARS) + list(control_variables)
 
 
 class AeroCoefficient:
@@ -40,7 +35,6 @@ class AeroCoefficient:
         self,
         source,
         depends_on=None,
-        unsteady_aero=False,
         control_variables=(),
         name="coefficient",
         extrapolation=None,
@@ -90,26 +84,17 @@ class AeroCoefficient:
             The variables this coefficient actually uses, chosen from the
             surface's variables: the seven base ones ``"alpha"``, ``"beta"``,
             ``"mach"``, ``"reynolds"``, ``"pitch_rate"``, ``"yaw_rate"``,
-            ``"roll_rate"``, plus ``"alpha_dot"`` and ``"beta_dot"`` when
-            ``unsteady_aero`` is ``True``, plus any names in
+            ``"roll_rate"``, plus any names in
             ``control_variables``. List them in the same order as the source's
             own inputs (a function's arguments, a CSV's columns). For example,
             ``()`` for a constant, ``("mach",)`` for a Mach-only curve, or the
             whole list for something that uses every variable. A name that is
             not one of the surface's variables raises a ``ValueError``. Leave it
             as ``None`` (the default) to have it worked out from ``source``.
-        unsteady_aero : bool, optional
-            Whether the coefficient can also depend on how fast the flow angles
-            are changing. When ``True``, two more variables, ``alpha_dot`` and
-            ``beta_dot`` (the rates of change of the angle of attack and
-            sideslip), are added after the seven base variables. The simulation
-            fills these in, using ``0`` when it does not compute them, so
-            ordinary coefficients keep working. This must match the surface the
-            coefficient belongs to. Default ``False``.
         control_variables : sequence of str, optional
             Names of extra variables, such as control-surface deflections set by
-            a controller. They are added after the base (and unsteady) variables,
-            in the order given. Empty for ordinary surfaces. Default ``()``.
+            a controller. They are added after the seven base variables, in the
+            order given. Empty for ordinary surfaces. Default ``()``.
         name : str, optional
             A readable name for the coefficient (e.g. ``"cL_alpha"`` or
             ``"Drag Coefficient with Power Off"``). It appears in error messages,
@@ -142,18 +127,13 @@ class AeroCoefficient:
         self.name = name
         self.extrapolation = extrapolation
         self.interpolation = interpolation
-        self.unsteady_aero = unsteady_aero
         self.control_variables = tuple(control_variables)
-        # ``unsteady_aero`` and ``control_variables`` define the full ordered
-        # variable list: every coefficient's argument order and each variable's
-        # position. This is a surface-wide property, distinct from ``depends_on``
-        # (the subset a single coefficient reads), and it is passed in rather
-        # than derived from ``depends_on``: inferring ``depends_on`` already
-        # needs this list, and the unsteady axes shift the position of the
-        # control variables even for coefficients that never use the rates.
-        self.independent_vars = tuple(
-            build_independent_vars(unsteady_aero, control_variables)
-        )
+        # ``control_variables`` completes the full ordered variable list: every
+        # coefficient's argument order and each variable's position. This is a
+        # surface-wide property, distinct from ``depends_on`` (the subset a
+        # single coefficient reads), and it is passed in rather than derived
+        # from ``depends_on``: inferring ``depends_on`` already needs this list.
+        self.independent_vars = tuple(build_independent_vars(control_variables))
         # Infer the stored source and its dependencies from the raw input when
         # ``depends_on`` is not given.
         if depends_on is None:
@@ -429,8 +409,8 @@ class AeroCoefficient:
             return independent_vars[0]
         label_lower = str(label).lower()
         # Exact match first; then substring, longest variable name first, so a
-        # label like "alpha_dot" binds to "alpha_dot" rather than the shorter
-        # substring "alpha".
+        # label containing a longer variable name binds to it rather than to a
+        # shorter variable that happens to be a substring of it.
         for var in independent_vars:
             if var == label_lower:
                 return var
@@ -517,7 +497,6 @@ class AeroCoefficient:
         return AeroCoefficient(
             source * other,
             self.depends_on,
-            self.unsteady_aero,
             self.control_variables,
             self.name,
             extrapolation=self.extrapolation,
@@ -525,31 +504,6 @@ class AeroCoefficient:
         )
 
     __rmul__ = __mul__
-
-    def to_dict(self, **kwargs):  # pylint: disable=unused-argument
-        """Serialize the coefficient for :class:`rocketpy._encoders.RocketPyEncoder`."""
-        return {
-            "source": self._constant if self._constant is not None else self.function,
-            "depends_on": list(self.depends_on),
-            "unsteady_aero": self.unsteady_aero,
-            "control_variables": list(self.control_variables),
-            "name": self.name,
-            "extrapolation": self.extrapolation,
-            "interpolation": self.interpolation,
-        }
-
-    @classmethod
-    def from_dict(cls, data):
-        """Rebuild an :class:`AeroCoefficient` from its :meth:`to_dict` form."""
-        return cls(
-            data["source"],
-            data["depends_on"],
-            data.get("unsteady_aero", False),
-            data.get("control_variables", ()),
-            data["name"],
-            extrapolation=data.get("extrapolation"),
-            interpolation=data.get("interpolation"),
-        )
 
     def __repr__(self):
         """Return a concise representation showing the constant or dependencies."""
@@ -614,3 +568,88 @@ class AeroCoefficient:
             for var in free_variables
         )
         return Function(sliced, list(free_variables), [self.name])
+
+    def slope(self, variable, *free_variables, at=None, dx=1e-6):
+        """Return the derivative of this coefficient with respect to one variable
+        as a :class:`Function` of the chosen free variables.
+
+        This is the aerodynamic slope, such as a lift-curve slope. For example,
+        ``cL.slope("alpha", "mach")`` is the lift-curve slope ``d(cL)/d(alpha)``
+        as a function of Mach, taken at ``alpha = 0`` with sideslip, Reynolds
+        number and the rotation rates held at zero.
+
+        Parameters
+        ----------
+        variable : str
+            Name of the variable to differentiate with respect to (for example
+            ``"alpha"`` or ``"beta"``). Must be one of this coefficient's
+            independent variables, and must not also appear in
+            ``free_variables``.
+        *free_variables : str
+            Names of the variables to keep as inputs of the resulting slope, in
+            the order you want them (for example ``"mach"``). Each must be one of
+            this coefficient's independent variables. Leave empty to get the
+            slope at a single point.
+        at : dict, optional
+            Values to hold the remaining variables at, keyed by variable name.
+            The value for ``variable`` is the point the derivative is taken at
+            (default 0, the linearization point). Any variable not listed is held
+            at 0.
+        dx : float, optional
+            Step size used for the numerical differentiation. Default 1e-6.
+
+        Returns
+        -------
+        Function
+            A Function of ``free_variables`` giving ``d(self)/d(variable)`` with
+            the remaining variables held fixed.
+        """
+        fixed = dict(at or {})
+        overlap = [var for var in free_variables if var == variable]
+        if overlap:
+            raise ValueError(
+                f"{variable!r} cannot be both differentiated and kept free."
+            )
+        # Point to differentiate at, defaulting to the linearization point (0).
+        diff_point = fixed.pop(variable, 0.0)
+        name = f"d({self.name})/d({variable})"
+
+        def evaluate_slope(*free_values):
+            # Hold the fixed variables and the current free-variable values,
+            # keep only ``variable`` free, and differentiate along it.
+            slice_at = dict(fixed)
+            for var, value in zip(free_variables, free_values):
+                slice_at[var] = value
+            return self.slice(variable, at=slice_at).differentiate(diff_point, dx=dx)
+
+        if not free_variables:
+            return Function(evaluate_slope(), name)
+
+        evaluate_slope.__signature__ = inspect.Signature(
+            inspect.Parameter(var, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+            for var in free_variables
+        )
+        return Function(evaluate_slope, list(free_variables), [name])
+
+    def to_dict(self, **kwargs):  # pylint: disable=unused-argument
+        """Serialize the coefficient for :class:`rocketpy._encoders.RocketPyEncoder`."""
+        return {
+            "source": self._constant if self._constant is not None else self.function,
+            "depends_on": list(self.depends_on),
+            "control_variables": list(self.control_variables),
+            "name": self.name,
+            "extrapolation": self.extrapolation,
+            "interpolation": self.interpolation,
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        """Rebuild an :class:`AeroCoefficient` from its :meth:`to_dict` form."""
+        return cls(
+            data["source"],
+            data["depends_on"],
+            data.get("control_variables", ()),
+            data["name"],
+            extrapolation=data.get("extrapolation"),
+            interpolation=data.get("interpolation"),
+        )

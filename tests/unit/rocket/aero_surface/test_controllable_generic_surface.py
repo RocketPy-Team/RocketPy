@@ -99,3 +99,42 @@ def test_plain_generic_surface_default_independent_vars_unchanged():
         "yaw_rate",
         "roll_rate",
     ]
+
+
+def test_active_during_preset_round_trips_through_dict():
+    """A preset activation policy survives to_dict/from_dict (jet-vane case)."""
+    surface = ControllableGenericSurface(
+        reference_area=1,
+        reference_length=0.2,
+        coefficients={},
+        active_during="power_on",
+    )
+    restored = ControllableGenericSurface.from_dict(surface.to_dict())
+    assert restored.active_during == "power_on"
+
+
+def test_active_during_callable_round_trips_through_dict():
+    """A custom activation function is pickled through to_dict/from_dict and
+    restored to a working callable."""
+    surface = ControllableGenericSurface(
+        reference_area=1,
+        reference_length=0.2,
+        coefficients={},
+        active_during=lambda t, flight: t < 1.0,
+    )
+    restored = ControllableGenericSurface.from_dict(surface.to_dict())
+    assert callable(restored.active_during)
+    assert restored.active_during(0.5, None) is True
+    assert restored.active_during(2.0, None) is False
+
+
+def test_active_during_callable_dropped_when_pickling_disabled():
+    """With allow_pickle=False a custom function cannot be stored, so it saves
+    as the 'always' preset rather than a broken reference."""
+    surface = ControllableGenericSurface(
+        reference_area=1,
+        reference_length=0.2,
+        coefficients={},
+        active_during=lambda t, flight: t < 1.0,
+    )
+    assert surface.to_dict(allow_pickle=False)["active_during"] == "always"

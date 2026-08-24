@@ -208,6 +208,9 @@ def set_minimal_flight_attributes(flight, obj):
     flight._controllers = getattr(flight.rocket, "_controllers", [])[:]
     flight.sensors = flight.rocket.sensors.get_components()
     flight.sensors_by_name = flight.rocket.sensors_by_name
+    # No simulation was run, so there is no recorded sensor data. Set an empty
+    # mapping so code that reads ``sensor_data`` behaves like a real flight.
+    flight.sensor_data = {}
     # TODO: custom_events are lost when loading from .rpy because they hold
     # user-defined callables that are not currently serialized. Add proper
     # serialization/deserialization for custom_events and restore them here

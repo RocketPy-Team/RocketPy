@@ -175,8 +175,8 @@ class _BarrowmanSurface(LinearGenericSurface):
             component (``omega[2]``) is used, by fin sets.
         *args
             Extra positional arguments accepted for signature compatibility with
-            the generic surface (``density``, ``dynamic_viscosity``, ``z``,
-            ``alpha_dot``, ``beta_dot``); unused by the Barrowman model.
+            the generic surface (``density``, ``dynamic_viscosity``, ``z``);
+            unused by the Barrowman model.
 
         Returns
         -------
@@ -275,7 +275,6 @@ class _BarrowmanSurface(LinearGenericSurface):
         return AeroCoefficient(
             func_of_mach,
             depends_on=("mach",),
-            unsteady_aero=self._unsteady_aero,
             control_variables=self.control_variables,
             name=name,
         )

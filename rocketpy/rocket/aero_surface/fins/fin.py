@@ -380,8 +380,8 @@ class Fin(_BaseFin):
             Tuple containing angular velocities around the x, y, z axes.
         *args
             Extra positional arguments accepted for signature compatibility with
-            the generic surface (e.g. ``density``, ``dynamic_viscosity``, ``z``,
-            ``alpha_dot``, ``beta_dot``). Unused by the fin's Barrowman model.
+            the generic surface (e.g. ``density``, ``dynamic_viscosity``,
+            ``z``). Unused by the fin's Barrowman model.
 
         Returns
         -------

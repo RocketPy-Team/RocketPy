@@ -422,6 +422,16 @@ class _Controller:
             "sampling_rate": self.sampling_rate,
             "name": self.name,
             "controlled_objects_name": getattr(self, "controlled_objects_name", None),
+            # Hash(es) identifying the controlled object(s), so Rocket
+            # deserialization can reconnect the controller to the rocket's own
+            # reconstructed objects (see Rocket.from_dict).
+            "controlled_objects_hash": self._controlled_objects_hash(),
+            # Which expensive simulation values the controller reads; needed so a
+            # re-simulated flight computes them (e.g. state_history). Stored as a
+            # list because JSON has no set type.
+            "controller_needs": (
+                None if self.controller_needs is None else list(self.controller_needs)
+            ),
             "context": self.context.copy(),  # Preserve context state
             "enabled": self.enabled,
             "disable_on": disable_on,
@@ -429,6 +439,24 @@ class _Controller:
             # Note: controlled_objects are recovered in from_dict via
             # object reference matching in Rocket deserialization
         }
+
+    def _controlled_objects_hash(self):
+        """Return the identity hash of the controlled object(s), matching the
+        shape of ``controlled_objects`` (a single hash for a single object, a
+        list of hashes for a list). These hashes match the ones the encoder
+        stores in each object's signature, letting Rocket deserialization find
+        the reconstructed objects. Returns ``None`` for anything unhashable."""
+
+        def safe_hash(obj):
+            try:
+                return hash(obj)
+            except TypeError:
+                return None
+
+        controlled_objects = self.controlled_objects
+        if isinstance(controlled_objects, (list, tuple)):
+            return [safe_hash(obj) for obj in controlled_objects]
+        return safe_hash(controlled_objects)
 
     @classmethod
     def from_dict(cls, data, controlled_objects=None):
@@ -455,6 +483,7 @@ class _Controller:
         enabled = data.get("enabled", True)
         disable_on = data.get("disable_on")
         enable_on = data.get("enable_on")
+        controller_needs = data.get("controller_needs")
 
         try:
             controller_function = from_hex_decode(controller_function)
@@ -476,7 +505,7 @@ class _Controller:
         if controlled_objects is None:
             controlled_objects = []
 
-        return cls(
+        controller = cls(
             controller_function=controller_function,
             controlled_objects=controlled_objects,
             sampling_rate=sampling_rate,
@@ -486,4 +515,28 @@ class _Controller:
             enabled=enabled,
             disable_on=disable_on,
             enable_on=enable_on,
+            controller_needs=controller_needs,
         )
+        # Stash the serialized controlled-object hash(es) so Rocket.from_dict
+        # can reconnect the controller to the rocket's reconstructed objects.
+        controller._serialized_controlled_objects_hash = data.get(
+            "controlled_objects_hash"
+        )
+        return controller
+
+    def rebind_controlled_objects(self, controlled_objects):
+        """Point the controller at reconstructed controlled object(s) and
+        refresh the callback name bindings.
+
+        Used when a rocket is loaded from a file: the controller is rebuilt
+        without its controlled objects (they are separate objects in the saved
+        data), so this reconnects it to the rocket's own objects, ensuring the
+        controller mutates them rather than orphaned copies.
+
+        Parameters
+        ----------
+        controlled_objects : object or list of object
+            The reconstructed object(s) the controller should control.
+        """
+        self.controlled_objects = controlled_objects
+        self._controlled_objects_bindings = self.__verify_controlled_objects_name()

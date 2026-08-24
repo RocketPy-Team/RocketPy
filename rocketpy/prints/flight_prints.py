@@ -266,12 +266,20 @@ class _FlightPrints:
             print("No sensors were registered.")
             return
 
+        # A flight loaded from a file without being re-simulated has no recorded
+        # measurements, so fall back to an empty mapping instead of raising.
+        sensor_data = getattr(self.flight, "sensor_data", None) or {}
+
         for sensor in self.flight.sensors:
             sensor_name = sensor.name if sensor.name else "Unnamed Sensor"
-            measured_data = self.flight.sensor_data[sensor]
             print(f"Sensor: {sensor_name}")
             print(f"\tType: {sensor.__class__.__name__}")
             print(f"\tSampling Rate: {sensor.sampling_rate:.3f} Hz")
+            measured_data = sensor_data.get(sensor)
+            if not measured_data:
+                print("\tNo measurement data available (flight was not simulated).")
+                print()
+                continue
             print(f"\tMeasurements Recorded: {len(measured_data)}")
             sensor.prints.data_summary(data=measured_data)
             print()
@@ -612,22 +620,36 @@ class _FlightPrints:
         The stability margin is typically measured in calibers (c), where 1
         caliber is the diameter of the rocket.
         """
+        # The stability margin is reported in calibers and, when the rocket has
+        # a defined overall length, also as a percentage of that length (the
+        # convention often used in hobby rocketry). See Rocket.length.
+        rocket = self.flight.rocket
+        length = rocket.length if rocket.aerodynamic_surfaces else 0
+        to_percent = 2 * rocket.radius / length * 100 if length > 0 else None
+
+        def _margin(value):
+            """Format a margin in calibers, appending the length percentage when
+            the rocket length is known."""
+            if to_percent is None:
+                return f"{value:.3f} c"
+            return f"{value:.3f} c ({value * to_percent:.2f}% of length)"
+
         print("\nStability Margin\n")
         print(
-            f"Initial Stability Margin: {self.flight.initial_stability_margin:.3f} c "
+            f"Initial Stability Margin: {_margin(self.flight.initial_stability_margin)} "
             f"at {self.flight.time[0]:.2f} s"
         )
         print(
             "Out of Rail Stability Margin: "
-            f"{self.flight.out_of_rail_stability_margin:.3f} c "
+            f"{_margin(self.flight.out_of_rail_stability_margin)} "
             f"at {self.flight.out_of_rail_time:.2f} s"
         )
         print(
-            f"Maximum Stability Margin: {self.flight.max_stability_margin:.3f} c "
+            f"Maximum Stability Margin: {_margin(self.flight.max_stability_margin)} "
             f"at {self.flight.max_stability_margin_time:.2f} s"
         )
         print(
-            f"Minimum Stability Margin: {self.flight.min_stability_margin:.3f} c "
+            f"Minimum Stability Margin: {_margin(self.flight.min_stability_margin)} "
             f"at {self.flight.min_stability_margin_time:.2f} s"
         )
 
@@ -637,20 +659,58 @@ class _FlightPrints:
         if not self.flight.rocket.is_axisymmetric:
             print(
                 "Out of Rail Stability Margin - yaw: "
-                f"{self.flight.stability_margin_yaw.get_value_opt(out_of_rail_time):.3f} c"
+                f"{_margin(self.flight.stability_margin_yaw.get_value_opt(out_of_rail_time))}"
             )
 
-        # Dynamic stability at rail departure (representative powered condition).
+    def dynamic_stability(self):
+        """Prints the rocket's dynamic-stability quantities at the key instants
+        of the ascent.
+
+        For rail departure and motor burnout it reports the attitude
+        oscillation's natural frequency and damping ratio (pitch, and yaw as
+        well for a non-axisymmetric rocket), and it reports the roll rate at
+        burnout. Companion summary to ``Flight.plots.dynamic_stability_data``.
+
+        Notes
+        -----
+        The natural frequency sets how fast the rocket oscillates after a
+        disturbance; the damping ratio sets how quickly that oscillation decays
+        (below 1 is underdamped, the usual case). Roll resonance is a concern
+        where the roll rate crosses the natural frequency: the
+        ``dynamic_stability_data`` plot overlays the two so those crossings can
+        be read off directly. Frequencies are given in Hz.
+        """
         two_pi = 6.283185307179586
-        natural_frequency = self.flight.pitch_natural_frequency.get_value_opt(
-            out_of_rail_time
-        )
-        damping_ratio = self.flight.pitch_damping_ratio.get_value_opt(out_of_rail_time)
-        print(
-            f"Pitch Natural Frequency (out of rail): "
-            f"{natural_frequency / two_pi:.2f} Hz"
-        )
-        print(f"Pitch Damping Ratio (out of rail): {damping_ratio:.3f}")
+        flight = self.flight
+        asymmetric = not flight.rocket.is_axisymmetric
+
+        def report(label, time):
+            natural_frequency = (
+                flight.pitch_natural_frequency.get_value_opt(time) / two_pi
+            )
+            damping_ratio = flight.pitch_damping_ratio.get_value_opt(time)
+            plane = "Pitch " if asymmetric else ""
+            print(
+                f"{label} (t = {time:.2f} s): {plane}natural frequency = "
+                f"{natural_frequency:.2f} Hz, damping ratio = {damping_ratio:.3f}"
+            )
+            if asymmetric:
+                yaw_frequency = (
+                    flight.yaw_natural_frequency.get_value_opt(time) / two_pi
+                )
+                yaw_damping = flight.yaw_damping_ratio.get_value_opt(time)
+                print(
+                    f"    Yaw natural frequency = {yaw_frequency:.2f} Hz, "
+                    f"damping ratio = {yaw_damping:.3f}"
+                )
+
+        burn_out_time = flight.rocket.motor.burn_out_time
+
+        print("\nDynamic Stability\n")
+        report("Out of Rail", flight.out_of_rail_time)
+        report("Burnout", burn_out_time)
+        roll_rate = abs(flight.w3.get_value_opt(burn_out_time)) / two_pi
+        print(f"Roll Rate at Burnout: {roll_rate:.2f} Hz")
 
     def all(self):
         """Prints out all data available about the Flight. This method invokes
@@ -687,6 +747,9 @@ class _FlightPrints:
         print()
 
         self.stability_margin()
+        print()
+
+        self.dynamic_stability()
         print()
 
         self.maximum_values()

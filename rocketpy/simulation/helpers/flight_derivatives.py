@@ -377,6 +377,8 @@ def u_dot(flight, t, u, post_processing=False):
     velocity_in_body_frame = Vector([vx_b, vy_b, vz_b])
     w = Vector([omega1, omega2, omega3])
     for aero_surface, _ in flight.rocket.aerodynamic_surfaces:
+        if not aero_surface.is_active(t, flight):
+            continue
         # Component cp relative to CDM in body frame
         comp_cp = flight.rocket.surfaces_cp_to_cdm[aero_surface]
         # Component absolute velocity in body frame
@@ -614,6 +616,8 @@ def u_dot_generalized_3dof(flight, t, u, post_processing=False):
     vb_body = Kt @ v
 
     for surface, _ in flight.rocket.aerodynamic_surfaces:
+        if not surface.is_active(t, flight):
+            continue
         cp = flight.rocket.surfaces_cp_to_cdm[surface]
         vb_component = vb_body + (w ^ cp)
 
@@ -858,6 +862,8 @@ def u_dot_generalized(flight, t, u, post_processing=False):
     velocity_in_body_frame = Kt @ v
     # Calculate lift and moment for each component of the rocket
     for aero_surface, _ in flight.rocket.aerodynamic_surfaces:
+        if not aero_surface.is_active(t, flight):
+            continue
         # Component cp relative to CDM in body frame
         comp_cp = flight.rocket.surfaces_cp_to_cdm[aero_surface]
         # Component absolute velocity in body frame

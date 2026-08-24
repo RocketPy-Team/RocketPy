@@ -129,13 +129,29 @@ class _RocketPrints:
             f"Aerodynamic Center position (Mach=0): "
             f"{self.rocket.aerodynamic_center(0):.3f} m"
         )
+        # The static margin is reported in calibers and, when the rocket has a
+        # defined overall length, also as a percentage of that length (the
+        # convention often used in hobby rocketry). See Rocket.length.
+        burn_out_time = self.rocket.motor.burn_out_time
+        length = self.rocket.length if self.rocket.aerodynamic_surfaces else 0
+        to_percent = 2 * self.rocket.radius / length * 100 if length > 0 else None
+
+        def _margin(value):
+            """Format a margin in calibers, appending the length percentage when
+            the rocket length is known."""
+            if to_percent is None:
+                return f"{value:.3f} c"
+            return f"{value:.3f} c ({value * to_percent:.2f}% of length)"
+
+        if length > 0:
+            print(f"Rocket Length: {length:.3f} m")
         print(
             f"Initial Static Margin (mach=0, time=0): "
-            f"{self.rocket.static_margin(0):.3f} c"
+            f"{_margin(self.rocket.static_margin(0))}"
         )
         print(
             f"Final Static Margin (mach=0, time=burn_out): "
-            f"{self.rocket.static_margin(self.rocket.motor.burn_out_time):.3f} c"
+            f"{_margin(self.rocket.static_margin(burn_out_time))}"
         )
         print(
             f"Rocket Center of Mass (time=0) - Aerodynamic Center (Mach=0): "
@@ -153,11 +169,11 @@ class _RocketPrints:
             )
             print(
                 f"Initial Static Margin - yaw (mach=0, time=0): "
-                f"{self.rocket.static_margin_yaw(0):.3f} c"
+                f"{_margin(self.rocket.static_margin_yaw(0))}"
             )
             print(
                 f"Final Static Margin - yaw (mach=0, time=burn_out): "
-                f"{self.rocket.static_margin_yaw(self.rocket.motor.burn_out_time):.3f} c\n"
+                f"{_margin(self.rocket.static_margin_yaw(burn_out_time))}\n"
             )
 
     def parachute_data(self):

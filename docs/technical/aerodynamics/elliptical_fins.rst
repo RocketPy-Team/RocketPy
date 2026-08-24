@@ -1,3 +1,7 @@
+=========================
+Elliptical Fins Equations
+=========================
+
 Nomenclature
 ============
 

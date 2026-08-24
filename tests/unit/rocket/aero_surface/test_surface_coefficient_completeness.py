@@ -106,7 +106,7 @@ def _surface_params():
 def _coefficient_arguments(surface):
     """A representative independent-variable tuple for the surface: the seven
     base variables (alpha, beta, mach, reynolds, and the three rates) plus any
-    unsteady / control axes the surface adds, filled with zeros."""
+    control axes the surface adds, filled with zeros."""
     base = [0.05, 0.02, 0.5, 1e6, 0.0, 0.0, 0.0]
     extra = len(surface.independent_vars) - len(base)
     return tuple(base + [0.0] * max(0, extra))

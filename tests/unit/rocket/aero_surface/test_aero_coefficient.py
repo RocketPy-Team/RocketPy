@@ -72,23 +72,12 @@ def test_repr_constant_and_function():
     assert "depends_on" in function_repr and "mach" in function_repr
 
 
-# -- Independent-variable axes (unsteady / control) ---------------------------
+# -- Independent-variable axes (control) --------------------------------------
 
 
-def test_build_independent_vars_base_unsteady_and_controls():
+def test_build_independent_vars_base_and_controls():
     assert build_independent_vars() == IV
-    assert build_independent_vars(unsteady_aero=True) == IV + ["alpha_dot", "beta_dot"]
     assert build_independent_vars(control_variables=("defl",)) == IV + ["defl"]
-
-
-def test_unsteady_aero_extends_independent_vars():
-    coeff = AeroCoefficient(
-        lambda alpha_dot: alpha_dot, ("alpha_dot",), unsteady_aero=True, name="cL"
-    )
-    assert coeff.independent_vars == tuple(IV + ["alpha_dot", "beta_dot"])
-    assert coeff.__dom_dim__ == 9
-    # alpha_dot is the 8th argument (index 7).
-    assert coeff(0, 0, 0, 0, 0, 0, 0, 1.5, 0) == pytest.approx(1.5)
 
 
 def test_control_variable_axis_is_appended():
@@ -201,12 +190,10 @@ def test_to_dict_from_dict_preserves_axes():
     original = AeroCoefficient(
         lambda deflection: deflection,
         ("deflection",),
-        unsteady_aero=True,
         control_variables=("deflection",),
         name="cL",
     )
     rebuilt = AeroCoefficient.from_dict(original.to_dict())
-    assert rebuilt.unsteady_aero is True
     assert rebuilt.control_variables == ("deflection",)
     assert rebuilt.independent_vars == original.independent_vars
 

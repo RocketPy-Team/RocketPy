@@ -1,7 +1,17 @@
+import json
+from types import SimpleNamespace
+
 import pytest
 
-from rocketpy import Function, GenericSurface
+from rocketpy import Function, GenericSurface, LinearGenericSurface
+from rocketpy._encoders import RocketPyDecoder, RocketPyEncoder
 from rocketpy.mathutils import Vector
+
+
+def _rpy_round_trip(obj):
+    """Encode ``obj`` and decode it back through the .rpy encoder/decoder."""
+    return json.loads(json.dumps(obj, cls=RocketPyEncoder), cls=RocketPyDecoder)
+
 
 REFERENCE_AREA = 1
 REFERENCE_LENGTH = 1
@@ -265,3 +275,200 @@ def test_angular_rates_are_non_dimensionalized():
     assert roll_moment == pytest.approx(dyn_pressure_area_length * reduced_roll)
     # ... not the raw rad/s rate.
     assert roll_moment != pytest.approx(dyn_pressure_area_length * raw_roll)
+
+
+class _ExplodingAtmosphere:
+    """Stand-in for density/viscosity whose lookup raises, so a test can assert
+    the Reynolds computation (and thus the lookup) is skipped."""
+
+    def get_value_opt(self, z):
+        raise AssertionError("atmosphere lookup should have been skipped")
+
+
+def test_reynolds_length_defaults_to_reference_length():
+    gs = GenericSurface(REFERENCE_AREA, 0.2, {"cN": 0})
+    assert gs.reynolds_length == 0.2
+
+
+def test_reynolds_length_override():
+    gs = GenericSurface(REFERENCE_AREA, 0.2, {"cN": 0}, reynolds_length=4.0)
+    assert gs.reynolds_length == 4.0
+    # The moment/rate reference length is left untouched.
+    assert gs.reference_length == 0.2
+
+
+def test_needs_reynolds_reflects_coefficient_dependence():
+    without = GenericSurface(
+        REFERENCE_AREA, REFERENCE_LENGTH, {"cN": lambda mach: mach}
+    )
+    assert without._needs_reynolds is False
+
+    with_re = GenericSurface(
+        REFERENCE_AREA, REFERENCE_LENGTH, {"cN": lambda reynolds: reynolds}
+    )
+    assert with_re._needs_reynolds is True
+
+
+def test_reynolds_computation_skipped_when_no_coefficient_uses_it():
+    """A surface with no Reynolds-dependent coefficient must not perform the
+    per-step atmosphere lookups (the exploding stand-ins would raise if it did)."""
+    gs = GenericSurface(REFERENCE_AREA, REFERENCE_LENGTH, {"cN": lambda mach: mach})
+    gs.compute_forces_and_moments(
+        stream_velocity=Vector((0, 0, -100)),
+        stream_speed=100,
+        stream_mach=0.3,
+        rho=1.0,
+        cp=Vector((0, 0, 0)),
+        omega=(0, 0, 0),
+        density=_ExplodingAtmosphere(),
+        dynamic_viscosity=_ExplodingAtmosphere(),
+        z=0,
+    )
+
+
+def test_reynolds_uses_reynolds_length_not_reference_length():
+    """The Reynolds number handed to the coefficients is built on
+    ``reynolds_length``, not the (diameter) reference length."""
+    ref_area, ref_length, re_length = 1.0, 0.2, 4.0
+    rho_atm, mu, speed, rho = 1.2, 2.0e-5, 100.0, 1.0
+    # cN returns the Reynolds number it is given, so the normal force exposes it.
+    gs = GenericSurface(
+        ref_area,
+        ref_length,
+        {"cN": lambda reynolds: reynolds},
+        reynolds_length=re_length,
+    )
+
+    _, r2, *_ = gs.compute_forces_and_moments(
+        stream_velocity=Vector((0, 0, -speed)),  # centerline -> alpha=beta=0
+        stream_speed=speed,
+        stream_mach=0.3,
+        rho=rho,
+        cp=Vector((0, 0, 0)),
+        omega=(0, 0, 0),
+        density=Function(rho_atm),
+        dynamic_viscosity=Function(mu),
+        z=0,
+    )
+
+    # R2 = -normal = -(0.5 rho V^2 A_ref) * Re_seen
+    reynolds_seen = -r2 / (0.5 * rho * speed**2 * ref_area)
+    assert reynolds_seen == pytest.approx(rho_atm * speed * re_length / mu)
+    # ... which differs from the diameter-based value.
+    assert reynolds_seen != pytest.approx(rho_atm * speed * ref_length / mu)
+
+
+def _fake_flight(burn_out_time):
+    """Minimal stand-in exposing only what ``is_active`` reads
+    (``flight.rocket.motor.burn_out_time``), so no real Flight is built."""
+    return SimpleNamespace(
+        rocket=SimpleNamespace(motor=SimpleNamespace(burn_out_time=burn_out_time))
+    )
+
+
+def test_active_during_defaults_to_always():
+    """By default a surface is active at every time."""
+    gs = GenericSurface(REFERENCE_AREA, REFERENCE_LENGTH, {"cN": 1})
+    flight = _fake_flight(burn_out_time=3.0)
+    assert gs.active_during == "always"
+    assert gs.is_active(0.0, flight) is True
+    assert gs.is_active(5.0, flight) is True
+
+
+def test_active_during_power_on_gates_at_burnout():
+    """A power-on surface is active up to (not including) burnout."""
+    gs = GenericSurface(
+        REFERENCE_AREA, REFERENCE_LENGTH, {"cN": 1}, active_during="power_on"
+    )
+    flight = _fake_flight(burn_out_time=3.0)
+    assert gs.is_active(2.999, flight) is True
+    assert gs.is_active(3.0, flight) is False
+    assert gs.is_active(4.0, flight) is False
+
+
+def test_active_during_power_off_gates_at_burnout():
+    """A power-off surface is active only from burnout onward."""
+    gs = GenericSurface(
+        REFERENCE_AREA, REFERENCE_LENGTH, {"cN": 1}, active_during="power_off"
+    )
+    flight = _fake_flight(burn_out_time=3.0)
+    assert gs.is_active(2.999, flight) is False
+    assert gs.is_active(3.0, flight) is True
+    assert gs.is_active(4.0, flight) is True
+
+
+def test_active_during_accepts_callable():
+    """A custom predicate receives (t, flight) and drives activation."""
+    seen = []
+
+    def only_after_one_second(t, flight):
+        seen.append((t, flight))
+        return t > 1.0
+
+    gs = GenericSurface(
+        REFERENCE_AREA,
+        REFERENCE_LENGTH,
+        {"cN": 1},
+        active_during=only_after_one_second,
+    )
+    flight = _fake_flight(burn_out_time=3.0)
+    assert gs.is_active(0.5, flight) is False
+    assert gs.is_active(2.0, flight) is True
+    # The predicate was called with the time and the flight object.
+    assert seen[0] == (0.5, flight)
+
+
+def test_active_during_invalid_value_raises():
+    """An unknown activation policy is rejected at construction."""
+    with pytest.raises(ValueError, match="active_during"):
+        GenericSurface(
+            REFERENCE_AREA,
+            REFERENCE_LENGTH,
+            {"cN": 1},
+            active_during="sometimes",
+        )
+
+
+def test_generic_surface_round_trips_through_encoder():
+    """A GenericSurface survives the full .rpy encode/decode: coefficients,
+    reynolds_length and a custom activation function are all restored."""
+    gs = GenericSurface(
+        reference_area=1.0,
+        reference_length=0.2,
+        coefficients={"cN": lambda mach: 2 * mach, "cm": 0.1},
+        reynolds_length=4.0,
+        active_during=lambda t, flight: t < 3.0,
+    )
+    restored = _rpy_round_trip(gs)
+
+    assert isinstance(restored, GenericSurface)
+    assert restored.reynolds_length == 4.0
+    assert restored.cN(0, 0, 0.5, 0, 0, 0, 0) == pytest.approx(1.0)
+    assert restored.cm(0, 0, 0, 0, 0, 0, 0) == pytest.approx(0.1)
+    assert restored.active_during(1.0, None) is True
+    assert restored.active_during(5.0, None) is False
+
+
+def test_linear_generic_surface_round_trips_through_encoder():
+    """A LinearGenericSurface restores its derivative coefficients and the
+    Reynolds length through the .rpy encode/decode."""
+    lgs = LinearGenericSurface(
+        reference_area=1.0,
+        reference_length=0.2,
+        coefficients={"cN_alpha": 2.0, "cm_alpha": -0.5},
+        reynolds_length=3.0,
+    )
+    restored = _rpy_round_trip(lgs)
+
+    assert isinstance(restored, LinearGenericSurface)
+    assert restored.reynolds_length == 3.0
+    assert restored.cN_alpha(0, 0, 0, 0, 0, 0, 0) == pytest.approx(2.0)
+    assert restored.cm_alpha(0, 0, 0, 0, 0, 0, 0) == pytest.approx(-0.5)
+
+
+def test_generic_surface_preset_active_during_round_trips():
+    """A preset activation policy round-trips as the plain string."""
+    gs = GenericSurface(
+        REFERENCE_AREA, REFERENCE_LENGTH, {"cN": 0}, active_during="power_on"
+    )
+    assert _rpy_round_trip(gs).active_during == "power_on"
