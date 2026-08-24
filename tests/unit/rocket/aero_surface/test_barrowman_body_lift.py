@@ -1,7 +1,7 @@
 """Unit tests for the Galejs body-lift extension of ``_BarrowmanSurface``.
 
 The body-lift hook adds a nonlinear ``sin²α`` term (Galejs, K = 1.1) to the
-classic Barrowman normal force, applied at a blended centre of pressure
+classic Barrowman normal force, applied at a blended center of pressure
 between the slender-body CP and the planform centroid. The tests pin down:
 
 - the closed-form magnitude of the body-lift contribution,

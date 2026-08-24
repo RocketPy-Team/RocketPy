@@ -159,7 +159,7 @@ class BodyTube(_BarrowmanSurface):
         )
 
     def evaluate_center_of_pressure(self):
-        """The geometric centre of pressure sits at the tube midpoint in local
+        """The geometric center of pressure sits at the tube midpoint in local
         coordinates. With zero slender-body lift this point carries no force;
         the Galejs term is applied at the planform centroid instead.
 

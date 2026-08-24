@@ -15,13 +15,13 @@ class _BarrowmanSurface(LinearGenericSurface):
 
     The in-flight normal force and its moment are computed with the Barrowman
     method (see :meth:`compute_forces_and_moments`): the normal force uses the
-    true total angle of attack, acting at the geometric centre of pressure, and
-    its moment about the centre of dry mass is the geometric transport
+    true total angle of attack, acting at the geometric center of pressure, and
+    its moment about the center of dry mass is the geometric transport
     (``cp ^ force``).  When the subclass provides planform geometry (see
     :attr:`_planform_area`, :attr:`_planform_centroid`, :attr:`_cp_slender`), a
     non-linear Galejs body-lift term :math:`K \cdot (A_\text{plan} /
     A_\text{ref}) \cdot \sin^2\alpha` is added and the CP is blended
-    accordingly.  The resultant force is reported at the blended centre of
+    accordingly.  The resultant force is reported at the blended center of
     pressure in the body frame through :meth:`_default_surface_rotation`.
 
     The class also derives the linear normal-force slopes ``cN_alpha`` (pitch
@@ -151,7 +151,7 @@ class _BarrowmanSurface(LinearGenericSurface):
            with ``K = 1.1``.  At very low speed and high α (apogee) the
            term is damped by a factor ``(M / 0.05)²``.
 
-        The total force is applied at the blended centre of pressure of the
+        The total force is applied at the blended center of pressure of the
         two contributions.  Fin sets (including canards) add their roll moment
         on top.
 
@@ -166,7 +166,7 @@ class _BarrowmanSurface(LinearGenericSurface):
         rho : float
             Air density.
         cp : Vector
-            Surface centre of pressure relative to the centre of dry mass, in
+            Surface center of pressure relative to the center of dry mass, in
             the body frame (the force-application point; see
             :attr:`force_application_point`).  When body lift is active this
             is the *slender-body* CP; the blended CP is computed internally.
@@ -224,7 +224,7 @@ class _BarrowmanSurface(LinearGenericSurface):
                 transverse_norm = (stream_vx**2 + stream_vy**2) ** 0.5
                 R1 = lift * stream_vx / transverse_norm
                 R2 = lift * stream_vy / transverse_norm
-                # The total force acts at the blended centre of pressure:
+                # The total force acts at the blended center of pressure:
                 # slender-body CP + Galejs offset.
                 force = Vector([R1, R2, R3])
                 if c_lift_body > 0 and c_lift != 0:

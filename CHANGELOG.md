@@ -41,7 +41,7 @@ Attention: The newest changes should be on top -->
 
 ### Changed
 
-- ENH: Nose cones and tails now include the Galejs body-lift term, migrating the centre of pressure aft at high angle of attack; results for near-apogee / high-α flight conditions differ from previous versions
+- ENH: Nose cones and tails now include the Galejs body-lift term, migrating the center of pressure aft at high angle of attack; results for near-apogee / high-α flight conditions differ from previous versions
 
 ### Fixed
 
