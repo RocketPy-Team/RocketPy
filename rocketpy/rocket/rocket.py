@@ -13,6 +13,7 @@ from rocketpy.plots.rocket_plots import _RocketPlots
 from rocketpy.prints.rocket_prints import _RocketPrints
 from rocketpy.rocket.aero_surface import (
     AirBrakes,
+    BodyTube,
     EllipticalFins,
     Fins,
     NoseCone,
@@ -1664,6 +1665,47 @@ class Rocket:
         tail = Tail(top_radius, bottom_radius, length, radius, name)
         self.add_surfaces(tail, position)
         return tail
+
+    def add_body_tube(
+        self, length, position, radius=None, rocket_radius=None, name="Body Tube"
+    ):
+        """Create a new constant-radius body tube, storing it as part of the
+        aerodynamic_surfaces list. The tube produces no slender-body normal
+        force; its in-flight lift comes entirely from the nonlinear Galejs
+        body-lift term applied at the planform centroid.
+
+        Parameters
+        ----------
+        length : int, float
+            Body tube length in meters. Must be a positive value.
+        position : int, float
+            Tube position relative to the rocket's coordinate system. By tube
+            position, understand the point belonging to the tube which is
+            highest in the rocket coordinate system (i.e. the point closest to
+            the nose cone).
+        radius : int, float, optional
+            Body tube outer radius in meters. If None, which is default, the
+            rocket radius will be used.
+        rocket_radius : int, float, optional
+            Reference radius used for lift coefficient normalization. If None,
+            which is default, the rocket radius will be used.
+        name : string
+            Body tube name. Default is "Body Tube".
+
+        See Also
+        --------
+        :ref:`addsurface`
+
+        Returns
+        -------
+        body_tube : BodyTube
+            BodyTube object created.
+        """
+        radius = self.radius if radius is None else radius
+        rocket_radius = self.radius if rocket_radius is None else rocket_radius
+        body_tube = BodyTube(length, radius, rocket_radius, name)
+        self.add_surfaces(body_tube, position)
+        return body_tube
 
     def add_nose(
         self,

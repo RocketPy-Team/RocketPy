@@ -1,5 +1,6 @@
 from rocketpy.rocket.aero_surface.aero_surface import AeroSurface
 from rocketpy.rocket.aero_surface.air_brakes import AirBrakes
+from rocketpy.rocket.aero_surface.body_tube import BodyTube
 from rocketpy.rocket.aero_surface.controllable_generic_surface import (
     ControllableGenericSurface,
 )

@@ -17,7 +17,7 @@ Apogee Rockets Newsletter, 2003; OpenRocket ``SymmetricComponentCalc``.
 import numpy as np
 import pytest
 
-from rocketpy import Function, NoseCone, Tail
+from rocketpy import BodyTube, Function, NoseCone, Tail
 from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.rocket.aero_surface._barrowman_surface import _BarrowmanSurface
 
@@ -279,3 +279,47 @@ def test_tail_planform_matches_closed_form():
     )
     assert tail._planform_centroid == pytest.approx(expected_centroid)  # noqa: SLF001
     assert tail._cp_slender == pytest.approx(tail.cpz)  # noqa: SLF001
+
+
+def test_body_tube_geometry():
+    """A constant-radius tube has a rectangular planform of width 2·R and
+    height L with the centroid at the midpoint, zero clalpha and midpoint CP."""
+    tube = BodyTube(length=0.5, radius=0.0635)
+    assert tube._planform_area == pytest.approx(2 * 0.0635 * 0.5)  # noqa: SLF001
+    assert tube._planform_centroid == pytest.approx(0.25)  # noqa: SLF001
+    assert tube._cp_slender == pytest.approx(0.25)  # noqa: SLF001
+    assert tube.cpz == pytest.approx(0.25)
+    assert tube.clalpha.get_value_opt(0.3) == pytest.approx(0.0)
+    assert tube.surface_area == pytest.approx(2 * np.pi * 0.0635 * 0.5)
+
+
+def test_body_tube_force_is_pure_galejs():
+    """The BodyTube's in-flight normal force must equal exactly the Galejs
+    term K·(A_plan/A_ref)·sin²α applied at the planform centroid."""
+    tube = BodyTube(length=0.5, radius=0.0635, rocket_radius=0.0635)
+    alpha = np.deg2rad(30)
+
+    forces = _forces(tube, _velocity(alpha), cp=(0.0, 0.0, -tube.cpz))
+    _, r2, _, m1, _, _ = forces
+
+    q_s = 0.5 * RHO * SPEED**2 * tube.reference_area
+    c_body = 1.1 * (2 * 0.0635 * 0.5) / tube.reference_area * np.sin(alpha) ** 2
+    assert r2 == pytest.approx(q_s * c_body, rel=1e-12)
+    assert m1 == pytest.approx(tube._planform_centroid * r2, rel=1e-12)  # noqa: SLF001
+
+
+def test_rocket_add_body_tube(calisto_motorless):
+    """``Rocket.add_body_tube`` registers the tube as an aerodynamic surface
+    and it shifts the rocket's aerodynamic center aft."""
+    rocket = calisto_motorless
+    rocket.add_nose(length=0.55829, kind="vonkarman", position=1.278)
+
+    cp_before = rocket.aerodynamic_center.get_value_opt(0.2)
+    tube = rocket.add_body_tube(length=0.8, position=-0.4)
+    cp_after = rocket.aerodynamic_center.get_value_opt(0.2)
+
+    assert isinstance(tube, BodyTube)
+    assert any(s.component is tube for s in rocket.aerodynamic_surfaces)
+    # The tube has zero slender-body slope, so the linear aerodynamic-center
+    # diagnostic is unchanged; its Galejs lift acts only in-flight.
+    assert cp_after == pytest.approx(cp_before)
