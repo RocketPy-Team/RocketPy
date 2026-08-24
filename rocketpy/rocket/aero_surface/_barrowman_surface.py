@@ -6,7 +6,7 @@ from rocketpy.rocket.aero_surface.linear_generic_surface import LinearGenericSur
 
 
 class _BarrowmanSurface(LinearGenericSurface):
-    """Intermediate base for Barrowman-defined aerodynamic surfaces
+    r"""Intermediate base for Barrowman-defined aerodynamic surfaces
     such as nose cones, tails/transitions and fin sets.
 
     These surfaces expose a lift-curve slope ``clalpha`` (a ``Function`` of
@@ -106,9 +106,7 @@ class _BarrowmanSurface(LinearGenericSurface):
         # Axisymmetric Barrowman normal force: equal-magnitude slopes in the
         # pitch and yaw planes. The yaw-plane (side-force) slope is opposite in
         # sign due to the body-frame axis convention.
-        self.cN_alpha = self._mach_coefficient(
-            lambda mach: clalpha.get_value_opt(mach), "cN_alpha"
-        )
+        self.cN_alpha = self._mach_coefficient(clalpha.get_value_opt, "cN_alpha")
         self.cY_beta = self._mach_coefficient(
             lambda mach: -clalpha.get_value_opt(mach), "cY_beta"
         )
@@ -126,9 +124,7 @@ class _BarrowmanSurface(LinearGenericSurface):
             self.cl_0 = self._mach_coefficient(
                 lambda mach: clf_delta.get_value_opt(mach) * cant_angle_rad, "cl_0"
             )
-            self.cl_p = self._mach_coefficient(
-                lambda mach: cld_omega.get_value_opt(mach), "cl_p"
-            )
+            self.cl_p = self._mach_coefficient(cld_omega.get_value_opt, "cl_p")
 
     def compute_forces_and_moments(
         self,
