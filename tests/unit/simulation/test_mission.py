@@ -31,7 +31,9 @@ def _two_stage_vehicle(
     )
     booster_rocket.add_motor(
         PointMassMotor(
-            thrust_source=400, dry_mass=1.0, propellant_initial_mass=2.0,
+            thrust_source=400,
+            dry_mass=1.0,
+            propellant_initial_mass=2.0,
             burn_time=1.0,
         ),
         position=0.0,
@@ -53,13 +55,16 @@ def _two_stage_vehicle(
     )
     sustainer_rocket.add_motor(
         PointMassMotor(
-            thrust_source=200, dry_mass=0.5, propellant_initial_mass=1.0,
+            thrust_source=200,
+            dry_mass=0.5,
+            propellant_initial_mass=1.0,
             burn_time=1.0,
         ),
         position=2.0,
     )
     sustainer = Stage(
-        name="sustainer", rocket=sustainer_rocket,
+        name="sustainer",
+        rocket=sustainer_rocket,
         ignition_delay=sustainer_ignition_delay,
     )
 
@@ -155,8 +160,12 @@ def test_mission_timeline_includes_burnout_for_every_stage(example_plain_env):
     vehicle = MultiStageRocket(stages=[booster, sustainer])
 
     mission = Mission(
-        vehicle=vehicle, environment=example_plain_env, rail_length=1.0,
-        inclination=90, heading=0, max_time=5,
+        vehicle=vehicle,
+        environment=example_plain_env,
+        rail_length=1.0,
+        inclination=90,
+        heading=0,
+        max_time=5,
     )
 
     event_times = dict((name, t) for t, name in mission.timeline)
@@ -179,8 +188,12 @@ def test_mission_timeline_records_each_stages_burnout_exactly_once(
     vehicle, _stage, _deployable = _single_stage_with_deployable_vehicle()
 
     mission = Mission(
-        vehicle=vehicle, environment=example_plain_env, rail_length=1.0,
-        inclination=90, heading=0, max_time=20,
+        vehicle=vehicle,
+        environment=example_plain_env,
+        rail_length=1.0,
+        inclination=90,
+        heading=0,
+        max_time=20,
     )
 
     burnout_entries = [
@@ -200,8 +213,12 @@ def test_mission_timeline_includes_apogee_for_every_flight_that_reaches_one(
     vehicle = MultiStageRocket(stages=[booster, sustainer])
 
     mission = Mission(
-        vehicle=vehicle, environment=example_plain_env, rail_length=1.0,
-        inclination=90, heading=0, max_time=5,
+        vehicle=vehicle,
+        environment=example_plain_env,
+        rail_length=1.0,
+        inclination=90,
+        heading=0,
+        max_time=5,
     )
 
     event_times = dict((name, t) for t, name in mission.timeline)
@@ -235,9 +252,9 @@ def test_two_stage_mission_handoff_matches_hand_computed_kinematics(
 
     stack_flight = mission.flights["booster"][0]
     sustainer_flight = mission.flights["sustainer"][-1]
-    ending_t, x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3 = (
-        stack_flight.solution[-1]
-    )
+    ending_t, x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3 = stack_flight.solution[
+        -1
+    ]
 
     # Independent re-derivation of the handoff formula from
     # mission_multistage_design.md's _handoff_state, using the actual
@@ -321,7 +338,9 @@ def _single_stage_with_deployable_vehicle(deployable_delta_v=0.0):
     )
     stage_rocket.add_motor(
         PointMassMotor(
-            thrust_source=400, dry_mass=1.0, propellant_initial_mass=2.0,
+            thrust_source=400,
+            dry_mass=1.0,
+            propellant_initial_mass=2.0,
             burn_time=1.0,
         ),
         position=0.0,
@@ -390,9 +409,9 @@ def test_deployable_handoff_matches_hand_computed_kinematics(example_plain_env):
 
     carrier_flight = mission.flights["carrier"][0]
     payload_flight = mission.flights["payload"][-1]
-    ending_t, x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3 = (
-        carrier_flight.solution[-1]
-    )
+    ending_t, x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3 = carrier_flight.solution[
+        -1
+    ]
 
     # Independent re-derivation of the handoff formula, using the actual
     # apogee state and the actual Rocket objects Mission built - not a
@@ -435,9 +454,9 @@ def test_deployable_handoff_matches_hand_computed_kinematics_off_vertical(
 
     carrier_flight = mission.flights["carrier"][0]
     payload_flight = mission.flights["payload"][-1]
-    ending_t, x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3 = (
-        carrier_flight.solution[-1]
-    )
+    ending_t, x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3 = carrier_flight.solution[
+        -1
+    ]
 
     rotation = Matrix.transformation((e0, e1, e2, e3))
     assert rotation != Matrix.identity()
@@ -555,6 +574,43 @@ def test_all_flights_feeds_compare_flights(example_plain_env):
     assert CompareFlights(mission.all_flights).trajectories_3d(filename=None) is None
 
 
+def test_trajectories_3d_wraps_all_flights_through_compare_flights(example_plain_env):
+    # Mission.trajectories_3d() is sugar for
+    # CompareFlights(mission.all_flights).trajectories_3d() - a caller
+    # shouldn't have to import CompareFlights themselves for the plain
+    # (no-events) 3D trajectory view, the same way a single Flight
+    # exposes its own trajectory_3d() directly.
+    booster, sustainer = _two_stage_vehicle(booster_separation=0.5)
+    vehicle = MultiStageRocket(stages=[booster, sustainer])
+
+    mission = Mission(
+        vehicle=vehicle,
+        environment=example_plain_env,
+        rail_length=1.0,
+        inclination=90,
+        heading=0,
+        max_time=5,
+    )
+
+    assert mission.trajectories_3d(filename=None) is None
+
+
+def test_positions_wraps_all_flights_through_compare_flights(example_plain_env):
+    booster, sustainer = _two_stage_vehicle(booster_separation=0.5)
+    vehicle = MultiStageRocket(stages=[booster, sustainer])
+
+    mission = Mission(
+        vehicle=vehicle,
+        environment=example_plain_env,
+        rail_length=1.0,
+        inclination=90,
+        heading=0,
+        max_time=5,
+    )
+
+    assert mission.positions(filename=None) is None
+
+
 def test_flight_names_distinguish_each_body_and_phase(example_plain_env):
     # CompareFlights labels each line in a plot legend using flight.name;
     # every Flight Mission creates must have a name that distinguishes it
@@ -584,12 +640,18 @@ def _three_stage_vehicle():
     general N-stage walk beyond the degenerate 1- and 2-stage cases.
     """
     booster_rocket = Rocket(
-        radius=0.1, mass=10.0, inertia=(1.0, 1.0, 0.01),
-        power_off_drag=0.5, power_on_drag=0.6, center_of_mass_without_motor=0.0,
+        radius=0.1,
+        mass=10.0,
+        inertia=(1.0, 1.0, 0.01),
+        power_off_drag=0.5,
+        power_on_drag=0.6,
+        center_of_mass_without_motor=0.0,
     )
     booster_rocket.add_motor(
         PointMassMotor(
-            thrust_source=400, dry_mass=1.0, propellant_initial_mass=2.0,
+            thrust_source=400,
+            dry_mass=1.0,
+            propellant_initial_mass=2.0,
             burn_time=1.0,
         ),
         position=0.0,
@@ -597,12 +659,18 @@ def _three_stage_vehicle():
     booster = Stage(name="booster", rocket=booster_rocket, separation=0.5)
 
     sustainer_rocket = Rocket(
-        radius=0.08, mass=5.0, inertia=(0.5, 0.5, 0.005),
-        power_off_drag=0.3, power_on_drag=0.4, center_of_mass_without_motor=2.0,
+        radius=0.08,
+        mass=5.0,
+        inertia=(0.5, 0.5, 0.005),
+        power_off_drag=0.3,
+        power_on_drag=0.4,
+        center_of_mass_without_motor=2.0,
     )
     sustainer_rocket.add_motor(
         PointMassMotor(
-            thrust_source=200, dry_mass=0.5, propellant_initial_mass=1.0,
+            thrust_source=200,
+            dry_mass=0.5,
+            propellant_initial_mass=1.0,
             burn_time=1.0,
         ),
         position=2.0,
@@ -610,12 +678,18 @@ def _three_stage_vehicle():
     sustainer = Stage(name="sustainer", rocket=sustainer_rocket, separation=0.5)
 
     kick_rocket = Rocket(
-        radius=0.04, mass=2.0, inertia=(0.1, 0.1, 0.001),
-        power_off_drag=0.2, power_on_drag=0.3, center_of_mass_without_motor=3.0,
+        radius=0.04,
+        mass=2.0,
+        inertia=(0.1, 0.1, 0.001),
+        power_off_drag=0.2,
+        power_on_drag=0.3,
+        center_of_mass_without_motor=3.0,
     )
     kick_rocket.add_motor(
         PointMassMotor(
-            thrust_source=100, dry_mass=0.2, propellant_initial_mass=0.5,
+            thrust_source=100,
+            dry_mass=0.2,
+            propellant_initial_mass=0.5,
             burn_time=1.0,
         ),
         position=3.0,
@@ -675,10 +749,18 @@ def test_deployable_riding_sustainer_ejects_after_booster_separation(
     booster, sustainer = _two_stage_vehicle(booster_separation=0.5)
     vehicle = MultiStageRocket(stages=[booster, sustainer])
     vehicle.add_deployable(
-        name="payload", mass=0.2, inertia=(0.001, 0.001, 0.0001), position=1.5,
-        stage=sustainer, free_rocket=Rocket(
-            radius=0.02, mass=0.2, inertia=(0.001, 0.001, 0.0001),
-            power_off_drag=0.5, power_on_drag=0.5, center_of_mass_without_motor=0.0,
+        name="payload",
+        mass=0.2,
+        inertia=(0.001, 0.001, 0.0001),
+        position=1.5,
+        stage=sustainer,
+        free_rocket=Rocket(
+            radius=0.02,
+            mass=0.2,
+            inertia=(0.001, 0.001, 0.0001),
+            power_off_drag=0.5,
+            power_on_drag=0.5,
+            center_of_mass_without_motor=0.0,
         ),
         ejection="apogee",
     )
@@ -700,8 +782,10 @@ def test_deployable_riding_sustainer_ejects_after_booster_separation(
     booster_separation = event_times["separation:booster"]
     payload_ejection = event_times["ejection:payload"]
     assert payload_ejection > booster_separation
-    assert not any(name.startswith("separation:") and name != "separation:booster"
-                   for name in event_times)
+    assert not any(
+        name.startswith("separation:") and name != "separation:booster"
+        for name in event_times
+    )
 
     # Full stack (with payload aboard) appears under all three bodies;
     # booster falls away alone; sustainer+payload continue together
@@ -727,21 +811,34 @@ def test_deployable_ejection_handles_handoff_already_past_apogee(example_plain_e
     # (IndexError from FlightPhases.add) - found via a 300-run
     # randomized sweep over varied Mission configurations (seed 60).
     booster, sustainer = _two_stage_vehicle(
-        booster_separation=0.5, booster_separation_delta_v=1000.0,
+        booster_separation=0.5,
+        booster_separation_delta_v=1000.0,
     )
     vehicle = MultiStageRocket(stages=[booster, sustainer])
     vehicle.add_deployable(
-        name="payload", mass=0.2, inertia=(0.001, 0.001, 0.0001), position=0.5,
-        stage=booster, free_rocket=Rocket(
-            radius=0.02, mass=0.2, inertia=(0.001, 0.001, 0.0001),
-            power_off_drag=0.5, power_on_drag=0.5, center_of_mass_without_motor=0.0,
+        name="payload",
+        mass=0.2,
+        inertia=(0.001, 0.001, 0.0001),
+        position=0.5,
+        stage=booster,
+        free_rocket=Rocket(
+            radius=0.02,
+            mass=0.2,
+            inertia=(0.001, 0.001, 0.0001),
+            power_off_drag=0.5,
+            power_on_drag=0.5,
+            center_of_mass_without_motor=0.0,
         ),
         ejection="apogee",
     )
 
     mission = Mission(
-        vehicle=vehicle, environment=example_plain_env, rail_length=1.0,
-        inclination=90, heading=0, max_time=10,
+        vehicle=vehicle,
+        environment=example_plain_env,
+        rail_length=1.0,
+        inclination=90,
+        heading=0,
+        max_time=10,
     )
 
     assert "payload" in mission.flights
@@ -775,9 +872,9 @@ def test_two_stage_mission_handoff_matches_hand_computed_kinematics_off_vertical
 
     stack_flight = mission.flights["booster"][0]
     sustainer_flight = mission.flights["sustainer"][-1]
-    ending_t, x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3 = (
-        stack_flight.solution[-1]
-    )
+    ending_t, x, y, z, vx, vy, vz, e0, e1, e2, e3, w1, w2, w3 = stack_flight.solution[
+        -1
+    ]
 
     # Sanity check this test actually exercises a non-Identity rotation -
     # otherwise it would silently degenerate into a duplicate of the
@@ -809,12 +906,18 @@ def test_two_stage_mission_handoff_matches_hand_computed_kinematics_off_vertical
 
 def _pointmass_stage(name, radius, mass, thrust, position=0.0, **stage_kwargs):
     rocket = Rocket(
-        radius=radius, mass=mass, inertia=(0.5, 0.5, 0.01),
-        power_off_drag=0.5, power_on_drag=0.5, center_of_mass_without_motor=0.0,
+        radius=radius,
+        mass=mass,
+        inertia=(0.5, 0.5, 0.01),
+        power_off_drag=0.5,
+        power_on_drag=0.5,
+        center_of_mass_without_motor=0.0,
     )
     rocket.add_motor(
         PointMassMotor(
-            thrust_source=thrust, dry_mass=0.3, propellant_initial_mass=0.5,
+            thrust_source=thrust,
+            dry_mass=0.3,
+            propellant_initial_mass=0.5,
             burn_time=1.0,
         ),
         position=position,
@@ -822,14 +925,20 @@ def _pointmass_stage(name, radius, mass, thrust, position=0.0, **stage_kwargs):
     return Stage(name=name, rocket=rocket, **stage_kwargs)
 
 
-def test_two_stage_mission_with_hybrid_motor_bottom_stage(hybrid_motor, example_plain_env):
+def test_two_stage_mission_with_hybrid_motor_bottom_stage(
+    hybrid_motor, example_plain_env
+):
     # hybrid_motor: thrust 2000-100t, burn_time (0, 10), tank-based mass
     # (not a plain PointMassMotor) - the bottom (never-shifted) stage,
     # so this exercises flight_rocket()'s mass/inertia composition with
     # a real HybridMotor, not _shift_motor_ignition.
     booster_rocket = Rocket(
-        radius=0.15, mass=6.0, inertia=(2.0, 2.0, 0.05),
-        power_off_drag=0.5, power_on_drag=0.6, center_of_mass_without_motor=0.0,
+        radius=0.15,
+        mass=6.0,
+        inertia=(2.0, 2.0, 0.05),
+        power_off_drag=0.5,
+        power_on_drag=0.6,
+        center_of_mass_without_motor=0.0,
     )
     booster_rocket.add_motor(hybrid_motor, position=0.0)
     booster = Stage(name="booster", rocket=booster_rocket, separation=2.0)
@@ -838,8 +947,12 @@ def test_two_stage_mission_with_hybrid_motor_bottom_stage(hybrid_motor, example_
 
     vehicle = MultiStageRocket(stages=[booster, sustainer])
     mission = Mission(
-        vehicle=vehicle, environment=example_plain_env, rail_length=1.0,
-        inclination=90, heading=0, max_time=30,
+        vehicle=vehicle,
+        environment=example_plain_env,
+        rail_length=1.0,
+        inclination=90,
+        heading=0,
+        max_time=30,
     )
 
     event_times = dict((name, t) for t, name in mission.timeline)
@@ -861,20 +974,32 @@ def test_two_stage_mission_with_liquid_motor_sustainer(liquid_motor, example_pla
     # correctly re-anchors both the non-zero-start burn window AND the
     # tank-based mass/inertia Functions, not just simple ones.
     booster = _pointmass_stage(
-        "booster", 0.2, 10.0, thrust=3000, separation=1.5,
+        "booster",
+        0.2,
+        10.0,
+        thrust=3000,
+        separation=1.5,
     )
 
     sustainer_rocket = Rocket(
-        radius=0.15, mass=8.0, inertia=(3.0, 3.0, 0.05),
-        power_off_drag=0.4, power_on_drag=0.5, center_of_mass_without_motor=0.0,
+        radius=0.15,
+        mass=8.0,
+        inertia=(3.0, 3.0, 0.05),
+        power_off_drag=0.4,
+        power_on_drag=0.5,
+        center_of_mass_without_motor=0.0,
     )
     sustainer_rocket.add_motor(liquid_motor, position=0.0)
     sustainer = Stage(name="sustainer", rocket=sustainer_rocket)
 
     vehicle = MultiStageRocket(stages=[booster, sustainer])
     mission = Mission(
-        vehicle=vehicle, environment=example_plain_env, rail_length=1.0,
-        inclination=90, heading=0, max_time=60,
+        vehicle=vehicle,
+        environment=example_plain_env,
+        rail_length=1.0,
+        inclination=90,
+        heading=0,
+        max_time=60,
     )
 
     event_times = dict((name, t) for t, name in mission.timeline)
@@ -884,12 +1009,16 @@ def test_two_stage_mission_with_liquid_motor_sustainer(liquid_motor, example_pla
 
     sustainer_flight = mission.flights["sustainer"][-1]
     shifted_burn_out = ignition_time + liquid_motor.burn_out_time
-    assert sustainer_flight.rocket.motor.burn_out_time == pytest.approx(shifted_burn_out)
+    assert sustainer_flight.rocket.motor.burn_out_time == pytest.approx(
+        shifted_burn_out
+    )
     for state in sustainer_flight.solution:
         assert all(math.isfinite(v) for v in state)
 
 
-def test_two_stage_mission_with_generic_motor_sustainer(generic_motor, example_plain_env):
+def test_two_stage_mission_with_generic_motor_sustainer(
+    generic_motor, example_plain_env
+):
     # generic_motor: burn_time (2, 7) - thrust is exactly zero for the
     # first 2s of the motor's own local clock. Mirrors the liquid-motor
     # test but for GenericMotor specifically (a different Motor
@@ -897,23 +1026,33 @@ def test_two_stage_mission_with_generic_motor_sustainer(generic_motor, example_p
     booster = _pointmass_stage("booster", 0.2, 8.0, thrust=1500, separation=1.0)
 
     sustainer_rocket = Rocket(
-        radius=0.15, mass=6.0, inertia=(1.5, 1.5, 0.03),
-        power_off_drag=0.4, power_on_drag=0.5, center_of_mass_without_motor=0.0,
+        radius=0.15,
+        mass=6.0,
+        inertia=(1.5, 1.5, 0.03),
+        power_off_drag=0.4,
+        power_on_drag=0.5,
+        center_of_mass_without_motor=0.0,
     )
     sustainer_rocket.add_motor(generic_motor, position=0.0)
     sustainer = Stage(name="sustainer", rocket=sustainer_rocket)
 
     vehicle = MultiStageRocket(stages=[booster, sustainer])
     mission = Mission(
-        vehicle=vehicle, environment=example_plain_env, rail_length=1.0,
-        inclination=90, heading=0, max_time=40,
+        vehicle=vehicle,
+        environment=example_plain_env,
+        rail_length=1.0,
+        inclination=90,
+        heading=0,
+        max_time=40,
     )
 
     event_times = dict((name, t) for t, name in mission.timeline)
     ignition_time = event_times["ignition:sustainer"]
     sustainer_flight = mission.flights["sustainer"][-1]
     expected_burn_out = ignition_time + generic_motor.burn_out_time
-    assert sustainer_flight.rocket.motor.burn_out_time == pytest.approx(expected_burn_out)
+    assert sustainer_flight.rocket.motor.burn_out_time == pytest.approx(
+        expected_burn_out
+    )
     for state in sustainer_flight.solution:
         assert all(math.isfinite(v) for v in state)
 
@@ -925,31 +1064,47 @@ def test_mixed_coordinate_system_orientation_across_stages(example_plain_env):
     # keeps the default (tail_to_nose); sustainer is built nose_to_tail
     # instead, so its own positive-z direction points the opposite way.
     booster_rocket = Rocket(
-        radius=0.1, mass=10.0, inertia=(1.0, 1.0, 0.01),
-        power_off_drag=0.5, power_on_drag=0.6, center_of_mass_without_motor=0.0,
+        radius=0.1,
+        mass=10.0,
+        inertia=(1.0, 1.0, 0.01),
+        power_off_drag=0.5,
+        power_on_drag=0.6,
+        center_of_mass_without_motor=0.0,
         coordinate_system_orientation="tail_to_nose",
     )
     booster_rocket.add_motor(
-        PointMassMotor(thrust_source=400, dry_mass=1.0, propellant_initial_mass=2.0, burn_time=1.0),
+        PointMassMotor(
+            thrust_source=400, dry_mass=1.0, propellant_initial_mass=2.0, burn_time=1.0
+        ),
         position=0.0,
     )
     booster = Stage(name="booster", rocket=booster_rocket, separation=0.5)
 
     sustainer_rocket = Rocket(
-        radius=0.08, mass=5.0, inertia=(0.5, 0.5, 0.005),
-        power_off_drag=0.3, power_on_drag=0.4, center_of_mass_without_motor=0.0,
+        radius=0.08,
+        mass=5.0,
+        inertia=(0.5, 0.5, 0.005),
+        power_off_drag=0.3,
+        power_on_drag=0.4,
+        center_of_mass_without_motor=0.0,
         coordinate_system_orientation="nose_to_tail",
     )
     sustainer_rocket.add_motor(
-        PointMassMotor(thrust_source=200, dry_mass=0.5, propellant_initial_mass=1.0, burn_time=1.0),
+        PointMassMotor(
+            thrust_source=200, dry_mass=0.5, propellant_initial_mass=1.0, burn_time=1.0
+        ),
         position=0.0,
     )
     sustainer = Stage(name="sustainer", rocket=sustainer_rocket)
 
     vehicle = MultiStageRocket(stages=[booster, sustainer])
     mission = Mission(
-        vehicle=vehicle, environment=example_plain_env, rail_length=1.0,
-        inclination=90, heading=0, max_time=20,
+        vehicle=vehicle,
+        environment=example_plain_env,
+        rail_length=1.0,
+        inclination=90,
+        heading=0,
+        max_time=20,
     )
 
     assert "booster" in mission.flights
@@ -967,23 +1122,37 @@ def test_deployable_with_powered_free_rocket(example_plain_env):
     carrier = _pointmass_stage("carrier", 0.1, 10.0, thrust=400)
 
     kick_rocket = Rocket(
-        radius=0.03, mass=1.0, inertia=(0.01, 0.01, 0.001),
-        power_off_drag=0.5, power_on_drag=0.5, center_of_mass_without_motor=0.0,
+        radius=0.03,
+        mass=1.0,
+        inertia=(0.01, 0.01, 0.001),
+        power_off_drag=0.5,
+        power_on_drag=0.5,
+        center_of_mass_without_motor=0.0,
     )
     kick_rocket.add_motor(
-        PointMassMotor(thrust_source=50, dry_mass=0.2, propellant_initial_mass=0.3, burn_time=1.0),
+        PointMassMotor(
+            thrust_source=50, dry_mass=0.2, propellant_initial_mass=0.3, burn_time=1.0
+        ),
         position=0.0,
     )
 
     vehicle = MultiStageRocket(stages=[carrier])
     vehicle.add_deployable(
-        name="kick", mass=1.5, inertia=(0.01, 0.01, 0.001), position=1.0,
-        free_rocket=kick_rocket, ejection="apogee",
+        name="kick",
+        mass=1.5,
+        inertia=(0.01, 0.01, 0.001),
+        position=1.0,
+        free_rocket=kick_rocket,
+        ejection="apogee",
     )
 
     mission = Mission(
-        vehicle=vehicle, environment=example_plain_env, rail_length=1.0,
-        inclination=90, heading=0, max_time=30,
+        vehicle=vehicle,
+        environment=example_plain_env,
+        rail_length=1.0,
+        inclination=90,
+        heading=0,
+        max_time=30,
     )
 
     assert "kick" in mission.flights
@@ -1011,8 +1180,12 @@ def test_plot_timeline_marks_every_event_and_plots_every_flight(example_plain_en
     vehicle = MultiStageRocket(stages=[booster, sustainer])
 
     mission = Mission(
-        vehicle=vehicle, environment=example_plain_env, rail_length=1.0,
-        inclination=84, heading=30, max_time=5,
+        vehicle=vehicle,
+        environment=example_plain_env,
+        rail_length=1.0,
+        inclination=84,
+        heading=30,
+        max_time=5,
     )
 
     assert mission.plot_timeline(filename=None) is None
@@ -1020,7 +1193,8 @@ def test_plot_timeline_marks_every_event_and_plots_every_flight(example_plain_en
 
     # One vertical marker line (2-point, x0==x1) per timeline event.
     event_lines = [
-        line for line in ax.lines
+        line
+        for line in ax.lines
         if len(line.get_xdata()) == 2 and line.get_xdata()[0] == line.get_xdata()[1]
     ]
     assert len(event_lines) == len(mission.timeline)
@@ -1034,8 +1208,11 @@ def test_plot_timeline_runs_for_the_degenerate_single_flight_case(
     calisto, example_plain_env
 ):
     mission = Mission(
-        vehicle=calisto, environment=example_plain_env, rail_length=5.2,
-        inclination=85, heading=0,
+        vehicle=calisto,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
     )
 
     assert mission.plot_timeline(filename=None) is None
@@ -1054,8 +1231,12 @@ def test_mission_timeline_omits_apogee_for_a_flight_truncated_before_reaching_it
     vehicle = MultiStageRocket(stages=[booster, sustainer])
 
     mission = Mission(
-        vehicle=vehicle, environment=example_plain_env, rail_length=1.0,
-        inclination=84, heading=30, max_time=10,
+        vehicle=vehicle,
+        environment=example_plain_env,
+        rail_length=1.0,
+        inclination=84,
+        heading=30,
+        max_time=10,
     )
 
     stack_flight = mission.flights["booster"][0]
@@ -1081,13 +1262,21 @@ def test_flight_covering_time_finds_the_right_flight(example_plain_env):
     vehicle = MultiStageRocket(stages=[booster, sustainer])
 
     mission = Mission(
-        vehicle=vehicle, environment=example_plain_env, rail_length=1.0,
-        inclination=84, heading=30, max_time=10,
+        vehicle=vehicle,
+        environment=example_plain_env,
+        rail_length=1.0,
+        inclination=84,
+        heading=30,
+        max_time=10,
     )
 
     all_flights = mission.all_flights
     assert len(all_flights) == 3
-    stack_flight, booster_flight, sustainer_flight = all_flights[0], all_flights[1], all_flights[2]
+    stack_flight, booster_flight, sustainer_flight = (
+        all_flights[0],
+        all_flights[1],
+        all_flights[2],
+    )
 
     assert mission._flight_covering_time(0.0) is stack_flight
     assert mission._flight_covering_time(0.75) is stack_flight
@@ -1096,7 +1285,9 @@ def test_flight_covering_time_finds_the_right_flight(example_plain_env):
     # continuous across the handoff) - only assert it resolves to ONE
     # of the two plausible flights, not a specific one.
     assert mission._flight_covering_time(1.5) in (
-        stack_flight, booster_flight, sustainer_flight,
+        stack_flight,
+        booster_flight,
+        sustainer_flight,
     )
     assert mission._flight_covering_time(booster_flight.apogee_time) is booster_flight
     assert mission._flight_covering_time(sustainer_flight.t_final) is sustainer_flight
@@ -1114,21 +1305,27 @@ def test_plot_trajectory_events_marks_every_resolvable_event(example_plain_env):
     vehicle = MultiStageRocket(stages=[booster, sustainer])
 
     mission = Mission(
-        vehicle=vehicle, environment=example_plain_env, rail_length=1.0,
-        inclination=84, heading=30, max_time=10,
+        vehicle=vehicle,
+        environment=example_plain_env,
+        rail_length=1.0,
+        inclination=84,
+        heading=30,
+        max_time=10,
     )
 
     assert mission.plot_trajectory_events(filename=None) is None
     ax = plt.gcf().axes[0]
 
     resolvable = [
-        (t, name) for t, name in mission.timeline
+        (t, name)
+        for t, name in mission.timeline
         if mission._flight_covering_time(t) is not None
     ]
     assert len(resolvable) == len(mission.timeline)  # every event resolves
 
     total_points = sum(
-        collection.get_offsets().shape[0] if hasattr(collection, "get_offsets")
+        collection.get_offsets().shape[0]
+        if hasattr(collection, "get_offsets")
         else len(collection._offsets3d[0])
         for collection in ax.collections
     )
@@ -1139,8 +1336,11 @@ def test_plot_trajectory_events_runs_for_the_degenerate_single_flight_case(
     calisto, example_plain_env
 ):
     mission = Mission(
-        vehicle=calisto, environment=example_plain_env, rail_length=5.2,
-        inclination=85, heading=0,
+        vehicle=calisto,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
     )
 
     assert mission.plot_trajectory_events(filename=None) is None
@@ -1158,8 +1358,12 @@ def test_mission_timeline_includes_apogee_for_an_apogee_terminated_flight(
     vehicle, _stage, _deployable = _single_stage_with_deployable_vehicle()
 
     mission = Mission(
-        vehicle=vehicle, environment=example_plain_env, rail_length=1.0,
-        inclination=90, heading=0, max_time=20,
+        vehicle=vehicle,
+        environment=example_plain_env,
+        rail_length=1.0,
+        inclination=90,
+        heading=0,
+        max_time=20,
     )
 
     carrier_flight = mission.flights["carrier"][0]

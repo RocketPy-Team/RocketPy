@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 
 from rocketpy.mathutils.function import Function
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
+from rocketpy.plots.compare.compare_flights import CompareFlights
 from rocketpy.plots.plot_helpers import show_or_save_plot
 from rocketpy.rocket.multistage import MultiStageRocket, Stage
 from rocketpy.simulation.flight import Flight
@@ -155,10 +156,63 @@ class Mission:
     def all_flights(self):
         """Every Flight object, in execution order, each appearing once
         (a Flight shared by several bodies, e.g. the full stack, is not
-        repeated). Feeds CompareFlights directly, e.g.
-        ``CompareFlights(mission.all_flights).trajectories_3d()``.
+        repeated). Feeds :meth:`trajectories_3d` and :meth:`positions`
+        internally, and is also usable directly with any other
+        :class:`~rocketpy.plots.compare.compare_flights.CompareFlights`
+        plot those two don't wrap, e.g.
+        ``CompareFlights(mission.all_flights).velocities()``.
         """
         return list(self._all_flights)
+
+    def trajectories_3d(self, figsize=(7, 7), legend=None, filename=None):
+        """Plain 3D trajectory plot for every flight in this mission, with
+        no event markers - the mission-level equivalent of a single
+        ``Flight``'s own ``flight.plots.trajectory_3d()``, so a caller
+        doesn't need to reach for :class:`CompareFlights` directly for
+        this. See :meth:`plot_trajectory_events` for the same plot with
+        every timeline event marked.
+
+        Parameters
+        ----------
+        figsize : tuple, optional
+            Passed through to CompareFlights.trajectories_3d(). Default
+            (7, 7).
+        legend : bool | None, optional
+            Passed through to CompareFlights.trajectories_3d(). Default
+            None (shows the legend).
+        filename : str | None, optional
+            Path to save the plot to. Default None, which shows it
+            instead.
+        """
+        CompareFlights(self.all_flights).trajectories_3d(
+            figsize=figsize, legend=legend, filename=filename
+        )
+
+    def positions(
+        self, figsize=(7, 10), x_lim=None, y_lim=None, legend=True, filename=None
+    ):
+        """x/y/z vs time, side by side, for every flight in this mission -
+        sugar for ``CompareFlights(mission.all_flights).positions()``, the
+        same way :meth:`trajectories_3d` wraps
+        ``CompareFlights(...).trajectories_3d()``.
+
+        Parameters
+        ----------
+        figsize : tuple, optional
+            Passed through to CompareFlights.positions(). Default (7, 10).
+        x_lim : tuple, optional
+            Passed through to CompareFlights.positions(). Default None.
+        y_lim : tuple, optional
+            Passed through to CompareFlights.positions(). Default None.
+        legend : bool, optional
+            Passed through to CompareFlights.positions(). Default True.
+        filename : str | None, optional
+            Path to save the plot to. Default None, which shows it
+            instead.
+        """
+        CompareFlights(self.all_flights).positions(
+            figsize=figsize, x_lim=x_lim, y_lim=y_lim, legend=legend, filename=filename
+        )
 
     def _event_label_positions(self):
         """(time, name, color, label_x, stagger_level) per timeline
@@ -238,14 +292,22 @@ class Mission:
             ax.axvline(time, color=color, linestyle="--", linewidth=0.8, alpha=0.6)
             label_y = ymax - label_span * 0.035 * (1 + level)
             ax.text(
-                label_x, label_y, name, rotation=90, ha="center", va="top",
-                color=color, fontsize=7,
+                label_x,
+                label_y,
+                name,
+                rotation=90,
+                ha="center",
+                va="top",
+                color=color,
+                fontsize=7,
             )
 
         ax.set_xlabel("Time (s)")
         ax.set_ylabel("Altitude (m)")
         ax.set_title(f"{self.name}: Flight Profile")
-        ax.legend(loc="upper left", bbox_to_anchor=(1.02, 1), fontsize=8, title="Flights")
+        ax.legend(
+            loc="upper left", bbox_to_anchor=(1.02, 1), fontsize=8, title="Flights"
+        )
         plt.tight_layout()
 
         show_or_save_plot(filename)
@@ -303,9 +365,15 @@ class Mission:
             marker = _EVENT_MARKERS.get(event_type, "o")
             size = 160 if event_type == "apogee" else 70
             ax.scatter(
-                [flight.x(time)], [flight.y(time)], [flight.z(time)],
-                color=color, marker=marker, s=size,
-                edgecolor="black", linewidth=0.5, zorder=10,
+                [flight.x(time)],
+                [flight.y(time)],
+                [flight.z(time)],
+                color=color,
+                marker=marker,
+                s=size,
+                edgecolor="black",
+                linewidth=0.5,
+                zorder=10,
                 label=None if event_type in seen_event_types else event_type,
             )
             seen_event_types.add(event_type)
@@ -410,7 +478,10 @@ class Mission:
         name = _configuration_name(active_stages, carried_deployables)
 
         flight = self._run_flight(
-            rocket, name=name, initial_solution=initial_solution, max_time=separation_time
+            rocket,
+            name=name,
+            initial_solution=initial_solution,
+            max_time=separation_time,
         )
         self._register_flight((*active_stages, *carried_deployables), flight)
         if is_root:
@@ -431,14 +502,14 @@ class Mission:
         departing_initial = self._handoff_state(
             ending_state, rocket, departing_rocket, departing_delta_v
         )
-        self._walk(
-            (bottom,), departing_deployables, departing_initial, is_root=False
-        )
+        self._walk((bottom,), departing_deployables, departing_initial, is_root=False)
 
         ignition_time = separation_time + remaining_stages[0].ignition_delay
         self.timeline.append((ignition_time, f"ignition:{remaining_stages[0].name}"))
         shifted_stages = self._shift_motor_ignition(remaining_stages, ignition_time)
-        ignited_rocket = self.vehicle.flight_rocket(shifted_stages, remaining_deployables)
+        ignited_rocket = self.vehicle.flight_rocket(
+            shifted_stages, remaining_deployables
+        )
         remaining_initial = self._handoff_state(
             ending_state, rocket, ignited_rocket, remaining_delta_v
         )
@@ -530,7 +601,9 @@ class Mission:
         remaining_deployables = tuple(
             d for d in carried_deployables if d is not deployable
         )
-        carrier_rocket = self.vehicle.flight_rocket(active_stages, remaining_deployables)
+        carrier_rocket = self.vehicle.flight_rocket(
+            active_stages, remaining_deployables
+        )
         carrier_delta_v, deployable_delta_v = self._momentum_split(
             carrier_rocket.total_mass(apogee_time),
             deployable.free_rocket.total_mass(0),
@@ -552,7 +625,9 @@ class Mission:
             ending_state, rocket, deployable.free_rocket, deployable_delta_v
         )
         deployable_flight = self._run_flight(
-            deployable.free_rocket, name=deployable.name, initial_solution=deployable_initial
+            deployable.free_rocket,
+            name=deployable.name,
+            initial_solution=deployable_initial,
         )
         self._register_flight((deployable,), deployable_flight)
         self.timeline.append((deployable_flight.t_final, f"impact:{deployable.name}"))
