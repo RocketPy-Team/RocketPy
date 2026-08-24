@@ -165,6 +165,7 @@ class NoseCone(_BarrowmanSurface):
 
         self.evaluate_lift_coefficient()
         self.evaluate_center_of_pressure()
+        self.evaluate_body_lift_geometry()
 
         # Translate the Barrowman geometry (clalpha, cpz) into the linear
         # generic-surface coefficient model and build the shared compute path.
@@ -200,6 +201,7 @@ class NoseCone(_BarrowmanSurface):
         self.evaluate_geometrical_parameters()
         self.evaluate_lift_coefficient()
         self.evaluate_nose_shape()
+        self.evaluate_body_lift_geometry()
 
     @property
     def length(self):
@@ -210,6 +212,7 @@ class NoseCone(_BarrowmanSurface):
         self._length = value
         self.evaluate_center_of_pressure()
         self.evaluate_nose_shape()
+        self.evaluate_body_lift_geometry()
 
     @property
     def power(self):
@@ -463,6 +466,30 @@ class NoseCone(_BarrowmanSurface):
                 f"cone length was reduced to {self.length} m."
             )
         self.fineness_ratio = self.length / (2 * self.base_radius)
+
+    def evaluate_body_lift_geometry(self):
+        """Compute the planform (side-projection) geometry used by the Galejs
+        body-lift term of ``_BarrowmanSurface.compute_forces_and_moments``.
+
+        The planform area is the lateral projection of the nose contour
+        ``y_nosecone`` and its centroid is measured from the nose tip, in the
+        same convention as ``cpz``. The slender-body CP required by the CP
+        blend is stored as well.
+
+        Returns
+        -------
+        None
+        """
+        # Numerical integration of the contour handles every nose kind,
+        # including the ones without a simple closed-form planform (ogive,
+        # tangent, lvhaack, vonkarman).
+        x_samples = np.linspace(0.0, self._length, 401)
+        y_samples = np.array([self.y_nosecone.get_value_opt(x) for x in x_samples])
+        self._planform_area = float(np.trapezoid(y_samples, x_samples))
+        self._planform_centroid = float(
+            np.trapezoid(x_samples * y_samples, x_samples) / self._planform_area
+        )
+        self._cp_slender = self.cpz
 
     def evaluate_lift_coefficient(self):
         """Calculates and returns nose cone's lift coefficient.

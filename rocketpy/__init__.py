@@ -29,6 +29,7 @@ from .plots.compare import Compare, CompareFlights
 from .rocket import (
     AeroSurface,
     AirBrakes,
+    BodyTube,
     Components,
     ControllableGenericSurface,
     EllipticalFin,
@@ -48,6 +49,7 @@ from .rocket import (
     TrapezoidalFin,
     TrapezoidalFins,
 )
+
 from .sensitivity import SensitivityModel
 from .sensors import Accelerometer, Barometer, GnssReceiver, Gyroscope
 from .simulation import (

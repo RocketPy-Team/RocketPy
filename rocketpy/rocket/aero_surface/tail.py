@@ -90,6 +90,7 @@ class Tail(_BarrowmanSurface):
         self.evaluate_geometrical_parameters()
         self.evaluate_lift_coefficient()
         self.evaluate_center_of_pressure()
+        self.evaluate_body_lift_geometry()
 
         # Translate the Barrowman geometry into the linear generic-surface
         # coefficient model and build the shared compute path.
@@ -114,6 +115,7 @@ class Tail(_BarrowmanSurface):
         self.evaluate_geometrical_parameters()
         self.evaluate_lift_coefficient()
         self.evaluate_center_of_pressure()
+        self.evaluate_body_lift_geometry()
 
     @property
     def bottom_radius(self):
@@ -125,6 +127,7 @@ class Tail(_BarrowmanSurface):
         self.evaluate_geometrical_parameters()
         self.evaluate_lift_coefficient()
         self.evaluate_center_of_pressure()
+        self.evaluate_body_lift_geometry()
 
     @property
     def length(self):
@@ -135,6 +138,7 @@ class Tail(_BarrowmanSurface):
         self._length = value
         self.evaluate_geometrical_parameters()
         self.evaluate_center_of_pressure()
+        self.evaluate_body_lift_geometry()
 
     @property
     def rocket_radius(self):
@@ -166,6 +170,27 @@ class Tail(_BarrowmanSurface):
             np.array([0, self.length]),
             np.array([self.top_radius, self.bottom_radius]),
         ]
+
+    def evaluate_body_lift_geometry(self):
+        """Compute the planform (side-projection) geometry used by the Galejs
+        body-lift term of ``_BarrowmanSurface.compute_forces_and_moments``.
+
+        The tail is a conical frustum, so its planform is a trapezoid with
+        parallel sides ``2 * top_radius`` and ``2 * bottom_radius``. The
+        centroid is measured from the top of the tail, in the same convention
+        as ``cpz``. The slender-body CP required by the CP blend is stored as
+        well.
+
+        Returns
+        -------
+        None
+        """
+        self._planform_area = (self.top_radius + self.bottom_radius) * self.length
+        self._planform_centroid = (
+            self.length / 3 * (self.top_radius + 2 * self.bottom_radius)
+            / (self.top_radius + self.bottom_radius)
+        )
+        self._cp_slender = self.cpz
 
     def evaluate_lift_coefficient(self):
         """Calculates and returns tail's lift coefficient.
