@@ -515,15 +515,43 @@ def test_evaluate_nozzle_to_cdm(calisto):
 
 def test_evaluate_nozzle_gyration_tensor(calisto):
     expected_gyration_tensor = np.array(
-        [[0.3940207, 0, 0], [0, 0.3940207, 0], [0, 0, 0.0005445]]
+        [[1.5752660, 0, 0], [0, 1.5752660, 0], [0, 0, 0.0005445]]
     )
-    atol = 1e-3 * 1e-2 * 1e-2  # Equivalent to 1g * 1cm^2
+    atol = 1e-7  # equivalent to 0.1 mm^2
     assert np.allclose(
         expected_gyration_tensor, np.array(calisto.nozzle_gyration_tensor), atol=atol
     )
     # Test if calling the function returns the same result
     res = calisto.evaluate_nozzle_gyration_tensor()
     assert np.allclose(expected_gyration_tensor, np.array(res), atol=atol)
+
+
+@pytest.mark.parametrize(
+    "rocket_fixture",
+    ["calisto", "calisto_liquid_modded", "calisto_hybrid_modded"],
+)
+def test_evaluate_nozzle_gyration_tensor_matches_the_exit_disk(rocket_fixture, request):
+    """The tensor is the exit disk second moment per unit area, about the CDM."""
+    rocket = request.getfixturevalue(rocket_fixture)
+    radius = rocket.motor.nozzle_radius
+    offset = rocket.nozzle_to_cdm
+
+    tensor = np.array(rocket.evaluate_nozzle_gyration_tensor())
+
+    lateral = radius**2 / 4 + offset**2
+    assert tensor[0, 0] == pytest.approx(lateral, rel=1e-12)
+    assert tensor[1, 1] == pytest.approx(lateral, rel=1e-12)
+    assert tensor[2, 2] == pytest.approx(radius**2 / 2, rel=1e-12)
+    assert (tensor[0, 1], tensor[0, 2], tensor[1, 2]) == (0, 0, 0)
+
+
+def test_evaluate_nozzle_gyration_tensor_parallel_axis_term(calisto):
+    """Taking the disk term out leaves the whole squared offset, not a fraction."""
+    tensor = np.array(calisto.evaluate_nozzle_gyration_tensor())
+
+    parallel_axis = tensor[0, 0] - tensor[2, 2] / 2
+
+    assert parallel_axis == pytest.approx(calisto.nozzle_to_cdm**2, rel=1e-12)
 
 
 def test_evaluate_com_to_cdm_function(calisto):
