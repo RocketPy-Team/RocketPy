@@ -1063,6 +1063,8 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         batch_size=50,
         parallel=False,
         n_workers=None,
+        *,
+        random_seed=None,
     ):
         """Run Monte Carlo simulations in batches until the confidence interval
         width converges within the specified tolerance or the maximum number of
@@ -1084,6 +1086,11 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             Whether to run simulations in parallel. Default is False.
         n_workers : int, optional
             The number of worker processes to use if running in parallel. Default is None.
+        random_seed : int, sequence of int or numpy.random.SeedSequence, optional
+            Fixes the whole study rather than one batch. Every batch continues
+            the same root, so a given ``max_simulations`` reaches the same set
+            of samples whatever ``batch_size`` divided it up. Keyword-only.
+            Default is None, which draws fresh entropy and reproduces nothing.
 
         Returns
         -------
@@ -1126,6 +1133,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                 include_function_data=False,
                 parallel=parallel,
                 n_workers=n_workers,
+                random_seed=random_seed,
             )
 
             self.import_outputs(self.filename.with_suffix(".outputs.txt"))
