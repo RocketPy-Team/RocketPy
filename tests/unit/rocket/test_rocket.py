@@ -515,15 +515,18 @@ def test_evaluate_nozzle_to_cdm(calisto):
 
 def test_evaluate_nozzle_gyration_tensor(calisto):
     expected_gyration_tensor = np.array(
-        [[1.5752660, 0, 0], [0, 1.5752660, 0], [0, 0, 0.0005445]]
+        [[1.57526603, 0, 0], [0, 1.57526603, 0], [0, 0, 0.0005445]]
     )
-    atol = 1e-7  # equivalent to 0.1 mm^2
+    atol = 1e-7  # equivalent to 0.1 mm^2, and rtol=0 so that is what it means
     assert np.allclose(
-        expected_gyration_tensor, np.array(calisto.nozzle_gyration_tensor), atol=atol
+        expected_gyration_tensor,
+        np.array(calisto.nozzle_gyration_tensor),
+        rtol=0,
+        atol=atol,
     )
     # Test if calling the function returns the same result
     res = calisto.evaluate_nozzle_gyration_tensor()
-    assert np.allclose(expected_gyration_tensor, np.array(res), atol=atol)
+    assert np.allclose(expected_gyration_tensor, np.array(res), rtol=0, atol=atol)
 
 
 @pytest.mark.parametrize(
