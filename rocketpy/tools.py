@@ -969,7 +969,7 @@ def time_num_to_date_string(time_num, units, timezone, calendar="gregorian"):
     return date_string, hour_string, date_time
 
 
-def geopotential_height_to_geometric_height(geopotential_height, radius=63781370.0):
+def geopotential_height_to_geometric_height(geopotential_height, radius=6378137.0):
     """Converts geopotential height to geometric height.
 
     Parameters
@@ -992,14 +992,14 @@ def geopotential_height_to_geometric_height(geopotential_height, radius=63781370
     >>> geopotential_height_to_geometric_height(0)
     0.0
     >>> geopotential_height_to_geometric_height(10000)
-    10001.568101798659
+    10015.70317975257
     >>> geopotential_height_to_geometric_height(20000)
-    20006.2733909262
+    20062.91151008542
     """
     return radius * geopotential_height / (radius - geopotential_height)
 
 
-def geopotential_to_height_asl(geopotential, radius=63781370, g=9.80665):
+def geopotential_to_height_asl(geopotential, radius=6378137.0, g=9.80665):
     """Compute height above sea level from geopotential.
 
     Source: https://en.wikipedia.org/wiki/Geopotential
@@ -1010,7 +1010,7 @@ def geopotential_to_height_asl(geopotential, radius=63781370, g=9.80665):
         Geopotential in m^2/s^2. It is the geopotential value at a given
         pressure level, to be converted to height above sea level.
     radius : float, optional
-        Earth radius in m. Default is 63781370 m.
+        Earth radius in m. Default is 6378137.0 m (WGS-84 semi-major axis).
     g : float, optional
         Gravity acceleration in m/s^2. Default is 9.80665 m/s^2.
 
@@ -1025,15 +1025,15 @@ def geopotential_to_height_asl(geopotential, radius=63781370, g=9.80665):
     >>> geopotential_to_height_asl(0)
     0.0
     >>> geopotential_to_height_asl(100000)
-    10198.792680243916
+    10213.491133844715
     >>> geopotential_to_height_asl(200000)
-    20400.84750449947
+    20459.74503595946
     """
     geopotential_height = geopotential / g
     return geopotential_height_to_geometric_height(geopotential_height, radius)
 
 
-def geopotential_to_height_agl(geopotential, elevation, radius=63781370, g=9.80665):
+def geopotential_to_height_agl(geopotential, elevation, radius=6378137.0, g=9.80665):
     """Compute height above ground level from geopotential and elevation.
 
     Parameters
@@ -1044,7 +1044,7 @@ def geopotential_to_height_agl(geopotential, elevation, radius=63781370, g=9.806
     elevation : float
         Surface elevation in m
     radius : float, optional
-        Earth radius in m. Default is 63781370 m.
+        Earth radius in m. Default is 6378137.0 m (WGS-84 semi-major axis).
     g : float, optional
         Gravity acceleration in m/s^2. Default is 9.80665 m/s^2.
 
@@ -1059,9 +1059,9 @@ def geopotential_to_height_agl(geopotential, elevation, radius=63781370, g=9.806
     >>> geopotential_to_height_agl(0, 0)
     0.0
     >>> geopotential_to_height_agl(100000, 0)
-    10198.792680243916
+    10213.491133844715
     >>> geopotential_to_height_agl(100000, 1000)
-    9198.792680243916
+    9213.491133844715
     """
     return geopotential_to_height_asl(geopotential, radius, g) - elevation
 

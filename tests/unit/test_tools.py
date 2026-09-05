@@ -12,6 +12,7 @@ from rocketpy.tools import (
     euler313_to_quaternions,
     find_roots_cubic_function,
     generate_monte_carlo_ellipses,
+    geopotential_height_to_geometric_height,
     haversine,
     inverted_haversine,
     mercator_to_wgs84,
@@ -21,7 +22,6 @@ from rocketpy.tools import (
     quaternions_to_spin,
     tuple_handler,
 )
-
 
 WEB_MERCATOR_EARTH_RADIUS = 6378137.0
 
@@ -347,3 +347,21 @@ def test_mercator_extent_to_local_preserves_offset_sign(
     assert local_extent[0] < local_extent[1]
     assert local_extent[2] < local_extent[3]
     assert all(expected_sign * value > 0 for value in local_extent)
+
+
+def test_geopotential_height_to_geometric_height_default_radius():
+    """The default radius must be the WGS-84 semi-major axis (6378137.0 m).
+    A previous default of 63781370.0 (10x the Earth radius) biased the
+    conversion low by ~14 m at 10 km and ~57 m at 20 km.
+    """
+    assert geopotential_height_to_geometric_height(0) == 0.0
+    assert geopotential_height_to_geometric_height(10000) == pytest.approx(
+        10015.70317975257, rel=1e-10
+    )
+    assert geopotential_height_to_geometric_height(20000) == pytest.approx(
+        20062.91151008542, rel=1e-10
+    )
+    # Explicit radius still overrides the default
+    assert geopotential_height_to_geometric_height(
+        10000, radius=6378137.0
+    ) == pytest.approx(10015.70317975257, rel=1e-10)
