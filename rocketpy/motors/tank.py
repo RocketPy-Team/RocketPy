@@ -293,6 +293,30 @@ class Tank(ABC):
         self._pressure = _pressure
 
     @property
+    def liquid_density(self):
+        """Returns the density of the liquid as a function of time.
+
+        Returns
+        -------
+        Function
+            Density of the liquid in kg/m³. A constant for fluids
+            defined with a fixed density.
+        """
+        return self._liquid_density
+
+    @property
+    def gas_density(self):
+        """Returns the density of the gas as a function of time.
+
+        Returns
+        -------
+        Function
+            Density of the gas in kg/m³. A constant for fluids
+            defined with a fixed density.
+        """
+        return self._gas_density
+
+    @property
     @abstractmethod
     def fluid_mass(self):
         """

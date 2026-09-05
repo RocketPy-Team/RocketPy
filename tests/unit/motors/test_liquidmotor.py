@@ -342,3 +342,103 @@ def test_liquid_motor_inertia(liquid_motor, pressurant_tank, fuel_tank, oxidizer
         liquid_motor.propellant_I_22(time),
         propellant_inertia(time),
     )
+
+
+def test_propellant_I_33_cylindrical_closed_form():
+    """Tests that the propellant roll inertia of a draining cylindrical tank
+    matches the closed form I_33 = 1/2 m r² for both the liquid and the gas
+    columns, at initial and half-drain conditions.
+
+    A hard-coded ``return 0`` used to make this property silently ignore the
+    propellant contribution to roll dynamics (see issue #1191).
+    """
+    import math
+
+    import pytest
+    from rocketpy import Fluid
+    from rocketpy.motors import LiquidMotor
+    from rocketpy.motors.tank import MassFlowRateBasedTank
+    from rocketpy.motors.tank_geometry import CylindricalTank
+
+    r, h, rho = 0.7, 2.0, 1141.0
+    geo = CylindricalTank(radius_function=r, height=h, spherical_caps=False)
+    m0 = rho * math.pi * r**2 * h * 0.93  # 93% fill
+    m_gas = 0.4
+    burn = 120.0
+    tank = MassFlowRateBasedTank(
+        name="lox",
+        geometry=geo,
+        flux_time=(0, burn),
+        liquid=Fluid(name="LOX", density=rho),
+        gas=Fluid(name="He", density=5.0),
+        initial_liquid_mass=m0,
+        initial_gas_mass=m_gas,
+        liquid_mass_flow_rate_in=0,
+        gas_mass_flow_rate_in=0,
+        liquid_mass_flow_rate_out=lambda t: m0 / (2 * burn),  # half drain
+        gas_mass_flow_rate_out=0,
+        discretize=2000,
+    )
+    motor = LiquidMotor(
+        thrust_source=lambda t: 1e5,
+        dry_mass=1000.0,
+        dry_inertia=(1e5, 1e5, 2e4),
+        nozzle_radius=0.2,
+        center_of_dry_mass_position=1.0,
+        nozzle_position=0,
+        burn_time=(0, burn),
+        coordinate_system_orientation="nozzle_to_combustion_chamber",
+    )
+    motor.add_tank(tank, position=1.5)
+
+    # Cylinder: I_33 = 1/2 m r^2 exactly, for liquid and gas columns alike
+    assert motor.propellant_I_33(0) == pytest.approx(
+        0.5 * (m0 + m_gas) * r**2, rel=1e-3
+    )
+    assert motor.propellant_I_33(burn) == pytest.approx(
+        0.5 * (m0 / 2 + m_gas) * r**2, rel=1e-3
+    )
+
+    # Monotonically non-increasing while draining
+    time = np.linspace(0, burn, 21)
+    values = motor.propellant_I_33(time)
+    assert all(a >= b for a, b in zip(values[:-1], values[1:]))
+
+
+def test_propellant_I_33_empty_tank_is_zero():
+    """Tests that an empty tank contributes no roll inertia and that public
+    density properties are exposed on Tank.
+    """
+    import math
+
+    import pytest
+    from rocketpy import Fluid
+    from rocketpy.motors.tank import MassFlowRateBasedTank
+    from rocketpy.motors.tank_geometry import CylindricalTank
+
+    r, h = 0.5, 1.0
+    geo = CylindricalTank(radius_function=r, height=h, spherical_caps=False)
+    burn = 10.0
+    m0 = 1000.0 * math.pi * r**2 * h  # start full, drain everything
+    tank = MassFlowRateBasedTank(
+        name="fuel",
+        geometry=geo,
+        flux_time=(0, burn),
+        liquid=Fluid(name="N2O4", density=1000.0),
+        gas=Fluid(name="N2", density=10.0),
+        initial_liquid_mass=m0,
+        initial_gas_mass=1.0,
+        liquid_mass_flow_rate_in=0,
+        gas_mass_flow_rate_in=0,
+        liquid_mass_flow_rate_out=lambda t: m0 / burn,
+        gas_mass_flow_rate_out=0,
+        discretize=2000,
+    )
+
+    # Public density accessors on the Tank (constant-density fluids
+    # still resolve to a constant Function of time)
+    assert tank.liquid_density(0) == pytest.approx(1000.0)
+    assert tank.gas_density(0) == pytest.approx(10.0)
+
+    # At burnout the liquid column is empty; only the gas remains
+    assert tank.liquid_height(burn) == pytest.approx(geo.bottom, abs=1e-4)

@@ -441,13 +441,32 @@ class LiquidMotor(Motor):
         Notes
         -----
         The e_3 direction is assumed to be the axial direction of the rocket
-        motor.
+        motor. Each tank contributes the roll inertia of its liquid and gas
+        columns, I_33 = rho/2 * ∫ area(h) * r(h)^2 dh, integrated from the
+        tank bottom up to the fluid surface height in tank geometry
+        coordinates. No parallel-axis term is required since the roll-axis
+        component is invariant under axial translation.
 
         References
         ----------
         https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
         """
-        return 0
+        I_33 = 0
+
+        for positioned_tank in self.positioned_tanks:
+            tank = positioned_tank.get("tank")
+            geometry = tank.geometry
+            # Antiderivative of area*r² (= π r⁴) referenced to the tank
+            # bottom, so that an empty tank contributes zero.
+            roll_volume = (geometry.area * geometry.radius**2).integral_function(
+                geometry.bottom
+            )
+            liquid_column = roll_volume @ tank.liquid_height
+            gas_column = roll_volume @ tank.gas_height - liquid_column
+            I_33 += tank.liquid_density * liquid_column / 2
+            I_33 += tank.gas_density * gas_column / 2
+
+        return I_33
 
     @funcify_method("Time (s)", "Inertia I_12 (kg m²)")
     def propellant_I_12(self):
