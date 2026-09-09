@@ -1479,14 +1479,6 @@ def find_obj_from_hash(obj, hash_, depth_limit=None):
     return None
 
 
-def _seed_sequence_to_int(seed_sequence):
-    """Returns a ``SeedSequence`` as the 128-bit ``int`` seed ``random.Random``
-    accepts, combined by value so it does not depend on byte order.
-    """
-    words = seed_sequence.generate_state(4, dtype=np.uint32)
-    return sum(int(word) << (32 * position) for position, word in enumerate(words))
-
-
 def _seed_sequence_from(seed):
     """Returns a ``SeedSequence`` of the caller's own to spawn from.
 
