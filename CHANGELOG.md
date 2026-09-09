@@ -32,6 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- ENH: Reproducible Monte Carlo seeding, and an append that continues the same study [#1187](https://github.com/RocketPy-Team/RocketPy/pull/1187) [#1053](https://github.com/RocketPy-Team/RocketPy/issues/1053) [#1075](https://github.com/RocketPy-Team/RocketPy/issues/1075)
 - ENH: Support fixed-time parachute deployment triggers [#1133](https://github.com/RocketPy-Team/RocketPy/pull/1133) [#437](https://github.com/RocketPy-Team/RocketPy/issues/437)
 - DOC: Add SIL parachute ejection integration example [#1131](https://github.com/RocketPy-Team/RocketPy/pull/1131) [#524](https://github.com/RocketPy-Team/RocketPy/issues/524)
 - ENH: List NOAA atmosphere datasets and fetch latest [#1136](https://github.com/RocketPy-Team/RocketPy/pull/1136) [#660](https://github.com/RocketPy-Team/RocketPy/issues/660)
