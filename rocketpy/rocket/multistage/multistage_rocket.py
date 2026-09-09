@@ -1,4 +1,4 @@
-"""Vehicle composition layer for multistage rockets and deployable payloads."""
+"""The launch vehicle that stacks stages and carries deployables."""
 
 from copy import deepcopy
 
@@ -11,214 +11,11 @@ from rocketpy.plots.rocket_plots import _default_vis_args
 from rocketpy.rocket.aero_surface.fins.fins import Fins
 from rocketpy.rocket.aero_surface.nose_cone import NoseCone
 from rocketpy.rocket.aero_surface.tail import Tail
+from rocketpy.rocket.multistage.deployable import Deployable
+from rocketpy.rocket.multistage.geometry import axial_extent
+from rocketpy.rocket.multistage.stage import Stage
 from rocketpy.rocket.rocket import Rocket
 from rocketpy.tools import parallel_axis_theorem_from_com
-
-
-def axial_extent(rocket):
-    """Axial extent (bottom, top) spanned by a rocket's aerodynamic
-    surfaces, in the rocket's own coordinate system.
-
-    NoseCone, Tail and Fins each occupy a span (their own ``length`` or
-    ``root_chord``, starting from their own reference position); every
-    other surface type (GenericSurface, RailButtons, individual Fin,
-    TubeFins, ...) is treated as a single point at its own position. This
-    is an approximation for those types, not an exact geometric fit.
-
-    Parameters
-    ----------
-    rocket : Rocket
-        Must have at least one aerodynamic surface.
-
-    Returns
-    -------
-    tuple of float
-        (bottom, top) - the lowest and highest axial coordinates spanned.
-    """
-    if not rocket.aerodynamic_surfaces:
-        raise ValueError(
-            "Rocket must have at least one aerodynamic surface to compute "
-            "its axial extent."
-        )
-    bounds = []
-    for surface, position in rocket.aerodynamic_surfaces:
-        z = position.z
-        bounds.append(z)
-        if isinstance(surface, NoseCone):
-            bounds.append(z - rocket._csys * surface.length)
-        elif isinstance(surface, Tail):
-            bounds.append(z - rocket._csys * surface.length)
-        elif isinstance(surface, Fins):
-            bounds.append(z - rocket._csys * surface.root_chord)
-    return min(bounds), max(bounds)
-
-
-class SeparableBody:
-    """A body that starts attached to the vehicle and becomes a free body
-    when its separation event fires. Base class for Stage and Deployable.
-
-    Parameters
-    ----------
-    name : str
-        Unique body name within the vehicle; used to group Mission
-        results (e.g. ``mission.flights["booster"]``).
-    separation_delta_v : float, optional
-        Relative separation speed along the stack's longitudinal axis,
-        in m/s, split by momentum conservation. Default 0.
-
-    Notes
-    -----
-    Subclasses each hold their own release-event attribute under its own
-    name (``Stage.separation``, ``Deployable.ejection``) rather than a
-    shared base attribute, since the two events are conceptually similar
-    but not interchangeable.
-    """
-
-    def __init__(self, name, separation_delta_v=0.0):
-        self.name = name
-        self.separation_delta_v = separation_delta_v
-
-
-class Stage(SeparableBody):
-    """One stage of a multistage rocket.
-
-    Wraps a fully built single-stage ``Rocket`` describing this stage flying
-    by itself: structure, motor, aerodynamic surfaces and parachutes.
-
-    Parameters
-    ----------
-    name : str
-        Stage name, e.g. "booster", "sustainer".
-    rocket : Rocket
-        This stage flying by itself, motor attached.
-    separation : Event, optional
-        When this stage (and everything below it) is jettisoned from the
-        stages above. Top stage: None.
-    separation_delta_v : float, optional
-        See SeparableBody.
-    ignition : Event, optional
-        Event that ignites this stage's motor. Default None.
-    ignition_delay : float, optional
-        Time between the separation of the stage below and this stage's
-        motor ignition, in seconds. Default 0.
-    length : float, optional
-        Total axial length of this stage, used only when stacking with
-        ``interstage_lengths`` and the stage's own aerodynamic surfaces
-        don't already mark both ends of its extent (see
-        :func:`~rocketpy.rocket.multistage.axial_extent` and
-        :meth:`MultiStageRocket._stage_extent`). When the stage has a
-        NoseCone but no Tail/Fins, ``length`` extends aft from the nose
-        tip; when it has a Tail/Fins but no NoseCone, it extends toward
-        the nose from the aft-most surface; only when the stage has no
-        surfaces at all does it fall back to treating the stage's own
-        coordinate origin (position 0) as its bottom.
-    """
-
-    def __init__(
-        self,
-        name,
-        rocket,
-        separation=None,
-        separation_delta_v=0.0,
-        ignition=None,
-        ignition_delay=0.0,
-        length=None,
-    ):
-        super().__init__(name=name, separation_delta_v=separation_delta_v)
-        self.rocket = rocket
-        self.separation = separation
-        self.ignition = ignition
-        self.ignition_delay = ignition_delay
-        self.length = length
-
-    @property
-    def burn_out_time(self):
-        """Burn out time of this stage's motor in the motor's own time."""
-        return self.rocket.motor.burn_out_time
-
-    @property
-    def dry_mass(self):
-        """Stage dry mass (structure + motor dry mass), in kg."""
-        return self.rocket.dry_mass
-
-
-class Deployable(SeparableBody):
-    """An inert body carried by the vehicle and ejected in flight.
-
-    No aerodynamic identity while attached: contributes only mass and
-    inertia at a position inside the carrying stage.
-
-    Free-flight aerodynamics come from one of two sources, mutually
-    exclusive:
-    - ``free_rocket``: a fully built Rocket or PointMassRocket (full
-      control);
-    - surfaces added with ``add_surface()``: Mission assembles the
-      free-flight Rocket from the deployable's mass, inertia, radius and
-      the added surfaces.
-
-    Parameters
-    ----------
-    name : str
-        Unique body name; used to group Mission results.
-    mass : float
-        Carried mass in kg.
-    inertia : tuple of float
-        Inertia (I11, I22, I33) about the deployable's own center of
-        mass, in kg*m^2.
-    position : float
-        Position of the deployable's center of mass in the carrying
-        stage's rocket coordinate system, in meters.
-    radius : float, optional
-        The deployable's largest radius in meters. Required only when
-        defining its free-flight aerodynamics via add_surface().
-    free_rocket : Rocket, PointMassRocket, optional
-        Free-flight configuration after ejection. Mutually exclusive
-        with add_surface().
-    ejection : Event, optional
-        When the deployable is released, e.g. Event(trigger="apogee").
-    separation_delta_v : float, optional
-        See SeparableBody.
-    """
-
-    def __init__(
-        self,
-        name,
-        mass,
-        inertia,
-        position,
-        radius=None,
-        free_rocket=None,
-        ejection=None,
-        separation_delta_v=0.0,
-    ):
-        super().__init__(name=name, separation_delta_v=separation_delta_v)
-        self.mass = mass
-        self.inertia = inertia
-        self.position = position
-        self.radius = radius
-        self.free_rocket = free_rocket
-        self.ejection = ejection
-        self.surfaces = []
-
-    def add_surface(self, surface, position):
-        """Add an aerodynamic surface to the deployable's free flight.
-
-        Takes effect only after ejection; while attached the deployable
-        still contributes only mass and inertia. ``position`` is in the
-        deployable's own coordinate system, in meters. Requires
-        ``radius`` to be set and is mutually exclusive with
-        ``free_rocket``.
-        """
-        if self.free_rocket is not None:
-            raise ValueError(
-                "add_surface is mutually exclusive with free_rocket; "
-                "a free_rocket was already provided for this deployable."
-            )
-        if self.radius is None:
-            raise ValueError(
-                "add_surface requires radius to be set on the deployable."
-            )
-        self.surfaces.append((surface, position))
 
 
 class MultiStageRocket:
@@ -338,9 +135,7 @@ class MultiStageRocket:
         offset = 0.0
         for i in range(1, index + 1):
             stage_bottom = self._stage_extent(self.stages[i])[0]
-            offset = (
-                cumulative_top + self.interstage_lengths[i - 1] - stage_bottom
-            )
+            offset = cumulative_top + self.interstage_lengths[i - 1] - stage_bottom
             cumulative_top = self._stage_extent(self.stages[i])[1] + offset
         return offset
 
@@ -373,7 +168,7 @@ class MultiStageRocket:
         clear, stage-named error when neither is available.
         """
         csys = stage.rocket._csys
-        surfaces = [surface for surface, _ in stage.rocket.aerodynamic_surfaces]
+        surfaces = [surface for surface, *_ in stage.rocket.aerodynamic_surfaces]
         has_nose = any(isinstance(surface, NoseCone) for surface in surfaces)
         has_aft_marker = any(isinstance(surface, (Tail, Fins)) for surface in surfaces)
         fully_marked = has_nose and has_aft_marker
@@ -428,7 +223,7 @@ class MultiStageRocket:
         """
         if stage.length is None:
             return None
-        surfaces = [surface for surface, _ in stage.rocket.aerodynamic_surfaces]
+        surfaces = [surface for surface, *_ in stage.rocket.aerodynamic_surfaces]
         has_nose = any(isinstance(surface, NoseCone) for surface in surfaces)
         has_aft_marker = any(isinstance(surface, (Tail, Fins)) for surface in surfaces)
         if has_nose and has_aft_marker:
@@ -526,7 +321,7 @@ class MultiStageRocket:
         )
         for stage in active_stages:
             offset = self._stack_position_of(stage)
-            for surface, position in stage.rocket.aerodynamic_surfaces:
+            for surface, position, *_ in stage.rocket.aerodynamic_surfaces:
                 shifted_position = (
                     position
                     if offset == 0.0
@@ -618,9 +413,7 @@ class MultiStageRocket:
         combined = None
         for stage in active_stages:
             stage_rocket = stage.rocket
-            scaled = getattr(stage_rocket, attr_name) * (
-                stage_rocket.area / stack_area
-            )
+            scaled = getattr(stage_rocket, attr_name) * (stage_rocket.area / stack_area)
             combined = scaled if combined is None else combined + scaled
         return combined
 
@@ -698,12 +491,16 @@ class MultiStageRocket:
         bottom, top = gap[0] + offset, gap[1] + offset
         radius = stage.rocket.radius
         ax.plot(
-            [bottom, top], [radius, radius],
-            color=vis_args["body"], linewidth=vis_args["line_width"],
+            [bottom, top],
+            [radius, radius],
+            color=vis_args["body"],
+            linewidth=vis_args["line_width"],
         )
         ax.plot(
-            [bottom, top], [-radius, -radius],
-            color=vis_args["body"], linewidth=vis_args["line_width"],
+            [bottom, top],
+            [-radius, -radius],
+            color=vis_args["body"],
+            linewidth=vis_args["line_width"],
         )
 
     def _draw_stage_spans(self, stage_spans, ax, stack_radius, vis_args):
@@ -723,8 +520,13 @@ class MultiStageRocket:
             ax.axvline(bottom, color=color, linestyle="--", linewidth=1.0)
             ax.axvline(top, color=color, linestyle="--", linewidth=1.0)
             ax.text(
-                (bottom + top) / 2, stage_label_y, name,
-                ha="center", va="bottom", color=color, fontsize=8,
+                (bottom + top) / 2,
+                stage_label_y,
+                name,
+                ha="center",
+                va="bottom",
+                color=color,
+                fontsize=8,
             )
             self._draw_body_gap(stages_by_name[name], ax, vis_args)
 
@@ -766,8 +568,13 @@ class MultiStageRocket:
         for name, position in deployable_positions:
             ax.scatter([position], [0], marker="^", color="purple", zorder=11)
             ax.text(
-                position, deployable_label_y, name,
-                ha="center", va="top", color="purple", fontsize=8,
+                position,
+                deployable_label_y,
+                name,
+                ha="center",
+                va="top",
+                color="purple",
+                fontsize=8,
             )
 
     def draw(self, vis_args=None, plane="xz", *, filename=None):
@@ -780,7 +587,8 @@ class MultiStageRocket:
         surface" requirement (on at least one stage).
         """
         stack = self.flight_rocket(
-            active_stages=tuple(self.stages), carried_deployables=tuple(self.deployables)
+            active_stages=tuple(self.stages),
+            carried_deployables=tuple(self.deployables),
         )
         ax = stack.plots.draw(vis_args, plane, return_axes=True)
         effective_vis_args = vis_args if vis_args is not None else _default_vis_args()
@@ -798,7 +606,9 @@ class MultiStageRocket:
         # Rocket.plots.draw() auto-computed from the drawn geometry alone
         # (text extents aren't included in that autoscale) - widen it so
         # labels near either end aren't clipped by the axes edge.
-        annotated_x = [bound for _, bottom, top in stage_spans for bound in (bottom, top)]
+        annotated_x = [
+            bound for _, bottom, top in stage_spans for bound in (bottom, top)
+        ]
         annotated_x += [position for _, position in deployable_positions]
         if annotated_x:
             xmin, xmax = ax.get_xlim()
