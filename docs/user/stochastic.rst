@@ -341,6 +341,23 @@ draws under a fixed seed. The rocket's own inputs, such as ``mass`` and
     one model. Sharing one between two components leaves each of them seeding it
     from their own child, and the last one to be reset decides what both draw.
 
+.. note::
+    A whole run is fixed by ``MonteCarlo.simulate(random_seed=...)`` rather than
+    by seeding these models yourself. Each simulation takes its seed from its own
+    index, so simulation 7 draws the same inputs whether the run was serial or
+    split over any number of workers, and whether it was reached first or last.
+    Every input row records the root it came from, so appending carries that
+    study on whether or not the seed is given again, and a different one is
+    refused rather than mixed in. Without a seed a run draws fresh entropy and
+    reproduces nothing.
+
+    An index fixes the draw, not the object it is drawn around. Where the note
+    above says a value follows its deterministic object, moving that object
+    between runs still moves what is sampled, however the seed was set. A
+    ``CustomSampler`` that draws from the process-global ``numpy.random``
+    rather than from the generator it is handed sits outside all of this, as
+    :ref:`custom_sampler` warns.
+
 Conclusion
 ----------
 
