@@ -1377,6 +1377,18 @@ def euler313_to_quaternions(phi, theta, psi):
     return e0, e1, e2, e3
 
 
+def _seed_sequence_to_int(seed_sequence):
+    """Returns the 128-bit ``int`` seed a ``SeedSequence`` derives.
+
+    Derived, not serialized: the entropy and spawn key it came from cannot be
+    read back out. Folded through ``generate_state`` rather than off
+    ``entropy``, since the children of one root differ only by ``spawn_key``,
+    and combined by value so it does not depend on byte order.
+    """
+    words = seed_sequence.generate_state(4, dtype=np.uint32)
+    return sum(int(word) << (32 * position) for position, word in enumerate(words))
+
+
 def get_matplotlib_supported_file_endings():
     """Gets the file endings supported by matplotlib.
 

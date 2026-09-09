@@ -8,7 +8,7 @@ import numpy as np
 from rocketpy.mathutils.function import Function
 from rocketpy.stochastic.custom_sampler import CustomSampler
 
-from ..tools import get_distribution
+from ..tools import _seed_sequence_to_int, get_distribution
 
 
 def _names_as_spawn_key(input_names):
@@ -41,6 +41,18 @@ def _format_number(value):
     return f"array of shape {np.shape(value)}"
 
 
+def _seed_as_entropy(seed):
+    """A seed as something ``SeedSequence`` will take as entropy.
+
+    A parallel run is handed a ``SeedSequence``, which it will not take. Any
+    other seed goes through untouched, so the stream an int reaches stays where
+    it was.
+    """
+    if not isinstance(seed, np.random.SeedSequence):
+        return seed
+    return _seed_sequence_to_int(seed)
+
+
 def _sampler_seed(seed, input_names):
     """Derive a seed for one sampler, or for one group that shares a generator.
 
@@ -54,10 +66,10 @@ def _sampler_seed(seed, input_names):
     # Sorted here rather than trusting the caller, so a future call site cannot
     # give one group two different seeds by listing its members another way.
     root = np.random.SeedSequence(
-        entropy=seed, spawn_key=_names_as_spawn_key(tuple(sorted(input_names)))
+        entropy=_seed_as_entropy(seed),
+        spawn_key=_names_as_spawn_key(tuple(sorted(input_names))),
     )
-    words = root.generate_state(4, dtype=np.uint32)
-    return sum(int(word) << (32 * position) for position, word in enumerate(words))
+    return _seed_sequence_to_int(root)
 
 
 # TODO: Stop using assert in production code. Use exceptions instead.
