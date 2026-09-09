@@ -278,6 +278,45 @@ reliability of your simulations over time.
 .. which parameters most significantly impact your simulation results.
 
 
+Seeding a rocket's components
+-----------------------------
+
+A ``StochasticRocket`` holds nested stochastic objects: the motors, the
+aerodynamic surfaces, the rail buttons, the parachutes and the air brakes. Each
+time the rocket is reset, every component attached to it at that moment is given
+a stream of its own, spawned from the seed the reset was given. A main and a
+drogue parachute built from the same ``cd_s`` and ``lag`` are then no longer
+made to consume the same draws as each other. Independent streams can still land
+on equal values, and a specification with no spread always will.
+
+The reset is what builds the tree, not ``add_parachute`` or ``add_nose``. A
+rocket resets itself once while being constructed, when it has no components
+yet, so anything attached afterwards keeps the generator it was built with until
+something resets it again. A serial ``MonteCarlo`` run does not reset it at
+all. A parallel one tries to, once per worker, but hands the model a
+``SeedSequence`` where an integer is wanted, so that path does not get as far
+as building the tree either. Resetting per simulation, from an integer seed the
+caller chooses, is what the Monte Carlo seeding work adds.
+
+Each collection is spawned separately, so adding an aerodynamic surface does not
+move what the parachutes draw. Within a collection the stream follows insertion
+order, so adding a component ahead of another does change what the later one
+draws under a fixed seed. The rocket's own inputs, such as ``mass`` and
+``radius``, use the seed exactly as given.
+
+.. note::
+    A component's *position* is a property of the rocket rather than of the
+    component, so it is drawn from the rocket's own stream.
+
+.. note::
+    A stream belongs to one stochastic wrapper. Storing the same wrapper twice,
+    or sharing one between two rockets, is not supported: the second reset
+    replaces the first, and the two entries end up drawing from one generator.
+
+    A shared ``CustomSampler.seed_group`` keeps its own rule: a group belongs to
+    one model. Sharing one between two components leaves each of them seeding it
+    from their own child, and the last one to be reset decides what both draw.
+
 Conclusion
 ----------
 
