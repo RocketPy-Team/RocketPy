@@ -7,6 +7,7 @@ from rocketpy.simulation.monte_carlo import MonteCarlo
 def test_a_monte_carlo_run_finishes(
     stochastic_environment, stochastic_calisto, stochastic_flight, tmp_path, parallel
 ):
+    """A real run completes and records every simulation, both modes."""
     # The parallel path hands each worker a SeedSequence rather than an int, and
     # nothing else in the suite exercises that. A worker that dies on it is not
     # reported, so this reads as a hang rather than as a failure.
