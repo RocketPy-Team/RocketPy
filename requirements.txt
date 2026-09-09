@@ -6,3 +6,4 @@ requests
 pytz
 simplekml
 dill
+pywmm

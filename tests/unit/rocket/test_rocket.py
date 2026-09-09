@@ -1094,3 +1094,97 @@ def test_evaluate_reduced_mass_with_motor(calisto):
     for t in [0.0, 1.0, 2.0, 3.0]:
         expected = prop_mass(t) * dry_mass / (prop_mass(t) + dry_mass)
         assert reduced_mass(t) == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(
+    "wire, position_endpoints, parachute_name",
+    [
+        (
+            "test_circular_plate",
+            [[0.001, 0.001, 0], [0.001, -0.001, 0]],
+            None,
+        ),  # wrong wire: not Wire
+        (
+            "test_communications_wire",
+            1,
+            None,
+        ),  # wrong dimensions: number
+        (
+            "test_communications_wire",
+            [[0.001, 0.001, 0], [0.001, -0.001, 0], []],
+            None,
+        ),  # wrong dimensions: only 2 position endpoints
+        (
+            "test_communications_wire",
+            [[0.001, 0.001, 0], [0.001, -0.001, 0, 10]],
+            None,
+        ),  # wrong dimensions: only 3 coodinates in endpoint position
+        (
+            "test_communications_wire",
+            [[0.001, 0.001, 0], 9],
+            None,
+        ),  # wrong dimensions: either all are numbers or all list
+        (
+            "test_communications_wire",
+            [[0.001, 0.001, 0], [0.001, -0.001, 10]],
+            None,
+        ),  # wrong endpoint: z out of range
+        (
+            "test_communications_wire",
+            [[0.001, 0.001, 0], [0.001, -1, 0]],
+            None,
+        ),  # wrong endpoint: radius of out range
+        (
+            "test_ignition_wire_parachute",
+            [[0.001, 0.001, 0], [0.001, -0.001, 0]],
+            None,
+        ),  # wrong parachute_name: None
+        (
+            "test_ignition_wire_parachute",
+            [[0.001, 0.001, 0], [0.001, -0.001, 0]],
+            10,
+        ),  # wrong parachute_name: number
+    ],
+)
+def test_add_wire(request, wire, position_endpoints, parachute_name, calisto_robust):
+    """Tests that add_wire raises InvalidParameterError as intended."""
+    wire_object = request.getfixturevalue(wire)
+    with pytest.raises(InvalidParameterError):
+        calisto_robust.add_wire(wire_object, position_endpoints, parachute_name)
+
+
+@pytest.mark.parametrize(
+    "plate, position, height",
+    [
+        ("test_communications_wire", 30, 0.4),  # wrong Plate: not Plate
+        ("test_circular_plate", None, 0.4),  # wrong position: None
+        ("test_circular_plate", "None", 0.4),  # wrong position: str
+        ("test_circular_plate", 30, None),  # wrong height: None
+        ("test_circular_plate", 30, "None"),  # wrong height: str
+        ("test_circular_plate", 30, 40),  # wrong height: out of bounds
+    ],
+)
+def test_add_plate(request, plate, position, height, calisto_robust):
+    """Tests that add_plate raises InvalidParameterError as intended."""
+    plate_obj = request.getfixturevalue(plate)
+    with pytest.raises(InvalidParameterError):
+        calisto_robust.add_plate(plate_obj, position, height)
+
+
+def test_general_radius(calisto_robust):
+    """Tests the general radius funciton as well as the _calculate_radius_z_intermediate,
+    nose cone radius function and the tail radius function."""
+    prev = 0
+    for z in np.linspace(-1.313 - 0.06, 1.16, 100):
+        current_radius = calisto_robust.general_radius(z, frame="ucs")
+        if -1.313 - 0.06 <= z <= -1.313:
+            assert 0.0435 <= current_radius <= 0.0635
+            assert current_radius > prev
+            prev = current_radius
+        elif z <= 1.160 - 0.55829:
+            assert current_radius == 0.0635
+            prev = current_radius
+        else:
+            assert 0 <= current_radius <= calisto_robust.radius
+            assert current_radius < prev
+            prev = current_radius

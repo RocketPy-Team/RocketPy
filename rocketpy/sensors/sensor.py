@@ -357,7 +357,7 @@ class InertialSensor(Sensor):
         temperature drift.
     """
 
-    def __init__(  # pylint: disable=too-many-arguments
+    def __init__(
         self,
         sampling_rate,
         orientation=(0, 0, 0),
@@ -511,6 +511,7 @@ class InertialSensor(Sensor):
             ).round(12)
         else:
             raise ValueError("Invalid orientation format")
+
         self.normal_vector = Vector(
             [
                 self.rotation_sensor_to_body[0][2],
@@ -527,7 +528,6 @@ class InertialSensor(Sensor):
                 [self.cross_axis_sensitivity, self.cross_axis_sensitivity, 100],
             ]
         )
-
         # compute total rotation matrix given cross axis sensitivity
         self._total_rotation_sensor_to_body = (
             self.rotation_sensor_to_body @ cross_axis_matrix
@@ -570,13 +570,13 @@ class InertialSensor(Sensor):
 
         Parameters
         ----------
-        value : float
-            The value to add noise to
+        value : Vector
+            The Vector value to add noise to
 
         Returns
         -------
-        float
-            The value with added noise
+        value: Vector
+            The Vector value with added noise
         """
         # white noise
         white_noise = Vector(
@@ -599,24 +599,33 @@ class InertialSensor(Sensor):
 
         Parameters
         ----------
-        value : float
+        value : float or Vector
             The value to apply temperature drift to
 
         Returns
         -------
-        float
+        Vector
             The value with applied temperature drift
         """
+
+        if isinstance(value, (int, float)):
+            value = Vector([value, value, value])
+
+        elif not isinstance(value, Vector):
+            value = Vector(value)
+
         # temperature drift
-        value += (self.operating_temperature - 298.15) * self.temperature_bias
+        temp_delta = self.operating_temperature - 298.15
+        value = value + (temp_delta * self.temperature_bias)
+
         # temperature scale factor
         scale_factor = (
-            Vector([1, 1, 1])
-            + (self.operating_temperature - 298.15)
-            / 100
-            * self.temperature_scale_factor
+            Vector([1, 1, 1]) + (temp_delta / 100) * self.temperature_scale_factor
         )
-        return value & scale_factor
+
+        res = value & scale_factor
+
+        return res
 
     def to_dict(self, **kwargs):
         data = super().to_dict(**kwargs)

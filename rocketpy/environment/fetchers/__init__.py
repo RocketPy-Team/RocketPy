@@ -20,18 +20,6 @@ from rocketpy.environment.fetchers.meteomatics_fetcher import (
     fetch_atmospheric_data_from_meteomatics,
     fetch_meteomatics_token,
 )
-from rocketpy.environment.fetchers.open_meteo_fetcher import (
-    OPEN_METEO_ENSEMBLE_MODELS,
-    OPEN_METEO_ENSEMBLE_URL,
-    OPEN_METEO_FORECAST_URL,
-    OPEN_METEO_HISTORICAL_START_DATE,
-    OPEN_METEO_HISTORICAL_URL,
-    OPEN_METEO_PRESSURE_LEVELS,
-    OPEN_METEO_TIMEOUT_SECONDS,
-    build_hourly_variables,
-    fetch_open_meteo_ensemble,
-    fetch_open_meteo_forecast,
-)
 from rocketpy.environment.fetchers.noaa_catalog import (
     FORECAST_MODELS_CATALOG_URL,
     NOAA_MODEL_COLLECTIONS,
@@ -44,6 +32,18 @@ from rocketpy.environment.fetchers.noaa_catalog import (
     list_noaa_atmosphere_datasets,
     list_noaa_dataset_identifiers,
     resolve_noaa_collection_path,
+)
+from rocketpy.environment.fetchers.open_meteo_fetcher import (
+    OPEN_METEO_ENSEMBLE_MODELS,
+    OPEN_METEO_ENSEMBLE_URL,
+    OPEN_METEO_FORECAST_URL,
+    OPEN_METEO_HISTORICAL_START_DATE,
+    OPEN_METEO_HISTORICAL_URL,
+    OPEN_METEO_PRESSURE_LEVELS,
+    OPEN_METEO_TIMEOUT_SECONDS,
+    build_hourly_variables,
+    fetch_open_meteo_ensemble,
+    fetch_open_meteo_forecast,
 )
 from rocketpy.environment.fetchers.opendap_fetchers import (
     fetch_aigfs_file_return_dataset,

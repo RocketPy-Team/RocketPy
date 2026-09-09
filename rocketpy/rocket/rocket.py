@@ -17,6 +17,7 @@ from rocketpy.exceptions import (
 from rocketpy.mathutils.function import Function
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
 from rocketpy.motors.empty_motor import EmptyMotor
+from rocketpy.motors.motor import Motor
 from rocketpy.plots.rocket_plots import _RocketPlots
 from rocketpy.prints.rocket_prints import _RocketPrints
 from rocketpy.rocket.aero_surface import (
@@ -36,6 +37,8 @@ from rocketpy.rocket.aero_surface.fins.trapezoidal_fin import TrapezoidalFin
 from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
+from rocketpy.rocket.plate import Plate
+from rocketpy.rocket.wire import Wire
 from rocketpy.tools import (
     deprecated,
     find_obj_from_hash,
@@ -186,6 +189,11 @@ class Rocket:
         RailButtons object containing the rail buttons information.
     Rocket.motor : Motor
         Rocket's motor. See Motor class for more details.
+    Rocket.wires : Components
+        Collection of all the wires attached to the rocket.
+    Rocket.plates : list
+        Collection of all the plates attached to the rocket, stored as
+        lists of [plate, position, height].
     Rocket.motor_position : float
         Position, in meters, of the motor's coordinate system origin
         relative to the user defined rocket coordinate system.
@@ -359,6 +367,10 @@ class Rocket:
         self.radius = radius
         self.area = np.pi * self.radius**2
 
+        # Other attributes
+        self._radius_function = None
+        self._nose_tip_from_ucs = None
+
         # Eccentricity data initialization
         self.cm_eccentricity_x = 0
         self.cm_eccentricity_y = 0
@@ -371,6 +383,10 @@ class Rocket:
         self.parachutes = []
         self._controllers = []
         self.air_brakes = []
+        self._communication_wires = []
+        self._ignition_wires = []
+        self.wires = Components()
+        self.plates = []
         self.sensors = Components()
         self.aerodynamic_surfaces = Components()
         self.surfaces_cp_to_cdm = {}
@@ -1195,6 +1211,9 @@ class Rocket:
             self.rail_buttons.add(surface, position)
         else:
             self.aerodynamic_surfaces.add(surface, position)
+            if isinstance(surface, NoseCone):
+                self.nose_cone = surface
+                self._nose_tip_from_ucs = position[2]
         self.__evaluate_single_surface_cp_to_cdm(surface, position)
 
     def add_surfaces(self, surfaces, positions):
@@ -1375,6 +1394,7 @@ class Rocket:
             name=name,
         )
         self.add_surfaces(nose, position)
+
         return nose
 
     @deprecated(
@@ -1829,6 +1849,7 @@ class Rocket:
             radius, drag_coefficient, height, porosity and name. Furthermore,
             it stores clean_pressure_signal, noise_signal and
             noisyPressureSignal which are filled in during Flight simulation.
+
         """
         parachute = Parachute(
             name,
@@ -1850,9 +1871,10 @@ class Rocket:
 
         Parameters
         ----------
-        sensor : Sensor
+        sensor: Sensor
             Sensor to be added to the rocket.
-        position : int, float, tuple, list, Vector
+
+        position: int, float, tuple, list, Vector
             Position of the sensor. If a Vector, tuple or list is passed, it
             must be in the format (x, y, z) where x, y, and z are defined in the
             rocket's user defined coordinate system. If a single value is
@@ -1864,13 +1886,182 @@ class Rocket:
         None
         """
         if isinstance(position, (float, int)):
-            position = (0, 0, position)
-        position = Vector(position)
-        self.sensors.add(sensor, position)
+            position_ucs = Vector([0, 0, position])
+        else:
+            position_ucs = Vector(position)
+        self.sensors.add(sensor, position_ucs)
         try:
             sensor._attached_rockets[self] += 1
         except KeyError:
             sensor._attached_rockets[self] = 1
+
+    def add_wire(
+        self,
+        wire: Wire,
+        position_endpoints: list | tuple,
+        parachute_name: str | None = None,
+    ) -> None:
+        """Adds a wire to the rocket. Wires generate magnetic disturbances that
+        affect magnetometer sensor readings during flight simulation.
+
+        Parameters
+        ----------
+        wire : Wire
+            Wire object to be added to the rocket.
+        position_endpoints : list, tuple
+            Sequence of two elements defining Endpoint A and Endpoint B:
+
+            - If numeric scalars: [z_a, z_b] coordinates along the centerline
+              in the User-defined Coordinate System.
+            - If 3D vectors: [[x_a, y_a, z_a], [x_b, y_b, z_b]] coordinates in
+              the User-defined Coordinate System.
+
+            Conventional current flows from Endpoint A to Endpoint B.
+        parachute_name : str, optional
+            Name of the parachute during whose deployment current flows.
+            Mandatory when the wire is an ignition wire with function
+            "parachute_deployment". Default is None.
+        """
+        if not isinstance(wire, Wire):
+            raise InvalidParameterError("The wire parameter must be a Wire instance.")
+
+        endpoints = self._define_3d_endpoints(position_endpoints)
+
+        if wire.ignition_wire_function == "parachute_deployment":
+            if not isinstance(parachute_name, str):
+                raise InvalidParameterError(
+                    "parachute_name must be a string when the wire function is 'parachute_deployment'."
+                )
+            wire.parachute_name = parachute_name
+        else:
+            wire.parachute_name = None
+
+        for endpoint, name in zip(endpoints, ("Endpoint A", "Endpoint B")):
+            x, y, z = endpoint
+            flag, range_z = self.z_bounds_check(z, frame="ucs")
+            if not flag:
+                raise InvalidParameterError(
+                    f"{name} z-coordinate {z} is outside the rocket longitudinal range {range_z}."
+                )
+
+            r_endpoint = math.hypot(x, y)
+            r_rocket = self.general_radius(z, frame="ucs")
+            if r_endpoint > r_rocket:
+                raise InvalidParameterError(
+                    f"{name} with coordinates {endpoint} is outside the rocket radius ({r_endpoint:.4f} m > {r_rocket:.4f} m) at z = {z} m."
+                )
+        wire._rocket_belonging(self)
+        wire._set_wire_endpoints_to_bacs(self, endpoints)
+
+        if wire.wire_type == "communications":
+            self._communication_wires.append(wire)
+        elif wire.wire_type == "ignition":
+            self._ignition_wires.append(wire)
+        self.wires.add(wire, position_endpoints)
+
+    def _define_3d_endpoints(self, position_endpoints: list | tuple) -> list[Vector]:
+        """Creates the 3D position vectors of the wire endpoints from the user inputs.
+
+        Parameters
+        ----------
+        position_endpoints : list, tuple
+            Sequence of two numbers (z-coordinates) or two 3D position vectors
+            ([x, y, z]) relative to the User-defined Coordinate System.
+            Conventional current flows from Endpoint A to Endpoint B.
+
+        Returns
+        -------
+        list of Vector
+            List containing the 3D Vector components of each endpoint [endpoint_a, endpoint_b].
+        """
+        if isinstance(position_endpoints, (list, tuple)):
+            if len(position_endpoints) == 2:
+                if all(isinstance(val, (int, float)) for val in position_endpoints):
+                    endpoint_a = Vector([0, 0, float(position_endpoints[0])])
+                    endpoint_b = Vector([0, 0, float(position_endpoints[1])])
+                    return [endpoint_a, endpoint_b]
+
+                elif all(
+                    isinstance(item, (list, tuple, Vector))
+                    for item in position_endpoints
+                ):
+                    if any(len(item) != 3 for item in position_endpoints):
+                        raise InvalidParameterError(
+                            "The coordinate length for each endpoint must be 3."
+                        )
+
+                    endpoint_a = (
+                        position_endpoints[0]
+                        if isinstance(position_endpoints[0], Vector)
+                        else Vector(position_endpoints[0])
+                    )
+                    endpoint_b = (
+                        position_endpoints[1]
+                        if isinstance(position_endpoints[1], Vector)
+                        else Vector(position_endpoints[1])
+                    )
+
+                    return [endpoint_a, endpoint_b]
+                else:
+                    raise InvalidParameterError(
+                        "position_endpoints must be a sequence of numbers or 3D coordinate vectors."
+                    )
+            else:
+                raise InvalidParameterError(
+                    "position_endpoints must contain exactly 2 endpoint positions."
+                )
+        else:
+            raise InvalidParameterError(
+                "position_endpoints must be a list or tuple of two numbers (z-coordinates) or two 3D position vectors ([x, y, z])."
+            )
+
+    def add_plate(
+        self,
+        plate: Plate,
+        position: float | int | None = None,
+        height: float | int | None = None,
+    ) -> None:
+        """Adds a Plate object to the rocket. Plates are used to measure
+        soft-iron magnetic distortion, that affects magnetometer sensor
+        readings during flight simulation.
+
+        Parameters
+        ----------
+        plate : Plate
+            The Plate instance to be attached to the rocket.
+        position : float, int, optional
+            Angle between the User-defined Coordinate System y-axis and the
+            geometric center of the plate in degrees. The angle is positive from
+            y to -x. See `Rocket Axes Definition <https://docs.rocketpy.org/en/latest/user/rocket/rocket_axes.html>`_
+            for more information.
+        height : float, int, optional
+            Axial coordinate of the geometric center along the rocket
+            longitudinal axis in the User-defined Coordinate System in
+            meters. Required when the ``shape`` of the plate is "circular" or
+            "rectangular".
+        """
+        if not isinstance(plate, Plate):
+            raise InvalidParameterError("The plate parameter must be a Plate instance.")
+
+        if plate.shape in ("circular", "rectangular"):
+            if position is None:
+                raise InvalidParameterError(
+                    f"position must be defined when the shape is '{plate.shape}'."
+                )
+            if not isinstance(position, (float, int)):
+                raise InvalidParameterError("position must be a float or int.")
+            if height is None:
+                raise InvalidParameterError(
+                    f"height must be defined when the shape is '{plate.shape}'."
+                )
+            flag, range_z = self.z_bounds_check(height, frame="ucs")
+            if not flag:
+                raise InvalidParameterError(
+                    f"The defined height {height} m must be within the rocket longitudinal range {range_z} in the user frame."
+                )
+        plate._rocket_belonging(self)
+        plate.define_plate_position(self, position, height)
+        self.plates.append([plate, position, height])
 
     def add_air_brakes(
         self,
@@ -2207,8 +2398,8 @@ class Rocket:
             A full list of color names can be found at:
             https://matplotlib.org/stable/gallery/color/named_colors
         plane : str, optional
-            Plane in which the rocket will be drawn. Default is 'xz'. Other
-            options is 'yz'. Used only for sensors representation.
+            Plane in which the rocket will be drawn. Default is "xz". Other
+            options is "yz". Used only for sensors representation.
         filename : str | None, optional
             The path the plot should be saved to. By default None, in which case
             the plot will be shown instead of saved. Supported file endings are:
@@ -2216,6 +2407,183 @@ class Rocket:
             and webp (these are the formats supported by matplotlib).
         """
         self.plots.draw(vis_args, plane, filename=filename)
+
+    def general_radius(self, z: float, frame: str = "bacs") -> float:
+        """Returns the radius of the rocket, including the
+        nose cone and the radius variations in the body, as a function of
+        the distance along the z axis from the body axes coordinate system
+        or the user defined coordinate system.
+
+        It assumes that the bottom radius of the nose cone is constant until
+        some tail, if defined, is present. Then, the radius of the body will be
+        the top radius of the following tail, or if it is the last tail, the
+        radius will be the radius of the bottom of the tail.
+
+        Parameters
+        ----------
+        z : float, int
+            Position along the z axis relative to the bacs
+            in which we want to calculate the radius.
+        frame : str, optional
+            Frame in which the z component is given. It can either be "bacs"
+            (body axis coordinate sytem) or "ucs" (user defined coordiante
+            system).
+
+        Returns
+        -------
+        r: float
+            Radius for the z value in the whole rocket.
+        """
+        if not isinstance(z, (float, int)):
+            raise InvalidParameterError("Z must be a float or int")
+        if not isinstance(self.nose_cone, NoseCone):
+            raise InvalidParameterError("Define a nose cone first")
+        if not isinstance(frame, str):
+            raise InvalidParameterError("frame parameter must be a string")
+        else:
+            if isinstance(frame, str):
+                if frame.lower() == "ucs":
+                    distance_from_nose = (
+                        self._nose_tip_from_ucs - z
+                    ) * self._csys  # nose cone frame
+                    z_bacs = (z - self.center_of_dry_mass_position) * self._csys
+                elif frame.lower() == "bacs":
+                    nose_tip_bacs = (
+                        self._nose_tip_from_ucs - self.center_of_dry_mass_position
+                    ) * self._csys
+                    distance_from_nose = nose_tip_bacs - z  # nose cone frame
+                    z_bacs = z
+                else:
+                    raise InvalidParameterError(
+                        "Accepted strings for frame are ucs and bacs"
+                    )
+            if 0 <= distance_from_nose <= self.nose_cone.length:
+                r = self.nose_cone.radius(distance_from_nose)
+            else:
+                r = self._calculate_radius_z_intermediate(z_bacs)
+            return r
+
+    def _calculate_radius_z_intermediate(self, z: float) -> float:
+        """This is an auxiliary function returning the radius of the rocket,
+        below the nose cone as a function of the distance along the z
+        axis from the body axes coordinate system.
+
+        Parameters
+        ----------
+        z: float, int
+            Position along the z axis in the body axis coordinate
+            system for which the radius will be returned.
+
+        Returns
+        -------
+        r: float, int
+            Radius for the z value
+        """
+        tails_bacs = []
+        for tail, tail_from_ucs in self.aerodynamic_surfaces.get_position_by_type(Tail):
+            tail_bacs = (
+                tail_from_ucs[2] - self.center_of_dry_mass_position
+            ) * self._csys
+            tails_bacs.append((tail, tail_bacs))
+            distance_from_tail_tip = tail_bacs - z
+            if 0 <= distance_from_tail_tip <= tail.length:
+                r = tail.radius(distance_from_tail_tip)
+                return r
+
+        r = self._calculate_radius_z_tubes(z, tails_bacs)
+        return r
+
+    def _calculate_radius_z_tubes(self, z: float, tails_bacs: list) -> float:
+        """This is an auxiliary function returning the radius of the rocket,
+        when it is not in the nose cone or tails as a function of the
+        distance along the z axis from the body axes coordinate system.
+
+        Parameters
+        ----------
+        z: float, int
+            Position along the z axis in the body axis coordinate
+            system for which the radius will be returned.
+        tails_bacs: list
+            List composed of tuples with the tails of the rocket,
+            and the position in the bacs frame
+
+        Returns
+        -------
+        r: float, int
+            Radius for the z value in the body tubes.
+        """
+        if tails_bacs != []:
+            o_tails_bacs = sorted(tails_bacs, key=lambda x: x[1], reverse=True)
+            for tail, tail_bacs_position in o_tails_bacs:
+                if z > tail_bacs_position:
+                    return tail.top_radius
+
+            last_tail = o_tails_bacs[-1][0]
+            r = last_tail.bottom_radius
+        else:
+            r = self.radius
+        return r
+
+    def z_bounds_check(
+        self, z: float, frame: str = "bacs"
+    ) -> tuple[bool, tuple[float, float]]:
+        """This function is used to check if a given z is inside or outside
+        the defined rocket.
+
+        Parameters
+        ----------
+        z: float, int
+            Position along the z axis for which it will be checked
+            whether it is inside or outside the rocket.
+        frame: str, optional
+            The coordinate system of the input z and the returned bounds.
+            "bacs" for Body Axes Coordinate System (default), or "ucs" for
+            User Coordinate System.
+
+        Returns
+        -------
+        is_inside: bool
+            False if it is outside, True if it is inside.
+        bounds: tuple
+            Tuple formed by the range of the z relative to the specified frame.
+        """
+        if isinstance(z, (float, int)):
+            if not isinstance(self.nose_cone, NoseCone):
+                raise InvalidParameterError("Define a nose cone first")
+            if not isinstance(self.motor, Motor):
+                raise InvalidParameterError("Define a motor first")
+
+            # bounds in the ucs frame
+            nose_tip_ucs = self._nose_tip_from_ucs
+            motor_ucs = self.motor_position
+            if isinstance(frame, str):
+                if frame.lower() == "ucs":
+                    z_min = min(nose_tip_ucs, motor_ucs)
+                    z_max = max(nose_tip_ucs, motor_ucs)
+
+                elif frame.lower() == "bacs":
+                    # change from ucs to bacs
+                    nose_tip_bacs = (
+                        nose_tip_ucs - self.center_of_dry_mass_position
+                    ) * self._csys
+                    motor_bacs = (
+                        motor_ucs - self.center_of_dry_mass_position
+                    ) * self._csys
+
+                    z_min = min(nose_tip_bacs, motor_bacs)
+                    z_max = max(nose_tip_bacs, motor_bacs)
+                else:
+                    raise InvalidParameterError(
+                        "Accepted strings for frame are ucs and bacs"
+                    )
+            else:
+                raise InvalidParameterError("Frame parameter must be a string")
+
+            is_inside = z_min <= z <= z_max
+            return is_inside, (z_min, z_max)
+
+        else:
+            raise InvalidParameterError("The z component must be a float or int")
 
     def info(self):
         """Prints out a summary of the data and graphs available about
@@ -2265,6 +2633,8 @@ class Rocket:
             "air_brakes": self.air_brakes,
             "_controllers": self._controllers,
             "sensors": self.sensors,
+            "wires": self.wires,
+            "plates": self.plates,
         }
 
         if kwargs.get("include_outputs", False):
@@ -2405,6 +2775,12 @@ class Rocket:
                             "Deserialization will proceed, results may not be accurate."
                         )
             rocket._add_controllers(controller)
+
+        for wire, position_endpoints in data.get("wires", []):
+            rocket.add_wire(wire, position_endpoints)
+
+        for plate, position, height in data.get("plate", []):
+            rocket.add_plate(plate, position, height)
 
         return rocket
 

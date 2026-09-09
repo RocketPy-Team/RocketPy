@@ -5,8 +5,8 @@ import logging
 import os
 import re
 import warnings
-from collections.abc import Mapping
 from collections import namedtuple
+from collections.abc import Mapping
 from datetime import datetime
 
 import netCDF4

@@ -1,4 +1,4 @@
-import numericalunits
+import numericalunits as nu
 import pytest
 
 
@@ -12,7 +12,7 @@ def m():
     numericalunits.m
         A simple object of the numericalunits.m class
     """
-    return numericalunits.m
+    return nu.m
 
 
 @pytest.fixture
@@ -25,4 +25,4 @@ def kg():
     numericalunits.kg
         A simple object of the numericalunits.kg class
     """
-    return numericalunits.kg
+    return nu.kg

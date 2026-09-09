@@ -31,6 +31,8 @@ pytest_plugins = [
     "tests.fixtures.sensors.sensors_fixtures",
     "tests.fixtures.generic_surfaces.generic_surfaces_fixtures",
     "tests.fixtures.generic_surfaces.linear_generic_surfaces_fixtures",
+    "tests.fixtures.plates.plate_fixtures",
+    "tests.fixtures.wire.wire_fixtures",
 ]
 
 

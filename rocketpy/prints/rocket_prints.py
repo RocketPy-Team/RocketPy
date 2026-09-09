@@ -11,27 +11,18 @@ class _RocketPrints:
 
     """
 
-    def __init__(self, rocket):
+    def __init__(self, rocket) -> None:
         """Initializes _EnvironmentPrints class
 
         Parameters
         ----------
         rocket: rocketpy.rocket
             Instance of the rocket class.
-
-        Returns
-        -------
-        None
         """
         self.rocket = rocket
 
-    def inertia_details(self):
-        """Print inertia details.
-
-        Returns
-        -------
-        None
-        """
+    def inertia_details(self) -> None:
+        """Print inertia details."""
         print("\nInertia Details\n")
         print(f"Rocket Mass: {self.rocket.mass:.3f} kg (without motor)")
         print(f"Rocket Dry Mass: {self.rocket.dry_mass:.3f} kg (with unloaded motor)")
@@ -56,13 +47,8 @@ class _RocketPrints:
             f"Rocket Inertia (with unloaded motor) 23: {self.rocket.dry_I_23:.3f} kg*m2"
         )
 
-    def rocket_geometrical_parameters(self):
-        """Print rocket geometrical parameters.
-
-        Returns
-        -------
-        None
-        """
+    def rocket_geometrical_parameters(self) -> None:
+        """Print rocket geometrical parameters."""
         print("\nGeometrical Parameters\n")
         print(f"Rocket Maximum Radius: {self.rocket.radius} m")
         print(f"Rocket Frontal Area: {self.rocket.area:.6f} m2")
@@ -94,13 +80,8 @@ class _RocketPrints:
             f"Rocket Center of Mass - Rocket Loaded Center of Mass: {distance:.3f} m\n"
         )
 
-    def rocket_aerodynamics_quantities(self):
-        """Print rocket aerodynamics quantities.
-
-        Returns
-        -------
-        None
-        """
+    def rocket_aerodynamics_quantities(self) -> None:
+        """Print rocket aerodynamics quantities."""
         print("\nAerodynamics Lift Coefficient Derivatives\n")
         for surface, _ in self.rocket.aerodynamic_surfaces:
             if isinstance(surface, GenericSurface):
@@ -141,23 +122,13 @@ class _RocketPrints:
             f"{abs(self.rocket.center_of_mass(0) - self.rocket.cp_position(0)):.3f} m\n"
         )
 
-    def parachute_data(self):
-        """Print parachute data.
-
-        Returns
-        -------
-        None
-        """
+    def parachute_data(self) -> None:
+        """Print parachute data."""
         for chute in self.rocket.parachutes:
             chute.all_info()
 
-    def all(self):
-        """Prints all print methods about the Environment.
-
-        Returns
-        -------
-        None
-        """
+    def all(self) -> None:
+        """Prints all print methods about the Environment."""
         self.inertia_details()
         self.rocket_geometrical_parameters()
         self.rocket_aerodynamics_quantities()

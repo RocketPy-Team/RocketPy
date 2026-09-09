@@ -168,7 +168,6 @@ class Motor(ABC):
         It will allow to obtain the net thrust in the Flight class.
     """
 
-    # pylint: disable=too-many-statements
     def __init__(
         self,
         thrust_source,

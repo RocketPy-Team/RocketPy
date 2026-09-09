@@ -6,7 +6,6 @@ from rocketpy import Environment, Flight, Rocket
 from rocketpy.motors import CylindricalTank, Fluid, HybridMotor
 from rocketpy.motors.tank import MassFlowRateBasedTank
 
-
 MEASURED_APOGEE_AGL = 9308.32
 MAX_RELATIVE_APOGEE_ERROR = 0.01
 REFERENCE_MAX_SPEED = 444.24

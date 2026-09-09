@@ -11,8 +11,9 @@ class RocketPyError(Exception):
 
 
 class InvalidParameterError(RocketPyError, ValueError):
-    """Raised when a constructor parameter has an invalid value (e.g. negative
-    radius or mass)."""
+    """Raised when a function, method, or constructor parameter receives an
+    invalid value or violates geometric/physical constraints (e.g., negative
+    mass, out-of-bounds coordinates, or unsupported options)."""
 
 
 class InvalidInertiaError(RocketPyError, ValueError):
