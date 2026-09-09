@@ -1,5 +1,6 @@
 # pylint: disable=too-many-public-methods, too-many-instance-attributes, too-many-lines
 import bisect
+import hashlib
 import json
 import logging
 import os
@@ -13,6 +14,17 @@ import netCDF4
 import numpy as np
 import pytz
 
+from rocketpy.environment.atmosphere_cache import (
+    build_atmosphere_cache_key,
+    cache_path_for,
+    is_remote_url,
+    load_json_cache,
+    read_ensemble_profile_netcdf,
+    read_profile_netcdf,
+    save_json_cache,
+    write_ensemble_profile_netcdf,
+    write_profile_netcdf,
+)
 from rocketpy.environment.fetchers import (
     fetch_aigfs_file_return_dataset,
     fetch_atmospheric_data_from_meteomatics,
@@ -1234,6 +1246,7 @@ class Environment:
         pressure_conversion_factor=None,
         username=None,
         password=None,
+        no_cache=False,
     ):
         """Define the atmospheric model for this Environment.
 
@@ -1354,6 +1367,11 @@ class Environment:
             Meteomatics account password. Only used when ``type`` is
             ``"meteomatics"``. If None (the default), the value is read from the
             ``METEOMATICS_PASSWORD`` environment variable.
+        no_cache : bool, optional
+            If True, bypass the on-disk atmosphere cache and force a fresh
+            download for remote Forecast/Ensemble/Windy sources. Cached files
+            live under ``~/.rocketpy_cache/atmosphere`` (or ``ROCKETPY_CACHE``).
+            Default is False.
 
         Returns
         -------
@@ -1401,7 +1419,10 @@ class Environment:
             case "custom_atmosphere":
                 self.process_custom_atmosphere(pressure, temperature, wind_u, wind_v)
             case "windy":
-                self.process_windy_atmosphere(file)
+                self.process_windy_atmosphere(
+                    **({} if file is None else {"model": file}),
+                    no_cache=no_cache,
+                )
             case "open_meteo":
                 self.process_open_meteo_atmosphere(
                     **({} if file is None else {"model": file})
@@ -1468,15 +1489,38 @@ class Environment:
                 except KeyError:
                     fetch_function = None
 
-                # Fetches the dataset using OpenDAP protocol or uses the file path
-                dataset = fetch_function() if fetch_function is not None else file
+                cache_path = self.__atmosphere_cache_path_for_request(
+                    type, file, fetch_function
+                )
+                loaded_from_cache = False
+                if cache_path is not None and not no_cache:
+                    if type == "ensemble":
+                        loaded_from_cache = self.__apply_cached_ensemble_profiles(
+                            cache_path
+                        )
+                    else:
+                        loaded_from_cache = self.__apply_cached_forecast_profiles(
+                            cache_path
+                        )
 
-                if type in ["forecast", "reanalysis"]:
-                    self.process_forecast_reanalysis(
-                        dataset, dictionary, conversion_factor=conversion_factor
-                    )
-                else:
-                    self.process_ensemble(dataset, dictionary, conversion_factor)
+                if not loaded_from_cache:
+                    # Fetches the dataset using OpenDAP protocol or uses the file path
+                    dataset = fetch_function() if fetch_function is not None else file
+
+                    if type in ["forecast", "reanalysis"]:
+                        self.process_forecast_reanalysis(
+                            dataset, dictionary, conversion_factor=conversion_factor
+                        )
+                    else:
+                        self.process_ensemble(
+                            dataset, dictionary, conversion_factor=conversion_factor
+                        )
+
+                    if cache_path is not None:
+                        if type == "ensemble":
+                            self.__save_ensemble_profiles_to_cache(cache_path)
+                        else:
+                            self.__save_forecast_profiles_to_cache(cache_path)
 
                 ground_pressure = self.pressure(self.elevation)
                 if not 30000 <= ground_pressure <= 120_000:
@@ -1513,6 +1557,136 @@ class Environment:
         # Save dictionary and file
         self.atmospheric_model_file = file
         self.atmospheric_model_dict = dictionary
+
+    def __atmosphere_cache_path_for_request(self, atm_type, file, fetch_function):
+        """Return a cache path for remote Forecast/Ensemble sources, else None."""
+        if fetch_function is not None and isinstance(file, str):
+            source_label = file
+        elif is_remote_url(file):
+            source_label = "url_" + hashlib.md5(file.encode("utf-8")).hexdigest()[:12]
+        else:
+            return None
+
+        return cache_path_for(
+            build_atmosphere_cache_key(
+                atm_type,
+                source_label,
+                self.latitude,
+                self.longitude,
+                self.datetime_date,
+            ),
+            ".nc",
+        )
+
+    def __apply_profiles_from_arrays(
+        self, height, pressure, temperature, wind_u, wind_v
+    ):
+        """Install forecast-style profile Functions from 1-D arrays."""
+        wind_speed = calculate_wind_speed(wind_u, wind_v)
+        wind_heading = calculate_wind_heading(wind_u, wind_v)
+        wind_direction = convert_wind_heading_to_direction(wind_heading)
+        data_array = mask_and_clean_dataset(
+            pressure,
+            height,
+            temperature,
+            wind_u,
+            wind_v,
+            wind_heading,
+            wind_direction,
+            wind_speed,
+        )
+        self.__set_pressure_function(data_array[:, (1, 0)])
+        self.__set_barometric_height_function(data_array[:, (0, 1)])
+        self.__set_temperature_function(data_array[:, (1, 2)])
+        self.__set_wind_velocity_x_function(data_array[:, (1, 3)])
+        self.__set_wind_velocity_y_function(data_array[:, (1, 4)])
+        self.__set_wind_heading_function(data_array[:, (1, 5)])
+        self.__set_wind_direction_function(data_array[:, (1, 6)])
+        self.__set_wind_speed_function(data_array[:, (1, 7)])
+        return data_array
+
+    def __apply_cached_forecast_profiles(self, cache_path):
+        """Load Forecast/Reanalysis profiles from disk. Return True on success."""
+        profiles = read_profile_netcdf(cache_path)
+        if profiles is None:
+            return False
+        self.__apply_profiles_from_arrays(
+            profiles["height"],
+            profiles["pressure"],
+            profiles["temperature"],
+            profiles["wind_u"],
+            profiles["wind_v"],
+        )
+        self.elevation = profiles["elevation"]
+        self._max_expected_height = profiles["max_expected_height"]
+        return True
+
+    def __save_forecast_profiles_to_cache(self, cache_path):
+        """Persist the active Forecast/Reanalysis profiles to ``cache_path``."""
+        if not self.pressure.is_array_source():
+            return
+        pressure_source = np.asarray(self.pressure.source, dtype=float)
+        temperature_source = np.asarray(self.temperature.source, dtype=float)
+        wind_u_source = np.asarray(self.wind_velocity_x.source, dtype=float)
+        wind_v_source = np.asarray(self.wind_velocity_y.source, dtype=float)
+        write_profile_netcdf(
+            cache_path,
+            height=pressure_source[:, 0],
+            pressure=pressure_source[:, 1],
+            temperature=temperature_source[:, 1],
+            wind_u=wind_u_source[:, 1],
+            wind_v=wind_v_source[:, 1],
+            elevation=float(self.elevation),
+            max_expected_height=float(self._max_expected_height),
+            kind="forecast",
+        )
+
+    def __apply_cached_ensemble_profiles(self, cache_path):
+        """Load Ensemble member profiles from disk. Return True on success."""
+        profiles = read_ensemble_profile_netcdf(cache_path)
+        if profiles is None:
+            return False
+
+        height = profiles["height_ensemble"]
+        temper = profiles["temperature_ensemble"]
+        wind_u = profiles["wind_u_ensemble"]
+        wind_v = profiles["wind_v_ensemble"]
+        levels = profiles["levels"]
+
+        wind_speed = calculate_wind_speed(wind_u, wind_v)
+        wind_heading = calculate_wind_heading(wind_u, wind_v)
+        wind_direction = convert_wind_heading_to_direction(wind_heading)
+
+        self.level_ensemble = levels
+        self.height_ensemble = height
+        self.temperature_ensemble = temper
+        self.wind_u_ensemble = wind_u
+        self.wind_v_ensemble = wind_v
+        self.wind_heading_ensemble = wind_heading
+        self.wind_direction_ensemble = wind_direction
+        self.wind_speed_ensemble = wind_speed
+        self.num_ensemble_members = height.shape[0]
+        self.elevation = profiles["elevation"]
+        self._max_expected_height = profiles["max_expected_height"]
+        self.select_ensemble_member()
+        return True
+
+    def __save_ensemble_profiles_to_cache(self, cache_path):
+        """Persist Ensemble member profiles to ``cache_path``."""
+        if not hasattr(self, "height_ensemble"):
+            return
+        write_ensemble_profile_netcdf(
+            cache_path,
+            levels=self.level_ensemble,
+            height_ensemble=self.height_ensemble,
+            temperature_ensemble=self.temperature_ensemble,
+            wind_u_ensemble=self.wind_u_ensemble,
+            wind_v_ensemble=self.wind_v_ensemble,
+            elevation=float(self.elevation),
+            max_expected_height=float(
+                getattr(self, "_max_expected_height", self.max_expected_height)
+            ),
+        )
 
     # Atmospheric model processing methods
 
@@ -1662,7 +1836,9 @@ class Environment:
 
         self._max_expected_height = max_expected_height
 
-    def process_windy_atmosphere(self, model="ECMWF"):  # pylint: disable=too-many-statements
+    def process_windy_atmosphere(  # pylint: disable=too-many-statements
+        self, model="ECMWF", no_cache=False
+    ):
         """Process data from Windy.com to retrieve atmospheric forecast data.
 
         Parameters
@@ -1672,6 +1848,8 @@ class Environment:
             ``ECMWF`` for the `ECMWF-HRES` model, ``GFS`` for the `GFS` model,
             ``ICON`` for the `ICON-Global` model or ``ICONEU`` for the `ICON-EU`
             model.
+        no_cache : bool, optional
+            If True, force a fresh download even when a JSON cache entry exists.
 
         Raises
         ------
@@ -1686,9 +1864,22 @@ class Environment:
                 "Valid options are 'ECMWF', 'GFS', 'ICON' or 'ICONEU'."
             )
 
-        response = fetch_atmospheric_data_from_windy(
-            self.latitude, self.longitude, model
+        cache_path = cache_path_for(
+            build_atmosphere_cache_key(
+                "windy",
+                model,
+                self.latitude,
+                self.longitude,
+                self.datetime_date,
+            ),
+            ".json",
         )
+        response = None if no_cache else load_json_cache(cache_path)
+        if response is None:
+            response = fetch_atmospheric_data_from_windy(
+                self.latitude, self.longitude, model
+            )
+            save_json_cache(cache_path, response)
 
         # Determine time index from model
         time_array = np.array(response["data"]["hours"])
