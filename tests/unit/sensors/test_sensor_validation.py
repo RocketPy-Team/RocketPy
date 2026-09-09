@@ -100,14 +100,30 @@ def test_seed_sequence_is_accepted():
 
 @pytest.mark.parametrize(
     "seed",
-    [[1, 2], (1, 2), [np.int64(1), np.int64(2)], [[1, 2], [3, 4]], []],
-    ids=["list", "tuple", "list_of_numpy_ints", "nested", "empty"],
+    [[1, 2], (1, 2), [np.int64(1), np.int64(2)], []],
+    ids=["list", "tuple", "list_of_numpy_ints", "empty"],
 )
 def test_int_array_like_seeds_are_accepted(seed):
-    """``default_rng`` takes an array_like of ints and json writes it out, so
-    the check has to let every shape of it by -- including the empty and the
-    nested ones, which numpy accepts as entropy just the same."""
+    """``default_rng`` takes a flat array_like of ints and json writes it out,
+    so the check has to let every shape of one by, the empty included."""
     assert Barometer(sampling_rate=1, seed=seed) is not None
+
+
+@pytest.mark.parametrize(
+    "seed",
+    [[[1, 2], [3, 4]], np.array([[1, 2], [3, 4]], dtype=np.uint32)],
+    ids=["nested_sequence", "two_dimensional_ndarray"],
+)
+def test_multi_dimensional_int_seeds_are_rejected(seed):
+    """``SeedSequence`` takes entropy one dimension deep and no further.
+
+    Nested sequences raise ``TypeError`` there and 2-D arrays ``ValueError``,
+    neither message naming the seed, so both are caught here instead. Older
+    NumPy accepted the nested form and the dependency carries no upper bound,
+    so refusing it is also what keeps one answer across versions.
+    """
+    with pytest.raises(TypeError, match="seed"):
+        Barometer(sampling_rate=1, seed=seed)
 
 
 def test_integer_ndarray_seed_is_accepted():

@@ -17,18 +17,24 @@ SeedLike = int | np.integer | Sequence[int] | np.ndarray | np.random.SeedSequenc
 
 
 def _is_int_array_like(value):
-    """Whether ``value`` is an int or a (possibly nested) sequence of ints.
+    """Whether ``value`` is an int or a flat sequence of ints.
 
     This is the half of ``numpy.random.default_rng``'s seed contract that
     ``RocketPyEncoder`` can write out: integers keep their value across a JSON
     round trip, so a seed read back names the same stream it named before.
+
+    Flat, because that is all ``SeedSequence`` takes as entropy: a nested
+    sequence raises ``TypeError`` and a multi-dimensional array ``ValueError``,
+    neither of them naming the seed. Older NumPy let some of those through,
+    and RocketPy pins no upper bound, so they are refused here to keep one
+    answer across versions.
     """
     if isinstance(value, (int, np.integer)):
         return True
     if isinstance(value, np.ndarray):
-        return np.issubdtype(value.dtype, np.integer)
+        return np.issubdtype(value.dtype, np.integer) and value.ndim <= 1
     if isinstance(value, Sequence) and not isinstance(value, (str, bytes)):
-        return all(_is_int_array_like(item) for item in value)
+        return all(isinstance(item, (int, np.integer)) for item in value)
     return False
 
 
