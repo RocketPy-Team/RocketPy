@@ -8,7 +8,31 @@ import numpy as np
 from rocketpy.mathutils.function import Function
 from rocketpy.stochastic.custom_sampler import CustomSampler
 
-from ..tools import get_distribution
+from ..tools import _seed_sequence_to_int, get_distribution
+
+
+def _snapshot_of(value):
+    """Returns a copy of value that a later write cannot reach.
+
+    Numeric arrays and the built-in containers are copied entry by entry, since
+    an array inside an ``airfoil`` tuple would otherwise stay shared. This is
+    not a general deep copy: an ``object`` array is copied without its entries
+    being, anything else is returned as it is, shared structure is not rebuilt,
+    and a cycle recurses until Python stops it.
+    """
+    if isinstance(value, np.ndarray):
+        return value.copy()
+    if isinstance(value, list):
+        return [_snapshot_of(item) for item in value]
+    if isinstance(value, tuple):
+        entries = [_snapshot_of(item) for item in value]
+        # A namedtuple takes its fields positionally.
+        return type(value)(*entries) if hasattr(value, "_fields") else tuple(entries)
+    if isinstance(value, set):
+        return {_snapshot_of(item) for item in value}
+    if isinstance(value, dict):
+        return {key: _snapshot_of(item) for key, item in value.items()}
+    return value
 
 
 def _names_as_spawn_key(input_names):
@@ -41,6 +65,18 @@ def _format_number(value):
     return f"array of shape {np.shape(value)}"
 
 
+def _seed_as_entropy(seed):
+    """A seed as something ``SeedSequence`` will take as entropy.
+
+    A parallel run is handed a ``SeedSequence``, which it will not take. Any
+    other seed goes through untouched, so the stream an int reaches stays where
+    it was.
+    """
+    if not isinstance(seed, np.random.SeedSequence):
+        return seed
+    return _seed_sequence_to_int(seed)
+
+
 def _sampler_seed(seed, input_names):
     """Derive a seed for one sampler, or for one group that shares a generator.
 
@@ -54,10 +90,10 @@ def _sampler_seed(seed, input_names):
     # Sorted here rather than trusting the caller, so a future call site cannot
     # give one group two different seeds by listing its members another way.
     root = np.random.SeedSequence(
-        entropy=seed, spawn_key=_names_as_spawn_key(tuple(sorted(input_names)))
+        entropy=_seed_as_entropy(seed),
+        spawn_key=_names_as_spawn_key(tuple(sorted(input_names))),
     )
-    words = root.generate_state(4, dtype=np.uint32)
-    return sum(int(word) << (32 * position) for position, word in enumerate(words))
+    return _seed_sequence_to_int(root)
 
 
 # TODO: Stop using assert in production code. Use exceptions instead.
@@ -122,7 +158,78 @@ class StochasticModel:
         self.obj = obj
         self.last_rnd_dict = {}
         self.__stochastic_dict = kwargs
+        self.__nominal_values = {}
         self._set_stochastic(seed)
+
+    def _record_draw(self, generated_dict):
+        """Records what this model published, after any subclass has finished.
+
+        A record of the draw rather than a window onto what was built from it,
+        since the object handed those values can be written through afterwards.
+        A subclass that adjusts a value has to call this again, or the record
+        keeps what it replaced.
+        """
+        self.last_rnd_dict = _snapshot_of(generated_dict)
+
+    def _nominal(self, input_name, getter=getattr):
+        """Returns what ``self.obj`` held for ``input_name`` when it was
+        configured.
+
+        Kept and copied both ways, because ``create_object`` writes sampled
+        values back onto that object and what this returns reaches
+        ``last_rnd_dict``. A position arrives through a ``getter`` and is read
+        live, since every component uses this one name.
+        """
+        if getter is not getattr:
+            return getter(self.obj, input_name)
+        if input_name not in self.__nominal_values:
+            self.__nominal_values[input_name] = _snapshot_of(
+                getattr(self.obj, input_name)
+            )
+        return _snapshot_of(self.__nominal_values[input_name])
+
+    def _reconfigure_stochastic_inputs(self, inputs, validate):
+        """Configures late inputs again, all of them or none of them.
+
+        The kept nominal is what ``configured`` means, so replacing an input
+        has to drop it before validation reads one. Whatever a caller passes
+        together is replaced together, since ``add_cp_eccentricity`` takes x
+        and y in one call and a y that will not validate must not leave x
+        already replaced.
+
+        ``None`` leaves any earlier declaration alone. It reads the same way
+        whether the caller wrote it or left the argument out, and removing on
+        the second reading would take away an axis nobody mentioned.
+        """
+        inputs = tuple(inputs)
+        # A None that already has a configuration is an axis the caller left
+        # out, since an omitted argument arrives the same way. It keeps what it
+        # had: not validated again, and its kept nominal not read again.
+        untouched = {
+            name
+            for name, value in inputs
+            if value is None and name in self.__stochastic_dict
+        }
+        kept = {
+            name: self.__nominal_values.pop(name)
+            for name, _ in inputs
+            if name not in untouched and name in self.__nominal_values
+        }
+        try:
+            validated = [
+                getattr(self, name) if name in untouched else validate(name, value)
+                for name, value in inputs
+            ]
+        except BaseException:
+            for name, _ in inputs:
+                if name not in untouched:
+                    self.__nominal_values.pop(name, None)
+            self.__nominal_values.update(kept)
+            raise
+        for name, value in inputs:
+            if value is not None:
+                self.__stochastic_dict[name] = value
+        return validated
 
     def _set_stochastic(self, seed=None):
         """Set the stochastic attributes from the input dictionary.
@@ -170,7 +277,7 @@ class StochasticModel:
                                 "or a custom sampler"
                             )
                 else:
-                    attr_value = [getattr(self.obj, input_name)]
+                    attr_value = [self._nominal(input_name)]
                 setattr(self, input_name, attr_value)
 
     def __repr__(self):
@@ -193,11 +300,13 @@ class StochasticModel:
         Returns
         -------
         object
-            One of the candidates, or ``values`` itself when there are none.
+            A copy of one of the candidates, or of ``values`` when there are
+            none. Copied because what this returns is handed to the object
+            being built.
         """
         if len(values) == 0:
-            return values
-        return values[self.__choice_generator.integers(len(values))]
+            return _snapshot_of(values)
+        return _snapshot_of(values[self.__choice_generator.integers(len(values))])
 
     def _nominal_value(self, input_name, value):
         """Return the nominal value of an input as the distribution needs it.
@@ -305,7 +414,7 @@ class StochasticModel:
             # object passed.
             dist_func = get_distribution(input_value[1], self.__random_number_generator)
             return (
-                self._nominal_value(input_name, getattr(self.obj, input_name)),
+                self._nominal_value(input_name, self._nominal(input_name, getattr)),
                 input_value[0],
                 dist_func,
             )
@@ -381,7 +490,7 @@ class StochasticModel:
             If the input is not in a valid format.
         """
         if not input_value:
-            return [getattr(self.obj, input_name)]
+            return [self._nominal(input_name, getattr)]
         else:
             return input_value
 
@@ -407,7 +516,7 @@ class StochasticModel:
                 distribution function).
         """
         return (
-            self._nominal_value(input_name, getattr(self.obj, input_name)),
+            self._nominal_value(input_name, self._nominal(input_name, getattr)),
             input_value,
             get_distribution("normal", self.__random_number_generator),
         )
@@ -434,7 +543,7 @@ class StochasticModel:
             If the input is not in a valid format.
         """
         attribute_name = input_name.replace("_factor", "")
-        setattr(self, f"_{attribute_name}", getattr(self.obj, attribute_name))
+        setattr(self, f"_{attribute_name}", self._nominal(attribute_name))
 
         if isinstance(input_value, tuple):
             return self._validate_tuple_factor(input_name, input_value)
@@ -717,7 +826,7 @@ class StochasticModel:
                     raise RuntimeError(
                         f"An error occurred in the 'sample' method of {arg} CustomSampler"
                     ) from e
-        self.last_rnd_dict = generated_dict
+        self._record_draw(generated_dict)
         yield generated_dict
 
     # pylint: disable=too-many-statements

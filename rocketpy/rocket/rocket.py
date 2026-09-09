@@ -386,9 +386,10 @@ class Rocket:
             inputs="Mach Number",
             outputs="Total Lift Coefficient Derivative",
         )
-        self.static_margin = Function(
+        self._static_margin = Function(
             lambda time: 0, inputs="Time (s)", outputs="Static Margin (c)"
         )
+        self._static_margin_dirty = True
         self.stability_margin = Function(
             lambda mach, time: 0,
             inputs=["Mach", "Time (s)"],
@@ -443,10 +444,10 @@ class Rocket:
         self.evaluate_reduced_mass()
         self.evaluate_thrust_to_weight()
 
-        # Evaluate stability (even though no aerodynamic surfaces are present yet)
+        # Evaluate stability quantities needed for later work. Static margin is
+        # left dirty and built lazily on first access (see static_margin).
         self.evaluate_center_of_pressure()
         self.evaluate_stability_margin()
-        self.evaluate_static_margin()
 
         # Initialize plots and prints object
         self.prints = _RocketPrints(self)
@@ -742,6 +743,27 @@ class Rocket:
         )
         return self.stability_margin
 
+    def _invalidate_static_margin(self):
+        """Mark the cached static margin as stale.
+
+        Call this whenever rocket geometry, mass properties, or aerodynamic
+        surfaces change in a way that can alter the static margin. The next
+        access of :attr:`static_margin` (or an explicit call to
+        :meth:`evaluate_static_margin`) rebuilds the Function.
+        """
+        self._static_margin_dirty = True
+
+    @property
+    def static_margin(self):
+        """Static margin of the rocket as a function of time (calibers).
+
+        Computed lazily: rebuilt only when first accessed after construction or
+        after geometry/mass/surface changes that invalidate the cache.
+        """
+        if self._static_margin_dirty:
+            self.evaluate_static_margin()
+        return self._static_margin
+
     def evaluate_static_margin(self):
         """Calculates the static margin of the rocket as a function of time.
 
@@ -752,25 +774,28 @@ class Rocket:
             Static margin is defined as the distance between the center of
             pressure and the center of mass, divided by the rocket's diameter.
         """
-        # Calculate static margin
-        self.static_margin.set_source(
+        # Calculate static margin; fold _csys into the source so we do not
+        # rebind a property when multiplying.
+        self._static_margin.set_source(
             lambda time: (
                 (
-                    self.center_of_mass.get_value_opt(time)
-                    - self.cp_position.get_value_opt(0)
+                    (
+                        self.center_of_mass.get_value_opt(time)
+                        - self.cp_position.get_value_opt(0)
+                    )
+                    / (2 * self.radius)
                 )
-                / (2 * self.radius)
+                * self._csys
             )
         )
-        # Change sign if coordinate system is upside down
-        self.static_margin *= self._csys
-        self.static_margin.set_inputs("Time (s)")
-        self.static_margin.set_outputs("Static Margin (c)")
-        self.static_margin.set_title("Static Margin")
-        self.static_margin.set_discrete(
+        self._static_margin.set_inputs("Time (s)")
+        self._static_margin.set_outputs("Static Margin (c)")
+        self._static_margin.set_title("Static Margin")
+        self._static_margin.set_discrete(
             lower=0, upper=self.motor.burn_out_time, samples=200
         )
-        return self.static_margin
+        self._static_margin_dirty = False
+        return self._static_margin
 
     def warn_if_unstable(self):
         """Warn if the rocket is aerodynamically unstable at motor ignition.
@@ -978,8 +1003,8 @@ class Rocket:
 
     def evaluate_nozzle_gyration_tensor(self):
         """Calculates and returns the nozzle gyration tensor relative to the
-        rocket's center of dry mass. The gyration tensor is saved and returned
-        in units of kg*m².
+        rocket's center of dry mass. The gyration tensor is a second moment of
+        area per unit area, so it is saved and returned in units of m².
 
         Returns
         -------
@@ -987,7 +1012,7 @@ class Rocket:
             Matrix containing the nozzle gyration tensor.
         """
         S_noz_33 = 0.5 * self.motor.nozzle_radius**2
-        S_noz_11 = S_noz_22 = 0.5 * S_noz_33 + 0.25 * self.nozzle_to_cdm**2
+        S_noz_11 = S_noz_22 = 0.5 * S_noz_33 + self.nozzle_to_cdm**2
         S_noz_12, S_noz_13, S_noz_23 = 0, 0, 0  # Due to axis symmetry
         self.nozzle_gyration_tensor = Matrix(
             [
@@ -1142,7 +1167,7 @@ class Rocket:
         self.evaluate_center_of_pressure()
         self.evaluate_surfaces_cp_to_cdm()
         self.evaluate_stability_margin()
-        self.evaluate_static_margin()
+        self._invalidate_static_margin()
         self.evaluate_com_to_cdm_function()
         self.evaluate_nozzle_gyration_tensor()
 
@@ -1229,7 +1254,7 @@ class Rocket:
 
         self.evaluate_center_of_pressure()
         self.evaluate_stability_margin()
-        self.evaluate_static_margin()
+        self._invalidate_static_margin()
 
     def _add_controllers(self, controllers):
         """Adds a controller to the rocket.
@@ -1734,7 +1759,7 @@ class Rocket:
             force is the dynamic pressure computed on the parachute
             times its cd_s coefficient. Has units of area and must be
             given in squared meters.
-        trigger : callable, float, str
+        trigger : callable, float, str, tuple
             Defines the trigger condition for the parachute ejection system. It
             can be one of the following:
 
@@ -1757,6 +1782,10 @@ class Rocket:
                 height above ground level.
             - The string "apogee" which triggers the parachute at apogee, i.e., \
                 when the rocket reaches its highest point and starts descending.
+            - A tuple ``("time", t_deploy)`` that triggers when flight time \
+                ``t >= t_deploy`` (seconds from flight start). For a delay \
+                charge referenced to motor burnout, use \
+                ``("time", motor.burn_out_time + delay)``.
 
             .. note::
 

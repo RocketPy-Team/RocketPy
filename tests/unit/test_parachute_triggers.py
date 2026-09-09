@@ -146,3 +146,48 @@ def test_parachute_trigger_evaluated_once_per_node(calisto_robust, example_plain
         "parachute trigger evaluated more than once at some height/node; "
         f"duplicates among {len(calls)} calls"
     )
+
+
+def test_time_trigger_uses_flight_eval_time():
+    """Flight must set parachute._eval_time before calling triggerfunc (#437)."""
+
+    def derivative_func(_t, _y):
+        raise RuntimeError("derivative should not be called for time triggers")
+
+    parachute = Parachute(
+        name="timer",
+        cd_s=1.0,
+        trigger=("time", 2.5),
+        sampling_rate=100,
+    )
+    dummy = type("D", (), {})()
+
+    assert (
+        Flight._evaluate_parachute_trigger(
+            dummy,
+            parachute,
+            pressure=0.0,
+            height=100.0,
+            y=np.zeros(13),
+            sensors=[],
+            derivative_func=derivative_func,
+            t=2.4,
+        )
+        is False
+    )
+    assert parachute._eval_time == 2.4
+
+    assert (
+        Flight._evaluate_parachute_trigger(
+            dummy,
+            parachute,
+            pressure=0.0,
+            height=100.0,
+            y=np.zeros(13),
+            sensors=[],
+            derivative_func=derivative_func,
+            t=2.5,
+        )
+        is True
+    )
+    assert parachute._eval_time == 2.5

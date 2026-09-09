@@ -1,14 +1,20 @@
+import builtins
 import csv
 import json
+import os
 import pathlib
 import types
 from collections import namedtuple
+from unittest.mock import patch
 
 import matplotlib as plt
 import numpy as np
 import pytest
 
 from rocketpy.simulation import MonteCarlo
+from rocketpy.simulation.monte_carlo import (
+    _refuse_logs_this_run_cannot_write,
+)
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
@@ -85,6 +91,37 @@ class MockMonteCarlo(MonteCarlo):
             "single_point": [100],
             "empty_attribute": [],
         }
+
+
+def test_append_simulation_record_rolls_back_inputs_on_output_failure(tmp_path):
+    """If the outputs append fails, the inputs row must not remain on disk."""
+    mc = MockMonteCarlo()
+    input_file = tmp_path / "inputs.json"
+    output_file = tmp_path / "outputs.json"
+    input_file.write_text('{"index": 0}\n', encoding="utf-8")
+    output_file.write_text('{"index": 0}\n', encoding="utf-8")
+    mc._input_file = str(input_file)
+    mc._output_file = str(output_file)
+
+    mc._append_simulation_record('{"index": 1}\n', '{"index": 1}\n')
+
+    original_open = builtins.open
+    output_path = os.fspath(output_file)
+
+    def failing_output_open(*args, **kwargs):
+        # Match builtins.open call shapes without keyword-before-vararg (W1113).
+        file = args[0] if args else kwargs["file"]
+        mode = args[1] if len(args) > 1 else kwargs.get("mode", "r")
+        if os.fspath(file) == output_path and "a" in mode:
+            raise OSError("no space left on device")
+        return original_open(*args, **kwargs)
+
+    with pytest.raises(OSError, match="no space left on device"):
+        with patch("builtins.open", side_effect=failing_output_open):
+            mc._append_simulation_record('{"index": 2}\n', '{"index": 2}\n')
+
+    assert input_file.read_text(encoding="utf-8") == '{"index": 0}\n{"index": 1}\n'
+    assert output_file.read_text(encoding="utf-8") == '{"index": 0}\n{"index": 1}\n'
 
 
 def test_estimate_confidence_interval_contains_known_mean():
@@ -577,9 +614,13 @@ def test_a_monte_carlo_flight_keeps_the_configuration_it_was_given(monkeypatch):
         initial_solution=None,
         terminate_on_apogee=True,
         time_overshoot=False,
-        _randomize_rail_length=lambda: 5.0,
-        _randomize_inclination=lambda: 84.0,
-        _randomize_heading=lambda: 133.0,
+        # One draw for all three, as #1090 requires: three separate calls
+        # meant the flight flew one sample and the exported row logged another.
+        _sample_flight_inputs=lambda: {
+            "rail_length": 5.0,
+            "inclination": 84.0,
+            "heading": 133.0,
+        },
     )
     analysis = object.__new__(MonteCarlo)
     analysis.flight = stochastic_flight
@@ -596,3 +637,155 @@ def test_a_monte_carlo_flight_keeps_the_configuration_it_was_given(monkeypatch):
     assert flight.equations_of_motion == "solid_propulsion"
     assert flight.simulation_mode == "native"
     assert flight.name == "named"
+    # and the single draw is what the flight is actually built from
+    assert (flight.rail_length, flight.inclination, flight.heading) == (
+        5.0,
+        84.0,
+        133.0,
+    )
+
+
+@pytest.mark.parametrize(
+    "suffix, payload",
+    [
+        (".csv", "apogee,index\n1234.0,0\n1250.0,1\n"),
+        (".json", '[{"apogee": 1234.0, "index": 0}]\n'),
+    ],
+)
+@pytest.mark.parametrize("append", [False, True])
+def test_simulate_refuses_a_results_file_it_cannot_write(
+    monte_carlo_calisto, tmp_path, suffix, payload, append
+):
+    """Importing CSV or JSON results must not let simulate() write over them.
+
+    ``import_outputs`` accepts both and points ``output_file`` at the file, and
+    its docstring offers continuing a simulation. simulate() only writes JSONL,
+    so ``append=False`` truncated the file before this check existed.
+    """
+    results = tmp_path / f"results{suffix}"
+    results.write_text(payload, encoding="utf-8")
+    monte_carlo_calisto.output_file = str(results)
+    before = results.read_bytes()
+
+    with pytest.raises(ValueError, match="one JSON object per line"):
+        monte_carlo_calisto.simulate(number_of_simulations=1, append=append)
+
+    assert results.read_bytes() == before
+
+
+def _three_logs(tmp_path):
+    """Three distinct, acceptable working logs."""
+    return [
+        str(tmp_path / f"run.{part}.txt") for part in ("inputs", "outputs", "errors")
+    ]
+
+
+def test_simulation_log_check_names_the_file_that_is_wrong(tmp_path):
+    """The message says which of the three paths has to change."""
+    good = _three_logs(tmp_path)
+
+    _refuse_logs_this_run_cannot_write(*good)  # canonical, no raise
+
+    for label, args in (
+        ("input_file", (str(tmp_path / "a.csv"), good[1], good[2])),
+        ("output_file", (good[0], str(tmp_path / "b.json"), good[2])),
+        ("error_file", (good[0], good[1], str(tmp_path / "c.csv"))),
+    ):
+        with pytest.raises(ValueError, match=label):
+            _refuse_logs_this_run_cannot_write(*args)
+
+
+def test_simulation_log_check_accepts_an_uppercase_suffix(tmp_path):
+    """A .TXT log is the same file to the filesystem, so it is accepted."""
+    upper = [str(tmp_path / f"run.{part}.TXT") for part in ("in", "out", "err")]
+    _refuse_logs_this_run_cannot_write(*upper)
+
+
+def _three_logs(tmp_path):
+    """Three distinct, acceptable working logs."""
+    return [
+        str(tmp_path / f"run.{part}.txt") for part in ("inputs", "outputs", "errors")
+    ]
+
+
+def test_working_logs_must_be_three_different_files(tmp_path):
+    """``import_results`` points all three at one path, which cannot work.
+
+    A run appends input rows and output rows separately, so one shared log ends
+    up holding both and neither reader can make sense of it.
+    """
+    shared = str(tmp_path / "result.txt")
+
+    with pytest.raises(ValueError, match="same file"):
+        _refuse_logs_this_run_cannot_write(shared, shared, shared)
+
+
+@pytest.mark.parametrize("alias", ["dotdot", "symlink", "hardlink"])
+def test_a_log_named_two_ways_is_still_one_file(tmp_path, alias):
+    """Text comparison misses every way one file answers to two names."""
+    inputs, _, errors = _three_logs(tmp_path)
+    pathlib.Path(inputs).write_text("", encoding="utf-8")
+    (tmp_path / "sub").mkdir()
+
+    if alias == "dotdot":
+        other = str(tmp_path / "sub" / ".." / "run.inputs.txt")
+    else:
+        other = str(tmp_path / f"run.{alias}.txt")
+        try:
+            if alias == "symlink":
+                pathlib.Path(other).symlink_to(inputs)
+            else:
+                os.link(inputs, other)
+        except (OSError, NotImplementedError):
+            pytest.skip(f"{alias} not available on this filesystem")
+
+    with pytest.raises(ValueError, match="same file"):
+        _refuse_logs_this_run_cannot_write(inputs, other, errors)
+
+
+def test_three_separate_logs_are_accepted(tmp_path):
+    """The control: distinct .txt paths raise nothing."""
+    _refuse_logs_this_run_cannot_write(*_three_logs(tmp_path))
+
+
+@pytest.mark.parametrize("indent", [2, 0, ""])
+def test_an_indented_record_is_refused_before_anything_is_written(tmp_path, indent):
+    """``indent`` splits a record over lines the readers take one at a time.
+
+    Without this the run finished, then the completeness check called the file
+    it had just written damaged.
+    """
+    with pytest.raises(ValueError, match="indent"):
+        _refuse_logs_this_run_cannot_write(*_three_logs(tmp_path), {"indent": indent})
+
+
+def test_a_newline_in_the_separators_is_refused_too(tmp_path):
+    """The same hazard by another name."""
+    with pytest.raises(ValueError, match="separators"):
+        _refuse_logs_this_run_cannot_write(
+            *_three_logs(tmp_path), {"separators": (",\n", ": ")}
+        )
+
+
+@pytest.mark.parametrize(
+    "harmless", [{"indent": None}, {"sort_keys": True}, {"ensure_ascii": False}]
+)
+def test_export_options_that_keep_one_line_are_left_alone(tmp_path, harmless):
+    """Only what puts a newline inside a record is refused."""
+    _refuse_logs_this_run_cannot_write(*_three_logs(tmp_path), harmless)
+
+
+def test_two_names_for_a_file_that_does_not_exist_yet_are_still_one_file(tmp_path):
+    """``samefile`` needs both to exist, and a first run has created neither.
+
+    Every other case here writes the file first, so the resolved-path branch
+    that a first run actually takes was never exercised.
+    """
+    (tmp_path / "sub").mkdir()
+    missing = str(tmp_path / "run.inputs.txt")
+    same_by_another_name = str(tmp_path / "sub" / ".." / "run.inputs.txt")
+    errors = str(tmp_path / "run.errors.txt")
+
+    assert not pathlib.Path(missing).exists()
+    with pytest.raises(ValueError, match="same file"):
+        _refuse_logs_this_run_cannot_write(missing, same_by_another_name, errors)

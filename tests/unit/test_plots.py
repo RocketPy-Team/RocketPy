@@ -448,6 +448,29 @@ def test_animation_options_validation_errors(kwargs, error):
         _FlightPlots._animation_options(kwargs)
 
 
+@patch("matplotlib.pyplot.show")
+@pytest.mark.parametrize("filename", [None, "test_cp_evolution.png"])
+def test_flight_center_of_pressure_plot(mock_show, filename, flight_calisto):  # pylint: disable=unused-argument
+    """Center-of-pressure evolution plot runs for a fixture flight.
+
+    Parameters
+    ----------
+    mock_show :
+        Mocks the matplotlib.pyplot.show() function to avoid showing the plots.
+    filename : str | None
+        Destination path, or None to show the plot.
+    flight_calisto : rocketpy.Flight
+        Flight object to be used in the tests. See conftest.py for more details.
+    """
+    assert flight_calisto.plots.center_of_pressure(filename=filename) is None
+    if filename is None:
+        mock_show.assert_called_once()
+    else:
+        assert os.path.exists(filename)
+        os.remove(filename)
+    plt.close("all")
+
+
 def test_ground_bounds_from_spec(flight_calisto):
     """Ground image bounds convert from ENU and lat/lon, and validate input."""
     plots = flight_calisto.plots

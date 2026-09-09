@@ -123,21 +123,28 @@ class StochasticFlight(StochasticModel):
             else:
                 raise TypeError("`initial_solution` must be a tuple of numbers")
 
-    # TODO: these methods call dict_generator a lot of times unnecessarily
+    def _sample_flight_inputs(self):
+        """Sample rail_length, inclination, and heading in a single draw.
+
+        Returns
+        -------
+        dict
+            Mapping with keys ``rail_length``, ``inclination``, and ``heading``.
+            Also updates ``last_rnd_dict``.
+        """
+        return next(self.dict_generator())
+
     def _randomize_rail_length(self):
         """Randomizes the rail length of the flight."""
-        generated_dict = next(self.dict_generator())
-        return generated_dict["rail_length"]
+        return self._sample_flight_inputs()["rail_length"]
 
     def _randomize_inclination(self):
         """Randomizes the inclination of the flight."""
-        generated_dict = next(self.dict_generator())
-        return generated_dict["inclination"]
+        return self._sample_flight_inputs()["inclination"]
 
     def _randomize_heading(self):
         """Randomizes the heading of the flight."""
-        generated_dict = next(self.dict_generator())
-        return generated_dict["heading"]
+        return self._sample_flight_inputs()["heading"]
 
     def create_object(self):
         """Creates and returns a Flight object from the randomly generated input
@@ -148,12 +155,11 @@ class StochasticFlight(StochasticModel):
         flight : Flight
             Flight object with the randomly generated input arguments.
         """
-        generated_dict = next(self.dict_generator())
-        # TODO: maybe we should use generated_dict["rail_length"] instead
+        generated_dict = self._sample_flight_inputs()
         return Flight(
             rocket=self.obj.rocket,
             environment=self.obj.env,
-            rail_length=self._randomize_rail_length(),
+            rail_length=generated_dict["rail_length"],
             inclination=generated_dict["inclination"],
             heading=generated_dict["heading"],
             initial_solution=self.initial_solution,

@@ -42,6 +42,55 @@ def test_evaluate_static_margin_assert_cp_equals_cm(dimensionless_calisto):
     assert pytest.approx(rocket.cp_position(0), 1e-8) == pytest.approx(0, 1e-8)
 
 
+def test_static_margin_lazy_until_accessed(calisto_motorless):
+    """Static margin must not be discretized until first access."""
+    rocket = calisto_motorless
+    assert rocket._static_margin_dirty is True
+
+    with patch.object(
+        rocket._static_margin,
+        "set_discrete",
+        wraps=rocket._static_margin.set_discrete,
+    ) as mock_set_discrete:
+        rocket.add_nose(length=0.55829, kind="ogive", position=1.160)
+        mock_set_discrete.assert_not_called()
+        assert rocket._static_margin_dirty is True
+
+        static_margin = rocket.static_margin
+        assert mock_set_discrete.call_count == 1
+        assert rocket._static_margin_dirty is False
+        assert isinstance(static_margin, Function)
+
+        # Second access must reuse the cached Function.
+        _ = rocket.static_margin(0)
+        assert mock_set_discrete.call_count == 1
+
+
+def test_static_margin_rebuilds_after_adding_surface(calisto):
+    """Adding an aero surface invalidates SM; access rebuilds it once."""
+    rocket = calisto
+    margin_before = rocket.static_margin(0)
+    assert rocket._static_margin_dirty is False
+
+    with patch.object(
+        rocket._static_margin,
+        "set_discrete",
+        wraps=rocket._static_margin.set_discrete,
+    ) as mock_set_discrete:
+        rocket.add_nose(length=0.55829, kind="ogive", position=1.160)
+        mock_set_discrete.assert_not_called()
+        assert rocket._static_margin_dirty is True
+
+        margin_after = rocket.static_margin(0)
+        assert mock_set_discrete.call_count == 1
+        assert rocket._static_margin_dirty is False
+
+        _ = rocket.static_margin(0)
+        assert mock_set_discrete.call_count == 1
+
+    assert margin_after != pytest.approx(margin_before, abs=1e-6)
+
+
 @pytest.mark.parametrize(
     "k, type_",
     ([2 / 3, "conical"], [0.46469957130675876, "ogive"], [0.563, "lvhaack"]),
@@ -466,15 +515,46 @@ def test_evaluate_nozzle_to_cdm(calisto):
 
 def test_evaluate_nozzle_gyration_tensor(calisto):
     expected_gyration_tensor = np.array(
-        [[0.3940207, 0, 0], [0, 0.3940207, 0], [0, 0, 0.0005445]]
+        [[1.57526603, 0, 0], [0, 1.57526603, 0], [0, 0, 0.0005445]]
     )
-    atol = 1e-3 * 1e-2 * 1e-2  # Equivalent to 1g * 1cm^2
+    atol = 1e-7  # equivalent to 0.1 mm^2, and rtol=0 so that is what it means
     assert np.allclose(
-        expected_gyration_tensor, np.array(calisto.nozzle_gyration_tensor), atol=atol
+        expected_gyration_tensor,
+        np.array(calisto.nozzle_gyration_tensor),
+        rtol=0,
+        atol=atol,
     )
     # Test if calling the function returns the same result
     res = calisto.evaluate_nozzle_gyration_tensor()
-    assert np.allclose(expected_gyration_tensor, np.array(res), atol=atol)
+    assert np.allclose(expected_gyration_tensor, np.array(res), rtol=0, atol=atol)
+
+
+@pytest.mark.parametrize(
+    "rocket_fixture",
+    ["calisto", "calisto_liquid_modded", "calisto_hybrid_modded"],
+)
+def test_evaluate_nozzle_gyration_tensor_matches_the_exit_disk(rocket_fixture, request):
+    """The tensor is the exit disk second moment per unit area, about the CDM."""
+    rocket = request.getfixturevalue(rocket_fixture)
+    radius = rocket.motor.nozzle_radius
+    offset = rocket.nozzle_to_cdm
+
+    tensor = np.array(rocket.evaluate_nozzle_gyration_tensor())
+
+    lateral = radius**2 / 4 + offset**2
+    assert tensor[0, 0] == pytest.approx(lateral, rel=1e-12)
+    assert tensor[1, 1] == pytest.approx(lateral, rel=1e-12)
+    assert tensor[2, 2] == pytest.approx(radius**2 / 2, rel=1e-12)
+    assert (tensor[0, 1], tensor[0, 2], tensor[1, 2]) == (0, 0, 0)
+
+
+def test_evaluate_nozzle_gyration_tensor_parallel_axis_term(calisto):
+    """Taking the disk term out leaves the whole squared offset, not a fraction."""
+    tensor = np.array(calisto.evaluate_nozzle_gyration_tensor())
+
+    parallel_axis = tensor[0, 0] - tensor[2, 2] / 2
+
+    assert parallel_axis == pytest.approx(calisto.nozzle_to_cdm**2, rel=1e-12)
 
 
 def test_evaluate_com_to_cdm_function(calisto):
