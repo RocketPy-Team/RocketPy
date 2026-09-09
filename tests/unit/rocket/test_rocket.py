@@ -994,7 +994,9 @@ def test_add_trapezoidal_fins_two_fins_warns_but_succeeds(calisto):
         fins = calisto.add_trapezoidal_fins(
             2, span=0.1, root_chord=0.12, tip_chord=0.04, position=-1.0
         )
-    assert fins in [surface for surface, _ in calisto.aerodynamic_surfaces]
+    assert fins in [
+        surface for surface, _position, _ref_factor in calisto.aerodynamic_surfaces
+    ]
 
 
 def test_unstable_rocket_warning_raised(calisto):

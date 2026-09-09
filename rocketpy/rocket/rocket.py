@@ -667,11 +667,10 @@ class Rocket:
 
         # Calculate total lift coefficient derivative and center of pressure
         if len(self.aerodynamic_surfaces) > 0:
-            for aero_surface, position in self.aerodynamic_surfaces:
+            for aero_surface, position, ref_factor in self.aerodynamic_surfaces:
                 if isinstance(aero_surface, GenericSurface):
                     continue
                 # ref_factor corrects lift for different reference areas
-                ref_factor = (aero_surface.rocket_radius / self.radius) ** 2
                 self.total_lift_coeff_der += ref_factor * aero_surface.clalpha
                 self.cp_position += (
                     ref_factor
@@ -694,7 +693,7 @@ class Rocket:
             Dictionary mapping the relative position of each aerodynamic
             surface center of pressure to the rocket's center of mass.
         """
-        for surface, position in self.aerodynamic_surfaces:
+        for surface, position, _ref_factor in self.aerodynamic_surfaces:
             self.__evaluate_single_surface_cp_to_cdm(surface, position)
         return self.surfaces_cp_to_cdm
 
@@ -819,7 +818,7 @@ class Rocket:
         """
         has_generic_surface = any(
             isinstance(aero_surface, GenericSurface)
-            for aero_surface, _position in self.aerodynamic_surfaces
+            for aero_surface, _position, _ref_factor in self.aerodynamic_surfaces
         )
         if has_generic_surface:
             return False
@@ -1194,7 +1193,12 @@ class Rocket:
             self.rail_buttons = Components()
             self.rail_buttons.add(surface, position)
         else:
-            self.aerodynamic_surfaces.add(surface, position)
+            # ref_factor corrects lift for different reference areas
+            if getattr(surface, "rocket_radius", None) is not None:
+                ref_factor = (surface.rocket_radius / self.radius) ** 2
+            else:
+                ref_factor = 1.0
+            self.aerodynamic_surfaces.add(surface, position, ref_factor=ref_factor)
         self.__evaluate_single_surface_cp_to_cdm(surface, position)
 
     def add_surfaces(self, surfaces, positions):
@@ -2367,10 +2371,14 @@ class Rocket:
                 position=data["motor_position"],
             )
 
-        for surface, position in data["aerodynamic_surfaces"]:
+        # The trailing star reads entries of either length: files written
+        # before ref_factor was stored carry two fields and newer ones three.
+        # The factor is not read back in any case, since add_surfaces derives
+        # it from the surface's own radius.
+        for surface, position, *_ in data["aerodynamic_surfaces"]:
             rocket.add_surfaces(surfaces=surface, positions=position)
 
-        for button, position in data["rail_buttons"]:
+        for button, position, *_ in data["rail_buttons"]:
             rocket.set_rail_buttons(
                 upper_button_position=position[2] + button.buttons_distance,
                 lower_button_position=position[2],
@@ -2381,7 +2389,7 @@ class Rocket:
         for parachute in data["parachutes"]:
             rocket.parachutes.append(parachute)
 
-        for sensor, position in data["sensors"]:
+        for sensor, position, *_ in data["sensors"]:
             rocket.add_sensor(sensor, position)
 
         for air_brake in data["air_brakes"]:
