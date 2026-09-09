@@ -86,27 +86,42 @@ def _a_worker(tmp_path, model, event=None):
         rocket=model,
         flight=model,
     )
+    # simulate() settles the root before any worker starts, and the producer
+    # derives each index's seed from it, so a worker driven directly needs one.
+    study._MonteCarlo__root_state = mc_module._root_state_of(
+        mc_module._root_seed_sequence(42)
+    )
     return study, event or _ErrorEvent()
+
+
+def _claims(*indices):
+    """A monitor that hands out these indices and then says there are no more."""
+    handing = iter(indices)
+    return SimpleNamespace(
+        claim_next_index=lambda: next(handing, None),
+        print_update_status=lambda: None,
+    )
 
 
 def _run(study, monitor, error_event, mutex=None):
     # Name-mangled: the producer is what each worker process runs, and nothing
     # else in the suite calls it.
     mutex = mutex or _Mutex()
-    study._MonteCarlo__sim_producer(42, monitor, mutex, error_event)
+    study._MonteCarlo__sim_producer(monitor, mutex, error_event)
     return mutex
 
 
-def test_a_worker_that_fails_before_seeding_finishes_says_so(tmp_path, capsys):
-    """A failure above the loop is reported against worker startup."""
-    monitor = SimpleNamespace(keep_simulating=lambda: True)
+def test_a_worker_that_cannot_reseed_names_the_index_it_was_seeding(tmp_path, capsys):
+    """Seeding is per index, so a reseed failure belongs to that index."""
+    # It used to be per worker and above the loop, where the only name for it
+    # was worker startup. The claim comes first now, so there is one to give.
     study, error_event = _a_worker(tmp_path, _refusing_model())
 
-    _run(study, monitor, error_event)
+    _run(study, _claims(3), error_event)
 
     assert error_event.was_set
     reported = capsys.readouterr().out
-    assert "worker startup" in reported
+    assert "iteration 3" in reported
     assert "the models would not reseed" in reported
 
 
@@ -117,7 +132,7 @@ def test_a_worker_that_fails_before_claiming_an_index_says_so(tmp_path, capsys):
         raise RuntimeError("the monitor would not hand out an index")
 
     model = SimpleNamespace(last_rnd_dict={}, _set_stochastic=lambda _seed: None)
-    monitor = SimpleNamespace(keep_simulating=lambda: True, increment=refuse)
+    monitor = SimpleNamespace(claim_next_index=refuse)
     study, error_event = _a_worker(tmp_path, model)
 
     _run(study, monitor, error_event)
@@ -140,10 +155,9 @@ def test_a_worker_that_fails_inside_a_simulation_names_the_index(
         MonteCarlo, "_MonteCarlo__run_single_simulation", refuse, raising=True
     )
     model = SimpleNamespace(last_rnd_dict={}, _set_stochastic=lambda _seed: None)
-    monitor = SimpleNamespace(keep_simulating=lambda: True, increment=lambda: 8)
     study, error_event = _a_worker(tmp_path, model)
 
-    _run(study, monitor, error_event)
+    _run(study, _claims(7), error_event)
 
     assert error_event.was_set
     assert "iteration 7" in capsys.readouterr().out
@@ -151,10 +165,15 @@ def test_a_worker_that_fails_inside_a_simulation_names_the_index(
 
 def test_a_startup_failure_is_written_down_and_not_only_printed(tmp_path):
     """The error log gets a row even when no inputs were drawn."""
+
     # The caller is told to read the error file, and a traceback the worker
     # printed is not there to be read once its output has been redirected.
-    monitor = SimpleNamespace(keep_simulating=lambda: True)
-    study, error_event = _a_worker(tmp_path, _refusing_model())
+    def refuse():
+        raise RuntimeError("the monitor would not hand out an index")
+
+    monitor = SimpleNamespace(claim_next_index=refuse)
+    model = SimpleNamespace(last_rnd_dict={}, _set_stochastic=lambda _seed: None)
+    study, error_event = _a_worker(tmp_path, model)
 
     _run(study, monitor, error_event)
 
@@ -163,10 +182,10 @@ def test_a_startup_failure_is_written_down_and_not_only_printed(tmp_path):
     assert len(rows) == 1
     assert rows[0]["index"] is None
     assert rows[0]["stage"] == "worker startup"
-    assert "the models would not reseed" in rows[0]["error"]
+    assert "would not hand out an index" in rows[0]["error"]
 
 
-@pytest.mark.parametrize("failing", ["_set_stochastic", "increment"])
+@pytest.mark.parametrize("failing", ["_set_stochastic", "claim_next_index"])
 def test_a_worker_failure_never_raises_out_of_the_producer(tmp_path, failing):
     """A reported failure leaves the producer without an exception."""
 
@@ -180,8 +199,7 @@ def test_a_worker_failure_never_raises_out_of_the_producer(tmp_path, failing):
         _set_stochastic=refuse if failing == "_set_stochastic" else lambda _s: None,
     )
     monitor = SimpleNamespace(
-        keep_simulating=lambda: True,
-        increment=refuse if failing == "increment" else (lambda: 1),
+        claim_next_index=refuse if failing == "claim_next_index" else (lambda: 0),
     )
     study, error_event = _a_worker(tmp_path, model)
 
@@ -205,7 +223,7 @@ def test_reporting_a_failure_never_keeps_the_mutex(tmp_path, monkeypatch, breaki
             mc_module._SimMonitor, "reprint", _raise_instead("no stdout")
         )
     event = _ErrorEvent(refuse=breaking == "event")
-    monitor = SimpleNamespace(keep_simulating=lambda: True)
+    monitor = _claims(0)
     study, error_event = _a_worker(tmp_path, _refusing_model(), event)
     mutex = _Mutex()
 
@@ -224,7 +242,7 @@ def test_a_reporting_failure_does_not_replace_the_simulation_failure(
 ):
     """An unwritable log does not hide what actually failed."""
     monkeypatch.setattr(mc_module, "_worker_failure_record", _raise_instead("no disk"))
-    monitor = SimpleNamespace(keep_simulating=lambda: True)
+    monitor = _claims(0)
     study, error_event = _a_worker(tmp_path, _refusing_model())
 
     _run(study, monitor, error_event)
@@ -254,15 +272,14 @@ def _committing_producer(monkeypatch):
 def _one_then_broken():
     calls = {"count": 0}
 
-    def keep_simulating():
+    def claim_next_index():
         calls["count"] += 1
         if calls["count"] == 1:
-            return True
+            return 0
         raise RuntimeError("the monitor died between simulations")
 
     return SimpleNamespace(
-        keep_simulating=keep_simulating,
-        increment=lambda: 1,
+        claim_next_index=claim_next_index,
         print_update_status=lambda: None,
     )
 
@@ -307,7 +324,7 @@ def test_a_worker_that_cannot_announce_its_failure_does_not_exit_cleanly(tmp_pat
     study, error_event = _a_worker(tmp_path, model, _ErrorEvent(refuse=True))
 
     with pytest.raises(RuntimeError, match="the models would not reseed"):
-        _run(study, SimpleNamespace(keep_simulating=lambda: True), error_event)
+        _run(study, _claims(0), error_event)
 
 
 def test_a_worker_that_did_announce_its_failure_returns(tmp_path):
@@ -316,7 +333,7 @@ def test_a_worker_that_did_announce_its_failure_returns(tmp_path):
     # producer returns and the process exits cleanly on purpose.
     study, error_event = _a_worker(tmp_path, _refusing_model())
 
-    _run(study, SimpleNamespace(keep_simulating=lambda: True), error_event)
+    _run(study, _claims(0), error_event)
 
     assert error_event.was_set
 
@@ -330,7 +347,7 @@ def test_a_lock_the_reporter_cannot_take_does_not_stop_it(
     """A lock that times out or is gone still leaves the failure announced."""
     # Asking for it without a bound is how a worker whose sibling died holding
     # the lock waits forever, with nothing recorded and no exit code to read.
-    monitor = SimpleNamespace(keep_simulating=lambda: True)
+    monitor = _claims(0)
     study, error_event = _a_worker(tmp_path, _refusing_model())
     mutex = mutex_class()
 
@@ -344,7 +361,7 @@ def test_a_lock_the_reporter_cannot_take_does_not_stop_it(
 
 def test_a_lock_that_breaks_on_release_does_not_hide_the_failure(tmp_path, capsys):
     """Giving the lock back can raise, and must not replace what failed."""
-    monitor = SimpleNamespace(keep_simulating=lambda: True)
+    monitor = _claims(0)
     study, error_event = _a_worker(tmp_path, _refusing_model())
 
     _run(study, monitor, error_event, _MutexThatBreaksOnRelease())
@@ -363,7 +380,7 @@ def test_a_failure_after_the_inputs_were_drawn_still_records_why(tmp_path, monke
         "_MonteCarlo__evaluate_flight_outputs",
         _raise_instead("the outputs would not serialize"),
     )
-    monitor = SimpleNamespace(keep_simulating=lambda: True, increment=lambda: 1)
+    monitor = _claims(0)
     study, error_event = _a_worker(
         tmp_path, SimpleNamespace(last_rnd_dict={}, _set_stochastic=lambda _s: None)
     )
@@ -393,7 +410,7 @@ def test_an_input_row_that_is_not_an_object_does_not_break_the_reporter(
         "_MonteCarlo__evaluate_flight_outputs",
         _raise_instead("the outputs would not serialize"),
     )
-    monitor = SimpleNamespace(keep_simulating=lambda: True, increment=lambda: 1)
+    monitor = _claims(0)
     study, error_event = _a_worker(
         tmp_path, SimpleNamespace(last_rnd_dict={}, _set_stochastic=lambda _s: None)
     )
