@@ -83,7 +83,9 @@ def _two_stage_vehicle():
     )
     booster_rocket.add_motor(
         PointMassMotor(
-            thrust_source=100, dry_mass=1.0, propellant_initial_mass=2.0,
+            thrust_source=100,
+            dry_mass=1.0,
+            propellant_initial_mass=2.0,
             burn_time=1.0,
         ),
         position=0.0,
@@ -100,7 +102,9 @@ def _two_stage_vehicle():
     )
     sustainer_rocket.add_motor(
         PointMassMotor(
-            thrust_source=50, dry_mass=0.5, propellant_initial_mass=1.0,
+            thrust_source=50,
+            dry_mass=0.5,
+            propellant_initial_mass=1.0,
             burn_time=1.0,
         ),
         position=2.0,
@@ -337,8 +341,12 @@ def test_axial_extent_raises_without_surfaces(calisto):
 
 def test_stack_position_of_bottom_stage_is_always_zero():
     booster, sustainer = _two_stage_vehicle()
-    booster.rocket.add_surfaces(NoseCone(length=0.2, kind="conical", base_radius=0.1, rocket_radius=0.1), 1.0)
-    sustainer.rocket.add_surfaces(NoseCone(length=0.3, kind="conical", base_radius=0.08, rocket_radius=0.08), 0.5)
+    booster.rocket.add_surfaces(
+        NoseCone(length=0.2, kind="conical", base_radius=0.1, rocket_radius=0.1), 1.0
+    )
+    sustainer.rocket.add_surfaces(
+        NoseCone(length=0.3, kind="conical", base_radius=0.08, rocket_radius=0.08), 0.5
+    )
     vehicle = MultiStageRocket(stages=[booster, sustainer], interstage_lengths=[0.1])
 
     assert vehicle._stack_position_of(booster) == pytest.approx(0.0)
@@ -347,9 +355,13 @@ def test_stack_position_of_bottom_stage_is_always_zero():
 def test_stack_position_of_offsets_upper_stage_by_interstage_gap():
     booster, sustainer = _two_stage_vehicle()
     # booster: NoseCone(length=0.2) tip at 1.0 -> local span [0.8, 1.0]
-    booster.rocket.add_surfaces(NoseCone(length=0.2, kind="conical", base_radius=0.1, rocket_radius=0.1), 1.0)
+    booster.rocket.add_surfaces(
+        NoseCone(length=0.2, kind="conical", base_radius=0.1, rocket_radius=0.1), 1.0
+    )
     # sustainer: NoseCone(length=0.3) tip at 0.5 -> local span [0.2, 0.5]
-    sustainer.rocket.add_surfaces(NoseCone(length=0.3, kind="conical", base_radius=0.08, rocket_radius=0.08), 0.5)
+    sustainer.rocket.add_surfaces(
+        NoseCone(length=0.3, kind="conical", base_radius=0.08, rocket_radius=0.08), 0.5
+    )
     vehicle = MultiStageRocket(stages=[booster, sustainer], interstage_lengths=[0.1])
 
     # Hand-computed, independent of _stack_position_of's own code path:
@@ -362,8 +374,12 @@ def test_stack_position_of_offsets_upper_stage_by_interstage_gap():
 
 def test_stack_position_of_is_zero_when_interstage_lengths_not_given():
     booster, sustainer = _two_stage_vehicle()
-    booster.rocket.add_surfaces(NoseCone(length=0.2, kind="conical", base_radius=0.1, rocket_radius=0.1), 1.0)
-    sustainer.rocket.add_surfaces(NoseCone(length=0.3, kind="conical", base_radius=0.08, rocket_radius=0.08), 0.5)
+    booster.rocket.add_surfaces(
+        NoseCone(length=0.2, kind="conical", base_radius=0.1, rocket_radius=0.1), 1.0
+    )
+    sustainer.rocket.add_surfaces(
+        NoseCone(length=0.3, kind="conical", base_radius=0.08, rocket_radius=0.08), 0.5
+    )
     vehicle = MultiStageRocket(stages=[booster, sustainer])
 
     assert vehicle._stack_position_of(sustainer) == pytest.approx(0.0)
@@ -371,8 +387,12 @@ def test_stack_position_of_is_zero_when_interstage_lengths_not_given():
 
 def test_flight_rocket_applies_stack_offset_to_upper_stage_mass_and_com():
     booster, sustainer = _two_stage_vehicle()
-    booster.rocket.add_surfaces(NoseCone(length=0.2, kind="conical", base_radius=0.1, rocket_radius=0.1), 1.0)
-    sustainer.rocket.add_surfaces(NoseCone(length=0.3, kind="conical", base_radius=0.08, rocket_radius=0.08), 0.5)
+    booster.rocket.add_surfaces(
+        NoseCone(length=0.2, kind="conical", base_radius=0.1, rocket_radius=0.1), 1.0
+    )
+    sustainer.rocket.add_surfaces(
+        NoseCone(length=0.3, kind="conical", base_radius=0.08, rocket_radius=0.08), 0.5
+    )
     vehicle = MultiStageRocket(stages=[booster, sustainer], interstage_lengths=[0.1])
 
     composed = vehicle.flight_rocket(active_stages=(booster, sustainer))
@@ -387,7 +407,9 @@ def test_flight_rocket_applies_stack_offset_to_upper_stage_mass_and_com():
     sustainer_mass = 5.0 + 0.5 + 1.0  # structure + motor dry + propellant
     sustainer_effective_com = 2.0 + sustainer_offset
     expected_mass = 10.0 + sustainer_mass
-    expected_com = (10.0 * 0.0 + sustainer_mass * sustainer_effective_com) / expected_mass
+    expected_com = (
+        10.0 * 0.0 + sustainer_mass * sustainer_effective_com
+    ) / expected_mass
 
     assert composed.mass == pytest.approx(expected_mass)
     assert composed.center_of_mass_without_motor == pytest.approx(expected_com)
@@ -395,22 +417,32 @@ def test_flight_rocket_applies_stack_offset_to_upper_stage_mass_and_com():
 
 def test_flight_rocket_applies_stack_offset_to_copied_surface_positions():
     booster, sustainer = _two_stage_vehicle()
-    sustainer_nose = NoseCone(length=0.3, kind="conical", base_radius=0.08, rocket_radius=0.08)
-    booster.rocket.add_surfaces(NoseCone(length=0.2, kind="conical", base_radius=0.1, rocket_radius=0.1), 1.0)
+    sustainer_nose = NoseCone(
+        length=0.3, kind="conical", base_radius=0.08, rocket_radius=0.08
+    )
+    booster.rocket.add_surfaces(
+        NoseCone(length=0.2, kind="conical", base_radius=0.1, rocket_radius=0.1), 1.0
+    )
     sustainer.rocket.add_surfaces(sustainer_nose, 0.5)
     vehicle = MultiStageRocket(stages=[booster, sustainer], interstage_lengths=[0.1])
 
     composed = vehicle.flight_rocket(active_stages=(booster, sustainer))
 
     offset = vehicle._stack_position_of(sustainer)
-    positions_by_surface = dict(composed.aerodynamic_surfaces)
+    positions_by_surface = {
+        surface: position for surface, position, *_ in composed.aerodynamic_surfaces
+    }
     assert positions_by_surface[sustainer_nose].z == pytest.approx(0.5 + offset)
 
 
 def test_flight_rocket_applies_stack_offset_to_bottom_stage_motor_position():
     booster, sustainer = _two_stage_vehicle()
-    booster.rocket.add_surfaces(NoseCone(length=0.2, kind="conical", base_radius=0.1, rocket_radius=0.1), 1.0)
-    sustainer.rocket.add_surfaces(NoseCone(length=0.3, kind="conical", base_radius=0.08, rocket_radius=0.08), 0.5)
+    booster.rocket.add_surfaces(
+        NoseCone(length=0.2, kind="conical", base_radius=0.1, rocket_radius=0.1), 1.0
+    )
+    sustainer.rocket.add_surfaces(
+        NoseCone(length=0.3, kind="conical", base_radius=0.08, rocket_radius=0.08), 0.5
+    )
     vehicle = MultiStageRocket(stages=[booster, sustainer], interstage_lengths=[0.1])
 
     # After separation, sustainer flies alone as the "bottom" (only) active
@@ -648,8 +680,12 @@ def test_draw_renders_every_active_stages_own_motor(calisto):
     booster = Stage(name="booster", rocket=calisto)
 
     sustainer_rocket = Rocket(
-        radius=0.045, mass=3.0, inertia=(0.2, 0.2, 0.005),
-        power_off_drag=0.5, power_on_drag=0.5, center_of_mass_without_motor=1.0,
+        radius=0.045,
+        mass=3.0,
+        inertia=(0.2, 0.2, 0.005),
+        power_off_drag=0.5,
+        power_on_drag=0.5,
+        center_of_mass_without_motor=1.0,
     )
     sustainer_motor = deepcopy(calisto.motor)
     sustainer_rocket.add_motor(sustainer_motor, position=3.0)
@@ -753,11 +789,17 @@ def test_draw_generalizes_to_three_stages():
     # rendering at N=3, not just the two-stage case.
     def _rocket(radius, mass, motor_position, grains_com):
         r = Rocket(
-            radius=radius, mass=mass, inertia=(0.2, 0.2, 0.005),
-            power_off_drag=0.5, power_on_drag=0.5, center_of_mass_without_motor=0.0,
+            radius=radius,
+            mass=mass,
+            inertia=(0.2, 0.2, 0.005),
+            power_off_drag=0.5,
+            power_on_drag=0.5,
+            center_of_mass_without_motor=0.0,
         )
         r.add_motor(
-            _small_solid_motor(radius, thrust=200, grains_center_of_mass_position=grains_com),
+            _small_solid_motor(
+                radius, thrust=200, grains_center_of_mass_position=grains_com
+            ),
             position=motor_position,
         )
         return r
@@ -818,11 +860,17 @@ def test_draw_generalizes_to_five_stages():
 
     def _rocket(radius, mass):
         r = Rocket(
-            radius=radius, mass=mass, inertia=(0.1, 0.1, 0.002),
-            power_off_drag=0.5, power_on_drag=0.5, center_of_mass_without_motor=0.0,
+            radius=radius,
+            mass=mass,
+            inertia=(0.1, 0.1, 0.002),
+            power_off_drag=0.5,
+            power_on_drag=0.5,
+            center_of_mass_without_motor=0.0,
         )
         r.add_motor(
-            _small_solid_motor(radius, thrust=100, grains_center_of_mass_position=grains_com),
+            _small_solid_motor(
+                radius, thrust=100, grains_center_of_mass_position=grains_com
+            ),
             position=motor_position,
         )
         r.add_trapezoidal_fins(
@@ -847,7 +895,11 @@ def test_draw_generalizes_to_five_stages():
         vehicle.stages, vehicle.deployables
     )
     assert [name for name, _, _ in stage_spans] == [
-        "stage0", "stage1", "stage2", "stage3", "stage4",
+        "stage0",
+        "stage1",
+        "stage2",
+        "stage3",
+        "stage4",
     ]
 
     assert _lines_crossing_stage_boundaries(ax, stage_spans) == []
@@ -886,8 +938,12 @@ def test_stage_and_deployable_positions_matches_hand_computed_values():
     )
     vehicle = MultiStageRocket(stages=[booster, sustainer], interstage_lengths=[0.1])
     vehicle.add_deployable(
-        name="payload", mass=1.0, inertia=(0.01, 0.01, 0.001), position=0.1,
-        stage=sustainer, radius=0.02,
+        name="payload",
+        mass=1.0,
+        inertia=(0.01, 0.01, 0.001),
+        position=0.1,
+        stage=sustainer,
+        radius=0.02,
     )
 
     stage_spans, deployable_positions = vehicle._stage_and_deployable_positions(
@@ -911,7 +967,10 @@ def test_draw_runs_with_deployables_aboard(calisto_robust):
     stage = Stage(name="stage_1", rocket=calisto_robust)
     vehicle = MultiStageRocket(stages=[stage])
     vehicle.add_deployable(
-        name="payload", mass=1.0, inertia=(0.01, 0.01, 0.001), position=0.5,
+        name="payload",
+        mass=1.0,
+        inertia=(0.01, 0.01, 0.001),
+        position=0.5,
         radius=0.02,
     )
 
@@ -926,11 +985,20 @@ def test_middle_stage_with_full_surfaces_renders_correctly():
     # removal at either of its two boundaries.
     def _rocket(radius):
         r = Rocket(
-            radius=radius, mass=2.0, inertia=(0.1, 0.1, 0.002),
-            power_off_drag=0.5, power_on_drag=0.5, center_of_mass_without_motor=0.0,
+            radius=radius,
+            mass=2.0,
+            inertia=(0.1, 0.1, 0.002),
+            power_off_drag=0.5,
+            power_on_drag=0.5,
+            center_of_mass_without_motor=0.0,
         )
         r.add_motor(
-            PointMassMotor(thrust_source=150, dry_mass=0.2, propellant_initial_mass=0.3, burn_time=1.0),
+            PointMassMotor(
+                thrust_source=150,
+                dry_mass=0.2,
+                propellant_initial_mass=0.3,
+                burn_time=1.0,
+            ),
             position=0.0,
         )
         return r
@@ -946,7 +1014,9 @@ def test_middle_stage_with_full_surfaces_renders_correctly():
     middle_rocket.add_trapezoidal_fins(
         n=3, root_chord=0.05, tip_chord=0.02, span=0.04, position=0.05
     )
-    middle_rocket.add_tail(top_radius=0.06, bottom_radius=0.045, length=0.03, position=-0.05)
+    middle_rocket.add_tail(
+        top_radius=0.06, bottom_radius=0.045, length=0.03, position=-0.05
+    )
     middle = Stage(name="middle", rocket=middle_rocket)
 
     top_rocket = _rocket(0.045)
@@ -970,7 +1040,9 @@ def test_middle_stage_with_full_surfaces_renders_correctly():
     middle_extent = axial_extent(middle_rocket)
     middle_span = next(span for span in stage_spans if span[0] == "middle")
     offset = vehicle._stack_position_of(middle)
-    assert (middle_span[1] - offset, middle_span[2] - offset) == pytest.approx(middle_extent)
+    assert (middle_span[1] - offset, middle_span[2] - offset) == pytest.approx(
+        middle_extent
+    )
 
     assert _lines_crossing_stage_boundaries(ax, stage_spans) == []
 
@@ -983,11 +1055,20 @@ def test_middle_stage_with_partial_surfaces_at_both_boundaries():
     # separate mismatched-radius junctions instead of one.
     def _rocket(radius):
         r = Rocket(
-            radius=radius, mass=2.0, inertia=(0.1, 0.1, 0.002),
-            power_off_drag=0.5, power_on_drag=0.5, center_of_mass_without_motor=0.0,
+            radius=radius,
+            mass=2.0,
+            inertia=(0.1, 0.1, 0.002),
+            power_off_drag=0.5,
+            power_on_drag=0.5,
+            center_of_mass_without_motor=0.0,
         )
         r.add_motor(
-            PointMassMotor(thrust_source=150, dry_mass=0.2, propellant_initial_mass=0.3, burn_time=1.0),
+            PointMassMotor(
+                thrust_source=150,
+                dry_mass=0.2,
+                propellant_initial_mass=0.3,
+                burn_time=1.0,
+            ),
             position=0.0,
         )
         return r
@@ -1032,25 +1113,39 @@ def test_rail_buttons_on_a_stage_do_not_break_draw():
     # (not Nose/Tail/Fins) - confirms they at least don't crash draw()
     # for a multistage vehicle, combined with normal surfaces.
     booster_rocket = Rocket(
-        radius=0.08, mass=4.0, inertia=(0.2, 0.2, 0.005),
-        power_off_drag=0.5, power_on_drag=0.5, center_of_mass_without_motor=0.0,
+        radius=0.08,
+        mass=4.0,
+        inertia=(0.2, 0.2, 0.005),
+        power_off_drag=0.5,
+        power_on_drag=0.5,
+        center_of_mass_without_motor=0.0,
     )
     booster_rocket.add_motor(
-        PointMassMotor(thrust_source=300, dry_mass=0.3, propellant_initial_mass=0.5, burn_time=1.0),
+        PointMassMotor(
+            thrust_source=300, dry_mass=0.3, propellant_initial_mass=0.5, burn_time=1.0
+        ),
         position=0.0,
     )
     booster_rocket.add_trapezoidal_fins(
         n=3, root_chord=0.08, tip_chord=0.03, span=0.06, position=-0.2
     )
-    booster_rocket.set_rail_buttons(upper_button_position=0.1, lower_button_position=-0.15)
+    booster_rocket.set_rail_buttons(
+        upper_button_position=0.1, lower_button_position=-0.15
+    )
     booster = Stage(name="booster", rocket=booster_rocket, length=0.6)
 
     sustainer_rocket = Rocket(
-        radius=0.045, mass=2.0, inertia=(0.1, 0.1, 0.002),
-        power_off_drag=0.5, power_on_drag=0.5, center_of_mass_without_motor=0.0,
+        radius=0.045,
+        mass=2.0,
+        inertia=(0.1, 0.1, 0.002),
+        power_off_drag=0.5,
+        power_on_drag=0.5,
+        center_of_mass_without_motor=0.0,
     )
     sustainer_rocket.add_motor(
-        PointMassMotor(thrust_source=150, dry_mass=0.2, propellant_initial_mass=0.3, burn_time=1.0),
+        PointMassMotor(
+            thrust_source=150, dry_mass=0.2, propellant_initial_mass=0.3, burn_time=1.0
+        ),
         position=0.0,
     )
     sustainer_rocket.add_nose(length=0.15, kind="conical", position=0.2)
@@ -1067,11 +1162,17 @@ def test_draw_renders_hybrid_motor_at_a_non_bottom_stage(hybrid_motor):
     # (tank patches, not just SolidMotor grains), not just the
     # SolidMotor case already covered elsewhere.
     booster_rocket = Rocket(
-        radius=0.15, mass=6.0, inertia=(1.0, 1.0, 0.02),
-        power_off_drag=0.5, power_on_drag=0.5, center_of_mass_without_motor=0.0,
+        radius=0.15,
+        mass=6.0,
+        inertia=(1.0, 1.0, 0.02),
+        power_off_drag=0.5,
+        power_on_drag=0.5,
+        center_of_mass_without_motor=0.0,
     )
     booster_rocket.add_motor(
-        PointMassMotor(thrust_source=3000, dry_mass=1.0, propellant_initial_mass=2.0, burn_time=1.0),
+        PointMassMotor(
+            thrust_source=3000, dry_mass=1.0, propellant_initial_mass=2.0, burn_time=1.0
+        ),
         position=0.0,
     )
     booster_rocket.add_trapezoidal_fins(
@@ -1080,16 +1181,18 @@ def test_draw_renders_hybrid_motor_at_a_non_bottom_stage(hybrid_motor):
     booster = Stage(name="booster", rocket=booster_rocket, length=1.0)
 
     sustainer_rocket = Rocket(
-        radius=0.15, mass=8.0, inertia=(1.0, 1.0, 0.02),
-        power_off_drag=0.5, power_on_drag=0.5, center_of_mass_without_motor=0.0,
+        radius=0.15,
+        mass=8.0,
+        inertia=(1.0, 1.0, 0.02),
+        power_off_drag=0.5,
+        power_on_drag=0.5,
+        center_of_mass_without_motor=0.0,
     )
     sustainer_rocket.add_motor(hybrid_motor, position=0.0)
     sustainer_rocket.add_nose(length=0.3, kind="conical", position=0.5)
     sustainer = Stage(name="sustainer", rocket=sustainer_rocket, length=1.5)
 
-    vehicle = MultiStageRocket(
-        stages=[booster, sustainer], interstage_lengths=[0.05]
-    )
+    vehicle = MultiStageRocket(stages=[booster, sustainer], interstage_lengths=[0.05])
 
     vehicle.draw(filename=None)
     ax = plt.gca()
