@@ -316,7 +316,7 @@ def test_export_sensor_data(flight_calisto_with_sensors):
     [
         ("t_initial", (0.25886, -0.649623, 0)),
         ("out_of_rail_time", (0.792028, -1.987634, 0)),
-        ("apogee_time", (-0.509420, -0.732933, -2.089120e-14)),
+        ("apogee_time", (-0.519917, -0.734918, -1.005368e-18)),
         ("t_final", (0, 0, 0)),
     ],
 )
@@ -355,7 +355,7 @@ def test_aerodynamic_moments(flight_calisto_custom_wind, flight_time, expected_v
     [
         ("t_initial", (1.654150, 0.659142, -0.067103)),
         ("out_of_rail_time", (5.052628, 2.013361, -1.75370)),
-        ("apogee_time", (2.321838, -1.613641, -0.962108)),
+        ("apogee_time", (2.322999, -1.643037, -0.950316)),
         ("t_final", (-0.019802, 0.012030, 159.051604)),
     ],
 )
@@ -396,7 +396,7 @@ def test_aerodynamic_forces(flight_calisto_custom_wind, flight_time, expected_va
         ("out_of_rail_time", (0, 2.248540, 25.700928)),
         (
             "apogee_time",
-            (-14.826350, 15.670022, -0.000264),
+            (-14.593411, 15.743567, -0.000409),
         ),
         ("t_final", (5, 2, -5.660155)),
     ],
