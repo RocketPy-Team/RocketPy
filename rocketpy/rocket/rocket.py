@@ -2371,10 +2371,14 @@ class Rocket:
                 position=data["motor_position"],
             )
 
-        for surface, position, _ref_factor in data["aerodynamic_surfaces"]:
+        # The trailing star reads entries of either length: files written
+        # before ref_factor was stored carry two fields and newer ones three.
+        # The factor is not read back in any case, since add_surfaces derives
+        # it from the surface's own radius.
+        for surface, position, *_ in data["aerodynamic_surfaces"]:
             rocket.add_surfaces(surfaces=surface, positions=position)
 
-        for button, position, _ref_factor in data["rail_buttons"]:
+        for button, position, *_ in data["rail_buttons"]:
             rocket.set_rail_buttons(
                 upper_button_position=position[2] + button.buttons_distance,
                 lower_button_position=position[2],
@@ -2385,7 +2389,7 @@ class Rocket:
         for parachute in data["parachutes"]:
             rocket.parachutes.append(parachute)
 
-        for sensor, position, _ref_factor in data["sensors"]:
+        for sensor, position, *_ in data["sensors"]:
             rocket.add_sensor(sensor, position)
 
         for air_brake in data["air_brakes"]:

@@ -320,7 +320,7 @@ def test_two_components_do_not_share_one_position_nominal(stochastic_calisto):
     stochastic_calisto._set_stochastic(5)
 
     places = {}
-    for component, position in stochastic_calisto.aerodynamic_surfaces:
+    for component, position, *_ in stochastic_calisto.aerodynamic_surfaces:
         nominal = position[0]
         places[type(component).__name__] = float(getattr(nominal, "z", nominal))
 

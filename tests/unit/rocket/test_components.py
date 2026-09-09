@@ -2,6 +2,7 @@
 
 import pytest
 
+from rocketpy import NoseCone
 from rocketpy.mathutils.vector_matrix import Vector
 from rocketpy.rocket.components import Components
 
@@ -53,8 +54,6 @@ def test_components_to_dict_from_dict_preserves_ref_factor():
 
 def test_rocket_add_surfaces_stores_computed_ref_factor(calisto):
     """Rocket aero-surface add path stores (surface.rocket_radius / rocket.radius)**2."""
-    from rocketpy import NoseCone
-
     surface_radius = calisto.radius / 2
     expected_ref_factor = (surface_radius / calisto.radius) ** 2
     nose = NoseCone(
@@ -76,8 +75,6 @@ def test_rocket_add_surfaces_stores_computed_ref_factor(calisto):
 
 def test_rocket_add_surfaces_matching_radius_stores_unit_ref_factor(calisto):
     """Matching surface and rocket radii store ref_factor of 1.0."""
-    from rocketpy import NoseCone
-
     nose = NoseCone(
         length=0.55829,
         kind="vonkarman",

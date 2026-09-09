@@ -75,9 +75,7 @@ class Components:
         """
         self.__component_list.append(component)
         self.__position_list.append(position)
-        self._components.append(
-            self.component_tuple(component, position, ref_factor)
-        )
+        self._components.append(self.component_tuple(component, position, ref_factor))
 
     def get_by_type(self, component_type):
         """Search the list of components and return a list with all the

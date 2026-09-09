@@ -39,9 +39,9 @@ def _drawn(component):
 
 
 def _members_of(collection):
-    """Components yields (component, position) pairs; a plain list does not."""
+    """Components yields (component, position, ref_factor); a list does not."""
     if isinstance(collection, Components):
-        return [component for component, _ in collection]
+        return [component for component, *_ in collection]
     return list(collection)
 
 
