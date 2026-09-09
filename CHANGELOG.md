@@ -60,6 +60,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+- BUG: Correct the gravity sign an `Accelerometer` applies when `consider_gravity=True`. The gravitational field was added to the inertial acceleration instead of subtracted from it, so the sensor reported the negative of the proper acceleration along the vertical: one at rest read -g rather than +g. Recorded accelerometer data taken with `consider_gravity=True` changes sign in that term. [#1175](https://github.com/RocketPy-Team/RocketPy/pull/1175)
 - BUG: Sample `StochasticFlight` inputs once per simulation [#1126](https://github.com/RocketPy-Team/RocketPy/pull/1126) [#1090](https://github.com/RocketPy-Team/RocketPy/issues/1090)
 - BUG: Fix spurious `ValueError` from floating-point roundoff at exact tank depletion [#1166](https://github.com/RocketPy-Team/RocketPy/pull/1166)
 - BUG: Draw each declared eccentricity once per simulation [#1168](https://github.com/RocketPy-Team/RocketPy/pull/1168)

@@ -13,7 +13,8 @@ class Accelerometer(InertialSensor):
     Attributes
     ----------
     consider_gravity : bool
-        Whether the sensor considers the effect of gravity on the acceleration.
+        Whether the sensor reports proper acceleration, which includes the
+        reaction to gravity, rather than the coordinate acceleration alone.
     prints : _InertialSensorPrints
         Object that contains the print functions for the sensor.
     sampling_rate : float
@@ -166,8 +167,11 @@ class Accelerometer(InertialSensor):
             Skewness of the sensor's axes in percentage. Default is 0, meaning
             no cross-axis sensitivity is applied.
         consider_gravity : bool, optional
-            If True, the sensor will consider the effect of gravity on the
-            acceleration. Default is False.
+            If True, the sensor reports proper acceleration, as a real
+            accelerometer does: the inertial acceleration less the local
+            gravitational field, so one at rest reads g along its up axis
+            rather than zero. If False it reports the coordinate acceleration,
+            which is zero at rest. Default is False.
         name : str, optional
             The name of the sensor. Default is "Accelerometer".
         seed : int, optional
@@ -232,7 +236,7 @@ class Accelerometer(InertialSensor):
         gravity = (
             Vector([0, 0, -gravity]) if self.consider_gravity else Vector([0, 0, 0])
         )
-        inertial_acceleration = Vector(u_dot[3:6]) + gravity
+        inertial_acceleration = Vector(u_dot[3:6]) - gravity
 
         # Vector from rocket cdm to sensor in rocket frame
         r = relative_position
