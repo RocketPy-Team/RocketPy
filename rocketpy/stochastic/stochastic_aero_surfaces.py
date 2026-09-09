@@ -623,6 +623,9 @@ class StochasticFreeFormFins(StochasticModel):
             generated_dict["shape_points"] = self._keep_root_on_body_line(
                 self.shape_points[0], generated_dict["shape_points"]
             )
+            # The outline moved after the base class recorded it, and what the
+            # fins are built from is what the record has to hold.
+            self._record_draw(generated_dict)
         yield generated_dict
 
     @staticmethod

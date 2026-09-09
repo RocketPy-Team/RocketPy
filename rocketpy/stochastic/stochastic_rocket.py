@@ -473,15 +473,23 @@ class StochasticRocket(StochasticModel):
             the y direction relative to the center of dry mass axial line.
             The y axis is defined according to the body axes coordinate system.
 
+
+        Calling this again replaces what was configured before. An axis left
+        out keeps the setting it already had, since ``None`` is what an omitted
+        argument arrives as and cannot be told apart from one written by hand.
+        Taking an axis away again is not supported (#1171).
+
         Returns
         -------
         self : StochasticRocket
             Object of the StochasticRocket class.
         """
-        self.cp_eccentricity_x = self._validate_eccentricity("cp_eccentricity_x", x)
-        self._declare_stochastic_input("cp_eccentricity_x", x)
-        self.cp_eccentricity_y = self._validate_eccentricity("cp_eccentricity_y", y)
-        self._declare_stochastic_input("cp_eccentricity_y", y)
+        self.cp_eccentricity_x, self.cp_eccentricity_y = (
+            self._reconfigure_stochastic_inputs(
+                (("cp_eccentricity_x", x), ("cp_eccentricity_y", y)),
+                self._validate_eccentricity,
+            )
+        )
         return self
 
     def add_thrust_eccentricity(self, x=None, y=None):
@@ -501,19 +509,23 @@ class StochasticRocket(StochasticModel):
             relative to the center of dry mass axial line. The y axis
             is defined according to the body axes coordinate system.
 
+
+        Calling this again replaces what was configured before. An axis left
+        out keeps the setting it already had, since ``None`` is what an omitted
+        argument arrives as and cannot be told apart from one written by hand.
+        Taking an axis away again is not supported (#1171).
+
         Returns
         -------
         self : StochasticRocket
             Object of the StochasticRocket class.
         """
-        self.thrust_eccentricity_x = self._validate_eccentricity(
-            "thrust_eccentricity_x", x
+        self.thrust_eccentricity_x, self.thrust_eccentricity_y = (
+            self._reconfigure_stochastic_inputs(
+                (("thrust_eccentricity_x", x), ("thrust_eccentricity_y", y)),
+                self._validate_eccentricity,
+            )
         )
-        self._declare_stochastic_input("thrust_eccentricity_x", x)
-        self.thrust_eccentricity_y = self._validate_eccentricity(
-            "thrust_eccentricity_y", y
-        )
-        self._declare_stochastic_input("thrust_eccentricity_y", y)
         return self
 
     def _validate_eccentricity(self, eccentricity, position):
@@ -704,7 +716,7 @@ class StochasticRocket(StochasticModel):
         generated_dict["rail_buttons"] = []
         generated_dict["air_brakes"] = []
         generated_dict["parachutes"] = []
-        self.last_rnd_dict = generated_dict
+        self._record_draw(generated_dict)
         yield generated_dict
 
     def _create_motor(self, component_stochastic_motor):
