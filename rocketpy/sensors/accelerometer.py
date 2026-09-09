@@ -2,7 +2,7 @@ import numpy as np
 
 from ..mathutils.vector_matrix import Matrix, Vector
 from ..prints.sensors_prints import _InertialSensorPrints
-from ..sensors.sensor import InertialSensor
+from ..sensors.sensor import InertialSensor, SeedLike
 
 # pylint: disable=too-many-arguments
 
@@ -79,7 +79,7 @@ class Accelerometer(InertialSensor):
         cross_axis_sensitivity=0,
         consider_gravity=False,
         name="Accelerometer",
-        seed=None,
+        seed: SeedLike | None = None,
     ):
         """
         Initialize the accelerometer sensor
@@ -174,11 +174,14 @@ class Accelerometer(InertialSensor):
             which is zero at rest. Default is False.
         name : str, optional
             The name of the sensor. Default is "Accelerometer".
-        seed : int, optional
+        seed : int, array_like of ints, numpy.random.SeedSequence, optional
             Seed for the random number generator that draws the measurement
             noise. If given, the noise becomes reproducible and independent of
-            the process-global NumPy RNG. Default is None, meaning the noise is
-            seeded from fresh entropy per instance.
+            the process-global NumPy RNG. Only seeds that describe a stream are
+            taken: live ``Generator``, ``BitGenerator`` and ``RandomState``
+            objects are rejected, because their state advances as noise is
+            drawn and so cannot be represented in ``to_dict()``. Default is
+            None, meaning the noise is seeded from fresh entropy per instance.
 
         Returns
         -------
