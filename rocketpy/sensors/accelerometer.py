@@ -2,7 +2,7 @@ import numpy as np
 
 from ..mathutils.vector_matrix import Matrix, Vector
 from ..prints.sensors_prints import _InertialSensorPrints
-from ..sensors.sensor import InertialSensor
+from ..sensors.sensor import InertialSensor, SeedLike
 
 # pylint: disable=too-many-arguments
 
@@ -13,7 +13,8 @@ class Accelerometer(InertialSensor):
     Attributes
     ----------
     consider_gravity : bool
-        Whether the sensor considers the effect of gravity on the acceleration.
+        Whether the sensor reports proper acceleration, which includes the
+        reaction to gravity, rather than the coordinate acceleration alone.
     prints : _InertialSensorPrints
         Object that contains the print functions for the sensor.
     sampling_rate : float
@@ -78,7 +79,7 @@ class Accelerometer(InertialSensor):
         cross_axis_sensitivity=0,
         consider_gravity=False,
         name="Accelerometer",
-        seed=None,
+        seed: SeedLike | None = None,
     ):
         """
         Initialize the accelerometer sensor
@@ -166,15 +167,21 @@ class Accelerometer(InertialSensor):
             Skewness of the sensor's axes in percentage. Default is 0, meaning
             no cross-axis sensitivity is applied.
         consider_gravity : bool, optional
-            If True, the sensor will consider the effect of gravity on the
-            acceleration. Default is False.
+            If True, the sensor reports proper acceleration, as a real
+            accelerometer does: the inertial acceleration less the local
+            gravitational field, so one at rest reads g along its up axis
+            rather than zero. If False it reports the coordinate acceleration,
+            which is zero at rest. Default is False.
         name : str, optional
             The name of the sensor. Default is "Accelerometer".
-        seed : int, optional
+        seed : int, array_like of ints, numpy.random.SeedSequence, optional
             Seed for the random number generator that draws the measurement
             noise. If given, the noise becomes reproducible and independent of
-            the process-global NumPy RNG. Default is None, meaning the noise is
-            seeded from fresh entropy per instance.
+            the process-global NumPy RNG. Only seeds that describe a stream are
+            taken: live ``Generator``, ``BitGenerator`` and ``RandomState``
+            objects are rejected, because their state advances as noise is
+            drawn and so cannot be represented in ``to_dict()``. Default is
+            None, meaning the noise is seeded from fresh entropy per instance.
 
         Returns
         -------
@@ -232,7 +239,7 @@ class Accelerometer(InertialSensor):
         gravity = (
             Vector([0, 0, -gravity]) if self.consider_gravity else Vector([0, 0, 0])
         )
-        inertial_acceleration = Vector(u_dot[3:6]) + gravity
+        inertial_acceleration = Vector(u_dot[3:6]) - gravity
 
         # Vector from rocket cdm to sensor in rocket frame
         r = relative_position

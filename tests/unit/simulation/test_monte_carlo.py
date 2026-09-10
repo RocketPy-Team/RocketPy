@@ -918,29 +918,47 @@ def test_ctrl_c_before_the_first_simulation_is_still_the_interrupt(
 class _FakeWorker:
     """Stands in for a ``multiprocess.Process`` without starting anything.
 
-    Its ``join`` always returns once the interrupt has been delivered, so every
-    test built on it covers workers that exit cooperatively — the guarantee the
-    ``simulate`` docstring makes. A worker stuck inside one simulation blocks
-    the shutdown join unboundedly, on this branch as on ``develop``; the
-    bounded fleet shutdown is #1054's territory and is deliberately not
-    asserted here.
+    It leaves on the first join it is given, so every test built on it covers
+    workers that exit cooperatively once the stop event is set — the guarantee
+    the ``simulate`` docstring makes. A worker that outlives the grace period
+    is terminated and then killed by ``_stop_the_workers_still_running``, and
+    ``tests/unit/simulation/test_monte_carlo_worker_join.py`` is where that
+    bounded shutdown is pinned; these tests are about the interrupt reaching
+    the caller, not about the bound.
     """
 
     def __init__(self, interrupt_on_first_join=False, interrupt_on_start=False):
         self.starts = 0
         self.joins = 0
+        self.timeouts = []
+        self.terminated = False
+        self.killed = False
+        self.exitcode = None
         self._interrupt_on_first_join = interrupt_on_first_join
         self._interrupt_on_start = interrupt_on_start
+
+    def is_alive(self):
+        return self.exitcode is None
 
     def start(self):
         self.starts += 1
         if self._interrupt_on_start:
             raise KeyboardInterrupt("ctrl-c inside Process.start()")
 
-    def join(self):
+    def join(self, timeout=None):
         self.joins += 1
+        self.timeouts.append(timeout)
         if self._interrupt_on_first_join and self.joins == 1:
             raise KeyboardInterrupt("ctrl-c while waiting for the workers")
+        self.exitcode = 0
+
+    def terminate(self):
+        self.terminated = True
+        self.exitcode = -15
+
+    def kill(self):
+        self.killed = True
+        self.exitcode = -9
 
 
 class _FakeManager:
@@ -1020,10 +1038,12 @@ def test_interrupted_parallel_run_signals_joins_and_reaches_the_caller(
     assert len(workers) == 2
     assert all(worker.starts == 1 for worker in workers)
     assert manager.event.is_set(), "the workers were never told to stop"
-    assert workers[0].joins == 2, (
+    # At least, not exactly: the bounded shutdown joins each worker once per
+    # escalation stage, and how many stages it walks is its own business.
+    assert workers[0].joins >= 2, (
         "the interrupted join was not retried after signalling"
     )
-    assert workers[1].joins == 1, "the second worker was never joined"
+    assert workers[1].joins >= 1, "the second worker was never joined"
     assert manager.monitor.final_status_calls == 0, "a partial run reported completion"
     # __init__ above never sets inputs_log; only the reload in
     # __terminate_simulation does. Interrupted before any row was written, the
@@ -1065,7 +1085,7 @@ def test_ctrl_c_during_worker_startup_still_stops_the_started_workers(
         mc.simulate(number_of_simulations=4, parallel=True, n_workers=2)
 
     assert manager.event.is_set(), "the started worker was never told to stop"
-    assert workers[0].joins == 1, "the started worker was never joined"
+    assert workers[0].joins >= 1, "the started worker was never joined"
     # The second worker's start() raised, so it never entered the started list
     # and must not be joined: joining a never-started process raises.
     assert workers[1].joins == 0

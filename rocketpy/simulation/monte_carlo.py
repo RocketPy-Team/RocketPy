@@ -18,9 +18,10 @@ import json
 import os
 import traceback
 import warnings
+from contextlib import suppress
 from numbers import Real
 from pathlib import Path
-from time import time
+from time import monotonic, time
 
 import numpy as np
 import simplekml
@@ -42,6 +43,19 @@ from rocketpy.tools import (
 # simulate() writes one JSON object per line and reads that same shape back, so
 # this is the only format it can both resume from and overwrite safely.
 _SIMULATION_LOG_SUFFIX = ".txt"
+
+# Which simulation a row belongs to. Every check on a finished run reads it.
+_SIMULATION_INDEX_KEY = "index"
+
+# How a manager that has gone away answers a proxy call.
+_MANAGER_IS_GONE = (OSError, EOFError)
+
+# Bounded, so a lock its dead holder never released cannot pin this worker.
+_REPORT_LOCK_SECONDS = 5.0
+
+# Longer than the exit-code path: a worker that only read the event is healthy
+# and leaving at the end of the simulation in hand, not blocked on a dead lock.
+_REPORTED_FAILURE_GRACE_SECONDS = 60.0
 
 
 def _refuse_logs_this_run_cannot_write(
@@ -300,6 +314,19 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         -------
         None
 
+        Raises
+        ------
+        RuntimeError
+            If a parallel run does not finish. A worker that ends badly, one
+            that reports a failure, and logs that do not hold every simulation
+            asked for are each refused, since a run that lost work must not be
+            reported as one that completed.
+        KeyboardInterrupt
+            If the run is interrupted. The logs written so far are kept and
+            reloaded first, so the object agrees with its own files and the
+            run can be continued with ``append=True``, but the interrupt then
+            reaches the caller rather than being reported as a finished study.
+
         Notes
         -----
         If you need to stop the simulations after starting them, you can
@@ -494,10 +521,14 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                         ),
                     )
                     sim_producer.start()
+                    # Started first: one that never did cannot be joined, and
+                    # a later start failing still has to bring these down.
                     processes.append(sim_producer)
 
-                for sim_producer in processes:
-                    sim_producer.join()
+                _join_the_workers(processes, simulation_error_event)
+
+                # Before the event: a killed worker never sets it.
+                _refuse_a_worker_that_did_not_finish(processes)
 
                 # Handle error from the child processes
                 if simulation_error_event.is_set():
@@ -507,15 +538,22 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                         "for more information."
                     )
 
+                # An exit code cannot show a worker that left between
+                # claiming an index and recording it.
+                _refuse_logs_missing_a_simulation(
+                    self.input_file, self.output_file, self.number_of_simulations
+                )
+
                 sim_monitor.print_final_status()
 
-            # Handle error from the main process
-            # pylint: disable=broad-except
+            # Handle error from the main process. Re-raising unconditionally
+            # is what makes an interrupted run tell the caller it was cut
+            # short instead of reporting itself as a finished study.
             except (Exception, KeyboardInterrupt):
-                simulation_error_event.set()
-
-                for sim_producer in processes:
-                    sim_producer.join()
+                # Bounded here too. An unbounded join undid the bound above.
+                _stop_the_workers_still_running(
+                    processes, simulation_error_event, _SHUTDOWN_GRACE_SECONDS
+                )
                 raise
 
     def __validate_number_of_workers(self, n_workers):
@@ -540,6 +578,8 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         error_event : multiprocess.Event
             Event signaling an error occurred during the simulation.
         """
+        # The handler reads both, and a failure above the loop precedes them.
+        sim_idx, inputs_json = None, ""
         try:
             # Ensure Processes generate different random numbers
             self.environment._set_stochastic(seed)
@@ -576,18 +616,48 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                 finally:
                     mutex.release()
 
-        except Exception:  # pylint: disable=broad-except
-            mutex.acquire()
-            with open(self.error_file, "a", encoding="utf-8") as f:
-                f.write(inputs_json)
+                # Nothing is in flight between two simulations, nor are these.
+                sim_idx, inputs_json = None, ""
 
-            # See note above: must use print() to remain visible from a
-            # multiprocessing worker process.
-            _SimMonitor.reprint(
-                f"Error on iteration {sim_idx}:\n{traceback.format_exc()}"
-            )
+        except Exception:  # pylint: disable=broad-except
+            if not self.__report_a_failed_simulation(
+                sim_idx, inputs_json, mutex, error_event
+            ):
+                # The event could not be set; the exit code is what is left.
+                raise
+
+    def __report_a_failed_simulation(self, sim_idx, inputs_json, mutex, error_event):
+        """Write down and announce a simulation this worker could not finish.
+
+        The event goes first and from outside the lock, since a worker that
+        cannot write its diagnostics still has to be able to stop the others.
+        Each step under the lock is suppressed on its own: a full disk would
+        otherwise replace the failure being reported, and the lock is a
+        manager's, so ending while holding it leaves the next worker waiting
+        on a process that no longer exists.
+        """
+        details = traceback.format_exc()
+        where = "worker startup" if sim_idx is None else f"iteration {sim_idx}"
+        announced = False
+        with suppress(_MANAGER_IS_GONE):
             error_event.set()
-            mutex.release()
+            announced = True
+
+        held = False
+        with suppress(*_MANAGER_IS_GONE):
+            held = mutex.acquire(timeout=_REPORT_LOCK_SECONDS)
+        try:
+            with suppress(OSError):
+                with open(self.error_file, "a", encoding="utf-8") as f:
+                    f.write(_worker_failure_record(where, details, inputs_json))
+            with suppress(OSError, ValueError):
+                # Must use print() to remain visible from a worker process.
+                _SimMonitor.reprint(f"Error on {where}:\n{details}")
+        finally:
+            if held:
+                with suppress(*_MANAGER_IS_GONE):
+                    mutex.release()
+        return announced
 
     def __run_single_simulation(self):
         """Runs a single simulation and returns the inputs and outputs.
@@ -991,6 +1061,13 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                     raise ValueError(
                         "Invalid 'data_collector' key! "
                         f"Variable names overwrites 'export_list' key '{key}'."
+                    )
+                if key == _SIMULATION_INDEX_KEY:
+                    raise ValueError(
+                        f"Invalid 'data_collector' key '{key}'! It is the "
+                        f"number of the simulation the row belongs to, which "
+                        f"is written after the collectors run and cannot be "
+                        f"replaced by one."
                     )
                 if not callable(callback):
                     raise ValueError(
@@ -1762,6 +1839,192 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             If no error data is available to export.
         """
         self._write_log_to_json(self.errors_log, filename)
+
+
+# Prompt enough to notice a dead worker, cheap enough over a run of hours.
+_JOIN_POLL_SECONDS = 0.2
+_SHUTDOWN_GRACE_SECONDS = 5.0
+
+
+def _ended_badly(worker):
+    """Whether a worker has stopped, and stopped for the wrong reason."""
+    return worker.exitcode not in (None, 0)
+
+
+def _a_failure_was_reported(error_event):
+    """Whether a worker has said it failed, false if it cannot be asked."""
+    with suppress(*_MANAGER_IS_GONE):
+        return error_event.is_set()
+    return False
+
+
+def _wait_for_the_workers(processes, seconds):
+    """Join every worker against one shared deadline, not one each.
+
+    Monotonic, since a clock correction would move a wall-clock deadline.
+    """
+    deadline = monotonic() + seconds
+    for worker in processes:
+        worker.join(timeout=max(0.0, deadline - monotonic()))
+
+
+def _stop_the_workers_still_running(processes, error_event, grace_period):
+    """Ask the rest to stop, end what cannot, kill what outlives that.
+
+    Asked first because a worker between simulations reads the event and leaves
+    with its logs intact. One blocked on a lock its dead sibling was holding
+    never reaches that check. Terminate runs no handlers, so it comes second,
+    and a worker can still ignore it.
+    """
+    with suppress(_MANAGER_IS_GONE):
+        error_event.set()
+    _wait_for_the_workers(processes, grace_period)
+
+    for worker in processes:
+        if worker.is_alive():
+            worker.terminate()
+    _wait_for_the_workers(processes, grace_period)
+
+    for worker in processes:
+        if worker.is_alive():
+            worker.kill()
+    _wait_for_the_workers(processes, grace_period)
+
+
+def _join_the_workers(processes, error_event, grace_period=_SHUTDOWN_GRACE_SECONDS):
+    """Wait for the workers, and stop once one of them has failed.
+
+    A reported failure ends the wait as well as a bad exit code, since a
+    worker that reports one leaves cleanly and says nothing through its exit
+    status. Its siblings read the event between simulations, but one blocked
+    on a lock nobody owns never reaches that check, and the run is already
+    short a simulation either way, so the wait is bounded here rather than
+    left to them. The reported path gets the longer grace: those siblings are
+    working, not stuck.
+
+    Slowness alone ends nothing. With no failure reported a healthy worker is
+    given as long as it needs.
+    """
+    while any(worker.is_alive() for worker in processes):
+        for worker in processes:
+            worker.join(timeout=_JOIN_POLL_SECONDS)
+        if any(_ended_badly(worker) for worker in processes):
+            _stop_the_workers_still_running(processes, error_event, grace_period)
+            return
+        if _a_failure_was_reported(error_event):
+            _stop_the_workers_still_running(
+                processes, error_event, _REPORTED_FAILURE_GRACE_SECONDS
+            )
+            return
+
+
+def _worker_failure_record(where, details, inputs_json=""):
+    """A row saying what failed, and what the simulation had drawn so far.
+
+    The inputs alone left the error file with no stage and no traceback, which
+    is what the caller is sent there to read.
+    """
+    record = {"index": None, "stage": where, "error": details}
+    with suppress(ValueError):
+        drawn = json.loads(inputs_json)
+        if isinstance(drawn, dict):
+            record["index"] = drawn.get("index")
+            record["inputs"] = drawn
+    return json.dumps(record) + "\n"
+
+
+def _indices_a_log_holds(path):
+    """Every index a log records, in order, and ``None`` for a row it cannot."""
+    found = []
+    with open(path, "r", encoding="utf-8") as recorded:
+        for line in recorded:
+            if not line.strip():
+                continue
+            try:
+                index = json.loads(line)["index"]
+            except (ValueError, KeyError, TypeError):
+                found.append(None)
+                continue
+            usable = (
+                isinstance(index, int) and not isinstance(index, bool) and index >= 0
+            )
+            found.append(index if usable else None)
+    return found
+
+
+def _refuse_logs_missing_a_simulation(input_file, output_file, target):
+    """Raise unless both logs hold every simulation the run was asked for.
+
+    An exit code says how a worker ended, never whether the index it had
+    already claimed reached the logs, and the monitor counts claims rather than
+    rows. A worker that leaves between the two is invisible to everything else
+    here, so the logs themselves are what the run is judged on.
+
+    Rows numbered past the target are left alone: an append given a smaller
+    target than the checkpoint already holds is an append question, not a lost
+    simulation. What each log holds still has to be the consecutive run it
+    claims to be, so its indices are required to be exactly as many as its
+    rows, which refuses a stray number and a hole without needing to be told
+    how long the checkpoint was. The two logs must also agree row for row,
+    since a record goes into both under one lock. Streamed rather than read
+    through ``_read_log_file``, which would hold every row in memory.
+    """
+    wanted = set(range(target))
+    recorded = {}
+    for label, path in (("input", input_file), ("output", output_file)):
+        found = _indices_a_log_holds(path)
+        recorded[label] = found
+        held = set(found)
+        if None in held:
+            raise RuntimeError(
+                f"The run is incomplete: the {label} log has rows that cannot "
+                f"be read, so what it holds cannot be established."
+            )
+        if len(found) != len(held):
+            raise RuntimeError(
+                f"The run is incomplete: the {label} log records "
+                f"{len(found) - len(held)} simulation(s) more than once."
+            )
+        missing = sorted(wanted - held)
+        if missing:
+            raise RuntimeError(
+                f"The run is incomplete: the {label} log is missing "
+                f"{len(missing)} of {target} simulations, the first being "
+                f"{missing[0]}."
+            )
+        strays = sorted(held - set(range(len(found))))
+        if strays:
+            raise RuntimeError(
+                f"The run is incomplete: the {label} log numbers a simulation "
+                f"{strays[0]}, past the {len(found)} it holds, so what it "
+                f"records is not one run of consecutive simulations."
+            )
+
+    if recorded["input"] != recorded["output"]:
+        raise RuntimeError(
+            "The run is incomplete: the input and output logs do not record "
+            "the same simulations in the same order. A record is written to "
+            "both under one lock, so they hold two different runs."
+        )
+
+
+def _refuse_a_worker_that_did_not_finish(processes):
+    """Raise if any worker left without exiting cleanly.
+
+    A negative code is the signal that ended it, ``None`` one still running.
+    """
+    unfinished = [
+        f"worker {position} with exit code {process.exitcode}"
+        for position, process in enumerate(processes)
+        if process.exitcode != 0
+    ]
+    if not unfinished:
+        return
+    raise RuntimeError(
+        f"The run is incomplete: {', '.join(unfinished)}. A worker that ends "
+        "this way records nothing and cannot say why, so the simulations it "
+        "held are missing from the results."
+    )
 
 
 def _import_multiprocess():

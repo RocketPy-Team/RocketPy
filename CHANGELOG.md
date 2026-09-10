@@ -32,6 +32,14 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- ENH: Support fixed-time parachute deployment triggers [#1133](https://github.com/RocketPy-Team/RocketPy/pull/1133) [#437](https://github.com/RocketPy-Team/RocketPy/issues/437)
+- DOC: Add SIL parachute ejection integration example [#1131](https://github.com/RocketPy-Team/RocketPy/pull/1131) [#524](https://github.com/RocketPy-Team/RocketPy/issues/524)
+- ENH: List NOAA atmosphere datasets and fetch latest [#1136](https://github.com/RocketPy-Team/RocketPy/pull/1136) [#660](https://github.com/RocketPy-Team/RocketPy/issues/660)
+- ENH: Model unbonded solid-motor grain CM shift [#1138](https://github.com/RocketPy-Team/RocketPy/pull/1138) [#340](https://github.com/RocketPy-Team/RocketPy/issues/340)
+- ENH: Add `Flight` post-step callback across all phases [#1128](https://github.com/RocketPy-Team/RocketPy/pull/1128) [#758](https://github.com/RocketPy-Team/RocketPy/issues/758)
+- DOC: Document angle-of-attack drag inputs [#1142](https://github.com/RocketPy-Team/RocketPy/pull/1142)
+- ENH: Create ensembles from user-defined profiles [#1141](https://github.com/RocketPy-Team/RocketPy/pull/1141)
+- ENH: Add tube-fin aerodynamic surface [#1144](https://github.com/RocketPy-Team/RocketPy/pull/1144)
 - ENH: StochasticFreeFormFins for Monte Carlo simulations [#1117](https://github.com/RocketPy-Team/RocketPy/pull/1117)
 - ENH: `StochasticFreeFormFins`, so free-form fin sets can be used in Monte Carlo simulations. The outline is randomized as a block, since a shape is only meaningful as a complete set of points: every coordinate is perturbed by its own draw, the fin root is held on the body line, and a list of candidate outlines can have a different number of points in each. [#953](https://github.com/RocketPy-Team/RocketPy/issues/953)
 - ENH: Support for Open Meteo API in the `Environment` class, adding the `open_meteo` and `open_meteo_ensemble` atmospheric models. Pressure-level forecasts, past forecasts (from 2021 onwards) and ensembles are read straight from a keyless JSON API, with no external files and no netCDF/OPeNDAP dependency. [#520](https://github.com/RocketPy-Team/RocketPy/issues/520) [#1119](https://github.com/RocketPy-Team/RocketPy/pull/1119)
@@ -42,6 +50,9 @@ Attention: The newest changes should be on top -->
 
 ### Changed
 
+- MNT: Store the reference-area correction factor on each rocket aero surface component, so it is carried with the surface instead of being recomputed at every lift evaluation. `Rocket.aerodynamic_surfaces`, `rail_buttons` and `sensors` now yield `(component, position, ref_factor)`, so code that unpacks a pair from them (`for surface, position in rocket.aerodynamic_surfaces`) has to take the third field or absorb it. Simulation results are unchanged, and `.rpy` files written before this still load. [#1129](https://github.com/RocketPy-Team/RocketPy/pull/1129) [#561](https://github.com/RocketPy-Team/RocketPy/issues/561)
+- ENH: Compute the rocket static margin lazily [#1135](https://github.com/RocketPy-Team/RocketPy/pull/1135) [#780](https://github.com/RocketPy-Team/RocketPy/issues/780)
+- DOC: Tighten the comments that came with the sampler seed groups [#1154](https://github.com/RocketPy-Team/RocketPy/pull/1154)
 - CI: make the Gemini PR reviewer actually review [#1140](https://github.com/RocketPy-Team/RocketPy/pull/1140)
 - MNT: declare dependency floors the package can actually run on [#1108](https://github.com/RocketPy-Team/RocketPy/pull/1108)
 - CI: build the docs for pull requests into develop as well [#1104](https://github.com/RocketPy-Team/RocketPy/pull/1104)
@@ -50,6 +61,26 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+- BUG: Correct the gravity sign an `Accelerometer` applies when `consider_gravity=True`. The gravitational field was added to the inertial acceleration instead of subtracted from it, so the sensor reported the negative of the proper acceleration along the vertical: one at rest read -g rather than +g. Recorded accelerometer data taken with `consider_gravity=True` changes sign in that term. [#1175](https://github.com/RocketPy-Team/RocketPy/pull/1175)
+- BUG: Report a Monte Carlo worker that fails instead of hanging or passing for a finished run [#1182](https://github.com/RocketPy-Team/RocketPy/pull/1182)
+- BUG: Sample `StochasticFlight` inputs once per simulation [#1126](https://github.com/RocketPy-Team/RocketPy/pull/1126) [#1090](https://github.com/RocketPy-Team/RocketPy/issues/1090)
+- BUG: Fix spurious `ValueError` from floating-point roundoff at exact tank depletion [#1166](https://github.com/RocketPy-Team/RocketPy/pull/1166)
+- BUG: Draw each declared eccentricity once per simulation [#1168](https://github.com/RocketPy-Team/RocketPy/pull/1168)
+- BUG: Accept numpy integer types as a `Parachute` trigger [#1116](https://github.com/RocketPy-Team/RocketPy/pull/1116)
+- BUG: Refuse to run a Monte Carlo over a results file it cannot write [#1161](https://github.com/RocketPy-Team/RocketPy/pull/1161)
+- BUG: Write MonteCarlo input and output rows atomically [#1125](https://github.com/RocketPy-Team/RocketPy/pull/1125) [#1110](https://github.com/RocketPy-Team/RocketPy/issues/1110)
+- BUG: Draw the eccentricities again, whichever way they were added [#1167](https://github.com/RocketPy-Team/RocketPy/pull/1167)
+- BUG: Serialize numpy `SeedSequence` for sensor seeds [#1124](https://github.com/RocketPy-Team/RocketPy/pull/1124) [#1087](https://github.com/RocketPy-Team/RocketPy/issues/1087)
+- BUG: Build the Monte Carlo flights with the configuration they were given [#1164](https://github.com/RocketPy-Team/RocketPy/pull/1164)
+- BUG: Apply the wind factors to the ensemble member that was selected [#1160](https://github.com/RocketPy-Team/RocketPy/pull/1160)
+- BUG: Avoid scalar statistics for structured Monte Carlo results [#1146](https://github.com/RocketPy-Team/RocketPy/pull/1146) [#1145](https://github.com/RocketPy-Team/RocketPy/issues/1145)
+- BUG: Evaluate parachute triggers once per time node [#1121](https://github.com/RocketPy-Team/RocketPy/pull/1121) [#1086](https://github.com/RocketPy-Team/RocketPy/issues/1086)
+- DOC: Fix the RST indentation in the `dict_generator` notes [`772480d`](https://github.com/RocketPy-Team/RocketPy/commit/772480d6bc69e5b5c2f517305e974c65ca781e57)
+- BUG: Stop `dict_generator` from sampling `initial_solution` [#1122](https://github.com/RocketPy-Team/RocketPy/pull/1122) [#1109](https://github.com/RocketPy-Team/RocketPy/issues/1109)
+- BUG: Report missing impact roots explicitly [#1148](https://github.com/RocketPy-Team/RocketPy/pull/1148) [#1147](https://github.com/RocketPy-Team/RocketPy/issues/1147)
+- DOC: Correct the `Flight` aerodynamic moment units [#1149](https://github.com/RocketPy-Team/RocketPy/pull/1149)
+- BUG: Seed the parachute pressure noise with a per-instance RNG [#1134](https://github.com/RocketPy-Team/RocketPy/pull/1134) [#1091](https://github.com/RocketPy-Team/RocketPy/issues/1091)
+- BUG: Restore the UTC fallback without timezonefinder [#1143](https://github.com/RocketPy-Team/RocketPy/pull/1143)
 - BUG: Pick between the candidate values of a list input with the stochastic model's own seeded generator. `random.choice` was used, which draws from the interpreter-wide stream that `_set_stochastic` does not reseed, so a fixed seed did not reproduce the values chosen from a list, and Monte Carlo workers forked from one process walked a single shared stream instead of sampling independently. Fixed-seed baselines that vary a list input change. [#953](https://github.com/RocketPy-Team/RocketPy/issues/953)
 - BUG: Report the atmospheric model time period and ensemble member count for lower-case model types. `set_atmospheric_model` documents `type` as case-insensitive, but `Environment.info()` and `all_info()` compared against capitalised literals, so `type="ensemble"` printed no time period and no member count, and skipped the ensemble comparison plot. [#520](https://github.com/RocketPy-Team/RocketPy/issues/520)
 - BUG: Give each `CustomSampler` input its own deterministic stream, and seed samplers sharing one generator once as a group. Existing fixed-seed `CustomSampler` baselines change, and samplers built on the legacy `RandomState` must move to `default_rng` because seeds now carry the full 128 bits. [#1102](https://github.com/RocketPy-Team/RocketPy/pull/1102)

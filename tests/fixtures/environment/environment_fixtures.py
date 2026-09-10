@@ -99,7 +99,7 @@ def example_euroc_env(example_date_naive):
     return euroc_env
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def env_analysis():
     """Environment Analysis class with hardcoded parameters
 
