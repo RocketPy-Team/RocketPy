@@ -321,6 +321,11 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             that reports a failure, and logs that do not hold every simulation
             asked for are each refused, since a run that lost work must not be
             reported as one that completed.
+        KeyboardInterrupt
+            If the run is interrupted. The logs written so far are kept and
+            reloaded first, so the object agrees with its own files and the
+            run can be continued with ``append=True``, but the interrupt then
+            reaches the caller rather than being reported as a finished study.
 
         Notes
         -----
@@ -349,12 +354,13 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
 
         self.__setup_files(append)
 
-        if parallel:
-            self.__run_in_parallel(n_workers)
-        else:
-            self.__run_in_serial()
-
-        self.__terminate_simulation()
+        try:
+            if parallel:
+                self.__run_in_parallel(n_workers)
+            else:
+                self.__run_in_serial()
+        finally:
+            self.__terminate_simulation()
 
     def __setup_files(self, append):
         """
@@ -410,6 +416,10 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             previous_input_size = os.path.getsize(input_path)
         except OSError:
             previous_input_size = 0
+        try:
+            previous_output_size = os.path.getsize(output_path)
+        except OSError:
+            previous_output_size = 0
 
         with open(input_path, "a", encoding="utf-8") as f:
             f.write(inputs_json)
@@ -417,9 +427,11 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         try:
             with open(output_path, "a", encoding="utf-8") as f:
                 f.write(outputs_json)
-        except Exception:
+        except BaseException:
             with open(input_path, "rb+") as f:
                 f.truncate(previous_input_size)
+            with open(output_path, "rb+") as f:
+                f.truncate(previous_output_size)
             raise
 
     def __run_in_serial(self):
@@ -435,6 +447,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             n_simulations=self.number_of_simulations,
             start_time=time(),
         )
+        inputs_json = ""
         try:
             while sim_monitor.keep_simulating():
                 sim_monitor.increment()
@@ -445,6 +458,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                 outputs_json = self.__evaluate_flight_outputs(flight, sim_monitor.count)
 
                 self._append_simulation_record(inputs_json, outputs_json)
+                inputs_json = ""
 
                 sim_monitor.print_update_status()
 
@@ -452,8 +466,10 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
 
         except KeyboardInterrupt:
             print("Keyboard interrupt received. Files saved.")
-            with open(self._error_file, "a", encoding="utf-8") as f:
-                f.write(inputs_json)
+            if inputs_json:
+                with open(self._error_file, "a", encoding="utf-8") as f:
+                    f.write(inputs_json)
+            raise
 
         except Exception as error:
             print(f"Error on iteration {sim_monitor.count}: {error}")
@@ -530,16 +546,15 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
 
                 sim_monitor.print_final_status()
 
-            # Handle error from the main process
-            # pylint: disable=broad-except
-            except (Exception, KeyboardInterrupt) as error:
+            # Handle error from the main process. Re-raising unconditionally
+            # is what makes an interrupted run tell the caller it was cut
+            # short instead of reporting itself as a finished study.
+            except (Exception, KeyboardInterrupt):
                 # Bounded here too. An unbounded join undid the bound above.
                 _stop_the_workers_still_running(
                     processes, simulation_error_event, _SHUTDOWN_GRACE_SECONDS
                 )
-
-                if not isinstance(error, KeyboardInterrupt):
-                    raise error
+                raise
 
     def __validate_number_of_workers(self, n_workers):
         if n_workers is None or n_workers > os.cpu_count():
