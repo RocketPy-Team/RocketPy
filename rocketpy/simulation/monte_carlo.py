@@ -656,6 +656,28 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                 f.truncate(previous_output_size)
             raise
 
+    def __record_failed_inputs(self, inputs_json):
+        """
+        Appends an unpaired inputs row to the error file, if there is one.
+
+        A row reaches here when the simulation it belongs to was cut short
+        between the inputs being evaluated and the record being appended, so
+        it has no matching outputs row and cannot go to the inputs file.
+
+        Parameters
+        ----------
+        inputs_json : str
+            Serialized inputs row, or an empty string when the run was cut
+            short with no row in hand.
+
+        Returns
+        -------
+        None
+        """
+        if inputs_json:
+            with open(self._error_file, "a", encoding="utf-8") as f:
+                f.write(inputs_json)
+
     def __run_in_serial(self):
         """
         Runs the monte carlo simulation in serial mode.
@@ -692,15 +714,12 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
 
         except KeyboardInterrupt:
             print("Keyboard interrupt received. Files saved.")
-            if inputs_json:
-                with open(self._error_file, "a", encoding="utf-8") as f:
-                    f.write(inputs_json)
+            self.__record_failed_inputs(inputs_json)
             raise
 
         except Exception as error:
             print(f"Error on iteration {sim_idx}: {error}")
-            with open(self._error_file, "a", encoding="utf-8") as f:
-                f.write(inputs_json)
+            self.__record_failed_inputs(inputs_json)
             raise error
 
     def __run_in_parallel(self, n_workers=None):
