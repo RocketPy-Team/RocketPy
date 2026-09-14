@@ -23,6 +23,7 @@ from rocketpy.tools import (
     tuple_handler,
 )
 
+
 WEB_MERCATOR_EARTH_RADIUS = 6378137.0
 
 

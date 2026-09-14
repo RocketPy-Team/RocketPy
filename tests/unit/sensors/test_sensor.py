@@ -303,6 +303,7 @@ def test_noisy_rotated_magnetometer(
         example_plain_env.earth_radius,
         example_plain_env.latitude,
         example_plain_env.longitude,
+        Magnetometer._resolve_year(example_plain_env),
     )
     b_field_bacs = rotation_bacs_to_inertial.transpose @ Vector(
         [b_east, b_north, -b_down]
@@ -514,6 +515,8 @@ def test_from_dict_magnetometer():
         nothing_default_magnetometer_dict
     )
     assert isinstance(nothing_default_magnetometer, Magnetometer)
+
+
 def test_accelerometer_at_rest_reads_gravity_upward(example_plain_env):
     """An accelerometer standing still reads +g along its up axis, not zero.
 
@@ -859,3 +862,42 @@ def test_export_multiple_sensors_json(
 
     os.remove(f"{file_name}_1")
     os.remove(f"{file_name}_2")
+
+
+def test_rotated_accelerometer_reads_along_its_own_axes(example_plain_env):
+    """A rotated accelerometer resolves the acceleration onto its own axes.
+
+    ``test_noisy_rotated_accelerometer`` recomputes the expression under test,
+    so a rotation applied in the wrong direction gets mirrored into agreement
+    there instead of being caught. This one says what the instrument does: the
+    sensor's z axis points along ``normal_vector`` by construction, so an
+    acceleration pointing that way in body coordinates must land entirely on
+    the z channel, with nothing on x and y. Applying
+    ``_total_rotation_sensor_to_body`` instead of its transpose fails here.
+
+    Every noise, bias and drift parameter is left at its default of zero and
+    the attitude is the identity, so the body and inertial frames coincide. The
+    tolerance only absorbs the rounding of the Euler angle round trip; it is
+    nine orders of magnitude below the signal, so the wrong rotation cannot
+    slip through it.
+    """
+    accelerometer = Accelerometer(
+        sampling_rate=100, orientation=(60, 60, 60), consider_gravity=False
+    )
+    normal = accelerometer.normal_vector
+
+    at_rest = [0.0] * 13
+    at_rest[6] = 1.0  # identity attitude, so body axes are the inertial ones
+    magnitude = 7.0
+    accelerating_along_normal = [0.0] * 13
+    accelerating_along_normal[3:6] = [magnitude * component for component in normal]
+
+    accelerometer.measure(
+        time=0,
+        u=at_rest,
+        u_dot=accelerating_along_normal,
+        relative_position=Vector([0, 0, 0]),
+        environment=example_plain_env,
+    )
+
+    assert accelerometer.measurement == approx([0, 0, magnitude], abs=1e-9)

@@ -76,6 +76,7 @@ class Wire:
         )
         self._magnetic_field = {}
         self.magnetic_field = {}
+        self._collinearity_warned = False
         self._wire_endpoints_bacs = []
         self.wire_length = 0.0
         self.parachute_name = None
@@ -132,7 +133,7 @@ class Wire:
             )
         self.extra_ignition_time = float(extra_ignition_time)
 
-    def measure_magnetic_field(
+    def measure_magnetic_field(  # pylint: disable=too-many-statements
         self, position_vector: list | tuple | Vector, frame: str = "ucs"
     ) -> None:
         """Calculates and stores the magnetic field vector at the point given by
@@ -151,8 +152,9 @@ class Wire:
         """
         r1 = self._wire_endpoints_bacs[0]  # starting endpoint
         r2 = self._wire_endpoints_bacs[1]  # final end
-        l = r2 - r1  # Vector along the wire pointing in direction of current
-        self.wire_length = abs(l)
+        # Vector along the wire, pointing in the direction of the current
+        wire_vector = r2 - r1
+        self.wire_length = abs(wire_vector)
 
         r_v = self._position_vector_to_bacs(position_vector, frame)
         r_t = tuple(r_v)
@@ -165,17 +167,24 @@ class Wire:
         r1_v = r_v - r1
         r2_v = r_v - r2
 
-        cross_l_r1 = l ^ r1_v
+        cross_l_r1 = wire_vector ^ r1_v
         cross_norm = abs(cross_l_r1)
 
         if cross_norm < 1e-12:
             b_v = Vector([0, 0, 0])
-            warnings.warn(
-                "'position vector' is collinear with the wire segment; magnetic field is zero.",
-                UserWarning,
-            )
+            if not self._collinearity_warned:
+                # This runs once per flight time step, so warn only the first
+                # time rather than emitting one warning per integration node.
+                self._collinearity_warned = True
+                warnings.warn(
+                    f"A position at which the magnetic field of wire "
+                    f"'{self.name}' was evaluated is collinear with the wire "
+                    "segment, so the field it contributes there is zero. "
+                    "Further occurrences are not reported.",
+                    UserWarning,
+                )
         else:
-            l_unit = l / self.wire_length
+            l_unit = wire_vector / self.wire_length
             cos_theta1 = l_unit @ r1_v.unit_vector
             cos_theta2 = l_unit @ r2_v.unit_vector
 
@@ -340,6 +349,28 @@ class Wire:
         """Prints all data and graphs available about the Wire."""
         self.plots.all()
         self.prints.all()
+
+    def to_dict(self, include_outputs=False):  # pylint: disable=unused-argument
+        """Returns the constructor parameters of the wire as a dictionary.
+
+        Only the configuration is serialized. The magnetic field the wire
+        induces is cached per evaluation point in ``magnetic_field``, keyed by
+        tuples of floats, and is derived from the rocket the wire is attached
+        to, so it is neither JSON encodable nor meaningful to carry across a
+        round trip; it is recomputed on demand.
+
+        Returns
+        -------
+        dict
+            Dictionary with the wire constructor parameters.
+        """
+        return {
+            "current": self.current,
+            "wire_type": self.wire_type,
+            "ignition_wire_function": self.ignition_wire_function,
+            "extra_ignition_time": self.extra_ignition_time,
+            "name": self.name,
+        }
 
     @classmethod
     def from_dict(cls, data: dict) -> "Wire":

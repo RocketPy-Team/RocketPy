@@ -611,6 +611,14 @@ class Plate:
                 for point in self.points:
                     r_v = position_vector - Vector(point)
                     r = abs(r_v)
+                    if r < 1e-12:
+                        raise InvalidParameterError(
+                            "The point the soft iron distortion is evaluated at "
+                            f"coincides with a point of plate '{self.name}'. The "
+                            "dipole model diverges there, so the sensor cannot "
+                            "sit on the plate itself; move the sensor or the "
+                            "plate."
+                        )
                     r_unit = r_v / r
 
                     rx, ry, rz = r_unit[0], r_unit[1], r_unit[2]
@@ -745,6 +753,33 @@ class Plate:
         """Prints out all data and graphs available about the Plate."""
         self.plots.all()
         self.prints.all()
+
+    def to_dict(self, include_outputs=False):  # pylint: disable=unused-argument
+        """Returns the constructor parameters of the plate as a dictionary.
+
+        Only the configuration is serialized. The point cloud and the soft iron
+        distortion matrices cached in ``_magnetic_distortion_matrices`` are
+        derived from the rocket the plate is attached to and keyed by tuples of
+        floats, so they are neither JSON encodable nor meaningful to carry
+        across a round trip; they are recomputed on demand.
+
+        Returns
+        -------
+        dict
+            Dictionary with the plate constructor parameters.
+        """
+        return {
+            "shape": self.shape,
+            "dimensions": self.dimensions,
+            "material": self.material,
+            "thickness": self.thickness,
+            "absolute_magnetic_permeability": self.absolute_magnetic_permeability,
+            "relative_magnetic_permeability": self.relative_magnetic_permeability,
+            "grid_spacing": getattr(self, "grid_spacing", 0.001),
+            "z_points": self.z_points,
+            "angular_points": self.angular_points,
+            "name": self.name,
+        }
 
     @classmethod
     def from_dict(cls, data: dict) -> "Plate":

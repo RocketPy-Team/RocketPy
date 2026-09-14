@@ -5,14 +5,14 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
-from rocketpy.mathutils.vector_matrix import Vector
+from rocketpy.mathutils.vector_matrix import Matrix, Vector
 from rocketpy.rocket.components import Components
 from rocketpy.sensors.accelerometer import Accelerometer
 from rocketpy.sensors.barometer import Barometer
 from rocketpy.sensors.gnss_receiver import GnssReceiver
 from rocketpy.sensors.gyroscope import Gyroscope
 from rocketpy.sensors.magnetometer import Magnetometer
-from rocketpy.simulation import FlightDataExporter
+from rocketpy.simulation import Flight, FlightDataExporter
 
 
 def test_sensor_on_rocket(calisto_with_sensors):
@@ -209,3 +209,41 @@ def test_export_single_sensor_data(flight_calisto_with_sensors):
         == flight_calisto_with_sensors.rocket.sensors[2].component.measured_data
     )
     os.remove(filename)
+
+
+def test_magnetometer_with_wires_and_plates_in_flight(
+    calisto_robust_with_magnetometer_wires_and_plates, example_plain_env
+):
+    """A magnetometer whose distortion comes from plates and wires must work
+    inside a real Flight, not only when ``measure`` is called by hand.
+
+    The distortion branches reach for ``rocket.plates``, ``rocket._ignition_wires``
+    and ``rocket._communication_wires``, so they are the only part of the sensor
+    that depends on what the simulation hands it. The unit tests call ``measure``
+    with a Rocket directly, which never exercises that hand-off; this flies the
+    rocket so the object Flight actually passes is the one under test.
+    """
+    flight = Flight(
+        rocket=calisto_robust_with_magnetometer_wires_and_plates,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        time_overshoot=False,
+        terminate_on_apogee=True,
+    )
+
+    magnetometer = flight.rocket.sensors[-1].component
+    assert isinstance(magnetometer, Magnetometer)
+    assert len(magnetometer.measured_data) > 0
+
+    # Earth's field is tens of microtesla; anything outside this band means the
+    # field, the frame changes or the distortion went wrong rather than merely
+    # being imprecise.
+    for _, b_x, b_y, b_z in magnetometer.measured_data:
+        magnitude = (b_x**2 + b_y**2 + b_z**2) ** 0.5
+        assert 1e-6 < magnitude < 1e-3
+
+    # The plates and wires must actually have moved the reading.
+    assert magnetometer._soft_iron_distortion_matrix != Matrix.identity()
+    assert magnetometer.magnetic_interference != [0, 0, 0]

@@ -1,5 +1,7 @@
 import math
+import warnings
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 import numpy as np
 from pywmm import WMMv2
@@ -9,9 +11,14 @@ from pywmm.date_utils import decimal_year
 from rocketpy.exceptions import InvalidParameterError
 from rocketpy.mathutils.vector_matrix import Matrix, Vector
 from rocketpy.prints.sensors_prints import _InertialSensorPrints
-from rocketpy.rocket import Rocket
 from rocketpy.sensors.sensor import InertialSensor
 from rocketpy.tools import inverted_haversine
+
+if TYPE_CHECKING:  # pragma: no cover
+    # Only needed for the annotations below. Importing the rocket package at
+    # runtime would make rocketpy.sensors depend on it for nothing more than a
+    # type hint, which is one edit away from an import cycle.
+    from rocketpy.rocket import Rocket
 
 
 class Magnetometer(InertialSensor):
@@ -91,7 +98,13 @@ class Magnetometer(InertialSensor):
 
     units = "T"
 
-    def __init__(  # pylint: disable=too-many-arguments
+    # State the flight derives from the rocket's plates and wires. Declared on
+    # the class so that every configuration has them, including the ones whose
+    # validators never go down the "plates"/"wires" branches.
+    total_soft_iron_distortion_matrix_computed = False
+    communications_computed = False
+
+    def __init__(  # pylint: disable=too-many-arguments,too-many-statements
         self,
         sampling_rate,
         orientation=(0, 0, 0),
@@ -218,7 +231,18 @@ class Magnetometer(InertialSensor):
         seed : int, optional
             Seed for the random number generator. Default is None.
         """
+        # Constructor arguments kept verbatim for to_dict. The validators below
+        # turn them into derived state which the flight then mutates, so that
+        # state is not what should be serialized.
+        self._init_hard_iron_distortion = hard_iron_distortion
+        self._init_soft_iron_distortion = soft_iron_distortion
+        self._init_power_interference = power_interference
+        self._init_activation_signal_interference = activation_signal_interference
+        self._init_communications_interference = communications_interference
+
         self.magnetic_interference = [0, 0, 0]
+        self.communications_interference = [0, 0, 0]
+        self._communications_interference = Vector([0, 0, 0])
 
         if isinstance(power_interference, str):
             if power_interference.lower() == "wires":
@@ -245,9 +269,10 @@ class Magnetometer(InertialSensor):
         self.prints = _InertialSensorPrints(self)
         self._sensor_from_bacs, self.sensor_from_bacs_t = [None, None]
 
-        # Get current decimal year
-        current_date = datetime.now().strftime("%Y-%m-%d")
-        self.year = decimal_year(current_date)
+        # The epoch the geomagnetic field is evaluated at. It is resolved per
+        # measurement from the Environment's date so that a simulation is
+        # reproducible: see ``_resolve_year``.
+        self.year = None
 
         # initialize the magnetic model
         self.wmm = WMMv2()
@@ -271,20 +296,56 @@ class Magnetometer(InertialSensor):
             seed=seed,
         )
 
+        # Baseline of everything the flight derives from the rocket, kept so a
+        # new simulation starts from the configured values again: see _reset.
+        self._configured_soft_iron_distortion_matrix = self._soft_iron_distortion_matrix
+        self._configured_communications_interference = list(
+            self.communications_interference
+        )
+
+    def _reset(self, simulated_rocket) -> None:
+        """Resets the sensor for a new simulation.
+
+        Besides the noise and measurement state handled by the parent class,
+        the magnetometer caches the distortion it derives from the rocket's
+        plates and wires, which is only valid for the rocket and the sensor
+        position it was computed for. Holding on to it would silently carry the
+        first flight's distortion into a later one flown with a different
+        rocket, a moved sensor, or a plate added in between.
+        """
+        super()._reset(simulated_rocket)
+        self._soft_iron_distortion_matrix = self._configured_soft_iron_distortion_matrix
+        self.total_soft_iron_distortion_matrix_computed = False
+        self.communications_interference = list(
+            self._configured_communications_interference
+        )
+        self._communications_interference = Vector(self.communications_interference)
+        self.communications_computed = False
+
     def _validate_soft_iron(self, soft_iron_distortion) -> None:
         """Checks and defines the soft_iron_distortion parameter."""
+        self.soft_iron_distortion_difference = []
+        if isinstance(soft_iron_distortion, str):
+            if soft_iron_distortion != "plates":
+                raise InvalidParameterError("The accepted string must be plates")
+            self._soft_iron_distortion_matrix = Matrix.identity()
+            self.initial_soft_iron_distortion_matrix = "plates"
+            self.total_soft_iron_distortion_matrix_computed = False
+            return
+
         if isinstance(soft_iron_distortion, Matrix):
             self._soft_iron_distortion_matrix = soft_iron_distortion
-            self.soft_iron_distortion_difference = []
-            self.initial_soft_iron_distortion_matrix = "matrix"
-        elif isinstance(soft_iron_distortion, str):
-            if soft_iron_distortion == "plates":
-                self._soft_iron_distortion_matrix = Matrix.identity()
-                self.initial_soft_iron_distortion_matrix = "plates"
-                self.total_soft_iron_distortion_matrix_computed = False
-                self.soft_iron_distortion_difference = []
-            else:
-                raise InvalidParameterError("The accepted string must be plates")
+        elif isinstance(soft_iron_distortion, (list, tuple)):
+            # A serialized matrix comes back as nested sequences, so accept
+            # those too rather than falling through and leaving the sensor
+            # without a distortion matrix at all.
+            self._soft_iron_distortion_matrix = Matrix(soft_iron_distortion)
+        else:
+            raise InvalidParameterError(
+                "'soft_iron_distortion' must be a 3x3 Matrix, a nested sequence "
+                "of the same shape, or the string 'plates'."
+            )
+        self.initial_soft_iron_distortion_matrix = "matrix"
 
     def _validate_hard_iron(self, hard_iron_distortion) -> None:
         """Checks and defines the hard_iron_distortion parameter."""
@@ -359,6 +420,39 @@ class Magnetometer(InertialSensor):
         self.initial_communications_interference = "wires"
         self.initial_activation_signal_interference = "wires"
 
+    @staticmethod
+    def _resolve_year(environment) -> float:
+        """Returns the decimal year the geomagnetic field should be evaluated at.
+
+        The World Magnetic Model is time dependent, so the epoch has to come
+        from the simulation rather than from the wall clock: taking
+        ``datetime.now()`` would make the same script produce different fields
+        on different days and would not survive a ``to_dict``/``from_dict``
+        round trip. The Environment's date is used when it is set, which is the
+        date the flight is being simulated for.
+
+        Parameters
+        ----------
+        environment : Environment
+            Environment object of the simulation.
+
+        Returns
+        -------
+        float
+            Decimal year, e.g. 2025.5 for the 1st of July 2025.
+        """
+        date = getattr(environment, "datetime_date", None)
+        if date is None:
+            date = datetime.now()
+            warnings.warn(
+                "The Environment has no date set, so the magnetometer is "
+                "evaluating the World Magnetic Model at today's date. The "
+                "geomagnetic field is time dependent, so set "
+                "Environment.set_date() to make this simulation reproducible.",
+                UserWarning,
+            )
+        return decimal_year(date.strftime("%Y-%m-%d"))
+
     def measure(self, time: float, **kwargs) -> None:
         """Obtains the simulated reading of the magnetometer for a given time step.
 
@@ -407,6 +501,7 @@ class Magnetometer(InertialSensor):
             kwargs["environment"].elevation,
         )
         earth_radius = kwargs["environment"].earth_radius
+        self.year = self._resolve_year(kwargs["environment"])
         rocket = kwargs.get(
             "rocket"
         )  # if there is no distortion the rocket is not necessary
@@ -432,6 +527,7 @@ class Magnetometer(InertialSensor):
             earth_radius,
             lat0,
             lon0,
+            self.year,
         )
 
         # --- Transform from NED to Rocketpy's inertial frame ---
@@ -449,8 +545,10 @@ class Magnetometer(InertialSensor):
             self._total_rotation_sensor_to_body.transpose @ b_field_bacs
         )  # Ts
         # --- apply noise and quantize ---
-        b_field_sensor = self.apply_temperature_drift(b_field_sensor)  # T
+        # Same order as Accelerometer and Gyroscope, so the three inertial
+        # sensors compose their error terms identically.
         b_field_sensor = self.apply_noise(b_field_sensor)  # T
+        b_field_sensor = self.apply_temperature_drift(b_field_sensor)  # T
         b_field_sensor = self.quantize(b_field_sensor)  # T
 
         self.measurement = (b_field_sensor.x, b_field_sensor.y, b_field_sensor.z)  # T
@@ -465,6 +563,7 @@ class Magnetometer(InertialSensor):
         earth_radius: float,
         lat0: float,
         lon0: float,
+        year: float,
     ) -> tuple[float, float, float]:
         """Calculates Earth's magnetic field components in the North-East-Down (NED) frame.
 
@@ -484,6 +583,8 @@ class Magnetometer(InertialSensor):
             Launch site latitude in degrees.
         lon0 : float
             Launch site longitude in degrees.
+        year : float
+            Decimal year the geomagnetic field is evaluated at, e.g. 2025.5.
 
         Returns
         -------
@@ -501,9 +602,7 @@ class Magnetometer(InertialSensor):
             lat0, lon0, drift, bearing, earth_radius
         )
 
-        calculate_geomagnetic(
-            self.wmm, latitude, longitude, self.year, altitude_wgs84_km
-        )
+        calculate_geomagnetic(self.wmm, latitude, longitude, year, altitude_wgs84_km)
 
         b_north = self.wmm.bx / 1e9
         b_east = self.wmm.by / 1e9
@@ -514,7 +613,7 @@ class Magnetometer(InertialSensor):
     def apply_magnetic_interference(
         self,
         b_field: Vector,
-        rocket: Rocket,
+        rocket: "Rocket",
         current_time: float | int,
         parachute_events: list | None = None,
     ) -> Vector:
@@ -563,7 +662,7 @@ class Magnetometer(InertialSensor):
         ]
         return b_field
 
-    def apply_soft_iron(self, b_field: Vector, rocket: Rocket) -> Vector:
+    def apply_soft_iron(self, b_field: Vector, rocket: "Rocket") -> Vector:
         """Applies soft iron distortion, which is the distortion of the
         magnetic field caused by materials with high magnetic permeability relative
         to the permeability of free space. These materials have lower magnetic resistance,
@@ -581,26 +680,28 @@ class Magnetometer(InertialSensor):
         b_field_distorted : Vector
             Magnetic field vector after soft iron distortion.
         """
-        if self.initial_soft_iron_distortion_matrix == "plates":
-            if not self.total_soft_iron_distortion_matrix_computed:
-                for plate, _, _ in rocket.plates:
-                    if (
-                        self.sensor_from_bacs_t
-                        not in plate._magnetic_distortion_matrices
-                    ):
-                        plate.calculate_soft_iron_distortion_matrix(
-                            self._sensor_from_bacs, frame="bacs"
-                        )
-                        self._soft_iron_distortion_matrix = (
-                            self._soft_iron_distortion_matrix
-                            + plate._magnetic_distortion_matrices[
-                                self.sensor_from_bacs_t
-                            ]
-                        )
-                self.total_soft_iron_distortion_matrix_computed = True
-            b_field_distorted = self._soft_iron_distortion_matrix @ b_field
-        else:
-            b_field_distorted = self._soft_iron_distortion_matrix @ b_field
+        if (
+            self.initial_soft_iron_distortion_matrix == "plates"
+            and not self.total_soft_iron_distortion_matrix_computed
+        ):
+            for plate, _, _ in rocket.plates:
+                # Computing the matrix is what is cached on the plate; the
+                # contribution of every plate has to be summed in either way,
+                # otherwise a plate whose matrix happened to be computed
+                # already - by another magnetometer at the same position, by a
+                # previous flight, or by a direct call - would silently drop
+                # out of the total.
+                if self.sensor_from_bacs_t not in plate._magnetic_distortion_matrices:
+                    plate.calculate_soft_iron_distortion_matrix(
+                        self._sensor_from_bacs, frame="bacs"
+                    )
+                self._soft_iron_distortion_matrix = (
+                    self._soft_iron_distortion_matrix
+                    + plate._magnetic_distortion_matrices[self.sensor_from_bacs_t]
+                )
+            self.total_soft_iron_distortion_matrix_computed = True
+
+        b_field_distorted = self._soft_iron_distortion_matrix @ b_field
 
         self.soft_iron_distortion_difference = list(b_field_distorted - b_field)
         return b_field_distorted
@@ -627,7 +728,7 @@ class Magnetometer(InertialSensor):
     def apply_power_interference(
         self,
         b_field: Vector,
-        rocket: Rocket,
+        rocket: "Rocket",
         current_time: float,
         parachute_events: list | None = None,
     ) -> Vector:
@@ -677,7 +778,7 @@ class Magnetometer(InertialSensor):
         return b_field
 
     def apply_communications_interference(
-        self, b_field: Vector, rocket: Rocket
+        self, b_field: Vector, rocket: "Rocket"
     ) -> Vector:
         """Applies interference caused by current flowing through communication wires.
 
@@ -735,7 +836,7 @@ class Magnetometer(InertialSensor):
     def apply_activation_signal_interference(
         self,
         b_field: Vector,
-        rocket: Rocket,
+        rocket: "Rocket",
         current_time: float,
         parachute_events: list | None = None,
     ) -> Vector:
@@ -901,6 +1002,33 @@ class Magnetometer(InertialSensor):
             file_format=file_format,
             data_labels=("t", "Bx", "By", "Bz"),
         )
+
+    def to_dict(self, **kwargs):
+        """Returns the magnetometer configuration as a dictionary.
+
+        The magnetometer specific parameters are emitted as they were given to
+        the constructor. Without this the inherited ``InertialSensor.to_dict``
+        would write only the shared sensor fields, and ``from_dict`` would
+        silently rebuild the sensor with every distortion back at its default.
+
+        Returns
+        -------
+        dict
+            Dictionary with the magnetometer parameters.
+        """
+        data = super().to_dict(**kwargs)
+        data.update(
+            {
+                "hard_iron_distortion": self._init_hard_iron_distortion,
+                "soft_iron_distortion": self._init_soft_iron_distortion,
+                "power_interference": self._init_power_interference,
+                "activation_signal_interference": (
+                    self._init_activation_signal_interference
+                ),
+                "communications_interference": self._init_communications_interference,
+            }
+        )
+        return data
 
     @classmethod
     def from_dict(cls, data: dict) -> "Magnetometer":

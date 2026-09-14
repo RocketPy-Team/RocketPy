@@ -6,4 +6,4 @@ requests
 pytz
 simplekml
 dill
-pywmm
+pywmm>=1.1.1

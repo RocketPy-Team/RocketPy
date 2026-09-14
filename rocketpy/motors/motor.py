@@ -168,6 +168,7 @@ class Motor(ABC):
         It will allow to obtain the net thrust in the Flight class.
     """
 
+    # pylint: disable=too-many-statements
     def __init__(
         self,
         thrust_source,
@@ -1385,7 +1386,6 @@ class GenericMotor(Motor):
     therefore for more accurate results, use the ``SolidMotor``, ``HybridMotor``
     or ``LiquidMotor`` classes."""
 
-    # pylint: disable=too-many-arguments
     def __init__(
         self,
         thrust_source,
