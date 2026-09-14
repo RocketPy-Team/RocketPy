@@ -2513,8 +2513,41 @@ class _FlightPlots:
         ax4.set_title("Euler Spin Angle")
         ax4.grid(True)
 
+        for ax in (ax1, ax2, ax3, ax4):
+            self._mark_tip_off_window(ax)
+
         plt.subplots_adjust(hspace=0.5)
         show_or_save_plot(filename)
+
+    def _mark_tip_off_window(self, ax):
+        """Shades the tip-off window on a time-axis plot.
+
+        The window runs from the upper rail button leaving the rail to the
+        lower one leaving it, which is when the rocket pivots about the lower
+        button. It is a no-op unless the flight was run with
+        ``use_udot_rail2=True``, since otherwise the phase never runs.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes
+            Axes whose x-axis is flight time, in seconds.
+
+        Returns
+        -------
+        None
+        """
+        if not self.flight.use_udot_rail2:
+            return
+        if self.flight.between_rails_time <= self.flight.out_of_rail_time:
+            return
+        ax.axvspan(
+            self.flight.out_of_rail_time,
+            self.flight.between_rails_time,
+            color="0.5",
+            alpha=0.25,
+            zorder=0,
+            label="Tip-off window",
+        )
 
     def flight_path_angle_data(self, *, filename=None):
         """Prints out Flight path and Rocket Attitude angle graphs available
