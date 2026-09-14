@@ -342,9 +342,9 @@ deployed and ``False`` otherwise. Internally, the parachute is wrapped in an
 :class:`rocketpy.Event`, so the trigger receives the same information available
 to any event trigger.
 
-The trigger must be defined as a function that accepts ``**kwargs``. This allows
-you to access the values you need from it. This is the same set of keyword 
-arguments described in :ref:`eventusage`, and includes (among others):
+The trigger must be defined as a function taking one argument, ``context``, a
+dictionary from which you read the values you need. It holds the same values
+described in :ref:`eventusage`, and includes (among others):
 
 **Simulation time and state:**
 
@@ -390,17 +390,17 @@ The following example shows how to define trigger functions that will
 deploy the parachute when the vertical velocity is negative
 (post-apogee) and the height above ground level is less than 800 meters:
 
-Because ``**kwargs`` exposes the full event context, you can combine any of the
+Because ``context`` exposes the full event context, you can combine any of the
 available values. For example, you can use the acceleration components from
 ``state_dot`` (and the simulation time) to gate deployment:
 
 .. jupyter-input::
 
-    def main_trigger(**kwargs):
-        vz = kwargs["state"][5]  # vertical velocity
-        az = kwargs["state_dot"][5]  # vertical acceleration
-        h = kwargs["height_agl"]
-        time = kwargs["time"]
+    def main_trigger(context):
+        vz = context["state"][5]  # vertical velocity
+        az = context["state_dot"][5]  # vertical acceleration
+        h = context["height_agl"]
+        time = context["time"]
 
         # activate main when descending (vz < 0) and decelerating (az > 0),
         # below 800 m, and at least 5 s into the flight
@@ -415,7 +415,7 @@ Legacy positional trigger signature
 """"""""""""""""""""""""""""""""""""
 
 Older trigger functions declared the following positional arguments instead of
-reading them from ``**kwargs``:
+reading them from ``context``:
 
 - ``p`` (float): pressure in Pa **considering the parachute noise signal**.
 - ``h`` (float): height above ground level in meters, **considering the

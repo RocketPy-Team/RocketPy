@@ -231,23 +231,23 @@ brakes:
 
 .. jupyter-execute::
 
-    def controller_function(**kwargs):
-        time = kwargs["time"]
-        sampling_rate = kwargs["sampling_rate"]
-        state = kwargs["state"]
-        air_brakes = kwargs["air_brakes"]
-        sensors = kwargs["sensors"]
+    def controller_function(context):
+        time = context["time"]
+        sampling_rate = context["sampling_rate"]
+        state = context["state"]
+        air_brakes = context["air_brakes"]
+        sensors = context["sensors"]
 
         # Read the sensor measurement instead of the true state.
         # Sensors can also be retrieved by name, e.g.
-        # accelerometer = kwargs["sensors_by_name"]["Accelerometer"]
+        # accelerometer = context["sensors_by_name"]["Accelerometer"]
         accelerometer = sensors[0]
 
         # Do not deploy while the motor is still burning (measured az > 0)
         if accelerometer.measurement[2] > 0:
             return None
 
-        altitude_AGL = kwargs["height_agl"]
+        altitude_AGL = context["height_agl"]
         vz = state[5]
 
         # Below 1500 m AGL, keep the air brakes closed

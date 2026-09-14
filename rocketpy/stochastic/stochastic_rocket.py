@@ -778,9 +778,8 @@ class StochasticRocket(StochasticModel):
                 controlled_objects=air_brake,
                 controlled_objects_name=base_controller.controlled_objects_name,
                 sampling_rate=base_controller.sampling_rate,
-                context=base_controller.context.copy(),
+                memory=base_controller.memory.copy(),
                 name=base_controller.name,
-                controller_needs=base_controller.controller_needs,
             )
             rocket.air_brakes.append(air_brake)
             rocket._add_controllers(_controller)

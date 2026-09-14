@@ -187,16 +187,16 @@ class Sensor(ABC):
         """
         # Local import avoids import-time coupling with simulation package.
 
-        def sensor_callback(**kwargs):
-            time = kwargs.get("time")
-            state = kwargs.get("state")
-            state_dot = kwargs.get("state_dot")
-            rocket = kwargs.get("rocket")
-            environment = kwargs.get("environment")
-            event = kwargs.get("event")
+        def sensor_callback(context):
+            time = context["time"]
+            state = context["state"]
+            state_dot = context["state_dot"]
+            rocket = context["rocket"]
+            environment = context["environment"]
+            event = context["event"]
 
-            # Get position from event context (set when sensor added to rocket)
-            position = event.context.get("position")
+            # Get position from event memory (set when sensor added to rocket)
+            position = event.memory.get("position")
 
             relative_position = position - rocket._csys * Vector(
                 [0, 0, rocket.center_of_dry_mass_position]
@@ -218,11 +218,10 @@ class Sensor(ABC):
             callback=sensor_callback,
             name=f"{self.name} Measurement",
             sampling_rate=self.sampling_rate,
-            context={"position": position, "sensor": self},
+            memory={"position": position, "sensor": self},
             trigger_only_once=False,
             priority=1,
             time_overshootable=True,
-            needs=["pressure", "state_dot"],
         )
 
     def _reset(self, simulated_rocket):

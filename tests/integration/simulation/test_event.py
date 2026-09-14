@@ -6,6 +6,7 @@ import pytest
 
 from rocketpy import Environment, Event, Flight, Rocket, SolidMotor
 from rocketpy.simulation.events import Commands, exact_time_solvers
+from rocketpy.simulation.helpers.dynamics import SIX_DOF_DYNAMICS, _PhaseDynamics
 from rocketpy.simulation.events.event_builders import (
     apogee_callback,
     apogee_event_exact_time_function,
@@ -14,7 +15,6 @@ from rocketpy.simulation.events.event_builders import (
     impact_callback,
     impact_event_exact_time_derivative,
     impact_event_exact_time_function,
-    impact_step_end_function,
     impact_trigger,
     out_of_rail_callback,
     out_of_rail_exact_time_derivative,
@@ -22,16 +22,14 @@ from rocketpy.simulation.events.event_builders import (
     out_of_rail_trigger,
 )
 from rocketpy.simulation.events.exact_time_solvers import (
-    filter_roots_by_policy,
-    solve_cubic_hermite_step_roots,
-    solve_exact_time_brentq,
-    solve_exact_time_cubic_hermite,
-    solve_exact_time_linear,
+    solve_brentq,
+    solve_cubic_hermite,
+    solve_linear,
 )
 
 
-def _callback_return_time(**kwargs):
-    return {"time": kwargs["time"], "sampled_time": kwargs.get("sampled_time")}
+def _callback_return_time(context):
+    return {"time": context["time"]}
 
 
 def _docs_root():
@@ -90,15 +88,16 @@ def _sample_state(time, vz):
 
 
 def _canonical_solution(*rows):
-    """Build a Solution holding the given canonical rows in one segment."""
-    from rocketpy.simulation.solution import CANONICAL_SCHEMA, Solution
+    """Build a Solution holding the given canonical rows in one phase."""
+    from rocketpy.simulation.helpers.dynamics import SIX_DOF_DYNAMICS
+    from rocketpy.simulation.solution import Solution
 
     solution = Solution()
-    solution.start_segment(
-        CANONICAL_SCHEMA, start_canonical=tuple(rows[0][1:]) if rows else None
+    solution._start_phase(
+        SIX_DOF_DYNAMICS, start_canonical=tuple(rows[0][1:]) if rows else None
     )
     for row in rows:
-        solution.append(list(row))
+        solution._append(list(row))
     return solution
 
 
@@ -108,116 +107,54 @@ def _interpolator(time):
     )
 
 
-class _FakePhase:
-    def __init__(self, interpolator):
-        self.solver = SimpleNamespace(dense_output=lambda: interpolator)
+def _value_at(time):
+    """Crosses zero at t = 0.5."""
+    return 1.0 - 2.0 * time
 
-    def derivative(self, _time, state, post_processing=False):
-        _ = post_processing
-        return np.zeros_like(state, dtype=float)
+
+def _rate_at(_time):
+    return -2.0
 
 
 @pytest.mark.parametrize(
-    ("roots", "lower_bound", "upper_bound", "expected"),
+    ("solver", "options"),
     [
-        ([0.1 + 0.0j, 0.6 + 0.0005j, 0.9 + 0.1j], 0.0, 1.0, [0.1, 0.6]),
-        ([0.1 + 0.0j, 1.5 + 0.0j], 0.2, 1.0, []),
+        (solve_linear, {}),
+        (solve_brentq, {}),
+        (solve_cubic_hermite, {"rate_at": _rate_at}),
     ],
 )
-def test_filter_roots_by_policy_filters_complex_and_out_of_interval_roots(
-    roots,
-    lower_bound,
-    upper_bound,
-    expected,
-):
-    """The root policy should keep real roots inside the requested interval."""
-
-    valid_roots = filter_roots_by_policy(
-        roots,
-        lower_bound=lower_bound,
-        upper_bound=upper_bound,
-        max_abs_imag=1e-3,
-        strict_interval=False,
-    )
-
-    assert valid_roots == pytest.approx(expected)
-
-
-def test_solve_cubic_hermite_step_roots_returns_expected_root():
-    """The cubic-Hermite helper should return the root inside the interval."""
-
-    roots = solve_cubic_hermite_step_roots(
-        step_end=1.0,
-        y0=1.0,
-        yp0=-1.5,
-        y1=-1.0,
-        yp1=-1.5,
-        lower_bound=0.0,
-        upper_bound=1.0,
-    )
-
-    assert roots == pytest.approx([0.5])
-
-
-@pytest.mark.parametrize(
-    "solver",
-    [solve_exact_time_linear, solve_exact_time_brentq, solve_exact_time_cubic_hermite],
-)
-def test_exact_time_solvers_return_expected_event_time(solver):
+def test_exact_time_solvers_return_expected_event_time(solver, options):
     """All exact-time solvers should resolve the same simple root."""
 
-    previous_state = _sample_state(0.0, 1.0)
-    current_state = _sample_state(1.0, -1.0)
-    previous_state[1] = 1.0
-    current_state[1] = -1.0
+    assert solver(_value_at, 0.0, 1.0, **options) == pytest.approx(0.5)
 
-    kwargs = {
-        "previous_state": previous_state,
-        "current_state": current_state,
-        "interpolator": _interpolator,
-        "event_function": lambda state, **_kwargs: state[0],
-        "no_root_error_message": "no root",
-    }
-    if solver is solve_exact_time_cubic_hermite:
-        kwargs["derivative_function"] = lambda state, **_kwargs: -1.5
 
-    result = solver(**kwargs)
+def test_exact_time_solvers_search_between_the_given_times():
+    """The step does not have to start at zero."""
 
-    assert result["event_time"] == pytest.approx(0.5)
-    assert result["event_state"][0] == pytest.approx(0.0)
+    def value_at(time):
+        return 3.0 - time
+
+    assert solve_linear(value_at, 2.0, 4.0) == pytest.approx(3.0)
+    assert solve_brentq(value_at, 2.0, 4.0) == pytest.approx(3.0)
+    assert solve_cubic_hermite(
+        value_at, 2.0, 4.0, rate_at=lambda _t: -1.0
+    ) == pytest.approx(3.0)
 
 
 def test_exact_time_linear_raises_when_endpoint_values_match():
     """The linear solver should reject steps with identical endpoint values."""
 
-    previous_state = _sample_state(0.0, 1.0)
-    current_state = _sample_state(1.0, -1.0)
-
-    with pytest.raises(ValueError, match="no root"):
-        solve_exact_time_linear(
-            previous_state=previous_state,
-            current_state=current_state,
-            interpolator=_interpolator,
-            event_function=lambda state, **_kwargs: 1.0,
-            no_root_error_message="no root",
-        )
+    with pytest.raises(ValueError, match="same at both ends"):
+        solve_linear(lambda _t: 1.0, 0.0, 1.0)
 
 
 def test_exact_time_brentq_raises_when_no_sign_change_occurs():
-    """Brent's method should fail cleanly when the event function does not
-    bracket a root."""
+    """Brent's method should fail cleanly when the value does not change sign."""
 
-    previous_state = _sample_state(0.0, 1.0)
-    current_state = _sample_state(1.0, 1.0)
-
-    with pytest.raises(ValueError, match="no root"):
-        solve_exact_time_brentq(
-            previous_state=previous_state,
-            current_state=current_state,
-            interpolator=_interpolator,
-            event_function=lambda state, **_kwargs: state[5],
-            no_root_error_message="no root",
-        )
+    with pytest.raises(ValueError, match="no crossing"):
+        solve_brentq(lambda _t: 1.0, 0.0, 1.0)
 
 
 def test_exact_time_brentq_wraps_runtime_errors_from_brentq(monkeypatch):
@@ -228,65 +165,29 @@ def test_exact_time_brentq_wraps_runtime_errors_from_brentq(monkeypatch):
 
     monkeypatch.setattr(exact_time_solvers, "brentq", failing_brentq)
 
-    previous_state = _sample_state(0.0, 1.0)
-    current_state = _sample_state(1.0, 1.0)
-
-    with pytest.raises(ValueError, match="no root"):
-        solve_exact_time_brentq(
-            previous_state=previous_state,
-            current_state=current_state,
-            interpolator=lambda time: np.array(
-                [time, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-            ),
-            event_function=lambda state, **_kwargs: state[0] - 0.5,
-            no_root_error_message="no root",
-        )
+    with pytest.raises(ValueError, match="boom"):
+        solve_brentq(_value_at, 0.0, 1.0)
 
 
-def test_exact_time_cubic_hermite_raises_when_multiple_roots_are_found(monkeypatch):
-    """Multiple valid Hermite roots should be rejected by the wrapper."""
+def test_exact_time_cubic_hermite_raises_when_multiple_roots_are_found():
+    """A cubic crossing zero more than once inside the step is rejected."""
 
-    monkeypatch.setattr(
-        exact_time_solvers,
-        "solve_cubic_hermite_step_roots",
-        lambda **_kwargs: [0.25, 0.75],
-    )
+    # (t - 0.2)(t - 0.5)(t - 0.8), with its exact rates at the ends
+    def value_at(t):
+        return (t - 0.2) * (t - 0.5) * (t - 0.8)
 
-    previous_state = _sample_state(0.0, 1.0)
-    current_state = _sample_state(1.0, -1.0)
+    def rate_at(t):
+        return (t - 0.5) * (t - 0.8) + (t - 0.2) * (t - 0.8) + (t - 0.2) * (t - 0.5)
 
-    with pytest.raises(ValueError, match="no root"):
-        solve_exact_time_cubic_hermite(
-            previous_state=previous_state,
-            current_state=current_state,
-            interpolator=_interpolator,
-            event_function=lambda state, **_kwargs: state[0],
-            derivative_function=lambda state, **_kwargs: -1.5,
-            no_root_error_message="no root",
-        )
+    with pytest.raises(ValueError, match="found 3"):
+        solve_cubic_hermite(value_at, 0.0, 1.0, rate_at=rate_at)
 
 
-def test_exact_time_cubic_hermite_raises_when_no_roots_are_found(monkeypatch):
-    """Empty Hermite root sets should be rejected by the wrapper."""
+def test_exact_time_cubic_hermite_raises_when_no_roots_are_found():
+    """A cubic that stays away from zero inside the step is rejected."""
 
-    monkeypatch.setattr(
-        exact_time_solvers,
-        "solve_cubic_hermite_step_roots",
-        lambda **_kwargs: [],
-    )
-
-    previous_state = _sample_state(0.0, 1.0)
-    current_state = _sample_state(1.0, -1.0)
-
-    with pytest.raises(ValueError, match="no root"):
-        solve_exact_time_cubic_hermite(
-            previous_state=previous_state,
-            current_state=current_state,
-            interpolator=_interpolator,
-            event_function=lambda state, **_kwargs: state[0],
-            derivative_function=lambda state, **_kwargs: -1.5,
-            no_root_error_message="no root",
-        )
+    with pytest.raises(ValueError, match="found 0"):
+        solve_cubic_hermite(lambda _t: 1.0, 0.0, 1.0, rate_at=lambda _t: 0.0)
 
 
 def test_commands_api_records_expected_payloads():
@@ -299,25 +200,28 @@ def test_commands_api_records_expected_payloads():
     commands.disable()
     commands.add_event(event)
     commands.disable_event(event)
-    commands.set_derivative(lambda *_args, **_kwargs: None)
-    commands.start_flight_phase("descent", lag=1.5, parachute="main")
+    commands.set_dynamics(SIX_DOF_DYNAMICS, parachute="main")
+    commands.start_flight_phase("descent", lag=1.5)
     commands.terminate_flight()
 
     assert commands._disabled is True
     assert commands.new_events == [event]
     assert commands.disable_events == [event]
-    assert commands.new_derivative_set is True
+    assert commands.new_dynamics is SIX_DOF_DYNAMICS
+    assert commands.new_dynamics_kwargs == {"parachute": "main"}
+    assert commands.changes_trajectory is True
     assert commands.new_flight_phase is True
     assert commands.new_flight_phase_name == "descent"
     assert commands.new_flight_phase_lag == 1.5
-    assert commands.new_flight_phase_parachute == "main"
     assert commands._terminate is True
 
     commands.reset()
 
     assert commands._disabled is None
     assert commands.new_events == []
-    assert commands.new_derivative is None
+    assert commands.new_dynamics is None
+    assert commands.new_dynamics_kwargs == {}
+    assert commands.changes_trajectory is False
     assert commands._terminate is False
 
 
@@ -344,34 +248,37 @@ def test_core_event_builders_update_flight_state_and_commands():
         z_impact=None,
         impact_velocity=None,
         impact_time=None,
-        solution=_canonical_solution(
-            _sample_state(0.0, 1.0), _sample_state(1.0, -1.0)
-        ),
+        solution=_canonical_solution(_sample_state(0.0, 1.0), _sample_state(1.0, -1.0)),
         u_dot_generalized=lambda *_args, **_kwargs: "new-derivative",
     )
 
     out_of_rail_state = _sample_state(0.5, 1.0)
     out_of_rail_state[1] = 1.0
-    assert out_of_rail_trigger(flight=flight, state=out_of_rail_state[1:])
+    assert out_of_rail_trigger(dict(flight=flight, state=out_of_rail_state[1:]))
     out_of_rail_callback(
-        flight=flight,
-        event=out_of_rail_event,
-        time=0.5,
-        state=out_of_rail_state[1:],
+        dict(
+            flight=flight,
+            event=out_of_rail_event,
+            time=0.5,
+            state=out_of_rail_state[1:],
+        )
     )
     assert flight.out_of_rail_time == pytest.approx(0.5)
     assert flight.out_of_rail_time_index == 1
     assert np.allclose(flight.out_of_rail_state, out_of_rail_state[1:])
-    assert out_of_rail_event.commands.new_derivative == flight.u_dot_generalized
+    assert out_of_rail_event.commands.new_dynamics is flight.u_dot_generalized
+    assert out_of_rail_event.commands.new_dynamics_kwargs == {}
     assert out_of_rail_event.commands.new_flight_phase is True
     assert out_of_rail_event.commands.new_flight_phase_name == "free_flight"
 
-    assert apogee_trigger(flight=flight, state=_sample_state(1.0, -1.0)[1:])
+    assert apogee_trigger(dict(flight=flight, state=_sample_state(1.0, -1.0)[1:]))
     apogee_result = apogee_callback(
-        flight=flight,
-        event=apogee_event,
-        time=1.0,
-        state=_sample_state(1.0, -1.0)[1:],
+        dict(
+            flight=flight,
+            event=apogee_event,
+            time=1.0,
+            state=_sample_state(1.0, -1.0)[1:],
+        )
     )
     assert apogee_result is False
     assert flight.apogee_time == pytest.approx(1.0)
@@ -385,12 +292,14 @@ def test_core_event_builders_update_flight_state_and_commands():
     impact_state[2] = -3.0
     impact_state[3] = -4.0
     impact_state[6] = -4.0
-    assert impact_trigger(flight=flight, state=impact_state[1:])
+    assert impact_trigger(dict(flight=flight, state=impact_state[1:]))
     impact_callback(
-        flight=flight,
-        event=impact_event,
-        time=2.0,
-        state=impact_state[1:],
+        dict(
+            flight=flight,
+            event=impact_event,
+            time=2.0,
+            state=impact_state[1:],
+        )
     )
     assert flight.impact_time == pytest.approx(2.0)
     assert flight.x_impact == pytest.approx(2.0)
@@ -400,21 +309,20 @@ def test_core_event_builders_update_flight_state_and_commands():
     assert impact_event.commands._terminate is True
 
     assert out_of_rail_exact_time_function(
-        out_of_rail_state[1:], flight=flight
+        dict(state=out_of_rail_state[1:], flight=flight)
     ) == pytest.approx(0.0)
     assert out_of_rail_exact_time_derivative(
-        out_of_rail_state[1:], flight=flight
+        dict(state=out_of_rail_state[1:], flight=flight)
     ) == pytest.approx(0.0)
     assert apogee_event_exact_time_function(
-        _sample_state(1.0, -1.0)[1:]
+        dict(state=_sample_state(1.0, -1.0)[1:])
     ) == pytest.approx(-1.0)
-    assert impact_event_exact_time_function(
-        impact_state[1:], flight=flight
-    ) == pytest.approx(-4.0)
+    assert impact_event_exact_time_function(dict(height_agl=-4.0)) == pytest.approx(
+        -4.0
+    )
     assert impact_event_exact_time_derivative(
-        impact_state[1:], flight=flight
+        dict(state=impact_state[1:], flight=flight)
     ) == pytest.approx(-4.0)
-    assert impact_step_end_function(step_size=0.25) == pytest.approx(0.25)
 
 
 @pytest.mark.parametrize(
@@ -432,20 +340,22 @@ def test_apogee_trigger_returns_false_without_complete_history(
 
     flight = SimpleNamespace(apogee_state=apogee_state, solution=solution)
 
-    assert apogee_trigger(flight=flight, state=_sample_state(1.0, -1.0)[1:]) is False
+    assert (
+        apogee_trigger(dict(flight=flight, state=_sample_state(1.0, -1.0)[1:])) is False
+    )
 
 
 def test_flight_with_disable_and_enable_examples_from_docs():
     """The docs-style disable_on and enable_on examples should work in Flight."""
 
-    def my_callback(**kwargs):
-        return {"time": kwargs["time"]}
+    def my_callback(context):
+        return {"time": context["time"]}
 
-    def disable_above_altitude(**kwargs):
-        return kwargs["height_agl"] > 700.0
+    def disable_above_altitude(context):
+        return context["height_agl"] > 700.0
 
-    def enable_above_altitude(**kwargs):
-        return kwargs["height_agl"] > 500.0
+    def enable_above_altitude(context):
+        return context["height_agl"] > 500.0
 
     time_gated = Event(
         callback=my_callback,
@@ -506,15 +416,14 @@ def test_flight_with_disable_and_enable_examples_from_docs():
 def test_flight_with_exact_time_example_from_docs():
     """The docs-style exact-time event should be more precise than sampling."""
 
-    def altitude_trigger(**kwargs):
-        state = kwargs["state"]
-        flight = kwargs["flight"]
-        target_altitude = kwargs["event"].context["target_altitude"]
+    def altitude_trigger(context):
+        state = context["state"]
+        flight = context["flight"]
+        target_altitude = context["event"].memory["target_altitude"]
         return state[2] - flight.env.elevation > target_altitude
 
-    def altitude_exact_time_function(state, **kwargs):
-        flight = kwargs["flight"]
-        return state[2] - flight.env.elevation
+    def altitude_exact_time_function(context):
+        return context["height_agl"]
 
     exact_time_event = Event(
         callback=_callback_return_time,
@@ -522,14 +431,14 @@ def test_flight_with_exact_time_example_from_docs():
         exact_time_function=altitude_exact_time_function,
         exact_time_config={"target": 543.21},
         name="Exact-time altitude detector",
-        context={"target_altitude": 543.21},
+        memory={"target_altitude": 543.21},
         trigger_only_once=True,
     )
     sampled_altitude_event = Event(
         callback=_callback_return_time,
         trigger=altitude_trigger,
         name="Sampled altitude detector",
-        context={"target_altitude": 543.21},
+        memory={"target_altitude": 543.21},
         trigger_only_once=True,
     )
 
@@ -537,10 +446,8 @@ def test_flight_with_exact_time_example_from_docs():
 
     assert exact_time_event.triggered_times
     assert sampled_altitude_event.triggered_times
-    assert exact_time_event.callback_log[0]["sampled_time"] is not None
-    assert sampled_altitude_event.callback_log[0]["sampled_time"] is None
 
-    target_altitude = exact_time_event.context["target_altitude"]
+    target_altitude = exact_time_event.memory["target_altitude"]
     exact_error = abs(flight.z(exact_time_event.triggered_times[0]) - target_altitude)
     sampled_error = abs(
         flight.z(sampled_altitude_event.triggered_times[0]) - target_altitude
@@ -550,3 +457,137 @@ def test_flight_with_exact_time_example_from_docs():
     assert exact_error < 1.0
     assert exact_time_event.enabled is False
     assert sampled_altitude_event.enabled is False
+
+
+# ---------------------------------------------------------------------------
+# Phases narrower and wider than the canonical state, in a running flight
+# ---------------------------------------------------------------------------
+#
+# Every set of equations RocketPy ships integrates the full canonical state, so
+# the two capabilities below are exercised against purpose-built ones handed to
+# a flight through the set_dynamics command, which is how a phase reaches a
+# simulation in the first place.
+
+GRAVITY = 9.80665
+
+BALLISTIC_STATES = ("x", "y", "z", "vx", "vy", "vz")
+
+
+def _ballistic_derivative(_flight, _t, u, post_processing=False):
+    """Free fall: position follows velocity, velocity follows gravity."""
+    if post_processing:
+        return ()
+    return [u[3], u[4], u[5], 0.0, 0.0, -GRAVITY]
+
+
+def _parafoil_derivative(_flight, _t, u, post_processing=False):
+    """Free fall that also turns, carrying a heading the canonical state lacks."""
+    if post_processing:
+        return ()
+    return [u[3], u[4], u[5], 0.0, 0.0, -GRAVITY, 0.5]
+
+
+BALLISTIC_DYNAMICS = _PhaseDynamics(
+    "test_ballistic", _ballistic_derivative, BALLISTIC_STATES
+)
+
+PARAFOIL_DYNAMICS = _PhaseDynamics(
+    "test_parafoil",
+    _parafoil_derivative,
+    (*BALLISTIC_STATES, "heading"),
+    # A heading is not a canonical state, so it cannot be picked out of the
+    # state that ended the previous phase. The phase says where it starts.
+    initial_state=lambda _flight, _t, canonical: [*canonical[:6], 0.0],
+)
+
+
+def _flight_switching_dynamics_at(time, dynamics, phase_name):
+    """Run a flight that switches to ``dynamics`` once ``time`` is reached."""
+
+    def switch(context):
+        context["event"].commands.set_dynamics(dynamics)
+        context["event"].commands.start_flight_phase(phase_name)
+        return f"switched at {context['time']:.2f} s"
+
+    switch_event = Event(
+        callback=switch,
+        trigger=lambda context: context["time"] >= time,
+        name=f"Switch to {phase_name}",
+        sampling_rate=10,
+        trigger_only_once=True,
+        changes_dynamics=True,
+    )
+    return _docs_style_flight([switch_event]), switch_event
+
+
+def test_a_phase_narrower_than_the_canonical_state_flies():
+    """A six-state phase integrates, stores and reads back correctly."""
+    flight, switch_event = _flight_switching_dynamics_at(
+        5.0, BALLISTIC_DYNAMICS, "ballistic"
+    )
+    solution = flight.solution
+
+    assert switch_event.callback_log, "the flight never switched dynamics"
+    ballistic = solution.phases[-1]
+    assert ballistic.name == "ballistic"
+    assert ballistic.dynamics.states == BALLISTIC_STATES
+
+    # rows of that phase are stored at its own width, not the canonical one
+    assert len(solution.raw_row(-1)) == 7
+    assert len(solution.raw_row(0)) == 14
+    # but the flight still reads as 14-value canonical rows throughout
+    assert len(solution[-1]) == 14
+    assert np.array(solution).shape == (len(solution), 14)
+
+    # a canonical state the phase does not integrate is held at the value it
+    # had when the phase began, so its history still covers the whole flight
+    switch_index = ballistic.start - 1
+    assert solution["e0"].shape == (len(solution), 2)
+    assert solution.value_at(-1, "e0") == pytest.approx(
+        solution.value_at(switch_index, "e0")
+    )
+    # and one it does integrate keeps moving
+    assert solution.value_at(-1, "vz") != solution.value_at(switch_index, "vz")
+
+    # the phase reports no post-process variables, so it contributes zeros
+    # rather than breaking the flight's own accelerations
+    assert np.isfinite(flight.az(flight.t_final))
+
+
+def test_a_phase_wider_than_the_canonical_state_flies():
+    """A phase carrying a state of its own integrates and reads back by name."""
+    flight, switch_event = _flight_switching_dynamics_at(
+        5.0, PARAFOIL_DYNAMICS, "parafoil"
+    )
+    solution = flight.solution
+
+    assert switch_event.callback_log, "the flight never switched dynamics"
+    parafoil = solution.phases[-1]
+    assert parafoil.dynamics.states == (*BALLISTIC_STATES, "heading")
+
+    # time plus six canonical states plus the phase's own heading
+    assert len(solution.raw_row(-1)) == 8
+    # the extra state is not part of the canonical row
+    assert len(solution[-1]) == 14
+    assert np.array(solution).shape == (len(solution), 14)
+
+    # the heading exists only in this phase, and reading it says so
+    with pytest.warns(UserWarning, match="not defined during"):
+        heading = solution["heading"]
+    assert len(heading) == len(solution) - parafoil.start
+    # The phase's own rule seeds the heading at zero when the phase begins, and
+    # it turns at 0.5 rad/s from there. The first row is stored one solver step
+    # in, so both rows are checked against the time the phase started.
+    assert heading[0, 1] == pytest.approx(
+        0.5 * (heading[0, 0] - parafoil.t_start), abs=1e-9
+    )
+    assert heading[-1, 1] == pytest.approx(
+        0.5 * (heading[-1, 0] - parafoil.t_start), rel=1e-9
+    )
+    assert heading[-1, 1] > heading[0, 1] > 0.0
+    # and it reads through the single-row accessors as well
+    assert solution.at_index(-1)["heading"] == pytest.approx(heading[-1, 1])
+    assert solution.value_at(-1, "heading") == pytest.approx(heading[-1, 1])
+    # while the phases before it have no such state
+    with pytest.raises(KeyError, match="not defined in this flight phase"):
+        solution.value_at(0, "heading")
