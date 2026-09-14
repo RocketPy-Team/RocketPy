@@ -33,12 +33,10 @@ from .helpers.dynamics import (
 from .helpers.event_calling import (
     build_event_kwargs,
     call_events,
-    compute_needs_union,
-    infer_step_size,
     process_overshootable_event,
-    update_overshootable_event_kwargs,
+    refresh_event_kwargs,
 )
-from .helpers.flight_phase import INITIAL_PHASE_NAME, _FlightPhases, _TimeNodes
+from .helpers.flight_phase import _FlightPhases, _TimeNodes
 from .solution import Solution
 
 ODE_SOLVER_MAP = {
@@ -769,11 +767,6 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         self.impact_velocity = 0
         self.impact_state = np.array([0])
         self.parachute_events = []
-        # Post-process variables, built in one pass the first time one is read.
-        # Values that a later replay could not reproduce are recorded as the
-        # simulation runs and kept on the solution, beside the row they belong
-        # to.
-        self._post_process = None
 
     def __init_equations_of_motion(self):
         """Initialize equations of motion."""
@@ -843,25 +836,21 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         self.function_evaluations = []
         # Initialize solution state
         self.solution = Solution()
+        # A flight that changes the rocket as it flies has to record its
+        # post-process variables while it runs. Telling the solution so makes
+        # the recorded values the only answer it will give for them.
+        self.solution.records_post_values = self._has_change_dynamics_events
         self.__init_flight_state()
 
         self.t_initial = self.initial_solution[0]
-        # Open the solution's first flight phase. Which states it integrates
-        # comes from the phase's dynamics, and the initial state supplies the
-        # values any state the phase does not integrate is held at.
-        self.solution.start_phase(
+        self.solution._start_phase(
             self.initial_dynamics,
             start_canonical=tuple(self.initial_solution[1:]),
             t_start=self.t_initial,
-            name=INITIAL_PHASE_NAME,
+            name="initial_phase",  # the same name _FlightPhases gives it
         )
-        self.solution.append(list(self.initial_solution))
-        self.t = self.solution.last_time
-        self.y_sol = self.solution.last_state
-
-        # Record the initial state's post-process variables now that the first
-        # phase exists to receive them.
-        self.__post_process_step(self.t_initial, self.initial_solution[1:])
+        self.solution._append(list(self.initial_solution))
+        self.t, *self.y_sol = self.solution.raw_row(-1)
 
         self.__set_ode_solver(self.ode_solver)
 
@@ -920,7 +909,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             # previous flight. Its final state is canonicalized in case that
             # flight ended in a phase integrating fewer than the 13 states.
             previous_flight = self.initial_solution
-            self.t_initial = previous_flight.solution.last_time
+            self.t_initial = previous_flight.solution.raw_row(-1)[0]
             self.initial_solution = previous_flight.solution.canonical_row(-1)
             # Set unused monitors
             self.out_of_rail_state = self.initial_solution[1:]
@@ -929,6 +918,12 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             # Set initial derivative for 6-DOF flight phase
             self.initial_dynamics = self.u_dot_generalized
         else:
+            if len(self.initial_solution) != 14:
+                raise ValueError(
+                    f"initial_solution must have 14 values, [t, x, y, z, vx, "
+                    f"vy, vz, e0, e1, e2, e3, w1, w2, w3], but "
+                    f"{len(self.initial_solution)} were given."
+                )
             self.t_initial = self.initial_solution[0]
             is_initial_state_out_of_rail = (
                 self.initial_solution[1] ** 2
@@ -996,15 +991,9 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         if phase_index > 0:
             # A new phase begins. Seed its raw state from the canonical state
             # that ended the previous phase and open a fresh one in the solution.
-            # The last state must be read through the phase that owns it, which
-            # is not always the one being flown: a phase that ended without
-            # taking a step holds no rows, and the last state is then still the
-            # one before it, in that phase's own states.
-            previous_canonical = self.solution.last_phase.canonical_state(
-                self.solution.last_state
-            )
+            previous_canonical = self.solution.canonical_row(-1)[1:]
             y0 = phase.dynamics.initial_state(phase.t, previous_canonical)
-            self.solution.start_phase(
+            self.solution._start_phase(
                 phase.dynamics,
                 start_canonical=tuple(previous_canonical),
                 t_start=phase.t,
@@ -1014,7 +1003,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             self.y_sol = y0
         else:
             # The solution's first phase was already opened during setup.
-            y0 = self.solution.last_state
+            y0 = self.solution.raw_row(-1)[1:]
 
         phase.solver = self._solver(
             phase.dynamics,
@@ -1022,7 +1011,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             y0=y0,
             t_bound=phase.time_bound,
             rtol=self.rtol,
-            atol=phase.dynamics.select_atol(self.atol),
+            atol=phase.dynamics.dynamics.select_atol(self.atol),
             max_step=self.max_time_step,
             min_step=self.min_time_step,
         )
@@ -1066,8 +1055,10 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         """Run all nodes for a phase until completion."""
         for node_index, node in phase.time_nodes:
             self.__prepare_node_solver(phase, node, node_index)
-            if self.__evaluate_node_events(phase, phase_index, node, node_index):
-                self.__sync_node_solver_bound(phase, node, node_index)
+            self.__evaluate_node_events(phase, phase_index, node, node_index)
+            # The node's events may have changed the schedule, so the solver
+            # bound is set again before stepping.
+            self.__sync_node_solver_bound(phase, node, node_index)
             self.__run_node_solver_loop(phase, phase_index, node_index)
 
     def __prepare_node_solver(self, phase, node, node_index):
@@ -1085,8 +1076,8 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         phase.solver.status = "running"
 
     def __evaluate_node_events(self, phase, phase_index, node, node_index):
-        """Node boundary event evaluation is handled by the scheduler loop."""
-        return call_events(
+        """Check the events scheduled at a node."""
+        call_events(
             flight=self,
             events=node.events,
             phase=phase,
@@ -1094,8 +1085,6 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             node_index=node_index,
             time=node.t,
             state=self.y_sol,
-            step_size=infer_step_size(self, node.t),
-            needs=compute_needs_union(node.events),
         )
 
     def __sync_node_solver_bound(self, phase, node, node_index):
@@ -1114,13 +1103,13 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         while phase.solver.status == "running":
             self.__execute_solver_step(phase)
             self.__process_events(phase, phase_index, node_index)
-            self.__post_process_step(self.t, self.y_sol)
+            self.__post_process_step()
 
     def __execute_solver_step(self, phase):
         """Execute one solver step and update simulation history."""
         # Execute solver step, log solution and function evaluations
         phase.solver.step()
-        self.solution.append([phase.solver.t, *phase.solver.y])
+        self.solution._append([phase.solver.t, *phase.solver.y])
         self.function_evaluations.append(phase.solver.nfev)
 
         # Update time and state
@@ -1143,7 +1132,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         events_to_evaluate.sort(key=lambda event: event.priority)
 
         # 3. Evaluate combined events in sequence ordered by priority
-        call_events(
+        trajectory_changed = call_events(
             flight=self,
             events=events_to_evaluate,
             phase=phase,
@@ -1151,14 +1140,13 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             node_index=node_index,
             time=time,
             state=state,
-            step_size=infer_step_size(self, time),
-            needs=compute_needs_union(events_to_evaluate),
         )
 
-        # 4. If overshoot processing rolled back the state but no command
-        # changed phase/derivative, restart solver from the rolled back state
-        if rolled_back and phase.solver.status == "running":
-            self.__restart_phase_from_rollback(phase, phase_index, node_index)
+        # 4. If the flight was rolled back, or a command moved this phase's
+        # end, and the phase is still being flown, restart the solver from
+        # the flight's current state.
+        if (rolled_back or trajectory_changed) and phase.solver.status == "running":
+            self.__restart_phase_solver(phase, node_index)
 
     def __process_overshootable_nodes(self, phase, phase_index, node_index):
         """Checks for overshootable node triggers without executing state
@@ -1170,21 +1158,9 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             return self.t, self.y_sol, [], False  # Nothing scheduled in this step
 
         # Evaluate common kwargs parameters for event triggers.
-        # Use needs from all currently-enabled overshootable events.
-        step_needs = compute_needs_union(self._overshootable_events)
-        event_kwargs = build_event_kwargs(
-            self,
-            self.t,
-            self.y_sol,
-            phase.solver.step_size,
-            phase,
-            needs=step_needs,
-        )
+        event_kwargs = build_event_kwargs(self, self.t, self.y_sol, phase)
 
-        # Feed overshootable time nodes trigger. The whole node list is walked,
-        # including the one at the end of the step: a check scheduled exactly on
-        # a step boundary belongs to the step that ends there, and the next step
-        # drops it from its start (below) so it is never checked twice.
+        # Feed overshootable time nodes trigger
         events_to_evaluate = []
         interpolator = phase.solver.dense_output()
         for overshootable_node in overshootable_nodes.list:
@@ -1193,15 +1169,11 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             interpolated_state = interpolator(overshootable_node.t)
             interpolated_time = overshootable_node.t
 
-            # Per-node needs: only enabled events scheduled at this node.
-            node_needs = compute_needs_union(overshootable_node.events)
-            event_kwargs = update_overshootable_event_kwargs(
+            event_kwargs = refresh_event_kwargs(
                 flight=self,
-                phase=phase,
                 event_kwargs=event_kwargs,
                 interpolated_time=interpolated_time,
                 interpolated_state=interpolated_state,
-                needs=node_needs,
             )
 
             # Check events for current node
@@ -1224,28 +1196,21 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
 
         return self.t, self.y_sol, events_to_evaluate, False
 
-    def __restart_phase_from_rollback(self, phase, _phase_index, node_index):
-        """Restart integration from rollback state.
+    def __restart_phase_solver(self, phase, node_index):
+        """Rebuild the phase's solver from the flight's current time and state.
 
-        If the rollback did not change the flight phase or derivative, prefer a
-        lightweight in-place solver reinitialization instead of creating a new
-        phase. This keeps `dense_output()` and solution history coherent while
-        avoiding the overhead of creating a separate phase object.
+        Used when the state the solver holds is no longer the flight's: after
+        a rollback, or after a command moved the phase's end. The phase, its
+        equations and its node schedule are kept, so the solver simply runs on
+        to the next node.
         """
-
-        # Trim future nodes and insert a node at the rollback time.
-        phase.time_nodes.flush_after(node_index)
-        phase.time_nodes.add_node(self.t, [])
-
-        # Reinitialize the solver in-place so integration continues from the
-        # rolled-back time/state using the same derivative and solver settings.
         phase.solver = self._solver(
             phase.dynamics,
             t0=self.t,
             y0=self.y_sol,
-            t_bound=phase.time_bound,
+            t_bound=phase.time_nodes[node_index + 1].t,
             rtol=self.rtol,
-            atol=phase.dynamics.select_atol(self.atol),
+            atol=phase.dynamics.dynamics.select_atol(self.atol),
             max_step=self.max_time_step,
             min_step=self.min_time_step,
         )
@@ -1276,30 +1241,58 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
 
         return overshootable_nodes
 
-    def __post_process_step(self, t, state):
-        """Store the current phase's post-process variables at time ``t``.
-        Does nothing unless the flight has an event that changes the dynamics.
-        This method recalculates derivatives with post_processing=True flag to capture
-        any aerodynamic or other parameter changes that resulted from controller actions.
-        The post_processing flag in the derivative ensures that forces, moments, and
-        other derived quantities are properly recorded for later analysis.
+    def __post_process_step(self):
+        """Record the post-process variables of every stored row that lacks them.
 
-        Recording as the simulation runs captures any aerodynamic or other
-        parameter change a controller made during this step, which a later replay
-        over the stored states could not reproduce. This is what keeps the
-        accelerations, forces and moments accurate for a flight whose controllers
-        move an air brake or a fin.
+        Does nothing unless the flight has an event that changes the dynamics.
+        Recording as the simulation runs captures a parameter change a
+        controller made, which a later replay over the stored states could not
+        reproduce: the replay would read the rocket in the configuration it
+        ended the flight in. This is what keeps the accelerations, forces and
+        moments accurate for a flight whose controllers move an air brake or a
+        fin.
+
+        Called once per solver step, after the step's events are handled. The
+        rows without values are the ones written since the last call, and they
+        always sit together at the end: normally just the step's own row. A
+        row an event inserts to mark its exact time is recorded when it is
+        inserted (see :meth:`_post_process_row`), since a later event of the
+        same step may change the rocket.
         """
-        if self._has_change_dynamics_events and len(self.solution):
-            # The phase that owns the most recent row, which is what the values
-            # are recorded against. It is not always the phase being flown: one
-            # that has only just begun holds no rows yet.
-            phase = self.solution.last_phase
-            self.solution.set_last_post_values(
-                phase.dynamics.post_process_values(
-                    phase.bound_dynamics.post_process_at(t, state)
-                )
-            )
+        solution = self.solution
+        if not solution.records_post_values:
+            return
+        post_values = solution._post_values
+        index = len(post_values) - 1
+        while index >= 0 and post_values[index] is None:
+            self._post_process_row(index)
+            index -= 1
+
+    def _post_process_row(self, index):
+        """Record the post-process variables of one stored row.
+
+        Computed from the row's own time and state, with the rocket as it is
+        now. Does nothing unless the flight records its post-process values.
+
+        Parameters
+        ----------
+        index : int
+            Row position across the whole flight. Negative values count from
+            the end.
+        """
+        solution = self.solution
+        if not solution.records_post_values:
+            return
+        # The phase that owns the row, which is not always the phase being
+        # flown: one that has only just begun holds no rows yet.
+        phase = solution.phases[solution.phase_index_at(index)]
+        row = solution.raw_row(index)
+        solution._set_post_values(
+            index,
+            phase.dynamics.post_process_values(
+                phase.bound_dynamics.post_process_at(row[0], row[1:])
+            ),
+        )
 
     def __finalize_simulation(self):
         """Finalize and cache simulation outputs."""
@@ -1353,7 +1346,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
                 f"{self.time[time_index]}. Using closest time.",
                 UserWarning,
             )
-        return self.solution.canonical_array[time_index, :]
+        return self.solution.canonical_array[time_index, :].copy()
 
     @cached_property
     def effective_1rl(self):
@@ -1426,7 +1419,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
     )
     def solution_array(self):
         """Returns solution array of the rocket flight."""
-        return self.solution.canonical_array
+        return np.array(self.solution)
 
     @property
     def function_evaluations_per_time_step(self):
@@ -1537,201 +1530,88 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
         return self.solution["w3"]
 
     # Process second type of outputs - accelerations components
-    def __build_post_process(self):
-        """Build every post-process variable's ``[t, value]`` history, at once.
-
-        Post-process variables are the ones each flight phase computes on its way
-        to the state derivative without integrating them: accelerations,
-        aerodynamic forces and moments, net thrust. Each phase's values come from
-        one of two places:
-
-        - the values recorded as the simulation ran, for a flight with an event
-          that changes the dynamics. A controller moving an air brake changes the
-          aerodynamic forces, and replaying the equations of motion afterwards
-          would compute them with the deflection the air brake ended at rather
-          than the one it had at the time.
-        - the equations of motion replayed over the phase's stored states, for
-          every other flight. This is cheaper than recording every step of every
-          flight, and gives the same answer when nothing changed mid-flight.
-
-        A phase that does not compute a variable another phase does contributes
-        zeros for it, which is right for the built-in variables: a parachute
-        descent really has no aerodynamic moments and no thrust.
-        """
-        names = []
-        for phase in self.solution.phases:
-            for name in phase.dynamics.post_process_vars:
-                if name not in names:
-                    names.append(name)
-        parts = {name: [] for name in names}
-
-        for index, phase in enumerate(self.solution.phases):
-            rows = self.solution.phase_rows(index)
-            if not rows:
-                continue
-            table = self.__resolve_post_values(
-                phase, rows, self.solution.phase_post_values(index)
-            )
-            if table is None:
-                continue
-            times = np.array([row[0] for row in rows])
-            array = np.array(table)
-            for name in names:
-                column = phase.dynamics.post_process_index.get(name)
-                if column is None:
-                    parts[name].append(np.column_stack([times, np.zeros(len(times))]))
-                else:
-                    parts[name].append(np.column_stack([times, array[:, column]]))
-
-        self._post_process = {
-            name: chunks[0] if len(chunks) == 1 else np.concatenate(chunks, axis=0)
-            for name, chunks in parts.items()
-            if chunks
-        }
-
-    @staticmethod
-    def __resolve_post_values(phase, rows, recorded):
-        """Return one phase's post-process values, one entry per row.
-
-        Values recorded while the simulation ran are used as they are. A phase
-        with none is worked out again from its stored states, which gives the
-        same answer for a flight whose rocket did not change mid-flight.
-
-        Parameters
-        ----------
-        phase : _PhaseSolution
-            The phase being assembled.
-        rows : list of list of float
-            The phase's rows, each ``[t, *state]``.
-        recorded : list
-            What was recorded for each of those rows, ``None`` where nothing
-            was.
-
-        Returns
-        -------
-        list of list of float or None
-            One list of values per row, or ``None`` if the phase can neither be
-            read back nor replayed.
-        """
-        if any(values is not None for values in recorded):
-            # A phase recorded as it was flown. Every row has values except the
-            # ones added afterwards to mark the exact time of an event, which
-            # sit microseconds from the row beside them; those take their
-            # neighbour's values. Working them out again instead would read the
-            # rocket in its end-of-flight configuration and give a wrong answer.
-            filled = []
-            previous = next(v for v in recorded if v is not None)
-            for values in recorded:
-                if values is not None:
-                    previous = values
-                filled.append(previous)
-            return filled
-        if phase.bound_dynamics is None:
-            # A phase read back from a saved flight cannot be replayed, since
-            # that needs the equations of motion of a live flight.
-            return None
-        return [
-            phase.dynamics.post_process_values(
-                phase.bound_dynamics.post_process_at(row[0], row[1:])
-            )
-            for row in rows
-        ]
-
-    def _post_process_series(self, name):
-        """Return the ``[t, value]`` history of one post-process variable."""
-        if self._post_process is None:
-            self.__build_post_process()
-        try:
-            return self._post_process[name]
-        except KeyError as error:
-            raise KeyError(
-                f"No flight phase computed the post-process variable '{name}'. "
-                f"This flight computes: "
-                f"{', '.join(self._post_process) or '(none)'}."
-            ) from error
-
     @funcify_method("Time (s)", "Ax (m/s²)", "spline", "zero")
     def ax(self):
         """Acceleration of the rocket's center of dry mass along the X (East)
         axis in the inertial frame as a function of time."""
-        return self._post_process_series("ax")
+        return self.solution.post["ax"]
 
     @funcify_method("Time (s)", "Ay (m/s²)", "spline", "zero")
     def ay(self):
         """Acceleration of the rocket's center of dry mass along the Y (North)
         axis in the inertial frame as a function of time."""
-        return self._post_process_series("ay")
+        return self.solution.post["ay"]
 
     @funcify_method("Time (s)", "Az (m/s²)", "spline", "zero")
     def az(self):
         """Acceleration of the rocket's center of dry mass along the Z (Up)
         axis in the inertial frame as a function of time."""
-        return self._post_process_series("az")
+        return self.solution.post["az"]
 
     @funcify_method("Time (s)", "α1 (rad/s²)", "spline", "zero")
     def alpha1(self):
         """Angular acceleration of the rocket in the x direction of the rocket's
         body frame as a function of time, in rad/s. Sometimes referred to as
         pitch acceleration."""
-        return self._post_process_series("alpha1")
+        return self.solution.post["alpha1"]
 
     @funcify_method("Time (s)", "α2 (rad/s²)", "spline", "zero")
     def alpha2(self):
         """Angular acceleration of the rocket in the y direction of the rocket's
         body frame as a function of time, in rad/s. Sometimes referred to as
         yaw acceleration."""
-        return self._post_process_series("alpha2")
+        return self.solution.post["alpha2"]
 
     @funcify_method("Time (s)", "α3 (rad/s²)", "spline", "zero")
     def alpha3(self):
         """Angular acceleration of the rocket in the z direction of the rocket's
         body frame as a function of time, in rad/s. Sometimes referred to as
         roll acceleration."""
-        return self._post_process_series("alpha3")
+        return self.solution.post["alpha3"]
 
     # Process third type of outputs - Temporary values
     @funcify_method("Time (s)", "R1 (N)", "spline", "zero")
     def R1(self):
         """Aerodynamic force acting along the x-axis of the rocket's body frame
         as a function of time. Expressed in Newtons (N)."""
-        return self._post_process_series("R1")
+        return self.solution.post["R1"]
 
     @funcify_method("Time (s)", "R2 (N)", "spline", "zero")
     def R2(self):
         """Aerodynamic force acting along the y-axis of the rocket's body frame
         as a function of time. Expressed in Newtons (N)."""
-        return self._post_process_series("R2")
+        return self.solution.post["R2"]
 
     @funcify_method("Time (s)", "R3 (N)", "spline", "zero")
     def R3(self):
         """Aerodynamic force acting along the z-axis of the rocket's body frame
         as a function of time. Expressed in Newtons (N)."""
-        return self._post_process_series("R3")
+        return self.solution.post["R3"]
 
     @funcify_method("Time (s)", "M1 (Nm)", "linear", "zero")
     def M1(self):
         """Aerodynamic moment acting along the x-axis of the rocket's body
         frame as a function of time. Expressed in Newtons (N)."""
-        return self._post_process_series("M1")
+        return self.solution.post["M1"]
 
     @funcify_method("Time (s)", "M2 (Nm)", "linear", "zero")
     def M2(self):
         """Aerodynamic moment acting along the y-axis of the rocket's body
         frame as a function of time. Expressed in Newtons (N)."""
-        return self._post_process_series("M2")
+        return self.solution.post["M2"]
 
     @funcify_method("Time (s)", "M3 (Nm)", "linear", "zero")
     def M3(self):
         """Aerodynamic moment acting along the z-axis of the rocket's body
         frame as a function of time. Expressed in Newtons (N)."""
-        return self._post_process_series("M3")
+        return self.solution.post["M3"]
 
     @funcify_method("Time (s)", "Net Thrust (N)", "linear", "zero")
     def net_thrust(self):
         """Net thrust of the rocket as a Function of time. This is the
         actual thrust force experienced by the rocket. It may be corrected
         with the atmospheric pressure if a reference pressure is defined."""
-        return self._post_process_series("net_thrust")
+        return self.solution.post["net_thrust"]
 
     @funcify_method("Time (s)", "Pressure (Pa)", "spline", "constant")
     def pressure(self):
@@ -2800,7 +2680,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             "ode_solver": self.ode_solver,
             "simulation_mode": self.simulation_mode,
             # The following outputs are essential to run all_info method
-            "solution": self.solution.to_dict(),
+            "solution": self.solution,
             "out_of_rail_time": self.out_of_rail_time,
             "out_of_rail_time_index": self.out_of_rail_time_index,
             "apogee_time": self.apogee_time,

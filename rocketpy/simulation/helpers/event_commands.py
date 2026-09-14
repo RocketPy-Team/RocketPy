@@ -1,6 +1,7 @@
 import warnings
 
 from ..events import Event
+from .dynamics import _BoundDynamics
 
 
 def apply_event_commands(
@@ -28,39 +29,27 @@ def apply_event_commands(
         Index of the current flight phase.
     node_index : int
         Index of the current time node.
-
-    Returns
-    -------
-    bool
-        ``True`` if the time-node schedule was modified (new events added or
-        events enabled/disabled), ``False`` otherwise. The caller should
-        re-synchronize the solver ``t_bound`` when this is ``True``.
+    command_time : float
+        The time the commands apply at, in seconds. Replaced by the event's
+        exact time when it solved one.
     """
-    apply_exact_time_result(flight, event_results)
-    t_apply = event_results.exact_time
-    if t_apply is None:
-        t_apply = command_time
+    t_apply = command_time
+    if event_results.exact_time is not None:
+        t_apply = event_results.exact_time
+        apply_exact_time_result(flight, event_results)
 
-    apply_new_phase_or_derivative(
+    apply_new_phase_or_dynamics(
         flight, event_results, phase, phase_index, node_index, time=t_apply
     )
     apply_termination(
         flight, event_results, phase, phase_index, node_index, time=t_apply
     )
 
-    # Track whether time_nodes was modified by the following functions
-    nodes_modified = False
-    nodes_modified |= apply_event_list_updates(
-        flight, event_results, phase, time=t_apply
-    )
-    nodes_modified |= apply_enable_commands(
+    apply_event_list_updates(flight, event_results, phase, time=t_apply)
+    apply_enable_commands(flight, event_results, node_index, event, phase, time=t_apply)
+    apply_disable_commands(
         flight, event_results, node_index, event, phase, time=t_apply
     )
-    nodes_modified |= apply_disable_commands(
-        flight, event_results, node_index, event, phase, time=t_apply
-    )
-
-    return nodes_modified
 
 
 def apply_rollback_command(flight, time, state):
@@ -86,7 +75,7 @@ def apply_rollback_command(flight, time, state):
     """
     flight.t = time
     flight.y_sol = state
-    flight.solution[-1] = [time, *state]
+    flight.solution._replace_last([time, *state])
 
 
 def apply_disable_commands(_, event_results, node_index, event, phase, time):
@@ -103,12 +92,7 @@ def apply_disable_commands(_, event_results, node_index, event, phase, time):
     phase : _FlightPhase
         Current flight phase.
 
-    Returns
-    -------
-    bool
-        ``True`` if time_nodes structure was modified, ``False`` otherwise.
     """
-    nodes_modified = False
     if event_results.disable_events:
         disable_events = event_results.disable_events
         if not isinstance(disable_events, (list, tuple)):
@@ -123,7 +107,6 @@ def apply_disable_commands(_, event_results, node_index, event, phase, time):
                 event=event_to_disable,
                 time=time,
             )
-        nodes_modified = True
 
     if event_results._disabled:
         event.enabled = False
@@ -134,9 +117,6 @@ def apply_disable_commands(_, event_results, node_index, event, phase, time):
             event=event,
             time=time,
         )
-        nodes_modified = True
-
-    return nodes_modified
 
 
 def apply_enable_commands(flight, event_results, node_index, event, phase, time):
@@ -153,12 +133,7 @@ def apply_enable_commands(flight, event_results, node_index, event, phase, time)
     phase : _FlightPhase
         Current flight phase.
 
-    Returns
-    -------
-    bool
-        ``True`` if time_nodes structure was modified, ``False`` otherwise.
     """
-    nodes_modified = False
     if event_results.enable_events:
         enable_events = event_results.enable_events
         if not isinstance(enable_events, (list, tuple)):
@@ -174,13 +149,11 @@ def apply_enable_commands(flight, event_results, node_index, event, phase, time)
                     event=event_to_enable,
                     time=time,
                 )
-        nodes_modified = True
 
     # Commands API uses `_disabled` flag: True -> disable, False -> enable
     if event_results._disabled is False:
         event.enabled = True
         event.enabled_times.append(time)
-        nodes_modified = True
 
         # if the event is non-overshootable, we need to create discrete nodes
         if event in flight._non_overshootable_events:
@@ -191,62 +164,78 @@ def apply_enable_commands(flight, event_results, node_index, event, phase, time)
                 time=time,
             )
 
-    return nodes_modified
-
 
 def apply_exact_time_result(flight, event_results):
-    """Apply an exact-time correction to the current flight state.
+    """Store the row at the exact time an event happened.
+
+    When the event changes what happens after it (a new phase, new equations of
+    motion, or the end of the flight), the part of the step flown past the event
+    no longer happened, so the exact row takes the place of the step's end and
+    the flight carries on from it. Otherwise the step stands as flown and the
+    exact row is added just before its end.
 
     Parameters
     ----------
     flight : Flight
         Flight instance being updated.
-    event_results : dict
-        Result payload returned by the event system.
+    event_results : Commands
+        The commands the event queued, holding its exact time and raw state.
+    """
+    time = event_results.exact_time
+    state = event_results.exact_state
+    solution = flight.solution
+    previous_time = solution.raw_row(-2)[0] if len(solution) > 1 else None
+    if event_results.changes_trajectory:
+        if time == previous_time:
+            # The event happened right where the step began, which is stored.
+            solution._drop_last()
+        else:
+            solution._replace_last([time, *state])
+        flight.t = time
+        flight.y_sol = state
+    elif previous_time < time < solution.raw_row(-1)[0]:
+        solution._insert_before_last([time, *state])
+        # Recorded now, with the rocket as it was when the step was flown: an
+        # event later in this step may change it before the step is recorded.
+        flight._post_process_row(-2)  # pylint: disable=protected-access
+
+
+def bind_new_dynamics(flight, event_results):
+    """Attach the dynamics an event asked for to the flight that is running.
+
+    An event names the equations it wants to switch to without knowing anything
+    about binding, so the two accepted forms are resolved here, where the flight
+    is at hand:
+
+    - a :class:`_PhaseDynamics`, such as one of the built-in phases, is bound to
+      this flight;
+    - dynamics already bound to a flight, such as ``flight.u_dot_generalized``
+      (which is whichever ascent equations this flight was configured with), is
+      re-bound so that any values the event supplied come along.
+
+    Parameters
+    ----------
+    flight : Flight
+        Flight instance being updated.
+    event_results : Commands
+        The commands the event queued.
 
     Returns
     -------
-    None
-        This function updates ``flight.t``, ``flight.y_sol``, and the last stored
-        solution row in place when an exact-time result is available.
+    Bound dynamics, or ``None`` if the event did not ask for a change.
     """
-    if event_results.exact_time is not None and event_results.exact_state is not None:
-        t_exact = event_results.exact_time
-        y_exact = event_results.exact_state
-
-        # Prefer inserting the exact point between the previous and last
-        # stored solution points so we don't clobber the step-end data.
-        if len(flight.solution) >= 2:
-            t_prev = flight.solution[-2][0]
-            t_last = flight.solution[-1][0]
-
-            # Only insert if the exact time lies strictly between the two
-            # stored times to avoid duplicate timestamps.
-            if t_prev < t_exact < t_last:
-                flight.solution.insert(-1, [t_exact, *y_exact])
-            elif t_exact in (t_last, t_prev):
-                # exact time matches previous or last point: nothing to insert
-                pass
-            else:
-                # Unexpected: exact time outside bracket; warn and fall back
-                warnings.warn(
-                    "Exact event time outside last solver interval; replacing last point.",
-                    UserWarning,
-                )
-                flight.solution[-1] = [t_exact, *y_exact]
-        else:
-            # Not enough history: replace last entry (best effort)
-            flight.solution[-1] = [t_exact, *y_exact]
-
-        # Update current flight time/state to the exact values
-        flight.t = t_exact
-        flight.y_sol = y_exact
+    dynamics = event_results.new_dynamics
+    if dynamics is None:
+        return None
+    if isinstance(dynamics, _BoundDynamics):
+        dynamics = dynamics.dynamics
+    return dynamics.bind(flight, **event_results.new_dynamics_kwargs)
 
 
-def apply_new_phase_or_derivative(
+def apply_new_phase_or_dynamics(
     flight, event_results, phase, phase_index, node_index, time
 ):
-    """Apply a flight-phase transition or derivative change.
+    """Apply a flight-phase transition or a change of the equations of motion.
 
     Parameters
     ----------
@@ -266,39 +255,36 @@ def apply_new_phase_or_derivative(
     None
         This function mutates the flight phase list and time-node state in place.
     """
-    if event_results.new_flight_phase is None and event_results.new_derivative is None:
+    if event_results.new_flight_phase is None and event_results.new_dynamics is None:
         return
 
     when_time = time
+    lag = event_results.new_flight_phase_lag
 
-    # Check if there was exact time point insertion in solution for this event
-    # If so, remove the point after the exact time point, so the solution vector
-    # and the new phase start time are consistent
-    if (
-        event_results.exact_time is not None
-        and event_results.exact_state is not None
-        and flight.solution[-1][0] > when_time
-    ):
-        flight.solution.pop(-1)
+    # No new dynamics means the new phase keeps flying the current equations.
+    dynamics = bind_new_dynamics(flight, event_results) or phase.dynamics
 
-    dynamics = phase.dynamics
-    if event_results.new_derivative is not None:
-        dynamics = event_results.new_derivative
-
+    # Inserting the phase also moves the current phase's end to its start.
     flight.flight_phases.add_phase(
-        when_time + event_results.new_flight_phase_lag,
+        when_time + lag,
         dynamics=dynamics,
         index=phase_index + 1,
         name=event_results.new_flight_phase_name,
     )
 
-    # Prepare to leave loops and start new flight phase
-    phase.time_nodes.flush_after(node_index)
-    phase.time_nodes.add_node(when_time, [])
-    phase.solver.status = "finished"
+    # Rollback solution to the trigger time
+    apply_rollback_command(flight, when_time, flight.solution.raw_row(-1)[1:])
 
-    # Rollback solution to time when new phase starts
-    apply_rollback_command(flight, when_time, flight.solution[-1][1:])
+    if lag == 0:
+        # Prepare to leave loops and start new flight phase
+        phase.time_nodes.flush_after(node_index)
+        phase.time_nodes.add_node(when_time, [])
+        phase.solver.status = "finished"
+    else:
+        # The current phase keeps flying its own equations until the new one
+        # begins. Its schedule now ends there; the solver loop restarts the
+        # solver from the rolled-back state.
+        phase.time_nodes.truncate(phase.time_bound)
 
 
 def apply_termination(flight, event_results, phase, phase_index, node_index, time):
@@ -327,13 +313,6 @@ def apply_termination(flight, event_results, phase, phase_index, node_index, tim
         return
 
     when_time = time
-
-    if (
-        event_results.exact_time is not None
-        and event_results.exact_state is not None
-        and flight.solution[-1][0] > when_time
-    ):
-        flight.solution.pop(-1)
 
     flight.t_final = when_time
     phase.solver.status = "finished"
@@ -364,10 +343,6 @@ def apply_event_list_updates(flight, event_results, phase, time):
     phase : _FlightPhase
         Current flight phase.
 
-    Returns
-    -------
-    bool
-        ``True`` if time_nodes structure was modified, ``False`` otherwise.
     """
     if event_results.new_events:
         # Normalize new_events to always be a list for consistent iteration
@@ -376,6 +351,17 @@ def apply_event_list_updates(flight, event_results, phase, time):
             new_events = [new_events]
 
         for new_event in new_events:
+            if new_event.changes_dynamics and not flight.solution.records_post_values:
+                warnings.warn(
+                    f"Event '{new_event.name}' has changes_dynamics=True but was "
+                    f"added with add_event after the flight started. The "
+                    f"trajectory is correct, but the accelerations, aerodynamic "
+                    f"forces and moments and net thrust (flight.ax, flight.R1, "
+                    f"flight.net_thrust, ...) will be wrong. Fix: build the "
+                    f"Flight with an event that has changes_dynamics=True in "
+                    f"custom_events (a disabled placeholder event is enough).",
+                    UserWarning,
+                )
             flight.events.append(new_event)
             flight.custom_events.append(new_event)
             is_new_event_overshootable = (
