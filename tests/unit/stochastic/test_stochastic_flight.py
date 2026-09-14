@@ -71,3 +71,39 @@ def test_dict_generator_skips_initial_solution_list(flight_calisto_robust):
     generated = next(stochastic_flight.dict_generator())
     assert "initial_solution" not in generated
     assert stochastic_flight.initial_solution == initial_solution
+
+
+def test_create_object_matches_last_rnd_dict(flight_calisto_robust):
+    """Regression for #1090: create_object must use one dict_generator draw.
+
+    Spreads are set on all three flight inputs so a second draw would diverge
+    from ``last_rnd_dict``.
+    """
+    stochastic_flight = StochasticFlight(
+        flight=flight_calisto_robust,
+        rail_length=(5.2, 0.5),
+        inclination=(84.7, 1),
+        heading=(53, 2),
+    )
+    stochastic_flight._set_stochastic(4242)
+
+    flight = stochastic_flight.create_object()
+    sampled = stochastic_flight.last_rnd_dict
+
+    assert flight.rail_length == sampled["rail_length"]
+    assert flight.inclination == sampled["inclination"]
+    assert flight.heading == sampled["heading"]
+
+
+def test_monte_carlo_single_simulation_matches_flight_last_rnd_dict(
+    monte_carlo_calisto,
+):
+    """Regression for #1090: MonteCarlo must fly the same sample it logs."""
+    monte_carlo_calisto.flight._set_stochastic(4242)
+
+    flight = monte_carlo_calisto._MonteCarlo__run_single_simulation()
+    sampled = monte_carlo_calisto.flight.last_rnd_dict
+
+    assert flight.rail_length == sampled["rail_length"]
+    assert flight.inclination == sampled["inclination"]
+    assert flight.heading == sampled["heading"]

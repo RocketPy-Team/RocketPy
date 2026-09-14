@@ -199,6 +199,47 @@ def test_get_controller_observed_variables(flight_calisto_air_brakes):
     assert len(obs_vars) == 0
 
 
+def test_post_step_callback_runs_before_and_after_apogee(
+    calisto_robust, example_plain_env
+):
+    """post_step_callback must fire across the full flight, including descent.
+
+    Controllers are not a substitute: air-brake fixtures often terminate at
+    apogee, and parachute phases are not meant to keep feeding actuators.
+    This callback is the full-lifecycle observer hook (issue #758).
+    """
+    callback_times = []
+
+    def record_step(flight):
+        callback_times.append(flight.t)
+
+    flight = Flight(
+        rocket=calisto_robust,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=False,
+        post_step_callback=record_step,
+    )
+
+    assert callback_times, "post_step_callback was never invoked"
+    assert min(callback_times) < flight.apogee_time
+    assert max(callback_times) > flight.apogee_time
+    assert flight.t_final > flight.apogee_time
+
+
+def test_post_step_callback_must_be_callable(calisto, example_plain_env):
+    """Non-callable post_step_callback values are rejected at construction."""
+    with pytest.raises(TypeError, match="post_step_callback"):
+        Flight(
+            rocket=calisto,
+            environment=example_plain_env,
+            rail_length=5.2,
+            post_step_callback="not-callable",
+        )
+
+
 def test_initial_stability_margin(flight_calisto_custom_wind):
     """Test the initial_stability_margin method of the Flight class.
 
@@ -275,7 +316,7 @@ def test_export_sensor_data(flight_calisto_with_sensors):
     [
         ("t_initial", (0.25886, -0.649623, 0)),
         ("out_of_rail_time", (0.792028, -1.987634, 0)),
-        ("apogee_time", (-0.509420, -0.732933, -2.089120e-14)),
+        ("apogee_time", (-0.519917, -0.734918, -1.005368e-18)),
         ("t_final", (0, 0, 0)),
     ],
 )
@@ -314,7 +355,7 @@ def test_aerodynamic_moments(flight_calisto_custom_wind, flight_time, expected_v
     [
         ("t_initial", (1.654150, 0.659142, -0.067103)),
         ("out_of_rail_time", (5.052628, 2.013361, -1.75370)),
-        ("apogee_time", (2.321838, -1.613641, -0.962108)),
+        ("apogee_time", (2.322999, -1.643037, -0.950316)),
         ("t_final", (-0.019802, 0.012030, 159.051604)),
     ],
 )
@@ -355,7 +396,7 @@ def test_aerodynamic_forces(flight_calisto_custom_wind, flight_time, expected_va
         ("out_of_rail_time", (0, 2.248540, 25.700928)),
         (
             "apogee_time",
-            (-14.826350, 15.670022, -0.000264),
+            (-14.593411, 15.743567, -0.000409),
         ),
         ("t_final", (5, 2, -5.660155)),
     ],

@@ -243,7 +243,7 @@ class _RocketPlots:
         # diameter changes. The final point of the last surface is the final
         # point of the last tube
 
-        for surface, position in surfaces:
+        for surface, position, _ref_factor in surfaces:
             if isinstance(surface, NoseCone):
                 self._draw_nose_cone(ax, surface, position.z, drawn_surfaces, vis_args)
             elif isinstance(surface, Tail):
@@ -645,7 +645,7 @@ class _RocketPlots:
     def _draw_rail_buttons(self, ax, vis_args):
         """Draws the rail buttons of the rocket."""
         try:
-            buttons, pos = self.rocket.rail_buttons[0]
+            buttons, pos, _ref_factor = self.rocket.rail_buttons[0]
             lower = pos.z
             upper = lower + buttons.buttons_distance * self.rocket._csys
             ax.scatter(

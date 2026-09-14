@@ -79,6 +79,14 @@ class Flight:
         Name of the flight.
     Flight._controllers : list
         List of controllers to be used during simulation.
+    Flight.post_step_callback : callable, optional
+        Optional callback invoked once after every successful ODE solver
+        step for the entire simulation, including parachute descent.
+        Receives the ``Flight`` instance (``callback(flight)``). Use
+        ``flight.t`` and ``flight.y_sol`` for the current time and state.
+        Controllers stop being useful after parachute deployment; this
+        callback is the extension point for full-lifecycle observers
+        (e.g. ground-station / radio update simulation).
     Flight.max_time : int, float
         Maximum simulation time allowed. Refers to physical time
         being simulated, not time taken to run simulation.
@@ -506,6 +514,7 @@ class Flight:
         equations_of_motion="standard",
         ode_solver="LSODA",
         simulation_mode="6 DOF",
+        post_step_callback=None,
     ):
         """Run a trajectory simulation.
 
@@ -592,6 +601,12 @@ class Flight:
         simulation_mode : str, optional
             Simulation mode to use. Can be "6 DOF" for 6 degrees of freedom or
             "3 DOF" for 3 degrees of freedom. Default is "6 DOF".
+        post_step_callback : callable, optional
+            Callback invoked once after every successful ODE solver step for
+            the entire simulation, including parachute phases. Signature is
+            ``callback(flight)``, matching phase/node callbacks. Access the
+            current time and state via ``flight.t`` and ``flight.y_sol``.
+            Default is None.
         Returns
         -------
         None
@@ -600,6 +615,9 @@ class Flight:
         ----------
         .. [1] https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.solve_ivp.html
         """
+        if post_step_callback is not None and not callable(post_step_callback):
+            raise TypeError("post_step_callback must be callable or None")
+
         # Save arguments
         self.env = environment
         self.rocket = rocket
@@ -626,6 +644,7 @@ class Flight:
         self.equations_of_motion = equations_of_motion
         self.simulation_mode = simulation_mode
         self.ode_solver = ode_solver
+        self.post_step_callback = post_step_callback
 
         # Controller initialization
         self.__init_controllers()
@@ -708,71 +727,6 @@ class Flight:
 
                 self.__process_sensors_and_controllers_at_current_node(node, phase)
 
-                for parachute in node.parachutes:
-                    # Calculate and save pressure signal
-                    (
-                        noisy_pressure,
-                        height_above_ground_level,
-                    ) = self.__calculate_and_save_pressure_signals(
-                        parachute, node.t, self.y_sol[2]
-                    )
-                    if self._evaluate_parachute_trigger(
-                        parachute,
-                        noisy_pressure,
-                        height_above_ground_level,
-                        self.y_sol,
-                        self.sensors,
-                        phase.derivative,
-                        self.t,
-                    ):
-                        # Remove parachute from flight parachutes
-                        self.parachutes.remove(parachute)
-                        # Create phase for time after detection and before inflation
-                        # Must only be created if parachute has any lag
-                        i = 1
-                        if parachute.lag != 0:
-                            self.flight_phases.add_phase(
-                                node.t,
-                                phase.derivative,
-                                clear=True,
-                                index=phase_index + i,
-                            )
-                            i += 1
-                        # Create flight phase for time after inflation
-                        callbacks = [
-                            lambda self, parachute_cd_s=parachute.cd_s: setattr(
-                                self, "parachute_cd_s", parachute_cd_s
-                            ),
-                            lambda self, parachute_radius=parachute.radius: setattr(
-                                self, "parachute_radius", parachute_radius
-                            ),
-                            lambda self, parachute_height=parachute.height: setattr(
-                                self, "parachute_height", parachute_height
-                            ),
-                            lambda self, parachute_porosity=parachute.porosity: setattr(
-                                self, "parachute_porosity", parachute_porosity
-                            ),
-                            lambda self, added_mass_coefficient=parachute.added_mass_coefficient: (
-                                setattr(
-                                    self,
-                                    "parachute_added_mass_coefficient",
-                                    added_mass_coefficient,
-                                )
-                            ),
-                        ]
-                        self.flight_phases.add_phase(
-                            node.t + parachute.lag,
-                            self.u_dot_parachute,
-                            callbacks,
-                            clear=False,
-                            index=phase_index + i,
-                        )
-                        # Prepare to leave loops and start new flight phase
-                        phase.time_nodes.flush_after(node_index)
-                        phase.time_nodes.add_node(self.t, [], [], [])
-                        phase.solver.status = "finished"
-                        # Save parachute event
-                        self.parachute_events.append([self.t, parachute])
                 if self.__check_and_handle_parachute_triggers(
                     node, phase, phase_index, node_index
                 ):
@@ -800,6 +754,9 @@ class Flight:
                             self.sensors,
                             self.env,
                         )
+                    # Full-lifecycle observer (all phases, including parachute)
+                    if self.post_step_callback is not None:
+                        self.post_step_callback(self)
                     if self.__check_simulation_events(phase, phase_index, node_index):
                         break  # Stop if simulation termination event occurred
 
@@ -898,7 +855,7 @@ class Flight:
         Parameters
         ----------
         component_sensors : list
-            List of (sensor, position) tuples.
+            List of (sensor, position, ref_factor) component tuples.
         u_dot : array_like
             State derivative vector.
         t : float, optional
@@ -911,7 +868,7 @@ class Flight:
         if y_sol is None:
             y_sol = self.y_sol
 
-        for sensor, position in component_sensors:
+        for sensor, position, _ref_factor in component_sensors:
             relative_position = position - self.rocket._csys * Vector(
                 [0, 0, self.rocket.center_of_dry_mass_position]
             )
@@ -1540,6 +1497,10 @@ class Flight:
         if expects_udot:
             u_dot = derivative_func(t, y)
 
+        # Expose flight time for built-in ("time", t_deploy) triggers without
+        # changing the public (p, h, y, sensors, u_dot) triggerfunc signature.
+        parachute._eval_time = t
+
         # Call the wrapper with both sensors and u_dot
         # The wrapper will decide which args to pass to the user's function
         return triggerfunc(pressure, height, y, sensors, u_dot)
@@ -2089,7 +2050,7 @@ class Flight:
         # Calculate lift and moment for each component of the rocket
         velocity_in_body_frame = Vector([vx_b, vy_b, vz_b])
         w = Vector([omega1, omega2, omega3])
-        for aero_surface, _ in self.rocket.aerodynamic_surfaces:
+        for aero_surface, _, _ref_factor in self.rocket.aerodynamic_surfaces:
             # Component cp relative to CDM in body frame
             comp_cp = self.rocket.surfaces_cp_to_cdm[aero_surface]
             # Component absolute velocity in body frame
@@ -2345,7 +2306,7 @@ class Flight:
         # Velocity in body frame
         vb_body = Kt @ v
 
-        for surface, _ in self.rocket.aerodynamic_surfaces:
+        for surface, _, _ref_factor in self.rocket.aerodynamic_surfaces:
             cp = self.rocket.surfaces_cp_to_cdm[surface]
             vb_component = vb_body + (w ^ cp)
 
@@ -2611,7 +2572,7 @@ class Flight:
         # Get rocket velocity in body frame
         velocity_in_body_frame = Kt @ v
         # Calculate lift and moment for each component of the rocket
-        for aero_surface, _ in self.rocket.aerodynamic_surfaces:
+        for aero_surface, _, _ref_factor in self.rocket.aerodynamic_surfaces:
             # Component cp relative to CDM in body frame
             comp_cp = self.rocket.surfaces_cp_to_cdm[aero_surface]
             # Component absolute velocity in body frame

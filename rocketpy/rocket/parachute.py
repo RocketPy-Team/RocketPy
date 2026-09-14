@@ -1,4 +1,5 @@
 from inspect import Parameter, signature
+from numbers import Real
 
 import numpy as np
 
@@ -6,6 +7,28 @@ from rocketpy.tools import from_hex_decode, to_hex_encode
 
 from ..mathutils.function import Function
 from ..prints.parachute_prints import _ParachutePrints
+
+
+def _is_a_height_trigger(trigger):
+    """Whether ``trigger`` is a number this class will read as a height.
+
+    ``numbers.Real`` rather than ``(int, float)`` so that NumPy scalars are
+    accepted: ``numpy.float64`` happens to subclass ``float``, but
+    ``numpy.int64`` and ``numpy.float32`` subclass neither and were refused
+    even though every arithmetic use of them here works.
+
+    What that spelling leaves out is what should be left out. ``numpy.bool_``
+    and the complex types are not ``Real``, so they still fall through to the
+    error. ``bool`` is excluded by hand because it *is* an ``int``, and ``True``
+    would otherwise be taken as a height of one metre.
+
+    This is the single definition of the numeric boundary. The height form and
+    the delay of a ``("time", t_deploy)`` trigger both use it, and
+    ``StochasticParachute`` validates the same triggers before a ``Parachute``
+    is ever built and calls this rather than restating it, because the two
+    spellings drifted apart once already.
+    """
+    return isinstance(trigger, Real) and not isinstance(trigger, bool)
 
 
 class Parachute:
@@ -20,7 +43,7 @@ class Parachute:
     Parachute.cd_s : float
         Drag coefficient times reference area for parachute. It has units of
         area and must be given in squared meters.
-    Parachute.trigger : callable, float, str
+    Parachute.trigger : callable, float, str, tuple
         This parameter defines the trigger condition for the parachute ejection
         system. It can be one of the following:
 
@@ -55,6 +78,12 @@ class Parachute:
 
         - The string "apogee" which triggers the parachute at apogee, i.e.,
           when the rocket reaches its highest point and starts descending.
+
+        - A tuple ``("time", t_deploy)`` where ``t_deploy`` is the flight time
+          in seconds at or after which the parachute triggers (from ``t = 0``
+          at flight start). Useful for fixed delay charges that start at
+          ignition/launch. For a motor delay charge that starts at burnout,
+          pass ``("time", motor.burn_out_time + delay)``.
 
 
     Parachute.triggerfunc : function
@@ -149,7 +178,7 @@ class Parachute:
             organized matter.
         cd_s : float
             Drag coefficient times reference area of the parachute.
-        trigger : callable, float, str
+        trigger : callable, float, str, tuple
             Defines the trigger condition for the parachute ejection system. It
             can be one of the following:
 
@@ -172,6 +201,10 @@ class Parachute:
                 height above ground level.
             - The string "apogee" which triggers the parachute at apogee, i.e., \
                 when the rocket reaches its highest point and starts descending.
+            - A tuple ``("time", t_deploy)`` that triggers when flight time \
+                ``t >= t_deploy`` (seconds from flight start). For a delay \
+                charge referenced to motor burnout, use \
+                ``("time", motor.burn_out_time + delay)``.
 
             .. note::
 
@@ -309,6 +342,10 @@ class Parachute:
         # pylint: disable=function-redefined
         self._trigger_falling_only = False
         self._trigger_needs_height = True
+        # Flight overwrites this with the current flight time before every
+        # trigger evaluation. Declared here so a ("time", t_deploy) trigger has
+        # something defined to read when it is called outside a Flight.
+        self._eval_time = None
 
         # Helper to wrap any callable to the internal (p, h, y, sensors, u_dot) API
         def _make_wrapper(fn):
@@ -363,7 +400,7 @@ class Parachute:
             return
 
         # Numeric altitude trigger
-        if isinstance(trigger, (int, float)):
+        if _is_a_height_trigger(trigger):
             self._trigger_falling_only = True
 
             def triggerfunc(p, h, y, sensors, u_dot):  # pylint: disable=unused-argument
@@ -388,11 +425,53 @@ class Parachute:
             self.triggerfunc = triggerfunc
             return
 
+        # Fixed-time trigger: ("time", t_deploy) [seconds from flight start]
+        if (
+            isinstance(trigger, (tuple, list))
+            and len(trigger) == 2
+            and isinstance(trigger[0], str)
+            and trigger[0].lower() == "time"
+        ):
+            # Same numeric boundary as a height, so the two forms cannot
+            # disagree about what counts as a number. Notably this refuses a
+            # string delay rather than quietly coercing it: float("3.0") would
+            # otherwise make ("time", "3.0") work by accident.
+            if not _is_a_height_trigger(trigger[1]):
+                raise ValueError(
+                    f"Unable to set the trigger function for parachute '{self.name}'. "
+                    + "Time trigger delay must be a non-negative number of seconds, "
+                    + f"got {trigger[1]!r}."
+                )
+            t_deploy = float(trigger[1])
+            if t_deploy < 0:
+                raise ValueError(
+                    f"Unable to set the trigger function for parachute '{self.name}'. "
+                    + "Time trigger delay must be non-negative, "
+                    + f"got {t_deploy}."
+                )
+
+            # Delay charges fire on ascent; height is unused.
+            self._trigger_falling_only = False
+            self._trigger_needs_height = False
+
+            def triggerfunc(p, h, y, sensors, u_dot):  # pylint: disable=unused-argument
+                # Flight sets ``self._eval_time`` immediately before each call.
+                # It is None only when the trigger is called outside a Flight,
+                # which cannot deploy anything, so refuse rather than guess.
+                t = self._eval_time
+                if t is None:
+                    return False
+                return t >= t_deploy
+
+            triggerfunc._expects_udot = False
+            self.triggerfunc = triggerfunc
+            return
+
         # If we reach this point, the trigger is invalid
         raise ValueError(
             f"Unable to set the trigger function for parachute '{self.name}'. "
-            + "Trigger must be a callable, a float value or one of the strings "
-            + "('apogee'). "
+            + "Trigger must be a callable, a float value, the string 'apogee', "
+            + "or a tuple ('time', t_deploy). "
             + "See the Parachute class documentation for more information."
         )
 

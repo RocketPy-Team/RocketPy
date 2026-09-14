@@ -1,10 +1,12 @@
 # pylint: disable=too-many-public-methods, too-many-instance-attributes, too-many-lines
 import bisect
+import hashlib
 import json
 import logging
 import os
 import re
 import warnings
+from collections.abc import Mapping
 from collections import namedtuple
 from datetime import datetime
 
@@ -12,6 +14,18 @@ import netCDF4
 import numpy as np
 import pytz
 
+from rocketpy.environment.atmosphere_cache import (
+    build_atmosphere_cache_key,
+    cache_path_for,
+    is_cache_enabled,
+    is_remote_url,
+    load_json_cache,
+    read_ensemble_profile_netcdf,
+    read_profile_netcdf,
+    save_json_cache,
+    write_ensemble_profile_netcdf,
+    write_profile_netcdf,
+)
 from rocketpy.environment.fetchers import (
     fetch_aigfs_file_return_dataset,
     fetch_atmospheric_data_from_meteomatics,
@@ -1233,6 +1247,7 @@ class Environment:
         pressure_conversion_factor=None,
         username=None,
         password=None,
+        no_cache=False,
     ):
         """Define the atmospheric model for this Environment.
 
@@ -1353,6 +1368,11 @@ class Environment:
             Meteomatics account password. Only used when ``type`` is
             ``"meteomatics"``. If None (the default), the value is read from the
             ``METEOMATICS_PASSWORD`` environment variable.
+        no_cache : bool, optional
+            If True, bypass the on-disk atmosphere cache and force a fresh
+            download for remote Forecast/Ensemble/Windy sources. Cached files
+            live under ``~/.rocketpy_cache/atmosphere`` (or ``ROCKETPY_CACHE``).
+            Default is False.
 
         Returns
         -------
@@ -1400,7 +1420,10 @@ class Environment:
             case "custom_atmosphere":
                 self.process_custom_atmosphere(pressure, temperature, wind_u, wind_v)
             case "windy":
-                self.process_windy_atmosphere(file)
+                self.process_windy_atmosphere(
+                    **({} if file is None else {"model": file}),
+                    no_cache=no_cache,
+                )
             case "open_meteo":
                 self.process_open_meteo_atmosphere(
                     **({} if file is None else {"model": file})
@@ -1467,15 +1490,14 @@ class Environment:
                 except KeyError:
                     fetch_function = None
 
-                # Fetches the dataset using OpenDAP protocol or uses the file path
-                dataset = fetch_function() if fetch_function is not None else file
-
-                if type in ["forecast", "reanalysis"]:
-                    self.process_forecast_reanalysis(
-                        dataset, dictionary, conversion_factor=conversion_factor
-                    )
-                else:
-                    self.process_ensemble(dataset, dictionary, conversion_factor)
+                self.__load_or_fetch_atmospheric_model(
+                    atm_type=type,
+                    file=file,
+                    dictionary=dictionary,
+                    conversion_factor=conversion_factor,
+                    fetch_function=fetch_function,
+                    no_cache=no_cache,
+                )
 
                 ground_pressure = self.pressure(self.elevation)
                 if not 30000 <= ground_pressure <= 120_000:
@@ -1512,6 +1534,253 @@ class Environment:
         # Save dictionary and file
         self.atmospheric_model_file = file
         self.atmospheric_model_dict = dictionary
+
+    def __atmosphere_cache_path_for_request(
+        self, atm_type, file, fetch_function, dictionary, conversion_factor
+    ):
+        """Return a cache path for remote Forecast/Ensemble sources, else None."""
+        if not is_cache_enabled():
+            return None
+
+        if fetch_function is not None and isinstance(file, str):
+            source_label = file
+        elif is_remote_url(file):
+            source_label = (
+                "url_"
+                + hashlib.md5(file.encode("utf-8"), usedforsecurity=False).hexdigest()[
+                    :12
+                ]
+            )
+        else:
+            return None
+
+        # The same source decoded with a different variable dictionary or
+        # pressure unit yields different profiles, so it needs its own entry.
+        variant = hashlib.md5(
+            repr((sorted(dictionary.items()), conversion_factor)).encode("utf-8"),
+            usedforsecurity=False,
+        ).hexdigest()[:8]
+
+        return cache_path_for(
+            build_atmosphere_cache_key(
+                atm_type,
+                source_label,
+                self.latitude,
+                self.longitude,
+                self.datetime_date,
+                variant=variant,
+            ),
+            ".nc",
+        )
+
+    def __load_or_fetch_atmospheric_model(
+        self,
+        *,
+        atm_type,
+        file,
+        dictionary,
+        conversion_factor,
+        fetch_function,
+        no_cache,
+    ):
+        """Apply a cached model when available, otherwise fetch and cache it."""
+        cache_path = self.__atmosphere_cache_path_for_request(
+            atm_type, file, fetch_function, dictionary, conversion_factor
+        )
+        is_ensemble = atm_type == "ensemble"
+
+        if cache_path is not None and not no_cache:
+            apply_cached = (
+                self.__apply_cached_ensemble_profiles
+                if is_ensemble
+                else self.__apply_cached_forecast_profiles
+            )
+            if apply_cached(cache_path):
+                return
+
+        # Fetches the dataset using OpenDAP protocol or uses the file path
+        dataset = fetch_function() if fetch_function is not None else file
+        if is_ensemble:
+            self.process_ensemble(
+                dataset, dictionary, conversion_factor=conversion_factor
+            )
+        else:
+            self.process_forecast_reanalysis(
+                dataset, dictionary, conversion_factor=conversion_factor
+            )
+
+        if cache_path is not None:
+            if is_ensemble:
+                self.__save_ensemble_profiles_to_cache(cache_path)
+            else:
+                self.__save_forecast_profiles_to_cache(cache_path, atm_type)
+
+    #: Attributes ``Environment`` derives from a Forecast/Ensemble dataset that
+    #: are not recoverable from the extracted profiles alone, so they travel
+    #: with the cache entry to keep a cache hit indistinguishable from a fetch.
+    __CACHED_MODEL_METADATA = (
+        "atmospheric_model_init_date",
+        "atmospheric_model_end_date",
+        "atmospheric_model_interval",
+        "atmospheric_model_init_lat",
+        "atmospheric_model_end_lat",
+        "atmospheric_model_init_lon",
+        "atmospheric_model_end_lon",
+        "lat_array",
+        "lon_array",
+        "lat_index",
+        "lon_index",
+        "geopotentials",
+        "wind_us",
+        "wind_vs",
+        "levels",
+        "temperatures",
+        "time_array",
+        "height",
+    )
+
+    def __collect_model_metadata(self):
+        """Snapshot the model metadata that must survive a cache round-trip."""
+        return {
+            name: getattr(self, name)
+            for name in self.__CACHED_MODEL_METADATA
+            if getattr(self, name, None) is not None
+        }
+
+    def __restore_model_metadata(self, metadata):
+        """Reinstate the model metadata recovered from a cache entry."""
+        for name, value in (metadata or {}).items():
+            if name in self.__CACHED_MODEL_METADATA:
+                setattr(self, name, value)
+
+    def __apply_profiles_from_arrays(
+        self, height, pressure, temperature, wind_u, wind_v
+    ):
+        """Install forecast-style profile Functions from 1-D arrays."""
+        wind_speed = calculate_wind_speed(wind_u, wind_v)
+        wind_heading = calculate_wind_heading(wind_u, wind_v)
+        wind_direction = convert_wind_heading_to_direction(wind_heading)
+        data_array = mask_and_clean_dataset(
+            pressure,
+            height,
+            temperature,
+            wind_u,
+            wind_v,
+            wind_heading,
+            wind_direction,
+            wind_speed,
+        )
+        self.__set_pressure_function(data_array[:, (1, 0)])
+        self.__set_barometric_height_function(data_array[:, (0, 1)])
+        self.__set_temperature_function(data_array[:, (1, 2)])
+        self.__set_wind_velocity_x_function(data_array[:, (1, 3)])
+        self.__set_wind_velocity_y_function(data_array[:, (1, 4)])
+        self.__set_wind_heading_function(data_array[:, (1, 5)])
+        self.__set_wind_direction_function(data_array[:, (1, 6)])
+        self.__set_wind_speed_function(data_array[:, (1, 7)])
+        return data_array
+
+    def __apply_cached_forecast_profiles(self, cache_path):
+        """Load Forecast/Reanalysis profiles from disk. Return True on success."""
+        profiles = read_profile_netcdf(cache_path)
+        if profiles is None:
+            return False
+        self.__apply_profiles_from_arrays(
+            profiles["height"],
+            profiles["pressure"],
+            profiles["temperature"],
+            profiles["wind_u"],
+            profiles["wind_v"],
+        )
+        self.elevation = profiles["elevation"]
+        self._max_expected_height = profiles["max_expected_height"]
+        self.__restore_model_metadata(profiles.get("metadata"))
+        return True
+
+    @staticmethod
+    def __profile_column(function, column=1):
+        """Return one column of an array-backed Function, or None."""
+        if not isinstance(function, Function) or not function.is_array_source():
+            return None
+        source = np.asarray(function.source, dtype=float)
+        if source.ndim != 2 or source.shape[1] <= column:
+            return None
+        return source[:, column]
+
+    def __save_forecast_profiles_to_cache(self, cache_path, kind="forecast"):
+        """Persist the active Forecast/Reanalysis profiles to ``cache_path``."""
+        heights = self.__profile_column(self.pressure, column=0)
+        columns = {
+            "pressure": self.__profile_column(self.pressure),
+            "temperature": self.__profile_column(self.temperature),
+            "wind_u": self.__profile_column(self.wind_velocity_x),
+            "wind_v": self.__profile_column(self.wind_velocity_y),
+        }
+        # Every profile must be array-backed and share the pressure grid;
+        # constant (scalar) profiles carry nothing worth caching.
+        if heights is None or any(
+            column is None or column.shape != heights.shape
+            for column in columns.values()
+        ):
+            return
+
+        write_profile_netcdf(
+            cache_path,
+            height=heights,
+            elevation=float(self.elevation),
+            max_expected_height=float(
+                getattr(self, "_max_expected_height", self.max_expected_height)
+            ),
+            kind=kind,
+            metadata=self.__collect_model_metadata(),
+            **columns,
+        )
+
+    def __apply_cached_ensemble_profiles(self, cache_path):
+        """Load Ensemble member profiles from disk. Return True on success."""
+        profiles = read_ensemble_profile_netcdf(cache_path)
+        if profiles is None:
+            return False
+
+        height = profiles["height_ensemble"]
+        temper = profiles["temperature_ensemble"]
+        wind_u = profiles["wind_u_ensemble"]
+        wind_v = profiles["wind_v_ensemble"]
+
+        self.level_ensemble = profiles["levels"]
+        self.height_ensemble = height
+        self.temperature_ensemble = temper
+        self.wind_u_ensemble = wind_u
+        self.wind_v_ensemble = wind_v
+        self.wind_heading_ensemble = calculate_wind_heading(wind_u, wind_v)
+        self.wind_direction_ensemble = convert_wind_heading_to_direction(
+            self.wind_heading_ensemble
+        )
+        self.wind_speed_ensemble = calculate_wind_speed(wind_u, wind_v)
+        self.num_ensemble_members = height.shape[0]
+        self.elevation = profiles["elevation"]
+        self._max_expected_height = profiles["max_expected_height"]
+        self.__restore_model_metadata(profiles.get("metadata"))
+        self.select_ensemble_member()
+        return True
+
+    def __save_ensemble_profiles_to_cache(self, cache_path):
+        """Persist Ensemble member profiles to ``cache_path``."""
+        if getattr(self, "height_ensemble", None) is None:
+            return
+        write_ensemble_profile_netcdf(
+            cache_path,
+            levels=self.level_ensemble,
+            height_ensemble=self.height_ensemble,
+            temperature_ensemble=self.temperature_ensemble,
+            wind_u_ensemble=self.wind_u_ensemble,
+            wind_v_ensemble=self.wind_v_ensemble,
+            elevation=float(self.elevation),
+            max_expected_height=float(
+                getattr(self, "_max_expected_height", self.max_expected_height)
+            ),
+            metadata=self.__collect_model_metadata(),
+        )
 
     # Atmospheric model processing methods
 
@@ -1661,7 +1930,9 @@ class Environment:
 
         self._max_expected_height = max_expected_height
 
-    def process_windy_atmosphere(self, model="ECMWF"):  # pylint: disable=too-many-statements
+    def process_windy_atmosphere(  # pylint: disable=too-many-statements
+        self, model="ECMWF", no_cache=False
+    ):
         """Process data from Windy.com to retrieve atmospheric forecast data.
 
         Parameters
@@ -1671,6 +1942,8 @@ class Environment:
             ``ECMWF`` for the `ECMWF-HRES` model, ``GFS`` for the `GFS` model,
             ``ICON`` for the `ICON-Global` model or ``ICONEU`` for the `ICON-EU`
             model.
+        no_cache : bool, optional
+            If True, force a fresh download even when a JSON cache entry exists.
 
         Raises
         ------
@@ -1685,9 +1958,22 @@ class Environment:
                 "Valid options are 'ECMWF', 'GFS', 'ICON' or 'ICONEU'."
             )
 
-        response = fetch_atmospheric_data_from_windy(
-            self.latitude, self.longitude, model
+        cache_path = cache_path_for(
+            build_atmosphere_cache_key(
+                "windy",
+                model,
+                self.latitude,
+                self.longitude,
+                self.datetime_date,
+            ),
+            ".json",
         )
+        response = None if no_cache else load_json_cache(cache_path, kind="windy")
+        if response is None:
+            response = fetch_atmospheric_data_from_windy(
+                self.latitude, self.longitude, model
+            )
+            save_json_cache(cache_path, response)
 
         # Determine time index from model
         time_array = np.array(response["data"]["hours"])
@@ -2802,6 +3088,411 @@ class Environment:
 
         # Close weather data
         data.close()
+
+    @staticmethod
+    def _prepare_ensemble_profile_source(source, variable, member):
+        """Validate and normalize a user-defined atmospheric profile."""
+        if isinstance(source, Function):
+            if not source.is_array_source():
+                raise TypeError(
+                    f"Member {member} '{variable}' must be an array-backed "
+                    "Function or a two-column array."
+                )
+            source = source.source
+
+        try:
+            profile = np.asarray(source, dtype=float)
+        except (TypeError, ValueError) as exc:
+            raise TypeError(
+                f"Member {member} '{variable}' must be a two-column numeric array."
+            ) from exc
+
+        if profile.ndim != 2 or profile.shape[1] != 2 or len(profile) < 2:
+            raise ValueError(
+                f"Member {member} '{variable}' must contain at least two "
+                "[height, value] rows."
+            )
+        if not np.all(np.isfinite(profile)):
+            raise ValueError(
+                f"Member {member} '{variable}' contains non-finite values."
+            )
+
+        profile = profile[np.argsort(profile[:, 0])]
+        if np.any(np.diff(profile[:, 0]) <= 0):
+            raise ValueError(f"Member {member} '{variable}' heights must be unique.")
+        return profile
+
+    def _prepare_ensemble_profiles(self, profiles):
+        """Validate and normalize every user-defined ensemble member."""
+        if isinstance(profiles, (str, bytes, Mapping)):
+            raise TypeError("'profiles' must be a sequence of member mappings.")
+        try:
+            profiles = list(profiles)
+        except TypeError as exc:
+            raise TypeError(
+                "'profiles' must be a sequence of member mappings."
+            ) from exc
+        if len(profiles) < 2:
+            raise ValueError("At least two atmospheric profiles are required.")
+
+        required_variables = ("pressure", "temperature", "wind_u", "wind_v")
+        members = []
+        for member_index, member in enumerate(profiles):
+            if not isinstance(member, Mapping):
+                raise TypeError(
+                    f"Member {member_index} must be a mapping of profile names "
+                    "to two-column arrays."
+                )
+            missing = [name for name in required_variables if name not in member]
+            if missing:
+                raise ValueError(
+                    f"Member {member_index} is missing required profile(s): "
+                    f"{', '.join(missing)}."
+                )
+
+            prepared = {
+                variable: self._prepare_ensemble_profile_source(
+                    member[variable], variable, member_index
+                )
+                for variable in required_variables
+            }
+            pressure = prepared["pressure"][:, 1]
+            if np.any(pressure <= 0):
+                raise ValueError(
+                    f"Member {member_index} pressure values must be positive."
+                )
+            if np.any(np.diff(pressure) >= 0):
+                raise ValueError(
+                    f"Member {member_index} pressure must decrease strictly "
+                    "with increasing height."
+                )
+            if np.any(prepared["temperature"][:, 1] <= 0):
+                raise ValueError(
+                    f"Member {member_index} temperature values must be positive."
+                )
+            members.append(prepared)
+        return members
+
+    @staticmethod
+    def _prepare_ensemble_pressure_levels(members, pressure_levels):
+        """Return a valid pressure grid shared by every ensemble member."""
+        common_min_pressure = max(member["pressure"][-1, 1] for member in members)
+        common_max_pressure = min(member["pressure"][0, 1] for member in members)
+        if common_min_pressure >= common_max_pressure:
+            raise ValueError("Ensemble members have no common pressure range.")
+
+        if pressure_levels is None:
+            common_levels = np.concatenate(
+                [member["pressure"][:, 1] for member in members]
+            )
+            common_levels = common_levels[
+                (common_levels >= common_min_pressure)
+                & (common_levels <= common_max_pressure)
+            ]
+            pressure_levels = np.unique(common_levels)[::-1]
+        else:
+            try:
+                pressure_levels = np.asarray(pressure_levels, dtype=float)
+            except (TypeError, ValueError) as exc:
+                raise TypeError("'pressure_levels' must be a numeric array.") from exc
+            if pressure_levels.ndim != 1:
+                raise ValueError("'pressure_levels' must be one-dimensional.")
+            if not np.all(np.isfinite(pressure_levels)) or np.any(pressure_levels <= 0):
+                raise ValueError(
+                    "'pressure_levels' must contain only finite, positive values."
+                )
+            if len(np.unique(pressure_levels)) != len(pressure_levels):
+                raise ValueError("'pressure_levels' must not contain duplicates.")
+            pressure_levels = np.sort(pressure_levels)[::-1]
+
+        if len(pressure_levels) < 2:
+            raise ValueError(
+                "At least two pressure levels inside the common range are required."
+            )
+        if (
+            pressure_levels[-1] < common_min_pressure
+            or pressure_levels[0] > common_max_pressure
+        ):
+            raise ValueError(
+                "'pressure_levels' must stay inside the pressure range shared "
+                "by every member."
+            )
+        return pressure_levels
+
+    def _interpolate_ensemble_profiles(self, members, pressure_levels):
+        """Interpolate ensemble members onto their common pressure grid."""
+        value_variables = ("temperature", "wind_u", "wind_v")
+        member_heights = []
+        member_values = {name: [] for name in value_variables}
+        for member_index, member in enumerate(members):
+            pressure_profile = member["pressure"]
+            heights = np.interp(
+                pressure_levels,
+                pressure_profile[::-1, 1],
+                pressure_profile[::-1, 0],
+            )
+            member_heights.append(heights)
+
+            for variable in value_variables:
+                profile = member[variable]
+                if heights[0] < profile[0, 0] or heights[-1] > profile[-1, 0]:
+                    raise ValueError(
+                        f"Member {member_index} '{variable}' does not cover all "
+                        "heights in the common pressure range."
+                    )
+                member_values[variable].append(
+                    np.interp(heights, profile[:, 0], profile[:, 1])
+                )
+
+        geometric_heights = np.asarray(member_heights)
+        if np.any(geometric_heights <= -self.earth_radius):
+            raise ValueError("Profile heights must be greater than -Earth's radius.")
+        geopotential_heights = (
+            self.earth_radius
+            * geometric_heights
+            / (self.earth_radius + geometric_heights)
+        )
+        return geopotential_heights, member_values
+
+    @staticmethod
+    def _prepare_ensemble_file_path(file_name, overwrite):
+        """Normalize the output path and protect existing files."""
+        try:
+            file_path = os.fspath(file_name)
+        except TypeError as exc:
+            raise TypeError(
+                "'file_name' must be a string or path-like object."
+            ) from exc
+        if not file_path.lower().endswith(".nc"):
+            file_path += ".nc"
+        file_path = os.path.abspath(file_path)
+        if os.path.exists(file_path) and not overwrite:
+            raise FileExistsError(
+                f"'{file_path}' already exists. Pass overwrite=True to replace it."
+            )
+        return file_path
+
+    def _create_ensemble_time_coordinate(self, dataset):
+        """Create the valid-time coordinate for an ensemble dataset."""
+        time = dataset.createVariable("time", "f8", ("time",))
+        time.long_name = "profile valid time"
+        time.standard_name = "time"
+        time.units = (
+            f"hours since {self.datetime_date.strftime('%Y-%m-%d %H:%M:%S')} UTC"
+        )
+        time.calendar = "gregorian"
+        time.axis = "T"
+        time[:] = [0]
+
+    @staticmethod
+    def _create_ensemble_member_and_level_coordinates(
+        dataset, member_count, pressure_levels
+    ):
+        """Create the ensemble-member and pressure-level coordinates."""
+        ensemble = dataset.createVariable("ens", "i4", ("ens",))
+        ensemble.long_name = "ensemble member"
+        ensemble.units = "1"
+        ensemble[:] = np.arange(member_count)
+
+        level = dataset.createVariable("lev", "f8", ("lev",))
+        level.long_name = "pressure level"
+        level.standard_name = "air_pressure"
+        level.units = "hPa"
+        level.positive = "down"
+        level.axis = "Z"
+        level[:] = pressure_levels / 100
+
+    @staticmethod
+    def _create_ensemble_spatial_coordinates(
+        dataset, latitude_bounds, longitude_bounds
+    ):
+        """Create latitude and longitude coordinates for an ensemble dataset."""
+        latitude = dataset.createVariable("lat", "f8", ("lat",))
+        latitude.long_name = "latitude"
+        latitude.standard_name = "latitude"
+        latitude.units = "degrees_north"
+        latitude.axis = "Y"
+        latitude[:] = latitude_bounds
+
+        longitude = dataset.createVariable("lon", "f8", ("lon",))
+        longitude.long_name = "longitude"
+        longitude.standard_name = "longitude"
+        longitude.units = "degrees_east"
+        longitude.axis = "X"
+        longitude[:] = longitude_bounds
+
+    def _create_ensemble_coordinates(self, dataset, member_count, pressure_levels):
+        """Create dimensions and coordinate variables for an ensemble dataset."""
+        latitude_bounds = np.array(
+            [max(-90, self.latitude - 0.01), min(90, self.latitude + 0.01)]
+        )
+        grid_longitude = 0 if self.longitude == 360 else self.longitude
+        longitude_bounds = np.array(
+            [
+                max(-180, grid_longitude - 0.01),
+                min(360, grid_longitude + 0.01),
+            ]
+        )
+
+        dataset.createDimension("time", 1)
+        dataset.createDimension("ens", member_count)
+        dataset.createDimension("lev", len(pressure_levels))
+        dataset.createDimension("lat", len(latitude_bounds))
+        dataset.createDimension("lon", len(longitude_bounds))
+
+        self._create_ensemble_time_coordinate(dataset)
+        self._create_ensemble_member_and_level_coordinates(
+            dataset, member_count, pressure_levels
+        )
+        self._create_ensemble_spatial_coordinates(
+            dataset, latitude_bounds, longitude_bounds
+        )
+
+        return (
+            1,
+            member_count,
+            len(pressure_levels),
+            len(latitude_bounds),
+            len(longitude_bounds),
+        )
+
+    @staticmethod
+    def _create_ensemble_data_variables(
+        dataset, data_shape, geopotential_heights, member_values
+    ):
+        """Create and populate the atmospheric variables in an ensemble dataset."""
+        variables = {
+            "hgtprs": (
+                geopotential_heights,
+                "geopotential height",
+                "geopotential_height",
+                "m",
+            ),
+            "tmpprs": (
+                np.asarray(member_values["temperature"]),
+                "air temperature",
+                "air_temperature",
+                "K",
+            ),
+            "ugrdprs": (
+                np.asarray(member_values["wind_u"]),
+                "eastward wind",
+                "eastward_wind",
+                "m s-1",
+            ),
+            "vgrdprs": (
+                np.asarray(member_values["wind_v"]),
+                "northward wind",
+                "northward_wind",
+                "m s-1",
+            ),
+        }
+        dimensions = ("time", "ens", "lev", "lat", "lon")
+        for name, (values, long_name, standard_name, units) in variables.items():
+            variable = dataset.createVariable(
+                name, "f8", dimensions, zlib=True, complevel=4
+            )
+            variable.long_name = long_name
+            variable.standard_name = standard_name
+            variable.units = units
+            variable.coordinates = "time ens lev lat lon"
+            variable[:] = np.broadcast_to(values[None, :, :, None, None], data_shape)
+
+    def _write_ensemble_file(
+        self, file_path, pressure_levels, geopotential_heights, member_values
+    ):
+        """Write prepared ensemble data to a GEFS-compatible NetCDF file."""
+        with netCDF4.Dataset(file_path, "w", format="NETCDF4") as dataset:
+            dataset.Conventions = "CF-1.8"
+            dataset.title = "RocketPy user-defined atmospheric ensemble"
+            dataset.source = "RocketPy Environment.create_ensemble"
+            dataset.history = (
+                f"Created {datetime.now(tz=pytz.UTC).isoformat()} by RocketPy"
+            )
+            dataset.comment = (
+                "Profiles are spatially constant across the 2 x 2 grid "
+                "surrounding the launch coordinates."
+            )
+            dataset.launch_latitude = self.latitude
+            dataset.launch_longitude = self.longitude
+
+            data_shape = self._create_ensemble_coordinates(
+                dataset, len(geopotential_heights), pressure_levels
+            )
+            self._create_ensemble_data_variables(
+                dataset, data_shape, geopotential_heights, member_values
+            )
+
+    def create_ensemble(
+        self,
+        profiles,
+        file_name="custom_ensemble.nc",
+        pressure_levels=None,
+        overwrite=False,
+    ):
+        """Create and activate an ensemble from user-defined profiles.
+
+        RocketPy writes the profiles with GEFS-compatible variable names.
+        Another Environment can load the returned file by passing
+        ``type="Ensemble"`` and ``dictionary="GEFS"`` to
+        :meth:`Environment.set_atmospheric_model`.
+
+        Parameters
+        ----------
+        profiles : sequence of mappings
+            Atmospheric profiles for each ensemble member. Every mapping must
+            define ``pressure``, ``temperature``, ``wind_u`` and ``wind_v``.
+            Each value must be a two-column array whose first column is
+            geometric height above sea level in meters. The second column uses
+            Pa for pressure, K for temperature and m/s for either wind
+            component. Array-backed :class:`rocketpy.Function` objects are also
+            accepted. Pressure must decrease strictly with increasing height.
+        file_name : str or os.PathLike, optional
+            Path of the NetCDF file to create. The ``.nc`` suffix is appended
+            when omitted. Default is ``"custom_ensemble.nc"``.
+        pressure_levels : array-like, optional
+            Common pressure levels in Pa. By default, the union of sampled
+            pressure levels inside the range shared by every member is used.
+        overwrite : bool, optional
+            Whether an existing file may be replaced. Default is ``False``.
+
+        Returns
+        -------
+        str
+            Absolute path of the created NetCDF file.
+
+        Raises
+        ------
+        TypeError
+            If profiles or profile values have invalid types.
+        ValueError
+            If fewer than two members are supplied, required variables are
+            missing, profiles are invalid, or the members have no usable common
+            pressure range.
+        FileExistsError
+            If the output exists and ``overwrite`` is ``False``.
+
+        Notes
+        -----
+        The first member is activated after the file is created. Use
+        :meth:`Environment.select_ensemble_member` to activate another member.
+        """
+        self.__validate_datetime()
+        members = self._prepare_ensemble_profiles(profiles)
+        pressure_levels = self._prepare_ensemble_pressure_levels(
+            members, pressure_levels
+        )
+        geopotential_heights, member_values = self._interpolate_ensemble_profiles(
+            members, pressure_levels
+        )
+        file_path = self._prepare_ensemble_file_path(file_name, overwrite)
+        self._write_ensemble_file(
+            file_path, pressure_levels, geopotential_heights, member_values
+        )
+
+        self.set_atmospheric_model(type="Ensemble", file=file_path, dictionary="GEFS")
+        logger.info("Atmospheric ensemble saved at '%s'.", file_path)
+        return file_path
 
     def process_ensemble(self, file, dictionary, conversion_factor):  # pylint: disable=too-many-locals,too-many-statements
         """Import and process atmospheric data from weather ensembles

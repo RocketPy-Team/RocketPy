@@ -271,18 +271,18 @@ class Rocket:
             in the direction of e_i x e_j. Alternatively, the inertia tensor can
             be given as (I_11, I_22, I_33), where I_12 = I_13 = I_23 = 0. This
             can also be called as "rocket dry inertia tensor".
-        power_off_drag : int, float, callable, string, array
-            Rocket's drag coefficient when the motor is off. Can be given as an
-            entry to the Function class. See help(Function) for more
-            information. If int or float is given, it is assumed constant. If
-            callable, string or array is given, it must be a function of Mach
-            number only.
-        power_on_drag : int, float, callable, string, array
-            Rocket's drag coefficient when the motor is on. Can be given as an
-            entry to the Function class. See help(Function) for more
-            information. If int or float is given, it is assumed constant. If
-            callable, string or array is given, it must be a function of Mach
-            number only.
+        power_off_drag : int, float, callable, string, array, Function
+            Rocket's drag coefficient when the motor is off. Scalars define a
+            constant coefficient. One-dimensional sources are evaluated as a
+            function of Mach number. A callable or Function may instead accept
+            seven arguments in this order: angle of attack, sideslip angle,
+            Mach number, Reynolds number, pitch rate, yaw rate and roll rate.
+            Angles are given in radians and angular rates in radians per second.
+            See :ref:`rocketusage` for examples and supported table formats.
+        power_on_drag : int, float, callable, string, array, Function
+            Rocket's drag coefficient when the motor is on. It accepts the same
+            constant, Mach-only and seven-variable formats as
+            ``power_off_drag``. See :ref:`rocketusage` for details.
         center_of_mass_without_motor : int, float
             Position, in m, of the rocket's center of mass without motor
             relative to the rocket's coordinate system. Default is 0, which
@@ -386,9 +386,10 @@ class Rocket:
             inputs="Mach Number",
             outputs="Total Lift Coefficient Derivative",
         )
-        self.static_margin = Function(
+        self._static_margin = Function(
             lambda time: 0, inputs="Time (s)", outputs="Static Margin (c)"
         )
+        self._static_margin_dirty = True
         self.stability_margin = Function(
             lambda mach, time: 0,
             inputs=["Mach", "Time (s)"],
@@ -443,10 +444,10 @@ class Rocket:
         self.evaluate_reduced_mass()
         self.evaluate_thrust_to_weight()
 
-        # Evaluate stability (even though no aerodynamic surfaces are present yet)
+        # Evaluate stability quantities needed for later work. Static margin is
+        # left dirty and built lazily on first access (see static_margin).
         self.evaluate_center_of_pressure()
         self.evaluate_stability_margin()
-        self.evaluate_static_margin()
 
         # Initialize plots and prints object
         self.prints = _RocketPrints(self)
@@ -666,11 +667,10 @@ class Rocket:
 
         # Calculate total lift coefficient derivative and center of pressure
         if len(self.aerodynamic_surfaces) > 0:
-            for aero_surface, position in self.aerodynamic_surfaces:
+            for aero_surface, position, ref_factor in self.aerodynamic_surfaces:
                 if isinstance(aero_surface, GenericSurface):
                     continue
                 # ref_factor corrects lift for different reference areas
-                ref_factor = (aero_surface.rocket_radius / self.radius) ** 2
                 self.total_lift_coeff_der += ref_factor * aero_surface.clalpha
                 self.cp_position += (
                     ref_factor
@@ -693,7 +693,7 @@ class Rocket:
             Dictionary mapping the relative position of each aerodynamic
             surface center of pressure to the rocket's center of mass.
         """
-        for surface, position in self.aerodynamic_surfaces:
+        for surface, position, _ref_factor in self.aerodynamic_surfaces:
             self.__evaluate_single_surface_cp_to_cdm(surface, position)
         return self.surfaces_cp_to_cdm
 
@@ -743,6 +743,27 @@ class Rocket:
         )
         return self.stability_margin
 
+    def _invalidate_static_margin(self):
+        """Mark the cached static margin as stale.
+
+        Call this whenever rocket geometry, mass properties, or aerodynamic
+        surfaces change in a way that can alter the static margin. The next
+        access of :attr:`static_margin` (or an explicit call to
+        :meth:`evaluate_static_margin`) rebuilds the Function.
+        """
+        self._static_margin_dirty = True
+
+    @property
+    def static_margin(self):
+        """Static margin of the rocket as a function of time (calibers).
+
+        Computed lazily: rebuilt only when first accessed after construction or
+        after geometry/mass/surface changes that invalidate the cache.
+        """
+        if self._static_margin_dirty:
+            self.evaluate_static_margin()
+        return self._static_margin
+
     def evaluate_static_margin(self):
         """Calculates the static margin of the rocket as a function of time.
 
@@ -753,25 +774,28 @@ class Rocket:
             Static margin is defined as the distance between the center of
             pressure and the center of mass, divided by the rocket's diameter.
         """
-        # Calculate static margin
-        self.static_margin.set_source(
+        # Calculate static margin; fold _csys into the source so we do not
+        # rebind a property when multiplying.
+        self._static_margin.set_source(
             lambda time: (
                 (
-                    self.center_of_mass.get_value_opt(time)
-                    - self.cp_position.get_value_opt(0)
+                    (
+                        self.center_of_mass.get_value_opt(time)
+                        - self.cp_position.get_value_opt(0)
+                    )
+                    / (2 * self.radius)
                 )
-                / (2 * self.radius)
+                * self._csys
             )
         )
-        # Change sign if coordinate system is upside down
-        self.static_margin *= self._csys
-        self.static_margin.set_inputs("Time (s)")
-        self.static_margin.set_outputs("Static Margin (c)")
-        self.static_margin.set_title("Static Margin")
-        self.static_margin.set_discrete(
+        self._static_margin.set_inputs("Time (s)")
+        self._static_margin.set_outputs("Static Margin (c)")
+        self._static_margin.set_title("Static Margin")
+        self._static_margin.set_discrete(
             lower=0, upper=self.motor.burn_out_time, samples=200
         )
-        return self.static_margin
+        self._static_margin_dirty = False
+        return self._static_margin
 
     def warn_if_unstable(self):
         """Warn if the rocket is aerodynamically unstable at motor ignition.
@@ -794,7 +818,7 @@ class Rocket:
         """
         has_generic_surface = any(
             isinstance(aero_surface, GenericSurface)
-            for aero_surface, _position in self.aerodynamic_surfaces
+            for aero_surface, _position, _ref_factor in self.aerodynamic_surfaces
         )
         if has_generic_surface:
             return False
@@ -979,8 +1003,8 @@ class Rocket:
 
     def evaluate_nozzle_gyration_tensor(self):
         """Calculates and returns the nozzle gyration tensor relative to the
-        rocket's center of dry mass. The gyration tensor is saved and returned
-        in units of kg*m².
+        rocket's center of dry mass. The gyration tensor is a second moment of
+        area per unit area, so it is saved and returned in units of m².
 
         Returns
         -------
@@ -988,7 +1012,7 @@ class Rocket:
             Matrix containing the nozzle gyration tensor.
         """
         S_noz_33 = 0.5 * self.motor.nozzle_radius**2
-        S_noz_11 = S_noz_22 = 0.5 * S_noz_33 + 0.25 * self.nozzle_to_cdm**2
+        S_noz_11 = S_noz_22 = 0.5 * S_noz_33 + self.nozzle_to_cdm**2
         S_noz_12, S_noz_13, S_noz_23 = 0, 0, 0  # Due to axis symmetry
         self.nozzle_gyration_tensor = Matrix(
             [
@@ -1143,7 +1167,7 @@ class Rocket:
         self.evaluate_center_of_pressure()
         self.evaluate_surfaces_cp_to_cdm()
         self.evaluate_stability_margin()
-        self.evaluate_static_margin()
+        self._invalidate_static_margin()
         self.evaluate_com_to_cdm_function()
         self.evaluate_nozzle_gyration_tensor()
 
@@ -1169,7 +1193,12 @@ class Rocket:
             self.rail_buttons = Components()
             self.rail_buttons.add(surface, position)
         else:
-            self.aerodynamic_surfaces.add(surface, position)
+            # ref_factor corrects lift for different reference areas
+            if getattr(surface, "rocket_radius", None) is not None:
+                ref_factor = (surface.rocket_radius / self.radius) ** 2
+            else:
+                ref_factor = 1.0
+            self.aerodynamic_surfaces.add(surface, position, ref_factor=ref_factor)
         self.__evaluate_single_surface_cp_to_cdm(surface, position)
 
     def add_surfaces(self, surfaces, positions):
@@ -1225,7 +1254,7 @@ class Rocket:
 
         self.evaluate_center_of_pressure()
         self.evaluate_stability_margin()
-        self.evaluate_static_margin()
+        self._invalidate_static_margin()
 
     def _add_controllers(self, controllers):
         """Adds a controller to the rocket.
@@ -1730,7 +1759,7 @@ class Rocket:
             force is the dynamic pressure computed on the parachute
             times its cd_s coefficient. Has units of area and must be
             given in squared meters.
-        trigger : callable, float, str
+        trigger : callable, float, str, tuple
             Defines the trigger condition for the parachute ejection system. It
             can be one of the following:
 
@@ -1753,6 +1782,10 @@ class Rocket:
                 height above ground level.
             - The string "apogee" which triggers the parachute at apogee, i.e., \
                 when the rocket reaches its highest point and starts descending.
+            - A tuple ``("time", t_deploy)`` that triggers when flight time \
+                ``t >= t_deploy`` (seconds from flight start). For a delay \
+                charge referenced to motor burnout, use \
+                ``("time", motor.burn_out_time + delay)``.
 
             .. note::
 
@@ -2338,10 +2371,14 @@ class Rocket:
                 position=data["motor_position"],
             )
 
-        for surface, position in data["aerodynamic_surfaces"]:
+        # The trailing star reads entries of either length: files written
+        # before ref_factor was stored carry two fields and newer ones three.
+        # The factor is not read back in any case, since add_surfaces derives
+        # it from the surface's own radius.
+        for surface, position, *_ in data["aerodynamic_surfaces"]:
             rocket.add_surfaces(surfaces=surface, positions=position)
 
-        for button, position in data["rail_buttons"]:
+        for button, position, *_ in data["rail_buttons"]:
             rocket.set_rail_buttons(
                 upper_button_position=position[2] + button.buttons_distance,
                 lower_button_position=position[2],
@@ -2352,7 +2389,7 @@ class Rocket:
         for parachute in data["parachutes"]:
             rocket.parachutes.append(parachute)
 
-        for sensor, position in data["sensors"]:
+        for sensor, position, *_ in data["sensors"]:
             rocket.add_sensor(sensor, position)
 
         for air_brake in data["air_brakes"]:

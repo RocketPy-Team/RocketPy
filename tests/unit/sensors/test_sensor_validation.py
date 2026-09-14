@@ -5,6 +5,7 @@ These exercise the argument-validation error paths and the small ``__repr__`` /
 tests never reach, so the base class is fully covered.
 """
 
+import numpy as np
 import pytest
 
 from rocketpy.mathutils.vector_matrix import Vector
@@ -37,6 +38,106 @@ def test_orientation_wrong_length_raises():
 def test_vectorize_input_wrong_type_raises():
     with pytest.raises(ValueError, match="noise_density"):
         Accelerometer(sampling_rate=1, noise_density="not-a-vector")
+
+
+@pytest.mark.parametrize(
+    "seed",
+    [
+        np.random.default_rng(5),
+        np.random.PCG64(5),
+        np.random.MT19937(5),
+        np.random.RandomState(5),
+    ],
+    ids=["generator", "bit_generator", "legacy_bit_generator", "random_state"],
+)
+def test_live_rng_objects_are_rejected(seed):
+    """A generator's state advances as noise is drawn, so it cannot describe
+    the stream the way an int or a ``SeedSequence`` does.
+
+    ``RandomState`` is here because ``default_rng`` accepts it from NumPy 2.2
+    on and RocketPy pins no upper bound, so it reaches the same late failure at
+    ``json.dumps()`` that the other two do.
+    """
+    with pytest.raises(TypeError, match="seed"):
+        Barometer(sampling_rate=1, seed=seed)
+
+
+@pytest.mark.parametrize(
+    "seed",
+    ["5", 5.0, np.float64(5), np.bool_(True), object()],
+    ids=["str", "float", "numpy_float", "numpy_bool", "object"],
+)
+def test_non_descriptor_seeds_are_rejected(seed):
+    """Anything that is neither a live RNG nor a stream descriptor is refused.
+
+    ``default_rng`` rejects these too, but only after the sensor has been
+    built, and its message never names ``seed``. Checking here keeps the error
+    at the call that caused it.
+    """
+    with pytest.raises(TypeError, match="seed"):
+        Barometer(sampling_rate=1, seed=seed)
+
+
+@pytest.mark.parametrize(
+    "seed",
+    [None, 0, 5, np.int64(5), np.uint32(5), 2**128 - 1],
+    ids=["none", "zero", "int", "numpy_int", "numpy_uint", "wide_int"],
+)
+def test_int_and_none_seeds_are_accepted(seed):
+    """The check must not catch seeds that already work.
+
+    numpy integers serialize through ``RocketPyEncoder``, and #1054 hands each
+    model a plain 128-bit int, so both have to pass.
+    """
+    assert Barometer(sampling_rate=1, seed=seed).to_dict()["seed"] == seed
+
+
+def test_seed_sequence_is_accepted():
+    """#1124 made ``SeedSequence`` serializable, so this check must let it by."""
+    seed = np.random.SeedSequence(5)
+    assert Barometer(sampling_rate=1, seed=seed).to_dict()["seed"] is seed
+
+
+@pytest.mark.parametrize(
+    "seed",
+    [[1, 2], (1, 2), [np.int64(1), np.int64(2)], []],
+    ids=["list", "tuple", "list_of_numpy_ints", "empty"],
+)
+def test_int_array_like_seeds_are_accepted(seed):
+    """``default_rng`` takes a flat array_like of ints and json writes it out,
+    so the check has to let every shape of one by, the empty included."""
+    assert Barometer(sampling_rate=1, seed=seed) is not None
+
+
+@pytest.mark.parametrize(
+    "seed",
+    [[[1, 2], [3, 4]], np.array([[1, 2], [3, 4]], dtype=np.uint32)],
+    ids=["nested_sequence", "two_dimensional_ndarray"],
+)
+def test_multi_dimensional_int_seeds_are_rejected(seed):
+    """``SeedSequence`` takes entropy one dimension deep and no further.
+
+    Nested sequences raise ``TypeError`` there and 2-D arrays ``ValueError``,
+    neither message naming the seed, so both are caught here instead. Older
+    NumPy accepted the nested form and the dependency carries no upper bound,
+    so refusing it is also what keeps one answer across versions.
+    """
+    with pytest.raises(TypeError, match="seed"):
+        Barometer(sampling_rate=1, seed=seed)
+
+
+def test_integer_ndarray_seed_is_accepted():
+    """An ndarray of ints is array_like of ints, and ``RocketPyEncoder``
+    writes it out as a list, so it round trips like a plain list does."""
+    seed = np.array([1, 2], dtype=np.uint32)
+    assert Barometer(sampling_rate=1, seed=seed).to_dict()["seed"] is seed
+
+
+def test_float_ndarray_seed_is_rejected():
+    """The dtype is what decides it: a float array cannot seed
+    ``default_rng``, so it must be refused with the others."""
+    with pytest.raises(TypeError, match="seed"):
+        Barometer(sampling_rate=1, seed=np.array([1.0, 2.0]))
 
 
 def test_repr_returns_name():

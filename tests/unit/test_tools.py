@@ -5,11 +5,14 @@ import pytest
 
 from rocketpy import Environment
 from rocketpy.tools import (
+    _seed_sequence_to_int,
+    calculate_confidence_ellipse,
     calculate_cubic_hermite_coefficients,
     convert_local_extent_to_wgs84,
     convert_mercator_extent_to_local,
     euler313_to_quaternions,
     find_roots_cubic_function,
+    generate_monte_carlo_ellipses,
     haversine,
     inverted_haversine,
     mercator_to_wgs84,
@@ -65,6 +68,45 @@ def test_normalize_quaternions_handles_scaled_and_zero_inputs():
     assert normalized == pytest.approx(np.array([1, 2, 3, 4]) / np.sqrt(30))
     assert np.linalg.norm(normalized) == pytest.approx(1)
     assert normalize_quaternions((0, 0, 0, 0)) == (1, 0, 0, 0)
+
+
+def test_calculate_confidence_ellipse_axes():
+    x = np.array([-2.0, -2.0, 2.0, 2.0])
+    y = np.array([-1.0, 1.0, -1.0, 1.0])
+
+    theta, width, height = calculate_confidence_ellipse(x, y, n_std=2)
+
+    assert abs(np.cos(np.deg2rad(theta))) == pytest.approx(1)
+    assert width == pytest.approx(4 * np.sqrt(16 / 3))
+    assert height == pytest.approx(4 * np.sqrt(4 / 3))
+
+
+def test_generate_monte_carlo_ellipses_builds_scaled_patches():
+    apogee_x = np.array([8.0, 8.0, 12.0, 12.0])
+    apogee_y = np.array([19.0, 21.0, 19.0, 21.0])
+    impact_x = np.array([-8.0, -8.0, -2.0, -2.0])
+    impact_y = np.array([2.5, 5.5, 2.5, 5.5])
+
+    impact_ellipses, apogee_ellipses = generate_monte_carlo_ellipses(
+        apogee_x,
+        apogee_y,
+        impact_x,
+        impact_y,
+        n_apogee=[1, 2],
+        n_impact=[1],
+        apogee_rgb=(0.2, 0.6, 0.4),
+        impact_rgb=(0.8, 0.1, 0.3),
+        opacity=0.35,
+    )
+
+    assert len(apogee_ellipses) == 2
+    assert len(impact_ellipses) == 1
+    assert apogee_ellipses[0].center == pytest.approx((10, 20))
+    assert impact_ellipses[0].center == pytest.approx((-5, 4))
+    assert apogee_ellipses[1].width == pytest.approx(2 * apogee_ellipses[0].width)
+    assert apogee_ellipses[1].height == pytest.approx(2 * apogee_ellipses[0].height)
+    assert apogee_ellipses[0].get_facecolor() == pytest.approx((0.2, 0.6, 0.4, 0.35))
+    assert impact_ellipses[0].get_facecolor() == pytest.approx((0.8, 0.1, 0.3, 0.35))
 
 
 def test_calculate_cubic_hermite_coefficients():
@@ -306,3 +348,25 @@ def test_mercator_extent_to_local_preserves_offset_sign(
     assert local_extent[0] < local_extent[1]
     assert local_extent[2] < local_extent[3]
     assert all(expected_sign * value > 0 for value in local_extent)
+
+
+def test_seed_sequence_to_int_keeps_the_full_width():
+    """All four words have to reach the seed.
+
+    Taking only the first one would still hand every component a different
+    number, so every seeding test would pass over a 32-bit collapse that puts
+    two streams back together near 2**16 of them.
+    """
+    root = np.random.SeedSequence(12345)
+    a, b = root.spawn(2)
+    words = a.generate_state(4, dtype=np.uint32)
+    # Every word, in one comparison. Asserting only that the high bits are not
+    # zero leaves a 64 or 96 bit truncation passing.
+    expected = sum(int(word) << (32 * at) for at, word in enumerate(words))
+
+    seed = _seed_sequence_to_int(a)
+
+    assert seed == expected
+    assert seed.bit_length() <= 128
+    assert seed != _seed_sequence_to_int(b)
+    assert seed == _seed_sequence_to_int(a), "reading it twice moved the seed"
