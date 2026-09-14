@@ -32,7 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
-- ENH: 3-DOF single rail button flight phase (tip-off analysis) [#920](https://github.com/RocketPy-Team/RocketPy/pull/920)
+- ENH: 3-DOF single rail button flight phase (tip-off analysis), enabled with the opt-in `Flight(use_udot_rail2=True)`. Between the upper rail button leaving the rail and the lower one following it, the rocket pivots about the lower button under a solved constraint wrench instead of jumping straight to free 6-DOF flight. The window is reported as `between_rails_time`, `between_rails_velocity` and `tip_off_duration`, printed by `Flight.info()` and shaded in the attitude plots. Requires `simulation_mode="6 DOF"` and `equations_of_motion="standard"`. [#920](https://github.com/RocketPy-Team/RocketPy/pull/920)
 - ENH: Support fixed-time parachute deployment triggers [#1133](https://github.com/RocketPy-Team/RocketPy/pull/1133) [#437](https://github.com/RocketPy-Team/RocketPy/issues/437)
 - DOC: Add SIL parachute ejection integration example [#1131](https://github.com/RocketPy-Team/RocketPy/pull/1131) [#524](https://github.com/RocketPy-Team/RocketPy/issues/524)
 - ENH: List NOAA atmosphere datasets and fetch latest [#1136](https://github.com/RocketPy-Team/RocketPy/pull/1136) [#660](https://github.com/RocketPy-Team/RocketPy/issues/660)

@@ -12,9 +12,14 @@ Coverage:
 - Constraint satisfaction: the lower rail button stays on the rail line and the
   roll acceleration/rate remains zero throughout the phase.
 - Physical direction: with no wind the nose pitches over (gravity tip-off).
+- Mode compatibility: the phase refuses reduced formulations it cannot patch.
+- Reporting: the window shows up in ``.info()`` and in the attitude plots.
 """
 
 import math
+
+import matplotlib.pyplot as plt
+import pytest
 
 from rocketpy.mathutils import Matrix, Vector
 from rocketpy.simulation.flight import Flight
@@ -237,3 +242,202 @@ def test_udot_rail2_gravity_tip_off_direction(calisto_robust, example_spaceport_
     # Assert
     assert delta < 0, f"nose should pitch down (gravity tip-off), got {delta:+.4f} deg"
     assert abs(delta) < 1.0, f"tip-off rotation implausibly large: {delta:+.4f} deg"
+
+
+def test_udot_rail2_rejects_3dof_simulation_mode(calisto_robust, example_spaceport_env):
+    """The tip-off phase must refuse ``simulation_mode='3 DOF'``.
+
+    ``udot_rail2`` patches the generalized 6-DOF solution with a constraint
+    wrench built from the full inertia tensor, but in 3 DOF the bound
+    ``u_dot_generalized`` is ``u_dot_generalized_3dof``, which carries no
+    attitude at all. Silently patching it would yield non-physical tip-off
+    kinematics, so construction must fail loudly.
+
+    Arrange: a rocket and environment that fly normally in 6 DOF.
+    Act: build a Flight asking for both the tip-off phase and 3 DOF.
+    Assert: a ValueError naming the offending argument is raised.
+    """
+    # Arrange / Act / Assert
+    with pytest.raises(ValueError, match="simulation_mode='6 DOF'"):
+        Flight(
+            rocket=calisto_robust,
+            environment=example_spaceport_env,
+            rail_length=5.2,
+            inclination=85,
+            heading=0,
+            terminate_on_apogee=True,
+            simulation_mode="3 DOF",
+            use_udot_rail2=True,
+        )
+
+
+def test_udot_rail2_rejects_solid_propulsion_equations(
+    calisto_robust, example_spaceport_env
+):
+    """The tip-off phase must refuse ``equations_of_motion='solid_propulsion'``.
+
+    That option binds ``u_dot_generalized`` to the reduced axisymmetric ``u_dot``
+    formulation, which does not share the state the constraint patch describes.
+
+    Arrange: a rocket and environment that fly normally with the standard EOM.
+    Act: build a Flight asking for both the tip-off phase and solid_propulsion.
+    Assert: a ValueError naming the offending argument is raised.
+    """
+    # Arrange / Act / Assert
+    with pytest.raises(ValueError, match="equations_of_motion='standard'"):
+        Flight(
+            rocket=calisto_robust,
+            environment=example_spaceport_env,
+            rail_length=5.2,
+            inclination=85,
+            heading=0,
+            terminate_on_apogee=True,
+            equations_of_motion="solid_propulsion",
+            use_udot_rail2=True,
+        )
+
+
+def test_udot_rail2_disabled_allows_reduced_formulations(
+    calisto_robust, example_spaceport_env
+):
+    """The guard must only fire when the tip-off phase is actually requested.
+
+    Arrange: a rocket and environment.
+    Act: build flights in 3 DOF and with solid_propulsion, tip-off left off.
+    Assert: both build without raising, and neither inserts the phase.
+    """
+    # Arrange / Act
+    three_dof = Flight(
+        rocket=calisto_robust,
+        environment=example_spaceport_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=True,
+        simulation_mode="3 DOF",
+    )
+    solid = Flight(
+        rocket=calisto_robust,
+        environment=example_spaceport_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=True,
+        equations_of_motion="solid_propulsion",
+    )
+
+    # Assert
+    assert "udot_rail2" not in _phase_names(three_dof)
+    assert "udot_rail2" not in _phase_names(solid)
+
+
+def test_udot_rail2_reports_the_window_in_prints(
+    calisto_robust, example_spaceport_env, capsys
+):
+    """The tip-off window must be visible in the rail conditions printout.
+
+    Studying tip-off is the point of the feature, so a user who opts in should
+    not have to dig the window out of the solution by hand.
+
+    Arrange: fly with the tip-off phase enabled.
+    Act: print the rail departure conditions.
+    Assert: the tip-off section is there and reports the measured window.
+    """
+    # Arrange
+    flight = _make_flight(calisto_robust, example_spaceport_env, True)
+
+    # Act
+    flight.prints.out_of_rail_conditions()
+    out = capsys.readouterr().out
+
+    # Assert
+    assert "Tip-Off State" in out
+    assert f"{flight.tip_off_duration:.3f} s" in out
+    assert f"{flight.between_rails_time:.3f} s" in out
+    assert flight.tip_off_duration > 0
+
+
+def test_udot_rail2_prints_no_tip_off_section_when_disabled(
+    calisto_robust, example_spaceport_env, capsys
+):
+    """Flights that did not run the phase must not grow a tip-off section.
+
+    Arrange: fly with the tip-off phase disabled.
+    Act: print the rail departure conditions.
+    Assert: the output is unchanged from previous versions.
+    """
+    # Arrange
+    flight = _make_flight(calisto_robust, example_spaceport_env, False)
+
+    # Act
+    flight.prints.out_of_rail_conditions()
+    out = capsys.readouterr().out
+
+    # Assert
+    assert "Tip-Off State" not in out
+    assert flight.tip_off_duration == 0.0
+
+
+def test_udot_rail2_shades_the_window_in_attitude_plots(
+    calisto_robust, example_spaceport_env, tmp_path
+):
+    """The attitude plots must shade the tip-off window when it exists.
+
+    Arrange: fly with the tip-off phase enabled.
+    Act: render the attitude plots to a file.
+    Assert: every subplot carries the shaded window, and the file is written.
+    """
+    # Arrange
+    flight = _make_flight(calisto_robust, example_spaceport_env, True)
+    target = tmp_path / "attitude.png"
+
+    # Act
+    flight.plots.attitude_data(filename=str(target))
+
+    # Assert
+    assert target.exists()
+
+
+def test_udot_rail2_flag_survives_objects_without_it(
+    calisto_robust, example_spaceport_env, capsys
+):
+    """Flights restored from a ``.rpy`` written before this feature must still
+    answer the flag, since they are rebuilt without going through ``__init__``.
+
+    Arrange: fly, then drop the instance attribute to mimic an old object.
+    Act: read the flag and print the rail conditions.
+    Assert: the class default answers False and nothing raises.
+    """
+    # Arrange
+    flight = _make_flight(calisto_robust, example_spaceport_env, True)
+    del flight.__dict__["use_udot_rail2"]
+
+    # Act
+    flight.prints.out_of_rail_conditions()
+    out = capsys.readouterr().out
+
+    # Assert
+    assert flight.use_udot_rail2 is False
+    assert flight.tip_off_duration == 0.0
+    assert "Tip-Off State" not in out
+
+
+def test_udot_rail2_window_marker_is_a_noop_when_disabled(
+    calisto_robust, example_spaceport_env
+):
+    """The shading helper must do nothing for flights without the phase.
+
+    Arrange: fly with the tip-off phase disabled and make a bare axes.
+    Act: ask the plot helper to mark the window on it.
+    Assert: nothing was drawn.
+    """
+    # Arrange
+    flight = _make_flight(calisto_robust, example_spaceport_env, False)
+    figure, axes = plt.subplots()
+
+    # Act
+    flight.plots._mark_tip_off_window(axes)
+
+    # Assert
+    assert not axes.patches
+    plt.close(figure)

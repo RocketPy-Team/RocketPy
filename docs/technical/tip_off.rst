@@ -19,6 +19,16 @@ It is enabled with ``Flight(..., use_udot_rail2=True)``; when disabled (the
 default) the simulation transitions straight from the 1-DOF rail phase to the
 generalized 6-DOF equations, exactly as it did before this phase existed.
 
+Because the phase works by patching the *generalized* 6-DOF solution with a
+constraint wrench built from the full inertia tensor, it requires
+``simulation_mode="6 DOF"`` and ``equations_of_motion="standard"``. The reduced
+formulations do not carry the state the patch describes --- the 3 DOF equations
+model no attitude at all, and ``solid_propulsion`` uses a different,
+axisymmetric set --- so asking for the tip-off phase together with either of
+them raises a ``ValueError`` instead of silently producing non-physical
+kinematics. Note that a point-mass motor forces ``simulation_mode`` to
+``"3 DOF"``, and therefore cannot be combined with this phase either.
+
 The three flight phases around rail departure are, in order of the distance
 ``d`` travelled from the launch point:
 
@@ -234,6 +244,33 @@ gravity pitches the nose down by a fraction of a degree. With a crosswind, the
 aerodynamic moment turns the rocket into the wind before it is fully free ---
 the weathercock effect --- and the rocket therefore leaves the rail with a small
 angular rate rather than none.
+
+Reading the results
+-------------------
+
+The window itself is recorded on the :class:`rocketpy.Flight` object, so a
+dispersion study does not have to recover it from the raw solution:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 30 70
+
+   * - Attribute
+     - Meaning
+   * - ``out_of_rail_time``
+     - Time the *upper* button leaves the rail, starting the window.
+   * - ``between_rails_time``
+     - Time the *lower* button leaves the rail, ending the window.
+   * - ``between_rails_velocity``
+     - Speed at that moment, the true rail-departure velocity.
+   * - ``between_rails_state``
+     - Full state vector handed to the free-flight phase.
+   * - ``tip_off_duration``
+     - Length of the window, zero when the phase is disabled.
+
+``Flight.info()`` prints these under a *Tip-Off State* heading whenever the
+phase ran, and the attitude plots shade the window so the change in attitude
+during tip-off can be read off directly.
 
 References
 ----------

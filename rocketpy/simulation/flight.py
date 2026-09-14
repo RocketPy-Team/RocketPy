@@ -480,6 +480,23 @@ class Flight:
         array.
     Flight.simulation_mode : str
         Simulation mode for the flight. Can be "6 DOF" or "3 DOF".
+    Flight.use_udot_rail2 : bool
+        Whether the intermediate 3-DOF "tip-off" rail phase was enabled. When
+        True, the flight goes through ``udot_rail1`` -> ``udot_rail2`` ->
+        generalized 6-DOF instead of straight from ``udot_rail1`` to the
+        generalized equations. Requires ``simulation_mode="6 DOF"`` and
+        ``equations_of_motion="standard"``.
+    Flight.between_rails_time : float
+        Time at which the lower rail button leaves the rail, ending the tip-off
+        phase, in seconds. Equal to ``out_of_rail_time`` when the phase is off.
+    Flight.between_rails_velocity : float
+        Rocket velocity magnitude when the lower rail button leaves the rail,
+        in m/s.
+    Flight.between_rails_state : list
+        State vector at the moment the lower rail button leaves the rail.
+    Flight.tip_off_duration : float
+        Time the rocket spends pivoting about the lower rail button, in
+        seconds. Zero when ``use_udot_rail2`` is False.
     Flight.rail_button1_bending_moment : Function
         Internal bending moment at upper rail button attachment point in N·m
         as a function of time. Calculated using beam theory during rail phase.
@@ -493,6 +510,11 @@ class Flight:
         Maximum internal bending moment experienced at lower rail button
         attachment point during rail flight phase in N·m.
     """
+
+    #: Class-level default so that ``Flight`` objects restored from a ``.rpy``
+    #: file written before the tip-off phase existed still answer the flag.
+    #: Instances built through ``__init__`` always shadow it.
+    use_udot_rail2 = False
 
     def __init__(  # pylint: disable=too-many-arguments,too-many-statements
         self,
@@ -512,10 +534,10 @@ class Flight:
         verbose=False,
         name="Flight",
         equations_of_motion="standard",
-        use_udot_rail2=False,
         ode_solver="LSODA",
         simulation_mode="6 DOF",
         post_step_callback=None,
+        use_udot_rail2=False,
     ):
         """Run a trajectory simulation.
 
@@ -591,15 +613,6 @@ class Flight:
             more restricted set of equations of motion that only works for
             solid propulsion rockets. Such equations were used in RocketPy v0
             and are kept here for backwards compatibility.
-        use_udot_rail2 : bool, optional
-            If True, enable the intermediate 3-DOF "tip-off" rail phase
-            ``udot_rail2``: after the upper rail button leaves the rail (at
-            ``effective_1rl``) the rocket pivots about the still-engaged lower
-            button until it too leaves the rail (at ``effective_2rl``), before
-            the generalized 6-DOF free flight. If False, the flight transitions
-            directly from the 1-DOF ``udot_rail1`` phase to the generalized
-            6-DOF dynamics at the upper button exit, as in previous versions.
-            Default is False.
         ode_solver : str, ``scipy.integrate.OdeSolver``, optional
             Integration method to use to solve the equations of motion ODE.
             Available options are: 'RK23', 'RK45', 'DOP853', 'Radau', 'BDF',
@@ -617,6 +630,15 @@ class Flight:
             ``callback(flight)``, matching phase/node callbacks. Access the
             current time and state via ``flight.t`` and ``flight.y_sol``.
             Default is None.
+        use_udot_rail2 : bool, optional
+            If True, enable the intermediate 3-DOF "tip-off" rail phase
+            ``udot_rail2``: after the upper rail button leaves the rail (at
+            ``effective_1rl``) the rocket pivots about the still-engaged lower
+            button until it too leaves the rail (at ``effective_2rl``), before
+            the generalized 6-DOF free flight. If False, the flight transitions
+            directly from the 1-DOF ``udot_rail1`` phase to the generalized
+            6-DOF dynamics at the upper button exit, as in previous versions.
+            Default is False.
         Returns
         -------
         None
@@ -1758,6 +1780,30 @@ class Flight:
                 "Must be '3 DOF' or '6 DOF'."
             )
 
+        # The tip-off phase patches the *generalized* 6-DOF solution with a
+        # constraint wrench built from the full 3x3 inertia tensor. The reduced
+        # formulations bound above (``u_dot_generalized_3dof`` carries no
+        # attitude at all, ``u_dot`` uses the axisymmetric solid-propulsion
+        # equations) do not share that state, so the patch would be applied to
+        # a solution it does not describe. Refuse the combination instead of
+        # silently producing non-physical tip-off kinematics.
+        if self.use_udot_rail2:
+            if self.simulation_mode != "6 DOF":
+                raise ValueError(
+                    "use_udot_rail2=True requires simulation_mode='6 DOF', got "
+                    f"'{self.simulation_mode}'. The tip-off phase solves for the "
+                    "rotation about the lower rail button, which the 3 DOF "
+                    "equations of motion do not model. Note that a point-mass "
+                    "motor forces simulation_mode to '3 DOF'."
+                )
+            if self.equations_of_motion != "standard":
+                raise ValueError(
+                    "use_udot_rail2=True requires equations_of_motion='standard', "
+                    f"got '{self.equations_of_motion}'. The tip-off phase is "
+                    "derived from the generalized variable-mass equations and "
+                    "cannot patch the reduced solid_propulsion formulation."
+                )
+
     def __init_controllers(self):
         """Initialize controllers and sensors"""
         self._controllers = self.rocket._controllers[:]
@@ -2025,7 +2071,15 @@ class Flight:
         w = Vector(u[10:13])
         K = Matrix.transformation([e0, e1, e2, e3])
         Kt = K.transpose
-        total_mass = self.rocket.total_mass.get_value_opt(t)
+        # ``u_dot_generalized`` just interpolated the mass and the inertia about
+        # the CM for this very t; reuse them instead of paying for both again on
+        # every solver evaluation inside the tip-off window.
+        cached = getattr(self, "_mass_inertia_cache", None)
+        if cached is not None and cached[0] == t:
+            _, total_mass, inertia_cm = cached
+        else:  # pragma: no cover - defensive, the call above always fills it
+            total_mass = self.rocket.total_mass.get_value_opt(t)
+            inertia_cm = None
 
         # Geometry in the true body frame (body-z toward the nose):
         #   position of a point p relative to the CDM = (p - cdm) * csys.
@@ -2038,9 +2092,12 @@ class Flight:
         r_button = Vector([0, 0, (lower_button_z - cdm) * csys])
 
         # Inertia about the instantaneous center of mass (sign-independent).
-        inertia_tensor = self.rocket.get_inertia_tensor_at_time(t)
-        H = (r_CM.cross_matrix @ -r_CM.cross_matrix) * total_mass
-        inv_inertia_cm = (inertia_tensor - H).inverse
+        if inertia_cm is None:  # pragma: no cover - defensive, see cache above
+            inertia_tensor = self.rocket.get_inertia_tensor_at_time(t)
+            inertia_cm = inertia_tensor - (
+                (r_CM.cross_matrix @ -r_CM.cross_matrix) * total_mass
+            )
+        inv_inertia_cm = inertia_cm.inverse
 
         # Orthonormal body triad with the rail direction. The rail is the fixed
         # inertial unit vector ``attitude_unit``; express it in the body frame.
@@ -2730,6 +2787,12 @@ class Flight:
         H = (r_CM.cross_matrix @ -r_CM.cross_matrix) * total_mass
         I_CM = inertia_tensor - H
 
+        # Expose the mass and the inertia about the CM for the tip-off phase,
+        # which patches this solution and would otherwise interpolate both again
+        # for the same t on every solver evaluation. H is quadratic in r_CM, so
+        # I_CM does not depend on the sign convention used for it.
+        self._mass_inertia_cache = (t, total_mass, I_CM)
+
         # Prepare transformation matrices
         K = Matrix.transformation(e)
         Kt = K.transpose
@@ -3347,6 +3410,26 @@ class Flight:
     def out_of_rail_velocity(self):
         """Velocity at which the rocket leaves the launch rail."""
         return self.speed.get_value_opt(self.out_of_rail_time)
+
+    @property
+    def between_rails_velocity(self):
+        """Velocity at which the lower rail button leaves the launch rail,
+        ending the ``udot_rail2`` tip-off phase. Only meaningful when the
+        flight was run with ``use_udot_rail2=True``; otherwise the tip-off
+        phase never runs and this equals :attr:`out_of_rail_velocity`.
+        """
+        return self.speed.get_value_opt(self.between_rails_time)
+
+    @property
+    def tip_off_duration(self):
+        """Duration of the tip-off window, i.e. the time the rocket spends
+        pivoting about the lower rail button between the upper button leaving
+        the rail and the lower button leaving it. Zero when the flight was run
+        without ``use_udot_rail2``.
+        """
+        if not self.use_udot_rail2:
+            return 0.0
+        return self.between_rails_time - self.out_of_rail_time
 
     @cached_property
     def max_speed_time(self):
