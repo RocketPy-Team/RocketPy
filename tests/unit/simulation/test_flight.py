@@ -1,6 +1,7 @@
 import json
 import os
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
 import matplotlib as plt
 import numpy as np
@@ -84,6 +85,65 @@ def setup_rocket_with_given_static_margin(rocket, static_margin):
 # Tests
 
 
+def _make_impact_event_state():
+    flight = object.__new__(Flight)
+    flight.env = SimpleNamespace(elevation=0)
+    flight.solution = [
+        [10.0, 0, 0, 1, 0, 0, -1],
+        [11.0, 0, 0, -1, 0, 0, -1],
+    ]
+    flight.flight_phases = SimpleNamespace(
+        flush_after=MagicMock(), add_phase=MagicMock()
+    )
+
+    solver = SimpleNamespace(
+        step_size=1.0,
+        dense_output=lambda: lambda _: np.array([2, 3, 0, 4, 5, -6]),
+        status="running",
+    )
+    time_nodes = SimpleNamespace(flush_after=MagicMock(), add_node=MagicMock())
+    phase = SimpleNamespace(solver=solver, time_nodes=time_nodes)
+    return flight, phase
+
+
+@pytest.mark.parametrize(
+    "roots, match",
+    [
+        ([-1 + 0j, 2 + 0j], "No valid roots found"),
+        ([0.25 + 0j, 0.75 + 0j], "Multiple roots found"),
+    ],
+)
+def test_handle_impact_event_reports_invalid_root_counts(roots, match):
+    flight, phase = _make_impact_event_state()
+
+    with patch(
+        "rocketpy.simulation.flight.find_roots_cubic_function", return_value=roots
+    ):
+        with pytest.raises(ValueError, match=match):
+            flight._Flight__handle_impact_event(phase, phase_index=1, node_index=2)
+
+
+def test_handle_impact_event_uses_single_valid_root():
+    flight, phase = _make_impact_event_state()
+
+    with patch(
+        "rocketpy.simulation.flight.find_roots_cubic_function",
+        return_value=[0.5 + 0j],
+    ):
+        handled = flight._Flight__handle_impact_event(
+            phase, phase_index=1, node_index=2
+        )
+
+    assert handled is True
+    assert flight.t == flight.t_final == pytest.approx(10.5)
+    assert flight.impact_velocity == -6
+    assert phase.solver.status == "finished"
+    flight.flight_phases.flush_after.assert_called_once_with(1)
+    flight.flight_phases.add_phase.assert_called_once_with(10.5)
+    phase.time_nodes.flush_after.assert_called_once_with(2)
+    phase.time_nodes.add_node.assert_called_once_with(10.5, [], [], [])
+
+
 def test_get_solution_at_time(flight_calisto):
     """Test the get_solution_at_time method of the Flight class. This test
     simply calls the method at the initial and final time and checks if the
@@ -137,6 +197,83 @@ def test_get_controller_observed_variables(flight_calisto_air_brakes):
     obs_vars = flight_calisto_air_brakes.get_controller_observed_variables()
     assert isinstance(obs_vars, list)
     assert len(obs_vars) == 0
+
+
+def test_initial_solution_from_flight_sets_initial_time(
+    calisto_with_sensors, example_plain_env
+):
+    """A Flight continued from another Flight object must record ``t_initial``.
+    It is needed to post-process the initial state, so a rocket carrying sensors
+    or controllers used to raise ``AttributeError`` on this path.
+
+    Arrange: fly a rocket that carries sensors.
+    Act: start a second flight from the first Flight object.
+    Assert: ``t_initial`` is the time the previous flight ended at.
+    """
+    # Arrange
+    first = Flight(
+        rocket=calisto_with_sensors,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=True,
+    )
+
+    # Act
+    second = Flight(
+        rocket=calisto_with_sensors,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        initial_solution=first,
+        max_time=first.t_final + 1,
+    )
+
+    # Assert
+    assert second.t_initial == first.solution[-1][0]
+
+
+def test_post_step_callback_runs_before_and_after_apogee(
+    calisto_robust, example_plain_env
+):
+    """post_step_callback must fire across the full flight, including descent.
+
+    Controllers are not a substitute: air-brake fixtures often terminate at
+    apogee, and parachute phases are not meant to keep feeding actuators.
+    This callback is the full-lifecycle observer hook (issue #758).
+    """
+    callback_times = []
+
+    def record_step(flight):
+        callback_times.append(flight.t)
+
+    flight = Flight(
+        rocket=calisto_robust,
+        environment=example_plain_env,
+        rail_length=5.2,
+        inclination=85,
+        heading=0,
+        terminate_on_apogee=False,
+        post_step_callback=record_step,
+    )
+
+    assert callback_times, "post_step_callback was never invoked"
+    assert min(callback_times) < flight.apogee_time
+    assert max(callback_times) > flight.apogee_time
+    assert flight.t_final > flight.apogee_time
+
+
+def test_post_step_callback_must_be_callable(calisto, example_plain_env):
+    """Non-callable post_step_callback values are rejected at construction."""
+    with pytest.raises(TypeError, match="post_step_callback"):
+        Flight(
+            rocket=calisto,
+            environment=example_plain_env,
+            rail_length=5.2,
+            post_step_callback="not-callable",
+        )
 
 
 def test_initial_stability_margin(flight_calisto_custom_wind):
@@ -215,7 +352,7 @@ def test_export_sensor_data(flight_calisto_with_sensors):
     [
         ("t_initial", (0.25886, -0.649623, 0)),
         ("out_of_rail_time", (0.792028, -1.987634, 0)),
-        ("apogee_time", (-0.509420, -0.732933, -2.089120e-14)),
+        ("apogee_time", (-0.519917, -0.734918, -1.005368e-18)),
         ("t_final", (0, 0, 0)),
     ],
 )
@@ -254,7 +391,7 @@ def test_aerodynamic_moments(flight_calisto_custom_wind, flight_time, expected_v
     [
         ("t_initial", (1.654150, 0.659142, -0.067103)),
         ("out_of_rail_time", (5.052628, 2.013361, -1.75370)),
-        ("apogee_time", (2.321838, -1.613641, -0.962108)),
+        ("apogee_time", (2.322999, -1.643037, -0.950316)),
         ("t_final", (-0.019802, 0.012030, 159.051604)),
     ],
 )
@@ -295,7 +432,7 @@ def test_aerodynamic_forces(flight_calisto_custom_wind, flight_time, expected_va
         ("out_of_rail_time", (0, 2.248540, 25.700928)),
         (
             "apogee_time",
-            (-14.826350, 15.670022, -0.000264),
+            (-14.593411, 15.743567, -0.000409),
         ),
         ("t_final", (5, 2, -5.660155)),
     ],

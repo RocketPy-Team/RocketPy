@@ -780,3 +780,46 @@ def load_from_rpy(filename: str, resimulate=False):
         simulation = json.dumps(data["simulation"])
         flight = json.loads(simulation, cls=RocketPyDecoder, resimulate=resimulate)
     return flight
+
+
+def calculate_simplified_opening_shock_force(
+    cd_s, air_density, velocity, opening_shock_coefficient=1.5
+):
+    """Estimates the peak transient force experienced by the recovery
+    hardware during parachute inflation (the "opening shock").
+
+    The estimate follows the simplified model described in Knacke's
+    "Parachute Recovery Systems Design Manual" (1992, Section 5.5):
+
+    .. math::
+
+        F_0 = C_x \\cdot C_{d} S \\cdot q
+
+    where :math:`C_x` is the ``opening_shock_coefficient``,
+    :math:`C_{d} S` is the parachute's ``cd_s``, and :math:`q` is the
+    dynamic pressure (:math:`q = \\tfrac{1}{2} \\rho V^2`) at the instant
+    the canopy begins to inflate.
+
+    Parameters
+    ----------
+    cd_s : float
+        Drag coefficient times reference area of the parachute.
+    air_density : float
+        Freestream air density, in kg/m^3, at the moment of parachute
+        deployment.
+    velocity : float
+        Freestream velocity relative to the rocket, in m/s, at the moment
+        of parachute deployment.
+    opening_shock_coefficient : float, optional
+        Empirical coefficient (commonly noted Cx) used to estimate the
+        peak transient force experienced during parachute inflation.
+        Typical values range from 1.2 to 2.0 depending on the deployment
+        method and canopy type. Default value is 1.5.
+
+    Returns
+    -------
+    float
+        Estimated peak opening shock force, in Newtons.
+    """
+    dynamic_pressure = 0.5 * air_density * velocity**2
+    return opening_shock_coefficient * cd_s * dynamic_pressure

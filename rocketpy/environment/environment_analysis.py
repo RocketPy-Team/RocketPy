@@ -450,7 +450,7 @@ class EnvironmentAnalysis:  # pylint: disable=too-many-public-methods
                     tf.timezone_at(lng=self.longitude, lat=self.latitude)
                 )
             except ImportError:
-                warnings.warning(  # pragma: no cover
+                warnings.warn(
                     "'timezonefinder' not installed, defaulting to UTC."
                     + " Install timezonefinder to get local time zone."
                     + " To do so, run 'pip install timezonefinder'"

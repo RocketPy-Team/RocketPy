@@ -1,10 +1,9 @@
 name: Documentation
 
 on:
-  # Only PRs targeting master (base branch = master) and pushes to master.
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-    branches: [master]
+    branches: [master, develop]
     paths:
       - "docs/**"
       - "rocketpy/**" # docstrings feed the autodoc API reference

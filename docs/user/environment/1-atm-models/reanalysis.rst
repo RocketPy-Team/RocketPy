@@ -13,6 +13,13 @@ intervals
 Reanalysis data can be used to set up the environment in RocketPy.
 One common reanalysis dataset is the ERA5.
 
+.. tip::
+
+    Reanalysis datasets must be downloaded as files before RocketPy can read
+    them. If you only need the atmospheric conditions of a past launch from
+    2021 onwards, :ref:`open_meteo` retrieves them straight from an API, with
+    no file to download.
+
 ERA5
 ----
 

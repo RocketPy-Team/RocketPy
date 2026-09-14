@@ -1,0 +1,29 @@
+[config]
+model = "gemini/gemini-2.5-pro"
+fallback_models = ["gemini/gemini-2.0-flash"]
+git_provider = "github"
+
+[pr_reviewer]
+extra_instructions = """
+Follow RocketPy repository standards when reviewing code:
+1. Code Style:
+   - Use PEP 8 conventions with a maximum line length of 88 characters.
+   - Use snake_case for functions, methods, and variables.
+   - Use PascalCase for class names and UPPER_SNAKE_CASE for constants.
+   - Public classes, methods, and functions must include NumPy-style docstrings with explicit SI units.
+2. Architecture & Domain Models:
+   - Feature logic must remain within package boundaries (simulation, rocket, motors, environment, mathutils, plots, prints).
+   - Position and reference frame arguments must explicitly state orientation/origin (e.g. tail_to_nose, nozzle_to_combustion_chamber).
+3. Testing & Backward Compatibility:
+   - New functionality or bug fixes must be accompanied by unit tests in `tests/`.
+   - Preserve backward compatibility across the public API exported in `rocketpy/__init__.py`.
+4. Pull Request Conventions:
+   - Verify PR title is prefixed with project acronyms (e.g., BUG, DOC, ENH, MNT, TST, BLD, REL, REV, STY, DEV).
+"""
+enable_auto_checks_and_labels = true
+
+[pr_description]
+publish_labels = true
+
+[pr_code_suggestions]
+num_code_suggestions = 4

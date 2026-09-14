@@ -348,6 +348,41 @@ def test_load_from_rpy(mock_show):  # pylint: disable=unused-argument
     assert loaded_flight.all_info() is None
 
 
+def test_opening_shock_coefficient_default_is_1_5():
+    """Default opening_shock_coefficient must be 1.5."""
+    force_default = utilities.calculate_simplified_opening_shock_force(10.0, 1.225, 10)
+    force_1_5 = utilities.calculate_simplified_opening_shock_force(10.0, 1.225, 10, 1.5)
+    assert force_default == force_1_5
+
+
+def test_calculate_simplified_opening_shock_force_matches_formula():
+    """calculate_simplified_opening_shock_force must return
+    Cx * cd_s * 0.5 * rho * V^2."""
+    cd_s = 10.0
+    cx = 1.6
+    air_density = 1.225
+    velocity = 50.0
+
+    expected_force = cx * cd_s * 0.5 * air_density * velocity**2
+    assert utilities.calculate_simplified_opening_shock_force(
+        cd_s, air_density, velocity, cx
+    ) == pytest.approx(expected_force, rel=1e-9)
+
+
+def test_calculate_simplified_opening_shock_force_scales_with_velocity_squared():
+    """Doubling velocity must quadruple the opening shock force."""
+    force_v = utilities.calculate_simplified_opening_shock_force(10.0, 1.225, 40.0)
+    force_2v = utilities.calculate_simplified_opening_shock_force(10.0, 1.225, 80.0)
+    assert force_2v == pytest.approx(4 * force_v, rel=1e-9)
+
+
+def test_calculate_simplified_opening_shock_force_zero_velocity_is_zero():
+    """No dynamic pressure means no opening shock force."""
+    assert utilities.calculate_simplified_opening_shock_force(
+        10.0, 1.225, 0.0
+    ) == pytest.approx(0.0)
+
+
 # --- Logging (rocketpy.utilities.enable_logging) ------------------------------
 
 

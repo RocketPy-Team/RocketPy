@@ -4,7 +4,7 @@ from unittest.mock import patch
 import numpy as np
 import pytest
 
-from rocketpy import Function
+from rocketpy import Function, SolidMotor
 
 BURN_TIME = 3.9
 GRAIN_NUMBER = 5
@@ -263,6 +263,86 @@ def test_burn_area_asserts_extreme_values(cesaroni_m1670):
     assert np.allclose(cesaroni_m1670.burn_area.get_source()[0][-1], initial_burn_area)
     assert np.allclose(
         cesaroni_m1670.burn_area.get_source()[-1][-1], final_burn_area, atol=1e-6
+    )
+
+
+def _cesaroni_like_kwargs():
+    """Shared Cesaroni M1670-like SolidMotor constructor kwargs."""
+    return {
+        "thrust_source": "data/motors/cesaroni/Cesaroni_M1670.eng",
+        "burn_time": BURN_TIME,
+        "dry_mass": 1.815,
+        "dry_inertia": (0.125, 0.125, 0.002),
+        "center_of_dry_mass_position": 0.317,
+        "nozzle_position": 0,
+        "grain_number": GRAIN_NUMBER,
+        "grain_density": GRAIN_DENSITY,
+        "nozzle_radius": NOZZLE_RADIUS,
+        "throat_radius": THROAT_RADIUS,
+        "grain_separation": GRAIN_SEPARATION,
+        "grain_outer_radius": GRAIN_OUTER_RADIUS,
+        "grain_initial_height": GRAIN_INITIAL_HEIGHT,
+        "grains_center_of_mass_position": 0.397,
+        "grain_initial_inner_radius": GRAIN_INITIAL_INNER_RADIUS,
+        "interpolation_method": "linear",
+        "coordinate_system_orientation": "nozzle_to_combustion_chamber",
+    }
+
+
+def test_grains_bonded_default_matches_prior_cm(cesaroni_m1670):
+    """Default grains_bonded=True keeps a fixed propellant CM (prior behavior)."""
+    assert cesaroni_m1670.grains_bonded is True
+    assert np.allclose(
+        cesaroni_m1670.center_of_propellant_mass(0),
+        cesaroni_m1670.grains_center_of_mass_position,
+    )
+    assert np.allclose(
+        cesaroni_m1670.center_of_propellant_mass(2.0),
+        cesaroni_m1670.grains_center_of_mass_position,
+    )
+
+    bonded = SolidMotor(**_cesaroni_like_kwargs(), grains_bonded=True)
+    assert np.allclose(
+        bonded.center_of_propellant_mass.get_source()[:, 1],
+        cesaroni_m1670.center_of_propellant_mass.get_source()[:, 1],
+    )
+
+
+def test_grains_unbonded_shifts_cm_aft_as_height_regresses():
+    """Unbonded multi-grain motors pack aft; CM moves toward the nozzle."""
+    kwargs = _cesaroni_like_kwargs()
+    bonded = SolidMotor(**kwargs, grains_bonded=True)
+    unbonded = SolidMotor(**kwargs, grains_bonded=False)
+
+    assert unbonded.grains_bonded is False
+    # At ignition the packed and bonded layouts share the same CM.
+    assert np.allclose(
+        unbonded.center_of_propellant_mass(0),
+        bonded.center_of_propellant_mass(0),
+    )
+
+    t = 2.0
+    height = unbonded.grain_height(t)
+    # nozzle_to_combustion_chamber: _csys = +1, aft (toward nozzle) is smaller z.
+    expected_cm = kwargs["grains_center_of_mass_position"] - (GRAIN_NUMBER / 2.0) * (
+        GRAIN_INITIAL_HEIGHT - height
+    )
+
+    assert np.allclose(unbonded.center_of_propellant_mass(t), expected_cm)
+    assert unbonded.center_of_propellant_mass(t) < bonded.center_of_propellant_mass(t)
+    # Packing also shrinks grain pitch, so transverse propellant inertia drops.
+    assert unbonded.propellant_I_11(t) < bonded.propellant_I_11(t)
+
+
+def test_grains_unbonded_roundtrip_serialization():
+    """grains_bonded persists through to_dict / from_dict."""
+    unbonded = SolidMotor(**_cesaroni_like_kwargs(), grains_bonded=False)
+    restored = SolidMotor.from_dict(unbonded.to_dict())
+    assert restored.grains_bonded is False
+    assert np.allclose(
+        restored.center_of_propellant_mass(2.0),
+        unbonded.center_of_propellant_mass(2.0),
+        atol=1e-6,
     )
 
 

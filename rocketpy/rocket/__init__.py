@@ -15,6 +15,7 @@ from rocketpy.rocket.aero_surface import (
     Tail,
     TrapezoidalFin,
     TrapezoidalFins,
+    TubeFins,
 )
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
