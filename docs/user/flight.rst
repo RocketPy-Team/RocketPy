@@ -744,6 +744,13 @@ place names, and Esri World Imagery for satellite view, which is what usually
 matters when assessing a recovery field. Launch, apogee and landing sites are
 marked automatically.
 
+.. figure:: ../static/flight/trajectory_on_map.jpg
+   :align: center
+   :alt: Ground track of a simulated flight over satellite imagery
+
+   The ground track of a Calisto flight, with the launch site (green), the
+   apogee ground position (blue) and the landing site (red).
+
 **Installation**
 
 The ``folium`` dependency is not installed by default. Add the optional extra
@@ -795,6 +802,14 @@ If ``folium`` is not available when the method is called, RocketPy raises an
        site. Default is None.
    * - ``title``
      - Title rendered as an overlay on top of the map. Default is None.
+
+.. figure:: ../static/flight/trajectory_on_map_safety_radii.jpg
+   :align: center
+   :alt: Range safety circles drawn around the launch site
+
+   ``safety_radii=[2500, 5000]`` draws range safety circles around the launch
+   pad. The initial viewport widens so that the outermost circle stays in
+   frame, and the circles sit in their own layer so they can be toggled off.
 
 .. note::
 

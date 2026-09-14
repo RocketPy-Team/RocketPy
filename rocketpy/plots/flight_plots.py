@@ -274,7 +274,10 @@ class _FlightPlots:
 
         bounds = self.__map_bounds(latitudes, longitudes, launch, safety_radii)
         if bounds is not None:
-            flight_map.fit_bounds(bounds)
+            # Pad the viewport so that the launch and landing pins, which are
+            # anchored at the very edge of the bounding box, are not clipped by
+            # the border of the map.
+            flight_map.fit_bounds(bounds, padding=(30, 30))
 
         if filename is not None:
             flight_map.save(filename)
