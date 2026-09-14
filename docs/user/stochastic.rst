@@ -346,6 +346,8 @@ draws under a fixed seed. The rocket's own inputs, such as ``mass`` and
     by seeding these models yourself. Each simulation takes its seed from its own
     index, so simulation 7 draws the same inputs whether the run was serial or
     split over any number of workers, and whether it was reached first or last.
+    A run of ``n`` simulations numbers them 0 to ``n - 1`` either way, which is
+    what makes one index name one simulation.
     Every input row records the root it came from, so appending carries that
     study on whether or not the seed is given again, and a different one is
     refused rather than mixed in. Without a seed a run draws fresh entropy and
