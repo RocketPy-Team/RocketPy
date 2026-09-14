@@ -15,12 +15,15 @@ def controller_function():
         A controller function
     """
 
-    def controller_function(  # pylint: disable=unused-argument
-        time, sampling_rate, state, state_history, observed_variables, air_brakes
-    ):
+    def controller_function(context):
+        time = context["time"]
+        sampling_rate = context["sampling_rate"]
+        state = context["state"]
+        air_brakes = context["air_brakes"]
         z = state[2]
         vz = state[5]
-        previous_vz = state_history[-1][5]
+        previous_state = context["previous_state"]
+        previous_vz = previous_state[5] if previous_state is not None else vz
         if time < 3.9:
             return None
         if z < 1500:
@@ -58,7 +61,6 @@ def controller_function_with_environment():
         time,
         sampling_rate,
         state,
-        state_history,
         observed_variables,
         air_brakes,
         sensors,
@@ -85,7 +87,7 @@ def controller_function_with_environment():
         if altitude_agl < 1500:
             air_brakes.deployment_level = 0
         else:
-            previous_vz = state_history[-1][5] if state_history else vz
+            previous_vz = vz
             new_deployment_level = (
                 air_brakes.deployment_level + 0.1 * vz + 0.01 * previous_vz**2
             )

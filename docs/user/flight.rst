@@ -159,9 +159,13 @@ You can also continue a simulation from where another flight ended:
     continued_flight = Flight(
         rocket=rocket,
         environment=env,
-        rail_length=0,  # Set to 0 when continuing from free flight
+        rail_length=5,  # unused here, but it must still be a positive length
         initial_solution=flight  # Use previous Flight object
     )
+
+The rocket is already off the rail in the state it is continuing from, so the
+rail plays no part in the new simulation. ``rail_length`` is still required to
+be positive.
 
 This is particularly useful for multi-stage simulations or when analyzing
 different scenarios from a specific flight condition.
