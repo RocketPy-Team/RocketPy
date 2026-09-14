@@ -64,6 +64,29 @@ def test_cardanos_root_finding():
 
 
 @pytest.mark.parametrize(
+    "a, b, c, d",
+    [
+        (1, 0, 0, -1),  # x**3 - 1, real root at 1
+        (2, 0, 0, -16),  # 2x**3 - 16, real root at 2
+        (1, 0, 0, 1),  # x**3 + 1, real root at -1
+        (1, -3, 3, -1),  # (x - 1)**3, a genuine triple root
+        (1, 6, 12, 8),  # (x + 2)**3, a genuine triple root
+    ],
+)
+def test_cardanos_root_finding_without_a_quadratic_or_linear_term(a, b, c, d):
+    """A cubic with no x**2 and no x term still reports its real root.
+
+    Both the perfect cube and the single-real-root case reach the same
+    degenerate branch of Cardano's method, so the two must be told apart.
+    """
+    roots = find_roots_cubic_function(a=a, b=b, c=c, d=d)
+
+    for root in roots:
+        assert np.isclose(a * root**3 + b * root**2 + c * root + d, 0, atol=1e-9)
+    assert any(np.isclose(root.imag, 0) for root in roots)
+
+
+@pytest.mark.parametrize(
     "lat0, lon0, lat1, lon1, expected_distance",
     [
         (0, 0, 0, 0, 0),
