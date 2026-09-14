@@ -38,7 +38,7 @@ from rocketpy.rocket.aero_surface.generic_surface import GenericSurface
 from rocketpy.rocket.components import Components
 from rocketpy.rocket.parachute import Parachute
 from rocketpy.rocket.plate import Plate
-from rocketpy.rocket.wire import Wire
+from rocketpy.rocket.wire import Wire, define_wire_endpoints
 from rocketpy.tools import (
     deprecated,
     find_obj_from_hash,
@@ -1929,7 +1929,7 @@ class Rocket:
         if not isinstance(wire, Wire):
             raise InvalidParameterError("The wire parameter must be a Wire instance.")
 
-        endpoints = self._define_3d_endpoints(position_endpoints)
+        endpoints = define_wire_endpoints(position_endpoints)
 
         if wire.ignition_wire_function == "parachute_deployment":
             if not isinstance(parachute_name, str):
@@ -1962,62 +1962,6 @@ class Rocket:
         elif wire.wire_type == "ignition":
             self._ignition_wires.append(wire)
         self.wires.add(wire, position_endpoints)
-
-    def _define_3d_endpoints(self, position_endpoints: list | tuple) -> list[Vector]:
-        """Creates the 3D position vectors of the wire endpoints from the user inputs.
-
-        Parameters
-        ----------
-        position_endpoints : list, tuple
-            Sequence of two numbers (z-coordinates) or two 3D position vectors
-            ([x, y, z]) relative to the User-defined Coordinate System.
-            Conventional current flows from Endpoint A to Endpoint B.
-
-        Returns
-        -------
-        list of Vector
-            List containing the 3D Vector components of each endpoint [endpoint_a, endpoint_b].
-        """
-        if isinstance(position_endpoints, (list, tuple)):
-            if len(position_endpoints) == 2:
-                if all(isinstance(val, (int, float)) for val in position_endpoints):
-                    endpoint_a = Vector([0, 0, float(position_endpoints[0])])
-                    endpoint_b = Vector([0, 0, float(position_endpoints[1])])
-                    return [endpoint_a, endpoint_b]
-
-                elif all(
-                    isinstance(item, (list, tuple, Vector))
-                    for item in position_endpoints
-                ):
-                    if any(len(item) != 3 for item in position_endpoints):
-                        raise InvalidParameterError(
-                            "The coordinate length for each endpoint must be 3."
-                        )
-
-                    endpoint_a = (
-                        position_endpoints[0]
-                        if isinstance(position_endpoints[0], Vector)
-                        else Vector(position_endpoints[0])
-                    )
-                    endpoint_b = (
-                        position_endpoints[1]
-                        if isinstance(position_endpoints[1], Vector)
-                        else Vector(position_endpoints[1])
-                    )
-
-                    return [endpoint_a, endpoint_b]
-                else:
-                    raise InvalidParameterError(
-                        "position_endpoints must be a sequence of numbers or 3D coordinate vectors."
-                    )
-            else:
-                raise InvalidParameterError(
-                    "position_endpoints must contain exactly 2 endpoint positions."
-                )
-        else:
-            raise InvalidParameterError(
-                "position_endpoints must be a list or tuple of two numbers (z-coordinates) or two 3D position vectors ([x, y, z])."
-            )
 
     def add_plate(
         self,
