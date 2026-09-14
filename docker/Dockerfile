@@ -1,7 +1,8 @@
 # Set base image 
-# python:latest will get the latest version of python, on linux
+# python:3.14 is the newest version the test matrix covers, and is what the
+# python:latest tag resolves to today. Pinning keeps the two from drifting apart.
 # Get a full list of python images here: https://hub.docker.com/_/python/tags
-FROM python:latest
+FROM python:3.14
 
 # set the working directory in the container
 WORKDIR /RocketPy

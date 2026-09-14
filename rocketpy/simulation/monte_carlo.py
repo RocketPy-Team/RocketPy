@@ -18,8 +18,10 @@ import json
 import os
 import traceback
 import warnings
+from contextlib import suppress
+from numbers import Real
 from pathlib import Path
-from time import time
+from time import monotonic, time
 
 import numpy as np
 import simplekml
@@ -36,6 +38,113 @@ from rocketpy.tools import (
 )
 
 # TODO: Create evolution plots to analyze convergence
+
+
+# simulate() writes one JSON object per line and reads that same shape back, so
+# this is the only format it can both resume from and overwrite safely.
+_SIMULATION_LOG_SUFFIX = ".txt"
+
+# Which simulation a row belongs to. Every check on a finished run reads it.
+_SIMULATION_INDEX_KEY = "index"
+
+# How a manager that has gone away answers a proxy call.
+_MANAGER_IS_GONE = (OSError, EOFError)
+
+# Bounded, so a lock its dead holder never released cannot pin this worker.
+_REPORT_LOCK_SECONDS = 5.0
+
+# Longer than the exit-code path: a worker that only read the event is healthy
+# and leaving at the end of the simulation in hand, not blocked on a dead lock.
+_REPORTED_FAILURE_GRACE_SECONDS = 60.0
+
+
+def _refuse_logs_this_run_cannot_write(
+    input_file, output_file, error_file, export_config=None
+):
+    """Reject a log file ``simulate`` would damage rather than extend.
+
+    A ``.csv`` or ``.json`` is importable for analysis, but this run would
+    truncate it under ``append=False`` and leave it half one format and half
+    another under ``append=True``. Checked before any file is opened.
+    """
+    for label, path in (
+        ("input_file", input_file),
+        ("output_file", output_file),
+        ("error_file", error_file),
+    ):
+        if Path(path).suffix.lower() != _SIMULATION_LOG_SUFFIX:
+            raise ValueError(
+                f"Monte Carlo simulation logs must be {_SIMULATION_LOG_SUFFIX} "
+                f"files holding one JSON object per line; {label} is "
+                f"'{path}'. CSV and JSON results can be imported for analysis, "
+                f"but simulate() cannot resume from or overwrite them. Point "
+                f"{label} at a {_SIMULATION_LOG_SUFFIX} file to run."
+            )
+
+    _refuse_logs_that_are_one_file(
+        (
+            ("input_file", input_file),
+            ("output_file", output_file),
+            ("error_file", error_file),
+        )
+    )
+    _refuse_export_options_that_break_a_line(export_config or {})
+
+
+def _points_at_the_same_file(one, other):
+    """Whether two names reach one file, by inode when both already exist.
+
+    ``samefile`` settles symlinks, hard links and a case-insensitive filesystem,
+    none of which text comparison sees. It needs both to exist, so a run that has
+    not created them yet falls back to the resolved paths, which still normalises
+    ``a/../run.txt`` and any symlinked parent.
+    """
+    one, other = Path(one), Path(other)
+    try:
+        return one.samefile(other)
+    except OSError:
+        return one.resolve() == other.resolve()
+
+
+def _refuse_logs_that_are_one_file(labelled_paths):
+    """Each log has to be its own file, however the three were named.
+
+    ``import_results`` points all three at one path, and the run then appends
+    input rows and output rows into it. The completeness check reports the mess
+    afterwards, by which time the file it was given is already gone.
+    """
+    for index, (label, path) in enumerate(labelled_paths):
+        for other_label, other in labelled_paths[index + 1 :]:
+            if _points_at_the_same_file(path, other):
+                raise ValueError(
+                    f"{label} and {other_label} are the same file ('{path}' and "
+                    f"'{other}'). A run appends input rows and output rows "
+                    f"separately, so sharing one log writes both into it and "
+                    f"leaves neither readable. Give each its own file."
+                )
+
+
+def _refuse_export_options_that_break_a_line(export_config):
+    """Reject export options that would split one record over several lines.
+
+    The logs hold one JSON object per line and every reader here assumes it, so
+    ``indent`` of any kind, ``0`` and ``""`` included, leaves a file that the
+    completeness check calls damaged once the run it just finished is over.
+    """
+    if export_config.get("indent") is not None:
+        raise ValueError(
+            f"indent={export_config['indent']!r} cannot be used with a Monte "
+            f"Carlo run: the logs hold one JSON object per line, and an "
+            f"indented record spans several. Export the results with indent "
+            f"after the run instead."
+        )
+    separators = export_config.get("separators")
+    if separators and any("\n" in str(part) for part in separators):
+        raise ValueError(
+            f"separators={separators!r} cannot be used with a Monte Carlo run: "
+            f"a newline inside a record splits it across lines, and the logs "
+            f"hold one JSON object per line."
+        )
 
 
 class MonteCarlo:  # pylint: disable=too-many-public-methods
@@ -205,6 +314,19 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         -------
         None
 
+        Raises
+        ------
+        RuntimeError
+            If a parallel run does not finish. A worker that ends badly, one
+            that reports a failure, and logs that do not hold every simulation
+            asked for are each refused, since a run that lost work must not be
+            reported as one that completed.
+        KeyboardInterrupt
+            If the run is interrupted. The logs written so far are kept and
+            reloaded first, so the object agrees with its own files and the
+            run can be continued with ``append=True``, but the interrupt then
+            reaches the caller rather than being reported as a finished study.
+
         Notes
         -----
         If you need to stop the simulations after starting them, you can
@@ -223,16 +345,22 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         self.number_of_simulations = number_of_simulations
         self._initial_sim_idx = self.num_of_loaded_sims if append else 0
 
+        # Before anything is opened: __setup_files truncates for append=False.
+        _refuse_logs_this_run_cannot_write(
+            self.input_file, self.output_file, self.error_file, kwargs
+        )
+
         print("Starting Monte Carlo analysis")
 
         self.__setup_files(append)
 
-        if parallel:
-            self.__run_in_parallel(n_workers)
-        else:
-            self.__run_in_serial()
-
-        self.__terminate_simulation()
+        try:
+            if parallel:
+                self.__run_in_parallel(n_workers)
+            else:
+                self.__run_in_serial()
+        finally:
+            self.__terminate_simulation()
 
     def __setup_files(self, append):
         """
@@ -267,6 +395,45 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         except OSError as error:
             raise OSError(f"Error creating files: {error}") from error
 
+    def _append_simulation_record(self, inputs_json, outputs_json):
+        """Append one simulation's inputs and outputs as a paired record.
+
+        Writes the inputs row first, then the outputs row. If the outputs write
+        fails, the inputs file is truncated back to its size before this call so
+        the two files do not drift out of alignment.
+
+        Parameters
+        ----------
+        inputs_json : str
+            Serialized inputs row, including its trailing newline.
+        outputs_json : str
+            Serialized outputs row, including its trailing newline.
+        """
+        input_path = self.input_file
+        output_path = self.output_file
+
+        try:
+            previous_input_size = os.path.getsize(input_path)
+        except OSError:
+            previous_input_size = 0
+        try:
+            previous_output_size = os.path.getsize(output_path)
+        except OSError:
+            previous_output_size = 0
+
+        with open(input_path, "a", encoding="utf-8") as f:
+            f.write(inputs_json)
+
+        try:
+            with open(output_path, "a", encoding="utf-8") as f:
+                f.write(outputs_json)
+        except BaseException:
+            with open(input_path, "rb+") as f:
+                f.truncate(previous_input_size)
+            with open(output_path, "rb+") as f:
+                f.truncate(previous_output_size)
+            raise
+
     def __run_in_serial(self):
         """
         Runs the monte carlo simulation in serial mode.
@@ -280,6 +447,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             n_simulations=self.number_of_simulations,
             start_time=time(),
         )
+        inputs_json = ""
         try:
             while sim_monitor.keep_simulating():
                 sim_monitor.increment()
@@ -289,10 +457,8 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                 inputs_json = self.__evaluate_flight_inputs(sim_monitor.count)
                 outputs_json = self.__evaluate_flight_outputs(flight, sim_monitor.count)
 
-                with open(self.input_file, "a", encoding="utf-8") as f:
-                    f.write(inputs_json)
-                with open(self.output_file, "a", encoding="utf-8") as f:
-                    f.write(outputs_json)
+                self._append_simulation_record(inputs_json, outputs_json)
+                inputs_json = ""
 
                 sim_monitor.print_update_status()
 
@@ -300,8 +466,10 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
 
         except KeyboardInterrupt:
             print("Keyboard interrupt received. Files saved.")
-            with open(self._error_file, "a", encoding="utf-8") as f:
-                f.write(inputs_json)
+            if inputs_json:
+                with open(self._error_file, "a", encoding="utf-8") as f:
+                    f.write(inputs_json)
+            raise
 
         except Exception as error:
             print(f"Error on iteration {sim_monitor.count}: {error}")
@@ -341,22 +509,26 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             processes = []
             seeds = np.random.SeedSequence().spawn(n_workers)
 
-            for seed in seeds:
-                sim_producer = multiprocess.Process(
-                    target=self.__sim_producer,
-                    args=(
-                        seed,
-                        sim_monitor,
-                        mutex,
-                        simulation_error_event,
-                    ),
-                )
-                processes.append(sim_producer)
-                sim_producer.start()
-
             try:
-                for sim_producer in processes:
-                    sim_producer.join()
+                for seed in seeds:
+                    sim_producer = multiprocess.Process(
+                        target=self.__sim_producer,
+                        args=(
+                            seed,
+                            sim_monitor,
+                            mutex,
+                            simulation_error_event,
+                        ),
+                    )
+                    sim_producer.start()
+                    # Started first: one that never did cannot be joined, and
+                    # a later start failing still has to bring these down.
+                    processes.append(sim_producer)
+
+                _join_the_workers(processes, simulation_error_event)
+
+                # Before the event: a killed worker never sets it.
+                _refuse_a_worker_that_did_not_finish(processes)
 
                 # Handle error from the child processes
                 if simulation_error_event.is_set():
@@ -366,18 +538,23 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                         "for more information."
                     )
 
+                # An exit code cannot show a worker that left between
+                # claiming an index and recording it.
+                _refuse_logs_missing_a_simulation(
+                    self.input_file, self.output_file, self.number_of_simulations
+                )
+
                 sim_monitor.print_final_status()
 
-            # Handle error from the main process
-            # pylint: disable=broad-except
-            except (Exception, KeyboardInterrupt) as error:
-                simulation_error_event.set()
-
-                for sim_producer in processes:
-                    sim_producer.join()
-
-                if not isinstance(error, KeyboardInterrupt):
-                    raise error
+            # Handle error from the main process. Re-raising unconditionally
+            # is what makes an interrupted run tell the caller it was cut
+            # short instead of reporting itself as a finished study.
+            except (Exception, KeyboardInterrupt):
+                # Bounded here too. An unbounded join undid the bound above.
+                _stop_the_workers_still_running(
+                    processes, simulation_error_event, _SHUTDOWN_GRACE_SECONDS
+                )
+                raise
 
     def __validate_number_of_workers(self, n_workers):
         if n_workers is None or n_workers > os.cpu_count():
@@ -387,7 +564,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             raise ValueError("Number of workers must be at least 2 for parallel mode.")
         return n_workers
 
-    def __sim_producer(self, seed, sim_monitor, mutex, error_event):  # pylint: disable=too-many-statements
+    def __sim_producer(self, seed, sim_monitor, mutex, error_event):
         """Simulation producer to be used in parallel by multiprocessing.
 
         Parameters
@@ -401,6 +578,8 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         error_event : multiprocess.Event
             Event signaling an error occurred during the simulation.
         """
+        # The handler reads both, and a failure above the loop precedes them.
+        sim_idx, inputs_json = None, ""
         try:
             # Ensure Processes generate different random numbers
             self.environment._set_stochastic(seed)
@@ -431,27 +610,54 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
 
                         break
 
-                    with open(self.input_file, "a", encoding="utf-8") as f:
-                        f.write(inputs_json)
-                    with open(self.output_file, "a", encoding="utf-8") as f:
-                        f.write(outputs_json)
+                    self._append_simulation_record(inputs_json, outputs_json)
 
                     sim_monitor.print_update_status()
                 finally:
                     mutex.release()
 
-        except Exception:  # pylint: disable=broad-except
-            mutex.acquire()
-            with open(self.error_file, "a", encoding="utf-8") as f:
-                f.write(inputs_json)
+                # Nothing is in flight between two simulations, nor are these.
+                sim_idx, inputs_json = None, ""
 
-            # See note above: must use print() to remain visible from a
-            # multiprocessing worker process.
-            _SimMonitor.reprint(
-                f"Error on iteration {sim_idx}:\n{traceback.format_exc()}"
-            )
+        except Exception:  # pylint: disable=broad-except
+            if not self.__report_a_failed_simulation(
+                sim_idx, inputs_json, mutex, error_event
+            ):
+                # The event could not be set; the exit code is what is left.
+                raise
+
+    def __report_a_failed_simulation(self, sim_idx, inputs_json, mutex, error_event):
+        """Write down and announce a simulation this worker could not finish.
+
+        The event goes first and from outside the lock, since a worker that
+        cannot write its diagnostics still has to be able to stop the others.
+        Each step under the lock is suppressed on its own: a full disk would
+        otherwise replace the failure being reported, and the lock is a
+        manager's, so ending while holding it leaves the next worker waiting
+        on a process that no longer exists.
+        """
+        details = traceback.format_exc()
+        where = "worker startup" if sim_idx is None else f"iteration {sim_idx}"
+        announced = False
+        with suppress(_MANAGER_IS_GONE):
             error_event.set()
-            mutex.release()
+            announced = True
+
+        held = False
+        with suppress(*_MANAGER_IS_GONE):
+            held = mutex.acquire(timeout=_REPORT_LOCK_SECONDS)
+        try:
+            with suppress(OSError):
+                with open(self.error_file, "a", encoding="utf-8") as f:
+                    f.write(_worker_failure_record(where, details, inputs_json))
+            with suppress(OSError, ValueError):
+                # Must use print() to remain visible from a worker process.
+                _SimMonitor.reprint(f"Error on {where}:\n{details}")
+        finally:
+            if held:
+                with suppress(*_MANAGER_IS_GONE):
+                    mutex.release()
+        return announced
 
     def __run_single_simulation(self):
         """Runs a single simulation and returns the inputs and outputs.
@@ -461,15 +667,31 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         Flight
             The flight object of the simulation.
         """
+        rocket = self.rocket.create_object()
+        environment = self.environment.create_object()
+        flight_inputs = self.flight._sample_flight_inputs()
         return Flight(
-            rocket=self.rocket.create_object(),
-            environment=self.environment.create_object(),
-            rail_length=self.flight._randomize_rail_length(),
-            inclination=self.flight._randomize_inclination(),
-            heading=self.flight._randomize_heading(),
+            rocket=rocket,
+            environment=environment,
+            rail_length=flight_inputs["rail_length"],
+            inclination=flight_inputs["inclination"],
+            heading=flight_inputs["heading"],
             initial_solution=self.flight.initial_solution,
             terminate_on_apogee=self.flight.terminate_on_apogee,
             time_overshoot=self.flight.time_overshoot,
+            # The rest of what StochasticFlight.create_object passes. Left out
+            # here, a run ignored the max_time, tolerances, solver, equations of
+            # motion and simulation mode the caller had set, which is what #1070
+            # added StochasticFlight's own handling of them for.
+            max_time=self.flight.max_time,
+            max_time_step=self.flight.obj.max_time_step,
+            min_time_step=self.flight.obj.min_time_step,
+            rtol=self.flight.obj.rtol,
+            atol=self.flight.obj.atol,
+            name=self.flight.obj.name,
+            equations_of_motion=self.flight.obj.equations_of_motion,
+            ode_solver=self.flight.obj.ode_solver,
+            simulation_mode=self.flight.obj.simulation_mode,
         )
 
     def estimate_confidence_interval(
@@ -840,6 +1062,13 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
                         "Invalid 'data_collector' key! "
                         f"Variable names overwrites 'export_list' key '{key}'."
                     )
+                if key == _SIMULATION_INDEX_KEY:
+                    raise ValueError(
+                        f"Invalid 'data_collector' key '{key}'! It is the "
+                        f"number of the simulation the row belongs to, which "
+                        f"is written after the collectors run and cannot be "
+                        f"replaced by one."
+                    )
                 if not callable(callback):
                     raise ValueError(
                         f"Invalid value in 'data_collector' for key '{key}'! "
@@ -1170,8 +1399,12 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
 
     def set_processed_results(self):
         """
-        Creates a dictionary with the mean and standard deviation of each
-        parameter available in the results.
+        Create summary statistics for scalar, real-valued results.
+
+        Structured and non-numeric results remain available in ``results``.
+        Their entry in ``processed_results`` contains five ``None`` values
+        because a scalar mean, median, standard deviation, and prediction
+        interval are not defined for those values.
 
         Returns
         -------
@@ -1179,19 +1412,18 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         """
         self.processed_results = {}
         for result, values in self.results.items():
-            try:
-                mean = np.mean(values)
-                stdev = np.std(values)
-                self.processed_results[result] = (mean, stdev)
-                pi_low = np.quantile(values, 0.025)
-                pi_high = np.quantile(values, 0.975)
-                median = np.median(values)
-            except TypeError:
-                mean = None
-                stdev = None
-                pi_low = None
-                pi_high = None
-                median = None
+            if not values or not all(
+                isinstance(value, Real) and not isinstance(value, (bool, np.bool_))
+                for value in values
+            ):
+                self.processed_results[result] = (None, None, None, None, None)
+                continue
+
+            mean = np.mean(values)
+            stdev = np.std(values)
+            pi_low = np.quantile(values, 0.025)
+            pi_high = np.quantile(values, 0.975)
+            median = np.median(values)
             self.processed_results[result] = (mean, median, stdev, pi_low, pi_high)
 
     # Import methods
@@ -1216,7 +1448,9 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
         -----
         Notice that you can import the outputs, inputs, and errors from a
         file without the need to run simulations. You can use previously saved
-        files to process analyze the results or to continue a simulation.
+        files to process and analyze the results, and a ``.txt`` one to continue
+        a simulation. A ``.csv`` or ``.json`` is read-only here: ``simulate``
+        writes JSONL and refuses to run over a file it could not read back.
         """
         filepath = filename if filename else self.filename.with_suffix(".outputs.txt")
 
@@ -1377,7 +1611,7 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             except KeyError as e:
                 raise KeyError("No impact data found. Skipping impact ellipses.") from e
 
-        (apogee_ellipses, impact_ellipses) = generate_monte_carlo_ellipses(
+        apogee_ellipses, impact_ellipses = generate_monte_carlo_ellipses(
             impact_x,
             impact_y,
             apogee_x,
@@ -1605,6 +1839,192 @@ class MonteCarlo:  # pylint: disable=too-many-public-methods
             If no error data is available to export.
         """
         self._write_log_to_json(self.errors_log, filename)
+
+
+# Prompt enough to notice a dead worker, cheap enough over a run of hours.
+_JOIN_POLL_SECONDS = 0.2
+_SHUTDOWN_GRACE_SECONDS = 5.0
+
+
+def _ended_badly(worker):
+    """Whether a worker has stopped, and stopped for the wrong reason."""
+    return worker.exitcode not in (None, 0)
+
+
+def _a_failure_was_reported(error_event):
+    """Whether a worker has said it failed, false if it cannot be asked."""
+    with suppress(*_MANAGER_IS_GONE):
+        return error_event.is_set()
+    return False
+
+
+def _wait_for_the_workers(processes, seconds):
+    """Join every worker against one shared deadline, not one each.
+
+    Monotonic, since a clock correction would move a wall-clock deadline.
+    """
+    deadline = monotonic() + seconds
+    for worker in processes:
+        worker.join(timeout=max(0.0, deadline - monotonic()))
+
+
+def _stop_the_workers_still_running(processes, error_event, grace_period):
+    """Ask the rest to stop, end what cannot, kill what outlives that.
+
+    Asked first because a worker between simulations reads the event and leaves
+    with its logs intact. One blocked on a lock its dead sibling was holding
+    never reaches that check. Terminate runs no handlers, so it comes second,
+    and a worker can still ignore it.
+    """
+    with suppress(_MANAGER_IS_GONE):
+        error_event.set()
+    _wait_for_the_workers(processes, grace_period)
+
+    for worker in processes:
+        if worker.is_alive():
+            worker.terminate()
+    _wait_for_the_workers(processes, grace_period)
+
+    for worker in processes:
+        if worker.is_alive():
+            worker.kill()
+    _wait_for_the_workers(processes, grace_period)
+
+
+def _join_the_workers(processes, error_event, grace_period=_SHUTDOWN_GRACE_SECONDS):
+    """Wait for the workers, and stop once one of them has failed.
+
+    A reported failure ends the wait as well as a bad exit code, since a
+    worker that reports one leaves cleanly and says nothing through its exit
+    status. Its siblings read the event between simulations, but one blocked
+    on a lock nobody owns never reaches that check, and the run is already
+    short a simulation either way, so the wait is bounded here rather than
+    left to them. The reported path gets the longer grace: those siblings are
+    working, not stuck.
+
+    Slowness alone ends nothing. With no failure reported a healthy worker is
+    given as long as it needs.
+    """
+    while any(worker.is_alive() for worker in processes):
+        for worker in processes:
+            worker.join(timeout=_JOIN_POLL_SECONDS)
+        if any(_ended_badly(worker) for worker in processes):
+            _stop_the_workers_still_running(processes, error_event, grace_period)
+            return
+        if _a_failure_was_reported(error_event):
+            _stop_the_workers_still_running(
+                processes, error_event, _REPORTED_FAILURE_GRACE_SECONDS
+            )
+            return
+
+
+def _worker_failure_record(where, details, inputs_json=""):
+    """A row saying what failed, and what the simulation had drawn so far.
+
+    The inputs alone left the error file with no stage and no traceback, which
+    is what the caller is sent there to read.
+    """
+    record = {"index": None, "stage": where, "error": details}
+    with suppress(ValueError):
+        drawn = json.loads(inputs_json)
+        if isinstance(drawn, dict):
+            record["index"] = drawn.get("index")
+            record["inputs"] = drawn
+    return json.dumps(record) + "\n"
+
+
+def _indices_a_log_holds(path):
+    """Every index a log records, in order, and ``None`` for a row it cannot."""
+    found = []
+    with open(path, "r", encoding="utf-8") as recorded:
+        for line in recorded:
+            if not line.strip():
+                continue
+            try:
+                index = json.loads(line)["index"]
+            except (ValueError, KeyError, TypeError):
+                found.append(None)
+                continue
+            usable = (
+                isinstance(index, int) and not isinstance(index, bool) and index >= 0
+            )
+            found.append(index if usable else None)
+    return found
+
+
+def _refuse_logs_missing_a_simulation(input_file, output_file, target):
+    """Raise unless both logs hold every simulation the run was asked for.
+
+    An exit code says how a worker ended, never whether the index it had
+    already claimed reached the logs, and the monitor counts claims rather than
+    rows. A worker that leaves between the two is invisible to everything else
+    here, so the logs themselves are what the run is judged on.
+
+    Rows numbered past the target are left alone: an append given a smaller
+    target than the checkpoint already holds is an append question, not a lost
+    simulation. What each log holds still has to be the consecutive run it
+    claims to be, so its indices are required to be exactly as many as its
+    rows, which refuses a stray number and a hole without needing to be told
+    how long the checkpoint was. The two logs must also agree row for row,
+    since a record goes into both under one lock. Streamed rather than read
+    through ``_read_log_file``, which would hold every row in memory.
+    """
+    wanted = set(range(target))
+    recorded = {}
+    for label, path in (("input", input_file), ("output", output_file)):
+        found = _indices_a_log_holds(path)
+        recorded[label] = found
+        held = set(found)
+        if None in held:
+            raise RuntimeError(
+                f"The run is incomplete: the {label} log has rows that cannot "
+                f"be read, so what it holds cannot be established."
+            )
+        if len(found) != len(held):
+            raise RuntimeError(
+                f"The run is incomplete: the {label} log records "
+                f"{len(found) - len(held)} simulation(s) more than once."
+            )
+        missing = sorted(wanted - held)
+        if missing:
+            raise RuntimeError(
+                f"The run is incomplete: the {label} log is missing "
+                f"{len(missing)} of {target} simulations, the first being "
+                f"{missing[0]}."
+            )
+        strays = sorted(held - set(range(len(found))))
+        if strays:
+            raise RuntimeError(
+                f"The run is incomplete: the {label} log numbers a simulation "
+                f"{strays[0]}, past the {len(found)} it holds, so what it "
+                f"records is not one run of consecutive simulations."
+            )
+
+    if recorded["input"] != recorded["output"]:
+        raise RuntimeError(
+            "The run is incomplete: the input and output logs do not record "
+            "the same simulations in the same order. A record is written to "
+            "both under one lock, so they hold two different runs."
+        )
+
+
+def _refuse_a_worker_that_did_not_finish(processes):
+    """Raise if any worker left without exiting cleanly.
+
+    A negative code is the signal that ended it, ``None`` one still running.
+    """
+    unfinished = [
+        f"worker {position} with exit code {process.exitcode}"
+        for position, process in enumerate(processes)
+        if process.exitcode != 0
+    ]
+    if not unfinished:
+        return
+    raise RuntimeError(
+        f"The run is incomplete: {', '.join(unfinished)}. A worker that ends "
+        "this way records nothing and cannot say why, so the simulations it "
+        "held are missing from the results."
+    )
 
 
 def _import_multiprocess():

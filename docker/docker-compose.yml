@@ -1,10 +1,10 @@
 version: '3.8'
 
 services:
-  python39-linux:
-    image: python:3.9
+  python310-linux:
+    image: python:3.10
     volumes:
-      - .:/app
+      - ..:/app
     working_dir: /app
     command: bash -c "pip install . && pip install -r requirements-tests.txt && pytest && cd rocketpy && pytest --doctest-modules"
     logging:
@@ -15,7 +15,7 @@ services:
   python312-linux:
     image: python:3.12
     volumes:
-      - .:/app
+      - ..:/app
     working_dir: /app
     command: bash -c "pip install . && pip install -r requirements-tests.txt && pytest && cd rocketpy && pytest --doctest-modules"
     logging:

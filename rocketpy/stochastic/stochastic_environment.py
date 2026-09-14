@@ -182,16 +182,29 @@ class StochasticEnvironment(StochasticModel):
         member attribute.
         """
         generated_dict = next(self.dict_generator())
+        factors = {}
+        member_selected = False
         for key, value in generated_dict.items():
             # special case for ensemble member
             # TODO: Generalize create_object() with a env.ensemble_member setter
             if key == "ensemble_member":
                 self.obj.select_ensemble_member(value)
+                member_selected = True
+            elif "factor" in key:
+                factors[key.replace("_factor", "")] = value
             else:
-                if "factor" in key:
-                    # get original attribute value and multiply by factor
-                    attribute_name = f"_{key.replace('_factor', '')}"
-                    value = getattr(self, attribute_name) * value
-                    key = f"{key.replace('_factor', '')}"
                 setattr(self.obj, key, value)
+
+        # Applied last, and not where the loop met them: select_ensemble_member
+        # rebuilds the wind from the member's own profile, so a factor scaled in
+        # earlier is discarded. Which one runs first is only __dict__ order.
+        for attribute_name, factor in factors.items():
+            if member_selected:
+                # The member just loaded is the baseline. The construction-time
+                # one belongs to whichever member was active back then.
+                baseline = getattr(self.obj, attribute_name)
+            else:
+                # Construction-time value, so repeated calls do not compound.
+                baseline = getattr(self, f"_{attribute_name}")
+            setattr(self.obj, attribute_name, baseline * factor)
         return self.obj

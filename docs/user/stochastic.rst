@@ -94,6 +94,67 @@ passed in a few different ways:
     :ref:`custom_sampler` for more details.
 
 .. note::
+    The formats above assume each argument holds a single number. The
+    ``shape_points`` of :class:`rocketpy.stochastic.StochasticFreeFormFins` is
+    the exception: a fin outline is only meaningful as a complete set of points,
+    so the deviation given applies to the outline as a block, with every
+    coordinate of every point perturbed by its own draw. The fin root is held on
+    the body line, so a point nominally at ``y = 0`` keeps that value and no
+    point ends up inside the airframe.
+
+    Because the deviation has to centre on the nominal coordinate, only the
+    distributions that read their first argument as that centre can be used here:
+    *"normal"*, *"gumbel"*, *"laplace"* and *"logistic"*. The others take bounds
+    (*"uniform"*) or shape parameters (*"wald"*, *"gamma"*, ...), which a set of
+    coordinates cannot be, and are rejected when the object is created.
+
+    A list means either one fixed outline, used as given, or a list of candidate
+    outlines to choose between, which do not have to have the same number of
+    points::
+
+        # One millimetre of deviation on every coordinate
+        StochasticFreeFormFins(free_form_fins=fins, shape_points=0.001)
+
+        # One fixed outline, not randomized
+        StochasticFreeFormFins(
+            free_form_fins=fins,
+            shape_points=[(0, 0), (0.08, 0.1), (0.12, 0)],
+        )
+
+        # Choose between two outlines
+        StochasticFreeFormFins(
+            free_form_fins=fins,
+            shape_points=[[(0, 0), (0.08, 0.1), (0.12, 0)], [(0, 0), (0.06, 0.12), (0.12, 0)]],
+        )
+
+    A ``CustomSampler`` given for this argument has to yield a whole outline per
+    sample, since what it returns replaces the outline instead of perturbing it.
+
+.. note::
+    Where the nominal value comes from the deterministic object, it is read when
+    that input is configured and kept from then on, so changing the deterministic
+    object afterwards does not move what is sampled around. Neither does a
+    ``MonteCarlo`` run: some ``create_object`` paths write the sampled value
+    back onto the object they were given rather than building a copy, and
+    re-reading it would take one simulation's output as the next one's nominal.
+    Arrays and the built-in containers are copied on the way in and on the way
+    out, so writing through a generated object does not reach the kept value
+    either.
+
+    Four things sit outside that rule on purpose:
+
+    - an input installed by an ``add_*`` method, an eccentricity for instance, is
+      read when it is added rather than when the object is built;
+    - a component's position is read from its own component on every reset, since
+      each of them arrives under the one name ``position``;
+    - an ensemble wind factor scales the selected member's own profile, because
+      ``select_ensemble_member`` rebuilds the wind and the value from before it
+      belongs to whichever member was loaded then;
+    - anything that is not an array or a built-in container, a ``Function`` or a
+      callable among them, is kept by reference and follows the object it came
+      from.
+
+.. note::
     In statistics, the terms "Normal" and "Gaussian" refer to the same type of \
     distribution. This distribution is commonly used and is the default for the \
     ``Stochastic`` classes in RocketPy.
@@ -240,6 +301,45 @@ reliability of your simulations over time.
 .. RocketPy offers a ``Sensitivity Analysis toolkit``, which can help you to identify
 .. which parameters most significantly impact your simulation results.
 
+
+Seeding a rocket's components
+-----------------------------
+
+A ``StochasticRocket`` holds nested stochastic objects: the motors, the
+aerodynamic surfaces, the rail buttons, the parachutes and the air brakes. Each
+time the rocket is reset, every component attached to it at that moment is given
+a stream of its own, spawned from the seed the reset was given. A main and a
+drogue parachute built from the same ``cd_s`` and ``lag`` are then no longer
+made to consume the same draws as each other. Independent streams can still land
+on equal values, and a specification with no spread always will.
+
+The reset is what builds the tree, not ``add_parachute`` or ``add_nose``. A
+rocket resets itself once while being constructed, when it has no components
+yet, so anything attached afterwards keeps the generator it was built with until
+something resets it again. A serial ``MonteCarlo`` run does not reset it at
+all. A parallel one tries to, once per worker, but hands the model a
+``SeedSequence`` where an integer is wanted, so that path does not get as far
+as building the tree either. Resetting per simulation, from an integer seed the
+caller chooses, is what the Monte Carlo seeding work adds.
+
+Each collection is spawned separately, so adding an aerodynamic surface does not
+move what the parachutes draw. Within a collection the stream follows insertion
+order, so adding a component ahead of another does change what the later one
+draws under a fixed seed. The rocket's own inputs, such as ``mass`` and
+``radius``, use the seed exactly as given.
+
+.. note::
+    A component's *position* is a property of the rocket rather than of the
+    component, so it is drawn from the rocket's own stream.
+
+.. note::
+    A stream belongs to one stochastic wrapper. Storing the same wrapper twice,
+    or sharing one between two rockets, is not supported: the second reset
+    replaces the first, and the two entries end up drawing from one generator.
+
+    A shared ``CustomSampler.seed_group`` keeps its own rule: a group belongs to
+    one model. Sharing one between two components leaves each of them seeding it
+    from their own child, and the last one to be reset decides what both draw.
 
 Conclusion
 ----------

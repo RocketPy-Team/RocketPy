@@ -1,15 +1,53 @@
 import os
+from datetime import datetime
 from unittest.mock import patch
 
 import matplotlib as plt
 import pytest
 
+from rocketpy import EnvironmentAnalysis
 from rocketpy.tools import import_optional_dependency
 
 plt.rcParams.update({"figure.max_open_warning": 0})
 
 
-@pytest.mark.slow
+@patch("rocketpy.environment.environment_analysis._EnvironmentAnalysisPlots")
+@patch("rocketpy.environment.environment_analysis._EnvironmentAnalysisPrints")
+@patch.object(
+    EnvironmentAnalysis,
+    "_EnvironmentAnalysis__check_requirements",
+)
+@patch(
+    "rocketpy.environment.environment_analysis.import_optional_dependency",
+    side_effect=ImportError("timezonefinder is not installed"),
+)
+def test_missing_timezonefinder_defaults_to_utc(
+    _mock_import_optional_dependency,
+    _mock_check_requirements,
+    _mock_prints,
+    _mock_plots,
+):
+    """Use UTC when automatic timezone detection is unavailable."""
+    # Arrange
+    start_date = datetime(2026, 1, 1)
+    end_date = datetime(2026, 1, 2)
+
+    # Act
+    with pytest.warns(UserWarning, match="defaulting to UTC"):
+        analysis = EnvironmentAnalysis(
+            start_date=start_date,
+            end_date=end_date,
+            latitude=0,
+            longitude=0,
+            timezone=None,
+        )
+
+    # Assert
+    assert analysis.preferred_timezone.zone == "UTC"
+    assert analysis.start_date.tzinfo is not None
+    assert analysis.end_date.tzinfo is not None
+
+
 @patch("matplotlib.pyplot.show")
 def test_distribution_plots(mock_show, env_analysis):  # pylint: disable=unused-argument
     """Tests the distribution plots method of the EnvironmentAnalysis class. It
@@ -40,7 +78,6 @@ def test_distribution_plots(mock_show, env_analysis):  # pylint: disable=unused-
     )
 
 
-@pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_average_plots(mock_show, env_analysis):  # pylint: disable=unused-argument
     """Tests the average plots method of the EnvironmentAnalysis class. It
@@ -66,7 +103,6 @@ def test_average_plots(mock_show, env_analysis):  # pylint: disable=unused-argum
     assert env_analysis.plots.average_wind_rose_specific_hour(12) is None
 
 
-@pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_profile_plots(mock_show, env_analysis):  # pylint: disable=unused-argument
     """Check the profile plots method of the EnvironmentAnalysis class. It
@@ -108,7 +144,6 @@ def test_profile_plots(mock_show, env_analysis):  # pylint: disable=unused-argum
     )
 
 
-@pytest.mark.slow
 def test_values(env_analysis):
     """Check the numeric properties of the EnvironmentAnalysis class. It computes
     a few values and compares them to the expected values. Not all the values are
@@ -132,7 +167,6 @@ def test_values(env_analysis):
     assert pytest.approx(env_analysis.std_pressure_at_30000ft, 1e-6) == 38.48947
 
 
-@pytest.mark.slow
 @patch("matplotlib.pyplot.show")
 def test_animation_plots(mock_show, env_analysis):  # pylint: disable=unused-argument
     """Check the animation plots method of the EnvironmentAnalysis class. It
@@ -163,7 +197,6 @@ def test_animation_plots(mock_show, env_analysis):  # pylint: disable=unused-arg
     os.remove("wind_rose.gif")  # remove the files created by the method
 
 
-@pytest.mark.slow
 def test_pressure_level_wind_profile_uses_velocity_components(env_analysis):
     """Regression for PR #1041: the redundant per-level ``wind_heading`` and
     ``wind_direction`` functions were removed from the pressure-level data.

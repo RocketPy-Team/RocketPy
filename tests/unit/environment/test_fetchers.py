@@ -350,3 +350,154 @@ def test_fetch_meteomatics_data_converts_date_to_utc(monkeypatch):
     data_calls = [c for c in calls if c[0] != fetchers.METEOMATICS_LOGIN_URL]
     assert data_calls, "expected at least one data request"
     assert all("2024-01-01T09:00:00Z" in url for url, _ in data_calls)
+
+
+_FORECAST_MODELS_XML = """<?xml version="1.0" encoding="UTF-8"?>
+<catalog xmlns="http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0"
+         xmlns:xlink="http://www.w3.org/1999/xlink"
+         name="NCEP models" version="1.2">
+  <catalogRef xlink:href="/thredds/catalog/grib/NCEP/GFS/Global_0p25deg/catalog.xml"
+              xlink:title="GFS Quarter Degree Forecast"
+              name="GFS Quarter Degree Forecast"/>
+  <catalogRef xlink:href="/thredds/catalog/grib/NCEP/NAM/CONUS_12km/catalog.xml"
+              xlink:title="NAM CONUS 12km from NOAAPORT"
+              name="NAM CONUS 12km from NOAAPORT"/>
+</catalog>
+"""
+
+_GFS_COLLECTION_XML = """<?xml version="1.0" encoding="UTF-8"?>
+<catalog xmlns="http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0"
+         xmlns:xlink="http://www.w3.org/1999/xlink"
+         name="GFS Quarter Degree Forecast" version="1.2">
+  <dataset name="Best GFS Quarter Degree Forecast Time Series"
+           urlPath="grib/NCEP/GFS/Global_0p25deg/Best"/>
+  <dataset name="Latest Collection for GFS Quarter Degree Forecast"
+           urlPath="latest.xml"/>
+  <catalogRef
+      xlink:href="/thredds/catalog/grib/NCEP/GFS/Global_0p25deg/GFS_Global_0p25deg_20260810_1200.grib2/catalog.xml"
+      xlink:title="GFS_Global_0p25deg_20260810_1200.grib2"
+      name="GFS_Global_0p25deg_20260810_1200.grib2"
+      urlPath="grib/NCEP/GFS/Global_0p25deg/GFS_Global_0p25deg_20260810_1200.grib2"/>
+  <catalogRef
+      xlink:href="/thredds/catalog/grib/NCEP/GFS/Global_0p25deg/GFS_Global_0p25deg_20260810_1800.grib2/catalog.xml"
+      xlink:title="GFS_Global_0p25deg_20260810_1800.grib2"
+      name="GFS_Global_0p25deg_20260810_1800.grib2"
+      urlPath="grib/NCEP/GFS/Global_0p25deg/GFS_Global_0p25deg_20260810_1800.grib2"/>
+  <catalogRef
+      xlink:href="/thredds/catalog/grib/NCEP/GFS/Global_0p25deg/GFS_Global_0p25deg_20260809_1800.grib2/catalog.xml"
+      xlink:title="GFS_Global_0p25deg_20260809_1800.grib2"
+      name="GFS_Global_0p25deg_20260809_1800.grib2"
+      urlPath="grib/NCEP/GFS/Global_0p25deg/GFS_Global_0p25deg_20260809_1800.grib2"/>
+</catalog>
+"""
+
+_GFS_LATEST_XML = """<?xml version="1.0" encoding="UTF-8"?>
+<catalog xmlns="http://www.unidata.ucar.edu/namespaces/thredds/InvCatalog/v1.0"
+         name="GFS_Global_0p25deg_20260810_1800.grib2" version="1.2">
+  <dataset name="GFS_Global_0p25deg_20260810_1800.grib2"
+           urlPath="grib/NCEP/GFS/Global_0p25deg/GFS_Global_0p25deg_20260810_1800.grib2"/>
+</catalog>
+"""
+
+
+class _FakeCatalogResponse:
+    """Minimal response object for mocked NOAA/THREDDS catalog GETs."""
+
+    def __init__(self, text, status_code=200):
+        self.text = text
+        self.content = text.encode("utf-8")
+        self.status_code = status_code
+
+
+def _install_noaa_catalog_mocks(monkeypatch, *, include_latest=True):
+    """Patch ``requests.get`` with canned forecast-model and GFS catalogs."""
+
+    def fake_get(url, timeout=None, **_kwargs):
+        del timeout
+        if url.endswith("forecastModels.xml") or "idd/forecastModels.xml" in url:
+            return _FakeCatalogResponse(_FORECAST_MODELS_XML)
+        if url.endswith("/latest.xml"):
+            if include_latest:
+                return _FakeCatalogResponse(_GFS_LATEST_XML)
+            return _FakeCatalogResponse("missing", status_code=404)
+        if url.endswith("/Global_0p25deg/catalog.xml"):
+            return _FakeCatalogResponse(_GFS_COLLECTION_XML)
+        return _FakeCatalogResponse("unexpected", status_code=404)
+
+    monkeypatch.setattr(fetchers.requests, "get", fake_get)
+    return fake_get
+
+
+def test_list_noaa_atmosphere_datasets_parses_catalog_refs(monkeypatch):
+    """List NCEP collections from the mocked forecast-models catalog."""
+    _install_noaa_catalog_mocks(monkeypatch)
+
+    datasets = fetchers.list_noaa_atmosphere_datasets()
+
+    assert [entry["name"] for entry in datasets] == [
+        "GFS Quarter Degree Forecast",
+        "NAM CONUS 12km from NOAAPORT",
+    ]
+    assert datasets[0]["collection_path"] == "grib/NCEP/GFS/Global_0p25deg"
+    assert datasets[0]["opendap_best_url"].endswith("grib/NCEP/GFS/Global_0p25deg/Best")
+
+
+def test_list_noaa_dataset_identifiers_sorts_runs_newest_first(monkeypatch):
+    """GFS run identifiers should sort by embedded timestamp, newest first."""
+    _install_noaa_catalog_mocks(monkeypatch)
+
+    identifiers = fetchers.list_noaa_dataset_identifiers("GFS")
+
+    assert identifiers[0] == "GFS_Global_0p25deg_20260810_1800.grib2"
+    assert identifiers[1] == "GFS_Global_0p25deg_20260810_1200.grib2"
+    assert "Best" in identifiers
+
+
+def test_get_latest_noaa_opendap_url_uses_latest_xml(monkeypatch):
+    """Prefer THREDDS latest.xml when resolving the newest GFS run."""
+    _install_noaa_catalog_mocks(monkeypatch, include_latest=True)
+
+    url = fetchers.get_latest_noaa_opendap_url("GFS")
+
+    assert url == (
+        "https://thredds.ucar.edu/thredds/dodsC/"
+        "grib/NCEP/GFS/Global_0p25deg/GFS_Global_0p25deg_20260810_1800.grib2"
+    )
+
+
+def test_get_latest_noaa_dataset_identifier_falls_back_without_latest_xml(
+    monkeypatch,
+):
+    """When latest.xml is missing, choose the newest listed grib2 run."""
+    _install_noaa_catalog_mocks(monkeypatch, include_latest=False)
+
+    identifier = fetchers.get_latest_noaa_dataset_identifier("gfs")
+
+    assert identifier == "GFS_Global_0p25deg_20260810_1800.grib2"
+
+
+def test_fetch_latest_noaa_dataset_opens_resolved_url(monkeypatch):
+    """fetch_latest_noaa_dataset should open the resolved OPeNDAP URL."""
+    _install_noaa_catalog_mocks(monkeypatch)
+    calls = []
+    sentinel = object()
+
+    def fake_dataset(url):
+        calls.append(url)
+        return sentinel
+
+    monkeypatch.setattr(fetchers.netCDF4, "Dataset", fake_dataset)
+
+    dataset = fetchers.fetch_latest_noaa_dataset("GFS", max_attempts=2, base_delay=2)
+
+    assert dataset is sentinel
+    assert calls == [
+        "https://thredds.ucar.edu/thredds/dodsC/"
+        "grib/NCEP/GFS/Global_0p25deg/GFS_Global_0p25deg_20260810_1800.grib2"
+    ]
+
+
+def test_resolve_noaa_collection_path_rejects_unknown_model():
+    """Unknown shortcuts must fail with an actionable ValueError."""
+    with pytest.raises(ValueError, match="Unknown NOAA model collection"):
+        fetchers.resolve_noaa_collection_path("not-a-model")

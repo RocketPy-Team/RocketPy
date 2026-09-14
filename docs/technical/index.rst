@@ -15,6 +15,7 @@ in their code.
    Tip-off <tip_off.rst>
    Elliptical Fins <aerodynamics/elliptical_fins.rst>
    Individual Fin <aerodynamics/individual_fins.rst>
+   Tube Fins <aerodynamics/tube_fins.rst>
    Roll Moment <aerodynamics/roll_equations.rst>
    Sensitivity Analysis <sensitivity.rst>
    References <references.rst>

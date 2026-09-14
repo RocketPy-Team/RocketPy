@@ -9,6 +9,7 @@ from .custom_sampler import CustomSampler
 from .stochastic_aero_surfaces import (
     StochasticAirBrakes,
     StochasticEllipticalFins,
+    StochasticFreeFormFins,
     StochasticNoseCone,
     StochasticRailButtons,
     StochasticTail,
