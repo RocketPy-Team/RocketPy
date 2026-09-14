@@ -1828,7 +1828,7 @@ class Rocket:
                 ``add_air_brakes`` is deprecated. Provide initial observed
                 variables via the ``context`` parameter as
                 ``context={'observed_variables': [...]}`` instead. Support
-                for the positional argument will be removed in v1.13.
+                for the positional argument will be removed in v1.16.
         override_rocket_drag : bool, optional
             If False, the air brakes drag coefficient will be added to the
             rocket's power off drag coefficient curve. If True, during the
@@ -1882,7 +1882,7 @@ class Rocket:
             warnings.warn(
                 "Passing `initial_observed_variables` to `add_air_brakes` is "
                 "deprecated; supply them via `context={'observed_variables': ...}` "
-                "instead. Support for this argument will be removed in v1.13.",
+                "instead. Support for this argument will be removed in v1.16.",
                 DeprecationWarning,
             )
             controller_context["observed_variables"] = initial_observed_variables
@@ -1920,7 +1920,7 @@ class Rocket:
                 "Calling controller_function with positional arguments is "
                 "deprecated; use controller_function(**kwargs) instead. "
                 "Support for positional controller arguments will be removed "
-                "in v1.13.",
+                "in v1.16.",
                 DeprecationWarning,
                 stacklevel=2,
             )

@@ -263,7 +263,7 @@ class Parachute:
         if noise[0] != 0 or noise[1] != 0 or noise[2] != 0:
             warnings.warn(
                 "The `noise` parameter on Parachute is deprecated and has no "
-                "effect; it will be removed in v1.13. Use a Sensor (e.g. a "
+                "effect; it will be removed in v1.16. Use a Sensor (e.g. a "
                 "Barometer) with built-in noise instead, and read the noisy "
                 "measurement via `kwargs['sensors_by_name']` in your trigger "
                 "function.",
@@ -304,7 +304,7 @@ class Parachute:
                 # Legacy positional-style trigger: (p, h, y[, sensors])
                 warnings.warn(
                     "Positional-argument parachute triggers (e.g. `trigger(p, h, y)`) "
-                    "are deprecated and will be removed in v1.13. Define the trigger "
+                    "are deprecated and will be removed in v1.16. Define the trigger "
                     "to accept `**kwargs` only and read values such as "
                     "`kwargs['pressure']`, `kwargs['height_agl']` and "
                     "`kwargs['state']`. See the Event documentation for the full list "
@@ -456,7 +456,7 @@ class Parachute:
     @funcify_method("Time (s)", "Pressure Noise (Pa)", "linear", "constant")
     def noise_signal_function(self):
         warnings.warn(
-            "noise_signal_function is deprecated and will be removed in v1.13. "
+            "noise_signal_function is deprecated and will be removed in v1.16. "
             "Use a Sensor with built-in noise instead.",
             DeprecationWarning,
             stacklevel=2,
@@ -467,7 +467,7 @@ class Parachute:
     def clean_pressure_signal_function(self):
         warnings.warn(
             "clean_pressure_signal_function is deprecated and will be removed "
-            "in v1.13. Use a Sensor with built-in noise instead.",
+            "in v1.16. Use a Sensor with built-in noise instead.",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -477,7 +477,7 @@ class Parachute:
     def noisy_pressure_signal_function(self):
         warnings.warn(
             "noisy_pressure_signal_function is deprecated and will be removed "
-            "in v1.13. Use a Sensor with built-in noise instead.",
+            "in v1.16. Use a Sensor with built-in noise instead.",
             DeprecationWarning,
             stacklevel=2,
         )

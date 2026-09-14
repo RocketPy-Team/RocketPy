@@ -2751,10 +2751,9 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
             simulation_mode=data.get("simulation_mode", "6DOF"),
         )
 
-    # These should be deprecated on v1.13
     @deprecated(
         reason="Controller observed variables are no longer supported.",
-        version="v1.13.0",
+        version="v1.16.0",
         alternative="Access the desired variables via controller.log",
     )
     def get_controller_observed_variables(self):
@@ -2843,7 +2842,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
 
     @deprecated(
         reason="Moved to rocketpy.utilities.calculate_stall_wind_velocity",
-        version="v1.13.0",
+        version="v1.16.0",
         alternative="rocketpy.utilities.calculate_stall_wind_velocity",
     )
     def calculate_stall_wind_velocity(self, stall_angle):
@@ -2858,7 +2857,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
 
     @deprecated(
         reason="Prefer direct pair iteration (for example zip(seq, seq[1:]))",
-        version="v1.13.0",
+        version="v1.16.0",
         alternative="Use enumerate(zip(node_list, node_list[1:])) directly",
     )
     def time_iterator(self, node_list):
@@ -2871,7 +2870,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
     @staticmethod
     def FlightPhases(*_args, **_kwargs):  # pylint: disable=invalid-name
         warnings.warn(
-            "FlightPhases is deprecated and will be removed in v1.13. "
+            "FlightPhases is deprecated and will be removed in v1.16. "
             "Use _FlightPhases class directly.",
             DeprecationWarning,
         )
@@ -2879,7 +2878,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
     @staticmethod
     def FlightPhase(*_args, **_kwargs):  # pylint: disable=invalid-name
         warnings.warn(
-            "FlightPhase is deprecated and will be removed in v1.13. "
+            "FlightPhase is deprecated and will be removed in v1.16. "
             "Use the _FlightPhase class directly.",
             DeprecationWarning,
         )
@@ -2887,7 +2886,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
     @staticmethod
     def TimeNodes(*_args, **_kwargs):  # pylint: disable=invalid-name
         warnings.warn(
-            "TimeNodes is deprecated and will be removed in v1.13. "
+            "TimeNodes is deprecated and will be removed in v1.16. "
             "Use _TimeNodes class directly.",
             DeprecationWarning,
         )
@@ -2895,7 +2894,7 @@ class Flight:  # pylint: disable=too-many-instance-attributes, too-many-public-m
     @staticmethod
     def TimeNode(*_args, **_kwargs):  # pylint: disable=invalid-name
         warnings.warn(
-            "TimeNode is deprecated and will be removed in v1.13. "
+            "TimeNode is deprecated and will be removed in v1.16. "
             "Use the _TimeNode class directly.",
             DeprecationWarning,
         )

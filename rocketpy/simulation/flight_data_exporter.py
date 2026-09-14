@@ -291,19 +291,19 @@ class FlightDataExporter:
         print("File ", file_name, " saved with success!")
 
     # Deprecated aliases -- kept for backward compatibility with the
-    # ``export_*`` method names used prior to v1.13.
-    @deprecated(version="v1.14.0", alternative="pressures")
+    # ``export_*`` method names used prior to v1.15.
+    @deprecated(version="v1.16.0", alternative="pressures")
     def export_pressures(self, file_name, time_step):
         return self.pressures(file_name, time_step)
 
-    @deprecated(version="v1.14.0", alternative="data")
+    @deprecated(version="v1.16.0", alternative="data")
     def export_data(self, file_name, *variables, time_step=None):
         return self.data(file_name, *variables, time_step=time_step)
 
-    @deprecated(version="v1.14.0", alternative="sensor_data")
+    @deprecated(version="v1.16.0", alternative="sensor_data")
     def export_sensor_data(self, file_name, sensor=None):
         return self.sensor_data(file_name, sensor)
 
-    @deprecated(version="v1.14.0", alternative="kml")
+    @deprecated(version="v1.16.0", alternative="kml")
     def export_kml(self, *args, **kwargs):
         return self.kml(*args, **kwargs)

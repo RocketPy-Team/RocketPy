@@ -1349,7 +1349,7 @@ class _FlightPlots:
         recorded measurements via ``flight.sensor_data`` instead.
         """
         warnings.warn(
-            "pressure_signals() is deprecated and will be removed in v1.13. "
+            "pressure_signals() is deprecated and will be removed in v1.16. "
             "Use a Barometer Sensor with built-in noise and access its data "
             "via flight.sensor_data instead.",
             DeprecationWarning,
