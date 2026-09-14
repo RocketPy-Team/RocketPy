@@ -52,6 +52,7 @@ Attention: The newest changes should be on top -->
 
 ### Changed
 
+- ENH: Number the simulations of a serial Monte Carlo run from zero, as the parallel path already did — the two used to name the same simulation `1, 2, 3` and `0, 1, 2`. The `index` field written into the inputs and outputs rows shifts by one for serial runs, so code reading indices off those files has to expect a run of `n` simulations to be numbered `0` to `n - 1`. An append onto a study written before this release is refused rather than continued, since its rows do not record which root drew them. [#1187](https://github.com/RocketPy-Team/RocketPy/pull/1187)
 - MNT: Store the reference-area correction factor on each rocket aero surface component, so it is carried with the surface instead of being recomputed at every lift evaluation. `Rocket.aerodynamic_surfaces`, `rail_buttons` and `sensors` now yield `(component, position, ref_factor)`, so code that unpacks a pair from them (`for surface, position in rocket.aerodynamic_surfaces`) has to take the third field or absorb it. Simulation results are unchanged, and `.rpy` files written before this still load. [#1129](https://github.com/RocketPy-Team/RocketPy/pull/1129) [#561](https://github.com/RocketPy-Team/RocketPy/issues/561)
 - ENH: Compute the rocket static margin lazily [#1135](https://github.com/RocketPy-Team/RocketPy/pull/1135) [#780](https://github.com/RocketPy-Team/RocketPy/issues/780)
 - DOC: Tighten the comments that came with the sampler seed groups [#1154](https://github.com/RocketPy-Team/RocketPy/pull/1154)
