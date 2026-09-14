@@ -57,7 +57,7 @@ def test_phase_collision_emits_warning(caplog):
     """A flight-phase time collision is reported through the logger."""
     phases = _FlightPhases(
         t_initial=0.0,
-        initial_derivative=lambda *args, **kwargs: None,
+        initial_dynamics=lambda *args, **kwargs: None,
         max_time=10.0,
     )
     with caplog.at_level(logging.WARNING, logger="rocketpy"):

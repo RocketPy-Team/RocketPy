@@ -328,3 +328,36 @@ def test_load_from_rpy(mock_show):  # pylint: disable=unused-argument
     )
     assert loaded_flight.info() is None
     assert loaded_flight.all_info() is None
+
+
+def test_rpy_round_trip(flight_calisto_robust, tmp_path):
+    """Tests that a flight saved with the current .rpy format loads back with
+    its trajectory, its key flight events and its derived quantities intact.
+
+    Parameters
+    ----------
+    flight_calisto_robust : Flight
+        A Flight object with a rocket with fins, created in the conftest.py
+        file.
+    tmp_path : pathlib.Path
+        Pytest fixture providing a temporary directory for the saved file.
+    """
+    file = tmp_path / "round_trip.rpy"
+    utilities.save_to_rpy(flight_calisto_robust, str(file))
+    loaded = utilities.load_from_rpy(str(file))
+
+    assert np.allclose(
+        loaded.solution.canonical_array,
+        flight_calisto_robust.solution.canonical_array,
+    )
+    assert loaded.apogee == pytest.approx(flight_calisto_robust.apogee)
+    assert loaded.t_final == pytest.approx(flight_calisto_robust.t_final)
+
+    # Derived quantities survive the round trip as evaluable, tabulated
+    # Functions rather than callables that would raise on use.
+    for name in ("ax", "ay", "az", "net_thrust"):
+        original = getattr(flight_calisto_robust, name)
+        restored = getattr(loaded, name)
+        assert restored(flight_calisto_robust.apogee_time) == pytest.approx(
+            original(flight_calisto_robust.apogee_time)
+        )

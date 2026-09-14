@@ -11,13 +11,35 @@ begin. So a row is read from the solution, and a phase tells you what that row
 means::
 
     for index, phase in enumerate(flight.solution.phases):
-        print(phase.name, len(flight.solution.phase_rows(index)))
+        start, stop = flight.solution.phase_span(index)
+        print(phase.name, stop - start)
 
-Read one phase with :meth:`Solution.phase_rows`, :meth:`Solution.phase_time`,
-:meth:`Solution.phase_series` and :meth:`Solution.phase_canonical_array`, each
-taking the phase's position in :attr:`Solution.phases`.
+:meth:`Solution.phase_span` gives where a phase's rows begin and end, so
+``flight.solution[start:stop]``, ``flight.solution["vz"][start:stop]`` and
+``flight.solution.canonical_array[start:stop]`` read just that phase.
 
 .. autoclass:: rocketpy.simulation.solution.Solution
+   :members:
+
+Post-process variables
+~~~~~~~~~~~~~~~~~~~~~~
+
+On its way to each state derivative, a flight phase works out quantities it
+never integrates: the accelerations, the aerodynamic forces and moments, and
+the net thrust. Read them through ``flight.solution.post``::
+
+    post = flight.solution.post
+    post.names             # every variable this flight computes
+    post["az"]             # its [t, value] history over the whole flight
+    post.at(3.0)           # every variable at the nearest stored time
+
+The same values back the flight's own :attr:`Flight.az <rocketpy.Flight.az>`
+and its companions, which wrap them as a
+:class:`Function <rocketpy.Function>` so they can be plotted and evaluated at
+any time. Reach for ``post`` when you want the values exactly as the simulation
+stored them, without interpolation.
+
+.. autoclass:: rocketpy.simulation.solution.PostProcessSolution
    :members:
 
 The phase objects themselves are internal to RocketPy for now, so their shape
