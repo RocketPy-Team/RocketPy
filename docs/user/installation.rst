@@ -172,6 +172,22 @@ Once installed, you can render animations from a :class:`rocketpy.Flight` object
 
 See :ref:`flightusage` for full details and parameter descriptions.
 
+**Interactive Maps** — render the flight ground track on a real-world
+interactive map using `Folium <https://python-visualization.github.io/folium/>`_:
+
+.. code-block:: shell
+
+    pip install rocketpy[maps]
+
+Once installed, you can build a map from a :class:`rocketpy.Flight` object:
+
+.. code-block:: python
+
+    # Open the result in a browser, or display it inline in Jupyter
+    flight.plots.trajectory_on_map(filename="trajectory.html")
+
+See :ref:`flightusage` for full details and parameter descriptions.
+
 **All extras** — install every optional dependency at once:
 
 .. code-block:: shell

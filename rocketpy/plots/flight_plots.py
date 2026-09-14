@@ -1,5 +1,6 @@
 # pylint: disable=too-many-lines
 
+import html
 import logging
 import os
 import time
@@ -143,6 +144,250 @@ class _FlightPlots:
         ax1.view_init(15, 45)
         ax1.set_box_aspect(None, zoom=0.95)  # 95% for label adjustment
         show_or_save_plot(filename)
+
+    # Background tile layers offered on every trajectory map. OpenStreetMap
+    # gives readable roads and place names; the Esri imagery layer is what
+    # actually matters for a rocket, since recovery fields, tree lines and
+    # water are only visible on satellite imagery.
+    _MAP_TILE_LAYERS = (
+        {
+            "tiles": "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            "attr": "OpenStreetMap",
+            "name": "OpenStreetMap",
+        },
+        {
+            "tiles": (
+                "https://server.arcgisonline.com/ArcGIS/rest/services/"
+                "World_Imagery/MapServer/tile/{z}/{y}/{x}.png"
+            ),
+            "attr": (
+                "Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, "
+                "AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the "
+                "GIS User Community"
+            ),
+            "name": "Esri Satellite",
+        },
+    )
+
+    def trajectory_on_map(
+        self,
+        *,
+        filename=None,
+        time_step=None,
+        color="#1f77b4",
+        safety_radii=None,
+        title=None,
+    ):
+        """Create an interactive Folium map of the flight ground track.
+
+        Draws the ground track from ``flight.latitude`` / ``flight.longitude``
+        over selectable OpenStreetMap and satellite imagery layers, and marks
+        the launch site, the apogee ground position and the landing site.
+        Requires the optional ``folium`` dependency
+        (``pip install folium`` or ``pip install rocketpy[maps]``).
+
+        Parameters
+        ----------
+        filename : str, optional
+            Path to save the map as a self-contained HTML file. If None, the
+            map is not written to disk. Default is None.
+        time_step : float, optional
+            Time step, in seconds, used to sample the trajectory. If None, all
+            integration time steps are used. Otherwise the ground track is
+            resampled by linear interpolation, which keeps the HTML file small
+            for long flights. Default is None.
+        color : str, optional
+            Color of the ground track, as any CSS color string. Default is
+            ``"#1f77b4"``.
+        safety_radii : Sequence[float], optional
+            Radii, in meters, of circles drawn around the launch site. Useful
+            to check the trajectory against range safety limits, e.g.
+            ``[2500, 5000, 10000]``. If None, no circles are drawn. Default is
+            None.
+        title : str, optional
+            Title rendered as an overlay on top of the map. If None, no title
+            is drawn. Default is None.
+
+        Returns
+        -------
+        folium.Map
+            The interactive map object. In Jupyter, displaying the return
+            value renders the map.
+
+        Raises
+        ------
+        ValueError
+            If the flight has no latitude/longitude samples to plot.
+
+        Examples
+        --------
+        >>> flight.plots.trajectory_on_map(  # doctest: +SKIP
+        ...     filename="trajectory.html",
+        ...     safety_radii=[2500, 5000],
+        ...     title="Flight 01",
+        ... )
+        """
+        folium = import_optional_dependency("folium")
+
+        latitudes, longitudes = self.__sample_ground_track(time_step)
+        path = list(zip(latitudes.tolist(), longitudes.tolist()))
+        if not path:
+            raise ValueError("Flight has no latitude/longitude samples to plot.")
+
+        launch, landing = path[0], path[-1]
+        center = [
+            float(0.5 * (launch[0] + landing[0])),
+            float(0.5 * (launch[1] + landing[1])),
+        ]
+
+        # tiles=None so that the two layers below are the only backgrounds and
+        # both show up in the layer control.
+        flight_map = folium.Map(
+            location=center, zoom_start=13, tiles=None, control_scale=True
+        )
+        for layer in self._MAP_TILE_LAYERS:
+            folium.TileLayer(control=True, **layer).add_to(flight_map)
+
+        folium.PolyLine(
+            locations=path,
+            color=color,
+            weight=3,
+            opacity=0.85,
+            tooltip="Flight trajectory",
+        ).add_to(flight_map)
+
+        for location, label, icon_color in self.__trajectory_markers(launch, landing):
+            folium.Marker(
+                location=location,
+                popup=label,
+                tooltip=label,
+                icon=folium.Icon(color=icon_color),
+            ).add_to(flight_map)
+
+        if safety_radii:
+            self.__add_safety_circles(folium, flight_map, launch, safety_radii)
+
+        if title:
+            self.__add_map_title(folium, flight_map, title)
+
+        folium.LayerControl(collapsed=False).add_to(flight_map)
+
+        bounds = self.__map_bounds(latitudes, longitudes, launch, safety_radii)
+        if bounds is not None:
+            # Pad the viewport so that the launch and landing pins, which are
+            # anchored at the very edge of the bounding box, are not clipped by
+            # the border of the map.
+            flight_map.fit_bounds(bounds, padding=(30, 30))
+
+        if filename is not None:
+            flight_map.save(filename)
+            logger.info("File %s saved with success!", filename)
+
+        return flight_map
+
+    def __sample_ground_track(self, time_step):
+        """Return the (latitude, longitude) arrays of the ground track.
+
+        When ``time_step`` is None the raw integration steps are used, mirroring
+        the behaviour of ``Flight.export_kml``. Otherwise the coordinates are
+        linearly interpolated over a uniform time grid.
+        """
+        flight = self.flight
+        if time_step is None:
+            return (
+                np.asarray(flight.latitude[:, 1], dtype=float),
+                np.asarray(flight.longitude[:, 1], dtype=float),
+            )
+        time_points = np.arange(flight.t_initial, flight.t_final + time_step, time_step)
+        return (
+            np.array([flight.latitude.get_value_opt(t) for t in time_points]),
+            np.array([flight.longitude.get_value_opt(t) for t in time_points]),
+        )
+
+    def __trajectory_markers(self, launch, landing):
+        """Yield the (location, label, color) of each trajectory marker.
+
+        The apogee marker is skipped when apogee was never detected, since
+        ``Flight.apogee_time`` then keeps its initial value of zero and would
+        place the marker on top of the launch site.
+        """
+        flight = self.flight
+        yield launch, "Launch", "green"
+        if flight.apogee_time > flight.t_initial:
+            apogee = (
+                flight.latitude.get_value_opt(flight.apogee_time),
+                flight.longitude.get_value_opt(flight.apogee_time),
+            )
+            yield (
+                apogee,
+                f"Apogee ({flight.apogee - flight.env.elevation:.0f} m AGL)",
+                ("blue"),
+            )
+        yield landing, "Landing", "red"
+
+    @staticmethod
+    def __map_bounds(latitudes, longitudes, launch, safety_radii):
+        """Return the ``[[south, west], [north, east]]`` box the map opens on.
+
+        The box always contains the ground track. When safety circles were
+        requested it is widened to contain them too, otherwise the largest ring
+        would sit outside the initial viewport and the user would have to zoom
+        out to find it. Returns None when the track degenerates to a single
+        point, in which case the caller should keep the default zoom.
+        """
+        south, north = float(np.min(latitudes)), float(np.max(latitudes))
+        west, east = float(np.min(longitudes)), float(np.max(longitudes))
+
+        if safety_radii:
+            # Equirectangular approximation, which is plenty for framing a map:
+            # one degree of latitude is ~111.32 km, and one degree of longitude
+            # shrinks by cos(latitude).
+            radius = max(float(r) for r in safety_radii)
+            delta_lat = radius / 111320.0
+            delta_lon = delta_lat / max(np.cos(np.radians(launch[0])), 1e-6)
+            south, north = (
+                min(south, launch[0] - delta_lat),
+                max(north, launch[0] + delta_lat),
+            )
+            west, east = (
+                min(west, launch[1] - delta_lon),
+                max(east, launch[1] + delta_lon),
+            )
+
+        if abs(north - south) <= 1e-12 and abs(east - west) <= 1e-12:
+            return None
+        return [[south, west], [north, east]]
+
+    @staticmethod
+    def __add_safety_circles(folium, flight_map, launch, safety_radii):
+        """Draw range safety circles centred on the launch site.
+
+        They live in their own feature group so that the layer control can
+        toggle them without hiding the trajectory.
+        """
+        safety_group = folium.FeatureGroup(name="Safety radii")
+        for radius in safety_radii:
+            folium.Circle(
+                location=launch,
+                radius=float(radius),
+                color="orange",
+                tooltip=f"R{float(radius):.0f} m",
+                fill=False,
+            ).add_to(safety_group)
+        safety_group.add_to(flight_map)
+
+    @staticmethod
+    def __add_map_title(folium, flight_map, title):
+        """Render ``title`` as a floating overlay on top of the map."""
+        title_html = (
+            '<div style="position: fixed; top: 10px; left: 50%;'
+            " transform: translate(-50%, 0); width: 70vw; max-width: 600px;"
+            " background-color: rgba(255, 255, 255, 0.7); border-radius: 6px;"
+            ' padding: 5px; z-index: 9999;">'
+            f'<h3 align="center" style="font-size: 20px; margin: 0; color: black;">'
+            f"<b>{html.escape(str(title))}</b></h3></div>"
+        )
+        flight_map.get_root().html.add_child(folium.Element(title_html))
 
     def _resolve_animation_model_path(self, file_name):
         """Resolve model path, defaulting to the built-in STL when omitted."""
@@ -2268,8 +2513,41 @@ class _FlightPlots:
         ax4.set_title("Euler Spin Angle")
         ax4.grid(True)
 
+        for ax in (ax1, ax2, ax3, ax4):
+            self._mark_tip_off_window(ax)
+
         plt.subplots_adjust(hspace=0.5)
         show_or_save_plot(filename)
+
+    def _mark_tip_off_window(self, ax):
+        """Shades the tip-off window on a time-axis plot.
+
+        The window runs from the upper rail button leaving the rail to the
+        lower one leaving it, which is when the rocket pivots about the lower
+        button. It is a no-op unless the flight was run with
+        ``use_udot_rail2=True``, since otherwise the phase never runs.
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes
+            Axes whose x-axis is flight time, in seconds.
+
+        Returns
+        -------
+        None
+        """
+        if not self.flight.use_udot_rail2:
+            return
+        if self.flight.between_rails_time <= self.flight.out_of_rail_time:
+            return
+        ax.axvspan(
+            self.flight.out_of_rail_time,
+            self.flight.between_rails_time,
+            color="0.5",
+            alpha=0.25,
+            zorder=0,
+            label="Tip-off window",
+        )
 
     def flight_path_angle_data(self, *, filename=None):
         """Prints out Flight path and Rocket Attitude angle graphs available

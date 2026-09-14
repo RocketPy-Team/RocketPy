@@ -32,6 +32,7 @@ Attention: The newest changes should be on top -->
 
 ### Added
 
+- ENH: 3-DOF single rail button flight phase (tip-off analysis), enabled with the opt-in `Flight(use_udot_rail2=True)`. Between the upper rail button leaving the rail and the lower one following it, the rocket pivots about the lower button under a solved constraint wrench instead of jumping straight to free 6-DOF flight. The window is reported as `between_rails_time`, `between_rails_velocity` and `tip_off_duration`, printed by `Flight.info()` and shaded in the attitude plots. Requires `simulation_mode="6 DOF"` and `equations_of_motion="standard"`. [#920](https://github.com/RocketPy-Team/RocketPy/pull/920)
 - ENH: Creation of the magnetometer sensor [#1190](https://github.com/RocketPy-Team/RocketPy/pull/1190)
   Adds the `Magnetometer` sensor, which models Earth's geomagnetic field with the World Magnetic Model (via the new `pywmm` dependency) and the magnetic distortions a rocket imposes on it: hard iron as a constant offset, soft iron through the new `Plate` class, and power interference through the new `Wire` class. `Rocket.add_plate`, `Rocket.add_wire` and `Rocket.general_radius` are added to support them, together with plots and prints for both new classes.
 - ENH: Support fixed-time parachute deployment triggers [#1133](https://github.com/RocketPy-Team/RocketPy/pull/1133) [#437](https://github.com/RocketPy-Team/RocketPy/issues/437)
@@ -63,6 +64,7 @@ Attention: The newest changes should be on top -->
 
 ### Fixed
 
+- BUG: A `Flight` continued from another `Flight` object now records `t_initial`, so a rocket carrying sensors or controllers no longer raises `AttributeError` on that path. [#920](https://github.com/RocketPy-Team/RocketPy/pull/920)
 - BUG: Correct the accelerometer's frame changes [#1190](https://github.com/RocketPy-Team/RocketPy/pull/1190)
   `Accelerometer.measure` added the lever-arm terms, which are body frame quantities, straight onto the inertial frame acceleration before rotating, and then applied `_total_rotation_sensor_to_body` in the sensor-to-body direction to reach the sensor frame rather than its transpose. Readings from an accelerometer mounted off the center of dry mass, or with a non-identity `orientation`, change as a result. `Gyroscope` applies the same rotation in the same direction and is left untouched here, so that its own change can be reviewed on its own.
 - BUG: Correct the gravity sign an `Accelerometer` applies when `consider_gravity=True`. The gravitational field was added to the inertial acceleration instead of subtracted from it, so the sensor reported the negative of the proper acceleration along the vertical: one at rest read -g rather than +g. Recorded accelerometer data taken with `consider_gravity=True` changes sign in that term. [#1175](https://github.com/RocketPy-Team/RocketPy/pull/1175)
